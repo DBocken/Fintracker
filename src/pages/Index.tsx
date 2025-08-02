@@ -10,54 +10,77 @@ import { RuleBuilder } from '@/components/categorization/RuleBuilder';
 import { Tabs } from '@/components/dashboard/Tabs';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings } from 'lucide-react';
 import { formatCurrency, calculateFinancialHealth, formatDate } from '@/lib/utils';
-import { db } from '@packages/services/src/db';
+
+// Simple in-memory storage for client-side
+interface Transaction {
+  id: number;
+  date: Date;
+  amount: number;
+  recipient?: string;
+  category?: string;
+}
+
+let transactions: Transaction[] = [];
+let rules: any[] = [];
 
 const Index: React.FC = () => {
   const [showUpload, setShowUpload] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [rules, setRules] = useState<any[]>([]);
+  const [transactionData, setTransactionData] = useState<Transaction[]>([]);
+  const [ruleData, setRuleData] = useState<any[]>([]);
 
   useEffect(() => {
-    loadTransactions();
-    loadRules();
+    loadData();
   }, []);
 
-  const loadTransactions = async () => {
-    const tx = await db.tx.toArray();
-    setTransactions(tx);
-    setShowUpload(tx.length === 0);
-  };
-
-  const loadRules = async () => {
-    const rules = await db.rules.toArray();
-    setRules(rules);
-  };
-
-  const handleFileUploaded = async (newTransactions: any[]) => {
-    await db.tx.bulkAdd(newTransactions);
-    await loadTransactions();
-  };
-
-  const handleCategoryChange = async (id: number, category: string) => {
-    await db.tx.update(id, { category });
-    await loadTransactions();
-  };
-
-  const applyRules = async () => {
-    const rules = await db.rules.toArray();
-    const transactions = await db.tx.toArray();
+  const loadData = () => {
+    // Load from localStorage
+    const savedTransactions = localStorage.getItem('fintrack-transactions');
+    const savedRules = localStorage.getItem('fintrack-rules');
     
-    for (const transaction of transactions) {
-      for (const rule of rules) {
-        if (rule.matches(transaction)) {
-          await db.tx.update(transaction.id!, { category: rule.category });
-          break;
-        }
-      }
+    if (savedTransactions) {
+      transactions = JSON.parse(savedTransactions);
+      setTransactionData(transactions);
+      setShowUpload(transactions.length === 0);
     }
     
-    await loadTransactions();
+    if (savedRules) {
+      rules = JSON.parse(savedRules);
+      setRuleData(rules);
+    }
+  };
+
+  const handleFileUploaded = (newTransactions: any[]) => {
+    transactions = newTransactions.map((t, index) => ({
+      ...t,
+      id: index + 1,
+      date: new Date(t.date)
+    }));
+    localStorage.setItem('fintrack-transactions', JSON.stringify(transactions));
+    setTransactionData(transactions);
+    setShowUpload(false);
+  };
+
+  const handleCategoryChange = (id: number, category: string) => {
+    transactions = transactions.map(t => 
+      t.id === id ? { ...t, category } : t
+    );
+    localStorage.setItem('fintrack-transactions', JSON.stringify(transactions));
+    setTransactionData([...transactions]);
+  };
+
+  const applyRules = () => {
+    // Apply rules to transactions
+    transactions = transactions.map(transaction => {
+      for (const rule of rules) {
+        if (rule.matches(transaction)) {
+          return { ...transaction, category: rule.category };
+        }
+      }
+      return transaction;
+    });
+    localStorage.setItem('fintrack-transactions', JSON.stringify(transactions));
+    setTransactionData([...transactions]);
   };
 
   const tabs = [
@@ -77,19 +100,19 @@ const Index: React.FC = () => {
     { month: 'Jun', income: 5100, expenses: 3000, forecast: 4950, scenario1: 5250 },
   ];
 
-  const totalIncome = transactions
+  const totalIncome = transactionData
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalExpenses = Math.abs(
-    transactions
+    transactionData
       .filter(t => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0)
   );
 
-  const financialHealth = calculateFinancialHealth(transactions);
+  const financialHealth = calculateFinancialHealth(transactionData);
 
-  if (showUpload && transactions.length === 0) {
+  if (showUpload && transactionData.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-2xl w-full p-8">
@@ -159,7 +182,7 @@ const Index: React.FC = () => {
               <div className="bg-card border border-border rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
                 <div className="space-y-3">
-                  {transactions.slice(0, 5).map((transaction, index) => (
+                  {transactionData.slice(0, 5).map((transaction, index) => (
                     <div key={index} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                       <div>
                         <p className="font-medium">{transaction.recipient || 'Unknown'}</p>
@@ -180,21 +203,21 @@ const Index: React.FC = () => {
 
         {activeTab === 'transactions' && (
           <TransactionTable 
-            transactions={transactions} 
+            transactions={transactionData} 
             onCategoryChange={handleCategoryChange}
           />
         )}
 
         {activeTab === 'recurring' && (
-          <RecurringExpenses transactions={transactions} />
+          <RecurringExpenses transactions={transactionData} />
         )}
 
         {activeTab === 'budgets' && (
-          <BudgetGoals transactions={transactions} />
+          <BudgetGoals transactions={transactionData} />
         )}
 
         {activeTab === 'rules' && (
-          <RuleBuilder onRulesUpdated={loadTransactions} />
+          <RuleBuilder onRulesUpdated={loadData} />
         )}
       </div>
     </MainLayout>
