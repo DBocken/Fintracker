@@ -3,31 +3,36 @@ import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { formatCurrency, formatDate, getGermanQuarter } from '@/lib/dateUtils';
 
+interface SimpleTransaction {
+  date: Date;
+  amount: number;
+}
+
 interface LiquidityReportProps {
-  transactions: any[];
+  transactions: SimpleTransaction[];
 }
 
 export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }) => {
   // Calculate liquidity metrics
   const currentBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
   
-  // Calculate 30-day liquidity forecast
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
+  // Calculate 6-month liquidity forecast
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
+
   const recentExpenses = transactions
-    .filter(t => t.date >= thirtyDaysAgo && t.amount < 0)
+    .filter(t => t.date >= sixMonthsAgo && t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
-  const avgDailyExpense = recentExpenses / 30;
+
+  const avgDailyExpense = recentExpenses / 180;
   const daysOfLiquidity = currentBalance > 0 ? Math.floor(currentBalance / avgDailyExpense) : 0;
-  
+
   // Calculate liquidity percentage
-  const monthlyIncome = transactions
-    .filter(t => t.date >= thirtyDaysAgo && t.amount > 0)
+  const sixMonthIncome = transactions
+    .filter(t => t.date >= sixMonthsAgo && t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
-  
-  const liquidityRatio = monthlyIncome > 0 ? (currentBalance / monthlyIncome) * 100 : 0;
+
+  const liquidityRatio = sixMonthIncome > 0 ? (currentBalance / sixMonthIncome) * 100 : 0;
   
   // Determine traffic light status
   const getStatus = () => {
@@ -93,11 +98,11 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
       {/* Detailed Metrics */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-4">
-          <h4 className="font-medium mb-2">30-Tage Übersicht</h4>
+          <h4 className="font-medium mb-2">6-Monats Übersicht</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Gesamteinnahmen:</span>
-              <span className="text-green-600">{formatCurrency(monthlyIncome)}</span>
+              <span className="text-green-600">{formatCurrency(sixMonthIncome)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Gesamtausgaben:</span>
@@ -105,8 +110,8 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Netto-Fluss:</span>
-              <span className={monthlyIncome - recentExpenses >= 0 ? 'text-green-600' : 'text-red-600'}>
-                {formatCurrency(monthlyIncome - recentExpenses)}
+              <span className={sixMonthIncome - recentExpenses >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {formatCurrency(sixMonthIncome - recentExpenses)}
               </span>
             </div>
           </div>
