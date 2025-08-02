@@ -10,7 +10,7 @@ import { RuleBuilder } from '@/components/categorization/RuleBuilder';
 import { LiquidityReport } from '@/components/dashboard/LiquidityReport';
 import { Tabs } from '@/components/dashboard/Tabs';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings, BarChart3 } from 'lucide-react';
-import { formatCurrency, calculateFinancialHealth, formatDate } from '@/lib/utils';
+import { formatCurrency, calculateFinancialHealth, formatDate, getCurrentGermanDate } from '@/lib/dateUtils';
 
 // Simple in-memory storage for client-side
 interface Transaction {
@@ -85,20 +85,20 @@ const Index: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: <TrendingUp className="h-4 w-4" /> },
-    { id: 'transactions', label: 'Transactions', icon: <FileText className="h-4 w-4" /> },
-    { id: 'recurring', label: 'Recurring Expenses', icon: <Repeat className="h-4 w-4" /> },
-    { id: 'budgets', label: 'Budgeting & Goals', icon: <Target className="h-4 w-4" /> },
-    { id: 'rules', label: 'Rules', icon: <Settings className="h-4 w-4" /> },
-    { id: 'liquidity', label: 'Liquidity', icon: <BarChart3 className="h-4 w-4" /> },
+    { id: 'overview', label: 'Übersicht', icon: <TrendingUp className="h-4 w-4" /> },
+    { id: 'transactions', label: 'Transaktionen', icon: <FileText className="h-4 w-4" /> },
+    { id: 'recurring', label: 'Wiederkehrend', icon: <Repeat className="h-4 w-4" /> },
+    { id: 'budgets', label: 'Budgets', icon: <Target className="h-4 w-4" /> },
+    { id: 'rules', label: 'Regeln', icon: <Settings className="h-4 w-4" /> },
+    { id: 'liquidity', label: 'Liquidität', icon: <BarChart3 className="h-4 w-4" /> },
   ];
 
   const chartData = [
     { month: 'Jan', income: 5000, expenses: 3200, forecast: 4800, scenario1: 5200 },
     { month: 'Feb', income: 4800, expenses: 2900, forecast: 4700, scenario1: 5100 },
-    { month: 'Mar', income: 5200, expenses: 3500, forecast: 4900, scenario1: 5300 },
+    { month: 'Mär', income: 5200, expenses: 3500, forecast: 4900, scenario1: 5300 },
     { month: 'Apr', income: 4900, expenses: 3100, forecast: 4850, scenario1: 5150 },
-    { month: 'May', income: 5300, expenses: 3300, forecast: 5000, scenario1: 5400 },
+    { month: 'Mai', income: 5300, expenses: 3300, forecast: 5000, scenario1: 5400 },
     { month: 'Jun', income: 5100, expenses: 3000, forecast: 4950, scenario1: 5250 },
   ];
 
@@ -121,7 +121,10 @@ const Index: React.FC = () => {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">FinTrack V2</h1>
             <p className="text-xl text-muted-foreground">
-              Upload your financial data. Track everything. No spreadsheets.
+              Laden Sie Ihre Finanzdaten hoch. Verfolgen Sie alles. Keine Tabellenkalkulationen.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Stand: {getCurrentGermanDate()}
             </p>
           </div>
           <FileUploader onFileUploaded={handleFileUploaded} />
@@ -134,9 +137,12 @@ const Index: React.FC = () => {
     <MainLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Welcome to FinTrack</h1>
+          <h1 className="text-3xl font-bold mb-2">Willkommen bei FinTrack</h1>
           <p className="text-muted-foreground">
-            Your financial overview at a glance
+            Ihre Finanzübersicht auf einen Blick
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Stand: {getCurrentGermanDate()}
           </p>
         </div>
 
@@ -146,30 +152,30 @@ const Index: React.FC = () => {
           <div className="space-y-8">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <DashboardCard
-                title="Total Income"
+                title="Gesamteinnahmen"
                 value={formatCurrency(totalIncome)}
-                change="+12.5% from last month"
+                change="+12,5% zum letzten Monat"
                 changeType="positive"
                 icon={<TrendingUp className="h-5 w-5" />}
               />
               <DashboardCard
-                title="Total Expenses"
+                title="Gesamtausgaben"
                 value={formatCurrency(totalExpenses)}
-                change="-8.2% from last month"
+                change="-8,2% zum letzten Monat"
                 changeType="negative"
                 icon={<TrendingDown className="h-5 w-5" />}
               />
               <DashboardCard
-                title="Net Balance"
+                title="Nettosaldo"
                 value={formatCurrency(totalIncome - totalExpenses)}
-                change="+€450 this month"
+                change="+450€ diesen Monat"
                 changeType="positive"
                 icon={<DollarSign className="h-5 w-5" />}
               />
               <DashboardCard
-                title="Financial Health"
+                title="Finanzgesundheit"
                 value={`${financialHealth.toFixed(0)}%`}
-                change={financialHealth > 80 ? "Excellent" : financialHealth > 60 ? "Good" : "Needs attention"}
+                change={financialHealth > 80 ? "Exzellent" : financialHealth > 60 ? "Gut" : "Achtung erforderlich"}
                 changeType={financialHealth > 80 ? "positive" : financialHealth > 60 ? "neutral" : "negative"}
                 icon={<AlertCircle className="h-5 w-5" />}
               />
@@ -177,17 +183,17 @@ const Index: React.FC = () => {
 
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="bg-card border border-border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Cashflow Forecast</h2>
+                <h2 className="text-xl font-semibold mb-4">Cashflow-Prognose</h2>
                 <MixedChart data={chartData} />
               </div>
               
               <div className="bg-card border border-border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+                <h2 className="text-xl font-semibold mb-4">Letzte Transaktionen</h2>
                 <div className="space-y-3">
                   {transactionData.slice(0, 5).map((transaction, index) => (
                     <div key={index} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                       <div>
-                        <p className="font-medium">{transaction.recipient || 'Unknown'}</p>
+                        <p className="font-medium">{transaction.recipient || 'Unbekannt'}</p>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(transaction.date)}
                         </p>

@@ -1,24 +1,10 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { formatDate, formatCurrency, formatNumber } from './dateUtils';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ');
 }
 
-export function formatNumber(amount: number): string {
-  return amount.toLocaleString('de-DE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
-
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString('de-DE');
-}
-
-export function formatCurrency(amount: number): string {
-  return `${formatNumber(amount)} €`;
-}
+export { formatDate, formatCurrency, formatNumber };
 
 export function calculateFinancialHealth(transactions: any[]): number {
   const totalIncome = transactions
@@ -33,4 +19,20 @@ export function calculateFinancialHealth(transactions: any[]): number {
   
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
   return Math.max(0, Math.min(100, savingsRate));
+}
+
+export function parseCSV(text: string): Record<string, string>[] {
+  const rows = text.split('\n').slice(1).filter(row => row.trim());
+  return rows.map(row => {
+    const [date, amount, recipient] = row.split(';');
+    return {
+      date: date || '',
+      amount: amount || '',
+      recipient: recipient || ''
+    };
+  });
+}
+
+export function parseGermanNumber(str: string): number {
+  return parseFloat(str.replace(/\./g, '').replace(',', '.'));
 }

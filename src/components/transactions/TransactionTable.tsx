@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { formatDate, formatCurrency } from '@/lib/utils';
 import { Search, Filter, Tag, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { formatDate, formatCurrency } from '@/lib/dateUtils';
 
 interface Transaction {
   id: number;
@@ -49,7 +50,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search transactions..."
+            placeholder="Transaktionen suchen..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -66,13 +67,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
           <PopoverContent className="w-80">
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Category</label>
+                <Label>Kategorie</Label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="w-full mt-1 p-2 border rounded-md"
                 >
-                  <option value="all">All categories</option>
+                  <option value="all">Alle Kategorien</option>
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -87,10 +88,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         <table className="w-full">
           <thead>
             <tr className="border-b">
-              <th className="text-left py-3 px-4 font-medium">Date</th>
-              <th className="text-left py-3 px-4 font-medium">Description</th>
-              <th className="text-left py-3 px-4 font-medium">Category</th>
-              <th className="text-right py-3 px-4 font-medium">Amount</th>
+              <th className="text-left py-3 px-4 font-medium">Datum</th>
+              <th className="text-left py-3 px-4 font-medium">Beschreibung</th>
+              <th className="text-left py-3 px-4 font-medium">Kategorie</th>
+              <th className="text-right py-3 px-4 font-medium">Betrag</th>
             </tr>
           </thead>
           <tbody>
@@ -104,7 +105,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 </td>
                 <td className="py-3 px-4">
                   <div>
-                    <p className="font-medium">{transaction.recipient || 'Unknown'}</p>
+                    <p className="font-medium">{transaction.recipient || 'Unbekannt'}</p>
                     <p className="text-sm text-muted-foreground">{transaction.description}</p>
                   </div>
                 </td>
@@ -113,14 +114,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                     variant={transaction.category ? "default" : "outline"}
                     className="cursor-pointer"
                     onClick={() => {
-                      const newCategory = prompt('Enter category:', transaction.category || '');
+                      const newCategory = prompt('Kategorie eingeben:', transaction.category || '');
                       if (newCategory !== null) {
                         onCategoryChange(transaction.id, newCategory);
                       }
                     }}
                   >
                     <Tag className="h-3 w-3 mr-1" />
-                    {transaction.category || 'Uncategorized'}
+                    {transaction.category || 'Nicht kategorisiert'}
                   </Badge>
                 </td>
                 <td className="py-3 px-4 text-right">

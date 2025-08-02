@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/dateUtils';
 import { Calendar, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -8,7 +8,7 @@ interface RecurringExpense {
   id: string;
   name: string;
   amount: number;
-  frequency: 'monthly' | 'yearly';
+  frequency: 'monatlich' | 'jährlich';
   nextDue: Date;
   category: string;
   daysUntilDue: number;
@@ -25,7 +25,7 @@ export const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ transactio
     transactions
       .filter(t => t.amount < 0)
       .forEach(t => {
-        const key = t.recipient?.toLowerCase() || 'unknown';
+        const key = t.recipient?.toLowerCase() || 'unbekannt';
         const existing = expenseMap.get(key) || { total: 0, count: 0, dates: [] };
         expenseMap.set(key, {
           total: existing.total + Math.abs(t.amount),
@@ -40,9 +40,9 @@ export const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ transactio
         id: name,
         name: name.charAt(0).toUpperCase() + name.slice(1),
         amount: data.total / data.count,
-        frequency: 'monthly' as const,
+        frequency: 'monatlich' as const,
         nextDue: new Date(new Date().setDate(1)),
-        category: 'Recurring',
+        category: 'Wiederkehrend',
         daysUntilDue: Math.ceil((new Date().getTime() - data.dates[data.dates.length - 1].getTime()) / (1000 * 60 * 60 * 24))
       }))
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
@@ -55,18 +55,18 @@ export const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ transactio
   };
 
   const getStatusText = (daysUntilDue: number) => {
-    if (daysUntilDue <= 0) return 'Overdue';
-    if (daysUntilDue === 1) return 'Due tomorrow';
-    if (daysUntilDue <= 7) return `Due in ${daysUntilDue} days`;
+    if (daysUntilDue <= 0) return 'Überfällig';
+    if (daysUntilDue === 1) return 'Morgen fällig';
+    if (daysUntilDue <= 7) return `In ${daysUntilDue} Tagen`;
     return formatDate(new Date());
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Recurring Expenses</h2>
+        <h2 className="text-2xl font-bold mb-2">Wiederkehrende Ausgaben</h2>
         <p className="text-muted-foreground">
-          Track your regular payments and subscriptions
+          Verfolgen Sie Ihre regelmäßigen Zahlungen und Abonnements
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ transactio
         <Card className="p-8 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
-            No recurring expenses detected yet. Upload more transactions to see patterns.
+            Noch keine wiederkehrenden Ausgaben erkannt. Laden Sie mehr Transaktionen hoch, um Muster zu erkennen.
           </p>
         </Card>
       )}

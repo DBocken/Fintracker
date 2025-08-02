@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, getGermanQuarter } from '@/lib/dateUtils';
 
 interface LiquidityReportProps {
   transactions: any[];
@@ -31,9 +31,9 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
   
   // Determine traffic light status
   const getStatus = () => {
-    if (liquidityRatio >= 100) return { color: 'green', label: 'Excellent', icon: CheckCircle };
-    if (liquidityRatio >= 80) return { color: 'yellow', label: 'Good', icon: AlertTriangle };
-    return { color: 'red', label: 'Critical', icon: XCircle };
+    if (liquidityRatio >= 100) return { color: 'green', label: 'Exzellent', icon: CheckCircle };
+    if (liquidityRatio >= 80) return { color: 'yellow', label: 'Gut', icon: AlertTriangle };
+    return { color: 'red', label: 'Kritisch', icon: XCircle };
   };
 
   const status = getStatus();
@@ -42,9 +42,9 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Liquidity Report</h2>
+        <h2 className="text-2xl font-bold mb-2">Liquiditätsbericht</h2>
         <p className="text-muted-foreground">
-          Current financial liquidity status and forecast
+          Aktueller finanzieller Liquiditätsstatus und Prognose
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
             }`}>
               <StatusIcon className="h-8 w-8" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Liquidity Status</h3>
+            <h3 className="text-lg font-semibold mb-2">Liquiditätsstatus</h3>
             <p className={`text-3xl font-bold mb-1 ${
               status.color === 'green' ? 'text-green-600' :
               status.color === 'yellow' ? 'text-yellow-600' :
@@ -74,18 +74,18 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
         {/* Current Balance */}
         <Card className="p-6">
           <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">Current Balance</h3>
+            <h3 className="text-lg font-semibold mb-2">Aktueller Kontostand</h3>
             <p className="text-3xl font-bold mb-1">{formatCurrency(currentBalance)}</p>
-            <p className="text-sm text-muted-foreground">As of {formatDate(new Date())}</p>
+            <p className="text-sm text-muted-foreground">Stand: {formatDate(new Date())}</p>
           </div>
         </Card>
 
         {/* Days of Liquidity */}
         <Card className="p-6">
           <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">Days of Liquidity</h3>
+            <h3 className="text-lg font-semibold mb-2">Tage der Liquidität</h3>
             <p className="text-3xl font-bold mb-1">{daysOfLiquidity}</p>
-            <p className="text-sm text-muted-foreground">Days at current spending rate</p>
+            <p className="text-sm text-muted-foreground">Tage bei aktueller Ausgabenrate</p>
           </div>
         </Card>
       </div>
@@ -93,18 +93,18 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
       {/* Detailed Metrics */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-4">
-          <h4 className="font-medium mb-2">30-Day Summary</h4>
+          <h4 className="font-medium mb-2">30-Tage Übersicht</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Income:</span>
+              <span className="text-muted-foreground">Gesamteinnahmen:</span>
               <span className="text-green-600">{formatCurrency(monthlyIncome)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Expenses:</span>
+              <span className="text-muted-foreground">Gesamtausgaben:</span>
               <span className="text-red-600">{formatCurrency(recentExpenses)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Net Flow:</span>
+              <span className="text-muted-foreground">Netto-Fluss:</span>
               <span className={monthlyIncome - recentExpenses >= 0 ? 'text-green-600' : 'text-red-600'}>
                 {formatCurrency(monthlyIncome - recentExpenses)}
               </span>
@@ -113,18 +113,18 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
         </Card>
 
         <Card className="p-4">
-          <h4 className="font-medium mb-2">Daily Metrics</h4>
+          <h4 className="font-medium mb-2">Tägliche Kennzahlen</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Avg Daily Expense:</span>
+              <span className="text-muted-foreground">Ø Tägliche Ausgaben:</span>
               <span>{formatCurrency(avgDailyExpense)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Liquidity Ratio:</span>
+              <span className="text-muted-foreground">Liquiditätsquote:</span>
               <span>{liquidityRatio.toFixed(1)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Risk Level:</span>
+              <span className="text-muted-foreground">Risikostufe:</span>
               <span className={`font-medium ${
                 status.color === 'green' ? 'text-green-600' :
                 status.color === 'yellow' ? 'text-yellow-600' :
@@ -139,23 +139,33 @@ export const LiquidityReport: React.FC<LiquidityReportProps> = ({ transactions }
 
       {/* Recommendations */}
       <Card className="p-4">
-        <h4 className="font-medium mb-2">Recommendations</h4>
+        <h4 className="font-medium mb-2">Empfehlungen</h4>
         <div className="text-sm">
           {status.color === 'green' && (
             <p className="text-green-600">
-              ✓ Excellent liquidity position. Consider investing excess funds.
+              ✓ Exzellente Liquidität. Erwägen Sie die Investition überschüssiger Mittel.
             </p>
           )}
           {status.color === 'yellow' && (
             <p className="text-yellow-600">
-              ⚠ Good liquidity but monitor expenses closely. Consider building emergency fund.
+              ⚠ Gute Liquidität, aber überwachen Sie die Ausgaben genau. Erwägen Sie einen Notfallfonds.
             </p>
           )}
           {status.color === 'red' && (
             <p className="text-red-600">
-              ⚠ Critical liquidity. Reduce expenses immediately and increase income sources.
+              ⚠ Kritische Liquidität. Reduzieren Sie sofort die Ausgaben und erhöhen Sie die Einnahmequellen.
             </p>
           )}
+        </div>
+      </Card>
+
+      {/* Quarterly Overview */}
+      <Card className="p-4">
+        <h4 className="font-medium mb-2">Quartalsübersicht</h4>
+        <div className="text-sm">
+          <p className="text-muted-foreground">
+            Aktuelles Quartal: {getGermanQuarter(new Date())}
+          </p>
         </div>
       </Card>
     </div>
