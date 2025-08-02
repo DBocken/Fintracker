@@ -3,16 +3,35 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { FileUploader } from '@/components/upload/FileUploader';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { MixedChart } from '@/components/charts/MixedChart';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle } from 'lucide-react';
+import { TransactionTable } from '@/components/transactions/TransactionTable';
+import { RecurringExpenses } from '@/components/dashboard/RecurringExpenses';
+import { BudgetGoals } from '@/components/dashboard/BudgetGoals';
+import { Tabs } from '@/components/dashboard/Tabs';
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat } from 'lucide-react';
+import { formatCurrency, calculateFinancialHealth, formatDate } from '@/lib/utils';
 
 const Index: React.FC = () => {
   const [showUpload, setShowUpload] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const [transactions, setTransactions] = useState<any[]>([]);
 
   const handleFileUploaded = (newTransactions: any[]) => {
     setTransactions(newTransactions);
     setShowUpload(false);
   };
+
+  const handleCategoryChange = (id: number, category: string) => {
+    setTransactions(prev => 
+      prev.map(t => t.id === id ? { ...t, category } : t)
+    );
+  };
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: <TrendingUp className="h-4 w-4" /> },
+    { id: 'transactions', label: 'Transactions', icon: <FileText className="h-4 w-4" /> },
+    { id: 'recurring', label: 'Recurring Expenses', icon: <Repeat className="h-4 w-4" /> },
+    { id: 'budgets', label: 'Budgeting & Goals', icon: <Target className="h-4 w-4" /> },
+  ];
 
   const chartData = [
     { month: 'Jan', income: 5000, expenses: 3200, forecast: 4800, scenario1: 5200 },
@@ -32,6 +51,8 @@ const Index: React.FC = () => {
       .filter(t => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0)
   );
+
+  const financialHealth = calculateFinancialHealth(transactions);
 
   if (showUpload && transactions.length === 0) {
     return (
@@ -59,62 +80,83 @@ const Index: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardCard
-            title="Total Income"
-            value={`€${totalIncome.toLocaleString('de-DE', { minimumFractionDigits: 2 })}`}
-            change="+12.5% from last month"
-            changeType="positive"
-            icon={<TrendingUp className="h-5 w-5" />}
-          />
-          <DashboardCard
-            title="Total Expenses"
-            value={`€${totalExpenses.toLocaleString('de-DE', { minimumFractionDigits: 2 })}`}
-            change="-8.2% from last month"
-            changeType="negative"
-            icon={<TrendingDown className="h-5 w-5" />}
-          />
-          <DashboardCard
-            title="Net Balance"
-            value={`€${(totalIncome - totalExpenses).toLocaleString('de-DE', { minimumFractionDigits: 2 })}`}
-            change="+€450 this month"
-            changeType="positive"
-            icon={<DollarSign className="h-5 w-5" />}
-          />
-          <DashboardCard
-            title="Financial Health"
-            value="85%"
-            change="Good financial standing"
-            changeType="positive"
-            icon={<AlertCircle className="h-5 w-5" />}
-          />
-        </div>
+        <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Cashflow Forecast</h2>
-            <MixedChart data={chartData} />
-          </div>
-          
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
-            <div className="space-y-3">
-              {transactions.slice(0, 5).map((transaction, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b border-border last:border-0">
-                  <div>
-                    <p className="font-medium">{transaction.recipient || 'Unknown'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {transaction.date.toLocaleDateString('de-DE')}
-                    </p>
-                  </div>
-                  <span className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {transaction.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-                  </span>
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <DashboardCard
+                title="Total Income"
+                value={formatCurrency(totalIncome)}
+                change="+12.5% from last month"
+                changeType="positive"
+                icon={<TrendingUp className="h-5 w-5" />}
+              />
+              <DashboardCard
+                title="Total Expenses"
+                value={formatCurrency(totalExpenses)}
+                change="-8.2% from last month"
+                changeType="negative"
+                icon={<TrendingDown className="h-5 w-5" />}
+              />
+              <DashboardCard
+                title="Net Balance"
+                value={formatCurrency(totalIncome - totalExpenses)}
+                change="+€450 this month"
+                changeType="positive"
+                icon={<DollarSign className="h-5 w-5" />}
+              />
+              <DashboardCard
+                title="Financial Health"
+                value={`${financialHealth.toFixed(0)}%`}
+                change={financialHealth > 80 ? "Excellent" : financialHealth > 60 ? "Good" : "Needs attention"}
+                changeType={financialHealth > 80 ? "positive" : financialHealth > 60 ? "neutral" : "negative"}
+                icon={<AlertCircle className="h-5 w-5" />}
+              />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="bg-card border border-border rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Cashflow Forecast</h2>
+                <MixedChart data={chartData} />
+              </div>
+              
+              <div className="bg-card border border-border rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+                <div className="space-y-3">
+                  {transactions.slice(0, 5).map((transaction, index) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                      <div>
+                        <p className="font-medium">{transaction.recipient || 'Unknown'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(transaction.date)}
+                        </p>
+                      </div>
+                      <span className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(transaction.amount)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'transactions' && (
+          <TransactionTable 
+            transactions={transactions} 
+            onCategoryChange={handleCategoryChange}
+          />
+        )}
+
+        {activeTab === 'recurring' && (
+          <RecurringExpenses transactions={transactions} />
+        )}
+
+        {activeTab === 'budgets' && (
+          <BudgetGoals transactions={transactions} />
+        )}
       </div>
     </MainLayout>
   );
