@@ -7,8 +7,9 @@ import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { RecurringExpenses } from '@/components/dashboard/RecurringExpenses';
 import { BudgetGoals } from '@/components/dashboard/BudgetGoals';
 import { RuleBuilder } from '@/components/categorization/RuleBuilder';
+import { LiquidityReport } from '@/components/dashboard/LiquidityReport';
 import { Tabs } from '@/components/dashboard/Tabs';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings, BarChart3 } from 'lucide-react';
 import { formatCurrency, calculateFinancialHealth, formatDate } from '@/lib/utils';
 
 // Simple in-memory storage for client-side
@@ -89,6 +90,7 @@ const Index: React.FC = () => {
     { id: 'recurring', label: 'Recurring Expenses', icon: <Repeat className="h-4 w-4" /> },
     { id: 'budgets', label: 'Budgeting & Goals', icon: <Target className="h-4 w-4" /> },
     { id: 'rules', label: 'Rules', icon: <Settings className="h-4 w-4" /> },
+    { id: 'liquidity', label: 'Liquidity', icon: <BarChart3 className="h-4 w-4" /> },
   ];
 
   const chartData = [
@@ -218,6 +220,10 @@ const Index: React.FC = () => {
 
         {activeTab === 'rules' && (
           <RuleBuilder onRulesUpdated={loadData} />
+        )}
+
+        {activeTab === 'liquidity' && (
+          <LiquidityReport transactions={transactionData} />
         )}
       </div>
     </MainLayout>
