@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { FileUploader } from '@/components/upload/FileUploader';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -6,24 +6,58 @@ import { MixedChart } from '@/components/charts/MixedChart';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { RecurringExpenses } from '@/components/dashboard/RecurringExpenses';
 import { BudgetGoals } from '@/components/dashboard/BudgetGoals';
+import { RuleBuilder } from '@/components/categorization/RuleBuilder';
 import { Tabs } from '@/components/dashboard/Tabs';
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings } from 'lucide-react';
 import { formatCurrency, calculateFinancialHealth, formatDate } from '@/lib/utils';
+import { db } from '@packages/services/src/db';
 
 const Index: React.FC = () => {
   const [showUpload, setShowUpload] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [rules, setRules] = useState<any[]>([]);
 
-  const handleFileUploaded = (newTransactions: any[]) => {
-    setTransactions(newTransactions);
-    setShowUpload(false);
+  useEffect(() => {
+    loadTransactions();
+    loadRules();
+  }, []);
+
+  const loadTransactions = async () => {
+    const tx = await db.tx.toArray();
+    setTransactions(tx);
+    setShowUpload(tx.length === 0);
   };
 
-  const handleCategoryChange = (id: number, category: string) => {
-    setTransactions(prev => 
-      prev.map(t => t.id === id ? { ...t, category } : t)
-    );
+  const loadRules = async () => {
+    const rules = await db.rules.toArray();
+    setRules(rules);
+  };
+
+  const handleFileUploaded = async (newTransactions: any[]) => {
+    await db.tx.bulkAdd(newTransactions);
+    await loadTransactions();
+  };
+
+  const handleCategoryChange = async (id: number, category: string) => {
+    await db.tx.update(id, { category });
+    await loadTransactions();
+  };
+
+  const applyRules = async () => {
+    const rules = await db.rules.toArray();
+    const transactions = await db.tx.toArray();
+    
+    for (const transaction of transactions) {
+      for (const rule of rules) {
+        if (rule.matches(transaction)) {
+          await db.tx.update(transaction.id!, { category: rule.category });
+          break;
+        }
+      }
+    }
+    
+    await loadTransactions();
   };
 
   const tabs = [
@@ -31,6 +65,7 @@ const Index: React.FC = () => {
     { id: 'transactions', label: 'Transactions', icon: <FileText className="h-4 w-4" /> },
     { id: 'recurring', label: 'Recurring Expenses', icon: <Repeat className="h-4 w-4" /> },
     { id: 'budgets', label: 'Budgeting & Goals', icon: <Target className="h-4 w-4" /> },
+    { id: 'rules', label: 'Rules', icon: <Settings className="h-4 w-4" /> },
   ];
 
   const chartData = [
@@ -156,6 +191,10 @@ const Index: React.FC = () => {
 
         {activeTab === 'budgets' && (
           <BudgetGoals transactions={transactions} />
+        )}
+
+        {activeTab === 'rules' && (
+          <RuleBuilder onRulesUpdated={loadTransactions} />
         )}
       </div>
     </MainLayout>
