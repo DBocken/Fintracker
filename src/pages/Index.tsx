@@ -11,6 +11,7 @@ import { LiquidityReport } from '@/components/dashboard/LiquidityReport';
 import { Tabs } from '@/components/dashboard/Tabs';
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, FileText, Target, Repeat, Settings, BarChart3 } from 'lucide-react';
 import { formatCurrency, calculateFinancialHealth, formatDate, getCurrentGermanDate } from '@/lib/dateUtils';
+import { calculateForecast } from '@/lib/forecast';
 
 // Simple in-memory storage for client-side
 interface Transaction {
@@ -21,14 +22,19 @@ interface Transaction {
   category?: string;
 }
 
+interface Rule {
+  matches: (transaction: Transaction) => boolean;
+  category: string;
+}
+
 let transactions: Transaction[] = [];
-let rules: any[] = [];
+let rules: Rule[] = [];
 
 const Index: React.FC = () => {
   const [showUpload, setShowUpload] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [transactionData, setTransactionData] = useState<Transaction[]>([]);
-  const [ruleData, setRuleData] = useState<any[]>([]);
+  const [ruleData, setRuleData] = useState<Rule[]>([]);
 
   useEffect(() => {
     loadData();
@@ -51,7 +57,7 @@ const Index: React.FC = () => {
     }
   };
 
-  const handleFileUploaded = (newTransactions: any[]) => {
+  const handleFileUploaded = (newTransactions: Transaction[]) => {
     transactions = newTransactions.map((t, index) => ({
       ...t,
       id: index + 1,
@@ -93,15 +99,6 @@ const Index: React.FC = () => {
     { id: 'liquidity', label: 'Liquidität', icon: <BarChart3 className="h-4 w-4" /> },
   ];
 
-  const chartData = [
-    { month: 'Jan', income: 5000, expenses: 3200, forecast: 4800, scenario1: 5200 },
-    { month: 'Feb', income: 4800, expenses: 2900, forecast: 4700, scenario1: 5100 },
-    { month: 'Mär', income: 5200, expenses: 3500, forecast: 4900, scenario1: 5300 },
-    { month: 'Apr', income: 4900, expenses: 3100, forecast: 4850, scenario1: 5150 },
-    { month: 'Mai', income: 5300, expenses: 3300, forecast: 5000, scenario1: 5400 },
-    { month: 'Jun', income: 5100, expenses: 3000, forecast: 4950, scenario1: 5250 },
-  ];
-
   const totalIncome = transactionData
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -113,6 +110,36 @@ const Index: React.FC = () => {
   );
 
   const financialHealth = calculateFinancialHealth(transactionData);
+
+  // Forecast configuration: add or remove parameters as needed
+  const regularIncomes = [
+    { amount: 3000, category: 'Gehalt' },
+  ];
+
+  const contracts = [
+    { amount: -800, category: 'Miete' },
+    { amount: -200, category: 'Versicherung' },
+  ];
+
+  const budgets = [
+    { category: 'Freizeit', limit: 300 },
+  ];
+
+  const forecastData = calculateForecast({
+    initialBalance: totalIncome - totalExpenses,
+    incomes: regularIncomes,
+    contracts,
+    budgets,
+    months: 6,
+  });
+
+  const chartData = forecastData.map(m => ({
+    month: m.month,
+    income: m.income,
+    expenses: m.expenses,
+    forecast: m.balance,
+    scenario1: m.balance,
+  }));
 
   if (showUpload && transactionData.length === 0) {
     return (
