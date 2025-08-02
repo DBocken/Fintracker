@@ -6,8 +6,14 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
+interface Transaction {
+  date: Date;
+  amount: number;
+  recipient: string;
+}
+
 interface FileUploaderProps {
-  onFileUploaded: (transactions: any[]) => void;
+  onFileUploaded: (transactions: Transaction[]) => void;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
