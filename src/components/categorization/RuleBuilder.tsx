@@ -224,7 +224,7 @@ export const RuleBuilder: React.FC<RuleBuilderProps> = ({ onRulesUpdated }) => {
                     value={condition.field}
                     onValueChange={(value) => updateCondition(condition.id, { field: value as any })}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-24">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -238,7 +238,7 @@ export const RuleBuilder: React.FC<RuleBuilderProps> = ({ onRulesUpdated }) => {
                     value={condition.operator}
                     onValueChange={(value) => updateCondition(condition.id, { operator: value as any })}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-24">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -254,7 +254,7 @@ export const RuleBuilder: React.FC<RuleBuilderProps> = ({ onRulesUpdated }) => {
                     value={condition.value}
                     onChange={(e) => updateCondition(condition.id, { value: e.target.value })}
                     placeholder="Value"
-                    className="flex-1"
+                    className="flex-1 min-w-[12rem]"
                   />
 
                   <Button
