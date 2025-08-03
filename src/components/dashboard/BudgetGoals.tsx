@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Transaction } from '@/types';
 
 interface BudgetGoal {
   id: string;
@@ -17,7 +18,7 @@ interface BudgetGoal {
 }
 
 interface BudgetGoalsProps {
-  transactions: any[];
+  transactions: Transaction[];
 }
 
 export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
@@ -28,6 +29,8 @@ export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
   ]);
 
   const [newGoal, setNewGoal] = useState({ category: '', target: 0, period: 'monthly' as const });
+  const [editingGoal, setEditingGoal] = useState<BudgetGoal | null>(null);
+  const [editValues, setEditValues] = useState({ category: '', target: 0, period: 'monthly' as const });
 
   const calculateCurrent = (category: string) => {
     return Math.abs(
@@ -52,6 +55,17 @@ export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
     if (newGoal.category && newGoal.target > 0) {
       setGoals([...goals, { ...newGoal, id: Date.now().toString(), current: 0 }]);
       setNewGoal({ category: '', target: 0, period: 'monthly' });
+    }
+  };
+
+  const saveGoal = () => {
+    if (editingGoal) {
+      setGoals(
+        goals.map((g) =>
+          g.id === editingGoal.id ? { ...g, ...editValues } : g
+        )
+      );
+      setEditingGoal(null);
     }
   };
 
@@ -104,7 +118,7 @@ export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
         {goals.map((goal) => {
           const progress = getProgress(goal);
           const current = calculateCurrent(goal.category);
-          
+
           return (
             <Card key={goal.id} className="p-4">
               <div className="flex items-center justify-between mb-2">
@@ -112,11 +126,27 @@ export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
                   <h3 className="font-semibold">{goal.category}</h3>
                   <p className="text-sm text-muted-foreground">{goal.period}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(current)} / {formatCurrency(goal.target)}</p>
-                  <p className={`text-sm ${getStatusColor(progress)}`}>
-                    {progress.toFixed(0)}% used
-                  </p>
+                <div className="flex items-start gap-2">
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(current)} / {formatCurrency(goal.target)}</p>
+                    <p className={`text-sm ${getStatusColor(progress)}`}>
+                      {progress.toFixed(0)}% used
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingGoal(goal);
+                      setEditValues({
+                        category: goal.category,
+                        target: goal.target,
+                        period: goal.period,
+                      });
+                    }}
+                  >
+                    Edit
+                  </Button>
                 </div>
               </div>
               <Progress value={progress} className="w-full" />
@@ -124,6 +154,39 @@ export const BudgetGoals: React.FC<BudgetGoalsProps> = ({ transactions }) => {
           );
         })}
       </div>
+
+      <Dialog open={!!editingGoal} onOpenChange={(open) => !open && setEditingGoal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Budget Goal</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Category</Label>
+              <Input
+                value={editValues.category}
+                onChange={(e) =>
+                  setEditValues({ ...editValues, category: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Monthly Target</Label>
+              <Input
+                type="number"
+                value={editValues.target}
+                onChange={(e) =>
+                  setEditValues({
+                    ...editValues,
+                    target: parseFloat(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <Button onClick={saveGoal}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {goals.length === 0 && (
         <Card className="p-8 text-center">
