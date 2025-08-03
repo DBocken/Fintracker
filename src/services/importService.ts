@@ -20,8 +20,7 @@ export const ImportService = {
       const amountStr = record['betrag'];
       const recipient = record['empfaenger'];
 
-      const parsedDate = parseGermanDate(dateStr ?? '');
-      const amount = parseGermanNumber(amountStr ?? '');
+
 
       if (!parsedDate || isNaN(parsedDate.getTime()) || isNaN(amount) || !recipient)
         continue;

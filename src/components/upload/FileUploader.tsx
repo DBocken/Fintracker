@@ -113,6 +113,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) =>
       const amountIdx = headers.indexOf(mapping.amount);
       const recipientIdx = headers.indexOf(mapping.recipient);
 
+ csztvl-codex/fix-date-and-amount-recognition
       const transactions = rows
         .map(row => {
           const date = parseGermanDate(row[dateIdx]);
@@ -133,6 +134,15 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) =>
             recipient: string;
           } => t !== null
         );
+
+      const transactions = rows.map(row => ({
+        date: new Date(row[dateIdx].split('.').reverse().join('-')),
+        amount: parseFloat(
+          row[amountIdx].replace(/\./g, '').replace(',', '.')
+        ),
+        recipient: row[recipientIdx] || 'Unknown',
+      }));
+ main
 
       clearInterval(progressInterval);
       setProgress(100);
