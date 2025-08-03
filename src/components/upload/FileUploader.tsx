@@ -115,7 +115,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) =>
       const transactions = rows.map(row => ({
         date: new Date(row[dateIdx].split('.').reverse().join('-')),
         amount: parseFloat(
-          row[amountIdx].replace('.', '').replace(',', '.')
+          row[amountIdx].replace(/\./g, '').replace(',', '.')
         ),
         recipient: row[recipientIdx] || 'Unknown',
       }));

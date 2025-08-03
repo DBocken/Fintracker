@@ -18,11 +18,21 @@ export const ImportService = {
       const date = record['datum'];
       const amountStr = record['betrag'];
       const recipient = record['empfaenger'];
-      const amount = parseFloat(amountStr);
-      if (!date || isNaN(amount) || !recipient) continue;
+
+      const parsedDate = date
+        ? date.includes('.')
+          ? new Date(date.split('.').reverse().join('-'))
+          : new Date(date)
+        : null;
+      const amount = parseFloat(
+        amountStr?.replace(/\./g, '').replace(',', '.') ?? ''
+      );
+
+      if (!parsedDate || isNaN(parsedDate.getTime()) || isNaN(amount) || !recipient)
+        continue;
 
       const transaction: Transaction = {
-        date: new Date(date).toISOString(),
+        date: parsedDate.toISOString(),
         amount,
         recipient,
         category: null,
