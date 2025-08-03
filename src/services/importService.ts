@@ -1,5 +1,6 @@
 import { Transaction } from '../types';
 import { saveTransactions } from '../lib/db';
+import { parseGermanDate, parseGermanNumber } from '../lib/dateUtils';
 
 export const ImportService = {
   async importCSV(file: File): Promise<Transaction[]> {
@@ -15,14 +16,18 @@ export const ImportService = {
       const record: Record<string, string> = {};
       header.forEach((h, i) => (record[h] = cols[i] ? cols[i].trim() : ''));
 
-      const date = record['datum'];
+      const dateStr = record['datum'];
       const amountStr = record['betrag'];
       const recipient = record['empfaenger'];
-      const amount = parseFloat(amountStr);
-      if (!date || isNaN(amount) || !recipient) continue;
+
+      const parsedDate = parseGermanDate(dateStr ?? '');
+      const amount = parseGermanNumber(amountStr ?? '');
+
+      if (!parsedDate || isNaN(parsedDate.getTime()) || isNaN(amount) || !recipient)
+        continue;
 
       const transaction: Transaction = {
-        date: new Date(date).toISOString(),
+        date: parsedDate.toISOString(),
         amount,
         recipient,
         category: null,

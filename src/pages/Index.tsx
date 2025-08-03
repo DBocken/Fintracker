@@ -46,7 +46,11 @@ const Index: React.FC = () => {
     const savedRules = localStorage.getItem('fintrack-rules');
     
     if (savedTransactions) {
-      transactions = JSON.parse(savedTransactions);
+      transactions = (JSON.parse(savedTransactions) as Transaction[]).map(t => ({
+        ...t,
+        date: new Date(t.date),
+        amount: Number(t.amount)
+      }));
       setTransactionData(transactions);
       setShowUpload(transactions.length === 0);
     }

@@ -24,7 +24,11 @@ export function formatNumber(amount: number): string {
   }).format(amount);
 }
 
-export function calculateFinancialHealth(transactions: any[]): number {
+interface AmountLike {
+  amount: number;
+}
+
+export function calculateFinancialHealth(transactions: AmountLike[]): number {
   const totalIncome = transactions
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -54,7 +58,24 @@ export function getGermanQuarter(date: Date): string {
 }
 
 export function parseGermanNumber(str: string): number {
-  return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+  const normalized = str
+    .replace(/[^0-9,.-]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  return parseFloat(normalized);
+}
+
+export function parseGermanDate(str: string): Date | null {
+  if (!str) return null;
+  const match = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    const fullYear = year.length === 2 ? `20${year}` : year;
+    const date = new Date(Number(fullYear), Number(month) - 1, Number(day));
+    return isNaN(date.getTime()) ? null : date;
+  }
+  const date = new Date(str);
+  return isNaN(date.getTime()) ? null : date;
 }
 
 export function parseCSV(text: string): Record<string, string>[] {
@@ -69,6 +90,6 @@ export function parseCSV(text: string): Record<string, string>[] {
   });
 }
 
-export function cn(...inputs: any[]): string {
+export function cn(...inputs: unknown[]): string {
   return inputs.filter(Boolean).join(' ');
 }

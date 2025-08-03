@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { parseGermanDate, parseGermanNumber } from '@/lib/dateUtils';
 
 interface Transaction {
   date: Date;
@@ -112,13 +113,26 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) =>
       const amountIdx = headers.indexOf(mapping.amount);
       const recipientIdx = headers.indexOf(mapping.recipient);
 
-      const transactions = rows.map(row => ({
-        date: new Date(row[dateIdx].split('.').reverse().join('-')),
-        amount: parseFloat(
-          row[amountIdx].replace('.', '').replace(',', '.')
-        ),
-        recipient: row[recipientIdx] || 'Unknown',
-      }));
+      const transactions = rows
+        .map(row => {
+          const date = parseGermanDate(row[dateIdx]);
+          const amount = parseGermanNumber(row[amountIdx]);
+          if (!date || isNaN(amount)) return null;
+          return {
+            date,
+            amount,
+            recipient: row[recipientIdx] || 'Unknown'
+          };
+        })
+        .filter(
+          (
+            t
+          ): t is {
+            date: Date;
+            amount: number;
+            recipient: string;
+          } => t !== null
+        );
 
       clearInterval(progressInterval);
       setProgress(100);
