@@ -14,7 +14,9 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
   .map((s) => normalizeOrigin(s))
   .filter(Boolean) as string[];
 
-const DEFAULT_ALLOWED_ORIGIN_SUFFIXES = ["ngrok-free.dev", "ngrok.io"];
+const DEFAULT_ALLOWED_ORIGINS = ["https://fintracker-phi.vercel.app"];
+const DEFAULT_ALLOWED_ORIGIN_SUFFIXES = ["vercel.app"];
+const DEFAULT_ALLOWED_REDIRECT_HOSTS = ["fintracker-phi.vercel.app"];
 
 const ALLOWED_REDIRECT_HOSTS = (Deno.env.get("ALLOWED_REDIRECT_HOSTS") || "")
   .split(",")
@@ -22,6 +24,7 @@ const ALLOWED_REDIRECT_HOSTS = (Deno.env.get("ALLOWED_REDIRECT_HOSTS") || "")
   .filter(Boolean);
 
 const RATE_LIMIT_BURST = Number(Deno.env.get("RATE_LIMIT_BURST") || 20);
+
 const RATE_LIMIT_PER_MIN = Number(Deno.env.get("RATE_LIMIT_PER_MIN") || 60);
 
 function normalizeOrigin(value: string): string {
@@ -57,13 +60,17 @@ function isDefaultAllowedOrigin(origin: string): boolean {
 
 function resolveAllowedOrigin(origin: string | null): string | null {
   if (!origin) {
-    return ALLOWED_ORIGINS[0] || null;
+    return ALLOWED_ORIGINS[0] || DEFAULT_ALLOWED_ORIGINS[0] || null;
   }
 
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin) return null;
 
-  if (ALLOWED_ORIGINS.includes(normalizedOrigin) || isDefaultAllowedOrigin(normalizedOrigin)) {
+  if (
+    ALLOWED_ORIGINS.includes(normalizedOrigin) ||
+    DEFAULT_ALLOWED_ORIGINS.includes(normalizedOrigin) ||
+    isDefaultAllowedOrigin(normalizedOrigin)
+  ) {
     return normalizedOrigin;
   }
 
@@ -163,15 +170,22 @@ function validateRedirectUrl(input: string): string {
     throw err;
   }
 
-  if (ALLOWED_REDIRECT_HOSTS.length > 0 && !ALLOWED_REDIRECT_HOSTS.includes(url.host)) {
+  const redirectHostAllowed =
+    DEFAULT_ALLOWED_REDIRECT_HOSTS.includes(url.host) ||
+    ALLOWED_REDIRECT_HOSTS.length === 0 ||
+    ALLOWED_REDIRECT_HOSTS.includes(url.host);
+
+  if (!redirectHostAllowed) {
+    const allowedHosts = [...DEFAULT_ALLOWED_REDIRECT_HOSTS, ...ALLOWED_REDIRECT_HOSTS];
     const err = new Error(
-      `Invalid redirect_url: Host nicht erlaubt. Bitte einen erlaubten Host verwenden (${ALLOWED_REDIRECT_HOSTS.join(", ")}): ${url.host}`,
+      `Invalid redirect_url: Host nicht erlaubt. Bitte einen erlaubten Host verwenden (${allowedHosts.join(", ")}): ${url.host}`,
     ) as any;
     err.status = 400;
     throw err;
   }
 
   const normalizedPath = url.pathname.replace(/\/+$/g, "") || "/";
+
   const normalized = `${url.origin}${normalizedPath}${url.search}`;
 
   if (/[\)\[\]]/.test(normalized)) {

@@ -38,7 +38,18 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   other: <Wallet className="h-5 w-5" />,
 };
 
+const PRODUCTION_APP_ORIGIN = 'https://fintracker-phi.vercel.app';
+
+function getRedirectOrigin() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return window.location.origin;
+  }
+
+  return PRODUCTION_APP_ORIGIN;
+}
+
 export function AccountManager() {
+
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -158,8 +169,9 @@ export function AccountManager() {
       return;
     }
 
-    const redirectUrl = `${window.location.origin}/ausgabentracker/return`;
+    const redirectUrl = `${getRedirectOrigin()}/ausgabentracker/return`;
     const requisition = await gocardlessService.reconnectBankConnection(account.bank_connection_id, redirectUrl);
+
     sessionStorage.setItem('gocardless_requisition_id', requisition.id);
     showSuccess('Die Bankfreigabe wird jetzt erneut angefragt.');
     window.location.href = requisition.link || requisition.redirect;

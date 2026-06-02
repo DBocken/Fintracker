@@ -6,22 +6,23 @@ const corsHeaders = (origin: string | null): HeadersInit => {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const defaultAllowed = ["https://fintracker-phi.vercel.app"];
 
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
   };
 
   if (!origin) {
-    // Non-browser clients; if configured, provide a deterministic value.
-    if (allowed.length > 0) headers["Access-Control-Allow-Origin"] = allowed[0];
+    headers["Access-Control-Allow-Origin"] = allowed[0] || defaultAllowed[0];
     return headers;
   }
 
-  if (allowed.length > 0 && allowed.includes(origin)) {
+  const hostname = new URL(origin).hostname.toLowerCase();
+  if (allowed.includes(origin) || defaultAllowed.includes(origin) || hostname.endsWith(".vercel.app")) {
     headers["Access-Control-Allow-Origin"] = origin;
-    headers["Vary"] = "Origin";
   }
 
   return headers;

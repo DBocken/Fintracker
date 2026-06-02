@@ -20,7 +20,18 @@ interface GoCardlessConnectProps {
   onConnectionSuccess: (accountId: string) => void
 }
 
+const PRODUCTION_APP_ORIGIN = 'https://fintracker-phi.vercel.app'
+
+function getRedirectOrigin() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return window.location.origin
+  }
+
+  return PRODUCTION_APP_ORIGIN
+}
+
 export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }: GoCardlessConnectProps) {
+
   const [institutions, setInstitutions] = useState<Institution[]>([])
   const [filteredInstitutions, setFilteredInstitutions] = useState<Institution[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -29,52 +40,14 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [publicUrl, setPublicUrl] = useState<string>('')
-  const [savedPublicUrl, setSavedPublicUrl] = useState<string | null>(null)
-  const PUBLIC_URL_KEY = 'gocardless_public_url'
   const [requisition, setRequisition] = useState<any | null>(null)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
 
-  const normalizeOrigin = (raw: string) => {
-    const trimmed = raw.trim()
-    const preCleaned = trimmed
-      .replace(/\s+/g, '')
-      .replace(/[)\]]+/g, '')
-      .replace(/\/+$/g, '')
-
-    const normalizeHost = (host: string) => {
-      return host
-        .replace(/[^a-zA-Z0-9.:-]/g, '')
-        .replace(/\.+$/g, '')
-        .replace(/^\.+/g, '')
-    }
-
-    try {
-      const u = new URL(preCleaned)
-      const cleanedHost = normalizeHost(u.host)
-      return `${u.protocol}//${cleanedHost}`
-    } catch {
-      const cleaned = preCleaned
-        .replace(/[).,;]+$/g, '')
-        .replace(/\/+$/g, '')
-
-      const u = new URL(cleaned)
-      const cleanedHost = normalizeHost(u.host)
-      return `${u.protocol}//${cleanedHost}`
-    }
-  }
-
   useEffect(() => {
     loadInstitutions()
-
     try {
-      const saved = localStorage.getItem(PUBLIC_URL_KEY)
-      if (saved) {
-        const normalized = normalizeOrigin(saved)
-        setSavedPublicUrl(normalized)
-        localStorage.setItem(PUBLIC_URL_KEY, normalized)
-      }
-    } catch (e) {
+      localStorage.removeItem('gocardless_public_url')
+    } catch {
     }
   }, [])
 
@@ -163,37 +136,8 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
     setShowDropdown(false)
   }
 
-  const savePublicUrl = () => {
-    try {
-      if (!publicUrl) return
-
-      const normalized = normalizeOrigin(publicUrl)
-
-      if (!normalized.startsWith('https://')) {
-        setError('Die öffentliche URL muss mit https:// beginnen')
-        return
-      }
-
-      localStorage.setItem(PUBLIC_URL_KEY, normalized)
-      setSavedPublicUrl(normalized)
-      setError(null)
-    } catch (e:any) {
-      setError('Ungültige öffentliche URL (bitte nur Origin wie https://xxxx.ngrok-free.dev eingeben)')
-    }
-  }
-
-  const clearPublicUrl = () => {
-    try {
-      localStorage.removeItem(PUBLIC_URL_KEY)
-      setSavedPublicUrl(null)
-      setPublicUrl('')
-      setError(null)
-    } catch (e:any) {
-      setError('Fehler beim Entfernen der URL')
-    }
-  }
-
   const handleConnect = async () => {
+
     if (!selectedInstitution) {
       setError('Bitte wähle eine Bank aus')
       return
@@ -203,25 +147,18 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       setConnecting(true)
       setError(null)
 
-      console.log('🔍 Current URL:', window.location.href)
-      console.log('🔍 Origin:', window.location.origin)
-      console.log('🔍 Protocol:', window.location.protocol)
-      console.log('🔍 Hostname:', window.location.hostname)
+      const redirectOrigin = getRedirectOrigin()
 
-      const rawOrigin = savedPublicUrl ?? window.location.origin
-      const finalOrigin = normalizeOrigin(rawOrigin)
-
-      if (!finalOrigin.startsWith('https://') && !selectedInstitution.id.includes('SANDBOX')) {
+      if (!redirectOrigin.startsWith('https://') && !selectedInstitution.id.includes('SANDBOX')) {
         setError('Die Redirect-URL muss HTTPS sein, oder benutze die Sandbox-Testbank.')
         setConnecting(false)
         return
       }
 
-      const redirectUrl = `${finalOrigin}/ausgabentracker/return`
-      
-      console.log('🔗 Redirect URL:', redirectUrl)
+      const redirectUrl = `${redirectOrigin}/ausgabentracker/return`
       
       const rq = await gocardlessService.createRequisition(
+
         selectedInstitution.id,
         redirectUrl
       )
@@ -434,12 +371,8 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                 <strong>Entwicklungsmodus:</strong> In der lokalen Umgebung funktioniert die Bankverbindung nur mit der
                 <strong> Sandbox Finance (Test-Bank)</strong>. Für echte Bankverbindungen brauchst du eine HTTPS-URL.
                 <br /><br />
-                Für den Test mit echten Banken empfehle ich:
-                <ul className="list-disc list-inside mt-1 ml-2 text-xs">
-                  <li>Cloudflare Tunnel</li>
-                  <li>Oder ngrok für einen temporären HTTPS-Tunnel</li>
-                  <li>Die App auf Vercel/Netlify deployen</li>
-                </ul>
+                Nutze für echte Bankverbindungen die veröffentlichte App unter {PRODUCTION_APP_ORIGIN}.
+
               </AlertDescription>
             </Alert>
           )}
@@ -465,8 +398,8 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
-                Redirect URL: {window.location.origin}/ausgabentracker/return
-                {window.location.protocol === 'https:' ? (
+                Redirect URL: {getRedirectOrigin()}/ausgabentracker/return
+                {getRedirectOrigin().startsWith('https:') ? (
                   <span className="text-emerald-600 dark:text-emerald-400 ml-1">(HTTPS ✓)</span>
                 ) : (
                   <span className="text-red-600 dark:text-red-400 ml-1">(HTTP - nur Test-Bank!)</span>
@@ -475,27 +408,8 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Öffentliche Redirect-URL (optional)</label>
-            <div className="flex gap-2">
-              <Input
-                value={publicUrl}
-                onChange={(e) => setPublicUrl(e.target.value)}
-                placeholder="https://mein-tunnel.ngrok.io"
-              />
-              <Button onClick={savePublicUrl} disabled={!publicUrl}>Speichern</Button>
-              <Button variant="ghost" onClick={clearPublicUrl} className="text-red-600 hover:text-red-700">Entfernen</Button>
-            </div>
-            {savedPublicUrl ? (
-              <div className="text-xs text-muted-foreground">
-                Aktuelle öffentliche URL: <strong className="text-foreground">{savedPublicUrl}</strong>
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground">Keine öffentliche URL gesetzt. Gib eine ngrok / Cloudflare Tunnel HTTPS-URL ein, um Redirects korrekt zu empfangen.</div>
-            )}
-          </div>
-
           {!loading && institutions.length > 0 && (
+
             <div className="text-xs text-muted-foreground flex items-center justify-between">
               <span>{institutions.length.toLocaleString('de-DE')} Banken verfügbar</span>
               <Button
