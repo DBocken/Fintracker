@@ -165,7 +165,6 @@ export async function refreshBalances(
     const data = await res.json() as RefreshBalancesResponse;
 
     if (res.status === 409 && data.error === "automatic_already_done") {
-      // Automatic refresh already done for today - silently ignore
       return {
         success: true,
         message: "Automatische Aktualisierung für heute bereits erfolgt.",
@@ -175,6 +174,7 @@ export async function refreshBalances(
     }
 
     if (res.status === 429) {
+
       return {
         success: false,
         message: data.message || "Manuelle Aktualisierungslimit erreicht.",
