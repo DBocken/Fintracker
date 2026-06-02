@@ -1,0 +1,543 @@
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { gocardlessService } from '../services/gocardless-service'
+import { CreditCard, ExternalLink, Loader2, RefreshCw, AlertTriangle, Search, Building2, Check } from 'lucide-react'
+
+interface Institution {
+  id: string
+  name: string
+  bic: string
+  logo: string
+  countries: string[]
+  transaction_total_days?: string
+}
+
+interface GoCardlessConnectProps {
+  onConnectionSuccess: (accountId: string) => void
+}
+
+export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }: GoCardlessConnectProps) {
+  const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [filteredInstitutions, setFilteredInstitutions] = useState<Institution[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [publicUrl, setPublicUrl] = useState<string>('')
+  const [savedPublicUrl, setSavedPublicUrl] = useState<string | null>(null)
+  const PUBLIC_URL_KEY = 'gocardless_public_url'
+  const [requisition, setRequisition] = useState<any | null>(null)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
+
+  const normalizeOrigin = (raw: string) => {
+    const trimmed = raw.trim()
+    const preCleaned = trimmed
+      .replace(/\s+/g, '')
+      .replace(/[)\]]+/g, '')
+      .replace(/\/+$/g, '')
+
+    const normalizeHost = (host: string) => {
+      return host
+        .replace(/[^a-zA-Z0-9.:-]/g, '')
+        .replace(/\.+$/g, '')
+        .replace(/^\.+/g, '')
+    }
+
+    try {
+      const u = new URL(preCleaned)
+      const cleanedHost = normalizeHost(u.host)
+      return `${u.protocol}//${cleanedHost}`
+    } catch {
+      const cleaned = preCleaned
+        .replace(/[).,;]+$/g, '')
+        .replace(/\/+$/g, '')
+
+      const u = new URL(cleaned)
+      const cleanedHost = normalizeHost(u.host)
+      return `${u.protocol}//${cleanedHost}`
+    }
+  }
+
+  useEffect(() => {
+    loadInstitutions()
+
+    try {
+      const saved = localStorage.getItem(PUBLIC_URL_KEY)
+      if (saved) {
+        const normalized = normalizeOrigin(saved)
+        setSavedPublicUrl(normalized)
+        localStorage.setItem(PUBLIC_URL_KEY, normalized)
+      }
+    } catch (e) {
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredInstitutions([])
+      return
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+    const queryParts = query.split(/\s+/)
+
+    const filtered = institutions.filter(inst => {
+      const name = inst.name.toLowerCase()
+      const bic = inst.bic?.toLowerCase() || ''
+      
+      return queryParts.every(part => 
+        name.includes(part) || bic.includes(part)
+      )
+    })
+
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    
+    const sorted = filtered.sort((a, b) => {
+      if (isDev) {
+        const aIsSandbox = a.id.includes('SANDBOX')
+        const bIsSandbox = b.id.includes('SANDBOX')
+        if (aIsSandbox && !bIsSandbox) return -1
+        if (bIsSandbox && !aIsSandbox) return 1
+      }
+
+      const aName = a.name.toLowerCase()
+      const bName = b.name.toLowerCase()
+      const aBic = a.bic?.toLowerCase() || ''
+      const bBic = b.bic?.toLowerCase() || ''
+
+      if (aName === query || aBic === query) return -1
+      if (bName === query || bBic === query) return 1
+
+      const aStartsWith = aName.startsWith(query) || aBic.startsWith(query)
+      const bStartsWith = bName.startsWith(query) || bBic.startsWith(query)
+      if (aStartsWith && !bStartsWith) return -1
+      if (bStartsWith && !aStartsWith) return 1
+
+      return a.name.localeCompare(b.name)
+    })
+
+    setFilteredInstitutions(sorted.slice(0, 20))
+  }, [searchQuery, institutions])
+
+  const loadInstitutions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const data = await gocardlessService.getInstitutions('DE')
+      console.log('🏦 Banken geladen:', data.length)
+      
+      const sorted = data.sort((a, b) => a.name.localeCompare(b.name))
+      setInstitutions(sorted)
+      
+    } catch (err: any) {
+      console.error('❌ Fehler beim Laden:', err)
+      
+      if (err.setup_required || (err.details && err.details.includes('nicht konfiguriert'))) {
+        setError('API_SETUP_REQUIRED')
+      } else {
+        setError(`Fehler: ${err.message}`)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    setShowDropdown(value.trim().length > 0)
+    if (selectedInstitution) {
+      setSelectedInstitution(null)
+    }
+  }
+
+  const handleSelectInstitution = (institution: Institution) => {
+    setSelectedInstitution(institution)
+    setSearchQuery(institution.name)
+    setShowDropdown(false)
+  }
+
+  const savePublicUrl = () => {
+    try {
+      if (!publicUrl) return
+
+      const normalized = normalizeOrigin(publicUrl)
+
+      if (!normalized.startsWith('https://')) {
+        setError('Die öffentliche URL muss mit https:// beginnen')
+        return
+      }
+
+      localStorage.setItem(PUBLIC_URL_KEY, normalized)
+      setSavedPublicUrl(normalized)
+      setError(null)
+    } catch (e:any) {
+      setError('Ungültige öffentliche URL (bitte nur Origin wie https://xxxx.ngrok-free.dev eingeben)')
+    }
+  }
+
+  const clearPublicUrl = () => {
+    try {
+      localStorage.removeItem(PUBLIC_URL_KEY)
+      setSavedPublicUrl(null)
+      setPublicUrl('')
+      setError(null)
+    } catch (e:any) {
+      setError('Fehler beim Entfernen der URL')
+    }
+  }
+
+  const handleConnect = async () => {
+    if (!selectedInstitution) {
+      setError('Bitte wähle eine Bank aus')
+      return
+    }
+
+    try {
+      setConnecting(true)
+      setError(null)
+
+      console.log('🔍 Current URL:', window.location.href)
+      console.log('🔍 Origin:', window.location.origin)
+      console.log('🔍 Protocol:', window.location.protocol)
+      console.log('🔍 Hostname:', window.location.hostname)
+
+      const rawOrigin = savedPublicUrl ?? window.location.origin
+      const finalOrigin = normalizeOrigin(rawOrigin)
+
+      if (!finalOrigin.startsWith('https://') && !selectedInstitution.id.includes('SANDBOX')) {
+        setError('Die Redirect-URL muss HTTPS sein, oder benutze die Sandbox-Testbank.')
+        setConnecting(false)
+        return
+      }
+
+      const redirectUrl = `${finalOrigin}/ausgabentracker/return`
+      
+      console.log('🔗 Redirect URL:', redirectUrl)
+      
+      const rq = await gocardlessService.createRequisition(
+        selectedInstitution.id,
+        redirectUrl
+      )
+
+      console.log('✅ Requisition created:', rq)
+      setRequisition(rq)
+      setShowAuthDialog(true)
+
+      sessionStorage.setItem('gocardless_requisition_id', rq.id)
+
+    } catch (err: any) {
+      console.error('❌ Verbindungsfehler:', err)
+      
+      if (err.setup_required) {
+        setError('API_SETUP_REQUIRED')
+      } else {
+        setError(`Verbindungsfehler: ${err.message}`)
+      }
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleRetry = () => {
+    setInstitutions([])
+    setFilteredInstitutions([])
+    setSearchQuery('')
+    setSelectedInstitution(null)
+    setError(null)
+    loadInstitutions()
+  }
+
+  useEffect(() => {
+    const handleClickOutside = () => setShowDropdown(false)
+    if (showDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showDropdown])
+
+  const copyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setError(null)
+      alert('Link kopiert')
+    } catch (e:any) {
+      setError('Fehler beim Kopieren')
+    }
+  }
+
+  const openAuthInThisTab = (link: string) => {
+    setShowAuthDialog(false)
+    window.location.href = link
+  }
+
+  const openAuthInNewTab = (link: string) => {
+    window.open(link, '_blank')
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          Bankverbindung via PSD2
+        </CardTitle>
+        <CardDescription>
+          Suche deine Bank und verbinde dich sicher über PSD2
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {showAuthDialog && requisition && (
+          <div className="p-4 bg-muted/40 border rounded-md space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm text-foreground">Authentifizierungslink</div>
+                <div className="text-xs text-muted-foreground truncate max-w-full break-words">{requisition.link || requisition.redirect}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => copyLink(requisition.link || requisition.redirect)} variant="outline">Kopieren</Button>
+                <Button onClick={() => openAuthInNewTab(requisition.link || requisition.redirect)}>In neuem Tab öffnen</Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div>
+                <div className="text-sm text-foreground mb-2">QR-Code scannen (öffne auf dem Handy)</div>
+                <img src={`https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(requisition.link || requisition.redirect)}`} alt="QR Code" className="w-40 h-40 bg-white p-1 rounded" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-foreground">oder</div>
+                <div className="mt-2">
+                  <Button onClick={() => openAuthInThisTab(requisition.link || requisition.redirect)} className="w-full">Auf diesem Gerät öffnen</Button>
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">Wenn du auf diesem Gerät weiter machst, wirst du direkt zur Bank geleitet und nach erfolgreicher Auth zurück zur App.</div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => setShowAuthDialog(false)}>Schließen</Button>
+            </div>
+          </div>
+        )}
+
+        {error === 'API_SETUP_REQUIRED' ? (
+          <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10">
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+            <AlertDescription className="space-y-2">
+              <p className="font-medium text-orange-600 dark:text-orange-400">GoCardless API nicht konfiguriert</p>
+              <p className="text-sm text-foreground">
+                Die GoCardless API-Schlüssel fehlen. Um Bankkonten zu verbinden, musst du folgende Schritte ausführen:
+              </p>
+              <ol className="text-sm text-foreground list-decimal list-inside space-y-1 ml-2">
+                <li>Erstelle einen kostenlosen Account bei <a href="https://bankaccountdata.gocardless.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GoCardless</a></li>
+                <li>Gehe zu deinem GoCardless Dashboard und erstelle ein Secret</li>
+                <li>Gehe im Supabase Dashboard zu: Project Settings → Edge Functions</li>
+                <li>Füge folgende Secrets hinzu:
+                  <ul className="list-disc list-inside ml-4 mt-1 font-mono text-xs text-muted-foreground">
+                    <li>GOCARDLESS_SECRET_ID</li>
+                    <li>GOCARDLESS_SECRET_KEY</li>
+                  </ul>
+                </li>
+                <li>Die App kann dann Bankverbindungen herstellen</li>
+              </ol>
+            </AlertDescription>
+          </Alert>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="space-y-4">
+          <div className="relative">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Bank suchen
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (searchQuery.trim()) setShowDropdown(true)
+                }}
+                placeholder={loading ? "Banken werden geladen..." : "z.B. Revolut, Sparkasse, Deutsche Bank..."}
+                disabled={loading || connecting}
+                className="pl-10"
+              />
+              {selectedInstitution && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              )}
+            </div>
+
+            {showDropdown && filteredInstitutions.length > 0 && (
+              <div 
+                className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-80 overflow-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {filteredInstitutions.map((institution) => (
+                  <button
+                    key={institution.id}
+                    onClick={() => handleSelectInstitution(institution)}
+                    className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b last:border-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-foreground truncate">
+                          {institution.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                          <span>BIC: {institution.bic || 'N/A'}</span>
+                          {institution.transaction_total_days && (
+                            <span>• {institution.transaction_total_days} Tage Verlauf</span>
+                          )}
+                        </div>
+                      </div>
+                      {institution.id.includes('SANDBOX') && (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs ml-2 shrink-0">
+                          Test
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                ))}
+                {filteredInstitutions.length === 20 && (
+                  <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">
+                    Mehr Ergebnisse verfügbar - tippe spezifischer
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showDropdown && searchQuery.trim() && filteredInstitutions.length === 0 && !loading && (
+              <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg p-4 text-center">
+                <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground text-sm">Keine Banken gefunden für &quot;{searchQuery}&quot;</p>
+                <p className="text-xs mt-1 text-muted-foreground">Tippe z.B. &quot;Sparkasse&quot;, &quot;Volksbank&quot;, oder &quot;Deutsche Bank&quot;</p>
+              </div>
+            )}
+          </div>
+
+          {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.protocol !== 'https:' && (
+            <Alert className="bg-blue-500/10 border-blue-500/30">
+              <AlertTriangle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Entwicklungsmodus:</strong> In der lokalen Umgebung funktioniert die Bankverbindung nur mit der
+                <strong> Sandbox Finance (Test-Bank)</strong>. Für echte Bankverbindungen brauchst du eine HTTPS-URL.
+                <br /><br />
+                Für den Test mit echten Banken empfehle ich:
+                <ul className="list-disc list-inside mt-1 ml-2 text-xs">
+                  <li>Cloudflare Tunnel</li>
+                  <li>Oder ngrok für einen temporären HTTPS-Tunnel</li>
+                  <li>Die App auf Vercel/Netlify deployen</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {window.location.protocol === 'https:' && (
+            <Alert className="bg-emerald-500/10 border-emerald-500/30">
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <AlertDescription className="text-sm text-emerald-700 dark:text-emerald-300">
+                <strong>HTTPS erkannt!</strong> Du kannst jetzt alle Banken verbinden, da du eine sichere Verbindung nutzt.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {selectedInstitution && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg space-y-2">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-sm text-emerald-700 dark:text-emerald-300">
+                  Ausgewählt: <strong>{selectedInstitution.name}</strong>
+                  {selectedInstitution.id.includes('SANDBOX') && (
+                    <Badge className="ml-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Test-Modus</Badge>
+                  )}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Redirect URL: {window.location.origin}/ausgabentracker/return
+                {window.location.protocol === 'https:' ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 ml-1">(HTTPS ✓)</span>
+                ) : (
+                  <span className="text-red-600 dark:text-red-400 ml-1">(HTTP - nur Test-Bank!)</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Öffentliche Redirect-URL (optional)</label>
+            <div className="flex gap-2">
+              <Input
+                value={publicUrl}
+                onChange={(e) => setPublicUrl(e.target.value)}
+                placeholder="https://mein-tunnel.ngrok.io"
+              />
+              <Button onClick={savePublicUrl} disabled={!publicUrl}>Speichern</Button>
+              <Button variant="ghost" onClick={clearPublicUrl} className="text-red-600 hover:text-red-700">Entfernen</Button>
+            </div>
+            {savedPublicUrl ? (
+              <div className="text-xs text-muted-foreground">
+                Aktuelle öffentliche URL: <strong className="text-foreground">{savedPublicUrl}</strong>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">Keine öffentliche URL gesetzt. Gib eine ngrok / Cloudflare Tunnel HTTPS-URL ein, um Redirects korrekt zu empfangen.</div>
+            )}
+          </div>
+
+          {!loading && institutions.length > 0 && (
+            <div className="text-xs text-muted-foreground flex items-center justify-between">
+              <span>{institutions.length.toLocaleString('de-DE')} Banken verfügbar</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRetry}
+                className="h-6 text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Neu laden
+              </Button>
+            </div>
+          )}
+
+          <Button
+            onClick={handleConnect}
+            disabled={!selectedInstitution || loading || connecting}
+            className="w-full"
+          >
+            {connecting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Verbindung wird hergestellt...
+              </>
+            ) : (
+              <>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Mit {selectedInstitution ? selectedInstitution.name : 'Bank'} verbinden
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="text-xs text-muted-foreground space-y-1 border-t pt-4">
+          <p className="font-medium text-foreground">So funktioniert&apos;s:</p>
+          <p>• Tippe den Namen deiner Bank (z.B. &quot;Sparkasse Berlin&quot; oder &quot;Revolut&quot;)</p>
+          <p>• Wähle aus der Liste die passende Bank aus</p>
+          <p>• Du wirst zur Bank weitergeleitet für sichere Anmeldung</p>
+          <p>• Nach der Authentifizierung werden deine Konten angezeigt</p>
+          <p className="mt-2">• Rate Limit: 4 Abrufe/Tag pro Konto • Max. 90 Tage Historie</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

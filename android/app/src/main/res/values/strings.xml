@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ausgabentracker</string>
+    <string name="title_activity_main">Ausgabentracker</string>
+    <string name="package_name">de.finanz.copilot</string>
+    <string name="custom_url_scheme">de.finanz.copilot</string>
+</resources>

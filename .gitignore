@@ -1,0 +1,7 @@
+.dyad/
+node_modules/
+dist/
+build/
+.env
+.env.local
+.DS_Store
