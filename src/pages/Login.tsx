@@ -9,6 +9,16 @@ import { Card } from "@/components/ui/card";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 
+const PRODUCTION_APP_ORIGIN = "https://fintracker-phi.vercel.app";
+
+function getRedirectOrigin() {
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return window.location.origin;
+  }
+
+  return PRODUCTION_APP_ORIGIN;
+}
+
 function Login() {
   const isInIframe = typeof window !== "undefined" && window.top !== window.self;
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
@@ -39,11 +49,12 @@ function Login() {
       return;
     }
 
-    // Web: Standard-Redirect zurück auf die aktuelle Origin
+    const redirectTo = `${getRedirectOrigin()}/`;
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo,
       },
     });
   };
