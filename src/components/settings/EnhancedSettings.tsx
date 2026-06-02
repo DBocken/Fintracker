@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wallet, Wand2 } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2 } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -20,7 +20,6 @@ import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
 import { AutoCategorizationSettings } from './AutoCategorizationSettings';
 import { BulkAssignment } from './BulkAssignment';
-import { AccountManager } from '../accounts/AccountManager';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
@@ -176,7 +175,7 @@ export function EnhancedSettings() {
                 Einstellungen
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-400 md:text-base">
-                Verwalte Kategorien, Konten und lokale Datensicherheit in einer klaren, ruhigen Oberfläche.
+                Verwalte Kategorien, Automatisierung und lokale Datensicherheit in einer klaren, ruhigen Oberfläche.
               </p>
             </div>
 
@@ -192,15 +191,6 @@ export function EnhancedSettings() {
             </div>
           </div>
         </div>
-
-        <section className="mb-10">
-          <SectionHeader
-            icon={<Wallet className="h-5 w-5" />}
-            title="Konten & Verbindungen"
-            description="Konten, PSD2-Anbindung und Synchronisation werden an einer Stelle verwaltet."
-          />
-          <AccountManager />
-        </section>
 
         <section className="mb-10">
           <SectionHeader
