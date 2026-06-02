@@ -3,6 +3,7 @@
 import { supabase } from '../integrations/supabase/client';
 import type { Transaction, Category, UserSettings, HierarchicalCategory } from '../types';
 import { requireUserId } from './auth-service';
+import { transactionStorage } from './transaction-storage-service';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -72,29 +73,6 @@ function categorizeTransaction(transaction: Transaction, categories: Category[])
   return bestMatch?.id || null;
 }
 
-async function ensureDefaultAccountForNullAccountTransactions(userId: string): Promise<void> {
-  const { data: anyNull, error: anyNullError } = await supabase
-    .from('transactions')
-    .select('id')
-    .eq('user_id', userId)
-    .is('account_id', null)
-    .limit(1);
-
-  if (anyNullError) throw new Error(anyNullError.message);
-  if (!anyNull || anyNull.length === 0) return;
-
-  const { getOrCreateDefaultAccount } = await import('./account-service');
-  const defaultAccount = await getOrCreateDefaultAccount();
-
-  const { error: updateError } = await supabase
-    .from('transactions')
-    .update({ account_id: defaultAccount.id })
-    .eq('user_id', userId)
-    .is('account_id', null);
-
-  if (updateError) throw new Error(updateError.message);
-}
-
 // -----------------------------------------------------------------------------
 // Pagination Types & Helpers
 // -----------------------------------------------------------------------------
@@ -126,63 +104,39 @@ export async function getTransactionsPaginated(
   pageSize: number = 50,
   filters?: TransactionFilterOptions
 ): Promise<PaginatedTransactionsResult> {
-  const uid = await requireUserId();
+  const all = await getTransactions(10000);
+  const search = filters?.search?.trim().toLowerCase();
 
-  await ensureDefaultAccountForNullAccountTransactions(uid);
-
-  let query = supabase
-    .from('transactions')
-    .select('*', { count: 'exact' })
-    .eq('user_id', uid);
-
-  if (filters) {
-    if (filters.categoryId !== undefined) {
-      query = filters.categoryId === null
-        ? query.is('category_id', null)
-        : query.eq('category_id', filters.categoryId);
+  const filtered = all.filter((tx) => {
+    if (filters?.categoryId !== undefined) {
+      if (filters.categoryId === null && tx.category_id) return false;
+      if (filters.categoryId && tx.category_id !== filters.categoryId) return false;
     }
-
-    if (filters.accountId !== undefined) {
-      query = filters.accountId === null
-        ? query.is('account_id', null)
-        : query.eq('account_id', filters.accountId);
+    if (filters?.accountId !== undefined) {
+      if (filters.accountId === null && tx.account_id) return false;
+      if (filters.accountId && tx.account_id !== filters.accountId) return false;
     }
-
-    if (filters.dateFrom) query = query.gte('date', filters.dateFrom);
-    if (filters.dateTo) query = query.lte('date', filters.dateTo);
-
-    if (filters.search) {
-      // Use OR across text fields
-      const s = filters.search.replace(/%/g, '').trim();
-      if (s) {
-        query = query.or(
-          `payee.ilike.%${s}%,description.ilike.%${s}%,original_text.ilike.%${s}%`
-        );
-      }
+    if (filters?.dateFrom && tx.date < filters.dateFrom) return false;
+    if (filters?.dateTo && tx.date > filters.dateTo) return false;
+    if (filters?.minAmount !== undefined && Number(tx.amount) < filters.minAmount) return false;
+    if (filters?.maxAmount !== undefined && Number(tx.amount) > filters.maxAmount) return false;
+    if (search) {
+      const haystack = `${tx.payee || ''} ${tx.description || ''} ${tx.original_text || ''}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
     }
+    return true;
+  });
 
-    if (filters.minAmount !== undefined) query = query.gte('amount', filters.minAmount);
-    if (filters.maxAmount !== undefined) query = query.lte('amount', filters.maxAmount);
-  }
-
+  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-
-  const { data, error, count } = await query
-    .order('date', { ascending: false })
-    .range(from, to);
-
-  if (error) throw new Error(error.message);
-
-  const total = count ?? (data?.length ?? 0);
-  const hasMore = from + (data?.length ?? 0) < total;
+  const rows = filtered.slice(from, from + pageSize);
 
   return {
-    transactions: (data || []) as Transaction[],
-    total,
+    transactions: rows,
+    total: filtered.length,
     page,
     pageSize,
-    hasMore,
+    hasMore: from + rows.length < filtered.length,
   };
 }
 
@@ -191,30 +145,18 @@ export async function getTransactionsPaginated(
  * @deprecated Use getTransactionsPaginated for better performance
  */
 export async function getTransactions(limit: number = 1000): Promise<Transaction[]> {
-  const uid = await requireUserId();
-  await ensureDefaultAccountForNullAccountTransactions(uid);
-
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', uid)
-    .order('date', { ascending: false })
-    .limit(limit);
-
-  if (error) throw new Error(error.message);
-  return (data || []) as Transaction[];
+  const result = await transactionStorage.getTransactions(limit, 0);
+  if (!result.success) throw new Error(result.error || 'Lokale Transaktionen konnten nicht geladen werden');
+  return (result.data || []).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
 export async function saveTransactions(transactions: Transaction[]): Promise<Transaction[]> {
-  const uid = await requireUserId();
-
   const prepared = transactions.map((t) => {
     const normalizedDate = parseGermanDate(t.date);
     const normalizedAmount = parseGermanAmount(t.amount);
 
     return {
       id: t.id && !t.id.toString().startsWith('temp-') ? t.id : generateId(),
-      user_id: uid,
       account_id: t.account_id ?? null,
       date: normalizedDate,
       amount: normalizedAmount,
@@ -226,17 +168,13 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
       subcategory_id: t.subcategory_id ?? null,
       auto_mapped: t.auto_mapped ?? false,
       confirmed: t.confirmed ?? false,
-      csvcategoryname: (t as any).csvCategoryName ?? (t as any).csvcategoryname ?? null,
+      csvCategoryName: (t as any).csvCategoryName ?? (t as any).csvcategoryname ?? undefined,
     };
   });
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert(prepared)
-    .select('*');
-
-  if (error) throw new Error(error.message);
-  return (data || []) as Transaction[];
+  const result = await transactionStorage.saveTransactions(prepared as Transaction[]);
+  if (!result.success) throw new Error(result.error || 'Lokales Speichern fehlgeschlagen');
+  return result.data || [];
 }
 
 export async function createTransaction(transaction: Partial<Transaction>): Promise<Transaction> {
@@ -247,53 +185,40 @@ export async function createTransaction(transaction: Partial<Transaction>): Prom
 export async function updateTransaction(
   updates: { id: string; category_id: string }[]
 ): Promise<Transaction[]> {
-  const uid = await requireUserId();
-
   const updated: Transaction[] = [];
   for (const u of updates) {
-    const { data, error } = await supabase
-      .from('transactions')
-      .update({ category_id: u.category_id || null, auto_mapped: true })
-      .eq('id', u.id)
-      .eq('user_id', uid)
-      .select('*')
-      .single();
-
-    if (error) throw new Error(error.message);
-    if (data) updated.push(data as Transaction);
+    const result = await transactionStorage.updateTransaction(u.id, {
+      category_id: u.category_id || null,
+      auto_mapped: true,
+    });
+    if (!result.success || !result.data) throw new Error(result.error || 'Update fehlgeschlagen');
+    updated.push(result.data);
   }
 
   return updated;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  const uid = await requireUserId();
-
-  const { error } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', uid);
-
-  if (error) throw new Error(error.message);
+  const result = await transactionStorage.deleteTransaction(id);
+  if (!result.success) throw new Error(result.error || 'Löschen fehlgeschlagen');
 }
 
 export async function remapCategoryInLocalTransactions(
   oldCategoryId: string,
   newCategoryId: string
 ): Promise<number> {
-  // Backward-compatible name: now remaps in cloud storage.
-  const uid = await requireUserId();
+  const transactions = await getTransactions(10000);
+  let changed = 0;
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .update({ category_id: newCategoryId || null })
-    .eq('user_id', uid)
-    .eq('category_id', oldCategoryId)
-    .select('id');
+  for (const tx of transactions) {
+    if (tx.id && tx.category_id === oldCategoryId) {
+      const result = await transactionStorage.updateTransaction(tx.id, { category_id: newCategoryId || null });
+      if (!result.success) throw new Error(result.error || 'Kategorie konnte nicht neu zugeordnet werden');
+      changed += 1;
+    }
+  }
 
-  if (error) throw new Error(error.message);
-  return (data || []).length;
+  return changed;
 }
 
 // -----------------------------------------------------------------------------
@@ -447,7 +372,6 @@ export async function recategorizeTransactions(): Promise<{
   unassigned: number;
   changed: number;
 }> {
-  const uid = await requireUserId();
   const categories = await getCategories();
   const transactions = await getTransactions(10000);
 
@@ -463,18 +387,13 @@ export async function recategorizeTransactions(): Promise<{
     if (newCat) assigned += 1;
     else unassigned += 1;
 
-    if (prevCat !== newCat) {
+    if (t.id && prevCat !== newCat) {
       changed += 1;
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          category_id: newCat,
-          auto_mapped: !!newCat,
-        })
-        .eq('id', t.id)
-        .eq('user_id', uid);
-
-      if (error) throw new Error(error.message);
+      const result = await transactionStorage.updateTransaction(t.id, {
+        category_id: newCat,
+        auto_mapped: !!newCat,
+      });
+      if (!result.success) throw new Error(result.error || 'Neukategorisierung fehlgeschlagen');
     }
   }
 
@@ -498,27 +417,17 @@ export async function applyAutoCategorization(transactions: Transaction[]): Prom
 }
 
 export async function getCategoryPreview(categoryId: string, limit: number = 50): Promise<Transaction[]> {
-  const uid = await requireUserId();
   const categories = await getCategories();
   const catExists = categories.some(c => c.id === categoryId);
   if (!catExists) return [];
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', uid)
-    .neq('category_id', categoryId)
-    .order('date', { ascending: false })
-    .limit(2000);
-
-  if (error) throw new Error(error.message);
-
-  const affected = (data || []).filter((t) => {
-    const newCat = categorizeTransaction(t as Transaction, categories);
-    return newCat === categoryId;
+  const all = await getTransactions(2000);
+  const affected = all.filter((t) => {
+    const newCat = categorizeTransaction(t, categories);
+    return t.category_id !== categoryId && newCat === categoryId;
   });
 
-  return (affected.slice(0, limit) || []) as Transaction[];
+  return affected.slice(0, limit);
 }
 
 export interface CategorySuggestion {
@@ -527,18 +436,8 @@ export interface CategorySuggestion {
 }
 
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {
-  const uid = await requireUserId();
   const categories = await getCategories();
-
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', uid)
-    .order('date', { ascending: false })
-    .limit(5000);
-
-  if (error) throw new Error(error.message);
-  const all = (data || []) as Transaction[];
+  const all = await getTransactions(5000);
 
   if (!all.length || !categories.length) return null;
 

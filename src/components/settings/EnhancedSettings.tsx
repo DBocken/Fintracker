@@ -17,8 +17,10 @@ import { BankConnectionsManager } from '../BankConnectionsManager';
 import { BackupManager } from '../BackupManager';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
+import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 
 export function EnhancedSettings() {
+
   const queryClient = useQueryClient();
   const [editingCategory, setEditingCategory] = useState<HierarchicalCategory | null>(null);
   const [affectedTransactions, setAffectedTransactions] = useState<Transaction[]>([]);
@@ -202,6 +204,10 @@ export function EnhancedSettings() {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
           <LocalEncryptionSettings />
           <BackupManager />
+        </div>
+
+        <div className="mt-8">
+          <PrivacySyncAnalyticsSettings />
         </div>
       </div>
     </div>

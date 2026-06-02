@@ -306,12 +306,21 @@ export const localEncryption = {
 
     const key = this.requireUnlocked()
 
+    const sensitiveKeys = new Set([
+      'ausgabentracker_transactions_v3',
+      'ausgabentracker_accounts_v1',
+      'ausgabentracker_debts_v1',
+      'ausgabentracker_portfolios_v1',
+      'ausgabentracker_portfolio_positions_v1',
+      'ausgabentracker_bank_connections_v1',
+    ])
+
     const keys: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
       if (!k) continue
       if (k.startsWith('ausgabentracker_transactions_v2__')) keys.push(k)
-      if (k === 'ausgabentracker_transactions_v3') keys.push(k)
+      if (sensitiveKeys.has(k)) keys.push(k)
     }
 
     for (const storageKey of keys) {

@@ -1,12 +1,12 @@
 "use client";
 
-import { supabase } from '../integrations/supabase/client';
 import type { Transaction } from '../types';
-import { getCurrentUserId, requireUserId } from './auth-service';
+import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
 
 /**
- * Storage strategy for transactions
+ * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
+ * but sensitive transaction data is now always persisted locally.
  */
 export type StorageStrategy = 'local' | 'cloud' | 'hybrid';
 
@@ -32,26 +32,23 @@ export interface StorageResult<T> {
 
 // Constants
 const LOCAL_TRANSACTIONS_KEY = 'ausgabentracker_transactions_v3';
-const CLOUD_TRANSACTIONS_TABLE = 'transactions';
 const DEFAULT_SYNC_INTERVAL = 5; // 5 minutes
 
 /**
  * Transaction Storage Service
- * 
- * Provides a unified interface for storing transactions with support for:
- * - Local storage (fast, offline-capable)
- * - Cloud storage (Supabase, synced across devices)
- * - Hybrid mode (best of both worlds)
+ *
+ * Sensitive transaction data is local-first and never written to Supabase in
+ * plaintext. Cross-device sync is handled by encrypted snapshots.
  */
 class TransactionStorageService {
   private config: StorageConfig = {
-    strategy: 'hybrid',
-    autoSync: true,
+    strategy: 'local',
+    autoSync: false,
     syncInterval: DEFAULT_SYNC_INTERVAL,
     localCacheEnabled: true,
   };
-  
-  private syncTimer: NodeJS.Timeout | null = null;
+
+  private syncTimer: ReturnType<typeof setInterval> | null = null;
   private syncInProgress = false;
   private lastSyncTime: Date | null = null;
 
@@ -81,15 +78,7 @@ class TransactionStorageService {
    * - Sets up auto-sync
    */
   async initialize(): Promise<void> {
-    const userId = await getCurrentUserId();
-    
-    if (this.config.strategy === 'cloud' || this.config.strategy === 'hybrid') {
-      await this.ensureCloudTable();
-    }
-    
-    if (this.config.autoSync && userId) {
-      this.startAutoSync();
-    }
+    this.stopAutoSync();
   }
 
   /**
@@ -97,43 +86,15 @@ class TransactionStorageService {
    */
   async getTransactions(limit: number = 1000, offset: number = 0): Promise<StorageResult<Transaction[]>> {
     try {
-      const userId = await getCurrentUserId();
-      
-      if (this.config.strategy === 'local' || !userId) {
-        return await this.getLocalTransactions();
-      }
-      
-      if (this.config.strategy === 'cloud') {
-        return await this.getCloudTransactions(userId, limit, offset);
-      }
-      
-      // Hybrid: try cloud first, fallback to local
-      if (navigator.onLine) {
-        const cloudResult = await this.getCloudTransactions(userId, limit, offset);
-        if (cloudResult.success && cloudResult.data) {
-          // Update local cache
-          if (this.config.localCacheEnabled) {
-            await this.setLocalTransactions(cloudResult.data);
-          }
-          return cloudResult;
-        }
-      }
-      
-      // Fallback to local
-      return await this.getLocalTransactions();
+      const localResult = await this.getLocalTransactions();
+      const rows = localResult.data || [];
+      return { success: true, data: rows.slice(offset, offset + limit) };
     } catch (error) {
       console.error('[TransactionStorage] Error getting transactions:', error);
-      
-      // Try local fallback
-      try {
-        const localResult = await this.getLocalTransactions();
-        return { ...localResult, error: `Cloud failed, using local: ${error}` };
-      } catch {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -142,25 +103,7 @@ class TransactionStorageService {
    */
   async saveTransactions(transactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
     try {
-      const userId = await getCurrentUserId();
-      
-      if (this.config.strategy === 'local' || !userId) {
-        return await this.saveLocalTransactions(transactions);
-      }
-      
-      if (this.config.strategy === 'cloud') {
-        return await this.saveCloudTransactions(userId, transactions);
-      }
-      
-      // Hybrid: save to both
-      const localResult = await this.saveLocalTransactions(transactions);
-      
-      if (navigator.onLine) {
-        const cloudResult = await this.saveCloudTransactions(userId, transactions);
-        return cloudResult.success ? cloudResult : localResult;
-      }
-      
-      return localResult;
+      return await this.saveLocalTransactions(transactions);
     } catch (error) {
       console.error('[TransactionStorage] Error saving transactions:', error);
       return {
@@ -175,24 +118,7 @@ class TransactionStorageService {
    */
   async updateTransaction(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
     try {
-      const userId = await getCurrentUserId();
-      
-      if (this.config.strategy === 'local' || !userId) {
-        return await this.updateLocalTransaction(id, updates);
-      }
-      
-      if (this.config.strategy === 'cloud') {
-        return await this.updateCloudTransaction(userId, id, updates);
-      }
-      
-      // Hybrid: update both
-      const localResult = await this.updateLocalTransaction(id, updates);
-      
-      if (navigator.onLine) {
-        await this.updateCloudTransaction(userId, id, updates);
-      }
-      
-      return localResult;
+      return await this.updateLocalTransaction(id, updates);
     } catch (error) {
       console.error('[TransactionStorage] Error updating transaction:', error);
       return {
@@ -207,24 +133,7 @@ class TransactionStorageService {
    */
   async deleteTransaction(id: string): Promise<StorageResult<void>> {
     try {
-      const userId = await getCurrentUserId();
-      
-      if (this.config.strategy === 'local' || !userId) {
-        return await this.deleteLocalTransaction(id);
-      }
-      
-      if (this.config.strategy === 'cloud') {
-        return await this.deleteCloudTransaction(userId, id);
-      }
-      
-      // Hybrid: delete from both
-      await this.deleteLocalTransaction(id);
-      
-      if (navigator.onLine) {
-        await this.deleteCloudTransaction(userId, id);
-      }
-      
-      return { success: true };
+      return await this.deleteLocalTransaction(id);
     } catch (error) {
       console.error('[TransactionStorage] Error deleting transaction:', error);
       return {
@@ -241,70 +150,14 @@ class TransactionStorageService {
     if (this.syncInProgress) {
       return { success: false, error: 'Sync already in progress' };
     }
-    
+
     try {
       this.syncInProgress = true;
-      const userId = await requireUserId();
-      
-      // Get local transactions
-      const localResult = await this.getLocalTransactions();
-      if (!localResult.success || !localResult.data) {
-        throw new Error('Failed to get local transactions');
-      }
-      
-      // Get cloud transactions
-      const cloudResult = await this.getCloudTransactions(userId, 10000, 0);
-      
-      let uploaded = 0;
-      let downloaded = 0;
-      
-      if (cloudResult.success && cloudResult.data) {
-        // Sync logic: merge by date + payee + amount (simple deduplication)
-        const localMap = new Map<string, Transaction>();
-        localResult.data.forEach(tx => {
-          const key = `${tx.date}|${tx.payee}|${tx.amount}`;
-          localMap.set(key, tx);
-        });
-        
-        const cloudMap = new Map<string, Transaction>();
-        cloudResult.data.forEach(tx => {
-          const key = `${tx.date}|${tx.payee}|${tx.amount}`;
-          cloudMap.set(key, tx);
-        });
-        
-        // Upload local-only transactions
-        const toUpload: Transaction[] = [];
-        localMap.forEach((tx, key) => {
-          if (!cloudMap.has(key)) {
-            toUpload.push(tx);
-          }
-        });
-        
-        if (toUpload.length > 0) {
-          const uploadResult = await this.saveCloudTransactions(userId, toUpload);
-          if (uploadResult.success) {
-            uploaded = toUpload.length;
-          }
-        }
-        
-        // Download cloud-only transactions
-        const allTransactions = [...localResult.data];
-        cloudMap.forEach((tx, key) => {
-          if (!localMap.has(key)) {
-            allTransactions.push(tx);
-            downloaded++;
-          }
-        });
-        
-        // Update local
-        await this.setLocalTransactions(allTransactions);
-      }
-      
       this.lastSyncTime = new Date();
-      
       return {
         success: true,
-        data: { uploaded, downloaded },
+        data: { uploaded: 0, downloaded: 0 },
+        error: 'Cloud-Klartextsync wurde deaktiviert. Bitte verschlüsselte Snapshots verwenden.',
       };
     } catch (error) {
       console.error('[TransactionStorage] Sync error:', error);
@@ -364,30 +217,22 @@ class TransactionStorageService {
     lastSync: Date | null;
   }>> {
     try {
-      const userId = await getCurrentUserId();
+      await getCurrentUserId();
       
-      // Local stats
+      // Local stats only: Supabase no longer stores plaintext transactions.
       const localResult = await this.getLocalTransactions();
       const localCount = localResult.data?.length || 0;
       const localSize = new Blob([JSON.stringify(localResult.data)]).size;
-      
-      // Cloud stats
-      let cloudCount: number | undefined;
-      if (userId && (this.config.strategy === 'cloud' || this.config.strategy === 'hybrid')) {
-        const cloudResult = await this.getCloudTransactions(userId, 1, 0);
-        if (cloudResult.success) {
-          cloudCount = localCount; // Approximation, actual count from query would be better
-        }
-      }
       
       return {
         success: true,
         data: {
           local: { count: localCount, size: localSize },
-          cloud: cloudCount !== undefined ? { count: cloudCount } : undefined,
+          cloud: { count: 0 },
           lastSync: this.lastSyncTime,
         },
       };
+
     } catch (error) {
       return {
         success: false,
@@ -430,20 +275,8 @@ class TransactionStorageService {
     }
   }
 
-  private async ensureCloudTable(): Promise<void> {
-    // Check if table exists, create if not
-    // This would be done via migration in a real app
-    const { error } = await supabase
-      .from(CLOUD_TRANSACTIONS_TABLE)
-      .select('id')
-      .limit(1);
-    
-    if (error && error.code === '42P01') {
-      console.warn('[TransactionStorage] Cloud table does not exist. Please run migration.');
-    }
-  }
-
   private async getLocalTransactions(): Promise<StorageResult<Transaction[]>> {
+
     try {
       if (localEncryption.isEnabled() && !localEncryption.isUnlocked()) {
         throw new LocalEncryptionLockedError();
@@ -504,106 +337,8 @@ class TransactionStorageService {
     return { success: true };
   }
 
-  private async getCloudTransactions(userId: string, limit: number, offset: number): Promise<StorageResult<Transaction[]>> {
-    try {
-      const { data, error } = await supabase
-        .from(CLOUD_TRANSACTIONS_TABLE)
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .range(offset, offset + limit - 1);
-      
-      if (error) {
-        // Table doesn't exist yet - return empty
-        if (error.code === '42P01') {
-          return { success: true, data: [] };
-        }
-        throw error;
-      }
-      
-      return { success: true, data: (data || []) as Transaction[] };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Cloud fetch failed',
-      };
-    }
-  }
-
-  private async saveCloudTransactions(userId: string, transactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
-    try {
-      const toInsert = transactions.map(tx => ({
-        user_id: userId,
-        date: tx.date,
-        amount: tx.amount,
-        payee: tx.payee,
-        description: tx.description,
-        original_text: tx.original_text,
-        currency: tx.currency || 'EUR',
-        category_id: tx.category_id,
-        subcategory_id: tx.subcategory_id,
-        auto_mapped: tx.auto_mapped || false,
-        confirmed: tx.confirmed || false,
-        account_id: tx.account_id,
-      }));
-      
-      const { data, error } = await supabase
-        .from(CLOUD_TRANSACTIONS_TABLE)
-        .insert(toInsert)
-        .select('*');
-      
-      if (error) throw error;
-      
-      return { success: true, data: (data || []) as Transaction[] };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Cloud save failed',
-      };
-    }
-  }
-
-  private async updateCloudTransaction(userId: string, id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
-    try {
-      const { data, error } = await supabase
-        .from(CLOUD_TRANSACTIONS_TABLE)
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', userId)
-        .select('*')
-        .single();
-      
-      if (error) throw error;
-      
-      return { success: true, data: data as Transaction };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Cloud update failed',
-      };
-    }
-  }
-
-  private async deleteCloudTransaction(userId: string, id: string): Promise<StorageResult<void>> {
-    try {
-      const { error } = await supabase
-        .from(CLOUD_TRANSACTIONS_TABLE)
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-      
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Cloud delete failed',
-      };
-    }
-  }
-
   private async getAllTransactions(): Promise<Transaction[]> {
+
     const result = await this.getTransactions(10000, 0);
     return result.data || [];
   }

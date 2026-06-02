@@ -3,8 +3,8 @@
 import { supabase } from '../integrations/supabase/client';
 import { requireUserId } from './auth-service';
 import type { Category, Account, UserSettings } from '../types';
-import { getCategories, getUserSettings } from './transaction-service';
-import { getAccounts } from './account-service';
+import { getCategories, getTransactions, getUserSettings, saveTransactions } from './transaction-service';
+import { createAccount, getAccounts } from './account-service';
 import { localEncryption, type EncryptedEnvelopeV1 } from './local-crypto';
 
 /**
@@ -327,54 +327,22 @@ class BackupService {
     return major === currentMajor;
   }
 
-  private async fetchTransactions(userId: string): Promise<any[]> {
+  private async fetchTransactions(_userId: string): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
-      
-      if (error) {
-        // Table might not exist yet
-        if (error.code === '42P01') {
-          return [];
-        }
-        throw error;
-      }
-      
-      return data || [];
+      return await getTransactions(10000);
     } catch (error) {
-      console.error('[BackupService] Error fetching transactions:', error);
+      console.error('[BackupService] Error fetching local transactions:', error);
       return [];
     }
   }
 
   private async restoreTransactions(
-    userId: string,
+    _userId: string,
     transactions: any[]
   ): Promise<number> {
-    let restored = 0;
-    
-    for (const tx of transactions) {
-      try {
-        const { error } = await supabase
-          .from('transactions')
-          .insert({
-            ...tx,
-            id: undefined, // Let database generate new ID
-            user_id: userId,
-          });
-        
-        if (!error) {
-          restored++;
-        }
-      } catch (error) {
-        console.error('[BackupService] Error restoring transaction:', error);
-      }
-    }
-    
-    return restored;
+    if (transactions.length === 0) return 0;
+    const restored = await saveTransactions(transactions.map((tx) => ({ ...tx, id: undefined })));
+    return restored.length;
   }
 
   private async restoreCategories(
@@ -409,34 +377,17 @@ class BackupService {
   }
 
   private async restoreAccounts(
-    userId: string,
+    _userId: string,
     accounts: Account[]
   ): Promise<number> {
     let restored = 0;
     
     for (const acc of accounts) {
       try {
-        const { error } = await supabase
-          .from('accounts')
-          .insert({
-            name: acc.name,
-            type: acc.type,
-            currency: acc.currency,
-            description: acc.description,
-            color: acc.color,
-            icon: acc.icon,
-            is_budget_pool_member: acc.is_budget_pool_member,
-            order_index: acc.order_index,
-            statement_close_day: acc.statement_close_day,
-            due_day: acc.due_day,
-            user_id: userId,
-          });
-        
-        if (!error) {
-          restored++;
-        }
+        await createAccount({ ...acc, id: undefined });
+        restored++;
       } catch (error) {
-        console.error('[BackupService] Error restoring account:', error);
+        console.error('[BackupService] Error restoring local account:', error);
       }
     }
     
