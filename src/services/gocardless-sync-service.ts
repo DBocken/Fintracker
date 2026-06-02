@@ -238,8 +238,6 @@ export async function syncAllAccounts(): Promise<SyncResult[]> {
 
     invalidateTransactionConsumers();
 
-    invalidateTransactionConsumers();
-
     if (totalImported > 0) {
       showSuccess(`${totalImported} Transaktionen synchronisiert`);
     }

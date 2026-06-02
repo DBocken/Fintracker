@@ -216,9 +216,9 @@ export default function BankCallbackPage() {
   const importTransactionsForAccount = async (localAccountId: string, resolvedRequisitionId: string, gocardlessAccountId: string) => {
     try {
       const today = new Date();
-      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const ninetyDaysAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-      const dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+      const dateFrom = ninetyDaysAgo.toISOString().split('T')[0];
       const dateTo = today.toISOString().split('T')[0];
 
       const transactions = await gocardlessService.getTransactions(
