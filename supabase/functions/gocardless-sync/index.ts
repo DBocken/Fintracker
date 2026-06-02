@@ -629,7 +629,7 @@ serve(async (req) => {
         const today = new Date();
         const fromDate =
           (body?.date_from as string | undefined) ||
-          new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+          new Date(today.getTime() - 730 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
         const toDate = (body?.date_to as string | undefined) || today.toISOString().split("T")[0];
 
         const transactions = await getTransactionsFromGoCardless(accountId, fromDate, toDate, accessToken);

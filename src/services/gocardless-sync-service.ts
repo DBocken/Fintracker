@@ -127,16 +127,17 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
   try {
     const today = new Date();
-    const lastSyncDate = account.last_sync_at 
-      ? new Date(account.last_sync_at) 
-      : new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const lastSyncDate = account.last_sync_at
+      ? new Date(account.last_sync_at)
+      : new Date(today.getTime() - 730 * 24 * 60 * 60 * 1000);
     
     const syncFrom = new Date(Math.max(
       lastSyncDate.getTime() - 24 * 60 * 60 * 1000,
-      today.getTime() - 90 * 24 * 60 * 60 * 1000
+      today.getTime() - 730 * 24 * 60 * 60 * 1000
     ));
 
     const dateFrom = syncFrom.toISOString().split('T')[0];
+
     const dateTo = today.toISOString().split('T')[0];
 
     console.log(`[gocardless-sync] Syncing ${account.name} from ${dateFrom} to ${dateTo}`);
