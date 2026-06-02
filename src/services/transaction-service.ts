@@ -96,10 +96,11 @@ export interface TransactionFilterOptions {
 }
 
 // -----------------------------------------------------------------------------
-// Transactions (Supabase, per-user via RLS)
+// Transactions (local encrypted storage)
 // -----------------------------------------------------------------------------
 
 export async function getTransactionsPaginated(
+
   page: number = 1,
   pageSize: number = 50,
   filters?: TransactionFilterOptions

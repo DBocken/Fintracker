@@ -310,6 +310,7 @@ export const localEncryption = {
       'ausgabentracker_transactions_v3',
       'ausgabentracker_accounts_v1',
       'ausgabentracker_debts_v1',
+      'ausgabentracker_debt_assignments_v1',
       'ausgabentracker_portfolios_v1',
       'ausgabentracker_portfolio_positions_v1',
       'ausgabentracker_bank_connections_v1',

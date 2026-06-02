@@ -18,6 +18,7 @@ import {
   exportEncryptedSnapshot,
   getLatestSyncMetadata,
   getSyncPaths,
+  importEncryptedSnapshot,
   removeSyncPath,
   saveSyncPath,
 } from '@/services/snapshot-sync-service';
@@ -58,7 +59,20 @@ export function PrivacySyncAnalyticsSettings() {
     onError: (error: Error) => showError(error.message),
   });
 
+  const importSnapshotMutation = useMutation({
+    mutationFn: importEncryptedSnapshot,
+    onSuccess: (snapshot) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['debts'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
+      showSuccess(`Snapshot v${snapshot.snapshot_version} importiert`);
+    },
+    onError: (error: Error) => showError(error.message),
+  });
+
   const analyticsMutation = useMutation({
+
     mutationFn: uploadEncryptedAnalyticsPackage,
     onSuccess: (result) => showSuccess(`${result.uploaded} verschlüsselte Analysepakete hochgeladen (${result.suppressed} unterdrückt)`),
     onError: (error: Error) => showError(error.message),
@@ -144,8 +158,23 @@ export function PrivacySyncAnalyticsSettings() {
             <Button onClick={() => snapshotMutation.mutate()} disabled={!encryption.unlocked || snapshotMutation.isPending}>
               <FileLock2 className="mr-2 h-4 w-4" /> Verschlüsselten Snapshot exportieren
             </Button>
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+              Snapshot importieren
+              <Input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                disabled={!encryption.unlocked || importSnapshotMutation.isPending}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) importSnapshotMutation.mutate(file);
+                  event.currentTarget.value = '';
+                }}
+              />
+            </label>
           </div>
           {syncPaths.length > 0 && (
+
             <div className="space-y-2 text-sm">
               {syncPaths.map((path) => (
                 <div key={path.id} className="flex items-center justify-between rounded-md bg-slate-950/60 p-2">

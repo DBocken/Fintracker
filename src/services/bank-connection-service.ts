@@ -1,5 +1,11 @@
-import { supabase } from '@/integrations/supabase/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getCurrentUserId } from './auth-service'
+import {
+  deleteLocalFinanceItem,
+  readLocalFinanceList,
+  updateLocalFinanceItem,
+  upsertLocalFinanceItem,
+} from './local-finance-store'
 
 export interface BankConnection {
   id: string
@@ -51,6 +57,10 @@ export interface ConsentStatus {
 
 const CONSENT_VALIDITY_DAYS = 90
 
+async function localUserId(): Promise<string> {
+  return (await getCurrentUserId()) || 'local'
+}
+
 export function getConsentStatus(connection: Pick<BankConnection, 'agreement_accepted_at'>): ConsentStatus {
   if (!connection.agreement_accepted_at) {
     return {
@@ -79,108 +89,48 @@ export function getConsentStatus(connection: Pick<BankConnection, 'agreement_acc
 
 class BankConnectionService {
   async getBankConnections(): Promise<BankConnection[]> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data as BankConnection[]
+    const connections = await readLocalFinanceList<BankConnection>('bankConnections')
+    return connections.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
   }
 
   async getBankConnectionById(id: string): Promise<BankConnection | null> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
-    return data as BankConnection
+    const connections = await this.getBankConnections()
+    return connections.find((connection) => connection.id === id) || null
   }
 
   async getBankConnectionByRequisitionId(requisitionId: string): Promise<BankConnection | null> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .select('*')
-      .eq('requisition_id', requisitionId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
-    return data as BankConnection
+    const connections = await this.getBankConnections()
+    return connections.find((connection) => connection.requisition_id === requisitionId) || null
   }
 
   async getBankConnectionByReference(reference: string): Promise<BankConnection | null> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .select('*')
-      .eq('reference', reference)
-      .eq('user_id', user.id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
-    return data as BankConnection
+    const connections = await this.getBankConnections()
+    return connections.find((connection) => connection.reference === reference) || null
   }
 
   async createBankConnection(params: CreateBankConnectionParams): Promise<BankConnection> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const connectionData: any = {
-      user_id: user.id,
+    const now = new Date().toISOString()
+    return upsertLocalFinanceItem<BankConnection>('bankConnections', {
+      id: crypto.randomUUID(),
+      user_id: await localUserId(),
       institution_id: params.institution_id,
       institution_name: params.institution_name,
+      institution_bic: params.institution_bic,
+      institution_logo: params.institution_logo,
+      institution_country: params.institution_country,
       requisition_id: params.requisition_id,
       reference: params.reference,
-      status: 'active'
-    }
-
-    if (params.institution_bic) connectionData.institution_bic = params.institution_bic
-    if (params.institution_logo) connectionData.institution_logo = params.institution_logo
-    if (params.institution_country) connectionData.institution_country = params.institution_country
-    if (params.agreement_id) connectionData.agreement_id = params.agreement_id
-    if (params.agreement_id) connectionData.agreement_accepted_at = new Date().toISOString()
-
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .insert(connectionData)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data as BankConnection
+      status: 'active',
+      agreement_id: params.agreement_id,
+      agreement_accepted_at: params.agreement_id ? now : undefined,
+      created_at: now,
+      updated_at: now,
+    })
   }
 
   async updateBankConnection(params: UpdateBankConnectionParams): Promise<BankConnection> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const updateData: any = {
-      updated_at: new Date().toISOString()
+    const updateData: Partial<BankConnection> = {
+      updated_at: new Date().toISOString(),
     }
 
     if (params.status) updateData.status = params.status
@@ -192,42 +142,24 @@ class BankConnectionService {
     if (params.requisition_id !== undefined) updateData.requisition_id = params.requisition_id
     if (params.reference !== undefined) updateData.reference = params.reference
 
-    const { data, error } = await supabase
-      .from('bank_connections')
-      .update(updateData)
-      .eq('id', params.id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data as BankConnection
+    return updateLocalFinanceItem<BankConnection>('bankConnections', params.id, updateData)
   }
 
   async deleteBankConnection(id: string): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { error } = await supabase
-      .from('bank_connections')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
-
-    if (error) throw error
+    await deleteLocalFinanceItem<BankConnection>('bankConnections', id)
   }
 
   async updateLastSync(id: string): Promise<void> {
     await this.updateBankConnection({
       id,
-      last_sync_at: new Date().toISOString()
+      last_sync_at: new Date().toISOString(),
     })
   }
 
   async revokeBankConnection(id: string): Promise<BankConnection> {
     return this.updateBankConnection({
       id,
-      status: 'revoked'
+      status: 'revoked',
     })
   }
 }
@@ -261,8 +193,7 @@ export const useBankConnectionByRequisitionId = (requisitionId: string) => {
 export const useCreateBankConnection = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (params: CreateBankConnectionParams) =>
-      bankConnectionService.createBankConnection(params),
+    mutationFn: (params: CreateBankConnectionParams) => bankConnectionService.createBankConnection(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-connections'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })
@@ -273,8 +204,7 @@ export const useCreateBankConnection = () => {
 export const useUpdateBankConnection = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (params: UpdateBankConnectionParams) =>
-      bankConnectionService.updateBankConnection(params),
+    mutationFn: (params: UpdateBankConnectionParams) => bankConnectionService.updateBankConnection(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-connections'] })
       queryClient.invalidateQueries({ queryKey: ['accounts'] })

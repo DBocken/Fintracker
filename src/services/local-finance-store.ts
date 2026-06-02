@@ -6,6 +6,7 @@ export const LOCAL_FINANCE_KEYS = {
   transactions: 'ausgabentracker_transactions_v3',
   accounts: 'ausgabentracker_accounts_v1',
   debts: 'ausgabentracker_debts_v1',
+  debtAssignments: 'ausgabentracker_debt_assignments_v1',
   portfolios: 'ausgabentracker_portfolios_v1',
   portfolioPositions: 'ausgabentracker_portfolio_positions_v1',
   bankConnections: 'ausgabentracker_bank_connections_v1',

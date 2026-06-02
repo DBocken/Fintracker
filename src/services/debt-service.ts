@@ -1,8 +1,15 @@
 "use client";
 
-import { supabase } from "../integrations/supabase/client";
 import type { Debt, DebtType } from "../types";
-import { getCurrentUserId, requireUserId } from "./auth-service";
+import { getCurrentUserId } from "./auth-service";
+import { getTransactions } from "./transaction-service";
+import {
+  deleteLocalFinanceItem,
+  readLocalFinanceList,
+  updateLocalFinanceItem,
+  upsertLocalFinanceItem,
+  writeLocalFinanceList,
+} from "./local-finance-store";
 
 export const DEBT_TYPE_LABELS: Record<DebtType, string> = {
   credit_card: "Kreditkarte",
@@ -28,7 +35,6 @@ export const DEBT_TYPE_ICONS: Record<DebtType, string> = {
   other: "💸",
 };
 
-/** Known BNPL providers used for heuristic detection. */
 export const BNPL_PROVIDERS = [
   "klarna",
   "paypal",
@@ -40,29 +46,20 @@ export const BNPL_PROVIDERS = [
   "easycredit",
 ];
 
-// -----------------------------------------------------------------------------
-// CRUD
-// -----------------------------------------------------------------------------
+async function localUserId(): Promise<string> {
+  return (await getCurrentUserId()) || "local";
+}
 
 export async function getDebts(): Promise<Debt[]> {
-  const uid = await getCurrentUserId();
-  if (!uid) return [];
-
-  const { data, error } = await supabase
-    .from("debts")
-    .select("*")
-    .eq("user_id", uid)
-    .order("balance", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return (data || []) as Debt[];
+  const debts = await readLocalFinanceList<Debt>("debts");
+  return debts.sort((a, b) => Number(b.balance) - Number(a.balance));
 }
 
 export async function createDebt(debt: Partial<Debt>): Promise<Debt> {
-  const uid = await requireUserId();
-
-  const payload = {
-    user_id: uid,
+  const now = new Date().toISOString();
+  return upsertLocalFinanceItem<Debt>("debts", {
+    id: debt.id || crypto.randomUUID(),
+    user_id: await localUserId(),
     name: debt.name || "Neue Schuld",
     type: debt.type || "other",
     balance: debt.balance ?? 0,
@@ -75,81 +72,28 @@ export async function createDebt(debt: Partial<Debt>): Promise<Debt> {
     provider: debt.provider ?? null,
     notes: debt.notes ?? null,
     is_paid_off: debt.is_paid_off ?? false,
-  };
-
-  const { data, error } = await supabase
-    .from("debts")
-    .insert(payload)
-    .select("*")
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Debt;
+    created_at: debt.created_at ?? now,
+    updated_at: debt.updated_at ?? now,
+  });
 }
 
 export async function updateDebt(debt: Partial<Debt> & { id: string }): Promise<Debt> {
-  const uid = await requireUserId();
-
-  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  const keys: (keyof Debt)[] = [
-    "name",
-    "type",
-    "balance",
-    "original_amount",
-    "interest_rate",
-    "min_payment",
-    "due_day",
-    "due_date",
-    "is_bnpl",
-    "provider",
-    "notes",
-    "is_paid_off",
-  ];
-  for (const k of keys) {
-    if (debt[k] !== undefined) payload[k] = debt[k];
-  }
-
-  const { data, error } = await supabase
-    .from("debts")
-    .update(payload)
-    .eq("id", debt.id)
-    .eq("user_id", uid)
-    .select("*")
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Debt;
+  return updateLocalFinanceItem<Debt>("debts", debt.id, debt);
 }
 
 export async function deleteDebt(id: string): Promise<void> {
-  const uid = await requireUserId();
-  const { error } = await supabase
-    .from("debts")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", uid);
-  if (error) throw new Error(error.message);
+  await deleteLocalFinanceItem<Debt>("debts", id);
+  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
+  await writeLocalFinanceList("debtAssignments", assignments.filter((assignment) => assignment.debt_id !== id));
 }
 
-// -----------------------------------------------------------------------------
-// Aggregations
-// -----------------------------------------------------------------------------
-
 export function getTotalDebt(debts: Debt[]): number {
-  return debts
-    .filter((d) => !d.is_paid_off)
-    .reduce((sum, d) => sum + Math.max(0, d.balance), 0);
+  return debts.filter((d) => !d.is_paid_off).reduce((sum, d) => sum + Math.max(0, d.balance), 0);
 }
 
 export function getTotalMinPayment(debts: Debt[]): number {
-  return debts
-    .filter((d) => !d.is_paid_off)
-    .reduce((sum, d) => sum + Math.max(0, d.min_payment), 0);
+  return debts.filter((d) => !d.is_paid_off).reduce((sum, d) => sum + Math.max(0, d.min_payment), 0);
 }
-
-// -----------------------------------------------------------------------------
-// Payoff strategies (Snowball / Avalanche) — pure TypeScript
-// -----------------------------------------------------------------------------
 
 export type PayoffStrategy = "snowball" | "avalanche";
 
@@ -168,21 +112,13 @@ export interface PayoffPlan {
   steps: PayoffStep[];
   totalMonths: number;
   totalInterestPaid: number;
-  /** True if the provided budget cannot even cover minimum payments. */
   insufficientBudget: boolean;
 }
 
-/**
- * Simulate paying off debts using the snowball (lowest balance first) or
- * avalanche (highest interest first) strategy.
- *
- * @param debts active debts
- * @param monthlyBudget total amount available for debt repayment per month
- */
 export function calculatePayoffPlan(
   debts: Debt[],
   monthlyBudget: number,
-  strategy: PayoffStrategy
+  strategy: PayoffStrategy,
 ): PayoffPlan {
   const active = debts
     .filter((d) => !d.is_paid_off && d.balance > 0)
@@ -199,27 +135,16 @@ export function calculatePayoffPlan(
     }));
 
   const totalMin = active.reduce((s, d) => s + d.min, 0);
-
   const priority = [...active].sort((a, b) => {
-    if (strategy === "snowball") {
-      return a.initialBalance - b.initialBalance || b.annualRate - a.annualRate;
-    }
+    if (strategy === "snowball") return a.initialBalance - b.initialBalance || b.annualRate - a.annualRate;
     return b.annualRate - a.annualRate || a.initialBalance - b.initialBalance;
   });
-
   const priorityOrder = new Map(priority.map((d, index) => [d.id, index + 1]));
 
   if (active.length === 0) {
-    return {
-      strategy,
-      steps: [],
-      totalMonths: 0,
-      totalInterestPaid: 0,
-      insufficientBudget: false,
-    };
+    return { strategy, steps: [], totalMonths: 0, totalInterestPaid: 0, insufficientBudget: false };
   }
-
-  if (monthlyBudget < totalMin) {
+  if (monthlyBudget + 0.01 < totalMin) {
     return {
       strategy,
       steps: priority.map((d) => ({
@@ -238,55 +163,44 @@ export function calculatePayoffPlan(
   }
 
   let month = 0;
-  const maxMonths = 1200; // 100 years safety cap
-
-  while (active.some((d) => d.balance > 0.01) && month < maxMonths) {
+  while (active.some((d) => d.balance > 0.01) && month < 600) {
     month += 1;
 
     for (const d of active) {
-      if (d.balance <= 0) continue;
+      if (d.balance <= 0.01) continue;
       const interest = d.balance * d.rate;
       d.balance += interest;
       d.interestPaid += interest;
     }
 
-    let budget = monthlyBudget;
+    let remainingBudget = monthlyBudget;
     for (const d of active) {
-      if (d.balance <= 0) continue;
-      const pay = Math.min(d.min, d.balance);
-      d.balance -= pay;
-      budget -= pay;
+      if (d.balance <= 0.01) continue;
+      const payment = Math.min(d.balance, d.min);
+      d.balance -= payment;
+      remainingBudget -= payment;
+      if (d.balance <= 0.01 && !d.monthsToPayoff) d.monthsToPayoff = month;
     }
 
-    for (const focus of priority) {
-      const d = active.find((x) => x.id === focus.id);
-      if (!d || d.balance <= 0) continue;
-      if (budget <= 0) break;
-      const pay = Math.min(budget, d.balance);
-      d.balance -= pay;
-      budget -= pay;
-    }
-
-    for (const d of active) {
-      if (d.balance <= 0.01 && d.monthsToPayoff === 0) {
-        d.monthsToPayoff = month;
-      }
+    for (const target of priority) {
+      if (remainingBudget <= 0.01) break;
+      if (target.balance <= 0.01) continue;
+      const extra = Math.min(target.balance, remainingBudget);
+      target.balance -= extra;
+      remainingBudget -= extra;
+      if (target.balance <= 0.01 && !target.monthsToPayoff) target.monthsToPayoff = month;
     }
   }
 
-  const byId = new Map(active.map((d) => [d.id, d]));
-  const steps: PayoffStep[] = priority.map((p) => {
-    const d = byId.get(p.id)!;
-    return {
-      debtId: d.id,
-      name: d.name,
-      balance: d.initialBalance,
-      interestRate: d.annualRate,
-      monthsToPayoff: d.monthsToPayoff || month,
-      totalInterestPaid: Math.round(d.interestPaid * 100) / 100,
-      priorityOrder: priorityOrder.get(d.id) || 0,
-    };
-  });
+  const steps = priority.map((d) => ({
+    debtId: d.id,
+    name: d.name,
+    balance: d.initialBalance,
+    interestRate: d.annualRate,
+    monthsToPayoff: d.monthsToPayoff || month,
+    totalInterestPaid: Math.round(d.interestPaid * 100) / 100,
+    priorityOrder: priorityOrder.get(d.id) || 0,
+  }));
 
   return {
     strategy,
@@ -307,136 +221,64 @@ export interface DebtTransactionAssignment {
 }
 
 export async function getDebtTransactionAssignments(): Promise<DebtTransactionAssignment[]> {
-  const uid = await getCurrentUserId();
-  if (!uid) return [];
-
-  const { data, error } = await supabase
-    .from("debt_transaction_assignments")
-    .select("*")
-    .eq("user_id", uid)
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return (data || []) as DebtTransactionAssignment[];
+  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
+  return assignments.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 }
 
 export async function assignTransactionToDebt(params: {
   debtId: string;
   transactionId: string;
 }): Promise<DebtTransactionAssignment> {
-  const uid = await requireUserId();
+  const debts = await getDebts();
+  const debt = debts.find((entry) => entry.id === params.debtId);
+  if (!debt) throw new Error("Schuld nicht gefunden");
 
-  const { data: debt, error: debtError } = await supabase
-    .from("debts")
-    .select("id, balance")
-    .eq("id", params.debtId)
-    .eq("user_id", uid)
-    .single();
-
-  if (debtError) throw new Error(debtError.message);
-
-  const { data: transaction, error: transactionError } = await supabase
-    .from("transactions")
-    .select("id, amount")
-    .eq("id", params.transactionId)
-    .eq("user_id", uid)
-    .single();
-
-  if (transactionError) throw new Error(transactionError.message);
+  const transaction = (await getTransactions(10000)).find((entry) => entry.id === params.transactionId);
+  if (!transaction) throw new Error("Transaktion nicht gefunden");
 
   const amount = Math.abs(Number(transaction.amount) || 0);
   if (amount <= 0 || Number(transaction.amount) >= 0) {
     throw new Error("Nur Abbuchungen können einer Schuld als Tilgung zugewiesen werden.");
   }
 
-  const { data: existingAssignment, error: existingError } = await supabase
-    .from("debt_transaction_assignments")
-    .select("id")
-    .eq("user_id", uid)
-    .eq("transaction_id", params.transactionId)
-    .maybeSingle();
-
-  if (existingError) throw new Error(existingError.message);
-  if (existingAssignment) {
+  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
+  if (assignments.some((assignment) => assignment.transaction_id === params.transactionId)) {
     throw new Error("Diese Abbuchung ist bereits einer Schuld zugewiesen.");
   }
 
-  const { data, error } = await supabase
-    .from("debt_transaction_assignments")
-    .insert({
-      user_id: uid,
-      debt_id: params.debtId,
-      transaction_id: params.transactionId,
-      amount,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw new Error(error.message);
+  const assignment: DebtTransactionAssignment = {
+    id: crypto.randomUUID(),
+    user_id: await localUserId(),
+    debt_id: params.debtId,
+    transaction_id: params.transactionId,
+    amount,
+    created_at: new Date().toISOString(),
+  };
+  await writeLocalFinanceList("debtAssignments", [assignment, ...assignments]);
 
   const newBalance = Math.max(0, Number(debt.balance) - amount);
-  const { error: updateError } = await supabase
-    .from("debts")
-    .update({
-      balance: newBalance,
-      is_paid_off: newBalance <= 0,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.debtId)
-    .eq("user_id", uid);
+  await updateDebt({ id: params.debtId, balance: newBalance, is_paid_off: newBalance <= 0 });
 
-  if (updateError) throw new Error(updateError.message);
-
-  return data as DebtTransactionAssignment;
+  return assignment;
 }
 
 export async function unassignDebtTransaction(assignmentId: string): Promise<void> {
-  const uid = await requireUserId();
+  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
+  const assignment = assignments.find((entry) => entry.id === assignmentId);
+  if (!assignment) throw new Error("Zuweisung nicht gefunden");
 
-  const { data: assignment, error: assignmentError } = await supabase
-    .from("debt_transaction_assignments")
-    .select("*")
-    .eq("id", assignmentId)
-    .eq("user_id", uid)
-    .single();
+  await writeLocalFinanceList("debtAssignments", assignments.filter((entry) => entry.id !== assignmentId));
 
-  if (assignmentError) throw new Error(assignmentError.message);
-
-  const { data: debt, error: debtError } = await supabase
-    .from("debts")
-    .select("id, balance, original_amount")
-    .eq("id", assignment.debt_id)
-    .eq("user_id", uid)
-    .single();
-
-  if (debtError) throw new Error(debtError.message);
-
-  const { error: deleteError } = await supabase
-
-    .from("debt_transaction_assignments")
-    .delete()
-    .eq("id", assignmentId)
-    .eq("user_id", uid);
-
-  if (deleteError) throw new Error(deleteError.message);
+  const debts = await getDebts();
+  const debt = debts.find((entry) => entry.id === assignment.debt_id);
+  if (!debt) return;
 
   const originalAmount = debt.original_amount === null || debt.original_amount === undefined
     ? null
     : Number(debt.original_amount);
   const restoredBalance = Number(debt.balance) + Number(assignment.amount);
   const cappedBalance = originalAmount && originalAmount > 0 ? Math.min(restoredBalance, originalAmount) : restoredBalance;
-  const { error: updateError } = await supabase
-    .from("debts")
-    .update({
-      balance: cappedBalance,
-      is_paid_off: false,
-      updated_at: new Date().toISOString(),
-    })
-
-    .eq("id", assignment.debt_id)
-    .eq("user_id", uid);
-
-  if (updateError) throw new Error(updateError.message);
+  await updateDebt({ id: assignment.debt_id, balance: cappedBalance, is_paid_off: false });
 }
 
 export type { Debt } from "../types";
