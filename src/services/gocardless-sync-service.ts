@@ -3,6 +3,7 @@ import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions } from './transaction-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { showSuccess, showError } from '@/utils/toast';
+import { QueryClient } from '@tanstack/react-query';
 
 export interface SyncResult {
   accountId: string;
@@ -10,6 +11,22 @@ export interface SyncResult {
   importedCount: number;
   skippedCount: number;
   errors: string[];
+}
+
+let queryClientRef: QueryClient | null = null;
+
+export function setGoCardlessQueryClient(queryClient: QueryClient | null) {
+  queryClientRef = queryClient;
+}
+
+function invalidateTransactionConsumers() {
+  if (!queryClientRef) return;
+  queryClientRef.invalidateQueries({ queryKey: ['transactions'] });
+  queryClientRef.invalidateQueries({ queryKey: ['transactions-chart'] });
+  queryClientRef.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+  queryClientRef.invalidateQueries({ queryKey: ['accounts'] });
+  queryClientRef.invalidateQueries({ queryKey: ['live-balances'] });
+  queryClientRef.invalidateQueries({ queryKey: ['net-worth'] });
 }
 
 interface GoCardlessTransaction {
@@ -140,9 +157,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       return result;
     }
 
-    const existingTransactions = await getTransactions();
+    const existingTransactions = await getTransactions(5000);
     const existingDescriptions = new Set(
-      existingTransactions.map(tx => `${tx.date}_${tx.amount}_${tx.original_text}`)
+      existingTransactions.map(tx => `${tx.account_id || account.id}_${tx.date}_${tx.amount}_${tx.original_text}`)
     );
 
     for (const tx of transactions as GoCardlessTransaction[]) {
@@ -150,11 +167,12 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         const amount = parseFloat(tx.transactionAmount.amount);
         const date = tx.bookingDate;
         const payee = tx.debtorName || tx.creditorName || 'Unbekannt';
-        const description = tx.remittanceInformationUnstructured || 
+        const description = tx.remittanceInformationUnstructured ||
           (tx.remittanceInformationStructuredArray?.join(' ')) ||
+          tx.additionalInformation ||
           payee;
 
-        const txIdentifier = `${date}_${amount}_${description}`;
+        const txIdentifier = `${account.id}_${date}_${amount}_${description}`;
 
         if (existingDescriptions.has(txIdentifier)) {
           result.skippedCount++;
@@ -217,6 +235,10 @@ export async function syncAllAccounts(): Promise<SyncResult[]> {
 
     const totalImported = results.reduce((sum, r) => sum + r.importedCount, 0);
     const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0);
+
+    invalidateTransactionConsumers();
+
+    invalidateTransactionConsumers();
 
     if (totalImported > 0) {
       showSuccess(`${totalImported} Transaktionen synchronisiert`);

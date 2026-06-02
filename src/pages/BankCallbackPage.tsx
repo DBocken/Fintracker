@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
+
 import {
   Loader2,
   CheckCircle2,
@@ -45,7 +47,9 @@ interface ImportedTransaction {
 
 export default function BankCallbackPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'linking' | 'pending'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<GoCardlessAccount[]>([]);
@@ -263,6 +267,12 @@ export default function BankCallbackPage() {
       if (skippedCount > 0) {
         console.warn(`${skippedCount} Transaktionen konnten nicht importiert werden.`);
       }
+
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+
     } catch (err: any) {
 
       console.error('Error importing transactions:', err);

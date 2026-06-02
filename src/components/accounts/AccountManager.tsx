@@ -213,7 +213,15 @@ export function AccountManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['live-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['net-worth'] });
+      showSuccess(`Synchronisation abgeschlossen: ${result.importedCount} importiert, ${result.skippedCount} übersprungen`);
+
     } catch (err: any) {
+
       showError(`Synchronisation fehlgeschlagen: ${err.message}`);
     } finally {
       setSyncingAccounts(prev => {

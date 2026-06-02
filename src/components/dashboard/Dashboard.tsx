@@ -44,7 +44,7 @@ export function Dashboard() {
 
   const { data: txs = [] } = useQuery<Transaction[], Error>({
     queryKey: ['transactions'],
-    queryFn: () => getTransactions(1000),
+    queryFn: () => getTransactions(5000),
   });
 
   const { data: cats = [] } = useQuery<Category[], Error>({
@@ -468,11 +468,21 @@ export function Dashboard() {
             onSort={handleSort}
           />
           
-          {sortedTransactions.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Keine Transaktionen gefunden
+          {sortedTransactions.length === 0 && txs.length > 0 && (
+            <div className="text-center py-8 text-muted-foreground space-y-2">
+              <div>Keine Transaktionen gefunden</div>
+              <div className="text-sm">
+                Prüfe Filter, Suchbegriff oder lade die Seite neu, falls der Cache veraltet ist.
+              </div>
             </div>
           )}
+          {txs.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground space-y-2">
+              <div>Keine Transaktionen vorhanden</div>
+              <div className="text-sm">Wenn gerade ein Sync lief, lade die Seite bitte neu.</div>
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
