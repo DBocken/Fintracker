@@ -166,7 +166,6 @@ export async function extractTextFromImage(
     await worker.terminate();
     
     console.log('[ocr-service] OCR extraction completed');
-    console.log('[ocr-service] Extracted text:', result.data.text);
     
     return result.data.text;
   } catch (error) {

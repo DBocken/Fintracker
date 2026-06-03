@@ -104,13 +104,13 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       setError(null)
       
       const data = await gocardlessService.getInstitutions('DE')
-      console.log('🏦 Banken geladen:', data.length)
+      console.log('[gocardless-connect] Institutions loaded', { count: data.length })
       
       const sorted = data.sort((a, b) => a.name.localeCompare(b.name))
       setInstitutions(sorted)
       
     } catch (err: any) {
-      console.error('❌ Fehler beim Laden:', err)
+      console.error('[gocardless-connect] Failed to load institutions:', { message: err.message })
       
       if (err.setup_required || (err.details && err.details.includes('nicht konfiguriert'))) {
         setError('API_SETUP_REQUIRED')
@@ -163,14 +163,14 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
         redirectUrl
       )
 
-      console.log('✅ Requisition created:', rq)
+      console.log('[gocardless-connect] Requisition created')
       setRequisition(rq)
       setShowAuthDialog(true)
 
       sessionStorage.setItem('gocardless_requisition_id', rq.id)
 
     } catch (err: any) {
-      console.error('❌ Verbindungsfehler:', err)
+      console.error('[gocardless-connect] Connection failed:', { message: err.message })
       
       if (err.setup_required) {
         setError('API_SETUP_REQUIRED')

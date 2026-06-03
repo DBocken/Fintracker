@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
@@ -15,17 +17,19 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
 import { getAccounts } from '../../services/account-service';
-import { format, parseISO, isWithinInterval, subDays, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
-
+import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
-
-interface DateRange {
-  start: Date;
-  end: Date;
-}
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  type ContractFilter,
+  type DashboardGranularity,
+  type DashboardRange,
+  type EssentialFilter,
+} from './filter-constants';
+import { filterTransactions, getDashboardGranularity } from './filter-utils';
 
 function getRootCategoryId(byId: Map<string, Category>, id: string): string {
   let current = byId.get(id);
@@ -90,14 +94,14 @@ export function Dashboard() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCat, setBulkCat] = useState<string>('');
-  const [_filterCat, _setFilterCat] = useState<string>('all');
-  const [_filterAccount, _setFilterAccount] = useState<string>('all');
-  const [filterContract, setFilterContract] = useState<'all' | 'vertrag' | 'kein_vertrag'>('all');
-  const [filterEssential, setFilterEssential] = useState<'all' | 'ess' | 'nicht'>('all');
-  const [searchInput, setSearchInput] = useState<string>('');
-  const [range, setRange] = useState<string>('Gesamt');
-  const [customDays, setCustomDays] = useState<number>(30);
-  const [customGran, setCustomGran] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [_filterCat, _setFilterCat] = useState<string>(DEFAULT_DASHBOARD_FILTERS.category);
+  const [_filterAccount, _setFilterAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
+  const [filterContract, setFilterContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
+  const [filterEssential, setFilterEssential] = useState<EssentialFilter>(DEFAULT_DASHBOARD_FILTERS.essential);
+  const [searchInput, setSearchInput] = useState<string>(DEFAULT_DASHBOARD_FILTERS.search);
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
+  const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
+  const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_DASHBOARD_FILTERS.customGranularity);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
@@ -202,67 +206,33 @@ export function Dashboard() {
     });
   }, []);
 
-  const now = new Date();
-  const rangeMap = useMemo(() => {
-    return {
-      'Gesamt': (): DateRange => ({ start: new Date(0), end: now }),
-      'Heute': (): DateRange => ({ start: startOfDay(now), end: now }),
-      'Diese Woche': (): DateRange => ({ start: startOfWeek(now, { locale: de }), end: now }),
-      'Diesen Monat': (): DateRange => ({ start: startOfMonth(now), end: now }),
-      'Letzte 7 Tage': (): DateRange => ({ start: subDays(now, 7), end: now }),
-      'Letzte 30 Tage': (): DateRange => ({ start: subDays(now, 30), end: now }),
-      'Letzte 90 Tage': (): DateRange => ({ start: subDays(now, 90), end: now }),
-      'Benutzerdefiniert': (): DateRange => ({ start: subDays(now, customDays), end: now }),
-    };
-  }, [now, customDays]);
+  const handleResetFilters = useCallback(() => {
+    _setFilterCat(DEFAULT_DASHBOARD_FILTERS.category);
+    _setFilterAccount(DEFAULT_DASHBOARD_FILTERS.account);
+    setFilterContract(DEFAULT_DASHBOARD_FILTERS.contract);
+    setFilterEssential(DEFAULT_DASHBOARD_FILTERS.essential);
+    setSearchInput(DEFAULT_DASHBOARD_FILTERS.search);
+    setRange(DEFAULT_DASHBOARD_FILTERS.range);
+    setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
+    setCustomGran(DEFAULT_DASHBOARD_FILTERS.customGranularity);
+  }, []);
 
-  const granularity = useMemo(() => {
-    if (customDays <= 7) return customGran;
-    if (customDays <= 30) return customGran === 'daily' ? 'daily' : 'weekly';
-    return customGran === 'daily' ? 'weekly' : customGran;
-  }, [customDays, customGran]);
-
-  const searchableById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const t of txs) {
-      const id = t.id || '';
-      if (!id) continue;
-      map.set(id, `${t.payee} ${t.description} ${t.original_text}`.toLowerCase());
-    }
-    return map;
-  }, [txs]);
+  const granularity = useMemo(
+    () => getDashboardGranularity(range, customDays, customGran),
+    [range, customDays, customGran],
+  );
 
   const filteredTransactions = useMemo(() => {
-    let list = txs;
-
-    const { start, end } = (rangeMap[range as keyof typeof rangeMap] || rangeMap['Gesamt'])();
-    const searchLower = searchInput ? searchInput.toLowerCase() : '';
-
-    list = list.filter(t => {
-      const txDate = parseISO(t.date);
-      
-      // Date range filter
-      if (!isWithinInterval(txDate, { start, end })) return false;
-
-      // Category filter
-      if (_filterCat !== 'all' && t.category_id !== _filterCat) return false;
-
-      // Account filter
-      if (_filterAccount !== 'all' && t.account_id !== _filterAccount) return false;
-
-      // Search filter (sofort)
-      if (searchLower) {
-        const id = t.id || '';
-        const searchableText = id ? searchableById.get(id) : undefined;
-        const hay = searchableText ?? `${t.payee} ${t.description} ${t.original_text}`.toLowerCase();
-        if (!hay.includes(searchLower)) return false;
-      }
-
-      return true;
+    return filterTransactions(txs, cats, accounts, {
+      category: _filterCat,
+      account: _filterAccount,
+      contract: filterContract,
+      essential: filterEssential,
+      search: searchInput,
+      range,
+      customDays,
     });
-
-    return list;
-  }, [txs, range, customDays, _filterCat, _filterAccount, filterContract, filterEssential, searchInput, cats, accounts]);
+  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, searchInput, range, customDays]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
 
@@ -431,6 +401,7 @@ export function Dashboard() {
           
           <div className="flex gap-2 items-center flex-wrap">
             <Checkbox
+              aria-label="Alle sichtbaren Transaktionen auswählen"
               checked={visibleTransactions.length > 0 && visibleTransactions.every(t => selected.has(t.id || ''))}
               onCheckedChange={handleSelectAll}
             />
@@ -453,6 +424,9 @@ export function Dashboard() {
               filterEssential={filterEssential}
               setFilterEssential={setFilterEssential}
             />
+            <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+              Filter zurücksetzen
+            </Button>
           </div>
 
           <TransactionTable
@@ -469,17 +443,40 @@ export function Dashboard() {
           />
           
           {sortedTransactions.length === 0 && txs.length > 0 && (
-            <div className="text-center py-8 text-muted-foreground space-y-2">
-              <div>Keine Transaktionen gefunden</div>
-              <div className="text-sm">
-                Prüfe Filter, Suchbegriff oder lade die Seite neu, falls der Cache veraltet ist.
+            <div className="text-center py-8 text-muted-foreground space-y-4">
+              <div>
+                <div className="font-medium text-foreground">Keine Transaktionen gefunden</div>
+                <div className="text-sm">
+                  Prüfe Filter, Suchbegriff oder lade die Daten neu, falls der Cache veraltet ist.
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+                  Filter zurücksetzen
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
+                  Erneut laden
+                </Button>
               </div>
             </div>
           )}
           {txs.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground space-y-2">
-              <div>Keine Transaktionen vorhanden</div>
-              <div className="text-sm">Wenn gerade ein Sync lief, lade die Seite bitte neu.</div>
+            <div className="text-center py-8 text-muted-foreground space-y-4">
+              <div>
+                <div className="font-medium text-foreground">Keine Transaktionen vorhanden</div>
+                <div className="text-sm">Importiere eine CSV-Datei, verbinde eine Bank oder lade nach einem Sync erneut.</div>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild size="sm">
+                  <Link to="/csv">CSV importieren</Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/accounts">Bank verbinden</Link>
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
+                  Erneut laden
+                </Button>
+              </div>
             </div>
           )}
 

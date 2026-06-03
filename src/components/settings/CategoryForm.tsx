@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import type { CategoryAttributes, Rhythmus, Prioritaet, Zahlungsweg } from '../../types';
+import type { Category, CategoryAttributes, Rhythmus, Prioritaet, Zahlungsweg } from '../../types';
 
 interface CategoryFormProps {
   name: string;
@@ -17,7 +17,7 @@ interface CategoryFormProps {
   icon: string;
   filters: string[];
   parentId: string | null;
-  editingCategory: any;
+  editingCategory: Category | null;
   attributes: CategoryAttributes;
   onNameChange: (name: string) => void;
   onColorChange: (color: string) => void;
@@ -29,32 +29,49 @@ interface CategoryFormProps {
   onReset: () => void;
 }
 
-export function CategoryForm({ 
-  name, 
-  color, 
-  icon, 
-  filters, 
+const colorOptions = [
+  { value: '#22c55e', label: 'Grün' },
+  { value: '#ef4444', label: 'Rot' },
+  { value: '#3b82f6', label: 'Blau' },
+  { value: '#f59e0b', label: 'Amber' },
+  { value: '#8b5cf6', label: 'Violett' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#06b6d4', label: 'Cyan' },
+  { value: '#84cc16', label: 'Limette' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#6366f1', label: 'Indigo' },
+];
+
+const iconOptions = ['🛒', '🍽️', '🚗', '🛍️', '🔧', '🎬', '💊', '🏠', '📚', '📋', '💰', '✈️', '📱', '💡', '🥛', '🥖', '🥩', '🏨'];
+
+const checkboxFields: Array<{ key: keyof CategoryAttributes; label: string }> = [
+  { key: 'ist_vertrag', label: 'Ist Vertrag' },
+  { key: 'fixkosten', label: 'Fixkosten' },
+  { key: 'essenziell', label: 'Essenziell' },
+  { key: 'steuerrelevant', label: 'Steuerrelevant' },
+  { key: 'sichtbar', label: 'Sichtbar' },
+  { key: 'archiviert', label: 'Archiviert' },
+];
+
+export function CategoryForm({
+  name,
+  color,
+  icon,
+  filters,
   parentId,
   editingCategory,
   attributes,
-  onNameChange, 
-  onColorChange, 
-  onIconChange, 
+  onNameChange,
+  onColorChange,
+  onIconChange,
   onAddFilter,
   onRemoveFilter,
   onAttributesChange,
   onSave,
-  onReset
+  onReset,
 }: CategoryFormProps) {
   const [newFilterInput, setNewFilterInput] = React.useState('');
   const [newTagInput, setNewTagInput] = React.useState('');
-
-  const colorOptions = [
-    '#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', 
-    '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
-  ];
-
-  const iconOptions = ['🛒', '🍽️', '🚗', '🛍️', '🔧', '🎬', '💊', '🏠', '📚', '📋', '💰', '✈️', '📱', '💡', '🥛', '🥖', '🥩', '🏨'];
 
   const handleAddFilter = () => {
     if (newFilterInput.trim() && !filters.includes(newFilterInput.trim().toLowerCase())) {
@@ -73,8 +90,13 @@ export function CategoryForm({
     }
   };
 
-  const removeTag = (t: string) => {
-    onAttributesChange({ tags: tags.filter(x => x !== t) });
+  const removeTag = (tag: string) => {
+    onAttributesChange({ tags: tags.filter((currentTag) => currentTag !== tag) });
+  };
+
+  const isCheckboxChecked = (key: keyof CategoryAttributes) => {
+    if (key === 'sichtbar') return attributes.sichtbar !== false;
+    return Boolean(attributes[key]);
   };
 
   return (
@@ -97,40 +119,49 @@ export function CategoryForm({
           <Input
             id="cat-name"
             value={name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onNameChange(e.target.value)}
-            placeholder={parentId ? "z.B. Milchprodukte" : "z.B. Lebensmittel"}
+            onChange={(event) => onNameChange(event.target.value)}
+            placeholder={parentId ? 'z.B. Milchprodukte' : 'z.B. Lebensmittel'}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Farbe</Label>
+          <fieldset>
+            <legend className="text-sm font-medium">Farbe</legend>
             <div className="grid grid-cols-5 gap-1 mt-1">
-              {colorOptions.map(c => (
+              {colorOptions.map((option) => (
                 <button
-                  key={c}
-                  onClick={() => onColorChange(c)}
-                  className={`w-8 h-8 rounded border-2 ${color === c ? "border-gray-800" : "border-transparent"}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Label>Icon</Label>
-            <div className="grid grid-cols-4 gap-1 mt-1">
-              {iconOptions.map((i, index) => (
-                <button
-                  key={`${i}-${index}`}
-                  onClick={() => onIconChange(i)}
-                  className={`w-8 h-8 rounded border-2 ${icon === i ? "border-gray-800" : "border-transparent"}`}
+                  key={option.value}
+                  type="button"
+                  onClick={() => onColorChange(option.value)}
+                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-gray-800' : 'border-transparent'}`}
+                  style={{ backgroundColor: option.value }}
+                  aria-label={`Farbe ${option.label} auswählen`}
+                  aria-pressed={color === option.value}
                 >
-                  {i}
+                  <span className="sr-only">{option.label}{color === option.value ? ', ausgewählt' : ''}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-sm font-medium">Icon</legend>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              {iconOptions.map((option, index) => (
+                <button
+                  key={`${option}-${index}`}
+                  type="button"
+                  onClick={() => onIconChange(option)}
+                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-gray-800' : 'border-transparent'}`}
+                  aria-label={`Icon ${index + 1} auswählen: ${option}`}
+                  aria-pressed={icon === option}
+                >
+                  <span aria-hidden="true">{option}</span>
+                  <span className="sr-only">{icon === option ? ' ausgewählt' : ''}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <div>
@@ -139,12 +170,12 @@ export function CategoryForm({
             <Input
               id="filter-input"
               value={newFilterInput}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterInput(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleAddFilter()}
-              placeholder={parentId ? "z.B. milch, joghurt, käse" : "z.B. lebensmittel, supermarkt"}
+              onChange={(event) => setNewFilterInput(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleAddFilter()}
+              placeholder={parentId ? 'z.B. milch, joghurt, käse' : 'z.B. lebensmittel, supermarkt'}
             />
-            <Button onClick={handleAddFilter} size="sm">
-              <Plus className="h-4 w-4" />
+            <Button type="button" onClick={handleAddFilter} size="sm" aria-label="Filter hinzufügen">
+              <Plus className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -160,10 +191,12 @@ export function CategoryForm({
                 <Badge key={`${filter}-${index}`} variant="secondary" className="gap-1">
                   {filter}
                   <button
+                    type="button"
                     onClick={() => onRemoveFilter(filter)}
-                    className="ml-1 hover:text-destructive"
+                    className="ml-1 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                    aria-label={`Filter ${filter} entfernen`}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3 w-3" aria-hidden="true" />
                   </button>
                 </Badge>
               ))}
@@ -171,42 +204,30 @@ export function CategoryForm({
           </div>
         )}
 
-        {/* Erweiterte Eigenschaften */}
         <div className="space-y-3 p-3 border rounded-lg">
           <p className="text-sm font-medium">Erweiterte Eigenschaften</p>
-          
+
           <div className="grid sm:grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <Checkbox checked={!!attributes.ist_vertrag} onCheckedChange={(v) => onAttributesChange({ ist_vertrag: Boolean(v) })} />
-              <Label>Ist Vertrag</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={!!attributes.fixkosten} onCheckedChange={(v) => onAttributesChange({ fixkosten: Boolean(v) })} />
-              <Label>Fixkosten</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={!!attributes.essenziell} onCheckedChange={(v) => onAttributesChange({ essenziell: Boolean(v) })} />
-              <Label>Essenziell</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={!!attributes.steuerrelevant} onCheckedChange={(v) => onAttributesChange({ steuerrelevant: Boolean(v) })} />
-              <Label>Steuerrelevant</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={attributes.sichtbar !== false} onCheckedChange={(v) => onAttributesChange({ sichtbar: Boolean(v) })} />
-              <Label>Sichtbar</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={!!attributes.archiviert} onCheckedChange={(v) => onAttributesChange({ archiviert: Boolean(v) })} />
-              <Label>Archiviert</Label>
-            </div>
+            {checkboxFields.map((field) => {
+              const id = `category-${String(field.key)}`;
+              return (
+                <div key={field.key} className="flex items-center gap-2">
+                  <Checkbox
+                    id={id}
+                    checked={isCheckboxChecked(field.key)}
+                    onCheckedChange={(value) => onAttributesChange({ [field.key]: Boolean(value) })}
+                  />
+                  <Label htmlFor={id}>{field.label}</Label>
+                </div>
+              );
+            })}
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label>Rhythmus</Label>
-              <Select value={attributes.rhythmus || ''} onValueChange={(val: Rhythmus) => onAttributesChange({ rhythmus: val })}>
-                <SelectTrigger className="w-full">
+              <Label htmlFor="category-rhythmus">Rhythmus</Label>
+              <Select value={attributes.rhythmus || ''} onValueChange={(value: Rhythmus) => onAttributesChange({ rhythmus: value })}>
+                <SelectTrigger id="category-rhythmus" className="w-full">
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
@@ -218,9 +239,9 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label>Priorität</Label>
-              <Select value={attributes.prioritaet || ''} onValueChange={(val: Prioritaet) => onAttributesChange({ prioritaet: val })}>
-                <SelectTrigger className="w-full">
+              <Label htmlFor="category-prioritaet">Priorität</Label>
+              <Select value={attributes.prioritaet || ''} onValueChange={(value: Prioritaet) => onAttributesChange({ prioritaet: value })}>
+                <SelectTrigger id="category-prioritaet" className="w-full">
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
@@ -231,9 +252,9 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label>Zahlungsweg</Label>
-              <Select value={attributes.zahlungsweg || ''} onValueChange={(val: Zahlungsweg) => onAttributesChange({ zahlungsweg: val })}>
-                <SelectTrigger className="w-full">
+              <Label htmlFor="category-zahlungsweg">Zahlungsweg</Label>
+              <Select value={attributes.zahlungsweg || ''} onValueChange={(value: Zahlungsweg) => onAttributesChange({ zahlungsweg: value })}>
+                <SelectTrigger id="category-zahlungsweg" className="w-full">
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
@@ -245,10 +266,11 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label>Händler-Alias</Label>
+              <Label htmlFor="category-merchant-alias">Händler-Alias</Label>
               <Input
+                id="category-merchant-alias"
                 value={attributes.merchant_alias || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ merchant_alias: e.target.value || null })}
+                onChange={(event) => onAttributesChange({ merchant_alias: event.target.value || null })}
                 placeholder="z.B. Telekom"
               />
             </div>
@@ -256,97 +278,110 @@ export function CategoryForm({
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label>Fälligkeitstag (1–31)</Label>
+              <Label htmlFor="category-faelligkeitstag">Fälligkeitstag (1–31)</Label>
               <Input
+                id="category-faelligkeitstag"
                 type="number"
                 min={1}
                 max={31}
                 value={attributes.faelligkeitstag ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ faelligkeitstag: e.target.value ? Number(e.target.value) : null })}
+                onChange={(event) => onAttributesChange({ faelligkeitstag: event.target.value ? Number(event.target.value) : null })}
                 placeholder="z.B. 15"
               />
             </div>
             <div>
-              <Label>Nächstes Fälligkeitsdatum</Label>
+              <Label htmlFor="category-next-due-date">Nächstes Fälligkeitsdatum</Label>
               <Input
+                id="category-next-due-date"
                 type="date"
                 value={attributes.next_due_date ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ next_due_date: e.target.value || null })}
+                onChange={(event) => onAttributesChange({ next_due_date: event.target.value || null })}
               />
             </div>
             <div>
-              <Label>Kündigungsfrist (Tage)</Label>
+              <Label htmlFor="category-kuendigungsfrist">Kündigungsfrist (Tage)</Label>
               <Input
+                id="category-kuendigungsfrist"
                 type="number"
                 min={0}
                 value={attributes.kuendigungsfrist_tage ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ kuendigungsfrist_tage: e.target.value ? Number(e.target.value) : null })}
+                onChange={(event) => onAttributesChange({ kuendigungsfrist_tage: event.target.value ? Number(event.target.value) : null })}
                 placeholder="z.B. 90"
               />
             </div>
             <div>
-              <Label>Vertragsende</Label>
+              <Label htmlFor="category-vertragsende">Vertragsende</Label>
               <Input
+                id="category-vertragsende"
                 type="date"
                 value={attributes.vertragsende ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ vertragsende: e.target.value || null })}
+                onChange={(event) => onAttributesChange({ vertragsende: event.target.value || null })}
               />
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label>Monatsbudget (€)</Label>
+              <Label htmlFor="category-budget-monat">Monatsbudget (€)</Label>
               <Input
+                id="category-budget-monat"
                 type="number"
                 min={0}
                 value={attributes.budget_monat ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ budget_monat: e.target.value ? Number(e.target.value) : null })}
+                onChange={(event) => onAttributesChange({ budget_monat: event.target.value ? Number(event.target.value) : null })}
                 placeholder="z.B. 100"
               />
             </div>
             <div>
-              <Label>Warnschwelle (%)</Label>
+              <Label htmlFor="category-warnschwelle">Warnschwelle (%)</Label>
               <Input
+                id="category-warnschwelle"
                 type="number"
                 min={0}
                 max={100}
                 value={attributes.warnschwelle_prozent ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ warnschwelle_prozent: e.target.value ? Number(e.target.value) : null })}
+                onChange={(event) => onAttributesChange({ warnschwelle_prozent: event.target.value ? Number(event.target.value) : null })}
                 placeholder="z.B. 80"
               />
             </div>
             <div>
-              <Label>Sortierreihenfolge</Label>
+              <Label htmlFor="category-sort-index">Sortierreihenfolge</Label>
               <Input
+                id="category-sort-index"
                 type="number"
                 value={attributes.sort_index ?? ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAttributesChange({ sort_index: e.target.value ? Number(e.target.value) : null })}
+                onChange={(event) => onAttributesChange({ sort_index: event.target.value ? Number(event.target.value) : null })}
                 placeholder="z.B. 1"
               />
             </div>
           </div>
 
           <div>
-            <Label>Tags</Label>
+            <Label htmlFor="category-tag-input">Tags</Label>
             <div className="flex gap-2">
               <Input
+                id="category-tag-input"
                 value={newTagInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTagInput(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleAddTag()}
+                onChange={(event) => setNewTagInput(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && handleAddTag()}
                 placeholder="Tag hinzufügen"
               />
-              <Button onClick={handleAddTag} size="sm">
-                <Plus className="h-4 w-4" />
+              <Button type="button" onClick={handleAddTag} size="sm" aria-label="Tag hinzufügen">
+                <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
-                {tags.map((t, i) => (
-                  <Badge key={`${t}-${i}`} variant="secondary" className="gap-1">
-                    {t}
-                    <button onClick={() => removeTag(t)} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
+                {tags.map((tag, index) => (
+                  <Badge key={`${tag}-${index}`} variant="secondary" className="gap-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                      aria-label={`Tag ${tag} entfernen`}
+                    >
+                      <X className="h-3 w-3" aria-hidden="true" />
                     </button>
                   </Badge>
                 ))}
@@ -356,12 +391,12 @@ export function CategoryForm({
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={onSave} className="flex-1">
+          <Button type="button" onClick={onSave} className="flex-1">
             {editingCategory ? 'Aktualisieren' : 'Erstellen'}
           </Button>
           {(editingCategory || parentId) && (
-            <Button onClick={onReset} variant="outline">
-              <X className="h-4 w-4" />
+            <Button type="button" onClick={onReset} variant="outline" aria-label="Formular zurücksetzen">
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
         </div>

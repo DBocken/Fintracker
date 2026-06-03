@@ -214,8 +214,8 @@ export async function syncEtoroPortfolio(portfolioId: string): Promise<void> {
   // 3. Remove closed positions (optional)
   // 4. Add new positions
   
-  // For simplicity, we'll just log the sync action
-  console.log(`[etoro-service] Synced ${etoroPositions.length} positions for ${username}`);
+  // For simplicity, we'll just log the sync action without account identifiers.
+  console.log('[etoro-service] Positions synced', { count: etoroPositions.length });
 }
 
 /**
@@ -239,11 +239,11 @@ export async function getEtoroPortfolioStats(portfolioId: string) {
  * Update eToro credentials for a portfolio
  */
 export async function updateEtoroCredentials(
-  portfolioId: string,
+  _portfolioId: string,
   _username: string,
   _apiKey: string
 ): Promise<void> {
   // This would be implemented in portfolio-service
   // For now, it's a placeholder
-  console.log('[etoro-service] Updating credentials for portfolio:', portfolioId);
+  console.log('[etoro-service] Updating credentials for portfolio');
 }

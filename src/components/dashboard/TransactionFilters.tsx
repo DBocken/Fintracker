@@ -3,8 +3,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { getAccounts } from '../../services/account-service';
-import type { Account } from '../../types';
+import type { Account, Category } from '../../types';
+import {
+  DASHBOARD_RANGE_OPTIONS,
+  type ContractFilter,
+  type DashboardGranularity,
+  type DashboardRange,
+  type EssentialFilter,
+} from './filter-constants';
 
 interface TransactionFiltersProps {
   filterCat: string;
@@ -13,39 +22,38 @@ interface TransactionFiltersProps {
   setFilterAccount: (value: string) => void;
   searchInput: string;
   setSearchInput: (value: string) => void;
-  range: string;
-  setRange: (value: string) => void;
+  range: DashboardRange;
+  setRange: (value: DashboardRange) => void;
   customDays: number;
   setCustomDays: (value: number) => void;
-  customGran: 'daily' | 'weekly' | 'monthly';
-  setCustomGran: (value: 'daily' | 'weekly' | 'monthly') => void;
-  categories: any[];
-  filterContract: 'all' | 'vertrag' | 'kein_vertrag';
-  setFilterContract: (v: 'all' | 'vertrag' | 'kein_vertrag') => void;
-  filterEssential: 'all' | 'ess' | 'nicht';
-  setFilterEssential: (v: 'all' | 'ess' | 'nicht') => void;
+  customGran: DashboardGranularity;
+  setCustomGran: (value: DashboardGranularity) => void;
+  categories: Category[];
+  filterContract: ContractFilter;
+  setFilterContract: (v: ContractFilter) => void;
+  filterEssential: EssentialFilter;
+  setFilterEssential: (v: EssentialFilter) => void;
 }
 
-export function TransactionFilters({ 
-  filterCat, 
-  setFilterCat, 
+export function TransactionFilters({
+  filterCat,
+  setFilterCat,
   filterAccount,
   setFilterAccount,
-  searchInput, 
-  setSearchInput, 
-  range, 
-  setRange, 
-  customDays, 
-  setCustomDays, 
-  customGran, 
-  setCustomGran, 
+  searchInput,
+  setSearchInput,
+  range,
+  setRange,
+  customDays,
+  setCustomDays,
+  customGran,
+  setCustomGran,
   categories,
   filterContract,
   setFilterContract,
   filterEssential,
-  setFilterEssential
+  setFilterEssential,
 }: TransactionFiltersProps) {
-  // Load accounts for filter
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
@@ -53,10 +61,9 @@ export function TransactionFilters({
 
   return (
     <div className="flex gap-2 items-center flex-wrap">
-      {/* Account Filter */}
       <Select value={filterAccount} onValueChange={setFilterAccount}>
-        <SelectTrigger className="w-48 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Alle Konten"/>
+        <SelectTrigger aria-label="Konto filtern" className="w-48 bg-background/50 backdrop-blur-sm">
+          <SelectValue placeholder="Alle Konten" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle Konten</SelectItem>
@@ -67,8 +74,9 @@ export function TransactionFilters({
                 <span
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: account.color }}
+                  aria-hidden="true"
                 />
-                <span>{account.icon}</span>
+                <span aria-hidden="true">{account.icon}</span>
                 <span>{account.name}</span>
               </div>
             </SelectItem>
@@ -77,18 +85,20 @@ export function TransactionFilters({
       </Select>
 
       <Select value={filterCat} onValueChange={setFilterCat}>
-        <SelectTrigger className="w-48 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Alle Kategorien"/>
+        <SelectTrigger aria-label="Kategorie filtern" className="w-48 bg-background/50 backdrop-blur-sm">
+          <SelectValue placeholder="Alle Kategorien" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Alle</SelectItem>
-          {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          <SelectItem value="all">Alle Kategorien</SelectItem>
+          {categories.map((category) => (
+            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
       <Select value={filterContract} onValueChange={setFilterContract}>
-        <SelectTrigger className="w-40 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Verträge"/>
+        <SelectTrigger aria-label="Vertragsstatus filtern" className="w-40 bg-background/50 backdrop-blur-sm">
+          <SelectValue placeholder="Verträge" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle</SelectItem>
@@ -98,8 +108,8 @@ export function TransactionFilters({
       </Select>
 
       <Select value={filterEssential} onValueChange={setFilterEssential}>
-        <SelectTrigger className="w-44 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Essenziell"/>
+        <SelectTrigger aria-label="Essenziell-Status filtern" className="w-44 bg-background/50 backdrop-blur-sm">
+          <SelectValue placeholder="Essenziell" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Alle</SelectItem>
@@ -107,43 +117,47 @@ export function TransactionFilters({
           <SelectItem value="nicht">Nicht essenziell</SelectItem>
         </SelectContent>
       </Select>
-      
-      <input
-        type="text"
-        placeholder="Suche..."
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        className="border px-2 py-1 rounded bg-background/50 backdrop-blur-sm"
-      />
-      
+
+      <div className="relative">
+        <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+        <Input
+          id="transaction-search"
+          type="search"
+          placeholder="Suche..."
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          className="w-48 bg-background/50 backdrop-blur-sm"
+        />
+      </div>
+
       <Select value={range} onValueChange={setRange}>
-        <SelectTrigger className="w-32 bg-background/50 backdrop-blur-sm">
-          <SelectValue/>
+        <SelectTrigger aria-label="Zeitraum filtern" className="w-40 bg-background/50 backdrop-blur-sm">
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {['7 Tage','30 Tage','90 Tage','6 Monate','1 Jahr','Gesamt'].map(l => 
-            <SelectItem key={l} value={l}>{l}</SelectItem>
-          )}
-          <SelectItem value="Benutzerdefiniert">Benutzerdefiniert</SelectItem>
+          {DASHBOARD_RANGE_OPTIONS.map((label) => (
+            <SelectItem key={label} value={label}>{label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      
+
       {range === 'Benutzerdefiniert' && (
         <>
           <div className="flex items-center gap-2">
-            <label className="text-sm">Tage: {customDays}</label>
-            <Slider 
-              value={[customDays]} 
-              onValueChange={([v]: number[]) => setCustomDays(v)} 
-              min={1} 
-              max={365} 
+            <Label id="custom-days-label" className="text-sm">Tage: {customDays}</Label>
+            <Slider
+              aria-labelledby="custom-days-label"
+              value={[customDays]}
+              onValueChange={([value]: number[]) => setCustomDays(value)}
+              min={1}
+              max={365}
               className="w-32"
             />
           </div>
-          
-          <Select value={customGran} onValueChange={(val: 'daily' | 'weekly' | 'monthly') => setCustomGran(val)}>
-            <SelectTrigger className="w-24 bg-background/50 backdrop-blur-sm">
-              <SelectValue/>
+
+          <Select value={customGran} onValueChange={setCustomGran}>
+            <SelectTrigger aria-label="Diagramm-Granularität auswählen" className="w-28 bg-background/50 backdrop-blur-sm">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="daily">Täglich</SelectItem>

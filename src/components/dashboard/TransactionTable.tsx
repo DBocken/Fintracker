@@ -29,19 +29,23 @@ function cn(...classes: (string | undefined | null | boolean)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-export function TransactionTable({ 
-  transactions, 
-  categories, 
-  selected, 
-  hiddenTransactions, 
-  sortConfig, 
-  onSelect, 
-  onToggleVisibility, 
-  onUpdateCategory, 
-  onDelete, 
-  onSort 
+const currencyFormatter = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR',
+});
+
+export function TransactionTable({
+  transactions,
+  categories,
+  selected,
+  hiddenTransactions,
+  sortConfig,
+  onSelect,
+  onToggleVisibility,
+  onUpdateCategory,
+  onDelete,
+  onSort,
 }: TransactionTableProps) {
-  // Load accounts for display
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
@@ -49,85 +53,102 @@ export function TransactionTable({
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
     if (!accountId) return undefined;
-    return accounts.find(a => a.id === accountId);
+    return accounts.find((account) => account.id === accountId);
   };
 
   const getSortIcon = (key: keyof Transaction) => {
     if (!sortConfig || sortConfig.key !== key) {
-      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-30" />;
+      return <ArrowUpDown className="h-4 w-4 opacity-40" aria-hidden="true" />;
     }
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" />
-      : <ArrowDown className="h-4 w-4 ml-1" />;
+    return sortConfig.direction === 'asc'
+      ? <ArrowUp className="h-4 w-4" aria-hidden="true" />
+      : <ArrowDown className="h-4 w-4" aria-hidden="true" />;
   };
+
+  const getAriaSort = (key: keyof Transaction): 'ascending' | 'descending' | 'none' => {
+    if (!sortConfig || sortConfig.key !== key) return 'none';
+    return sortConfig.direction === 'asc' ? 'ascending' : 'descending';
+  };
+
+  const SortHeader = ({ columnKey, label }: { columnKey: keyof Transaction; label: string }) => (
+    <TableHead aria-sort={getAriaSort(columnKey)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => onSort(columnKey)}
+        className="-ml-3 h-8 gap-1 px-2 font-medium"
+        aria-label={`${label} sortieren${sortConfig?.key === columnKey ? `, aktuell ${sortConfig.direction === 'asc' ? 'aufsteigend' : 'absteigend'}` : ''}`}
+      >
+        <span>{label}</span>
+        {getSortIcon(columnKey)}
+      </Button>
+    </TableHead>
+  );
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead></TableHead>
-          <TableHead className="cursor-pointer" onClick={() => onSort('date')}>
-            Datum {getSortIcon('date')}
-          </TableHead>
+          <SortHeader columnKey="date" label="Datum" />
           <TableHead>Konto</TableHead>
-          <TableHead className="cursor-pointer" onClick={() => onSort('description')}>
-            Beschreibung {getSortIcon('description')}
-          </TableHead>
-          <TableHead className="cursor-pointer" onClick={() => onSort('payee')}>
-            Empfänger {getSortIcon('payee')}
-          </TableHead>
-          <TableHead className="cursor-pointer" onClick={() => onSort('amount')}>
-            € {getSortIcon('amount')}
-          </TableHead>
+          <SortHeader columnKey="description" label="Beschreibung" />
+          <SortHeader columnKey="payee" label="Empfänger" />
+          <SortHeader columnKey="amount" label="Betrag" />
           <TableHead>Kategorie</TableHead>
           <TableHead>Sichtbar</TableHead>
           <TableHead>Aktionen</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {transactions.map(t => {
-          const account = getAccountById(t.account_id);
-          const rowId = t.id || '';
+        {transactions.map((transaction) => {
+          const account = getAccountById(transaction.account_id);
+          const rowId = transaction.id || '';
+          const hidden = hiddenTransactions.has(rowId);
+          const amountLabel = currencyFormatter.format(transaction.amount);
+
           return (
-            <TableRow 
+            <TableRow
               key={rowId}
-              className={cn(
-                hiddenTransactions.has(rowId) && "opacity-50"
-              )}
+              className={cn(hidden && 'opacity-50')}
             >
               <TableCell>
                 <Checkbox
+                  aria-label={`Transaktion ${transaction.description || transaction.payee || rowId} auswählen`}
                   checked={selected.has(rowId)}
+                  disabled={!rowId}
                   onCheckedChange={() => onSelect(rowId)}
                 />
               </TableCell>
-              <TableCell>{format(parseISO(t.date), 'dd.MM.yyyy', { locale: de })}</TableCell>
+              <TableCell>{format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: de })}</TableCell>
               <TableCell>
                 {account ? (
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className="text-xs whitespace-nowrap"
-                    style={{ 
+                    style={{
                       borderColor: account.color,
                       color: account.color,
-                      backgroundColor: account.color + '10'
+                      backgroundColor: account.color + '10',
                     }}
                   >
-                    {account.icon} {account.name}
+                    <span aria-hidden="true">{account.icon}</span> {account.name}
                   </Badge>
                 ) : (
                   <span className="text-muted-foreground text-xs">-</span>
                 )}
               </TableCell>
-              <TableCell className="truncate max-w-xs">{t.description}</TableCell>
-              <TableCell className="truncate max-w-xs">{t.payee || '-'}</TableCell>
-              <TableCell className={t.amount < 0 ? 'text-red-600' : 'text-green-600'}>
-                {Math.abs(t.amount).toFixed(2)}€
+              <TableCell className="truncate max-w-xs">{transaction.description}</TableCell>
+              <TableCell className="truncate max-w-xs">{transaction.payee || '-'}</TableCell>
+              <TableCell className={transaction.amount < 0 ? 'text-red-600' : 'text-green-600'}>
+                <span className="sr-only">{transaction.amount < 0 ? 'Ausgabe' : 'Einnahme'}: </span>
+                {amountLabel}
               </TableCell>
               <TableCell>
                 <CategoryTwoStepSelect
                   categories={categories}
-                  value={t.category_id || ''}
+                  value={transaction.category_id || ''}
                   disabled={!rowId}
                   onChange={(catId) => {
                     if (!rowId) return;
@@ -137,23 +158,28 @@ export function TransactionTable({
               </TableCell>
               <TableCell>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => onToggleVisibility(rowId)}
+                  disabled={!rowId}
                   className="p-1 h-8 w-8"
-                  title={hiddenTransactions.has(rowId) ? "Einblenden" : "Ausblenden"}
+                  aria-label={hidden ? 'Transaktion einblenden' : 'Transaktion ausblenden'}
                 >
-                  {hiddenTransactions.has(rowId) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {hidden ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                 </Button>
               </TableCell>
               <TableCell>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => onDelete(rowId)}
+                  disabled={!rowId}
                   className="p-1 h-8 w-8 text-red-600 hover:text-red-700"
+                  aria-label="Transaktion löschen"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </TableCell>
             </TableRow>

@@ -140,7 +140,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     const dateTo = today.toISOString().split('T')[0];
 
-    console.log(`[gocardless-sync] Syncing ${account.name} from ${dateFrom} to ${dateTo}`);
+    console.log('[gocardless-sync] Starting account sync', { dateFrom, dateTo });
 
     const transactions = await gocardlessService.getTransactions(
       account.gocardless_requisition_id,
@@ -150,7 +150,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
     );
 
     if (!transactions || transactions.length === 0) {
-      console.log(`[gocardless-sync] No new transactions for ${account.name}`);
+      console.log('[gocardless-sync] Account sync completed with no new transactions');
       await updateAccount({
         id: account.id,
         last_sync_at: new Date().toISOString(),
@@ -194,8 +194,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
         result.importedCount++;
       } catch (error: any) {
-        console.error('[gocardless-sync] Failed to import transaction:', error);
-        result.errors.push(`Transaktion ${tx.transactionId}: ${error.message}`);
+        console.error('[gocardless-sync] Failed to import transaction:', { message: error.message });
+        result.errors.push(`Transaktion konnte nicht importiert werden: ${error.message}`);
       }
     }
 
@@ -204,10 +204,13 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       last_sync_at: new Date().toISOString(),
     });
 
-    console.log(`[gocardless-sync] Synced ${account.name}: ${result.importedCount} imported, ${result.skippedCount} skipped`);
+    console.log('[gocardless-sync] Account sync completed', {
+      importedCount: result.importedCount,
+      skippedCount: result.skippedCount,
+    });
 
   } catch (error: any) {
-    console.error(`[gocardless-sync] Failed to sync ${account.name}:`, error);
+    console.error('[gocardless-sync] Failed to sync account:', { message: error.message });
     result.errors.push(`Sync-Fehler: ${error.message}`);
   }
 
