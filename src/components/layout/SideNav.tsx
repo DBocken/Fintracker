@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import UserProfile from "@/components/UserProfile";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
@@ -42,6 +43,7 @@ export default function SideNav() {
                       >
                         <Icon className="h-4 w-4" />
                         <span className="flex-1">{item.label}</span>
+                        {item.requiredTier === "premium" && <Badge variant="secondary">Premium</Badge>}
                       </NavLink>
                     );
                   })}

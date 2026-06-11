@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet } from "lucide-react";
+import { ArrowRight, Landmark, Lock, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
+import { startAnonymousMode } from "@/lib/anonymous-mode";
 
 const PRODUCTION_APP_ORIGIN = "https://fintracker-phi.vercel.app";
 
@@ -17,9 +19,20 @@ function getRedirectOrigin() {
   return PRODUCTION_APP_ORIGIN;
 }
 
-function Login() {
+type LoginProps = {
+  /** Wird aufgerufen, wenn der Nutzer den anonymen Modus startet (Issue #28). */
+  onStartAnonymous?: () => void;
+};
+
+function Login({ onStartAnonymous }: LoginProps) {
   const isInIframe = typeof window !== "undefined" && window.top !== window.self;
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
+  const [showLogin, setShowLogin] = useState(false);
+
+  const handleStartAnonymous = () => {
+    startAnonymousMode();
+    onStartAnonymous?.();
+  };
 
   const openInNewTab = () => {
     window.open(window.location.href, "_blank", "noopener,noreferrer");
@@ -58,7 +71,7 @@ function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 text-foreground">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8 text-foreground">
       {/* Brand backdrop */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-600/10 to-transparent" />
 
@@ -69,80 +82,132 @@ function Login() {
           </div>
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Finanz-Copilot</div>
-            <div className="text-base font-semibold">Willkommen zurück</div>
+            <div className="text-base font-semibold">Willkommen</div>
           </div>
         </div>
 
-        <p className="mb-5 text-sm text-muted-foreground">
-          Dein persönlicher Finanzcoach. Melde dich an, um deine nächsten Schritte zu sehen.
-        </p>
+        {/* Privacy-Claim — das Kernversprechen, above the fold (Issue #28) */}
+        <div className="mb-5 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            <span className="font-medium">Deine Daten verlassen dein Gerät nie.</span>{" "}
+            Keine Cloud-Datenbank mit deinen Finanzen — keine Anmeldung nötig.
+          </p>
+        </div>
 
-        <Auth
-          supabaseClient={supabase}
-          providers={["google"]}
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: "hsl(var(--primary))",
-                  brandAccent: "hsl(var(--primary))",
-                  brandButtonText: "hsl(var(--primary-foreground))",
-                  inputBackground: "hsl(var(--background))",
-                  inputText: "hsl(var(--foreground))",
-                  inputBorder: "hsl(var(--border))",
-                  inputLabelText: "hsl(var(--muted-foreground))",
-                  messageText: "hsl(var(--muted-foreground))",
-                  anchorTextColor: "hsl(var(--muted-foreground))",
-                },
-                radii: {
-                  borderRadiusButton: "0.5rem",
-                  inputBorderRadius: "0.5rem",
-                },
-              },
-            },
-          }}
-        />
+        {/* Primärer Weg: anonym starten */}
+        <Button className="w-full" size="lg" onClick={handleStartAnonymous}>
+          Ohne Anmeldung starten
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        </Button>
 
-        {isNative && (
-          <div className="mt-3">
+        {/* Kurze Tier-Erklärung */}
+        <ul className="mt-5 space-y-2 text-xs text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-medium text-foreground">Ohne Anmeldung:</span>{" "}
+              CSV-Import, Analysen, Coach und Schulden-Planung — komplett lokal.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-medium text-foreground">Mit Google-Login:</span>{" "}
+              Bankanbindung und Profil — nötig, weil deine Bank uns kennen muss, nicht weil
+              wir dich kennen wollen.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-medium text-foreground">Premium:</span>{" "}
+              Tiefere Analysen und Simulationen — folgt später.
+            </span>
+          </li>
+        </ul>
+
+        {/* Sekundärer Weg: Google-Login */}
+        <div className="mt-6 border-t pt-4">
+          {showLogin ? (
+            <>
+              <Auth
+                supabaseClient={supabase}
+                providers={["google"]}
+                appearance={{
+                  theme: ThemeSupa,
+                  variables: {
+                    default: {
+                      colors: {
+                        brand: "hsl(var(--primary))",
+                        brandAccent: "hsl(var(--primary))",
+                        brandButtonText: "hsl(var(--primary-foreground))",
+                        inputBackground: "hsl(var(--background))",
+                        inputText: "hsl(var(--foreground))",
+                        inputBorder: "hsl(var(--border))",
+                        inputLabelText: "hsl(var(--muted-foreground))",
+                        messageText: "hsl(var(--muted-foreground))",
+                        anchorTextColor: "hsl(var(--muted-foreground))",
+                      },
+                      radii: {
+                        borderRadiusButton: "0.5rem",
+                        inputBorderRadius: "0.5rem",
+                      },
+                    },
+                  },
+                }}
+              />
+
+              {isNative && (
+                <div className="mt-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                    onClick={signInWithGoogleDirect}
+                  >
+                    Google Login (Mobile)
+                  </Button>
+                </div>
+              )}
+
+              {isInIframe && (
+                <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-200">
+                  <div className="text-xs">
+                    Hinweis: Google verhindert Anmeldungen im eingebetteten Vorschaufenster (Iframe). Öffne die
+                    Anmeldung im neuen Tab oder führe den Google‑Login direkt aus.
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 dark:text-amber-200"
+                      onClick={openInNewTab}
+                    >
+                      Im neuen Tab öffnen
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="bg-indigo-600 text-white hover:bg-indigo-700"
+                      onClick={signInWithGoogleDirect}
+                    >
+                      Google Login (direkt)
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
             <Button
-              variant="secondary"
-              size="sm"
-              className="bg-indigo-600 text-white hover:bg-indigo-700"
-              onClick={signInWithGoogleDirect}
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowLogin(true)}
             >
-              Google Login (Mobile)
+              Mit Google anmelden
             </Button>
-          </div>
-        )}
-
-        {isInIframe && (
-          <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-200">
-            <div className="text-xs">
-              Hinweis: Google verhindert Anmeldungen im eingebetteten Vorschaufenster (Iframe). Öffne die
-              Anmeldung im neuen Tab oder führe den Google‑Login direkt aus.
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 dark:text-amber-200"
-                onClick={openInNewTab}
-              >
-                Im neuen Tab öffnen
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-indigo-600 text-white hover:bg-indigo-700"
-                onClick={signInWithGoogleDirect}
-              >
-                Google Login (direkt)
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </Card>
     </div>
   );

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import BankCallbackPage from "./pages/BankCallbackPage";
 import Login from "./pages/Login";
 import UnlockPage from "./pages/Unlock";
 import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
+import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
 import AppShell from "@/components/layout/AppShell";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 
@@ -31,17 +33,22 @@ function LockedRedirect() {
 function App() {
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
+  const [anonymousStarted, setAnonymousStarted] = useState(() => hasStartedAnonymousMode());
 
   if (status === "loading") {
     return <div className="min-h-screen bg-background" />;
   }
 
-  if (status === "unauthenticated") {
+  const isAuthenticated = status === "authenticated";
+
+  // Erstbesuch ohne Anmeldung: Landing-Screen mit der Wahl
+  // "Ohne Anmeldung starten" oder Google-Login (Issue #28).
+  if (!isAuthenticated && !anonymousStarted) {
     return (
       <BrowserRouter>
         <Routes>
           <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
-          <Route path="*" element={<Login />} />
+          <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
         </Routes>
       </BrowserRouter>
     );
@@ -49,6 +56,7 @@ function App() {
 
   const locked = enabled && !unlocked;
 
+  // Ab hier: volle App — angemeldet ODER bewusst anonym (Issue #26).
   return (
     <BrowserRouter>
       <Routes>
@@ -59,6 +67,17 @@ function App() {
         ) : (
           <>
             <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
+
+            <Route
+              path="/login"
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/coach" replace />
+                ) : (
+                  <Login onStartAnonymous={() => setAnonymousStarted(true)} />
+                )
+              }
+            />
 
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/coach" replace />} />

@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -47,6 +48,7 @@ export default function MobileNav() {
                         >
                           <Icon className="h-4 w-4" />
                           <span className="flex-1">{item.label}</span>
+                          {item.requiredTier === "premium" && <Badge variant="secondary">Premium</Badge>}
                         </NavLink>
                       </SheetClose>
                     );
