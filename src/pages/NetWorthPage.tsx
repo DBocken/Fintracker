@@ -31,7 +31,7 @@ export default function NetWorthPage() {
             <CardContent className="p-6">
               <div className="text-sm text-muted-foreground">Nettovermögen</div>
               <div
-                className={`mt-1 text-4xl font-bold ${data.netWorth >= 0 ? "text-emerald-500" : "text-red-500"}`}
+                className={`mt-1 text-4xl font-bold ${data.netWorth >= 0 ? "text-positive" : "text-warning"}`}
               >
                 {eur.format(data.netWorth)}
               </div>
@@ -66,7 +66,7 @@ export default function NetWorthPage() {
                   <CreditCard className="h-4 w-4" />
                   Schulden
                 </div>
-                <div className="mt-1 text-2xl font-bold text-red-500">−{eur.format(data.debts)}</div>
+                <div className="mt-1 text-2xl font-bold">−{eur.format(data.debts)}</div>
               </CardContent>
             </Card>
           </div>

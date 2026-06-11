@@ -8,10 +8,10 @@ interface IncomeCardProps {
 
 export function IncomeCard({ totalIncome, incomeSources }: IncomeCardProps) {
   return (
-    <Card className="border-l-4 border-l-green-500">
+    <Card className="border-l-4 border-l-positive">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ArrowLeft className="h-5 w-5 text-green-600" />
+          <ArrowLeft className="h-5 w-5 text-positive" />
           Einnahmen-Quellen
         </CardTitle>
         <CardDescription>
@@ -19,7 +19,7 @@ export function IncomeCard({ totalIncome, incomeSources }: IncomeCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-green-600 mb-4">
+        <div className="text-3xl font-bold text-positive mb-4">
           {totalIncome.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
         </div>
         <div className="space-y-2">

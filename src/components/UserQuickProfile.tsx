@@ -55,19 +55,19 @@ export default function UserQuickProfile() {
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white transition-opacity hover:opacity-90"
           aria-label="Profil öffnen"
           title={displayName}
         >
           {initials || <UserIcon className="h-4 w-4" />}
-          <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+          <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-positive ring-2 ring-background" />
         </button>
       </DialogTrigger>
 
       <DialogContent className="max-w-sm">
         <Card variant="premium">
           <CardHeader className="flex flex-row items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500 text-sm font-semibold text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
               {initials || <UserIcon className="h-5 w-5" />}
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function UserQuickProfile() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Status</span>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-500">
+              <span className="rounded-full bg-positive/10 px-2 py-0.5 text-xs text-positive">
                 Angemeldet
               </span>
             </div>

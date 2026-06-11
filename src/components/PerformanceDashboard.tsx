@@ -88,7 +88,7 @@ export function PerformanceDashboard() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
-            <Activity className="h-6 w-6 text-emerald-400" />
+            <Activity className="h-6 w-6 text-positive" />
             Technischer Status
           </h2>
           <p className="mt-1 text-sm text-slate-400">
@@ -137,7 +137,7 @@ export function PerformanceDashboard() {
       <Card className="ui-card border-slate-800 bg-slate-950/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Database className="h-5 w-5 text-violet-400" />
+            <Database className="h-5 w-5 text-premium" />
             Lokaler Speicherstatus
           </CardTitle>
         </CardHeader>
@@ -175,7 +175,7 @@ export function PerformanceDashboard() {
         <Card className="ui-card border-slate-800 bg-slate-950/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
-              <Monitor className="h-5 w-5 text-cyan-400" />
+              <Monitor className="h-5 w-5 text-brand" />
               Speicherverbrauch
             </CardTitle>
           </CardHeader>
@@ -206,7 +206,7 @@ export function PerformanceDashboard() {
             <div className="mt-4">
               <div className="h-2 overflow-hidden rounded-full bg-slate-800">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  className="h-full bg-gradient-to-r from-positive to-brand"
                   style={{
                     width: `${(memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100}%`,
                   }}
@@ -223,15 +223,15 @@ export function PerformanceDashboard() {
       <Card className="ui-card border-slate-800 bg-slate-950/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Zap className="h-5 w-5 text-amber-400" />
+            <Zap className="h-5 w-5 text-warning" />
             Operations-Leistung
           </CardTitle>
         </CardHeader>
         <CardContent>
           {slowOperations.length > 0 && (
-            <Alert className="mb-4 border-amber-500/30 bg-amber-500/10">
-              <Zap className="h-4 w-4 text-amber-400" />
-              <AlertDescription className="text-amber-100">
+            <Alert className="mb-4 border-warning/30 bg-warning/10">
+              <Zap className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-warning">
                 {slowOperations.length} Operation(en) brauchen mehr als 100ms.
               </AlertDescription>
             </Alert>
@@ -244,7 +244,7 @@ export function PerformanceDashboard() {
                   key={index}
                   className={`rounded-xl border p-3 ${
                     metric.avgDuration > 100
-                      ? 'border-amber-500/30 bg-amber-500/10'
+                      ? 'border-warning/30 bg-warning/10'
                       : 'border-slate-800 bg-slate-900/70'
                   }`}
                 >
@@ -254,7 +254,7 @@ export function PerformanceDashboard() {
                       <p className="text-xs text-slate-500">{metric.count} Aufrufe</p>
                     </div>
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${metric.avgDuration > 100 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      <p className={`text-lg font-bold ${metric.avgDuration > 100 ? 'text-warning' : 'text-positive'}`}>
                         {formatDuration(metric.avgDuration)}
                       </p>
                       <p className="text-xs text-slate-500">
@@ -276,7 +276,7 @@ export function PerformanceDashboard() {
       <Card className="ui-card border-slate-800 bg-slate-950/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Clock className="h-5 w-5 text-cyan-400" />
+            <Clock className="h-5 w-5 text-brand" />
             Letzte Operationen
           </CardTitle>
         </CardHeader>
@@ -291,7 +291,7 @@ export function PerformanceDashboard() {
                       {new Date(metric.timestamp).toLocaleTimeString('de-DE')}
                     </p>
                   </div>
-                  <p className={`text-sm font-mono ${metric.duration > 100 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  <p className={`text-sm font-mono ${metric.duration > 100 ? 'text-warning' : 'text-positive'}`}>
                     {metric.duration.toFixed(2)}ms
                   </p>
                 </div>

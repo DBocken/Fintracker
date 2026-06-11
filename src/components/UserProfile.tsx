@@ -18,12 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
 
 function normalizeSkinId(raw?: string | null): SkinId {
-  if (!raw) return 'legacy';
+  if (!raw) return 'ruhe';
   if (raw.startsWith('clean-')) return 'clean';
   if (raw === 'clean') return 'clean';
   if (raw === 'neon') return 'neon';
   if (raw === 'legacy') return 'legacy';
-  return 'legacy';
+  return 'ruhe';
 }
 
 export function UserProfile() {
@@ -67,7 +67,7 @@ export function UserProfile() {
     <Dialog>
       <DialogTrigger asChild>
         <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/60">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500 text-xs font-semibold text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
             {initials || <UserIcon className="h-4 w-4" />}
           </div>
           <div className="flex-1">
@@ -77,7 +77,7 @@ export function UserProfile() {
             <div className="text-[11px] text-muted-foreground truncate">
               {email}
             </div>
-            <div className="text-[11px] text-emerald-500">
+            <div className="text-[11px] text-positive">
               Angemeldet
             </div>
           </div>
@@ -87,7 +87,7 @@ export function UserProfile() {
       <DialogContent className="max-w-sm">
         <Card variant="premium">
           <CardHeader className="flex flex-row items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-500 text-sm font-semibold text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
               {initials || <UserIcon className="h-5 w-5" />}
             </div>
             <div>
@@ -103,7 +103,7 @@ export function UserProfile() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Status</span>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-500">
+              <span className="rounded-full bg-positive/10 px-2 py-0.5 text-xs text-positive">
                 Angemeldet
               </span>
             </div>

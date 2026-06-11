@@ -5,6 +5,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
 import ThemeToggle from "@/components/ThemeToggle";
+import PrivacyIndicator from "@/components/PrivacyIndicator";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export default function AppShell() {
                 <span className="ml-2 text-xs text-muted-foreground">⌘K</span>
               </Button>
 
+              <PrivacyIndicator />
               <ThemeToggle />
               <NotificationsBell />
               <UserQuickProfile />

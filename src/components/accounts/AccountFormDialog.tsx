@@ -47,7 +47,7 @@ export function AccountFormDialog({
   const [type, setType] = useState<AccountType>('checking');
   const [currency, setCurrency] = useState('EUR');
   const [description, setDescription] = useState('');
-  const [color, setColor] = useState('#3b82f6');
+  const [color, setColor] = useState('#1d5c54');
   const [icon, setIcon] = useState('🏦');
   const [isBudgetPoolMember, setIsBudgetPoolMember] = useState(true);
   const [statementCloseDay, setStatementCloseDay] = useState<number | null>(null);

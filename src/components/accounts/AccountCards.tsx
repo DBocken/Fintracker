@@ -81,7 +81,7 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
                         </CardTitle>
                       </div>
                       {hasBankConnection && (
-                        <div className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">
+                        <div className="text-xs bg-positive/15 text-positive dark:text-positive px-2 py-1 rounded-full">
                           PSD2
                         </div>
                       )}
@@ -114,7 +114,7 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
                       )}
                       {account.gocardless_account_id && (
                         <div className="text-xs text-muted-foreground">
-                          Synchronisation: <span className="text-emerald-600 dark:text-emerald-400">Aktiv</span>
+                          Synchronisation: <span className="text-positive dark:text-positive">Aktiv</span>
                         </div>
                       )}
                     </div>

@@ -155,7 +155,7 @@ export function DataExport() {
     <Card className="ui-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5 text-blue-500" />
+          <Download className="h-5 w-5 text-brand" />
           Daten Export
         </CardTitle>
         <CardDescription>

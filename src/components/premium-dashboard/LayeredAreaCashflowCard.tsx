@@ -97,7 +97,7 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
   return (
     <Card className="card-premium">
       <CardHeader className="flex items-center justify-between gap-2">
-        <CardTitle>Cashflow (geschwungen) + Saldo</CardTitle>
+        <CardTitle>Wie ist mein Cashflow?</CardTitle>
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1">
             <Button size="sm" variant={win === "7d" ? "default" : "outline"} onClick={() => setWin("7d")}>7d</Button>
@@ -120,12 +120,12 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
               <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#16a34a" stopOpacity={0.75} />
-                    <stop offset="100%" stopColor="#16a34a" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor="hsl(var(--positive))" stopOpacity={0.75} />
+                    <stop offset="100%" stopColor="hsl(var(--positive))" stopOpacity={0.05} />
                   </linearGradient>
                   <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#dc2626" stopOpacity={0.75} />
-                    <stop offset="100%" stopColor="#dc2626" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor="hsl(var(--brand))" stopOpacity={0.75} />
+                    <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
 
@@ -156,7 +156,7 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
                   type={curveType}
                   dataKey="income"
                   name="Einnahmen"
-                  stroke="#16a34a"
+                  stroke="hsl(var(--positive))"
                   strokeWidth={2}
                   fill="url(#gradIncome)"
                 />
@@ -166,7 +166,7 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
                   type={curveType}
                   dataKey="expensesNeg"
                   name="Ausgaben"
-                  stroke="#dc2626"
+                  stroke="hsl(var(--brand))"
                   strokeWidth={2}
                   fill="url(#gradExpenses)"
                 />
@@ -176,7 +176,7 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
                   type={curveType}
                   dataKey="balance"
                   name="Saldo"
-                  stroke="#2563eb"
+                  stroke="hsl(var(--foreground))"
                   strokeWidth={3}
                   dot={false}
                 />

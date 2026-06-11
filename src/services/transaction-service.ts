@@ -297,7 +297,7 @@ export async function saveCategory(category: Partial<Category>): Promise<Categor
   const payload: any = {
     user_id: uid,
     name: category.name || 'Kategorie',
-    color: category.color || '#22c55e',
+    color: category.color || '#2e7d72',
     icon: category.icon || '🛒',
     filters: category.filters || [],
     is_default: false,

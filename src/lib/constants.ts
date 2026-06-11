@@ -61,15 +61,17 @@ export const CATEGORY_LEVELS = {
   SUB_SUB: 2,
 } as const;
 
+/* Ruhige Palette (#54): Petrol-Abstufungen + gedämpfte Komplementärtöne
+   statt Regenbogen. Unterscheidung primär über Helligkeit + Label. */
 export const CATEGORY_COLORS = [
-  '#22c55e', // green
-  '#3b82f6', // blue
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#84cc16', // lime
+  '#1d5c54', // Petrol dunkel (Brand)
+  '#2e7d72', // Petrol
+  '#4a9a8d', // Petrol hell
+  '#7bb8ac', // Petrol blass
+  '#5c7a99', // Schieferblau gedämpft
+  '#8a7d5a', // Olive warm
+  '#a8845c', // Sand warm
+  '#7d6b8a', // Pflaume gedämpft
 ] as const;
 
 export const CATEGORY_ICONS = [
@@ -104,12 +106,13 @@ export const ACCOUNT_TYPE_ICONS = {
   other: '💰',
 } as const;
 
+/* Ruhige Petrol-Abstufungen statt Regenbogen (#54) */
 export const ACCOUNT_TYPE_COLORS = {
-  checking: '#3b82f6',
-  credit_card: '#8b5cf6',
-  savings: '#10b981',
-  wallet: '#f59e0b',
-  other: '#6b7280',
+  checking: '#1d5c54',
+  credit_card: '#5c7a99',
+  savings: '#4a9a8d',
+  wallet: '#a8845c',
+  other: '#7d8a87',
 } as const;
 
 export const FREE_ACCOUNT_LIMIT = 3;
@@ -164,19 +167,20 @@ export const CONTRACT_CYCLE_LABELS = {
 // ============================================
 // Analytics
 // ============================================
+/* Token-basiert (#54): Grün nur für Einnahmen-Akzent, Ausgaben in Brand */
 export const CHART_COLORS = {
-  INCOME: '#16a34a',
-  EXPENSES: '#dc2626',
-  BALANCE: '#2563eb',
-  CONTRACTS: '#8b5cf6',
-  VARIABLES: '#f59e0b',
+  INCOME: 'hsl(var(--positive))',
+  EXPENSES: 'hsl(var(--brand))',
+  BALANCE: 'hsl(var(--foreground))',
+  CONTRACTS: 'hsl(var(--premium))',
+  VARIABLES: 'hsl(var(--muted-foreground))',
 } as const;
 
 export const CHART_GRADIENTS = {
-  GREEN: ['#22c55e', '#16a34a'],
-  BLUE: ['#3b82f6', '#2563eb'],
-  RED: ['#ef4444', '#dc2626'],
-  PURPLE: ['#a78bfa', '#8b5cf6'],
+  GREEN: ['hsl(152, 45%, 45%)', 'hsl(var(--positive))'],
+  BLUE: ['hsl(174, 45%, 40%)', 'hsl(var(--brand))'],
+  RED: ['hsl(4, 60%, 60%)', 'hsl(var(--warning))'],
+  PURPLE: ['hsl(262, 55%, 65%)', 'hsl(var(--premium))'],
 } as const;
 
 // ============================================

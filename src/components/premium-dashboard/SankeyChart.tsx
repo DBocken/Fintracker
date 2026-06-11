@@ -7,6 +7,7 @@ import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { Network } from "lucide-react";
 import { toPng, toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
+import { chartRamp } from "@/lib/chart-colors";
 
 interface SankeyMainCategory {
   id: string;
@@ -315,7 +316,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
               data={sankeyData}
               nodePadding={40}
               margin={{ top: 20, right: 40, bottom: 20, left: 20 }}
-              link={{ stroke: "#94a3b8", strokeOpacity: 0.5 }}
+              link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
               node={({ x, y, width, height, payload }: any) => {
                 const rectHeight = Math.max(height, 20);
                 const isMainCategory = data.mainCategories.some(
@@ -330,16 +331,18 @@ export function SankeyChart({ data }: SankeyChartProps) {
                   );
                 };
 
+                // Monochrome Brand-Rampe (#54): Unterscheidung über Helligkeit + Label
+                const [rampDark, rampMid, rampLight] = chartRamp(3);
                 const fillColor =
                   payload.type === "income"
-                    ? "#10b981"
+                    ? rampDark
                     : payload.type === "expense-main"
                     ? isExpanded
-                      ? "#f97316"
-                      : "#3b82f6"
+                      ? rampDark
+                      : rampMid
                     : payload.type === "expense-sub"
-                    ? "#ef4444"
-                    : "#3b82f6";
+                    ? rampLight
+                    : rampMid;
 
                 const amountLabel = formatAmount(payload.type, payload.amount);
 
@@ -359,7 +362,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
                       width={width}
                       height={rectHeight}
                       fill={fillColor}
-                      stroke="#fff"
+                      stroke="hsl(var(--card))"
                       strokeWidth={2}
                       rx={4}
                     />

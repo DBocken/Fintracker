@@ -130,7 +130,7 @@ export function BackupManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="h-6 w-6 text-purple-500" />
+            <Database className="h-6 w-6 text-premium" />
             Backup & Wiederherstellung
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -197,7 +197,7 @@ export function BackupManager() {
         <Card className="ui-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5 text-blue-500" />
+              <Download className="h-5 w-5 text-brand" />
               Backup erstellen
             </CardTitle>
             <CardDescription>
@@ -261,7 +261,7 @@ export function BackupManager() {
         <Card className="ui-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-green-500" />
+              <Upload className="h-5 w-5 text-positive" />
               Backup wiederherstellen
             </CardTitle>
             <CardDescription>
@@ -329,7 +329,7 @@ export function BackupManager() {
                   >
                     {backupFile ? (
                       <>
-                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-positive" />
                         {backupFile.name}
                       </>
                     ) : (
@@ -401,9 +401,9 @@ export function BackupManager() {
       </div>
 
       {restoreMutation.data && restoreMutation.data.success && (
-        <Card className="ui-card border-green-500/50 bg-green-500/5">
+        <Card className="ui-card border-positive/50 bg-positive/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-600">
+            <CardTitle className="flex items-center gap-2 text-positive">
               <CheckCircle2 className="h-5 w-5" />
               Wiederherstellung erfolgreich
             </CardTitle>
@@ -414,19 +414,19 @@ export function BackupManager() {
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-3 rounded-lg bg-slate-900/50">
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.transactions}
                 </p>
                 <p className="text-xs text-muted-foreground">Transaktionen</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-slate-900/50">
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.categories}
                 </p>
                 <p className="text-xs text-muted-foreground">Kategorien</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-slate-900/50">
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.accounts}
                 </p>
                 <p className="text-xs text-muted-foreground">Konten</p>

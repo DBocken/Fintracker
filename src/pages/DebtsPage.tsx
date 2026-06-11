@@ -38,6 +38,7 @@ import {
   DEBT_TYPE_LABELS,
   DEBT_TYPE_ICONS,
 } from "@/services/debt-service";
+import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -45,7 +46,12 @@ export default function DebtsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Debt | null>(null);
-  const [strategy, setStrategy] = useState<PayoffStrategy>("avalanche");
+  // Portfolio-Strategie: global, persistiert, gilt für alle Schulden (#54)
+  const [strategy, setStrategyState] = useState<PayoffStrategy>(getDebtStrategy);
+  const setStrategy = (s: PayoffStrategy) => {
+    setStrategyState(s);
+    setDebtStrategy(s);
+  };
   const [extraBudget, setExtraBudget] = useState("");
   const [selectedDebtId, setSelectedDebtId] = useState<string>("");
 
@@ -247,7 +253,7 @@ export default function DebtsPage() {
             <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">Gesamtschuld</div>
-                <div className="mt-1 text-2xl font-bold text-red-500">{eur.format(totalDebt)}</div>
+                <div className="mt-1 text-2xl font-bold">{eur.format(totalDebt)}</div>
               </CardContent>
             </Card>
             <Card>
@@ -280,7 +286,7 @@ export default function DebtsPage() {
                       <span className="truncate">{d.name}</span>
                       {d.is_bnpl && <Badge variant="secondary" className="shrink-0">BNPL</Badge>}
                       {d.is_paid_off && (
-                        <Badge className="shrink-0 bg-emerald-500/20 text-emerald-500">Bezahlt</Badge>
+                        <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -292,7 +298,7 @@ export default function DebtsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right font-semibold">{eur.format(d.balance)}</div>
                   <Button variant="ghost" size="icon" onClick={() => togglePaidOff(d)} title="Als bezahlt markieren">
-                    <CheckCircle2 className={d.is_paid_off ? "h-4 w-4 text-emerald-500" : "h-4 w-4"} />
+                    <CheckCircle2 className={d.is_paid_off ? "h-4 w-4 text-positive" : "h-4 w-4"} />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
                     <Pencil className="h-4 w-4" />
@@ -300,7 +306,7 @@ export default function DebtsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-red-500"
+                    className="text-warning"
                     onClick={() => {
                       if (confirm(`Schuld „${d.name}“ löschen?`)) deleteMutation.mutate(d.id);
                     }}
@@ -327,7 +333,7 @@ export default function DebtsPage() {
                         </span>
                       </div>
                       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-red-500" style={{ width: `${c.pct}%` }} />
+                        <div className="h-full rounded-full bg-brand" style={{ width: `${c.pct}%` }} />
                       </div>
                     </div>
                   ))}
@@ -436,7 +442,7 @@ export default function DebtsPage() {
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Strategie</Label>
+                    <Label>Strategie (gilt für alle Schulden)</Label>
                     <Tabs value={strategy} onValueChange={(v) => setStrategy(v as PayoffStrategy)}>
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="avalanche">Lawine (Zins)</TabsTrigger>
@@ -467,7 +473,7 @@ export default function DebtsPage() {
                 </div>
 
                 {payoffPlan.insufficientBudget ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-sm">
+                  <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
                     Das Budget reicht nicht für die Mindestraten. Erhöhe das Extra-Budget oder prüfe deine Ausgaben.
                   </div>
                 ) : (

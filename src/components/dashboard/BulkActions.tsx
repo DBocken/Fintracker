@@ -45,7 +45,7 @@ export function BulkActions({
         <X className="h-4 w-4 mr-1" /> Abwählen
       </Button>
       
-      <Button variant="destructive" onClick={onBulkDelete} size="sm" className="bg-red-600 hover:bg-red-700">
+      <Button variant="destructive" onClick={onBulkDelete} size="sm" className="bg-warning hover:bg-warning">
         <Trash2 className="h-4 w-4 mr-1" /> Löschen
       </Button>
     </div>

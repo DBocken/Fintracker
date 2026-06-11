@@ -8,27 +8,26 @@ import { getHealthLabel } from "@/services/financial-health-service";
 function toneColor(tone: "good" | "ok" | "warn" | "bad") {
   switch (tone) {
     case "good":
-      return "text-emerald-500";
+      return "text-positive";
     case "ok":
-      return "text-green-500";
+      return "text-positive";
     case "warn":
-      return "text-amber-500";
+      return "text-warning";
     case "bad":
-      return "text-red-500";
+      return "text-warning";
   }
 }
 
 function ringColor(score: number) {
-  if (score >= 80) return "#10b981";
-  if (score >= 60) return "#22c55e";
-  if (score >= 40) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 60) return "hsl(var(--positive))";
+  if (score >= 40) return "hsl(var(--brand))";
+  return "hsl(var(--warning))";
 }
 
 function subScoreColor(score: number) {
-  if (score >= 70) return "bg-emerald-500";
-  if (score >= 50) return "bg-amber-500";
-  return "bg-red-500";
+  if (score >= 70) return "bg-positive";
+  if (score >= 50) return "bg-warning";
+  return "bg-warning";
 }
 
 export default function HealthScoreCard({ health }: { health: FinancialHealth }) {
@@ -40,7 +39,7 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
   const offset = circumference - (health.score / 100) * circumference;
 
   return (
-    <div className="rounded-xl border bg-gradient-to-br from-indigo-500/10 via-purple-600/10 to-transparent p-5">
+    <div className="rounded-xl border bg-gradient-to-br from-brand/10 to-transparent p-5">
       <div className="flex items-center gap-5">
         <div className="relative h-28 w-28 shrink-0">
           <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">

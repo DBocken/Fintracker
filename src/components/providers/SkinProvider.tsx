@@ -7,15 +7,15 @@ type SkinContextValue = {
   current: SkinId;
 };
 
-const SkinContext = createContext<SkinContextValue>({ current: 'legacy' });
+const SkinContext = createContext<SkinContextValue>({ current: 'ruhe' });
 
 function normalizeSkinId(raw?: string | null): SkinId {
-  if (!raw) return 'legacy';
+  if (!raw) return 'ruhe';
   if (raw.startsWith('clean-')) return 'clean'; // backward compatibility
   if (raw === 'clean') return 'clean';
   if (raw === 'neon') return 'neon';
   if (raw === 'legacy') return 'legacy';
-  return 'legacy';
+  return 'ruhe';
 }
 
 export default function SkinProvider({ children }: { children: React.ReactNode }) {

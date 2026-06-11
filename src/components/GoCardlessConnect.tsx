@@ -222,7 +222,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <CreditCard className="h-5 w-5 text-positive dark:text-positive" />
           Bankverbindung via PSD2
         </CardTitle>
         <CardDescription>
@@ -265,10 +265,10 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
         )}
 
         {error === 'API_SETUP_REQUIRED' ? (
-          <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <Alert variant="destructive" className="border-warning/50 bg-warning/10">
+            <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription className="space-y-2">
-              <p className="font-medium text-orange-600 dark:text-orange-400">GoCardless API nicht konfiguriert</p>
+              <p className="font-medium text-warning dark:text-warning">GoCardless API nicht konfiguriert</p>
               <p className="text-sm text-foreground">
                 Die GoCardless API-Schlüssel fehlen. Um Bankkonten zu verbinden, musst du folgende Schritte ausführen:
               </p>
@@ -312,7 +312,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                 className="pl-10"
               />
               {selectedInstitution && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-positive dark:text-positive" />
               )}
             </div>
 
@@ -340,7 +340,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                         </div>
                       </div>
                       {institution.id.includes('SANDBOX') && (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs ml-2 shrink-0">
+                        <Badge className="bg-positive/15 text-positive dark:text-positive text-xs ml-2 shrink-0">
                           Test
                         </Badge>
                       )}
@@ -365,9 +365,9 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
           </div>
 
           {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.protocol !== 'https:' && (
-            <Alert className="bg-blue-500/10 border-blue-500/30">
-              <AlertTriangle className="h-4 w-4 text-blue-500" />
-              <AlertDescription className="text-sm text-blue-700 dark:text-blue-300">
+            <Alert className="bg-brand/10 border-brand/30">
+              <AlertTriangle className="h-4 w-4 text-brand" />
+              <AlertDescription className="text-sm text-brand dark:text-brand">
                 <strong>Entwicklungsmodus:</strong> In der lokalen Umgebung funktioniert die Bankverbindung nur mit der
                 <strong> Sandbox Finance (Test-Bank)</strong>. Für echte Bankverbindungen brauchst du eine HTTPS-URL.
                 <br /><br />
@@ -378,31 +378,31 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
           )}
 
           {window.location.protocol === 'https:' && (
-            <Alert className="bg-emerald-500/10 border-emerald-500/30">
-              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <AlertDescription className="text-sm text-emerald-700 dark:text-emerald-300">
+            <Alert className="bg-positive/10 border-positive/30">
+              <Check className="h-4 w-4 text-positive dark:text-positive" />
+              <AlertDescription className="text-sm text-positive dark:text-positive">
                 <strong>HTTPS erkannt!</strong> Du kannst jetzt alle Banken verbinden, da du eine sichere Verbindung nutzt.
               </AlertDescription>
             </Alert>
           )}
 
           {selectedInstitution && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg space-y-2">
+            <div className="p-3 bg-positive/10 border border-positive/30 rounded-lg space-y-2">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-sm text-emerald-700 dark:text-emerald-300">
+                <Check className="h-4 w-4 text-positive dark:text-positive" />
+                <span className="text-sm text-positive dark:text-positive">
                   Ausgewählt: <strong>{selectedInstitution.name}</strong>
                   {selectedInstitution.id.includes('SANDBOX') && (
-                    <Badge className="ml-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Test-Modus</Badge>
+                    <Badge className="ml-2 bg-positive/20 text-positive dark:text-positive">Test-Modus</Badge>
                   )}
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
                 Redirect URL: {getRedirectOrigin()}/ausgabentracker/return
                 {getRedirectOrigin().startsWith('https:') ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 ml-1">(HTTPS ✓)</span>
+                  <span className="text-positive dark:text-positive ml-1">(HTTPS ✓)</span>
                 ) : (
-                  <span className="text-red-600 dark:text-red-400 ml-1">(HTTP - nur Test-Bank!)</span>
+                  <span className="text-warning dark:text-warning ml-1">(HTTP - nur Test-Bank!)</span>
                 )}
               </div>
             </div>

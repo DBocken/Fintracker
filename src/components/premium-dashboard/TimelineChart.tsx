@@ -6,6 +6,7 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, CartesianGrid, XAxis, YA
 import { parseISO, startOfMonth, format } from 'date-fns';
 import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
+import { chartRamp } from '@/lib/chart-colors';
 
 interface TimelineChartProps {
   data: Array<{
@@ -81,12 +82,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
     return Array.from(set).sort((a, b) => (totals[b] || 0) - (totals[a] || 0));
   }, [monthlyCategoryExpenses]);
 
-  // Farbschema für Kategorien
-  const COLORS = ['#8b5cf6', '#22c55e', '#f59e0b', '#06b6d4', '#a855f7', '#84cc16', '#f97316', '#0ea5e9', '#10b981', '#e11d48', '#64748b'];
+  // Monochrome Brand-Rampe statt kategorialer Palette (#54)
   const colorMap = useMemo(() => {
+    const ramp = chartRamp(allMainNames.length);
     const m: Record<string, string> = {};
     allMainNames.forEach((name, idx) => {
-      m[name] = COLORS[idx % COLORS.length];
+      m[name] = ramp[idx];
     });
     return m;
   }, [allMainNames]);
@@ -136,7 +137,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
   return (
     <Card {...dyadProps("TimelineChart")}>
       <CardHeader>
-        <CardTitle>Zeitlicher Verlauf</CardTitle>
+        <CardTitle>Wie entwickelt sich mein Geld im Zeitverlauf?</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Steuerung */}
@@ -179,12 +180,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
 
             {/* Einnahmen (optional) */}
             {showIncome && (
-              <Bar dataKey="income" fill="#10b981" name="Einnahmen" />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
             )}
 
-            {/* Ausgaben: entweder ein roter Balken oder gestapelte Kategorien + Rest */}
+            {/* Ausgaben: ein Brand-Balken oder gestapelte Kategorien (Monochrom-Rampe) + Rest */}
             {!hasSelection ? (
-              <Bar dataKey="expenses" fill="#ef4444" name="Ausgaben" />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
             ) : (
               <>
                 {Array.from(selectedCats).map((name) => (
@@ -196,12 +197,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
                     name={name}
                   />
                 ))}
-                <Bar dataKey="Rest" stackId="expenses" fill="#ef4444" name="Rest" />
+                <Bar dataKey="Rest" stackId="expenses" fill="hsl(var(--muted-foreground))" name="Rest" />
               </>
             )}
 
             {/* Netto-Bilanz als Linie */}
-            <Line type="monotone" dataKey="net" stroke="#3b82f6" name="Netto-Bilanz" strokeWidth={3} />
+            <Line type="monotone" dataKey="net" stroke="hsl(var(--foreground))" name="Netto-Bilanz" strokeWidth={3} />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>

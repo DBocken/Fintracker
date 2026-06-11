@@ -14,7 +14,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Wöchentliche Einnahmen</CardTitle>
+          <CardTitle>Wann kommt mein Geld? (Wöchentliches Muster)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -27,7 +27,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
                 labelFormatter={(label) => `Wochentag: ${label}`}
               />
               <Legend formatter={() => 'Einnahmen'} />
-              <Bar dataKey="income" fill="#10b981" name="Einnahmen" />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -35,7 +35,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Wöchentliche Ausgaben</CardTitle>
+          <CardTitle>Wann gebe ich aus? (Wöchentliches Muster)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -48,7 +48,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
                 labelFormatter={(label) => `Wochentag: ${label}`}
               />
               <Legend formatter={() => 'Ausgaben'} />
-              <Bar dataKey="expenses" fill="#ef4444" name="Ausgaben" />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

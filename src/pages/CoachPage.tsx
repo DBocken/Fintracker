@@ -47,7 +47,7 @@ export default function CoachPage() {
           <div className="text-sm text-muted-foreground">Schuldenkontext</div>
           <div className="mt-2 text-xl font-semibold">{coach?.debtSummary.totalDebt.toFixed(0)} € offen</div>
           <p className="mt-2 text-sm text-muted-foreground">Mindestraten: {coach?.debtSummary.minimumMonthlyBurden.toFixed(0)} € / Monat</p>
-          <p className="mt-3 text-sm">Schneller ist aktuell: {coach?.debtSummary.preferredStrategy === "avalanche" ? "Avalanche" : "Snowball"}</p>
+          <p className="mt-3 text-sm">Schneller ist aktuell: {coach?.debtSummary.preferredStrategy === "avalanche" ? "Lawine (höchster Zins zuerst)" : "Schneeball (kleinste Schuld zuerst)"}</p>
         </div>
       </section>
 

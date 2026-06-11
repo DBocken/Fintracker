@@ -16,19 +16,19 @@ export function CompactCashflowCard({ totalIncome, totalExpenses }: CompactCashf
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4">
         <div className="flex items-center gap-2">
-          <ArrowUpCircle className="h-4 w-4 text-green-400" />
+          <ArrowUpCircle className="h-4 w-4 text-positive" />
           <div>
             <p className="text-xs text-gray-400">Einnahmen</p>
-            <p className="text-lg font-bold text-green-400">
+            <p className="text-lg font-bold text-positive">
               {totalIncome.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ArrowDownCircle className="h-4 w-4 text-red-400" />
+          <ArrowDownCircle className="h-4 w-4 text-warning" />
           <div>
             <p className="text-xs text-gray-400">Ausgaben</p>
-            <p className="text-lg font-bold text-red-400">
+            <p className="text-lg font-bold text-warning">
               {totalExpenses.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
             </p>
           </div>

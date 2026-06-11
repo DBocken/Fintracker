@@ -72,40 +72,40 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
 
     if (aggregator === 'expenses') {
       if (value === 0) return 'bg-gray-800';
-      if (s1) return 'bg-red-900';
-      if (s2) return 'bg-red-700';
-      if (s3) return 'bg-red-500';
-      return 'bg-red-400';
+      if (s1) return 'bg-warning';
+      if (s2) return 'bg-warning';
+      if (s3) return 'bg-warning';
+      return 'bg-warning';
     }
     if (aggregator === 'income') {
       if (value === 0) return 'bg-gray-800';
-      if (s1) return 'bg-green-900';
-      if (s2) return 'bg-green-700';
-      if (s3) return 'bg-green-500';
-      return 'bg-green-400';
+      if (s1) return 'bg-positive';
+      if (s2) return 'bg-positive';
+      if (s3) return 'bg-positive';
+      return 'bg-positive';
     }
     if (aggregator === 'net') {
       // Netto: negative rot, positive blau
       if (value === 0) return 'bg-gray-800';
       if (value < 0) {
         const negRatio = Math.abs(value) / (maxValue || 1);
-        if (negRatio < 0.25) return 'bg-red-900';
-        if (negRatio < 0.5) return 'bg-red-700';
-        if (negRatio < 0.75) return 'bg-red-500';
-        return 'bg-red-400';
+        if (negRatio < 0.25) return 'bg-warning';
+        if (negRatio < 0.5) return 'bg-warning';
+        if (negRatio < 0.75) return 'bg-warning';
+        return 'bg-warning';
       } else {
-        if (ratio < 0.25) return 'bg-blue-900';
-        if (ratio < 0.5) return 'bg-blue-700';
-        if (ratio < 0.75) return 'bg-blue-500';
-        return 'bg-blue-400';
+        if (ratio < 0.25) return 'bg-brand';
+        if (ratio < 0.5) return 'bg-brand';
+        if (ratio < 0.75) return 'bg-brand';
+        return 'bg-brand';
       }
     }
     // count
     if (value === 0) return 'bg-gray-800';
-    if (s1) return 'bg-indigo-900';
-    if (s2) return 'bg-indigo-700';
-    if (s3) return 'bg-indigo-500';
-    return 'bg-indigo-400';
+    if (s1) return 'bg-brand';
+    if (s2) return 'bg-brand';
+    if (s3) return 'bg-brand';
+    return 'bg-brand';
   };
 
   const formatTitle = (date: Date) => {
@@ -129,7 +129,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
     <Card className="border-0 bg-gradient-to-br from-gray-800 to-gray-900 shadow-xl">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-blue-400" />
+          <Calendar className="h-5 w-5 text-brand" />
           Aktivitätskalender
         </CardTitle>
       </CardHeader>

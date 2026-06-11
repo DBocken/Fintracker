@@ -74,7 +74,7 @@ export async function saveLocalCategory(category: Partial<Category>): Promise<Ca
     id: generateLocalCategoryId(),
     user_id: LOCAL_USER_ID,
     name,
-    color: category.color || "#22c55e",
+    color: category.color || "#2e7d72",
     icon: category.icon || "🛒",
     filters: category.filters || [],
     is_default: false,

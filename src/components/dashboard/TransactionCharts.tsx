@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { chartRamp, CHART_BRAND } from '@/lib/chart-colors';
 
 interface SunburstInner {
   id: string;
@@ -26,9 +27,7 @@ interface TransactionChartsProps {
   sunburst: SunburstData;
 }
 
-const COLORS = ['#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4', '#d946ef', '#f97316', '#84cc16'];
-
-export function TransactionCharts({ series, granularity, sunburst }: TransactionChartsProps) {
+export function TransactionCharts({ series, sunburst }: TransactionChartsProps) {
   // Umschalter zwischen Euro und Prozent für Sunburst
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Haupt- oder Unterkategorie-ID sein)
@@ -45,8 +44,9 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
   // Farbzuordnung für Hauptkategorien (innerer Ring)
   const colorMap = useMemo(() => {
     const map = new Map<string, string>();
+    const ramp = chartRamp(sunburst.inner.length);
     sunburst.inner.forEach((item, idx) => {
-      map.set(item.id, COLORS[idx % COLORS.length]);
+      map.set(item.id, ramp[idx]);
     });
     return map;
   }, [sunburst]);
@@ -95,10 +95,10 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
 
   // Legendeneinträge für Hauptkategorien
   const legendItems = useMemo(() => {
-    return (sunburst.inner || []).map((item, i) => ({
+    return (sunburst.inner || []).map((item) => ({
       id: item.id,
       name: item.name,
-      color: colorMap.get(item.id) || COLORS[i % COLORS.length],
+      color: colorMap.get(item.id) || CHART_BRAND,
       value: showPercent && totalExpenses > 0 ? Math.round((item.value / totalExpenses) * 100) : Math.round(item.value),
     }));
   }, [sunburst, colorMap, showPercent, totalExpenses]);
@@ -118,8 +118,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
       <Card className="card-premium">
         <CardHeader>
           <CardTitle>
-            {granularity === 'daily' ? 'Tägliche' : 
-             granularity === 'weekly' ? 'Wöchentliche' : 'Monatliche'} Ausgaben
+            Wie ändern sich meine Ausgaben?
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -129,7 +128,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
               <XAxis dataKey="period" angle={-45} textAnchor="end" height={60}/>
               <YAxis tickFormatter={(v: number) => `${Math.round(v)}€`}/>
               <Tooltip formatter={(v: number) => formatCurrencyInt(Math.round(v))}/>
-              <Bar dataKey="expenses" fill="#ef4444"/>
+              <Bar dataKey="expenses" fill={CHART_BRAND}/>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -137,7 +136,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
       
       <Card className="card-premium">
         <CardHeader className="flex items-center justify-between">
-          <CardTitle>Ausgaben nach Kategorie (Sunburst)</CardTitle>
+          <CardTitle>Wohin fließt mein Geld?</CardTitle>
           <div className="flex items-center gap-2">
             <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
             <span className="text-sm text-muted-foreground">Prozent</span>
@@ -163,7 +162,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
                     isAnimationActive={false}
                   >
                     {sunburst.inner.map((entry) => {
-                      const col = colorMap.get(entry.id) || COLORS[0];
+                      const col = colorMap.get(entry.id) || CHART_BRAND;
                       // Dimming-Logik: Wenn eine Unterkategorie gehovered ist, hebe nur deren Parent hervor
                       const activeOuter = hoveredKey ? outerById.get(hoveredKey) : null;
                       const isDimmed = hoveredKey
@@ -203,7 +202,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
                         isAnimationActive={false}
                       >
                         {children.map((entry) => {
-                          const parentColor = colorMap.get(entry.parentId) || COLORS[0];
+                          const parentColor = colorMap.get(entry.parentId) || CHART_BRAND;
                           const isDimmed = hoveredKey
                             ? hoveredKey !== entry.id && hoveredKey !== entry.parentId
                             : false;

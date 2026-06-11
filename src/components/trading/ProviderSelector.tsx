@@ -67,7 +67,7 @@ export default function ProviderSelector({
           <span className="mr-2">Kurs-Provider:</span>
           <span className="mr-1">{currentProviderInfo?.name || 'Yahoo Finance'}</span>
           {currentProviderInfo?.isFavorite && (
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <Star className="h-4 w-4 fill-warning text-warning" />
           )}
           <ChevronDown className="h-4 w-4 ml-2" />
         </Button>
@@ -83,7 +83,7 @@ export default function ProviderSelector({
           >
             <div className="flex items-center gap-2">
               {provider.isFavorite && (
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <Star className="h-4 w-4 fill-warning text-warning" />
               )}
               <div>
                 <div className="font-medium">{provider.name}</div>
@@ -107,7 +107,7 @@ export default function ProviderSelector({
           >
             {provider.isFavorite ? (
               <span className="flex items-center gap-2 text-muted-foreground">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <Star className="h-4 w-4 fill-warning text-warning" />
                 {provider.name} (Favorit)
               </span>
             ) : (

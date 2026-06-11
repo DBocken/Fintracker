@@ -36,7 +36,7 @@ import {
 
 function StatusBadge({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <Badge className={ok ? 'bg-emerald-600 hover:bg-emerald-600' : 'bg-amber-600 hover:bg-amber-600'}>
+    <Badge className={ok ? 'bg-positive hover:bg-positive' : 'bg-warning hover:bg-warning'}>
       {children}
     </Badge>
   );
@@ -118,7 +118,7 @@ export function PrivacySyncAnalyticsSettings() {
     <Card className="ui-card border-slate-800 bg-slate-950/70">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
-          <FolderSync className="h-5 w-5 text-emerald-400" />
+          <FolderSync className="h-5 w-5 text-positive" />
           Sync-Datei & Datenschutz
         </CardTitle>
         <CardDescription className="text-slate-400">
@@ -130,7 +130,7 @@ export function PrivacySyncAnalyticsSettings() {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <FileLock2 className="h-4 w-4 text-emerald-400" />
+              <FileLock2 className="h-4 w-4 text-positive" />
               Lokale Finanzdaten
             </div>
             <StatusBadge ok={storageStatus.encrypted}>
@@ -140,7 +140,7 @@ export function PrivacySyncAnalyticsSettings() {
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <Database className="h-4 w-4 text-cyan-400" />
+              <Database className="h-4 w-4 text-brand" />
               Supabase
             </div>
             <StatusBadge ok>nur Metadaten</StatusBadge>
@@ -148,7 +148,7 @@ export function PrivacySyncAnalyticsSettings() {
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <FileKey2 className="h-4 w-4 text-violet-400" />
+              <FileKey2 className="h-4 w-4 text-premium" />
               Sync-Datei
             </div>
             <StatusBadge ok={!!encryption.enabled}>
@@ -158,7 +158,7 @@ export function PrivacySyncAnalyticsSettings() {
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
-              <BarChart3 className="h-4 w-4 text-amber-400" />
+              <BarChart3 className="h-4 w-4 text-warning" />
               Anonyme Auswertung
             </div>
             <StatusBadge ok={!!consentQuery.data?.opted_in}>
@@ -167,9 +167,9 @@ export function PrivacySyncAnalyticsSettings() {
           </div>
         </div>
 
-        <Alert className="border-emerald-500/20 bg-emerald-500/10">
-          <Sparkles className="h-4 w-4 text-emerald-400" />
-          <AlertDescription className="text-sm text-emerald-100">
+        <Alert className="border-positive/20 bg-positive/10">
+          <Sparkles className="h-4 w-4 text-positive" />
+          <AlertDescription className="text-sm text-positive">
             <strong>Gedanke für künftig:</strong> Die Sync-Datei soll automatisch im Hintergrund gepflegt werden, damit
             der Nutzer davon möglichst wenig mitbekommt. Aktuell ist der Export noch manuell sichtbar, die Oberfläche
             ist jetzt aber bereits auf dieses Modell ausgerichtet.
@@ -177,7 +177,7 @@ export function PrivacySyncAnalyticsSettings() {
         </Alert>
 
         {!storageStatus.encrypted && (
-          <Alert className="border-amber-700 bg-amber-950/30">
+          <Alert className="border-warning bg-warning/30">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Aktiviere zuerst die lokale Verschlüsselung mit deiner Passphrase. Diese Passphrase schützt später auch
@@ -187,7 +187,7 @@ export function PrivacySyncAnalyticsSettings() {
         )}
 
         {storageStatus.plaintextFound && encryption.enabled && (
-          <Alert className="border-amber-700 bg-amber-950/30">
+          <Alert className="border-warning bg-warning/30">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Es wurden lokale Klartextdaten erkannt. Nach dem Entsperren werden diese automatisch in den geschützten
@@ -198,7 +198,7 @@ export function PrivacySyncAnalyticsSettings() {
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
           <h3 className="mb-2 flex items-center gap-2 font-semibold text-white">
-            <FolderSync className="h-4 w-4 text-emerald-400" />
+            <FolderSync className="h-4 w-4 text-positive" />
             Speicherort der Sync-Datei
           </h3>
           <p className="text-sm leading-6 text-slate-400">
@@ -210,7 +210,7 @@ export function PrivacySyncAnalyticsSettings() {
 
         <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
           <h3 className="flex items-center gap-2 font-semibold text-white">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <ShieldCheck className="h-4 w-4 text-positive" />
             Sync-Datei verwalten
           </h3>
 
@@ -247,7 +247,7 @@ export function PrivacySyncAnalyticsSettings() {
             <Button
               onClick={() => snapshotMutation.mutate()}
               disabled={!encryption.unlocked || snapshotMutation.isPending}
-              className="bg-emerald-600 text-white hover:bg-emerald-500"
+              className="bg-positive text-white hover:bg-positive"
             >
               <FileLock2 className="mr-2 h-4 w-4" />
               Sync-Datei herunterladen
@@ -302,7 +302,7 @@ export function PrivacySyncAnalyticsSettings() {
 
         <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
           <h3 className="flex items-center gap-2 font-semibold text-white">
-            <UploadCloud className="h-4 w-4 text-amber-400" />
+            <UploadCloud className="h-4 w-4 text-warning" />
             Anonyme Auswertung
           </h3>
 

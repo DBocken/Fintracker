@@ -46,7 +46,7 @@ export default function UnlockPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-600/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/10 via-premium/10 to-transparent" />
 
       <Card variant="premium" className="z-10 w-full max-w-md shadow-lg">
         <CardHeader>

@@ -25,7 +25,7 @@ export function TransactionStats({
             <ArrowUpCircle className="h-5 w-5" /> Einnahmen
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-blue-600 text-2xl">{income.toFixed(2)}€</CardContent>
+        <CardContent className="text-brand text-2xl">{income.toFixed(2)}€</CardContent>
       </Card>
       
       <Card className="card-premium">
@@ -34,7 +34,7 @@ export function TransactionStats({
             <ArrowDownCircle className="h-5 w-5" /> Ausgaben
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-red-600 text-2xl">{expenses.toFixed(2)}€</CardContent>
+        <CardContent className="text-warning text-2xl">{expenses.toFixed(2)}€</CardContent>
       </Card>
       
       <Card className="card-premium">
@@ -50,7 +50,7 @@ export function TransactionStats({
             <Wallet className="h-5 w-5" /> Kontostand
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-blue-600 text-2xl">{currentBalance}</CardContent>
+        <CardContent className="text-brand text-2xl">{currentBalance}</CardContent>
       </Card>
     </div>
   );

@@ -29,7 +29,7 @@ export function DeleteConfirmationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogAction onClick={onConfirm} className="bg-warning hover:bg-warning">
             Löschen
           </AlertDialogAction>
         </AlertDialogFooter>

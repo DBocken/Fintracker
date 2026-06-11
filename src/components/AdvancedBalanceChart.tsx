@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { yAxisDomain } from '@/lib/chart-axis';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -24,6 +26,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [tempBalance, setTempBalance] = useState<string>('0');
+  // Achsen-Hygiene (#54): Auto-Skalierung als Default, 0-Linie optional erzwingbar
+  const [axisFromZero, setAxisFromZero] = useState(false);
 
   const { data: txs = [], isLoading } = useQuery<Transaction[], Error>({
     queryKey: ['transactions-chart'],
@@ -124,20 +128,26 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Kontoverlauf & Cashflow
+            Wie entwickelt sich mein Kontostand?
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setTempBalance(effectiveStartingBalance.toFixed(2));
-              setShowSettings(true);
-            }}
-            className="btn-secondary-premium"
-          >
-            <Settings className="h-4 w-4 mr-1" />
-            Startwert
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={axisFromZero} onCheckedChange={(v) => setAxisFromZero(Boolean(v))} />
+              <span className="text-sm text-muted-foreground">Ab 0</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTempBalance(effectiveStartingBalance.toFixed(2));
+                setShowSettings(true);
+              }}
+              className="btn-secondary-premium"
+            >
+              <Settings className="h-4 w-4 mr-1" />
+              Startwert
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4 text-sm text-muted-foreground">
@@ -166,6 +176,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
               <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
+                domain={yAxisDomain({ includeZero: axisFromZero })}
                 tickFormatter={(value) => `${(value as number).toFixed(0)}€`}
               />
               <Tooltip
@@ -194,30 +205,30 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
               <Line
                 type="monotone"
                 dataKey="income"
-                stroke="#22c55e"
+                stroke="hsl(var(--positive))"
                 strokeWidth={2}
-                dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#22c55e', strokeWidth: 2 }}
+                dot={{ fill: 'hsl(var(--positive))', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: 'hsl(var(--positive))', strokeWidth: 2 }}
                 name="income"
               />
 
               <Line
                 type="monotone"
                 dataKey="expenses"
-                stroke="#ef4444"
+                stroke="hsl(var(--brand))"
                 strokeWidth={2}
-                dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+                dot={{ fill: 'hsl(var(--brand))', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: 'hsl(var(--brand))', strokeWidth: 2 }}
                 name="expenses"
               />
 
               <Line
                 type="monotone"
                 dataKey="cumulative"
-                stroke="#3b82f6"
+                stroke="hsl(var(--foreground))"
                 strokeWidth={3}
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, stroke: '#3b82f6', strokeWidth: 2 }}
+                dot={{ fill: 'hsl(var(--foreground))', strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, stroke: 'hsl(var(--foreground))', strokeWidth: 2 }}
                 name="balance"
               />
             </LineChart>
