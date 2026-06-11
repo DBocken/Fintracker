@@ -1,13 +1,18 @@
 "use client";
 
+import { Lock } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useTier } from "@/hooks/useTier";
+import { tierMeets } from "@/lib/tier";
 import UserProfile from "@/components/UserProfile";
 
 export default function SideNav() {
+  const tier = useTier();
+
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 py-4">
@@ -26,10 +31,12 @@ export default function SideNav() {
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
+                    const locked = item.requiredTier ? !tierMeets(tier, item.requiredTier) : false;
                     return (
                       <NavLink
                         key={item.path}
                         to={item.path}
+                        title={locked ? "Vorschau – Premium noch nicht freigeschaltet" : undefined}
                         className={({ isActive }) =>
                           cn(
                             "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -41,7 +48,12 @@ export default function SideNav() {
                       >
                         <Icon className="h-4 w-4" />
                         <span className="flex-1">{item.premium ? `${item.label} (Premium)` : item.label}</span>
-                        {item.premium && <Badge variant="secondary">Premium</Badge>}
+                        {locked && (
+                          <Badge variant="secondary" className="gap-1">
+                            <Lock className="h-3 w-3" />
+                            Premium
+                          </Badge>
+                        )}
                       </NavLink>
                     );
                   })}

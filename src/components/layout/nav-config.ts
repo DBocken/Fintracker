@@ -15,12 +15,15 @@ import {
   Banknote,
   Coins,
 } from "lucide-react";
+import type { Tier } from "@/lib/tier";
 
 export type NavItem = {
   label: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   premium?: boolean;
+  /** Minimum tier required to fully use this item; locked items still link out, but show an explanation/preview instead. */
+  requiredTier?: Tier;
 };
 
 export type NavGroup = {
@@ -44,9 +47,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Analysen",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-      { label: "Analyse", path: "/premium", icon: Zap, premium: true },
-      { label: "Simulation", path: "/simulation", icon: PlayCircle, premium: true },
-      { label: "Trading", path: "/trading", icon: LineChart, premium: true },
+      { label: "Analyse", path: "/premium", icon: Zap, premium: true, requiredTier: "premium" },
+      { label: "Simulation", path: "/simulation", icon: PlayCircle, premium: true, requiredTier: "premium" },
+      { label: "Trading", path: "/trading", icon: LineChart, premium: true, requiredTier: "premium" },
     ],
   },
   {

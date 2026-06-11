@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { Lock, Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useTier } from "@/hooks/useTier";
+import { tierMeets } from "@/lib/tier";
 
 export default function MobileNav() {
+  const tier = useTier();
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -31,10 +35,12 @@ export default function MobileNav() {
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = item.icon;
+                    const locked = item.requiredTier ? !tierMeets(tier, item.requiredTier) : false;
                     return (
                       <SheetClose key={item.path} asChild>
                         <NavLink
                           to={item.path}
+                          title={locked ? "Vorschau – Premium noch nicht freigeschaltet" : undefined}
                           className={({ isActive }) =>
                             cn(
                               "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -46,7 +52,12 @@ export default function MobileNav() {
                         >
                           <Icon className="h-4 w-4" />
                           <span className="flex-1">{item.premium ? `${item.label} (Premium)` : item.label}</span>
-                          {item.premium && <Badge variant="secondary">Premium</Badge>}
+                          {locked && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Lock className="h-3 w-3" />
+                              Premium
+                            </Badge>
+                          )}
                         </NavLink>
                       </SheetClose>
                     );
