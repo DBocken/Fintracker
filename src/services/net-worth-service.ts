@@ -1,5 +1,3 @@
-"use client";
-
 import type { Account, Transaction } from "../types";
 import { getAccounts } from "./account-service";
 import { getTransactions } from "./transaction-service";

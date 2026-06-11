@@ -7,6 +7,7 @@ import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
 import AppShell from "@/components/layout/AppShell";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 import CoachPage from "@/pages/CoachPage";
 import DebtsPage from "@/pages/DebtsPage";
@@ -86,7 +87,10 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/premium" element={<PremiumPage />} />
               <Route path="/simulation" element={<SimulationPage />} />
-              <Route path="/trading" element={<TradingPage />} />
+              <Route
+                path="/trading"
+                element={isFeatureEnabled("trading_beta") ? <TradingPage /> : <Navigate to="/coach" replace />}
+              />
               <Route path="/contracts" element={<ContractsPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/csv" element={<CsvPage />} />

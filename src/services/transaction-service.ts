@@ -1,5 +1,3 @@
-"use client";
-
 import { supabase } from '../integrations/supabase/client';
 import type { Transaction, Category, UserSettings, HierarchicalCategory } from '../types';
 import { getCurrentUserId } from './auth-service';

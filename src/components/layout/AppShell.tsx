@@ -1,5 +1,3 @@
-"use client";
-
 import { Outlet, useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
 import SideNav from "@/components/layout/SideNav";
@@ -20,6 +18,7 @@ function getTitle(pathname: string) {
       }
     }
   }
+  if (pathname === "/performance") return "Performance";
   return "Ausgabentracker";
 }
 

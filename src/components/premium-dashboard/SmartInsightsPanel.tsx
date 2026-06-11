@@ -1,5 +1,3 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Lightbulb } from "lucide-react";
 import { dyadProps } from "@/lib/dyad";

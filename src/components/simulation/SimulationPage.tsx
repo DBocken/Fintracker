@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from 'framer-motion';
 import { Brain } from 'lucide-react';
 import { SimulationPanel } from './SimulationPanel';

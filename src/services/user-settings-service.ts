@@ -1,5 +1,3 @@
-"use client";
-
 import { supabase } from '../integrations/supabase/client';
 import type { UserSettings } from '../types';
 import { requireUserId } from './auth-service';

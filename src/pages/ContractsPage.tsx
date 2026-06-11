@@ -1,5 +1,3 @@
-"use client";
-
 import { ContractsDashboard } from "@/components/contracts/ContractsDashboard";
 
 export default function ContractsPage() {

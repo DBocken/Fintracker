@@ -1,5 +1,3 @@
-"use client";
-
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'other';
 
 export interface Account {

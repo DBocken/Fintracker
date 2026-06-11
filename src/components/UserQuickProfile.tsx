@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";

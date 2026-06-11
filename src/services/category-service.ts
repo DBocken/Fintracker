@@ -1,5 +1,3 @@
-"use client";
-
 import { supabase } from '../integrations/supabase/client';
 import { getCurrentUserId } from './auth-service';
 import { deleteLocalCategory } from './local-settings-service';
