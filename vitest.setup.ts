@@ -9,3 +9,16 @@ if (!globalThis.crypto?.subtle) {
     configurable: true,
   })
 }
+
+// jsdom's Blob/File lack the `text()` instance method that the CSV import
+// uses (`await file.text()`). Bridge it via FileReader, which jsdom supports.
+if (typeof Blob !== "undefined" && !Blob.prototype.text) {
+  Blob.prototype.text = function text(this: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsText(this)
+    })
+  }
+}
