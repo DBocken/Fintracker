@@ -264,7 +264,7 @@ export function AccountManager() {
 
   return (
     <div className="space-y-6">
-      <RequireTier feature="bank_sync">
+      <RequireTier feature="bankSync">
         <GoCardlessConnect onConnectionSuccess={handleConnectionSuccess} />
       </RequireTier>
 

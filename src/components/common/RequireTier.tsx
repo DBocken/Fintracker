@@ -5,8 +5,9 @@ import { Link } from "react-router-dom";
 import { Lock, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useTier } from "@/hooks/useTier";
-import type { FeatureKey } from "@/lib/tiers";
+import { hasFeatureAccess, FEATURES, type FeatureKey } from "@/lib/tier";
 
 type RequireTierProps = {
   feature: FeatureKey;
@@ -59,11 +60,13 @@ function PremiumHint() {
  * Zeigt im anonymen Modus einen freundlichen Login-Hinweis statt der Kinder.
  */
 export default function RequireTier({ feature, children, fallback }: RequireTierProps) {
-  const { isEnabled, requiredTier, loading } = useTier();
+  const tier = useTier();
+  const { status } = useAuth();
+  const loading = status === "loading";
 
   if (loading) return null;
-  if (isEnabled(feature)) return <>{children}</>;
+  if (hasFeatureAccess(tier, feature)) return <>{children}</>;
   if (fallback !== undefined) return <>{fallback}</>;
 
-  return requiredTier(feature) === "premium" ? <PremiumHint /> : <LoginHint />;
+  return FEATURES[feature] === "premium" ? <PremiumHint /> : <LoginHint />;
 }
