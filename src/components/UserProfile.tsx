@@ -1,6 +1,6 @@
 "use client";
 
-import { User as UserIcon, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { User as UserIcon, LogOut, Settings as SettingsIcon, LogIn } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
   Card,
@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
+import { useNavigate } from "react-router-dom";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'legacy';
@@ -29,8 +30,9 @@ function normalizeSkinId(raw?: string | null): SkinId {
 }
 
 export function UserProfile() {
-  const { user } = useAuth();
+  const { user, status } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: settings } = useQuery({
     queryKey: ['userSettings'],
@@ -51,6 +53,66 @@ export function UserProfile() {
     onError: () => showError("Fehler beim Speichern des Themes"),
   });
 
+  // Anonymous/guest mode: show login prompt
+  if (status === "unauthenticated") {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/60">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-400 text-xs font-semibold text-white">
+              <UserIcon className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-medium text-foreground truncate">
+                Unbekannter Nutzer
+              </div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                Gast-Modus
+              </div>
+              <div className="text-[11px] text-amber-500">
+                Nicht angemeldet
+              </div>
+            </div>
+          </button>
+        </DialogTrigger>
+
+        <DialogContent className="max-w-sm">
+          <Card variant="premium">
+            <CardHeader>
+              <CardTitle className="text-base">Willkommen!</CardTitle>
+              <CardDescription>
+                Melden Sie sich an, um alle Features zu nutzen und Ihre Daten zu synchronisieren.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Im Gast-Modus können Sie lokale Features wie CSV-Import, Dashboard und Kategorisierung nutzen.
+                Für Bank-Anbindung, Cloud-Synchronisierung und Premium-Features ist eine Anmeldung erforderlich.
+              </p>
+            </CardContent>
+
+            <CardFooter className="flex flex-col gap-2">
+              <Button
+                className="w-full"
+                onClick={() => {
+                  navigate("/login");
+                }}
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Zur Anmeldung
+              </Button>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Sie können diese Seite auch schließen und weiterhin als Gast arbeiten.
+              </p>
+            </CardFooter>
+          </Card>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Authenticated mode: show user profile and settings
   const displayName =
     (user?.user_metadata?.full_name as string) ||
     (user?.user_metadata?.name as string) ||
