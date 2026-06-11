@@ -33,21 +33,6 @@ interface SankeyChartProps {
 }
 
 export function SankeyChart({ data }: SankeyChartProps) {
-  // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn
-  if (!data || !Array.isArray(data.mainCategories) || data.mainCategories.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <div className="text-center">
-          <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Keine Daten für Flussdiagramm verfügbar</p>
-          <p className="text-sm mt-2">
-            Importiere Transaktionen, um die Visualisierung zu sehen
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const [expandedMainId, setExpandedMainId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [percentMode, setPercentMode] = useState<boolean>(false);
@@ -55,9 +40,13 @@ export function SankeyChart({ data }: SankeyChartProps) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const mainCategories = data?.mainCategories ?? [];
+  const subCategories = data?.subCategories ?? [];
+  const totalIncome = data?.totalIncome ?? 0;
+
   const totalExpenses = useMemo(
-    () => data.mainCategories.reduce((sum, m) => sum + (m.amount || 0), 0),
-    [data.mainCategories]
+    () => mainCategories.reduce((sum, m) => sum + (m.amount || 0), 0),
+    [mainCategories]
   );
 
   const sankeyData = useMemo(() => {
@@ -84,7 +73,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
         name: "Einnahmen",
         id: "income",
         type: "income",
-        amount: data.totalIncome,
+        amount: totalIncome,
       });
       nodeIndexById["income"] = nodes.length - 1;
     }
@@ -98,19 +87,19 @@ export function SankeyChart({ data }: SankeyChartProps) {
     nodeIndexById["account"] = nodes.length - 1;
 
     // Einnahmen → Konto nur, wenn Einnahmen-Knoten vorhanden ist
-    if (!expandedMainId && data.totalIncome > 0) {
+    if (!expandedMainId && totalIncome > 0) {
       links.push({
         source: nodeIndexById["income"],
         target: nodeIndexById["account"],
-        value: Math.round(data.totalIncome),
+        value: Math.round(totalIncome),
         label: "Einnahmen → Konto",
       });
     }
 
     // Konto → Hauptkategorien (Fokus: nur die expandierte Hauptkategorie anzeigen)
     const mainsToShow = expandedMainId
-      ? data.mainCategories.filter((m) => m.id === expandedMainId)
-      : data.mainCategories;
+      ? mainCategories.filter((m) => m.id === expandedMainId)
+      : mainCategories;
 
     mainsToShow.forEach((main) => {
       const nodeId = main.id;
@@ -137,7 +126,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
 
     // Ausgewählte Hauptkategorie → Unterkategorien (Top-N + Rest-Bucket für Übersicht)
     if (expandedMainId) {
-      const subsAll = data.subCategories
+      const subsAll = subCategories
         .filter((sub) => sub.mainId === expandedMainId && sub.amount > 0)
         .sort((a, b) => b.amount - a.amount);
 
@@ -151,7 +140,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
       if (mainIndex === undefined) return { nodes, links };
 
       const mainName =
-        data.mainCategories.find((m) => m.id === expandedMainId)?.name ||
+        mainCategories.find((m) => m.id === expandedMainId)?.name ||
         "Kategorie";
 
       topSubs.forEach((sub) => {
@@ -199,7 +188,22 @@ export function SankeyChart({ data }: SankeyChartProps) {
     }
 
     return { nodes, links };
-  }, [data, expandedMainId]);
+  }, [mainCategories, subCategories, totalIncome, expandedMainId]);
+
+  // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn
+  if (mainCategories.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="text-center">
+          <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>Keine Daten für Flussdiagramm verfügbar</p>
+          <p className="text-sm mt-2">
+            Importiere Transaktionen, um die Visualisierung zu sehen
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const formatAmount = (type: string | undefined, amount?: number) => {
     if (amount === undefined || amount === null) return null;
@@ -215,7 +219,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
     // Prozentdarstellung abhängig vom Knotentyp
     let denom = 0;
     if (type === "income") {
-      denom = data.totalIncome;
+      denom = totalIncome;
     } else if (type === "expense-main" || type === "expense-sub") {
       denom = totalExpenses;
     }
@@ -297,7 +301,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
         {expandedMainId && (
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm text-muted-foreground">
-              Fokus: {data.mainCategories.find((m) => m.id === expandedMainId)?.name || "Kategorie"}
+              Fokus: {mainCategories.find((m) => m.id === expandedMainId)?.name || "Kategorie"}
             </div>
             <Button size="sm" variant="outline" onClick={() => setExpandedMainId(null)}>
               Gesamtansicht
@@ -314,7 +318,7 @@ export function SankeyChart({ data }: SankeyChartProps) {
               link={{ stroke: "#94a3b8", strokeOpacity: 0.5 }}
               node={({ x, y, width, height, payload }: any) => {
                 const rectHeight = Math.max(height, 20);
-                const isMainCategory = data.mainCategories.some(
+                const isMainCategory = mainCategories.some(
                   (main) => main.id === payload.id
                 );
                 const isExpanded = expandedMainId === payload.id;
