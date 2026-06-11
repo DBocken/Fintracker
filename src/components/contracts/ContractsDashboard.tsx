@@ -396,7 +396,7 @@ export function ContractsDashboard() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Verträge</CardTitle>
+          <CardTitle>Welche laufenden Kosten und Einnahmen habe ich?</CardTitle>
           <CardDescription>
             Wiederkehrende Ausgaben und Einnahmen (z. B. Gehalt) als Verträge erkannt. Zeigt Kategorie, Zyklus, typische Beträge und Änderungen.
           </CardDescription>
@@ -459,9 +459,9 @@ export function ContractsDashboard() {
                 />
                 <Legend />
                 <ReferenceLine y={0} stroke="#6b7280" />
-                <Area type="monotone" dataKey="income" name="Einnahmen" stroke="#16a34a" fill="#16a34a" fillOpacity={0.2} />
-                <Area type="monotone" dataKey="expenses" name="Verträge" stroke="#dc2626" fill="#dc2626" fillOpacity={0.2} />
-                <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="#2563eb" fill="#2563eb" fillOpacity={0.2} />
+                <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
+                <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
+                <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--accent))" fill="hsl(var(--accent))" fillOpacity={0.2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

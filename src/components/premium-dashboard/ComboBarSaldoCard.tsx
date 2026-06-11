@@ -16,7 +16,7 @@ export function ComboBarSaldoCard({ data }: ComboBarSaldoCardProps) {
   return (
     <Card className="card-premium">
       <CardHeader>
-        <CardTitle>Balken je Monat + Saldo-Linie</CardTitle>
+        <CardTitle>Wie entwickelt sich mein Saldo monatlich?</CardTitle>
       </CardHeader>
       <CardContent>
         {empty ? (
@@ -41,9 +41,9 @@ export function ComboBarSaldoCard({ data }: ComboBarSaldoCardProps) {
                   labelFormatter={(label) => `Monat: ${label}`}
                 />
                 <Legend />
-                <Bar dataKey="income" name="Einnahmen" fill="#16a34a" />
-                <Bar dataKey="expenses" name="Ausgaben" fill="#dc2626" />
-                <Line type="monotone" dataKey="net" name="Saldo" stroke="#2563eb" strokeWidth={3} dot={false} />
+                <Bar dataKey="income" name="Einnahmen" fill="hsl(var(--positive))" />
+                <Bar dataKey="expenses" name="Ausgaben" fill="hsl(var(--brand))" />
+                <Line type="monotone" dataKey="net" name="Saldo" stroke="hsl(var(--accent))" strokeWidth={3} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

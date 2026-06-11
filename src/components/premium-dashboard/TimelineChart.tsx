@@ -137,7 +137,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
   return (
     <Card {...dyadProps("TimelineChart")}>
       <CardHeader>
-        <CardTitle>Zeitlicher Verlauf</CardTitle>
+        <CardTitle>Wie entwickelt sich mein Geld im Zeitverlauf?</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Steuerung */}

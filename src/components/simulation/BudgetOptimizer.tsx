@@ -59,7 +59,7 @@ export function BudgetOptimizer({ engine, categories, months, riskK, onApplyOver
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Budgetoptimierer</CardTitle>
+        <CardTitle>Wie kann ich mein Budget richtig einstellen?</CardTitle>
         <CardDescription>
           Passe variable Budgets an, um entweder nicht ins Minus zu rutschen oder ein Sparziel zu erreichen. Vorschläge sind robust gegenüber dem pessimistischen Szenario.
           <span className="block text-xs text-muted-foreground mt-1">{categories.length} Kategorien erkannt</span>

@@ -27,7 +27,7 @@ interface TransactionChartsProps {
   sunburst: SunburstData;
 }
 
-export function TransactionCharts({ series, granularity, sunburst }: TransactionChartsProps) {
+export function TransactionCharts({ series, sunburst }: TransactionChartsProps) {
   // Umschalter zwischen Euro und Prozent für Sunburst
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Haupt- oder Unterkategorie-ID sein)
@@ -118,8 +118,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
       <Card className="card-premium">
         <CardHeader>
           <CardTitle>
-            {granularity === 'daily' ? 'Tägliche' : 
-             granularity === 'weekly' ? 'Wöchentliche' : 'Monatliche'} Ausgaben
+            Wie ändern sich meine Ausgaben?
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -137,7 +136,7 @@ export function TransactionCharts({ series, granularity, sunburst }: Transaction
       
       <Card className="card-premium">
         <CardHeader className="flex items-center justify-between">
-          <CardTitle>Ausgaben nach Kategorie (Sunburst)</CardTitle>
+          <CardTitle>Wohin fließt mein Geld?</CardTitle>
           <div className="flex items-center gap-2">
             <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
             <span className="text-sm text-muted-foreground">Prozent</span>

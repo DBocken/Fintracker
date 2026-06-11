@@ -14,7 +14,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Wöchentliche Einnahmen</CardTitle>
+          <CardTitle>Wann kommt mein Geld? (Wöchentliches Muster)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -35,7 +35,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Wöchentliche Ausgaben</CardTitle>
+          <CardTitle>Wann gebe ich aus? (Wöchentliches Muster)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
