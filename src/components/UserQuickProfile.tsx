@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {

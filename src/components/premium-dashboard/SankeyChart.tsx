@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,20 +31,9 @@ interface SankeyChartProps {
 }
 
 export function SankeyChart({ data }: SankeyChartProps) {
-  // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn
-  if (!data || !Array.isArray(data.mainCategories) || data.mainCategories.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <div className="text-center">
-          <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Keine Daten für Flussdiagramm verfügbar</p>
-          <p className="text-sm mt-2">
-            Importiere Transaktionen, um die Visualisierung zu sehen
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn.
+  // Die Prüfung muss nach den Hooks erfolgen (Rules of Hooks).
+  const hasData = !!data && Array.isArray(data.mainCategories) && data.mainCategories.length > 0;
 
   const [expandedMainId, setExpandedMainId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -56,11 +43,14 @@ export function SankeyChart({ data }: SankeyChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const totalExpenses = useMemo(
-    () => data.mainCategories.reduce((sum, m) => sum + (m.amount || 0), 0),
-    [data.mainCategories]
+    () => (data?.mainCategories ?? []).reduce((sum, m) => sum + (m.amount || 0), 0),
+    [data]
   );
 
   const sankeyData = useMemo(() => {
+    if (!data || !Array.isArray(data.mainCategories) || data.mainCategories.length === 0) {
+      return { nodes: [], links: [] };
+    }
     const nodes: {
       name: string;
       id: string;
@@ -200,6 +190,20 @@ export function SankeyChart({ data }: SankeyChartProps) {
 
     return { nodes, links };
   }, [data, expandedMainId]);
+
+  if (!hasData) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <div className="text-center">
+          <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>Keine Daten für Flussdiagramm verfügbar</p>
+          <p className="text-sm mt-2">
+            Importiere Transaktionen, um die Visualisierung zu sehen
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const formatAmount = (type: string | undefined, amount?: number) => {
     if (amount === undefined || amount === null) return null;

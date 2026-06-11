@@ -1,8 +1,6 @@
-"use client";
-
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2 } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -23,6 +21,7 @@ import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
+import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 
 function SectionHeader({
   icon,
@@ -252,6 +251,15 @@ export function EnhancedSettings() {
             <LocalEncryptionSettings />
             <PrivacySyncAnalyticsSettings />
           </div>
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<FlaskConical className="h-5 w-5" />}
+            title="Beta-Funktionen"
+            description="Experimentelle Bereiche, die noch nicht zum Kern gehören. Standardmäßig aus."
+          />
+          <BetaFeaturesSettings />
         </section>
 
         <section>

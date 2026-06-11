@@ -1,5 +1,3 @@
-"use client";
-
 import type { Account, AccountType } from '../types';
 import { getCurrentUserId } from './auth-service';
 import {

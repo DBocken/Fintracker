@@ -1,5 +1,3 @@
-"use client";
-
 import { Tag, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Category } from '@/types';

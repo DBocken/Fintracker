@@ -1,5 +1,3 @@
-"use client";
-
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserSettings } from "@/services/transaction-service";

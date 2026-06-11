@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, Zap, Database, Monitor, Clock, Trash2, Download } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

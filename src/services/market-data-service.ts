@@ -1,5 +1,3 @@
-"use client";
-
 import type { QuoteData, ProviderType } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 

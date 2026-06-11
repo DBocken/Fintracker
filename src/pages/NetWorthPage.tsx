@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { Wallet, LineChart, CreditCard } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";

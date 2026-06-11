@@ -1,5 +1,3 @@
-"use client";
-
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';

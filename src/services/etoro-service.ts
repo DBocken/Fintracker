@@ -1,5 +1,3 @@
-"use client";
-
 import type { Portfolio, PortfolioPosition } from '../types';
 import { createPortfolio, createPosition, getPortfolioById } from './portfolio-service';
 
