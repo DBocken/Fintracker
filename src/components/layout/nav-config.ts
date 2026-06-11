@@ -16,11 +16,14 @@ import {
   Coins,
 } from "lucide-react";
 
+import type { Tier } from "@/lib/tiers";
+
 export type NavItem = {
   label: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  premium?: boolean;
+  /** Mindest-Tier für dieses Ziel (Issue #27). Ohne Angabe: anonym nutzbar. */
+  requiredTier?: Tier;
 };
 
 export type NavGroup = {
@@ -44,9 +47,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Analysen",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-      { label: "Analyse", path: "/premium", icon: Zap, premium: true },
-      { label: "Simulation", path: "/simulation", icon: PlayCircle, premium: true },
-      { label: "Trading", path: "/trading", icon: LineChart, premium: true },
+      { label: "Analyse", path: "/premium", icon: Zap, requiredTier: "premium" },
+      { label: "Simulation", path: "/simulation", icon: PlayCircle, requiredTier: "premium" },
+      { label: "Trading", path: "/trading", icon: LineChart, requiredTier: "premium" },
     ],
   },
   {

@@ -16,7 +16,7 @@ function getTitle(pathname: string) {
   for (const g of NAV_GROUPS) {
     for (const item of g.items) {
       if (item.path === pathname) {
-        return item.premium ? `${item.label} (Premium)` : item.label;
+        return item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label;
       }
     }
   }

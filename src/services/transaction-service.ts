@@ -2,8 +2,15 @@
 
 import { supabase } from '../integrations/supabase/client';
 import type { Transaction, Category, UserSettings, HierarchicalCategory } from '../types';
-import { requireUserId } from './auth-service';
+import { getCurrentUserId } from './auth-service';
 import { transactionStorage } from './transaction-storage-service';
+import {
+  getLocalCategories,
+  saveLocalCategory,
+  updateLocalCategory,
+  getLocalUserSettings,
+  updateLocalUserSettings,
+} from './local-settings-service';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -227,8 +234,12 @@ export async function remapCategoryInLocalTransactions(
 // -----------------------------------------------------------------------------
 
 export async function getCategories(): Promise<Category[]> {
+  // Anonymer Modus: Kategorien leben lokal (kein Supabase-Call)
+  const maybeUid = await getCurrentUserId();
+  if (!maybeUid) return getLocalCategories();
+
   // Uses RLS to return: user categories + public defaults (user_id IS NULL)
-  const uid = await requireUserId();
+  const uid = maybeUid;
 
   const { data, error } = await supabase
     .from('categories')
@@ -268,7 +279,9 @@ export async function getHierarchicalCategories(): Promise<HierarchicalCategory[
 }
 
 export async function saveCategory(category: Partial<Category>): Promise<Category> {
-  const uid = await requireUserId();
+  const maybeUid = await getCurrentUserId();
+  if (!maybeUid) return saveLocalCategory(category);
+  const uid = maybeUid;
 
   // Duplikate vermeiden (Name + User)
   const { data: existing, error: existsError } = await supabase
@@ -305,7 +318,9 @@ export async function saveCategory(category: Partial<Category>): Promise<Categor
 }
 
 export async function updateCategory(category: Category): Promise<Category> {
-  const uid = await requireUserId();
+  const maybeUid = await getCurrentUserId();
+  if (!maybeUid) return updateLocalCategory(category);
+  const uid = maybeUid;
 
   // Prüfe, wem die Kategorie gehört
   const { data: existingRow, error: fetchError } = await supabase
@@ -467,7 +482,9 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
 // -----------------------------------------------------------------------------
 
 export async function getUserSettings(): Promise<UserSettings> {
-  const uid = await requireUserId();
+  const maybeUid = await getCurrentUserId();
+  if (!maybeUid) return getLocalUserSettings();
+  const uid = maybeUid;
 
   const { data, error } = await supabase
     .from('user_settings')
@@ -507,7 +524,9 @@ export async function getUserSettings(): Promise<UserSettings> {
 }
 
 export async function updateUserSettings(settings: Partial<UserSettings>): Promise<UserSettings> {
-  const uid = await requireUserId();
+  const maybeUid = await getCurrentUserId();
+  if (!maybeUid) return updateLocalUserSettings(settings);
+  const uid = maybeUid;
 
   const toSave: Partial<UserSettings> = {
     ...settings,

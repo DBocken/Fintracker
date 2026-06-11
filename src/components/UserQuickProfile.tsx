@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
   Card,
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess } from "@/utils/toast";
-import { User as UserIcon, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { User as UserIcon, LogIn, LogOut, Settings as SettingsIcon } from "lucide-react";
 
 function getInitials(name: string) {
   return name
@@ -39,6 +40,18 @@ export default function UserQuickProfile() {
 
   const email = user?.email || "";
   const initials = getInitials(displayName);
+
+  // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
+  if (!user) {
+    return (
+      <Button asChild variant="outline" size="sm" aria-label="Anmelden">
+        <Link to="/login">
+          <LogIn className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          Anmelden
+        </Link>
+      </Button>
+    );
+  }
 
   return (
     <Dialog>

@@ -22,6 +22,7 @@ import {
 } from '../../services/account-service';
 import { AccountFormDialog } from './AccountFormDialog';
 import { GoCardlessConnect } from '../GoCardlessConnect';
+import RequireTier from '@/components/common/RequireTier';
 import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus } from '../../services/gocardless-sync-service';
 import { gocardlessService } from '../../services/gocardless-service';
 import {
@@ -265,7 +266,9 @@ export function AccountManager() {
 
   return (
     <div className="space-y-6">
-      <GoCardlessConnect onConnectionSuccess={handleConnectionSuccess} />
+      <RequireTier feature="bank_sync">
+        <GoCardlessConnect onConnectionSuccess={handleConnectionSuccess} />
+      </RequireTier>
 
       <Card>
         <CardHeader>

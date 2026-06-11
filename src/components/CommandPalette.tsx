@@ -113,7 +113,7 @@ export default function CommandPalette() {
                     }}
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    <span>{item.premium ? `${item.label} (Premium)` : item.label}</span>
+                    <span>{item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label}</span>
                   </CommandItem>
                 );
               })}

@@ -40,8 +40,8 @@ export default function SideNav() {
                         }
                       >
                         <Icon className="h-4 w-4" />
-                        <span className="flex-1">{item.premium ? `${item.label} (Premium)` : item.label}</span>
-                        {item.premium && <Badge variant="secondary">Premium</Badge>}
+                        <span className="flex-1">{item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label}</span>
+                        {item.requiredTier === "premium" && <Badge variant="secondary">Premium</Badge>}
                       </NavLink>
                     );
                   })}
