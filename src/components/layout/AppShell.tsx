@@ -1,5 +1,3 @@
-"use client";
-
 import { Outlet, useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
 import SideNav from "@/components/layout/SideNav";
@@ -16,10 +14,11 @@ function getTitle(pathname: string) {
   for (const g of NAV_GROUPS) {
     for (const item of g.items) {
       if (item.path === pathname) {
-        return item.premium ? `${item.label} (Premium)` : item.label;
+        return item.label;
       }
     }
   }
+  if (pathname === "/performance") return "Performance";
   return "Ausgabentracker";
 }
 

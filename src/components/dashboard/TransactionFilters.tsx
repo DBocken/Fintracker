@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';

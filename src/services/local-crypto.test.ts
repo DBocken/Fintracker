@@ -1,0 +1,48 @@
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach } from "vitest";
+import { localEncryption, estimatePasswordStrength } from "./local-crypto";
+
+describe("estimatePasswordStrength", () => {
+  it("bewertet leere und kurze Passwörter als schwach", () => {
+    expect(estimatePasswordStrength("").label).toBe("schwach");
+    expect(estimatePasswordStrength("abc").label).toBe("schwach");
+  });
+
+  it("bewertet ein langes, gemischtes Passwort als stark", () => {
+    const res = estimatePasswordStrength("Korrekt-Pferd-7-Batterie!");
+    expect(res.label).toBe("stark");
+    expect(res.score).toBeGreaterThanOrEqual(70);
+  });
+});
+
+describe("localEncryption Roundtrip", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localEncryption.lock();
+  });
+
+  it("verschlüsselt und entschlüsselt JSON verlustfrei", async () => {
+    await localEncryption.enable("super-geheim-123");
+    expect(localEncryption.isUnlocked()).toBe(true);
+
+    const payload = { betrag: 1234.56, text: "Bäckerei Müller", liste: [1, 2, 3] };
+    const envelope = await localEncryption.encryptJson(payload);
+    const back = await localEncryption.decryptJson<typeof payload>(envelope);
+    expect(back).toEqual(payload);
+  });
+
+  it("lehnt das Entsperren mit falschem Passwort ab", async () => {
+    await localEncryption.enable("richtiges-passwort");
+    localEncryption.lock();
+    await expect(localEncryption.unlock("falsches-passwort")).rejects.toThrow("Falsches Passwort");
+    expect(localEncryption.isUnlocked()).toBe(false);
+  });
+
+  it("entsperrt mit korrektem Passwort wieder", async () => {
+    await localEncryption.enable("mein-passwort-xy");
+    localEncryption.lock();
+    expect(localEncryption.isUnlocked()).toBe(false);
+    await localEncryption.unlock("mein-passwort-xy");
+    expect(localEncryption.isUnlocked()).toBe(true);
+  });
+});

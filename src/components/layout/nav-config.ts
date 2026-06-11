@@ -9,18 +9,19 @@ import {
   CreditCard,
   Wallet,
   Settings,
-  Gauge,
   HardDrive,
   Sparkles,
   Banknote,
   Coins,
 } from "lucide-react";
+import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
 
 export type NavItem = {
   label: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  premium?: boolean;
+  /** Nur sichtbar, wenn dieses lokale Feature-Flag aktiv ist (z. B. Trading-Beta). */
+  betaFlag?: FeatureFlag;
 };
 
 export type NavGroup = {
@@ -44,9 +45,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Analysen",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-      { label: "Analyse", path: "/premium", icon: Zap, premium: true },
-      { label: "Simulation", path: "/simulation", icon: PlayCircle, premium: true },
-      { label: "Trading", path: "/trading", icon: LineChart, premium: true },
+      { label: "Analyse", path: "/premium", icon: Zap },
+      { label: "Simulation", path: "/simulation", icon: PlayCircle },
+      { label: "Trading", path: "/trading", icon: LineChart, betaFlag: "trading_beta" },
     ],
   },
   {
@@ -70,8 +71,18 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "mehr",
     label: "Mehr",
     items: [
-      { label: "Performance", path: "/performance", icon: Gauge },
       { label: "Backups", path: "/backups", icon: HardDrive },
     ],
   },
 ];
+
+/**
+ * Liefert die Nav-Gruppen, gefiltert nach aktiven lokalen Feature-Flags.
+ * Gruppen ohne sichtbare Einträge fallen weg.
+ */
+export function getVisibleNavGroups(): NavGroup[] {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.betaFlag || isFeatureEnabled(item.betaFlag)),
+  })).filter((group) => group.items.length > 0);
+}

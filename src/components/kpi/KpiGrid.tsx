@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { KPI_BY_ID, KPI_DEFINITIONS, type KpiComputeInput, type KpiId } from "@/components/kpi/kpis";
 import { KpiCard } from "@/components/kpi/KpiCard";

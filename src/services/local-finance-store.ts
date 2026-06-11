@@ -1,5 +1,3 @@
-"use client";
-
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
 
 export const LOCAL_FINANCE_KEYS = {

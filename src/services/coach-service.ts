@@ -1,5 +1,3 @@
-"use client";
-
 import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuidance, RoadmapStage, RoadmapStageKey } from "../types";
 import { getTransactions, getCategories } from "./transaction-service";
 import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from "./debt-service";
@@ -24,28 +22,28 @@ function buildStage(key: RoadmapStageKey, totalDebt: number, emergencyBufferMont
   const config: Record<RoadmapStageKey, Omit<RoadmapStage, "progress" | "status">> = {
     starter_emergency_fund: {
       key,
-      title: "Starter Emergency Fund",
+      title: "Erster Notgroschen",
       order: 1,
       description: "Ein erstes Polster für kleine Überraschungen.",
       whyItMatters: "Damit unerwartete Ausgaben nicht sofort neue Schulden auslösen.",
     },
     consumer_debt_elimination: {
       key,
-      title: "Consumer Debt Elimination",
+      title: "Konsumschulden abbauen",
       order: 2,
       description: "Raten, Karten und BNPL systematisch abbauen.",
       whyItMatters: "Jede getilgte Schuld schafft monatlich mehr Spielraum.",
     },
     full_emergency_fund: {
       key,
-      title: "Full Emergency Fund",
+      title: "Voller Notfallpuffer",
       order: 3,
       description: "Ein belastbarer Notgroschen für echte Sicherheit.",
       whyItMatters: "Mehr Puffer bedeutet weniger Stress und mehr Stabilität.",
     },
     personal_goals: {
       key,
-      title: "Personal Goals",
+      title: "Persönliche Ziele",
       order: 4,
       description: "Jetzt werden Lebensziele planbar finanziert.",
       whyItMatters: "Mit Sicherheit im Rücken lassen sich Ziele entspannter erreichen.",

@@ -1,15 +1,16 @@
-"use client";
-
 import { Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export default function MobileNav() {
+  // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
+  useFeatureFlag("trading_beta");
+  const navGroups = getVisibleNavGroups();
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -23,7 +24,7 @@ export default function MobileNav() {
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-56px)]">
           <div className="px-3 py-2">
-            {NAV_GROUPS.map((group) => (
+            {navGroups.map((group) => (
               <div key={group.id} className="py-2">
                 <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {group.label}
@@ -45,8 +46,7 @@ export default function MobileNav() {
                           }
                         >
                           <Icon className="h-4 w-4" />
-                          <span className="flex-1">{item.premium ? `${item.label} (Premium)` : item.label}</span>
-                          {item.premium && <Badge variant="secondary">Premium</Badge>}
+                          <span className="flex-1">{item.label}</span>
                         </NavLink>
                       </SheetClose>
                     );

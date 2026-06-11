@@ -1,13 +1,14 @@
-"use client";
-
 import { NavLink } from "react-router-dom";
-import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import UserProfile from "@/components/UserProfile";
+import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export default function SideNav() {
+  // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
+  useFeatureFlag("trading_beta");
+  const navGroups = getVisibleNavGroups();
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 py-4">
@@ -16,8 +17,8 @@ export default function SideNav() {
       </div>
 
       <div className="flex-1 overflow-auto px-2">
-        <Accordion type="multiple" defaultValue={NAV_GROUPS.map((g) => g.id)} className="w-full">
-          {NAV_GROUPS.map((group) => (
+        <Accordion type="multiple" defaultValue={navGroups.map((g) => g.id)} className="w-full">
+          {navGroups.map((group) => (
             <AccordionItem key={group.id} value={group.id} className="border-none">
               <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline">
                 {group.label}
@@ -40,8 +41,7 @@ export default function SideNav() {
                         }
                       >
                         <Icon className="h-4 w-4" />
-                        <span className="flex-1">{item.premium ? `${item.label} (Premium)` : item.label}</span>
-                        {item.premium && <Badge variant="secondary">Premium</Badge>}
+                        <span className="flex-1">{item.label}</span>
                       </NavLink>
                     );
                   })}

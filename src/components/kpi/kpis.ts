@@ -1,5 +1,3 @@
-"use client";
-
 import type { LucideIcon } from "lucide-react";
 import { Activity, BadgePercent, ArrowLeftRight } from "lucide-react";
 import type { Transaction } from "@/types";

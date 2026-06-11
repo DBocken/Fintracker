@@ -1,5 +1,3 @@
-"use client";
-
 import { BackupManager } from "@/components/BackupManager";
 
 export default function BackupsPage() {

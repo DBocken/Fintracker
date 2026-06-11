@@ -1,5 +1,3 @@
-"use client";
-
 import { User as UserIcon, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
