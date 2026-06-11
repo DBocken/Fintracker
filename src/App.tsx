@@ -35,30 +35,19 @@ function App() {
     return <div className="min-h-screen bg-background" />;
   }
 
-  if (status === "unauthenticated") {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
-          <Route path="*" element={<Login />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
   const locked = enabled && !unlocked;
 
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/unlock" element={<UnlockPage />} />
 
         {locked ? (
           <Route path="*" element={<LockedRedirect />} />
         ) : (
           <>
-            <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
-
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/coach" replace />} />
               <Route path="/coach" element={<CoachPage />} />

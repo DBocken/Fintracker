@@ -1,7 +1,12 @@
 "use client";
 
 import { ContractsDashboard } from "@/components/contracts/ContractsDashboard";
+import { FeatureGate } from "@/components/FeatureGate";
 
 export default function ContractsPage() {
-  return <ContractsDashboard />;
+  return (
+    <FeatureGate feature="bankSync">
+      <ContractsDashboard />
+    </FeatureGate>
+  );
 }

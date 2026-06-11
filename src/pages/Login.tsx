@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
+import { useNavigate } from "react-router-dom";
 
 const PRODUCTION_APP_ORIGIN = "https://fintracker-phi.vercel.app";
 
@@ -20,6 +21,7 @@ function getRedirectOrigin() {
 }
 
 function Login() {
+  const navigate = useNavigate();
   const isInIframe = typeof window !== "undefined" && window.top !== window.self;
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
 
@@ -145,6 +147,20 @@ function Login() {
             </div>
           </div>
         )}
+
+        <div className="mt-6 border-t pt-6">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Oder starten Sie <strong>ohne Anmeldung</strong>. Sie können lokale Features wie CSV-Import, Dashboard
+            und Kategorisierung nutzen. Für Bank-Anbindung und Premium-Features ist eine Anmeldung nötig.
+          </p>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/coach")}
+          >
+            Ohne Anmeldung starten
+          </Button>
+        </div>
       </Card>
     </div>
   );
