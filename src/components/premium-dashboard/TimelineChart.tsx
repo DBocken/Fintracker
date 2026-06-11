@@ -6,6 +6,7 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, CartesianGrid, XAxis, YA
 import { parseISO, startOfMonth, format } from 'date-fns';
 import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
+import { chartRamp } from '@/lib/chart-colors';
 
 interface TimelineChartProps {
   data: Array<{
@@ -81,12 +82,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
     return Array.from(set).sort((a, b) => (totals[b] || 0) - (totals[a] || 0));
   }, [monthlyCategoryExpenses]);
 
-  // Farbschema für Kategorien
-  const COLORS = ['#8b5cf6', '#22c55e', '#f59e0b', '#06b6d4', '#a855f7', '#84cc16', '#f97316', '#0ea5e9', '#10b981', '#e11d48', '#64748b'];
+  // Monochrome Brand-Rampe statt kategorialer Palette (#54)
   const colorMap = useMemo(() => {
+    const ramp = chartRamp(allMainNames.length);
     const m: Record<string, string> = {};
     allMainNames.forEach((name, idx) => {
-      m[name] = COLORS[idx % COLORS.length];
+      m[name] = ramp[idx];
     });
     return m;
   }, [allMainNames]);

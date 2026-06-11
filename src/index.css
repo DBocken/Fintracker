@@ -2,50 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design-Tokens „Ruhe"-Theme (Default) — siehe Issue #54
+ *
+ * Farbregeln:
+ * - --brand (tiefes Petrol) ist die einzige Farbe für CTAs, aktive Tabs und Charts
+ * - --premium (Violett) ausschließlich für Premium-Markierung
+ * - --positive / --warning nur als Akzent für handlungsrelevante Deltas
+ *   (nach Schwellenwert, siehe src/lib/delta.ts), nie als Flächenfarbe
+ * - Neutrals: warmes Hellgrau-Fundament, großzügiger Weißraum
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 40 20% 97%;
+    --foreground: 185 25% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 185 25% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 185 25% 12%;
+    --primary: 174 65% 21%;
+    --primary-foreground: 40 20% 97%;
+    --secondary: 40 14% 92%;
+    --secondary-foreground: 185 25% 12%;
+    --muted: 40 14% 92%;
+    --muted-foreground: 185 8% 40%;
+    --accent: 174 30% 90%;
+    --accent-foreground: 174 65% 16%;
+    --destructive: 4 72% 50%;
+    --destructive-foreground: 40 20% 97%;
+    --border: 40 12% 88%;
+    --input: 40 12% 88%;
+    --ring: 174 65% 21%;
+    --radius: 0.75rem;
+
+    /* Semantische Akzente */
+    --brand: 174 65% 21%;
+    --brand-foreground: 40 20% 97%;
+    --premium: 262 55% 52%;
+    --premium-foreground: 40 20% 97%;
+    --positive: 152 55% 33%;
+    --warning: 4 72% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 190 22% 8%;
+    --foreground: 40 15% 92%;
+    --card: 190 20% 11%;
+    --card-foreground: 40 15% 92%;
+    --popover: 190 20% 11%;
+    --popover-foreground: 40 15% 92%;
+    --primary: 174 45% 52%;
+    --primary-foreground: 190 22% 8%;
+    --secondary: 190 16% 16%;
+    --secondary-foreground: 40 15% 92%;
+    --muted: 190 16% 16%;
+    --muted-foreground: 185 10% 62%;
+    --accent: 174 30% 18%;
+    --accent-foreground: 174 40% 80%;
+    --destructive: 4 65% 55%;
+    --destructive-foreground: 40 15% 92%;
+    --border: 190 14% 19%;
+    --input: 190 14% 19%;
+    --ring: 174 45% 52%;
+
+    --brand: 174 45% 52%;
+    --brand-foreground: 190 22% 8%;
+    --premium: 262 60% 68%;
+    --premium-foreground: 190 22% 8%;
+    --positive: 152 45% 50%;
+    --warning: 4 65% 55%;
   }
 }
 
@@ -55,5 +80,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Tabellenziffern für ALLE Beträge (Pflicht, #54) */
+    font-variant-numeric: tabular-nums;
   }
 }

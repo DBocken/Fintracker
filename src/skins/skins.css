@@ -1,3 +1,6 @@
+/* Theme: Ruhe (Default) — Tokens liegen in src/index.css unter :root / .dark.
+   .theme-ruhe setzt bewusst nichts und fällt auf die Defaults zurück. */
+
 /* Theme: Legacy (Light) */
 .theme-legacy {
   --background: 0 0% 100%;

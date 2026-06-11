@@ -1,4 +1,4 @@
-export type SkinId = 'legacy' | 'clean' | 'neon';
+export type SkinId = 'ruhe' | 'legacy' | 'clean' | 'neon';
 
 export type SkinDef = {
   id: SkinId;
@@ -7,6 +7,7 @@ export type SkinDef = {
 };
 
 export const SKINS: SkinDef[] = [
+  { id: 'ruhe', name: 'Ruhe', className: 'theme-ruhe' },
   { id: 'legacy', name: 'Legacy', className: 'theme-legacy' },
   { id: 'clean', name: 'Clean', className: 'theme-clean' },
   { id: 'neon', name: 'Neon (Stranger-Style)', className: 'theme-neon' },

@@ -18,12 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
 
 function normalizeSkinId(raw?: string | null): SkinId {
-  if (!raw) return 'legacy';
+  if (!raw) return 'ruhe';
   if (raw.startsWith('clean-')) return 'clean';
   if (raw === 'clean') return 'clean';
   if (raw === 'neon') return 'neon';
   if (raw === 'legacy') return 'legacy';
-  return 'legacy';
+  return 'ruhe';
 }
 
 export function UserProfile() {
