@@ -1,5 +1,3 @@
-"use client";
-
 import type { Debt, DebtType } from "../types";
 import { getCurrentUserId } from "./auth-service";
 import { getTransactions } from "./transaction-service";

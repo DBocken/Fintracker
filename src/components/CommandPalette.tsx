@@ -1,9 +1,7 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, Plus, Settings } from "lucide-react";
-import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import {
   Command,
   CommandDialog,
@@ -100,7 +98,7 @@ export default function CommandPalette() {
 
           <CommandSeparator />
 
-          {NAV_GROUPS.map((g) => (
+          {getVisibleNavGroups().map((g) => (
             <CommandGroup key={g.id} heading={g.label}>
               {g.items.map((item) => {
                 const Icon = item.icon;
@@ -113,7 +111,7 @@ export default function CommandPalette() {
                     }}
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    <span>{item.premium ? `${item.label} (Premium)` : item.label}</span>
+                    <span>{item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label}</span>
                   </CommandItem>
                 );
               })}

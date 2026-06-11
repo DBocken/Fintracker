@@ -1,5 +1,3 @@
-"use client";
-
 import { SimulationPage } from '../components/simulation/SimulationPage';
 import { FeatureGate } from "@/components/FeatureGate";
 

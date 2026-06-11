@@ -1,0 +1,111 @@
+import type { Category } from "../types";
+
+/**
+ * Standard-Kategorien für den anonymen Modus (kein Supabase-Zugriff).
+ * Die Filter werden vom bestehenden Keyword-Matching in
+ * transaction-service.categorizeTransaction (case-insensitive) genutzt.
+ *
+ * IDs sind stabil, damit Transaktionen ihre Zuordnung über Sessions behalten.
+ */
+export const DEFAULT_LOCAL_CATEGORIES: Category[] = [
+  {
+    id: "local-cat-einkommen",
+    user_id: null,
+    name: "Einkommen",
+    color: "#16a34a",
+    icon: "💶",
+    filters: ["gehalt", "lohn", "bezüge", "rente", "kindergeld", "bafög"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-wohnen",
+    user_id: null,
+    name: "Wohnen",
+    color: "#0f766e",
+    icon: "🏠",
+    filters: ["miete", "nebenkosten", "hausgeld", "strom", "gas", "stadtwerke", "wasser"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-lebensmittel",
+    user_id: null,
+    name: "Lebensmittel",
+    color: "#65a30d",
+    icon: "🛒",
+    filters: ["rewe", "edeka", "aldi", "lidl", "penny", "netto", "kaufland", "supermarkt"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-mobilitaet",
+    user_id: null,
+    name: "Mobilität",
+    color: "#0369a1",
+    icon: "🚗",
+    filters: ["tankstelle", "aral", "shell", "esso", "jet", "deutsche bahn", "db vertrieb", "hvv", "mvg", "bvg", "tanken"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-restaurant",
+    user_id: null,
+    name: "Restaurant & Café",
+    color: "#b45309",
+    icon: "🍽️",
+    filters: ["restaurant", "lieferando", "mcdonald", "burger king", "pizza", "café", "baeckerei", "bäckerei"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-versicherung",
+    user_id: null,
+    name: "Versicherungen",
+    color: "#475569",
+    icon: "🛡️",
+    filters: ["versicherung", "allianz", "huk", "axa", "ergo", "debeka", "beitrag"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-abos",
+    user_id: null,
+    name: "Abos & Streaming",
+    color: "#7c3aed",
+    icon: "📺",
+    filters: ["netflix", "spotify", "amazon prime", "disney", "youtube premium", "abo", "rundfunk"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-gesundheit",
+    user_id: null,
+    name: "Gesundheit",
+    color: "#dc2626",
+    icon: "💊",
+    filters: ["apotheke", "arzt", "zahnarzt", "krankenkasse", "physio"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-shopping",
+    user_id: null,
+    name: "Shopping",
+    color: "#db2777",
+    icon: "🛍️",
+    filters: ["amazon", "zalando", "otto", "ebay", "mediamarkt", "saturn", "dm ", "rossmann"],
+    is_default: true,
+    parent_id: null,
+  },
+  {
+    id: "local-cat-sonstiges",
+    user_id: null,
+    name: "Sonstiges",
+    color: "#6b7280",
+    icon: "📦",
+    filters: [],
+    is_default: true,
+    parent_id: null,
+  },
+];

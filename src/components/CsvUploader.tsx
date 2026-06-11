@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useQuery } from '@tanstack/react-query'

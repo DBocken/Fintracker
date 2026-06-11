@@ -1,10 +1,10 @@
-"use client";
-
 import { supabase } from '../integrations/supabase/client';
-import { requireUserId } from './auth-service';
+import { getCurrentUserId } from './auth-service';
+import { deleteLocalCategory } from './local-settings-service';
 
 export async function deleteCategory(id: string): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await getCurrentUserId();
+  if (!userId) return deleteLocalCategory(id);
 
   // Zuerst direkte Kinder löschen (FK vermeiden), dann die Kategorie selbst
   const { error: childError } = await supabase

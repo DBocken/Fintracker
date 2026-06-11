@@ -1,5 +1,3 @@
-"use client";
-
 import type { Portfolio, PortfolioPosition, PortfolioSummary } from '../types';
 import { getCurrentUserId } from './auth-service';
 import {

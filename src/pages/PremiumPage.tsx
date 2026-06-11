@@ -1,5 +1,3 @@
-"use client";
-
 import { ResponsivePremiumDashboard } from "@/components/premium-dashboard/ResponsivePremiumDashboard";
 import { FeatureGate } from "@/components/FeatureGate";
 

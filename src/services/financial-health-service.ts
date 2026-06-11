@@ -1,5 +1,3 @@
-"use client";
-
 import type { Transaction, Debt } from "../types";
 import { getTransactions } from "./transaction-service";
 import { getDebts, getTotalMinPayment } from "./debt-service";

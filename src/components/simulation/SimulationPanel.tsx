@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';

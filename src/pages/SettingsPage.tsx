@@ -1,5 +1,3 @@
-"use client";
-
 import { EnhancedSettings } from '../components/settings/EnhancedSettings';
 import { FeatureGate } from "@/components/FeatureGate";
 

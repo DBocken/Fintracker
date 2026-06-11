@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';

@@ -1,5 +1,3 @@
-"use client";
-
 import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Info, ArrowRight, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";

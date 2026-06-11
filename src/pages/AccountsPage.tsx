@@ -1,5 +1,3 @@
-"use client";
-
 import { AccountManager } from "@/components/accounts/AccountManager";
 import { FeatureGate } from "@/components/FeatureGate";
 

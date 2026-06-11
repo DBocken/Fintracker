@@ -1,5 +1,3 @@
-"use client";
-
 import { supabase } from '@/integrations/supabase/client';
 import { requireUserId } from './auth-service';
 import { localEncryption, type EncryptedEnvelopeV1 } from './local-crypto';

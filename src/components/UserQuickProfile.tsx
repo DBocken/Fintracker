@@ -1,6 +1,5 @@
-"use client";
-
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
   Card,
@@ -14,8 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess } from "@/utils/toast";
-import { User as UserIcon, LogOut, Settings as SettingsIcon, LogIn } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { User as UserIcon, LogIn, LogOut, Settings as SettingsIcon } from "lucide-react";
 
 function getInitials(name: string) {
   return name
@@ -27,8 +25,7 @@ function getInitials(name: string) {
 }
 
 export default function UserQuickProfile() {
-  const { user, status } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const displayName = useMemo(() => {
     return (
@@ -42,62 +39,18 @@ export default function UserQuickProfile() {
   const email = user?.email || "";
   const initials = getInitials(displayName);
 
-  // Anonymous guest mode
-  if (status === "unauthenticated") {
+  // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
+  if (!user) {
     return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gray-400 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            aria-label="Profil öffnen"
-            title="Gast-Modus"
-          >
-            <UserIcon className="h-4 w-4" />
-            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background" />
-          </button>
-        </DialogTrigger>
-
-        <DialogContent className="max-w-sm">
-          <Card variant="premium">
-            <CardHeader>
-              <CardTitle className="text-base">Gast-Modus</CardTitle>
-              <CardDescription className="text-xs">
-                Sie arbeiten derzeit ohne Anmeldung
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-500">
-                  Nicht angemeldet
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Im Gast-Modus können Sie lokale Features wie CSV-Import, Dashboard und Kategorisierung nutzen.
-                Melden Sie sich an, um Bank-Anbindung, Cloud-Synchronisierung und Premium-Features zu nutzen.
-              </p>
-            </CardContent>
-
-            <CardFooter className="flex flex-col gap-2">
-              <Button
-                className="w-full"
-                onClick={() => navigate("/login")}
-              >
-                <LogIn className="mr-2 h-4 w-4" />
-                Zur Anmeldung
-              </Button>
-              <p className="text-[11px] text-muted-foreground text-center">
-                Sie können diese Seite auch schließen und weiterhin als Gast arbeiten.
-              </p>
-            </CardFooter>
-          </Card>
-        </DialogContent>
-      </Dialog>
+      <Button asChild variant="outline" size="sm" aria-label="Anmelden">
+        <Link to="/login">
+          <LogIn className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          Anmelden
+        </Link>
+      </Button>
     );
   }
 
-  // Authenticated mode
   return (
     <Dialog>
       <DialogTrigger asChild>

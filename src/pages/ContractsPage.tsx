@@ -1,5 +1,3 @@
-"use client";
-
 import { ContractsDashboard } from "@/components/contracts/ContractsDashboard";
 import { FeatureGate } from "@/components/FeatureGate";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { NavLink } from "react-router-dom";
 import { Sparkles, Banknote, BarChart3, Coins, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";

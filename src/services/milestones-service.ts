@@ -1,8 +1,6 @@
-"use client";
-
 import { supabase } from "../integrations/supabase/client";
 import type { Milestone } from "../types";
-import { getCurrentUserId, requireUserId } from "./auth-service";
+import { getCurrentUserId } from "./auth-service";
 import { getFinancialHealth } from "./financial-health-service";
 import { getDebts } from "./debt-service";
 
@@ -76,7 +74,10 @@ export async function getAchievedMilestones(): Promise<Milestone[]> {
 }
 
 async function markAchieved(key: string): Promise<void> {
-  const uid = await requireUserId();
+  // Anonymer Modus: kein Supabase-Persist — der Status wird bei jeder
+  // Auswertung neu berechnet (lokale Persistenz kommt mit dem Vault, Epic #22).
+  const uid = await getCurrentUserId();
+  if (!uid) return;
   await supabase
     .from("milestones")
     .upsert({ user_id: uid, milestone_key: key }, { onConflict: "user_id,milestone_key" });

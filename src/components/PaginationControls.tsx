@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +73,7 @@ export function PaginationControls({
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
-          title="Erste Seite"
+          aria-label="Erste Seite"
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
@@ -85,7 +83,7 @@ export function PaginationControls({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
-          title="Vorherige Seite"
+          aria-label="Vorherige Seite"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -100,7 +98,7 @@ export function PaginationControls({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
-          title="Nächste Seite"
+          aria-label="Nächste Seite"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -110,7 +108,7 @@ export function PaginationControls({
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
-          title="Letzte Seite"
+          aria-label="Letzte Seite"
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>
@@ -141,6 +139,7 @@ export function CompactPagination({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className="h-8 w-8 p-0"
+        aria-label="Vorherige Seite"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -155,6 +154,7 @@ export function CompactPagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className="h-8 w-8 p-0"
+        aria-label="Nächste Seite"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
