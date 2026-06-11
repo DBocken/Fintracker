@@ -461,7 +461,7 @@ export function ContractsDashboard() {
                 <ReferenceLine y={0} stroke="#6b7280" />
                 <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
                 <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
-                <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--accent))" fill="hsl(var(--accent))" fillOpacity={0.2} />
+                <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

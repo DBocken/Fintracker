@@ -176,7 +176,7 @@ export function LayeredAreaCashflowCard({ transactions }: LayeredAreaCashflowCar
                   type={curveType}
                   dataKey="balance"
                   name="Saldo"
-                  stroke="hsl(var(--accent))"
+                  stroke="hsl(var(--foreground))"
                   strokeWidth={3}
                   dot={false}
                 />

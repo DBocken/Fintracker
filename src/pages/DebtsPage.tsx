@@ -38,6 +38,7 @@ import {
   DEBT_TYPE_LABELS,
   DEBT_TYPE_ICONS,
 } from "@/services/debt-service";
+import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -45,7 +46,12 @@ export default function DebtsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Debt | null>(null);
-  const [strategy, setStrategy] = useState<PayoffStrategy>("avalanche");
+  // Portfolio-Strategie: global, persistiert, gilt für alle Schulden (#54)
+  const [strategy, setStrategyState] = useState<PayoffStrategy>(getDebtStrategy);
+  const setStrategy = (s: PayoffStrategy) => {
+    setStrategyState(s);
+    setDebtStrategy(s);
+  };
   const [extraBudget, setExtraBudget] = useState("");
   const [selectedDebtId, setSelectedDebtId] = useState<string>("");
 
@@ -436,7 +442,7 @@ export default function DebtsPage() {
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Strategie</Label>
+                    <Label>Strategie (gilt für alle Schulden)</Label>
                     <Tabs value={strategy} onValueChange={(v) => setStrategy(v as PayoffStrategy)}>
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="avalanche">Lawine (Zins)</TabsTrigger>

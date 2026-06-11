@@ -42,6 +42,14 @@
     --premium-foreground: 40 20% 97%;
     --positive: 152 55% 33%;
     --warning: 4 72% 50%;
+
+    /*
+     * Typografie (#54): Inter als Lauftext (vollständige tabular-nums-
+     * Unterstützung für Beträge), Space Grotesk als charaktervolle
+     * Grotesk für Headings. Beide als Variable Fonts.
+     */
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   }
 
   .dark {
@@ -79,8 +87,11 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     /* Tabellenziffern für ALLE Beträge (Pflicht, #54) */
     font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 {
+    @apply font-display;
   }
 }

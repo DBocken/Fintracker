@@ -43,7 +43,7 @@ export function ComboBarSaldoCard({ data }: ComboBarSaldoCardProps) {
                 <Legend />
                 <Bar dataKey="income" name="Einnahmen" fill="hsl(var(--positive))" />
                 <Bar dataKey="expenses" name="Ausgaben" fill="hsl(var(--brand))" />
-                <Line type="monotone" dataKey="net" name="Saldo" stroke="hsl(var(--accent))" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="net" name="Saldo" stroke="hsl(var(--foreground))" strokeWidth={3} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
