@@ -1,5 +1,10 @@
 import { SimulationPage } from '../components/simulation/SimulationPage';
+import { FeatureGate } from "@/components/FeatureGate";
 
 export default function SimulationPageWrapper() {
-  return <SimulationPage />;
+  return (
+    <FeatureGate feature="simulation">
+      <SimulationPage />
+    </FeatureGate>
+  );
 }

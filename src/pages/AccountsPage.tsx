@@ -1,5 +1,10 @@
 import { AccountManager } from "@/components/accounts/AccountManager";
+import { FeatureGate } from "@/components/FeatureGate";
 
 export default function AccountsPage() {
-  return <AccountManager />;
+  return (
+    <FeatureGate feature="bankSync">
+      <AccountManager />
+    </FeatureGate>
+  );
 }

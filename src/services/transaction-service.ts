@@ -57,7 +57,7 @@ function generateId(): string {
 }
 
 // Kern der intelligenten Kategorien: Filter-Matching
-function categorizeTransaction(transaction: Transaction, categories: Category[]): string | null {
+export function categorizeTransaction(transaction: Transaction, categories: Category[]): string | null {
   let bestMatch: Category | null = null;
   let bestSpecificity = 0;
 

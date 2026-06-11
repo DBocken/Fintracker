@@ -61,6 +61,18 @@ export async function getFinancialHealth(): Promise<FinancialHealth> {
     getNetWorthBreakdown(),
   ]);
 
+  return computeFinancialHealth(transactions, debts, netWorth);
+}
+
+/**
+ * Pure scoring logic, separated from data loading so it can be unit-tested
+ * without mocking storage/Supabase.
+ */
+export function computeFinancialHealth(
+  transactions: Transaction[],
+  debts: Debt[],
+  netWorth: NetWorthBreakdown,
+): FinancialHealth {
   const { income, expenses } = monthlyAverages(transactions, 3);
   const savingsRate = income > 0 ? (income - expenses) / income : 0;
 
