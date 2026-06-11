@@ -110,7 +110,7 @@ export default function NotificationsBell() {
           {unreadCount > 0 && (
             <span
               aria-label={`${unreadCount} ungelesen`}
-              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background"
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-warning ring-2 ring-background"
             />
           )}
         </Button>

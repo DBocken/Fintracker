@@ -180,12 +180,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
 
             {/* Einnahmen (optional) */}
             {showIncome && (
-              <Bar dataKey="income" fill="#10b981" name="Einnahmen" />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
             )}
 
-            {/* Ausgaben: entweder ein roter Balken oder gestapelte Kategorien + Rest */}
+            {/* Ausgaben: ein Brand-Balken oder gestapelte Kategorien (Monochrom-Rampe) + Rest */}
             {!hasSelection ? (
-              <Bar dataKey="expenses" fill="#ef4444" name="Ausgaben" />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
             ) : (
               <>
                 {Array.from(selectedCats).map((name) => (
@@ -197,12 +197,12 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
                     name={name}
                   />
                 ))}
-                <Bar dataKey="Rest" stackId="expenses" fill="#ef4444" name="Rest" />
+                <Bar dataKey="Rest" stackId="expenses" fill="hsl(var(--muted-foreground))" name="Rest" />
               </>
             )}
 
             {/* Netto-Bilanz als Linie */}
-            <Line type="monotone" dataKey="net" stroke="#3b82f6" name="Netto-Bilanz" strokeWidth={3} />
+            <Line type="monotone" dataKey="net" stroke="hsl(var(--foreground))" name="Netto-Bilanz" strokeWidth={3} />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>

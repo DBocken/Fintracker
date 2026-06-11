@@ -8,7 +8,7 @@ const cardVariants = cva(
     variants: {
       variant: {
         default: "bg-background text-foreground border-border",
-        premium: "bg-gradient-to-br from-indigo-500/10 via-purple-600/15 to-transparent border-border bg-card text-card-foreground",
+        premium: "bg-gradient-to-br from-brand/10 via-premium/15 to-transparent border-border bg-card text-card-foreground",
       },
     },
     defaultVariants: {

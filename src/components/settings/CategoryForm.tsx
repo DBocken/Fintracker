@@ -28,16 +28,14 @@ interface CategoryFormProps {
 }
 
 const colorOptions = [
-  { value: '#22c55e', label: 'Grün' },
-  { value: '#ef4444', label: 'Rot' },
-  { value: '#3b82f6', label: 'Blau' },
-  { value: '#f59e0b', label: 'Amber' },
-  { value: '#8b5cf6', label: 'Violett' },
-  { value: '#ec4899', label: 'Pink' },
-  { value: '#06b6d4', label: 'Cyan' },
-  { value: '#84cc16', label: 'Limette' },
-  { value: '#f97316', label: 'Orange' },
-  { value: '#6366f1', label: 'Indigo' },
+  { value: '#1d5c54', label: 'Petrol dunkel' },
+  { value: '#2e7d72', label: 'Petrol' },
+  { value: '#4a9a8d', label: 'Petrol hell' },
+  { value: '#7bb8ac', label: 'Petrol blass' },
+  { value: '#5c7a99', label: 'Schieferblau' },
+  { value: '#8a7d5a', label: 'Olive' },
+  { value: '#a8845c', label: 'Sand' },
+  { value: '#7d6b8a', label: 'Pflaume' },
 ];
 
 const iconOptions = ['🛒', '🍽️', '🚗', '🛍️', '🔧', '🎬', '💊', '🏠', '📚', '📋', '💰', '✈️', '📱', '💡', '🥛', '🥖', '🥩', '🏨'];
@@ -106,7 +104,7 @@ export function CategoryForm({
       </CardHeader>
       <CardContent className="space-y-4">
         {parentId && (
-          <div className="p-3 bg-blue-50 rounded-lg">
+          <div className="p-3 bg-brand/15 rounded-lg">
             <Label className="text-sm">Übergeordnete Kategorie:</Label>
             <p className="text-sm font-medium">Unterkategorie</p>
           </div>

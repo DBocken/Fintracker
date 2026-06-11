@@ -73,11 +73,11 @@ function Login({ onStartAnonymous }: LoginProps) {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8 text-foreground">
       {/* Brand backdrop */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-600/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand/10 via-premium/10 to-transparent" />
 
       <Card variant="premium" className="z-10 w-full max-w-md p-6 shadow-lg">
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500 text-white">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white">
             <Wallet className="h-5 w-5" />
           </div>
           <div>
@@ -87,9 +87,9 @@ function Login({ onStartAnonymous }: LoginProps) {
         </div>
 
         {/* Privacy-Claim — das Kernversprechen, above the fold (Issue #28) */}
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="mb-5 flex items-start gap-3 rounded-lg border border-positive/30 bg-positive/10 p-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-positive dark:text-positive" aria-hidden="true" />
+          <p className="text-sm text-positive dark:text-positive">
             <span className="font-medium">Deine Daten verlassen dein Gerät nie.</span>{" "}
             Keine Cloud-Datenbank mit deinen Finanzen — keine Anmeldung nötig.
           </p>
@@ -163,7 +163,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                    className="bg-brand text-white hover:bg-brand"
                     onClick={signInWithGoogleDirect}
                   >
                     Google Login (Mobile)
@@ -172,7 +172,7 @@ function Login({ onStartAnonymous }: LoginProps) {
               )}
 
               {isInIframe && (
-                <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-200">
+                <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 p-3 text-warning dark:text-warning">
                   <div className="text-xs">
                     Hinweis: Google verhindert Anmeldungen im eingebetteten Vorschaufenster (Iframe). Öffne die
                     Anmeldung im neuen Tab oder führe den Google‑Login direkt aus.
@@ -181,7 +181,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 dark:text-amber-200"
+                      className="border-warning/50 text-warning hover:bg-warning/10 dark:text-warning"
                       onClick={openInNewTab}
                     >
                       Im neuen Tab öffnen
@@ -189,7 +189,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="bg-indigo-600 text-white hover:bg-indigo-700"
+                      className="bg-brand text-white hover:bg-brand"
                       onClick={signInWithGoogleDirect}
                     >
                       Google Login (direkt)

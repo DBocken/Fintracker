@@ -139,7 +139,7 @@ export function TransactionTable({
               </TableCell>
               <TableCell className="truncate max-w-xs">{transaction.description}</TableCell>
               <TableCell className="truncate max-w-xs">{transaction.payee || '-'}</TableCell>
-              <TableCell className={transaction.amount < 0 ? 'text-red-600' : 'text-green-600'}>
+              <TableCell className={transaction.amount < 0 ? 'text-warning' : 'text-positive'}>
                 <span className="sr-only">{transaction.amount < 0 ? 'Ausgabe' : 'Einnahme'}: </span>
                 {amountLabel}
               </TableCell>
@@ -174,7 +174,7 @@ export function TransactionTable({
                   size="sm"
                   onClick={() => onDelete(rowId)}
                   disabled={!rowId}
-                  className="p-1 h-8 w-8 text-red-600 hover:text-red-700"
+                  className="p-1 h-8 w-8 text-warning hover:text-warning"
                   aria-label="Transaktion löschen"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />

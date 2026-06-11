@@ -170,7 +170,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
             {/* Account Selection - Required */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Zielkonto <span className="text-red-500">*</span>
+                Zielkonto <span className="text-warning">*</span>
               </label>
               {accounts.length === 0 && !accountsLoading ? (
                 <Alert>

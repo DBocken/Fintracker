@@ -71,7 +71,7 @@ export function LocalEncryptionSettings() {
     <Card className="ui-card border-slate-800 bg-slate-950/70">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
-          <Shield className="h-5 w-5 text-emerald-400" />
+          <Shield className="h-5 w-5 text-positive" />
           Passphrase & lokale Verschlüsselung
         </CardTitle>
         <CardDescription className="text-slate-400">
@@ -80,8 +80,8 @@ export function LocalEncryptionSettings() {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <Alert className="border-amber-700 bg-amber-950/30">
-          <AlertDescription className="text-sm text-amber-100">
+        <Alert className="border-warning bg-warning/30">
+          <AlertDescription className="text-sm text-warning">
             Wichtig: Wenn du die Passphrase vergisst, können die lokal verschlüsselten Daten nicht wiederhergestellt
             werden.
           </AlertDescription>
@@ -90,7 +90,7 @@ export function LocalEncryptionSettings() {
         <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
           <div className="text-sm text-slate-300">
             Status:{' '}
-            <span className={enabled ? 'text-emerald-400' : 'text-slate-400'}>
+            <span className={enabled ? 'text-positive' : 'text-slate-400'}>
               {enabled ? (unlocked ? 'aktiv und entsperrt' : 'aktiv und gesperrt') : 'noch nicht eingerichtet'}
             </span>
           </div>
@@ -110,7 +110,7 @@ export function LocalEncryptionSettings() {
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
-            <FileKey2 className="h-4 w-4 text-emerald-400" />
+            <FileKey2 className="h-4 w-4 text-positive" />
             Passphrase verwalten
           </div>
 
@@ -155,7 +155,7 @@ export function LocalEncryptionSettings() {
 
         {!enabled ? (
           <Button
-            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+            className="w-full bg-positive text-white hover:bg-positive"
             onClick={handleEnable}
             disabled={busy || !password || password !== confirm}
           >
@@ -174,7 +174,7 @@ export function LocalEncryptionSettings() {
           </Button>
         ) : (
           <Button
-            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+            className="w-full bg-positive text-white hover:bg-positive"
             onClick={handleUnlock}
             disabled={busy || !password}
           >

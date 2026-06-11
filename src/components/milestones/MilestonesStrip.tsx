@@ -12,9 +12,9 @@ export default function MilestonesStrip({ milestones }: { milestones: MilestoneS
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="rounded-xl border border-emerald-500/50 bg-gradient-to-r from-emerald-500/15 to-transparent p-4"
+          className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
         >
-          <div className="text-sm font-semibold text-emerald-500">🎉 Meilenstein erreicht!</div>
+          <div className="text-sm font-semibold text-positive">🎉 Meilenstein erreicht!</div>
           <div className="mt-1 flex flex-wrap gap-2">
             {justAchieved.map((m) => (
               <span key={m.definition.key} className="text-sm">
@@ -34,7 +34,7 @@ export default function MilestonesStrip({ milestones }: { milestones: MilestoneS
             transition={{ delay: i * 0.04 }}
             className={cn(
               "rounded-lg border p-3 text-center",
-              m.achieved ? "border-emerald-500/40 bg-emerald-500/5" : "border-dashed bg-muted/20 opacity-70"
+              m.achieved ? "border-positive/40 bg-positive/5" : "border-dashed bg-muted/20 opacity-70"
             )}
           >
             <div className="relative text-2xl">

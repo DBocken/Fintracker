@@ -286,7 +286,7 @@ export default function DebtsPage() {
                       <span className="truncate">{d.name}</span>
                       {d.is_bnpl && <Badge variant="secondary" className="shrink-0">BNPL</Badge>}
                       {d.is_paid_off && (
-                        <Badge className="shrink-0 bg-emerald-500/20 text-emerald-500">Bezahlt</Badge>
+                        <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -298,7 +298,7 @@ export default function DebtsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right font-semibold">{eur.format(d.balance)}</div>
                   <Button variant="ghost" size="icon" onClick={() => togglePaidOff(d)} title="Als bezahlt markieren">
-                    <CheckCircle2 className={d.is_paid_off ? "h-4 w-4 text-emerald-500" : "h-4 w-4"} />
+                    <CheckCircle2 className={d.is_paid_off ? "h-4 w-4 text-positive" : "h-4 w-4"} />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
                     <Pencil className="h-4 w-4" />
@@ -306,7 +306,7 @@ export default function DebtsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-red-500"
+                    className="text-warning"
                     onClick={() => {
                       if (confirm(`Schuld „${d.name}“ löschen?`)) deleteMutation.mutate(d.id);
                     }}
@@ -473,7 +473,7 @@ export default function DebtsPage() {
                 </div>
 
                 {payoffPlan.insufficientBudget ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3 text-sm">
+                  <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
                     Das Budget reicht nicht für die Mindestraten. Erhöhe das Extra-Budget oder prüfe deine Ausgaben.
                   </div>
                 ) : (

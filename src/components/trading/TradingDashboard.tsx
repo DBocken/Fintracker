@@ -376,16 +376,16 @@ export default function TradingDashboard() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Gewinn/Verlust</CardTitle>
               {summary.unrealized_gain_loss >= 0 ? (
-                <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <ArrowUpRight className="h-4 w-4 text-positive dark:text-positive" />
               ) : (
-                <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <ArrowDownRight className="h-4 w-4 text-warning dark:text-warning" />
               )}
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${
                 summary.unrealized_gain_loss >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-positive dark:text-positive'
+                  : 'text-warning dark:text-warning'
               }`}>
                 {summary.unrealized_gain_loss >= 0 ? '+' : ''}
                 {formatCurrency(summary.unrealized_gain_loss, summary.currency)}
@@ -405,8 +405,8 @@ export default function TradingDashboard() {
             <CardContent>
               <div className={`text-2xl font-bold ${
                 summary.unrealized_gain_loss_percent >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-positive dark:text-positive'
+                  : 'text-warning dark:text-warning'
               }`}>
                 {summary.unrealized_gain_loss_percent >= 0 ? '+' : ''}
                 {summary.unrealized_gain_loss_percent.toFixed(2)}%

@@ -23,12 +23,13 @@ export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
   other: '💰',
 };
 
+/* Ruhige Petrol-Abstufungen statt Regenbogen (#54) */
 export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
-  checking: '#3b82f6',
-  credit_card: '#8b5cf6',
-  savings: '#10b981',
-  wallet: '#f59e0b',
-  other: '#6b7280',
+  checking: '#1d5c54',
+  credit_card: '#5c7a99',
+  savings: '#4a9a8d',
+  wallet: '#a8845c',
+  other: '#7d8a87',
 };
 
 export const FREE_ACCOUNT_LIMIT = 3;

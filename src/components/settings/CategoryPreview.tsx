@@ -29,7 +29,7 @@ export function CategoryPreview({
     <Card className="border border-slate-800 bg-slate-950/70 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-white">
-          <Eye className="h-5 w-5 text-emerald-400" />
+          <Eye className="h-5 w-5 text-positive" />
           Vorschau & Zuweisung
         </CardTitle>
       </CardHeader>
@@ -63,7 +63,7 @@ export function CategoryPreview({
           <Button
             onClick={onApply}
             disabled={isProcessing}
-            className="bg-emerald-600 text-white hover:bg-emerald-500"
+            className="bg-positive text-white hover:bg-positive"
           >
             <Play className="mr-2 h-4 w-4" />
             {isProcessing ? 'Anwenden...' : 'Anwenden'}
@@ -74,7 +74,7 @@ export function CategoryPreview({
           <Card className="border border-slate-800 bg-slate-900/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base text-white">
-                <CheckCircle className="h-4 w-4 text-emerald-400" />
+                <CheckCircle className="h-4 w-4 text-positive" />
                 Betroffene Transaktionen
               </CardTitle>
             </CardHeader>

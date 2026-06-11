@@ -155,7 +155,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
       </CardHeader>
       <CardContent>
         {selectedRows.size > 0 && (
-          <div className="flex gap-2 mb-4 p-4 bg-blue-50 rounded">
+          <div className="flex gap-2 mb-4 p-4 bg-brand/15 rounded">
             <Tag className="h-4 w-4" />
             <span>{selectedRows.size} ausgewählt</span>
             <Select value={bulkCategory} onValueChange={setBulkCategory}>
@@ -227,7 +227,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                     <TableCell className="max-w-xs truncate">
                       {row.payee || '-'}
                     </TableCell>
-                    <TableCell className={row.amount < 0 ? 'text-red-600' : 'text-green-600'}>
+                    <TableCell className={row.amount < 0 ? 'text-warning' : 'text-positive'}>
                       {Math.abs(row.amount).toFixed(2)}€
                     </TableCell>
                     <TableCell>

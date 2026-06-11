@@ -27,7 +27,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
                 labelFormatter={(label) => `Wochentag: ${label}`}
               />
               <Legend formatter={() => 'Einnahmen'} />
-              <Bar dataKey="income" fill="#10b981" name="Einnahmen" />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -48,7 +48,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
                 labelFormatter={(label) => `Wochentag: ${label}`}
               />
               <Legend formatter={() => 'Ausgaben'} />
-              <Bar dataKey="expenses" fill="#ef4444" name="Ausgaben" />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

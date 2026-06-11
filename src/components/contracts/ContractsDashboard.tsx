@@ -215,7 +215,7 @@ export function ContractsDashboard() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [formName, setFormName] = useState('');
-  const [formColor, setFormColor] = useState('#22c55e');
+  const [formColor, setFormColor] = useState('#2e7d72');
   const [formIcon, setFormIcon] = useState('🛒');
   const [formFilters, setFormFilters] = useState<string[]>([]);
   const [formAttributes, setFormAttributes] = useState<any>({});
@@ -223,7 +223,7 @@ export function ContractsDashboard() {
   useEffect(() => {
     if (editingCat) {
       setFormName(editingCat.name || '');
-      setFormColor(editingCat.color || '#22c55e');
+      setFormColor(editingCat.color || '#2e7d72');
       setFormIcon(editingCat.icon || '🛒');
       setFormFilters(editingCat.filters || []);
       setFormAttributes(editingCat.attributes || {});
@@ -269,7 +269,7 @@ export function ContractsDashboard() {
   const handleResetCategory = () => {
     if (!editingCat) { setEditOpen(false); return; }
     setFormName(editingCat.name || '');
-    setFormColor(editingCat.color || '#22c55e');
+    setFormColor(editingCat.color || '#2e7d72');
     setFormIcon(editingCat.icon || '🛒');
     setFormFilters(editingCat.filters || []);
     setFormAttributes(editingCat.attributes || {});
@@ -417,7 +417,7 @@ export function ContractsDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Vertrags-Einnahmen ({viewMode === "monthly" ? "monatlich" : "jährlich"})</p>
-                <p className="text-2xl font-bold text-emerald-600">
+                <p className="text-2xl font-bold text-positive">
                   {displayedIncome.toLocaleString("de-DE", {
                     style: "currency",
                     currency: "EUR",
@@ -458,7 +458,7 @@ export function ContractsDashboard() {
                   }
                 />
                 <Legend />
-                <ReferenceLine y={0} stroke="#6b7280" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
                 <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
                 <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
                 <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
@@ -483,11 +483,11 @@ export function ContractsDashboard() {
           </div>
 
           {contractsAll.some((r) => r.changed) && (
-            <div className="mb-4 p-3 rounded-md bg-amber-50 border border-amber-200">
-              <p className="text-sm text-amber-900">
+            <div className="mb-4 p-3 rounded-md bg-warning/15 border border-warning/15">
+              <p className="text-sm text-warning">
                 Wir haben bei einigen Verträgen steigende Beträge erkannt. Ein Vergleich lohnt sich oft – sichere dir bessere Konditionen mit einem Anbieter-Check.
               </p>
-              <p className="text-xs text-amber-800 mt-1">
+              <p className="text-xs text-warning mt-1">
                 Beispiel: Dein Vertrag ist um {contractsAll.find(r => r.changed)?.changeAmount.toLocaleString("de-DE")}€ teurer geworden. Prüfe verfügbare Tarife und spare dauerhaft.
               </p>
             </div>

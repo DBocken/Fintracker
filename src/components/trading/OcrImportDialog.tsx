@@ -202,11 +202,11 @@ export default function OcrImportDialog({
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 80) {
-      return <Badge className="bg-green-500">Hoch ({confidence}%)</Badge>;
+      return <Badge className="bg-positive">Hoch ({confidence}%)</Badge>;
     } else if (confidence >= 60) {
-      return <Badge className="bg-yellow-500">Mittel ({confidence}%)</Badge>;
+      return <Badge className="bg-warning">Mittel ({confidence}%)</Badge>;
     } else {
-      return <Badge className="bg-red-500">Niedrig ({confidence}%)</Badge>;
+      return <Badge className="bg-warning">Niedrig ({confidence}%)</Badge>;
     }
   };
 

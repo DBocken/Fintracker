@@ -164,7 +164,7 @@ export function VirtualizedTransactionTable({
                 </div>
                 
                 <div className={`w-24 flex-shrink-0 text-right font-medium ${
-                  transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                  transaction.amount > 0 ? 'text-positive' : 'text-warning'
                 }`}>
                   {transaction.amount.toFixed(2)}€
                 </div>
@@ -194,7 +194,7 @@ export function VirtualizedTransactionTable({
                     variant="ghost"
                     size="sm"
                     onClick={() => onDelete(id)}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                    className="h-8 w-8 p-0 text-warning hover:text-warning"
                   >
                     🗑️
                   </Button>

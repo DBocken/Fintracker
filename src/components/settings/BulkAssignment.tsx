@@ -34,7 +34,7 @@ export function BulkAssignment({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="p-4 bg-brand/15 rounded-lg">
             <h3 className="font-semibold mb-2">Wie funktioniert die Massenzuweisung?</h3>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li>• Alle vorhandenen Transaktionen werden analysiert</li>
@@ -74,9 +74,9 @@ export function BulkAssignment({
           </div>
 
           {status === 'completed' && results && (
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-positive/15 border-positive/15">
               <CardHeader>
-                <CardTitle className="text-green-800 flex items-center gap-2">
+                <CardTitle className="text-positive flex items-center gap-2">
                   <CheckCircle className="h-5 w-5" />
                   Zuweisung abgeschlossen
                 </CardTitle>
@@ -84,15 +84,15 @@ export function BulkAssignment({
               <CardContent>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-green-600">{results.total}</div>
+                    <div className="text-2xl font-bold text-positive">{results.total}</div>
                     <div className="text-sm text-muted-foreground">Gesamt</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-600">{results.assigned}</div>
+                    <div className="text-2xl font-bold text-brand">{results.assigned}</div>
                     <div className="text-sm text-muted-foreground">Zugewiesen</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-orange-600">{results.unassigned}</div>
+                    <div className="text-2xl font-bold text-warning">{results.unassigned}</div>
                     <div className="text-sm text-muted-foreground">Unkategorisiert</div>
                   </div>
                 </div>

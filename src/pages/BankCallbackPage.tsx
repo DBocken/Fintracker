@@ -328,8 +328,8 @@ export default function BankCallbackPage() {
           className="text-center"
         >
           <div className="relative">
-            <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full" />
-            <Loader2 className="h-16 w-16 animate-spin text-green-400 relative z-10 mx-auto" />
+            <div className="absolute inset-0 bg-positive/20 blur-3xl rounded-full" />
+            <Loader2 className="h-16 w-16 animate-spin text-positive relative z-10 mx-auto" />
           </div>
           <h1 className="text-2xl font-bold text-white mt-6">Konten werden abgerufen...</h1>
           <p className="text-slate-400 mt-2">Bitte warte einen Moment, während wir deine Konten laden.</p>
@@ -338,7 +338,7 @@ export default function BankCallbackPage() {
           )}
           {requisitionInfo && requisitionInfo.link && (
             <div className="mt-4">
-              <Button onClick={handleOpenAuthLink} className="bg-emerald-600">
+              <Button onClick={handleOpenAuthLink} className="bg-positive">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Authentifizierungsseite erneut öffnen
               </Button>
@@ -357,11 +357,11 @@ export default function BankCallbackPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Card className="bg-slate-900 border-red-500/30">
+          <Card className="bg-slate-900 border-warning/30">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-500/20 rounded-full">
-                  <AlertCircle className="h-8 w-8 text-red-400" />
+                <div className="p-3 bg-warning/20 rounded-full">
+                  <AlertCircle className="h-8 w-8 text-warning" />
                 </div>
                 <div>
                   <CardTitle className="text-white">Verbindung fehlgeschlagen</CardTitle>
@@ -382,7 +382,7 @@ export default function BankCallbackPage() {
                   {requisitionInfo.link && (
                     <div>
                       <div>Auth-Link:</div>
-                      <a href={requisitionInfo.link} target="_blank" rel="noreferrer" className="text-green-400 underline break-words">{requisitionInfo.link}</a>
+                      <a href={requisitionInfo.link} target="_blank" rel="noreferrer" className="text-positive underline break-words">{requisitionInfo.link}</a>
                     </div>
                   )}
                   {requisitionInfo.reference && (
@@ -400,7 +400,7 @@ export default function BankCallbackPage() {
                 </Button>
                 <Button 
                   onClick={() => window.location.reload()}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                  className="flex-1 bg-gradient-to-r from-positive to-positive hover:from-positive hover:to-positive"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Erneut versuchen
@@ -423,8 +423,8 @@ export default function BankCallbackPage() {
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-500/20 rounded-full">
-                <Building2 className="h-8 w-8 text-green-400" />
+              <div className="p-3 bg-positive/20 rounded-full">
+                <Building2 className="h-8 w-8 text-positive" />
               </div>
               <div>
                 <CardTitle className="text-white">Bankkonten gefunden</CardTitle>
@@ -450,7 +450,7 @@ export default function BankCallbackPage() {
                     transition={{ delay: index * 0.1 }}
                     className={`p-4 rounded-lg border ${
                       isLinked 
-                        ? 'bg-green-500/10 border-green-500/30' 
+                        ? 'bg-positive/10 border-positive/30' 
                         : 'bg-slate-800/50 border-slate-700'
                     }`}
                   >
@@ -464,7 +464,7 @@ export default function BankCallbackPage() {
                             {accountTypeLabel(account)}
                           </Badge>
                           {isLinked && (
-                            <Badge className="bg-green-500/20 text-green-400 text-xs">
+                            <Badge className="bg-positive/20 text-positive text-xs">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Verknüpft
                             </Badge>
@@ -509,7 +509,7 @@ export default function BankCallbackPage() {
                       )}
 
                       {isImporting && (
-                        <div className="flex items-center gap-2 text-green-400">
+                        <div className="flex items-center gap-2 text-positive">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           <span className="text-sm">Importiere...</span>
                         </div>
@@ -527,14 +527,14 @@ export default function BankCallbackPage() {
                 className="text-center pt-4"
               >
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  <CheckCircle2 className="h-6 w-6 text-green-400" />
-                  <span className="text-green-400 font-medium">
+                  <CheckCircle2 className="h-6 w-6 text-positive" />
+                  <span className="text-positive font-medium">
                     Alle Konten erfolgreich verknüpft!
                   </span>
                 </div>
                 <Button
                   onClick={handleFinish}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8"
+                  className="bg-gradient-to-r from-positive to-positive hover:from-positive hover:to-positive text-white px-8"
                 >
                   <Wallet className="h-4 w-4 mr-2" />
                   Zurück zum Ausgabentracker

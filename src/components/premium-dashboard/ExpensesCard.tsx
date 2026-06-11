@@ -8,10 +8,10 @@ interface ExpensesCardProps {
 
 export function ExpensesCard({ totalExpenses, expenseCategories }: ExpensesCardProps) {
   return (
-    <Card className="border-l-4 border-l-red-500">
+    <Card className="border-l-4 border-l-warning">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ArrowRight className="h-5 w-5 text-red-600" />
+          <ArrowRight className="h-5 w-5 text-warning" />
           Ausgaben-Ziele
         </CardTitle>
         <CardDescription>
@@ -19,7 +19,7 @@ export function ExpensesCard({ totalExpenses, expenseCategories }: ExpensesCardP
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-red-600 mb-4">
+        <div className="text-3xl font-bold text-warning mb-4">
           {totalExpenses.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
         </div>
         <div className="space-y-2">

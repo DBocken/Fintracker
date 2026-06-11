@@ -360,7 +360,7 @@ export function AccountManager() {
                             <Badge variant="outline" className="text-xs shrink-0">Budget-Pool</Badge>
                           )}
                           {account.gocardless_account_id && (
-                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs shrink-0 flex items-center gap-1">
+                            <Badge className="bg-positive/15 text-positive dark:text-positive text-xs shrink-0 flex items-center gap-1">
                               <Link2 className="h-3 w-3" />
                               PSD2
                             </Badge>
@@ -371,7 +371,7 @@ export function AccountManager() {
                             </Badge>
                           )}
                           {consentExpiresSoon && (
-                            <Badge variant="outline" className="text-xs shrink-0 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                            <Badge variant="outline" className="text-xs shrink-0 border-warning/40 text-warning dark:text-warning">
                               Consent läuft bald ab
                             </Badge>
                           )}
@@ -406,7 +406,7 @@ export function AccountManager() {
                           size="sm"
                           onClick={() => handleSync(account)}
                           disabled={syncingAccounts.has(account.id) || !canSyncAccount(account).canSync}
-                          className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-500/10"
+                          className="text-positive dark:text-positive hover:text-positive dark:hover:text-positive hover:bg-positive/10"
                           title="Transaktionen synchronisieren"
                         >
                           {syncingAccounts.has(account.id) ? (
@@ -426,7 +426,7 @@ export function AccountManager() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDisconnect(account)}
-                          className="text-orange-600 hover:text-orange-700"
+                          className="text-warning hover:text-warning"
                           title="Bankverbindung trennen"
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -436,7 +436,7 @@ export function AccountManager() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(account)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-warning hover:text-warning"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

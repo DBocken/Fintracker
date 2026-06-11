@@ -53,11 +53,11 @@ export function BankConnectionsManager() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500/20 text-green-400"><CheckCircle2 className="h-3 w-3 mr-1" /> Aktiv</Badge>
+        return <Badge className="bg-positive/20 text-positive"><CheckCircle2 className="h-3 w-3 mr-1" /> Aktiv</Badge>
       case 'expired':
-        return <Badge variant="outline" className="text-amber-400 border-amber-500/30"><Clock className="h-3 w-3 mr-1" /> Abgelaufen</Badge>
+        return <Badge variant="outline" className="text-warning border-warning/30"><Clock className="h-3 w-3 mr-1" /> Abgelaufen</Badge>
       case 'revoked':
-        return <Badge variant="outline" className="text-red-400 border-red-500/30"><AlertTriangle className="h-3 w-3 mr-1" /> Widerrufen</Badge>
+        return <Badge variant="outline" className="text-warning border-warning/30"><AlertTriangle className="h-3 w-3 mr-1" /> Widerrufen</Badge>
       case 'suspended':
         return <Badge variant="outline" className="text-gray-400 border-gray-500/30">Pausiert</Badge>
       default:
@@ -81,7 +81,7 @@ export function BankConnectionsManager() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-white">
-              <Building2 className="h-5 w-5 text-blue-400" />
+              <Building2 className="h-5 w-5 text-brand" />
               Verknüpfte Banken
             </CardTitle>
             <CardDescription className="text-gray-400 mt-1">
@@ -126,7 +126,7 @@ export function BankConnectionsManager() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                      <Building2 className="h-5 w-5 text-brand flex-shrink-0" />
                       <h3 className="font-semibold text-white truncate">
                         {connection.institution_name}
                       </h3>
@@ -165,7 +165,7 @@ export function BankConnectionsManager() {
                         variant="outline"
                         size="sm"
                         onClick={() => setConnectionToRevoke(connection.id)}
-                        className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                        className="text-warning border-warning/30 hover:bg-warning/10"
                       >
                         <AlertTriangle className="h-4 w-4 mr-1" />
                         Widerrufen
@@ -175,7 +175,7 @@ export function BankConnectionsManager() {
                       variant="outline"
                       size="sm"
                       onClick={() => setConnectionToDelete(connection.id)}
-                      className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                      className="text-warning border-warning/30 hover:bg-warning/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -183,9 +183,9 @@ export function BankConnectionsManager() {
                 </div>
 
                 {connection.status === 'revoked' && (
-                  <Alert className="mt-3 bg-amber-500/10 border-amber-500/30">
-                    <Clock className="h-4 w-4 text-amber-400" />
-                    <AlertDescription className="text-amber-300 text-sm">
+                  <Alert className="mt-3 bg-warning/10 border-warning/30">
+                    <Clock className="h-4 w-4 text-warning" />
+                    <AlertDescription className="text-warning text-sm">
                       Diese Bankverbindung wurde widerrufen. Um erneut auf deine Konten zuzugreifen, musst du die Verbindung neu herstellen.
                     </AlertDescription>
                   </Alert>
@@ -195,9 +195,9 @@ export function BankConnectionsManager() {
           </div>
         )}
 
-        <Alert className="bg-blue-500/10 border-blue-500/30">
-          <Shield className="h-4 w-4 text-blue-400" />
-          <AlertDescription className="text-blue-300 text-sm">
+        <Alert className="bg-brand/10 border-brand/30">
+          <Shield className="h-4 w-4 text-brand" />
+          <AlertDescription className="text-brand text-sm">
             <strong>🔒 Sicherheit:</strong> Deine Bankverbindungen sind verschlüsselt gespeichert und nur für dich zugänglich. 
             Zugriff tokens sind sicher in der Datenbank geschützt.
           </AlertDescription>
@@ -220,7 +220,7 @@ export function BankConnectionsManager() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRevoke}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-warning hover:bg-warning text-white"
             >
               Widerrufen
             </AlertDialogAction>
@@ -244,7 +244,7 @@ export function BankConnectionsManager() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-warning hover:bg-warning text-white"
             >
               Löschen
             </AlertDialogAction>

@@ -182,7 +182,7 @@ export default function PositionTable({
                 </TableCell>
                 <TableCell className="text-right">
                   {position.last_price ? (
-                    <span className="text-green-600 dark:text-green-400">
+                    <span className="text-positive dark:text-positive">
                       {formatCurrency(currentPrice, position.currency)}
                     </span>
                   ) : (
@@ -192,13 +192,13 @@ export default function PositionTable({
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                  <span className={isPositive ? 'text-positive dark:text-positive' : 'text-warning dark:text-warning'}>
                     {isPositive ? '+' : ''}
                     {formatCurrency(gainLoss, currency)}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                  <span className={isPositive ? 'text-positive dark:text-positive' : 'text-warning dark:text-warning'}>
                     {isPositive ? '+' : ''}
                     {gainLossPercent.toFixed(2)}%
                   </span>

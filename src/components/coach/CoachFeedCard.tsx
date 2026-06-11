@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import type { CoachRecommendation } from "@/types";
 
 const STYLES = {
-  danger: { border: "border-red-500/20", bg: "bg-red-500/5", icon: ShieldAlert, iconColor: "text-red-500" },
-  warning: { border: "border-amber-500/20", bg: "bg-amber-500/5", icon: AlertTriangle, iconColor: "text-amber-500" },
-  success: { border: "border-emerald-500/20", bg: "bg-emerald-500/5", icon: CheckCircle2, iconColor: "text-emerald-500" },
-  info: { border: "border-sky-500/20", bg: "bg-sky-500/5", icon: Info, iconColor: "text-sky-500" },
+  danger: { border: "border-warning/20", bg: "bg-warning/5", icon: ShieldAlert, iconColor: "text-warning" },
+  warning: { border: "border-warning/20", bg: "bg-warning/5", icon: AlertTriangle, iconColor: "text-warning" },
+  success: { border: "border-positive/20", bg: "bg-positive/5", icon: CheckCircle2, iconColor: "text-positive" },
+  info: { border: "border-brand/20", bg: "bg-brand/5", icon: Info, iconColor: "text-brand" },
 } as const;
 
 export default function CoachFeedCard({ card, index }: { card: CoachRecommendation; index: number }) {

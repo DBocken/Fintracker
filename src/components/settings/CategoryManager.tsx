@@ -25,7 +25,7 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [newCategoryParentId, setNewCategoryParentId] = useState<string | null>(null);
   const [formName, setFormName] = useState('');
-  const [formColor, setFormColor] = useState('#22c55e');
+  const [formColor, setFormColor] = useState('#2e7d72');
   const [formIcon, setFormIcon] = useState('🛒');
   const [formFilters, setFormFilters] = useState<string[]>([]);
   const [formAttributes, setFormAttributes] = useState<CategoryAttributes>({});
@@ -34,7 +34,7 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
 
   useEffect(() => {
     setFormName(selectedCategory?.name || '');
-    setFormColor(selectedCategory?.color || '#22c55e');
+    setFormColor(selectedCategory?.color || '#2e7d72');
     setFormIcon(selectedCategory?.icon || '🛒');
     setFormFilters(selectedCategory?.filters || []);
     setFormAttributes(selectedCategory?.attributes || {});
@@ -42,7 +42,7 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
   }, [selectedCategory]);
 
   const handleCategoryFormSave = () => onCategorySave({ id: selectedCategory?.id, name: formName, color: formColor, icon: formIcon, filters: formFilters, parent_id: selectedCategory ? selectedCategory.parent_id : newCategoryParentId, attributes: formAttributes });
-  const handleCategoryFormReset = () => { setSelectedCategory(null); setFormName(''); setFormColor('#22c55e'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(null); };
+  const handleCategoryFormReset = () => { setSelectedCategory(null); setFormName(''); setFormColor('#2e7d72'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(null); };
   const handleEditCategoryClick = (category: HierarchicalCategory) => { setSelectedCategory(category); setNewCategoryParentId(category.parent_id ?? null); setActiveTab('create'); onCategoryEdit(category); };
   const { data: suggestion } = useQuery<CategorySuggestion | null>({ queryKey: ['category-suggestion'], queryFn: getTopCategorySuggestion });
 
@@ -58,7 +58,7 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
             </TabsList>
             <TabsContent value="manage" className="space-y-4">
               <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder="Kategorien oder Filter suchen..." value={searchQuery} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} className="pl-10" /></div>
-              <CategoryTree categories={filteredCategories} expandedCategories={expandedCategories} onToggleExpand={(id) => setExpandedCategories((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; })} onEdit={handleEditCategoryClick} onDelete={onCategoryDelete} onAddSubcategory={(parentId) => { setSelectedCategory(null); setFormName(''); setFormColor('#22c55e'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(parentId); setActiveTab('create'); }} />
+              <CategoryTree categories={filteredCategories} expandedCategories={expandedCategories} onToggleExpand={(id) => setExpandedCategories((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; })} onEdit={handleEditCategoryClick} onDelete={onCategoryDelete} onAddSubcategory={(parentId) => { setSelectedCategory(null); setFormName(''); setFormColor('#2e7d72'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(parentId); setActiveTab('create'); }} />
             </TabsContent>
             <TabsContent value="create" className="space-y-4">
               <CategoryForm name={formName} color={formColor} icon={formIcon} filters={formFilters} parentId={selectedCategory ? (selectedCategory.parent_id ?? null) : newCategoryParentId} editingCategory={selectedCategory} attributes={formAttributes} onNameChange={setFormName} onColorChange={setFormColor} onIconChange={setFormIcon} onAddFilter={(filter) => setFormFilters((prev) => [...prev, filter])} onRemoveFilter={(filterToRemove) => setFormFilters((prev) => prev.filter((f) => f !== filterToRemove))} onAttributesChange={(partial) => setFormAttributes((prev) => ({ ...prev, ...partial }))} onSave={handleCategoryFormSave} onReset={handleCategoryFormReset} />
