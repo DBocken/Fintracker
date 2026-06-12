@@ -24,7 +24,7 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardContent className="flex items-center justify-center py-12">
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </CardContent>
@@ -33,23 +33,21 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">
-            💰 Kontenübersicht
-          </CardTitle>
+    <Card className="flex h-full flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle>Konten</CardTitle>
           {accounts.length > 0 && (
             <div className="text-right">
-              <div className="text-sm text-muted-foreground">Gesamtsaldo</div>
-              <div className="text-2xl font-bold">
+              <div className="text-xs text-muted-foreground">Gesamtsaldo</div>
+              <div className="text-lg font-semibold tabular-nums">
                 {formatBalance(totalBalance)}
               </div>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {error && (
           <div className="text-destructive text-sm mb-4">
             Fehler beim Laden der Konten
@@ -62,67 +60,42 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
             <p className="text-sm mt-2">Verbinde dein erstes Bankkonto über PSD2 oder erstelle manuell ein Konto.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ul className="divide-y">
             {accounts.map((account) => {
               const hasBankConnection = !!account.gocardless_account_id
               const b = balances[account.id] || { amount: 0, source: 'local' as const }
 
               return (
-                <Card
-                  key={account.id}
-                  className="bg-muted/40 border hover:border-primary/40 transition-all"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{account.icon}</span>
-                        <CardTitle className="text-base truncate">
-                          {account.name}
-                        </CardTitle>
-                      </div>
+                <li key={account.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <span className="text-xl leading-none">{account.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{account.name}</span>
                       {hasBankConnection && (
-                        <div className="text-xs bg-positive/15 text-positive dark:text-positive px-2 py-1 rounded-full">
+                        <span
+                          className="shrink-0 rounded-full bg-positive/15 px-2 py-0.5 text-[10px] font-medium text-positive"
+                          title="Synchronisation aktiv"
+                        >
                           PSD2
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Kontostand</div>
-                      <div className="text-xl font-bold">
-                        {formatBalance(b.amount)}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Quelle:{' '}
-                        <span className="text-foreground">
-                          {b.source === 'bank'
-                            ? `Bank (${b.balanceType || 'closingBooked'})`
-                            : 'Lokal (Summe Transaktionen)'}
                         </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">
-                        Typ: <span className="text-foreground">{account.type}</span>
-                      </div>
-                      {account.description && (
-                        <div className="text-xs text-muted-foreground">
-                          Beschreibung: <span className="text-foreground truncate block">{account.description}</span>
-                        </div>
-                      )}
-                      {account.gocardless_account_id && (
-                        <div className="text-xs text-muted-foreground">
-                          Synchronisation: <span className="text-positive dark:text-positive">Aktiv</span>
-                        </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="truncate text-xs text-muted-foreground" title={account.description || undefined}>
+                      {account.type}
+                      {' · '}
+                      {b.source === 'bank'
+                        ? `Bank (${b.balanceType || 'closingBooked'})`
+                        : 'Lokal (Summe Transaktionen)'}
+                      {account.description ? ` · ${account.description}` : ''}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                    {formatBalance(b.amount)}
+                  </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
       </CardContent>
     </Card>
