@@ -350,18 +350,52 @@ export const localEncryption = {
   },
 }
 
+// Häufige, triviale Passwörter (bzw. deren Anfang) werden hart abgewertet.
+const COMMON_PASSWORD_PREFIXES =
+  /^(password|passwort|geheim|123456|12345678|qwertz|qwerty|asdfgh|111111|000000|abc123|letmein|admin|willkommen|welcome|iloveyou|monkey|dragon)/i
+
+/**
+ * Schätzt die Passwortstärke über die Shannon-Entropie (Länge × Zeichenraum),
+ * abzüglich Strafen für Wiederholungen und einfache Sequenzen (abc, 123).
+ * Ersetzt die frühere reine Längen-/Klassen-Heuristik (Issue #32): so wird
+ * z. B. "aaaaaaaaaa" trotz Länge realistisch als schwach erkannt.
+ *
+ * @returns score 0–100 sowie ein Label (schwach < 36 bit ≤ mittel < 66 bit ≤ stark)
+ */
 export function estimatePasswordStrength(password: string): { score: number; label: string } {
   const p = password || ''
-  let score = 0
+  if (!p) return { score: 0, label: 'schwach' }
 
-  if (p.length >= 10) score += 25
-  if (p.length >= 14) score += 20
-  if (/[a-z]/.test(p)) score += 15
-  if (/[A-Z]/.test(p)) score += 15
-  if (/\d/.test(p)) score += 15
-  if (/[^a-zA-Z0-9]/.test(p)) score += 10
+  let pool = 0
+  if (/[a-z]/.test(p)) pool += 26
+  if (/[A-Z]/.test(p)) pool += 26
+  if (/[0-9]/.test(p)) pool += 10
+  if (/[^a-zA-Z0-9]/.test(p)) pool += 33
 
-  if (score < 35) return { score, label: 'schwach' }
-  if (score < 70) return { score, label: 'mittel' }
-  return { score, label: 'stark' }
+  // Effektive Länge: aufeinanderfolgende gleiche Zeichen und einfache
+  // Sequenzen tragen weniger zur tatsächlichen Entropie bei.
+  let effectiveLength = 0
+  for (let i = 0; i < p.length; i++) {
+    let factor = 1
+    if (i > 0) {
+      const diff = Math.abs(p.charCodeAt(i) - p.charCodeAt(i - 1))
+      if (diff === 0) factor = 0.3 // Wiederholung (aaaa)
+      else if (diff === 1) factor = 0.6 // Sequenz (abc, 123)
+    }
+    effectiveLength += factor
+  }
+
+  const bitsPerChar = pool > 1 ? Math.log2(pool) : 1
+  let bits = effectiveLength * bitsPerChar
+
+  if (COMMON_PASSWORD_PREFIXES.test(p)) {
+    bits = Math.min(bits, 20)
+  }
+
+  const score = Math.max(0, Math.min(100, Math.round(bits * 1.15)))
+  let label: string = 'schwach'
+  if (bits >= 66) label = 'stark'
+  else if (bits >= 36) label = 'mittel'
+
+  return { score, label }
 }

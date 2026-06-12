@@ -12,6 +12,24 @@ describe("estimatePasswordStrength", () => {
     expect(res.label).toBe("stark");
     expect(res.score).toBeGreaterThanOrEqual(70);
   });
+
+  it("erkennt reine Wiederholung trotz Länge als schwach (Entropie statt Länge)", () => {
+    expect(estimatePasswordStrength("aaaaaaaaaaaa").label).toBe("schwach");
+  });
+
+  it("wertet einfache Sequenzen ab", () => {
+    expect(estimatePasswordStrength("abcdefghijkl").label).toBe("schwach");
+  });
+
+  it("wertet gängige Passwörter hart ab", () => {
+    const res = estimatePasswordStrength("Passwort123!");
+    expect(res.label).toBe("schwach");
+    expect(res.score).toBeLessThanOrEqual(25);
+  });
+
+  it("bewertet ein mittellanges gemischtes Passwort als mittel", () => {
+    expect(estimatePasswordStrength("Abcr8xKq").label).toBe("mittel");
+  });
 });
 
 describe("localEncryption Roundtrip", () => {
