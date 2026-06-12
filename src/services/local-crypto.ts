@@ -381,6 +381,54 @@ export const localEncryption = {
   },
 }
 
+// --- Standalone-Verschlüsselung (Issue #36) ----------------------------------
+// Passwort-basiertes Verschlüsseln/Entschlüsseln OHNE den Zustand der lokalen
+// At-Rest-Verschlüsselung anzufassen. Eine Implementierung für verschlüsselte
+// Backups (#30) und das Vault-Format (#36) — gleiche Envelope-Struktur.
+
+function freshStandaloneConfig(): LocalEncryptionConfigV1 {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  return {
+    v: 1,
+    enabled: true,
+    kdf: {
+      name: 'PBKDF2',
+      hash: 'SHA-256',
+      iterations: 210_000,
+      salt_b64: b64encode(salt),
+    },
+    cipher: {
+      name: 'AES-GCM',
+      key_length: 256,
+    },
+  }
+}
+
+export async function encryptJsonWithPassword(value: unknown, password: string): Promise<EncryptedEnvelopeV1> {
+  if (!password) throw new Error('Passwort darf nicht leer sein.')
+  const cfg = freshStandaloneConfig()
+  const key = await deriveKeyFromPassword(password, cfg)
+  return encryptString(JSON.stringify(value), key, cfg)
+}
+
+export async function decryptJsonWithPassword<T>(envelope: EncryptedEnvelopeV1, password: string): Promise<T> {
+  if (!isEnvelopeV1(envelope)) throw new Error('Ungültige verschlüsselte Datei.')
+  const cfg: LocalEncryptionConfigV1 = {
+    v: 1,
+    enabled: true,
+    kdf: envelope.kdf,
+    cipher: { name: 'AES-GCM', key_length: 256 },
+  }
+  const key = await deriveKeyFromPassword(password, cfg)
+  let plaintext: string
+  try {
+    plaintext = await decryptString(envelope, key)
+  } catch {
+    throw new Error('Falsches Passwort')
+  }
+  return JSON.parse(plaintext) as T
+}
+
 // Häufige, triviale Passwörter (bzw. deren Anfang) werden hart abgewertet.
 const COMMON_PASSWORD_PREFIXES =
   /^(password|passwort|geheim|123456|12345678|qwertz|qwerty|asdfgh|111111|000000|abc123|letmein|admin|willkommen|welcome|iloveyou|monkey|dragon)/i

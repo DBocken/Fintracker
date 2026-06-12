@@ -3,7 +3,11 @@ import { requireUserId } from './auth-service';
 import type { Category, Account, UserSettings } from '../types';
 import { getCategories, getTransactions, getUserSettings, saveTransactions } from './transaction-service';
 import { createAccount, getAccounts } from './account-service';
-import { localEncryption, type EncryptedEnvelopeV1 } from './local-crypto';
+import {
+  encryptJsonWithPassword,
+  decryptJsonWithPassword,
+  type EncryptedEnvelopeV1,
+} from './local-crypto';
 
 /**
  * Complete backup data structure
@@ -104,30 +108,11 @@ class BackupService {
   async downloadEncryptedBackup(password: string, backup?: BackupData): Promise<void> {
     const data = backup || await this.createBackup();
 
-    // Encrypted backup is independent of local-at-rest encryption toggle.
-    // We temporarily enable the crypto context, encrypt the backup, and then restore the previous state.
-    const prevCfg = localEncryption.getConfig();
-    const prevUnlocked = localEncryption.isUnlocked();
-
-    try {
-      if (!prevCfg) {
-        await localEncryption.enable(password);
-      } else {
-        await localEncryption.unlock(password);
-      }
-
-      const payload = await localEncryption.encryptJson(data);
-      await this.downloadEncryptedFile(payload, data.timestamp);
-    } finally {
-      localEncryption.lock();
-      if (!prevCfg) {
-        localStorage.removeItem('ausgabentracker_local_encryption_check_v1');
-        localStorage.removeItem('ausgabentracker_local_encryption_config_v1');
-      } else {
-        // Keep config; if it was unlocked before, we intentionally require re-unlock.
-        void prevUnlocked;
-      }
-    }
+    // Standalone-Verschlüsselung (Issue #36): unabhängig von der lokalen
+    // At-Rest-Verschlüsselung, ohne deren Zustand anzufassen. Gleiche
+    // Envelope wie das Vault-Format — eine Implementierung für beides.
+    const payload = await encryptJsonWithPassword(data, password);
+    await this.downloadEncryptedFile(payload, data.timestamp);
   }
 
   private async downloadEncryptedFile(payload: EncryptedEnvelopeV1, timestampIso: string) {
@@ -204,27 +189,9 @@ class BackupService {
       throw new Error('Ungültiges verschlüsseltes Backup-Format')
     }
 
-    // Decrypt without changing the user's local encryption configuration.
-    const prevCfg = localEncryption.getConfig();
-    const prevUnlocked = localEncryption.isUnlocked();
-
-    try {
-      if (!prevCfg) {
-        await localEncryption.enable(password);
-      } else {
-        await localEncryption.unlock(password);
-      }
-
-      return await localEncryption.decryptJson<BackupData>(parsed.payload);
-    } finally {
-      localEncryption.lock();
-      if (!prevCfg) {
-        localStorage.removeItem('ausgabentracker_local_encryption_check_v1');
-        localStorage.removeItem('ausgabentracker_local_encryption_config_v1');
-      } else {
-        void prevUnlocked;
-      }
-    }
+    // Standalone-Entschlüsselung — verändert die lokale
+    // Verschlüsselungs-Konfiguration des Nutzers nicht (Issue #36).
+    return await decryptJsonWithPassword<BackupData>(parsed.payload, password);
   }
 
   /**
