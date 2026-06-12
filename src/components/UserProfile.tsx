@@ -1,4 +1,4 @@
-import { User as UserIcon, Settings as SettingsIcon } from "lucide-react";
+import { User as UserIcon, Settings as SettingsIcon, EyeOff } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
   Card,
@@ -15,7 +15,9 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
+import { useGentleMode } from "@/components/providers/GentleModeProvider";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'ruhe';
@@ -29,6 +31,7 @@ function normalizeSkinId(raw?: string | null): SkinId {
 export function UserProfile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { enabled: gentleModeEnabled, toggle: toggleGentleMode } = useGentleMode();
 
   const { data: settings } = useQuery({
     queryKey: ['userSettings'],
@@ -135,6 +138,20 @@ export function UserProfile() {
               <div className="mt-1 text-[11px] text-muted-foreground">
                 Hinweis: Helles/Dunkles Erscheinungsbild schaltest du über den Schalter oben um.
               </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Sanfter Modus</span>
+              </div>
+              <Switch
+                checked={gentleModeEnabled}
+                onCheckedChange={() => toggleGentleMode()}
+              />
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Versteckt Beträge und zeigt Fortschritt statt Salden.
             </div>
 
             <p className="text-xs text-muted-foreground">

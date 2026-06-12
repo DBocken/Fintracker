@@ -100,6 +100,7 @@ export interface UserSettings {
     active: string[];
   };
   preferred_market_provider?: 'yahoo' | 'stooq';
+  gentle_mode?: boolean;
 }
 
 export interface HierarchicalCategory extends Category {

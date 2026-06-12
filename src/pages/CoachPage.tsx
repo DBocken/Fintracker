@@ -13,8 +13,10 @@ import { evaluateMilestones } from "@/services/milestones-service";
 import { getTransactions } from "@/services/transaction-service";
 import { getDebts } from "@/services/debt-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import { useGentleMode } from "@/components/providers/GentleModeProvider";
 
 export default function CoachPage() {
+  const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview"], queryFn: getCoachOverview });
   const { data: health } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
   const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones"], queryFn: evaluateMilestones });
@@ -68,8 +70,12 @@ export default function CoachPage() {
         </div>
         <div className="rounded-2xl border bg-card p-5 shadow-sm">
           <div className="text-sm text-muted-foreground">Schuldenkontext</div>
-          <div className="mt-2 text-xl font-semibold">{coach?.debtSummary.totalDebt.toFixed(0)} € offen</div>
-          <p className="mt-2 text-sm text-muted-foreground">Mindestraten: {coach?.debtSummary.minimumMonthlyBurden.toFixed(0)} € / Monat</p>
+          <div className="mt-2 text-xl font-semibold">
+            {gentleModeEnabled ? "*** € offen" : `${coach?.debtSummary.totalDebt.toFixed(0)} € offen`}
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Mindestraten: {gentleModeEnabled ? "***" : `${coach?.debtSummary.minimumMonthlyBurden.toFixed(0)}`} € / Monat
+          </p>
           <p className="mt-3 text-sm">Schneller ist aktuell: {coach?.debtSummary.preferredStrategy === "avalanche" ? "Lawine (höchster Zins zuerst)" : "Schneeball (kleinste Schuld zuerst)"}</p>
         </div>
       </section>

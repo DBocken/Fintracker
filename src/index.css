@@ -141,3 +141,23 @@
     @apply font-display;
   }
 }
+
+/*
+ * Sanfter Modus (Issue #48) — Finanzielle Daten verbergen, Fortschritt zeigen
+ * Aktiviert bei .gentle-mode auf document root.
+ */
+@layer utilities {
+  .gentle-mode [data-gentle-hide] {
+    @apply invisible;
+  }
+
+  .gentle-mode [data-gentle-placeholder]::before {
+    content: attr(data-gentle-placeholder);
+    @apply text-muted-foreground font-medium;
+  }
+
+  /* Text-basierte Beträge verbergen (z.B. "1.234,56 €") */
+  .gentle-mode [data-amount] {
+    @apply text-transparent;
+  }
+}

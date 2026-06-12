@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ToastProvider from './components/providers/ToastProvider'
 import AuthProvider from './components/providers/AuthProvider'
 import SkinProvider from './components/providers/SkinProvider'
+import GentleModeProvider from './components/providers/GentleModeProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import '@/integrations/capacitor/setup'
 import { LocalEncryptionProvider } from '@/components/providers/LocalEncryptionProvider'
@@ -40,9 +41,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <LocalEncryptionProvider>
             <SkinProvider>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
+              <GentleModeProvider>
+                <ToastProvider>
+                  <App />
+                </ToastProvider>
+              </GentleModeProvider>
             </SkinProvider>
           </LocalEncryptionProvider>
         </AuthProvider>
