@@ -10,11 +10,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCoachOverview } from "@/services/coach-service";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { evaluateMilestones } from "@/services/milestones-service";
+import { getTransactions } from "@/services/transaction-service";
+import { getDebts } from "@/services/debt-service";
+import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 
 export default function CoachPage() {
   const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview"], queryFn: getCoachOverview });
   const { data: health } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
   const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones"], queryFn: evaluateMilestones });
+
+  // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
+  // klare nächste Aktion statt leerer Karten. Eigener queryKey, damit der
+  // Transactions-Cache des Dashboards (Limit 5000) nicht verfälscht wird.
+  const { data: hasData } = useQuery({
+    queryKey: ["has-finance-data"],
+    queryFn: async () => {
+      const [txs, debts] = await Promise.all([getTransactions(1), getDebts()]);
+      return txs.length > 0 || debts.length > 0;
+    },
+  });
+
+  if (hasData === false) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
+        <FinanceEmptyState />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

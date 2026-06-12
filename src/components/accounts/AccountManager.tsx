@@ -15,7 +15,6 @@ import {
   deleteAccount,
   canCreateAccount,
   ACCOUNT_TYPE_LABELS,
-  FREE_ACCOUNT_LIMIT,
   formatSyncStatus
 } from '../../services/account-service';
 import { AccountFormDialog } from './AccountFormDialog';
@@ -314,8 +313,9 @@ export function AccountManager() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Du hast das Limit von {FREE_ACCOUNT_LIMIT} Konten erreicht.
-                Upgrade auf Premium für unbegrenzte Konten.
+                {limitInfo.limit === 1
+                  ? "Mehrere Konten gibt es mit dem kostenlosen Login. Deine Daten bleiben trotzdem auf deinem Gerät — der Login schaltet nur zusätzliche Konten und die Bankanbindung frei."
+                  : `Du hast das Limit von ${limitInfo.limit} Konten erreicht. Upgrade auf Premium für unbegrenzte Konten.`}
               </AlertDescription>
             </Alert>
           )}

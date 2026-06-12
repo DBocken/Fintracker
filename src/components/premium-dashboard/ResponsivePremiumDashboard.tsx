@@ -8,8 +8,11 @@ import type { Transaction, Category } from "../../types";
 import { TimelineChart } from "./TimelineChart";
 import { SmartInsightsPanel } from "./SmartInsightsPanel";
 import { HeatmapCalendar } from "./HeatmapCalendar";
+import { SankeyChart } from "./SankeyChart";
+import { WeeklyPatternCharts } from "./WeeklyPatternCharts";
 import { KpiSection } from "@/components/kpi/KpiSection";
 import { dyadProps } from "@/lib/dyad";
+import { buildSankeyData, buildWeekdayPattern } from "@/lib/analysis-data";
 
 type FlowMode = "live" | "month" | "average";
 
@@ -17,9 +20,11 @@ export function ResponsivePremiumDashboard() {
   const [flowMode, setFlowMode] = useState<FlowMode>("live");
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
+  // Gleiche Query wie das Basis-Dashboard (gleicher queryKey ⇒ gleiches Limit),
+  // damit der Cache konsistent bleibt (Issue #40).
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
-    queryFn: () => getTransactions(1000),
+    queryFn: () => getTransactions(5000),
   });
 
   const { data: categories = [] } = useQuery<Category[]>({
@@ -158,6 +163,11 @@ export function ResponsivePremiumDashboard() {
       .map(([, v]) => v);
   }, [flowTransactions]);
 
+  // Sankey mit Drilldown + Wochenmuster (Issue #40) — gleiche Datenbasis
+  // wie das Basis-Sankey, eine Implementierung (lib/analysis-data).
+  const sankeyData = useMemo(() => buildSankeyData(flowTransactions, categories), [flowTransactions, categories]);
+  const weekdayPattern = useMemo(() => buildWeekdayPattern(flowTransactions), [flowTransactions]);
+
   const fd = financialData ?? {
     totalIncome: 0,
     totalExpenses: 0,
@@ -214,6 +224,24 @@ export function ResponsivePremiumDashboard() {
         </div>
 
         <TimelineChart data={timelineData} flowTransactions={flowTransactions} categories={categories} />
+      </section>
+
+      <section {...dyadProps("PremiumSankeySection")} className="space-y-4">
+        <div>
+          <div className="text-sm font-semibold">Wohin fließt mein Geld?</div>
+          <div className="text-xs text-muted-foreground">
+            Klicke auf eine Hauptkategorie, um in die Unterkategorien einzutauchen.
+          </div>
+        </div>
+        <SankeyChart data={sankeyData} enableDrilldown />
+      </section>
+
+      <section {...dyadProps("PremiumWeekdaySection")} className="space-y-4">
+        <div>
+          <div className="text-sm font-semibold">Wann fließt mein Geld?</div>
+          <div className="text-xs text-muted-foreground">Einnahmen und Ausgaben nach Wochentag.</div>
+        </div>
+        <WeeklyPatternCharts weeklyData={weekdayPattern} />
       </section>
 
       <section {...dyadProps("PremiumInsightsSection")} className="space-y-4">

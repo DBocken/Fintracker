@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -23,6 +24,7 @@ import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
+import { BackupManager } from '../BackupManager';
 
 function SectionHeader({
   icon,
@@ -252,6 +254,21 @@ export function EnhancedSettings() {
             <LocalEncryptionSettings />
             <PrivacySyncAnalyticsSettings />
           </div>
+          <Link
+            to="/privacy"
+            className="mt-4 inline-block text-sm font-medium text-positive underline-offset-2 hover:underline"
+          >
+            Wie wir mit deinen Daten umgehen →
+          </Link>
+        </section>
+
+        <section className="mb-10" id="backups">
+          <SectionHeader
+            icon={<HardDrive className="h-5 w-5" />}
+            title="Backups"
+            description="Verschlüsselte Sicherungen deiner lokalen Daten erstellen und wiederherstellen."
+          />
+          <BackupManager />
         </section>
 
         <section className="mb-10">

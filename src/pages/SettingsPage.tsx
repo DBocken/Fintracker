@@ -1,10 +1,8 @@
 import { EnhancedSettings } from '../components/settings/EnhancedSettings';
-import { FeatureGate } from "@/components/FeatureGate";
 
+// Einstellungen sind bewusst NICHT tier-gated (Issue #42): auch anonyme
+// Nutzer brauchen Zugriff auf Kategorien, lokale Verschlüsselung, Backups
+// und die Danger-Zone. Bank-spezifische Bereiche gaten sich selbst.
 export default function SettingsPage() {
-  return (
-    <FeatureGate feature="bankSync">
-      <EnhancedSettings />
-    </FeatureGate>
-  );
+  return <EnhancedSettings />;
 }

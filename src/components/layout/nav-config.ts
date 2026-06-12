@@ -9,14 +9,13 @@ import {
   CreditCard,
   Wallet,
   Settings,
-  HardDrive,
   Sparkles,
   Banknote,
   Coins,
 } from "lucide-react";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
 
-import type { Tier } from "@/lib/tiers";
+import type { Tier } from "@/lib/tier";
 
 export type NavItem = {
   label: string;
@@ -34,6 +33,12 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+/**
+ * Navigation nach neuem Produktfokus (Issue #42): Coach und Schulden
+ * prominent, Analysen konsolidiert, Daten & Verwaltung zusammengefasst.
+ * Entwickler-Werkzeuge (Performance) und Backups leben in den
+ * Einstellungen, nicht in der Hauptnavigation.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     id: "coach",
@@ -62,26 +67,19 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "daten",
-    label: "Daten",
+    label: "Daten & Konten",
     items: [
+      { label: "Konten", path: "/accounts", icon: CreditCard },
       { label: "CSV Upload", path: "/csv", icon: Upload },
       { label: "Daten Export", path: "/export", icon: Download },
+      { label: "Verträge", path: "/contracts", icon: Wallet },
     ],
   },
   {
     id: "verwaltung",
     label: "Verwaltung",
     items: [
-      { label: "Konten", path: "/accounts", icon: CreditCard },
-      { label: "Verträge", path: "/contracts", icon: Wallet },
       { label: "Einstellungen", path: "/settings", icon: Settings },
-    ],
-  },
-  {
-    id: "mehr",
-    label: "Mehr",
-    items: [
-      { label: "Backups", path: "/backups", icon: HardDrive },
     ],
   },
 ];
@@ -95,4 +93,27 @@ export function getVisibleNavGroups(): NavGroup[] {
     ...group,
     items: group.items.filter((item) => !item.betaFlag || isFeatureEnabled(item.betaFlag)),
   })).filter((group) => group.items.length > 0);
+}
+
+/**
+ * Bottom-Nav (mobil): 4 Kernziele + „Mehr"-Tab (Issue #42).
+ * Die Einträge referenzieren NAV_GROUPS über den Pfad, damit Nav-Konfiguration,
+ * Command-Palette und Bottom-Nav aus derselben Quelle gespeist werden.
+ * `shortLabel` ist die platzsparende Beschriftung für den Tab.
+ */
+const BOTTOM_NAV_TARGETS: { path: string; shortLabel: string }[] = [
+  { path: "/coach", shortLabel: "Heute" },
+  { path: "/debts", shortLabel: "Schulden" },
+  { path: "/dashboard", shortLabel: "Analyse" },
+  { path: "/accounts", shortLabel: "Konten" },
+];
+
+export type BottomNavItem = NavItem & { shortLabel: string };
+
+export function getBottomNavItems(): BottomNavItem[] {
+  const allItems = NAV_GROUPS.flatMap((group) => group.items);
+  return BOTTOM_NAV_TARGETS.flatMap(({ path, shortLabel }) => {
+    const item = allItems.find((i) => i.path === path);
+    return item ? [{ ...item, shortLabel }] : [];
+  });
 }

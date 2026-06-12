@@ -6,6 +6,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
 import ThemeToggle from "@/components/ThemeToggle";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ function getTitle(pathname: string) {
       }
     }
   }
-  if (pathname === "/performance") return "Performance";
   return "Ausgabentracker";
 }
 
@@ -61,6 +61,8 @@ export default function AppShell() {
               <UserQuickProfile />
             </div>
           </header>
+
+          <DemoDataBanner />
 
           <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
             <div className="mx-auto w-full max-w-[1320px] px-4 py-6 md:px-8">

@@ -13,7 +13,7 @@ import CoachPage from "@/pages/CoachPage";
 import DebtsPage from "@/pages/DebtsPage";
 import NetWorthPage from "@/pages/NetWorthPage";
 import DashboardPage from "@/pages/DashboardPage";
-import PremiumPage from "@/pages/PremiumPage";
+import AnalysisPage from "@/pages/AnalysisPage";
 import SimulationPage from "@/pages/SimulationPage";
 import TradingPage from "@/pages/TradingPage";
 import ContractsPage from "@/pages/ContractsPage";
@@ -21,8 +21,7 @@ import AccountsPage from "@/pages/AccountsPage";
 import CsvPage from "@/pages/CsvPage";
 import ExportPage from "@/pages/ExportPage";
 import SettingsPage from "@/pages/SettingsPage";
-import PerformancePage from "@/pages/PerformancePage";
-import BackupsPage from "@/pages/BackupsPage";
+import PrivacyPage from "@/pages/PrivacyPage";
 
 function LockedRedirect() {
   const location = useLocation();
@@ -48,6 +47,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
+          {/* Privacy-Seite auch vor dem Einstieg erreichbar (Issue #41) */}
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
         </Routes>
       </BrowserRouter>
@@ -85,7 +86,7 @@ function App() {
               <Route path="/debts" element={<DebtsPage />} />
               <Route path="/net-worth" element={<NetWorthPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/premium" element={<AnalysisPage />} />
               <Route path="/simulation" element={<SimulationPage />} />
               <Route
                 path="/trading"
@@ -96,8 +97,10 @@ function App() {
               <Route path="/csv" element={<CsvPage />} />
               <Route path="/export" element={<ExportPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/performance" element={<PerformancePage />} />
-              <Route path="/backups" element={<BackupsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              {/* Backups & Performance leben jetzt in den Einstellungen (Issue #42) */}
+              <Route path="/backups" element={<Navigate to="/settings" replace />} />
+              <Route path="/performance" element={<Navigate to="/settings" replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/coach" replace />} />

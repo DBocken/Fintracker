@@ -52,4 +52,20 @@ describe("verschlüsseltes Backup Roundtrip (Issue #30)", () => {
     const restored = await localEncryption.decryptJson<BackupData>(file.payload);
     expect(restored).toEqual(backup);
   });
+
+  it("Standalone-Roundtrip (Issue #36): verschlüsselt ohne lokale Konfiguration anzufassen", async () => {
+    const { encryptJsonWithPassword, decryptJsonWithPassword } = await import("./local-crypto");
+    const backup = sampleBackup();
+
+    const payload = await encryptJsonWithPassword(backup, "umzugs-passwort-2026");
+
+    // Lokale At-Rest-Verschlüsselung bleibt unberührt
+    expect(localEncryption.isEnabled()).toBe(false);
+    expect(JSON.stringify(payload)).not.toContain("REWE");
+
+    const restored = await decryptJsonWithPassword<BackupData>(payload, "umzugs-passwort-2026");
+    expect(restored).toEqual(backup);
+
+    await expect(decryptJsonWithPassword(payload, "falsch")).rejects.toThrow("Falsches Passwort");
+  });
 });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { startAnonymousMode } from "@/lib/anonymous-mode";
+import { loadDemoData } from "@/services/demo-data-service";
 
 const PRODUCTION_APP_ORIGIN = "https://fintracker-phi.vercel.app";
 
@@ -28,10 +30,26 @@ function Login({ onStartAnonymous }: LoginProps) {
   const isInIframe = typeof window !== "undefined" && window.top !== window.self;
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const [showLogin, setShowLogin] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const handleStartAnonymous = () => {
     startAnonymousMode();
     onStartAnonymous?.();
+  };
+
+  // Erststart mit Beispieldaten (Issue #39): Demo laden, anonym starten und
+  // direkt auf dem gefüllten Dashboard landen (Aha-Moment < 30 Sekunden).
+  const handleStartDemo = async () => {
+    setDemoLoading(true);
+    try {
+      await loadDemoData();
+      startAnonymousMode();
+      // Ziel-URL vor dem Router-Wechsel setzen — der App-Router übernimmt sie.
+      window.history.replaceState(null, "", "/dashboard");
+      onStartAnonymous?.();
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   const openInNewTab = () => {
@@ -99,6 +117,17 @@ function Login({ onStartAnonymous }: LoginProps) {
         <Button className="w-full" size="lg" onClick={handleStartAnonymous}>
           Ohne Anmeldung starten
           <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        </Button>
+
+        {/* Erst mal nur schauen: Beispieldaten (Issue #39) */}
+        <Button
+          variant="outline"
+          className="mt-2 w-full"
+          size="lg"
+          onClick={handleStartDemo}
+          disabled={demoLoading}
+        >
+          {demoLoading ? "Beispieldaten werden geladen…" : "Mit Beispieldaten ansehen"}
         </Button>
 
         {/* Kurze Tier-Erklärung */}
@@ -207,6 +236,16 @@ function Login({ onStartAnonymous }: LoginProps) {
               Mit Google anmelden
             </Button>
           )}
+        </div>
+
+        {/* Link zur Privacy-Seite (Issue #41) */}
+        <div className="mt-4 text-center">
+          <Link
+            to="/privacy"
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Wie wir mit deinen Daten umgehen
+          </Link>
         </div>
       </Card>
     </div>

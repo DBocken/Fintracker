@@ -1,11 +1,14 @@
 import type { Account, AccountType } from '../types';
 import { getCurrentUserId } from './auth-service';
+import { isDemoRecord } from './demo-data-service';
 import {
   deleteLocalFinanceItem,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
 } from './local-finance-store';
+import { evaluateAccountCreation, type AccountCreationCheck } from '../lib/account-limits';
+import type { Tier } from '../lib/tier';
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   checking: 'Girokonto',
@@ -32,10 +35,29 @@ export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
   other: '#7d8a87',
 };
 
-export const FREE_ACCOUNT_LIMIT = 3;
+export { FREE_ACCOUNT_LIMIT } from '../lib/constants';
 
 async function localUserId(): Promise<string> {
   return (await getCurrentUserId()) || 'local';
+}
+
+/**
+ * Tier in der Service-Schicht (Issue #59): ohne Login anonymous, mit
+ * Login free. Premium folgt mit der Paywall (#52) über Entitlements.
+ */
+async function currentAccountTier(): Promise<Tier> {
+  return (await getCurrentUserId()) ? 'free' : 'anonymous';
+}
+
+/**
+ * Prüft das Konto-Limit zentral (nicht nur im UI). Demo-Konten (Issue #39)
+ * zählen nicht mit — sie sind mit einem Klick entfernbar und dürfen die
+ * erste echte Konto-Anlage nicht blockieren.
+ */
+async function checkAccountCreation(): Promise<AccountCreationCheck> {
+  const accounts = await getAccounts();
+  const realCount = accounts.filter((a) => !isDemoRecord(a)).length;
+  return evaluateAccountCreation(await currentAccountTier(), realCount);
 }
 
 function sortAccounts(accounts: Account[]) {
@@ -52,10 +74,12 @@ export async function getAccountById(id: string): Promise<Account | null> {
 }
 
 export async function createAccount(account: Partial<Account>): Promise<Account> {
-  const existingAccounts = await getAccounts();
-  if (existingAccounts.length >= FREE_ACCOUNT_LIMIT) {
-    throw new Error(`Maximale Anzahl von ${FREE_ACCOUNT_LIMIT} Konten erreicht. Upgrade auf Premium für unbegrenzte Konten.`);
+  const check = await checkAccountCreation();
+  if (!check.allowed) {
+    throw new Error(check.message || `Konto-Limit von ${check.limit} erreicht.`);
   }
+
+  const existingAccounts = await getAccounts();
 
   const type = account.type || 'checking';
   return upsertLocalFinanceItem<Account>('accounts', {
@@ -105,11 +129,11 @@ export async function getOrCreateDefaultAccount(): Promise<Account> {
 }
 
 export async function canCreateAccount(): Promise<{ allowed: boolean; current: number; limit: number }> {
-  const accounts = await getAccounts();
+  const check = await checkAccountCreation();
   return {
-    allowed: accounts.length < FREE_ACCOUNT_LIMIT,
-    current: accounts.length,
-    limit: FREE_ACCOUNT_LIMIT,
+    allowed: check.allowed,
+    current: check.current,
+    limit: check.limit,
   };
 }
 

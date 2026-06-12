@@ -116,6 +116,8 @@ export const ACCOUNT_TYPE_COLORS = {
 } as const;
 
 export const FREE_ACCOUNT_LIMIT = 3;
+/** Anonym-Modus: genau 1 Konto — die lokale, verschlüsselte Datei (Issue #59). */
+export const ANONYMOUS_ACCOUNT_LIMIT = 1;
 
 // ============================================
 // Transactions

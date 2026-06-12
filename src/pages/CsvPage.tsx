@@ -17,7 +17,9 @@ export default function CsvPage() {
   const handleConfirm = () => {
     showSuccess(`${transactions.length} Transaktionen importiert`);
     setShowReview(false);
-    navigate("/premium");
+    // Direkt zur Visualisierung (Issue #39): das einfache Sankey auf dem
+    // Basis-Dashboard ist der Aha-Moment — frei, ohne Login und Paywall.
+    navigate("/dashboard");
   };
 
   return !showReview ? (
