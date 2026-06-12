@@ -30,6 +30,7 @@ import {
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
 import { buildSankeyData } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
+import FinanceEmptyState from '@/components/common/FinanceEmptyState';
 
 function getRootCategoryId(byId: Map<string, Category>, id: string): string {
   let current = byId.get(id);
@@ -46,7 +47,7 @@ function getRootCategoryId(byId: Map<string, Category>, id: string): string {
 export function Dashboard() {
   const qc = useQueryClient();
 
-  const { data: txs = [] } = useQuery<Transaction[], Error>({
+  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
     queryKey: ['transactions'],
     queryFn: () => getTransactions(5000),
   });
@@ -364,6 +365,11 @@ export function Dashboard() {
       currency: 'EUR'
     }).format(amount);
   };
+
+  // Nie eine leere Seite: ohne Transaktionen klare nächste Aktionen (Issue #39).
+  if (!txsLoading && txs.length === 0) {
+    return <FinanceEmptyState />;
+  }
 
   return (
     <div {...dyadProps("Dashboard")} className="space-y-6 md:space-y-8">

@@ -4,6 +4,7 @@ import PageHeader from "@/components/common/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getNetWorthBreakdown } from "@/services/net-worth-service";
+import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -13,6 +14,11 @@ export default function NetWorthPage() {
     queryFn: getNetWorthBreakdown,
   });
 
+  // Leerer Zustand (Issue #39): ohne jede Position kein „0 €"-Vermögen
+  // anzeigen, sondern eine konkrete nächste Aktion.
+  const isEmpty =
+    !isLoading && data != null && data.cash === 0 && data.investments === 0 && data.debts === 0;
+
   return (
     <div>
       <PageHeader
@@ -20,7 +26,9 @@ export default function NetWorthPage() {
         description="Konten und Investitionen abzüglich deiner Schulden – dein wahres Vermögen."
       />
 
-      {isLoading ? (
+      {isEmpty ? (
+        <FinanceEmptyState />
+      ) : isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-24 w-full" />
