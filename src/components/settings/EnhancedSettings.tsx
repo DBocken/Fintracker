@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2 } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -22,6 +22,7 @@ import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
+import { DangerZoneSettings } from './DangerZoneSettings';
 
 function SectionHeader({
   icon,
@@ -262,13 +263,22 @@ export function EnhancedSettings() {
           <BetaFeaturesSettings />
         </section>
 
-        <section>
+        <section className="mb-10">
           <SectionHeader
             icon={<SettingsIcon className="h-5 w-5" />}
             title="Technischer Status"
             description="Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung."
           />
           <PerformanceDashboard />
+        </section>
+
+        <section>
+          <SectionHeader
+            icon={<Trash2 className="h-5 w-5" />}
+            title="Daten & Konto löschen"
+            description="Lokale Daten oder dein gesamtes Konto endgültig entfernen (DSGVO Art. 17)."
+          />
+          <DangerZoneSettings />
         </section>
       </div>
     </div>

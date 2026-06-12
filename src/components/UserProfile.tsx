@@ -1,4 +1,4 @@
-import { User as UserIcon, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { User as UserIcon, Settings as SettingsIcon } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import {
   Card,
@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -152,19 +152,7 @@ export function UserProfile() {
               <SettingsIcon className="mr-1 h-3 w-3" />
               Profil
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground"
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                showSuccess("Abgemeldet");
-              }}
-            >
-              <LogOut className="mr-1 h-3 w-3" />
-              Abmelden
-            </Button>
+            <LogoutButton className="text-xs text-muted-foreground" />
           </CardFooter>
         </Card>
       </DialogContent>

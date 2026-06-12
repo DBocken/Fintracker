@@ -1,3 +1,38 @@
+import { idbGet, idbSet, idbKeys, requestPersistentStorage } from './idb-kv'
+
+// --- Datenspeicher-Seam (Issue #29) ------------------------------------------
+// Die (verschlüsselten) Bulk-Daten liegen in IndexedDB statt localStorage.
+// Beim Lesen wird ein evtl. noch vorhandener localStorage-Altbestand transparent
+// nach IndexedDB übernommen (lazy migration). Die kleine Verschlüsselungs-Config
+// bleibt weiterhin in localStorage.
+
+let persistenceRequested = false
+
+async function readDataRaw(storageKey: string): Promise<string | null> {
+  const fromIdb = await idbGet(storageKey)
+  if (fromIdb != null) return fromIdb
+
+  // Lazy-Migration: Altbestand aus localStorage übernehmen.
+  if (typeof localStorage !== 'undefined') {
+    const legacy = localStorage.getItem(storageKey)
+    if (legacy != null) {
+      await idbSet(storageKey, legacy)
+      localStorage.removeItem(storageKey)
+      return legacy
+    }
+  }
+  return null
+}
+
+async function writeDataRaw(storageKey: string, raw: string): Promise<void> {
+  await idbSet(storageKey, raw)
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(storageKey)
+  if (!persistenceRequested) {
+    persistenceRequested = true
+    void requestPersistentStorage()
+  }
+}
+
 export type LocalEncryptionConfigV1 = {
   v: 1
   enabled: true
@@ -263,17 +298,17 @@ export const localEncryption = {
   async encryptAndStore(storageKey: string, value: unknown): Promise<void> {
     const cfg = loadConfig()
     if (!cfg) {
-      localStorage.setItem(storageKey, JSON.stringify(value))
+      await writeDataRaw(storageKey, JSON.stringify(value))
       return
     }
 
     const key = this.requireUnlocked()
     const envelope = await encryptString(JSON.stringify(value), key, cfg)
-    localStorage.setItem(storageKey, JSON.stringify(envelope))
+    await writeDataRaw(storageKey, JSON.stringify(envelope))
   },
 
   async loadAndMaybeDecrypt<T>(storageKey: string): Promise<T | null> {
-    const raw = localStorage.getItem(storageKey)
+    const raw = await readDataRaw(storageKey)
     if (!raw) return null
 
     const cfg = loadConfig()
@@ -296,7 +331,7 @@ export const localEncryption = {
     const key = this.requireUnlocked()
     const value = parsed as T
     const envelope = await encryptString(JSON.stringify(value), key, cfg)
-    localStorage.setItem(storageKey, JSON.stringify(envelope))
+    await writeDataRaw(storageKey, JSON.stringify(envelope))
     return value
   },
 
@@ -316,16 +351,12 @@ export const localEncryption = {
       'ausgabentracker_bank_connections_v1',
     ])
 
-    const keys: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (!k) continue
-      if (k.startsWith('ausgabentracker_transactions_v2__')) keys.push(k)
-      if (sensitiveKeys.has(k)) keys.push(k)
-    }
+    const keys = (await idbKeys()).filter(
+      (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),
+    )
 
     for (const storageKey of keys) {
-      const raw = localStorage.getItem(storageKey)
+      const raw = await idbGet(storageKey)
       if (!raw) continue
 
       let parsed: unknown
@@ -338,30 +369,64 @@ export const localEncryption = {
       if (mode === 'encrypt') {
         if (isEnvelopeV1(parsed)) continue
         const envelope = await encryptString(JSON.stringify(parsed), key, cfg)
-        localStorage.setItem(storageKey, JSON.stringify(envelope))
+        await writeDataRaw(storageKey, JSON.stringify(envelope))
         continue
       }
 
       // decrypt
       if (!isEnvelopeV1(parsed)) continue
       const pt = await decryptString(parsed, key)
-      localStorage.setItem(storageKey, pt)
+      await writeDataRaw(storageKey, pt)
     }
   },
 }
 
+// Häufige, triviale Passwörter (bzw. deren Anfang) werden hart abgewertet.
+const COMMON_PASSWORD_PREFIXES =
+  /^(password|passwort|geheim|123456|12345678|qwertz|qwerty|asdfgh|111111|000000|abc123|letmein|admin|willkommen|welcome|iloveyou|monkey|dragon)/i
+
+/**
+ * Schätzt die Passwortstärke über die Shannon-Entropie (Länge × Zeichenraum),
+ * abzüglich Strafen für Wiederholungen und einfache Sequenzen (abc, 123).
+ * Ersetzt die frühere reine Längen-/Klassen-Heuristik (Issue #32): so wird
+ * z. B. "aaaaaaaaaa" trotz Länge realistisch als schwach erkannt.
+ *
+ * @returns score 0–100 sowie ein Label (schwach < 36 bit ≤ mittel < 66 bit ≤ stark)
+ */
 export function estimatePasswordStrength(password: string): { score: number; label: string } {
   const p = password || ''
-  let score = 0
+  if (!p) return { score: 0, label: 'schwach' }
 
-  if (p.length >= 10) score += 25
-  if (p.length >= 14) score += 20
-  if (/[a-z]/.test(p)) score += 15
-  if (/[A-Z]/.test(p)) score += 15
-  if (/\d/.test(p)) score += 15
-  if (/[^a-zA-Z0-9]/.test(p)) score += 10
+  let pool = 0
+  if (/[a-z]/.test(p)) pool += 26
+  if (/[A-Z]/.test(p)) pool += 26
+  if (/[0-9]/.test(p)) pool += 10
+  if (/[^a-zA-Z0-9]/.test(p)) pool += 33
 
-  if (score < 35) return { score, label: 'schwach' }
-  if (score < 70) return { score, label: 'mittel' }
-  return { score, label: 'stark' }
+  // Effektive Länge: aufeinanderfolgende gleiche Zeichen und einfache
+  // Sequenzen tragen weniger zur tatsächlichen Entropie bei.
+  let effectiveLength = 0
+  for (let i = 0; i < p.length; i++) {
+    let factor = 1
+    if (i > 0) {
+      const diff = Math.abs(p.charCodeAt(i) - p.charCodeAt(i - 1))
+      if (diff === 0) factor = 0.3 // Wiederholung (aaaa)
+      else if (diff === 1) factor = 0.6 // Sequenz (abc, 123)
+    }
+    effectiveLength += factor
+  }
+
+  const bitsPerChar = pool > 1 ? Math.log2(pool) : 1
+  let bits = effectiveLength * bitsPerChar
+
+  if (COMMON_PASSWORD_PREFIXES.test(p)) {
+    bits = Math.min(bits, 20)
+  }
+
+  const score = Math.max(0, Math.min(100, Math.round(bits * 1.15)))
+  let label: string = 'schwach'
+  if (bits >= 66) label = 'stark'
+  else if (bits >= 36) label = 'mittel'
+
+  return { score, label }
 }

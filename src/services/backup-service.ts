@@ -28,6 +28,14 @@ export type EncryptedBackupFileV1 = {
 };
 
 /**
+ * Prüft, ob ein Backup einem anderen Konto gehört. Reine Funktion für die
+ * UI-Vorwarnung und Tests (Issue #30).
+ */
+export function isForeignBackup(backup: Pick<BackupData, 'userId'>, currentUserId: string): boolean {
+  return !!backup.userId && backup.userId !== currentUserId;
+}
+
+/**
  * Backup service for exporting and importing complete user data
  */
 class BackupService {
@@ -61,9 +69,21 @@ class BackupService {
   }
 
   /**
-   * Download backup as JSON file
+   * Download backup as UNENCRYPTED JSON file.
+   *
+   * Klartext-Export ist bewusst kein Standardweg mehr (Issue #30): Er enthält
+   * den kompletten Finanzdatensatz im Klartext. Aufrufer müssen das explizit
+   * bestätigen (`acknowledgeUnencrypted`), sonst wird der Export verweigert.
    */
-  async downloadBackup(backup?: BackupData): Promise<void> {
+  async downloadBackup(
+    backup?: BackupData,
+    options?: { acknowledgeUnencrypted?: boolean },
+  ): Promise<void> {
+    if (!options?.acknowledgeUnencrypted) {
+      throw new Error(
+        'Unverschlüsselter Export muss ausdrücklich bestätigt werden. Nutze bevorzugt das verschlüsselte Backup.',
+      );
+    }
     const data = backup || await this.createBackup();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -226,9 +246,16 @@ class BackupService {
   }
 
   /**
-   * Restore data from backup
+   * Restore data from backup.
+   *
+   * Fremd-Backups (andere user_id) werden nicht still importiert (Issue #30):
+   * ohne `allowForeign` wirft die Methode FOREIGN_BACKUP, damit die UI eine
+   * ausdrückliche Warnung/Bestätigung anzeigen kann.
    */
-  async restoreBackup(backupData: BackupData): Promise<{
+  async restoreBackup(
+    backupData: BackupData,
+    options?: { allowForeign?: boolean },
+  ): Promise<{
     success: boolean;
     message: string;
     details: {
@@ -246,9 +273,12 @@ class BackupService {
         throw new Error(`Backup-Version ${backupData.version} ist nicht kompatibel`);
       }
 
-      // Check if backup belongs to current user (optional, can be disabled)
+      // Check if backup belongs to current user.
       const belongsToCurrentUser = backupData.userId === userId;
-      
+      if (!belongsToCurrentUser && !options?.allowForeign) {
+        throw new Error('FOREIGN_BACKUP');
+      }
+
       let results = {
         transactions: 0,
         categories: 0,

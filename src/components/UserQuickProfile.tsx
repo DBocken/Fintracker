@@ -11,9 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { showSuccess } from "@/utils/toast";
-import { User as UserIcon, LogIn, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { User as UserIcon, LogIn, Settings as SettingsIcon } from "lucide-react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 function getInitials(name: string) {
   return name
@@ -105,19 +104,7 @@ export default function UserQuickProfile() {
               <SettingsIcon className="mr-1 h-3 w-3" />
               Profil
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground"
-              type="button"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                showSuccess("Abgemeldet");
-              }}
-            >
-              <LogOut className="mr-1 h-3 w-3" />
-              Abmelden
-            </Button>
+            <LogoutButton className="text-xs text-muted-foreground" />
           </CardFooter>
         </Card>
       </DialogContent>
