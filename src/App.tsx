@@ -21,6 +21,7 @@ import AccountsPage from "@/pages/AccountsPage";
 import CsvPage from "@/pages/CsvPage";
 import ExportPage from "@/pages/ExportPage";
 import SettingsPage from "@/pages/SettingsPage";
+import PrivacyPage from "@/pages/PrivacyPage";
 
 function LockedRedirect() {
   const location = useLocation();
@@ -46,6 +47,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
+          {/* Privacy-Seite auch vor dem Einstieg erreichbar (Issue #41) */}
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
         </Routes>
       </BrowserRouter>
@@ -94,6 +97,7 @@ function App() {
               <Route path="/csv" element={<CsvPage />} />
               <Route path="/export" element={<ExportPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               {/* Backups & Performance leben jetzt in den Einstellungen (Issue #42) */}
               <Route path="/backups" element={<Navigate to="/settings" replace />} />
               <Route path="/performance" element={<Navigate to="/settings" replace />} />

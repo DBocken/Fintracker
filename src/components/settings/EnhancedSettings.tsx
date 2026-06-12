@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
@@ -253,6 +254,12 @@ export function EnhancedSettings() {
             <LocalEncryptionSettings />
             <PrivacySyncAnalyticsSettings />
           </div>
+          <Link
+            to="/privacy"
+            className="mt-4 inline-block text-sm font-medium text-positive underline-offset-2 hover:underline"
+          >
+            Wie wir mit deinen Daten umgehen →
+          </Link>
         </section>
 
         <section className="mb-10" id="backups">

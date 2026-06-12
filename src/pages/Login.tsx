@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,6 +208,16 @@ function Login({ onStartAnonymous }: LoginProps) {
               Mit Google anmelden
             </Button>
           )}
+        </div>
+
+        {/* Link zur Privacy-Seite (Issue #41) */}
+        <div className="mt-4 text-center">
+          <Link
+            to="/privacy"
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Wie wir mit deinen Daten umgehen
+          </Link>
         </div>
       </Card>
     </div>
