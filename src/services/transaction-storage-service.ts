@@ -245,6 +245,8 @@ class TransactionStorageService {
   async clearLocalCache(): Promise<StorageResult<void>> {
     try {
       localStorage.removeItem(LOCAL_TRANSACTIONS_KEY);
+      const { idbRemove } = await import('./idb-kv');
+      await idbRemove(LOCAL_TRANSACTIONS_KEY);
       return { success: true };
     } catch (error) {
       return {

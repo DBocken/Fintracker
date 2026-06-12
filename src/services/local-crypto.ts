@@ -1,3 +1,38 @@
+import { idbGet, idbSet, idbKeys, requestPersistentStorage } from './idb-kv'
+
+// --- Datenspeicher-Seam (Issue #29) ------------------------------------------
+// Die (verschlüsselten) Bulk-Daten liegen in IndexedDB statt localStorage.
+// Beim Lesen wird ein evtl. noch vorhandener localStorage-Altbestand transparent
+// nach IndexedDB übernommen (lazy migration). Die kleine Verschlüsselungs-Config
+// bleibt weiterhin in localStorage.
+
+let persistenceRequested = false
+
+async function readDataRaw(storageKey: string): Promise<string | null> {
+  const fromIdb = await idbGet(storageKey)
+  if (fromIdb != null) return fromIdb
+
+  // Lazy-Migration: Altbestand aus localStorage übernehmen.
+  if (typeof localStorage !== 'undefined') {
+    const legacy = localStorage.getItem(storageKey)
+    if (legacy != null) {
+      await idbSet(storageKey, legacy)
+      localStorage.removeItem(storageKey)
+      return legacy
+    }
+  }
+  return null
+}
+
+async function writeDataRaw(storageKey: string, raw: string): Promise<void> {
+  await idbSet(storageKey, raw)
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(storageKey)
+  if (!persistenceRequested) {
+    persistenceRequested = true
+    void requestPersistentStorage()
+  }
+}
+
 export type LocalEncryptionConfigV1 = {
   v: 1
   enabled: true
@@ -263,17 +298,17 @@ export const localEncryption = {
   async encryptAndStore(storageKey: string, value: unknown): Promise<void> {
     const cfg = loadConfig()
     if (!cfg) {
-      localStorage.setItem(storageKey, JSON.stringify(value))
+      await writeDataRaw(storageKey, JSON.stringify(value))
       return
     }
 
     const key = this.requireUnlocked()
     const envelope = await encryptString(JSON.stringify(value), key, cfg)
-    localStorage.setItem(storageKey, JSON.stringify(envelope))
+    await writeDataRaw(storageKey, JSON.stringify(envelope))
   },
 
   async loadAndMaybeDecrypt<T>(storageKey: string): Promise<T | null> {
-    const raw = localStorage.getItem(storageKey)
+    const raw = await readDataRaw(storageKey)
     if (!raw) return null
 
     const cfg = loadConfig()
@@ -296,7 +331,7 @@ export const localEncryption = {
     const key = this.requireUnlocked()
     const value = parsed as T
     const envelope = await encryptString(JSON.stringify(value), key, cfg)
-    localStorage.setItem(storageKey, JSON.stringify(envelope))
+    await writeDataRaw(storageKey, JSON.stringify(envelope))
     return value
   },
 
@@ -316,16 +351,12 @@ export const localEncryption = {
       'ausgabentracker_bank_connections_v1',
     ])
 
-    const keys: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (!k) continue
-      if (k.startsWith('ausgabentracker_transactions_v2__')) keys.push(k)
-      if (sensitiveKeys.has(k)) keys.push(k)
-    }
+    const keys = (await idbKeys()).filter(
+      (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),
+    )
 
     for (const storageKey of keys) {
-      const raw = localStorage.getItem(storageKey)
+      const raw = await idbGet(storageKey)
       if (!raw) continue
 
       let parsed: unknown
@@ -338,14 +369,14 @@ export const localEncryption = {
       if (mode === 'encrypt') {
         if (isEnvelopeV1(parsed)) continue
         const envelope = await encryptString(JSON.stringify(parsed), key, cfg)
-        localStorage.setItem(storageKey, JSON.stringify(envelope))
+        await writeDataRaw(storageKey, JSON.stringify(envelope))
         continue
       }
 
       // decrypt
       if (!isEnvelopeV1(parsed)) continue
       const pt = await decryptString(parsed, key)
-      localStorage.setItem(storageKey, pt)
+      await writeDataRaw(storageKey, pt)
     }
   },
 }

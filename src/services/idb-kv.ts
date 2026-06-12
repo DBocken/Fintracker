@@ -79,6 +79,71 @@ export async function clearLocalKvStore(): Promise<void> {
 }
 
 /**
+ * Bulk-Datenschlüssel, die früher in localStorage lagen und nach IndexedDB
+ * migriert werden. Kleine Metadaten/UI-Schlüssel (Verschlüsselungs-Config,
+ * Anonym-Flag, device_id, KPI-Caches …) bleiben bewusst in localStorage.
+ */
+export const IDB_DATA_KEYS: readonly string[] = [
+  "ausgabentracker_transactions_v3",
+  "ausgabentracker_accounts_v1",
+  "ausgabentracker_debts_v1",
+  "ausgabentracker_debt_assignments_v1",
+  "ausgabentracker_portfolios_v1",
+  "ausgabentracker_portfolio_positions_v1",
+  "ausgabentracker_bank_connections_v1",
+  "ausgabentracker_categories_v1",
+  "ausgabentracker_user_settings_v1",
+];
+
+export const IDB_DATA_KEY_PREFIXES: readonly string[] = ["ausgabentracker_transactions_v2__"];
+
+/** Sammelt vorhandene Legacy-Datenschlüssel aus localStorage. */
+export function collectLegacyDataKeys(): string[] {
+  if (typeof localStorage === "undefined") return [];
+  const found = new Set<string>();
+  for (const key of IDB_DATA_KEYS) {
+    if (localStorage.getItem(key) != null) found.add(key);
+  }
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && IDB_DATA_KEY_PREFIXES.some((p) => k.startsWith(p))) found.add(k);
+  }
+  return [...found];
+}
+
+/**
+ * Einmalige Migration der Bulk-Daten von localStorage nach IndexedDB.
+ * Verifiziert jeden Wert nach dem Schreiben und löscht die localStorage-Kopie
+ * erst danach. Idempotent: bereits migrierte Schlüssel werden übersprungen.
+ *
+ * @returns Anzahl tatsächlich migrierter Schlüssel
+ */
+export async function migrateLocalStorageToIdb(): Promise<number> {
+  if (!isIndexedDbAvailable() || typeof localStorage === "undefined") return 0;
+
+  let migrated = 0;
+  for (const key of collectLegacyDataKeys()) {
+    const raw = localStorage.getItem(key);
+    if (raw == null) continue;
+
+    // Schon in IndexedDB vorhanden: localStorage-Kopie ist veraltet, verwerfen.
+    const existing = await idbGet(key);
+    if (existing != null) {
+      localStorage.removeItem(key);
+      continue;
+    }
+
+    await idbSet(key, raw);
+    const verify = await idbGet(key);
+    if (verify === raw) {
+      localStorage.removeItem(key);
+      migrated += 1;
+    }
+  }
+  return migrated;
+}
+
+/**
  * Fordert persistenten Speicher an, damit der Browser die Finanzdaten nicht
  * bei Speicherdruck verwirft. Liefert true, wenn Persistenz gewährt ist.
  */

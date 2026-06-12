@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -7,6 +7,7 @@ import {
   FileKey2,
   FileLock2,
   FolderSync,
+  HardDrive,
   ShieldCheck,
   Sparkles,
   UploadCloud,
@@ -48,7 +49,41 @@ export function PrivacySyncAnalyticsSettings() {
   const [pathLabel, setPathLabel] = useState('Meine Sync-Datei');
   const [pathHint, setPathHint] = useState('');
   const [pathsVersion, setPathsVersion] = useState(0);
-  const storageStatus = getLocalFinanceStorageStatus();
+  const [storageStatus, setStorageStatus] = useState({
+    encrypted: encryption.enabled,
+    unlocked: encryption.unlocked,
+    plaintextFound: false,
+  });
+
+  const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void getLocalFinanceStorageStatus().then((status) => {
+      if (active) setStorageStatus(status);
+    });
+    return () => {
+      active = false;
+    };
+  }, [encryption.enabled, encryption.unlocked]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const persisted =
+          typeof navigator !== 'undefined' && navigator.storage?.persisted
+            ? await navigator.storage.persisted()
+            : false;
+        if (active) setStoragePersisted(persisted);
+      } catch {
+        if (active) setStoragePersisted(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const syncPaths = useMemo(() => getSyncPaths(), [pathsVersion]);
   const selectedPath = syncPaths[0];
@@ -144,6 +179,20 @@ export function PrivacySyncAnalyticsSettings() {
               Supabase
             </div>
             <StatusBadge ok>nur Metadaten</StatusBadge>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+              <HardDrive className="h-4 w-4 text-brand" />
+              Lokaler Speicher (IndexedDB)
+            </div>
+            <StatusBadge ok={storagePersisted === true}>
+              {storagePersisted === null
+                ? 'wird geprüft …'
+                : storagePersisted
+                  ? 'dauerhaft gesichert'
+                  : 'nicht dauerhaft'}
+            </StatusBadge>
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">

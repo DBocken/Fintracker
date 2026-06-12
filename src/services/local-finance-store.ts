@@ -90,22 +90,33 @@ export async function deleteLocalFinanceItem<T extends { id?: string }>(
   await writeLocalFinanceList(key, items.filter((entry) => entry.id !== id));
 }
 
-export function hasPlaintextFinanceStorage(): boolean {
-  if (typeof window === 'undefined') return false;
-
-  return Object.values(LOCAL_FINANCE_KEYS).some((storageKey) => {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return false;
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed?.type !== 'ausgabentracker.enc';
-    } catch {
-      return true;
-    }
-  });
+function isPlaintextRaw(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.type !== 'ausgabentracker.enc';
+  } catch {
+    return true;
+  }
 }
 
-export function getLocalFinanceStorageStatus() {
+/**
+ * Prüft, ob Finanzdaten unverschlüsselt vorliegen. Liest IndexedDB (Issue #29)
+ * und berücksichtigt einen evtl. noch vorhandenen localStorage-Altbestand.
+ */
+export async function hasPlaintextFinanceStorage(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  const { idbGet } = await import('./idb-kv');
+  for (const storageKey of Object.values(LOCAL_FINANCE_KEYS)) {
+    const fromIdb = await idbGet(storageKey);
+    if (isPlaintextRaw(fromIdb)) return true;
+    if (fromIdb == null && isPlaintextRaw(localStorage.getItem(storageKey))) return true;
+  }
+  return false;
+}
+
+export async function getLocalFinanceStorageStatus() {
   if (typeof window === 'undefined') {
     return { encrypted: false, unlocked: false, plaintextFound: false };
   }
@@ -113,6 +124,6 @@ export function getLocalFinanceStorageStatus() {
   return {
     encrypted: localEncryption.isEnabled(),
     unlocked: localEncryption.isUnlocked(),
-    plaintextFound: hasPlaintextFinanceStorage(),
+    plaintextFound: await hasPlaintextFinanceStorage(),
   };
 }

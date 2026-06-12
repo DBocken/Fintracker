@@ -4,6 +4,7 @@ import {
   localEncryption,
   LocalEncryptionLockedError,
 } from "../local-crypto";
+import { idbGet } from "../idb-kv";
 
 describe("localEncryption", () => {
   beforeEach(() => {
@@ -63,17 +64,17 @@ describe("localEncryption", () => {
     );
   });
 
-  it("encryptAndStore writes plaintext when encryption is disabled", async () => {
+  it("encryptAndStore writes plaintext to IndexedDB when encryption is disabled", async () => {
     await localEncryption.encryptAndStore("test_key", { foo: "bar" });
-    const raw = localStorage.getItem("test_key");
+    const raw = await idbGet("test_key");
     expect(raw).toBe(JSON.stringify({ foo: "bar" }));
   });
 
-  it("encryptAndStore writes an encrypted envelope when enabled and unlocked", async () => {
+  it("encryptAndStore writes an encrypted envelope to IndexedDB when enabled and unlocked", async () => {
     await localEncryption.enable("correct horse battery staple");
     await localEncryption.encryptAndStore("test_key", { foo: "bar" });
 
-    const raw = localStorage.getItem("test_key");
+    const raw = await idbGet("test_key");
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
     expect(parsed.type).toBe("ausgabentracker.enc");

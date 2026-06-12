@@ -1,4 +1,17 @@
+import "fake-indexeddb/auto"
+import { afterEach } from "vitest"
 import { webcrypto } from "node:crypto"
+
+// jsdom kennt kein IndexedDB; fake-indexeddb stellt es global bereit (Issue #29).
+// Nach jedem Test den KV-Store leeren, damit Tests isoliert bleiben.
+afterEach(async () => {
+  try {
+    const { clearLocalKvStore } = await import("./src/services/idb-kv")
+    await clearLocalKvStore()
+  } catch {
+    // idb nicht verfügbar – ignorieren
+  }
+})
 
 // jsdom ships a `crypto` global without `subtle` (Web Crypto). The local
 // encryption layer relies on AES-GCM/PBKDF2 via `crypto.subtle`, so swap in

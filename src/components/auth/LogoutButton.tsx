@@ -41,8 +41,7 @@ export function LogoutButton({
   // vorzuschlagen, wenn unverschlüsselte Daten lokal liegen.
   function handleOpenChange(next: boolean) {
     if (next) {
-      const status = getLocalFinanceStorageStatus();
-      setWipe(!status.encrypted);
+      void getLocalFinanceStorageStatus().then((status) => setWipe(!status.encrypted));
     }
     setOpen(next);
   }
