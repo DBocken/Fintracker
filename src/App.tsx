@@ -21,8 +21,6 @@ import AccountsPage from "@/pages/AccountsPage";
 import CsvPage from "@/pages/CsvPage";
 import ExportPage from "@/pages/ExportPage";
 import SettingsPage from "@/pages/SettingsPage";
-import PerformancePage from "@/pages/PerformancePage";
-import BackupsPage from "@/pages/BackupsPage";
 
 function LockedRedirect() {
   const location = useLocation();
@@ -96,8 +94,9 @@ function App() {
               <Route path="/csv" element={<CsvPage />} />
               <Route path="/export" element={<ExportPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/performance" element={<PerformancePage />} />
-              <Route path="/backups" element={<BackupsPage />} />
+              {/* Backups & Performance leben jetzt in den Einstellungen (Issue #42) */}
+              <Route path="/backups" element={<Navigate to="/settings" replace />} />
+              <Route path="/performance" element={<Navigate to="/settings" replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/coach" replace />} />

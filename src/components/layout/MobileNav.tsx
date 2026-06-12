@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
@@ -8,12 +9,23 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger 
 import { cn } from "@/lib/utils";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
+/** Event, mit dem z. B. der „Mehr"-Tab der Bottom-Nav dieses Sheet öffnet (Issue #42). */
+export const OPEN_NAV_SHEET_EVENT = "open-nav-sheet";
+
 export default function MobileNav() {
   // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
   useFeatureFlag("trading_beta");
   const navGroups = getVisibleNavGroups();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_NAV_SHEET_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_NAV_SHEET_EVENT, onOpen);
+  }, []);
+
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden" aria-label="Navigation öffnen">
           <Menu className="h-5 w-5" />

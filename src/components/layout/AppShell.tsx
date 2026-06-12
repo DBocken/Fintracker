@@ -19,7 +19,6 @@ function getTitle(pathname: string) {
       }
     }
   }
-  if (pathname === "/performance") return "Performance";
   return "Ausgabentracker";
 }
 

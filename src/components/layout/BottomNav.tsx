@@ -1,20 +1,22 @@
 import { NavLink } from "react-router-dom";
-import { Sparkles, Banknote, BarChart3, Coins, Wallet } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+import { getBottomNavItems } from "@/components/layout/nav-config";
+import { OPEN_NAV_SHEET_EVENT } from "@/components/layout/MobileNav";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
-  { label: "Coach", path: "/coach", icon: Sparkles },
-  { label: "Schulden", path: "/debts", icon: Banknote },
-  { label: "Vermögen", path: "/net-worth", icon: Coins },
-  { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-  { label: "Konten", path: "/accounts", icon: Wallet },
-];
-
+/**
+ * Mobile Bottom-Nav (Issue #42): 4 Kernziele + „Mehr"-Tab.
+ * Die Kernziele kommen aus nav-config (eine Quelle für SideNav,
+ * Command-Palette und Bottom-Nav); „Mehr" öffnet das bestehende
+ * Navigations-Sheet mit allen übrigen Zielen.
+ */
 export default function BottomNav() {
+  const items = getBottomNavItems();
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden">
       <div className="flex items-stretch justify-around">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -28,10 +30,20 @@ export default function BottomNav() {
               }
             >
               <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span>{item.shortLabel}</span>
             </NavLink>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_NAV_SHEET_EVENT))}
+          className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors"
+          aria-label="Weitere Navigationsziele öffnen"
+        >
+          <MoreHorizontal className="h-5 w-5" />
+          <span>Mehr</span>
+        </button>
       </div>
     </nav>
   );
