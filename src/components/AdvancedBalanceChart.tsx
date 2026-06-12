@@ -16,6 +16,7 @@ import {
 import type { Transaction } from '../types';
 import { getTransactions } from '../services/transaction-service';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
+import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -23,6 +24,7 @@ interface AdvancedBalanceChartProps {
 }
 
 export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalanceChartProps) {
+  const { enabled: gentleModeEnabled } = useGentleMode();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -153,14 +155,18 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
         <CardContent>
           <div className="mb-4 text-sm text-muted-foreground">
             Endsaldo (Kontostand):{' '}
-            <span className="font-semibold text-foreground">{formatCurrency(endBalanceFromAccounts)}</span>
+            <span className="font-semibold text-foreground">
+              {gentleModeEnabled ? '***' : formatCurrency(endBalanceFromAccounts)}
+            </span>
             {' • '}Startsaldo:{' '}
-            <span className="font-semibold text-foreground">{formatCurrency(effectiveStartingBalance)}</span>
+            <span className="font-semibold text-foreground">
+              {gentleModeEnabled ? '***' : formatCurrency(effectiveStartingBalance)}
+            </span>
             {chartData.length > 0 && (
               <>
                 {' • '}Aktueller Saldo:{' '}
                 <span className="font-semibold text-foreground">
-                  {formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0)}
+                  {gentleModeEnabled ? '***' : formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0)}
                 </span>
               </>
             )}
@@ -200,7 +206,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 axisLine={false}
                 width={64}
                 domain={yAxisDomain({ includeZero: axisFromZero })}
-                tickFormatter={(value) => `${(value as number).toFixed(0)} €`}
+                tickFormatter={(value) => gentleModeEnabled ? '••' : `${(value as number).toFixed(0)} €`}
               />
               <Tooltip
                 contentStyle={{
@@ -209,7 +215,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                   borderRadius: 'var(--radius)'
                 }}
                 formatter={(value: number, name: string) => [
-                  `${value.toFixed(2)}€`,
+                  gentleModeEnabled ? '***' : `${value.toFixed(2)}€`,
                   name === 'income' ? 'Einnahmen' :
                   name === 'expenses' ? 'Ausgaben' : 'Saldo'
                 ]}
@@ -295,7 +301,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 variant="outline"
                 className="w-full btn-secondary-premium"
               >
-                Aus Kontostand berechnen ({formatCurrency(autoStartingBalance)})
+                Aus Kontostand berechnen ({gentleModeEnabled ? '***' : formatCurrency(autoStartingBalance)})
               </Button>
             </div>
 
