@@ -20,6 +20,17 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Download,
   Upload,
   Database,
@@ -43,6 +54,7 @@ export function BackupManager() {
   const [encryptedBackupPassword, setEncryptedBackupPassword] = useState('');
   const [encryptedRestorePassword, setEncryptedRestorePassword] = useState('');
   const [restoreMode, setRestoreMode] = useState<'json' | 'enc'>('json');
+  const [foreignPending, setForeignPending] = useState<BackupData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: backupInfo, isLoading: isLoadingInfo } = useQuery({
@@ -53,10 +65,11 @@ export function BackupManager() {
 
   const downloadMutation = useMutation({
     mutationFn: async () => {
-      await backupService.downloadBackup();
+      // Bewusster Klartext-Export ("Datenumzug") – nur nach Bestätigung im Dialog.
+      await backupService.downloadBackup(undefined, { acknowledgeUnencrypted: true });
     },
     onSuccess: () => {
-      showSuccess('Backup erfolgreich heruntergeladen');
+      showSuccess('Unverschlüsseltes Backup heruntergeladen');
     },
     onError: (error: Error) => {
       showError(`Download fehlgeschlagen: ${error.message}`);
@@ -77,19 +90,25 @@ export function BackupManager() {
   });
 
   const restoreMutation = useMutation({
-    mutationFn: async (backupData: BackupData) => {
-      return await backupService.restoreBackup(backupData);
+    mutationFn: async ({ backupData, allowForeign }: { backupData: BackupData; allowForeign?: boolean }) => {
+      return await backupService.restoreBackup(backupData, { allowForeign });
     },
     onSuccess: (result) => {
       showSuccess(result.message);
       setRestoreDialogOpen(false);
       setBackupFile(null);
       setEncryptedRestorePassword('');
+      setForeignPending(null);
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
+      // Fremd-Backup: nicht still importieren, sondern ausdrücklich bestätigen lassen.
+      if (error.message === 'FOREIGN_BACKUP' && !variables.allowForeign) {
+        setForeignPending(variables.backupData);
+        return;
+      }
       showError(error instanceof Error ? error.message : 'Wiederherstellung fehlgeschlagen');
     },
   });
@@ -107,10 +126,10 @@ export function BackupManager() {
     try {
       if (restoreMode === 'enc') {
         const backupData = await backupService.readEncryptedBackupFile(backupFile, encryptedRestorePassword);
-        restoreMutation.mutate(backupData);
+        restoreMutation.mutate({ backupData });
       } else {
         const backupData = await backupService.readBackupFile(backupFile);
-        restoreMutation.mutate(backupData);
+        restoreMutation.mutate({ backupData });
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Fehler beim Lesen der Backup-Datei');
@@ -209,33 +228,16 @@ export function BackupManager() {
               <Info className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 Das Backup enthält Transaktionen, Kategorien, Konten und Einstellungen.
-                Speichere die Datei an einem sicheren Ort.
+                Empfohlen ist das <strong>verschlüsselte</strong> Backup – es schützt deine
+                Daten auch außerhalb der App.
               </AlertDescription>
             </Alert>
 
-            <Button
-              onClick={() => downloadMutation.mutate()}
-              disabled={downloadMutation.isPending || isLoadingInfo}
-              className="w-full"
-              size="lg"
-            >
-              {downloadMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Erstelle Backup...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Backup herunterladen
-                </>
-              )}
-            </Button>
-
-            <div className="rounded-lg border border-slate-800 p-3 space-y-3">
+            {/* Standardweg: verschlüsseltes Backup */}
+            <div className="rounded-lg border border-positive/40 bg-positive/5 p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Lock className="h-4 w-4" />
-                Verschlüsseltes Backup (.enc.json)
+                <Lock className="h-4 w-4 text-positive" />
+                Verschlüsseltes Backup (.enc.json) – empfohlen
               </div>
               <div className="space-y-2">
                 <Label htmlFor="enc-backup-pw">Passwort</Label>
@@ -247,14 +249,60 @@ export function BackupManager() {
                 />
               </div>
               <Button
-                variant="secondary"
                 className="w-full"
+                size="lg"
                 onClick={() => downloadEncryptedMutation.mutate(encryptedBackupPassword)}
                 disabled={downloadEncryptedMutation.isPending || !encryptedBackupPassword}
               >
-                {downloadEncryptedMutation.isPending ? 'Erstelle…' : 'Verschlüsseltes Backup herunterladen'}
+                {downloadEncryptedMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Erstelle…
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Verschlüsseltes Backup herunterladen
+                  </>
+                )}
               </Button>
             </div>
+
+            {/* Ausnahme: unverschlüsselter Export hinter ausdrücklicher Warnung */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  size="sm"
+                  disabled={downloadMutation.isPending || isLoadingInfo}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Unverschlüsselt exportieren (Datenumzug)
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Unverschlüsseltes Backup?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Diese Datei enthält deinen <strong>gesamten Finanzdatensatz im Klartext</strong>.
+                    Jede Person mit Zugriff auf die Datei kann sie lesen. Nutze das nur für einen
+                    bewussten Datenumzug und lösche die Datei danach.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      downloadMutation.mutate();
+                    }}
+                  >
+                    Trotzdem unverschlüsselt exportieren
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
 
@@ -472,6 +520,32 @@ export function BackupManager() {
           </p>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!foreignPending} onOpenChange={(open) => !open && setForeignPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Backup aus anderem Konto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dieses Backup wurde mit einem <strong>anderen Benutzerkonto</strong> erstellt.
+              Beim Wiederherstellen werden die Daten deinem aktuellen Konto zugeordnet und
+              vorhandene Daten überschrieben. Nur fortfahren, wenn das beabsichtigt ist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (foreignPending) {
+                  restoreMutation.mutate({ backupData: foreignPending, allowForeign: true });
+                }
+              }}
+            >
+              Trotzdem wiederherstellen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
