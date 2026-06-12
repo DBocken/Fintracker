@@ -7,7 +7,7 @@
 
 import type { LetterDocType, ParsedLetter } from "./letter-parser-service";
 import { getCurrentUserId } from "./auth-service";
-import { createDebt } from "./debt-service";
+import { createDebt, suggestDebtPriority } from "./debt-service";
 import {
   readLocalFinanceList,
   updateLocalFinanceItem,
@@ -451,6 +451,8 @@ export async function confirmClaim(claimId: string): Promise<Claim> {
     balance: claim.current_amount,
     original_amount: claim.hauptforderung ?? claim.current_amount,
     notes: claim.aktenzeichen ? `Aktenzeichen: ${claim.aktenzeichen}` : null,
+    // Vermieter/Energie/Unterhalt automatisch als existenzsichernd vorschlagen (#51).
+    priority: suggestDebtPriority(claim.original_creditor ?? claim.creditor),
   });
 
   return updateLocalFinanceItem<Claim>("claims", claimId, {

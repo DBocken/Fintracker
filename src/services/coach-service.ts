@@ -86,6 +86,21 @@ export async function getCoachOverview(): Promise<CoachOverview> {
       ctaTo: "/dashboard",
     });
   } else if (stageKey === "consumer_debt_elimination") {
+    // Existenzsichernde Rückstände gehen jeder Strategie-Empfehlung vor (#51).
+    const existential = debts.find(
+      (d) => !d.is_paid_off && d.balance > 0 && d.priority === "existenzsichernd",
+    );
+    if (existential) {
+      recommendations.push({
+        id: "secure-essentials-first",
+        title: "Wohnung & Grundversorgung zuerst sichern",
+        message: `„${existential.name}“ ist existenzsichernd — dieser Rückstand steht in deinem Plan ganz oben, unabhängig vom Zinssatz.`,
+        reason: "Miete, Energie und Unterhalt sichern Wohnung und Grundversorgung — das geht vor Zinsoptimierung.",
+        severity: "warning",
+        ctaLabel: "Schulden ansehen",
+        ctaTo: "/debts",
+      });
+    }
     recommendations.push({
       id: "pay-down-debt",
       title: "Schulden jetzt priorisieren",

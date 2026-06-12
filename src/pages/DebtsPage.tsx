@@ -37,6 +37,7 @@ import {
   type PayoffStrategy,
   DEBT_TYPE_LABELS,
   DEBT_TYPE_ICONS,
+  EXISTENTIAL_PRIORITY_EXPLANATION,
 } from "@/services/debt-service";
 import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
 
@@ -284,6 +285,15 @@ export default function DebtsPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 font-medium">
                       <span className="truncate">{d.name}</span>
+                      {d.priority === "existenzsichernd" && (
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 bg-brand/15 text-brand"
+                          title={EXISTENTIAL_PRIORITY_EXPLANATION}
+                        >
+                          🏠 Existenzsichernd
+                        </Badge>
+                      )}
                       {d.is_bnpl && <Badge variant="secondary" className="shrink-0">BNPL</Badge>}
                       {d.is_paid_off && (
                         <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>
@@ -499,13 +509,21 @@ export default function DebtsPage() {
                               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold">
                                 {s.priorityOrder}
                               </span>
-                              <span className="flex-1 truncate">{s.name}</span>
+                              <span className="flex-1 truncate">
+                                {s.priority === "existenzsichernd" ? "🏠 " : ""}
+                                {s.name}
+                              </span>
                               <span className="text-muted-foreground">
                                 {strategy === "avalanche" ? `${s.interestRate}%` : eur.format(s.balance)}
                               </span>
                             </li>
                           ))}
                         </ol>
+                        {payoffPlan.steps.some((s) => s.priority === "existenzsichernd") && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            🏠 {EXISTENTIAL_PRIORITY_EXPLANATION}
+                          </p>
+                        )}
                       </div>
 
                       <div>

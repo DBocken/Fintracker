@@ -109,6 +109,9 @@ export interface HierarchicalCategory extends Category {
 
 export type DebtType = 'credit_card' | 'bnpl' | 'installment' | 'overdraft' | 'private_loan' | 'car_loan' | 'student_loan' | 'mortgage' | 'other';
 
+/** Existenzsichernde Rückstände (Miete, Energie, Unterhalt) gehen im Plan immer vor Konsumschulden (#51). */
+export type DebtPriority = 'existenzsichernd' | 'normal';
+
 export interface Debt {
   id: string;
   user_id: string;
@@ -124,6 +127,7 @@ export interface Debt {
   provider?: string | null;
   notes?: string | null;
   is_paid_off: boolean;
+  priority?: DebtPriority | null;
   created_at?: string;
   updated_at?: string;
 }
