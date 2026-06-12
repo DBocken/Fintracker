@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { getAccounts } from '@/services/account-service'
 import type { Account } from '@/types'
 import { RefreshCw } from 'lucide-react'
+import { useGentleMode } from '@/components/providers/GentleModeProvider'
 
 interface AccountCardsProps {
   balances: Record<string, { amount: number; source: 'bank' | 'local'; balanceType?: string }>
@@ -10,12 +11,14 @@ interface AccountCardsProps {
 }
 
 export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
+  const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: accounts = [], isLoading, error } = useQuery<Account[]>({
     queryKey: ['accounts'],
     queryFn: () => getAccounts(),
   })
 
   const formatBalance = (amount: number) => {
+    if (gentleModeEnabled) return '***'
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
       currency: 'EUR'

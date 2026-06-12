@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface TransactionStatsProps {
   income: number;
@@ -24,6 +25,8 @@ export function TransactionStats({
   totalTransactions,
   currentBalance,
 }: TransactionStatsProps) {
+  const { enabled: gentleModeEnabled } = useGentleMode();
+
   return (
     <Card className="card-premium">
       <CardContent className="p-5 md:p-6">
@@ -34,7 +37,7 @@ export function TransactionStats({
               Kontostand
             </div>
             <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
-              {currentBalance}
+              {gentleModeEnabled ? '***' : currentBalance}
             </div>
           </div>
 
@@ -44,22 +47,21 @@ export function TransactionStats({
                 <ArrowUpRight className="h-3.5 w-3.5 text-positive" />
                 Einnahmen
               </dt>
-              <dd className="mt-1 text-lg font-semibold">{eur.format(income)}</dd>
+              <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(income)}</dd>
             </div>
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowDownRight className="h-3.5 w-3.5" />
                 Ausgaben
               </dt>
-              <dd className="mt-1 text-lg font-semibold">{eur.format(expenses)}</dd>
+              <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(expenses)}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Saldo</dt>
               <dd
                 className={`mt-1 text-lg font-semibold ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
               >
-                {balance >= 0 ? '+' : ''}
-                {eur.format(balance)}
+                {gentleModeEnabled ? '***' : (balance >= 0 ? '+' : '') + eur.format(balance)}
               </dd>
             </div>
             <div>
