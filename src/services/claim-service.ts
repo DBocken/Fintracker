@@ -30,6 +30,8 @@ export interface ClaimTimelineEntry {
   verzugszinsen: number | null;
   /** Absender dieses Briefs (bei Inkasso-Übergabe ≠ Akten-Ursprungsgläubiger). */
   sender: string | null;
+  /** Empfänger-IBAN dieses Briefs — Basis der IBAN-Wechsel-Warnung (#50). */
+  iban: string | null;
 }
 
 export interface Claim {
@@ -237,6 +239,7 @@ function timelineEntryFromLetter(letter: ParsedLetter): ClaimTimelineEntry {
     mahngebuehren: letter.amounts.mahngebuehren?.value ?? null,
     verzugszinsen: letter.amounts.verzugszinsen?.value ?? null,
     sender: letter.creditor?.value ?? null,
+    iban: letter.iban?.value ?? null,
   };
 }
 
