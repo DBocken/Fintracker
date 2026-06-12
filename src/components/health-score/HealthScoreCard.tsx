@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { getHealthLabel } from "@/services/financial-health-service";
+import { useGentleMode } from "@/components/providers/GentleModeProvider";
 
 function toneColor(tone: "good" | "ok" | "warn" | "bad") {
   switch (tone) {
@@ -31,6 +32,7 @@ function subScoreColor(score: number) {
 }
 
 export default function HealthScoreCard({ health }: { health: FinancialHealth }) {
+  const { enabled: gentleModeEnabled } = useGentleMode();
   const [open, setOpen] = useState(false);
   const { label, tone } = getHealthLabel(health.score);
   const color = ringColor(health.score);
@@ -59,7 +61,7 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold">{health.score}</span>
+            <span className="text-2xl font-bold">{gentleModeEnabled ? '••' : health.score}</span>
             <span className="text-[10px] text-muted-foreground">/ 100</span>
           </div>
         </div>
@@ -93,7 +95,7 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
                 <div key={s.key}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{s.label}</span>
-                    <span className="tabular-nums text-muted-foreground">{s.score}</span>
+                    <span className="tabular-nums text-muted-foreground">{gentleModeEnabled ? '••' : s.score}</span>
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
