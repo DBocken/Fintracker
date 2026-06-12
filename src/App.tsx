@@ -13,7 +13,7 @@ import CoachPage from "@/pages/CoachPage";
 import DebtsPage from "@/pages/DebtsPage";
 import NetWorthPage from "@/pages/NetWorthPage";
 import DashboardPage from "@/pages/DashboardPage";
-import PremiumPage from "@/pages/PremiumPage";
+import AnalysisPage from "@/pages/AnalysisPage";
 import SimulationPage from "@/pages/SimulationPage";
 import TradingPage from "@/pages/TradingPage";
 import ContractsPage from "@/pages/ContractsPage";
@@ -83,7 +83,7 @@ function App() {
               <Route path="/debts" element={<DebtsPage />} />
               <Route path="/net-worth" element={<NetWorthPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/premium" element={<AnalysisPage />} />
               <Route path="/simulation" element={<SimulationPage />} />
               <Route
                 path="/trading"

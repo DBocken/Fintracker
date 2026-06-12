@@ -28,6 +28,8 @@ import {
   type EssentialFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
+import { buildSankeyData } from '@/lib/analysis-data';
+import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 
 function getRootCategoryId(byId: Map<string, Category>, id: string): string {
   let current = byId.get(id);
@@ -352,6 +354,10 @@ export function Dashboard() {
     };
   }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
 
+  // Einfaches Sankey auf Hauptkategorien-Ebene — der Aha-Moment ist FREE
+  // (Issue #40, Beschluss aus Epic #19/#25). Drilldown gibt es im Analyse-Bereich.
+  const sankeyData = useMemo(() => buildSankeyData(visibleTransactions, cats), [visibleTransactions, cats]);
+
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -386,6 +392,16 @@ export function Dashboard() {
           <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
         </div>
       </div>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold">Wohin fließt mein Geld?</h2>
+          <p className="text-xs text-muted-foreground">
+            Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
+          </p>
+        </div>
+        <SankeyChart data={sankeyData} enableDrilldown={false} />
+      </section>
 
       <Card className="card-premium">
         <CardHeader>

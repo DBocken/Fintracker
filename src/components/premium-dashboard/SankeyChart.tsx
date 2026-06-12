@@ -8,30 +8,19 @@ import { Network } from "lucide-react";
 import { toPng, toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
 import { chartRamp } from "@/lib/chart-colors";
-
-interface SankeyMainCategory {
-  id: string;
-  name: string;
-  amount: number;
-}
-
-interface SankeySubCategory {
-  id: string;
-  name: string;
-  amount: number;
-  mainId: string;
-  mainName: string;
-}
+import type { SankeyData } from "@/lib/analysis-data";
 
 interface SankeyChartProps {
-  data: {
-    totalIncome: number;
-    mainCategories: SankeyMainCategory[];
-    subCategories: SankeySubCategory[];
-  };
+  data: SankeyData;
+  /**
+   * Drilldown in Unterkategorien per Klick (Issue #40): Im Basis-Dashboard
+   * deaktiviert (einfaches Sankey auf Hauptkategorien-Ebene ist der
+   * Aha-Moment und FREE), im Analyse-Bereich aktiviert.
+   */
+  enableDrilldown?: boolean;
 }
 
-export function SankeyChart({ data }: SankeyChartProps) {
+export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) {
   // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn.
   // Die Prüfung muss nach den Hooks erfolgen (Rules of Hooks).
   const hasData = !!data && Array.isArray(data.mainCategories) && data.mainCategories.length > 0;
@@ -266,9 +255,9 @@ export function SankeyChart({ data }: SankeyChartProps) {
           Geldfluss-Visualisierung
         </CardTitle>
         <CardDescription>
-          Zeigt den Fluss von Einnahmen (links) über dein Konto zu
-          Ausgabenkategorien. Klicke auf eine Kategorie, um die
-          Unterkategorien einzublenden.
+          {enableDrilldown
+            ? "Zeigt den Fluss von Einnahmen (links) über dein Konto zu Ausgabenkategorien. Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
+            : "Zeigt den Fluss von Einnahmen (links) über dein Konto zu deinen Hauptkategorien."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -319,9 +308,9 @@ export function SankeyChart({ data }: SankeyChartProps) {
               link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
               node={({ x, y, width, height, payload }: any) => {
                 const rectHeight = Math.max(height, 20);
-                const isMainCategory = data.mainCategories.some(
-                  (main) => main.id === payload.id
-                );
+                const isMainCategory =
+                  enableDrilldown &&
+                  data.mainCategories.some((main) => main.id === payload.id);
                 const isExpanded = expandedMainId === payload.id;
 
                 const handleClick = () => {
