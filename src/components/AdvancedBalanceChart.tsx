@@ -11,10 +11,11 @@ import { yAxisDomain } from '@/lib/chart-axis';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-  LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
+  AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import type { Transaction } from '../types';
 import { getTransactions } from '../services/transaction-service';
+import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -167,7 +168,22 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
 
           <div className="h-72 md:h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              {/* Pastell-Gradients (Design-Direktive C): Linie + sanfter Verlauf darunter */}
+              <defs>
+                <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_INCOME} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={CHART_INCOME} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="fillExpense" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_EXPENSE} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={CHART_EXPENSE} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="fillNet" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_NET} stopOpacity={0.32} />
+                  <stop offset="100%" stopColor={CHART_NET} stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -209,36 +225,39 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
 
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
 
-              <Line
+              <Area
                 type="monotone"
                 dataKey="income"
-                stroke="hsl(var(--positive))"
+                stroke={CHART_INCOME}
                 strokeWidth={2}
+                fill="url(#fillIncome)"
                 dot={false}
-                activeDot={{ r: 5, stroke: 'hsl(var(--positive))', strokeWidth: 2 }}
+                activeDot={{ r: 5, stroke: CHART_INCOME, strokeWidth: 2 }}
                 name="income"
               />
 
-              <Line
+              <Area
                 type="monotone"
                 dataKey="expenses"
-                stroke="hsl(var(--brand))"
+                stroke={CHART_EXPENSE}
                 strokeWidth={2}
+                fill="url(#fillExpense)"
                 dot={false}
-                activeDot={{ r: 5, stroke: 'hsl(var(--brand))', strokeWidth: 2 }}
+                activeDot={{ r: 5, stroke: CHART_EXPENSE, strokeWidth: 2 }}
                 name="expenses"
               />
 
-              <Line
+              <Area
                 type="monotone"
                 dataKey="cumulative"
-                stroke="hsl(var(--foreground))"
+                stroke={CHART_NET}
                 strokeWidth={2.5}
+                fill="url(#fillNet)"
                 dot={false}
-                activeDot={{ r: 6, stroke: 'hsl(var(--foreground))', strokeWidth: 2 }}
+                activeDot={{ r: 6, stroke: CHART_NET, strokeWidth: 2 }}
                 name="balance"
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
           </div>
 

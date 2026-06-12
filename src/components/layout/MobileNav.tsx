@@ -31,15 +31,18 @@ export default function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0">
-        <SheetHeader className="border-b px-4 py-3">
-          <SheetTitle>Navigation</SheetTitle>
+      <SheetContent
+        side="left"
+        className="border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+      >
+        <SheetHeader className="border-b border-sidebar-border px-4 py-3">
+          <SheetTitle className="text-sidebar-foreground">Navigation</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-56px)]">
           <div className="px-3 py-2">
             {navGroups.map((group) => (
               <div key={group.id} className="py-2">
-                <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-sidebar-muted">
                   {group.label}
                 </div>
                 <div className="space-y-1">
@@ -53,8 +56,8 @@ export default function MobileNav() {
                             cn(
                               "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                               isActive
-                                ? "bg-accent text-accent-foreground"
-                                : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                             )
                           }
                         >

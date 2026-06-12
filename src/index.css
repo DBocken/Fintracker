@@ -44,6 +44,33 @@
     --warning: 4 72% 50%;
 
     /*
+     * Sidebar-Tokens (Direktive C — dunkle Petrol-Sidebar):
+     * Tiefes Petrol als Fläche, helle Schrift, aktiver Eintrag als
+     * hellere Petrol-Stufe. Pro Theme überschreibbar.
+     */
+    --sidebar: 180 42% 11%;
+    --sidebar-foreground: 40 20% 96%;
+    --sidebar-muted: 174 10% 60%;
+    --sidebar-accent: 174 35% 22%;
+    --sidebar-accent-foreground: 40 20% 97%;
+    --sidebar-border: 180 30% 16%;
+
+    /*
+     * Chart-Pastelltöne: klar unterscheidbar, ohne knallig zu sein.
+     * Semantisch für den Cashflow (Einnahmen/Ausgaben/Netto) plus
+     * 6 kategoriale Töne für Kreis-/Kategorie-Charts.
+     */
+    --chart-income: 152 42% 55%;   /* Mint-Salbei */
+    --chart-expense: 8 75% 67%;    /* Warm-Koralle */
+    --chart-net: 228 70% 67%;      /* Periwinkle-Blau */
+    --chart-1: 152 42% 55%;
+    --chart-2: 228 70% 67%;
+    --chart-3: 8 75% 67%;
+    --chart-4: 38 85% 62%;         /* Amber */
+    --chart-5: 262 55% 72%;        /* Lavendel */
+    --chart-6: 335 65% 72%;        /* Rose */
+
+    /*
      * Typografie (#54): Inter als Lauftext (vollständige tabular-nums-
      * Unterstützung für Beträge), Space Grotesk als charaktervolle
      * Grotesk für Headings. Beide als Variable Fonts.
@@ -79,6 +106,25 @@
     --premium-foreground: 190 22% 8%;
     --positive: 152 45% 50%;
     --warning: 4 65% 55%;
+
+    /* Sidebar im Dark Mode: noch eine Stufe dunkler als der Content. */
+    --sidebar: 190 26% 6%;
+    --sidebar-foreground: 40 15% 92%;
+    --sidebar-muted: 185 10% 55%;
+    --sidebar-accent: 174 30% 18%;
+    --sidebar-accent-foreground: 174 40% 85%;
+    --sidebar-border: 190 18% 12%;
+
+    /* Pastelltöne im Dark Mode leicht entsättigt/aufgehellt. */
+    --chart-income: 152 38% 60%;
+    --chart-expense: 8 65% 70%;
+    --chart-net: 228 60% 72%;
+    --chart-1: 152 38% 60%;
+    --chart-2: 228 60% 72%;
+    --chart-3: 8 65% 70%;
+    --chart-4: 38 70% 65%;
+    --chart-5: 262 45% 75%;
+    --chart-6: 335 55% 75%;
   }
 }
 

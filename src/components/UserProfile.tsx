@@ -66,15 +66,16 @@ export function UserProfile() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/60">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
+        {/* Sitzt in der dunklen Sidebar → Sidebar-Tokens statt Content-Tokens. */}
+        <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-xs text-sidebar-muted transition-colors hover:bg-sidebar-accent/50">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
             {initials || <UserIcon className="h-4 w-4" />}
           </div>
           <div className="flex-1">
-            <div className="text-xs font-medium text-foreground truncate">
+            <div className="text-xs font-medium text-sidebar-foreground truncate">
               {displayName}
             </div>
-            <div className="text-[11px] text-muted-foreground truncate">
+            <div className="text-[11px] text-sidebar-muted truncate">
               {email}
             </div>
             <div className="text-[11px] text-positive">
