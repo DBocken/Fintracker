@@ -9,6 +9,7 @@ import { de } from 'date-fns/locale';
 import type { Transaction, Account, Category } from '../../types';
 import { getAccounts } from '../../services/account-service';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
+import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -44,6 +45,7 @@ export function TransactionTable({
   onDelete,
   onSort,
 }: TransactionTableProps) {
+  const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
@@ -104,7 +106,7 @@ export function TransactionTable({
           const account = getAccountById(transaction.account_id);
           const rowId = transaction.id || '';
           const hidden = hiddenTransactions.has(rowId);
-          const amountLabel = currencyFormatter.format(transaction.amount);
+          const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
 
           return (
             <TableRow
