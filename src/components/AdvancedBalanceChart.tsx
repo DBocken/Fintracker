@@ -124,8 +124,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
 
   return (
     <>
-      <Card className="card-premium">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="card-premium h-full">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Wie entwickelt sich mein Kontostand?
@@ -165,19 +165,26 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
             )}
           </div>
 
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <div className="h-72 md:h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="label"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
               />
               <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                width={64}
                 domain={yAxisDomain({ includeZero: axisFromZero })}
-                tickFormatter={(value) => `${(value as number).toFixed(0)}€`}
+                tickFormatter={(value) => `${(value as number).toFixed(0)} €`}
               />
               <Tooltip
                 contentStyle={{
@@ -207,8 +214,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 dataKey="income"
                 stroke="hsl(var(--positive))"
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--positive))', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: 'hsl(var(--positive))', strokeWidth: 2 }}
+                dot={false}
+                activeDot={{ r: 5, stroke: 'hsl(var(--positive))', strokeWidth: 2 }}
                 name="income"
               />
 
@@ -217,8 +224,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 dataKey="expenses"
                 stroke="hsl(var(--brand))"
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--brand))', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: 'hsl(var(--brand))', strokeWidth: 2 }}
+                dot={false}
+                activeDot={{ r: 5, stroke: 'hsl(var(--brand))', strokeWidth: 2 }}
                 name="expenses"
               />
 
@@ -226,13 +233,14 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 type="monotone"
                 dataKey="cumulative"
                 stroke="hsl(var(--foreground))"
-                strokeWidth={3}
-                dot={{ fill: 'hsl(var(--foreground))', strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, stroke: 'hsl(var(--foreground))', strokeWidth: 2 }}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 6, stroke: 'hsl(var(--foreground))', strokeWidth: 2 }}
                 name="balance"
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
 
           {chartData.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">

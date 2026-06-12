@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
 import { TransactionStats } from './TransactionStats';
-import { TransactionCharts } from './TransactionCharts';
+import { ExpensesOverTimeCard, SpendingBreakdownCard } from './TransactionCharts';
 import { TransactionFilters } from './TransactionFilters';
 import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -360,13 +360,7 @@ export function Dashboard() {
   };
 
   return (
-    <div {...dyadProps("Dashboard")} className="space-y-12">
-      <KpiSection data={{ transactions: visibleTransactions }} />
-
-      <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
-
-      <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
-
+    <div {...dyadProps("Dashboard")} className="space-y-6 md:space-y-8">
       <TransactionStats
         income={stats.income}
         expenses={stats.expenses}
@@ -376,11 +370,22 @@ export function Dashboard() {
         currentBalance={formatBalance(stats.currentBalance)}
       />
 
-      <TransactionCharts
-        series={stats.series}
-        granularity={granularity}
-        sunburst={stats.sunburst}
-      />
+      <KpiSection data={{ transactions: visibleTransactions }} />
+
+      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
+        <div className="xl:col-span-8">
+          <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
+        </div>
+        <div className="xl:col-span-4">
+          <SpendingBreakdownCard sunburst={stats.sunburst} />
+        </div>
+        <div className="xl:col-span-7">
+          <ExpensesOverTimeCard series={stats.series} />
+        </div>
+        <div className="xl:col-span-5">
+          <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
+        </div>
+      </div>
 
       <Card className="card-premium">
         <CardHeader>

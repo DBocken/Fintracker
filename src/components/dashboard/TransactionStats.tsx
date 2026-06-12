@@ -1,5 +1,5 @@
-import { ArrowUpCircle, ArrowDownCircle, Wallet } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface TransactionStatsProps {
   income: number;
@@ -10,48 +10,68 @@ interface TransactionStatsProps {
   currentBalance: string;
 }
 
-export function TransactionStats({ 
-  income, 
-  expenses, 
-  count, 
-  totalTransactions, 
-  currentBalance 
+const eur = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 0,
+});
+
+export function TransactionStats({
+  income,
+  expenses,
+  balance,
+  count,
+  totalTransactions,
+  currentBalance,
 }: TransactionStatsProps) {
   return (
-    <div className="grid md:grid-cols-5 gap-4">
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowUpCircle className="h-5 w-5" /> Einnahmen
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-brand text-2xl">{income.toFixed(2)}€</CardContent>
-      </Card>
-      
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowDownCircle className="h-5 w-5" /> Ausgaben
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-warning text-2xl">{expenses.toFixed(2)}€</CardContent>
-      </Card>
-      
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>Transaktionen</CardTitle>
-        </CardHeader>
-        <CardContent>{count} von {totalTransactions}</CardContent>
-      </Card>
-      
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" /> Kontostand
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-brand text-2xl">{currentBalance}</CardContent>
-      </Card>
-    </div>
+    <Card className="card-premium">
+      <CardContent className="p-5 md:p-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Wallet className="h-4 w-4" />
+              Kontostand
+            </div>
+            <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
+              {currentBalance}
+            </div>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4 lg:text-right">
+            <div>
+              <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
+                <ArrowUpRight className="h-3.5 w-3.5 text-positive" />
+                Einnahmen
+              </dt>
+              <dd className="mt-1 text-lg font-semibold">{eur.format(income)}</dd>
+            </div>
+            <div>
+              <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
+                <ArrowDownRight className="h-3.5 w-3.5" />
+                Ausgaben
+              </dt>
+              <dd className="mt-1 text-lg font-semibold">{eur.format(expenses)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Saldo</dt>
+              <dd
+                className={`mt-1 text-lg font-semibold ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
+              >
+                {balance >= 0 ? '+' : ''}
+                {eur.format(balance)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Transaktionen</dt>
+              <dd className="mt-1 text-lg font-semibold">
+                {count}
+                <span className="text-sm font-normal text-muted-foreground"> von {totalTransactions}</span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

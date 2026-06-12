@@ -21,23 +21,73 @@ interface SunburstData {
   total: number;
 }
 
-interface TransactionChartsProps {
-  series: any[];
-  granularity: string;
-  sunburst: SunburstData;
+interface SeriesPoint {
+  date: string;
+  income: number;
+  expenses: number;
 }
 
-export function TransactionCharts({ series, sunburst }: TransactionChartsProps) {
-  // Umschalter zwischen Euro und Prozent für Sunburst
+const formatCurrencyInt = (v: number) =>
+  v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+const formatPercentInt = (v: number) => `${Math.round(v)}%`;
+
+// Konstante Start-/Endwinkel (Uhrzeigersinn, Start oben)
+const baseStartAngle = 90;
+const baseEndAngle = -270;
+
+/** Balkendiagramm: Ausgaben im Zeitverlauf. */
+export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
+  return (
+    <Card className="card-premium h-full">
+      <CardHeader>
+        <CardTitle>Wie ändern sich meine Ausgaben?</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-56 md:h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis
+                dataKey="date"
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                width={56}
+                tickFormatter={(v: number) => `${Math.round(v)} €`}
+              />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 'var(--radius)',
+                }}
+                formatter={(v: number) => [formatCurrencyInt(Math.round(v)), 'Ausgaben']}
+              />
+              <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Sunburst (zwei konzentrische Ringe): Ausgaben nach Haupt-/Unterkategorie. */
+export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) {
+  // Umschalter zwischen Euro und Prozent
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Haupt- oder Unterkategorie-ID sein)
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-
-  // Formatter
-  const formatCurrencyInt = (v: number) =>
-    v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-
-  const formatPercentInt = (v: number) => `${Math.round(v)}%`;
 
   const totalExpenses = sunburst?.total ?? 0;
 
@@ -73,10 +123,6 @@ export function TransactionCharts({ series, sunburst }: TransactionChartsProps) 
     return map;
   }, [sunburst]);
 
-  // Konstante Start-/Endwinkel (Uhrzeigersinn, Start oben)
-  const baseStartAngle = 90;
-  const baseEndAngle = -270;
-
   // Winkelbereiche je Oberkategorie basierend auf innerem Ring
   const angleMap = useMemo(() => {
     const map = new Map<string, { startAngle: number; endAngle: number; span: number }>();
@@ -104,7 +150,7 @@ export function TransactionCharts({ series, sunburst }: TransactionChartsProps) 
   }, [sunburst, colorMap, showPercent, totalExpenses]);
 
   // Tooltip-Formatter für Sunburst (beide Ringe)
-  const tooltipFormatter = (value: any, name: string) => {
+  const tooltipFormatter = (value: number | string, name: string) => {
     const val = Number(value);
     if (!Number.isFinite(val)) return ['–', name];
     if (showPercent && totalExpenses > 0) {
@@ -114,148 +160,125 @@ export function TransactionCharts({ series, sunburst }: TransactionChartsProps) 
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-4">
-      <Card className="card-premium">
-        <CardHeader>
-          <CardTitle>
-            Wie ändern sich meine Ausgaben?
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={series}>
-              <CartesianGrid strokeDasharray="3 3"/>
-              <XAxis dataKey="period" angle={-45} textAnchor="end" height={60}/>
-              <YAxis tickFormatter={(v: number) => `${Math.round(v)}€`}/>
-              <Tooltip formatter={(v: number) => formatCurrencyInt(Math.round(v))}/>
-              <Bar dataKey="expenses" fill={CHART_BRAND}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      
-      <Card className="card-premium">
-        <CardHeader className="flex items-center justify-between">
-          <CardTitle>Wohin fließt mein Geld?</CardTitle>
-          <div className="flex items-center gap-2">
-            <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
-            <span className="text-sm text-muted-foreground">Prozent</span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3">
-            {/* Sunburst: zwei konzentrische Pie-Ringe */}
-            <div className="w-full">
-              <ResponsiveContainer width="100%" height={270}>
-                <PieChart>
-                  <Tooltip formatter={tooltipFormatter} />
-                  {/* Innerer Ring: Hauptkategorien */}
+    <Card className="card-premium flex h-full flex-col">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle>Wohin fließt mein Geld?</CardTitle>
+        <div className="flex shrink-0 items-center gap-2">
+          <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
+          <span className="text-sm text-muted-foreground">Prozent</span>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        {/* Sunburst: zwei konzentrische Pie-Ringe, Radien relativ zur Kartengröße */}
+        <div className="h-64 min-h-0 flex-1 md:h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Tooltip formatter={tooltipFormatter} />
+              {/* Innerer Ring: Hauptkategorien */}
+              <Pie
+                data={sunburst.inner}
+                dataKey="value"
+                nameKey="name"
+                innerRadius="24%"
+                outerRadius="62%"
+                paddingAngle={1}
+                startAngle={baseStartAngle}
+                endAngle={baseEndAngle}
+                isAnimationActive={false}
+              >
+                {sunburst.inner.map((entry) => {
+                  const col = colorMap.get(entry.id) || CHART_BRAND;
+                  // Dimming-Logik: Wenn eine Unterkategorie gehovered ist, hebe nur deren Parent hervor
+                  const activeOuter = hoveredKey ? outerById.get(hoveredKey) : null;
+                  const isDimmed = hoveredKey
+                    ? activeOuter
+                      ? entry.id !== activeOuter.parentId
+                      : entry.id !== hoveredKey
+                    : false;
+                  return (
+                    <Cell
+                      key={entry.id}
+                      fill={col}
+                      opacity={isDimmed ? 0.5 : 1}
+                      onMouseEnter={() => setHoveredKey(entry.id)}
+                      onMouseLeave={() => setHoveredKey(null)}
+                    />
+                  );
+                })}
+              </Pie>
+
+              {/* Äußerer Ring: Unterkategorien je Oberkategorie, exakt im Winkelbereich des Parents */}
+              {(sunburst.inner || []).map((parent) => {
+                const children = childrenByParent.get(parent.id) || [];
+                const angles = angleMap.get(parent.id);
+                if (!angles || children.length === 0) return null;
+
+                return (
                   <Pie
-                    data={sunburst.inner}
+                    key={`outer-${parent.id}`}
+                    data={children}
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={30}
-                    outerRadius={80}
-                    paddingAngle={1}
-                    startAngle={baseStartAngle}
-                    endAngle={baseEndAngle}
+                    innerRadius="66%"
+                    outerRadius="92%"
+                    startAngle={angles.startAngle}
+                    endAngle={angles.endAngle}
+                    paddingAngle={0}
                     isAnimationActive={false}
                   >
-                    {sunburst.inner.map((entry) => {
-                      const col = colorMap.get(entry.id) || CHART_BRAND;
-                      // Dimming-Logik: Wenn eine Unterkategorie gehovered ist, hebe nur deren Parent hervor
-                      const activeOuter = hoveredKey ? outerById.get(hoveredKey) : null;
+                    {children.map((entry) => {
+                      const parentColor = colorMap.get(entry.parentId) || CHART_BRAND;
                       const isDimmed = hoveredKey
-                        ? activeOuter
-                          ? entry.id !== activeOuter.parentId
-                          : entry.id !== hoveredKey
+                        ? hoveredKey !== entry.id && hoveredKey !== entry.parentId
                         : false;
                       return (
                         <Cell
                           key={entry.id}
-                          fill={col}
-                          opacity={isDimmed ? 0.5 : 1}
+                          fill={parentColor}
+                          opacity={isDimmed ? 0.4 : 0.85}
                           onMouseEnter={() => setHoveredKey(entry.id)}
                           onMouseLeave={() => setHoveredKey(null)}
                         />
                       );
                     })}
                   </Pie>
-
-                  {/* Äußerer Ring: Unterkategorien je Oberkategorie, exakt im Winkelbereich des Parents */}
-                  {(sunburst.inner || []).map((parent) => {
-                    const children = childrenByParent.get(parent.id) || [];
-                    const angles = angleMap.get(parent.id);
-                    if (!angles || children.length === 0) return null;
-
-                    return (
-                      <Pie
-                        key={`outer-${parent.id}`}
-                        data={children}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={86}
-                        outerRadius={120}
-                        startAngle={angles.startAngle}
-                        endAngle={angles.endAngle}
-                        paddingAngle={0}
-                        isAnimationActive={false}
-                      >
-                        {children.map((entry) => {
-                          const parentColor = colorMap.get(entry.parentId) || CHART_BRAND;
-                          const isDimmed = hoveredKey
-                            ? hoveredKey !== entry.id && hoveredKey !== entry.parentId
-                            : false;
-                          return (
-                            <Cell
-                              key={entry.id}
-                              fill={parentColor}
-                              opacity={isDimmed ? 0.4 : 0.85}
-                              onMouseEnter={() => setHoveredKey(entry.id)}
-                              onMouseLeave={() => setHoveredKey(null)}
-                            />
-                          );
-                        })}
-                      </Pie>
-                    );
-                  })}
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Legende (Hauptkategorien) */}
-            <div className="flex flex-wrap gap-2">
-              {legendItems.map((item) => {
-                const isActive =
-                  hoveredKey === item.id ||
-                  (!!hoveredKey && outerById.get(hoveredKey)?.parentId === item.id);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onMouseEnter={() => setHoveredKey(item.id)}
-                    onMouseLeave={() => setHoveredKey(null)}
-                    className={`flex items-center gap-2 rounded px-2 py-1 transition-colors ${
-                      isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'
-                    }`}
-                  >
-                    <span
-                      className="h-2 w-2 rounded"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className={`text-sm ${isActive ? 'font-semibold' : ''}`}>
-                      {item.name}
-                    </span>
-                    <span className={`text-sm ${isActive ? 'font-semibold' : ''}`}>
-                      {showPercent ? `${item.value}%` : formatCurrencyInt(item.value)}
-                    </span>
-                  </button>
                 );
               })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Legende (Hauptkategorien) */}
+        <div className="flex flex-wrap gap-1.5">
+          {legendItems.map((item) => {
+            const isActive =
+              hoveredKey === item.id ||
+              (!!hoveredKey && outerById.get(hoveredKey)?.parentId === item.id);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onMouseEnter={() => setHoveredKey(item.id)}
+                onMouseLeave={() => setHoveredKey(null)}
+                className={`flex items-center gap-1.5 rounded px-2 py-1 transition-colors ${
+                  isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'
+                }`}
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className={`text-xs ${isActive ? 'font-semibold' : ''}`}>
+                  {item.name}
+                </span>
+                <span className={`text-xs tabular-nums ${isActive ? 'font-semibold' : ''}`}>
+                  {showPercent ? `${item.value}%` : formatCurrencyInt(item.value)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
