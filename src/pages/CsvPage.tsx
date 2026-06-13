@@ -14,8 +14,12 @@ export default function CsvPage() {
     setShowReview(true);
   };
 
-  const handleConfirm = () => {
-    showSuccess(`${transactions.length} Transaktionen importiert`);
+  const handleConfirm = (importedCount: number, skippedCount: number) => {
+    showSuccess(
+      skippedCount > 0
+        ? `${importedCount} Transaktionen importiert, ${skippedCount} Duplikate übersprungen`
+        : `${importedCount} Transaktionen importiert`
+    );
     setShowReview(false);
     // Direkt zur Visualisierung (Issue #39): das einfache Sankey auf dem
     // Basis-Dashboard ist der Aha-Moment — frei, ohne Login und Paywall.

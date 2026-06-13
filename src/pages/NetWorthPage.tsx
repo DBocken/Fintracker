@@ -109,7 +109,7 @@ export default function NetWorthPage() {
                           <div className="text-xs text-muted-foreground">
                             {acc.source === "live"
                               ? `Live-Saldo von der Bank${acc.lastSyncAt ? ` · zuletzt aktualisiert am ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}`
-                              : "Berechnet aus lokalen Transaktionen (keine Bankanbindung)"}
+                              : "Berechnet aus Eröffnungssaldo + lokalen Transaktionen (keine Bankanbindung)"}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

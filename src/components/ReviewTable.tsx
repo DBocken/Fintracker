@@ -23,18 +23,22 @@ import {
 import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, HierarchicalCategory } from '../types';
-import { getHierarchicalCategories, saveTransactions } from '../services/transaction-service';
+import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getAccounts } from '../services/account-service';
 
 interface ReviewTableProps {
   transactions: Transaction[];
-  onConfirm: () => void;
+  onConfirm: (importedCount: number, skippedCount: number) => void;
 }
+
+/** Toleranz für den Betragsvergleich bei der Duplikat-Erkennung */
+const DUPLICATE_AMOUNT_TOLERANCE = 0.005;
 
 export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   const [rows, setRows] = useState<Transaction[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: hierarchicalCategories = [] } = useQuery<HierarchicalCategory[]>({
@@ -47,6 +51,13 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     queryFn: getAccounts,
   });
 
+  // Bereits gespeicherte Transaktionen (z.B. aus PSD2-Sync) für die
+  // Duplikat-Erkennung beim CSV-Import
+  const { data: existingTransactions = [] } = useQuery({
+    queryKey: ['transactions', 'all-for-duplicate-check'],
+    queryFn: () => getTransactions(10000),
+  });
+
   const getAccountInfo = (accountId: string | null | undefined) => {
     if (!accountId) return null;
     return accounts.find(a => a.id === accountId) || null;
@@ -56,10 +67,10 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
 
   const saveMut = useMutation<Transaction[], Error, Transaction[]>({
     mutationFn: saveTransactions,
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
-      onConfirm();
+      onConfirm(saved.length, rows.length - saved.length);
     },
   });
 
@@ -72,6 +83,36 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
       }))
     );
   }, [transactions]);
+
+  // Mögliche Duplikate erkennen: gleiches Konto, gleiches Datum und nahezu
+  // gleicher Betrag wie eine bereits vorhandene Transaktion (z.B. via
+  // PSD2-Sync importiert).
+  const duplicateIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of rows) {
+      const isDuplicate = existingTransactions.some(
+        (existing) =>
+          existing.account_id === row.account_id &&
+          existing.date === row.date &&
+          Math.abs((existing.amount || 0) - (row.amount || 0)) < DUPLICATE_AMOUNT_TOLERANCE
+      );
+      if (isDuplicate) ids.add(row.id || '');
+    }
+    return ids;
+  }, [rows, existingTransactions]);
+
+  // Erkannte Duplikate standardmäßig vom Import ausschließen
+  useEffect(() => {
+    setExcludedIds(new Set(duplicateIds));
+  }, [duplicateIds]);
+
+  const toggleExcluded = (id: string) => {
+    setExcludedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const toggleSelectAll = () => {
     setSelectedRows(prev =>
@@ -103,7 +144,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   };
 
   const handleConfirmAll = () => {
-    saveMut.mutate(rows);
+    saveMut.mutate(rows.filter((row) => !excludedIds.has(row.id || '')));
   };
 
   const flattenCategories = (categories: HierarchicalCategory[], level = 0): any[] => {
@@ -195,6 +236,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 <TableHead>Betrag</TableHead>
                 <TableHead>Auto-Kategorie</TableHead>
                 <TableHead>Zuweisen</TableHead>
+                <TableHead>Duplikat?</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -262,6 +304,24 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      {duplicateIds.has(row.id || '') ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-warning text-warning">
+                            Mögliches Duplikat
+                          </Badge>
+                          <label className="flex items-center gap-1 text-xs whitespace-nowrap cursor-pointer">
+                            <Checkbox
+                              checked={!excludedIds.has(row.id || '')}
+                              onCheckedChange={() => toggleExcluded(row.id || '')}
+                            />
+                            trotzdem importieren
+                          </label>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -269,13 +329,20 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
           </Table>
         </div>
 
-        <div className="text-right mt-4">
-          <Button 
-            onClick={handleConfirmAll} 
-            disabled={saveMut.isPending}
+        <div className="flex items-center justify-end gap-3 mt-4">
+          {excludedIds.size > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {excludedIds.size} als Duplikat erkannt und vom Import ausgeschlossen
+            </p>
+          )}
+          <Button
+            onClick={handleConfirmAll}
+            disabled={saveMut.isPending || rows.length - excludedIds.size === 0}
             className="btn-premium"
           >
-            {saveMut.isPending ? 'Speichern...' : `Importiere ${rows.length} Transaktionen`}
+            {saveMut.isPending
+              ? 'Speichern...'
+              : `Importiere ${rows.length - excludedIds.size} Transaktionen`}
           </Button>
         </div>
       </CardContent>

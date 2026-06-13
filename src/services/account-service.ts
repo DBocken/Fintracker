@@ -103,6 +103,8 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
     last_sync_at: account.last_sync_at || null,
     sync_enabled: account.sync_enabled ?? false,
     bank_connection_id: account.bank_connection_id || null,
+    opening_balance: account.opening_balance ?? 0,
+    opening_balance_date: account.opening_balance_date || null,
   });
 }
 

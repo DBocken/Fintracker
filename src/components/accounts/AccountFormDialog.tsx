@@ -53,6 +53,8 @@ export function AccountFormDialog({
   const [statementCloseDay, setStatementCloseDay] = useState<number | null>(null);
   const [dueDay, setDueDay] = useState<number | null>(null);
   const [autopayAccountId, setAutopayAccountId] = useState<string | null>(null);
+  const [openingBalance, setOpeningBalance] = useState('');
+  const [openingBalanceDate, setOpeningBalanceDate] = useState('');
 
   useEffect(() => {
     if (account) {
@@ -66,6 +68,8 @@ export function AccountFormDialog({
       setStatementCloseDay(account.statement_close_day || null);
       setDueDay(account.due_day || null);
       setAutopayAccountId(account.autopay_account_id || '');
+      setOpeningBalance(account.opening_balance ? String(account.opening_balance) : '');
+      setOpeningBalanceDate(account.opening_balance_date || '');
     } else {
       setName('');
       setType('checking');
@@ -77,6 +81,8 @@ export function AccountFormDialog({
       setStatementCloseDay(null);
       setDueDay(null);
       setAutopayAccountId('');
+      setOpeningBalance('');
+      setOpeningBalanceDate('');
     }
   }, [account, open]);
 
@@ -101,6 +107,8 @@ export function AccountFormDialog({
       statement_close_day: type === 'credit_card' ? statementCloseDay : null,
       due_day: type === 'credit_card' ? dueDay : null,
       autopay_account_id: type === 'credit_card' ? autopayAccountId : null,
+      opening_balance: openingBalance.trim() ? Number(openingBalance.replace(',', '.')) : 0,
+      opening_balance_date: openingBalance.trim() ? (openingBalanceDate || null) : null,
     });
   };
 
@@ -189,6 +197,35 @@ export function AccountFormDialog({
               placeholder="z.B. Hauptkonto für Gehalt"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="openingBalance">Startsaldo (optional)</Label>
+              <Input
+                id="openingBalance"
+                type="number"
+                step="0.01"
+                value={openingBalance}
+                onChange={(e) => setOpeningBalance(e.target.value)}
+                placeholder="z.B. 1234.56"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="openingBalanceDate">Saldo-Stichtag</Label>
+              <Input
+                id="openingBalanceDate"
+                type="date"
+                value={openingBalanceDate}
+                onChange={(e) => setOpeningBalanceDate(e.target.value)}
+                disabled={!openingBalance.trim()}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Saldo vor der ersten importierten/erfassten Transaktion. Wird zur Summe
+            der Transaktionen addiert, damit der berechnete Saldo dem echten
+            Kontostand entspricht.
+          </p>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
