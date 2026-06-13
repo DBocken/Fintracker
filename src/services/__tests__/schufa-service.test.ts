@@ -1,9 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  createSchufareminder,
-  getActiveSchufareminder,
   isReminderDue,
-  markSchufareminderScanned,
   SCHUFA_EXPLANATION,
   SCHUFA_REQUEST_URL,
 } from "../schufa-service";
