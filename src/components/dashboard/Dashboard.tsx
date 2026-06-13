@@ -261,11 +261,13 @@ export function Dashboard() {
   }, [visibleTransactions, sortConfig]);
 
   const stats = useMemo(() => {
-    const income = visibleTransactions
+    const flowTransactions = visibleTransactions.filter(t => !t.is_transfer);
+
+    const income = flowTransactions
       .filter(t => t.amount > 0)
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const expenses = visibleTransactions
+    const expenses = flowTransactions
       .filter(t => t.amount < 0)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
@@ -274,7 +276,7 @@ export function Dashboard() {
     const currentBalance = totalEffectiveBalance;
 
     // Time series data for charts - convert to array format
-    const seriesObj = visibleTransactions.reduce((acc, t) => {
+    const seriesObj = flowTransactions.reduce((acc, t) => {
       const date = format(parseISO(t.date), granularity === 'daily' ? 'dd.MM.' : granularity === 'weekly' ? 'dd.MM.' : 'MM.yy', { locale: de });
       if (!acc[date]) acc[date] = { income: 0, expenses: 0 };
       if (t.amount > 0) acc[date].income += t.amount;
@@ -295,7 +297,7 @@ export function Dashboard() {
     const innerMap = new Map<string, { id: string; name: string; value: number }>();
     const outerMap = new Map<string, { id: string; parentId: string; name: string; value: number }>();
 
-    for (const t of visibleTransactions) {
+    for (const t of flowTransactions) {
       if (t.amount >= 0) continue;
       const amount = Math.abs(t.amount);
       const assignedId = t.category_id;

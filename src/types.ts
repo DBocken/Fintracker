@@ -47,6 +47,10 @@ export interface Transaction {
   subcategory_id?: string | null;
   auto_mapped: boolean;
   confirmed: boolean;
+  /** Markiert diese Transaktion als internen Übertrag zwischen eigenen Konten */
+  is_transfer?: boolean;
+  /** ID der verknüpften Gegenbuchung auf dem anderen Konto */
+  transfer_pair_id?: string | null;
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
