@@ -172,7 +172,7 @@ export function BackupManager() {
             </div>
           ) : backupInfo ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg bg-slate-900/50 space-y-2">
+              <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
                   <span className="text-sm">Transaktionen</span>
@@ -180,7 +180,7 @@ export function BackupManager() {
                 <p className="text-2xl font-bold">{backupInfo.transactionCount}</p>
               </div>
 
-              <div className="p-4 rounded-lg bg-slate-900/50 space-y-2">
+              <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
                   <span className="text-sm">Kategorien</span>
@@ -188,7 +188,7 @@ export function BackupManager() {
                 <p className="text-2xl font-bold">{backupInfo.categoryCount}</p>
               </div>
 
-              <div className="p-4 rounded-lg bg-slate-900/50 space-y-2">
+              <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <HardDrive className="h-4 w-4" />
                   <span className="text-sm">Konten</span>
@@ -196,7 +196,7 @@ export function BackupManager() {
                 <p className="text-2xl font-bold">{backupInfo.accountCount}</p>
               </div>
 
-              <div className="p-4 rounded-lg bg-slate-900/50 space-y-2">
+              <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <HardDrive className="h-4 w-4" />
                   <span className="text-sm">Geschätzte Größe</span>
@@ -461,25 +461,25 @@ export function BackupManager() {
               {restoreMutation.data.message}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 rounded-lg bg-slate-900/50">
+              <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.transactions}
                 </p>
                 <p className="text-xs text-muted-foreground">Transaktionen</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-slate-900/50">
+              <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.categories}
                 </p>
                 <p className="text-xs text-muted-foreground">Kategorien</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-slate-900/50">
+              <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.accounts}
                 </p>
                 <p className="text-xs text-muted-foreground">Konten</p>
               </div>
-              <div className="text-center p-3 rounded-lg bg-slate-900/50">
+              <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold">
                   {restoreMutation.data.details.settings ? '✓' : '✗'}
                 </p>

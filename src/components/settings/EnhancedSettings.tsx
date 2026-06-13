@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -24,6 +24,7 @@ import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
+import { AppearanceSettings } from './AppearanceSettings';
 import { BackupManager } from '../BackupManager';
 
 function SectionHeader({
@@ -37,7 +38,7 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-4 flex items-start gap-3">
-      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-positive">
+      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-primary">
         {icon}
       </div>
       <div>
@@ -173,7 +174,7 @@ export function EnhancedSettings() {
                 Datenschutzorientierte Einstellungen
               </div>
               <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-                <SettingsIcon className="h-8 w-8 text-positive md:h-9 md:w-9" />
+                <SettingsIcon className="h-8 w-8 text-primary md:h-9 md:w-9" />
                 Einstellungen
               </h1>
               <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
@@ -182,11 +183,11 @@ export function EnhancedSettings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Kategorien</div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">{categories.length}</div>
               </div>
-              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Aufbewahrung</div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">{settings?.retention_months || 36} M</div>
               </div>
@@ -217,6 +218,15 @@ export function EnhancedSettings() {
               isProcessing={isProcessing}
             />
           </div>
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<Palette className="h-5 w-5" />}
+            title="Erscheinungsbild"
+            description="Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche."
+          />
+          <AppearanceSettings />
         </section>
 
         <section className="mb-10">

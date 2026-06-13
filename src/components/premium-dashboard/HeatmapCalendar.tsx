@@ -62,7 +62,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
   const getColorClass = (date: Date) => {
     const key = date.toISOString().split('T')[0];
     const value = activityMap.get(key) || 0;
-    if (maxValue <= 0) return 'bg-gray-800';
+    if (maxValue <= 0) return 'bg-muted';
 
     const ratio = value / maxValue;
     // Diskrete Stufen
@@ -71,14 +71,14 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
     const s3 = ratio < 0.75;
 
     if (aggregator === 'expenses') {
-      if (value === 0) return 'bg-gray-800';
+      if (value === 0) return 'bg-muted';
       if (s1) return 'bg-warning';
       if (s2) return 'bg-warning';
       if (s3) return 'bg-warning';
       return 'bg-warning';
     }
     if (aggregator === 'income') {
-      if (value === 0) return 'bg-gray-800';
+      if (value === 0) return 'bg-muted';
       if (s1) return 'bg-positive';
       if (s2) return 'bg-positive';
       if (s3) return 'bg-positive';
@@ -86,7 +86,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
     }
     if (aggregator === 'net') {
       // Netto: negative rot, positive blau
-      if (value === 0) return 'bg-gray-800';
+      if (value === 0) return 'bg-muted';
       if (value < 0) {
         const negRatio = Math.abs(value) / (maxValue || 1);
         if (negRatio < 0.25) return 'bg-warning';
@@ -101,7 +101,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
       }
     }
     // count
-    if (value === 0) return 'bg-gray-800';
+    if (value === 0) return 'bg-muted';
     if (s1) return 'bg-brand';
     if (s2) return 'bg-brand';
     if (s3) return 'bg-brand';
@@ -128,7 +128,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
   return (
     <Card className="border-0 bg-gradient-to-br from-gray-800 to-gray-900 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Calendar className="h-5 w-5 text-brand" />
           Aktivitätskalender
         </CardTitle>
@@ -137,7 +137,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
         {/* Steuerung */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-300">Zeitraum</div>
+            <div className="text-sm text-foreground">Zeitraum</div>
             <Select value={String(daysRange)} onValueChange={(v) => setDaysRange(Number(v))}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
@@ -150,7 +150,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
             </Select>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-300">Aggregation</div>
+            <div className="text-sm text-foreground">Aggregation</div>
             <Select value={aggregator} onValueChange={(v: Aggregator) => setAggregator(v)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
@@ -168,7 +168,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
         {/* Wochentage */}
         <div className="grid grid-cols-7 gap-1 mb-1">
           {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => (
-            <div key={day} className="text-xs text-gray-400 text-center">
+            <div key={day} className="text-xs text-muted-foreground text-center">
               {day}
             </div>
           ))}

@@ -87,11 +87,11 @@ export function PerformanceDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
+          <h2 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Activity className="h-6 w-6 text-positive" />
             Technischer Status
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             Ergänzende Informationen zur lokalen Speicherung und App-Leistung.
           </p>
         </div>
@@ -101,7 +101,7 @@ export function PerformanceDashboard() {
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             {autoRefresh ? 'Auto-Refresh an' : 'Auto-Refresh aus'}
           </Button>
@@ -109,7 +109,7 @@ export function PerformanceDashboard() {
             variant="outline"
             size="sm"
             onClick={refreshMetrics}
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             Aktualisieren
           </Button>
@@ -117,7 +117,7 @@ export function PerformanceDashboard() {
             variant="outline"
             size="sm"
             onClick={downloadMetrics}
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Download className="mr-2 h-4 w-4" />
             Exportieren
@@ -126,7 +126,7 @@ export function PerformanceDashboard() {
             variant="outline"
             size="sm"
             onClick={clearMetrics}
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Löschen
@@ -134,9 +134,9 @@ export function PerformanceDashboard() {
         </div>
       </div>
 
-      <Card className="ui-card border-slate-800 bg-slate-950/70">
+      <Card className="ui-card border-border bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Database className="h-5 w-5 text-premium" />
             Lokaler Speicherstatus
           </CardTitle>
@@ -144,21 +144,21 @@ export function PerformanceDashboard() {
         <CardContent>
           {storageStats ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Lokale Transaktionen</p>
-                <p className="text-2xl font-bold text-white">{storageStats.data.local.count.toLocaleString('de-DE')}</p>
-                <p className="text-xs text-slate-500">{(storageStats.data.local.size / 1024).toFixed(2)} KB</p>
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Lokale Transaktionen</p>
+                <p className="text-2xl font-bold text-foreground">{storageStats.data.local.count.toLocaleString('de-DE')}</p>
+                <p className="text-xs text-muted-foreground">{(storageStats.data.local.size / 1024).toFixed(2)} KB</p>
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Externe Klartext-Speicherung</p>
-                <p className="text-2xl font-bold text-white">0</p>
-                <p className="text-xs text-slate-500">sensible Daten liegen lokal</p>
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Externe Klartext-Speicherung</p>
+                <p className="text-2xl font-bold text-foreground">0</p>
+                <p className="text-xs text-muted-foreground">sensible Daten liegen lokal</p>
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Letzte Sync-Aktion</p>
-                <p className="text-lg font-semibold text-white">
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Letzte Sync-Aktion</p>
+                <p className="text-lg font-semibold text-foreground">
                   {storageStats.data.lastSync
                     ? new Date(storageStats.data.lastSync).toLocaleTimeString('de-DE')
                     : 'noch keine'}
@@ -166,45 +166,45 @@ export function PerformanceDashboard() {
               </div>
             </div>
           ) : (
-            <p className="py-4 text-center text-slate-500">Keine Speicher-Informationen verfügbar</p>
+            <p className="py-4 text-center text-muted-foreground">Keine Speicher-Informationen verfügbar</p>
           )}
         </CardContent>
       </Card>
 
       {memoryInfo && (
-        <Card className="ui-card border-slate-800 bg-slate-950/70">
+        <Card className="ui-card border-border bg-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Monitor className="h-5 w-5 text-brand" />
               Speicherverbrauch
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Genutzt</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Genutzt</p>
+                <p className="text-2xl font-bold text-foreground">
                   {(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Gesamt</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Gesamt</p>
+                <p className="text-2xl font-bold text-foreground">
                   {(memoryInfo.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
-              <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-sm text-slate-400">Limit</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">Limit</p>
+                <p className="text-2xl font-bold text-foreground">
                   {(memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
             </div>
 
             <div className="mt-4">
-              <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-gradient-to-r from-positive to-brand"
                   style={{
@@ -212,7 +212,7 @@ export function PerformanceDashboard() {
                   }}
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {((memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100).toFixed(1)}% genutzt
               </p>
             </div>
@@ -220,9 +220,9 @@ export function PerformanceDashboard() {
         </Card>
       )}
 
-      <Card className="ui-card border-slate-800 bg-slate-950/70">
+      <Card className="ui-card border-border bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Zap className="h-5 w-5 text-warning" />
             Operations-Leistung
           </CardTitle>
@@ -245,19 +245,19 @@ export function PerformanceDashboard() {
                   className={`rounded-xl border p-3 ${
                     metric.avgDuration > 100
                       ? 'border-warning/30 bg-warning/10'
-                      : 'border-slate-800 bg-slate-900/70'
+                      : 'border-border bg-card'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="font-medium text-white">{metric.name}</p>
-                      <p className="text-xs text-slate-500">{metric.count} Aufrufe</p>
+                      <p className="font-medium text-foreground">{metric.name}</p>
+                      <p className="text-xs text-muted-foreground">{metric.count} Aufrufe</p>
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-bold ${metric.avgDuration > 100 ? 'text-warning' : 'text-positive'}`}>
                         {formatDuration(metric.avgDuration)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Ø {formatDuration(metric.minDuration)} - {formatDuration(metric.maxDuration)}
                       </p>
                     </div>
@@ -266,16 +266,16 @@ export function PerformanceDashboard() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-slate-500">
+            <p className="py-8 text-center text-muted-foreground">
               Keine Performance-Daten verfügbar. Führe einige Aktionen aus, um Metriken zu sammeln.
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="ui-card border-slate-800 bg-slate-950/70">
+      <Card className="ui-card border-border bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Clock className="h-5 w-5 text-brand" />
             Letzte Operationen
           </CardTitle>
@@ -284,10 +284,10 @@ export function PerformanceDashboard() {
           {metrics.length > 0 ? (
             <div className="max-h-60 space-y-2 overflow-y-auto">
               {metrics.slice(-10).reverse().map((metric, index) => (
-                <div key={index} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                <div key={index} className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
                   <div>
-                    <p className="text-sm font-medium text-white">{metric.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-medium text-foreground">{metric.name}</p>
+                    <p className="text-xs text-muted-foreground">
                       {new Date(metric.timestamp).toLocaleTimeString('de-DE')}
                     </p>
                   </div>
@@ -298,7 +298,7 @@ export function PerformanceDashboard() {
               ))}
             </div>
           ) : (
-            <p className="py-4 text-center text-slate-500">Keine Operationen aufgezeichnet</p>
+            <p className="py-4 text-center text-muted-foreground">Keine Operationen aufgezeichnet</p>
           )}
         </CardContent>
       </Card>

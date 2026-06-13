@@ -32,7 +32,7 @@ export function PaginationControls({
   const endIndex = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className={`flex items-center justify-between px-4 py-3 bg-slate-900 border-t border-slate-800 ${className}`}>
+    <div className={`flex items-center justify-between px-4 py-3 bg-card border-t border-border ${className}`}>
       {/* Info */}
       <div className="flex items-center gap-4 text-sm">
         <span className="text-muted-foreground">

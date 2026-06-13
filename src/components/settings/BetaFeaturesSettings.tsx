@@ -9,7 +9,7 @@ export function BetaFeaturesSettings() {
   const [tradingEnabled, setTradingEnabled] = useFeatureFlag('trading_beta');
 
   return (
-    <div className="rounded-2xl border border-border bg-muted/40 p-5">
+    <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-medium text-foreground">Trading (Beta)</div>

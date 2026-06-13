@@ -51,7 +51,7 @@ export function LoadingWrapper({
       return (
         <div className="space-y-3">
           {Array.from({ length: count * 2 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50">
+            <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-card">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-1/3" />
@@ -67,14 +67,14 @@ export function LoadingWrapper({
       return (
         <div className="space-y-2">
           {/* Table header */}
-          <div className="flex gap-4 p-3 rounded-lg bg-slate-900">
+          <div className="flex gap-4 p-3 rounded-lg bg-card">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-4 flex-1" />
             ))}
           </div>
           {/* Table rows */}
           {Array.from({ length: count }).map((_, i) => (
-            <div key={i} className="flex gap-4 p-3 rounded-lg bg-slate-900/50">
+            <div key={i} className="flex gap-4 p-3 rounded-lg bg-card">
               <Skeleton className="h-4 flex-1" />
               <Skeleton className="h-4 flex-1" />
               <Skeleton className="h-4 flex-1" />

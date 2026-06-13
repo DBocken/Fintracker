@@ -36,7 +36,7 @@ export function CategoryPreview({
 
       <CardContent className="space-y-4">
         {category && (
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{category.icon}</span>
               <div>
@@ -54,7 +54,7 @@ export function CategoryPreview({
               onPreview();
             }}
             variant="outline"
-            className="border-border bg-background text-foreground hover:bg-accent"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Eye className="mr-2 h-4 w-4" />
             Vorschau
@@ -71,7 +71,7 @@ export function CategoryPreview({
         </div>
 
         {showPreview && (
-          <Card className="border border-border bg-muted/40">
+          <Card className="border border-border bg-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base text-foreground">
                 <CheckCircle className="h-4 w-4 text-positive" />
@@ -118,7 +118,7 @@ export function CategoryPreview({
         <Button
           onClick={onUndo}
           variant="ghost"
-          className="w-full text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="w-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <Undo2 className="mr-2 h-4 w-4" />
           Letzte Aktion rückgängig

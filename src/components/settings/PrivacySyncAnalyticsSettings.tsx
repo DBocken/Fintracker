@@ -163,7 +163,7 @@ export function PrivacySyncAnalyticsSettings() {
 
       <CardContent className="space-y-6">
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileLock2 className="h-4 w-4 text-positive" />
               Lokale Finanzdaten
@@ -173,7 +173,7 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <Database className="h-4 w-4 text-brand" />
               Supabase
@@ -181,7 +181,7 @@ export function PrivacySyncAnalyticsSettings() {
             <StatusBadge ok>nur Metadaten</StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <HardDrive className="h-4 w-4 text-brand" />
               Lokaler Speicher (IndexedDB)
@@ -195,7 +195,7 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileKey2 className="h-4 w-4 text-premium" />
               Sync-Datei
@@ -205,7 +205,7 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <BarChart3 className="h-4 w-4 text-warning" />
               Anonyme Auswertung
@@ -245,7 +245,7 @@ export function PrivacySyncAnalyticsSettings() {
           </Alert>
         )}
 
-        <div className="rounded-2xl border border-border bg-muted/40 p-4">
+        <div className="rounded-2xl border border-border bg-card p-4">
           <h3 className="mb-2 flex items-center gap-2 font-semibold text-foreground">
             <FolderSync className="h-4 w-4 text-positive" />
             Speicherort der Sync-Datei
@@ -257,7 +257,7 @@ export function PrivacySyncAnalyticsSettings() {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-border bg-muted/40 p-4">
+        <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
           <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <ShieldCheck className="h-4 w-4 text-positive" />
             Sync-Datei verwalten
@@ -273,7 +273,7 @@ export function PrivacySyncAnalyticsSettings() {
               <Input
                 value={pathLabel}
                 onChange={(e) => setPathLabel(e.target.value)}
-                className="border-border bg-background text-foreground"
+                className="border-border bg-card text-foreground"
               />
             </div>
 
@@ -283,13 +283,13 @@ export function PrivacySyncAnalyticsSettings() {
                 value={pathHint}
                 onChange={(e) => setPathHint(e.target.value)}
                 placeholder="z. B. iCloud Drive/Ausgabentracker"
-                className="border-border bg-background text-foreground"
+                className="border-border bg-card text-foreground"
               />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={addPath} className="border-border bg-background text-foreground hover:bg-accent">
+            <Button variant="outline" onClick={addPath} className="border-border bg-card text-foreground hover:bg-accent">
               Speicherort merken
             </Button>
 
@@ -302,7 +302,7 @@ export function PrivacySyncAnalyticsSettings() {
               Sync-Datei herunterladen
             </Button>
 
-            <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent">
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent">
               Sync-Datei importieren
               <Input
                 type="file"
@@ -328,7 +328,7 @@ export function PrivacySyncAnalyticsSettings() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     onClick={() => {
                       removeSyncPath(path.id);
                       setPathsVersion((v) => v + 1);
@@ -349,7 +349,7 @@ export function PrivacySyncAnalyticsSettings() {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-border bg-muted/40 p-4">
+        <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
           <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <UploadCloud className="h-4 w-4 text-warning" />
             Anonyme Auswertung
@@ -378,7 +378,7 @@ export function PrivacySyncAnalyticsSettings() {
             variant="outline"
             onClick={() => analyticsMutation.mutate()}
             disabled={!consentQuery.data?.opted_in || !encryption.unlocked || analyticsMutation.isPending}
-            className="border-border bg-background text-foreground hover:bg-accent"
+            className="border-border bg-card text-foreground hover:bg-accent"
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analysepakete erzeugen & hochladen

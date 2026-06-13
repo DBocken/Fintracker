@@ -87,7 +87,7 @@ export function LocalEncryptionSettings() {
           </AlertDescription>
         </Alert>
 
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/40 p-4">
+        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
           <div className="text-sm text-foreground">
             Status:{' '}
             <span className={enabled ? 'text-positive' : 'text-muted-foreground'}>
@@ -100,7 +100,7 @@ export function LocalEncryptionSettings() {
               variant="outline"
               onClick={lock}
               disabled={busy}
-              className="border-border bg-background text-foreground hover:bg-accent"
+              className="border-border bg-card text-foreground hover:bg-accent"
             >
               <Lock className="mr-2 h-4 w-4" />
               Sperren
@@ -108,7 +108,7 @@ export function LocalEncryptionSettings() {
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-border bg-muted/40 p-4">
+        <div className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
             <FileKey2 className="h-4 w-4 text-positive" />
             Passphrase verwalten
@@ -123,7 +123,7 @@ export function LocalEncryptionSettings() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-border bg-background text-foreground"
+              className="border-border bg-card text-foreground"
             />
 
             {!enabled && (
@@ -137,7 +137,7 @@ export function LocalEncryptionSettings() {
                     type="password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    className="border-border bg-background text-foreground"
+                    className="border-border bg-card text-foreground"
                   />
                 </div>
 

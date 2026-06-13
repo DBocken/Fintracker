@@ -59,7 +59,7 @@ export function BankConnectionsManager() {
       case 'revoked':
         return <Badge variant="outline" className="text-warning border-warning/30"><AlertTriangle className="h-3 w-3 mr-1" /> Widerrufen</Badge>
       case 'suspended':
-        return <Badge variant="outline" className="text-gray-400 border-gray-500/30">Pausiert</Badge>
+        return <Badge variant="outline" className="text-muted-foreground border-border">Pausiert</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -69,7 +69,7 @@ export function BankConnectionsManager() {
     return (
       <Card className="premium-card">
         <CardContent className="flex items-center justify-center py-12">
-          <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     )
@@ -80,11 +80,11 @@ export function BankConnectionsManager() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Building2 className="h-5 w-5 text-brand" />
               Verknüpfte Banken
             </CardTitle>
-            <CardDescription className="text-gray-400 mt-1">
+            <CardDescription className="text-muted-foreground mt-1">
               Deine Bankverbindungen sind sicher gespeichert und auf allen Geräten verfügbar
             </CardDescription>
           </div>
@@ -92,7 +92,7 @@ export function BankConnectionsManager() {
             variant="ghost"
             size="sm"
             onClick={() => refetch()}
-            className="text-gray-400 hover:text-white"
+            className="text-muted-foreground hover:text-accent-foreground"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -110,9 +110,9 @@ export function BankConnectionsManager() {
         )}
 
         {!bankConnections || bankConnections.length === 0 ? (
-          <Alert className="bg-slate-800/50 border-slate-700">
-            <Building2 className="h-4 w-4 text-gray-400" />
-            <AlertDescription className="text-gray-400">
+          <Alert className="bg-muted border-border">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <AlertDescription className="text-muted-foreground">
               Noch keine Bankverbindungen vorhanden. Verbinde deine erste Bank über PSD2.
             </AlertDescription>
           </Alert>
@@ -121,38 +121,38 @@ export function BankConnectionsManager() {
             {bankConnections.map((connection) => (
               <div
                 key={connection.id}
-                className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+                className="p-4 bg-muted border border-border rounded-lg hover:border-border transition-colors"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <Building2 className="h-5 w-5 text-brand flex-shrink-0" />
-                      <h3 className="font-semibold text-white truncate">
+                      <h3 className="font-semibold text-foreground truncate">
                         {connection.institution_name}
                       </h3>
                       {getStatusBadge(connection.status)}
                     </div>
 
-                    <div className="text-sm text-gray-400 space-y-1">
+                    <div className="text-sm text-muted-foreground space-y-1">
                       {connection.institution_bic && (
                         <p className="flex items-center gap-2">
-                          <span className="text-gray-500">BIC:</span>
+                          <span className="text-muted-foreground">BIC:</span>
                           <span className="font-mono text-xs">{connection.institution_bic}</span>
                         </p>
                       )}
                       {connection.institution_country && (
                         <p className="flex items-center gap-2">
-                          <span className="text-gray-500">Land:</span>
+                          <span className="text-muted-foreground">Land:</span>
                           <span>{connection.institution_country}</span>
                         </p>
                       )}
                       <p className="flex items-center gap-2">
-                        <span className="text-gray-500">Verknüpft am:</span>
+                        <span className="text-muted-foreground">Verknüpft am:</span>
                         <span>{new Date(connection.created_at).toLocaleDateString('de-DE')}</span>
                       </p>
                       {connection.last_sync_at && (
                         <p className="flex items-center gap-2">
-                          <span className="text-gray-500">Letzter Sync:</span>
+                          <span className="text-muted-foreground">Letzter Sync:</span>
                           <span>{new Date(connection.last_sync_at).toLocaleDateString('de-DE')}</span>
                         </p>
                       )}
@@ -206,16 +206,16 @@ export function BankConnectionsManager() {
 
       {/* Revoke Confirmation Dialog */}
       <AlertDialog open={!!connectionToRevoke} onOpenChange={() => setConnectionToRevoke(null)}>
-        <AlertDialogContent className="bg-slate-900 border-slate-800">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Bankverbindung widerrufen?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle className="text-foreground">Bankverbindung widerrufen?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Dies wird den Zugriff auf deine Bankkonten über diese Verbindung deaktivieren. 
               Du kannst die Verbindung jederzeit neu herstellen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-800 text-gray-300 hover:bg-slate-700">
+            <AlertDialogCancel className="bg-muted text-foreground hover:bg-accent">
               Abbrechen
             </AlertDialogCancel>
             <AlertDialogAction
@@ -230,16 +230,16 @@ export function BankConnectionsManager() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!connectionToDelete} onOpenChange={() => setConnectionToDelete(null)}>
-        <AlertDialogContent className="bg-slate-900 border-slate-800">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Bankverbindung löschen?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle className="text-foreground">Bankverbindung löschen?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Dies wird die Bankverbindung vollständig aus deiner Liste entfernen. 
               Deine Kontodaten bleiben erhalten, aber du musst die Verbindung neu herstellen, um neue Transaktionen abzurufen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-800 text-gray-300 hover:bg-slate-700">
+            <AlertDialogCancel className="bg-muted text-foreground hover:bg-accent">
               Abbrechen
             </AlertDialogCancel>
             <AlertDialogAction

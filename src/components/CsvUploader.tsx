@@ -236,8 +236,8 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               {...getRootProps()}
               className={`border-dashed border-2 p-8 text-center cursor-pointer rounded-lg transition-colors ${
                 !selectedAccountId 
-                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50' 
-                  : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                  ? 'border-border bg-muted cursor-not-allowed opacity-50' 
+                  : 'border-border hover:border-primary hover:bg-primary/5'
               }`}
               style={{ pointerEvents: selectedAccountId ? 'auto' : 'none' }}
             >
