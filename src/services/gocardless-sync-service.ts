@@ -1,6 +1,7 @@
 import { gocardlessService } from './gocardless-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
-import { createTransaction, getTransactions } from './transaction-service';
+import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings } from './transaction-service';
+import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { showSuccess, showError } from '@/utils/toast';
 import { QueryClient } from '@tanstack/react-query';
@@ -163,6 +164,10 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       existingTransactions.map(tx => `${tx.account_id || account.id}_${tx.date}_${tx.amount}_${tx.original_text}`)
     );
 
+    const categories = await getCategories();
+    const learnedRules = await getMerchantRules();
+    const userSettings = await getUserSettings();
+
     for (const tx of transactions as GoCardlessTransaction[]) {
       try {
         const amount = parseFloat(tx.transactionAmount.amount);
@@ -180,6 +185,17 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           continue;
         }
 
+        const draftTransaction = {
+          date: date,
+          amount: amount,
+          payee: payee.slice(0, 100),
+          description: description.slice(0, 200),
+          original_text: description.slice(0, 200),
+          auto_mapped: false,
+          confirmed: false,
+        };
+        const categoryId = categorizeTransaction(draftTransaction as any, categories, learnedRules);
+
         await createTransaction({
           account_id: account.id,
           date: date,
@@ -188,8 +204,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           description: description.slice(0, 200),
           original_text: description.slice(0, 200),
           currency: tx.transactionAmount.currency || account.currency || 'EUR',
-          auto_mapped: false,
-          confirmed: false,
+          category_id: categoryId,
+          auto_mapped: !!categoryId,
+          confirmed: !!categoryId && userSettings.auto_confirm_mapping,
         });
 
         result.importedCount++;

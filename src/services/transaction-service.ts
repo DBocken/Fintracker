@@ -9,6 +9,9 @@ import {
   getLocalUserSettings,
   updateLocalUserSettings,
 } from './local-settings-service';
+import { normalizeMerchantName } from './merchant-normalization';
+import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
+import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -56,18 +59,37 @@ function generateId(): string {
   return `tx_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 }
 
-// Kern der intelligenten Kategorien: Filter-Matching
-export function categorizeTransaction(transaction: Transaction, categories: Category[]): string | null {
+// Kern der intelligenten Kategorien: gelernte Regeln -> Filter-Matching -> Regex-Fallback
+export function categorizeTransaction(
+  transaction: Transaction,
+  categories: Category[],
+  learnedRules?: MerchantRule[]
+): string | null {
+  const normalizedPayee = normalizeMerchantName(transaction.payee);
+
+  // Stufe 1: vom Nutzer gelernte Zuordnungen (höchste Priorität)
+  if (learnedRules?.length && normalizedPayee) {
+    const rule = learnedRules.find(
+      (r) => r.merchant_pattern && normalizedPayee.includes(r.merchant_pattern)
+    );
+    if (rule) return rule.category_id;
+  }
+
+  // Stufe 2: Filter-Matching (Spezifität), inkl. normalisiertem Zahlungsempfänger
   let bestMatch: Category | null = null;
   let bestSpecificity = 0;
 
   for (const category of categories) {
     const filters = (category.filters || []) as string[];
-    const matches = filters.filter(filter =>
-      (transaction.payee || '').toLowerCase().includes(filter.toLowerCase()) ||
-      (transaction.description || '').toLowerCase().includes(filter.toLowerCase()) ||
-      (transaction.original_text || '').toLowerCase().includes(filter.toLowerCase())
-    );
+    const matches = filters.filter((filter) => {
+      const f = filter.toLowerCase();
+      return (
+        (transaction.payee || '').toLowerCase().includes(f) ||
+        (transaction.description || '').toLowerCase().includes(f) ||
+        (transaction.original_text || '').toLowerCase().includes(f) ||
+        normalizedPayee.includes(f)
+      );
+    });
 
     if (matches.length > bestSpecificity) {
       bestMatch = category;
@@ -75,7 +97,18 @@ export function categorizeTransaction(transaction: Transaction, categories: Cate
     }
   }
 
-  return bestMatch?.id || null;
+  if (bestMatch) return bestMatch.id;
+
+  // Stufe 3: generische Regex-Fallback-Regeln
+  const haystack = `${normalizedPayee} ${transaction.description || ''} ${transaction.original_text || ''}`.toLowerCase();
+  for (const rule of REGEX_FALLBACK_RULES) {
+    if (rule.pattern.test(haystack)) {
+      const fallbackCategory = categories.find((c) => c.name === rule.category);
+      if (fallbackCategory) return fallbackCategory.id;
+    }
+  }
+
+  return null;
 }
 
 // -----------------------------------------------------------------------------
@@ -193,12 +226,22 @@ export async function updateTransaction(
 ): Promise<Transaction[]> {
   const updated: Transaction[] = [];
   for (const u of updates) {
+    // Manuelle Korrektur: nicht mehr als "automatisch zugeordnet" markieren,
+    // sondern als bestätigt - und als Lernregel für künftige Buchungen merken.
     const result = await transactionStorage.updateTransaction(u.id, {
       category_id: u.category_id || null,
-      auto_mapped: true,
+      auto_mapped: false,
+      confirmed: true,
     });
     if (!result.success || !result.data) throw new Error(result.error || 'Update fehlgeschlagen');
     updated.push(result.data);
+
+    if (u.category_id) {
+      const merchantPattern = normalizeMerchantName(result.data.payee);
+      if (merchantPattern) {
+        await upsertMerchantRule(merchantPattern, u.category_id);
+      }
+    }
   }
 
   return updated;
@@ -387,6 +430,7 @@ export async function recategorizeTransactions(): Promise<{
   changed: number;
 }> {
   const categories = await getCategories();
+  const learnedRules = await getMerchantRules();
   const transactions = await getTransactions(10000);
 
   let assigned = 0;
@@ -395,7 +439,7 @@ export async function recategorizeTransactions(): Promise<{
   const total = transactions.length;
 
   for (const t of transactions) {
-    const newCat = categorizeTransaction(t, categories);
+    const newCat = categorizeTransaction(t, categories, learnedRules);
     const prevCat = t.category_id || null;
 
     if (newCat) assigned += 1;
@@ -420,8 +464,9 @@ export async function recategorizeTransactions(): Promise<{
  */
 export async function applyAutoCategorization(transactions: Transaction[]): Promise<Transaction[]> {
   const categories = await getCategories();
+  const learnedRules = await getMerchantRules();
   return transactions.map((t) => {
-    const newCat = categorizeTransaction(t, categories);
+    const newCat = categorizeTransaction(t, categories, learnedRules);
     return {
       ...t,
       category_id: newCat,
@@ -435,9 +480,10 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
   const catExists = categories.some(c => c.id === categoryId);
   if (!catExists) return [];
 
+  const learnedRules = await getMerchantRules();
   const all = await getTransactions(2000);
   const affected = all.filter((t) => {
-    const newCat = categorizeTransaction(t, categories);
+    const newCat = categorizeTransaction(t, categories, learnedRules);
     return t.category_id !== categoryId && newCat === categoryId;
   });
 
@@ -451,6 +497,7 @@ export interface CategorySuggestion {
 
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {
   const categories = await getCategories();
+  const learnedRules = await getMerchantRules();
   const all = await getTransactions(5000);
 
   if (!all.length || !categories.length) return null;
@@ -458,7 +505,7 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
   const counts: Record<string, number> = {};
 
   for (const t of all) {
-    const newCat = categorizeTransaction(t, categories);
+    const newCat = categorizeTransaction(t, categories, learnedRules);
     if (!newCat) continue;
     if (t.category_id === newCat) continue;
     counts[newCat] = (counts[newCat] || 0) + 1;

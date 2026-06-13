@@ -10,6 +10,7 @@ export const LOCAL_FINANCE_KEYS = {
   portfolioPositions: 'ausgabentracker_portfolio_positions_v1',
   bankConnections: 'ausgabentracker_bank_connections_v1',
   schufareminders: 'ausgabentracker_schufareminders_v1',
+  merchantRules: 'ausgabentracker_merchant_rules_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;

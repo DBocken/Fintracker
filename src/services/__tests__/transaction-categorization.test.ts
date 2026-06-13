@@ -103,4 +103,45 @@ describe("categorizeTransaction", () => {
 
     expect(categorizeTransaction(transaction, categories)).toBeNull();
   });
+
+  it("matches via normalized payee when raw payee contains noise", () => {
+    const transaction = tx({ payee: "PAYMENT 847261 REWE SAGT DANKE 3847 DE//MUENCHEN/2024-01-05" });
+    const categories = [category({ id: "food", filters: ["rewe sagt danke"] })];
+
+    expect(categorizeTransaction(transaction, categories)).toBe("food");
+  });
+
+  it("prefers a learned merchant rule over filter matching", () => {
+    const transaction = tx({ payee: "REWE Markt GmbH" });
+    const categories = [category({ id: "food", filters: ["rewe"] })];
+    const learnedRules = [
+      { id: "1", user_id: "local", merchant_pattern: "rewe markt", category_id: "personal-groceries" },
+    ];
+
+    expect(categorizeTransaction(transaction, categories, learnedRules)).toBe("personal-groceries");
+  });
+
+  it("falls back to a learned rule when no filter matches", () => {
+    const transaction = tx({ payee: "Hundeschule Müller" });
+    const categories = [category({ id: "food", filters: ["rewe"] })];
+    const learnedRules = [
+      { id: "1", user_id: "local", merchant_pattern: "hundeschule müller", category_id: "pets" },
+    ];
+
+    expect(categorizeTransaction(transaction, categories, learnedRules)).toBe("pets");
+  });
+
+  it("falls back to a regex rule when no category filter matches", () => {
+    const transaction = tx({ payee: "Aral Tankstelle Berlin", description: "Tanken" });
+    const categories = [category({ id: "mobility", name: "Mobilität", filters: [] })];
+
+    expect(categorizeTransaction(transaction, categories)).toBe("mobility");
+  });
+
+  it("does not apply a regex fallback if the matching category does not exist", () => {
+    const transaction = tx({ payee: "Aral Tankstelle Berlin", description: "Tanken" });
+    const categories = [category({ id: "other", name: "Sonstiges", filters: [] })];
+
+    expect(categorizeTransaction(transaction, categories)).toBeNull();
+  });
 });
