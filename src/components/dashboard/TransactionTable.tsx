@@ -87,6 +87,7 @@ export function TransactionTable({
   );
 
   return (
+    <div className="hidden md:block">
     <Table>
       <TableHeader>
         <TableRow>
@@ -187,5 +188,6 @@ export function TransactionTable({
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

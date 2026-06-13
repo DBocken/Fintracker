@@ -44,7 +44,7 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
         <CardTitle>Wie ändern sich meine Ausgaben?</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-56 md:h-64">
+        <div className="h-44 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -170,7 +170,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
         {/* Sunburst: zwei konzentrische Pie-Ringe, Radien relativ zur Kartengröße */}
-        <div className="h-64 min-h-0 flex-1 md:h-72">
+        <div className="h-52 min-h-0 flex-1 md:h-72">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={tooltipFormatter} />

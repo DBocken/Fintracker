@@ -13,6 +13,7 @@ import { TransactionFilters } from './TransactionFilters';
 import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
+import { TransactionListMobile } from './TransactionListMobile';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
 import { getAccounts } from '../../services/account-service';
 import { format, parseISO } from 'date-fns';
@@ -466,6 +467,19 @@ export function Dashboard() {
             onDelete={handleDelete}
             onSort={handleSort}
           />
+
+          <div className="md:hidden">
+            <TransactionListMobile
+              transactions={sortedTransactions}
+              categories={cats}
+              selected={selected}
+              hiddenTransactions={hiddenTransactions}
+              onSelect={handleSelect}
+              onToggleVisibility={handleToggleVisibility}
+              onUpdateCategory={handleUpdateCategory}
+              onDelete={handleDelete}
+            />
+          </div>
           
           {sortedTransactions.length === 0 && txs.length > 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
