@@ -92,7 +92,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   let investments = 0;
   const portfolioSources: PortfolioSource[] = [];
   try {
-    const portfolios = await getPortfolios();
+    const portfolios = (await getPortfolios()).filter((p) => p.type !== "demo");
     for (const p of portfolios) {
       const summary = await getPortfolioSummary(p.id);
       investments += summary.total_value;
