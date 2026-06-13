@@ -55,6 +55,7 @@ export function AccountFormDialog({
   const [autopayAccountId, setAutopayAccountId] = useState<string | null>(null);
   const [openingBalance, setOpeningBalance] = useState('');
   const [openingBalanceDate, setOpeningBalanceDate] = useState('');
+  const [manualBalance, setManualBalance] = useState('');
 
   useEffect(() => {
     if (account) {
@@ -70,6 +71,11 @@ export function AccountFormDialog({
       setAutopayAccountId(account.autopay_account_id || '');
       setOpeningBalance(account.opening_balance ? String(account.opening_balance) : '');
       setOpeningBalanceDate(account.opening_balance_date || '');
+      setManualBalance(
+        account.live_balance_type === 'manual' && account.live_balance_amount != null
+          ? String(account.live_balance_amount)
+          : ''
+      );
     } else {
       setName('');
       setType('checking');
@@ -83,6 +89,7 @@ export function AccountFormDialog({
       setAutopayAccountId('');
       setOpeningBalance('');
       setOpeningBalanceDate('');
+      setManualBalance('');
     }
   }, [account, open]);
 
@@ -96,6 +103,27 @@ export function AccountFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Manuelle Saldo-Korrektur: überschreibt (bzw. löscht) live_balance_*,
+    // ohne einen vorhandenen Bank-Sync-Saldo zu berühren, falls nichts
+    // eingegeben wurde.
+    let liveBalanceUpdate: Partial<Account> = {};
+    if (manualBalance.trim()) {
+      liveBalanceUpdate = {
+        live_balance_amount: Number(manualBalance.replace(',', '.')),
+        live_balance_currency: currency,
+        live_balance_type: 'manual',
+        live_balance_updated_at: new Date().toISOString(),
+      };
+    } else if (account?.live_balance_type === 'manual') {
+      liveBalanceUpdate = {
+        live_balance_amount: null,
+        live_balance_currency: null,
+        live_balance_type: null,
+        live_balance_updated_at: null,
+      };
+    }
+
     onSave({
       name,
       type,
@@ -109,6 +137,7 @@ export function AccountFormDialog({
       autopay_account_id: type === 'credit_card' ? autopayAccountId : null,
       opening_balance: openingBalance.trim() ? Number(openingBalance.replace(',', '.')) : 0,
       opening_balance_date: openingBalance.trim() ? (openingBalanceDate || null) : null,
+      ...liveBalanceUpdate,
     });
   };
 
@@ -226,6 +255,30 @@ export function AccountFormDialog({
             der Transaktionen addiert, damit der berechnete Saldo dem echten
             Kontostand entspricht.
           </p>
+
+          {account && (
+            <div className="space-y-2">
+              <Label htmlFor="manualBalance">Aktueller Kontostand (manuelle Korrektur)</Label>
+              <Input
+                id="manualBalance"
+                type="number"
+                step="0.01"
+                value={manualBalance}
+                onChange={(e) => setManualBalance(e.target.value)}
+                placeholder={
+                  account.live_balance_amount != null
+                    ? `Aktuell: ${account.live_balance_amount}`
+                    : 'z.B. 1234.56'
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Überschreibt den berechneten/synchronisierten Saldo direkt – z.B. um nach
+                einem CSV-Import den echten Kontostand laut Kontoauszug einzutragen.
+                {account.gocardless_account_id && ' Wird beim nächsten Bank-Sync wieder überschrieben.'}
+                {' '}Feld leeren, um die Korrektur zu entfernen.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
