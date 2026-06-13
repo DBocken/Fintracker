@@ -1,4 +1,4 @@
-import type { Debt, DebtType } from "../types";
+import type { Debt, DebtPriority, DebtType } from "../types";
 import { getCurrentUserId } from "./auth-service";
 import { getTransactions } from "./transaction-service";
 import {
@@ -32,6 +32,31 @@ export const DEBT_TYPE_ICONS: Record<DebtType, string> = {
   mortgage: "🏠",
   other: "💸",
 };
+
+export const DEBT_PRIORITY_LABELS: Record<DebtPriority, string> = {
+  existenzsichernd: "Existenzsichernd",
+  normal: "Normal",
+};
+
+/**
+ * Warum existenzsichernde Rückstände immer zuerst kommen — Standard-Wissen
+ * der Schuldnerberatung, als Erklärtext fürs UI (#51).
+ */
+export const EXISTENTIAL_PRIORITY_EXPLANATION =
+  "Miete, Energie und Unterhalt sichern deine Wohnung und Grundversorgung. Rückstände dort haben schneller harte Folgen (Kündigung, Stromsperre) als teure Konsumschulden — deshalb stehen sie im Plan immer oben, unabhängig vom Zinssatz.";
+
+/** Gläubiger-Muster, die auf existenzsichernde Schulden hindeuten. */
+const EXISTENTIAL_CREDITOR_RE =
+  /(miete|vermiet|wohnung|hausverwaltung|immobilien|wohnbau|wbg|gwg|stadtwerke|energie|strom|gas|fernw[äa]rme|wasser(werk)?|vattenfall|e\.?on|enbw|rwe|unterhalt|jugendamt|jobcenter)/i;
+
+/**
+ * Schlägt bei der Forderungsakten-Übernahme automatisch eine Priorität vor
+ * (Vermieter, Stadtwerke/Energie, Unterhaltskasse → existenzsichernd).
+ */
+export function suggestDebtPriority(creditorOrName: string | null | undefined): DebtPriority {
+  if (creditorOrName && EXISTENTIAL_CREDITOR_RE.test(creditorOrName)) return "existenzsichernd";
+  return "normal";
+}
 
 export const BNPL_PROVIDERS = [
   "klarna",
@@ -70,6 +95,7 @@ export async function createDebt(debt: Partial<Debt>): Promise<Debt> {
     provider: debt.provider ?? null,
     notes: debt.notes ?? null,
     is_paid_off: debt.is_paid_off ?? false,
+    priority: debt.priority ?? "normal",
     created_at: debt.created_at ?? now,
     updated_at: debt.updated_at ?? now,
   });
@@ -103,6 +129,7 @@ export interface PayoffStep {
   monthsToPayoff: number;
   totalInterestPaid: number;
   priorityOrder: number;
+  priority: DebtPriority;
 }
 
 export interface PayoffPlan {
@@ -128,12 +155,17 @@ export function calculatePayoffPlan(
       annualRate: Math.max(0, d.interest_rate),
       rate: Math.max(0, d.interest_rate) / 100 / 12,
       min: Math.max(0, d.min_payment),
+      priority: (d.priority ?? "normal") as DebtPriority,
       monthsToPayoff: 0,
       interestPaid: 0,
     }));
 
   const totalMin = active.reduce((s, d) => s + d.min, 0);
+  // Existenzsichernd schlägt jede Strategie; Avalanche/Snowball ordnen nur
+  // noch innerhalb der Prioritätsstufe (#51).
+  const tier = (d: { priority: DebtPriority }) => (d.priority === "existenzsichernd" ? 0 : 1);
   const priority = [...active].sort((a, b) => {
+    if (tier(a) !== tier(b)) return tier(a) - tier(b);
     if (strategy === "snowball") return a.initialBalance - b.initialBalance || b.annualRate - a.annualRate;
     return b.annualRate - a.annualRate || a.initialBalance - b.initialBalance;
   });
@@ -153,6 +185,7 @@ export function calculatePayoffPlan(
         monthsToPayoff: 0,
         totalInterestPaid: 0,
         priorityOrder: priorityOrder.get(d.id) || 0,
+        priority: d.priority,
       })),
       totalMonths: 0,
       totalInterestPaid: 0,
@@ -198,6 +231,7 @@ export function calculatePayoffPlan(
     monthsToPayoff: d.monthsToPayoff || month,
     totalInterestPaid: Math.round(d.interestPaid * 100) / 100,
     priorityOrder: priorityOrder.get(d.id) || 0,
+    priority: d.priority,
   }));
 
   return {
