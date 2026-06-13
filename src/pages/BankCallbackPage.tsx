@@ -19,7 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { gocardlessService } from '@/services/gocardless-service';
 import { bankConnectionService } from '@/services/bank-connection-service';
 import { updateAccount, getAccounts, createAccount, type Account } from '@/services/account-service';
-import { createTransaction } from '@/services/transaction-service';
+import { createTransaction, getCategories, categorizeTransaction, getUserSettings } from '@/services/transaction-service';
+import { getMerchantRules } from '@/services/merchant-rules-service';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface GoCardlessAccount {
@@ -233,18 +234,33 @@ export default function BankCallbackPage() {
         return;
       }
 
+      // Kategorien und gelernte Regeln einmalig laden, um Buchungen automatisch zuzuordnen
+      const categories = await getCategories();
+      const learnedRules = await getMerchantRules();
+      const userSettings = await getUserSettings();
+
       // Map GoCardless transactions to app format
-      const mappedTransactions = transactions.map((tx: ImportedTransaction) => ({
-        account_id: localAccountId, // Link to the local account
-        date: tx.bookingDate,
-        amount: parseFloat(tx.transactionAmount.amount),
-        payee: tx.debtorName || tx.creditorName || 'Unbekannt',
-        description: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
-        original_text: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
-        currency: tx.transactionAmount.currency,
-        auto_mapped: false,
-        confirmed: false,
-      }));
+      const mappedTransactions = transactions.map((tx: ImportedTransaction) => {
+        const draft = {
+          date: tx.bookingDate,
+          amount: parseFloat(tx.transactionAmount.amount),
+          payee: tx.debtorName || tx.creditorName || 'Unbekannt',
+          description: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
+          original_text: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
+          auto_mapped: false,
+          confirmed: false,
+        };
+        const categoryId = categorizeTransaction(draft as any, categories, learnedRules);
+
+        return {
+          account_id: localAccountId, // Link to the local account
+          ...draft,
+          currency: tx.transactionAmount.currency,
+          category_id: categoryId,
+          auto_mapped: !!categoryId,
+          confirmed: !!categoryId && userSettings.auto_confirm_mapping,
+        };
+      });
 
       let importedCount = 0;
       let skippedCount = 0;
