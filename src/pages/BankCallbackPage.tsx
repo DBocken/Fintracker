@@ -321,7 +321,7 @@ export default function BankCallbackPage() {
 
   if (status === 'loading' || status === 'pending') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-card flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -331,10 +331,10 @@ export default function BankCallbackPage() {
             <div className="absolute inset-0 bg-positive/20 blur-3xl rounded-full" />
             <Loader2 className="h-16 w-16 animate-spin text-positive relative z-10 mx-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-white mt-6">Konten werden abgerufen...</h1>
-          <p className="text-slate-400 mt-2">Bitte warte einen Moment, während wir deine Konten laden.</p>
+          <h1 className="text-2xl font-bold text-foreground mt-6">Konten werden abgerufen...</h1>
+          <p className="text-muted-foreground mt-2">Bitte warte einen Moment, während wir deine Konten laden.</p>
           {pollingAttempts > 0 && (
-            <p className="text-xs text-gray-400 mt-2">Wartezeit: {pollingAttempts * 2} Sekunden</p>
+            <p className="text-xs text-muted-foreground mt-2">Wartezeit: {pollingAttempts * 2} Sekunden</p>
           )}
           {requisitionInfo && requisitionInfo.link && (
             <div className="mt-4">
@@ -351,21 +351,21 @@ export default function BankCallbackPage() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-card flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Card className="bg-slate-900 border-warning/30">
+          <Card className="bg-card border-warning/30">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-warning/20 rounded-full">
                   <AlertCircle className="h-8 w-8 text-warning" />
                 </div>
                 <div>
-                  <CardTitle className="text-white">Verbindung fehlgeschlagen</CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardTitle className="text-foreground">Verbindung fehlgeschlagen</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Die Bankverbindung konnte nicht hergestellt werden.
                   </CardDescription>
                 </div>
@@ -377,8 +377,8 @@ export default function BankCallbackPage() {
               </Alert>
 
               {requisitionInfo && (
-                <div className="text-xs text-gray-400 space-y-2">
-                  <div>Requisition Status: <strong className="text-white">{requisitionInfo.status}</strong></div>
+                <div className="text-xs text-muted-foreground space-y-2">
+                  <div>Requisition Status: <strong className="text-foreground">{requisitionInfo.status}</strong></div>
                   {requisitionInfo.link && (
                     <div>
                       <div>Auth-Link:</div>
@@ -394,7 +394,7 @@ export default function BankCallbackPage() {
               <div className="flex gap-3">
                 <Button 
                   onClick={() => navigate('/')} 
-                  className="flex-1 bg-slate-800 hover:bg-slate-700"
+                  className="flex-1 bg-muted hover:bg-accent"
                 >
                   Zurück zur App
                 </Button>
@@ -414,21 +414,21 @@ export default function BankCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4">
+    <div className="min-h-screen bg-card p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-2xl mx-auto"
       >
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-3 bg-positive/20 rounded-full">
                 <Building2 className="h-8 w-8 text-positive" />
               </div>
               <div>
-                <CardTitle className="text-white">Bankkonten gefunden</CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardTitle className="text-foreground">Bankkonten gefunden</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Wir haben {accounts.length} {accounts.length === 1 ? 'Konto' : 'Konten'} gefunden. 
                   Verknüpfe sie mit bestehenden Konten oder erstelle neue.
                 </CardDescription>
@@ -451,13 +451,13 @@ export default function BankCallbackPage() {
                     className={`p-4 rounded-lg border ${
                       isLinked 
                         ? 'bg-positive/10 border-positive/30' 
-                        : 'bg-slate-800/50 border-slate-700'
+                        : 'bg-muted border-border'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-white truncate">
+                          <h3 className="font-semibold text-foreground truncate">
                             {account.name || account.product || 'Bankkonto'}
                           </h3>
                           <Badge variant="outline" className="text-xs">
@@ -472,12 +472,12 @@ export default function BankCallbackPage() {
                         </div>
                         
                         {balance && (
-                          <div className="text-2xl font-bold text-white mb-2">
+                          <div className="text-2xl font-bold text-foreground mb-2">
                             {balance}
                           </div>
                         )}
                         
-                        <div className="text-sm text-slate-400 space-y-1">
+                        <div className="text-sm text-muted-foreground space-y-1">
                           {account.iban && (
                             <p>IBAN: {account.iban}</p>
                           )}
@@ -492,7 +492,7 @@ export default function BankCallbackPage() {
                         <div className="flex flex-col gap-2">
                           <select
                             onChange={(e) => handleLinkAccount(account, e.target.value === 'new' ? undefined : (e.target.value || undefined))}
-                            className="bg-slate-900 border border-slate-700 text-white text-sm rounded px-3 py-2 min-w-[200px]"
+                            className="bg-card border border-border text-foreground text-sm rounded px-3 py-2 min-w-[200px]"
                             defaultValue=""
                           >
                             <option value="" disabled>Konto wählen...</option>

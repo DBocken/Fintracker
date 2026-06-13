@@ -61,8 +61,8 @@ export function VirtualizedTransactionTable({
   const virtualItems = virtualizer.getVirtualItems();
   
   return (
-    <div className="border border-slate-800 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-800 font-semibold text-sm">
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border font-semibold text-sm">
         <div className="w-6 flex-shrink-0"></div>
         
         <Button
@@ -134,7 +134,7 @@ export function VirtualizedTransactionTable({
                 key={virtualItem.key}
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
-                className={`flex items-center gap-3 px-4 border-b border-slate-800 hover:bg-slate-800/50 transition-colors ${
+                className={`flex items-center gap-3 px-4 border-b border-border hover:bg-accent transition-colors ${
                   isHidden ? 'opacity-50' : ''
                 }`}
                 style={{
@@ -205,7 +205,7 @@ export function VirtualizedTransactionTable({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-t border-slate-800">
+      <div className="flex items-center justify-between px-4 py-3 bg-card border-t border-border">
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
             Zeige {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, transactions.length)} von {transactions.length}

@@ -132,7 +132,7 @@ export function CategoryForm({
                   key={option.value}
                   type="button"
                   onClick={() => onColorChange(option.value)}
-                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-gray-800' : 'border-transparent'}`}
+                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-border' : 'border-transparent'}`}
                   style={{ backgroundColor: option.value }}
                   aria-label={`Farbe ${option.label} auswählen`}
                   aria-pressed={color === option.value}
@@ -151,7 +151,7 @@ export function CategoryForm({
                   key={`${option}-${index}`}
                   type="button"
                   onClick={() => onIconChange(option)}
-                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-gray-800' : 'border-transparent'}`}
+                  className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-border' : 'border-transparent'}`}
                   aria-label={`Icon ${index + 1} auswählen: ${option}`}
                   aria-pressed={icon === option}
                 >

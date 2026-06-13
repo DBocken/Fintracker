@@ -1,22 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserSettings } from "@/services/transaction-service";
-import { applySkinClass, type SkinId } from "@/skins/skins";
+import { applySkinClass, normalizeSkinId, type SkinId } from "@/skins/skins";
 
 type SkinContextValue = {
   current: SkinId;
 };
 
 const SkinContext = createContext<SkinContextValue>({ current: 'ruhe' });
-
-function normalizeSkinId(raw?: string | null): SkinId {
-  if (!raw) return 'ruhe';
-  if (raw.startsWith('clean-')) return 'clean'; // backward compatibility
-  if (raw === 'clean') return 'clean';
-  if (raw === 'neon') return 'neon';
-  if (raw === 'legacy') return 'legacy';
-  return 'ruhe';
-}
 
 export default function SkinProvider({ children }: { children: React.ReactNode }) {
   const initialApplied = useRef(false);

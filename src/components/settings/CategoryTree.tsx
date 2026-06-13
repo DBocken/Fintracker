@@ -48,7 +48,7 @@ export function CategoryTree({
         <div key={`${category.id}-${level}-${index}`} className="space-y-2">
           <div
             className={cn(
-              "group flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all",
+              "group flex items-center justify-between p-3 rounded-lg border hover:bg-accent dark:hover:bg-accent transition-all",
               level > 0 && "ml-6"
             )}
             style={{ marginLeft: `${level * 24}px` }}
@@ -61,7 +61,7 @@ export function CategoryTree({
                     e.stopPropagation();
                     onToggleExpand(category.id);
                   }}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-1 hover:bg-accent rounded"
                 >
                   {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
