@@ -4,6 +4,28 @@ import { getTransactions } from "./transaction-service";
 import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
 import { getDebts, getTotalDebt } from "./debt-service";
 
+export interface AccountSource {
+  id: string;
+  name: string;
+  balance: number;
+  /** "live" = Saldo direkt von der Bank, "local" = aus lokalen Transaktionen summiert */
+  source: "live" | "local";
+  lastSyncAt?: string | null;
+}
+
+export interface PortfolioSource {
+  id: string;
+  name: string;
+  value: number;
+  positionsCount: number;
+}
+
+export interface DebtSource {
+  id: string;
+  name: string;
+  balance: number;
+}
+
 export interface NetWorthBreakdown {
   /** Sum of all account balances (cash) */
   cash: number;
@@ -15,6 +37,12 @@ export interface NetWorthBreakdown {
   netWorth: number;
   /** Per-account balances */
   accountBalances: Record<string, number>;
+  /** Details on how each account's balance was determined */
+  accountSources: AccountSource[];
+  /** Details on each portfolio's contribution to investments */
+  portfolioSources: PortfolioSource[];
+  /** Details on each debt's contribution to total debt */
+  debtSources: DebtSource[];
 }
 
 /**
@@ -42,29 +70,47 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   ]);
 
   const accountBalances: Record<string, number> = {};
+  const accountSources: AccountSource[] = [];
   let cash = 0;
   for (const acc of accounts as Account[]) {
-    const balance =
-      acc.live_balance_amount !== null && acc.live_balance_amount !== undefined
-        ? Number(acc.live_balance_amount) || 0
-        : computeLocalBalance(acc.id, transactions);
+    const hasLiveBalance = acc.live_balance_amount !== null && acc.live_balance_amount !== undefined;
+    const balance = hasLiveBalance
+      ? Number(acc.live_balance_amount) || 0
+      : computeLocalBalance(acc.id, transactions);
     accountBalances[acc.id] = balance;
     cash += balance;
+    accountSources.push({
+      id: acc.id,
+      name: acc.name,
+      balance,
+      source: hasLiveBalance ? "live" : "local",
+      lastSyncAt: acc.live_balance_updated_at ?? null,
+    });
   }
 
   // Investments
   let investments = 0;
+  const portfolioSources: PortfolioSource[] = [];
   try {
     const portfolios = await getPortfolios();
     for (const p of portfolios) {
       const summary = await getPortfolioSummary(p.id);
       investments += summary.total_value;
+      portfolioSources.push({
+        id: p.id,
+        name: p.name,
+        value: summary.total_value,
+        positionsCount: summary.positions_count,
+      });
     }
   } catch {
     investments = 0;
   }
 
   const totalDebt = getTotalDebt(debts);
+  const debtSources: DebtSource[] = debts
+    .filter((d) => !d.is_paid_off)
+    .map((d) => ({ id: d.id, name: d.name, balance: Math.max(0, d.balance) }));
 
   return {
     cash,
@@ -72,5 +118,8 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     debts: totalDebt,
     netWorth: cash + investments - totalDebt,
     accountBalances,
+    accountSources,
+    portfolioSources,
+    debtSources,
   };
 }
