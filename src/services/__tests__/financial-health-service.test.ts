@@ -9,6 +9,9 @@ const EMPTY_NET_WORTH: NetWorthBreakdown = {
   debts: 0,
   netWorth: 0,
   accountBalances: {},
+  accountSources: [],
+  portfolioSources: [],
+  debtSources: [],
 };
 
 function tx(overrides: Partial<Transaction>): Transaction {
