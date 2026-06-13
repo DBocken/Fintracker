@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import type { Category, CategoryAttributes, Rhythmus, Prioritaet, Zahlungsweg } from '../../types';
 
 interface CategoryFormProps {
@@ -105,8 +106,10 @@ export function CategoryForm({
       <CardContent className="space-y-4">
         {parentId && (
           <div className="p-3 bg-brand/15 rounded-lg">
-            <Label className="text-sm">Übergeordnete Kategorie:</Label>
-            <p className="text-sm font-medium">Unterkategorie</p>
+            <p className="text-sm font-medium">Wird als Unterkategorie angelegt</p>
+            <p className="text-xs text-muted-foreground">
+              Diese Kategorie wird einer bestehenden Hauptkategorie untergeordnet.
+            </p>
           </div>
         )}
 
@@ -175,7 +178,9 @@ export function CategoryForm({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Filter werden automatisch auf Payee und Beschreibung angewendet
+            Stichwörter, die automatisch im Empfänger und Verwendungszweck gesucht werden.
+            Passt ein Stichwort, wird die Transaktion dieser Kategorie zugeordnet.
+            Beispiel: <span className="font-medium">„rewe", „edeka"</span> → Lebensmittel.
           </p>
         </div>
 
@@ -200,26 +205,41 @@ export function CategoryForm({
           </div>
         )}
 
-        <div className="space-y-3 p-3 border rounded-lg">
-          <p className="text-sm font-medium">Erweiterte Eigenschaften</p>
+        <Accordion type="single" collapsible className="rounded-lg border px-3">
+          <AccordionItem value="advanced" className="border-b-0">
+            <AccordionTrigger>Erweiterte Eigenschaften (optional)</AccordionTrigger>
+            <AccordionContent className="space-y-5">
+              <p className="text-xs text-muted-foreground">
+                Optionale Angaben für Verträge, Budgets und Auswertungen. Für eine einfache
+                Kategorie nicht nötig.
+              </p>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            {checkboxFields.map((field) => {
-              const id = `category-${String(field.key)}`;
-              return (
-                <div key={field.key} className="flex items-center gap-2">
-                  <Checkbox
-                    id={id}
-                    checked={isCheckboxChecked(field.key)}
-                    onCheckedChange={(value) => onAttributesChange({ [field.key]: Boolean(value) })}
-                  />
-                  <Label htmlFor={id}>{field.label}</Label>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Eigenschaften
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {checkboxFields.map((field) => {
+                    const id = `category-${String(field.key)}`;
+                    return (
+                      <div key={field.key} className="flex items-center gap-2">
+                        <Checkbox
+                          id={id}
+                          checked={isCheckboxChecked(field.key)}
+                          onCheckedChange={(value) => onAttributesChange({ [field.key]: Boolean(value) })}
+                        />
+                        <Label htmlFor={id}>{field.label}</Label>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Vertrag &amp; Wiederkehr
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="category-rhythmus">Rhythmus</Label>
               <Select value={attributes.rhythmus || ''} onValueChange={(value: Rhythmus) => onAttributesChange({ rhythmus: value })}>
@@ -314,9 +334,14 @@ export function CategoryForm({
                 onChange={(event) => onAttributesChange({ vertragsende: event.target.value || null })}
               />
             </div>
-          </div>
+                </div>
+              </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Budget &amp; Sortierung
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="category-budget-monat">Monatsbudget (€)</Label>
               <Input
@@ -350,10 +375,16 @@ export function CategoryForm({
                 placeholder="z.B. 1"
               />
             </div>
-          </div>
+                </div>
+              </div>
 
-          <div>
-            <Label htmlFor="category-tag-input">Tags</Label>
+              <div className="space-y-2">
+                <div>
+                  <Label htmlFor="category-tag-input">Tags</Label>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Freie Schlagwörter zum Gruppieren — anders als Filter lösen sie keine
+                    automatische Zuordnung aus.
+                  </p>
             <div className="flex gap-2">
               <Input
                 id="category-tag-input"
@@ -383,8 +414,11 @@ export function CategoryForm({
                 ))}
               </div>
             )}
-          </div>
-        </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <div className="flex gap-2">
           <Button type="button" onClick={onSave} className="flex-1">
