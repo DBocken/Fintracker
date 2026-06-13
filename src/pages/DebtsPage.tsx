@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
+import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -46,7 +47,7 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR",
 export default function DebtsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Debt | null>(null);
+  const [editing, setEditing] = useState<Partial<Debt> | null>(null);
   // Portfolio-Strategie: global, persistiert, gilt für alle Schulden (#54)
   const [strategy, setStrategyState] = useState<PayoffStrategy>(getDebtStrategy);
   const setStrategy = (s: PayoffStrategy) => {
@@ -179,7 +180,7 @@ export default function DebtsPage() {
   }, [debts]);
 
   const handleSave = (data: Partial<Debt>) => {
-    if (editing) updateMutation.mutate({ ...data, id: editing.id });
+    if (editing?.id) updateMutation.mutate({ ...data, id: editing.id });
     else createMutation.mutate(data);
   };
 
@@ -224,6 +225,13 @@ export default function DebtsPage() {
             Schuld hinzufügen
           </Button>
         }
+      />
+
+      <DebtSuggestionsBanner
+        onAdopt={(prefill) => {
+          setEditing(prefill);
+          setDialogOpen(true);
+        }}
       />
 
       {isLoading ? (

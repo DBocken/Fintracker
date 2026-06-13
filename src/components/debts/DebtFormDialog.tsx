@@ -22,7 +22,7 @@ import {
 interface DebtFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  debt: Debt | null;
+  debt: Partial<Debt> | null;
   onSave: (data: Partial<Debt>) => void;
   isLoading?: boolean;
 }
@@ -45,14 +45,14 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
   useEffect(() => {
     if (debt) {
       setForm({
-        name: debt.name,
-        type: debt.type,
+        name: debt.name ?? "",
+        type: debt.type ?? "credit_card",
         balance: String(debt.balance ?? ""),
         interest_rate: String(debt.interest_rate ?? ""),
         min_payment: String(debt.min_payment ?? ""),
         due_day: debt.due_day != null ? String(debt.due_day) : "",
         provider: debt.provider ?? "",
-        is_bnpl: debt.is_bnpl,
+        is_bnpl: debt.is_bnpl ?? false,
         priority: debt.priority ?? "normal",
       });
     } else {
@@ -78,7 +78,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{debt ? "Schuld bearbeiten" : "Neue Schuld"}</DialogTitle>
+          <DialogTitle>{debt?.id ? "Schuld bearbeiten" : "Neue Schuld"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -223,7 +223,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
             Abbrechen
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {debt ? "Speichern" : "Hinzufügen"}
+            {debt?.id ? "Speichern" : "Hinzufügen"}
           </Button>
         </DialogFooter>
       </DialogContent>

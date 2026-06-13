@@ -14,24 +14,8 @@ import type { Transaction, Category } from "@/types";
 import { format, parseISO, addMonths, startOfMonth } from "date-fns";
 import { de } from "date-fns/locale";
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from "recharts";
-
-type Cycle = "Wöchentlich" | "Monatlich" | "Vierteljährlich" | "Halbjährlich" | "Jährlich" | "Unbekannt";
-
-interface ContractRow {
-  key: string;
-  type: "Ausgabe" | "Einnahme";
-  payee: string;
-  categoryName: string;
-  categoryId: string | null;
-  amountTypical: number;
-  amountLast: number;
-  cycle: Cycle;
-  lastDateISO: string;
-  nextDateISO: string | null;
-  changed: boolean;
-  changeAmount: number;
-  changeSinceLabel: string | null;
-}
+import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
+import type { Cycle, ContractRow } from "./contract-types";
 
 function getCycleFromDays(avgDays: number): Cycle {
   if (avgDays >= 6 && avgDays <= 9) return "Wöchentlich";
@@ -465,6 +449,8 @@ export function ContractsDashboard() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          <ContractSuggestionsBanner rows={contractsAll} categoryMap={categoryMap} />
 
           <div className="mb-4">
             <Alert>
