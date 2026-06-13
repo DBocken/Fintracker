@@ -151,6 +151,7 @@ export function TransactionTable({
                   categories={categories}
                   value={transaction.category_id || ''}
                   disabled={!rowId}
+                  compact
                   onChange={(catId) => {
                     if (!rowId) return;
                     onUpdateCategory(rowId, catId);

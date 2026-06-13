@@ -26,9 +26,9 @@ export function CategoryPreview({
   const [showPreview, setShowPreview] = useState(false);
 
   return (
-    <Card className="border border-slate-800 bg-slate-950/70 shadow-sm">
+    <Card className="border border-border bg-card shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl text-white">
+        <CardTitle className="flex items-center gap-2 text-xl text-foreground">
           <Eye className="h-5 w-5 text-positive" />
           Vorschau & Zuweisung
         </CardTitle>
@@ -36,12 +36,12 @@ export function CategoryPreview({
 
       <CardContent className="space-y-4">
         {category && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{category.icon}</span>
               <div>
-                <h3 className="text-base font-semibold text-white">{category.name}</h3>
-                <p className="text-sm text-slate-400">{category.filters.length} Filter aktiv</p>
+                <h3 className="text-base font-semibold text-foreground">{category.name}</h3>
+                <p className="text-sm text-muted-foreground">{category.filters.length} Filter aktiv</p>
               </div>
             </div>
           </div>
@@ -54,7 +54,7 @@ export function CategoryPreview({
               onPreview();
             }}
             variant="outline"
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-background text-foreground hover:bg-accent"
           >
             <Eye className="mr-2 h-4 w-4" />
             Vorschau
@@ -71,9 +71,9 @@ export function CategoryPreview({
         </div>
 
         {showPreview && (
-          <Card className="border border-slate-800 bg-slate-900/70">
+          <Card className="border border-border bg-muted/40">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base text-white">
+              <CardTitle className="flex items-center gap-2 text-base text-foreground">
                 <CheckCircle className="h-4 w-4 text-positive" />
                 Betroffene Transaktionen
               </CardTitle>
@@ -85,11 +85,11 @@ export function CategoryPreview({
                   <ScrollArea className="h-64">
                     <div className="space-y-2">
                       {affectedTransactions.slice(0, 10).map((transaction) => (
-                        <div key={transaction.id} className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                        <div key={transaction.id} className="rounded-xl border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">{transaction.description}</p>
-                              <p className="text-xs text-slate-400">{transaction.payee}</p>
+                              <p className="truncate text-sm font-medium text-foreground">{transaction.description}</p>
+                              <p className="text-xs text-muted-foreground">{transaction.payee}</p>
                             </div>
                             <Badge variant="secondary" className="shrink-0">
                               {transaction.amount}€
@@ -101,13 +101,13 @@ export function CategoryPreview({
                   </ScrollArea>
 
                   {affectedTransactions.length > 10 && (
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       ... und {affectedTransactions.length - 10} weitere
                     </p>
                   )}
                 </>
               ) : (
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted-foreground">
                   Keine Transaktionen würden durch diese Kategorie-Regeln verändert.
                 </p>
               )}
@@ -118,7 +118,7 @@ export function CategoryPreview({
         <Button
           onClick={onUndo}
           variant="ghost"
-          className="w-full text-slate-400 hover:bg-slate-800 hover:text-white"
+          className="w-full text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <Undo2 className="mr-2 h-4 w-4" />
           Letzte Aktion rückgängig

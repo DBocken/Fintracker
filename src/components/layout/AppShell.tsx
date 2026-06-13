@@ -65,7 +65,7 @@ export default function AppShell() {
           <DemoDataBanner />
 
           <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-            <div className="mx-auto w-full max-w-[1320px] px-4 py-6 md:px-8">
+            <div className="mx-auto w-full max-w-[1920px] px-4 py-6 md:px-8">
               <Outlet />
             </div>
           </main>

@@ -73,7 +73,7 @@ export function DangerZoneSettings() {
       <div className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-sm font-medium text-white">Lokale Daten löschen</div>
+            <div className="text-sm font-medium text-foreground">Lokale Daten löschen</div>
             <p className="text-sm text-muted-foreground">
               Entfernt alle auf diesem Gerät gespeicherten Daten (Transaktionen, Konten,
               Schulden, Einstellungen). Cloud-Daten bleiben erhalten.
@@ -88,7 +88,7 @@ export function DangerZoneSettings() {
         {isAuthenticated && (
           <div className="flex flex-col gap-2 border-t border-destructive/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-medium text-white">Konto löschen</div>
+              <div className="text-sm font-medium text-foreground">Konto löschen</div>
               <p className="text-sm text-muted-foreground">
                 Löscht dein Konto endgültig: serverseitige Daten, Bankverbindungen
                 (GoCardless) und den Zugang. Dieser Schritt kann nicht rückgängig gemacht werden.

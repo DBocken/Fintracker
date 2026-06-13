@@ -107,7 +107,7 @@ export function VirtualizedTransactionTable({
           )}
         </Button>
 
-        <div className="w-[360px] flex-shrink-0">Kategorie</div>
+        <div className="w-72 flex-shrink-0">Kategorie</div>
         <div className="w-20 flex-shrink-0">Aktionen</div>
       </div>
 
@@ -169,11 +169,12 @@ export function VirtualizedTransactionTable({
                   {transaction.amount.toFixed(2)}€
                 </div>
                 
-                <div className="w-[360px] flex-shrink-0">
+                <div className="w-72 flex-shrink-0">
                   <CategoryTwoStepSelect
                     categories={categories}
                     value={transaction.category_id || ''}
                     disabled={!id}
+                    compact
                     onChange={(value) => {
                       if (!id) return;
                       onUpdateCategory(id, value);

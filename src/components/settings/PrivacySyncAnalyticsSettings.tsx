@@ -150,21 +150,21 @@ export function PrivacySyncAnalyticsSettings() {
   };
 
   return (
-    <Card className="ui-card border-slate-800 bg-slate-950/70">
+    <Card className="ui-card border-border bg-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <FolderSync className="h-5 w-5 text-positive" />
           Sync-Datei & Datenschutz
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Deine Sync-Datei ist der verschlüsselte lokale Datenstand für alles, was nicht in Supabase gespeichert wird.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileLock2 className="h-4 w-4 text-positive" />
               Lokale Finanzdaten
             </div>
@@ -173,16 +173,16 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <Database className="h-4 w-4 text-brand" />
               Supabase
             </div>
             <StatusBadge ok>nur Metadaten</StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <HardDrive className="h-4 w-4 text-brand" />
               Lokaler Speicher (IndexedDB)
             </div>
@@ -195,8 +195,8 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileKey2 className="h-4 w-4 text-premium" />
               Sync-Datei
             </div>
@@ -205,8 +205,8 @@ export function PrivacySyncAnalyticsSettings() {
             </StatusBadge>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-white">
+          <div className="rounded-2xl border border-border bg-muted/40 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <BarChart3 className="h-4 w-4 text-warning" />
               Anonyme Auswertung
             </div>
@@ -245,51 +245,51 @@ export function PrivacySyncAnalyticsSettings() {
           </Alert>
         )}
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <h3 className="mb-2 flex items-center gap-2 font-semibold text-white">
+        <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <h3 className="mb-2 flex items-center gap-2 font-semibold text-foreground">
             <FolderSync className="h-4 w-4 text-positive" />
             Speicherort der Sync-Datei
           </h3>
-          <p className="text-sm leading-6 text-slate-400">
+          <p className="text-sm leading-6 text-muted-foreground">
             Im Moment wird die Sync-Datei beim Export als Download-Datei auf dein Gerät gespeichert. In der Praxis liegt
             sie also zuerst meist im Download-Ordner deines Browsers. Danach kannst du sie an deinen gewünschten Ort
             verschieben, zum Beispiel iCloud Drive, Dropbox oder einen lokalen Ordner.
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <h3 className="flex items-center gap-2 font-semibold text-white">
+        <div className="space-y-3 rounded-2xl border border-border bg-muted/40 p-4">
+          <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <ShieldCheck className="h-4 w-4 text-positive" />
             Sync-Datei verwalten
           </h3>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Diese Datei ersetzt das klassische Backup. Sie enthält deinen verschlüsselten lokalen Datenstand.
           </p>
 
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <Label className="text-slate-300">Bezeichnung</Label>
+              <Label className="text-foreground">Bezeichnung</Label>
               <Input
                 value={pathLabel}
                 onChange={(e) => setPathLabel(e.target.value)}
-                className="border-slate-700 bg-slate-950 text-white"
+                className="border-border bg-background text-foreground"
               />
             </div>
 
             <div className="md:col-span-2">
-              <Label className="text-slate-300">Speicherort-Hinweis</Label>
+              <Label className="text-foreground">Speicherort-Hinweis</Label>
               <Input
                 value={pathHint}
                 onChange={(e) => setPathHint(e.target.value)}
                 placeholder="z. B. iCloud Drive/Ausgabentracker"
-                className="border-slate-700 bg-slate-950 text-white"
+                className="border-border bg-background text-foreground"
               />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={addPath} className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800">
+            <Button variant="outline" onClick={addPath} className="border-border bg-background text-foreground hover:bg-accent">
               Speicherort merken
             </Button>
 
@@ -302,7 +302,7 @@ export function PrivacySyncAnalyticsSettings() {
               Sync-Datei herunterladen
             </Button>
 
-            <label className="inline-flex cursor-pointer items-center rounded-md border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-200 shadow-sm hover:bg-slate-800">
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent">
               Sync-Datei importieren
               <Input
                 type="file"
@@ -321,14 +321,14 @@ export function PrivacySyncAnalyticsSettings() {
           {syncPaths.length > 0 && (
             <div className="space-y-2 text-sm">
               {syncPaths.map((path) => (
-                <div key={path.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-slate-300">
+                <div key={path.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-foreground">
                   <span>
                     <strong>{path.label}:</strong> {path.pathHint}
                   </span>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-slate-400 hover:bg-slate-800 hover:text-white"
+                    className="text-muted-foreground hover:bg-accent hover:text-foreground"
                     onClick={() => {
                       removeSyncPath(path.id);
                       setPathsVersion((v) => v + 1);
@@ -341,7 +341,7 @@ export function PrivacySyncAnalyticsSettings() {
             </div>
           )}
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Letzte bekannte Sync-Metadaten:{' '}
             {latestSyncQuery.data
               ? `${latestSyncQuery.data.snapshot_id} · ${new Date(latestSyncQuery.data.created_at).toLocaleString('de-DE')}`
@@ -349,21 +349,21 @@ export function PrivacySyncAnalyticsSettings() {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <h3 className="flex items-center gap-2 font-semibold text-white">
+        <div className="space-y-3 rounded-2xl border border-border bg-muted/40 p-4">
+          <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <UploadCloud className="h-4 w-4 text-warning" />
             Anonyme Auswertung
           </h3>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             Es werden keine Einzeltransaktionen oder Freitexte hochgeladen. Nur lokal erzeugte, verschlüsselte
             Aggregationen werden übertragen.
           </p>
 
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-3">
             <div>
-              <div className="text-sm font-medium text-white">Anonyme Auswertung erlauben</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-sm font-medium text-foreground">Anonyme Auswertung erlauben</div>
+              <div className="text-xs text-muted-foreground">
                 Zeitraum, Kategoriegruppe und aggregierte Kennzahlen; Mindestgruppe lokal: n ≥ 5
               </div>
             </div>
@@ -378,7 +378,7 @@ export function PrivacySyncAnalyticsSettings() {
             variant="outline"
             onClick={() => analyticsMutation.mutate()}
             disabled={!consentQuery.data?.opted_in || !encryption.unlocked || analyticsMutation.isPending}
-            className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+            className="border-border bg-background text-foreground hover:bg-accent"
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analysepakete erzeugen & hochladen
