@@ -25,6 +25,7 @@ import { de } from 'date-fns/locale';
 import type { Transaction, HierarchicalCategory } from '../types';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getAccounts } from '../services/account-service';
+import { applyDetectedContracts } from '../services/contract-detection-service';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -67,7 +68,14 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
 
   const saveMut = useMutation<Transaction[], Error, Transaction[]>({
     mutationFn: saveTransactions,
-    onSuccess: (saved) => {
+    onSuccess: async (saved) => {
+      try {
+        if (saved.length > 0) {
+          await applyDetectedContracts();
+        }
+      } catch (error) {
+        console.warn('Contract detection failed after CSV import:', error);
+      }
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       onConfirm(saved.length, rows.length - saved.length);
