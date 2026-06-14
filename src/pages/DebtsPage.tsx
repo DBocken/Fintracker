@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLine } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import EmptyState from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
+import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -53,6 +54,7 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR",
 export default function DebtsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Debt> | null>(null);
   // Portfolio-Strategie: global, persistiert, gilt für alle Schulden (#54)
   const [strategy, setStrategyState] = useState<PayoffStrategy>(getDebtStrategy);
@@ -221,15 +223,21 @@ export default function DebtsPage() {
         title="Schulden"
         description="Behalte alle Verbindlichkeiten im Blick und plane deinen Schuldenabbau."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Schuld hinzufügen
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <ScanLine className="mr-1.5 h-4 w-4" />
+              Briefe scannen
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Schuld hinzufügen
+            </Button>
+          </div>
         }
       />
 
@@ -587,6 +595,8 @@ export default function DebtsPage() {
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
       />
+
+      <ClaimImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>
   );
 }
