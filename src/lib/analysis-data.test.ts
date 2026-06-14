@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildSankeyData, buildWeekdayPattern } from "./analysis-data";
-import type { Category, Transaction } from "@/types";
+import type { Account, Category, Transaction } from "@/types";
 
 function tx(partial: Partial<Transaction>): Transaction {
   return {
@@ -12,6 +12,21 @@ function tx(partial: Partial<Transaction>): Transaction {
     original_text: "",
     auto_mapped: false,
     confirmed: true,
+    ...partial,
+  };
+}
+
+function acc(partial: Partial<Account>): Account {
+  return {
+    id: "acc-default",
+    user_id: "user-1",
+    name: "Konto",
+    type: "checking",
+    currency: "EUR",
+    color: "#3b82f6",
+    icon: "bank",
+    is_budget_pool_member: true,
+    order_index: 0,
     ...partial,
   };
 }
@@ -79,7 +94,72 @@ describe("buildSankeyData (Issue #40)", () => {
 
   it("liefert leere Strukturen ohne Transaktionen", () => {
     const result = buildSankeyData([], categories);
-    expect(result).toEqual({ totalIncome: 0, mainCategories: [], subCategories: [] });
+    expect(result).toEqual({ totalIncome: 0, accounts: [], mainCategories: [], subCategories: [] });
+  });
+});
+
+describe("buildSankeyData – Konten (Variante 1: Netto je Konto)", () => {
+  const giro = acc({ id: "acc-giro", name: "Girokonto", color: "#3b82f6" });
+  const spar = acc({ id: "acc-spar", name: "Sparkonto", color: "#22c55e" });
+
+  it("berechnet Einnahmen, Ausgaben und Netto je Konto", () => {
+    const result = buildSankeyData(
+      [
+        tx({ amount: 2000, account_id: "acc-giro" }),
+        tx({ amount: -500, account_id: "acc-giro", category_id: "main-wohnen" }),
+        tx({ amount: 100, account_id: "acc-spar" }),
+      ],
+      categories,
+      [giro, spar]
+    );
+
+    const giroNode = result.accounts.find((a) => a.id === "acc-giro");
+    const sparNode = result.accounts.find((a) => a.id === "acc-spar");
+
+    expect(giroNode).toMatchObject({ name: "Girokonto", income: 2000, expenses: 500, net: 1500, color: "#3b82f6" });
+    expect(sparNode).toMatchObject({ name: "Sparkonto", income: 100, expenses: 0, net: 100, color: "#22c55e" });
+  });
+
+  it("schlüsselt Ausgaben je Hauptkategorie nach Konto auf", () => {
+    const result = buildSankeyData(
+      [
+        tx({ amount: -300, account_id: "acc-giro", category_id: "main-wohnen" }),
+        tx({ amount: -200, account_id: "acc-spar", category_id: "main-wohnen" }),
+      ],
+      categories,
+      [giro, spar]
+    );
+
+    const wohnen = result.mainCategories.find((m) => m.id === "main-wohnen");
+    expect(wohnen?.byAccount).toEqual({ "acc-giro": 300, "acc-spar": 200 });
+  });
+
+  it("ordnet Transaktionen ohne Konto-Zuordnung 'Sonstiges Konto' zu", () => {
+    const result = buildSankeyData([tx({ amount: -50, category_id: "main-wohnen" })], categories, [giro]);
+    expect(result.accounts).toHaveLength(1);
+    expect(result.accounts[0]).toMatchObject({ name: "Sonstiges Konto", expenses: 50 });
+  });
+
+  it("ignoriert Konten ohne Einnahmen oder Ausgaben", () => {
+    const result = buildSankeyData(
+      [tx({ amount: -50, account_id: "acc-giro", category_id: "main-wohnen" })],
+      categories,
+      [giro, spar]
+    );
+    expect(result.accounts.map((a) => a.id)).toEqual(["acc-giro"]);
+  });
+
+  it("sortiert Konten absteigend nach Gesamtaktivität (Einnahmen + Ausgaben)", () => {
+    const result = buildSankeyData(
+      [
+        tx({ amount: -50, account_id: "acc-spar", category_id: "main-wohnen" }),
+        tx({ amount: 2000, account_id: "acc-giro" }),
+        tx({ amount: -500, account_id: "acc-giro", category_id: "main-wohnen" }),
+      ],
+      categories,
+      [giro, spar]
+    );
+    expect(result.accounts.map((a) => a.id)).toEqual(["acc-giro", "acc-spar"]);
   });
 });
 

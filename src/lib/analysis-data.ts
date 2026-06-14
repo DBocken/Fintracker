@@ -1,5 +1,5 @@
 import { parseISO, getDay } from "date-fns";
-import type { Category, Transaction } from "@/types";
+import type { Account, Category, Transaction } from "@/types";
 
 /**
  * Gemeinsame, pure Daten-Aufbereitung für das Basis-Dashboard und den
@@ -12,6 +12,7 @@ export interface SankeyMainCategory {
   id: string;
   name: string;
   amount: number;
+  byAccount: Record<string, number>;
 }
 
 export interface SankeySubCategory {
@@ -20,16 +21,29 @@ export interface SankeySubCategory {
   amount: number;
   mainId: string;
   mainName: string;
+  byAccount: Record<string, number>;
+}
+
+export interface SankeyAccountNode {
+  id: string;
+  name: string;
+  income: number;
+  expenses: number;
+  net: number;
+  color?: string;
 }
 
 export interface SankeyData {
   totalIncome: number;
+  accounts: SankeyAccountNode[];
   mainCategories: SankeyMainCategory[];
   subCategories: SankeySubCategory[];
 }
 
 const UNCATEGORIZED_ID = "__uncategorized_main";
 const UNCATEGORIZED_NAME = "Unkategorisiert";
+const UNASSIGNED_ACCOUNT_ID = "__unassigned_account";
+const UNASSIGNED_ACCOUNT_NAME = "Sonstiges Konto";
 
 type ResolvedHierarchy = {
   mainId: string;
@@ -68,42 +82,84 @@ function resolveHierarchy(byId: Map<string, Category>, catId: string | null | un
 
 /**
  * Aggregiert Transaktionen zu Sankey-Daten: Einnahmen-Summe, Ausgaben je
- * Hauptkategorie und je Unterkategorie. Beträge sind positive Absolutwerte.
+ * Hauptkategorie und je Unterkategorie sowie Einnahmen/Ausgaben/Netto je
+ * Konto (für die Konto-Knoten im Sankey-Diagramm). Beträge sind positive
+ * Absolutwerte.
  */
-export function buildSankeyData(transactions: Transaction[], categories: Category[]): SankeyData {
+export function buildSankeyData(
+  transactions: Transaction[],
+  categories: Category[],
+  accounts: Account[] = []
+): SankeyData {
   const byId = new Map<string, Category>();
   for (const c of categories) byId.set(c.id, c);
+
+  const accountById = new Map<string, Account>();
+  for (const a of accounts) accountById.set(a.id, a);
 
   let totalIncome = 0;
   const mains = new Map<string, SankeyMainCategory>();
   const subs = new Map<string, SankeySubCategory>();
+  const accountTotals = new Map<string, { income: number; expenses: number }>();
+
+  const getAccountTotals = (id: string) => {
+    let entry = accountTotals.get(id);
+    if (!entry) {
+      entry = { income: 0, expenses: 0 };
+      accountTotals.set(id, entry);
+    }
+    return entry;
+  };
 
   for (const t of transactions) {
     if (t.is_transfer) continue;
+    const accountId = t.account_id ?? UNASSIGNED_ACCOUNT_ID;
+
     if (t.amount > 0) {
       totalIncome += t.amount;
+      getAccountTotals(accountId).income += t.amount;
       continue;
     }
     if (t.amount === 0) continue;
 
     const amountAbs = Math.abs(t.amount);
+    getAccountTotals(accountId).expenses += amountAbs;
+
     const assignedId = t.subcategory_id ?? t.category_id ?? null;
     const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
 
-    const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0 };
+    const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
     main.amount += amountAbs;
+    main.byAccount[accountId] = (main.byAccount[accountId] ?? 0) + amountAbs;
     mains.set(mainId, main);
 
     if (subId && subName) {
       const key = subId;
-      const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName };
+      const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName, byAccount: {} };
       sub.amount += amountAbs;
+      sub.byAccount[accountId] = (sub.byAccount[accountId] ?? 0) + amountAbs;
       subs.set(key, sub);
     }
   }
 
+  const accountNodes: SankeyAccountNode[] = [...accountTotals.entries()]
+    .filter(([, totals]) => totals.income > 0 || totals.expenses > 0)
+    .map(([id, totals]) => {
+      const account = accountById.get(id);
+      return {
+        id,
+        name: account?.name ?? UNASSIGNED_ACCOUNT_NAME,
+        income: totals.income,
+        expenses: totals.expenses,
+        net: totals.income - totals.expenses,
+        color: account?.color,
+      };
+    })
+    .sort((a, b) => b.income + b.expenses - (a.income + a.expenses));
+
   return {
     totalIncome,
+    accounts: accountNodes,
     mainCategories: [...mains.values()].filter((m) => m.amount > 0).sort((a, b) => b.amount - a.amount),
     subCategories: [...subs.values()].filter((s) => s.amount > 0).sort((a, b) => b.amount - a.amount),
   };
