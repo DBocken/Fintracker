@@ -12,14 +12,15 @@
  * ausführbar ohne Duplikate.
  */
 
-import { CATEGORY_TAXONOMY, isEssenziell } from "../src/data/merchant-keywords.ts";
+import { CATEGORY_TAXONOMY, resolveKlasse } from "../src/data/merchant-keywords.ts";
 
 /** Bekannte Umbenennungen bestehender globaler Hauptkategorien. */
 const RENAMES = [["Restaurant & Café", "Essen & Trinken"]];
 
 const sqlStr = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const sqlJson = (obj) => `${sqlStr(JSON.stringify(obj))}::jsonb`;
-const essAttr = (val) => sqlJson({ essenziell: val });
+const klasseAttr = (klasse) =>
+  sqlJson({ essenziell: klasse === "essenziell", ausgabenklasse: klasse });
 
 const out = [];
 out.push("-- Strukturiert die globalen Standardkategorien (user_id IS NULL) zu einer");
@@ -47,7 +48,7 @@ for (const main of CATEGORY_TAXONOMY) {
     `INSERT INTO categories (name, color, icon, filters, is_default, parent_id, attributes, user_id)`,
   );
   out.push(
-    `SELECT ${sqlStr(main.name)}, ${sqlStr(main.color)}, ${sqlStr(main.icon)}, '[]'::jsonb, true, NULL, ${essAttr(main.essenziell)}, NULL`,
+    `SELECT ${sqlStr(main.name)}, ${sqlStr(main.color)}, ${sqlStr(main.icon)}, '[]'::jsonb, true, NULL, ${klasseAttr(main.klasse)}, NULL`,
   );
   out.push(
     `WHERE NOT EXISTS (SELECT 1 FROM categories WHERE user_id IS NULL AND name = ${sqlStr(main.name)});`,
@@ -58,12 +59,12 @@ for (const main of CATEGORY_TAXONOMY) {
   out.push(
     `UPDATE categories SET color = ${sqlStr(main.color)}, icon = ${sqlStr(main.icon)}, ` +
       `filters = '[]'::jsonb, ` +
-      `attributes = COALESCE(attributes, '{}'::jsonb) || ${essAttr(main.essenziell)} ` +
+      `attributes = COALESCE(attributes, '{}'::jsonb) || ${klasseAttr(main.klasse)} ` +
       `WHERE user_id IS NULL AND name = ${sqlStr(main.name)};`,
   );
 
   for (const sub of main.subcategories) {
-    const ess = isEssenziell(main, sub);
+    const klasse = resolveKlasse(main, sub);
     const parentSub = `(SELECT id FROM categories WHERE user_id IS NULL AND name = ${sqlStr(main.name)} LIMIT 1)`;
 
     // Unterkategorie anlegen (falls fehlt)
@@ -71,7 +72,7 @@ for (const main of CATEGORY_TAXONOMY) {
       `INSERT INTO categories (name, color, icon, filters, is_default, parent_id, attributes, user_id)`,
     );
     out.push(
-      `SELECT ${sqlStr(sub.name)}, ${sqlStr(main.color)}, ${sqlStr(main.icon)}, ${sqlJson(sub.keywords)}, true, ${parentSub}, ${essAttr(ess)}, NULL`,
+      `SELECT ${sqlStr(sub.name)}, ${sqlStr(main.color)}, ${sqlStr(main.icon)}, ${sqlJson(sub.keywords)}, true, ${parentSub}, ${klasseAttr(klasse)}, NULL`,
     );
     out.push(
       `WHERE NOT EXISTS (SELECT 1 FROM categories WHERE user_id IS NULL AND name = ${sqlStr(sub.name)});`,
@@ -81,7 +82,7 @@ for (const main of CATEGORY_TAXONOMY) {
     out.push(
       `UPDATE categories SET filters = ${sqlJson(sub.keywords)}, color = ${sqlStr(main.color)}, ` +
         `icon = ${sqlStr(main.icon)}, parent_id = ${parentSub}, ` +
-        `attributes = COALESCE(attributes, '{}'::jsonb) || ${essAttr(ess)} ` +
+        `attributes = COALESCE(attributes, '{}'::jsonb) || ${klasseAttr(klasse)} ` +
         `WHERE user_id IS NULL AND name = ${sqlStr(sub.name)};`,
     );
   }

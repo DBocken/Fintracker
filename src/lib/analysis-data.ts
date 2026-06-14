@@ -1,5 +1,5 @@
 import { parseISO, getDay } from "date-fns";
-import type { Account, Category, Transaction } from "@/types";
+import type { Account, Ausgabenklasse, Category, Transaction } from "@/types";
 
 /**
  * Gemeinsame, pure Daten-Aufbereitung für das Basis-Dashboard und den
@@ -162,6 +162,124 @@ export function buildSankeyData(
     accounts: accountNodes,
     mainCategories: [...mains.values()].filter((m) => m.amount > 0).sort((a, b) => b.amount - a.amount),
     subCategories: [...subs.values()].filter((s) => s.amount > 0).sort((a, b) => b.amount - a.amount),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Sunburst: Superkategorie (Ausgabenklasse) -> Hauptkategorie
+// -----------------------------------------------------------------------------
+
+/**
+ * Stabile IDs der vorgelagerten Ausgabenklassen (Sunburst-Innenring). Hält die
+ * Hauptkategorien-Vielfalt aus dem Innenring heraus und macht Diagramme lesbar.
+ */
+export type SunburstSuperId = "essenziell" | "diskretionaer" | "sparen" | "unkategorisiert";
+
+export const SUNBURST_SUPER_LABEL: Record<SunburstSuperId, string> = {
+  essenziell: "Essenziell",
+  diskretionaer: "Nicht-Essenziell",
+  sparen: "Sparen",
+  unkategorisiert: "Unkategorisiert",
+};
+
+export interface SunburstInner {
+  id: string;
+  name: string;
+  value: number;
+}
+export interface SunburstOuter {
+  id: string;
+  parentId: string;
+  name: string;
+  value: number;
+}
+export interface SpendingSunburst {
+  inner: SunburstInner[];
+  outer: SunburstOuter[];
+  total: number;
+}
+
+/**
+ * Effektive Ausgabenklasse einer (Unter-)Kategorie: läuft die parent-Kette
+ * hoch und nimmt die erste gesetzte `attributes.ausgabenklasse`. So erben
+ * Unterkategorien ohne eigenes Flag von ihrer Hauptkategorie.
+ */
+export function resolveAusgabenklasse(
+  byId: Map<string, Category>,
+  catId: string | null | undefined
+): Ausgabenklasse | null {
+  if (!catId) return null;
+  let current: Category | undefined = byId.get(catId);
+  const visited = new Set<string>();
+  while (current) {
+    if (current.attributes?.ausgabenklasse) return current.attributes.ausgabenklasse;
+    if (!current.parent_id || visited.has(current.id)) break;
+    visited.add(current.id);
+    current = byId.get(current.parent_id);
+  }
+  return null;
+}
+
+function toSuperId(klasse: Ausgabenklasse | null, hasAssignment: boolean): SunburstSuperId {
+  if (!hasAssignment) return "unkategorisiert";
+  if (klasse === "essenziell") return "essenziell";
+  if (klasse === "sparen") return "sparen";
+  return "diskretionaer"; // diskretionaer, einkommen, null
+}
+
+/**
+ * Aggregiert Ausgaben zum Sunburst: Innenring = Ausgabenklasse
+ * (Essenziell/Nicht-Essenziell/Sparen), Außenring = Hauptkategorie je Klasse.
+ * `transactions` sollte bereits transfer-bereinigt sein; `total` ist die Summe
+ * aller Ausgaben (Absolutbeträge der negativen Beträge).
+ */
+export function buildSpendingSunburst(
+  transactions: Transaction[],
+  categories: Category[]
+): SpendingSunburst {
+  const byId = new Map<string, Category>();
+  for (const c of categories) byId.set(c.id, c);
+
+  const innerMap = new Map<string, SunburstInner>();
+  const outerMap = new Map<string, SunburstOuter>();
+  let total = 0;
+
+  for (const t of transactions) {
+    if (!(t.amount < 0)) continue;
+    const amount = Math.abs(t.amount);
+    total += amount;
+
+    const assignedId = t.subcategory_id ?? t.category_id ?? null;
+    const klasse = resolveAusgabenklasse(byId, assignedId);
+    const superId = toSuperId(klasse, Boolean(assignedId));
+
+    const inner = innerMap.get(superId) ?? {
+      id: superId,
+      name: SUNBURST_SUPER_LABEL[superId],
+      value: 0,
+    };
+    inner.value += amount;
+    innerMap.set(superId, inner);
+
+    // Unkategorisierte Ausgaben bekommen keinen Außenring (nur Innenring-Slice).
+    if (superId === "unkategorisiert") continue;
+
+    const { mainId, mainName } = resolveHierarchy(byId, assignedId);
+    const outerKey = `${superId}::${mainId}`;
+    const outer = outerMap.get(outerKey) ?? {
+      id: outerKey,
+      parentId: superId,
+      name: mainName,
+      value: 0,
+    };
+    outer.value += amount;
+    outerMap.set(outerKey, outer);
+  }
+
+  return {
+    inner: [...innerMap.values()].sort((a, b) => b.value - a.value),
+    outer: [...outerMap.values()].sort((a, b) => b.value - a.value),
+    total,
   };
 }
 

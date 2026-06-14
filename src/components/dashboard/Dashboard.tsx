@@ -34,21 +34,9 @@ import {
   type EssentialFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
-import { buildSankeyData } from '@/lib/analysis-data';
+import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
-
-function getRootCategoryId(byId: Map<string, Category>, id: string): string {
-  let current = byId.get(id);
-  let guard = 0;
-  while (current?.parent_id && guard < 20) {
-    const parent = byId.get(current.parent_id);
-    if (!parent) break;
-    current = parent;
-    guard += 1;
-  }
-  return current?.id || id;
-}
 
 export function Dashboard() {
   const qc = useQueryClient();
@@ -306,62 +294,8 @@ export function Dashboard() {
       ...data
     }));
 
-    // Sunburst: hierarchisch (Hauptkategorie -> Unterkategorie)
-    const catById = new Map<string, Category>();
-    cats.forEach((c) => catById.set(c.id, c));
-
-    const innerMap = new Map<string, { id: string; name: string; value: number }>();
-    const outerMap = new Map<string, { id: string; parentId: string; name: string; value: number }>();
-
-    for (const t of flowTransactions) {
-      if (t.amount >= 0) continue;
-      const amount = Math.abs(t.amount);
-      const assignedId = t.category_id;
-
-      if (!assignedId) {
-        const uncInner = innerMap.get('uncategorized') || { id: 'uncategorized', name: 'Unkategorisiert', value: 0 };
-        uncInner.value += amount;
-        innerMap.set('uncategorized', uncInner);
-        continue;
-      }
-
-      const assignedCat = catById.get(assignedId);
-      const rootId = getRootCategoryId(catById, assignedId);
-      const rootCat = catById.get(rootId);
-
-      const rootName = rootCat?.name || 'Unkategorisiert';
-      const inner = innerMap.get(rootId) || { id: rootId, name: rootName, value: 0 };
-      inner.value += amount;
-      innerMap.set(rootId, inner);
-
-      // Outer: Wenn Unterkategorie vorhanden (parent_id existiert), nutze die direkte Unterkategorie unter root.
-      if (assignedCat?.parent_id) {
-        // best-effort: map deeper nesting back to the immediate child of root
-        let current: Category | undefined = assignedCat;
-        let guard = 0;
-        while (current?.parent_id && current.parent_id !== rootId && guard < 20) {
-          current = current.parent_id ? catById.get(current.parent_id) : undefined;
-          guard += 1;
-        }
-        const child = current || assignedCat;
-        const outerId = child.id;
-        const outerKey = `${rootId}::${outerId}`;
-        const outer = outerMap.get(outerKey) || {
-          id: outerId,
-          parentId: rootId,
-          name: child.name,
-          value: 0,
-        };
-        outer.value += amount;
-        outerMap.set(outerKey, outer);
-      }
-    }
-
-    const sunburst = {
-      inner: Array.from(innerMap.values()).sort((a, b) => b.value - a.value),
-      outer: Array.from(outerMap.values()).sort((a, b) => b.value - a.value),
-      total: expenses,
-    };
+    // Sunburst: vorgelagerte Ausgabenklasse (Innenring) -> Hauptkategorie (Außenring)
+    const sunburst = buildSpendingSunburst(flowTransactions, cats);
 
     return {
       income,

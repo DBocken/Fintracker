@@ -83,4 +83,21 @@ describe("DEFAULT_LOCAL_CATEGORIES", () => {
     expect(byName.get("Streaming")?.attributes?.essenziell).toBe(false);
     expect(byName.get("Fitnessstudio")?.attributes?.essenziell).toBe(false);
   });
+
+  it("trägt die vorgelagerte Ausgabenklasse (essenziell/diskretionaer/sparen/einkommen)", () => {
+    const byName = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.name, c]));
+    expect(byName.get("Miete & Hausgeld")?.attributes?.ausgabenklasse).toBe("essenziell");
+    expect(byName.get("Streaming")?.attributes?.ausgabenklasse).toBe("diskretionaer");
+    expect(byName.get("Tagesgeld")?.attributes?.ausgabenklasse).toBe("sparen");
+    expect(byName.get("Gehalt")?.attributes?.ausgabenklasse).toBe("einkommen");
+    // Unterkategorie erbt bzw. überschreibt die Klasse der Hauptkategorie
+    expect(byName.get("Kraftstoff")?.attributes?.ausgabenklasse).toBe("essenziell");
+    expect(byName.get("Parken")?.attributes?.ausgabenklasse).toBe("diskretionaer");
+  });
+
+  it("jede Kategorie hat eine Ausgabenklasse gesetzt", () => {
+    for (const cat of DEFAULT_LOCAL_CATEGORIES) {
+      expect(cat.attributes?.ausgabenklasse).toBeDefined();
+    }
+  });
 });

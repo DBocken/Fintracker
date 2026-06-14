@@ -1,5 +1,5 @@
 import type { Category } from "../types";
-import { CATEGORY_TAXONOMY, isEssenziell } from "../data/merchant-keywords";
+import { CATEGORY_TAXONOMY, isEssenziell, resolveKlasse } from "../data/merchant-keywords";
 
 /**
  * Standard-Kategorien für den anonymen Modus (kein Supabase-Zugriff).
@@ -25,7 +25,7 @@ export const DEFAULT_LOCAL_CATEGORIES: Category[] = CATEGORY_TAXONOMY.flatMap((m
     filters: [],
     is_default: true,
     parent_id: null,
-    attributes: { essenziell: main.essenziell },
+    attributes: { essenziell: main.klasse === "essenziell", ausgabenklasse: main.klasse },
   };
 
   const subCategories: Category[] = main.subcategories.map((sub) => ({
@@ -37,7 +37,7 @@ export const DEFAULT_LOCAL_CATEGORIES: Category[] = CATEGORY_TAXONOMY.flatMap((m
     filters: sub.keywords,
     is_default: true,
     parent_id: mainId,
-    attributes: { essenziell: isEssenziell(main, sub) },
+    attributes: { essenziell: isEssenziell(main, sub), ausgabenklasse: resolveKlasse(main, sub) },
   }));
 
   return [mainCategory, ...subCategories];

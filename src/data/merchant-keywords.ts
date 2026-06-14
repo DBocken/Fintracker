@@ -16,12 +16,16 @@
  * `name` muss über die gesamte Taxonomie eindeutig sein.
  */
 
+import type { Ausgabenklasse } from "../types";
+
+export type { Ausgabenklasse };
+
 export interface SubcategoryDef {
   slug: string;
   name: string;
   keywords: string[];
-  /** Existenzsichernd? Überschreibt den Default der Hauptkategorie. */
-  essenziell?: boolean;
+  /** Überschreibt die `klasse` der Hauptkategorie (z. B. Parken in Mobilität). */
+  klasse?: Ausgabenklasse;
 }
 
 export interface CategoryDef {
@@ -29,8 +33,8 @@ export interface CategoryDef {
   name: string;
   icon: string;
   color: string;
-  /** Default-`essenziell` für die Gruppe; pro Unterkategorie überschreibbar. */
-  essenziell: boolean;
+  /** Default-Ausgabenklasse der Gruppe; pro Unterkategorie überschreibbar. */
+  klasse: Ausgabenklasse;
   subcategories: SubcategoryDef[];
 }
 
@@ -40,7 +44,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Einkommen",
     icon: "💶",
     color: "#2e7d72",
-    essenziell: false,
+    klasse: "einkommen",
     subcategories: [
       {
         slug: "gehalt",
@@ -80,7 +84,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Wohnen",
     icon: "🏠",
     color: "#1d5c54",
-    essenziell: true,
+    klasse: "essenziell",
     subcategories: [
       {
         slug: "miete",
@@ -114,7 +118,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "haushaltswaren",
         name: "Haushaltswaren",
-        essenziell: false,
+        klasse: "diskretionaer",
         keywords: ["tedox", "ikea", "möbel", "moebel"],
       },
     ],
@@ -124,7 +128,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Kommunikation",
     icon: "📡",
     color: "#3a6ea5",
-    essenziell: true,
+    klasse: "essenziell",
     subcategories: [
       {
         slug: "mobilfunk",
@@ -143,7 +147,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Digitales",
     icon: "💻",
     color: "#5a5a8a",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "softwarecloud",
@@ -165,7 +169,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Lebensmittel",
     icon: "🛒",
     color: "#8a7d5a",
-    essenziell: true,
+    klasse: "essenziell",
     subcategories: [
       {
         slug: "supermarkt",
@@ -205,7 +209,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Essen & Trinken",
     icon: "🍽️",
     color: "#a8845c",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "restaurant",
@@ -237,12 +241,12 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Mobilität",
     icon: "🚗",
     color: "#5c7a99",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "kraftstoff",
         name: "Kraftstoff",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: [
           "tankstelle", "tanken", "aral", "shell", "esso", "jet", "star tankstelle",
           "agip", "eni", "avia", "hem tankstelle", "om tankstelle",
@@ -252,7 +256,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "oepnvbahn",
         name: "ÖPNV & Bahn",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: [
           "deutsche bahn", "db vertrieb", "db fernverkehr", "db regio", "flixbus",
           "flixtrain", "hvv", "mvg", "mvv", "bvg", "vbb", "vrr", "rmv", "vvs",
@@ -262,7 +266,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "kfzversicherung",
         name: "KFZ-Versicherung",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: ["kfz-versicherung", "kfz versicherung", "volkswagen autoversicherung", "autoversicherung"],
       },
       {
@@ -287,12 +291,12 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Gesundheit",
     icon: "💊",
     color: "#4a9a8d",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "apotheke",
         name: "Apotheke",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: [
           "apotheke", "dm apotheke", "shop-apotheke", "shop apotheke", "docmorris",
           "medpex", "easyapotheke",
@@ -301,7 +305,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "arztzahnarzt",
         name: "Arzt & Zahnarzt",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: [
           "arztpraxis", "zahnarzt", "augenarzt", "hausarzt", "facharzt",
           "krankenhaus", "klinik", "labor diagnostik",
@@ -315,7 +319,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "krankenkasse",
         name: "Krankenkasse",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: [
           "barmer", "aok", "techniker krankenkasse", "tk krankenkasse", "dak",
           "ikk", "knappschaft", "krankenkasse", "private krankenversicherung",
@@ -324,7 +328,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "fitnessstudio",
         name: "Fitnessstudio",
-        essenziell: false,
+        klasse: "diskretionaer",
         keywords: ["fitnessstudio", "mcfit", "fitx", "clever fit", "urban sports club", "yoga"],
       },
       {
@@ -339,7 +343,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Versicherungen",
     icon: "🛡️",
     color: "#7d8a87",
-    essenziell: true,
+    klasse: "essenziell",
     subcategories: [
       {
         slug: "haftpflichthausrat",
@@ -352,13 +356,13 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "lebensversicherung",
         name: "Lebensversicherung",
-        essenziell: false,
+        klasse: "sparen",
         keywords: ["lebensversicherung", "provinzial", "alte leipziger"],
       },
       {
         slug: "sonstigeversicherung",
         name: "Sonstige Versicherung",
-        essenziell: false,
+        klasse: "diskretionaer",
         keywords: [
           "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna",
           "generali", "wgv", "devk", "gothaer", "barmenia", "hanse merkur",
@@ -376,7 +380,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Abos & Streaming",
     icon: "📺",
     color: "#7d6b8a",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "streaming",
@@ -405,7 +409,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Sparen & Investieren",
     icon: "💰",
     color: "#c2a14d",
-    essenziell: false,
+    klasse: "sparen",
     subcategories: [
       {
         slug: "bausparen",
@@ -429,7 +433,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Freizeit & Hobby",
     icon: "🎲",
     color: "#b56576",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "lotto",
@@ -453,7 +457,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Shopping",
     icon: "🛍️",
     color: "#7bb8ac",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "kleidung",
@@ -466,7 +470,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "drogerie",
         name: "Drogerie",
-        essenziell: true,
+        klasse: "essenziell",
         keywords: ["dm-drogerie", "dm drogerie", "rossmann", "müller markt", "mueller markt"],
       },
       {
@@ -498,7 +502,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Reisen",
     icon: "🏨",
     color: "#d08c45",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "hotels",
@@ -517,7 +521,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Finanzen",
     icon: "🏦",
     color: "#6b7a8f",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [
       {
         slug: "kontofuehrung",
@@ -541,7 +545,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Transfers",
     icon: "🔄",
     color: "#8a8a8a",
-    essenziell: false,
+    klasse: "sparen",
     subcategories: [
       {
         slug: "eigenuebertrag",
@@ -560,15 +564,20 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     name: "Sonstiges",
     icon: "📦",
     color: "#9aa0a6",
-    essenziell: false,
+    klasse: "diskretionaer",
     subcategories: [],
   },
 ];
 
-/** Effektiver `essenziell`-Wert einer Unterkategorie (erbt von der Hauptkategorie). */
+/** Effektive Ausgabenklasse einer Unterkategorie (erbt von der Hauptkategorie). */
+export function resolveKlasse(main: CategoryDef, sub?: SubcategoryDef): Ausgabenklasse {
+  if (sub && sub.klasse) return sub.klasse;
+  return main.klasse;
+}
+
+/** Abgeleitetes `essenziell`-Bool (klasse === 'essenziell'). */
 export function isEssenziell(main: CategoryDef, sub?: SubcategoryDef): boolean {
-  if (sub && typeof sub.essenziell === "boolean") return sub.essenziell;
-  return main.essenziell;
+  return resolveKlasse(main, sub) === "essenziell";
 }
 
 // -----------------------------------------------------------------------------

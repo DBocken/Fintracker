@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSankeyData, buildWeekdayPattern } from "./analysis-data";
+import {
+  buildSankeyData,
+  buildSpendingSunburst,
+  buildWeekdayPattern,
+  resolveAusgabenklasse,
+} from "./analysis-data";
 import type { Account, Category, Transaction } from "@/types";
 
 function tx(partial: Partial<Transaction>): Transaction {
@@ -183,5 +188,73 @@ describe("buildWeekdayPattern (Issue #40)", () => {
   it("ignoriert Transaktionen mit unparsebarem Datum", () => {
     const result = buildWeekdayPattern([tx({ date: "kein-datum", amount: -99 })]);
     expect(result.every((e) => e.income === 0 && e.expenses === 0)).toBe(true);
+  });
+});
+
+describe("buildSpendingSunburst (Superkategorie -> Hauptkategorie)", () => {
+  const klassCats: Category[] = [
+    { id: "wohnen", name: "Wohnen", filters: [], attributes: { ausgabenklasse: "essenziell" } },
+    { id: "miete", name: "Miete", filters: [], parent_id: "wohnen", attributes: { ausgabenklasse: "essenziell" } },
+    { id: "mobil", name: "Mobilität", filters: [], attributes: { ausgabenklasse: "diskretionaer" } },
+    { id: "kraftstoff", name: "Kraftstoff", filters: [], parent_id: "mobil", attributes: { ausgabenklasse: "essenziell" } },
+    { id: "parken", name: "Parken", filters: [], parent_id: "mobil", attributes: { ausgabenklasse: "diskretionaer" } },
+    { id: "sparen", name: "Sparen & Investieren", filters: [], attributes: { ausgabenklasse: "sparen" } },
+  ];
+
+  it("gruppiert Ausgaben nach Ausgabenklasse im Innenring", () => {
+    const result = buildSpendingSunburst(
+      [
+        tx({ amount: -700, category_id: "miete" }),
+        tx({ amount: -60, category_id: "kraftstoff" }),
+        tx({ amount: -40, category_id: "parken" }),
+        tx({ amount: -200, category_id: "sparen" }),
+      ],
+      klassCats
+    );
+    expect(result.total).toBe(1000);
+    const inner = Object.fromEntries(result.inner.map((i) => [i.id, i.value]));
+    expect(inner.essenziell).toBe(760); // Miete 700 + Kraftstoff 60
+    expect(inner.diskretionaer).toBe(40); // Parken
+    expect(inner.sparen).toBe(200);
+  });
+
+  it("spaltet eine Hauptkategorie über Klassen im Außenring auf", () => {
+    const result = buildSpendingSunburst(
+      [
+        tx({ amount: -60, category_id: "kraftstoff" }),
+        tx({ amount: -40, category_id: "parken" }),
+      ],
+      klassCats
+    );
+    // Mobilität erscheint sowohl unter essenziell als auch unter diskretionaer
+    const mobilOuter = result.outer.filter((o) => o.name === "Mobilität");
+    expect(mobilOuter).toHaveLength(2);
+    expect(mobilOuter.find((o) => o.parentId === "essenziell")?.value).toBe(60);
+    expect(mobilOuter.find((o) => o.parentId === "diskretionaer")?.value).toBe(40);
+  });
+
+  it("legt unkategorisierte Ausgaben in einen eigenen Innenring-Slice ohne Außenring", () => {
+    const result = buildSpendingSunburst([tx({ amount: -25 })], klassCats);
+    expect(result.inner).toEqual([{ id: "unkategorisiert", name: "Unkategorisiert", value: 25 }]);
+    expect(result.outer).toEqual([]);
+  });
+
+  it("ignoriert Einnahmen und Nullbeträge", () => {
+    const result = buildSpendingSunburst(
+      [tx({ amount: 2000 }), tx({ amount: 0, category_id: "miete" })],
+      klassCats
+    );
+    expect(result.total).toBe(0);
+    expect(result.inner).toEqual([]);
+  });
+
+  it("resolveAusgabenklasse erbt die Klasse vom Parent, wenn die Unterkategorie keine hat", () => {
+    const cats: Category[] = [
+      { id: "p", name: "P", filters: [], attributes: { ausgabenklasse: "sparen" } },
+      { id: "c", name: "C", filters: [], parent_id: "p" },
+    ];
+    const byId = new Map(cats.map((c) => [c.id, c]));
+    expect(resolveAusgabenklasse(byId, "c")).toBe("sparen");
+    expect(resolveAusgabenklasse(byId, null)).toBeNull();
   });
 });

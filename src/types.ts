@@ -57,6 +57,13 @@ export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 export type Prioritaet = 'essential' | 'normal' | 'nice';
 export type Zahlungsweg = 'giro' | 'credit' | 'paypal' | 'cash';
 
+/**
+ * Vorgelagerte Ausgabenklasse über den Hauptkategorien. Dient als oberste
+ * Aggregationsebene (Sunburst-Innenring) und entkoppelt die Essenziell-Sicht
+ * von der Kategorie-Hierarchie, weil `essenziell` je Unterkategorie variiert.
+ */
+export type Ausgabenklasse = 'essenziell' | 'diskretionaer' | 'sparen' | 'einkommen';
+
 export interface CategoryAttributes {
   ist_vertrag?: boolean;
   rhythmus?: Rhythmus | null;
@@ -66,6 +73,8 @@ export interface CategoryAttributes {
   vertragsende?: string | null;
   fixkosten?: boolean;
   essenziell?: boolean;
+  /** Vorgelagerte Klasse; `essenziell` bleibt als abgeleitetes Bool erhalten. */
+  ausgabenklasse?: Ausgabenklasse;
   prioritaet?: Prioritaet | null;
   budget_monat?: number | null;
   warnschwelle_prozent?: number | null;
