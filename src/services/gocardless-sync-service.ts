@@ -177,8 +177,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       (a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
     );
 
-    if (sortedTransactions.length > 0 && sortedTransactions[0].balanceAfterTransaction) {
-      const firstTx = sortedTransactions[0];
+    const firstTx = sortedTransactions[0];
+    if (firstTx?.balanceAfterTransaction) {
       const balanceAfter = parseFloat(
         firstTx.balanceAfterTransaction.balanceAmount.amount
       );
