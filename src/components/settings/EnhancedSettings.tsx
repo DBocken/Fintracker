@@ -164,8 +164,8 @@ export function EnhancedSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
+    <div className="bg-background">
+      <div className="w-full">
         <div className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-sm backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="max-w-3xl">
