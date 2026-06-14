@@ -8,6 +8,7 @@ import {
   updateLocalCategory,
   getLocalUserSettings,
   updateLocalUserSettings,
+  backfillAusgabenklasse,
 } from './local-settings-service';
 import { normalizeMerchantName } from './merchant-normalization';
 import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
@@ -353,7 +354,10 @@ export async function getCategories(): Promise<Category[]> {
     .order('created_at', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data || []) as Category[];
+
+  // Apply backfill to ensure ausgabenklasse is set on all categories
+  const { categories: backfilled } = backfillAusgabenklasse(data || []);
+  return backfilled;
 }
 
 export async function getHierarchicalCategories(): Promise<HierarchicalCategory[]> {

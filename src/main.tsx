@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import '@/integrations/capacitor/setup'
 import { LocalEncryptionProvider } from '@/components/providers/LocalEncryptionProvider'
 import { migrateLocalStorageToIdb } from './services/idb-kv'
+import { applyDetectedContracts } from './services/contract-detection-service'
 
 // Einmalige Migration der lokalen Bulk-Daten von localStorage nach IndexedDB
 // (Issue #29). Fire-and-forget: Lese-Zugriffe migrieren fehlende Schlüssel
@@ -55,3 +56,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </React.StrictMode>,
 )
+
+// Debug: Expose contract detection to console
+if (typeof window !== 'undefined') {
+  (window as any).__debug = {
+    applyDetectedContracts: async () => {
+      console.log('🔍 Triggering contract detection...')
+      try {
+        await applyDetectedContracts()
+        console.log('✅ Contract detection completed')
+      } catch (error) {
+        console.error('❌ Contract detection failed:', error)
+      }
+    },
+  }
+  console.log('💡 Debug available: window.__debug.applyDetectedContracts()')
+}
