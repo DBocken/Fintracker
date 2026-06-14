@@ -11,7 +11,9 @@ import {
   type DashboardGranularity,
   type DashboardRange,
   type EssentialFilter,
+  type AusgabenklasseFilter,
 } from './filter-constants';
+import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 
 interface TransactionFiltersProps {
   filterCat: string;
@@ -31,6 +33,8 @@ interface TransactionFiltersProps {
   setFilterContract: (v: ContractFilter) => void;
   filterEssential: EssentialFilter;
   setFilterEssential: (v: EssentialFilter) => void;
+  filterAusgabenklasse: AusgabenklasseFilter;
+  setFilterAusgabenklasse: (v: AusgabenklasseFilter) => void;
   showSearch?: boolean;
 }
 
@@ -52,6 +56,8 @@ export function TransactionFilters({
   setFilterContract,
   filterEssential,
   setFilterEssential,
+  filterAusgabenklasse,
+  setFilterAusgabenklasse,
   showSearch = true,
 }: TransactionFiltersProps) {
   const { data: accounts = [] } = useQuery({
@@ -117,6 +123,12 @@ export function TransactionFilters({
           <SelectItem value="nicht">Nicht essenziell</SelectItem>
         </SelectContent>
       </Select>
+
+      <AusgabenklasseFilterComponent
+        value={filterAusgabenklasse}
+        onChange={setFilterAusgabenklasse}
+        categories={categories}
+      />
 
       {showSearch && (
         <div className="relative">

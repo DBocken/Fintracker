@@ -25,6 +25,7 @@ const baseFilters: DashboardFilterState = {
   account: DEFAULT_DASHBOARD_FILTERS.account,
   contract: DEFAULT_DASHBOARD_FILTERS.contract,
   essential: DEFAULT_DASHBOARD_FILTERS.essential,
+  ausgabenklasse: DEFAULT_DASHBOARD_FILTERS.ausgabenklasse,
   search: DEFAULT_DASHBOARD_FILTERS.search,
   range: DEFAULT_DASHBOARD_FILTERS.range,
   customDays: DEFAULT_DASHBOARD_FILTERS.customDays,
