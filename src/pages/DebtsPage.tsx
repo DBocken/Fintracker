@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import EmptyState from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { showSuccess, showError } from "@/utils/toast";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
@@ -116,7 +122,7 @@ export default function DebtsPage() {
     mutationFn: assignTransactionToDebt,
     onSuccess: () => {
       invalidate();
-      showSuccess("Abbuchung als Tilgung zugewiesen");
+      showSuccess("Zahlung als Tilgung zugewiesen");
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -171,7 +177,7 @@ export default function DebtsPage() {
     if (sum <= 0) return [];
     const byKey: Record<string, number> = {};
     for (const d of active) {
-      const key = d.is_bnpl ? d.provider || "BNPL" : DEBT_TYPE_LABELS[d.type];
+      const key = d.is_bnpl ? d.provider || "Ratenkauf" : DEBT_TYPE_LABELS[d.type];
       byKey[key] = (byKey[key] || 0) + d.balance;
     }
     return Object.entries(byKey)
@@ -286,7 +292,7 @@ export default function DebtsPage() {
             {debts.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="text-xl">{DEBT_TYPE_ICONS[d.type]}</span>
@@ -302,7 +308,7 @@ export default function DebtsPage() {
                           🏠 Existenzsichernd
                         </Badge>
                       )}
-                      {d.is_bnpl && <Badge variant="secondary" className="shrink-0">BNPL</Badge>}
+                      {d.is_bnpl && <Badge variant="secondary" className="shrink-0">Ratenkauf</Badge>}
                       {d.is_paid_off && (
                         <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>
                       )}
@@ -313,24 +319,39 @@ export default function DebtsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="text-right font-semibold">{eur.format(d.balance)}</div>
-                  <Button variant="ghost" size="icon" onClick={() => togglePaidOff(d)} title="Als bezahlt markieren">
-                    <CheckCircle2 className={d.is_paid_off ? "h-4 w-4 text-positive" : "h-4 w-4"} />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-warning"
-                    onClick={() => {
-                      if (confirm(`Schuld „${d.name}“ löschen?`)) deleteMutation.mutate(d.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center justify-between gap-2 sm:shrink-0 sm:justify-end">
+                  <div className="font-semibold">{eur.format(d.balance)}</div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={d.is_paid_off ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => togglePaidOff(d)}
+                      title={d.is_paid_off ? "Als offen markieren" : "Als bezahlt markieren"}
+                    >
+                      <CheckCircle2 className={d.is_paid_off ? "mr-1.5 h-4 w-4 text-positive" : "mr-1.5 h-4 w-4"} />
+                      {d.is_paid_off ? "Rückgängig" : "Bezahlt markieren"}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Weitere Aktionen">
+                          <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(d)}>
+                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Bearbeiten
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (confirm(`Schuld „${d.name}“ löschen?`)) deleteMutation.mutate(d.id);
+                          }}
+                          className="text-warning focus:text-warning"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
             ))}
@@ -364,7 +385,7 @@ export default function DebtsPage() {
           {debts.length > 0 && (
             <Card>
               <CardContent className="p-4">
-                <div className="mb-3 text-sm font-semibold">Abbuchungen einer Schuld zuweisen</div>
+                <div className="mb-3 text-sm font-semibold">Zahlungen dieser Schuld zuordnen</div>
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
                   <div className="space-y-2">
                     <Label>Schuld</Label>
@@ -393,15 +414,15 @@ export default function DebtsPage() {
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Weise SEPA-Lastschriften, Daueraufträge oder andere Abbuchungen zu. Der Betrag wird automatisch von der Restschuld abgezogen.
+                      Ordne wiederkehrende Lastschriften (z.B. Kreditkartenrate) einer Schuld zu — wir verfolgen damit automatisch deinen Tilgungsfortschritt.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Abbuchungen</Label>
+                    <Label>Zahlungen</Label>
                     {debitTransactions.length === 0 ? (
                       <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-                        Keine Abbuchungen gefunden.
+                        Keine Zahlungen gefunden.
                       </div>
                     ) : (
                       <div className="max-h-80 space-y-2 overflow-auto rounded-lg border p-2">
@@ -439,7 +460,7 @@ export default function DebtsPage() {
                     )}
                     {assignedToSelectedDebt.length > 0 && (
                       <div className="text-xs text-muted-foreground">
-                        {assignedToSelectedDebt.length} Abbuchung{assignedToSelectedDebt.length === 1 ? "" : "en"} dieser Schuld zugewiesen.
+                        {assignedToSelectedDebt.length} Zahlung{assignedToSelectedDebt.length === 1 ? "" : "en"} dieser Schuld zugewiesen.
                       </div>
                     )}
                   </div>
@@ -463,8 +484,8 @@ export default function DebtsPage() {
                     <Label>Strategie (gilt für alle Schulden)</Label>
                     <Tabs value={strategy} onValueChange={(v) => setStrategy(v as PayoffStrategy)}>
                       <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="avalanche">Lawine (Zins)</TabsTrigger>
-                        <TabsTrigger value="snowball">Schneeball</TabsTrigger>
+                        <TabsTrigger value="avalanche">Zinsen sparen</TabsTrigger>
+                        <TabsTrigger value="snowball">Schnelle Erfolge</TabsTrigger>
                       </TabsList>
                       <TabsContent value="avalanche" className="mt-2 text-xs text-muted-foreground">
                         Höchster Zins zuerst – spart am meisten Zinsen.
@@ -509,7 +530,7 @@ export default function DebtsPage() {
                     <div className="grid gap-4 lg:grid-cols-2">
                       <div>
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Prioritätsreihenfolge ({strategy === "avalanche" ? "Lawine" : "Schneeball"})
+                          Prioritätsreihenfolge ({strategy === "avalanche" ? "Zinsen sparen" : "Schnelle Erfolge"})
                         </div>
                         <ol className="space-y-1.5">
                           {payoffPlan.steps.map((s) => (

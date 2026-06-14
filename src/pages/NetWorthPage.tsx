@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Wallet, LineChart, CreditCard } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Wallet, LineChart, CreditCard, Info } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getNetWorthBreakdown } from "@/services/net-worth-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
@@ -83,9 +85,32 @@ export default function NetWorthPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Datenquellen</CardTitle>
+              <CardTitle className="text-base">Was zählt dazu?</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {(data.accountSources.length === 0 || data.portfolioSources.length === 0) && (
+                <div className="rounded-md border border-dashed p-3 text-sm">
+                  <div className="font-medium">Noch nicht erfasst</div>
+                  <ul className="mt-2 space-y-1 text-muted-foreground">
+                    {data.accountSources.length === 0 && (
+                      <li>
+                        <Link to="/accounts" className="text-primary underline-offset-2 hover:underline">
+                          Konto hinzufügen
+                        </Link>{" "}
+                        – Girokonto oder Sparkonto erfassen
+                      </li>
+                    )}
+                    {data.portfolioSources.length === 0 && (
+                      <li>
+                        <Link to="/trading" className="text-primary underline-offset-2 hover:underline">
+                          Depot hinzufügen
+                        </Link>{" "}
+                        – Wertpapiere und Investitionen erfassen
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Wallet className="h-4 w-4" />
@@ -108,7 +133,16 @@ export default function NetWorthPage() {
                           <div className="font-medium">{acc.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {acc.source === "live"
-                              ? `Live-Saldo von der Bank${acc.lastSyncAt ? ` · zuletzt aktualisiert am ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}`
+                              ? (
+                                <>
+                                  Live-Saldo von der Bank
+                                  {acc.lastSyncAt ? ` · zuletzt aktualisiert am ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}
+                                  {" · "}
+                                  <Link to="/accounts" className="text-primary underline-offset-2 hover:underline">
+                                    Jetzt aktualisieren
+                                  </Link>
+                                </>
+                              )
                               : "Berechnet aus Eröffnungssaldo + lokalen Transaktionen (keine Bankanbindung)"}
                           </div>
                         </div>
@@ -123,6 +157,16 @@ export default function NetWorthPage() {
                   </ul>
                 ) : (
                   <p className="mt-3 text-sm text-muted-foreground">Keine Konten hinterlegt.</p>
+                )}
+                {data.accountSources.some((acc) => acc.source === "live") && (
+                  <Alert className="mt-3">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Falls dieser Betrag von deiner Banking-App abweicht, liegt das meist an noch nicht
+                      abgerufenen neuen Buchungen (Banken erlauben nur wenige Abrufe pro Tag) oder an
+                      vorgemerkten Buchungen, die erst nach Verbuchung sichtbar werden.
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
 

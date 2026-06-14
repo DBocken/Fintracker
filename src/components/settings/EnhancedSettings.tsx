@@ -26,6 +26,7 @@ import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import { AppearanceSettings } from './AppearanceSettings';
 import { BackupManager } from '../BackupManager';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 function SectionHeader({
   icon,
@@ -258,7 +259,7 @@ export function EnhancedSettings() {
           <SectionHeader
             icon={<ShieldCheck className="h-5 w-5" />}
             title="Lokale Sicherheit & Sync-Datei"
-            description="Die Sync-Datei ist dein verschlüsselter lokaler Datenstand und ersetzt das klassische Backup-Konzept."
+            description="Deine Daten werden verschlüsselt lokal gespeichert. Hier kannst du eine Sicherungskopie erstellen oder wiederherstellen."
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <LocalEncryptionSettings />
@@ -291,12 +292,22 @@ export function EnhancedSettings() {
         </section>
 
         <section className="mb-10">
-          <SectionHeader
-            icon={<SettingsIcon className="h-5 w-5" />}
-            title="Technischer Status"
-            description="Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung."
-          />
-          <PerformanceDashboard />
+          <Accordion type="single" collapsible>
+            <AccordionItem value="technical-status" className="border-none">
+              <AccordionTrigger className="gap-2 text-sm font-medium text-muted-foreground hover:no-underline hover:text-foreground">
+                <span className="flex items-center gap-2">
+                  <SettingsIcon className="h-4 w-4" />
+                  Technischer Status
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung.
+                </p>
+                <PerformanceDashboard />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </section>
 
         <section>

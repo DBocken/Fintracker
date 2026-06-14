@@ -12,7 +12,7 @@ const STYLES = {
   info: { border: "border-brand/20", bg: "bg-brand/5", icon: Info, iconColor: "text-brand" },
 } as const;
 
-export default function CoachFeedCard({ card, index }: { card: CoachRecommendation; index: number }) {
+export default function CoachFeedCard({ card, index, featured }: { card: CoachRecommendation; index: number; featured?: boolean }) {
   const style = STYLES[card.severity];
   const Icon = style.icon;
 
@@ -21,8 +21,18 @@ export default function CoachFeedCard({ card, index }: { card: CoachRecommendati
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={cn("rounded-2xl border bg-card p-4 shadow-sm", style.border, style.bg)}
+      className={cn(
+        "rounded-2xl border bg-card p-4 shadow-sm",
+        style.border,
+        style.bg,
+        featured && "ring-2 ring-primary/30",
+      )}
     >
+      {featured && (
+        <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          Wichtigste Aktion heute
+        </div>
+      )}
       <div className="flex gap-3">
         <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", style.iconColor)} />
         <div className="min-w-0 flex-1">
