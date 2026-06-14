@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CategoryForm } from "@/components/settings/CategoryForm";
 import { showSuccess, showError } from "@/utils/toast";
@@ -158,6 +157,12 @@ function computeContracts(
         ? addDaysISO(last.date, 365)
         : null;
 
+    // Vertrag gilt als bestätigt, sobald mind. eine zugehörige Buchung als
+    // Vertrag markiert ist (Transaktions-Ebene, gesetzt im Detail-Dialog
+    // oder per Bestätigung in der Vorschlagsliste).
+    const confirmed = sorted.some((t) => t.is_contract === true);
+    const transactionIds = sorted.map((t) => t.id || "").filter(Boolean);
+
     rows.push({
       key,
       type,
@@ -172,6 +177,8 @@ function computeContracts(
       changed,
       changeAmount,
       changeSinceLabel,
+      confirmed,
+      transactionIds,
     });
   });
 
@@ -284,28 +291,43 @@ export function ContractsDashboard() {
     [contractsIncome, contractsExpenses]
   );
 
-  const visibleRows = useMemo(
-    () => (onlyChanges ? contractsAll.filter((r) => r.changed) : contractsAll),
-    [contractsAll, onlyChanges]
+  // Bestätigte Verträge: nur Buchungen, die als Vertrag markiert sind.
+  const confirmedExpenses = useMemo(
+    () => contractsExpenses.filter((r) => r.confirmed),
+    [contractsExpenses]
+  );
+  const confirmedIncome = useMemo(
+    () => contractsIncome.filter((r) => r.confirmed),
+    [contractsIncome]
+  );
+  const confirmedContracts = useMemo(
+    () => contractsAll.filter((r) => r.confirmed),
+    [contractsAll]
   );
 
-  // Summen: Verbindlichkeiten (Ausgaben) und Vertragseinnahmen (Einnahmen)
+  const visibleRows = useMemo(
+    () => (onlyChanges ? confirmedContracts.filter((r) => r.changed) : confirmedContracts),
+    [confirmedContracts, onlyChanges]
+  );
+
+  // Summen: Verbindlichkeiten (Ausgaben) und Vertragseinnahmen (Einnahmen),
+  // berechnet aus den bestätigten Verträgen.
   const liabilitiesMonthly = useMemo(
-    () => Math.round(contractsExpenses.reduce((sum, r) => sum + monthlyEquivalent(r.amountTypical, r.cycle), 0)),
-    [contractsExpenses]
+    () => Math.round(confirmedExpenses.reduce((sum, r) => sum + monthlyEquivalent(r.amountTypical, r.cycle), 0)),
+    [confirmedExpenses]
   );
   const liabilitiesYearly = useMemo(
-    () => Math.round(contractsExpenses.reduce((sum, r) => sum + yearlyEquivalent(r.amountTypical, r.cycle), 0)),
-    [contractsExpenses]
+    () => Math.round(confirmedExpenses.reduce((sum, r) => sum + yearlyEquivalent(r.amountTypical, r.cycle), 0)),
+    [confirmedExpenses]
   );
 
   const incomeMonthly = useMemo(
-    () => Math.round(contractsIncome.reduce((sum, r) => sum + monthlyEquivalent(r.amountTypical, r.cycle), 0)),
-    [contractsIncome]
+    () => Math.round(confirmedIncome.reduce((sum, r) => sum + monthlyEquivalent(r.amountTypical, r.cycle), 0)),
+    [confirmedIncome]
   );
   const incomeYearly = useMemo(
-    () => Math.round(contractsIncome.reduce((sum, r) => sum + yearlyEquivalent(r.amountTypical, r.cycle), 0)),
-    [contractsIncome]
+    () => Math.round(confirmedIncome.reduce((sum, r) => sum + yearlyEquivalent(r.amountTypical, r.cycle), 0)),
+    [confirmedIncome]
   );
 
   const displayedLiabilities = viewMode === "monthly" ? liabilitiesMonthly : liabilitiesYearly;
@@ -367,14 +389,14 @@ export function ContractsDashboard() {
       }
     };
 
-    contractsIncome.forEach(processRow);
-    contractsExpenses.forEach(processRow);
+    confirmedIncome.forEach(processRow);
+    confirmedExpenses.forEach(processRow);
 
     // Saldo je Monat berechnen: Einnahmen + Ausgaben (Ausgaben sind negativ)
     data.forEach((d) => { d.net = d.income + d.expenses; });
 
     return data;
-  }, [contractsIncome, contractsExpenses]);
+  }, [confirmedIncome, confirmedExpenses]);
 
   return (
     <div className="space-y-4">
@@ -450,31 +472,25 @@ export function ContractsDashboard() {
             </ResponsiveContainer>
           </div>
 
-          <ContractSuggestionsBanner rows={contractsAll} categoryMap={categoryMap} />
+          <ContractSuggestionsBanner rows={contractsAll} />
 
-          <div className="mb-4">
-            <Alert>
-              <AlertTitle>Hinweis</AlertTitle>
-              <AlertDescription>
-                Du kannst hier keine Verträge hinzufügen, da es reale Einträge sind. Was-wäre-wenn ist in der Simulation möglich
-              </AlertDescription>
-            </Alert>
-          </div>
-
-          <div className="flex items-center gap-4 mb-3">
+          <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Bestätigte Verträge ({confirmedContracts.length})
+            </h3>
             <div className="flex items-center gap-2">
               <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
               <span className="text-sm text-muted-foreground">Nur Veränderungen zeigen</span>
             </div>
           </div>
 
-          {contractsAll.some((r) => r.changed) && (
+          {confirmedContracts.some((r) => r.changed) && (
             <div className="mb-4 p-3 rounded-md bg-warning/15 border border-warning/15">
               <p className="text-sm text-warning">
                 Wir haben bei einigen Verträgen steigende Beträge erkannt. Ein Vergleich lohnt sich oft – sichere dir bessere Konditionen mit einem Anbieter-Check.
               </p>
               <p className="text-xs text-warning mt-1">
-                Beispiel: Dein Vertrag ist um {contractsAll.find(r => r.changed)?.changeAmount.toLocaleString("de-DE")}€ teurer geworden. Prüfe verfügbare Tarife und spare dauerhaft.
+                Beispiel: Dein Vertrag ist um {confirmedContracts.find(r => r.changed)?.changeAmount.toLocaleString("de-DE")}€ teurer geworden. Prüfe verfügbare Tarife und spare dauerhaft.
               </p>
             </div>
           )}
@@ -544,7 +560,7 @@ export function ContractsDashboard() {
                 {visibleRows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground">
-                      Keine Verträge gefunden
+                      Noch keine Verträge bestätigt. Bestätige oben einen Vorschlag oder markiere eine Transaktion als Vertrag.
                     </TableCell>
                   </TableRow>
                 )}

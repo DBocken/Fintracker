@@ -16,6 +16,10 @@ export interface ContractRow {
   changed: boolean;
   changeAmount: number;
   changeSinceLabel: string | null;
+  /** True, wenn (mind. eine) zugehörige Transaktion als Vertrag markiert ist. */
+  confirmed: boolean;
+  /** IDs der Buchungen dieser wiederkehrenden Zahlung (für Confirm/Markierung). */
+  transactionIds: string[];
 }
 
 /** Bildet einen erkannten Zahlungs-Zyklus auf den Rhythmus von CategoryAttributes ab. */
