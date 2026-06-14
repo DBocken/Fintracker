@@ -15,6 +15,7 @@ import { AccountCards } from '../accounts/AccountCards';
 import { TransactionStats } from './TransactionStats';
 import { ExpensesOverTimeCard, SpendingBreakdownCard } from './TransactionCharts';
 import { TransactionFilters } from './TransactionFilters';
+import { TransactionDetailsModal } from './TransactionDetailsModal';
 import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
@@ -104,6 +105,9 @@ export function Dashboard() {
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isUpdatingDetails, setIsUpdatingDetails] = useState(false);
 
   const mutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
     mutationFn: updateTransaction,
@@ -215,6 +219,22 @@ export function Dashboard() {
     setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
     setCustomGran(DEFAULT_DASHBOARD_FILTERS.customGranularity);
   }, []);
+
+  const handleOpenTransactionDetails = useCallback((transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setDetailsModalOpen(true);
+  }, []);
+
+  const handleUpdateTransactionDetails = useCallback((updates: Partial<Transaction>) => {
+    if (!selectedTransaction || !selectedTransaction.id) return;
+    setIsUpdatingDetails(true);
+    updateTransaction([{ id: selectedTransaction.id, category_id: updates.category_id || '' }])
+      .then(() => {
+        setDetailsModalOpen(false);
+        setSelectedTransaction(null);
+      })
+      .finally(() => setIsUpdatingDetails(false));
+  }, [selectedTransaction]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -523,6 +543,16 @@ export function Dashboard() {
         onConfirm={handleDeleteConfirmed}
         transactionId={transactionToDelete}
         selectedCount={selected.size}
+      />
+
+      <TransactionDetailsModal
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        transaction={selectedTransaction}
+        categories={cats}
+        accounts={accounts}
+        onUpdate={handleUpdateTransactionDetails}
+        isLoading={isUpdatingDetails}
       />
     </div>
   );
