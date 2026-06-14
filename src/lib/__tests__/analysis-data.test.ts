@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSpendingSunburst, resolveAusgabenklasse, type SunburstSuperId } from '../analysis-data';
+import { buildSpendingSunburst, resolveAusgabenklasse } from '../analysis-data';
 import type { Transaction, Category } from '@/types';
 
 /**

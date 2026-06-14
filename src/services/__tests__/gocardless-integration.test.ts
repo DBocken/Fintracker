@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { buildSpendingSunburst } from '@/lib/analysis-data';
 import type { Transaction, Category } from '@/types';
 
