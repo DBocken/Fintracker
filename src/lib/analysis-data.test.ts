@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildSankeyData,
+  buildSankeyDataByKlasse,
   buildSpendingSunburst,
   buildWeekdayPattern,
   resolveAusgabenklasse,
@@ -165,6 +166,53 @@ describe("buildSankeyData – Konten (Variante 1: Netto je Konto)", () => {
       [giro, spar]
     );
     expect(result.accounts.map((a) => a.id)).toEqual(["acc-giro", "acc-spar"]);
+  });
+});
+
+describe("buildSankeyDataByKlasse – Ausgabenklasse-Aggregation", () => {
+  const klassCats: Category[] = [
+    { id: "wohnen", name: "Wohnen", filters: [], attributes: { ausgabenklasse: "essenziell" } },
+    { id: "miete", name: "Miete", filters: [], parent_id: "wohnen", attributes: { ausgabenklasse: "essenziell" } },
+    { id: "mobil", name: "Mobilität", filters: [], attributes: { ausgabenklasse: "diskretionaer" } },
+    { id: "kraftstoff", name: "Kraftstoff", filters: [], parent_id: "mobil", attributes: { ausgabenklasse: "essenziell" } },
+    { id: "streaming", name: "Streaming", filters: [], attributes: { ausgabenklasse: "diskretionaer" } },
+    { id: "sparen", name: "Sparen", filters: [], attributes: { ausgabenklasse: "sparen" } },
+  ];
+
+  it("fügt Ausgabenklassen-Layer zwischen Konten und Hauptkategorien ein", () => {
+    const result = buildSankeyDataByKlasse(
+      [
+        tx({ amount: -700, category_id: "miete" }),
+        tx({ amount: -60, category_id: "kraftstoff" }),
+        tx({ amount: -40, category_id: "streaming" }),
+        tx({ amount: -200, category_id: "sparen" }),
+      ],
+      klassCats
+    );
+    expect(result.klassen).toHaveLength(3);
+    const klassen = Object.fromEntries(result.klassen.map((k) => [k.id, k.amount]));
+    expect(klassen.essenziell).toBe(760); // Miete 700 + Kraftstoff 60
+    expect(klassen.diskretionaer).toBe(40); // Streaming
+    expect(klassen.sparen).toBe(200);
+  });
+
+  it("behält Hauptkategorien bei (für Drilldown)", () => {
+    const result = buildSankeyDataByKlasse(
+      [
+        tx({ amount: -300, category_id: "miete" }),
+        tx({ amount: -200, category_id: "streaming" }),
+      ],
+      klassCats
+    );
+    expect(result.mainCategories).toHaveLength(2);
+    expect(result.mainCategories.map((m) => m.id)).toContain("wohnen");
+    expect(result.mainCategories.map((m) => m.id)).toContain("streaming");
+  });
+
+  it("behandelt unkategorisierte Ausgaben in eigener Klasse", () => {
+    const result = buildSankeyDataByKlasse([tx({ amount: -50 })], klassCats);
+    const unkategorisiert = result.klassen.find((k) => k.id === "unkategorisiert");
+    expect(unkategorisiert?.amount).toBe(50);
   });
 });
 
