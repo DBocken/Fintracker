@@ -65,6 +65,7 @@ export async function getLocalCategories(): Promise<Category[]> {
  */
 export function backfillAusgabenklasse(categories: Category[]): { categories: Category[]; changed: boolean } {
   const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+  const defaultsByName = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.name, c]));
   const byId = new Map(categories.map((c) => [c.id, c]));
   let changed = false;
 
@@ -72,16 +73,24 @@ export function backfillAusgabenklasse(categories: Category[]): { categories: Ca
     if (cat.attributes?.ausgabenklasse) return cat;
 
     // 1. Direkter Abgleich mit der Default-Kategorie (gleiche ID).
-    const fallback = defaultsById.get(cat.id);
+    let fallback = defaultsById.get(cat.id);
     let klasse = fallback?.attributes?.ausgabenklasse;
     let essenziell = fallback?.attributes?.essenziell;
 
-    // 2. Sonst von der Hauptkategorie erben.
+    // 2. Fallback: Abgleich nach Name (für Cloud-Kategorien ohne local-cat-* IDs).
+    if (!klasse && cat.name) {
+      fallback = defaultsByName.get(cat.name);
+      klasse = fallback?.attributes?.ausgabenklasse;
+      essenziell = fallback?.attributes?.essenziell;
+    }
+
+    // 3. Sonst von der Hauptkategorie erben.
     if (!klasse && cat.parent_id) {
       const parent = byId.get(cat.parent_id);
       const parentDefault = defaultsById.get(cat.parent_id);
-      klasse = parent?.attributes?.ausgabenklasse ?? parentDefault?.attributes?.ausgabenklasse;
-      essenziell = essenziell ?? parent?.attributes?.essenziell ?? parentDefault?.attributes?.essenziell;
+      const parentDefaultByName = parent?.name ? defaultsByName.get(parent.name) : undefined;
+      klasse = parent?.attributes?.ausgabenklasse ?? parentDefault?.attributes?.ausgabenklasse ?? parentDefaultByName?.attributes?.ausgabenklasse;
+      essenziell = essenziell ?? parent?.attributes?.essenziell ?? parentDefault?.attributes?.essenziell ?? parentDefaultByName?.attributes?.essenziell;
     }
 
     if (!klasse) return cat;
