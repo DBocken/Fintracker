@@ -1,142 +1,599 @@
 /**
- * Umfangreiche Händler-/Schlagwort-Datenbank für die automatische Kategorisierung.
+ * Hierarchische Händler-/Schlagwort-Taxonomie für die automatische Kategorisierung.
  *
  * Single Source of Truth für:
- * - die `filters[]` der lokalen Standardkategorien (default-categories.ts)
+ * - die lokalen Standardkategorien inkl. Unterkategorien (default-categories.ts)
  * - die Supabase-Migration, die die globalen Standardkategorien (user_id IS NULL)
- *   um diese Begriffe ergänzt
+ *   um Haupt-/Unterkategorien, Keywords und das `essenziell`-Flag ergänzt
+ *   (scripts/generate-category-migration.mjs erzeugt die SQL daraus)
  *
- * `category` muss exakt dem `name` der jeweiligen Kategorie entsprechen.
+ * Aufbau: Hauptkategorie -> Unterkategorie -> Keywords.
+ * Die Keywords liegen ausschließlich auf der Unterkategorie-Ebene, damit das
+ * spezifischere Match (Unterkategorie) im categorizeTransaction gewinnt und der
+ * äußere Ring des Sunburst gefüllt wird. Hauptkategorien tragen keine Filter.
+ *
+ * `slug` muss [a-z]+ sein (wird zur stabilen lokalen ID `local-cat-<slug>`),
+ * `name` muss über die gesamte Taxonomie eindeutig sein.
  */
+
+export interface SubcategoryDef {
+  slug: string;
+  name: string;
+  keywords: string[];
+  /** Existenzsichernd? Überschreibt den Default der Hauptkategorie. */
+  essenziell?: boolean;
+}
+
+export interface CategoryDef {
+  slug: string;
+  name: string;
+  icon: string;
+  color: string;
+  /** Default-`essenziell` für die Gruppe; pro Unterkategorie überschreibbar. */
+  essenziell: boolean;
+  subcategories: SubcategoryDef[];
+}
+
+export const CATEGORY_TAXONOMY: CategoryDef[] = [
+  {
+    slug: "einkommen",
+    name: "Einkommen",
+    icon: "💶",
+    color: "#2e7d72",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "gehalt",
+        name: "Gehalt",
+        keywords: [
+          "gehalt", "lohn", "bezüge", "bezuege", "gehaltszahlung", "lohnzahlung",
+          "honorar", "umsatzerlös", "umsatzerloes", "trinkgeld", "auszahlung gewinn",
+        ],
+      },
+      {
+        slug: "rentesoziales",
+        name: "Rente & Soziales",
+        keywords: [
+          "rente", "deutsche rentenversicherung", "betriebsrente", "pension",
+          "kindergeld", "familienkasse", "bafög", "bafoeg", "elterngeld",
+          "arbeitslosengeld", "agentur für arbeit", "agentur fuer arbeit",
+          "jobcenter leistung", "wohngeld", "krankengeld",
+        ],
+      },
+      {
+        slug: "erstattungen",
+        name: "Erstattungen",
+        keywords: [
+          "erstattung", "rückerstattung", "rueckerstattung", "steuererstattung",
+          "finanzamt erstattung",
+        ],
+      },
+      {
+        slug: "zinsertraege",
+        name: "Zinserträge",
+        keywords: ["zinsen", "tagesgeldzinsen", "zinsgutschrift"],
+      },
+    ],
+  },
+  {
+    slug: "wohnen",
+    name: "Wohnen",
+    icon: "🏠",
+    color: "#1d5c54",
+    essenziell: true,
+    subcategories: [
+      {
+        slug: "miete",
+        name: "Miete & Hausgeld",
+        keywords: [
+          "miete", "kaltmiete", "warmmiete", "nebenkosten", "nebenkostenabrechnung",
+          "hausgeld", "wohnungsgenossenschaft", "vonovia", "deutsche wohnen", "wbg",
+          "gwg", "leg immobilien", "immobilien verwaltung", "hausverwaltung",
+          "vw immobilien", "grundsteuer",
+        ],
+      },
+      {
+        slug: "stromenergie",
+        name: "Strom & Energie",
+        keywords: [
+          "stadtwerke", "e.on", "eon energie", "enbw", "vattenfall", "eprimo",
+          "lichtblick", "yello strom", "rwe", "gasag", "mainova", "naturstrom",
+          "polarstern", "tibber", "octopus energy", "lsw energie", "lsw", "stromnetz",
+        ],
+      },
+      {
+        slug: "wasserabwasser",
+        name: "Wasser & Abwasser",
+        keywords: ["wasserwerk", "wasser/abwasser", "abwasser", "techem", "ista", "minol"],
+      },
+      {
+        slug: "rundfunk",
+        name: "Rundfunkbeitrag",
+        keywords: ["gez", "rundfunkbeitrag", "ard zdf"],
+      },
+      {
+        slug: "haushaltswaren",
+        name: "Haushaltswaren",
+        essenziell: false,
+        keywords: ["tedox", "ikea", "möbel", "moebel"],
+      },
+    ],
+  },
+  {
+    slug: "kommunikation",
+    name: "Kommunikation",
+    icon: "📡",
+    color: "#3a6ea5",
+    essenziell: true,
+    subcategories: [
+      {
+        slug: "mobilfunk",
+        name: "Mobilfunk",
+        keywords: ["o2", "telefonica", "congstar", "mobilfunk", "prepaid"],
+      },
+      {
+        slug: "internettv",
+        name: "Internet & TV",
+        keywords: ["vodafone", "telekom", "1&1", "1und1", "freenet", "kabel", "dsl"],
+      },
+    ],
+  },
+  {
+    slug: "digitales",
+    name: "Digitales",
+    icon: "💻",
+    color: "#5a5a8a",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "softwarecloud",
+        name: "Software & Cloud",
+        keywords: [
+          "adobe", "microsoft", "microsoft 365", "office 365", "icloud",
+          "google one", "apple.com/bill", "apple.com bill", "dropbox", "github",
+        ],
+      },
+      {
+        slug: "webhostingdomains",
+        name: "Webhosting & Domains",
+        keywords: ["strato", "webhosting", "domain", "ionos", "hetzner", "netcup"],
+      },
+    ],
+  },
+  {
+    slug: "lebensmittel",
+    name: "Lebensmittel",
+    icon: "🛒",
+    color: "#8a7d5a",
+    essenziell: true,
+    subcategories: [
+      {
+        slug: "supermarkt",
+        name: "Supermarkt",
+        keywords: [
+          "rewe", "edeka", "aldi", "aldi süd", "aldi nord", "lidl", "penny", "netto",
+          "netto marken-discount", "kaufland", "real,-", "globus", "tegut", "denns",
+          "denn's", "alnatura", "bio company", "feneberg", "hit markt", "combi",
+          "famila", "marktkauf", "norma", "nah und gut", "nahkauf", "spar", "metro",
+          "selgros", "picnic", "bringmeister", "knuspr", "flink", "gorillas",
+        ],
+      },
+      {
+        slug: "getraenkemarkt",
+        name: "Getränkemarkt",
+        keywords: ["getränke hoffmann", "getraenke hoffmann", "trinkgut", "fristo"],
+      },
+      {
+        slug: "baeckerei",
+        name: "Bäckerei",
+        keywords: ["bäckerei", "baeckerei", "konditorei", "back-factory", "backfactory"],
+      },
+      {
+        slug: "metzgerei",
+        name: "Metzgerei",
+        keywords: ["fleischerei", "metzgerei"],
+      },
+      {
+        slug: "wochenmarkt",
+        name: "Wochenmarkt",
+        keywords: ["wochenmarkt", "hofladen"],
+      },
+    ],
+  },
+  {
+    slug: "essenundtrinken",
+    name: "Essen & Trinken",
+    icon: "🍽️",
+    color: "#a8845c",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "restaurant",
+        name: "Restaurant",
+        keywords: [
+          "restaurant", "gastronomie", "ristorante", "l'osteria", "losteria",
+          "vapiano", "nordsee", "dean & david", "dean&david", "five guys",
+          "asia bistro", "sushi", "nem grill", "mongus garden", "pizzeria",
+          "döner", "doener", "pizza",
+        ],
+      },
+      {
+        slug: "fastfood",
+        name: "Fast Food",
+        keywords: [
+          "mcdonald", "mcdonalds", "burger king", "kfc", "subway", "imbiss",
+          "lieferando", "uber eats", "wolt",
+        ],
+      },
+      {
+        slug: "cafe",
+        name: "Café",
+        keywords: ["café", "cafe", "bistro", "coffee fellows", "balzac", "tchibo café", "starbucks"],
+      },
+    ],
+  },
+  {
+    slug: "mobilitaet",
+    name: "Mobilität",
+    icon: "🚗",
+    color: "#5c7a99",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "kraftstoff",
+        name: "Kraftstoff",
+        essenziell: true,
+        keywords: [
+          "tankstelle", "tanken", "aral", "shell", "esso", "jet", "star tankstelle",
+          "agip", "eni", "avia", "hem tankstelle", "om tankstelle",
+          "supermarkt tankstelle", "kraftstoff",
+        ],
+      },
+      {
+        slug: "oepnvbahn",
+        name: "ÖPNV & Bahn",
+        essenziell: true,
+        keywords: [
+          "deutsche bahn", "db vertrieb", "db fernverkehr", "db regio", "flixbus",
+          "flixtrain", "hvv", "mvg", "mvv", "bvg", "vbb", "vrr", "rmv", "vvs",
+          "kvb", "vrs", "ddsd",
+        ],
+      },
+      {
+        slug: "kfzversicherung",
+        name: "KFZ-Versicherung",
+        essenziell: true,
+        keywords: ["kfz-versicherung", "kfz versicherung", "volkswagen autoversicherung", "autoversicherung"],
+      },
+      {
+        slug: "parken",
+        name: "Parken",
+        keywords: ["apcoa", "ehc parken", "parkhaus", "parken", "vinci park"],
+      },
+      {
+        slug: "werkstatttuev",
+        name: "Werkstatt & TÜV",
+        keywords: ["tüv", "tuev", "dekra", "werkstatt", "reifen", "autoteile", "adac"],
+      },
+      {
+        slug: "carsharingtaxi",
+        name: "Carsharing & Taxi",
+        keywords: ["free now", "flinkster", "share now", "miles mobility", "uber", "taxi"],
+      },
+    ],
+  },
+  {
+    slug: "gesundheit",
+    name: "Gesundheit",
+    icon: "💊",
+    color: "#4a9a8d",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "apotheke",
+        name: "Apotheke",
+        essenziell: true,
+        keywords: [
+          "apotheke", "dm apotheke", "shop-apotheke", "shop apotheke", "docmorris",
+          "medpex", "easyapotheke",
+        ],
+      },
+      {
+        slug: "arztzahnarzt",
+        name: "Arzt & Zahnarzt",
+        essenziell: true,
+        keywords: [
+          "arztpraxis", "zahnarzt", "augenarzt", "hausarzt", "facharzt",
+          "krankenhaus", "klinik", "labor diagnostik",
+        ],
+      },
+      {
+        slug: "therapie",
+        name: "Therapie",
+        keywords: ["physiotherapie", "ergotherapie", "logopädie", "logopaedie"],
+      },
+      {
+        slug: "krankenkasse",
+        name: "Krankenkasse",
+        essenziell: true,
+        keywords: [
+          "barmer", "aok", "techniker krankenkasse", "tk krankenkasse", "dak",
+          "ikk", "knappschaft", "krankenkasse", "private krankenversicherung",
+        ],
+      },
+      {
+        slug: "fitnessstudio",
+        name: "Fitnessstudio",
+        essenziell: false,
+        keywords: ["fitnessstudio", "mcfit", "fitx", "clever fit", "urban sports club", "yoga"],
+      },
+      {
+        slug: "optikerhoergeraete",
+        name: "Optiker & Hörgeräte",
+        keywords: ["sehtest", "optiker", "hörgeräte", "hoergeraete", "fielmann"],
+      },
+    ],
+  },
+  {
+    slug: "versicherungen",
+    name: "Versicherungen",
+    icon: "🛡️",
+    color: "#7d8a87",
+    essenziell: true,
+    subcategories: [
+      {
+        slug: "haftpflichthausrat",
+        name: "Haftpflicht & Hausrat",
+        keywords: [
+          "haftpflicht", "hausratversicherung", "wohngebäudeversicherung",
+          "wohngebaeudeversicherung", "vgh",
+        ],
+      },
+      {
+        slug: "lebensversicherung",
+        name: "Lebensversicherung",
+        essenziell: false,
+        keywords: ["lebensversicherung", "provinzial", "alte leipziger"],
+      },
+      {
+        slug: "sonstigeversicherung",
+        name: "Sonstige Versicherung",
+        essenziell: false,
+        keywords: [
+          "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna",
+          "generali", "wgv", "devk", "gothaer", "barmenia", "hanse merkur",
+          "württembergische", "wuerttembergische", "cosmosdirekt", "verti versicherung",
+          "ottonova", "zurich versicherung", "ihre versicherung", "r+v versicherung",
+          "ruv", "lvm versicherung", "vhv", "continentale", "nürnberger versicherung",
+          "nuernberger versicherung", "beitrag versicherung", "huk-coburg", "huk24",
+          "huk coburg",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "abosundstreaming",
+    name: "Abos & Streaming",
+    icon: "📺",
+    color: "#7d6b8a",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "streaming",
+        name: "Streaming",
+        keywords: [
+          "netflix", "spotify", "amazon prime", "disney+", "disneyplus",
+          "youtube premium", "dazn", "sky deutschland", "wow tv", "rtl+", "rtl plus",
+          "joyn", "audible", "paramount+", "paramount plus", "deezer", "tidal",
+          "crunchyroll",
+        ],
+      },
+      {
+        slug: "zeitungmagazine",
+        name: "Zeitung & Magazine",
+        keywords: ["tagesspiegel abo", "spiegel plus", "zeitschriftenabo", "zeitungsabo"],
+      },
+      {
+        slug: "sonstigeabos",
+        name: "Sonstige Abos",
+        keywords: ["abo", "abonnement", "patreon", "onlyfans", "fitness abo"],
+      },
+    ],
+  },
+  {
+    slug: "spareninvestieren",
+    name: "Sparen & Investieren",
+    icon: "💰",
+    color: "#c2a14d",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "bausparen",
+        name: "Bausparen",
+        keywords: ["bausparen", "lbs"],
+      },
+      {
+        slug: "wertpapiere",
+        name: "Wertpapiere",
+        keywords: ["broker", "depot", "wertpapier", "etf", "trade republic", "scalable", "comdirect"],
+      },
+      {
+        slug: "tagesgeld",
+        name: "Tagesgeld",
+        keywords: ["tagesgeld", "festgeld", "sparbuch"],
+      },
+    ],
+  },
+  {
+    slug: "freizeithobby",
+    name: "Freizeit & Hobby",
+    icon: "🎲",
+    color: "#b56576",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "lotto",
+        name: "Lotto",
+        keywords: ["lotto", "toto", "toto-lotto", "eurojackpot"],
+      },
+      {
+        slug: "vereine",
+        name: "Vereine",
+        keywords: ["verein", "esports", "drk", "mitgliedsbeitrag"],
+      },
+      {
+        slug: "kulturmuseen",
+        name: "Kultur & Museen",
+        keywords: ["museum", "eintritt", "kino", "theater", "konzert"],
+      },
+    ],
+  },
+  {
+    slug: "shopping",
+    name: "Shopping",
+    icon: "🛍️",
+    color: "#7bb8ac",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "kleidung",
+        name: "Kleidung",
+        keywords: [
+          "h&m", "c&a", "primark", "tk maxx", "new yorker", "deichmann", "takko",
+          "kik", "zalando", "vinted",
+        ],
+      },
+      {
+        slug: "drogerie",
+        name: "Drogerie",
+        essenziell: true,
+        keywords: ["dm-drogerie", "dm drogerie", "rossmann", "müller markt", "mueller markt"],
+      },
+      {
+        slug: "elektronik",
+        name: "Elektronik",
+        keywords: [
+          "mediamarkt", "saturn", "conrad electronic", "expert", "euronics",
+          "notebooksbilliger", "apple store",
+        ],
+      },
+      {
+        slug: "baumarkt",
+        name: "Baumarkt",
+        keywords: ["obi", "hornbach", "bauhaus", "toom baumarkt"],
+      },
+      {
+        slug: "allgemeinerhandel",
+        name: "Allgemeiner Einzelhandel",
+        keywords: [
+          "amazon", "amzn", "otto", "ebay", "galeria", "thalia", "decathlon", "tedi",
+          "kleinanzeigen", "temu", "shein", "wish", "lovoo", "buecher.de", "bücher.de",
+          "real.de",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "reisen",
+    name: "Reisen",
+    icon: "🏨",
+    color: "#d08c45",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "hotels",
+        name: "Hotels",
+        keywords: ["hotel", "übernachtung", "uebernachtung"],
+      },
+      {
+        slug: "urlaubausfluege",
+        name: "Urlaub & Ausflüge",
+        keywords: ["check24 reisen", "urlaub", "reisebüro", "reisebuero", "booking.com", "airbnb"],
+      },
+    ],
+  },
+  {
+    slug: "finanzen",
+    name: "Finanzen",
+    icon: "🏦",
+    color: "#6b7a8f",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "kontofuehrung",
+        name: "Kontoführung",
+        keywords: ["kontoführung", "kontogebühr", "kontofuehrung", "kontoführungsgebühr"],
+      },
+      {
+        slug: "kreditkarte",
+        name: "Kreditkarte",
+        keywords: ["kreditkartenabrechnung", "miles & more", "kreditkarte"],
+      },
+      {
+        slug: "gebuehrenzinsen",
+        name: "Gebühren & Zinsen",
+        keywords: ["dispozinsen", "sollzinsen", "gebühr", "sollzins"],
+      },
+    ],
+  },
+  {
+    slug: "transfers",
+    name: "Transfers",
+    icon: "🔄",
+    color: "#8a8a8a",
+    essenziell: false,
+    subcategories: [
+      {
+        slug: "eigenuebertrag",
+        name: "Eigenübertrag",
+        keywords: ["umbuchung", "eigenübertrag", "übertrag", "giro"],
+      },
+      {
+        slug: "bargeld",
+        name: "Bargeld",
+        keywords: ["geldautomat", "bargeldabhebung", "bargeld", "atm"],
+      },
+    ],
+  },
+  {
+    slug: "sonstiges",
+    name: "Sonstiges",
+    icon: "📦",
+    color: "#9aa0a6",
+    essenziell: false,
+    subcategories: [],
+  },
+];
+
+/** Effektiver `essenziell`-Wert einer Unterkategorie (erbt von der Hauptkategorie). */
+export function isEssenziell(main: CategoryDef, sub?: SubcategoryDef): boolean {
+  if (sub && typeof sub.essenziell === "boolean") return sub.essenziell;
+  return main.essenziell;
+}
+
+// -----------------------------------------------------------------------------
+// Abgeleitete, abwärtskompatible Exporte
+// -----------------------------------------------------------------------------
 
 export interface MerchantKeywordGroup {
   category: string;
   keywords: string[];
 }
 
-export const MERCHANT_KEYWORDS: MerchantKeywordGroup[] = [
-  {
-    category: "Einkommen",
-    keywords: [
-      "gehalt", "lohn", "bezüge", "bezuege", "gehaltszahlung", "lohnzahlung",
-      "rente", "deutsche rentenversicherung", "betriebsrente", "pension",
-      "kindergeld", "familienkasse", "bafög", "bafoeg", "elterngeld",
-      "arbeitslosengeld", "agentur für arbeit", "agentur fuer arbeit", "jobcenter leistung",
-      "erstattung", "rückerstattung", "rueckerstattung", "steuererstattung", "finanzamt erstattung",
-      "honorar", "umsatzerlös", "umsatzerloes", "trinkgeld", "auszahlung gewinn",
-      "wohngeld", "krankengeld",
-    ],
-  },
-  {
-    category: "Wohnen",
-    keywords: [
-      "miete", "kaltmiete", "warmmiete", "nebenkosten", "nebenkostenabrechnung",
-      "hausgeld", "wohnungsgenossenschaft", "vonovia", "deutsche wohnen",
-      "wbg", "gwg", "leg immobilien", "immobilien verwaltung", "hausverwaltung",
-      "stadtwerke", "e.on", "eon energie", "enbw", "vattenfall", "eprimo",
-      "lichtblick", "yello strom", "rwe", "techem", "ista", "minol",
-      "gasag", "mainova", "naturstrom", "polarstern", "tibber", "octopus energy",
-      "wasserwerk", "wasser/abwasser", "abwasser", "gez", "rundfunkbeitrag",
-      "grundsteuer", "wohngebäudeversicherung", "wohngebaeudeversicherung",
-    ],
-  },
-  {
-    category: "Lebensmittel",
-    keywords: [
-      "rewe", "edeka", "aldi", "aldi süd", "aldi nord", "lidl", "penny", "netto",
-      "netto marken-discount", "kaufland", "real,-", "globus", "tegut", "denns",
-      "denn's", "alnatura", "bio company", "feneberg", "hit markt", "combi",
-      "famila", "marktkauf", "norma", "nah und gut", "nahkauf", "spar",
-      "getränke hoffmann", "getraenke hoffmann", "trinkgut", "fristo",
-      "bringmeister", "knuspr", "flink", "gorillas", "picnic",
-      "metro", "selgros", "wochenmarkt", "hofladen", "bäckerei", "baeckerei",
-      "konditorei", "fleischerei", "metzgerei",
-    ],
-  },
-  {
-    category: "Mobilität",
-    keywords: [
-      "tankstelle", "tanken", "aral", "shell", "esso", "jet", "star tankstelle",
-      "agip", "eni", "avia", "hem tankstelle", "om tankstelle", "supermarkt tankstelle",
-      "deutsche bahn", "db vertrieb", "db fernverkehr", "db regio", "flixbus", "flixtrain",
-      "hvv", "mvg", "mvv", "bvg", "vbb", "vrr", "rmv", "vvs", "kvb", "vrs", "ddsd",
-      "free now", "flinkster", "share now", "miles mobility", "uber", "taxi",
-      "apcoa", "ehc parken", "parkhaus", "parken", "vinci park",
-      "tüv", "tuev", "dekra", "kfz-versicherung", "kfz versicherung", "werkstatt",
-      "reifen", "autoteile", "adac",
-    ],
-  },
-  {
-    category: "Restaurant & Café",
-    keywords: [
-      "lieferando", "uber eats", "wolt", "mcdonald", "mcdonalds", "burger king",
-      "kfc", "subway", "starbucks", "vapiano", "nordsee", "pizza",
-      "dean & david", "dean&david", "five guys", "l'osteria", "losteria",
-      "asia bistro", "döner", "doener", "imbiss", "restaurant", "gastronomie",
-      "café", "cafe", "bistro", "coffee fellows", "balzac", "tchibo café",
-      "ristorante", "sushi", "bäckerei café",
-    ],
-  },
-  {
-    category: "Versicherungen",
-    keywords: [
-      "versicherung", "allianz", "huk-coburg", "huk24", "huk coburg", "axa",
-      "ergo", "debeka", "signal iduna", "generali", "wgv", "devk", "gothaer",
-      "barmenia", "hanse merkur", "württembergische", "wuerttembergische",
-      "cosmosdirekt", "verti versicherung", "alte leipziger", "ottonova",
-      "zurich versicherung", "ihre versicherung", "r+v versicherung", "ruv",
-      "lvm versicherung", "vhv", "continentale", "nürnberger versicherung",
-      "nuernberger versicherung", "beitrag versicherung", "haftpflicht",
-    ],
-  },
-  {
-    category: "Abos & Streaming",
-    keywords: [
-      "netflix", "spotify", "amazon prime", "disney+", "disneyplus", "apple.com/bill",
-      "apple.com bill", "youtube premium", "dazn", "sky deutschland", "wow tv",
-      "rtl+", "rtl plus", "joyn", "audible", "paramount+", "paramount plus",
-      "deezer", "tidal", "crunchyroll", "rundfunk", "abo", "abonnement",
-      "adobe", "microsoft 365", "office 365", "icloud", "google one",
-      "1&1", "1und1", "telekom", "vodafone", "o2", "congstar", "freenet",
-      "fitness abo", "zeitschriftenabo", "zeitungsabo", "tagesspiegel abo",
-      "spiegel plus", "patreon", "onlyfans",
-    ],
-  },
-  {
-    category: "Gesundheit",
-    keywords: [
-      "apotheke", "dm apotheke", "shop-apotheke", "shop apotheke", "docmorris",
-      "medpex", "arztpraxis", "zahnarzt", "augenarzt", "hausarzt", "facharzt",
-      "physiotherapie", "ergotherapie", "logopädie", "logopaedie",
-      "barmer", "aok", "techniker krankenkasse", "tk krankenkasse", "dak",
-      "ikk", "knappschaft", "krankenkasse", "private krankenversicherung",
-      "fitnessstudio", "mcfit", "fitx", "clever fit", "urban sports club",
-      "yoga", "krankenhaus", "klinik", "labor diagnostik", "sehtest", "optiker",
-      "hörgeräte", "hoergeraete",
-    ],
-  },
-  {
-    category: "Shopping",
-    keywords: [
-      "amazon", "amzn", "zalando", "otto", "ebay", "mediamarkt", "saturn",
-      "dm-drogerie", "dm drogerie", "rossmann", "ikea", "obi", "hornbach",
-      "bauhaus", "toom baumarkt", "h&m", "c&a", "primark", "tk maxx",
-      "decathlon", "thalia", "müller markt", "mueller markt", "tedi", "kik",
-      "takko", "vinted", "kleinanzeigen", "temu", "shein", "wish",
-      "apple store", "fielmann", "lovoo", "buecher.de", "bücher.de",
-      "conrad electronic", "expert", "euronics", "real.de", "notebooksbilliger",
-    ],
-  },
-  {
-    category: "Sonstiges",
-    keywords: [],
-  },
-];
+/** Flache Sicht je Hauptkategorie (Vereinigung aller Unterkategorie-Keywords). */
+export const MERCHANT_KEYWORDS: MerchantKeywordGroup[] = CATEGORY_TAXONOMY.map((c) => ({
+  category: c.name,
+  keywords: c.subcategories.flatMap((s) => s.keywords),
+}));
+
+/** Liefert die Keyword-Liste einer Hauptkategorie anhand des Namens (oder leer). */
+export function getKeywordsFor(categoryName: string): string[] {
+  return MERCHANT_KEYWORDS.find((g) => g.category === categoryName)?.keywords || [];
+}
 
 /**
- * Generische Regex-Fallback-Regeln, die als letzte Stufe angewendet werden,
- * falls kein Treffer über die Keyword-Filter erzielt wurde. Greifen auf
- * normalisierten Payee + Description.
+ * Generische Regex-Fallback-Regeln (letzte Stufe, falls kein Keyword greift).
+ * Verweisen auf die jeweilige Hauptkategorie (per Name).
  */
 export interface RegexFallbackRule {
   category: string;
@@ -152,8 +609,3 @@ export const REGEX_FALLBACK_RULES: RegexFallbackRule[] = [
   { category: "Lebensmittel", pattern: /supermarkt|lebensmittel|getränkemarkt|getraenkemarkt/i },
   { category: "Einkommen", pattern: /gehalt|lohn|rente\b/i },
 ];
-
-/** Liefert die Keyword-Liste für eine Kategorie anhand des Namens (oder leer). */
-export function getKeywordsFor(categoryName: string): string[] {
-  return MERCHANT_KEYWORDS.find((g) => g.category === categoryName)?.keywords || [];
-}
