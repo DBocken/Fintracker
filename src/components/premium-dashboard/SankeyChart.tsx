@@ -31,6 +31,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   const [chartHeight, setChartHeight] = useState<number>(500);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const totalExpenses = useMemo(
     () => (data?.mainCategories ?? []).reduce((sum, m) => sum + (m.amount || 0), 0),
@@ -181,6 +182,13 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
     return { nodes, links };
   }, [data, expandedMainId]);
 
+  // Berechne optimale Mindestbreite basierend auf Node-Anzahl (mobile horizontal scroll)
+  const minChartWidth = useMemo(() => {
+    const nodeCount = sankeyData.nodes.length || 1;
+    const avgNodeWidth = 90; // Durchschnittliche Node-Breite in px (mit Padding)
+    return Math.max(nodeCount * avgNodeWidth, 640);
+  }, [sankeyData.nodes.length]);
+
   if (!hasData) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
@@ -262,29 +270,35 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
       </CardHeader>
       <CardContent>
         {/* Steuerleiste */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 mb-3">
+          <div className="flex items-center gap-3 justify-between">
             <div className="flex items-center gap-2">
               <Switch checked={percentMode} onCheckedChange={(v) => setPercentMode(Boolean(v))} />
               <span className="text-sm text-muted-foreground">Prozentwerte</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Höhe:</span>
-              <Slider
-                value={[chartHeight]}
-                min={300}
-                max={800}
-                step={20}
-                onValueChange={(vals) => setChartHeight(vals[0] || 500)}
-                className="w-40"
-              />
-              <span className="text-xs text-muted-foreground">{chartHeight}px</span>
+              <Button size="sm" variant="outline" onClick={handleExportPNG}>Export PNG</Button>
+              <Button size="sm" variant="outline" onClick={handleExportJPEG}>Export JPEG</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPDF}>Export PDF</Button>
             </div>
           </div>
+          {/* Höhen-Slider: auf Mobile kompakt, auf SM+ in Reihe mit Export */}
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleExportPNG}>Export PNG</Button>
-            <Button size="sm" variant="outline" onClick={handleExportJPEG}>Export JPEG</Button>
-            <Button size="sm" variant="outline" onClick={handleExportPDF}>Export PDF</Button>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Höhe:</span>
+            <Slider
+              value={[chartHeight]}
+              min={300}
+              max={800}
+              step={20}
+              onValueChange={(vals) => setChartHeight(vals[0] || 500)}
+              className="flex-1 sm:w-40"
+            />
+            <span className="text-xs text-muted-foreground w-12 text-right">{chartHeight}px</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleExportPNG}>Export PNG</Button>
+              <Button size="sm" variant="outline" onClick={handleExportJPEG}>Export JPEG</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPDF}>Export PDF</Button>
+            </div>
           </div>
         </div>
 
@@ -299,15 +313,30 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
           </div>
         )}
 
-        <div ref={containerRef} style={{ height: `${chartHeight}px` }} className="w-full">
-          <ResponsiveContainer width="100%" height="100%">
+        {/* Chart-Wrapper: horizontal scroll auf Mobile, normal auf Desktop */}
+        <div
+          ref={scrollContainerRef}
+          style={{ minWidth: 0 }}
+          className="overflow-x-auto [-webkit-overflow-scrolling:touch]"
+        >
+          <div
+            ref={containerRef}
+            style={{
+              height: `${chartHeight}px`,
+              minWidth: `${minChartWidth}px`,
+            }}
+            className="w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
             <Sankey
               data={sankeyData}
               nodePadding={40}
               margin={{ top: 20, right: 40, bottom: 20, left: 20 }}
               link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
               node={({ x, y, width, height, payload }: any) => {
+                const MIN_HEIGHT_FOR_LABELS = 36;
                 const rectHeight = Math.max(height, 20);
+                const isSmallNode = rectHeight < MIN_HEIGHT_FOR_LABELS;
                 const isMainCategory =
                   enableDrilldown &&
                   data.mainCategories.some((main) => main.id === payload.id);
@@ -320,7 +349,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                   );
                 };
 
-                // Monochrome Brand-Rampe (#54): Unterscheidung über Helligkeit + Label
+                // Farb-Logik: Unterscheidung über Helligkeit + Label
                 const [rampDark, rampMid, rampLight] = chartRamp(3);
                 const fillColor =
                   payload.type === "income"
@@ -345,6 +374,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                       opacity: hoveredId && hoveredId !== payload.id ? 0.6 : 1,
                     }}
                   >
+                    {/* Node-Box */}
                     <rect
                       x={x}
                       y={y}
@@ -355,28 +385,62 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                       strokeWidth={2}
                       rx={4}
                     />
-                    <text
-                      x={x + width / 2}
-                      y={y + rectHeight / 2}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="white"
-                      fontSize={12}
-                      fontWeight="bold"
-                    >
-                      {payload.name}
-                    </text>
-                    {amountLabel && (
-                      <text
-                        x={x + width / 2}
-                        y={y + rectHeight / 2 + 15}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="white"
-                        fontSize={10}
-                      >
-                        {amountLabel}
-                      </text>
+
+                    {/* Labels: zentriert-innen bei großen Nodes, außen rechts bei kleinen */}
+                    {isSmallNode ? (
+                      <>
+                        {/* Kleine Node: Labels rechts außerhalb */}
+                        <text
+                          x={x + width + 6}
+                          y={y + rectHeight / 2 - 8}
+                          textAnchor="start"
+                          dominantBaseline="middle"
+                          fill="hsl(var(--foreground))"
+                          fontSize={11}
+                          fontWeight="bold"
+                        >
+                          {payload.name}
+                        </text>
+                        {amountLabel && (
+                          <text
+                            x={x + width + 6}
+                            y={y + rectHeight / 2 + 8}
+                            textAnchor="start"
+                            dominantBaseline="middle"
+                            fill="hsl(var(--muted-foreground))"
+                            fontSize={10}
+                          >
+                            {amountLabel}
+                          </text>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Große Node: Labels zentriert-innen */}
+                        <text
+                          x={x + width / 2}
+                          y={y + rectHeight / 2 - 6}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="white"
+                          fontSize={12}
+                          fontWeight="bold"
+                        >
+                          {payload.name}
+                        </text>
+                        {amountLabel && (
+                          <text
+                            x={x + width / 2}
+                            y={y + rectHeight / 2 + 12}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fill="white"
+                            fontSize={10}
+                          >
+                            {amountLabel}
+                          </text>
+                        )}
+                      </>
                     )}
                   </g>
                 );
@@ -394,6 +458,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               />
             </Sankey>
           </ResponsiveContainer>
+          </div>
         </div>
       </CardContent>
     </Card>
