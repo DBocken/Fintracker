@@ -420,7 +420,7 @@ export function Dashboard() {
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-sm font-semibold">Wohin fließt mein Geld?</h2>
+          <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
           <p className="text-xs text-muted-foreground">
             Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
           </p>
@@ -472,7 +472,7 @@ export function Dashboard() {
           </div>
 
           <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-            <DialogContent>
+            <DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Filter</DialogTitle>
               </DialogHeader>

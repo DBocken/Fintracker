@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BarChart3, ArrowRight, Sparkles } from "lucide-react";
+import { BarChart3, ArrowRight, Sparkles, CheckCircle2, PartyPopper } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import HealthScoreCard from "@/components/health-score/HealthScoreCard";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
@@ -54,9 +54,17 @@ export default function CoachPage() {
         </div>
         {coachLoading ? (
           <div className="space-y-3"><Skeleton className="h-24 w-full rounded-2xl" /><Skeleton className="h-24 w-full rounded-2xl" /></div>
-        ) : (
+        ) : coach && coach.recommendations.length > 0 ? (
           <div className="space-y-3">
-            {coach?.recommendations.map((card, i) => <CoachFeedCard key={card.id} card={card} index={i} />)}
+            {coach.recommendations.map((card, i) => <CoachFeedCard key={card.id} card={card} index={i} featured={i === 0} />)}
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-2xl border border-positive/20 bg-positive/5 p-4 shadow-sm">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-positive" />
+            <div>
+              <div className="font-semibold">Alles im grünen Bereich</div>
+              <p className="mt-1 text-sm text-muted-foreground">Aktuell gibt es keine dringenden Empfehlungen.</p>
+            </div>
           </div>
         )}
       </section>
@@ -68,16 +76,35 @@ export default function CoachPage() {
           <p className="mt-2 text-sm text-muted-foreground">{coach?.stage.description}</p>
           <p className="mt-3 text-sm">{coach?.stage.whyItMatters}</p>
         </div>
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <div className="text-sm text-muted-foreground">Schuldenkontext</div>
-          <div className="mt-2 text-xl font-semibold">
-            {gentleModeEnabled ? "*** € offen" : `${coach?.debtSummary.totalDebt.toFixed(0)} € offen`}
+        {coach && coach.debtSummary.totalDebt > 0 ? (
+          <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            <div className="text-sm text-muted-foreground">Schuldenkontext</div>
+            <div className="mt-2 text-xl font-semibold">
+              {gentleModeEnabled ? "*** € offen" : `${coach.debtSummary.totalDebt.toFixed(0)} € offen`}
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Mindestraten: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} € / Monat
+            </p>
+            <p className="mt-3 text-sm">Schneller ist aktuell: {coach.debtSummary.preferredStrategy === "avalanche" ? "Lawine (höchster Zins zuerst)" : "Schneeball (kleinste Schuld zuerst)"}</p>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Mindestraten: {gentleModeEnabled ? "***" : `${coach?.debtSummary.minimumMonthlyBurden.toFixed(0)}`} € / Monat
-          </p>
-          <p className="mt-3 text-sm">Schneller ist aktuell: {coach?.debtSummary.preferredStrategy === "avalanche" ? "Lawine (höchster Zins zuerst)" : "Schneeball (kleinste Schuld zuerst)"}</p>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-positive/20 bg-positive/5 p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <PartyPopper className="h-4 w-4 text-positive" />
+              Schuldenkontext
+            </div>
+            <div className="mt-2 text-xl font-semibold">Du bist schuldenfrei!</div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Keine offenen Schulden – nutze deinen Spielraum für deine Ziele.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to="/net-worth">
+                Nettovermögen ansehen
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
@@ -93,7 +120,7 @@ export default function CoachPage() {
             <BarChart3 className="h-4 w-4" />
             Details & Charts
           </div>
-          <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Zum Dashboard<ArrowRight className="ml-1.5 h-4 w-4" /></Link></Button>
+          <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Alle Ausgaben ansehen<ArrowRight className="ml-1.5 h-4 w-4" /></Link></Button>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">Das Dashboard bleibt dein Analyse-Support für Charts, Transaktionen und Filter.</p>
       </section>

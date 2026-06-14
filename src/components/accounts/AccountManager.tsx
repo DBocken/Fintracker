@@ -305,7 +305,7 @@ export function AccountManager() {
             <Alert>
               <ShieldAlert className="h-4 w-4" />
               <AlertDescription>
-                Bei {expiredConsentAccounts.length} Bankverbindung{expiredConsentAccounts.length > 1 ? 'en' : ''} ist der Consent abgelaufen. Beim Aktualisieren startet direkt die erneute Freigabe bei deiner Bank.
+                Bei {expiredConsentAccounts.length} Konto{expiredConsentAccounts.length > 1 ? 'en' : ''} ist die Bankverbindung abgelaufen. Tippe auf „Aktualisieren", um sie zu erneuern.
               </AlertDescription>
             </Alert>
           )}
@@ -363,17 +363,17 @@ export function AccountManager() {
                           {account.gocardless_account_id && (
                             <Badge className="bg-positive/15 text-positive dark:text-positive text-xs shrink-0 flex items-center gap-1">
                               <Link2 className="h-3 w-3" />
-                              PSD2
+                              Verbunden
                             </Badge>
                           )}
                           {consentExpired && (
                             <Badge variant="destructive" className="text-xs shrink-0">
-                              Consent abgelaufen
+                              Verbindung abgelaufen
                             </Badge>
                           )}
                           {consentExpiresSoon && (
                             <Badge variant="outline" className="text-xs shrink-0 border-warning/40 text-warning dark:text-warning">
-                              Consent läuft bald ab
+                              Verbindung läuft bald ab
                             </Badge>
                           )}
                         </div>
@@ -390,7 +390,7 @@ export function AccountManager() {
                               </span>
                               {consentStatus?.expiresAt && (
                                 <span>
-                                  Consent bis {new Date(consentStatus.expiresAt).toLocaleDateString('de-DE')}
+                                  Verbindung gültig bis {new Date(consentStatus.expiresAt).toLocaleDateString('de-DE')}
                                 </span>
                               )}
                             </div>
@@ -453,8 +453,9 @@ export function AccountManager() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                <strong>GoCardless Limits:</strong> Max. 4 Synchronisationen pro Tag pro Konto.
-                Historische Daten verfügbar bis 90 Tage. Consent läuft nach 90 Tagen ab.
+                <strong>Hinweis:</strong> Aus Sicherheitsgründen können Banken nur bis zu 4x täglich pro Konto
+                abgefragt werden. Verlauf ist bis 90 Tage zurück verfügbar; danach muss die Bankverbindung
+                erneuert werden.
               </AlertDescription>
             </Alert>
           )}

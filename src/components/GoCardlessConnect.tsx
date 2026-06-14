@@ -223,10 +223,10 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-positive dark:text-positive" />
-          Bankverbindung via PSD2
+          Bank verbinden
         </CardTitle>
         <CardDescription>
-          Suche deine Bank und verbinde dich sicher über PSD2
+          Suche deine Bank und verbinde dich sicher und automatisch
         </CardDescription>
       </CardHeader>
       

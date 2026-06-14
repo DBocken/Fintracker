@@ -60,7 +60,7 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
         {accounts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>Noch keine Konten vorhanden.</p>
-            <p className="text-sm mt-2">Verbinde dein erstes Bankkonto über PSD2 oder erstelle manuell ein Konto.</p>
+            <p className="text-sm mt-2">Verbinde dein Bankkonto automatisch – sicher und in 2 Minuten – oder erstelle manuell ein Konto.</p>
           </div>
         ) : (
           <ul className="divide-y">
@@ -77,9 +77,9 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
                       {hasBankConnection && (
                         <span
                           className="shrink-0 rounded-full bg-positive/15 px-2 py-0.5 text-[10px] font-medium text-positive"
-                          title="Synchronisation aktiv"
+                          title="Automatisch synchronisiert"
                         >
-                          PSD2
+                          Verbunden
                         </span>
                       )}
                     </div>

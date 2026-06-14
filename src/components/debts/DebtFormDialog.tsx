@@ -207,7 +207,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <Label htmlFor="debt-bnpl">BNPL (Jetzt kaufen, später zahlen)</Label>
+              <Label htmlFor="debt-bnpl">Ratenkauf (Jetzt kaufen, später zahlen)</Label>
               <p className="text-xs text-muted-foreground">Klarna, PayPal Später, RatePay …</p>
             </div>
             <Switch

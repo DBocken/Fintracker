@@ -55,6 +55,16 @@ export default function AppShell() {
                 <span className="ml-2 text-xs text-muted-foreground">⌘K</span>
               </Button>
 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:hidden"
+                aria-label="Suchen"
+                onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+
               <PrivacyIndicator />
               <ThemeToggle />
               <NotificationsBell />
