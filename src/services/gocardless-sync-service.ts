@@ -3,6 +3,7 @@ import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings } from './transaction-service';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
+import { applyDetectedContracts } from './contract-detection-service';
 import { showSuccess, showError } from '@/utils/toast';
 import { QueryClient } from '@tanstack/react-query';
 
@@ -246,6 +247,17 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
     }
 
     await updateAccount(accountUpdate);
+
+    // Apply contract detection to all transactions (existing and newly synced)
+    if (result.importedCount > 0) {
+      try {
+        console.log('[gocardless-sync] Running contract detection after import');
+        await applyDetectedContracts();
+      } catch (error: any) {
+        console.warn('[gocardless-sync] Contract detection failed:', { message: error.message });
+        // Don't fail the sync if contract detection fails
+      }
+    }
 
     console.log('[gocardless-sync] Account sync completed', {
       importedCount: result.importedCount,
