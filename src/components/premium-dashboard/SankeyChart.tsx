@@ -47,6 +47,8 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
       id: string;
       type?: string;
       amount?: number;
+      net?: number;
+      color?: string;
     }[] = [];
 
     const links: {
@@ -58,9 +60,33 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
 
     const nodeIndexById: Record<string, number> = {};
 
-    // Einnahmen und Konto-Knoten abhängig vom Fokusmodus:
-    // Im Fokusmodus (expandedMainId gesetzt) Einnahmen ausblenden, um Übersicht zu erhöhen.
-    if (!expandedMainId) {
+    // Konten mit Aktivität (Fallback auf generisches "Konto", falls keine
+    // Konto-Zuordnung in den Daten vorhanden ist).
+    const accountsAll =
+      data.accounts && data.accounts.length > 0
+        ? data.accounts
+        : [
+            {
+              id: "account",
+              name: "Konto",
+              income: data.totalIncome,
+              expenses: totalExpenses,
+              net: data.totalIncome - totalExpenses,
+              color: undefined as string | undefined,
+            },
+          ];
+
+    // Im Fokusmodus nur Konten zeigen, die in dieser Kategorie auch
+    // tatsächlich Ausgaben haben – sonst entstünden verwaiste Knoten.
+    const focusedMain = expandedMainId
+      ? data.mainCategories.find((m) => m.id === expandedMainId)
+      : null;
+    const accountsToShow = focusedMain
+      ? accountsAll.filter((acc) => (focusedMain.byAccount[acc.id] ?? 0) > 0)
+      : accountsAll;
+
+    // Einnahmen-Knoten (nur in Gesamtansicht, und nur wenn Einnahmen vorhanden sind)
+    if (!expandedMainId && data.totalIncome > 0) {
       nodes.push({
         name: "Einnahmen",
         id: "income",
@@ -70,50 +96,59 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
       nodeIndexById["income"] = nodes.length - 1;
     }
 
-    // Konto-Knoten
-    nodes.push({
-      name: "Konto",
-      id: "account",
-      type: "middle",
-    });
-    nodeIndexById["account"] = nodes.length - 1;
+    // Konto-Knoten: einer pro aktivem Konto, mit Netto-Anzeige
+    accountsToShow.forEach((acc) => {
+      const nodeIndex = nodes.length;
+      nodeIndexById[acc.id] = nodeIndex;
 
-    // Einnahmen → Konto nur, wenn Einnahmen-Knoten vorhanden ist
-    if (!expandedMainId && data.totalIncome > 0) {
-      links.push({
-        source: nodeIndexById["income"],
-        target: nodeIndexById["account"],
-        value: Math.round(data.totalIncome),
-        label: "Einnahmen → Konto",
+      const displayAmount = focusedMain ? focusedMain.byAccount[acc.id] ?? 0 : acc.expenses;
+
+      nodes.push({
+        name: acc.name,
+        id: acc.id,
+        type: "account",
+        amount: displayAmount,
+        net: expandedMainId ? undefined : acc.net,
+        color: acc.color,
       });
-    }
 
-    // Konto → Hauptkategorien (Fokus: nur die expandierte Hauptkategorie anzeigen)
+      if (!expandedMainId && data.totalIncome > 0 && acc.income > 0) {
+        links.push({
+          source: nodeIndexById["income"],
+          target: nodeIndex,
+          value: Math.round(acc.income),
+          label: `Einnahmen → ${acc.name}`,
+        });
+      }
+    });
+
+    // Konten → Hauptkategorien (Fokus: nur die expandierte Hauptkategorie anzeigen)
     const mainsToShow = expandedMainId
       ? data.mainCategories.filter((m) => m.id === expandedMainId)
       : data.mainCategories;
 
     mainsToShow.forEach((main) => {
-      const nodeId = main.id;
       const nodeIndex = nodes.length;
-      nodeIndexById[nodeId] = nodeIndex;
+      nodeIndexById[main.id] = nodeIndex;
 
       nodes.push({
         name: main.name,
-        id: nodeId,
+        id: main.id,
         type: "expense-main",
         amount: main.amount,
       });
 
-      const value = Math.round(main.amount);
-      if (value > 0) {
-        links.push({
-          source: nodeIndexById["account"],
-          target: nodeIndex,
-          value,
-          label: `Konto → ${main.name}`,
-        });
-      }
+      accountsToShow.forEach((acc) => {
+        const value = Math.round(main.byAccount[acc.id] ?? 0);
+        if (value > 0) {
+          links.push({
+            source: nodeIndexById[acc.id],
+            target: nodeIndex,
+            value,
+            label: `${acc.name} → ${main.name}`,
+          });
+        }
+      });
     });
 
     // Ausgewählte Hauptkategorie → Unterkategorien (Top-N + Rest-Bucket für Übersicht)
@@ -180,7 +215,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
     }
 
     return { nodes, links };
-  }, [data, expandedMainId]);
+  }, [data, expandedMainId, totalExpenses]);
 
   // Berechne optimale Mindestbreite basierend auf Node-Anzahl (mobile horizontal scroll)
   const minChartWidth = useMemo(() => {
@@ -218,7 +253,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
     let denom = 0;
     if (type === "income") {
       denom = data.totalIncome;
-    } else if (type === "expense-main" || type === "expense-sub") {
+    } else if (type === "account" || type === "expense-main" || type === "expense-sub") {
       denom = totalExpenses;
     }
 
@@ -264,12 +299,12 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         </CardTitle>
         <CardDescription>
           {enableDrilldown
-            ? "Zeigt den Fluss von Einnahmen (grün, links) über dein Konto zu Ausgabenkategorien (je Kategorie eine Farbe). Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
-            : "Zeigt den Fluss von Einnahmen (grün, links) über dein Konto zu deinen Hauptkategorien (je Kategorie eine Farbe)."}
+            ? "Zeigt den Fluss von Einnahmen (grün, links) über deine Konten (mit Netto-Anzeige) zu Ausgabenkategorien (je Kategorie eine Farbe). Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
+            : "Zeigt den Fluss von Einnahmen (grün, links) über deine Konten (mit Netto-Anzeige) zu deinen Hauptkategorien (je Kategorie eine Farbe)."}
         </CardDescription>
         {enableDrilldown && (
           <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-            💡 <strong>Tipp:</strong> Klicke auf eine Ausgabenkategorie zum Drilldown in Unterkategorien. Durchschnittswerte sichtbar beim Hover über Flows.
+            💡 <strong>Tipp:</strong> Klicke auf eine Ausgabenkategorie, um in die Unterkategorien zu wechseln. Beim Hover über einen Fluss siehst du den genauen Betrag.
           </div>
         )}
       </CardHeader>
@@ -341,7 +376,8 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               node={({ x, y, width, height, payload }: any) => {
                 const MIN_HEIGHT_FOR_LABELS = 36;
                 const rectHeight = Math.max(height, 20);
-                const isSmallNode = rectHeight < MIN_HEIGHT_FOR_LABELS;
+                const isAccountNode = payload.type === "account";
+                const isSmallNode = isAccountNode || rectHeight < MIN_HEIGHT_FOR_LABELS;
                 const isMainCategory =
                   enableDrilldown &&
                   data.mainCategories.some((main) => main.id === payload.id);
@@ -358,15 +394,15 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                 let fillColor = "hsl(var(--chart-net))";
                 if (payload.type === "income") {
                   fillColor = "hsl(var(--chart-income))"; // Mint für Einnahmen
+                } else if (payload.type === "account") {
+                  // Konten in ihrer eigenen Farbe (aus den Kontoeinstellungen)
+                  fillColor = payload.color || "hsl(var(--chart-net))";
                 } else if (payload.type === "expense-main") {
                   // Jede Hauptkategorie bekommt eigene Farbe aus der Palette
                   const mainIndex = data.mainCategories.findIndex((m) => m.id === payload.id);
                   fillColor = chartColorAt(mainIndex, data.mainCategories.length);
-                  if (isExpanded) {
-                    fillColor = chartColorAt(mainIndex, data.mainCategories.length); // Gleiche Farbe, aber visuelle Änderung durch Glow
-                  }
                 } else if (payload.type === "expense-sub") {
-                  // Subcategories: leichtere Variante der Parent-Farbe
+                  // Subcategories: gleiche Farbe wie die übergeordnete Hauptkategorie
                   const subCategory = data.subCategories.find((s) => s.id === payload.id);
                   const mainIndex = subCategory
                     ? data.mainCategories.findIndex((m) => m.id === subCategory.mainId)
@@ -375,6 +411,15 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                 }
 
                 const amountLabel = formatAmount(payload.type, payload.amount);
+                const netLabel =
+                  isAccountNode && typeof payload.net === "number"
+                    ? `Netto: ${payload.net >= 0 ? "+" : ""}${payload.net.toLocaleString("de-DE", {
+                        style: "currency",
+                        currency: "EUR",
+                        maximumFractionDigits: 0,
+                      })}`
+                    : null;
+                const netColor = (payload.net ?? 0) >= 0 ? "hsl(var(--chart-income))" : "hsl(var(--chart-expense))";
 
                 return (
                   <g
@@ -393,18 +438,22 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                       width={width}
                       height={rectHeight}
                       fill={fillColor}
-                      stroke={hoveredId === payload.id && isMainCategory ? "hsl(var(--brand))" : "hsl(var(--card))"}
-                      strokeWidth={hoveredId === payload.id && isMainCategory ? 3 : 2}
+                      stroke={
+                        (hoveredId === payload.id || isExpanded) && isMainCategory
+                          ? "hsl(var(--brand))"
+                          : "hsl(var(--card))"
+                      }
+                      strokeWidth={(hoveredId === payload.id || isExpanded) && isMainCategory ? 3 : 2}
                       rx={4}
                     />
 
                     {/* Labels: zentriert-innen bei großen Nodes, außen rechts bei kleinen */}
                     {isSmallNode ? (
                       <>
-                        {/* Kleine Node: Labels rechts außerhalb */}
+                        {/* Kleine Node: Labels rechts außerhalb (3 Zeilen für Konten mit Netto) */}
                         <text
                           x={x + width + 6}
-                          y={y + rectHeight / 2 - 8}
+                          y={y + rectHeight / 2 - (netLabel ? 14 : 8)}
                           textAnchor="start"
                           dominantBaseline="middle"
                           fill="hsl(var(--foreground))"
@@ -416,13 +465,26 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                         {amountLabel && (
                           <text
                             x={x + width + 6}
-                            y={y + rectHeight / 2 + 8}
+                            y={y + rectHeight / 2 + (netLabel ? 2 : 8)}
                             textAnchor="start"
                             dominantBaseline="middle"
                             fill="hsl(var(--muted-foreground))"
                             fontSize={10}
                           >
                             {amountLabel}
+                          </text>
+                        )}
+                        {netLabel && (
+                          <text
+                            x={x + width + 6}
+                            y={y + rectHeight / 2 + 18}
+                            textAnchor="start"
+                            dominantBaseline="middle"
+                            fill={netColor}
+                            fontSize={10}
+                            fontWeight="bold"
+                          >
+                            {netLabel}
                           </text>
                         )}
                       </>

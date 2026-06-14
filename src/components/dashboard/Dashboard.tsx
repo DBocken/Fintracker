@@ -376,7 +376,10 @@ export function Dashboard() {
 
   // Einfaches Sankey auf Hauptkategorien-Ebene — der Aha-Moment ist FREE
   // (Issue #40, Beschluss aus Epic #19/#25). Drilldown gibt es im Analyse-Bereich.
-  const sankeyData = useMemo(() => buildSankeyData(visibleTransactions, cats), [visibleTransactions, cats]);
+  const sankeyData = useMemo(
+    () => buildSankeyData(visibleTransactions, cats, accounts),
+    [visibleTransactions, cats, accounts]
+  );
 
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {

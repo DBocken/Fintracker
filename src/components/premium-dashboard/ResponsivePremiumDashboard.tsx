@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTransactions, getCategories } from "../../services/transaction-service";
+import { getAccounts } from "../../services/account-service";
 import { parseISO, startOfMonth, format } from "date-fns";
-import type { Transaction, Category } from "../../types";
+import type { Transaction, Category, Account } from "../../types";
 import { TimelineChart } from "./TimelineChart";
 import { SmartInsightsPanel } from "./SmartInsightsPanel";
 import { HeatmapCalendar } from "./HeatmapCalendar";
@@ -30,6 +31,11 @@ export function ResponsivePremiumDashboard() {
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: getCategories,
+  });
+
+  const { data: accounts = [] } = useQuery<Account[]>({
+    queryKey: ["accounts"],
+    queryFn: () => getAccounts(),
   });
 
   const flowTransactions = useMemo(() => {
@@ -165,7 +171,10 @@ export function ResponsivePremiumDashboard() {
 
   // Sankey mit Drilldown + Wochenmuster (Issue #40) — gleiche Datenbasis
   // wie das Basis-Sankey, eine Implementierung (lib/analysis-data).
-  const sankeyData = useMemo(() => buildSankeyData(flowTransactions, categories), [flowTransactions, categories]);
+  const sankeyData = useMemo(
+    () => buildSankeyData(flowTransactions, categories, accounts),
+    [flowTransactions, categories, accounts]
+  );
   const weekdayPattern = useMemo(() => buildWeekdayPattern(flowTransactions), [flowTransactions]);
 
   const fd = financialData ?? {
