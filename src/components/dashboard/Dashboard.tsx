@@ -33,6 +33,7 @@ import {
   type DashboardGranularity,
   type DashboardRange,
   type EssentialFilter,
+  type AusgabenklasseFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
@@ -98,6 +99,7 @@ export function Dashboard() {
   const [_filterAccount, _setFilterAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
   const [filterContract, setFilterContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
   const [filterEssential, setFilterEssential] = useState<EssentialFilter>(DEFAULT_DASHBOARD_FILTERS.essential);
+  const [filterAusgabenklasse, setFilterAusgabenklasse] = useState<AusgabenklasseFilter>(DEFAULT_DASHBOARD_FILTERS.ausgabenklasse);
   const [searchInput, setSearchInput] = useState<string>(DEFAULT_DASHBOARD_FILTERS.search);
   const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
   const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
@@ -262,11 +264,12 @@ export function Dashboard() {
       account: _filterAccount,
       contract: filterContract,
       essential: filterEssential,
+      ausgabenklasse: filterAusgabenklasse,
       search: searchInput,
       range,
       customDays,
     });
-  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, searchInput, range, customDays]);
+  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
 
@@ -460,6 +463,8 @@ export function Dashboard() {
                   setFilterContract={setFilterContract}
                   filterEssential={filterEssential}
                   setFilterEssential={setFilterEssential}
+                  filterAusgabenklasse={filterAusgabenklasse}
+                  setFilterAusgabenklasse={setFilterAusgabenklasse}
                   showSearch={false}
                 />
               </div>
