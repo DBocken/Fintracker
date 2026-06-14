@@ -25,6 +25,9 @@ export interface Account {
   live_balance_currency?: string | null;
   live_balance_type?: string | null;
   live_balance_updated_at?: string | null;
+  /** Saldo zu einem Stichtag, bevor lokale Transaktionen erfasst wurden */
+  opening_balance?: number | null;
+  opening_balance_date?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -44,6 +47,10 @@ export interface Transaction {
   subcategory_id?: string | null;
   auto_mapped: boolean;
   confirmed: boolean;
+  /** Markiert diese Transaktion als internen Übertrag zwischen eigenen Konten */
+  is_transfer?: boolean;
+  /** ID der verknüpften Gegenbuchung auf dem anderen Konto */
+  transfer_pair_id?: string | null;
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';

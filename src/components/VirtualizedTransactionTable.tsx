@@ -3,12 +3,13 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, EyeOff, MoreVertical, Trash2 } from 'lucide-react';
 import type { Transaction, Category } from '@/types';
 import { VIRTUAL_SCROLL_ITEM_HEIGHT, VIRTUAL_SCROLL_OVERSCAN } from '@/lib/performance';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
+import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
 
 interface VirtualizedTransactionTableProps {
   transactions: Transaction[];
@@ -61,8 +62,8 @@ export function VirtualizedTransactionTable({
   const virtualItems = virtualizer.getVirtualItems();
   
   return (
-    <div className="border border-slate-800 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-800 font-semibold text-sm">
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border font-semibold text-sm">
         <div className="w-6 flex-shrink-0"></div>
         
         <Button
@@ -107,8 +108,8 @@ export function VirtualizedTransactionTable({
           )}
         </Button>
 
-        <div className="w-[360px] flex-shrink-0">Kategorie</div>
-        <div className="w-20 flex-shrink-0">Aktionen</div>
+        <div className="w-40 flex-shrink-0">Kategorie</div>
+        <div className="w-10 flex-shrink-0"></div>
       </div>
 
       <div
@@ -134,7 +135,7 @@ export function VirtualizedTransactionTable({
                 key={virtualItem.key}
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
-                className={`flex items-center gap-3 px-4 border-b border-slate-800 hover:bg-slate-800/50 transition-colors ${
+                className={`flex items-center gap-3 px-4 border-b border-border hover:bg-accent transition-colors ${
                   isHidden ? 'opacity-50' : ''
                 }`}
                 style={{
@@ -169,8 +170,8 @@ export function VirtualizedTransactionTable({
                   {transaction.amount.toFixed(2)}€
                 </div>
                 
-                <div className="w-[360px] flex-shrink-0">
-                  <CategoryTwoStepSelect
+                <div className="w-40 flex-shrink-0">
+                  <CategoryCellEditor
                     categories={categories}
                     value={transaction.category_id || ''}
                     disabled={!id}
@@ -181,23 +182,26 @@ export function VirtualizedTransactionTable({
                   />
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onToggleVisibility(id)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {isHidden ? '👁️' : '👁️‍🗨️'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(id)}
-                    className="h-8 w-8 p-0 text-warning hover:text-warning"
-                  >
-                    🗑️
-                  </Button>
+                <div className="flex-shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="Aktionen">
+                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onToggleVisibility(id)}>
+                        {isHidden ? (
+                          <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Einblenden</>
+                        ) : (
+                          <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> Ausblenden</>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(id)} className="text-warning focus:text-warning">
+                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );
@@ -205,7 +209,7 @@ export function VirtualizedTransactionTable({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-t border-slate-800">
+      <div className="flex items-center justify-between px-4 py-3 bg-card border-t border-border">
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
             Zeige {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, transactions.length)} von {transactions.length}

@@ -139,6 +139,205 @@
   --ring: 350 100% 54%;
 }
 
+/* =====================================================================
+   Theme: Imperium (Sci-Fi / Kommandobrücke)
+   Tiefes Blauschwarz, Cyan-Primär, Amber/Rot-Akzente, technische Schrift.
+   ===================================================================== */
+.theme-imperium {
+  --background: 215 38% 92%;
+  --foreground: 215 45% 14%;
+  --card: 210 40% 98%;
+  --card-foreground: 215 45% 14%;
+  --popover: 210 40% 98%;
+  --popover-foreground: 215 45% 14%;
+  --primary: 195 90% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 30% 86%;
+  --secondary-foreground: 215 45% 14%;
+  --muted: 215 30% 86%;
+  --muted-foreground: 215 20% 38%;
+  --accent: 35 95% 55%;
+  --accent-foreground: 215 45% 14%;
+  --destructive: 4 80% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 25% 80%;
+  --input: 215 25% 80%;
+  --ring: 195 90% 45%;
+  --radius: 0.375rem;
+
+  --brand: 195 90% 38%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 262 60% 55%;
+  --premium-foreground: 0 0% 100%;
+  --positive: 160 70% 36%;
+  --warning: 35 95% 45%;
+
+  --sidebar: 215 60% 10%;
+  --sidebar-foreground: 195 60% 88%;
+  --sidebar-muted: 195 20% 60%;
+  --sidebar-accent: 195 80% 22%;
+  --sidebar-accent-foreground: 195 80% 90%;
+  --sidebar-border: 195 60% 18%;
+
+  --chart-income: 160 70% 45%;
+  --chart-expense: 4 80% 62%;
+  --chart-net: 195 85% 50%;
+  --chart-1: 195 85% 50%;
+  --chart-2: 35 95% 55%;
+  --chart-3: 4 80% 62%;
+  --chart-4: 160 70% 45%;
+  --chart-5: 262 60% 65%;
+  --chart-6: 280 70% 65%;
+
+  --font-display: 'Orbitron Variable', 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-imperium {
+  --background: 215 50% 6%;
+  --foreground: 195 35% 90%;
+  --card: 215 45% 9%;
+  --card-foreground: 195 35% 90%;
+  --popover: 215 45% 9%;
+  --popover-foreground: 195 35% 90%;
+  --primary: 195 90% 55%;
+  --primary-foreground: 215 50% 6%;
+  --secondary: 215 35% 16%;
+  --secondary-foreground: 195 35% 90%;
+  --muted: 215 35% 16%;
+  --muted-foreground: 195 18% 62%;
+  --accent: 35 95% 58%;
+  --accent-foreground: 215 50% 6%;
+  --destructive: 4 75% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 35% 18%;
+  --input: 215 35% 18%;
+  --ring: 195 90% 55%;
+
+  --brand: 195 90% 55%;
+  --brand-foreground: 215 50% 6%;
+  --premium: 262 65% 70%;
+  --premium-foreground: 215 50% 6%;
+  --positive: 160 65% 50%;
+  --warning: 35 95% 58%;
+
+  --sidebar: 215 55% 4%;
+  --sidebar-foreground: 195 35% 90%;
+  --sidebar-muted: 195 18% 55%;
+  --sidebar-accent: 195 80% 20%;
+  --sidebar-accent-foreground: 195 80% 92%;
+  --sidebar-border: 215 40% 12%;
+
+  --chart-income: 160 65% 52%;
+  --chart-expense: 4 75% 66%;
+  --chart-net: 195 85% 60%;
+  --chart-1: 195 85% 60%;
+  --chart-2: 35 95% 60%;
+  --chart-3: 4 75% 66%;
+  --chart-4: 160 65% 52%;
+  --chart-5: 262 60% 72%;
+  --chart-6: 280 65% 72%;
+}
+
+/* =====================================================================
+   Theme: Sakura (Anime / Pastell)
+   Warmes Weiß-Rosé, Sakura-Pink-Primär, Lavendel/Himmel-Akzente, weiche Form.
+   ===================================================================== */
+.theme-sakura {
+  --background: 340 50% 97%;
+  --foreground: 320 25% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 320 25% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 320 25% 22%;
+  --primary: 338 75% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 320 40% 93%;
+  --secondary-foreground: 320 25% 22%;
+  --muted: 320 35% 93%;
+  --muted-foreground: 320 12% 48%;
+  --accent: 265 70% 88%;
+  --accent-foreground: 265 45% 32%;
+  --destructive: 0 75% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 330 35% 89%;
+  --input: 330 35% 89%;
+  --ring: 338 75% 62%;
+  --radius: 1.1rem;
+
+  --brand: 338 75% 62%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 265 70% 65%;
+  --premium-foreground: 0 0% 100%;
+  --positive: 150 55% 45%;
+  --warning: 28 90% 58%;
+
+  --sidebar: 320 45% 96%;
+  --sidebar-foreground: 320 25% 28%;
+  --sidebar-muted: 320 14% 52%;
+  --sidebar-accent: 338 70% 90%;
+  --sidebar-accent-foreground: 338 55% 38%;
+  --sidebar-border: 330 35% 88%;
+
+  --chart-income: 150 55% 60%;
+  --chart-expense: 338 75% 72%;
+  --chart-net: 265 65% 72%;
+  --chart-1: 338 75% 72%;
+  --chart-2: 265 65% 72%;
+  --chart-3: 200 70% 68%;
+  --chart-4: 28 90% 70%;
+  --chart-5: 150 50% 62%;
+  --chart-6: 300 60% 75%;
+
+  --font-display: 'Quicksand Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Quicksand Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-sakura {
+  --background: 320 28% 11%;
+  --foreground: 330 25% 92%;
+  --card: 320 25% 15%;
+  --card-foreground: 330 25% 92%;
+  --popover: 320 25% 15%;
+  --popover-foreground: 330 25% 92%;
+  --primary: 338 70% 68%;
+  --primary-foreground: 320 28% 11%;
+  --secondary: 320 20% 20%;
+  --secondary-foreground: 330 25% 92%;
+  --muted: 320 20% 20%;
+  --muted-foreground: 330 14% 65%;
+  --accent: 265 45% 32%;
+  --accent-foreground: 265 60% 85%;
+  --destructive: 0 70% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 320 20% 24%;
+  --input: 320 20% 24%;
+  --ring: 338 70% 68%;
+
+  --brand: 338 70% 68%;
+  --brand-foreground: 320 28% 11%;
+  --premium: 265 65% 75%;
+  --premium-foreground: 320 28% 11%;
+  --positive: 150 50% 58%;
+  --warning: 28 85% 65%;
+
+  --sidebar: 320 30% 8%;
+  --sidebar-foreground: 330 25% 92%;
+  --sidebar-muted: 330 14% 60%;
+  --sidebar-accent: 338 45% 30%;
+  --sidebar-accent-foreground: 338 60% 88%;
+  --sidebar-border: 320 24% 16%;
+
+  --chart-income: 150 50% 62%;
+  --chart-expense: 338 70% 74%;
+  --chart-net: 265 60% 76%;
+  --chart-1: 338 70% 74%;
+  --chart-2: 265 60% 76%;
+  --chart-3: 200 65% 70%;
+  --chart-4: 28 85% 72%;
+  --chart-5: 150 48% 64%;
+  --chart-6: 300 55% 78%;
+}
+
 /* Optionales Neon-Gradient nur im Dark-Mode */
 .dark.theme-neon body {
   background-image:
@@ -146,5 +345,34 @@
     radial-gradient(900px 700px at 30% 70%, rgba(255,20,54,.10), transparent 62%),
     radial-gradient(900px 900px at 40% 15%, rgba(255,122,24,.06), transparent 55%),
     linear-gradient(180deg, hsl(var(--background)), #04050a);
+  background-attachment: fixed;
+}
+
+/* Imperium: dezentes Cyan/Amber-Leuchten auf der Kommandobrücke */
+.theme-imperium body {
+  background-image:
+    radial-gradient(1100px 700px at 80% 0%, hsla(195,90%,50%,.10), transparent 55%),
+    radial-gradient(900px 700px at 10% 90%, hsla(35,95%,55%,.07), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-imperium body {
+  background-image:
+    radial-gradient(1100px 700px at 80% 0%, hsla(195,90%,55%,.14), transparent 55%),
+    radial-gradient(900px 700px at 10% 90%, hsla(35,95%,55%,.10), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(215 55% 4%));
+  background-attachment: fixed;
+}
+
+/* Sakura: weicher Rosé/Lavendel-Verlauf */
+.theme-sakura body {
+  background-image:
+    radial-gradient(1000px 700px at 85% 5%, hsla(338,80%,80%,.30), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(265,70%,85%,.25), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-sakura body {
+  background-image:
+    radial-gradient(1000px 700px at 85% 5%, hsla(338,60%,40%,.25), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(265,50%,40%,.22), transparent 60%);
   background-attachment: fixed;
 }

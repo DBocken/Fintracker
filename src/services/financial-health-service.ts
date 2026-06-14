@@ -30,6 +30,7 @@ function monthlyAverages(transactions: Transaction[], months = 3) {
   let income = 0;
   let expenses = 0;
   for (const t of transactions) {
+    if (t.is_transfer) continue;
     const d = new Date(t.date);
     if (d < cutoff) continue;
     if (t.amount > 0) income += t.amount;

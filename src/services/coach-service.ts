@@ -4,11 +4,11 @@ import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from 
 import { getFinancialHealth } from "./financial-health-service";
 
 function sumMonthlyExpenses(transactions: Awaited<ReturnType<typeof getTransactions>>) {
-  return transactions.filter((t) => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  return transactions.filter((t) => !t.is_transfer && t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
 }
 
 function sumMonthlyIncome(transactions: Awaited<ReturnType<typeof getTransactions>>) {
-  return transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  return transactions.filter((t) => !t.is_transfer && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 }
 
 function currentStageKey(totalDebt: number, emergencyBufferMonths: number): RoadmapStageKey {

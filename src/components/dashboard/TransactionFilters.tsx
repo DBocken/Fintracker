@@ -31,6 +31,7 @@ interface TransactionFiltersProps {
   setFilterContract: (v: ContractFilter) => void;
   filterEssential: EssentialFilter;
   setFilterEssential: (v: EssentialFilter) => void;
+  showSearch?: boolean;
 }
 
 export function TransactionFilters({
@@ -51,6 +52,7 @@ export function TransactionFilters({
   setFilterContract,
   filterEssential,
   setFilterEssential,
+  showSearch = true,
 }: TransactionFiltersProps) {
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
@@ -116,17 +118,19 @@ export function TransactionFilters({
         </SelectContent>
       </Select>
 
-      <div className="relative">
-        <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
-        <Input
-          id="transaction-search"
-          type="search"
-          placeholder="Suche..."
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          className="w-48 bg-background/50 backdrop-blur-sm"
-        />
-      </div>
+      {showSearch && (
+        <div className="relative">
+          <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+          <Input
+            id="transaction-search"
+            type="search"
+            placeholder="Suche..."
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            className="w-48 bg-background/50 backdrop-blur-sm"
+          />
+        </div>
+      )}
 
       <Select value={range} onValueChange={setRange}>
         <SelectTrigger aria-label="Zeitraum filtern" className="w-40 bg-background/50 backdrop-blur-sm">

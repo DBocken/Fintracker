@@ -40,6 +40,7 @@ function calcIncomeExpenses(transactions: Transaction[]) {
   let income = 0;
   let expenses = 0;
   for (const t of transactions) {
+    if (t.is_transfer) continue;
     if (t.amount > 0) income += t.amount;
     else expenses += Math.abs(t.amount);
   }

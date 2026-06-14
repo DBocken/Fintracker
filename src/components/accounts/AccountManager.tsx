@@ -18,6 +18,7 @@ import {
   formatSyncStatus
 } from '../../services/account-service';
 import { AccountFormDialog } from './AccountFormDialog';
+import { TransferSuggestions } from './TransferSuggestions';
 import { GoCardlessConnect } from '../GoCardlessConnect';
 import RequireTier from '@/components/common/RequireTier';
 import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus } from '../../services/gocardless-sync-service';
@@ -468,6 +469,8 @@ export function AccountManager() {
           isLoading={createMutation.isPending || updateMutation.isPending}
         />
       </Card>
+
+      {accounts.length > 1 && <TransferSuggestions />}
     </div>
   );
 }

@@ -426,7 +426,7 @@ export function ContractsDashboard() {
             </p>
           </div>
 
-          <div className="w-full h-64 mb-4 rounded-lg border bg-white dark:bg-muted">
+          <div className="w-full h-64 mb-4 rounded-lg border bg-card">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />

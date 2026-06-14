@@ -79,6 +79,7 @@ export function buildSankeyData(transactions: Transaction[], categories: Categor
   const subs = new Map<string, SankeySubCategory>();
 
   for (const t of transactions) {
+    if (t.is_transfer) continue;
     if (t.amount > 0) {
       totalIncome += t.amount;
       continue;
@@ -124,6 +125,7 @@ export function buildWeekdayPattern(transactions: Transaction[]): WeekdayPattern
   const buckets = WEEKDAY_LABELS.map((day) => ({ day, income: 0, expenses: 0 }));
 
   for (const t of transactions) {
+    if (t.is_transfer) continue;
     const parsed = parseISO(t.date);
     if (Number.isNaN(parsed.getTime())) continue;
     // date-fns getDay: 0 = Sonntag → auf Mo-basierten Index drehen.

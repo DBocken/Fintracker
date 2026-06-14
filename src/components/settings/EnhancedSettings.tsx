@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction } from '../../types';
 import {
@@ -24,6 +24,7 @@ import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
+import { AppearanceSettings } from './AppearanceSettings';
 import { BackupManager } from '../BackupManager';
 
 function SectionHeader({
@@ -37,12 +38,12 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-4 flex items-start gap-3">
-      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-positive">
+      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-primary">
         {icon}
       </div>
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
-        <p className="text-sm text-slate-400">{description}</p>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -163,32 +164,32 @@ export function EnhancedSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(46,125,114,0.10),_transparent_30%),linear-gradient(180deg,_#020617_0%,_#0f172a_45%,_#111827_100%)]">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
-        <div className="mb-8 rounded-3xl border border-slate-800/80 bg-slate-950/70 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur">
+    <div className="bg-background">
+      <div className="w-full">
+        <div className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-sm backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="max-w-3xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-positive/20 bg-positive/10 px-3 py-1 text-xs font-medium text-positive">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Datenschutzorientierte Einstellungen
               </div>
-              <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-                <SettingsIcon className="h-8 w-8 text-positive md:h-9 md:w-9" />
+              <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                <SettingsIcon className="h-8 w-8 text-primary md:h-9 md:w-9" />
                 Einstellungen
               </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-400 md:text-base">
+              <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
                 Verwalte Kategorien, Automatisierung und lokale Datensicherheit in einer klaren, ruhigen Oberfläche.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Kategorien</div>
-                <div className="mt-2 text-2xl font-semibold text-white">{categories.length}</div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Kategorien</div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">{categories.length}</div>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Aufbewahrung</div>
-                <div className="mt-2 text-2xl font-semibold text-white">{settings?.retention_months || 36} M</div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Aufbewahrung</div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">{settings?.retention_months || 36} M</div>
               </div>
             </div>
           </div>
@@ -217,6 +218,15 @@ export function EnhancedSettings() {
               isProcessing={isProcessing}
             />
           </div>
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<Palette className="h-5 w-5" />}
+            title="Erscheinungsbild"
+            description="Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche."
+          />
+          <AppearanceSettings />
         </section>
 
         <section className="mb-10">

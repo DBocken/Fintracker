@@ -68,13 +68,13 @@ export function LocalEncryptionSettings() {
   };
 
   return (
-    <Card className="ui-card border-slate-800 bg-slate-950/70">
+    <Card className="ui-card border-border bg-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <Shield className="h-5 w-5 text-positive" />
           Passphrase & lokale Verschlüsselung
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Diese Passphrase schützt deine lokalen Finanzdaten und die zukünftige Sync-Datei.
         </CardDescription>
       </CardHeader>
@@ -87,10 +87,10 @@ export function LocalEncryptionSettings() {
           </AlertDescription>
         </Alert>
 
-        <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-          <div className="text-sm text-slate-300">
+        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+          <div className="text-sm text-foreground">
             Status:{' '}
-            <span className={enabled ? 'text-positive' : 'text-slate-400'}>
+            <span className={enabled ? 'text-positive' : 'text-muted-foreground'}>
               {enabled ? (unlocked ? 'aktiv und entsperrt' : 'aktiv und gesperrt') : 'noch nicht eingerichtet'}
             </span>
           </div>
@@ -100,7 +100,7 @@ export function LocalEncryptionSettings() {
               variant="outline"
               onClick={lock}
               disabled={busy}
-              className="border-slate-700 bg-slate-950 text-slate-200 hover:bg-slate-800"
+              className="border-border bg-card text-foreground hover:bg-accent"
             >
               <Lock className="mr-2 h-4 w-4" />
               Sperren
@@ -108,14 +108,14 @@ export function LocalEncryptionSettings() {
           ) : null}
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
             <FileKey2 className="h-4 w-4 text-positive" />
             Passphrase verwalten
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="enc-password" className="text-slate-300">
+            <Label htmlFor="enc-password" className="text-foreground">
               Passphrase
             </Label>
             <Input
@@ -123,13 +123,13 @@ export function LocalEncryptionSettings() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-slate-700 bg-slate-950 text-white"
+              className="border-border bg-card text-foreground"
             />
 
             {!enabled && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="enc-confirm" className="text-slate-300">
+                  <Label htmlFor="enc-confirm" className="text-foreground">
                     Passphrase bestätigen
                   </Label>
                   <Input
@@ -137,12 +137,12 @@ export function LocalEncryptionSettings() {
                     type="password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    className="border-slate-700 bg-slate-950 text-white"
+                    className="border-border bg-card text-foreground"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Stärke</span>
                     <span>{strength.label}</span>
                   </div>

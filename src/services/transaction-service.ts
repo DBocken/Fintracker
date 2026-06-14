@@ -221,6 +221,42 @@ export async function createTransaction(transaction: Partial<Transaction>): Prom
   return result;
 }
 
+/** Filtert interne Überträge zwischen eigenen Konten aus Einnahmen/Ausgaben-Auswertungen heraus. */
+export function excludeTransfers(transactions: Transaction[]): Transaction[] {
+  return transactions.filter((t) => !t.is_transfer);
+}
+
+/** Verknüpft zwei Transaktionen als Gegenbuchungen eines internen Übertrags. */
+export async function markTransferPair(idA: string, idB: string): Promise<void> {
+  const resultA = await transactionStorage.updateTransaction(idA, {
+    is_transfer: true,
+    transfer_pair_id: idB,
+  });
+  if (!resultA.success) throw new Error(resultA.error || 'Markieren fehlgeschlagen');
+
+  const resultB = await transactionStorage.updateTransaction(idB, {
+    is_transfer: true,
+    transfer_pair_id: idA,
+  });
+  if (!resultB.success) throw new Error(resultB.error || 'Markieren fehlgeschlagen');
+}
+
+/** Hebt die Transfer-Markierung einer Transaktion (und ihrer Gegenbuchung) wieder auf. */
+export async function unmarkTransfer(transaction: Transaction): Promise<void> {
+  const result = await transactionStorage.updateTransaction(transaction.id!, {
+    is_transfer: false,
+    transfer_pair_id: null,
+  });
+  if (!result.success) throw new Error(result.error || 'Entfernen fehlgeschlagen');
+
+  if (transaction.transfer_pair_id) {
+    await transactionStorage.updateTransaction(transaction.transfer_pair_id, {
+      is_transfer: false,
+      transfer_pair_id: null,
+    });
+  }
+}
+
 export async function updateTransaction(
   updates: { id: string; category_id: string }[]
 ): Promise<Transaction[]> {

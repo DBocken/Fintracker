@@ -46,12 +46,14 @@ export interface NetWorthBreakdown {
 }
 
 /**
- * Compute the local balance of an account by summing its transactions.
+ * Compute the local balance of an account: opening balance (if set) plus
+ * the sum of its transactions. Without an opening balance, the result only
+ * reflects the imported history and may not match the real bank balance.
  */
-function computeLocalBalance(accountId: string, transactions: Transaction[]): number {
-  let sum = 0;
+function computeLocalBalance(account: Account, transactions: Transaction[]): number {
+  let sum = Number(account.opening_balance) || 0;
   for (const t of transactions) {
-    if (t.account_id === accountId) sum += t.amount;
+    if (t.account_id === account.id) sum += t.amount;
   }
   return sum;
 }
@@ -76,7 +78,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     const hasLiveBalance = acc.live_balance_amount !== null && acc.live_balance_amount !== undefined;
     const balance = hasLiveBalance
       ? Number(acc.live_balance_amount) || 0
-      : computeLocalBalance(acc.id, transactions);
+      : computeLocalBalance(acc, transactions);
     accountBalances[acc.id] = balance;
     cash += balance;
     accountSources.push({
