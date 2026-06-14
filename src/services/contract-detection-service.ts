@@ -1,0 +1,153 @@
+import { parseISO, differenceInDays, addMonths, addWeeks, addQuarters, addYears } from "date-fns";
+import type { Transaction } from "@/types";
+import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
+import { getTransactions } from "./transaction-service";
+
+/**
+ * Detects recurring transactions with equal amounts and identifies price increases.
+ * Returns contract rows for subscription-like recurring expenses/income.
+ */
+export async function detectRecurringTransactions(): Promise<ContractRow[]> {
+  const transactions = await getTransactions(2000);
+
+  // Group transactions by payee
+  const payeeGroups = new Map<string, Transaction[]>();
+
+  for (const t of transactions) {
+    if (t.is_transfer) continue;
+
+    const payee = t.payee || "Unbekannt";
+    const arr = payeeGroups.get(payee) || [];
+    arr.push(t);
+    payeeGroups.set(payee, arr);
+  }
+
+  const contracts: ContractRow[] = [];
+
+  // Analyze each payee group for recurring pattern
+  for (const [payee, payeeTxns] of payeeGroups) {
+    if (payeeTxns.length < 3) continue; // Need at least 3 to detect pattern
+
+    // Sort by date
+    const sorted = [...payeeTxns].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Try to detect the main recurring pattern
+    const amountCounts = new Map<number, Transaction[]>();
+    for (const t of sorted) {
+      const amountAbs = Math.abs(t.amount);
+      const arr = amountCounts.get(amountAbs) || [];
+      arr.push(t);
+      amountCounts.set(amountAbs, arr);
+    }
+
+    // Find the most common amount (likely the baseline)
+    let mainAmount = 0;
+    let mainTxns: Transaction[] = [];
+    for (const [amount, txns] of amountCounts) {
+      if (txns.length > mainTxns.length) {
+        mainAmount = amount;
+        mainTxns = txns;
+      }
+    }
+
+    if (mainTxns.length < 2) continue;
+
+    const recurring = detectCycle(mainTxns);
+    if (!recurring?.isRecurring) continue;
+
+    const { cycle, avgDaysBetween } = recurring;
+    const lastTxn = sorted[sorted.length - 1];
+    const lastAmount = Math.abs(lastTxn.amount);
+    const changed = lastAmount !== mainAmount;
+    const changeAmount = changed ? lastAmount - mainAmount : 0;
+
+    // Predict next date based on cycle
+    const lastDate = parseISO(lastTxn.date);
+    const nextDate = predictNextDate(lastDate, cycle, avgDaysBetween);
+
+    const categoryId = lastTxn.category_id || lastTxn.subcategory_id || null;
+
+    contracts.push({
+      key: `contract:${payee}:${categoryId}:${mainAmount}`,
+      type: lastTxn.amount > 0 ? "Einnahme" : "Ausgabe",
+      payee,
+      categoryName: categoryId ? "Category" : "Uncategorized",
+      categoryId,
+      amountTypical: mainAmount,
+      amountLast: lastAmount,
+      cycle,
+      lastDateISO: lastTxn.date,
+      nextDateISO: nextDate?.toISOString().split("T")[0] || null,
+      changed,
+      changeAmount,
+      changeSinceLabel: changed ? `Geändert zu ${lastAmount.toFixed(2)}€` : null,
+    });
+  }
+
+  return contracts;
+}
+
+interface CycleDetection {
+  isRecurring: boolean;
+  cycle: Cycle;
+  avgDaysBetween: number;
+}
+
+function detectCycle(transactions: Transaction[]): CycleDetection | null {
+  if (transactions.length < 2) return null;
+
+  const sorted = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const intervals: number[] = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = parseISO(sorted[i - 1].date);
+    const curr = parseISO(sorted[i].date);
+    const days = differenceInDays(curr, prev);
+    if (days > 0) intervals.push(days);
+  }
+
+  if (intervals.length === 0) return null;
+
+  const avgDays = Math.round(intervals.reduce((a, b) => a + b) / intervals.length);
+  const variance = intervals.reduce((sum, d) => sum + Math.pow(d - avgDays, 2), 0) / intervals.length;
+  const stdDev = Math.sqrt(variance);
+
+  // Consider it recurring if variance is low (coefficient of variation < 0.3)
+  const cv = stdDev / avgDays;
+  if (cv > 0.3 && intervals.length < 4) return null;
+
+  // Map days to cycle
+  let cycle: Cycle = "Unbekannt";
+  if (avgDays >= 5 && avgDays <= 9) cycle = "Wöchentlich";
+  else if (avgDays >= 27 && avgDays <= 35) cycle = "Monatlich";
+  else if (avgDays >= 80 && avgDays <= 100) cycle = "Vierteljährlich";
+  else if (avgDays >= 170 && avgDays <= 190) cycle = "Halbjährlich";
+  else if (avgDays >= 350 && avgDays <= 370) cycle = "Jährlich";
+
+  return {
+    isRecurring: cycle !== "Unbekannt",
+    cycle,
+    avgDaysBetween: avgDays,
+  };
+}
+
+function predictNextDate(lastDate: Date, cycle: Cycle, avgDays: number): Date | null {
+  switch (cycle) {
+    case "Wöchentlich":
+      return addWeeks(lastDate, 1);
+    case "Monatlich":
+      return addMonths(lastDate, 1);
+    case "Vierteljährlich":
+      return addQuarters(lastDate, 1);
+    case "Halbjährlich":
+      return addMonths(lastDate, 6);
+    case "Jährlich":
+      return addYears(lastDate, 1);
+    case "Unbekannt":
+      const nextDate = new Date(lastDate);
+      nextDate.setDate(nextDate.getDate() + avgDays);
+      return nextDate;
+    default:
+      return null;
+  }
+}

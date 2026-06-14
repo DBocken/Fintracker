@@ -1,112 +1,44 @@
 import type { Category } from "../types";
-import { getKeywordsFor } from "../data/merchant-keywords";
+import { CATEGORY_TAXONOMY, isEssenziell, resolveKlasse } from "../data/merchant-keywords";
 
 /**
  * Standard-Kategorien für den anonymen Modus (kein Supabase-Zugriff).
- * Die Filter werden vom bestehenden Keyword-Matching in
- * transaction-service.categorizeTransaction (case-insensitive) genutzt.
  *
- * IDs sind stabil, damit Transaktionen ihre Zuordnung über Sessions behalten.
+ * Wird aus der Taxonomie (data/merchant-keywords.ts) generiert:
+ * Hauptkategorien (parent_id = null) und darunter Unterkategorien
+ * (parent_id = ID der Hauptkategorie). Die Keywords liegen auf der
+ * Unterkategorie-Ebene; Hauptkategorien tragen keine Filter, damit das
+ * spezifischere Match in categorizeTransaction gewinnt.
+ *
+ * IDs sind stabil (`local-cat-<slug>`), damit Transaktionen ihre Zuordnung
+ * über Sessions behalten.
  */
-export const DEFAULT_LOCAL_CATEGORIES: Category[] = [
-  {
-    id: "local-cat-einkommen",
+export const DEFAULT_LOCAL_CATEGORIES: Category[] = CATEGORY_TAXONOMY.flatMap((main) => {
+  const mainId = `local-cat-${main.slug}`;
+
+  const mainCategory: Category = {
+    id: mainId,
     user_id: null,
-    name: "Einkommen",
-    color: "#2e7d72",
-    icon: "💶",
-    filters: getKeywordsFor("Einkommen"),
+    name: main.name,
+    color: main.color,
+    icon: main.icon,
+    filters: [],
     is_default: true,
     parent_id: null,
-  },
-  {
-    id: "local-cat-wohnen",
+    attributes: { essenziell: main.klasse === "essenziell", ausgabenklasse: main.klasse },
+  };
+
+  const subCategories: Category[] = main.subcategories.map((sub) => ({
+    id: `local-cat-${sub.slug}`,
     user_id: null,
-    name: "Wohnen",
-    color: "#1d5c54",
-    icon: "🏠",
-    filters: getKeywordsFor("Wohnen"),
+    name: sub.name,
+    color: main.color,
+    icon: main.icon,
+    filters: sub.keywords,
     is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-lebensmittel",
-    user_id: null,
-    name: "Lebensmittel",
-    color: "#8a7d5a",
-    icon: "🛒",
-    filters: getKeywordsFor("Lebensmittel"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-mobilitaet",
-    user_id: null,
-    name: "Mobilität",
-    color: "#5c7a99",
-    icon: "🚗",
-    filters: getKeywordsFor("Mobilität"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-restaurant",
-    user_id: null,
-    name: "Restaurant & Café",
-    color: "#a8845c",
-    icon: "🍽️",
-    filters: getKeywordsFor("Restaurant & Café"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-versicherung",
-    user_id: null,
-    name: "Versicherungen",
-    color: "#7d8a87",
-    icon: "🛡️",
-    filters: getKeywordsFor("Versicherungen"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-abos",
-    user_id: null,
-    name: "Abos & Streaming",
-    color: "#7d6b8a",
-    icon: "📺",
-    filters: getKeywordsFor("Abos & Streaming"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-gesundheit",
-    user_id: null,
-    name: "Gesundheit",
-    color: "#4a9a8d",
-    icon: "💊",
-    filters: getKeywordsFor("Gesundheit"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-shopping",
-    user_id: null,
-    name: "Shopping",
-    color: "#7bb8ac",
-    icon: "🛍️",
-    filters: getKeywordsFor("Shopping"),
-    is_default: true,
-    parent_id: null,
-  },
-  {
-    id: "local-cat-sonstiges",
-    user_id: null,
-    name: "Sonstiges",
-    color: "#7d8a87",
-    icon: "📦",
-    filters: getKeywordsFor("Sonstiges"),
-    is_default: true,
-    parent_id: null,
-  },
-];
+    parent_id: mainId,
+    attributes: { essenziell: isEssenziell(main, sub), ausgabenklasse: resolveKlasse(main, sub) },
+  }));
+
+  return [mainCategory, ...subCategories];
+});
