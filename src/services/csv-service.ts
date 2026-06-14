@@ -127,16 +127,20 @@ function parseGermanDate(dateStr: string): string {
 /** Parse amount with German number format */
 function parseGermanAmount(amountStr: string): number {
   if (!amountStr) return 0;
-  
-  const cleanAmount = amountStr
+
+  let cleanAmount = amountStr
     .toString()
     .replace(/\s/g, '') // Remove spaces
     .replace(/[^\d,\.-]/g, ''); // Keep only numbers, comma, dot and minus
-  
-  // Handle German decimal format (comma as decimal separator)
-  const normalized = cleanAmount.replace(',', '.');
-  
-  const parsed = parseFloat(normalized);
+
+  // German decimal format uses comma as decimal separator and dot as
+  // thousands separator (e.g. "2.500,00" = 2500.00). If a comma is
+  // present, strip the thousands dots before converting the comma.
+  if (cleanAmount.includes(',')) {
+    cleanAmount = cleanAmount.replace(/\./g, '').replace(',', '.');
+  }
+
+  const parsed = parseFloat(cleanAmount);
   return isNaN(parsed) ? 0 : parsed;
 }
 

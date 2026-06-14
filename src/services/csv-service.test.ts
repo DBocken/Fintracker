@@ -52,6 +52,7 @@ describe("parseCsv", () => {
     expect(rows[0].amount).toBeCloseTo(-12.99, 2);
     expect(rows[0].payee).toBe("REWE");
     expect(rows[0].currency).toBe("EUR");
+    expect(rows[1].amount).toBeCloseTo(2500, 2);
   });
 
   it("normalisiert deutsche Datumsformate nach ISO", async () => {

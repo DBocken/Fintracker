@@ -100,7 +100,7 @@ describe("parseCsv", () => {
     expect(tx.amount).toBeCloseTo(1234.56);
   });
 
-  it("documents that thousands separators ('.') are not stripped before the decimal comma", async () => {
+  it("strips thousands separators ('.') before applying the decimal comma", async () => {
     const csv = [
       "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Waehrung",
       "02.02.2024;+1.234,56;Arbeitgeber GmbH;Gehalt;EUR",
@@ -108,10 +108,7 @@ describe("parseCsv", () => {
 
     const [tx] = await parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";");
 
-    // Known limitation: "1.234,56" -> "1.234.56" -> parseFloat stops at the
-    // second dot, yielding 1.234 instead of 1234.56. Bank exports observed so
-    // far don't use thousands separators in the amount column.
-    expect(tx.amount).toBeCloseTo(1.234);
+    expect(tx.amount).toBeCloseTo(1234.56);
   });
 
   it("falls back to 0 for missing/unparseable amounts", async () => {
