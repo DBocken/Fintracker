@@ -3,7 +3,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp, MoreVertical } from 'lucide-react';
+import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp, MoreVertical, Pencil, Repeat } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -23,6 +23,7 @@ interface TransactionTableProps {
   onUpdateCategory: (id: string, categoryId: string) => void;
   onDelete: (id: string) => void;
   onSort: (key: keyof Transaction) => void;
+  onOpenDetails?: (transaction: Transaction) => void;
 }
 
 function cn(...classes: (string | undefined | null | boolean)[]) {
@@ -45,6 +46,7 @@ export function TransactionTable({
   onUpdateCategory,
   onDelete,
   onSort,
+  onOpenDetails,
 }: TransactionTableProps) {
   const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: accounts = [] } = useQuery({
@@ -140,7 +142,28 @@ export function TransactionTable({
                   <span className="text-muted-foreground text-xs">-</span>
                 )}
               </TableCell>
-              <TableCell className="truncate max-w-xs">{transaction.description}</TableCell>
+              <TableCell className="truncate max-w-xs">
+                {onOpenDetails ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDetails(transaction)}
+                    disabled={!rowId}
+                    className="flex items-center gap-1.5 text-left hover:underline"
+                  >
+                    {transaction.is_contract && (
+                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                    )}
+                    <span className="truncate">{transaction.description || '–'}</span>
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    {transaction.is_contract && (
+                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                    )}
+                    {transaction.description}
+                  </span>
+                )}
+              </TableCell>
               <TableCell className="truncate max-w-xs">{transaction.payee || '-'}</TableCell>
               <TableCell className={transaction.amount < 0 ? 'text-warning' : 'text-positive'}>
                 <span className="sr-only">{transaction.amount < 0 ? 'Ausgabe' : 'Einnahme'}: </span>
@@ -173,6 +196,11 @@ export function TransactionTable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {onOpenDetails && (
+                      <DropdownMenuItem onClick={() => onOpenDetails(transaction)}>
+                        <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Details bearbeiten
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => onToggleVisibility(rowId)}>
                       {hidden ? (
                         <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Einblenden</>

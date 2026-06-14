@@ -19,6 +19,7 @@ import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
+import { TransactionDetailsModal } from './TransactionDetailsModal';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
 import { getAccounts } from '../../services/account-service';
 import { format, parseISO } from 'date-fns';
@@ -78,7 +79,11 @@ export function Dashboard() {
         };
         continue;
       }
-      map[a.id] = { amount: localBalances[a.id] ?? 0, source: 'local' };
+      // Lokaler Saldo = Eröffnungssaldo (z. B. aus GoCardless-Sync) plus die
+      // Summe der erfassten Transaktionen. Ohne den Eröffnungssaldo zeigt das
+      // Konto fälschlich ein Minus, wenn nur ein Teil der Historie importiert ist.
+      const opening = a.opening_balance ?? 0;
+      map[a.id] = { amount: opening + (localBalances[a.id] ?? 0), source: 'local' };
     }
     return map;
   }, [accounts, localBalances]);
@@ -102,6 +107,8 @@ export function Dashboard() {
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
+  const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const mutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
     mutationFn: updateTransaction,
@@ -110,6 +117,18 @@ export function Dashboard() {
       toast.success('Kategorien aktualisiert');
       setSelected(new Set());
       setBulkCat('');
+    },
+    onError: (error) => {
+      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+    },
+  });
+
+  const detailsMutation = useMutation<Transaction[], Error, { id: string; patch: Partial<Transaction> }>({
+    mutationFn: ({ id, patch }) => updateTransaction([{ id, ...patch }]),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Transaktion aktualisiert');
+      setDetailsOpen(false);
     },
     onError: (error) => {
       toast.error(`Fehler beim Aktualisieren: ${error.message}`);
@@ -165,6 +184,15 @@ export function Dashboard() {
     setTransactionToDelete(transactionId);
     setDeleteDialogOpen(true);
   }, []);
+
+  const handleOpenDetails = useCallback((transaction: Transaction) => {
+    setDetailsTransaction(transaction);
+    setDetailsOpen(true);
+  }, []);
+
+  const handleSaveDetails = useCallback((id: string, patch: Partial<Transaction>) => {
+    detailsMutation.mutate({ id, patch });
+  }, [detailsMutation]);
 
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {
@@ -454,18 +482,16 @@ export function Dashboard() {
             onUpdateCategory={handleUpdateCategory}
             onDelete={handleDelete}
             onSort={handleSort}
+            onOpenDetails={handleOpenDetails}
           />
 
           <div className="md:hidden">
             <TransactionListMobile
               transactions={sortedTransactions}
-              categories={cats}
               selected={selected}
               hiddenTransactions={hiddenTransactions}
               onSelect={handleSelect}
-              onToggleVisibility={handleToggleVisibility}
-              onUpdateCategory={handleUpdateCategory}
-              onDelete={handleDelete}
+              onOpenDetails={handleOpenDetails}
             />
           </div>
           
@@ -516,6 +542,19 @@ export function Dashboard() {
         onConfirm={handleDeleteConfirmed}
         transactionId={transactionToDelete}
         selectedCount={selected.size}
+      />
+
+      <TransactionDetailsModal
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        transaction={detailsTransaction}
+        categories={cats}
+        accounts={accounts}
+        onSave={handleSaveDetails}
+        onToggleVisibility={handleToggleVisibility}
+        onDelete={handleDelete}
+        isHidden={detailsTransaction?.id ? hiddenTransactions.has(detailsTransaction.id) : false}
+        isLoading={detailsMutation.isPending}
       />
     </div>
   );

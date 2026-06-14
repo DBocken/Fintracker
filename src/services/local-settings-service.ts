@@ -41,12 +41,63 @@ export async function getLocalCategories(): Promise<Category[]> {
   assertUnlocked();
 
   const stored = await localEncryption.loadAndMaybeDecrypt<Category[]>(LOCAL_CATEGORIES_KEY);
-  if (Array.isArray(stored) && stored.length > 0) return stored;
+  if (Array.isArray(stored) && stored.length > 0) {
+    // Bestandsdaten nachrüsten: Kategorien, die vor Einführung der
+    // Ausgabenklasse geseedet wurden, haben kein `ausgabenklasse`-Attribut.
+    // Ohne dieses Feld zeigt das Sunburst nur "essenziell"/"unkategorisiert".
+    // Wir füllen fehlende Werte aus den Default-Kategorien (per ID) nach.
+    const { categories: backfilled, changed } = backfillAusgabenklasse(stored);
+    if (changed) await writeLocalCategories(backfilled);
+    return backfilled;
+  }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
   const seeded = DEFAULT_LOCAL_CATEGORIES.map((c) => ({ ...c }));
   await localEncryption.encryptAndStore(LOCAL_CATEGORIES_KEY, seeded);
   return seeded;
+}
+
+/**
+ * Rüstet fehlende `ausgabenklasse`/`essenziell`-Attribute bei gespeicherten
+ * Kategorien nach. Default-Kategorien werden per stabiler ID abgeglichen;
+ * für übrige Kategorien wird die Ausgabenklasse von der Hauptkategorie geerbt.
+ * Reine Funktion (testbar), gibt zurück ob sich etwas geändert hat.
+ */
+export function backfillAusgabenklasse(categories: Category[]): { categories: Category[]; changed: boolean } {
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  let changed = false;
+
+  const result = categories.map((cat) => {
+    if (cat.attributes?.ausgabenklasse) return cat;
+
+    // 1. Direkter Abgleich mit der Default-Kategorie (gleiche ID).
+    const fallback = defaultsById.get(cat.id);
+    let klasse = fallback?.attributes?.ausgabenklasse;
+    let essenziell = fallback?.attributes?.essenziell;
+
+    // 2. Sonst von der Hauptkategorie erben.
+    if (!klasse && cat.parent_id) {
+      const parent = byId.get(cat.parent_id);
+      const parentDefault = defaultsById.get(cat.parent_id);
+      klasse = parent?.attributes?.ausgabenklasse ?? parentDefault?.attributes?.ausgabenklasse;
+      essenziell = essenziell ?? parent?.attributes?.essenziell ?? parentDefault?.attributes?.essenziell;
+    }
+
+    if (!klasse) return cat;
+
+    changed = true;
+    return {
+      ...cat,
+      attributes: {
+        ...cat.attributes,
+        ausgabenklasse: klasse,
+        essenziell: essenziell ?? cat.attributes?.essenziell,
+      },
+    };
+  });
+
+  return { categories: result, changed };
 }
 
 async function writeLocalCategories(categories: Category[]): Promise<void> {
