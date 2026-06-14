@@ -21,6 +21,7 @@ import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { TransactionDetailsModal } from './TransactionDetailsModal';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
+import { applyContractToSimilar } from '../../services/contract-detection-service';
 import { getAccounts } from '../../services/account-service';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -125,11 +126,34 @@ export function Dashboard() {
     },
   });
 
-  const detailsMutation = useMutation<Transaction[], Error, { id: string; patch: Partial<Transaction> }>({
-    mutationFn: ({ id, patch }) => updateTransaction([{ id, ...patch }]),
-    onSuccess: () => {
+  const detailsMutation = useMutation<
+    { propagated: number },
+    Error,
+    { id: string; patch: Partial<Transaction>; transaction: Transaction }
+  >({
+    mutationFn: async ({ id, patch, transaction }) => {
+      await updateTransaction([{ id, ...patch }]);
+      // Vertrags-Markierung auf gleichartige Buchungen übertragen: wird eine
+      // Transaktion als Vertrag (de)markiert, ziehen Payee-/Betrags-gleiche mit.
+      let propagated = 0;
+      if (patch.is_contract !== undefined) {
+        const cycle = patch.contract_cycle ?? transaction.contract_cycle ?? null;
+        propagated = await applyContractToSimilar(
+          { payee: transaction.payee, amount: transaction.amount },
+          patch.is_contract,
+          cycle
+        );
+      }
+      return { propagated };
+    },
+    onSuccess: ({ propagated }) => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transaktion aktualisiert');
+      qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      if (propagated > 1) {
+        toast.success(`Vertrag erkannt: ${propagated} gleichartige Buchungen markiert`);
+      } else {
+        toast.success('Transaktion aktualisiert');
+      }
       setDetailsOpen(false);
     },
     onError: (error) => {
@@ -193,8 +217,9 @@ export function Dashboard() {
   }, []);
 
   const handleSaveDetails = useCallback((id: string, patch: Partial<Transaction>) => {
-    detailsMutation.mutate({ id, patch });
-  }, [detailsMutation]);
+    if (!detailsTransaction) return;
+    detailsMutation.mutate({ id, patch, transaction: detailsTransaction });
+  }, [detailsMutation, detailsTransaction]);
 
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {

@@ -1,22 +1,27 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { updateCategory } from "@/services/transaction-service";
+import { Badge } from "@/components/ui/badge";
+import { Check, X } from "lucide-react";
+import { updateTransaction } from "@/services/transaction-service";
 import { showSuccess, showError } from "@/utils/toast";
-import type { Category } from "@/types";
 import type { ContractRow } from "./contract-types";
 import { mapCycleToRhythmus } from "./contract-types";
-import { parseISO } from "date-fns";
 
 const DISMISS_PREFIX = "contract-suggestion-dismissed:";
 
 interface ContractSuggestionsBannerProps {
   rows: ContractRow[];
-  categoryMap: Map<string, Category>;
 }
 
-export function ContractSuggestionsBanner({ rows, categoryMap }: ContractSuggestionsBannerProps) {
+/**
+ * Vorschlagsliste für mögliche Verträge. Zeigt wiederkehrende Zahlungen, die
+ * noch nicht als Vertrag bestätigt wurden. Beim Bestätigen werden alle
+ * zugehörigen Buchungen als Vertrag markiert; beim Ablehnen verschwindet der
+ * Vorschlag dauerhaft. In beiden Fällen ist er danach aus der Liste raus.
+ */
+export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerProps) {
   const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     const set = new Set<string>();
@@ -31,35 +36,26 @@ export function ContractSuggestionsBanner({ rows, categoryMap }: ContractSuggest
   const suggestions = useMemo(() => {
     return rows.filter((row) => {
       if (dismissed.has(row.key)) return false;
+      if (row.confirmed) return false; // bereits bestätigt → nicht mehr vorschlagen
       if (row.cycle === "Unbekannt") return false;
-      if (!row.categoryId) return false;
-      const cat = categoryMap.get(row.categoryId);
-      if (!cat) return false;
-      if (cat.attributes?.ist_vertrag) return false;
+      if (row.transactionIds.length === 0) return false;
       return true;
     });
-  }, [rows, categoryMap, dismissed]);
+  }, [rows, dismissed]);
 
-  const markAsContractMutation = useMutation({
+  const confirmMutation = useMutation({
     mutationFn: (row: ContractRow) => {
-      const cat = categoryMap.get(row.categoryId!)!;
-      return updateCategory({
-        ...cat,
-        attributes: {
-          ...cat.attributes,
-          ist_vertrag: true,
-          rhythmus: mapCycleToRhythmus(row.cycle),
-          faelligkeitstag: row.nextDateISO ? parseISO(row.nextDateISO).getDate() : null,
-          next_due_date: row.nextDateISO,
-        },
-      });
+      const cycle = mapCycleToRhythmus(row.cycle);
+      return updateTransaction(
+        row.transactionIds.map((id) => ({ id, is_contract: true, contract_cycle: cycle }))
+      );
     },
-    onSuccess: () => {
-      showSuccess("Als Vertrag markiert");
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    onSuccess: (_data, row) => {
+      showSuccess(`„${row.payee}" als Vertrag bestätigt`);
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
     },
-    onError: () => showError("Fehler beim Markieren als Vertrag"),
+    onError: () => showError("Fehler beim Bestätigen des Vertrags"),
   });
 
   const handleDismiss = (key: string) => {
@@ -70,43 +66,46 @@ export function ContractSuggestionsBanner({ rows, categoryMap }: ContractSuggest
   if (suggestions.length === 0) return null;
 
   return (
-    <div className="mb-4">
-      <Alert>
-        <AlertTitle>Potenzielle Verträge erkannt</AlertTitle>
-        <AlertDescription>
-          <p className="mb-2">
-            Wir haben {suggestions.length} wiederkehrende Zahlung{suggestions.length === 1 ? "" : "en"} erkannt,
-            die noch nicht als Vertrag markiert {suggestions.length === 1 ? "ist" : "sind"}.
-          </p>
-          <ul className="space-y-2">
-            {suggestions.map((row) => (
-              <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2">
-                <span className="text-sm">
-                  <span className="font-medium">{row.payee}</span> · {row.categoryName} · {row.cycle} ·{" "}
-                  {row.amountTypical.toLocaleString("de-DE", {
-                    style: "currency",
-                    currency: "EUR",
-                    maximumFractionDigits: 0,
-                  })}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => markAsContractMutation.mutate(row)}
-                    disabled={markAsContractMutation.isPending}
-                  >
-                    Als Vertrag markieren
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDismiss(row.key)}>
-                    Ignorieren
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </AlertDescription>
-      </Alert>
-    </div>
+    <Card className="mb-4 border-brand/40">
+      <CardHeader>
+        <CardTitle className="text-base">Mögliche Verträge</CardTitle>
+        <CardDescription>
+          {suggestions.length} wiederkehrende Zahlung{suggestions.length === 1 ? "" : "en"} erkannt.
+          Bestätige sie als Vertrag oder lehne den Vorschlag ab – danach verschwindet er aus dieser Liste.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-2">
+          {suggestions.map((row) => (
+            <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2">
+              <span className="text-sm">
+                <Badge variant={row.type === "Einnahme" ? "secondary" : "outline"} className="mr-2">
+                  {row.type}
+                </Badge>
+                <span className="font-medium">{row.payee}</span> · {row.categoryName} · {row.cycle} ·{" "}
+                {row.amountTypical.toLocaleString("de-DE", {
+                  style: "currency",
+                  currency: "EUR",
+                  maximumFractionDigits: 0,
+                })}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => confirmMutation.mutate(row)}
+                  disabled={confirmMutation.isPending}
+                >
+                  <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Bestätigen
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => handleDismiss(row.key)}>
+                  <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

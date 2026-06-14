@@ -7,7 +7,7 @@ vi.mock("../transaction-service", () => ({
   getTransactions: vi.fn(() => Promise.resolve(mockTransactions)),
 }));
 
-import { detectRecurringTransactions } from "../contract-detection-service";
+import { detectRecurringTransactions, findSimilarContractTransactions } from "../contract-detection-service";
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
@@ -117,5 +117,53 @@ describe("detectRecurringTransactions", () => {
     const result = await detectRecurringTransactions();
     // Should detect as monthly even with slight variation
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+describe("findSimilarContractTransactions", () => {
+  it("matcht gleichen Payee und gleichen Betrag", () => {
+    const txns = [
+      tx({ id: "a", payee: "Netflix", amount: -9.99 }),
+      tx({ id: "b", payee: "Netflix", amount: -9.99 }),
+      tx({ id: "c", payee: "Spotify", amount: -9.99 }),
+    ];
+    const result = findSimilarContractTransactions(txns, { payee: "Netflix", amount: -9.99 });
+    expect(result.map((t) => t.id)).toEqual(["a", "b"]);
+  });
+
+  it("matcht innerhalb der Betrags-Toleranz (Preiserhöhung)", () => {
+    const txns = [
+      tx({ id: "a", payee: "Internet", amount: -49.99 }),
+      tx({ id: "b", payee: "Internet", amount: -54.99 }), // ~10% mehr
+    ];
+    const result = findSimilarContractTransactions(txns, { payee: "Internet", amount: -49.99 });
+    expect(result.map((t) => t.id)).toEqual(["a", "b"]);
+  });
+
+  it("ignoriert stark abweichende Beträge (einmalige Sonderzahlung)", () => {
+    const txns = [
+      tx({ id: "a", payee: "Strom", amount: -50 }),
+      tx({ id: "b", payee: "Strom", amount: -500 }), // Nachzahlung
+    ];
+    const result = findSimilarContractTransactions(txns, { payee: "Strom", amount: -50 });
+    expect(result.map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("trennt Einnahmen und Ausgaben (gleiche Richtung verlangt)", () => {
+    const txns = [
+      tx({ id: "a", payee: "Firma", amount: 100 }),
+      tx({ id: "b", payee: "Firma", amount: -100 }),
+    ];
+    const result = findSimilarContractTransactions(txns, { payee: "Firma", amount: 100 });
+    expect(result.map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("ignoriert Transfers", () => {
+    const txns = [
+      tx({ id: "a", payee: "Bank", amount: -100, is_transfer: true }),
+      tx({ id: "b", payee: "Bank", amount: -100 }),
+    ];
+    const result = findSimilarContractTransactions(txns, { payee: "Bank", amount: -100 });
+    expect(result.map((t) => t.id)).toEqual(["b"]);
   });
 });

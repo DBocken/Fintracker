@@ -1,5 +1,5 @@
 import { parseISO, differenceInDays, addMonths, addWeeks, addQuarters, addYears } from "date-fns";
-import type { Transaction } from "@/types";
+import type { Transaction, Rhythmus } from "@/types";
 import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
 import { mapCycleToRhythmus } from "@/components/contracts/contract-types";
 import { getTransactions, updateTransaction, type TransactionUpdate } from "./transaction-service";
@@ -82,6 +82,8 @@ export async function detectRecurringTransactions(): Promise<ContractRow[]> {
       changed,
       changeAmount,
       changeSinceLabel: changed ? `Geändert zu ${lastAmount.toFixed(2)}€` : null,
+      confirmed: sorted.some((t) => t.is_contract === true),
+      transactionIds: sorted.map((t) => t.id || "").filter(Boolean),
     });
   }
 
@@ -123,6 +125,65 @@ export function matchContractsToTransactions(
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/**
+ * Normalisiert einen Payee für den Vergleich (lower-case, getrimmt).
+ */
+function normalizePayee(payee: string | null | undefined): string {
+  return (payee || "Unbekannt").toLowerCase().trim();
+}
+
+/**
+ * Findet Transaktionen, die zur selben wiederkehrenden Zahlung gehören wie die
+ * Referenz: gleicher Payee und Betrag im Toleranzbereich (Standard 15 %, mind.
+ * 0,50 €). Reine Funktion (testbar). Die Referenz selbst ist im Ergebnis
+ * enthalten, sofern sie in `transactions` vorkommt.
+ */
+export function findSimilarContractTransactions(
+  transactions: Transaction[],
+  reference: Pick<Transaction, "payee" | "amount">,
+  tolerancePercent = 0.15
+): Transaction[] {
+  const refPayee = normalizePayee(reference.payee);
+  const refAmount = Math.abs(reference.amount);
+  const tolerance = Math.max(0.5, refAmount * tolerancePercent);
+
+  return transactions.filter((t) => {
+    if (t.is_transfer) return false;
+    if (normalizePayee(t.payee) !== refPayee) return false;
+    // Gleiche Richtung (Einnahme/Ausgabe) verlangen.
+    if (Math.sign(t.amount) !== Math.sign(reference.amount)) return false;
+    const diff = Math.abs(Math.abs(t.amount) - refAmount);
+    return diff <= tolerance;
+  });
+}
+
+/**
+ * Markiert eine Transaktion und alle gleichartigen (gleicher Payee + ähnlicher
+ * Betrag, gleiche Richtung) als Vertrag bzw. hebt die Markierung auf. Gibt die
+ * Anzahl der aktualisierten Transaktionen zurück. So genügt es, eine einzelne
+ * Buchung als Vertrag zu kennzeichnen — die übrigen werden automatisch erfasst.
+ */
+export async function applyContractToSimilar(
+  reference: Pick<Transaction, "payee" | "amount">,
+  isContract: boolean,
+  cycle: Rhythmus | null
+): Promise<number> {
+  const transactions = await getTransactions(2000);
+  const similar = findSimilarContractTransactions(transactions, reference);
+
+  const updates: TransactionUpdate[] = similar
+    .filter((t) => t.id)
+    .map((t) => ({
+      id: t.id!,
+      is_contract: isContract,
+      contract_cycle: isContract ? cycle : null,
+    }));
+
+  if (updates.length === 0) return 0;
+  await updateTransaction(updates);
+  return updates.length;
 }
 
 /**
