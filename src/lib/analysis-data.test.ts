@@ -214,6 +214,22 @@ describe("buildSankeyDataByKlasse – Ausgabenklasse-Aggregation", () => {
     const unkategorisiert = result.klassen.find((k) => k.id === "unkategorisiert");
     expect(unkategorisiert?.amount).toBe(50);
   });
+
+  it("schließt negative Einkommens-Buchungen aus der Ausgaben-Aggregation aus", () => {
+    const incomeCats: Category[] = [
+      { id: "gehalt", name: "Gehalt", filters: [], attributes: { ausgabenklasse: "einkommen" } },
+      ...klassCats,
+    ];
+    const result = buildSankeyDataByKlasse(
+      [
+        tx({ amount: -300, category_id: "miete" }),
+        tx({ amount: -50, category_id: "gehalt" }),
+      ],
+      incomeCats
+    );
+    expect(result.klassen.some((k) => k.id === "einkommen")).toBe(false);
+    expect(result.mainCategories.some((m) => m.id === "gehalt")).toBe(false);
+  });
 });
 
 describe("buildWeekdayPattern (Issue #40)", () => {
@@ -294,6 +310,25 @@ describe("buildSpendingSunburst (Superkategorie -> Hauptkategorie)", () => {
     );
     expect(result.total).toBe(0);
     expect(result.inner).toEqual([]);
+  });
+
+  it("schließt negative Buchungen in Einkommens-Kategorien aus (keine 'Einkommen'-Ausgabe)", () => {
+    const incomeCats: Category[] = [
+      { id: "einkommen", name: "Einkommen", filters: [], attributes: { ausgabenklasse: "einkommen" } },
+      { id: "gehalt", name: "Gehalt", filters: [], parent_id: "einkommen", attributes: { ausgabenklasse: "einkommen" } },
+      ...klassCats,
+    ];
+    const result = buildSpendingSunburst(
+      [
+        tx({ amount: -700, category_id: "miete" }),
+        tx({ amount: -50, category_id: "gehalt" }), // Gehalts-Rückbuchung
+      ],
+      incomeCats
+    );
+    // Nur die Miete zählt als Ausgabe; die Einkommens-Rückbuchung ist ausgenommen.
+    expect(result.total).toBe(700);
+    expect(result.inner.map((i) => i.id)).toEqual(["essenziell"]);
+    expect(result.outer.some((o) => o.name === "Einkommen")).toBe(false);
   });
 
   it("resolveAusgabenklasse erbt die Klasse vom Parent, wenn die Unterkategorie keine hat", () => {

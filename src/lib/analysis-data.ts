@@ -137,10 +137,14 @@ export function buildSankeyData(
     }
     if (t.amount === 0) continue;
 
+    const assignedId = t.subcategory_id ?? t.category_id ?? null;
+    // Negative Buchungen in einer Einkommens-Kategorie sind Einkommens-
+    // Korrekturen, keine Ausgaben — nicht in die Ausgaben-Knoten aufnehmen.
+    if (resolveAusgabenklasse(byId, assignedId) === "einkommen") continue;
+
     const amountAbs = Math.abs(t.amount);
     getAccountTotals(accountId).expenses += amountAbs;
 
-    const assignedId = t.subcategory_id ?? t.category_id ?? null;
     const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
 
     const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
@@ -228,14 +232,18 @@ export function buildSankeyDataByKlasse(
     }
     if (t.amount === 0) continue;
 
-    const amountAbs = Math.abs(t.amount);
-    getAccountTotals(accountId).expenses += amountAbs;
-
     const assignedId = t.subcategory_id ?? t.category_id ?? null;
-    const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
 
     // Resolve Ausgabenklasse
     const klasse = resolveAusgabenklasse(byId, assignedId) ?? null;
+    // Negative Buchungen in einer Einkommens-Kategorie sind Einkommens-
+    // Korrekturen, keine Ausgaben — aus der Ausgaben-Aufschlüsselung ausnehmen.
+    if (klasse === "einkommen") continue;
+
+    const amountAbs = Math.abs(t.amount);
+    getAccountTotals(accountId).expenses += amountAbs;
+
+    const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
     const klasseId = klasse ?? "unkategorisiert";
     const klasseName = KLASSE_LABELS[klasseId] || "Unkategorisiert";
 
@@ -366,11 +374,17 @@ export function buildSpendingSunburst(
   for (const t of transactions) {
     if (t.is_transfer) continue;
     if (!(t.amount < 0)) continue;
-    const amount = Math.abs(t.amount);
-    total += amount;
 
     const assignedId = t.subcategory_id ?? t.category_id ?? null;
     const klasse = resolveAusgabenklasse(byId, assignedId);
+    // Negative Buchungen in einer Einkommens-Kategorie (z. B. Gehalts-
+    // Rückbuchung) sind keine Ausgaben, sondern Einkommens-Korrekturen.
+    // Sie gehören nicht in die Ausgaben-Aufschlüsselung.
+    if (klasse === "einkommen") continue;
+
+    const amount = Math.abs(t.amount);
+    total += amount;
+
     const superId = toSuperId(klasse, Boolean(assignedId));
 
     const inner = innerMap.get(superId) ?? {

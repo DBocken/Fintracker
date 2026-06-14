@@ -82,16 +82,16 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
   );
 }
 
-/** Sunburst (zwei konzentrische Ringe): Ausgaben nach Haupt-/Unterkategorie. */
+/** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
 export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) {
   // Umschalter zwischen Euro und Prozent
   const [showPercent, setShowPercent] = useState(false);
-  // Hover-State (kann eine Haupt- oder Unterkategorie-ID sein)
+  // Hover-State (kann eine Ausgabenklasse- oder Hauptkategorie-ID sein)
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   const totalExpenses = sunburst?.total ?? 0;
 
-  // Farbzuordnung für Hauptkategorien (innerer Ring)
+  // Farbzuordnung für Ausgabenklassen (innerer Ring)
   const colorMap = useMemo(() => {
     const map = new Map<string, string>();
     const ramp = chartRamp(sunburst.inner.length);
@@ -108,7 +108,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
     return map;
   }, [sunburst]);
 
-  // Gruppiere Unterkategorien nach Oberkategorie
+  // Gruppiere Hauptkategorien (Außenring) nach Ausgabenklasse (Innenring)
   const childrenByParent = useMemo(() => {
     const map = new Map<string, SunburstOuter[]>();
     (sunburst.outer || []).forEach((o) => {
@@ -139,7 +139,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
     return map;
   }, [sunburst, totalExpenses]);
 
-  // Legendeneinträge für Hauptkategorien
+  // Legendeneinträge für Ausgabenklassen (Innenring)
   const legendItems = useMemo(() => {
     return (sunburst.inner || []).map((item) => ({
       id: item.id,
@@ -174,7 +174,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={tooltipFormatter} />
-              {/* Innerer Ring: Hauptkategorien */}
+              {/* Innerer Ring: Ausgabenklassen */}
               <Pie
                 data={sunburst.inner}
                 dataKey="value"
@@ -207,7 +207,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                 })}
               </Pie>
 
-              {/* Äußerer Ring: Unterkategorien je Oberkategorie, exakt im Winkelbereich des Parents */}
+              {/* Äußerer Ring: Hauptkategorien je Ausgabenklasse, exakt im Winkelbereich des Parents */}
               {(sunburst.inner || []).map((parent) => {
                 const children = childrenByParent.get(parent.id) || [];
                 const angles = angleMap.get(parent.id);
@@ -248,7 +248,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
           </ResponsiveContainer>
         </div>
 
-        {/* Legende (Hauptkategorien) */}
+        {/* Legende (Ausgabenklassen) */}
         <div className="flex flex-wrap gap-1.5">
           {legendItems.map((item) => {
             const isActive =
