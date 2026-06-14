@@ -364,6 +364,7 @@ export function buildSpendingSunburst(
   let total = 0;
 
   for (const t of transactions) {
+    if (t.is_transfer) continue;
     if (!(t.amount < 0)) continue;
     const amount = Math.abs(t.amount);
     total += amount;

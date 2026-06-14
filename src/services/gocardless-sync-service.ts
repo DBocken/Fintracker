@@ -3,6 +3,7 @@ import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings } from './transaction-service';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
+import { applyDetectedContracts } from './contract-detection-service';
 import { showSuccess, showError } from '@/utils/toast';
 import { QueryClient } from '@tanstack/react-query';
 
@@ -168,6 +169,24 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
     const learnedRules = await getMerchantRules();
     const userSettings = await getUserSettings();
 
+    // Extract opening balance from earliest transaction's balance
+    let openingBalance: number | null = null;
+    let openingBalanceDate: string | null = null;
+
+    const sortedTransactions = [...(transactions as GoCardlessTransaction[])].sort(
+      (a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
+    );
+
+    if (sortedTransactions.length > 0 && sortedTransactions[0].balanceAfterTransaction) {
+      const firstTx = sortedTransactions[0];
+      const balanceAfter = parseFloat(
+        firstTx.balanceAfterTransaction.balanceAmount.amount
+      );
+      const txAmount = parseFloat(firstTx.transactionAmount.amount);
+      openingBalance = balanceAfter - txAmount;
+      openingBalanceDate = firstTx.bookingDate;
+    }
+
     for (const tx of transactions as GoCardlessTransaction[]) {
       try {
         const amount = parseFloat(tx.transactionAmount.amount);
@@ -216,10 +235,29 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       }
     }
 
-    await updateAccount({
+    const accountUpdate: any = {
       id: account.id,
       last_sync_at: new Date().toISOString(),
-    });
+    };
+
+    // Only update opening_balance if we don't already have one
+    if (!account.opening_balance && openingBalance !== null) {
+      accountUpdate.opening_balance = openingBalance;
+      accountUpdate.opening_balance_date = openingBalanceDate;
+    }
+
+    await updateAccount(accountUpdate);
+
+    // Apply contract detection to all transactions (existing and newly synced)
+    if (result.importedCount > 0) {
+      try {
+        console.log('[gocardless-sync] Running contract detection after import');
+        await applyDetectedContracts();
+      } catch (error: any) {
+        console.warn('[gocardless-sync] Contract detection failed:', { message: error.message });
+        // Don't fail the sync if contract detection fails
+      }
+    }
 
     console.log('[gocardless-sync] Account sync completed', {
       importedCount: result.importedCount,
