@@ -69,12 +69,14 @@ function getAccountById(accounts: Account[]): Map<string, Account> {
 
 function matchesContractFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: ContractFilter): boolean {
   if (filter === 'all') return true;
-  if (!transaction.category_id) return false;
 
-  const category = categoriesById.get(transaction.category_id);
-  if (!category) return false;
+  // Das transaktionseigene Flag hat Vorrang (manuell oder automatisch erkannt);
+  // sonst greift das Vertrags-Flag der zugeordneten Kategorie.
+  const categoryIsContract = transaction.category_id
+    ? categoriesById.get(transaction.category_id)?.attributes?.ist_vertrag === true
+    : false;
+  const isContract = transaction.is_contract === true || categoryIsContract;
 
-  const isContract = category.attributes?.ist_vertrag === true;
   return filter === 'vertrag' ? isContract : !isContract;
 }
 

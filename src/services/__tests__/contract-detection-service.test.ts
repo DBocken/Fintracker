@@ -1,13 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Transaction } from "../../types";
+import type { ContractRow } from "@/components/contracts/contract-types";
 
 const mockTransactions: Transaction[] = [];
+const updateTransactionMock = vi.fn((updates: unknown) => Promise.resolve(updates));
 
 vi.mock("../transaction-service", () => ({
   getTransactions: vi.fn(() => Promise.resolve(mockTransactions)),
+  updateTransaction: (updates: unknown) => updateTransactionMock(updates),
 }));
 
-import { detectRecurringTransactions } from "../contract-detection-service";
+import {
+  applyDetectedContracts,
+  detectRecurringTransactions,
+  matchContractsToTransactions,
+} from "../contract-detection-service";
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
@@ -117,5 +124,102 @@ describe("detectRecurringTransactions", () => {
     const result = await detectRecurringTransactions();
     // Should detect as monthly even with slight variation
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+function contractRow(overrides: Partial<ContractRow>): ContractRow {
+  return {
+    key: "k",
+    type: "Ausgabe",
+    payee: "LSW Energie",
+    categoryName: "Wohnen",
+    categoryId: "wohnen",
+    amountTypical: 49.99,
+    amountLast: 49.99,
+    cycle: "Monatlich",
+    lastDateISO: "2026-03-01",
+    nextDateISO: "2026-04-01",
+    changed: false,
+    changeAmount: 0,
+    changeSinceLabel: null,
+    ...overrides,
+  };
+}
+
+describe("matchContractsToTransactions", () => {
+  it("markiert Transaktionen mit passendem Payee und Betrag als Vertrag", () => {
+    const txns = [
+      tx({ id: "1", payee: "LSW Energie", amount: -49.99 }),
+      tx({ id: "2", payee: "LSW Energie", amount: -49.99 }),
+      tx({ id: "3", payee: "REWE", amount: -49.99 }),
+    ];
+    const updates = matchContractsToTransactions(txns, [contractRow({})]);
+    expect(updates.map((u) => u.id)).toEqual(["1", "2"]);
+    expect(updates[0]).toMatchObject({ is_contract: true, contract_cycle: "monthly" });
+  });
+
+  it("erfasst auch den erhöhten (letzten) Betrag", () => {
+    const txns = [
+      tx({ id: "1", payee: "Internet", amount: -49.99 }),
+      tx({ id: "2", payee: "Internet", amount: -59.99 }),
+    ];
+    const row = contractRow({ payee: "Internet", amountTypical: 49.99, amountLast: 59.99 });
+    const updates = matchContractsToTransactions(txns, [row]);
+    expect(updates.map((u) => u.id).sort()).toEqual(["1", "2"]);
+  });
+
+  it("lässt einmalige Sonderbeträge desselben Payees aus", () => {
+    const txns = [
+      tx({ id: "1", payee: "LSW Energie", amount: -49.99 }),
+      tx({ id: "2", payee: "LSW Energie", amount: -250.0 }), // Nachzahlung
+    ];
+    const updates = matchContractsToTransactions(txns, [contractRow({})]);
+    expect(updates.map((u) => u.id)).toEqual(["1"]);
+  });
+
+  it("setzt den Zyklus auf null bei nicht abbildbarem Cycle", () => {
+    const txns = [tx({ id: "1", payee: "Versicherung", amount: -120 })];
+    const row = contractRow({ payee: "Versicherung", amountTypical: 120, amountLast: 120, cycle: "Halbjährlich" });
+    const updates = matchContractsToTransactions(txns, [row]);
+    expect(updates[0].contract_cycle).toBeNull();
+    expect(updates[0].is_contract).toBe(true);
+  });
+
+  it("ignoriert Transfers und Transaktionen ohne ID", () => {
+    const txns = [
+      tx({ id: undefined, payee: "LSW Energie", amount: -49.99 }),
+      tx({ id: "2", payee: "LSW Energie", amount: -49.99, is_transfer: true }),
+    ];
+    expect(matchContractsToTransactions(txns, [contractRow({})])).toEqual([]);
+  });
+});
+
+describe("applyDetectedContracts", () => {
+  beforeEach(() => {
+    mockTransactions.length = 0;
+    updateTransactionMock.mockClear();
+  });
+
+  it("erkennt Verträge und persistiert die Markierungen", async () => {
+    mockTransactions.push(
+      tx({ id: "1", payee: "LSW Energie", date: "2026-01-01", amount: -49.99 }),
+      tx({ id: "2", payee: "LSW Energie", date: "2026-02-01", amount: -49.99 }),
+      tx({ id: "3", payee: "LSW Energie", date: "2026-03-01", amount: -49.99 })
+    );
+
+    const count = await applyDetectedContracts();
+
+    expect(count).toBe(3);
+    expect(updateTransactionMock).toHaveBeenCalledTimes(1);
+    const updates = updateTransactionMock.mock.calls[0][0] as { id: string; is_contract: boolean }[];
+    expect(updates.map((u) => u.id).sort()).toEqual(["1", "2", "3"]);
+    expect(updates.every((u) => u.is_contract)).toBe(true);
+  });
+
+  it("schreibt nichts, wenn keine Verträge erkannt werden", async () => {
+    mockTransactions.push(tx({ id: "1", payee: "Einmalig", amount: -10 }));
+    const count = await applyDetectedContracts();
+    expect(count).toBe(0);
+    expect(updateTransactionMock).not.toHaveBeenCalled();
   });
 });

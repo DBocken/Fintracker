@@ -83,4 +83,26 @@ describe("filterTransactions", () => {
     const result = filterTransactions(catTxs, categories, accounts, { ...baseFilters, uncategorized: "kategorisiert" }, NOW);
     expect(result.map((t) => t.id).sort()).toEqual(["1", "3"]);
   });
+
+  it("erkennt das transaktionseigene is_contract-Flag im Vertragsfilter", () => {
+    const contractTxs = [
+      tx({ id: "1", date: "2024-06-10", payee: "LSW", is_contract: true }),
+      tx({ id: "2", date: "2024-06-10", payee: "REWE", is_contract: false }),
+    ];
+    const onlyContracts = filterTransactions(contractTxs, categories, accounts, { ...baseFilters, contract: "vertrag" }, NOW);
+    expect(onlyContracts.map((t) => t.id)).toEqual(["1"]);
+
+    const withoutContracts = filterTransactions(contractTxs, categories, accounts, { ...baseFilters, contract: "kein_vertrag" }, NOW);
+    expect(withoutContracts.map((t) => t.id)).toEqual(["2"]);
+  });
+
+  it("erkennt Verträge auch über das Kategorie-Attribut ist_vertrag", () => {
+    const cats: Category[] = [{ id: "abo", name: "Abo", filters: [], attributes: { ist_vertrag: true } }];
+    const contractTxs = [
+      tx({ id: "1", date: "2024-06-10", payee: "Spotify", category_id: "abo" }),
+      tx({ id: "2", date: "2024-06-10", payee: "REWE", category_id: "abo-not" }),
+    ];
+    const result = filterTransactions(contractTxs, cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["1"]);
+  });
 });

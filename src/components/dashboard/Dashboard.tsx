@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Repeat } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
@@ -21,6 +21,7 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
+import { applyDetectedContracts } from '../../services/contract-detection-service';
 import { getAccounts } from '../../services/account-service';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -107,7 +108,6 @@ export function Dashboard() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [isUpdatingDetails, setIsUpdatingDetails] = useState(false);
 
   const mutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
     mutationFn: updateTransaction,
@@ -131,6 +131,34 @@ export function Dashboard() {
     },
     onError: (error) => {
       toast.error(`Fehler beim Löschen: ${error.message}`);
+    },
+  });
+
+  const detailsMutation = useMutation<Transaction[], Error, { id: string; patch: Partial<Transaction> }>({
+    mutationFn: ({ id, patch }) => updateTransaction([{ id, ...patch }]),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Transaktion aktualisiert');
+      setDetailsModalOpen(false);
+      setSelectedTransaction(null);
+    },
+    onError: (error) => {
+      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+    },
+  });
+
+  const detectContractsMutation = useMutation<number, Error, void>({
+    mutationFn: () => applyDetectedContracts(),
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      if (count > 0) {
+        toast.success(`${count} Transaktion${count === 1 ? '' : 'en'} als Vertrag erkannt`);
+      } else {
+        toast('Keine neuen Verträge erkannt');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Vertragserkennung fehlgeschlagen: ${error.message}`);
     },
   });
 
@@ -225,16 +253,9 @@ export function Dashboard() {
     setDetailsModalOpen(true);
   }, []);
 
-  const handleUpdateTransactionDetails = useCallback((updates: Partial<Transaction>) => {
-    if (!selectedTransaction || !selectedTransaction.id) return;
-    setIsUpdatingDetails(true);
-    updateTransaction([{ id: selectedTransaction.id, category_id: updates.category_id || '' }])
-      .then(() => {
-        setDetailsModalOpen(false);
-        setSelectedTransaction(null);
-      })
-      .finally(() => setIsUpdatingDetails(false));
-  }, [selectedTransaction]);
+  const handleSaveTransactionDetails = useCallback((id: string, patch: Partial<Transaction>) => {
+    detailsMutation.mutate({ id, patch });
+  }, [detailsMutation]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -431,6 +452,16 @@ export function Dashboard() {
                 </Badge>
               )}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => detectContractsMutation.mutate()}
+              disabled={detectContractsMutation.isPending}
+            >
+              <Repeat className="mr-2 h-4 w-4" aria-hidden="true" />
+              {detectContractsMutation.isPending ? 'Erkenne…' : 'Verträge erkennen'}
+            </Button>
           </div>
 
           <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
@@ -481,6 +512,7 @@ export function Dashboard() {
             onUpdateCategory={handleUpdateCategory}
             onDelete={handleDelete}
             onSort={handleSort}
+            onOpenDetails={handleOpenTransactionDetails}
           />
 
           <div className="md:hidden">
@@ -490,9 +522,7 @@ export function Dashboard() {
               selected={selected}
               hiddenTransactions={hiddenTransactions}
               onSelect={handleSelect}
-              onToggleVisibility={handleToggleVisibility}
-              onUpdateCategory={handleUpdateCategory}
-              onDelete={handleDelete}
+              onOpenDetails={handleOpenTransactionDetails}
             />
           </div>
           
@@ -551,8 +581,11 @@ export function Dashboard() {
         transaction={selectedTransaction}
         categories={cats}
         accounts={accounts}
-        onUpdate={handleUpdateTransactionDetails}
-        isLoading={isUpdatingDetails}
+        onSave={handleSaveTransactionDetails}
+        onToggleVisibility={handleToggleVisibility}
+        onDelete={handleDelete}
+        isHidden={selectedTransaction?.id ? hiddenTransactions.has(selectedTransaction.id) : false}
+        isLoading={detailsMutation.isPending}
       />
     </div>
   );

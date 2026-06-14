@@ -1,5 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
-import type { Transaction, Category, UserSettings, HierarchicalCategory } from '../types';
+import type { Transaction, Category, UserSettings, HierarchicalCategory, Rhythmus } from '../types';
 import { getCurrentUserId } from './auth-service';
 import { transactionStorage } from './transaction-storage-service';
 import {
@@ -257,18 +257,51 @@ export async function unmarkTransfer(transaction: Transaction): Promise<void> {
   }
 }
 
+/**
+ * Felder, die über das Detail-Modal/Bulk-Aktionen geändert werden können.
+ * `category_id` ist optional, damit reine Vertrags-/Unterkategorie-Updates
+ * möglich sind, ohne die Hauptkategorie anzufassen.
+ */
+export interface TransactionUpdate {
+  id: string;
+  category_id?: string | null;
+  subcategory_id?: string | null;
+  is_contract?: boolean;
+  contract_cycle?: Rhythmus | null;
+}
+
 export async function updateTransaction(
-  updates: { id: string; category_id: string }[]
+  updates: TransactionUpdate[]
 ): Promise<Transaction[]> {
   const updated: Transaction[] = [];
   for (const u of updates) {
-    // Manuelle Korrektur: nicht mehr als "automatisch zugeordnet" markieren,
-    // sondern als bestätigt - und als Lernregel für künftige Buchungen merken.
-    const result = await transactionStorage.updateTransaction(u.id, {
-      category_id: u.category_id || null,
-      auto_mapped: false,
-      confirmed: true,
-    });
+    // Nur tatsächlich übergebene Felder patchen.
+    const patch: Partial<Transaction> = {};
+    const touchesCategory =
+      Object.prototype.hasOwnProperty.call(u, 'category_id') ||
+      Object.prototype.hasOwnProperty.call(u, 'subcategory_id');
+
+    if (Object.prototype.hasOwnProperty.call(u, 'category_id')) {
+      patch.category_id = u.category_id || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(u, 'subcategory_id')) {
+      patch.subcategory_id = u.subcategory_id || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(u, 'is_contract')) {
+      patch.is_contract = u.is_contract;
+    }
+    if (Object.prototype.hasOwnProperty.call(u, 'contract_cycle')) {
+      patch.contract_cycle = u.contract_cycle ?? null;
+    }
+
+    // Bei manueller Kategorie-Korrektur als bestätigt markieren (nicht mehr
+    // "automatisch zugeordnet") und als Lernregel für künftige Buchungen merken.
+    if (touchesCategory) {
+      patch.auto_mapped = false;
+      patch.confirmed = true;
+    }
+
+    const result = await transactionStorage.updateTransaction(u.id, patch);
     if (!result.success || !result.data) throw new Error(result.error || 'Update fehlgeschlagen');
     updated.push(result.data);
 
