@@ -7,7 +7,7 @@ import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { Network } from "lucide-react";
 import { toPng, toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
-import { chartRamp } from "@/lib/chart-colors";
+import { chartColorAt } from "@/lib/chart-colors";
 import type { SankeyData } from "@/lib/analysis-data";
 
 interface SankeyChartProps {
@@ -264,9 +264,14 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         </CardTitle>
         <CardDescription>
           {enableDrilldown
-            ? "Zeigt den Fluss von Einnahmen (links) über dein Konto zu Ausgabenkategorien. Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
-            : "Zeigt den Fluss von Einnahmen (links) über dein Konto zu deinen Hauptkategorien."}
+            ? "Zeigt den Fluss von Einnahmen (grün, links) über dein Konto zu Ausgabenkategorien (je Kategorie eine Farbe). Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
+            : "Zeigt den Fluss von Einnahmen (grün, links) über dein Konto zu deinen Hauptkategorien (je Kategorie eine Farbe)."}
         </CardDescription>
+        {enableDrilldown && (
+          <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
+            💡 <strong>Tipp:</strong> Klicke auf eine Ausgabenkategorie zum Drilldown in Unterkategorien. Durchschnittswerte sichtbar beim Hover über Flows.
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {/* Steuerleiste */}
@@ -349,18 +354,25 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                   );
                 };
 
-                // Farb-Logik: Unterscheidung über Helligkeit + Label
-                const [rampDark, rampMid, rampLight] = chartRamp(3);
-                const fillColor =
-                  payload.type === "income"
-                    ? rampDark
-                    : payload.type === "expense-main"
-                    ? isExpanded
-                      ? rampDark
-                      : rampMid
-                    : payload.type === "expense-sub"
-                    ? rampLight
-                    : rampMid;
+                // Farb-Logik: Kategorie-spezifische Farben wie im Sunburst
+                let fillColor = "hsl(var(--chart-net))";
+                if (payload.type === "income") {
+                  fillColor = "hsl(var(--chart-income))"; // Mint für Einnahmen
+                } else if (payload.type === "expense-main") {
+                  // Jede Hauptkategorie bekommt eigene Farbe aus der Palette
+                  const mainIndex = data.mainCategories.findIndex((m) => m.id === payload.id);
+                  fillColor = chartColorAt(mainIndex, data.mainCategories.length);
+                  if (isExpanded) {
+                    fillColor = chartColorAt(mainIndex, data.mainCategories.length); // Gleiche Farbe, aber visuelle Änderung durch Glow
+                  }
+                } else if (payload.type === "expense-sub") {
+                  // Subcategories: leichtere Variante der Parent-Farbe
+                  const subCategory = data.subCategories.find((s) => s.id === payload.id);
+                  const mainIndex = subCategory
+                    ? data.mainCategories.findIndex((m) => m.id === subCategory.mainId)
+                    : 0;
+                  fillColor = chartColorAt(mainIndex, data.mainCategories.length);
+                }
 
                 const amountLabel = formatAmount(payload.type, payload.amount);
 
@@ -381,8 +393,8 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                       width={width}
                       height={rectHeight}
                       fill={fillColor}
-                      stroke="hsl(var(--card))"
-                      strokeWidth={2}
+                      stroke={hoveredId === payload.id && isMainCategory ? "hsl(var(--brand))" : "hsl(var(--card))"}
+                      strokeWidth={hoveredId === payload.id && isMainCategory ? 3 : 2}
                       rx={4}
                     />
 
@@ -447,14 +459,25 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               }}
             >
               <Tooltip
-                formatter={(value: number) => [
-                  value.toLocaleString("de-DE", {
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                  padding: "8px 12px",
+                }}
+                formatter={(value: number, name: string) => {
+                  const formatted = value.toLocaleString("de-DE", {
                     style: "currency",
                     currency: "EUR",
-                  }),
-                  "",
-                ]}
-                labelFormatter={(label) => `Fluss: ${label}`}
+                  });
+                  return [formatted, name];
+                }}
+                labelFormatter={(label: any) => {
+                  if (typeof label === "object" && label?.value) {
+                    return `Fluss: ${label.value.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`;
+                  }
+                  return `Fluss: ${label}`;
+                }}
               />
             </Sankey>
           </ResponsiveContainer>
