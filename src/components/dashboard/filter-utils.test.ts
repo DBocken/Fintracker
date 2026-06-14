@@ -25,6 +25,7 @@ const baseFilters: DashboardFilterState = {
   account: DEFAULT_DASHBOARD_FILTERS.account,
   contract: DEFAULT_DASHBOARD_FILTERS.contract,
   essential: DEFAULT_DASHBOARD_FILTERS.essential,
+  uncategorized: DEFAULT_DASHBOARD_FILTERS.uncategorized,
   search: DEFAULT_DASHBOARD_FILTERS.search,
   range: DEFAULT_DASHBOARD_FILTERS.range,
   customDays: DEFAULT_DASHBOARD_FILTERS.customDays,
@@ -61,5 +62,25 @@ describe("filterTransactions", () => {
   it("gibt bei 'Gesamt' und leerer Suche alle Transaktionen zurück", () => {
     const result = filterTransactions(txs, categories, accounts, baseFilters, NOW);
     expect(result).toHaveLength(3);
+  });
+
+  it("filtert nach unkategorisierten Transaktionen", () => {
+    const catTxs = [
+      tx({ id: "1", date: "2024-06-10", payee: "REWE", category_id: "cat-1" }),
+      tx({ id: "2", date: "2024-06-10", payee: "Netflix" }),
+      tx({ id: "3", date: "2024-06-10", payee: "Amazon", category_id: "cat-2" }),
+    ];
+    const result = filterTransactions(catTxs, categories, accounts, { ...baseFilters, uncategorized: "unkategorisiert" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["2"]);
+  });
+
+  it("filtert nach kategorisierten Transaktionen", () => {
+    const catTxs = [
+      tx({ id: "1", date: "2024-06-10", payee: "REWE", category_id: "cat-1" }),
+      tx({ id: "2", date: "2024-06-10", payee: "Netflix" }),
+      tx({ id: "3", date: "2024-06-10", payee: "Amazon", category_id: "cat-2" }),
+    ];
+    const result = filterTransactions(catTxs, categories, accounts, { ...baseFilters, uncategorized: "kategorisiert" }, NOW);
+    expect(result.map((t) => t.id).sort()).toEqual(["1", "3"]);
   });
 });

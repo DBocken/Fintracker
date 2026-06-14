@@ -1,6 +1,6 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
 import type { Account, Category, Transaction } from '@/types';
-import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter } from './filter-constants';
+import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, UncategorizedFilter } from './filter-constants';
 
 interface DateRange {
   start: Date;
@@ -12,6 +12,7 @@ export interface DashboardFilterState {
   account: string;
   contract: ContractFilter;
   essential: EssentialFilter;
+  uncategorized: UncategorizedFilter;
   search: string;
   range: DashboardRange;
   customDays: number;
@@ -88,6 +89,12 @@ function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<st
   return filter === 'ess' ? isEssential : !isEssential;
 }
 
+function matchesUncategorizedFilter(transaction: Transaction, filter: UncategorizedFilter): boolean {
+  if (filter === 'all') return true;
+  const isUncategorized = !transaction.category_id;
+  return filter === 'unkategorisiert' ? isUncategorized : !isUncategorized;
+}
+
 function matchesAccountFilter(transaction: Transaction, accountsById: Map<string, Account>, filter: string): boolean {
   if (filter === 'all') return true;
   if (filter === 'budget-pool') {
@@ -116,6 +123,7 @@ export function filterTransactions(
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
     if (!matchesContractFilter(transaction, categoriesById, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
+    if (!matchesUncategorizedFilter(transaction, filters.uncategorized)) return false;
 
     if (search) {
       const searchableText = `${transaction.payee} ${transaction.description} ${transaction.original_text}`.toLowerCase();

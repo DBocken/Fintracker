@@ -32,6 +32,7 @@ import {
   type DashboardGranularity,
   type DashboardRange,
   type EssentialFilter,
+  type UncategorizedFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
@@ -93,6 +94,7 @@ export function Dashboard() {
   const [_filterAccount, _setFilterAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
   const [filterContract, setFilterContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
   const [filterEssential, setFilterEssential] = useState<EssentialFilter>(DEFAULT_DASHBOARD_FILTERS.essential);
+  const [filterUncategorized, setFilterUncategorized] = useState<UncategorizedFilter>(DEFAULT_DASHBOARD_FILTERS.uncategorized);
   const [searchInput, setSearchInput] = useState<string>(DEFAULT_DASHBOARD_FILTERS.search);
   const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
   const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
@@ -207,6 +209,7 @@ export function Dashboard() {
     _setFilterAccount(DEFAULT_DASHBOARD_FILTERS.account);
     setFilterContract(DEFAULT_DASHBOARD_FILTERS.contract);
     setFilterEssential(DEFAULT_DASHBOARD_FILTERS.essential);
+    setFilterUncategorized(DEFAULT_DASHBOARD_FILTERS.uncategorized);
     setSearchInput(DEFAULT_DASHBOARD_FILTERS.search);
     setRange(DEFAULT_DASHBOARD_FILTERS.range);
     setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
@@ -219,9 +222,10 @@ export function Dashboard() {
     if (_filterAccount !== DEFAULT_DASHBOARD_FILTERS.account) count += 1;
     if (filterContract !== DEFAULT_DASHBOARD_FILTERS.contract) count += 1;
     if (filterEssential !== DEFAULT_DASHBOARD_FILTERS.essential) count += 1;
+    if (filterUncategorized !== DEFAULT_DASHBOARD_FILTERS.uncategorized) count += 1;
     if (range !== DEFAULT_DASHBOARD_FILTERS.range) count += 1;
     return count;
-  }, [_filterCat, _filterAccount, filterContract, filterEssential, range]);
+  }, [_filterCat, _filterAccount, filterContract, filterEssential, filterUncategorized, range]);
 
   const granularity = useMemo(
     () => getDashboardGranularity(range, customDays, customGran),
@@ -234,11 +238,12 @@ export function Dashboard() {
       account: _filterAccount,
       contract: filterContract,
       essential: filterEssential,
+      uncategorized: filterUncategorized,
       search: searchInput,
       range,
       customDays,
     });
-  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, searchInput, range, customDays]);
+  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterUncategorized, searchInput, range, customDays]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
 
@@ -432,6 +437,8 @@ export function Dashboard() {
                   setFilterContract={setFilterContract}
                   filterEssential={filterEssential}
                   setFilterEssential={setFilterEssential}
+                  filterUncategorized={filterUncategorized}
+                  setFilterUncategorized={setFilterUncategorized}
                   showSearch={false}
                 />
               </div>

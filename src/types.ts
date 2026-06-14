@@ -51,6 +51,10 @@ export interface Transaction {
   is_transfer?: boolean;
   /** ID der verknüpften Gegenbuchung auf dem anderen Konto */
   transfer_pair_id?: string | null;
+  /** Ob diese Transaktion ein erkannter oder manueller Vertrag ist */
+  is_contract?: boolean;
+  /** Zyklus des Vertrags (weekly, monthly, etc.) */
+  contract_cycle?: Rhythmus | null;
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';

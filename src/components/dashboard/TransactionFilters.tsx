@@ -11,6 +11,7 @@ import {
   type DashboardGranularity,
   type DashboardRange,
   type EssentialFilter,
+  type UncategorizedFilter,
 } from './filter-constants';
 
 interface TransactionFiltersProps {
@@ -31,6 +32,8 @@ interface TransactionFiltersProps {
   setFilterContract: (v: ContractFilter) => void;
   filterEssential: EssentialFilter;
   setFilterEssential: (v: EssentialFilter) => void;
+  filterUncategorized: UncategorizedFilter;
+  setFilterUncategorized: (v: UncategorizedFilter) => void;
   showSearch?: boolean;
 }
 
@@ -52,6 +55,8 @@ export function TransactionFilters({
   setFilterContract,
   filterEssential,
   setFilterEssential,
+  filterUncategorized,
+  setFilterUncategorized,
   showSearch = true,
 }: TransactionFiltersProps) {
   const { data: accounts = [] } = useQuery({
@@ -115,6 +120,17 @@ export function TransactionFilters({
           <SelectItem value="all">Alle</SelectItem>
           <SelectItem value="ess">Nur essenziell</SelectItem>
           <SelectItem value="nicht">Nicht essenziell</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={filterUncategorized} onValueChange={setFilterUncategorized}>
+        <SelectTrigger aria-label="Kategorisierung filtern" className="w-44 bg-background/50 backdrop-blur-sm">
+          <SelectValue placeholder="Kategorisiert" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Alle</SelectItem>
+          <SelectItem value="unkategorisiert">Nur unkategorisiert</SelectItem>
+          <SelectItem value="kategorisiert">Nur kategorisiert</SelectItem>
         </SelectContent>
       </Select>
 
