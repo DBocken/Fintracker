@@ -1,6 +1,12 @@
 import "fake-indexeddb/auto"
+import "@testing-library/jest-dom/vitest"
 import { afterEach } from "vitest"
 import { webcrypto } from "node:crypto"
+import { cleanup } from "@testing-library/react"
+
+afterEach(() => {
+  cleanup()
+})
 
 // jsdom kennt kein IndexedDB; fake-indexeddb stellt es global bereit (Issue #29).
 // Nach jedem Test den KV-Store leeren, damit Tests isoliert bleiben.
