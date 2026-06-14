@@ -4,6 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SlidersHorizontal } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
@@ -105,6 +110,7 @@ export function Dashboard() {
   const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_DASHBOARD_FILTERS.customGranularity);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
@@ -218,6 +224,16 @@ export function Dashboard() {
     setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
     setCustomGran(DEFAULT_DASHBOARD_FILTERS.customGranularity);
   }, []);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (_filterCat !== DEFAULT_DASHBOARD_FILTERS.category) count += 1;
+    if (_filterAccount !== DEFAULT_DASHBOARD_FILTERS.account) count += 1;
+    if (filterContract !== DEFAULT_DASHBOARD_FILTERS.contract) count += 1;
+    if (filterEssential !== DEFAULT_DASHBOARD_FILTERS.essential) count += 1;
+    if (range !== DEFAULT_DASHBOARD_FILTERS.range) count += 1;
+    return count;
+  }, [_filterCat, _filterAccount, filterContract, filterEssential, range]);
 
   const granularity = useMemo(
     () => getDashboardGranularity(range, customDays, customGran),
@@ -433,29 +449,62 @@ export function Dashboard() {
               checked={visibleTransactions.length > 0 && visibleTransactions.every(t => selected.has(t.id || ''))}
               onCheckedChange={handleSelectAll}
             />
-            <TransactionFilters
-              filterCat={_filterCat}
-              setFilterCat={_setFilterCat}
-              filterAccount={_filterAccount}
-              setFilterAccount={_setFilterAccount}
-              searchInput={searchInput}
-              setSearchInput={setSearchInput}
-              range={range}
-              setRange={setRange}
-              customDays={customDays}
-              setCustomDays={setCustomDays}
-              customGran={customGran}
-              setCustomGran={setCustomGran}
-              categories={cats}
-              filterContract={filterContract}
-              setFilterContract={setFilterContract}
-              filterEssential={filterEssential}
-              setFilterEssential={setFilterEssential}
-            />
-            <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-              Filter zurücksetzen
+            <div className="relative">
+              <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+              <Input
+                id="transaction-search"
+                type="search"
+                placeholder="Suche..."
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                className="w-48 bg-background/50 backdrop-blur-sm"
+              />
+            </div>
+            <Button type="button" variant="outline" size="sm" className="relative" onClick={() => setFilterDialogOpen(true)}>
+              <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
+              Filter
+              {activeFilterCount > 0 && (
+                <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 justify-center">
+                  {activeFilterCount}
+                </Badge>
+              )}
             </Button>
           </div>
+
+          <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Filter</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-3">
+                <TransactionFilters
+                  filterCat={_filterCat}
+                  setFilterCat={_setFilterCat}
+                  filterAccount={_filterAccount}
+                  setFilterAccount={_setFilterAccount}
+                  searchInput={searchInput}
+                  setSearchInput={setSearchInput}
+                  range={range}
+                  setRange={setRange}
+                  customDays={customDays}
+                  setCustomDays={setCustomDays}
+                  customGran={customGran}
+                  setCustomGran={setCustomGran}
+                  categories={cats}
+                  filterContract={filterContract}
+                  setFilterContract={setFilterContract}
+                  filterEssential={filterEssential}
+                  setFilterEssential={setFilterEssential}
+                  showSearch={false}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+                  Filter zurücksetzen
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <TransactionTable
             transactions={sortedTransactions}

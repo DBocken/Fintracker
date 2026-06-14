@@ -10,8 +10,6 @@ interface CategoryTwoStepSelectProps {
   disabled?: boolean;
   className?: string;
   placeholder?: string;
-  /** Kompakte Darstellung für Tabellen: keine Erklär-Badges, schmalere Selects */
-  compact?: boolean;
 }
 
 const NONE_VALUE = '__none__';
@@ -47,7 +45,7 @@ function getRootAncestorId(byId: Map<string, Category>, id: string): string {
   return current?.id || id;
 }
 
-export function CategoryTwoStepSelect({ categories, value, onChange, disabled, className, placeholder = '—', compact = false }: CategoryTwoStepSelectProps) {
+export function CategoryTwoStepSelect({ categories, value, onChange, disabled, className, placeholder = '—' }: CategoryTwoStepSelectProps) {
   const { byId, childrenByParent, mains } = useMemo(() => buildCategoryIndex(categories), [categories]);
   const [mainId, setMainId] = useState('');
   const [subId, setSubId] = useState('');
@@ -80,20 +78,15 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
     onChange(!nextSubId ? mainId : nextSubId);
   };
 
-  const mainWidth = compact ? 'w-32' : 'w-44';
-  const subWidth = compact ? 'w-32' : 'w-48';
-
   return (
     <div className={`flex flex-col gap-2 ${className || ''}`.trim()}>
-      {!compact && (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="secondary">1. Hauptkategorie</Badge>
-          <Badge variant="secondary">2. Unterkategorie oder nur Hauptkategorie</Badge>
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <Badge variant="secondary">1. Hauptkategorie</Badge>
+        <Badge variant="secondary">2. Unterkategorie oder nur Hauptkategorie</Badge>
+      </div>
       <div className="flex gap-2">
         <Select value={mainId} onValueChange={handleMainChange} disabled={disabled}>
-          <SelectTrigger className={mainWidth}><SelectValue placeholder={placeholder} /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder={placeholder} /></SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE_VALUE}>Keine Kategorie</SelectItem>
             {mains.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}
@@ -101,7 +94,7 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
         </Select>
         {mainId && children.length > 0 && (
           <Select value={subId} onValueChange={handleSubChange} disabled={disabled}>
-            <SelectTrigger className={subWidth}><SelectValue placeholder="Unterkategorie" /></SelectTrigger>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Unterkategorie" /></SelectTrigger>
             <SelectContent>
               <SelectItem value={MAIN_ONLY_VALUE}>Nur Hauptkategorie</SelectItem>
               {children.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}

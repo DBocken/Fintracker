@@ -3,12 +3,13 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
+import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Account, Category } from '../../types';
 import { getAccounts } from '../../services/account-service';
-import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
+import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface TransactionTableProps {
@@ -98,8 +99,7 @@ export function TransactionTable({
           <SortHeader columnKey="payee" label="Empfänger" />
           <SortHeader columnKey="amount" label="Betrag" />
           <TableHead>Kategorie</TableHead>
-          <TableHead>Sichtbar</TableHead>
-          <TableHead>Aktionen</TableHead>
+          <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -147,11 +147,11 @@ export function TransactionTable({
                 {amountLabel}
               </TableCell>
               <TableCell>
-                <CategoryTwoStepSelect
+                <CategoryCellEditor
                   categories={categories}
                   value={transaction.category_id || ''}
                   disabled={!rowId}
-                  compact
+                  className="w-40"
                   onChange={(catId) => {
                     if (!rowId) return;
                     onUpdateCategory(rowId, catId);
@@ -159,30 +159,32 @@ export function TransactionTable({
                 />
               </TableCell>
               <TableCell>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onToggleVisibility(rowId)}
-                  disabled={!rowId}
-                  className="p-1 h-8 w-8"
-                  aria-label={hidden ? 'Transaktion einblenden' : 'Transaktion ausblenden'}
-                >
-                  {hidden ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                </Button>
-              </TableCell>
-              <TableCell>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDelete(rowId)}
-                  disabled={!rowId}
-                  className="p-1 h-8 w-8 text-warning hover:text-warning"
-                  aria-label="Transaktion löschen"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!rowId}
+                      className="p-1 h-8 w-8"
+                      aria-label="Aktionen"
+                    >
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onToggleVisibility(rowId)}>
+                      {hidden ? (
+                        <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Einblenden</>
+                      ) : (
+                        <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> Ausblenden</>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDelete(rowId)} className="text-warning focus:text-warning">
+                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           );
