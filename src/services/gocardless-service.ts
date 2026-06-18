@@ -26,6 +26,9 @@ interface Transaction {
     currency: string
   }
   debtorName?: string
+  creditorName?: string
+  debtorAccount?: { iban?: string }
+  creditorAccount?: { iban?: string }
   remittanceInformationUnstructured?: string
 }
 

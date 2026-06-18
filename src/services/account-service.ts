@@ -1,4 +1,5 @@
 import type { Account, AccountType } from '../types';
+import { normalizeIban } from './transfer-service';
 import { getCurrentUserId } from './auth-service';
 import { isDemoRecord } from './demo-data-service';
 import {
@@ -89,6 +90,7 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
     type,
     currency: account.currency || 'EUR',
     description: account.description || '',
+    iban: normalizeIban(account.iban),
     color: account.color || ACCOUNT_TYPE_COLORS[type],
     icon: account.icon || ACCOUNT_TYPE_ICONS[type],
     is_budget_pool_member: account.is_budget_pool_member ?? true,
@@ -109,7 +111,10 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
 }
 
 export async function updateAccount(account: Partial<Account> & { id: string }): Promise<Account> {
-  return updateLocalFinanceItem<Account>('accounts', account.id, account);
+  const patch = Object.prototype.hasOwnProperty.call(account, 'iban')
+    ? { ...account, iban: normalizeIban(account.iban) }
+    : account;
+  return updateLocalFinanceItem<Account>('accounts', account.id, patch);
 }
 
 export async function deleteAccount(id: string): Promise<void> {

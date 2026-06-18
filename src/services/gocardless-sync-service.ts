@@ -1,9 +1,11 @@
 import { gocardlessService } from './gocardless-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
-import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings } from './transaction-service';
+import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings, markTransferPair } from './transaction-service';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';
+import { planInternalTransfers, type AccountIbanRef } from './transfer-service';
+import type { Transaction } from '../types';
 import { showSuccess, showError } from '@/utils/toast';
 import { QueryClient } from '@tanstack/react-query';
 
@@ -41,6 +43,8 @@ interface GoCardlessTransaction {
   };
   debtorName?: string;
   creditorName?: string;
+  debtorAccount?: { iban?: string };
+  creditorAccount?: { iban?: string };
   remittanceInformationUnstructured?: string;
   remittanceInformationStructuredArray?: string[];
   additionalInformation?: string;
@@ -97,6 +101,56 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
     expiresAt: consent.expiresAt,
     daysRemaining: consent.daysRemaining,
   };
+}
+
+/**
+ * Verknüpft frisch importierte Buchungen, deren Gegenkonto-IBAN auf ein eigenes
+ * Konto zeigt, als interne Überträge. Existiert die Gegenbuchung bereits, wird
+ * nur verknüpft; auf nicht-live-synchronisierten Konten wird die fehlende
+ * Gegenbuchung als Spiegelbuchung angelegt.
+ */
+async function reconcileInternalTransfers(
+  importedTransactions: Transaction[],
+  allTransactions: Transaction[],
+): Promise<void> {
+  const accounts = await getAccounts();
+  const accountRefs: AccountIbanRef[] = accounts.map((a) => ({
+    id: a.id,
+    iban: a.iban,
+    isLive: !!a.gocardless_account_id && a.sync_enabled !== false,
+  }));
+  const accountsById = new Map(accounts.map((a) => [a.id, a]));
+
+  const plans = planInternalTransfers(importedTransactions, allTransactions, accountRefs);
+
+  for (const plan of plans) {
+    if (!plan.source.id) continue;
+
+    if (plan.existingCounterpart?.id) {
+      await markTransferPair(plan.source.id, plan.existingCounterpart.id);
+      continue;
+    }
+
+    // Spiegelbuchung auf dem nicht-live-Konto anlegen (entgegengesetztes Vorzeichen).
+    const sourceAccount = plan.source.account_id ? accountsById.get(plan.source.account_id) : null;
+    const counterAccount = accountsById.get(plan.counterAccountId);
+    const mirror = await createTransaction({
+      account_id: plan.counterAccountId,
+      date: plan.source.date,
+      amount: -plan.source.amount,
+      payee: sourceAccount?.name || plan.source.payee || 'Interner Übertrag',
+      description: `Interner Übertrag (${sourceAccount?.name || 'eigenes Konto'})`,
+      original_text: plan.source.original_text || plan.source.description || 'Interner Übertrag',
+      currency: plan.source.currency || counterAccount?.currency || 'EUR',
+      counterparty_iban: sourceAccount?.iban ?? null,
+      auto_mapped: false,
+      confirmed: true,
+    });
+
+    if (mirror.id) {
+      await markTransferPair(plan.source.id, mirror.id);
+    }
+  }
 }
 
 /**
@@ -187,6 +241,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       openingBalanceDate = firstTx.bookingDate;
     }
 
+    const importedTransactions: Transaction[] = [];
+
     for (const tx of transactions as GoCardlessTransaction[]) {
       try {
         const amount = parseFloat(tx.transactionAmount.amount);
@@ -196,6 +252,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           (tx.remittanceInformationStructuredArray?.join(' ')) ||
           tx.additionalInformation ||
           payee;
+        // IBAN des Gegenübers für die automatische Erkennung interner Überträge.
+        const counterpartyIban = tx.debtorAccount?.iban || tx.creditorAccount?.iban || null;
 
         const txIdentifier = `${account.id}_${date}_${amount}_${description}`;
 
@@ -215,7 +273,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         };
         const categoryId = categorizeTransaction(draftTransaction as any, categories, learnedRules);
 
-        await createTransaction({
+        const created = await createTransaction({
           account_id: account.id,
           date: date,
           amount: amount,
@@ -226,12 +284,24 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           category_id: categoryId,
           auto_mapped: !!categoryId,
           confirmed: !!categoryId && userSettings.auto_confirm_mapping,
+          counterparty_iban: counterpartyIban,
         });
+        importedTransactions.push(created);
 
         result.importedCount++;
       } catch (error: any) {
         console.error('[gocardless-sync] Failed to import transaction:', { message: error.message });
         result.errors.push(`Transaktion konnte nicht importiert werden: ${error.message}`);
+      }
+    }
+
+    // Interne Überträge anhand der Gegenkonto-IBAN automatisch verknüpfen bzw.
+    // auf nicht-live-synchronisierten Konten (z.B. CSV-Tagesgeld) spiegeln.
+    if (importedTransactions.length > 0) {
+      try {
+        await reconcileInternalTransfers(importedTransactions, [...existingTransactions, ...importedTransactions]);
+      } catch (error: any) {
+        console.warn('[gocardless-sync] Internal transfer reconciliation failed:', { message: error.message });
       }
     }
 

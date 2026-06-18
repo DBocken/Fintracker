@@ -208,6 +208,9 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
       subcategory_id: t.subcategory_id ?? null,
       auto_mapped: t.auto_mapped ?? false,
       confirmed: t.confirmed ?? false,
+      is_transfer: t.is_transfer ?? false,
+      transfer_pair_id: t.transfer_pair_id ?? null,
+      counterparty_iban: t.counterparty_iban ?? null,
       csvCategoryName: (t as any).csvCategoryName ?? (t as any).csvcategoryname ?? undefined,
     };
   });

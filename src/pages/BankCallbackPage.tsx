@@ -174,6 +174,7 @@ export default function BankCallbackPage() {
         // Link to existing account
         await updateAccount({
           id: existingAccountId,
+          iban: gocardlessAccount.iban || null,
           gocardless_account_id: gocardlessAccount.id,
           gocardless_requisition_id: resolvedRequisitionId,
           gocardless_institution_name: gocardlessAccount.product,
@@ -188,6 +189,7 @@ export default function BankCallbackPage() {
           name: gocardlessAccount.name || gocardlessAccount.product || 'Bankkonto',
           type: 'checking',
           currency: gocardlessAccount.currency,
+          iban: gocardlessAccount.iban || null,
           description: `IBAN: ${gocardlessAccount.iban || 'N/A'}`,
           gocardless_account_id: gocardlessAccount.id,
           gocardless_requisition_id: resolvedRequisitionId,

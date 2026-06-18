@@ -235,6 +235,8 @@ interface GoCardlessTransaction {
   };
   debtorName?: string;
   creditorName?: string;
+  debtorAccount?: { iban?: string };
+  creditorAccount?: { iban?: string };
   remittanceInformationUnstructured?: string;
   remittanceInformationStructured?: string;
   additionalInformation?: string;
