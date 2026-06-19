@@ -112,6 +112,7 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
 export async function reconcileInternalTransfers(
   importedTransactions: Transaction[],
   allTransactions: Transaction[],
+  options: { amountDateFallback?: boolean } = {},
 ): Promise<void> {
   const accounts = await getAccounts();
   const accountRefs: AccountIbanRef[] = accounts.map((a) => ({
@@ -121,7 +122,7 @@ export async function reconcileInternalTransfers(
   }));
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
 
-  const plans = planInternalTransfers(importedTransactions, allTransactions, accountRefs);
+  const plans = planInternalTransfers(importedTransactions, allTransactions, accountRefs, options);
 
   for (const plan of plans) {
     if (!plan.source.id) continue;
@@ -162,10 +163,14 @@ export async function reconcileInternalTransfers(
  *
  * Idempotent: bereits als Übertrag markierte Buchungen werden übersprungen,
  * es entstehen keine Doppelbuchungen bei mehrfachem Aufruf.
+ *
+ * Aktiviert zusätzlich den Betrag+Datum-Fallback, damit auch Überträge erkannt
+ * werden, bei denen die Bank keine Gegenkonto-IBAN liefert – allerdings nur
+ * verknüpfend bei eindeutigem Treffer, nie durch Anlegen einer Spiegelbuchung.
  */
 export async function reconcileAllInternalTransfers(): Promise<void> {
   const allTransactions = await getTransactions(10000);
-  await reconcileInternalTransfers(allTransactions, allTransactions);
+  await reconcileInternalTransfers(allTransactions, allTransactions, { amountDateFallback: true });
 }
 
 /**

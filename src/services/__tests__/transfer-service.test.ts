@@ -231,3 +231,74 @@ describe('planInternalTransfers', () => {
     expect(plans).toHaveLength(1);
   });
 });
+
+describe('planInternalTransfers – Betrag+Datum-Fallback (ohne IBAN)', () => {
+  const GIRO = 'DE11111111111111111111';
+  const TAGESGELD = 'DE22222222222222222222';
+
+  // Konten OHNE hinterlegte IBAN – z.B. weil die Bank keine IBANs liefert.
+  const accountsNoIban: AccountIbanRef[] = [
+    { id: 'giro', iban: null, isLive: true },
+    { id: 'tagesgeld', iban: null, isLive: false },
+  ];
+
+  it('verknüpft eindeutige Gegenbuchung auf anderem Konto per Betrag+Datum', () => {
+    const incoming = makeTx({ id: 'in', account_id: 'giro', amount: 100, date: '2026-06-10' });
+    const outgoing = makeTx({ id: 'out', account_id: 'tagesgeld', amount: -100, date: '2026-06-09' });
+    const all = [incoming, outgoing];
+
+    const plans = planInternalTransfers(all, all, accountsNoIban, { amountDateFallback: true });
+    expect(plans).toHaveLength(1);
+    expect(plans[0].existingCounterpart?.id).toBe('out');
+    expect(plans[0].counterAccountId).toBe('tagesgeld');
+  });
+
+  it('ohne Fallback-Option passiert ohne IBAN nichts', () => {
+    const incoming = makeTx({ id: 'in', account_id: 'giro', amount: 100, date: '2026-06-10' });
+    const outgoing = makeTx({ id: 'out', account_id: 'tagesgeld', amount: -100, date: '2026-06-09' });
+    const all = [incoming, outgoing];
+
+    expect(planInternalTransfers(all, all, accountsNoIban)).toHaveLength(0);
+  });
+
+  it('legt im Fallback NIE eine Spiegelbuchung an (nur verknüpfen)', () => {
+    // Nur die Giro-Buchung existiert, keine Gegenbuchung im Bestand.
+    const incoming = makeTx({ id: 'in', account_id: 'giro', amount: 100, date: '2026-06-10' });
+
+    const plans = planInternalTransfers([incoming], [incoming], accountsNoIban, {
+      amountDateFallback: true,
+    });
+    expect(plans).toHaveLength(0); // keine Spiegelung, kein Plan
+  });
+
+  it('verknüpft bei mehrdeutigem Treffer NICHT (überlässt es der manuellen Bestätigung)', () => {
+    const incoming = makeTx({ id: 'in', account_id: 'giro', amount: 100, date: '2026-06-10' });
+    const out1 = makeTx({ id: 'out1', account_id: 'tagesgeld', amount: -100, date: '2026-06-09' });
+    const out2 = makeTx({ id: 'out2', account_id: 'tagesgeld', amount: -100, date: '2026-06-11' });
+    const all = [incoming, out1, out2];
+
+    // Zwei gleich-gute Kandidaten → mehrdeutig → kein automatischer Plan.
+    expect(planInternalTransfers(all, all, accountsNoIban, { amountDateFallback: true })).toHaveLength(0);
+  });
+
+  it('IBAN-Pfad hat Vorrang vor dem Fallback', () => {
+    // Wenn IBANs vorhanden sind, greift die robuste IBAN-Erkennung.
+    const accountsWithIban: AccountIbanRef[] = [
+      { id: 'giro', iban: GIRO, isLive: true },
+      { id: 'tagesgeld', iban: TAGESGELD, isLive: false },
+    ];
+    const incoming = makeTx({
+      id: 'in',
+      account_id: 'giro',
+      amount: 100,
+      date: '2026-06-10',
+      counterparty_iban: TAGESGELD,
+    });
+    const outgoing = makeTx({ id: 'out', account_id: 'tagesgeld', amount: -100, date: '2026-06-09' });
+    const all = [incoming, outgoing];
+
+    const plans = planInternalTransfers(all, all, accountsWithIban, { amountDateFallback: true });
+    expect(plans).toHaveLength(1);
+    expect(plans[0].existingCounterpart?.id).toBe('out');
+  });
+});
