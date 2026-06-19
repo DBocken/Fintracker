@@ -109,7 +109,7 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
  * nur verknüpft; auf nicht-live-synchronisierten Konten wird die fehlende
  * Gegenbuchung als Spiegelbuchung angelegt.
  */
-async function reconcileInternalTransfers(
+export async function reconcileInternalTransfers(
   importedTransactions: Transaction[],
   allTransactions: Transaction[],
 ): Promise<void> {

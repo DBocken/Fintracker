@@ -315,6 +315,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
             'descriptionColumn',
             'currencyColumn',
             'categoryColumn',
+            'ibanColumn',
           ] as const
         ).map((key) => (
           <div key={key}>
@@ -326,18 +327,22 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                 descriptionColumn: 'Verwendungszweck',
                 currencyColumn: 'Währung',
                 categoryColumn: 'Kategorie',
+                ibanColumn: 'Gegenkonto-IBAN (optional)',
               }[key]}
             </label>
             <Select
               value={mapping[key] || ''}
               onValueChange={(val: string) =>
-                setMapping({ ...mapping, [key]: val })
+                setMapping({ ...mapping, [key]: val === '__none__' ? undefined : val })
               }
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Spalte wählen" />
               </SelectTrigger>
               <SelectContent>
+                {(['currencyColumn', 'categoryColumn', 'ibanColumn'] as const).includes(key as any) && (
+                  <SelectItem value="__none__">— keine —</SelectItem>
+                )}
                 {headers.map((h) => (
                   <SelectItem key={h} value={h}>
                     {h}

@@ -9,6 +9,8 @@ export interface CsvMapping {
   descriptionColumn: string;
   currencyColumn?: string;
   categoryColumn?: string;
+  /** Spalte mit der IBAN des Gegenkontos – für die automatische Transfer-Erkennung */
+  ibanColumn?: string;
 }
 
 export const BANK_TEMPLATES: Record<string, CsvMapping> = {
@@ -20,6 +22,7 @@ export const BANK_TEMPLATES: Record<string, CsvMapping> = {
     descriptionColumn: 'Verwendungszweck',
     currencyColumn: 'Waehrung',
     categoryColumn: 'Kategorie',
+    ibanColumn: 'Kontonummer/IBAN',
   },
   dkb: {
     bankName: 'DKB',
@@ -29,6 +32,7 @@ export const BANK_TEMPLATES: Record<string, CsvMapping> = {
     descriptionColumn: 'Verwendungszweck',
     currencyColumn: 'Währung',
     categoryColumn: 'Kategorie',
+    ibanColumn: 'IBAN',
   },
   n26: {
     bankName: 'N26',
@@ -42,10 +46,15 @@ export const BANK_TEMPLATES: Record<string, CsvMapping> = {
 };
 
 export function createDefaultMapping(headers: string[]): CsvMapping {
+  const lower = (h: string) => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const categoryHeader = headers.find(h =>
-    h.toLowerCase().includes('kategorie') ||
-    h.toLowerCase().includes('category') ||
-    h.toLowerCase().includes('kategorisierung')
+    lower(h).includes('kategorie') ||
+    lower(h).includes('category') ||
+    lower(h).includes('kategorisierung')
+  );
+  const ibanHeader = headers.find(h =>
+    lower(h).includes('iban') ||
+    lower(h).includes('kontonummer')
   );
   return {
     bankName: 'custom',
@@ -55,6 +64,7 @@ export function createDefaultMapping(headers: string[]): CsvMapping {
     descriptionColumn: headers[3] || '',
     currencyColumn: headers[4],
     categoryColumn: categoryHeader || headers.find((_, i) => i > 4) || '',
+    ibanColumn: ibanHeader,
   };
 }
 
@@ -156,18 +166,23 @@ export async function parseCsv(
     skipEmptyLines: true,
   });
   
-  return result.data.map((row: Record<string, string>, index: number) => ({
-    id: `csv-${Date.now()}-${index}`,
-    date: parseGermanDate(row[mapping.dateColumn] || ''),
-    amount: parseGermanAmount(row[mapping.amountColumn] || '0'),
-    payee: row[mapping.payeeColumn] || '',
-    description: row[mapping.descriptionColumn] || '',
-    original_text: row[mapping.descriptionColumn] || '',
-    currency: row[mapping.currencyColumn!] || 'EUR',
-    csvCategoryName: row[mapping.categoryColumn!] || '',
-    category_id: null,
-    subcategory_id: null,
-    auto_mapped: false,
-    confirmed: false,
-  }));
+  return result.data.map((row: Record<string, string>, index: number) => {
+    const rawIban = mapping.ibanColumn ? (row[mapping.ibanColumn] || '').trim() : '';
+    const counterpartyIban = rawIban.replace(/\s+/g, '').toUpperCase() || null;
+    return {
+      id: `csv-${Date.now()}-${index}`,
+      date: parseGermanDate(row[mapping.dateColumn] || ''),
+      amount: parseGermanAmount(row[mapping.amountColumn] || '0'),
+      payee: row[mapping.payeeColumn] || '',
+      description: row[mapping.descriptionColumn] || '',
+      original_text: row[mapping.descriptionColumn] || '',
+      currency: row[mapping.currencyColumn!] || 'EUR',
+      csvCategoryName: row[mapping.categoryColumn!] || '',
+      category_id: null,
+      subcategory_id: null,
+      auto_mapped: false,
+      confirmed: false,
+      counterparty_iban: counterpartyIban,
+    };
+  });
 }

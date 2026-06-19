@@ -26,6 +26,8 @@ import type { Transaction, HierarchicalCategory } from '../types';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
+import { reconcileInternalTransfers } from '../services/gocardless-sync-service';
+import { normalizeIban } from '../services/transfer-service';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -76,6 +78,35 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
       } catch (error) {
         console.warn('Contract detection failed after CSV import:', error);
       }
+
+      // Interne Überträge erkennen: CSV-Buchungen mit Gegenkonto-IBAN verknüpfen,
+      // und umgekehrt bereits vorhandene Live-Buchungen, die auf das CSV-Konto
+      // zeigen, gegen die neuen CSV-Buchungen prüfen.
+      try {
+        if (saved.length > 0) {
+          const allTx = await getTransactions(5000);
+          const allAccounts = await getAccounts();
+
+          // Richtung 1: CSV-Buchungen mit counterparty_iban → IBAN-basierte Erkennung
+          await reconcileInternalTransfers(saved, allTx);
+
+          // Richtung 2: bereits vorhandene Live-Buchungen, die auf das CSV-Konto zeigen
+          const csvAccountId = saved[0].account_id;
+          const csvAccount = allAccounts.find(a => a.id === csvAccountId);
+          const csvIban = normalizeIban(csvAccount?.iban);
+          if (csvIban) {
+            const livePointingHere = allTx.filter(
+              t => !t.is_transfer && normalizeIban(t.counterparty_iban) === csvIban,
+            );
+            if (livePointingHere.length > 0) {
+              await reconcileInternalTransfers(livePointingHere, [...allTx, ...saved]);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Internal transfer reconciliation failed after CSV import:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       onConfirm(saved.length, rows.length - saved.length);
