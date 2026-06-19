@@ -89,17 +89,32 @@ export interface InternalTransferPlan {
  * nicht, passiert nichts: Die echte Gegenbuchung kommt mit dem nächsten Sync
  * dieses Kontos und wird dann verknüpft (keine Doppelbuchung).
  */
+export interface PlanInternalTransfersOptions {
+  /**
+   * Wenn keine Gegenkonto-IBAN vorliegt (z.B. weil die Bank über GoCardless
+   * keine liefert), darf ersatzweise anhand von Betrag + Datum eine vorhandene
+   * Gegenbuchung auf einem anderen eigenen Konto verknüpft werden. Aus
+   * Sicherheitsgründen wird dabei NIE gespiegelt und nur bei einem eindeutigen
+   * Treffer verknüpft – mehrdeutige Fälle bleiben der manuellen Bestätigung
+   * (TransferSuggestions) überlassen.
+   */
+  amountDateFallback?: boolean;
+}
+
 export function planInternalTransfers(
   newTransactions: Transaction[],
   allTransactions: Transaction[],
   accounts: AccountIbanRef[],
+  options: PlanInternalTransfersOptions = {},
 ): InternalTransferPlan[] {
+  const ownAccountIds = new Set(accounts.map((a) => a.id));
   const ibanToAccount = new Map<string, AccountIbanRef>();
   for (const acc of accounts) {
     const iban = normalizeIban(acc.iban);
     if (iban) ibanToAccount.set(iban, acc);
   }
-  if (ibanToAccount.size === 0) return [];
+  // Ohne hinterlegte IBANs ist nur der (optionale) Betrag+Datum-Fallback möglich.
+  if (ibanToAccount.size === 0 && !options.amountDateFallback) return [];
 
   const plans: InternalTransferPlan[] = [];
   // Gegenbuchungen, die in diesem Lauf schon verplant wurden, nicht erneut nutzen.
@@ -107,35 +122,80 @@ export function planInternalTransfers(
 
   for (const source of newTransactions) {
     if (!source.account_id || source.is_transfer) continue;
+    // Bereits als Gegenbuchung eines früheren Plans verbraucht: nicht erneut als
+    // Quelle nutzen, sonst entstünde derselbe Übertrag doppelt (in→out & out→in).
+    if (source.id && usedCounterpartIds.has(source.id)) continue;
 
     const counterIban = normalizeIban(source.counterparty_iban);
-    if (!counterIban) continue;
+    const counterAccount = counterIban ? ibanToAccount.get(counterIban) : undefined;
 
-    const counterAccount = ibanToAccount.get(counterIban);
-    if (!counterAccount || counterAccount.id === source.account_id) continue;
+    // --- Pfad 1: IBAN-basierte Erkennung (robust) ---
+    if (counterAccount && counterAccount.id !== source.account_id) {
+      const existingCounterpart = allTransactions.find((t) =>
+        isCounterpartMatch(t, source, counterAccount.id, usedCounterpartIds),
+      );
 
-    const existingCounterpart = allTransactions.find((t) => {
-      if (!t.id || t.id === source.id) return false;
-      if (t.account_id !== counterAccount.id) return false;
-      if (t.is_transfer) return false;
-      if (usedCounterpartIds.has(t.id)) return false;
-      // Gegenbuchung hat entgegengesetztes Vorzeichen und (nahezu) gleichen Betrag.
-      if (Math.sign(t.amount) === Math.sign(source.amount)) return false;
-      if (Math.abs(Math.abs(t.amount) - Math.abs(source.amount)) > AMOUNT_TOLERANCE) return false;
-      return daysBetween(t.date, source.date) <= MAX_DAYS_APART;
-    });
+      if (existingCounterpart?.id) {
+        usedCounterpartIds.add(existingCounterpart.id);
+        plans.push({ source, counterAccountId: counterAccount.id, existingCounterpart });
+        continue;
+      }
 
-    if (existingCounterpart?.id) {
-      usedCounterpartIds.add(existingCounterpart.id);
-      plans.push({ source, counterAccountId: counterAccount.id, existingCounterpart });
+      // Keine Gegenbuchung vorhanden: nur für nicht-live-Konten spiegeln.
+      if (counterAccount.isLive) continue;
+
+      plans.push({ source, counterAccountId: counterAccount.id });
       continue;
     }
 
-    // Keine Gegenbuchung vorhanden: nur für nicht-live-Konten spiegeln.
-    if (counterAccount.isLive) continue;
+    // --- Pfad 2: Betrag+Datum-Fallback (nur verknüpfen, nie spiegeln) ---
+    if (!options.amountDateFallback) continue;
 
-    plans.push({ source, counterAccountId: counterAccount.id });
+    const candidates = allTransactions.filter((t) =>
+      isCounterpartMatch(t, source, null, usedCounterpartIds, ownAccountIds),
+    );
+    // Nur bei einem eindeutigen Treffer automatisch verknüpfen.
+    if (candidates.length !== 1) continue;
+
+    const candidate = candidates[0];
+    if (!candidate.account_id || !candidate.id) continue;
+
+    // Eindeutigkeit muss in BEIDE Richtungen gelten: Könnte der Kandidat auch zu
+    // einer anderen Buchung passen, ist die Zuordnung mehrdeutig und bleibt der
+    // manuellen Bestätigung überlassen.
+    const reverseCandidates = allTransactions.filter((t) =>
+      isCounterpartMatch(t, candidate, null, usedCounterpartIds, ownAccountIds),
+    );
+    if (reverseCandidates.length !== 1) continue;
+
+    usedCounterpartIds.add(candidate.id);
+    plans.push({ source, counterAccountId: candidate.account_id, existingCounterpart: candidate });
   }
 
   return plans;
+}
+
+/**
+ * Prüft, ob `t` eine Gegenbuchung zu `source` ist: anderes Konto,
+ * entgegengesetztes Vorzeichen, (nahezu) gleicher Betrag und Buchungsdatum
+ * innerhalb von {@link MAX_DAYS_APART} Tagen. Mit `requiredAccountId` wird das
+ * Gegenkonto fest vorgegeben (IBAN-Pfad), mit `ownAccountIds` auf eigene Konten
+ * eingeschränkt (Fallback-Pfad).
+ */
+function isCounterpartMatch(
+  t: Transaction,
+  source: Transaction,
+  requiredAccountId: string | null,
+  usedCounterpartIds: Set<string>,
+  ownAccountIds?: Set<string>,
+): boolean {
+  if (!t.id || t.id === source.id) return false;
+  if (t.is_transfer) return false;
+  if (usedCounterpartIds.has(t.id)) return false;
+  if (!t.account_id || t.account_id === source.account_id) return false;
+  if (requiredAccountId !== null && t.account_id !== requiredAccountId) return false;
+  if (ownAccountIds && !ownAccountIds.has(t.account_id)) return false;
+  if (Math.sign(t.amount) === Math.sign(source.amount)) return false;
+  if (Math.abs(Math.abs(t.amount) - Math.abs(source.amount)) > AMOUNT_TOLERANCE) return false;
+  return daysBetween(t.date, source.date) <= MAX_DAYS_APART;
 }

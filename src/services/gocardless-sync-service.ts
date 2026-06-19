@@ -109,9 +109,10 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
  * nur verknüpft; auf nicht-live-synchronisierten Konten wird die fehlende
  * Gegenbuchung als Spiegelbuchung angelegt.
  */
-async function reconcileInternalTransfers(
+export async function reconcileInternalTransfers(
   importedTransactions: Transaction[],
   allTransactions: Transaction[],
+  options: { amountDateFallback?: boolean } = {},
 ): Promise<void> {
   const accounts = await getAccounts();
   const accountRefs: AccountIbanRef[] = accounts.map((a) => ({
@@ -121,7 +122,7 @@ async function reconcileInternalTransfers(
   }));
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
 
-  const plans = planInternalTransfers(importedTransactions, allTransactions, accountRefs);
+  const plans = planInternalTransfers(importedTransactions, allTransactions, accountRefs, options);
 
   for (const plan of plans) {
     if (!plan.source.id) continue;
@@ -151,6 +152,25 @@ async function reconcileInternalTransfers(
       await markTransferPair(plan.source.id, mirror.id);
     }
   }
+}
+
+/**
+ * Wie {@link reconcileInternalTransfers}, betrachtet aber den gesamten
+ * Transaktionsbestand als mögliche Quelle (nicht nur einen frisch importierten
+ * Stapel). Damit werden auch bereits vorhandene Buchungen nachträglich anhand
+ * ihrer Gegenkonto-IBAN als interne Überträge erkannt und verknüpft bzw.
+ * gespiegelt – z.B. nachdem die IBAN eines Kontos erst nachgetragen wurde.
+ *
+ * Idempotent: bereits als Übertrag markierte Buchungen werden übersprungen,
+ * es entstehen keine Doppelbuchungen bei mehrfachem Aufruf.
+ *
+ * Aktiviert zusätzlich den Betrag+Datum-Fallback, damit auch Überträge erkannt
+ * werden, bei denen die Bank keine Gegenkonto-IBAN liefert – allerdings nur
+ * verknüpfend bei eindeutigem Treffer, nie durch Anlegen einer Spiegelbuchung.
+ */
+export async function reconcileAllInternalTransfers(): Promise<void> {
+  const allTransactions = await getTransactions(10000);
+  await reconcileInternalTransfers(allTransactions, allTransactions, { amountDateFallback: true });
 }
 
 /**

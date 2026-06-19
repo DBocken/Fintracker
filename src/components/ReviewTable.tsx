@@ -26,6 +26,7 @@ import type { Transaction, HierarchicalCategory } from '../types';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
+import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -76,6 +77,18 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
       } catch (error) {
         console.warn('Contract detection failed after CSV import:', error);
       }
+
+      // Interne Überträge über den gesamten Bestand abgleichen: erkennt sowohl
+      // neue CSV-Buchungen mit Gegenkonto-IBAN als auch bereits vorhandene
+      // (Live-)Buchungen, die auf das importierte Konto zeigen.
+      try {
+        if (saved.length > 0) {
+          await reconcileAllInternalTransfers();
+        }
+      } catch (error) {
+        console.warn('Internal transfer reconciliation failed after CSV import:', error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       onConfirm(saved.length, rows.length - saved.length);
