@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { BarChart3, ArrowRight, Sparkles, CheckCircle2, PartyPopper } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import HealthScoreCard from "@/components/health-score/HealthScoreCard";
+import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,14 @@ export default function CoachPage() {
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
-      {coachLoading ? <Skeleton className="h-36 w-full rounded-2xl" /> : coach && health ? <HealthScoreCard health={health} /> : null}
+      {coachLoading ? (
+        <Skeleton className="h-36 w-full rounded-2xl" />
+      ) : coach && health ? (
+        <>
+          <FinancialLandscape health={health} />
+          <HealthScoreCard health={health} />
+        </>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
