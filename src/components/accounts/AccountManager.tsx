@@ -21,7 +21,7 @@ import { AccountFormDialog } from './AccountFormDialog';
 import { TransferSuggestions } from './TransferSuggestions';
 import { GoCardlessConnect } from '../GoCardlessConnect';
 import RequireTier from '@/components/common/RequireTier';
-import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus } from '../../services/gocardless-sync-service';
+import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus, reconcileAllInternalTransfers } from '../../services/gocardless-sync-service';
 import { gocardlessService } from '../../services/gocardless-service';
 import {
   refreshBalances,
@@ -80,13 +80,27 @@ export function AccountManager() {
     [accounts, consentStatuses]
   );
 
+  // Nach dem Setzen/Ändern einer IBAN den gesamten Bestand auf interne
+  // Überträge prüfen, damit bereits vorhandene Buchungen nachträglich erkannt
+  // und verknüpft/gespiegelt werden.
+  const reconcileTransfersAfterIbanChange = async () => {
+    try {
+      await reconcileAllInternalTransfers();
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
+    } catch (error) {
+      console.warn('Internal transfer reconciliation failed after account save:', error);
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: createAccount,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-limit'] });
       showSuccess('Konto erstellt');
       setIsDialogOpen(false);
+      await reconcileTransfersAfterIbanChange();
     },
     onError: (error: Error) => {
       showError(error.message);
@@ -95,11 +109,12 @@ export function AccountManager() {
 
   const updateMutation = useMutation({
     mutationFn: updateAccount,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       showSuccess('Konto aktualisiert');
       setIsDialogOpen(false);
       setEditingAccount(null);
+      await reconcileTransfersAfterIbanChange();
     },
     onError: (error: Error) => {
       showError(error.message);

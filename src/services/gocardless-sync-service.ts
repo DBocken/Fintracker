@@ -154,6 +154,21 @@ export async function reconcileInternalTransfers(
 }
 
 /**
+ * Wie {@link reconcileInternalTransfers}, betrachtet aber den gesamten
+ * Transaktionsbestand als mögliche Quelle (nicht nur einen frisch importierten
+ * Stapel). Damit werden auch bereits vorhandene Buchungen nachträglich anhand
+ * ihrer Gegenkonto-IBAN als interne Überträge erkannt und verknüpft bzw.
+ * gespiegelt – z.B. nachdem die IBAN eines Kontos erst nachgetragen wurde.
+ *
+ * Idempotent: bereits als Übertrag markierte Buchungen werden übersprungen,
+ * es entstehen keine Doppelbuchungen bei mehrfachem Aufruf.
+ */
+export async function reconcileAllInternalTransfers(): Promise<void> {
+  const allTransactions = await getTransactions(10000);
+  await reconcileInternalTransfers(allTransactions, allTransactions);
+}
+
+/**
  * Sync transactions for a single GoCardless-connected account
  */
 export async function syncAccountTransactions(account: Account): Promise<SyncResult> {

@@ -107,6 +107,9 @@ export function planInternalTransfers(
 
   for (const source of newTransactions) {
     if (!source.account_id || source.is_transfer) continue;
+    // Bereits als Gegenbuchung eines früheren Plans verbraucht: nicht erneut als
+    // Quelle nutzen, sonst entstünde derselbe Übertrag doppelt (in→out & out→in).
+    if (source.id && usedCounterpartIds.has(source.id)) continue;
 
     const counterIban = normalizeIban(source.counterparty_iban);
     if (!counterIban) continue;

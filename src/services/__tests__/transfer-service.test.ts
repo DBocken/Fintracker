@@ -182,4 +182,52 @@ describe('planInternalTransfers', () => {
     });
     expect(planInternalTransfers([incoming], [incoming], accounts)).toHaveLength(0);
   });
+
+  it('links two pre-existing transactions when the whole dataset is the source set', () => {
+    // Beide Buchungen liegen bereits im Bestand (z.B. weil die IBAN erst
+    // nachträglich am Konto hinterlegt wurde). Wird der gesamte Bestand als
+    // Quelle übergeben, muss die vorhandene Gegenbuchung verknüpft werden.
+    const incoming = makeTx({
+      id: 'in',
+      account_id: 'giro',
+      amount: 100,
+      date: '2026-06-10',
+      counterparty_iban: TAGESGELD,
+    });
+    const existingOut = makeTx({
+      id: 'out',
+      account_id: 'tagesgeld',
+      amount: -100,
+      date: '2026-06-09',
+    });
+    const all = [incoming, existingOut];
+
+    const plans = planInternalTransfers(all, all, accounts);
+    expect(plans).toHaveLength(1);
+    expect(plans[0].source.id).toBe('in');
+    expect(plans[0].existingCounterpart?.id).toBe('out');
+  });
+
+  it('does not double-plan when both directions carry the counterparty IBAN', () => {
+    // Beide Seiten kennen die Gegen-IBAN. Es darf nur EIN Plan entstehen,
+    // damit nicht doppelt verknüpft/gespiegelt wird.
+    const incoming = makeTx({
+      id: 'in',
+      account_id: 'giro',
+      amount: 100,
+      date: '2026-06-10',
+      counterparty_iban: TAGESGELD,
+    });
+    const outgoing = makeTx({
+      id: 'out',
+      account_id: 'tagesgeld',
+      amount: -100,
+      date: '2026-06-09',
+      counterparty_iban: GIRO,
+    });
+    const all = [incoming, outgoing];
+
+    const plans = planInternalTransfers(all, all, accounts);
+    expect(plans).toHaveLength(1);
+  });
 });
