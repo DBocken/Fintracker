@@ -16,7 +16,6 @@ function scoreColor(score: number) {
   return "#dc2626";
 }
 
-// backgroundPositionX for a 5-frame horizontal sprite sheet
 const STAGE_X: Record<1 | 2 | 3 | 4 | 5, string> = {
   1: "0%",
   2: "25%",
@@ -25,33 +24,24 @@ const STAGE_X: Record<1 | 2 | 3 | 4 | 5, string> = {
   5: "100%",
 };
 
-type PositionConfig = {
-  top: string;
-  left: string;
-  file: string;
-  label: string;
-  anchor: "left" | "right";
-};
-
-// Positions mapped to the landscape background (portrait ~9:16)
-const POSITIONS: Record<string, PositionConfig> = {
-  emergency_fund: { top: "22%", left: "56%", file: "notgroschen", label: "Notgroschen",        anchor: "left" },
-  debt:           { top: "40%", left: "16%", file: "schulden",    label: "Schulden",            anchor: "right" },
-  savings_rate:   { top: "52%", left: "58%", file: "sparquote",   label: "Sparquote",           anchor: "left" },
-  liquidity:      { top: "60%", left: "4%",  file: "liquiditaet", label: "Liquidität",          anchor: "right" },
-  contracts:      { top: "70%", left: "44%", file: "vertraege",   label: "Verträge & Fixkosten", anchor: "left" },
+const POSITIONS: Record<string, { top: string; left: string; file: string; label: string }> = {
+  emergency_fund: { top: "22%", left: "56%", file: "notgroschen", label: "Notgroschen" },
+  debt:           { top: "40%", left: "16%", file: "schulden",    label: "Schulden" },
+  savings_rate:   { top: "52%", left: "58%", file: "sparquote",   label: "Sparquote" },
+  liquidity:      { top: "60%", left: "4%",  file: "liquiditaet", label: "Liquidität" },
+  contracts:      { top: "70%", left: "44%", file: "vertraege",   label: "Verträge" },
 };
 
 export default function FinancialLandscape({ health }: { health: FinancialHealth }) {
   const { enabled: gentleMode } = useGentleMode();
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ aspectRatio: "9/16" }}>
-      {/* Background landscape */}
+    // The img drives the height naturally; overlays use absolute positioning
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg">
       <img
         src="/assets/illustrations/background.png"
         alt="Finanzlandschaft"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="block w-full"
         draggable={false}
       />
 
@@ -84,21 +74,18 @@ export default function FinancialLandscape({ health }: { health: FinancialHealth
           >
             {/* Sprite illustration */}
             <div
-              className="h-16 w-16 rounded-xl"
               style={{
+                width: 72,
+                height: 72,
                 backgroundImage: `url(/assets/illustrations/${pos.file}.png)`,
                 backgroundSize: "500% auto",
                 backgroundPositionX: STAGE_X[stage],
-                backgroundPositionY: "center",
+                backgroundPositionY: "top",
                 backgroundRepeat: "no-repeat",
               }}
             />
-
             {/* Score label bubble */}
-            <div
-              className="mt-1 rounded-xl bg-white/90 px-2 py-0.5 text-center shadow backdrop-blur-sm"
-              style={{ minWidth: "60px" }}
-            >
+            <div className="mt-1 rounded-xl bg-white/90 px-2 py-0.5 text-center shadow backdrop-blur-sm" style={{ minWidth: 64 }}>
               <div className="text-[9px] font-medium leading-tight text-gray-500">{pos.label}</div>
               <div className="text-sm font-bold leading-tight" style={{ color }}>
                 {gentleMode ? "••" : s.score}
