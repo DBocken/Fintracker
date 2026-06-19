@@ -37,6 +37,7 @@ export default function CoachPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
+        {health && <FinancialLandscape health={health} />}
         <FinanceEmptyState />
       </div>
     );
@@ -46,13 +47,11 @@ export default function CoachPage() {
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
+      {health && <FinancialLandscape health={health} />}
       {coachLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
       ) : coach && health ? (
-        <>
-          <FinancialLandscape health={health} />
-          <HealthScoreCard health={health} />
-        </>
+        <HealthScoreCard health={health} />
       ) : null}
 
       <section className="space-y-3">

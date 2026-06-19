@@ -36,12 +36,13 @@ export default function FinancialLandscape({ health }: { health: FinancialHealth
   const { enabled: gentleMode } = useGentleMode();
 
   return (
-    // The img drives the height naturally; overlays use absolute positioning
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg">
+    // max-height caps the portrait image; object-position shows the top (mountains + path)
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ maxHeight: 480 }}>
       <img
         src="/assets/illustrations/background.png"
         alt="Finanzlandschaft"
         className="block w-full"
+        style={{ maxHeight: 480, objectFit: "cover", objectPosition: "top" }}
         draggable={false}
       />
 
