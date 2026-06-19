@@ -88,6 +88,9 @@ export default function DebtsPage() {
     queryClient.invalidateQueries({ queryKey: ["coach-insights"] });
     queryClient.invalidateQueries({ queryKey: ["milestones"] });
     queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+    queryClient.invalidateQueries({ queryKey: ["financial-health"] });
+    queryClient.invalidateQueries({ queryKey: ["coach-overview"] });
+    queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
   };
 
   const createMutation = useMutation({
