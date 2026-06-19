@@ -46,6 +46,7 @@ export function AccountFormDialog({
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [currency, setCurrency] = useState('EUR');
+  const [iban, setIban] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#1d5c54');
   const [icon, setIcon] = useState('🏦');
@@ -62,6 +63,7 @@ export function AccountFormDialog({
       setName(account.name);
       setType(account.type);
       setCurrency(account.currency);
+      setIban(account.iban || '');
       setDescription(account.description || '');
       setColor(account.color);
       setIcon(account.icon);
@@ -80,6 +82,7 @@ export function AccountFormDialog({
       setName('');
       setType('checking');
       setCurrency('EUR');
+      setIban('');
       setDescription('');
       setColor(ACCOUNT_TYPE_COLORS.checking);
       setIcon(ACCOUNT_TYPE_ICONS.checking);
@@ -128,6 +131,7 @@ export function AccountFormDialog({
       name,
       type,
       currency,
+      iban: iban.trim() || null,
       description,
       color,
       icon,
@@ -215,6 +219,21 @@ export function AccountFormDialog({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="iban">IBAN (optional)</Label>
+            <Input
+              id="iban"
+              value={iban}
+              onChange={(e) => setIban(e.target.value)}
+              placeholder="z.B. DE89 3704 0044 0532 0130 00"
+            />
+            <p className="text-xs text-muted-foreground">
+              Wird zum automatischen Erkennen interner Überträge zwischen deinen Konten
+              genutzt – z.B. damit eine Umbuchung vom Tagesgeld aufs Girokonto erkannt
+              und auf dem nicht synchronisierten Konto mitgebucht wird.
+            </p>
           </div>
 
           <div className="space-y-2">

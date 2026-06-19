@@ -7,6 +7,8 @@ export interface Account {
   type: AccountType;
   currency: string;
   description?: string;
+  /** IBAN des Kontos (für die Erkennung interner Überträge zwischen eigenen Konten) */
+  iban?: string | null;
   color: string;
   icon: string;
   is_budget_pool_member: boolean;
@@ -51,6 +53,8 @@ export interface Transaction {
   is_transfer?: boolean;
   /** ID der verknüpften Gegenbuchung auf dem anderen Konto */
   transfer_pair_id?: string | null;
+  /** IBAN des Gegenübers (Sender/Empfänger) – Basis für die automatische Transfer-Erkennung */
+  counterparty_iban?: string | null;
   /** Ob diese Transaktion ein erkannter oder manueller Vertrag ist */
   is_contract?: boolean;
   /** Zyklus des Vertrags (weekly, monthly, etc.) */
