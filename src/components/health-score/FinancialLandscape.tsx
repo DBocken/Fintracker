@@ -16,13 +16,6 @@ function scoreColor(score: number) {
   return "#dc2626";
 }
 
-const STAGE_X: Record<1 | 2 | 3 | 4 | 5, string> = {
-  1: "0%",
-  2: "25%",
-  3: "50%",
-  4: "75%",
-  5: "100%",
-};
 
 // Positions tuned for portrait 9:16 image
 const POSITIONS: Record<string, { top: string; left: string; file: string; label: string }> = {
@@ -66,10 +59,9 @@ export default function FinancialLandscape({ health }: { health?: FinancialHealt
               style={{
                 width: 56,
                 height: 56,
-                backgroundImage: `url(/assets/illustrations/${pos.file}.png)`,
-                backgroundSize: "500% auto",
-                backgroundPositionX: STAGE_X[stage],
-                backgroundPositionY: "bottom",
+                backgroundImage: `url(/assets/illustrations/${pos.file}${stage - 1}.png)`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
               }}
             />
