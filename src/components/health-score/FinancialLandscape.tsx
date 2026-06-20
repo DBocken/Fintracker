@@ -25,34 +25,29 @@ const STAGE_X: Record<1 | 2 | 3 | 4 | 5, string> = {
 };
 
 const POSITIONS: Record<string, { top: string; left: string; file: string; label: string }> = {
-  emergency_fund: { top: "22%", left: "56%", file: "notgroschen", label: "Notgroschen" },
-  debt:           { top: "40%", left: "16%", file: "schulden",    label: "Schulden" },
-  savings_rate:   { top: "52%", left: "58%", file: "sparquote",   label: "Sparquote" },
-  liquidity:      { top: "60%", left: "4%",  file: "liquiditaet", label: "Liquidität" },
-  contracts:      { top: "70%", left: "44%", file: "vertraege",   label: "Verträge" },
+  emergency_fund: { top: "10%", left: "60%", file: "notgroschen", label: "Notgroschen" },
+  debt:           { top: "30%", left: "12%", file: "schulden",    label: "Schulden" },
+  savings_rate:   { top: "45%", left: "62%", file: "sparquote",   label: "Sparquote" },
+  liquidity:      { top: "62%", left: "4%",  file: "liquiditaet", label: "Liquidität" },
+  contracts:      { top: "72%", left: "42%", file: "vertraege",   label: "Verträge" },
 };
 
-// health is optional — background always renders, badges only when health is available
 export default function FinancialLandscape({ health }: { health?: FinancialHealth }) {
   const { enabled: gentleMode } = useGentleMode();
 
-  console.log("[FinancialLandscape] render", { health: health?.score ?? "undefined" });
-
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ maxHeight: 480, minHeight: 200, backgroundColor: "#c8dfc8" }}>
+    // paddingBottom creates a 16:7 landscape window; objectPosition shows mountains + hills
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ paddingBottom: "44%" }}>
       <img
         src="/assets/illustrations/background.png"
         alt="Finanzlandschaft"
-        className="block w-full"
-        style={{ maxHeight: 480, objectFit: "cover", objectPosition: "top" }}
+        className="absolute inset-0 h-full w-full"
+        style={{ objectFit: "cover", objectPosition: "center 38%" }}
         draggable={false}
-        onLoad={() => console.log("[FinancialLandscape] background.png loaded ✅")}
-        onError={(e) => console.error("[FinancialLandscape] background.png FAILED to load ❌", e)}
       />
 
       {health && (
         <>
-          {/* Overall score badge */}
           <motion.div
             className="absolute right-4 top-4 rounded-full px-4 py-1.5 text-sm font-bold text-white shadow-lg"
             style={{ backgroundColor: "#2d5a3d" }}
@@ -63,7 +58,6 @@ export default function FinancialLandscape({ health }: { health?: FinancialHealt
             Score {gentleMode ? "••" : health.score}
           </motion.div>
 
-          {/* Subscore illustrations */}
           {health.subScores.map((s, i) => {
             const pos = POSITIONS[s.key];
             if (!pos) return null;
@@ -86,7 +80,7 @@ export default function FinancialLandscape({ health }: { health?: FinancialHealt
                     backgroundImage: `url(/assets/illustrations/${pos.file}.png)`,
                     backgroundSize: "500% auto",
                     backgroundPositionX: STAGE_X[stage],
-                    backgroundPositionY: "top",
+                    backgroundPositionY: "bottom",
                     backgroundRepeat: "no-repeat",
                   }}
                 />
