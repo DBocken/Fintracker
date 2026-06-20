@@ -118,6 +118,12 @@ export function TransactionDetailsModal({
             <p className="text-sm">{transaction.description}</p>
           </div>
         )}
+        {transaction.counterparty_iban && (
+          <div className="col-span-2">
+            <Label className="text-xs text-muted-foreground">Empfänger-IBAN</Label>
+            <p className="font-medium tabular-nums break-all">{transaction.counterparty_iban}</p>
+          </div>
+        )}
         {account && (
           <div className="col-span-2">
             <Label className="text-xs text-muted-foreground">Konto</Label>
