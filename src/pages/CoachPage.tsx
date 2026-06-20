@@ -48,6 +48,7 @@ export default function CoachPage() {
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
       <FinancialLandscape health={health} />
+      {/* DEBUG: landscape rendered above */}
       {coachLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
       ) : coach && health ? (

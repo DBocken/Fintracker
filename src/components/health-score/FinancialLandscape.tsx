@@ -36,14 +36,18 @@ const POSITIONS: Record<string, { top: string; left: string; file: string; label
 export default function FinancialLandscape({ health }: { health?: FinancialHealth }) {
   const { enabled: gentleMode } = useGentleMode();
 
+  console.log("[FinancialLandscape] render", { health: health?.score ?? "undefined" });
+
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ maxHeight: 480 }}>
+    <div className="relative w-full overflow-hidden rounded-2xl shadow-lg" style={{ maxHeight: 480, minHeight: 200, backgroundColor: "#c8dfc8" }}>
       <img
         src="/assets/illustrations/background.png"
         alt="Finanzlandschaft"
         className="block w-full"
         style={{ maxHeight: 480, objectFit: "cover", objectPosition: "top" }}
         draggable={false}
+        onLoad={() => console.log("[FinancialLandscape] background.png loaded ✅")}
+        onError={(e) => console.error("[FinancialLandscape] background.png FAILED to load ❌", e)}
       />
 
       {health && (
