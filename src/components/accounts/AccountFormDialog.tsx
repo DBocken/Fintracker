@@ -33,7 +33,7 @@ interface AccountFormDialogProps {
   isLoading: boolean;
 }
 
-const ACCOUNT_TYPES: AccountType[] = ['checking', 'credit_card', 'savings', 'wallet', 'other'];
+const ACCOUNT_TYPES: AccountType[] = ['checking', 'credit_card', 'savings', 'wallet', 'cash', 'other'];
 
 export function AccountFormDialog({
   open,

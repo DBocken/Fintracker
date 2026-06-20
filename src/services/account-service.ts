@@ -16,6 +16,7 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   credit_card: 'Kreditkarte',
   savings: 'Tagesgeld/Sparkonto',
   wallet: 'Wallet (PayPal, Revolut, etc.)',
+  cash: 'Bargeld',
   other: 'Sonstiges',
 };
 
@@ -24,6 +25,7 @@ export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
   credit_card: '💳',
   savings: '🐷',
   wallet: '📱',
+  cash: '💵',
   other: '💰',
 };
 
@@ -33,6 +35,7 @@ export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
   credit_card: '#5c7a99',
   savings: '#4a9a8d',
   wallet: '#a8845c',
+  cash: '#8a9a3c',
   other: '#7d8a87',
 };
 

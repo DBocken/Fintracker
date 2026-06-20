@@ -13,6 +13,7 @@ import { getFinancialHealth } from "@/services/financial-health-service";
 import { evaluateMilestones } from "@/services/milestones-service";
 import { getTransactions } from "@/services/transaction-service";
 import { getDebts } from "@/services/debt-service";
+import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 
@@ -28,8 +29,12 @@ export default function CoachPage() {
   const { data: hasData } = useQuery({
     queryKey: ["has-finance-data"],
     queryFn: async () => {
-      const [txs, debts] = await Promise.all([getTransactions(1), getDebts()]);
-      return txs.length > 0 || debts.length > 0;
+      const [txs, debts, receivables] = await Promise.all([
+        getTransactions(1),
+        getDebts(),
+        getReceivables(),
+      ]);
+      return txs.length > 0 || debts.length > 0 || receivables.length > 0;
     },
   });
 

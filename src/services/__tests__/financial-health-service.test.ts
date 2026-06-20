@@ -6,12 +6,14 @@ import type { Debt, Transaction } from "../../types";
 const EMPTY_NET_WORTH: NetWorthBreakdown = {
   cash: 0,
   investments: 0,
+  receivables: 0,
   debts: 0,
   netWorth: 0,
   accountBalances: {},
   accountSources: [],
   portfolioSources: [],
   debtSources: [],
+  receivableSources: [],
 };
 
 function tx(overrides: Partial<Transaction>): Transaction {

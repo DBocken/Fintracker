@@ -3,6 +3,7 @@ import { getAccounts } from "./account-service";
 import { getTransactions } from "./transaction-service";
 import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
 import { getDebts, getTotalDebt } from "./debt-service";
+import { getReceivables, getTotalReceivables } from "./receivable-service";
 
 export interface AccountSource {
   id: string;
@@ -26,14 +27,22 @@ export interface DebtSource {
   balance: number;
 }
 
+export interface ReceivableSource {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface NetWorthBreakdown {
   /** Sum of all account balances (cash) */
   cash: number;
   /** Total value of all portfolios */
   investments: number;
+  /** Total outstanding money lent out (receivables) */
+  receivables: number;
   /** Total outstanding debt */
   debts: number;
-  /** cash + investments - debts */
+  /** cash + investments + receivables - debts */
   netWorth: number;
   /** Per-account balances */
   accountBalances: Record<string, number>;
@@ -43,6 +52,8 @@ export interface NetWorthBreakdown {
   portfolioSources: PortfolioSource[];
   /** Details on each debt's contribution to total debt */
   debtSources: DebtSource[];
+  /** Details on each receivable's contribution to total receivables */
+  receivableSources: ReceivableSource[];
 }
 
 /**
@@ -65,10 +76,11 @@ function computeLocalBalance(account: Account, transactions: Transaction[]): num
  * to the sum of local transactions.
  */
 export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
-  const [accounts, transactions, debts] = await Promise.all([
+  const [accounts, transactions, debts, receivables] = await Promise.all([
     getAccounts(),
     getTransactions(10000),
     getDebts(),
+    getReceivables(),
   ]);
 
   const accountBalances: Record<string, number> = {};
@@ -114,14 +126,21 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     .filter((d) => !d.is_paid_off)
     .map((d) => ({ id: d.id, name: d.name, balance: Math.max(0, d.balance) }));
 
+  const totalReceivables = getTotalReceivables(receivables);
+  const receivableSources: ReceivableSource[] = receivables
+    .filter((r) => !r.is_settled)
+    .map((r) => ({ id: r.id, name: r.name, amount: Math.max(0, r.amount) }));
+
   return {
     cash,
     investments,
+    receivables: totalReceivables,
     debts: totalDebt,
-    netWorth: cash + investments - totalDebt,
+    netWorth: cash + investments + totalReceivables - totalDebt,
     accountBalances,
     accountSources,
     portfolioSources,
     debtSources,
+    receivableSources,
   };
 }
