@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Wallet, LineChart, CreditCard, Info } from "lucide-react";
+import { Wallet, LineChart, CreditCard, HandCoins, Info } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,12 @@ export default function NetWorthPage() {
   // Leerer Zustand (Issue #39): ohne jede Position kein „0 €"-Vermögen
   // anzeigen, sondern eine konkrete nächste Aktion.
   const isEmpty =
-    !isLoading && data != null && data.cash === 0 && data.investments === 0 && data.debts === 0;
+    !isLoading &&
+    data != null &&
+    data.cash === 0 &&
+    data.investments === 0 &&
+    data.debts === 0 &&
+    data.receivables === 0;
 
   return (
     <div>
@@ -48,12 +53,12 @@ export default function NetWorthPage() {
                 {eur.format(data.netWorth)}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
-                Liquidität + Investitionen − Schulden
+                Liquidität + Investitionen + Forderungen − Schulden
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -70,6 +75,15 @@ export default function NetWorthPage() {
                   Investitionen
                 </div>
                 <div className="mt-1 text-2xl font-bold">{eur.format(data.investments)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <HandCoins className="h-4 w-4" />
+                  Forderungen
+                </div>
+                <div className="mt-1 text-2xl font-bold">{eur.format(data.receivables)}</div>
               </CardContent>
             </Card>
             <Card>
@@ -198,6 +212,32 @@ export default function NetWorthPage() {
                   </ul>
                 ) : (
                   <p className="mt-3 text-sm text-muted-foreground">Keine Portfolios hinterlegt.</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <HandCoins className="h-4 w-4" />
+                  Forderungen – {eur.format(data.receivables)}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Geld, das du verliehen hast und das dir noch zurückgezahlt wird – zählt als
+                  Vermögen.
+                </p>
+                {data.receivableSources.length > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {data.receivableSources.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm"
+                      >
+                        <div className="font-medium">{r.name}</div>
+                        <span className="font-semibold">{eur.format(r.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">Keine offenen Forderungen hinterlegt.</p>
                 )}
               </div>
 

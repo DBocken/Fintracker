@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, CreditCard, Building2, PiggyBank, Smartphone, Wallet, AlertCircle, RefreshCw, Link2, ExternalLink, ShieldAlert } from 'lucide-react';
+import { Plus, Pencil, Trash2, CreditCard, Building2, PiggyBank, Smartphone, Wallet, Banknote, AlertCircle, RefreshCw, Link2, ExternalLink, ShieldAlert } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   credit_card: <CreditCard className="h-5 w-5" />,
   savings: <PiggyBank className="h-5 w-5" />,
   wallet: <Smartphone className="h-5 w-5" />,
+  cash: <Banknote className="h-5 w-5" />,
   other: <Wallet className="h-5 w-5" />,
 };
 

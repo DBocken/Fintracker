@@ -27,6 +27,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
 import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
+import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -223,10 +224,18 @@ export default function DebtsPage() {
 
     <div>
       <PageHeader
-        title="Schulden"
-        description="Behalte alle Verbindlichkeiten im Blick und plane deinen Schuldenabbau."
-        actions={
-          <div className="flex gap-2">
+        title="Schulden & Forderungen"
+        description="Behalte Verbindlichkeiten und verliehenes Geld im Blick und plane deinen Schuldenabbau."
+      />
+
+      <Tabs defaultValue="debts" className="mt-2">
+        <TabsList>
+          <TabsTrigger value="debts">Schulden</TabsTrigger>
+          <TabsTrigger value="receivables">Forderungen</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="debts" className="space-y-6">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <ScanLine className="mr-1.5 h-4 w-4" />
               Briefe scannen
@@ -241,17 +250,15 @@ export default function DebtsPage() {
               Schuld hinzufügen
             </Button>
           </div>
-        }
-      />
 
-      <DebtSuggestionsBanner
-        onAdopt={(prefill) => {
-          setEditing(prefill);
-          setDialogOpen(true);
-        }}
-      />
+          <DebtSuggestionsBanner
+            onAdopt={(prefill) => {
+              setEditing(prefill);
+              setDialogOpen(true);
+            }}
+          />
 
-      {isLoading ? (
+          {isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-20 w-full" />
@@ -588,8 +595,14 @@ export default function DebtsPage() {
               </CardContent>
             </Card>
           )}
-        </div>
-      )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="receivables">
+          <ReceivablesPanel />
+        </TabsContent>
+      </Tabs>
 
       <DebtFormDialog
         open={dialogOpen}
