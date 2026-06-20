@@ -19,11 +19,11 @@ function scoreColor(score: number) {
 
 // Positions tuned for portrait 9:16 image
 const POSITIONS: Record<string, { top: string; left: string; file: string; label: string }> = {
-  emergency_fund: { top: "22%", left: "48%", file: "notgroschen", label: "Notgroschen" },
-  debt:           { top: "35%", left: "5%",  file: "schulden",    label: "Schulden" },
-  savings_rate:   { top: "50%", left: "50%", file: "sparquote",   label: "Sparquote" },
-  liquidity:      { top: "60%", left: "1%",  file: "liquiditaet", label: "Liquidität" },
-  contracts:      { top: "70%", left: "38%", file: "vertraege",   label: "Verträge" },
+  emergency_fund: { top: "72%", left: "5%",  file: "notgroschen", label: "Notgroschen" },
+  debt:           { top: "70%", left: "70%", file: "schulden",    label: "Schulden" },
+  savings_rate:   { top: "20%", left: "45%", file: "sparquote",   label: "Sparquote" },
+  liquidity:      { top: "62%", left: "20%", file: "liquiditaet", label: "Liquidität" },
+  contracts:      { top: "50%", left: "70%", file: "vertraege",   label: "Verträge" },
 };
 
 export default function FinancialLandscape({ health }: { health?: FinancialHealth }) {
