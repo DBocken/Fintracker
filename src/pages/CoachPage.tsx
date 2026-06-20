@@ -49,7 +49,7 @@ export default function CoachPage() {
 
       {/* Side-by-side: portrait landscape left, score right */}
       <div className="flex gap-4 items-start">
-        <div className="w-40 shrink-0 sm:w-52">
+        <div className="w-80 shrink-0 sm:w-[416px]">
           <FinancialLandscape health={health} />
         </div>
         <div className="flex-1 min-w-0">
