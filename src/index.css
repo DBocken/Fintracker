@@ -43,6 +43,17 @@
     --warning: 4 72% 50%;
 
     /*
+     * Status-Skala (5 Stufen, Produkt-Audit Abschnitt G/C-P2):
+     * kritisch → sehr gut. Genutzt für Health-Score, Subscores und die
+     * Finanzlandschaft, damit Statusunterschiede klar unterscheidbar sind.
+     */
+    --status-critical: 4 72% 50%;
+    --status-weak: 24 85% 52%;
+    --status-mid: 38 85% 50%;
+    --status-good: 152 45% 42%;
+    --status-excellent: 152 55% 33%;
+
+    /*
      * Sidebar-Tokens (Direktive C — dunkle Petrol-Sidebar):
      * Tiefes Petrol als Fläche, helle Schrift, aktiver Eintrag als
      * hellere Petrol-Stufe. Pro Theme überschreibbar.
@@ -106,6 +117,13 @@
     --positive: 152 45% 50%;
     --warning: 4 65% 55%;
 
+    /* Status-Skala im Dark Mode leicht aufgehellt/entsättigt. */
+    --status-critical: 4 65% 60%;
+    --status-weak: 24 75% 60%;
+    --status-mid: 38 75% 58%;
+    --status-good: 152 40% 55%;
+    --status-excellent: 152 45% 50%;
+
     /* Sidebar im Dark Mode: noch eine Stufe dunkler als der Content. */
     --sidebar: 190 26% 6%;
     --sidebar-foreground: 40 15% 92%;
@@ -158,5 +176,40 @@
   /* Text-basierte Beträge verbergen (z.B. "1.234,56 €") */
   .gentle-mode [data-amount] {
     @apply text-transparent;
+  }
+}
+
+/*
+ * Designsystem-Konsolidierung (Audit C-P1): einheitliche Bausteine, um die
+ * Card-in-Card-Dichte zu reduzieren. Klare Hierarchie:
+ *   .ds-section      → äußerer, ruhiger Container (eine Karte je Abschnitt)
+ *   .ds-summary-card → kompakte Kennzahl-/Status-Kachel
+ *   .ds-detail-row   → flache Zeile innerhalb eines Abschnitts (statt Box-in-Box)
+ */
+@layer components {
+  .ds-section {
+    @apply rounded-2xl border bg-card p-5 shadow-sm;
+  }
+  .ds-summary-card {
+    @apply rounded-xl border bg-card/60 p-4;
+  }
+  .ds-detail-row {
+    @apply flex items-center justify-between gap-3 border-b border-border/60 py-3 last:border-b-0;
+  }
+}
+
+/*
+ * Reduced-Motion-Policy (Audit C-P2/G): respektiert die System-Einstellung
+ * und schaltet auch CSS-Transitions/Animationen ab. Framer-Motion wird über
+ * den useReducedMotion-Hook gesteuert; dies fängt den Rest ab.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -2,15 +2,17 @@ import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MilestoneStatus } from "@/services/milestones-service";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 export default function MilestonesStrip({ milestones }: { milestones: MilestoneStatus[] }) {
   const justAchieved = milestones.filter((m) => m.justAchieved);
+  const reduce = useReducedMotion();
 
   return (
     <div className="space-y-4">
       {justAchieved.length > 0 && (
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
+          initial={reduce ? false : { scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
         >
@@ -29,9 +31,9 @@ export default function MilestonesStrip({ milestones }: { milestones: MilestoneS
         {milestones.map((m, i) => (
           <motion.div
             key={m.definition.key}
-            initial={{ opacity: 0, y: 8 }}
+            initial={reduce ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
+            transition={reduce ? { duration: 0 } : { delay: i * 0.04 }}
             className={cn(
               "rounded-lg border p-3 text-center",
               m.achieved ? "border-positive/40 bg-positive/5" : "border-dashed bg-muted/20 opacity-70"

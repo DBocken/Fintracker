@@ -1,29 +1,117 @@
 "use client";
 
-import { Lock } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { FeatureKey } from "@/lib/tier";
+import {
+  BarChart3,
+  TrendingUp,
+  LineChart as LineChartIcon,
+  CreditCard,
+} from "lucide-react";
+import LockedPreview from "@/components/premium/LockedPreview";
+import { FEATURES, type FeatureKey } from "@/lib/tier";
 
-const FEATURE_COPY: Record<FeatureKey, { title: string; description: string }> = {
+/**
+ * Statische, geblurrte Mini-Mocks je Feature. Bewusst rein dekorativ
+ * (aria-hidden im LockedPreview) — sie zeigen „wie es aussehen wird".
+ */
+function PreviewMock({ feature }: { feature: FeatureKey }) {
+  switch (feature) {
+    case "bankSync":
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-brand" />
+            <div className="h-3 w-28 rounded bg-muted" />
+          </div>
+          {[72, 48, 60].map((w, i) => (
+            <div key={i} className="flex items-center justify-between rounded-lg border p-2">
+              <div className="h-2.5 rounded bg-muted" style={{ width: `${w}px` }} />
+              <div className="h-2.5 w-12 rounded bg-brand/40" />
+            </div>
+          ))}
+        </div>
+      );
+    case "simulation":
+      return (
+        <div className="space-y-3">
+          <TrendingUp className="h-5 w-5 text-brand" />
+          <div className="flex h-24 items-end gap-1.5">
+            {[30, 45, 40, 60, 75, 70, 90].map((h, i) => (
+              <div key={i} className="flex-1 rounded-t bg-brand/40" style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </div>
+      );
+    case "trading":
+      return (
+        <div className="space-y-3">
+          <LineChartIcon className="h-5 w-5 text-brand" />
+          <svg viewBox="0 0 100 50" className="h-24 w-full">
+            <polyline
+              points="0,40 15,30 30,35 45,20 60,25 75,10 100,15"
+              fill="none"
+              stroke="hsl(var(--brand))"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
+      );
+    case "premiumAnalytics":
+    default:
+      return (
+        <div className="space-y-3">
+          <BarChart3 className="h-5 w-5 text-brand" />
+          <div className="grid grid-cols-2 gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="rounded-lg border p-2">
+                <div className="h-2 w-10 rounded bg-muted" />
+                <div className="mt-2 h-4 w-16 rounded bg-brand/40" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+  }
+}
+
+const FEATURE_COPY: Record<
+  FeatureKey,
+  { title: string; eyebrow: string; benefits: string[] }
+> = {
   bankSync: {
-    title: "Login nötig",
-    description:
-      "Für die Bankanbindung benötigen wir eine Anmeldung, weil deine Bank wissen muss, wer den Zugriff anfragt — nicht weil wir dich kennen wollen.",
+    title: "Konten automatisch synchronisieren",
+    eyebrow: "Anmeldung nötig",
+    benefits: [
+      "Umsätze landen automatisch im Tracker – kein CSV-Export mehr nötig.",
+      "Deine Daten bleiben lokal auf deinem Gerät; die Bank muss nur dich kennen.",
+      "Verbindung jederzeit mit einem Klick trennbar.",
+    ],
   },
   premiumAnalytics: {
-    title: "Premium-Vorschau",
-    description:
-      "Die erweiterte Analyse ist Teil von Premium und noch nicht freigeschaltet. Sobald Premium verfügbar ist, siehst du hier detaillierte Auswertungen deiner Finanzen.",
+    title: "Tiefenanalyse deiner Finanzen",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Geldflüsse als Sankey-Diagramm – sieh sofort, wohin dein Geld geht.",
+      "Heatmap & Wochenmuster decken teure Gewohnheiten auf.",
+      "Smart Insights heben deine größten Hebel automatisch hervor.",
+    ],
   },
   simulation: {
-    title: "Premium-Vorschau",
-    description:
-      "Die Finanzsimulation ist Teil von Premium und noch nicht freigeschaltet. Du kannst hier schon einmal sehen, was dich erwartet.",
+    title: "Finanzielle Zukunft durchspielen",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Spiele Sparpläne und größere Anschaffungen vorab durch.",
+      "Sieh, wie sich Entscheidungen auf deinen Notgroschen auswirken.",
+      "Erreiche deine Meilensteine planbar statt zufällig.",
+    ],
   },
   trading: {
-    title: "Premium-Vorschau",
-    description:
-      "Das Trading-Dashboard ist Teil von Premium und noch nicht freigeschaltet. Du kannst hier schon einmal sehen, was dich erwartet.",
+    title: "Depot & Trading im Blick",
+    eyebrow: "Premium-Vorschau (Beta)",
+    benefits: [
+      "Behalte Wertentwicklung und Allokation an einem Ort.",
+      "Verbinde Investitionen mit deiner Gesamtfinanzlage.",
+      "Experimentelle Beta – ohne Anlageempfehlung.",
+    ],
   },
 };
 
@@ -32,26 +120,25 @@ interface PremiumUpsellProps {
 }
 
 /**
- * Honest fallback shown for features that require a higher tier: explains
- * *why* access is restricted instead of a hard error or blank page.
+ * Begehrlicher Locked-Preview-Fallback (Audit C-P1/E). Wählt anhand des
+ * benötigten Tiers automatisch Login- vs. Premium-Story und CTA.
  */
 export function PremiumUpsell({ feature }: PremiumUpsellProps) {
   const copy = FEATURE_COPY[feature];
+  const needsLogin = FEATURES[feature] === "free";
 
   return (
-    <Card variant="premium">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lock className="h-5 w-5" />
-          {copy.title}
-        </CardTitle>
-        <CardDescription>{copy.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          Es entstehen für dich keine Kosten und es werden keine Daten ohne deine Zustimmung übertragen.
-        </p>
-      </CardContent>
-    </Card>
+    <LockedPreview
+      eyebrow={copy.eyebrow}
+      title={copy.title}
+      benefits={copy.benefits}
+      preview={<PreviewMock feature={feature} />}
+      cta={
+        needsLogin
+          ? { label: "Mit Google anmelden", to: "/login", icon: "login" }
+          : { label: "Mehr über Premium", to: "/settings", icon: "premium" }
+      }
+      note="Es entstehen für dich keine Kosten und es werden keine Daten ohne deine Zustimmung übertragen."
+    />
   );
 }

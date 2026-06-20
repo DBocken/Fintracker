@@ -1,3 +1,8 @@
+/**
+ * @deprecated Performance-Iteration, aktuell NICHT in Verwendung (Audit D).
+ * Wrapper um die ebenfalls deprecatede `VirtualizedTransactionTable` mit
+ * serverseitiger Pagination. Vor erneutem Einsatz Tabellen-Strategie klären.
+ */
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { VirtualizedTransactionTable } from './VirtualizedTransactionTable';

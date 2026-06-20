@@ -1,10 +1,6 @@
 import TradingDashboard from "@/components/trading/TradingDashboard";
-import { FeatureGate } from "@/components/FeatureGate";
 
+/** Tier-Gating erfolgt zentral über die Route-Guard-Schicht (ROUTE_GUARDS). */
 export default function TradingPage() {
-  return (
-    <FeatureGate feature="trading">
-      <TradingDashboard />
-    </FeatureGate>
-  );
+  return <TradingDashboard />;
 }

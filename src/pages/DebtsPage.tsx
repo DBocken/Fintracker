@@ -28,6 +28,8 @@ import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
 import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
+import { DebtCard } from "@/components/debts/DebtCard";
+import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -65,6 +67,9 @@ export default function DebtsPage() {
   };
   const [extraBudget, setExtraBudget] = useState("");
   const [selectedDebtId, setSelectedDebtId] = useState<string>("");
+  // Mobile-Detailansicht (Audit C-P1/F): Zuordnung/Aktionen pro Schuld im Sheet.
+  const [detailDebtId, setDetailDebtId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const { data: debts = [], isLoading } = useQuery({
     queryKey: ["debts"],
@@ -205,20 +210,30 @@ export default function DebtsPage() {
     updateMutation.mutate({ id: d.id, is_paid_off: !d.is_paid_off, balance: !d.is_paid_off ? 0 : d.balance });
   };
 
-  const handleToggleTransactionAssignment = (transaction: Transaction, checked: boolean) => {
-    if (!transaction.id || !currentDebtId) return;
+  const handleToggleAssignmentFor = (debtId: string, transaction: Transaction, checked: boolean) => {
+    if (!transaction.id || !debtId) return;
 
     const existing = assignmentByTransactionId.get(transaction.id);
     if (checked) {
       if (existing) return;
-      assignMutation.mutate({ debtId: currentDebtId, transactionId: transaction.id });
+      assignMutation.mutate({ debtId, transactionId: transaction.id });
       return;
     }
 
-    if (existing?.debt_id === currentDebtId) {
+    if (existing?.debt_id === debtId) {
       unassignMutation.mutate(existing.id);
     }
   };
+
+  const handleToggleTransactionAssignment = (transaction: Transaction, checked: boolean) =>
+    handleToggleAssignmentFor(currentDebtId, transaction, checked);
+
+  const openDetail = (d: Debt) => {
+    setDetailDebtId(d.id);
+    setDetailOpen(true);
+  };
+
+  const detailDebt = debts.find((d) => d.id === detailDebtId) || null;
 
   return (
 
@@ -305,8 +320,15 @@ export default function DebtsPage() {
             </Card>
           </div>
 
-          {/* Debt list */}
-          <div className="space-y-2">
+          {/* Mobile: kompakte Karten mit Detail-Sheet (Audit C-P1/F) */}
+          <div className="space-y-3 lg:hidden">
+            {debts.map((d) => (
+              <DebtCard key={d.id} debt={d} onTogglePaid={togglePaidOff} onOpenDetails={openDetail} />
+            ))}
+          </div>
+
+          {/* Desktop: ausführliche Zeilenliste */}
+          <div className="hidden space-y-2 lg:block">
             {debts.map((d) => (
               <div
                 key={d.id}
@@ -399,9 +421,9 @@ export default function DebtsPage() {
             </Card>
           )}
 
-          {/* Automatic debt payments */}
+          {/* Automatic debt payments — Desktop inline; mobil im Detail-Sheet */}
           {debts.length > 0 && (
-            <Card>
+            <Card className="hidden lg:block">
               <CardContent className="p-4">
                 <div className="mb-3 text-sm font-semibold">Zahlungen dieser Schuld zuordnen</div>
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
@@ -613,6 +635,26 @@ export default function DebtsPage() {
       />
 
       <ClaimImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
+
+      <DebtDetailSheet
+        debt={detailDebt}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        debitTransactions={debitTransactions}
+        assignmentByTransactionId={assignmentByTransactionId}
+        onEdit={(d) => {
+          setDetailOpen(false);
+          handleEdit(d);
+        }}
+        onDelete={(d) => {
+          if (confirm(`Schuld „${d.name}“ löschen?`)) {
+            deleteMutation.mutate(d.id);
+            setDetailOpen(false);
+          }
+        }}
+        onToggleAssignment={handleToggleAssignmentFor}
+        assignBusy={assignMutation.isPending || unassignMutation.isPending}
+      />
     </div>
   );
 }

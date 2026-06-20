@@ -10,16 +10,7 @@ import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import { startAnonymousMode } from "@/lib/anonymous-mode";
 import { loadDemoData } from "@/services/demo-data-service";
-
-const PRODUCTION_APP_ORIGIN = "https://fintracker-phi.vercel.app";
-
-function getRedirectOrigin() {
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-    return window.location.origin;
-  }
-
-  return PRODUCTION_APP_ORIGIN;
-}
+import { getRedirectOrigin } from "@/lib/app-origin";
 
 type LoginProps = {
   /** Wird aufgerufen, wenn der Nutzer den anonymen Modus startet (Issue #28). */

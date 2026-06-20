@@ -1,3 +1,9 @@
+/**
+ * Internes Dev-/Diagnose-Tool (Audit D/E): zeigt Performance-Metriken,
+ * Speicher- und Storage-Statistiken. Bewusst NICHT in der Hauptnavigation;
+ * erreichbar nur als Abschnitt in den Einstellungen. Die alte Route
+ * `/performance` leitet auf `/settings` um.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, Zap, Database, Monitor, Clock, Trash2, Download } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

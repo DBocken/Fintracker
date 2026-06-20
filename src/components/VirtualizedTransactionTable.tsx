@@ -1,3 +1,9 @@
+/**
+ * @deprecated Performance-Iteration, aktuell NICHT in Verwendung (Audit D).
+ * Das Dashboard nutzt `TransactionTable` (Desktop) + `TransactionListMobile`.
+ * Diese virtualisierte Variante bleibt als Basis für sehr große Datensätze
+ * erhalten; vor erneutem Einsatz Strategie mit den anderen Tabellen klären.
+ */
 import { useState, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Checkbox } from '@/components/ui/checkbox';

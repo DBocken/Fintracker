@@ -65,6 +65,13 @@ module.exports = {
         },
         positive: "hsl(var(--positive))",
         warning: "hsl(var(--warning))",
+        status: {
+          critical: "hsl(var(--status-critical))",
+          weak: "hsl(var(--status-weak))",
+          mid: "hsl(var(--status-mid))",
+          good: "hsl(var(--status-good))",
+          excellent: "hsl(var(--status-excellent))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar))",
           foreground: "hsl(var(--sidebar-foreground))",
