@@ -19,7 +19,7 @@ import { useGentleMode } from "@/components/providers/GentleModeProvider";
 export default function CoachPage() {
   const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview"], queryFn: getCoachOverview });
-  const { data: health, isLoading: healthLoading } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
+  const { data: health } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
   const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones"], queryFn: evaluateMilestones });
 
   // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
@@ -37,11 +37,7 @@ export default function CoachPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
-        {healthLoading ? (
-          <Skeleton className="h-48 w-full rounded-2xl" />
-        ) : health ? (
-          <FinancialLandscape health={health} />
-        ) : null}
+        <FinancialLandscape health={health} />
         <FinanceEmptyState />
       </div>
     );
@@ -51,11 +47,7 @@ export default function CoachPage() {
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
-      {healthLoading ? (
-        <Skeleton className="h-48 w-full rounded-2xl" />
-      ) : health ? (
-        <FinancialLandscape health={health} />
-      ) : null}
+      <FinancialLandscape health={health} />
       {coachLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
       ) : coach && health ? (
