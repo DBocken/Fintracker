@@ -518,6 +518,7 @@ export function Dashboard() {
           <div className="md:hidden">
             <TransactionListMobile
               transactions={sortedTransactions}
+              categories={cats}
               selected={selected}
               hiddenTransactions={hiddenTransactions}
               onSelect={handleSelect}
