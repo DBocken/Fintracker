@@ -47,12 +47,19 @@ export default function CoachPage() {
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
-      <FinancialLandscape health={health} />
-      {coachLoading ? (
-        <Skeleton className="h-36 w-full rounded-2xl" />
-      ) : coach && health ? (
-        <HealthScoreCard health={health} />
-      ) : null}
+      {/* Side-by-side: portrait landscape left, score right */}
+      <div className="flex gap-4 items-start">
+        <div className="w-40 shrink-0 sm:w-52">
+          <FinancialLandscape health={health} />
+        </div>
+        <div className="flex-1 min-w-0">
+          {coachLoading ? (
+            <Skeleton className="h-36 w-full rounded-2xl" />
+          ) : coach && health ? (
+            <HealthScoreCard health={health} />
+          ) : null}
+        </div>
+      </div>
 
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
