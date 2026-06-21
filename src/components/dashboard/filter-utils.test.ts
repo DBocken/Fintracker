@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { filterTransactions, getDashboardDateRange, type DashboardFilterState } from "./filter-utils";
+import {
+  filterTransactions,
+  getDashboardDateRange,
+  encodeDashboardFilters,
+  decodeDashboardFilters,
+  type DashboardFilterState,
+} from "./filter-utils";
 import { DEFAULT_DASHBOARD_FILTERS } from "./filter-constants";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import type { ContractDecision } from "@/services/contract-decision-service";
@@ -114,5 +120,57 @@ describe("Vertragsfilter über zentrale Vertragsauflösung", () => {
     const decisions = decisionMap([rewe, "active"]);
     const result = filterTransactions([netflix, rewe], cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW, decisions);
     expect(result.map((t) => t.id).sort()).toEqual(["n1", "r1"]);
+  });
+});
+
+describe("Filter-URL Encode/Decode (Audit P1.3)", () => {
+  const base: DashboardFilterState = {
+    category: "all",
+    account: "all",
+    contract: "all",
+    essential: "all",
+    ausgabenklasse: "all",
+    search: "",
+    range: "Gesamt",
+    customDays: 30,
+  };
+
+  it("kodiert nur abweichende Werte (Defaults bleiben leer)", () => {
+    expect(encodeDashboardFilters(base).toString()).toBe("");
+  });
+
+  it("Round-Trip erhält gesetzte Filter", () => {
+    const filters: DashboardFilterState = {
+      ...base,
+      category: "cat-1",
+      account: "acc-1",
+      contract: "vertrag",
+      ausgabenklasse: "essenziell",
+      search: "Aldi",
+      range: "30 Tage",
+    };
+    const decoded = decodeDashboardFilters(encodeDashboardFilters(filters));
+    expect(decoded).toMatchObject({
+      category: "cat-1",
+      account: "acc-1",
+      contract: "vertrag",
+      ausgabenklasse: "essenziell",
+      search: "Aldi",
+      range: "30 Tage",
+    });
+  });
+
+  it("kodiert customDays nur bei benutzerdefiniertem Zeitraum", () => {
+    const custom = encodeDashboardFilters({ ...base, range: "Benutzerdefiniert", customDays: 45 });
+    expect(custom.get("range")).toBe("custom");
+    expect(custom.get("days")).toBe("45");
+    const decoded = decodeDashboardFilters(custom);
+    expect(decoded.range).toBe("Benutzerdefiniert");
+    expect(decoded.customDays).toBe(45);
+  });
+
+  it("fällt bei unbekanntem Range-Token auf Gesamt zurück", () => {
+    const decoded = decodeDashboardFilters(new URLSearchParams("range=xyz"));
+    expect(decoded.range).toBe("Gesamt");
   });
 });

@@ -142,3 +142,51 @@ export function filterTransactions(
     return true;
   });
 }
+
+/**
+ * URL-Übergabe der Dashboard-Filter an die Buchungsseite (Audit P1.3): das
+ * Dashboard zeigt nur eine Vorschau und verlinkt mit den aktiven Filtern auf
+ * `/transactions`. Encode/Decode sind symmetrisch und kodieren nur Werte, die
+ * vom Default abweichen, damit die URL kurz und der Zurück-Button sinnvoll bleibt.
+ */
+const RANGE_TO_TOKEN: Record<DashboardRange, string> = {
+  Gesamt: 'all',
+  '7 Tage': '7d',
+  '30 Tage': '30d',
+  '90 Tage': '90d',
+  '6 Monate': '6m',
+  '1 Jahr': '1y',
+  Benutzerdefiniert: 'custom',
+};
+const TOKEN_TO_RANGE: Record<string, DashboardRange> = Object.fromEntries(
+  Object.entries(RANGE_TO_TOKEN).map(([range, token]) => [token, range as DashboardRange]),
+) as Record<string, DashboardRange>;
+
+export function encodeDashboardFilters(filters: DashboardFilterState): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.category !== 'all') params.set('cat', filters.category);
+  if (filters.account !== 'all') params.set('acc', filters.account);
+  if (filters.contract !== 'all') params.set('contract', filters.contract);
+  if (filters.essential !== 'all') params.set('essential', filters.essential);
+  if (filters.ausgabenklasse !== 'all') params.set('klasse', filters.ausgabenklasse);
+  if (filters.search.trim()) params.set('q', filters.search.trim());
+  if (filters.range !== 'Gesamt') params.set('range', RANGE_TO_TOKEN[filters.range]);
+  if (filters.range === 'Benutzerdefiniert' && filters.customDays) params.set('days', String(filters.customDays));
+  return params;
+}
+
+export function decodeDashboardFilters(params: URLSearchParams): DashboardFilterState {
+  const rangeToken = params.get('range');
+  const range = (rangeToken && TOKEN_TO_RANGE[rangeToken]) || 'Gesamt';
+  const days = Number(params.get('days'));
+  return {
+    category: params.get('cat') ?? 'all',
+    account: params.get('acc') ?? 'all',
+    contract: (params.get('contract') as ContractFilter) ?? 'all',
+    essential: (params.get('essential') as EssentialFilter) ?? 'all',
+    ausgabenklasse: (params.get('klasse') as AusgabenklasseFilter) ?? 'all',
+    search: params.get('q') ?? '',
+    range,
+    customDays: Number.isFinite(days) && days > 0 ? days : 30,
+  };
+}

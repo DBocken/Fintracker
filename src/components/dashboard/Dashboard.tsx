@@ -38,7 +38,7 @@ import {
   type EssentialFilter,
   type AusgabenklasseFilter,
 } from './filter-constants';
-import { filterTransactions, getDashboardGranularity } from './filter-utils';
+import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from './filter-utils';
 import AnalysisModePanel from './AnalysisModePanel';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
@@ -294,6 +294,24 @@ export function Dashboard() {
     });
   }, [visibleTransactions, sortConfig]);
 
+  // Dashboard zeigt nur eine Vorschau (Audit P1.3); die vollständige Verwaltung
+  // lebt auf /transactions. Die CTA übergibt die aktiven Filter per URL.
+  const previewTransactions = useMemo(() => sortedTransactions.slice(0, 5), [sortedTransactions]);
+  const transactionsLink = useMemo(() => {
+    const params = encodeDashboardFilters({
+      category: _filterCat,
+      account: _filterAccount,
+      contract: filterContract,
+      essential: filterEssential,
+      ausgabenklasse: filterAusgabenklasse,
+      search: searchInput,
+      range,
+      customDays,
+    });
+    const qs = params.toString();
+    return qs ? `/transactions?${qs}` : '/transactions';
+  }, [_filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays]);
+
   const stats = useMemo(() => {
     const flowTransactions = visibleTransactions.filter(t => !t.is_transfer);
 
@@ -434,7 +452,7 @@ export function Dashboard() {
 
       <Card className="card-premium">
         <CardHeader>
-          <CardTitle>Transaktionen</CardTitle>
+          <CardTitle>Letzte Buchungen</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <BulkActions
@@ -513,7 +531,7 @@ export function Dashboard() {
           </Dialog>
 
           <TransactionTable
-            transactions={sortedTransactions}
+            transactions={previewTransactions}
             categories={cats}
             selected={selected}
             hiddenTransactions={hiddenTransactions}
@@ -528,7 +546,7 @@ export function Dashboard() {
 
           <div className="md:hidden">
             <TransactionListMobile
-              transactions={sortedTransactions}
+              transactions={previewTransactions}
               categories={cats}
               selected={selected}
               hiddenTransactions={hiddenTransactions}
@@ -536,7 +554,18 @@ export function Dashboard() {
               onOpenDetails={handleOpenDetails}
             />
           </div>
-          
+
+          {sortedTransactions.length > 0 && (
+            <Button asChild variant="outline" className="w-full justify-center">
+              <Link to={transactionsLink}>
+                {sortedTransactions.length > previewTransactions.length
+                  ? `Alle ${sortedTransactions.length} Buchungen anzeigen`
+                  : 'Alle Buchungen anzeigen'}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+
           {sortedTransactions.length === 0 && txs.length > 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <div>
