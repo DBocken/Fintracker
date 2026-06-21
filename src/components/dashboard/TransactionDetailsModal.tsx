@@ -12,6 +12,8 @@ import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { Users } from 'lucide-react';
+import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
   RHYTHMUS_OPTIONS,
   ausgabenklasseLabel,
@@ -28,8 +30,17 @@ interface TransactionDetailsModalProps {
   transaction: Transaction | null;
   categories: Category[];
   accounts: Account[];
-  /** Persistiert das Minimal-Diff der bearbeiteten Felder. */
-  onSave: (id: string, patch: Partial<Transaction>) => void;
+  /** Gesamtbestand, um gleichartige Buchungen (Familie) zu finden. */
+  allTransactions?: Transaction[];
+  /**
+   * Persistiert das Minimal-Diff der bearbeiteten Felder. `options.applyToSimilar`
+   * gibt an, ob die Änderung auf die übrigen Buchungen der Familie übertragen wird.
+   */
+  onSave: (
+    id: string,
+    patch: Partial<Transaction>,
+    options: { applyToSimilar: boolean; similarIds: string[] },
+  ) => void;
   onToggleVisibility?: (id: string) => void;
   onDelete?: (id: string) => void;
   isHidden?: boolean;
@@ -44,12 +55,14 @@ export function TransactionDetailsModal({
   transaction,
   categories,
   accounts,
+  allTransactions = [],
   onSave,
   onToggleVisibility,
   onDelete,
   isHidden = false,
   isLoading = false,
 }: TransactionDetailsModalProps) {
+  const [applyToSimilar, setApplyToSimilar] = useState(true);
   const [isDesktop, setIsDesktop] = useState(true);
 
   useEffect(() => {
@@ -68,10 +81,20 @@ export function TransactionDetailsModal({
   useEffect(() => {
     if (transaction && open) {
       setDraft(draftFromTransaction(transaction));
+      setApplyToSimilar(true);
     }
   }, [transaction, open]);
 
+  // Gleichartige Buchungen (Familie) für die Sammeländerung bestimmen.
+  const similar = useMemo(() => {
+    if (!transaction) return { exact: [], probable: [], reason: 'merchant' as const };
+    return findSimilarTransactions(transaction, allTransactions);
+  }, [transaction, allTransactions]);
+
   if (!transaction || !draft) return null;
+
+  const similarIds = similar.exact.map((t) => t.id!).filter(Boolean);
+  const similarCount = similarIds.length;
 
   const account = transaction.account_id ? accountsById.get(transaction.account_id) : null;
   // Ausgabenklasse aus dem Entwurf ableiten, damit sie live auf Kategorie-Wechsel reagiert.
@@ -88,7 +111,10 @@ export function TransactionDetailsModal({
   const handleSave = () => {
     const patch = diffTransactionDraft(transaction, draft);
     if (Object.keys(patch).length > 0 && transaction.id) {
-      onSave(transaction.id, patch);
+      onSave(transaction.id, patch, {
+        applyToSimilar: applyToSimilar && similarCount > 0,
+        similarIds,
+      });
     } else {
       onOpenChange(false);
     }
@@ -153,6 +179,33 @@ export function TransactionDetailsModal({
           <Badge variant={ausgabenklasse ? 'default' : 'secondary'}>{ausgabenklasseLabel(ausgabenklasse)}</Badge>
         </div>
       </div>
+
+      {/* Sammeländerung: auf gleichartige Buchungen anwenden */}
+      {similarCount > 0 && (
+        <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="apply-similar"
+              checked={applyToSimilar}
+              disabled={isLoading}
+              onCheckedChange={(checked) => setApplyToSimilar(checked === true)}
+            />
+            <div className="flex-1">
+              <Label htmlFor="apply-similar" className="flex cursor-pointer items-center gap-1.5 text-sm font-medium">
+                <Users className="h-4 w-4" aria-hidden="true" />
+                Auf ähnliche Transaktionen anwenden
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {similarCount} passende Buchung{similarCount === 1 ? '' : 'en'} werden mitgeändert.
+                {similar.probable.length > 0 && ` (${similar.probable.length} wahrscheinliche ausgenommen)`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Warum gruppiert? {fingerprintReasonLabel(similar.reason)}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Vertragsinformationen */}
       <div className="space-y-3 border-t pt-4">

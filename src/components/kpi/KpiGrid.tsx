@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { KPI_BY_ID, KPI_DEFINITIONS, type KpiComputeInput, type KpiId } from "@/components/kpi/kpis";
 import { KpiCard } from "@/components/kpi/KpiCard";
+import { cn } from "@/lib/utils";
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -24,7 +25,6 @@ type Props = {
 
 export function KpiGrid({ data, order, active }: Props) {
   const isDesktop = useIsDesktop();
-  const limit = isDesktop ? 3 : 1;
 
   const orderedActive = useMemo(() => {
     const byOrder = order.filter((id) => active.includes(id));
@@ -33,7 +33,9 @@ export function KpiGrid({ data, order, active }: Props) {
     return [...byOrder, ...missing];
   }, [order, active]);
 
-  const visible = orderedActive.slice(0, limit);
+  // Desktop zeigt die ersten 3 als Raster; mobil sind ALLE aktiven KPIs in einem
+  // swipebaren Snap-Streifen erreichbar (statt nur einer einzigen Kennzahl).
+  const visible = isDesktop ? orderedActive.slice(0, 3) : orderedActive;
 
   const computed = useMemo(() => {
     const out: Record<string, string> = {};
@@ -46,20 +48,58 @@ export function KpiGrid({ data, order, active }: Props) {
     return out;
   }, [data, visible]);
 
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  if (isDesktop) {
+    return (
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {visible.map((id) => {
+          const def = KPI_BY_ID[id];
+          if (!def) return null;
+          return <KpiCard key={id} label={def.label} value={computed[id] ?? def.format(0)} icon={def.icon} />;
+        })}
+      </div>
+    );
+  }
+
+  const onScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveIndex(Math.max(0, Math.min(idx, visible.length - 1)));
+  };
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-      {visible.map((id) => {
-        const def = KPI_BY_ID[id];
-        if (!def) return null;
-        return (
-          <KpiCard
-            key={id}
-            label={def.label}
-            value={computed[id] ?? def.format(0)}
-            icon={def.icon}
-          />
-        );
-      })}
+    <div className="space-y-2">
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {visible.map((id) => {
+          const def = KPI_BY_ID[id];
+          if (!def) return null;
+          return (
+            <div key={id} className="w-full shrink-0 snap-center">
+              <KpiCard label={def.label} value={computed[id] ?? def.format(0)} icon={def.icon} />
+            </div>
+          );
+        })}
+      </div>
+      {visible.length > 1 && (
+        <div className="flex justify-center gap-1.5" role="tablist" aria-label="Kennzahlen">
+          {visible.map((id, i) => (
+            <span
+              key={id}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                i === activeIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+              )}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

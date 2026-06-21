@@ -267,11 +267,6 @@ export interface CoachOverview {
   insights: BehaviorInsight[];
 }
 
-export interface HierarchicalCategory extends Category {
-  children?: HierarchicalCategory[];
-  parent?: HierarchicalCategory;
-}
-
 export interface MarketDataProvider {
   name: string;
   type: ProviderType;

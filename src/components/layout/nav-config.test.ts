@@ -28,8 +28,8 @@ describe("NAV_GROUPS (Issue #42)", () => {
 });
 
 describe("getBottomNavItems (Issue #42)", () => {
-  it("liefert genau 4 Kernziele", () => {
-    expect(getBottomNavItems()).toHaveLength(4);
+  it("liefert die 3 mobilen Kernziele (vor dem Mehr-Tab)", () => {
+    expect(getBottomNavItems()).toHaveLength(3);
   });
 
   it("speist sich aus NAV_GROUPS (eine Quelle für Nav, Palette und Bottom-Nav)", () => {
@@ -39,9 +39,9 @@ describe("getBottomNavItems (Issue #42)", () => {
     }
   });
 
-  it("deckt die Kernziele Coach, Schulden, Analyse, Konten ab", () => {
+  it("deckt die Kernziele Heute, Übersicht, Buchungen ab", () => {
     const paths = getBottomNavItems().map((i) => i.path);
-    expect(paths).toEqual(["/coach", "/debts", "/dashboard", "/accounts"]);
+    expect(paths).toEqual(["/coach", "/dashboard", "/transactions"]);
   });
 
   it("trägt kompakte Tab-Beschriftungen", () => {

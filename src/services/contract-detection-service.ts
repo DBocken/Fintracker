@@ -3,6 +3,7 @@ import type { Transaction, Rhythmus } from "@/types";
 import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
 import { mapCycleToRhythmus } from "@/components/contracts/contract-types";
 import { getTransactions, updateTransaction, type TransactionUpdate } from "./transaction-service";
+import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 
 /**
  * Detects recurring transactions with equal amounts and identifies price increases.
@@ -78,12 +79,17 @@ export async function detectRecurringTransactions(): Promise<ContractRow[]> {
       amountLast: lastAmount,
       cycle,
       lastDateISO: lastTxn.date,
+      firstDateISO: sorted[0].date,
       nextDateISO: nextDate?.toISOString().split("T")[0] || null,
       changed,
       changeAmount,
       changeSinceLabel: changed ? `Geändert zu ${lastAmount.toFixed(2)}€` : null,
       confirmed: sorted.some((t) => t.is_contract === true),
       transactionIds: sorted.map((t) => t.id || "").filter(Boolean),
+      fingerprint: merchantFingerprint(lastTxn),
+      status: sorted.some((t) => t.is_contract === true) ? "active" : "candidate",
+      stale: false,
+      cycleKnown: cycle !== "Unbekannt",
     });
   }
 

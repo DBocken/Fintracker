@@ -20,14 +20,16 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { TransactionDetailsModal } from './TransactionDetailsModal';
+import DashboardMobileStory from './DashboardMobileStory';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
-import { applyContractToSimilar } from '../../services/contract-detection-service';
 import { getAccounts } from '../../services/account-service';
+import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
+import { usePersistedSet } from '@/hooks/usePersistedSet';
 import {
   DEFAULT_DASHBOARD_FILTERS,
   type ContractFilter,
@@ -108,7 +110,7 @@ export function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
-  const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
+  const [hiddenTransactions, toggleHiddenTransaction] = usePersistedSet('dashboard_hidden_transactions');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -126,40 +128,10 @@ export function Dashboard() {
     },
   });
 
-  const detailsMutation = useMutation<
-    { propagated: number },
-    Error,
-    { id: string; patch: Partial<Transaction>; transaction: Transaction }
-  >({
-    mutationFn: async ({ id, patch, transaction }) => {
-      await updateTransaction([{ id, ...patch }]);
-      // Vertrags-Markierung auf gleichartige Buchungen übertragen: wird eine
-      // Transaktion als Vertrag (de)markiert, ziehen Payee-/Betrags-gleiche mit.
-      let propagated = 0;
-      if (patch.is_contract !== undefined) {
-        const cycle = patch.contract_cycle ?? transaction.contract_cycle ?? null;
-        propagated = await applyContractToSimilar(
-          { payee: transaction.payee, amount: transaction.amount },
-          patch.is_contract,
-          cycle
-        );
-      }
-      return { propagated };
-    },
-    onSuccess: ({ propagated }) => {
-      qc.invalidateQueries({ queryKey: ['transactions'] });
-      qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
-      if (propagated > 1) {
-        toast.success(`Vertrag erkannt: ${propagated} gleichartige Buchungen markiert`);
-      } else {
-        toast.success('Transaktion aktualisiert');
-      }
-      setDetailsOpen(false);
-    },
-    onError: (error) => {
-      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
-    },
-  });
+  const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(
+    txs,
+    () => setDetailsOpen(false),
+  );
 
   const deleteMutation = useMutation<void, Error, string>({
     mutationFn: deleteTransaction,
@@ -216,10 +188,13 @@ export function Dashboard() {
     setDetailsOpen(true);
   }, []);
 
-  const handleSaveDetails = useCallback((id: string, patch: Partial<Transaction>) => {
-    if (!detailsTransaction) return;
-    detailsMutation.mutate({ id, patch, transaction: detailsTransaction });
-  }, [detailsMutation, detailsTransaction]);
+  const handleSaveDetails = useCallback(
+    (id: string, patch: Partial<Transaction>, options: { applyToSimilar: boolean; similarIds: string[] }) => {
+      if (!detailsTransaction) return;
+      saveDetails(detailsTransaction, id, patch, options);
+    },
+    [saveDetails, detailsTransaction],
+  );
 
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {
@@ -246,16 +221,8 @@ export function Dashboard() {
   }, []);
 
   const handleToggleVisibility = useCallback((id: string) => {
-    setHiddenTransactions(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+    toggleHiddenTransaction(id);
+  }, [toggleHiddenTransaction]);
 
   const handleResetFilters = useCallback(() => {
     _setFilterCat(DEFAULT_DASHBOARD_FILTERS.category);
@@ -411,30 +378,45 @@ export function Dashboard() {
 
       <KpiSection data={{ transactions: visibleTransactions }} />
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-8">
-          <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
-        </div>
-        <div className="xl:col-span-4">
-          <SpendingBreakdownCard sunburst={stats.sunburst} />
-        </div>
-        <div className="xl:col-span-7">
-          <ExpensesOverTimeCard series={stats.series} />
-        </div>
-        <div className="xl:col-span-5">
-          <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
-        </div>
-      </div>
+      {/* Mobile: Finanz-Story mit adressierbaren Ansichten (Audit P1.4) */}
+      <DashboardMobileStory
+        className="lg:hidden"
+        currentBalance={stats.currentBalance}
+        periodNet={stats.balance}
+        sunburst={stats.sunburst}
+        series={stats.series}
+        sankeyData={sankeyData}
+        effectiveBalances={effectiveBalances}
+        totalEffectiveBalance={totalEffectiveBalance}
+      />
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
-          <p className="text-xs text-muted-foreground">
-            Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
-          </p>
+      {/* Desktop: bisheriges Raster + Cashflow */}
+      <div className="hidden lg:block space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
+          </div>
+          <div className="xl:col-span-4">
+            <SpendingBreakdownCard sunburst={stats.sunburst} />
+          </div>
+          <div className="xl:col-span-7">
+            <ExpensesOverTimeCard series={stats.series} />
+          </div>
+          <div className="xl:col-span-5">
+            <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
+          </div>
         </div>
-        <SankeyChart data={sankeyData} enableDrilldown={false} />
-      </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
+            <p className="text-xs text-muted-foreground">
+              Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
+            </p>
+          </div>
+          <SankeyChart data={sankeyData} enableDrilldown={false} />
+        </section>
+      </div>
 
       <Card className="card-premium">
         <CardHeader>
@@ -596,11 +578,12 @@ export function Dashboard() {
         transaction={detailsTransaction}
         categories={cats}
         accounts={accounts}
+        allTransactions={txs}
         onSave={handleSaveDetails}
         onToggleVisibility={handleToggleVisibility}
         onDelete={handleDelete}
         isHidden={detailsTransaction?.id ? hiddenTransactions.has(detailsTransaction.id) : false}
-        isLoading={detailsMutation.isPending}
+        isLoading={detailsSaving}
       />
     </div>
   );
