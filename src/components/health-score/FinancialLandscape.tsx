@@ -4,6 +4,14 @@ import type { FinancialHealth } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   getStatusBucket,
   getStatusStage,
   statusColorVar,
@@ -67,30 +75,47 @@ export default function FinancialLandscape({ health, variant = "hero", className
   const { enabled: gentleMode } = useGentleMode();
   const reduce = useReducedMotion();
 
-  // Kompakter, interaktiver Statusstreifen (Audit C-P0/F): mobil-first,
-  // erzwingt kein 9:16-Bild über dem Fold.
+  // Kompakter, interaktiver Status-Raster (Audit C-P0/F): mobil-first, kein
+  // horizontales Scrollen mehr. Jede Kachel ist ein vollwertiges Touch-Ziel und
+  // öffnet ein Bottom-Sheet mit Erklärung und Status (Progressive Disclosure).
   if (variant === "strip") {
+    const subs = (health?.subScores ?? []).filter((s) => METRICS[s.key]);
     return (
-      <div className={cn("flex gap-2 overflow-x-auto pb-1", className)}>
-        {(health?.subScores ?? []).map((s) => {
+      <div className={cn("grid grid-cols-3 gap-2 sm:grid-cols-5", className)}>
+        {subs.map((s) => {
           const meta = METRICS[s.key];
-          if (!meta) return null;
           const bucket = getStatusBucket(s.score);
           return (
-            <div
-              key={s.key}
-              className="flex min-w-[88px] flex-1 shrink-0 flex-col items-center gap-1 rounded-xl border bg-card p-2 text-center shadow-sm"
-            >
-              <span className="text-lg leading-none" aria-hidden>{meta.emoji}</span>
-              <span className="text-[11px] font-medium leading-tight text-muted-foreground">{meta.label}</span>
-              <span
-                className="text-sm font-bold leading-none"
-                style={{ color: statusColorVar(bucket) }}
-                title={statusLabel(bucket)}
-              >
-                {gentleMode ? "••" : s.score}
-              </span>
-            </div>
+            <Sheet key={s.key}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="flex min-h-[44px] flex-col items-center gap-1 rounded-xl border bg-card p-2 text-center shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="text-lg leading-none" aria-hidden>{meta.emoji}</span>
+                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">{meta.label}</span>
+                  <span
+                    className="text-sm font-bold leading-none"
+                    style={{ color: statusColorVar(bucket) }}
+                  >
+                    {gentleMode ? "••" : s.score}
+                  </span>
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <span aria-hidden>{meta.emoji}</span>
+                    {meta.label}
+                  </SheetTitle>
+                  <SheetDescription>
+                    Status: <span style={{ color: statusColorVar(bucket) }}>{statusLabel(bucket)}</span>
+                    {!gentleMode && ` · ${s.score}/100`}
+                  </SheetDescription>
+                </SheetHeader>
+                <p className="mt-4 text-sm text-muted-foreground">{s.explanation}</p>
+              </SheetContent>
+            </Sheet>
           );
         })}
       </div>
