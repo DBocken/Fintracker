@@ -131,7 +131,12 @@ class TransactionStorageService {
    */
   async deleteTransaction(id: string): Promise<StorageResult<void>> {
     try {
-      return await this.deleteLocalTransaction(id);
+      const result = await this.deleteLocalTransaction(id);
+      // Aufteilungen sind kontoneutrale Kategoriedaten der Buchung und werden
+      // mitgelöscht, damit keine verwaisten Aufteilungen zurückbleiben.
+      const { deleteAllocationsForTransactions } = await import('./transaction-allocation-service');
+      await deleteAllocationsForTransactions([id]);
+      return result;
     } catch (error) {
       console.error('[TransactionStorage] Error deleting transaction:', error);
       return {

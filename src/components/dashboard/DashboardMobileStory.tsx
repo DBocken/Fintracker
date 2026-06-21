@@ -1,24 +1,47 @@
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Activity, Waypoints, PieChart, Wallet, HeartPulse, Trophy, ArrowRight } from "lucide-react";
+import { Activity, Waypoints, PieChart, Mountain, Wallet, CreditCard, HeartPulse, Trophy, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdvancedBalanceChart } from "@/components/AdvancedBalanceChart";
 import { SpendingBreakdownCard, ExpensesOverTimeCard } from "./TransactionCharts";
 import { AccountCards } from "@/components/accounts/AccountCards";
 import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
+import FinancialLandscape from "@/components/health-score/FinancialLandscape";
+import { getFinancialHealth } from "@/services/financial-health-service";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 
 const euro = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
-type StoryView = "verlauf" | "fluss" | "kategorien" | "ausgaben" | "konten";
+type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
 const VIEWS: { key: StoryView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "verlauf", label: "Verlauf", icon: Activity },
   { key: "fluss", label: "Fluss", icon: Waypoints },
   { key: "kategorien", label: "Kategorien", icon: PieChart },
+  { key: "landschaft", label: "Landschaft", icon: Mountain },
   { key: "ausgaben", label: "Ausgaben", icon: Wallet },
-  { key: "konten", label: "Konten", icon: Wallet },
+  { key: "konten", label: "Konten", icon: CreditCard },
 ];
+
+/** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
+function LandscapeView() {
+  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
+  if (isLoading) {
+    return <div className="h-40 animate-pulse rounded-xl bg-muted" aria-busy />;
+  }
+  if (!health || health.subScores.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-4 text-sm text-muted-foreground">
+          Noch keine Finanzgesundheit berechnet. Erfasse Konten und Buchungen, um deine Landschaft zu sehen.
+        </CardContent>
+      </Card>
+    );
+  }
+  return <FinancialLandscape health={health} variant="strip" />;
+}
 
 interface Props {
   className?: string;
@@ -59,6 +82,7 @@ export default function DashboardMobileStory({
     setParams(next, { replace: true });
   };
 
+  const reduce = useReducedMotion();
   const touchStartX = useRef<number | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
@@ -93,8 +117,8 @@ export default function DashboardMobileStory({
         </CardContent>
       </Card>
 
-      {/* Ansicht-Navigation (Icons) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Ansicht-Navigation: vollständig sichtbares Icon-Raster, kein horizontales Scrollen */}
+      <div className="grid grid-cols-6 gap-1" role="tablist" aria-label="Diagramm-Ansicht">
         {VIEWS.map((v) => {
           const Icon = v.icon;
           const active = v.key === current;
@@ -102,25 +126,27 @@ export default function DashboardMobileStory({
             <button
               key={v.key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setView(v.key)}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors",
-                active ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"
+                "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-[10px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active ? "border-primary bg-primary/10 text-primary" : "border-transparent text-muted-foreground"
               )}
-              aria-pressed={active}
             >
-              <Icon className="h-3.5 w-3.5" />
-              {v.label}
+              <Icon className="h-4 w-4" />
+              <span className="truncate">{v.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Aktive Ansicht – eine Hauptaussage pro Bildschirm */}
+      {/* Aktive Ansicht – eine Hauptaussage pro Bildschirm, erst beim Anzeigen gerendert */}
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="min-h-[60vh]">
         {current === "verlauf" && <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />}
         {current === "fluss" && <SankeyChart data={sankeyData} enableDrilldown={false} />}
         {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} />}
+        {current === "landschaft" && <LandscapeView />}
         {current === "ausgaben" && <ExpensesOverTimeCard series={series} />}
         {current === "konten" && <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />}
       </div>
@@ -130,7 +156,7 @@ export default function DashboardMobileStory({
         {VIEWS.map((v, i) => (
           <span
             key={v.key}
-            className={cn("h-1.5 rounded-full transition-all", i === index ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30")}
+            className={cn("h-1.5 rounded-full", !reduce && "transition-all", i === index ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30")}
           />
         ))}
       </div>

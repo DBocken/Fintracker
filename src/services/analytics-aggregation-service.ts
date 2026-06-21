@@ -44,7 +44,7 @@ function monthOf(date: string): string {
 }
 
 function mapCategoryGroup(category?: Category): string {
-  const name = `${category?.name || ''} ${(category?.attributes as any)?.tags?.join(' ') || ''}`.toLowerCase();
+  const name = `${category?.name || ''} ${(category?.attributes?.tags ?? []).join(' ')}`.toLowerCase();
   if (/lebensmittel|supermarkt|essen|food|grocery|restaurant/.test(name)) return 'lebensmittel';
   if (/wohnen|miete|strom|gas|energie|nebenkosten/.test(name)) return 'wohnen';
   if (/mobil|auto|bahn|transport|tanken|flug/.test(name)) return 'mobilitaet';

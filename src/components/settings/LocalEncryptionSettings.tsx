@@ -31,8 +31,8 @@ export function LocalEncryptionSettings() {
       setPassword('');
       setConfirm('');
       showSuccess('Lokale Verschlüsselung aktiviert');
-    } catch (e: any) {
-      showError(e?.message || 'Aktivierung fehlgeschlagen');
+    } catch (e: unknown) {
+      showError((e as Error)?.message || 'Aktivierung fehlgeschlagen');
     } finally {
       setBusy(false);
     }
@@ -45,8 +45,8 @@ export function LocalEncryptionSettings() {
       await unlock(password);
       setPassword('');
       showSuccess('Sync-Datei entsperrt');
-    } catch (e: any) {
-      showError(e?.message || 'Entsperren fehlgeschlagen');
+    } catch (e: unknown) {
+      showError((e as Error)?.message || 'Entsperren fehlgeschlagen');
     } finally {
       setBusy(false);
     }
@@ -60,8 +60,8 @@ export function LocalEncryptionSettings() {
       setPassword('');
       setConfirm('');
       showSuccess('Lokale Verschlüsselung deaktiviert');
-    } catch (e: any) {
-      showError(e?.message || 'Deaktivierung fehlgeschlagen');
+    } catch (e: unknown) {
+      showError((e as Error)?.message || 'Deaktivierung fehlgeschlagen');
     } finally {
       setBusy(false);
     }

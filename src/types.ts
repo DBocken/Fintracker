@@ -62,6 +62,34 @@ export interface Transaction {
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+/** Herkunft einer Transaktionsaufteilung. */
+export type AllocationSource = 'manual' | 'receipt' | 'trackerverse';
+
+/**
+ * Aufteilung einer Transaktion auf mehrere Kategorien (Split-Buchung).
+ *
+ * Beträge in Cent (Integer, gleiches Vorzeichen wie `Transaction.amount`).
+ * Aufteilungen sind kontoneutral: der Kontostand nutzt ausschließlich den
+ * Originalbetrag der Transaktion – Aufteilungen erzeugen keine zusätzlichen
+ * kontowirksamen Buchungen. Kategorie-Analysen verwenden Aufteilungen, sofern
+ * vorhanden, sonst die Kategorie der Transaktion selbst. Die Summe aller
+ * Aufteilungen entspricht exakt dem Betrag der Originalbuchung (cent-genau).
+ */
+export interface TransactionAllocation {
+  id: string;
+  transaction_id: string;
+  /** Teilbetrag in Cent (Integer). */
+  amount_minor: number;
+  category_id: string | null;
+  subcategory_id?: string | null;
+  label?: string | null;
+  source: AllocationSource;
+  /** Herkunfts-ID bei automatischen Quellen (Beleg-Zeile, Trackerverse-Event). */
+  external_origin_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
 export type Prioritaet = 'essential' | 'normal' | 'nice';
 export type Zahlungsweg = 'giro' | 'credit' | 'paypal' | 'cash';
 
@@ -281,7 +309,7 @@ export interface Portfolio {
   user_id: string;
   name: string;
   type: 'etoro' | 'manual' | 'demo';
-  provider_config?: Record<string, any>;
+  provider_config?: Record<string, unknown>;
   currency: string;
   is_active: boolean;
   created_at?: string;
@@ -297,7 +325,7 @@ export interface PortfolioPosition {
   entry_price: number;
   currency: string;
   exchange?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   last_price?: number;
   last_price_at?: string;
   created_at?: string;

@@ -37,8 +37,8 @@ export default function UnlockPage() {
     try {
       await unlock(password)
       navigate(nextPath, { replace: true })
-    } catch (e: any) {
-      setError(e?.message || 'Entsperren fehlgeschlagen')
+    } catch (e: unknown) {
+      setError((e as Error)?.message || 'Entsperren fehlgeschlagen')
     } finally {
       setBusy(false)
     }

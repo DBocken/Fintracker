@@ -32,10 +32,11 @@ export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
     };
   }
 
+  const row = data as Record<string, unknown>;
   return {
-    ...(data as any),
-    allowed_data_classes: Array.isArray((data as any).allowed_data_classes)
-      ? (data as any).allowed_data_classes
+    ...row,
+    allowed_data_classes: Array.isArray(row.allowed_data_classes)
+      ? row.allowed_data_classes as string[]
       : DEFAULT_ALLOWED_CLASSES,
   } as AnalyticsConsent;
 }

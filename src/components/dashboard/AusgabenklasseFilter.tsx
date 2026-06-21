@@ -49,7 +49,7 @@ export function AusgabenklasseFilterComponent({
             <div className="flex items-center gap-2">
               <span
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getAusgabenklasseColor(klasse as any) }}
+                style={{ backgroundColor: getAusgabenklasseColor(klasse as import('@/types').Ausgabenklasse) }}
                 aria-hidden="true"
               />
               <span>{label}</span>

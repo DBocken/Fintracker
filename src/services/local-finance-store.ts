@@ -14,6 +14,7 @@ export const LOCAL_FINANCE_KEYS = {
   schufareminders: 'ausgabentracker_schufareminders_v1',
   merchantRules: 'ausgabentracker_merchant_rules_v1',
   contractDecisions: 'ausgabentracker_contract_decisions_v1',
+  transactionAllocations: 'ausgabentracker_transaction_allocations_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
@@ -53,8 +54,8 @@ export async function upsertLocalFinanceItem<T extends { id?: string }>(
   const nextItem = {
     ...item,
     id,
-    updated_at: (item as any).updated_at ?? now,
-    created_at: (item as any).created_at ?? now,
+    updated_at: (item as T & { updated_at?: string }).updated_at ?? now,
+    created_at: (item as T & { created_at?: string }).created_at ?? now,
   } as T & { id: string };
 
   const index = items.findIndex((entry) => entry.id === id);

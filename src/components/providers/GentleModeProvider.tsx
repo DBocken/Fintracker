@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
 
@@ -35,15 +35,15 @@ export default function GentleModeProvider({ children }: { children: React.React
     localStorage.setItem("gentleMode", enabled ? "true" : "false");
   }, [enabled]);
 
-  const toggle = async () => {
+  const toggle = useCallback(async () => {
     try {
       await updateUserSettings({ gentle_mode: !enabled });
     } catch (error) {
       console.error("Failed to toggle gentle mode:", error);
     }
-  };
+  }, [enabled]);
 
-  const value = useMemo(() => ({ enabled, toggle }), [enabled]);
+  const value = useMemo(() => ({ enabled, toggle }), [enabled, toggle]);
 
   return (
     <GentleModeContext.Provider value={value}>

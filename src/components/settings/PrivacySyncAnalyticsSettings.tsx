@@ -85,7 +85,8 @@ export function PrivacySyncAnalyticsSettings() {
     };
   }, []);
 
-  const syncPaths = useMemo(() => getSyncPaths(), [pathsVersion]);
+  // pathsVersion acts as a cache-bust counter; read it to satisfy exhaustive-deps
+  const syncPaths = useMemo(() => { void pathsVersion; return getSyncPaths(); }, [pathsVersion]);
   const selectedPath = syncPaths[0];
 
   const consentQuery = useQuery({

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -23,11 +23,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const queryClient = useQueryClient();
 
-  // Hilfsfunktion: Cache + ggf. UI-Zustände zurücksetzen
-  const clearCaches = () => {
-    // Alle Queries/Mutations leeren, damit keine alten Daten angezeigt werden
+  const clearCaches = useCallback(() => {
     queryClient.clear();
-  };
+  }, [queryClient]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       data.subscription.unsubscribe();
       mounted = false;
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, clearCaches]);
 
   return (
     <AuthContext.Provider value={{ session, user, status }}>

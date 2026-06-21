@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { filterTransactions, getDashboardDateRange, type DashboardFilterState } from "./filter-utils";
+import {
+  filterTransactions,
+  getDashboardDateRange,
+  encodeDashboardFilters,
+  decodeDashboardFilters,
+  type DashboardFilterState,
+} from "./filter-utils";
 import { DEFAULT_DASHBOARD_FILTERS } from "./filter-constants";
+import { merchantFingerprint } from "@/lib/merchant-fingerprint";
+import type { ContractDecision } from "@/services/contract-decision-service";
 import type { Account, Category, Transaction } from "@/types";
 
 const NOW = new Date("2024-06-15T12:00:00Z");
@@ -62,5 +70,107 @@ describe("filterTransactions", () => {
   it("gibt bei 'Gesamt' und leerer Suche alle Transaktionen zurück", () => {
     const result = filterTransactions(txs, categories, accounts, baseFilters, NOW);
     expect(result).toHaveLength(3);
+  });
+});
+
+describe("Vertragsfilter über zentrale Vertragsauflösung", () => {
+  function decisionMap(...entries: Array<[Transaction, ContractDecision["status"]]>): Map<string, ContractDecision> {
+    const map = new Map<string, ContractDecision>();
+    entries.forEach(([t, status]) => {
+      map.set(merchantFingerprint(t), {
+        id: crypto.randomUUID(),
+        user_id: "local",
+        fingerprint: merchantFingerprint(t),
+        status,
+      });
+    });
+    return map;
+  }
+
+  const contractCat: Category = { id: "c-abo", name: "Abos", attributes: { ist_vertrag: true } } as Category;
+  const cats = [contractCat];
+
+  const netflix = tx({ id: "n1", date: "2024-06-10", payee: "Netflix", amount: -12.99, category_id: "c-abo" });
+  const rewe = tx({ id: "r1", date: "2024-06-10", payee: "REWE", amount: -40, category_id: null });
+
+  it("zeigt Buchung mit Kategorie ist_vertrag als Vertrag (Legacy ohne Entscheidung)", () => {
+    const result = filterTransactions([netflix, rewe], cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["n1"]);
+  });
+
+  it("blendet einen ausdrücklich beendeten Vertrag aus dem Vertragsfilter aus", () => {
+    const decisions = decisionMap([netflix, "ended"]);
+    const result = filterTransactions([netflix, rewe], cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW, decisions);
+    expect(result.map((t) => t.id)).toEqual([]);
+  });
+
+  it("ein beendeter Vertrag erscheint im 'kein Vertrag'-Filter", () => {
+    const decisions = decisionMap([netflix, "ended"]);
+    const result = filterTransactions([netflix, rewe], cats, accounts, { ...baseFilters, contract: "kein_vertrag" }, NOW, decisions);
+    expect(result.map((t) => t.id).sort()).toEqual(["n1", "r1"]);
+  });
+
+  it("erkennt is_contract auch ohne Kategorie-Attribut als Vertrag", () => {
+    const flagged = tx({ id: "f1", date: "2024-06-10", payee: "Fitness", amount: -29.9, is_contract: true });
+    const result = filterTransactions([flagged, rewe], cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["f1"]);
+  });
+
+  it("eine aktive Entscheidung überstimmt fehlendes Kategorie-Attribut", () => {
+    const decisions = decisionMap([rewe, "active"]);
+    const result = filterTransactions([netflix, rewe], cats, accounts, { ...baseFilters, contract: "vertrag" }, NOW, decisions);
+    expect(result.map((t) => t.id).sort()).toEqual(["n1", "r1"]);
+  });
+});
+
+describe("Filter-URL Encode/Decode (Audit P1.3)", () => {
+  const base: DashboardFilterState = {
+    category: "all",
+    account: "all",
+    contract: "all",
+    essential: "all",
+    ausgabenklasse: "all",
+    search: "",
+    range: "Gesamt",
+    customDays: 30,
+  };
+
+  it("kodiert nur abweichende Werte (Defaults bleiben leer)", () => {
+    expect(encodeDashboardFilters(base).toString()).toBe("");
+  });
+
+  it("Round-Trip erhält gesetzte Filter", () => {
+    const filters: DashboardFilterState = {
+      ...base,
+      category: "cat-1",
+      account: "acc-1",
+      contract: "vertrag",
+      ausgabenklasse: "essenziell",
+      search: "Aldi",
+      range: "30 Tage",
+    };
+    const decoded = decodeDashboardFilters(encodeDashboardFilters(filters));
+    expect(decoded).toMatchObject({
+      category: "cat-1",
+      account: "acc-1",
+      contract: "vertrag",
+      ausgabenklasse: "essenziell",
+      search: "Aldi",
+      range: "30 Tage",
+    });
+  });
+
+  it("kodiert customDays nur bei benutzerdefiniertem Zeitraum", () => {
+    const custom = encodeDashboardFilters({ ...base, range: "Benutzerdefiniert", customDays: 45 });
+    expect(custom.get("range")).toBe("custom");
+    expect(custom.get("days")).toBe("45");
+    const decoded = decodeDashboardFilters(custom);
+    expect(decoded.range).toBe("Benutzerdefiniert");
+    expect(decoded.customDays).toBe(45);
+  });
+
+  it("fällt bei unbekanntem Range-Token auf Gesamt zurück", () => {
+    const decoded = decodeDashboardFilters(new URLSearchParams("range=xyz"));
+    expect(decoded.range).toBe("Gesamt");
   });
 });

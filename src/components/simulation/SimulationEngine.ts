@@ -191,11 +191,11 @@ export class SimulationEngine {
         }
         acc[key].months.add(month);
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, { name: string; amount: number; frequency: 'monthly'; category: string; confidence: number; months: Set<string> }>);
 
     return Object.values(monthlyExpenses)
-      .filter((item: any) => item.months.size >= 3)
-      .map((item: any) => ({
+      .filter((item) => item.months.size >= 3)
+      .map((item) => ({
         name: item.name,
         amount: item.amount,
         frequency: 'monthly' as const,
@@ -222,11 +222,11 @@ export class SimulationEngine {
         }
         acc[key].months.add(month);
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, { name: string; amount: number; frequency: 'monthly'; confidence: number; months: Set<string> }>);
 
     return Object.values(monthlyIncome)
-      .filter((item: any) => item.months.size >= 2)
-      .map((item: any) => ({
+      .filter((item) => item.months.size >= 2)
+      .map((item) => ({
         name: item.name,
         amount: item.amount,
         frequency: 'monthly' as const,
@@ -246,9 +246,9 @@ export class SimulationEngine {
         acc[category].count += 1;
         acc[category].amounts.push(Math.abs(t.amount));
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, { total: number; count: number; amounts: number[] }>);
 
-    return Object.entries(categoryTotals).map(([category, data]: [string, any]) => ({
+    return Object.entries(categoryTotals).map(([category, data]) => ({
       category,
       currentAvg: data.total / data.count,
       amounts: data.amounts
@@ -280,7 +280,7 @@ export class SimulationEngine {
     };
   }
 
-  private applyScenarioAdjustments(variables: any[], scenario: string): VariableExpenseProjection[] {
+  private applyScenarioAdjustments(variables: { category: string; currentAvg: number; amounts: number[] }[], scenario: string): VariableExpenseProjection[] {
     const lowerScenario = scenario.toLowerCase();
     return variables.map(v => {
       let multiplier = 1;

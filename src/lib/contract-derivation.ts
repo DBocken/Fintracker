@@ -227,3 +227,30 @@ export function computeContracts(
 export function isActiveForTotals(row: ContractRow): boolean {
   return row.status === "active" && !row.stale && row.cycleKnown;
 }
+
+/**
+ * Zentrale Vertragsauflösung für eine einzelne Buchung. Single Source of Truth für
+ * Filter, Dashboard und Vertragsübersicht. Reihenfolge der Signale:
+ *   1. Gespeicherte Nutzerentscheidung (ContractDecision) am Händler-Fingerprint –
+ *      eine ausdrücklich beendete/abgelehnte Familie bleibt beendet/abgelehnt, auch
+ *      wenn alte Buchungen oder Kategorie-Attribute etwas anderes nahelegen.
+ *   2. Buchung explizit als Vertrag markiert (is_contract).
+ *   3. Legacy: Kategorie-Attribut ist_vertrag.
+ * Ohne jedes Signal gilt die Buchung als "candidate" (noch kein bestätigter Vertrag).
+ */
+export function resolveContractStatus(
+  transaction: Transaction,
+  decisions: Map<string, ContractDecision>,
+  category?: Category,
+): ContractStatus {
+  const decision = decisions.get(merchantFingerprint(transaction));
+  if (decision) return decision.status;
+  if (transaction.is_contract === true) return "active";
+  if (category?.attributes?.ist_vertrag === true) return "active";
+  return "candidate";
+}
+
+/** Gilt eine Buchung mit diesem Status als (aktueller) Vertrag? */
+export function isContractStatus(status: ContractStatus): boolean {
+  return status === "active" || status === "paused";
+}

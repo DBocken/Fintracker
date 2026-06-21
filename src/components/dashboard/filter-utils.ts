@@ -2,6 +2,8 @@ import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-f
 import type { Account, Category, Transaction } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
+import type { ContractDecision } from '@/services/contract-decision-service';
 
 interface DateRange {
   start: Date;
@@ -68,14 +70,16 @@ function getAccountById(accounts: Account[]): Map<string, Account> {
   return new Map(accounts.map((account) => [account.id, account]));
 }
 
-function matchesContractFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: ContractFilter): boolean {
+function matchesContractFilter(
+  transaction: Transaction,
+  categoriesById: Map<string, Category>,
+  decisions: Map<string, ContractDecision>,
+  filter: ContractFilter,
+): boolean {
   if (filter === 'all') return true;
-  if (!transaction.category_id) return false;
 
-  const category = categoriesById.get(transaction.category_id);
-  if (!category) return false;
-
-  const isContract = category.attributes?.ist_vertrag === true;
+  const category = transaction.category_id ? categoriesById.get(transaction.category_id) : undefined;
+  const isContract = isContractStatus(resolveContractStatus(transaction, decisions, category));
   return filter === 'vertrag' ? isContract : !isContract;
 }
 
@@ -113,6 +117,7 @@ export function filterTransactions(
   accounts: Account[],
   filters: DashboardFilterState,
   now = new Date(),
+  contractDecisions: Map<string, ContractDecision> = new Map(),
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now);
   const search = filters.search.trim().toLowerCase();
@@ -125,7 +130,7 @@ export function filterTransactions(
 
     if (filters.category !== 'all' && transaction.category_id !== filters.category) return false;
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
-    if (!matchesContractFilter(transaction, categoriesById, filters.contract)) return false;
+    if (!matchesContractFilter(transaction, categoriesById, contractDecisions, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
@@ -136,4 +141,52 @@ export function filterTransactions(
 
     return true;
   });
+}
+
+/**
+ * URL-Übergabe der Dashboard-Filter an die Buchungsseite (Audit P1.3): das
+ * Dashboard zeigt nur eine Vorschau und verlinkt mit den aktiven Filtern auf
+ * `/transactions`. Encode/Decode sind symmetrisch und kodieren nur Werte, die
+ * vom Default abweichen, damit die URL kurz und der Zurück-Button sinnvoll bleibt.
+ */
+const RANGE_TO_TOKEN: Record<DashboardRange, string> = {
+  Gesamt: 'all',
+  '7 Tage': '7d',
+  '30 Tage': '30d',
+  '90 Tage': '90d',
+  '6 Monate': '6m',
+  '1 Jahr': '1y',
+  Benutzerdefiniert: 'custom',
+};
+const TOKEN_TO_RANGE: Record<string, DashboardRange> = Object.fromEntries(
+  Object.entries(RANGE_TO_TOKEN).map(([range, token]) => [token, range as DashboardRange]),
+) as Record<string, DashboardRange>;
+
+export function encodeDashboardFilters(filters: DashboardFilterState): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.category !== 'all') params.set('cat', filters.category);
+  if (filters.account !== 'all') params.set('acc', filters.account);
+  if (filters.contract !== 'all') params.set('contract', filters.contract);
+  if (filters.essential !== 'all') params.set('essential', filters.essential);
+  if (filters.ausgabenklasse !== 'all') params.set('klasse', filters.ausgabenklasse);
+  if (filters.search.trim()) params.set('q', filters.search.trim());
+  if (filters.range !== 'Gesamt') params.set('range', RANGE_TO_TOKEN[filters.range]);
+  if (filters.range === 'Benutzerdefiniert' && filters.customDays) params.set('days', String(filters.customDays));
+  return params;
+}
+
+export function decodeDashboardFilters(params: URLSearchParams): DashboardFilterState {
+  const rangeToken = params.get('range');
+  const range = (rangeToken && TOKEN_TO_RANGE[rangeToken]) || 'Gesamt';
+  const days = Number(params.get('days'));
+  return {
+    category: params.get('cat') ?? 'all',
+    account: params.get('acc') ?? 'all',
+    contract: (params.get('contract') as ContractFilter) ?? 'all',
+    essential: (params.get('essential') as EssentialFilter) ?? 'all',
+    ausgabenklasse: (params.get('klasse') as AusgabenklasseFilter) ?? 'all',
+    search: params.get('q') ?? '',
+    range,
+    customDays: Number.isFinite(days) && days > 0 ? days : 30,
+  };
 }

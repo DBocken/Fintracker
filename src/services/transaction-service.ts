@@ -211,7 +211,7 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
       is_transfer: t.is_transfer ?? false,
       transfer_pair_id: t.transfer_pair_id ?? null,
       counterparty_iban: t.counterparty_iban ?? null,
-      csvCategoryName: (t as any).csvCategoryName ?? (t as any).csvcategoryname ?? undefined,
+      csvCategoryName: (t as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvCategoryName ?? (t as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvcategoryname ?? undefined,
     };
   });
 
@@ -408,7 +408,7 @@ export async function saveCategory(category: Partial<Category>): Promise<Categor
     throw new Error('Eine Kategorie mit diesem Namen existiert bereits');
   }
 
-  const payload: any = {
+  const payload: Omit<Category, 'id'> = {
     user_id: uid,
     name: category.name || 'Kategorie',
     color: category.color || '#2e7d72',
@@ -469,7 +469,7 @@ export async function updateCategory(category: Category): Promise<Category> {
     throw new Error('Eine Kategorie mit diesem Namen existiert bereits');
   }
 
-  const payload: any = {
+  const payload: Partial<Category> = {
     name: category.name,
     color: category.color,
     icon: category.icon,
@@ -609,7 +609,7 @@ export async function getUserSettings(): Promise<UserSettings> {
     .single();
 
   // Wenn noch kein Eintrag existiert, mit Defaults anlegen
-  if (error && (error as any).code === 'PGRST116') {
+  if (error && (error as { code?: string }).code === 'PGRST116') {
     const defaultSettings: UserSettings = {
       user_id: uid,
       auto_confirm_mapping: false,
@@ -635,7 +635,7 @@ export async function getUserSettings(): Promise<UserSettings> {
 
   if (error) throw new Error(error.message);
   // Ensure theme has a default
-  const withTheme = { ...(data as UserSettings), theme: (data as any)?.theme ?? 'legacy' };
+  const withTheme = { ...(data as UserSettings), theme: (data as UserSettings)?.theme ?? 'legacy' };
   return withTheme as UserSettings;
 }
 
@@ -657,6 +657,6 @@ export async function updateUserSettings(settings: Partial<UserSettings>): Promi
 
   if (error) throw new Error(error.message);
   // Ensure theme default
-  const withTheme = { ...(data as UserSettings), theme: (data as any)?.theme ?? 'legacy' };
+  const withTheme = { ...(data as UserSettings), theme: (data as UserSettings)?.theme ?? 'legacy' };
   return withTheme as UserSettings;
 }

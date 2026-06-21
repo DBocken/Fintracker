@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tag, Check, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -175,27 +175,22 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     saveMut.mutate(rows.filter((row) => !excludedIds.has(row.id || '')));
   };
 
-  const flattenCategories = (categories: HierarchicalCategory[], level = 0): any[] => {
-    const result: any[] = [];
-    
+  type FlatCategory = HierarchicalCategory & { level: number; displayName: string };
+
+  const flattenCategories = useCallback((categories: HierarchicalCategory[], level = 0): FlatCategory[] => {
+    const result: FlatCategory[] = [];
     categories.forEach(category => {
-      result.push({
-        ...category,
-        level,
-        displayName: '  '.repeat(level) + category.name
-      });
-      
+      result.push({ ...category, level, displayName: '  '.repeat(level) + category.name });
       if (category.children) {
         result.push(...flattenCategories(category.children, level + 1));
       }
     });
-    
     return result;
-  };
+  }, []);
 
   const flatCategories = useMemo(() =>
     flattenCategories(hierarchicalCategories || []),
-    [hierarchicalCategories]
+    [hierarchicalCategories, flattenCategories]
   );
 
   // Auto-Kategorie pro Zeile einmalig vorberechnen, statt bei jedem Render

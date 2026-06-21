@@ -88,7 +88,7 @@ export async function markSchufareminderScanned(
   return upsertLocalFinanceItem<SchufareminderState>("schufareminders", {
     id: reminderId,
     scanned: true,
-  } as any);
+  } as SchufareminderState);
 }
 
 /**

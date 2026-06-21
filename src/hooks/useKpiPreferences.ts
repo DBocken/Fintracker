@@ -84,8 +84,8 @@ export function useKpiPreferences() {
       writeJson(LS_CACHE, normalized);
 
       await qc.cancelQueries({ queryKey: ["user-settings"] });
-      const prev = qc.getQueryData<any>(["user-settings"]);
-      qc.setQueryData(["user-settings"], (old: any) => ({ ...(old || {}), kpi_prefs: normalized }));
+      const prev = qc.getQueryData<import("@/types").UserSettings>(["user-settings"]);
+      qc.setQueryData(["user-settings"], (old: import("@/types").UserSettings | undefined) => ({ ...(old || {}), kpi_prefs: normalized }));
 
       return { prev };
     },
@@ -104,7 +104,7 @@ export function useKpiPreferences() {
 
   const prefs = useMemo(() => {
     if (!isAuthed) return normalizePrefs(localPrefs);
-    const fromServer = query.data?.kpi_prefs as any;
+    const fromServer = query.data?.kpi_prefs as KpiPrefs | undefined;
     return normalizePrefs(fromServer || localPrefs);
   }, [isAuthed, query.data, localPrefs]);
 
@@ -125,7 +125,7 @@ export function useKpiPreferences() {
   useEffect(() => {
     if (!isAuthed) return;
     if (!query.isSuccess) return;
-    const has = !!(query.data as any)?.kpi_prefs;
+    const has = !!query.data?.kpi_prefs;
     if (has) return;
     mutation.mutate(normalizePrefs(localPrefs));
     // eslint-disable-next-line react-hooks/exhaustive-deps

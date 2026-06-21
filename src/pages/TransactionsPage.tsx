@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTable } from "@/components/dashboard/TransactionTable";
 import { TransactionListMobile } from "@/components/dashboard/TransactionListMobile";
@@ -16,6 +18,9 @@ import {
   deleteTransaction,
 } from "@/services/transaction-service";
 import { getAccounts } from "@/services/account-service";
+import { getContractDecisionMap, type ContractDecision } from "@/services/contract-decision-service";
+import { decodeDashboardFilters, filterTransactions } from "@/components/dashboard/filter-utils";
+import { DEFAULT_DASHBOARD_FILTERS } from "@/components/dashboard/filter-constants";
 import { useTransactionDetailEditing } from "@/hooks/useTransactionDetailEditing";
 import { usePersistedSet } from "@/hooks/usePersistedSet";
 import type { Transaction, Category, Account } from "@/types";
@@ -27,11 +32,23 @@ import type { Transaction, Category, Account } from "@/types";
  */
 export default function TransactionsPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Filter aus der URL (Übergabe vom Dashboard, Audit P1.3). Die Suche bleibt
+  // interaktiv und wird aus dem URL-Parameter vorbelegt.
+  const urlFilters = useMemo(() => decodeDashboardFilters(searchParams), [searchParams]);
+  const [search, setSearch] = useState(urlFilters.search);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: "asc" | "desc" } | null>(null);
   const [hidden, toggleHidden] = usePersistedSet("transactions_hidden");
+
+  const hasUrlFilters =
+    urlFilters.category !== DEFAULT_DASHBOARD_FILTERS.category ||
+    urlFilters.account !== DEFAULT_DASHBOARD_FILTERS.account ||
+    urlFilters.contract !== DEFAULT_DASHBOARD_FILTERS.contract ||
+    urlFilters.essential !== DEFAULT_DASHBOARD_FILTERS.essential ||
+    urlFilters.ausgabenklasse !== DEFAULT_DASHBOARD_FILTERS.ausgabenklasse ||
+    urlFilters.range !== DEFAULT_DASHBOARD_FILTERS.range;
 
   const { data: txs = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
@@ -39,6 +56,10 @@ export default function TransactionsPage() {
   });
   const { data: cats = [] } = useQuery<Category[]>({ queryKey: ["categories"], queryFn: getCategories });
   const { data: accounts = [] } = useQuery<Account[]>({ queryKey: ["accounts"], queryFn: getAccounts });
+  const { data: contractDecisions = new Map<string, ContractDecision>() } = useQuery({
+    queryKey: ["contract-decisions"],
+    queryFn: getContractDecisionMap,
+  });
 
   const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(txs, () =>
     setDetailsOpen(false),
@@ -61,10 +82,16 @@ export default function TransactionsPage() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = q
-      ? txs.filter((t) => `${t.payee} ${t.description} ${t.original_text}`.toLowerCase().includes(q))
-      : txs;
+    // Vollständige Dashboard-Filter aus der URL anwenden; die Suche kommt aus
+    // dem interaktiven Feld (überschreibt den URL-Suchwert).
+    let list = filterTransactions(
+      txs,
+      cats,
+      accounts,
+      { ...urlFilters, search },
+      new Date(),
+      contractDecisions,
+    );
     if (sortConfig) {
       const { key, direction } = sortConfig;
       list = [...list].sort((a, b) => {
@@ -78,7 +105,12 @@ export default function TransactionsPage() {
       list = [...list].sort((a, b) => (a.date < b.date ? 1 : -1));
     }
     return list;
-  }, [txs, search, sortConfig]);
+  }, [txs, cats, accounts, urlFilters, search, sortConfig, contractDecisions]);
+
+  const clearUrlFilters = () => {
+    setSearch("");
+    setSearchParams(new URLSearchParams(), { replace: true });
+  };
 
   const handleSort = (key: keyof Transaction) =>
     setSortConfig((prev) =>
@@ -112,6 +144,16 @@ export default function TransactionsPage() {
               className="pl-10"
             />
           </div>
+
+          {hasUrlFilters && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <span>Gefilterte Ansicht aus dem Dashboard.</span>
+              <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={clearUrlFilters}>
+                <X className="h-3.5 w-3.5" />
+                Filter aufheben
+              </Button>
+            </div>
+          )}
 
           {/* Mobile: kompakte Karten */}
           <div className="lg:hidden">

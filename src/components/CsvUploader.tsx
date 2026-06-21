@@ -340,7 +340,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                 <SelectValue placeholder="Spalte wählen" />
               </SelectTrigger>
               <SelectContent>
-                {(['currencyColumn', 'categoryColumn', 'ibanColumn'] as const).includes(key as any) && (
+                {(['currencyColumn', 'categoryColumn', 'ibanColumn'] as ReadonlyArray<string>).includes(key) && (
                   <SelectItem value="__none__">— keine —</SelectItem>
                 )}
                 {headers.map((h) => (

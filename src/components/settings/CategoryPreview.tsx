@@ -4,10 +4,10 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Transaction } from '../../types';
+import type { Transaction, HierarchicalCategory } from '../../types';
 
 interface CategoryPreviewProps {
-  category: any;
+  category: HierarchicalCategory | null;
   affectedTransactions: Transaction[];
   onPreview: () => void;
   onApply: () => void;

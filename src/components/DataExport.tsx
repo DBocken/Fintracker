@@ -14,8 +14,6 @@ import { showSuccess, showError } from '@/utils/toast';
 import { getTransactions } from '@/services/transaction-service';
 import { transactionStorage } from '@/services/transaction-storage-service';
 import type { Transaction } from '@/types';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 type ExportFormat = 'csv' | 'pdf';
 
@@ -89,7 +87,11 @@ export function DataExport() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadPDF = (transactions: Transaction[]) => {
+  const downloadPDF = async (transactions: Transaction[]) => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
     const doc = new jsPDF();
     const date = new Date().toLocaleDateString('de-DE');
 

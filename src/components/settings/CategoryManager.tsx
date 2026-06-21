@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Search, Folder, Tag, Sparkles } from 'lucide-react';
 import { CategoryForm } from './CategoryForm';
 import { CategoryTree } from './CategoryTree';
-import type { HierarchicalCategory, CategoryAttributes } from '../../types';
+import type { HierarchicalCategory, CategoryAttributes, Category } from '../../types';
 import { getTopCategorySuggestion, type CategorySuggestion } from '../../services/transaction-service';
 
 interface CategoryManagerProps {
   categories: HierarchicalCategory[];
   onCategoryDelete: (category: HierarchicalCategory) => void;
   onCategoryEdit: (category: HierarchicalCategory) => void;
-  onCategorySave: (categoryData: any) => void;
+  onCategorySave: (categoryData: Partial<Category> & { name: string }) => void;
   onApplySuggestion: () => void;
 }
 

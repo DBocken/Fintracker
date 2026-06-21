@@ -5,6 +5,7 @@ import PageHeader from "@/components/common/PageHeader";
 import HealthScoreCard from "@/components/health-score/HealthScoreCard";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
+import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,16 +49,44 @@ export default function CoachPage() {
     );
   }
 
+  const recommendations = coach?.recommendations ?? [];
+  const focusCard = recommendations[0];
+  const followUps = recommendations.slice(1);
+
   return (
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
-      {/* Mobile-first (Audit C-P0): mobil kompakter Statusstreifen + Score
-          untereinander; ab lg die Portrait-Illustration neben dem Score. */}
-      <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
-        <div className="lg:hidden">
-          <FinancialLandscape health={health} variant="strip" />
+      {/* Fokuskarte zuerst (Audit P1.4): der priorisierte nächste Schritt steht
+          ganz oben; darunter ein glanceable 2×2-Statusraster mit Details per Tap. */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Sparkles className="h-4 w-4" />
+          Priorität jetzt
         </div>
+        {coachLoading ? (
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        ) : focusCard ? (
+          <CoachFeedCard card={focusCard} index={0} featured />
+        ) : (
+          <div className="flex items-start gap-3 rounded-2xl border border-positive/20 bg-positive/5 p-4 shadow-sm">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-positive" />
+            <div>
+              <div className="font-semibold">Alles im grünen Bereich</div>
+              <p className="mt-1 text-sm text-muted-foreground">Aktuell gibt es keine dringenden Empfehlungen.</p>
+            </div>
+          </div>
+        )}
+
+        {health ? (
+          <CoachStatusGrid health={health} gentle={gentleModeEnabled} />
+        ) : (
+          <Skeleton className="h-44 w-full rounded-2xl" />
+        )}
+      </section>
+
+      {/* Reichere Illustration + Score: ab lg neben dem Score, mobil darunter. */}
+      <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
         <div className="hidden shrink-0 lg:block lg:w-80 xl:w-[416px]">
           <FinancialLandscape health={health} variant="hero" />
         </div>
@@ -70,27 +99,16 @@ export default function CoachPage() {
         </div>
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Sparkles className="h-4 w-4" />
-          Priorität jetzt
-        </div>
-        {coachLoading ? (
-          <div className="space-y-3"><Skeleton className="h-24 w-full rounded-2xl" /><Skeleton className="h-24 w-full rounded-2xl" /></div>
-        ) : coach && coach.recommendations.length > 0 ? (
+      {followUps.length > 0 && (
+        <section className="space-y-3">
+          <div className="text-sm font-medium text-muted-foreground">Weitere Empfehlungen</div>
           <div className="space-y-3">
-            {coach.recommendations.map((card, i) => <CoachFeedCard key={card.id} card={card} index={i} featured={i === 0} />)}
+            {followUps.map((card, i) => (
+              <CoachFeedCard key={card.id} card={card} index={i + 1} />
+            ))}
           </div>
-        ) : (
-          <div className="flex items-start gap-3 rounded-2xl border border-positive/20 bg-positive/5 p-4 shadow-sm">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-positive" />
-            <div>
-              <div className="font-semibold">Alles im grünen Bereich</div>
-              <p className="mt-1 text-sm text-muted-foreground">Aktuell gibt es keine dringenden Empfehlungen.</p>
-            </div>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="ds-section">

@@ -98,5 +98,5 @@ export async function setPreferredMarketProvider(
  */
 export async function getPreferredMarketProvider(): Promise<'yahoo' | 'stooq'> {
   const settings = await getUserSettings();
-  return (settings.preferred_market_provider as any) || 'yahoo';
+  return settings.preferred_market_provider || 'yahoo';
 }

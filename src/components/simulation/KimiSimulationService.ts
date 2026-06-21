@@ -22,7 +22,7 @@ export class KimiSimulationService {
   async processScenario(
     scenario: string, 
     transactions: Transaction[], 
-    categories: any[]
+    categories: import('../../types').Category[]
   ): Promise<SimulationResult> {
     const engine = new SimulationEngine(transactions, categories);
     const baseResult = engine.generateForecast(scenario);
@@ -136,7 +136,7 @@ Analysiere die Auswirkungen dieses Szenarios auf die Ausgabenstruktur.`;
     };
   }
 
-  private recalculateForecast(baseResult: SimulationResult, variables: any[]) {
+  private recalculateForecast(baseResult: SimulationResult, variables: import('./SimulationEngine').VariableExpenseProjection[]) {
     const totalFixedExpenses = baseResult.fixedExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalFixedIncome = baseResult.fixedIncome.reduce((sum, i) => sum + i.amount, 0);
     const totalVariable = variables.reduce((sum, v) => sum + v.projectedAvg, 0);

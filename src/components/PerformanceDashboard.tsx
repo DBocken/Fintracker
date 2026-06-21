@@ -14,8 +14,9 @@ import { transactionStorage } from '@/services/transaction-storage-service';
 import { showSuccess } from '@/utils/toast';
 
 export function PerformanceDashboard() {
-  const [metrics, setMetrics] = useState<any[]>([]);
-  const [memoryInfo, setMemoryInfo] = useState<any>(null);
+  const [metrics, setMetrics] = useState<import('@/lib/performance').PerformanceMetric[]>([]);
+  const [memoryInfo, setMemoryInfo] = useState<{ usedJSHeapSize?: number; totalJSHeapSize?: number; jsHeapSizeLimit?: number } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [storageStats, setStorageStats] = useState<any>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -190,21 +191,21 @@ export function PerformanceDashboard() {
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">Genutzt</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB
+                  {((memoryInfo.usedJSHeapSize ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">Gesamt</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {(memoryInfo.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB
+                  {((memoryInfo.totalJSHeapSize ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">Limit</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {(memoryInfo.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB
+                  {((memoryInfo.jsHeapSizeLimit ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
             </div>
@@ -214,12 +215,12 @@ export function PerformanceDashboard() {
                 <div
                   className="h-full bg-gradient-to-r from-positive to-brand"
                   style={{
-                    width: `${(memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100}%`,
+                    width: `${((memoryInfo.usedJSHeapSize ?? 0) / (memoryInfo.jsHeapSizeLimit ?? 1)) * 100}%`,
                   }}
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {((memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100).toFixed(1)}% genutzt
+                {(((memoryInfo.usedJSHeapSize ?? 0) / (memoryInfo.jsHeapSizeLimit ?? 1)) * 100).toFixed(1)}% genutzt
               </p>
             </div>
           </CardContent>
