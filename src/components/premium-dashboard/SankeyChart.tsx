@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,6 +8,7 @@ import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { Network } from "lucide-react";
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
+import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import type { SankeyData } from "@/lib/analysis-data";
 
 interface SankeyChartProps {
@@ -24,6 +26,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   // Die Prüfung muss nach den Hooks erfolgen (Rules of Hooks).
   const hasData = !!data && Array.isArray(data.mainCategories) && data.mainCategories.length > 0;
 
+  const navigate = useNavigate();
   const [expandedMainId, setExpandedMainId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [percentMode, setPercentMode] = useState<boolean>(false);
@@ -385,13 +388,25 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                   enableDrilldown &&
                   data.mainCategories.some((main) => main.id === payload.id);
                 const isExpanded = expandedMainId === payload.id;
+                // Kategorie-Knoten verlinken auf die gefilterte Buchungsseite.
+                const isCategoryNode =
+                  payload.type === "expense-main" || payload.type === "expense-sub";
 
                 const handleClick = () => {
-                  if (!isMainCategory) return;
-                  setExpandedMainId((current) =>
-                    current === payload.id ? null : payload.id
-                  );
+                  // Hauptkategorie mit aktivem Drilldown: erst auf-/zuklappen.
+                  if (isMainCategory) {
+                    setExpandedMainId((current) =>
+                      current === payload.id ? null : payload.id
+                    );
+                    return;
+                  }
+                  // Sonst (Unterkategorie, oder Hauptkategorie ohne Drilldown):
+                  // zur gefilterten Buchungsseite navigieren.
+                  if (isCategoryNode) {
+                    navigate(buildTransactionsHref({ category: payload.id }));
+                  }
                 };
+                const isClickable = isMainCategory || isCategoryNode;
 
                 // Farb-Logik: Kategorie-spezifische Farben wie im Sunburst
                 let fillColor = "hsl(var(--chart-net))";
@@ -430,7 +445,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                     onMouseEnter={() => setHoveredId(payload.id)}
                     onMouseLeave={() => setHoveredId(null)}
                     style={{
-                      cursor: isMainCategory ? "pointer" : "default",
+                      cursor: isClickable ? "pointer" : "default",
                       opacity: hoveredId && hoveredId !== payload.id ? 0.6 : 1,
                     }}
                   >

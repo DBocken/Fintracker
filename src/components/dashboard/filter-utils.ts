@@ -99,6 +99,29 @@ function matchesContractFilter(
   return filter === 'vertrag' ? isContract : !isContract;
 }
 
+/**
+ * Kategorie-Filter ist hierarchie-bewusst: eine Buchung passt, wenn ihre
+ * zugewiesene Kategorie (oder eine ihrer Vorfahren) der gewählten Kategorie
+ * entspricht. So liefert die Auswahl einer Hauptkategorie auch deren
+ * Unterkategorien (nötig für die Chart-Navigation per Sunburst-Außenring).
+ */
+function matchesCategoryFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: string): boolean {
+  if (filter === 'all') return true;
+  const startIds = [transaction.subcategory_id, transaction.category_id].filter(Boolean) as string[];
+  for (const startId of startIds) {
+    let current: Category | undefined = categoriesById.get(startId);
+    const visited = new Set<string>();
+    // Direkt zugewiesene ID prüfen (auch wenn die Kategorie nicht (mehr) existiert).
+    if (startId === filter) return true;
+    while (current && !visited.has(current.id)) {
+      if (current.id === filter) return true;
+      visited.add(current.id);
+      current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
+    }
+  }
+  return false;
+}
+
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
   if (filter === 'all') return true;
   if (!transaction.category_id) return false;
@@ -144,7 +167,7 @@ export function filterTransactions(
     const txDate = parseISO(transaction.date);
     if (!isWithinInterval(txDate, { start, end })) return false;
 
-    if (filters.category !== 'all' && transaction.category_id !== filters.category) return false;
+    if (!matchesCategoryFilter(transaction, categoriesById, filters.category)) return false;
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
     if (!matchesContractFilter(transaction, categoriesById, contractDecisions, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
@@ -205,6 +228,28 @@ export function encodeDashboardFilters(filters: DashboardFilterState): URLSearch
   }
   if (filters.range === 'Benutzerdefiniert' && filters.customDays) params.set('days', String(filters.customDays));
   return params;
+}
+
+/**
+ * Baut einen Deep-Link auf die gefilterte Buchungsseite. Wird von den Diagrammen
+ * (Sunburst/Sankey) für die Klick-Navigation genutzt. Nur gesetzte Werte werden
+ * kodiert; das Ergebnis ist mit `decodeDashboardFilters` kompatibel.
+ */
+export function buildTransactionsHref(partial: Partial<DashboardFilterState>): string {
+  const filters: DashboardFilterState = {
+    category: 'all',
+    account: 'all',
+    contract: 'all',
+    essential: 'all',
+    ausgabenklasse: 'all',
+    search: '',
+    range: 'Gesamt',
+    customDays: 30,
+    customPeriod: '',
+    ...partial,
+  };
+  const qs = encodeDashboardFilters(filters).toString();
+  return qs ? `/transactions?${qs}` : '/transactions';
 }
 
 export function decodeDashboardFilters(params: URLSearchParams): DashboardFilterState {
