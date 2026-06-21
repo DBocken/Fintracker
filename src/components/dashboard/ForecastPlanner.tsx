@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
-import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer } from '@/lib/forecast-types';
+import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer, RecurringFlow } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -109,6 +109,33 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
               ) : (
                 <BudgetOverrideForm
                   variableExpenses={input.variableExpenses}
+                  overrides={overrides}
+                  onChange={onChange}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Wiederkehrende Zahlungen */}
+          <AccordionItem value="recurring">
+            <AccordionTrigger className="px-2 text-sm">
+              <span className="flex items-center gap-2">
+                <Link2Off className="h-4 w-4" /> Wiederkehrende Zahlungen
+                {input && input.recurringFlows && input.recurringFlows.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({input.recurringFlows.length})
+                  </span>
+                )}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 px-2">
+              {!input || !input.recurringFlows || input.recurringFlows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Keine wiederkehrenden Zahlungen gefunden.
+                </p>
+              ) : (
+                <RecurringFlowOverrideForm
+                  recurringFlows={input.recurringFlows}
                   overrides={overrides}
                   onChange={onChange}
                 />
@@ -540,6 +567,125 @@ function TransferForm({
       >
         <Plus className="mr-1 h-4 w-4" /> Transfer hinzufügen
       </Button>
+    </div>
+  );
+}
+
+function RecurringFlowOverrideForm({
+  recurringFlows,
+  overrides,
+  onChange,
+}: {
+  recurringFlows: RecurringFlow[];
+  overrides: ForecastOverrides;
+  onChange: (patch: Partial<ForecastOverrides>) => void;
+}) {
+  const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+  const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-2">
+      {recurringFlows.map((flow) => {
+        const override = overrides.recurringFlowOverrides[flow.id];
+        const isDisabled = override?.enabled === false;
+        const displayAmount = override?.amount ?? flow.amount;
+
+        return (
+          <div
+            key={flow.id}
+            className={`rounded-md border p-3 ${isDisabled ? 'opacity-50' : ''}`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!isDisabled}
+                    onChange={(e) => {
+                      const next = { ...overrides.recurringFlowOverrides };
+                      if (!e.target.checked) {
+                        next[flow.id] = { ...override, enabled: false };
+                      } else {
+                        const updated = { ...override };
+                        delete updated.enabled;
+                        next[flow.id] = Object.keys(updated).length > 0 ? updated : undefined;
+                        if (!next[flow.id]) delete next[flow.id];
+                      }
+                      onChange({ recurringFlowOverrides: next });
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm font-medium">{flow.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {flow.cadence}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {eur.format(displayAmount)}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setExpandedFlow(expandedFlow === flow.id ? null : flow.id)}
+                className="p-1.5 hover:bg-muted rounded transition-colors"
+                aria-label="Bearbeiten"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+            </div>
+
+            {expandedFlow === flow.id && (
+              <div className="mt-3 space-y-2 border-t pt-3">
+                <div>
+                  <Label className="text-xs">Betrag</Label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    placeholder={String(flow.amount)}
+                    value={override?.amount ?? ''}
+                    onChange={(e) => {
+                      const next = { ...overrides.recurringFlowOverrides };
+                      const v = e.target.value;
+                      if (v === '') {
+                        const updated = { ...override };
+                        delete updated?.amount;
+                        next[flow.id] = Object.keys(updated ?? {}).length > 0 ? updated : undefined;
+                        if (!next[flow.id]) delete next[flow.id];
+                      } else {
+                        next[flow.id] = { ...override, amount: Number(v) };
+                      }
+                      onChange({ recurringFlowOverrides: next });
+                    }}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">End-Datum (optional)</Label>
+                  <Input
+                    type="date"
+                    value={override?.endDate ?? ''}
+                    onChange={(e) => {
+                      const next = { ...overrides.recurringFlowOverrides };
+                      const v = e.target.value;
+                      if (v === '') {
+                        const updated = { ...override };
+                        delete updated?.endDate;
+                        next[flow.id] = Object.keys(updated ?? {}).length > 0 ? updated : undefined;
+                        if (!next[flow.id]) delete next[flow.id];
+                      } else {
+                        next[flow.id] = { ...override, endDate: v };
+                      }
+                      onChange({ recurringFlowOverrides: next });
+                    }}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

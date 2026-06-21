@@ -84,8 +84,13 @@ export function buildForecastAccounts(
 /**
  * Leitet wiederkehrende Flows aus den erkannten Verträgen ab. Verträge mit
  * unbekanntem Zyklus werden bewusst ausgelassen (keine Scheingenauigkeit).
+ * Anschließend werden nutzerseitige Overrides angewendet (aktivieren/deaktivieren,
+ * Betrag, End-Datum).
  */
-export function buildRecurringFlows(contracts: ContractRow[]): RecurringFlow[] {
+export function buildRecurringFlows(
+  contracts: ContractRow[],
+  overrides?: Record<string, { enabled?: boolean; amount?: number; endDate?: string }>,
+): RecurringFlow[] {
   const flows: RecurringFlow[] = [];
   for (const contract of contracts) {
     if (contract.stale) continue; // vermutlich beendet
@@ -96,15 +101,21 @@ export function buildRecurringFlows(contracts: ContractRow[]): RecurringFlow[] {
 
     const magnitude = Math.abs(contract.amountTypical);
     const signed = contract.type === 'Einnahme' ? magnitude : -magnitude;
+    const flowOverride = overrides?.[contract.key];
+
+    // Skip disabled flows
+    if (flowOverride?.enabled === false) continue;
+
     flows.push({
       id: contract.key,
       name: contract.payee,
-      amount: signed,
+      amount: flowOverride?.amount ?? signed,
       cadence,
       anchorDate: anchorDate.slice(0, 10),
       accountId: '', // wird unten an ein operatives Konto gebunden
       category: contract.categoryName,
       confidence: contract.confirmed ? 1 : 0.6,
+      endDate: flowOverride?.endDate,
     });
   }
   return flows;
@@ -209,7 +220,9 @@ export function applyForecastOverrides(
  *
  * Auto-seeded: Konten (mit echten Salden), wiederkehrende Flows (aus der
  * Vertragserkennung) und die variable Ausgaben-Baseline (aus der Historie).
- * Overrides: Zinssätze, Budgets, geplante Events und Rücklagen.
+ * Overrides: Zinssätze, Budgets, geplante Events, Rücklagen, Transfers und
+ * Anpassungen an erkannten wiederkehrenden Zahlungen (aktivieren/deaktivieren,
+ * Betrag, End-Datum).
  */
 export async function buildForecastInput(): Promise<ForecastInput> {
   const [accounts, netWorth, contracts, transactions] = await Promise.all([
@@ -219,9 +232,10 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     getTransactions(2000),
   ]);
 
+  const overrides = getForecastOverrides();
   const forecastAccounts = buildForecastAccounts(accounts, netWorth.accountBalances);
   const recurringFlows = bindFlowsToDefaultAccount(
-    buildRecurringFlows(contracts),
+    buildRecurringFlows(contracts, overrides.recurringFlowOverrides),
     forecastAccounts,
   );
   const variableExpenses = buildVariableExpenseBaselines(transactions);
@@ -232,5 +246,5 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     variableExpenses,
   };
 
-  return applyForecastOverrides(seeded, getForecastOverrides());
+  return applyForecastOverrides(seeded, overrides);
 }
