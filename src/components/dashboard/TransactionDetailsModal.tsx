@@ -13,6 +13,7 @@ import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
+import { FeatureGate } from '@/components/FeatureGate';
 import { Users } from 'lucide-react';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
@@ -208,9 +209,11 @@ export function TransactionDetailsModal({
         </div>
       )}
 
-      {/* Aufteilung auf mehrere Kategorien */}
+      {/* Aufteilung auf mehrere Kategorien (Premium) */}
       <div className="border-t pt-4">
-        <TransactionSplitPanel transaction={transaction} categories={categories} />
+        <FeatureGate feature="splitTransactions">
+          <TransactionSplitPanel transaction={transaction} categories={categories} />
+        </FeatureGate>
       </div>
 
       {/* Vertragsinformationen */}
