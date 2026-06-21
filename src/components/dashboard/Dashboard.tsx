@@ -21,8 +21,9 @@ import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { TransactionDetailsModal } from './TransactionDetailsModal';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
-import { applyContractToSimilar } from '../../services/contract-detection-service';
 import { getAccounts } from '../../services/account-service';
+import { merchantFingerprint } from '@/lib/merchant-fingerprint';
+import { upsertContractDecision } from '@/services/contract-decision-service';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account } from '../../types';
@@ -126,34 +127,74 @@ export function Dashboard() {
     },
   });
 
-  const detailsMutation = useMutation<
-    { propagated: number },
-    Error,
-    { id: string; patch: Partial<Transaction>; transaction: Transaction }
-  >({
-    mutationFn: async ({ id, patch, transaction }) => {
-      await updateTransaction([{ id, ...patch }]);
-      // Vertrags-Markierung auf gleichartige Buchungen übertragen: wird eine
-      // Transaktion als Vertrag (de)markiert, ziehen Payee-/Betrags-gleiche mit.
-      let propagated = 0;
-      if (patch.is_contract !== undefined) {
-        const cycle = patch.contract_cycle ?? transaction.contract_cycle ?? null;
-        propagated = await applyContractToSimilar(
-          { payee: transaction.payee, amount: transaction.amount },
-          patch.is_contract,
-          cycle
-        );
-      }
-      return { propagated };
-    },
-    onSuccess: ({ propagated }) => {
+  // Stellt einen vorherigen Zustand (für Undo) wieder her.
+  const restoreMutation = useMutation<void, Error, Array<{ id: string } & Partial<Transaction>>>({
+    mutationFn: (snapshots) => updateTransaction(snapshots).then(() => undefined),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
-      if (propagated > 1) {
-        toast.success(`Vertrag erkannt: ${propagated} gleichartige Buchungen markiert`);
-      } else {
-        toast.success('Transaktion aktualisiert');
+      toast.success('Änderung rückgängig gemacht');
+    },
+    onError: (error) => toast.error(`Rückgängig fehlgeschlagen: ${error.message}`),
+  });
+
+  const detailsMutation = useMutation<
+    { count: number; snapshot: Array<{ id: string } & Partial<Transaction>> },
+    Error,
+    { id: string; patch: Partial<Transaction>; transaction: Transaction; applyToSimilar: boolean; similarIds: string[] }
+  >({
+    mutationFn: async ({ id, patch, transaction, applyToSimilar, similarIds }) => {
+      const ids = applyToSimilar ? Array.from(new Set([id, ...similarIds])) : [id];
+      const byId = new Map(txs.map((t) => [t.id, t]));
+
+      // Vorherige Werte der geänderten Felder sichern (Undo).
+      const patchKeys = Object.keys(patch) as (keyof Transaction)[];
+      const snapshot = ids.map((tid) => {
+        const prev = byId.get(tid);
+        const entry: { id: string } & Partial<Transaction> = { id: tid };
+        patchKeys.forEach((k) => {
+          (entry as Record<string, unknown>)[k] = prev ? prev[k] ?? null : null;
+        });
+        return entry;
+      });
+
+      await updateTransaction(ids.map((tid) => ({ id: tid, ...patch })));
+
+      // Vertrags-Markierung dauerhaft an die Händlerfamilie binden.
+      if (patch.is_contract !== undefined) {
+        const fp = merchantFingerprint(transaction);
+        const cycle = patch.contract_cycle ?? transaction.contract_cycle ?? null;
+        await upsertContractDecision(fp, {
+          status: patch.is_contract ? 'active' : 'rejected',
+          cycle_override: patch.is_contract ? cycle : null,
+        });
       }
+
+      return { count: ids.length, snapshot };
+    },
+    onSuccess: ({ count, snapshot }) => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
+      qc.invalidateQueries({ queryKey: ['contract-decisions'] });
+      const msg = count > 1 ? `${count} Buchungen aktualisiert` : 'Transaktion aktualisiert';
+      toast.success(
+        (t) => (
+          <span className="flex items-center gap-3">
+            {msg}
+            <button
+              type="button"
+              className="font-semibold underline"
+              onClick={() => {
+                toast.dismiss(t.id);
+                restoreMutation.mutate(snapshot);
+              }}
+            >
+              Rückgängig
+            </button>
+          </span>
+        ),
+        { duration: 6000 },
+      );
       setDetailsOpen(false);
     },
     onError: (error) => {
@@ -216,10 +257,19 @@ export function Dashboard() {
     setDetailsOpen(true);
   }, []);
 
-  const handleSaveDetails = useCallback((id: string, patch: Partial<Transaction>) => {
-    if (!detailsTransaction) return;
-    detailsMutation.mutate({ id, patch, transaction: detailsTransaction });
-  }, [detailsMutation, detailsTransaction]);
+  const handleSaveDetails = useCallback(
+    (id: string, patch: Partial<Transaction>, options: { applyToSimilar: boolean; similarIds: string[] }) => {
+      if (!detailsTransaction) return;
+      detailsMutation.mutate({
+        id,
+        patch,
+        transaction: detailsTransaction,
+        applyToSimilar: options.applyToSimilar,
+        similarIds: options.similarIds,
+      });
+    },
+    [detailsMutation, detailsTransaction],
+  );
 
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {
@@ -596,6 +646,7 @@ export function Dashboard() {
         transaction={detailsTransaction}
         categories={cats}
         accounts={accounts}
+        allTransactions={txs}
         onSave={handleSaveDetails}
         onToggleVisibility={handleToggleVisibility}
         onDelete={handleDelete}
