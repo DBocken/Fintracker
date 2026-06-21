@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseReceipt, receiptLowConfidenceFields } from "../receipt-parser-service";
+import { MAX_RECEIPT_TEXT_LENGTH, parseReceipt, receiptLowConfidenceFields } from "../receipt-parser-service";
 
 describe("parseReceipt", () => {
   it("extracts merchant, total and date from a typical German receipt", () => {
@@ -37,5 +37,20 @@ describe("parseReceipt", () => {
     const parsed = parseReceipt("nur irgendein text ohne zahlen");
     expect(receiptLowConfidenceFields(parsed)).toContain("total");
     expect(receiptLowConfidenceFields(parsed)).toContain("date");
+  });
+
+  it("[SECURITY] rejects oversized OCR input before expensive parsing", () => {
+    expect(() => parseReceipt("A".repeat(MAX_RECEIPT_TEXT_LENGTH + 1))).toThrow(/zu groß/);
+  });
+
+  it("[INTEGRITY] rejects impossible calendar dates", () => {
+    const parsed = parseReceipt("Laden\nDatum 31.02.2026\nSumme 10,00");
+    expect(parsed.date).toBeUndefined();
+  });
+
+  it("[SECURITY] strips control characters and limits merchant names", () => {
+    const parsed = parseReceipt(`${"Shop".repeat(40)}\u0000<script>\nSumme 10,00`);
+    expect(parsed.merchant?.value.length).toBeLessThanOrEqual(120);
+    expect(parsed.merchant?.value).not.toContain("\u0000");
   });
 });

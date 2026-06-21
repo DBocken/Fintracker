@@ -25,7 +25,7 @@ beforeEach(async () => {
   await writeLocalFinanceList("transactionAllocations", []);
 });
 
-describe("validateAllocations", () => {
+describe("[INTEGRITY] validateAllocations", () => {
   it("akzeptiert ein leeres Array als gültig (unsplit)", () => {
     const r = validateAllocations(tx(-12.5), []);
     expect(r.valid).toBe(true);

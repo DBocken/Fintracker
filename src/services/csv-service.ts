@@ -1,6 +1,9 @@
 import { parse } from 'papaparse';
 import type { Transaction } from '../types';
 
+export const MAX_CSV_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_CSV_ROWS = 50_000;
+
 export interface CsvMapping {
   bankName: string;
   dateColumn: string;
@@ -44,6 +47,13 @@ export const BANK_TEMPLATES: Record<string, CsvMapping> = {
     categoryColumn: 'Category',
   },
 };
+
+async function stableCsvTransactionId(parts: readonly unknown[]): Promise<string> {
+  const canonical = parts.map((part) => String(part ?? '').trim()).join('\u001f');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  const shortHash = Array.from(new Uint8Array(digest).slice(0, 16), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `csv-${shortHash}`;
+}
 
 export function createDefaultMapping(headers: string[]): CsvMapping {
   const lower = (h: string) => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -94,8 +104,14 @@ export function detectBank(headers: string[]): string | undefined {
 }
 
 /** Parse German date formats to ISO */
-function parseGermanDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString().split('T')[0];
+function validIsoDate(year: number, month: number, day: number): string | null {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function parseGermanDate(dateStr: string): string | null {
+  if (!dateStr) return null;
   
   // Handle different German date formats
   const cleanDate = dateStr.trim();
@@ -105,7 +121,7 @@ function parseGermanDate(dateStr: string): string {
   if (germanMatch) {
     const [, day, month, year] = germanMatch;
     const fullYear = year.length === 2 ? `20${year}` : year;
-    return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    return validIsoDate(Number(fullYear), Number(month), Number(day));
   }
   
   // Format: DD/MM/YYYY or DD/MM/YY
@@ -113,30 +129,31 @@ function parseGermanDate(dateStr: string): string {
   if (slashMatch) {
     const [, day, month, year] = slashMatch;
     const fullYear = year.length === 2 ? `20${year}` : year;
-    return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    return validIsoDate(Number(fullYear), Number(month), Number(day));
   }
   
   // Already ISO format
   if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return cleanDate;
+    const [year, month, day] = cleanDate.split('-').map(Number);
+    return validIsoDate(year, month, day);
   }
   
   // Try parsing as Date
   try {
     const date = new Date(cleanDate);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
+      return validIsoDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
     }
   } catch (e) {
     console.warn('Could not parse date:', cleanDate, 'using current date');
   }
   
-  return new Date().toISOString().split('T')[0];
+  return null;
 }
 
 /** Parse amount with German number format */
-function parseGermanAmount(amountStr: string): number {
-  if (!amountStr) return 0;
+function parseGermanAmount(amountStr: string): number | null {
+  if (!amountStr) return null;
 
   let cleanAmount = amountStr
     .toString()
@@ -151,7 +168,7 @@ function parseGermanAmount(amountStr: string): number {
   }
 
   const parsed = parseFloat(cleanAmount);
-  return isNaN(parsed) ? 0 : parsed;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export async function parseCsv(
@@ -159,24 +176,44 @@ export async function parseCsv(
   mapping: CsvMapping,
   delimiter: string = ';'
 ): Promise<Transaction[]> {
+  if (file.size > MAX_CSV_FILE_BYTES) throw new Error('CSV-Datei ist zu groß (maximal 10 MB).');
   const text = await file.text();
   const result = parse<Record<string, string>>(text, {
     header: true,
     delimiter,
     skipEmptyLines: true,
   });
+  if (result.errors.length > 0) throw new Error(`CSV-Datei ist beschädigt: ${result.errors[0].message}`);
+  if (result.data.length > MAX_CSV_ROWS) throw new Error(`CSV-Datei enthält mehr als ${MAX_CSV_ROWS} Buchungen.`);
   
-  return result.data.map((row: Record<string, string>, index: number) => {
+  return Promise.all(result.data.map(async (row: Record<string, string>, index: number) => {
     const rawIban = mapping.ibanColumn ? (row[mapping.ibanColumn] || '').trim() : '';
     const counterpartyIban = rawIban.replace(/\s+/g, '').toUpperCase() || null;
+    const date = parseGermanDate(row[mapping.dateColumn] || '');
+    const amount = parseGermanAmount(row[mapping.amountColumn] || '');
+    if (!date) throw new Error(`Ungültiges Buchungsdatum in CSV-Zeile ${index + 2}.`);
+    if (amount === null) throw new Error(`Ungültiger Betrag in CSV-Zeile ${index + 2}.`);
+    const payee = row[mapping.payeeColumn] || '';
+    const description = row[mapping.descriptionColumn] || '';
+    const currency = row[mapping.currencyColumn!] || 'EUR';
+    const id = await stableCsvTransactionId([
+      mapping.bankName,
+      index,
+      date,
+      amount.toFixed(2),
+      payee,
+      description,
+      currency,
+      counterpartyIban,
+    ]);
     return {
-      id: `csv-${Date.now()}-${index}`,
-      date: parseGermanDate(row[mapping.dateColumn] || ''),
-      amount: parseGermanAmount(row[mapping.amountColumn] || '0'),
-      payee: row[mapping.payeeColumn] || '',
-      description: row[mapping.descriptionColumn] || '',
-      original_text: row[mapping.descriptionColumn] || '',
-      currency: row[mapping.currencyColumn!] || 'EUR',
+      id,
+      date,
+      amount,
+      payee,
+      description,
+      original_text: description,
+      currency,
       csvCategoryName: row[mapping.categoryColumn!] || '',
       category_id: null,
       subcategory_id: null,
@@ -184,5 +221,5 @@ export async function parseCsv(
       confirmed: false,
       counterparty_iban: counterpartyIban,
     };
-  });
+  }));
 }

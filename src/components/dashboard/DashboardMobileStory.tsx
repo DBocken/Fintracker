@@ -25,6 +25,20 @@ const VIEWS: { key: StoryView; label: string; icon: React.ComponentType<{ classN
   { key: "konten", label: "Konten", icon: CreditCard },
 ];
 
+const isStoryView = (value: string | null): value is StoryView =>
+  VIEWS.some((view) => view.key === value);
+
+export function resolveSwipeTarget(
+  index: number,
+  deltaX: number,
+  deltaY: number,
+  viewCount = VIEWS.length,
+): number {
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return index;
+  const direction = deltaX < 0 ? 1 : -1;
+  return Math.min(viewCount - 1, Math.max(0, index + direction));
+}
+
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
 function LandscapeView() {
   const { data: health, isLoading } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
@@ -77,7 +91,8 @@ export default function DashboardMobileStory({
   topInsight,
 }: Props) {
   const [params, setParams] = useSearchParams();
-  const current = (params.get("view") as StoryView) || "verlauf";
+  const requestedView = params.get("view");
+  const current: StoryView = isStoryView(requestedView) ? requestedView : "verlauf";
   const index = Math.max(0, VIEWS.findIndex((v) => v.key === current));
 
   const setView = (key: StoryView) => {
@@ -87,19 +102,20 @@ export default function DashboardMobileStory({
   };
 
   const reduce = useReducedMotion();
-  const touchStartX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0]?.clientX ?? null;
+    const touch = e.touches[0];
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current == null) return;
-    const dx = (e.changedTouches[0]?.clientX ?? 0) - touchStartX.current;
-    if (Math.abs(dx) > 50) {
-      const dir = dx < 0 ? 1 : -1;
-      const nextIdx = Math.min(VIEWS.length - 1, Math.max(0, index + dir));
+    const start = touchStart.current;
+    const touch = e.changedTouches[0];
+    if (!start || !touch) return;
+    const nextIdx = resolveSwipeTarget(index, touch.clientX - start.x, touch.clientY - start.y);
+    if (nextIdx !== index) {
       setView(VIEWS[nextIdx].key);
     }
-    touchStartX.current = null;
+    touchStart.current = null;
   };
 
   return (
@@ -146,7 +162,7 @@ export default function DashboardMobileStory({
       </div>
 
       {/* Aktive Ansicht – eine Hauptaussage pro Bildschirm, erst beim Anzeigen gerendert */}
-      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="min-h-[60vh]">
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="min-h-[60vh] touch-pan-y">
         {current === "verlauf" && <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />}
         {current === "fluss" && <SankeyChart data={sankeyData} enableDrilldown={false} />}
         {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} />}

@@ -13,7 +13,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.12.4
 
       - uses: actions/setup-node@v4
         with:
@@ -31,3 +31,13 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      - name: Red-team regression suites
+        run: |
+          pnpm test:security
+          pnpm test:integrity
+          pnpm test:privacy
+          pnpm test:mobile
+
+      - name: Secret scan
+        run: pnpm security:secrets

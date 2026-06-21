@@ -307,7 +307,15 @@ class TransactionStorageService {
 
   private async saveLocalTransactions(newTransactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
     const existing = await this.getLocalTransactions();
-    const merged = [...(existing.data || []), ...newTransactions];
+    const merged = [...(existing.data || [])];
+    const knownIds = new Set(merged.map((transaction) => transaction.id).filter(Boolean));
+    for (const transaction of newTransactions) {
+      // Import-IDs sind stabil. Ein identischer Reimport darf weder eine zweite
+      // Buchung erzeugen noch zwischenzeitliche manuelle Änderungen überschreiben.
+      if (transaction.id && knownIds.has(transaction.id)) continue;
+      merged.push(transaction);
+      if (transaction.id) knownIds.add(transaction.id);
+    }
     await this.setLocalTransactions(merged);
     return { success: true, data: newTransactions };
   }

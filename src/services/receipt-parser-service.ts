@@ -3,6 +3,9 @@
 
 import { parseGermanAmount } from "./letter-parser-service";
 
+export const MAX_RECEIPT_TEXT_LENGTH = 200_000;
+export const MAX_RECEIPT_LINES = 5_000;
+
 /** Jedes extrahierte Feld trägt einen Confidence-Wert (0..1). */
 export interface ReceiptField<T = string> {
   value: T;
@@ -71,6 +74,8 @@ function toIso(day: number, month: number, year: number): string | null {
   if (year < 100) year += 2000;
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   if (year < 2000 || year > 2100) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
   return `${year}-${pad2(month)}-${pad2(day)}`;
 }
 
@@ -101,16 +106,19 @@ function extractMerchant(lines: string[]): ReceiptField | undefined {
     const letters = line.replace(/[^A-Za-zäöüÄÖÜß]/g, "");
     if (letters.length < 3) continue;
     if (/^(rechnung|beleg|quittung|kassenbon|datum|uhrzeit|tel|ust|steuer)/i.test(line.trim())) continue;
-    return { value: line.trim().replace(/\s+/g, " "), confidence: 0.6, raw: line.trim() };
+    const normalized = line.replace(/[\u0000-\u001f\u007f]/g, " ").trim().replace(/\s+/g, " ").slice(0, 120);
+    return { value: normalized, confidence: 0.6, raw: normalized };
   }
   return undefined;
 }
 
 export function parseReceipt(ocrText: string): ParsedReceipt {
+  if (ocrText.length > MAX_RECEIPT_TEXT_LENGTH) throw new Error("Belegtext ist zu groß.");
   const lines = ocrText
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
+  if (lines.length > MAX_RECEIPT_LINES) throw new Error("Beleg enthält zu viele Zeilen.");
 
   return {
     merchant: extractMerchant(lines),

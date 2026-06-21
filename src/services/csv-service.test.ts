@@ -67,12 +67,8 @@ describe("parseCsv", () => {
     expect(rows[0].payee).toBe("Bäckerei Müller");
   });
 
-  it("überspringt leere Zeilen und liefert sichere Defaults für fehlende Felder", async () => {
+  it("[SECURITY] lehnt unvollständige Buchungszeilen ab statt Nullbeträge zu importieren", async () => {
     const csv = ["Date;Payee;Amount (EUR);Currency", "2024-03-01;;;", "", "2024-03-02;Shop;-1,00;EUR"].join("\n");
-    const rows = await parseCsv(csvFile(csv), BANK_TEMPLATES.n26, ";");
-    expect(rows).toHaveLength(2);
-    expect(rows[0].amount).toBe(0);
-    expect(rows[0].payee).toBe("");
-    expect(rows[0].currency).toBe("EUR");
+    await expect(parseCsv(csvFile(csv), BANK_TEMPLATES.n26, ";")).rejects.toThrow(/Ungültiger Betrag/);
   });
 });

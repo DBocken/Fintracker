@@ -62,6 +62,19 @@ function makeCsvFile(content: string): File {
 }
 
 describe("parseCsv", () => {
+  it("[INTEGRITY] erzeugt bei erneutem Parsen derselben Datei stabile IDs", async () => {
+    const csv = [
+      "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Waehrung",
+      "15.01.2024;-125,50;REWE Markt;Wocheneinkauf;EUR",
+    ].join("\n");
+
+    const first = await parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";");
+    const second = await parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";");
+
+    expect(first[0].id).toMatch(/^csv-[a-f0-9]{32}$/);
+    expect(second[0].id).toBe(first[0].id);
+  });
+
   it("parses German decimal commas and DD.MM.YYYY dates", async () => {
     const csv = [
       "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Waehrung",
@@ -111,14 +124,21 @@ describe("parseCsv", () => {
     expect(tx.amount).toBeCloseTo(1234.56);
   });
 
-  it("falls back to 0 for missing/unparseable amounts", async () => {
+  it("[SECURITY] rejects missing/unparseable amounts instead of silently importing zero", async () => {
     const csv = [
       "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Waehrung",
       "03.02.2024;;Unbekannt;Test;EUR",
     ].join("\n");
 
-    const [tx] = await parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";");
-    expect(tx.amount).toBe(0);
+    await expect(parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";")).rejects.toThrow(/Ungültiger Betrag/);
+  });
+
+  it("[SECURITY] rejects impossible dates instead of normalizing them", async () => {
+    const csv = [
+      "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Waehrung",
+      "31.02.2024;-1,00;Unbekannt;Test;EUR",
+    ].join("\n");
+    await expect(parseCsv(makeCsvFile(csv), BANK_TEMPLATES.sparkasse, ";")).rejects.toThrow(/Ungültiges Buchungsdatum/);
   });
 
   it("skips empty lines", async () => {

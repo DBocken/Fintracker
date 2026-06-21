@@ -89,6 +89,24 @@ describe("computeContracts status awareness", () => {
     expect(isActiveForTotals(rows[0])).toBe(false);
   });
 
+  it("[INTEGRITY] a rejected decision survives a historical reimport with additional matching rows", () => {
+    const original = monthlySeries("Former Provider", -19.99, 4, 3).map((t) => ({ ...t, is_contract: true }));
+    const fingerprint = merchantFingerprint(original[0]);
+    const decisions = new Map<string, ContractDecision>([[
+      fingerprint,
+      { id: "rejected-forever", user_id: "local", fingerprint, status: "rejected" },
+    ]]);
+    const reimported = [
+      ...original,
+      tx({ id: "historic-extra", payee: "Former Provider", amount: -19.99, date: "2023-12-15", is_contract: true }),
+    ];
+
+    const rows = computeContracts(reimported, cats, "Ausgabe", { now: NOW, decisions });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe("rejected");
+    expect(isActiveForTotals(rows[0])).toBe(false);
+  });
+
   it("stale active contracts (last booking > 2 cycles ago) are excluded from totals", () => {
     // monthly series whose last booking is 2023, far before NOW (2024-06)
     const series = [
