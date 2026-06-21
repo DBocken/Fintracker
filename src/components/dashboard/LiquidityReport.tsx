@@ -27,8 +27,12 @@ import {
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioForecast } from '@/hooks/useScenarioForecast';
+import { useMonteCarloForecast } from '@/hooks/useMonteCarloForecast';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
+import MonteCarloPanel, {
+  type MonteCarloSettings,
+} from '@/components/dashboard/MonteCarloPanel';
 import { buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
 
@@ -122,6 +126,23 @@ export default function LiquidityReport() {
     forecast,
     { months, safetyBuffer, bufferBasis },
     activeScenario,
+  );
+
+  // Monte Carlo (Stufe 4): stochastische Bandbreite, hinter einem Schalter.
+  const [mcSettings, setMcSettings] = useState<MonteCarloSettings>({
+    enabled: false,
+    trials: 500,
+    incomeUncertain: false,
+  });
+  const monteCarlo = useMonteCarloForecast(
+    input,
+    { months, safetyBuffer, bufferBasis },
+    {
+      trials: mcSettings.trials,
+      seed: 1,
+      incomeVolatility: mcSettings.incomeUncertain ? 0.08 : 0,
+    },
+    mcSettings.enabled,
   );
 
   const chartData = useMemo(() => {
@@ -232,6 +253,14 @@ export default function LiquidityReport() {
         onDeleteScenario={(id) =>
           updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
         }
+      />
+
+      {/* Monte Carlo: stochastische Bandbreite */}
+      <MonteCarloPanel
+        settings={mcSettings}
+        onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+        result={monteCarlo}
+        safetyBuffer={safetyBuffer}
       />
 
       {/* Insight */}

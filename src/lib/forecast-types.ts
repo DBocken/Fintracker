@@ -124,6 +124,11 @@ export interface VariableExpenseBaseline {
   /** Erkennungsqualität 0..1 (Metadatum). */
   confidence?: number;
   /**
+   * Variationskoeffizient der monatlichen Ausgaben (Streuung / Mittelwert) aus
+   * der Historie. 0 = konstant. Treibt die Monte-Carlo-Streuung (Stufe 4).
+   */
+  volatility?: number;
+  /**
    * Budget-Override: ersetzt – falls gesetzt – die historische Baseline als
    * Planwert (Budget-Semantik, *nicht* min(history, budget)).
    */

@@ -32,8 +32,11 @@ describe('buildVariableExpenseBaselines', () => {
       tx({ date: '2026-06-10', amount: -300, category: 'Lebensmittel' }),
     ];
     const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6 });
-    // 3 Monate beobachtet, Summe 600 -> 200/Monat.
-    expect(result).toEqual([{ category: 'Lebensmittel', monthlyAmount: 200, confidence: 0.75 }]);
+    // 3 Monate beobachtet, Summe 600 -> 200/Monat. Streuung [100,200,300]:
+    // sd = sqrt(20000/3) ≈ 81.65 -> cv ≈ 0.41.
+    expect(result).toEqual([
+      { category: 'Lebensmittel', monthlyAmount: 200, confidence: 0.75, volatility: 0.41 },
+    ]);
   });
 
   it('ignoriert Einnahmen, Transfers und Verträge', () => {
@@ -44,7 +47,10 @@ describe('buildVariableExpenseBaselines', () => {
       tx({ date: '2026-06-04', amount: -40, category: 'Restaurant' }),
     ];
     const result = buildVariableExpenseBaselines(txns, { now: NOW });
-    expect(result).toEqual([{ category: 'Restaurant', monthlyAmount: 40, confidence: 0.5 }]);
+    // Nur ein Monat beobachtet -> keine Streuungsinfo -> volatility 0.
+    expect(result).toEqual([
+      { category: 'Restaurant', monthlyAmount: 40, confidence: 0.5, volatility: 0 },
+    ]);
   });
 
   it('blendet Transaktionen außerhalb des Fensters aus', () => {

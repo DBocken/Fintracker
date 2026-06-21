@@ -154,7 +154,9 @@ export function buildVariableExpenseBaselines(
   const now = options.now ?? new Date();
   const windowStart = subMonths(now, monthsBack);
 
-  const sums = new Map<string, number>();
+  // Pro Kategorie die Ausgaben je Monat sammeln – Basis für Mittelwert *und*
+  // Streuung (Variationskoeffizient).
+  const perCategoryMonth = new Map<string, Map<string, number>>();
   const monthsSeen = new Set<string>();
 
   for (const t of transactions) {
@@ -165,18 +167,32 @@ export function buildVariableExpenseBaselines(
     if (date < windowStart || date > now) continue;
 
     const category = t.category?.trim() || 'Sonstiges';
-    sums.set(category, (sums.get(category) ?? 0) + Math.abs(t.amount));
-    monthsSeen.add(t.date.slice(0, 7));
+    const month = t.date.slice(0, 7);
+    monthsSeen.add(month);
+    let byMonth = perCategoryMonth.get(category);
+    if (!byMonth) {
+      byMonth = new Map<string, number>();
+      perCategoryMonth.set(category, byMonth);
+    }
+    byMonth.set(month, (byMonth.get(month) ?? 0) + Math.abs(t.amount));
   }
 
-  const denom = Math.max(monthsSeen.size, 1);
+  const monthKeys = [...monthsSeen];
+  const denom = Math.max(monthKeys.length, 1);
   const confidence = monthsSeen.size >= 3 ? 0.75 : 0.5;
 
   const baselines: VariableExpenseBaseline[] = [];
-  for (const [category, total] of sums) {
-    const monthlyAmount = Math.round((total / denom) * 100) / 100;
+  for (const [category, byMonth] of perCategoryMonth) {
+    // Vektor über alle beobachteten Monate (0, wo nichts ausgegeben wurde).
+    const values = monthKeys.map((mk) => byMonth.get(mk) ?? 0);
+    const mean = values.reduce((s, v) => s + v, 0) / denom;
+    const monthlyAmount = Math.round(mean * 100) / 100;
     if (monthlyAmount <= 0) continue;
-    baselines.push({ category, monthlyAmount, confidence });
+
+    const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / denom;
+    const volatility = mean > 0 ? Math.round((Math.sqrt(variance) / mean) * 100) / 100 : 0;
+
+    baselines.push({ category, monthlyAmount, confidence, volatility });
   }
   // Größte Kategorien zuerst – stabil und gut für die UI.
   baselines.sort((a, b) => b.monthlyAmount - a.monthlyAmount);
