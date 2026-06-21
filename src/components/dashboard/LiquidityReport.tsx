@@ -33,7 +33,9 @@ import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
 import MonteCarloPanel, {
   type MonteCarloSettings,
 } from '@/components/dashboard/MonteCarloPanel';
-import { buildPresetScenarios } from '@/lib/forecast-scenario';
+import { FeatureGate } from '@/components/FeatureGate';
+import SimulationWizard from '@/components/dashboard/SimulationWizard';
+import { applyScenario, buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -128,14 +130,22 @@ export default function LiquidityReport() {
     activeScenario,
   );
 
+  // Ein aktives Was-wäre-wenn-Szenario ist zugleich die Eingabe für Monte
+  // Carlo. So beantworten deterministische Linie und Wahrscheinlichkeitsband
+  // dieselbe Frage, statt zwei widersprüchliche Welten nebeneinander zu zeigen.
+  const simulationInput = useMemo(
+    () => (input && activeScenario ? applyScenario(input, activeScenario) : input),
+    [input, activeScenario],
+  );
+
   // Monte Carlo (Stufe 4): stochastische Bandbreite, hinter einem Schalter.
   const [mcSettings, setMcSettings] = useState<MonteCarloSettings>({
     enabled: false,
     trials: 500,
     incomeUncertain: false,
   });
-  const monteCarlo = useMonteCarloForecast(
-    input,
+  const { result: monteCarlo, isCalculating: isMonteCarloCalculating } = useMonteCarloForecast(
+    simulationInput,
     { months, safetyBuffer, bufferBasis },
     {
       trials: mcSettings.trials,
@@ -238,30 +248,6 @@ export default function LiquidityReport() {
           </Select>
         </label>
       </div>
-
-      {/* Planung: Zinsen, Budgets, geplante Posten, Rücklagen */}
-      <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
-
-      {/* Szenarien: Was-wäre-wenn */}
-      <ScenarioPanel
-        scenarios={scenarios}
-        activeId={activeScenarioId}
-        onSelect={setActiveScenarioId}
-        comparison={comparison}
-        customScenarios={overrides.scenarios}
-        onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
-        onDeleteScenario={(id) =>
-          updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
-        }
-      />
-
-      {/* Monte Carlo: stochastische Bandbreite */}
-      <MonteCarloPanel
-        settings={mcSettings}
-        onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
-        result={monteCarlo}
-        safetyBuffer={safetyBuffer}
-      />
 
       {/* Insight */}
       {insights[0] && (
@@ -429,6 +415,66 @@ export default function LiquidityReport() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Erweiterte Simulation folgt bewusst erst nach Ergebnis und Hauptgrafik. */}
+      <FeatureGate feature="simulation">
+        <section className="space-y-4" aria-labelledby="simulation-tools-heading">
+          <div>
+            <h2 id="simulation-tools-heading" className="text-lg font-semibold">
+              Zukunft durchspielen
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Passe deine Planung an, wähle ein Szenario und prüfe anschließend dessen
+              Wahrscheinlichkeitsspanne.
+            </p>
+          </div>
+
+          <SimulationWizard
+            input={input}
+            scenarios={scenarios}
+            activeScenarioId={activeScenarioId}
+            safetyBuffer={safetyBuffer}
+            onSafetyBufferChange={setSafetyBuffer}
+            onScenarioSelect={setActiveScenarioId}
+            onMonteCarloChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+          />
+
+          {mcSettings.enabled && (
+            <MonteCarloPanel
+              settings={mcSettings}
+              onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+              result={monteCarlo}
+              isCalculating={isMonteCarloCalculating}
+              safetyBuffer={safetyBuffer}
+              contextLabel={activeScenario?.name ?? 'Basisplanung'}
+            />
+          )}
+
+          <details className="group rounded-xl border bg-card">
+            <summary className="cursor-pointer list-none px-4 py-3 font-medium">
+              Fein einstellen <span className="ml-1 text-sm font-normal text-muted-foreground">für erfahrene Nutzer</span>
+            </summary>
+            <div className="space-y-4 border-t p-3 sm:p-4">
+              <p className="text-sm text-muted-foreground">
+                Hier kannst du einzelne Szenarien, Budgets, Verträge, Transfers und Ereignisse gezielt anpassen.
+                Der Wizard funktioniert auch ohne diese Einstellungen.
+              </p>
+              <ScenarioPanel
+                scenarios={scenarios}
+                activeId={activeScenarioId}
+                onSelect={setActiveScenarioId}
+                comparison={comparison}
+                customScenarios={overrides.scenarios}
+                onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
+                onDeleteScenario={(id) =>
+                  updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
+                }
+              />
+              <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
+            </div>
+          </details>
+        </section>
+      </FeatureGate>
 
       {/* Monatskarten */}
       <div>

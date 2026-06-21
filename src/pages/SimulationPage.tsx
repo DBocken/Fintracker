@@ -1,6 +1,10 @@
-import { SimulationPage } from '../components/simulation/SimulationPage';
+import { Navigate } from 'react-router-dom';
 
-/** Tier-Gating erfolgt zentral über die Route-Guard-Schicht (ROUTE_GUARDS). */
+/**
+ * Kompatibler Premium-Einstieg: Die frühere parallele Simulation wird nicht
+ * mehr als zweite Rechenwelt gerendert. Planung, Szenarien und Monte Carlo
+ * leben gemeinsam im Liquiditäts-Forecast.
+ */
 export default function SimulationPageWrapper() {
-  return <SimulationPage />;
+  return <Navigate to="/liquidity?mode=simulation" replace />;
 }

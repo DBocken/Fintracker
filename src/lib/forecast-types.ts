@@ -133,6 +133,12 @@ export interface VariableExpenseBaseline {
    * Planwert (Budget-Semantik, *nicht* min(history, budget)).
    */
   budgetOverride?: number;
+  /**
+   * Optionaler Monatsplan (yyyy-MM -> Betrag). Monte Carlo nutzt ihn, damit
+   * reale Monatsschwankungen nicht als ein dauerhaft hohes/niedriges Niveau
+   * über den gesamten Horizont missverstanden werden.
+   */
+  monthlyAmounts?: Record<string, number>;
 }
 
 /** Einmaliger geplanter Posten (Urlaub, Steuererstattung, Anschaffung …). */

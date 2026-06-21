@@ -341,11 +341,21 @@ export function calculateDeterministicForecast(
   const variableAccountId = pickVariableExpenseAccount(input.accounts);
   if (variableAccountId) {
     for (const baseline of input.variableExpenses ?? []) {
-      const monthlyCents = toMinor(baseline.budgetOverride ?? baseline.monthlyAmount);
-      if (monthlyCents <= 0) continue;
       for (let i = 0; i < totalDays; i++) {
         const d = addDays(start, i);
-        const dailyCents = Math.round(monthlyCents / getDaysInMonth(d));
+        const monthKey = format(d, 'yyyy-MM');
+        const monthlyCents = toMinor(
+          baseline.monthlyAmounts?.[monthKey] ??
+            baseline.budgetOverride ??
+            baseline.monthlyAmount,
+        );
+        if (monthlyCents <= 0) continue;
+        const daysInMonth = getDaysInMonth(d);
+        const baseDailyCents = Math.floor(monthlyCents / daysInMonth);
+        const remainderCents = monthlyCents - baseDailyCents * daysInMonth;
+        // Rest-Cent deterministisch auf die ersten Monatstage verteilen. Damit
+        // entspricht die Monatssumme exakt dem Planwert, ohne Float-Drift.
+        const dailyCents = baseDailyCents + (getDate(d) <= remainderCents ? 1 : 0);
         if (dailyCents === 0) continue;
         const bucket = bucketFor(buckets, format(d, ISO));
         bucket.variableExpenses += dailyCents;

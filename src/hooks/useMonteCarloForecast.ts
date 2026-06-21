@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { runMonteCarloForecast } from '@/lib/forecast-montecarlo';
+import { useEffect, useState } from 'react';
 import type { ForecastConfig, ForecastInput } from '@/lib/forecast-types';
 import type { MonteCarloConfig, MonteCarloResult } from '@/lib/forecast-montecarlo-types';
 
@@ -16,17 +15,43 @@ export function useMonteCarloForecast(
   config: ForecastConfig,
   mc: MonteCarloConfig,
   enabled: boolean,
-): MonteCarloResult | null {
+): { result: MonteCarloResult | null; isCalculating: boolean } {
   const { months, safetyBuffer, bufferBasis, startDate } = config;
   const { trials, seed, variableVolatility, incomeVolatility } = mc;
 
-  return useMemo(() => {
-    if (!enabled || !input) return null;
-    return runMonteCarloForecast(
-      input,
-      { months, safetyBuffer, bufferBasis, startDate },
-      { trials, seed, variableVolatility, incomeVolatility },
+  const [result, setResult] = useState<MonteCarloResult | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || !input) {
+      setResult(null);
+      setIsCalculating(false);
+      return;
+    }
+
+    setResult(null);
+    setIsCalculating(true);
+    const worker = new Worker(
+      new URL('../workers/forecast-montecarlo.worker.ts', import.meta.url),
+      { type: 'module' },
     );
+    worker.onmessage = (event: MessageEvent<MonteCarloResult>) => {
+      setResult(event.data);
+      setIsCalculating(false);
+      worker.terminate();
+    };
+    worker.onerror = () => {
+      setResult(null);
+      setIsCalculating(false);
+      worker.terminate();
+    };
+    worker.postMessage({
+      input,
+      config: { months, safetyBuffer, bufferBasis, startDate },
+      monteCarlo: { trials, seed, variableVolatility, incomeVolatility },
+    });
+
+    return () => worker.terminate();
   }, [
     enabled,
     input,
@@ -39,4 +64,6 @@ export function useMonteCarloForecast(
     variableVolatility,
     incomeVolatility,
   ]);
+
+  return { result, isCalculating };
 }

@@ -9,13 +9,15 @@
  * wiederkehrenden Zahlungen und Transaktionen auf; manuelle Eingaben sind
  * spätere Overrides, keine Pflicht.
  */
-import { subMonths } from 'date-fns';
-import type { Account, AccountType, Transaction } from '@/types';
+import { addMonths, format, startOfMonth, subMonths } from 'date-fns';
+import type { Account, AccountType, Category, Transaction } from '@/types';
 import type { ContractRow, Cycle } from '@/components/contracts/contract-types';
 import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
-import { detectRecurringTransactions } from '@/services/contract-detection-service';
-import { getTransactions } from '@/services/transaction-service';
+import { getCategories, getTransactions } from '@/services/transaction-service';
+import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
+import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import {
   getForecastOverrides,
   type ForecastOverrides,
@@ -93,7 +95,7 @@ export function buildRecurringFlows(
 ): RecurringFlow[] {
   const flows: RecurringFlow[] = [];
   for (const contract of contracts) {
-    if (contract.stale) continue; // vermutlich beendet
+    if (!isActiveForTotals(contract)) continue;
     const cadence = cycleToCadence(contract.cycle);
     if (!cadence) continue;
     const anchorDate = contract.nextDateISO ?? contract.lastDateISO;
@@ -148,27 +150,36 @@ function bindFlowsToDefaultAccount(
  */
 export function buildVariableExpenseBaselines(
   transactions: Transaction[],
-  options: { monthsBack?: number; now?: Date } = {},
+  options: {
+    monthsBack?: number;
+    now?: Date;
+    excludedFingerprints?: ReadonlySet<string>;
+    categoryNames?: ReadonlyMap<string, string>;
+  } = {},
 ): VariableExpenseBaseline[] {
   const monthsBack = options.monthsBack ?? 6;
   const now = options.now ?? new Date();
-  const windowStart = subMonths(now, monthsBack);
+  const windowStart = startOfMonth(subMonths(now, Math.max(0, monthsBack - 1)));
 
   // Pro Kategorie die Ausgaben je Monat sammeln – Basis für Mittelwert *und*
   // Streuung (Variationskoeffizient).
   const perCategoryMonth = new Map<string, Map<string, number>>();
-  const monthsSeen = new Set<string>();
+  let earliestIncludedMonth: string | null = null;
 
   for (const t of transactions) {
     if (t.is_transfer || t.is_contract) continue;
+    if (options.excludedFingerprints?.has(merchantFingerprint(t))) continue;
     if (t.amount >= 0) continue; // nur Ausgaben
     const date = new Date(t.date);
     if (Number.isNaN(date.getTime())) continue;
     if (date < windowStart || date > now) continue;
 
-    const category = t.category?.trim() || 'Sonstiges';
+    const category =
+      t.category?.trim() ||
+      (t.category_id ? options.categoryNames?.get(t.category_id) : undefined) ||
+      'Sonstiges';
     const month = t.date.slice(0, 7);
-    monthsSeen.add(month);
+    if (!earliestIncludedMonth || month < earliestIncludedMonth) earliestIncludedMonth = month;
     let byMonth = perCategoryMonth.get(category);
     if (!byMonth) {
       byMonth = new Map<string, number>();
@@ -177,9 +188,16 @@ export function buildVariableExpenseBaselines(
     byMonth.set(month, (byMonth.get(month) ?? 0) + Math.abs(t.amount));
   }
 
-  const monthKeys = [...monthsSeen];
+  const firstMonth = earliestIncludedMonth
+    ? startOfMonth(new Date(`${earliestIncludedMonth}-01T12:00:00`))
+    : startOfMonth(now);
+  const lastMonth = startOfMonth(now);
+  const monthKeys: string[] = [];
+  for (let month = firstMonth; month <= lastMonth; month = addMonths(month, 1)) {
+    monthKeys.push(format(month, 'yyyy-MM'));
+  }
   const denom = Math.max(monthKeys.length, 1);
-  const confidence = monthsSeen.size >= 3 ? 0.75 : 0.5;
+  const confidence = monthKeys.length >= 6 ? 0.9 : monthKeys.length >= 3 ? 0.75 : 0.5;
 
   const baselines: VariableExpenseBaseline[] = [];
   for (const [category, byMonth] of perCategoryMonth) {
@@ -241,20 +259,38 @@ export function applyForecastOverrides(
  * Betrag, End-Datum).
  */
 export async function buildForecastInput(): Promise<ForecastInput> {
-  const [accounts, netWorth, contracts, transactions] = await Promise.all([
+  const [accounts, netWorth, categories, decisions, transactions] = await Promise.all([
     getAccounts(),
     getNetWorthBreakdown(),
-    detectRecurringTransactions(),
-    getTransactions(2000),
+    getCategories(),
+    getContractDecisionMap(),
+    getTransactions(10000),
   ]);
 
   const overrides = getForecastOverrides();
   const forecastAccounts = buildForecastAccounts(accounts, netWorth.accountBalances);
+  const categoryMap = new Map<string, Category>(categories.map((category) => [category.id, category]));
+  const contracts = [
+    ...computeContracts(transactions, categoryMap, 'Einnahme', { decisions }),
+    ...computeContracts(transactions, categoryMap, 'Ausgabe', { decisions }),
+  ];
+  const activeContracts = contracts.filter(isActiveForTotals);
   const recurringFlows = bindFlowsToDefaultAccount(
-    buildRecurringFlows(contracts, overrides.recurringFlowOverrides),
+    buildRecurringFlows(activeContracts, overrides.recurringFlowOverrides),
     forecastAccounts,
   );
-  const variableExpenses = buildVariableExpenseBaselines(transactions);
+  // Erkannte Vertragsfamilien, die explizit beendet/abgelehnt/pausiert/archiviert
+  // wurden, sind keine zukünftigen variablen Ausgaben. Kandidaten bleiben bis
+  // zur Bestätigung in der Baseline und werden nicht zugleich als Fixkosten geplant.
+  const excludedFingerprints = new Set(
+    contracts
+      .filter((contract) => contract.status !== 'candidate')
+      .map((contract) => contract.fingerprint),
+  );
+  const variableExpenses = buildVariableExpenseBaselines(transactions, {
+    excludedFingerprints,
+    categoryNames: new Map(categories.map((category) => [category.id, category.name])),
+  });
 
   const seeded: ForecastInput = {
     accounts: forecastAccounts,

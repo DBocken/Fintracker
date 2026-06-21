@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runMonteCarloForecast } from '@/lib/forecast-montecarlo';
 import { calculateDeterministicForecast } from '@/lib/forecast';
+import { applyScenario } from '@/lib/forecast-scenario';
 import type { ForecastAccount, ForecastInput, RecurringFlow } from '@/lib/forecast-types';
 
 const START = '2026-01-01';
@@ -121,5 +122,29 @@ describe('Kalibrierung der Streuung', () => {
     const detEnd = det.daily.at(-1)!.operatingCash;
     // Median am Ende sollte – über viele Läufe – nahe am deterministischen Wert liegen.
     expect(Math.abs(res.band.at(-1)!.p50 - detEnd)).toBeLessThan(300);
+  });
+
+  it('nutzt bei geringer Datenqualität eine konservative Mindeststreuung', () => {
+    const sparse = input(0);
+    sparse.variableExpenses![0].confidence = 0.5;
+    const res = runMonteCarloForecast(sparse, CONFIG, { trials: 200, seed: 17 });
+    expect(res.band.at(-1)!.p90 - res.band.at(-1)!.p10).toBeGreaterThan(0);
+  });
+});
+
+describe('Szenario + Monte Carlo', () => {
+  it('bewertet das ausgewählte Szenario statt weiterhin die Basisplanung', () => {
+    const base = input(0);
+    const config = { ...CONFIG, safetyBuffer: 1000 };
+    const baselineRisk = runMonteCarloForecast(base, config, { trials: 50, seed: 1 });
+    const jobLossInput = applyScenario(base, {
+      id: 'job-loss-now',
+      name: 'Jobverlust sofort',
+      modifiers: [{ id: 'income-off', type: 'income', percentChange: -100 }],
+    });
+    const scenarioRisk = runMonteCarloForecast(jobLossInput, config, { trials: 50, seed: 1 });
+
+    expect(baselineRisk.breachProbability).toBe(0);
+    expect(scenarioRisk.breachProbability).toBe(1);
   });
 });

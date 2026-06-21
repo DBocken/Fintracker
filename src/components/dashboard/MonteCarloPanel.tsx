@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Dices } from 'lucide-react';
+import { Dices, LoaderCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -47,7 +47,9 @@ interface Props {
   settings: MonteCarloSettings;
   onChange: (patch: Partial<MonteCarloSettings>) => void;
   result: MonteCarloResult | null;
+  isCalculating?: boolean;
   safetyBuffer: number;
+  contextLabel?: string;
 }
 
 const TRIAL_OPTIONS = [200, 500, 1000];
@@ -57,7 +59,14 @@ const TRIAL_OPTIONS = [200, 500, 1000];
  * zeigt Pufferbruch-Wahrscheinlichkeit, Verteilungen und das P10/P50/P90-Fächer-
  * diagramm der maßgeblichen Cash-Sicht.
  */
-export default function MonteCarloPanel({ settings, onChange, result, safetyBuffer }: Props) {
+export default function MonteCarloPanel({
+  settings,
+  onChange,
+  result,
+  isCalculating = false,
+  safetyBuffer,
+  contextLabel = 'Basisplanung',
+}: Props) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -97,13 +106,24 @@ export default function MonteCarloPanel({ settings, onChange, result, safetyBuff
               <Switch
                 checked={settings.incomeUncertain}
                 onCheckedChange={(v) => onChange({ incomeUncertain: v })}
-                aria-label="Einnahmen unsicher"
+                aria-label="Einnahmen pauschal mit acht Prozent Streuung berechnen"
               />
-              <span className="text-muted-foreground">Einnahmen unsicher</span>
+              <span className="text-muted-foreground">Einnahmen mit 8 % Streuung</span>
             </label>
           </div>
 
-          {result && (
+          <p className="text-xs text-muted-foreground">
+            Berechnet für: <span className="font-medium text-foreground">{contextLabel}</span>
+          </p>
+
+          {isCalculating && (
+            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground" role="status">
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+              Wahrscheinlichkeitsspanne wird berechnet …
+            </div>
+          )}
+
+          {result && !isCalculating && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Stat
@@ -129,7 +149,7 @@ export default function MonteCarloPanel({ settings, onChange, result, safetyBuff
                   hint="P50"
                 />
                 <Stat
-                  label="Endvermögen Median"
+                  label="Kontosumme am Ende"
                   value={eur.format(result.endingNetWorth.p50)}
                   hint={`P10 ${eur.format(result.endingNetWorth.p10)}`}
                 />

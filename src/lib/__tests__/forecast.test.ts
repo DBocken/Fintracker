@@ -257,6 +257,19 @@ describe('variable Ausgaben-Baseline', () => {
     expect(jan.variableExpenses).toBeCloseTo(310, 1);
   });
 
+  it('verteilt Monatsbeträge centgenau und akzeptiert unterschiedliche Monatspläne', () => {
+    const result = run({
+      accounts: [checking(1000)],
+      variableExpenses: [{
+        category: 'groceries',
+        monthlyAmount: 100,
+        monthlyAmounts: { '2026-01': 100.01, '2026-02': 200.02 },
+      }],
+    });
+    expect(result.monthly[0].variableExpenses).toBe(100.01);
+    expect(result.monthly[1].variableExpenses).toBe(200.02);
+  });
+
   it('nutzt den Budget-Override statt der historischen Baseline', () => {
     const result = run({
       accounts: [checking(10_000)],

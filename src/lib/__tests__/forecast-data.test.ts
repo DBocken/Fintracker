@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildVariableExpenseBaselines,
+  buildRecurringFlows,
   cycleToCadence,
   accountTypeToKind,
   applyForecastOverrides,
@@ -8,6 +9,8 @@ import {
 import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
 import type { Transaction } from '@/types';
 import type { ForecastInput } from '@/lib/forecast-types';
+import type { ContractRow } from '@/components/contracts/contract-types';
+import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 
 const NOW = new Date('2026-06-15');
 
@@ -76,6 +79,48 @@ describe('buildVariableExpenseBaselines', () => {
       now: NOW,
     });
     expect(result[0].category).toBe('Sonstiges');
+  });
+
+  it('schließt bekannte Vertragsfamilien aus der variablen Baseline aus', () => {
+    const netflix = tx({ date: '2026-06-01', amount: -20, payee: 'Netflix' });
+    const food = tx({ date: '2026-06-02', amount: -40, payee: 'Aldi', category_id: 'food' });
+    const result = buildVariableExpenseBaselines([netflix, food], {
+      now: NOW,
+      excludedFingerprints: new Set([merchantFingerprint(netflix)]),
+      categoryNames: new Map([['food', 'Lebensmittel']]),
+    });
+    expect(result.map((entry) => entry.category)).toEqual(['Lebensmittel']);
+  });
+});
+
+describe('buildRecurringFlows', () => {
+  const row = (status: ContractRow['status']): ContractRow => ({
+    key: `netflix-${status}`,
+    type: 'Ausgabe',
+    payee: 'Netflix',
+    categoryName: 'Streaming',
+    categoryId: null,
+    amountTypical: 20,
+    amountLast: 20,
+    cycle: 'Monatlich',
+    lastDateISO: '2026-06-01',
+    firstDateISO: '2026-01-01',
+    nextDateISO: '2026-07-01',
+    changed: false,
+    changeAmount: 0,
+    changeSinceLabel: null,
+    confirmed: status === 'active',
+    transactionIds: [],
+    fingerprint: `merchant:netflix|out`,
+    status,
+    stale: false,
+    cycleKnown: true,
+  });
+
+  it('plant nur aktive Verträge, nicht Kandidaten oder beendete Verträge', () => {
+    const result = buildRecurringFlows([row('active'), row('candidate'), row('ended')]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('netflix-active');
   });
 });
 

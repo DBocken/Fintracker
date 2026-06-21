@@ -9,6 +9,7 @@
  * Mit festem Seed ist der Lauf vollständig reproduzierbar und damit testbar.
  */
 import { calculateDeterministicForecast } from './forecast';
+import { addMonths, format, parseISO } from 'date-fns';
 import type {
   ForecastConfig,
   ForecastInput,
@@ -89,12 +90,17 @@ function perturbInput(
   input: ForecastInput,
   normal: () => number,
   mc: ResolvedMonteCarloConfig,
+  monthKeys: string[],
 ): ForecastInput {
   const variableExpenses: VariableExpenseBaseline[] = (input.variableExpenses ?? []).map((b) => {
-    const cv = mc.variableVolatility ?? b.volatility ?? 0;
+    const confidenceFloor =
+      b.confidence == null ? 0 : b.confidence < 0.6 ? 0.5 : b.confidence < 0.85 ? 0.25 : 0.1;
+    const cv = Math.max(mc.variableVolatility ?? b.volatility ?? 0, confidenceFloor);
     const effective = b.budgetOverride ?? b.monthlyAmount;
-    const mult = lognormalMultiplier(normal, cv);
-    return { ...b, budgetOverride: round2(effective * mult) };
+    const monthlyAmounts = Object.fromEntries(
+      monthKeys.map((month) => [month, round2(effective * lognormalMultiplier(normal, cv))]),
+    );
+    return { ...b, monthlyAmounts };
   });
 
   const recurringFlows: RecurringFlow[] = (input.recurringFlows ?? []).map((f) => {
@@ -152,6 +158,11 @@ export function runMonteCarloForecast(
   // Wird beim ersten Durchlauf gesetzt (trials >= 1 garantiert).
   let resolvedConfig!: ResolvedForecastConfig;
   const useAvailable = (config.bufferBasis ?? 'operating') === 'available';
+  const startDate = config.startDate ?? format(new Date(), 'yyyy-MM-dd');
+  const horizonMonths = Math.max(config.months ?? 6, 6);
+  const monthKeys = Array.from({ length: horizonMonths }, (_, index) =>
+    format(addMonths(parseISO(startDate), index), 'yyyy-MM'),
+  );
 
   let byDay: number[][] = [];
   const lowestArr: number[] = [];
@@ -159,7 +170,10 @@ export function runMonteCarloForecast(
   let breaches = 0;
 
   for (let t = 0; t < resolvedMc.trials; t++) {
-    const result = calculateDeterministicForecast(perturbInput(input, normal, resolvedMc), config);
+    const result = calculateDeterministicForecast(
+      perturbInput(input, normal, resolvedMc, monthKeys),
+      config,
+    );
     if (!dates) {
       dates = result.daily.map((d) => d.date);
       resolvedConfig = result.config;
