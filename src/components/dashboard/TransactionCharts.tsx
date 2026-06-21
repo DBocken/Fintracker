@@ -200,8 +200,10 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                       key={entry.id}
                       fill={col}
                       opacity={isDimmed ? 0.5 : 1}
+                      className="cursor-pointer"
                       onMouseEnter={() => setHoveredKey(entry.id)}
                       onMouseLeave={() => setHoveredKey(null)}
+                      onClick={() => setHoveredKey((k) => (k === entry.id ? null : entry.id))}
                     />
                   );
                 })}
@@ -236,8 +238,10 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                           key={entry.id}
                           fill={parentColor}
                           opacity={isDimmed ? 0.4 : 0.85}
+                          className="cursor-pointer"
                           onMouseEnter={() => setHoveredKey(entry.id)}
                           onMouseLeave={() => setHoveredKey(null)}
+                          onClick={() => setHoveredKey((k) => (k === entry.id ? null : entry.id))}
                         />
                       );
                     })}
