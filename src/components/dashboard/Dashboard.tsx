@@ -39,6 +39,7 @@ import {
   type AusgabenklasseFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
+import AnalysisModePanel from './AnalysisModePanel';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
@@ -380,6 +381,13 @@ export function Dashboard() {
         count={stats.count}
         totalTransactions={txs.length}
         currentBalance={formatBalance(stats.currentBalance)}
+      />
+
+      <AnalysisModePanel
+        allTransactions={txs}
+        categories={cats}
+        range={range}
+        customDays={customDays}
       />
 
       <KpiSection data={{ transactions: visibleTransactions }} />
