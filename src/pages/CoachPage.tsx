@@ -54,7 +54,7 @@ export default function CoachPage() {
   const followUps = recommendations.slice(1);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
       {/* Fokuskarte zuerst (Audit P1.4): der priorisierte nächste Schritt steht

@@ -74,7 +74,7 @@ export default function AppShell() {
 
           <DemoDataBanner />
 
-          <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+          <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
             <div className="w-full px-4 py-6 sm:px-6 lg:px-8 2xl:px-10">
               <Outlet />
             </div>
