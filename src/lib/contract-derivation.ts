@@ -154,6 +154,11 @@ export function computeContracts(
     const sortedAmt = [...amounts].sort((a, b) => a - b);
     const mid = Math.floor(sortedAmt.length / 2);
     const median = sortedAmt.length % 2 === 0 ? (sortedAmt[mid - 1] + sortedAmt[mid]) / 2 : sortedAmt[mid];
+    const recentAmounts = amounts.slice(-3).sort((a, b) => a - b);
+    const recentMid = Math.floor(recentAmounts.length / 2);
+    const recentMedian = recentAmounts.length % 2 === 0
+      ? (recentAmounts[recentMid - 1] + recentAmounts[recentMid]) / 2
+      : recentAmounts[recentMid];
 
     const avg = amounts.reduce((s, v) => s + v, 0) / amounts.length;
     const variance = amounts.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / amounts.length;
@@ -180,7 +185,7 @@ export function computeContracts(
     const first = sorted[0];
     const lastAmount = Math.abs(last.amount);
     const changeAmount = Math.round((lastAmount - median) * 100) / 100;
-    const changed = changeAmount > 0.5;
+    const changed = Math.abs(changeAmount) > 0.5;
     const changeSinceLabel = changed ? format(parseISO(last.date), "MMM yyyy") : null;
 
     const cycleKnown = cycle !== "Unbekannt";
@@ -203,6 +208,7 @@ export function computeContracts(
       categoryName: cat?.name || "Unkategorisiert",
       categoryId: firstCatId,
       amountTypical: median,
+      amountRecentTypical: recentMedian,
       amountLast: lastAmount,
       cycle,
       lastDateISO: last.date,

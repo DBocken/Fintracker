@@ -10,6 +10,8 @@ export interface ContractRow {
   categoryName: string;
   categoryId: string | null;
   amountTypical: number;
+  /** Robuster Median der letzten bis zu drei Buchungen für die aktuelle Planung. */
+  amountRecentTypical?: number;
   amountLast: number;
   cycle: Cycle;
   lastDateISO: string;

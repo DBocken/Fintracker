@@ -122,6 +122,34 @@ describe('buildRecurringFlows', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('netflix-active');
   });
+
+  it('berücksichtigt eine aktuelle erkannte Gehaltsserie bereits als unsicheren Vorschlag', () => {
+    const salary = {
+      ...row('candidate'),
+      key: 'salary-candidate',
+      type: 'Einnahme' as const,
+      payee: 'BREDEX Software Entwicklungs- und Beratungs-GmbH',
+      amountTypical: 4044.26,
+      amountRecentTypical: 4028.48,
+      amountLast: 4028.48,
+    };
+
+    const result = buildRecurringFlows([salary]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'salary-candidate',
+      amount: 4028.48,
+      cadence: 'monthly',
+      confidence: 0.6,
+    });
+  });
+
+  it('berücksichtigt beendete oder veraltete Einnahmen nicht', () => {
+    const endedSalary = { ...row('ended'), type: 'Einnahme' as const };
+    const staleSalary = { ...row('candidate'), type: 'Einnahme' as const, stale: true };
+    expect(buildRecurringFlows([endedSalary, staleSalary])).toEqual([]);
+  });
 });
 
 describe('Mapping-Helfer', () => {

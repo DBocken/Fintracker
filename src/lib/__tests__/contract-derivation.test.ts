@@ -61,6 +61,31 @@ describe("computeContracts status awareness", () => {
     expect(rows[0].cycleKnown).toBe(true);
   });
 
+  it("erkennt eine aktuelle Gehaltsserie und gewichtet den jüngsten Betrag", () => {
+    const dates = [
+      "2023-07-31", "2023-08-28", "2023-09-29", "2023-10-29", "2023-11-27", "2023-12-29",
+      "2024-01-28", "2024-02-27", "2024-03-30", "2024-04-29", "2024-05-28",
+    ];
+    const salary = dates.map((date, index) => tx({
+      id: `salary-${index}`,
+      payee: "BREDEX",
+      amount: index < 6 ? 4044.26 : 4028.48,
+      date,
+      description: `Lohn - Gehalt Abrechnung ${index + 1}`,
+    }));
+
+    const rows = computeContracts(salary, cats, "Einnahme", { now: NOW });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      type: "Einnahme",
+      cycle: "Monatlich",
+      status: "candidate",
+      amountRecentTypical: 4028.48,
+      stale: false,
+    });
+  });
+
   it("marks confirmed transactions as active", () => {
     const series = monthlySeries("Spotify", -10, 4).map((t) => ({ ...t, is_contract: true }));
     const rows = computeContracts(series, cats, "Ausgabe", { now: NOW });

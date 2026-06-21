@@ -95,13 +95,20 @@ export function buildRecurringFlows(
 ): RecurringFlow[] {
   const flows: RecurringFlow[] = [];
   for (const contract of contracts) {
-    if (!isActiveForTotals(contract)) continue;
+    // Ausgaben müssen bestätigt sein. Eine zuverlässig erkannte, aktuelle
+    // Einnahmenserie darf dagegen schon als transparenter Vorschlag einfließen.
+    const isSuggestedIncome =
+      contract.type === 'Einnahme' &&
+      contract.status === 'candidate' &&
+      !contract.stale &&
+      contract.cycleKnown;
+    if (!isActiveForTotals(contract) && !isSuggestedIncome) continue;
     const cadence = cycleToCadence(contract.cycle);
     if (!cadence) continue;
     const anchorDate = contract.nextDateISO ?? contract.lastDateISO;
     if (!anchorDate) continue;
 
-    const magnitude = Math.abs(contract.amountTypical);
+    const magnitude = Math.abs(contract.amountRecentTypical ?? contract.amountTypical);
     const signed = contract.type === 'Einnahme' ? magnitude : -magnitude;
     const flowOverride = overrides?.[contract.key];
 
@@ -274,9 +281,8 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     ...computeContracts(transactions, categoryMap, 'Einnahme', { decisions }),
     ...computeContracts(transactions, categoryMap, 'Ausgabe', { decisions }),
   ];
-  const activeContracts = contracts.filter(isActiveForTotals);
   const recurringFlows = bindFlowsToDefaultAccount(
-    buildRecurringFlows(activeContracts, overrides.recurringFlowOverrides),
+    buildRecurringFlows(contracts, overrides.recurringFlowOverrides),
     forecastAccounts,
   );
   // Erkannte Vertragsfamilien, die explizit beendet/abgelehnt/pausiert/archiviert
