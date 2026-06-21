@@ -6,10 +6,10 @@ import { showSuccess } from "@/utils/toast";
 
 export default function CsvPage() {
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<unknown[]>([]);
+  const [transactions, setTransactions] = useState<import('../types').Transaction[]>([]);
   const [showReview, setShowReview] = useState(false);
 
-  const handleTransactionsLoaded = (txs: unknown[]) => {
+  const handleTransactionsLoaded = (txs: import('../types').Transaction[]) => {
     setTransactions(txs);
     setShowReview(true);
   };
@@ -29,6 +29,6 @@ export default function CsvPage() {
   return !showReview ? (
     <CsvUploader onTransactionsLoaded={handleTransactionsLoaded} />
   ) : (
-    <ReviewTable transactions={transactions as any[]} onConfirm={handleConfirm} />
+    <ReviewTable transactions={transactions} onConfirm={handleConfirm} />
   );
 }

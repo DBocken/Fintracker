@@ -65,7 +65,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // Debug: Expose contract detection to console — nur im Dev-Build, damit das
 // Debug-Objekt nicht in Produktion global exponiert wird (Audit D).
 if (import.meta.env.DEV && typeof window !== 'undefined') {
-  (window as any).__debug = {
+  (window as Window & typeof globalThis & { __debug?: unknown }).__debug = {
     applyDetectedContracts: async () => {
       console.log('🔍 Triggering contract detection...')
       try {

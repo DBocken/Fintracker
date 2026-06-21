@@ -291,7 +291,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           auto_mapped: false,
           confirmed: false,
         };
-        const categoryId = categorizeTransaction(draftTransaction as any, categories, learnedRules);
+        const categoryId = categorizeTransaction(draftTransaction as import('../types').Transaction, categories, learnedRules);
 
         const created = await createTransaction({
           account_id: account.id,
@@ -309,9 +309,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         importedTransactions.push(created);
 
         result.importedCount++;
-      } catch (error: any) {
-        console.error('[gocardless-sync] Failed to import transaction:', { message: error.message });
-        result.errors.push(`Transaktion konnte nicht importiert werden: ${error.message}`);
+      } catch (error: unknown) {
+        console.error('[gocardless-sync] Failed to import transaction:', { message: (error as Error).message });
+        result.errors.push(`Transaktion konnte nicht importiert werden: ${(error as Error).message}`);
       }
     }
 
@@ -320,12 +320,12 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
     if (importedTransactions.length > 0) {
       try {
         await reconcileInternalTransfers(importedTransactions, [...existingTransactions, ...importedTransactions]);
-      } catch (error: any) {
-        console.warn('[gocardless-sync] Internal transfer reconciliation failed:', { message: error.message });
+      } catch (error: unknown) {
+        console.warn('[gocardless-sync] Internal transfer reconciliation failed:', { message: (error as Error).message });
       }
     }
 
-    const accountUpdate: any = {
+    const accountUpdate: Partial<import('../types').Account> & { id: string } = {
       id: account.id,
       last_sync_at: new Date().toISOString(),
     };
@@ -343,8 +343,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       try {
         console.log('[gocardless-sync] Running contract detection after import');
         await applyDetectedContracts();
-      } catch (error: any) {
-        console.warn('[gocardless-sync] Contract detection failed:', { message: error.message });
+      } catch (error: unknown) {
+        console.warn('[gocardless-sync] Contract detection failed:', { message: (error as Error).message });
         // Don't fail the sync if contract detection fails
       }
     }
@@ -354,9 +354,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       skippedCount: result.skippedCount,
     });
 
-  } catch (error: any) {
-    console.error('[gocardless-sync] Failed to sync account:', { message: error.message });
-    result.errors.push(`Sync-Fehler: ${error.message}`);
+  } catch (error: unknown) {
+    console.error('[gocardless-sync] Failed to sync account:', { message: (error as Error).message });
+    result.errors.push(`Sync-Fehler: ${(error as Error).message}`);
   }
 
   return result;
@@ -395,8 +395,8 @@ export async function syncAllAccounts(): Promise<SyncResult[]> {
     }
 
     return results;
-  } catch (error: any) {
-    showError(`Synchronisation fehlgeschlagen: ${error.message}`);
+  } catch (error: unknown) {
+    showError(`Synchronisation fehlgeschlagen: ${(error as Error).message}`);
     throw error;
   }
 }

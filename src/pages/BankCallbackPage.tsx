@@ -31,7 +31,7 @@ interface GoCardlessAccount {
   name?: string;
   product?: string;
   status?: string;
-  balances?: any[];
+  balances?: Array<{ balanceType: string; balanceAmount: { amount: string; currency: string } }>;
 }
 
 interface ImportedTransaction {
@@ -57,7 +57,7 @@ export default function BankCallbackPage() {
   const [existingAccounts, setExistingAccounts] = useState<Account[]>([]);
   const [importingTransactions, setImportingTransactions] = useState<Set<string>>(new Set());
   const [linkedAccounts, setLinkedAccounts] = useState<Set<string>>(new Set());
-  const [requisitionInfo, setRequisitionInfo] = useState<any | null>(null);
+  const [requisitionInfo, setRequisitionInfo] = useState<{ id?: string; link?: string; status?: string; reference?: string } | null>(null);
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [requisitionId, setRequisitionId] = useState<string | null>(null);
 
@@ -111,8 +111,8 @@ export default function BankCallbackPage() {
       // We'll implement polling: try up to 6 times (approx 12s) to allow GoCardless to provision accounts
       const maxAttempts = 6;
       let attempt = 0;
-      let gotAccounts: any[] = [];
-      let lastRequisition: any = null;
+      let gotAccounts: GoCardlessAccount[] = [];
+      let lastRequisition: { id?: string; link?: string; status?: string } | null = null;
 
       while (attempt < maxAttempts) {
         attempt++;
@@ -120,7 +120,7 @@ export default function BankCallbackPage() {
         const result = await gocardlessService.getAccounts(lookupKey);
 
         lastRequisition = result.requisition || null;
-        gotAccounts = result.accounts || [];
+        gotAccounts = (result.accounts || []) as unknown as GoCardlessAccount[];
 
         // Save for UI
         setRequisitionInfo(lastRequisition);
@@ -152,9 +152,9 @@ export default function BankCallbackPage() {
       setRequisitionInfo(lastRequisition);
       setError('Keine Konten gefunden. Möglicherweise wurde der Zugriff nicht autorisiert oder die Bank liefert keine Konten.');
       setStatus('error');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching accounts:', err);
-      setError(`Fehler beim Abrufen der Konten: ${err.message}`);
+      setError(`Fehler beim Abrufen der Konten: ${(err as Error).message}`);
       setStatus('error');
     }
   };
@@ -206,8 +206,8 @@ export default function BankCallbackPage() {
       await importTransactionsForAccount(localAccountId, resolvedRequisitionId, gocardlessAccount.id);
 
       setLinkedAccounts(prev => new Set(prev).add(gocardlessAccount.id));
-    } catch (err: any) {
-      showError(`Fehler: ${err.message}`);
+    } catch (err: unknown) {
+      showError(`Fehler: ${(err as Error).message}`);
     } finally {
       setImportingTransactions(prev => {
         const next = new Set(prev);
@@ -253,7 +253,7 @@ export default function BankCallbackPage() {
           auto_mapped: false,
           confirmed: false,
         };
-        const categoryId = categorizeTransaction(draft as any, categories, learnedRules);
+        const categoryId = categorizeTransaction(draft as import('../types').Transaction, categories, learnedRules);
 
         return {
           account_id: localAccountId, // Link to the local account
@@ -272,10 +272,10 @@ export default function BankCallbackPage() {
         try {
           await createTransaction(tx);
           importedCount++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           skippedCount++;
           console.error('Fehler beim Import der Transaktion:', {
-            message: err?.message || 'Unbekannter Fehler',
+            message: (err as Error)?.message || 'Unbekannter Fehler',
             transaction: tx.original_text,
           });
         }
@@ -293,8 +293,7 @@ export default function BankCallbackPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
 
-    } catch (err: any) {
-
+    } catch (err: unknown) {
       console.error('Error importing transactions:', err);
       // Don't throw - linking succeeded even if import partially failed
     }
@@ -322,10 +321,10 @@ export default function BankCallbackPage() {
     if (!account.balances || account.balances.length === 0) return null;
 
     // Prefer closingBooked (real value shown in bank apps)
-    const preferred = account.balances.find((b: any) => b.balanceType === 'closingBooked')
-      || account.balances.find((b: any) => b.balanceType === 'interimAvailable')
-      || account.balances.find((b: any) => b.balanceType === 'interimBooked')
-      || account.balances.find((b: any) => b.balanceType === 'expected')
+    const preferred = account.balances.find((b) => b.balanceType === 'closingBooked')
+      || account.balances.find((b) => b.balanceType === 'interimAvailable')
+      || account.balances.find((b) => b.balanceType === 'interimBooked')
+      || account.balances.find((b) => b.balanceType === 'expected')
       || account.balances[0];
 
     const amount = parseFloat(preferred.balanceAmount.amount);

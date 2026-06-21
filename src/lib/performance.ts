@@ -95,6 +95,7 @@ export function batchUpdates(updates: Array<() => void>): void {
 /**
  * Simple memoization with size limit
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function memoize<T extends (...args: any[]) => any>(
   func: T,
   maxSize: number = 100
@@ -239,6 +240,7 @@ export const performanceMonitor = new PerformanceMonitorClass();
 /**
  * Measure function execution time
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function measurePerformance<T extends (...args: any[]) => any>(
   name: string,
   func: T
@@ -297,11 +299,12 @@ export function getMemoryUsage(): {
   totalJSHeapSize?: number;
   jsHeapSizeLimit?: number;
 } | null {
-  if (typeof (performance as any).memory === 'undefined') {
+  const perfWithMemory = performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } };
+  if (typeof perfWithMemory.memory === 'undefined') {
     return null;
   }
-  
-  const memory = (performance as any).memory;
+
+  const memory = perfWithMemory.memory;
   return {
     usedJSHeapSize: memory.usedJSHeapSize,
     totalJSHeapSize: memory.totalJSHeapSize,

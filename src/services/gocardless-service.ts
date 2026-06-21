@@ -47,15 +47,16 @@ interface GoCardlessError extends Error {
   details?: string
 }
 
-function parseEdgeBody(error: any): any | null {
-  const body = error?.context?.body
+function parseEdgeBody(error: unknown): Record<string, unknown> | null {
+  const err = error as Record<string, unknown> | null | undefined;
+  const body = (err?.context as Record<string, unknown> | undefined)?.body;
   if (!body) return null
 
-  if (typeof body === 'object') return body
+  if (typeof body === 'object') return body as Record<string, unknown>
 
   if (typeof body === 'string') {
     try {
-      return JSON.parse(body)
+      return JSON.parse(body) as Record<string, unknown>
     } catch {
       return { error: body }
     }
@@ -64,21 +65,22 @@ function parseEdgeBody(error: any): any | null {
   return null
 }
 
-function parseError(error: any): GoCardlessError {
+function parseError(error: unknown): GoCardlessError {
+  const e = error as Record<string, unknown>;
   const edge = parseEdgeBody(error)
   const messageFromEdge = edge?.error || edge?.message
 
-  const err = new Error(messageFromEdge || error.message || 'Unknown error') as GoCardlessError
+  const err = new Error((messageFromEdge as string | undefined) || (e.message as string | undefined) || 'Unknown error') as GoCardlessError
 
   if (edge?.details) {
-    err.details = edge.details
-  } else if (error?.details) {
-    err.details = error.details
+    err.details = edge.details as string
+  } else if (e?.details) {
+    err.details = e.details as string
   }
 
   if (
     edge?.setup_required ||
-    error.setup_required ||
+    e.setup_required ||
     (err.details && err.details.includes('nicht konfiguriert')) ||
     (err.message && err.message.includes('nicht konfiguriert'))
   ) {
@@ -153,7 +155,7 @@ export class GoCardlessService {
     return response.data?.transactions as Transaction[]
   }
 
-  async getAccounts(requisitionId: string): Promise<{ requisition: Requisition; accounts: (any & { balances?: GoCardlessBalance[] })[] }> {
+  async getAccounts(requisitionId: string): Promise<{ requisition: Requisition; accounts: (Record<string, unknown> & { balances?: GoCardlessBalance[] })[] }> {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('Not authenticated')
 
@@ -167,7 +169,7 @@ export class GoCardlessService {
     if (response.error) {
       throw parseError(response.error)
     }
-    return response.data as { requisition: Requisition; accounts: (any & { balances?: GoCardlessBalance[] })[] }
+    return response.data as { requisition: Requisition; accounts: (Record<string, unknown> & { balances?: GoCardlessBalance[] })[] }
   }
 
   async createRequisitionWithBankConnection(

@@ -104,7 +104,7 @@ export function useKpiPreferences() {
 
   const prefs = useMemo(() => {
     if (!isAuthed) return normalizePrefs(localPrefs);
-    const fromServer = query.data?.kpi_prefs;
+    const fromServer = query.data?.kpi_prefs as KpiPrefs | undefined;
     return normalizePrefs(fromServer || localPrefs);
   }, [isAuthed, query.data, localPrefs]);
 

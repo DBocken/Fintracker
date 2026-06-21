@@ -195,9 +195,9 @@ export async function syncEtoroPortfolio(portfolioId: string): Promise<void> {
     throw new Error('Portfolio is not an eToro portfolio');
   }
 
-  const username = portfolio.provider_config?.username;
-  const apiKey = portfolio.provider_config?.apiKey;
-  const userKey = portfolio.provider_config?.userKey;
+  const username = portfolio.provider_config?.username as string | undefined;
+  const apiKey = portfolio.provider_config?.apiKey as string | undefined;
+  const userKey = portfolio.provider_config?.userKey as string | undefined;
 
   if (!username || !apiKey || !userKey) {
     throw new Error('eToro credentials not found in portfolio config');

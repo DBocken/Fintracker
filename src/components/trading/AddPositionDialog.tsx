@@ -55,7 +55,7 @@ export default function AddPositionDialog({
       setEntryPrice(editPosition.entry_price.toString());
       setCurrency(editPosition.currency || 'EUR');
       setExchange(editPosition.exchange || '');
-      setBuyDate(editPosition.metadata?.buy_date || '');
+      setBuyDate((editPosition.metadata?.buy_date as string | undefined) || '');
     } else {
       // Reset form for new position
       setSymbol('');

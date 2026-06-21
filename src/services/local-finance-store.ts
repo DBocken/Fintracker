@@ -54,8 +54,8 @@ export async function upsertLocalFinanceItem<T extends { id?: string }>(
   const nextItem = {
     ...item,
     id,
-    updated_at: (item as any).updated_at ?? now,
-    created_at: (item as any).created_at ?? now,
+    updated_at: (item as T & { updated_at?: string }).updated_at ?? now,
+    created_at: (item as T & { created_at?: string }).created_at ?? now,
   } as T & { id: string };
 
   const index = items.findIndex((entry) => entry.id === id);

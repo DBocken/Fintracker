@@ -90,9 +90,9 @@ function isEnvelopeV1(value: unknown): value is EncryptedEnvelopeV1 {
   return !!(
     value &&
     typeof value === 'object' &&
-    (value as any).type === 'ausgabentracker.enc' &&
-    (value as any).v === 1 &&
-    typeof (value as any).ct_b64 === 'string'
+    (value as Record<string, unknown>).type === 'ausgabentracker.enc' &&
+    (value as Record<string, unknown>).v === 1 &&
+    typeof (value as Record<string, unknown>).ct_b64 === 'string'
   )
 }
 

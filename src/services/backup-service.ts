@@ -17,7 +17,7 @@ export interface BackupData {
   timestamp: string;
   userId: string;
   data: {
-    transactions: any[];
+    transactions: import('../types').Transaction[];
     categories: Category[];
     accounts: Account[];
     settings: UserSettings;
@@ -178,9 +178,9 @@ class BackupService {
       reader.readAsText(file);
     });
 
-    let parsed: any
+    let parsed: Record<string, unknown>
     try {
-      parsed = JSON.parse(raw)
+      parsed = JSON.parse(raw) as Record<string, unknown>
     } catch {
       throw new Error('Ungültiges verschlüsseltes Backup (kein JSON)')
     }
@@ -191,24 +191,25 @@ class BackupService {
 
     // Standalone-Entschlüsselung — verändert die lokale
     // Verschlüsselungs-Konfiguration des Nutzers nicht (Issue #36).
-    return await decryptJsonWithPassword<BackupData>(parsed.payload, password);
+    return await decryptJsonWithPassword<BackupData>(parsed.payload as import('./local-crypto').EncryptedEnvelopeV1, password);
   }
 
   /**
    * Validate backup structure
    */
-  private validateBackup(data: any): data is BackupData {
+  private validateBackup(data: unknown): data is BackupData {
+    if (!data || typeof data !== 'object') return false;
+    const d = data as Record<string, unknown>;
     return (
-      data &&
-      typeof data === 'object' &&
-      data.version &&
-      data.timestamp &&
-      data.userId &&
-      data.data &&
-      Array.isArray(data.data.transactions) &&
-      Array.isArray(data.data.categories) &&
-      Array.isArray(data.data.accounts) &&
-      typeof data.data.settings === 'object'
+      !!d.version &&
+      !!d.timestamp &&
+      !!d.userId &&
+      !!d.data &&
+      typeof d.data === 'object' &&
+      Array.isArray((d.data as Record<string, unknown>).transactions) &&
+      Array.isArray((d.data as Record<string, unknown>).categories) &&
+      Array.isArray((d.data as Record<string, unknown>).accounts) &&
+      typeof (d.data as Record<string, unknown>).settings === 'object'
     );
   }
 
@@ -322,7 +323,7 @@ class BackupService {
     return major === currentMajor;
   }
 
-  private async fetchTransactions(_userId: string): Promise<any[]> {
+  private async fetchTransactions(_userId: string): Promise<import('../types').Transaction[]> {
     try {
       return await getTransactions(10000);
     } catch (error) {
@@ -333,7 +334,7 @@ class BackupService {
 
   private async restoreTransactions(
     _userId: string,
-    transactions: any[]
+    transactions: import('../types').Transaction[]
   ): Promise<number> {
     if (transactions.length === 0) return 0;
     const restored = await saveTransactions(transactions.map((tx) => ({ ...tx, id: undefined })));

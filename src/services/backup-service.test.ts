@@ -8,7 +8,7 @@ function sampleBackup(userId = "user-1"): BackupData {
     timestamp: "2026-06-12T10:00:00.000Z",
     userId,
     data: {
-      transactions: [{ id: "t1", amount: -12.34, payee: "REWE" }],
+      transactions: [{ id: "t1", amount: -12.34, payee: "REWE" } as never],
       categories: [],
       accounts: [{ id: "a1", name: "Giro" } as never],
       settings: { retention_months: 36 } as never,

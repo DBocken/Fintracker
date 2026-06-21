@@ -309,7 +309,7 @@ export interface Portfolio {
   user_id: string;
   name: string;
   type: 'etoro' | 'manual' | 'demo';
-  provider_config?: Record<string, any>;
+  provider_config?: Record<string, unknown>;
   currency: string;
   is_active: boolean;
   created_at?: string;
@@ -325,7 +325,7 @@ export interface PortfolioPosition {
   entry_price: number;
   currency: string;
   exchange?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   last_price?: number;
   last_price_at?: string;
   created_at?: string;

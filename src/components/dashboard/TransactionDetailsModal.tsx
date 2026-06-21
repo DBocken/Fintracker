@@ -12,6 +12,7 @@ import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
 import { Users } from 'lucide-react';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
@@ -206,6 +207,11 @@ export function TransactionDetailsModal({
           </div>
         </div>
       )}
+
+      {/* Aufteilung auf mehrere Kategorien */}
+      <div className="border-t pt-4">
+        <TransactionSplitPanel transaction={transaction} categories={categories} />
+      </div>
 
       {/* Vertragsinformationen */}
       <div className="space-y-3 border-t pt-4">

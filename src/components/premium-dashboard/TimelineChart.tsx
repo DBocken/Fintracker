@@ -64,7 +64,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
       bucket[mainName] = (bucket[mainName] || 0) + amt;
     });
     return map;
-  }, [flowTransactions, categoryMap, resolveMainCategory]);
+  }, [flowTransactions, resolveMainCategory]);
 
   // Alle vorhandenen Hauptkategorie-Namen über die Monate sammeln
   const allMainNames = useMemo(() => {
@@ -110,7 +110,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
     const selected = Array.from(selectedCats);
     return data.map(d => {
       const byMain = monthlyCategoryExpenses.get(d.formattedDate) || {};
-      const entry: Record<string, any> = {
+      const entry: Record<string, unknown> = {
         formattedDate: d.formattedDate,
         income: d.income,
         net: d.net,
