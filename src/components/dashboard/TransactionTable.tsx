@@ -114,9 +114,10 @@ export function TransactionTable({
           return (
             <TableRow
               key={rowId}
-              className={cn(hidden && 'opacity-50')}
+              className={cn(hidden && 'opacity-50', onOpenDetails && rowId && 'cursor-pointer')}
+              onClick={onOpenDetails && rowId ? () => onOpenDetails(transaction) : undefined}
             >
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   aria-label={`Transaktion ${transaction.description || transaction.payee || rowId} auswählen`}
                   checked={selected.has(rowId)}
@@ -169,7 +170,7 @@ export function TransactionTable({
                 <span className="sr-only">{transaction.amount < 0 ? 'Ausgabe' : 'Einnahme'}: </span>
                 {amountLabel}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <CategoryCellEditor
                   categories={categories}
                   value={transaction.category_id || ''}
@@ -181,7 +182,7 @@ export function TransactionTable({
                   }}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
