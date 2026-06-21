@@ -5,6 +5,7 @@ import { computeTypicalMonth, computeTrend, computeMonthComparison, listMonths }
 import { getDashboardDateRange } from "./filter-utils";
 import type { DashboardRange } from "./filter-constants";
 import { useFeatureAccess } from "@/hooks/useTier";
+import { MonthPicker } from "./MonthPicker";
 import { cn } from "@/lib/utils";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -185,34 +186,20 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
           ) : (
             <>
               <div className="flex flex-wrap items-end gap-3">
-                <label className="text-xs text-muted-foreground">
-                  <span className="mb-1 block">Monat A</span>
-                  <select
-                    value={effA}
-                    onChange={(e) => setMonthA(e.target.value)}
-                    className="min-h-[36px] rounded-lg border bg-background px-2 py-1 text-sm"
-                  >
-                    {months.map((m) => (
-                      <option key={m} value={m}>
-                        {monthLabel(m)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  <span className="mb-1 block">Monat B</span>
-                  <select
-                    value={effB}
-                    onChange={(e) => setMonthB(e.target.value)}
-                    className="min-h-[36px] rounded-lg border bg-background px-2 py-1 text-sm"
-                  >
-                    {months.map((m) => (
-                      <option key={m} value={m}>
-                        {monthLabel(m)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <MonthPicker
+                  id="month-a"
+                  label="Monat A"
+                  value={effA}
+                  onChange={setMonthA}
+                  availableMonths={months}
+                />
+                <MonthPicker
+                  id="month-b"
+                  label="Monat B"
+                  value={effB}
+                  onChange={setMonthB}
+                  availableMonths={months}
+                />
               </div>
 
               {comparison && (
