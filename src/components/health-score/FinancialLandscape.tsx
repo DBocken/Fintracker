@@ -66,14 +66,58 @@ function MetricIcon({ file, stage, emoji, size }: { file: string; stage: number;
 
 interface FinancialLandscapeProps {
   health?: FinancialHealth;
-  /** "hero" = Portrait-Illustration (Desktop), "strip" = kompakter Statusstreifen (mobil). */
-  variant?: "hero" | "strip";
+  /**
+   * "hero" = Portrait-Illustration (volle Größe, Desktop),
+   * "hero-compact" = dieselbe Illustration mobil-tauglich verkleinert,
+   * "strip" = kompakter Statusstreifen.
+   */
+  variant?: "hero" | "hero-compact" | "strip";
   className?: string;
+}
+
+/**
+ * Bottom-Sheet mit Erklärung/Status einer Metrik. Wiederverwendet von Strip-
+ * Kacheln und den antippbaren Hotspots der Illustration (Progressive Disclosure).
+ */
+function MetricDetailSheet({
+  meta,
+  score,
+  explanation,
+  gentleMode,
+  children,
+}: {
+  meta: MetricMeta;
+  score: number;
+  explanation: string;
+  gentleMode: boolean;
+  children: React.ReactNode;
+}) {
+  const bucket = getStatusBucket(score);
+  return (
+    <Sheet>
+      <SheetTrigger asChild>{children}</SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <span aria-hidden>{meta.emoji}</span>
+            {meta.label}
+          </SheetTitle>
+          <SheetDescription>
+            Status: <span style={{ color: statusColorVar(bucket) }}>{statusLabel(bucket)}</span>
+            {!gentleMode && ` · ${score}/100`}
+          </SheetDescription>
+        </SheetHeader>
+        <p className="mt-4 text-sm text-muted-foreground">{explanation}</p>
+      </SheetContent>
+    </Sheet>
+  );
 }
 
 export default function FinancialLandscape({ health, variant = "hero", className }: FinancialLandscapeProps) {
   const { enabled: gentleMode } = useGentleMode();
   const reduce = useReducedMotion();
+  const isCompact = variant === "hero-compact";
+  const iconSize = isCompact ? 72 : 112;
 
   // Kompakter, interaktiver Status-Raster (Audit C-P0/F): mobil-first, kein
   // horizontales Scrollen mehr. Jede Kachel ist ein vollwertiges Touch-Ziel und
@@ -86,43 +130,29 @@ export default function FinancialLandscape({ health, variant = "hero", className
           const meta = METRICS[s.key];
           const bucket = getStatusBucket(s.score);
           return (
-            <Sheet key={s.key}>
-              <SheetTrigger asChild>
-                <button
-                  type="button"
-                  className="flex min-h-[44px] flex-col items-center gap-1 rounded-xl border bg-card p-2 text-center shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <MetricDetailSheet key={s.key} meta={meta} score={s.score} explanation={s.explanation} gentleMode={gentleMode}>
+              <button
+                type="button"
+                className="flex min-h-[44px] flex-col items-center gap-1 rounded-xl border bg-card p-2 text-center shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="text-lg leading-none" aria-hidden>{meta.emoji}</span>
+                <span className="text-[11px] font-medium leading-tight text-muted-foreground">{meta.label}</span>
+                <span
+                  className="text-sm font-bold leading-none"
+                  style={{ color: statusColorVar(bucket) }}
                 >
-                  <span className="text-lg leading-none" aria-hidden>{meta.emoji}</span>
-                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">{meta.label}</span>
-                  <span
-                    className="text-sm font-bold leading-none"
-                    style={{ color: statusColorVar(bucket) }}
-                  >
-                    {gentleMode ? "••" : s.score}
-                  </span>
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <span aria-hidden>{meta.emoji}</span>
-                    {meta.label}
-                  </SheetTitle>
-                  <SheetDescription>
-                    Status: <span style={{ color: statusColorVar(bucket) }}>{statusLabel(bucket)}</span>
-                    {!gentleMode && ` · ${s.score}/100`}
-                  </SheetDescription>
-                </SheetHeader>
-                <p className="mt-4 text-sm text-muted-foreground">{s.explanation}</p>
-              </SheetContent>
-            </Sheet>
+                  {gentleMode ? "••" : s.score}
+                </span>
+              </button>
+            </MetricDetailSheet>
           );
         })}
       </div>
     );
   }
 
-  // Hero: Portrait-9:16-Illustration mit positionierten Indikatoren (Desktop).
+  // Hero: Portrait-9:16-Illustration mit positionierten, antippbaren Indikatoren.
+  // "hero-compact" rendert dieselbe Illustration mit kleineren Hotspots für mobil.
   return (
     <div
       className={cn("relative w-full overflow-hidden rounded-2xl shadow-lg", className)}
@@ -152,16 +182,24 @@ export default function FinancialLandscape({ health, variant = "hero", className
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={reduce ? { duration: 0 } : { delay: 0.15 * i + 0.2, type: "spring", stiffness: 180 }}
           >
-            <MetricIcon file={meta.file} stage={stage} emoji={meta.emoji} size={112} />
-            <div
-              className="mt-0.5 rounded-lg bg-white/90 px-1.5 py-0.5 text-center shadow backdrop-blur-sm"
-              style={{ minWidth: 52 }}
-            >
-              <div className="text-[8px] font-medium leading-tight text-gray-500">{meta.label}</div>
-              <div className="text-xs font-bold leading-tight" style={{ color }}>
-                {gentleMode ? "••" : s.score}
-              </div>
-            </div>
+            <MetricDetailSheet meta={meta} score={s.score} explanation={s.explanation} gentleMode={gentleMode}>
+              <button
+                type="button"
+                aria-label={`${meta.label}: Details ansehen`}
+                className="flex flex-col items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <MetricIcon file={meta.file} stage={stage} emoji={meta.emoji} size={iconSize} />
+                <div
+                  className="mt-0.5 rounded-lg bg-white/90 px-1.5 py-0.5 text-center shadow backdrop-blur-sm"
+                  style={{ minWidth: isCompact ? 44 : 52 }}
+                >
+                  <div className="text-[8px] font-medium leading-tight text-gray-500">{meta.label}</div>
+                  <div className="text-xs font-bold leading-tight" style={{ color }}>
+                    {gentleMode ? "••" : s.score}
+                  </div>
+                </div>
+              </button>
+            </MetricDetailSheet>
           </motion.div>
         );
       })}
