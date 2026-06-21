@@ -1,5 +1,7 @@
-import { User as UserIcon, Settings as SettingsIcon, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { User as UserIcon, Settings as SettingsIcon, EyeOff, KeyRound, Sparkles, Check } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardHeader,
@@ -18,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useTier, TIER_OVERRIDE_EVENT } from "@/hooks/useTier";
+import { setTierOverride, clearTierOverride } from "@/lib/tier";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'ruhe';
@@ -32,6 +36,26 @@ export function UserProfile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { enabled: gentleModeEnabled, toggle: toggleGentleMode } = useGentleMode();
+  const tier = useTier();
+  const isPremium = tier === "premium";
+  const [accessCode, setAccessCode] = useState("");
+
+  const handleUnlock = () => {
+    const unlocked = setTierOverride(accessCode);
+    if (unlocked) {
+      window.dispatchEvent(new Event(TIER_OVERRIDE_EVENT));
+      setAccessCode("");
+      showSuccess("Premiumzugang freigeschaltet");
+    } else {
+      showError("Code ungültig");
+    }
+  };
+
+  const handleRemoveAccess = () => {
+    clearTierOverride();
+    window.dispatchEvent(new Event(TIER_OVERRIDE_EVENT));
+    showSuccess("Zugang entfernt");
+  };
 
   const { data: settings } = useQuery({
     queryKey: ['userSettings'],
@@ -152,6 +176,72 @@ export function UserProfile() {
             </div>
             <div className="text-[11px] text-muted-foreground">
               Versteckt Beträge und zeigt Fortschritt statt Salden.
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium">Beta- & Premiumzugang</span>
+                </div>
+                {isPremium && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-premium/10 px-2 py-0.5 text-[11px] text-premium">
+                    <Sparkles className="h-3 w-3" />
+                    Alpha
+                  </span>
+                )}
+              </div>
+
+              {isPremium ? (
+                <div className="mt-2 space-y-2">
+                  <ul className="space-y-1 text-[11px] text-muted-foreground">
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-positive" /> Erweiterte Analysen
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-positive" /> Monate vergleichen
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-positive" /> Simulation & Trading
+                    </li>
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAccess}
+                    className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    Zugang entfernen
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Du hast einen Alpha-Code? Gib ihn ein, um Premiumfunktionen freizuschalten.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      autoComplete="off"
+                      placeholder="Zugangscode"
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleUnlock();
+                      }}
+                      className="h-8 text-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="text-xs"
+                      disabled={!accessCode.trim()}
+                      onClick={handleUnlock}
+                    >
+                      Freischalten
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-muted-foreground">
