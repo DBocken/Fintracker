@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildVariableExpenseBaselines,
   buildRecurringFlows,
+  buildDetectedSalaryFlows,
   cycleToCadence,
   accountTypeToKind,
   applyForecastOverrides,
@@ -11,6 +12,8 @@ import type { Transaction } from '@/types';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { ContractRow } from '@/components/contracts/contract-types';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
+import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { calculateDeterministicForecast } from '@/lib/forecast';
 
 const NOW = new Date('2026-06-15');
 
@@ -149,6 +152,65 @@ describe('buildRecurringFlows', () => {
     const endedSalary = { ...row('ended'), type: 'Einnahme' as const };
     const staleSalary = { ...row('candidate'), type: 'Einnahme' as const, stale: true };
     expect(buildRecurringFlows([endedSalary, staleSalary])).toEqual([]);
+  });
+});
+
+describe('buildDetectedSalaryFlows', () => {
+  it('erkennt die reale BREDEX-Serie unabhängig von Kategorie und wechselnder IBAN-Abdeckung', () => {
+    const dates = [
+      '2025-07-31', '2025-08-28', '2025-09-29', '2025-10-29', '2025-11-27', '2025-12-29',
+      '2026-01-28', '2026-02-27', '2026-03-30', '2026-04-29', '2026-05-28',
+    ];
+    const transactions = dates.map((date, index) => tx({
+      id: `salary-${index}`,
+      date,
+      amount: index < 6 ? 4044.26 : 4028.48,
+      payee: 'BREDEX Software Entwicklungs- und Beratungs-GmbH',
+      description: `Lohn - Gehalt Abrechnung ${date.slice(5, 7)}/${date.slice(0, 4)}`,
+      category_id: null,
+      counterparty_iban: index < 6 ? null : 'DE02120300000000202051',
+      account_id: 'giro',
+    }));
+
+    const result = buildDetectedSalaryFlows(transactions, undefined, new Date('2026-06-22T12:00:00'));
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      amount: 4028.48,
+      cadence: 'monthly',
+      anchorDate: '2026-06-28',
+      accountId: 'giro',
+      confidence: 0.95,
+    });
+
+    const forecast = calculateDeterministicForecast({
+      accounts: [{ id: 'giro', name: 'Girokonto', kind: 'checking', openingBalance: 0 }],
+      recurringFlows: result,
+    }, { startDate: '2026-06-22', months: 2 });
+    const salaryDay = forecast.daily.find((day) => day.date === '2026-06-28');
+    expect(salaryDay?.inflows).toBe(4028.48);
+    expect(salaryDay?.operatingCash).toBe(4028.48);
+  });
+
+  it('ignoriert alte Gehälter und respektiert ein lokales Deaktivieren', () => {
+    const oldSalary = ['2025-01-28', '2025-02-28', '2025-03-28'].map((date, index) => tx({
+      id: `old-${index}`,
+      date,
+      amount: 3000,
+      payee: 'Alter Arbeitgeber',
+      description: 'Gehalt',
+    }));
+    expect(buildDetectedSalaryFlows(oldSalary, undefined, new Date('2026-06-22T12:00:00'))).toEqual([]);
+
+    const currentSalary = ['2026-03-28', '2026-04-28', '2026-05-28'].map((date, index) => tx({
+      id: `current-${index}`,
+      date,
+      amount: 3000,
+      payee: 'Aktueller Arbeitgeber',
+      description: 'Gehalt',
+    }));
+    const id = `salary:${normalizeMerchantName('Aktueller Arbeitgeber')}`;
+    expect(buildDetectedSalaryFlows(currentSalary, { [id]: { enabled: false } }, new Date('2026-06-22T12:00:00'))).toEqual([]);
   });
 });
 

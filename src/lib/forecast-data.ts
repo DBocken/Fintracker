@@ -18,6 +18,7 @@ import { getCategories, getTransactions } from '@/services/transaction-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
+import { normalizeMerchantName } from '@/services/merchant-normalization';
 import {
   getForecastOverrides,
   type ForecastOverrides,
@@ -127,6 +128,82 @@ export function buildRecurringFlows(
       endDate: flowOverride?.endDate,
     });
   }
+  return flows;
+}
+
+/**
+ * Erkennt Gehalt als eigene Produktdomäne statt als „Einnahmen-Vertrag“.
+ * Gruppiert bewusst nach normalisiertem Arbeitgeber und nicht nach IBAN, weil
+ * Bank- und CSV-Importe dieselbe Gehaltsserie sonst in Teilgruppen zerlegen können.
+ */
+export function buildDetectedSalaryFlows(
+  transactions: Transaction[],
+  overrides?: Record<string, { enabled?: boolean; amount?: number; endDate?: string }>,
+  now = new Date(),
+): RecurringFlow[] {
+  const salaryPattern = /\b(gehalt|lohn|salary|entgeltabrechnung)\b/i;
+  const groups = new Map<string, Transaction[]>();
+
+  for (const transaction of transactions) {
+    if (Number(transaction.amount) <= 0) continue;
+    const text = `${transaction.payee ?? ''} ${transaction.description ?? ''} ${transaction.original_text ?? ''}`;
+    if (!salaryPattern.test(text)) continue;
+    const employer = normalizeMerchantName(transaction.payee) || `konto-${transaction.account_id ?? 'unbekannt'}`;
+    const list = groups.get(employer) ?? [];
+    list.push(transaction);
+    groups.set(employer, list);
+  }
+
+  const flows: RecurringFlow[] = [];
+  for (const [employer, group] of groups) {
+    // Höchstens eine repräsentative Gehaltsbuchung pro Monat; Sonderzahlungen
+    // im selben Monat dürfen den Rhythmus nicht künstlich verbessern.
+    const byMonth = new Map<string, Transaction>();
+    for (const transaction of group) {
+      const date = new Date(`${transaction.date.slice(0, 10)}T12:00:00`);
+      if (Number.isNaN(date.getTime())) continue;
+      const month = transaction.date.slice(0, 7);
+      const previous = byMonth.get(month);
+      if (!previous || transaction.date > previous.date) byMonth.set(month, transaction);
+    }
+    const series = [...byMonth.values()].sort((a, b) => a.date.localeCompare(b.date));
+    if (series.length < 3) continue;
+
+    const gaps = series.slice(1).map((transaction, index) => {
+      const current = new Date(`${transaction.date.slice(0, 10)}T12:00:00`).getTime();
+      const previous = new Date(`${series[index].date.slice(0, 10)}T12:00:00`).getTime();
+      return Math.round((current - previous) / 86_400_000);
+    });
+    const monthlyGaps = gaps.filter((days) => days >= 20 && days <= 40).length;
+    if (monthlyGaps / gaps.length < 0.7) continue;
+
+    const last = series.at(-1)!;
+    const lastDate = new Date(`${last.date.slice(0, 10)}T12:00:00`);
+    const ageDays = Math.floor((now.getTime() - lastDate.getTime()) / 86_400_000);
+    if (ageDays > 50) continue;
+
+    const recentAmounts = series
+      .slice(-3)
+      .map((transaction) => Math.abs(Number(transaction.amount)))
+      .sort((a, b) => a - b);
+    const amount = recentAmounts[Math.floor(recentAmounts.length / 2)];
+    const id = `salary:${employer}`;
+    const flowOverride = overrides?.[id];
+    if (flowOverride?.enabled === false) continue;
+
+    flows.push({
+      id,
+      name: last.payee?.trim() || 'Gehalt',
+      amount: flowOverride?.amount ?? amount,
+      cadence: 'monthly',
+      anchorDate: format(addMonths(lastDate, 1), 'yyyy-MM-dd'),
+      accountId: last.account_id ?? '',
+      category: 'Gehalt',
+      confidence: series.length >= 6 ? 0.95 : 0.8,
+      endDate: flowOverride?.endDate,
+    });
+  }
+
   return flows;
 }
 
@@ -281,8 +358,17 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     ...computeContracts(transactions, categoryMap, 'Einnahme', { decisions }),
     ...computeContracts(transactions, categoryMap, 'Ausgabe', { decisions }),
   ];
+  const salaryFlows = buildDetectedSalaryFlows(
+    transactions,
+    overrides.recurringFlowOverrides,
+  );
+  const salaryEmployers = new Set(salaryFlows.map((flow) => normalizeMerchantName(flow.name)));
+  const otherRecurringFlows = buildRecurringFlows(
+    contracts,
+    overrides.recurringFlowOverrides,
+  ).filter((flow) => flow.amount < 0 || !salaryEmployers.has(normalizeMerchantName(flow.name)));
   const recurringFlows = bindFlowsToDefaultAccount(
-    buildRecurringFlows(contracts, overrides.recurringFlowOverrides),
+    [...salaryFlows, ...otherRecurringFlows],
     forecastAccounts,
   );
   // Erkannte Vertragsfamilien, die explizit beendet/abgelehnt/pausiert/archiviert
