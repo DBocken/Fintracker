@@ -1,5 +1,33 @@
 import { parseISO, getDay } from "date-fns";
-import type { Account, Ausgabenklasse, Category, Transaction } from "@/types";
+import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
+
+/** Ein Kategorie-Beitrag einer Transaktion (eigene Kategorie oder eine Aufteilung). */
+export interface CategoryContribution {
+  /** subcategory_id ?? category_id der Aufteilung bzw. der Transaktion. */
+  assignedId: string | null;
+  /** Signierter Euro-Betrag (gleiches Vorzeichen wie die Transaktion). */
+  amount: number;
+}
+
+/**
+ * Expandiert eine Transaktion in ihre Kategorie-Beiträge: nutzt Aufteilungen,
+ * falls vorhanden, sonst die eigene Kategorie der Transaktion. Die Summe der
+ * Beiträge entspricht dem Transaktionsbetrag (Invariante vom Allocation-Service
+ * garantiert). Ohne Map verhält sich alles wie zuvor (eine Kategorie je Buchung).
+ */
+export function getCategoryContributions(
+  t: Transaction,
+  allocationsByTx?: Map<string, TransactionAllocation[]>,
+): CategoryContribution[] {
+  const allocs = t.id ? allocationsByTx?.get(t.id) : undefined;
+  if (allocs && allocs.length > 0) {
+    return allocs.map((a) => ({
+      assignedId: a.subcategory_id ?? a.category_id ?? null,
+      amount: a.amount_minor / 100,
+    }));
+  }
+  return [{ assignedId: t.subcategory_id ?? t.category_id ?? null, amount: t.amount }];
+}
 
 /**
  * Gemeinsame, pure Daten-Aufbereitung für das Basis-Dashboard und den
@@ -104,7 +132,8 @@ function resolveHierarchy(byId: Map<string, Category>, catId: string | null | un
 export function buildSankeyData(
   transactions: Transaction[],
   categories: Category[],
-  accounts: Account[] = []
+  accounts: Account[] = [],
+  allocationsByTx?: Map<string, TransactionAllocation[]>
 ): SankeyData {
   const byId = new Map<string, Category>();
   for (const c of categories) byId.set(c.id, c);
@@ -142,22 +171,27 @@ export function buildSankeyData(
     // Korrekturen, keine Ausgaben — nicht in die Ausgaben-Knoten aufnehmen.
     if (resolveAusgabenklasse(byId, assignedId) === "einkommen") continue;
 
-    const amountAbs = Math.abs(t.amount);
-    getAccountTotals(accountId).expenses += amountAbs;
+    // Kontosummen bleiben transaktionsbezogen (nur Originalbuchung zählt).
+    getAccountTotals(accountId).expenses += Math.abs(t.amount);
 
-    const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
+    // Kategorie-Aufschlüsselung über Aufteilungen, falls vorhanden.
+    for (const c of getCategoryContributions(t, allocationsByTx)) {
+      if (resolveAusgabenklasse(byId, c.assignedId) === "einkommen") continue;
+      const cAbs = Math.abs(c.amount);
+      const { mainId, mainName, subId, subName } = resolveHierarchy(byId, c.assignedId);
 
-    const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
-    main.amount += amountAbs;
-    main.byAccount[accountId] = (main.byAccount[accountId] ?? 0) + amountAbs;
-    mains.set(mainId, main);
+      const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
+      main.amount += cAbs;
+      main.byAccount[accountId] = (main.byAccount[accountId] ?? 0) + cAbs;
+      mains.set(mainId, main);
 
-    if (subId && subName) {
-      const key = subId;
-      const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName, byAccount: {} };
-      sub.amount += amountAbs;
-      sub.byAccount[accountId] = (sub.byAccount[accountId] ?? 0) + amountAbs;
-      subs.set(key, sub);
+      if (subId && subName) {
+        const key = subId;
+        const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName, byAccount: {} };
+        sub.amount += cAbs;
+        sub.byAccount[accountId] = (sub.byAccount[accountId] ?? 0) + cAbs;
+        subs.set(key, sub);
+      }
     }
   }
 
@@ -191,7 +225,8 @@ export function buildSankeyData(
 export function buildSankeyDataByKlasse(
   transactions: Transaction[],
   categories: Category[],
-  accounts: Account[] = []
+  accounts: Account[] = [],
+  allocationsByTx?: Map<string, TransactionAllocation[]>
 ): SankeyDataByKlasse {
   const byId = new Map<string, Category>();
   for (const c of categories) byId.set(c.id, c);
@@ -232,39 +267,43 @@ export function buildSankeyDataByKlasse(
     }
     if (t.amount === 0) continue;
 
-    const assignedId = t.subcategory_id ?? t.category_id ?? null;
+    const txAssignedId = t.subcategory_id ?? t.category_id ?? null;
 
-    // Resolve Ausgabenklasse
-    const klasse = resolveAusgabenklasse(byId, assignedId) ?? null;
     // Negative Buchungen in einer Einkommens-Kategorie sind Einkommens-
     // Korrekturen, keine Ausgaben — aus der Ausgaben-Aufschlüsselung ausnehmen.
-    if (klasse === "einkommen") continue;
+    if (resolveAusgabenklasse(byId, txAssignedId) === "einkommen") continue;
 
-    const amountAbs = Math.abs(t.amount);
-    getAccountTotals(accountId).expenses += amountAbs;
+    // Kontosummen bleiben transaktionsbezogen (nur Originalbuchung zählt).
+    getAccountTotals(accountId).expenses += Math.abs(t.amount);
 
-    const { mainId, mainName, subId, subName } = resolveHierarchy(byId, assignedId);
-    const klasseId = klasse ?? "unkategorisiert";
-    const klasseName = KLASSE_LABELS[klasseId] || "Unkategorisiert";
+    for (const c of getCategoryContributions(t, allocationsByTx)) {
+      const klasse = resolveAusgabenklasse(byId, c.assignedId) ?? null;
+      if (klasse === "einkommen") continue;
 
-    // Klasse aggregation
-    const klasseNode = klassen.get(klasseId) ?? { id: klasseId, name: klasseName, amount: 0, byAccount: {} };
-    klasseNode.amount += amountAbs;
-    klasseNode.byAccount[accountId] = (klasseNode.byAccount[accountId] ?? 0) + amountAbs;
-    klassen.set(klasseId, klasseNode);
+      const cAbs = Math.abs(c.amount);
+      const { mainId, mainName, subId, subName } = resolveHierarchy(byId, c.assignedId);
+      const klasseId = klasse ?? "unkategorisiert";
+      const klasseName = KLASSE_LABELS[klasseId] || "Unkategorisiert";
 
-    // Main category aggregation
-    const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
-    main.amount += amountAbs;
-    main.byAccount[accountId] = (main.byAccount[accountId] ?? 0) + amountAbs;
-    mains.set(mainId, main);
+      // Klasse aggregation
+      const klasseNode = klassen.get(klasseId) ?? { id: klasseId, name: klasseName, amount: 0, byAccount: {} };
+      klasseNode.amount += cAbs;
+      klasseNode.byAccount[accountId] = (klasseNode.byAccount[accountId] ?? 0) + cAbs;
+      klassen.set(klasseId, klasseNode);
 
-    if (subId && subName) {
-      const key = subId;
-      const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName, byAccount: {} };
-      sub.amount += amountAbs;
-      sub.byAccount[accountId] = (sub.byAccount[accountId] ?? 0) + amountAbs;
-      subs.set(key, sub);
+      // Main category aggregation
+      const main = mains.get(mainId) ?? { id: mainId, name: mainName, amount: 0, byAccount: {} };
+      main.amount += cAbs;
+      main.byAccount[accountId] = (main.byAccount[accountId] ?? 0) + cAbs;
+      mains.set(mainId, main);
+
+      if (subId && subName) {
+        const key = subId;
+        const sub = subs.get(key) ?? { id: subId, name: subName, amount: 0, mainId, mainName, byAccount: {} };
+        sub.amount += cAbs;
+        sub.byAccount[accountId] = (sub.byAccount[accountId] ?? 0) + cAbs;
+        subs.set(key, sub);
+      }
     }
   }
 
@@ -362,7 +401,8 @@ function toSuperId(klasse: Ausgabenklasse | null, hasAssignment: boolean): Sunbu
  */
 export function buildSpendingSunburst(
   transactions: Transaction[],
-  categories: Category[]
+  categories: Category[],
+  allocationsByTx?: Map<string, TransactionAllocation[]>
 ): SpendingSunburst {
   const byId = new Map<string, Category>();
   for (const c of categories) byId.set(c.id, c);
@@ -375,39 +415,40 @@ export function buildSpendingSunburst(
     if (t.is_transfer) continue;
     if (!(t.amount < 0)) continue;
 
-    const assignedId = t.subcategory_id ?? t.category_id ?? null;
-    const klasse = resolveAusgabenklasse(byId, assignedId);
-    // Negative Buchungen in einer Einkommens-Kategorie (z. B. Gehalts-
-    // Rückbuchung) sind keine Ausgaben, sondern Einkommens-Korrekturen.
-    // Sie gehören nicht in die Ausgaben-Aufschlüsselung.
-    if (klasse === "einkommen") continue;
+    for (const c of getCategoryContributions(t, allocationsByTx)) {
+      const klasse = resolveAusgabenklasse(byId, c.assignedId);
+      // Negative Buchungen in einer Einkommens-Kategorie (z. B. Gehalts-
+      // Rückbuchung) sind keine Ausgaben, sondern Einkommens-Korrekturen.
+      // Sie gehören nicht in die Ausgaben-Aufschlüsselung.
+      if (klasse === "einkommen") continue;
 
-    const amount = Math.abs(t.amount);
-    total += amount;
+      const amount = Math.abs(c.amount);
+      total += amount;
 
-    const superId = toSuperId(klasse, Boolean(assignedId));
+      const superId = toSuperId(klasse, Boolean(c.assignedId));
 
-    const inner = innerMap.get(superId) ?? {
-      id: superId,
-      name: SUNBURST_SUPER_LABEL[superId],
-      value: 0,
-    };
-    inner.value += amount;
-    innerMap.set(superId, inner);
+      const inner = innerMap.get(superId) ?? {
+        id: superId,
+        name: SUNBURST_SUPER_LABEL[superId],
+        value: 0,
+      };
+      inner.value += amount;
+      innerMap.set(superId, inner);
 
-    // Unkategorisierte Ausgaben bekommen keinen Außenring (nur Innenring-Slice).
-    if (superId === "unkategorisiert") continue;
+      // Unkategorisierte Ausgaben bekommen keinen Außenring (nur Innenring-Slice).
+      if (superId === "unkategorisiert") continue;
 
-    const { mainId, mainName } = resolveHierarchy(byId, assignedId);
-    const outerKey = `${superId}::${mainId}`;
-    const outer = outerMap.get(outerKey) ?? {
-      id: outerKey,
-      parentId: superId,
-      name: mainName,
-      value: 0,
-    };
-    outer.value += amount;
-    outerMap.set(outerKey, outer);
+      const { mainId, mainName } = resolveHierarchy(byId, c.assignedId);
+      const outerKey = `${superId}::${mainId}`;
+      const outer = outerMap.get(outerKey) ?? {
+        id: outerKey,
+        parentId: superId,
+        name: mainName,
+        value: 0,
+      };
+      outer.value += amount;
+      outerMap.set(outerKey, outer);
+    }
   }
 
   return {

@@ -341,3 +341,68 @@ describe("buildSpendingSunburst (Superkategorie -> Hauptkategorie)", () => {
     expect(resolveAusgabenklasse(byId, null)).toBeNull();
   });
 });
+
+describe("getCategoryContributions & Aufteilungen", () => {
+  const allocCats: Category[] = [
+    { id: "main-wohnen", name: "Wohnen", filters: [] },
+    { id: "main-mobil", name: "Mobilität", filters: [] },
+  ];
+
+  it("fällt ohne Aufteilungen auf die Kategorie der Transaktion zurück", async () => {
+    const { getCategoryContributions } = await import("./analysis-data");
+    const t = tx({ id: "t1", amount: -10, category_id: "main-wohnen" });
+    expect(getCategoryContributions(t)).toEqual([{ assignedId: "main-wohnen", amount: -10 }]);
+  });
+
+  it("expandiert in Aufteilungs-Beiträge, deren Summe dem Betrag entspricht", async () => {
+    const { getCategoryContributions } = await import("./analysis-data");
+    const t = tx({ id: "t1", amount: -12.5, category_id: "main-wohnen" });
+    const map = new Map([[
+      "t1",
+      [
+        { id: "a", transaction_id: "t1", amount_minor: -1000, category_id: "main-wohnen", source: "manual" as const },
+        { id: "b", transaction_id: "t1", amount_minor: -250, category_id: "main-mobil", source: "manual" as const },
+      ],
+    ]]);
+    const contribs = getCategoryContributions(t, map);
+    expect(contribs).toEqual([
+      { assignedId: "main-wohnen", amount: -10 },
+      { assignedId: "main-mobil", amount: -2.5 },
+    ]);
+    expect(contribs.reduce((s, c) => s + c.amount, 0)).toBeCloseTo(t.amount, 2);
+  });
+
+  it("verteilt eine aufgeteilte Buchung auf beide Kategorien, Kontosumme bleibt unverändert", () => {
+    const t = tx({ id: "t1", amount: -12.5, category_id: "main-wohnen", account_id: "acc-default" });
+    const map = new Map([[
+      "t1",
+      [
+        { id: "a", transaction_id: "t1", amount_minor: -1000, category_id: "main-wohnen", source: "manual" as const },
+        { id: "b", transaction_id: "t1", amount_minor: -250, category_id: "main-mobil", source: "manual" as const },
+      ],
+    ]]);
+    const result = buildSankeyData([t], allocCats, [acc({ id: "acc-default" })], map);
+
+    const wohnen = result.mainCategories.find((m) => m.id === "main-wohnen");
+    const mobil = result.mainCategories.find((m) => m.id === "main-mobil");
+    expect(wohnen?.amount).toBeCloseTo(10, 2);
+    expect(mobil?.amount).toBeCloseTo(2.5, 2);
+    // Kontosumme nutzt ausschließlich die Originalbuchung.
+    expect(result.accounts[0].expenses).toBeCloseTo(12.5, 2);
+  });
+
+  it("Sunburst-Gesamtsumme bleibt gleich, ist aber auf Kategorien aufgeteilt", () => {
+    const t = tx({ id: "t1", amount: -12.5, category_id: "main-wohnen" });
+    const map = new Map([[
+      "t1",
+      [
+        { id: "a", transaction_id: "t1", amount_minor: -1000, category_id: "main-wohnen", source: "manual" as const },
+        { id: "b", transaction_id: "t1", amount_minor: -250, category_id: "main-mobil", source: "manual" as const },
+      ],
+    ]]);
+    const withAlloc = buildSpendingSunburst([t], allocCats, map);
+    const without = buildSpendingSunburst([t], allocCats);
+    expect(withAlloc.total).toBeCloseTo(without.total, 2);
+    expect(withAlloc.total).toBeCloseTo(12.5, 2);
+  });
+});
