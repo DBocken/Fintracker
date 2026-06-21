@@ -9,6 +9,7 @@
 /**
  * Debounce function execution
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -35,6 +36,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function execution
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
@@ -57,6 +59,7 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * Debounce using requestAnimationFrame
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function rafDebounce<T extends (...args: any[]) => any>(
   func: T
 ): (...args: Parameters<T>) => void {

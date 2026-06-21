@@ -64,6 +64,7 @@ export default function BankCallbackPage() {
   useEffect(() => {
     handleCallback();
     loadExistingAccounts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadExistingAccounts = async () => {

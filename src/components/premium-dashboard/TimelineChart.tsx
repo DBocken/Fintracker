@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,7 +28,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
   }, [categories]);
 
   // Höchsten Vorfahren als Hauptkategorie bestimmen
-  const resolveMainCategory = (catId: string | null): { mainId: string; mainName: string } => {
+  const resolveMainCategory = useCallback((catId: string | null): { mainId: string; mainName: string } => {
     if (!catId) {
       return { mainId: '__uncategorized_main', mainName: 'Unkategorisiert' };
     }
@@ -47,7 +47,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
       current = parent;
     }
     return { mainId: main.id, mainName: main.name };
-  };
+  }, [categoryMap]);
 
   // Monatsbezogene Ausgaben pro Hauptkategorie berechnen
   const monthlyCategoryExpenses = useMemo(() => {
@@ -64,7 +64,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
       bucket[mainName] = (bucket[mainName] || 0) + amt;
     });
     return map;
-  }, [flowTransactions, categoryMap]);
+  }, [flowTransactions, categoryMap, resolveMainCategory]);
 
   // Alle vorhandenen Hauptkategorie-Namen über die Monate sammeln
   const allMainNames = useMemo(() => {

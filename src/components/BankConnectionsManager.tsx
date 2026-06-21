@@ -31,7 +31,7 @@ export function BankConnectionsManager() {
       await revokeConnection.mutateAsync(connectionToRevoke)
       setConnectionToRevoke(null)
       refetch()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to revoke connection:', err)
       alert('Fehler beim Widerrufen der Verbindung')
     }
@@ -44,7 +44,7 @@ export function BankConnectionsManager() {
       await deleteConnection.mutateAsync(connectionToDelete)
       setConnectionToDelete(null)
       refetch()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete connection:', err)
       alert('Fehler beim Löschen der Verbindung')
     }

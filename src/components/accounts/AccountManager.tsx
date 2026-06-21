@@ -141,8 +141,8 @@ export function AccountManager() {
         showError(data.message || 'Aktualisierung fehlgeschlagen.');
       }
     },
-    onError: (error: any) => {
-      showError(error.message || 'Fehler bei der Aktualisierung.');
+    onError: (error: unknown) => {
+      showError((error as Error).message || 'Fehler bei der Aktualisierung.');
     },
   });
 
@@ -227,9 +227,8 @@ export function AccountManager() {
       queryClient.invalidateQueries({ queryKey: ['net-worth'] });
       showSuccess(`Synchronisation abgeschlossen: ${result.importedCount} importiert, ${result.skippedCount} übersprungen`);
 
-    } catch (err: any) {
-
-      showError(`Synchronisation fehlgeschlagen: ${err.message}`);
+    } catch (err: unknown) {
+      showError(`Synchronisation fehlgeschlagen: ${(err as Error).message}`);
     } finally {
       setSyncingAccounts(prev => {
         const next = new Set(prev);
@@ -249,8 +248,8 @@ export function AccountManager() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
       showSuccess('Bankverbindung getrennt');
-    } catch (err: any) {
-      showError(`Fehler beim Trennen: ${err.message}`);
+    } catch (err: unknown) {
+      showError(`Fehler beim Trennen: ${(err as Error).message}`);
     }
   };
 

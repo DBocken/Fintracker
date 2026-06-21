@@ -6,7 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
 import { Network } from "lucide-react";
 import { toPng, toJpeg } from "html-to-image";
-import jsPDF from "jspdf";
 import { chartColorAt } from "@/lib/chart-colors";
 import type { SankeyData } from "@/lib/analysis-data";
 
@@ -282,7 +281,10 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
 
   const handleExportPDF = async () => {
     if (!containerRef.current) return;
-    const dataUrl = await toPng(containerRef.current, { cacheBust: true, backgroundColor: "#ffffff" });
+    const [dataUrl, { default: jsPDF }] = await Promise.all([
+      toPng(containerRef.current, { cacheBust: true, backgroundColor: "#ffffff" }),
+      import("jspdf"),
+    ]);
     const pdf = new jsPDF("landscape", "pt", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -373,6 +375,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               nodePadding={40}
               margin={{ top: 20, right: 40, bottom: 20, left: 20 }}
               link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               node={({ x, y, width, height, payload }: any) => {
                 const MIN_HEIGHT_FOR_LABELS = 36;
                 const rectHeight = Math.max(height, 20);
@@ -534,6 +537,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                   });
                   return [formatted, name];
                 }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 labelFormatter={(label: any) => {
                   if (typeof label === "object" && label?.value) {
                     return `Fluss: ${label.value.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`;

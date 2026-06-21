@@ -178,6 +178,7 @@ export default function TradingDashboard() {
     }, 60000);
 
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions]);
 
   // Handle position deletion

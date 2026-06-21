@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
-import type { HierarchicalCategory, Transaction } from '../../types';
+import type { HierarchicalCategory, Transaction, Category } from '../../types';
 import {
   getUserSettings,
   updateUserSettings,
@@ -78,11 +78,11 @@ export function EnhancedSettings() {
   });
 
   const saveCategoryMutation = useMutation({
-    mutationFn: (category: any) => {
+    mutationFn: (category: Partial<Category> & { name: string }) => {
       if (category.id) {
-        return updateCategory(category);
+        return updateCategory(category as Category);
       }
-      return saveCategory(category);
+      return saveCategory(category as Omit<Category, 'id'>);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hierarchicalCategories'] });
@@ -125,7 +125,7 @@ export function EnhancedSettings() {
     },
   });
 
-  const handleCategorySave = (categoryData: any) => {
+  const handleCategorySave = (categoryData: Partial<Category> & { name: string }) => {
     saveCategoryMutation.mutate(categoryData);
   };
 

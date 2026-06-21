@@ -33,7 +33,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [requisition, setRequisition] = useState<any | null>(null)
+  const [requisition, setRequisition] = useState<{ id: string; link?: string; redirect?: string } | null>(null)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
 
   useEffect(() => {
@@ -102,13 +102,14 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       const sorted = data.sort((a, b) => a.name.localeCompare(b.name))
       setInstitutions(sorted)
       
-    } catch (err: any) {
-      console.error('[gocardless-connect] Failed to load institutions:', { message: err.message })
-      
-      if (err.setup_required || (err.details && err.details.includes('nicht konfiguriert'))) {
+    } catch (err: unknown) {
+      const e = err as { message?: string; setup_required?: boolean; details?: string };
+      console.error('[gocardless-connect] Failed to load institutions:', { message: e.message })
+
+      if (e.setup_required || (e.details && e.details.includes('nicht konfiguriert'))) {
         setError('API_SETUP_REQUIRED')
       } else {
-        setError(`Fehler: ${err.message}`)
+        setError(`Fehler: ${e.message}`)
       }
     } finally {
       setLoading(false)
@@ -162,13 +163,14 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
 
       sessionStorage.setItem('gocardless_requisition_id', rq.id)
 
-    } catch (err: any) {
-      console.error('[gocardless-connect] Connection failed:', { message: err.message })
-      
-      if (err.setup_required) {
+    } catch (err: unknown) {
+      const e = err as { message?: string; setup_required?: boolean };
+      console.error('[gocardless-connect] Connection failed:', { message: e.message })
+
+      if (e.setup_required) {
         setError('API_SETUP_REQUIRED')
       } else {
-        setError(`Verbindungsfehler: ${err.message}`)
+        setError(`Verbindungsfehler: ${e.message}`)
       }
     } finally {
       setConnecting(false)
@@ -197,7 +199,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       await navigator.clipboard.writeText(link)
       setError(null)
       alert('Link kopiert')
-    } catch (e:any) {
+    } catch {
       setError('Fehler beim Kopieren')
     }
   }
@@ -229,23 +231,23 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm text-foreground">Authentifizierungslink</div>
-                <div className="text-xs text-muted-foreground truncate max-w-full break-words">{requisition.link || requisition.redirect}</div>
+                <div className="text-xs text-muted-foreground truncate max-w-full break-words">{requisition.link ?? requisition.redirect ?? ''}</div>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => copyLink(requisition.link || requisition.redirect)} variant="outline">Kopieren</Button>
-                <Button onClick={() => openAuthInNewTab(requisition.link || requisition.redirect)}>In neuem Tab öffnen</Button>
+                <Button onClick={() => copyLink(requisition.link ?? requisition.redirect ?? '')} variant="outline">Kopieren</Button>
+                <Button onClick={() => openAuthInNewTab(requisition.link ?? requisition.redirect ?? '')}>In neuem Tab öffnen</Button>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <div>
                 <div className="text-sm text-foreground mb-2">QR-Code scannen (öffne auf dem Handy)</div>
-                <img src={`https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(requisition.link || requisition.redirect)}`} alt="QR Code" className="w-40 h-40 bg-white p-1 rounded" />
+                <img src={`https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(requisition.link ?? requisition.redirect ?? '')}`} alt="QR Code" className="w-40 h-40 bg-white p-1 rounded" />
               </div>
               <div className="flex-1">
                 <div className="text-sm text-foreground">oder</div>
                 <div className="mt-2">
-                  <Button onClick={() => openAuthInThisTab(requisition.link || requisition.redirect)} className="w-full">Auf diesem Gerät öffnen</Button>
+                  <Button onClick={() => openAuthInThisTab(requisition.link ?? requisition.redirect ?? '')} className="w-full">Auf diesem Gerät öffnen</Button>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">Wenn du auf diesem Gerät weiter machst, wirst du direkt zur Bank geleitet und nach erfolgreicher Auth zurück zur App.</div>
               </div>

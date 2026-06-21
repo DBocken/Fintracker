@@ -27,7 +27,7 @@ export default function ProviderSelector({
 
   const saveFavoriteMutation = useMutation({
     mutationFn: async (provider: 'yahoo' | 'stooq') => {
-      await setPreferredMarketProvider(provider as any);
+      await setPreferredMarketProvider(provider);
       return provider;
     },
     onSuccess: (provider) => {

@@ -218,7 +218,7 @@ export default function PortfolioManager({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{portfolio.name}</span>
-                    <Badge variant={getPortfolioTypeColor(portfolio.type) as any}>
+                    <Badge variant={getPortfolioTypeColor(portfolio.type) as 'default' | 'secondary' | 'outline' | 'destructive'}>
                       {getPortfolioTypeLabel(portfolio.type)}
                     </Badge>
                     {portfolio.id === activePortfolioId && (
