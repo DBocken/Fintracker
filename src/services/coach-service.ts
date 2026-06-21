@@ -135,9 +135,15 @@ export async function getCoachOverview(): Promise<CoachOverview> {
   }
 
   const protectedNames = ["groceries", "housing", "insurance", "transport"];
+  // Verträge sind preisgebunden und nicht frei kürzbar (Audit P2-UX U5) – sie
+  // werden als geschützt behandelt mit einem Hinweis auf Kündigung/Wechsel,
+  // statt eine prozentuale Reduktion vorzuschlagen.
+  const isContractCategory = (category: (typeof categories)[number]) =>
+    category.attributes?.ist_vertrag === true;
   const categoryGuidance: CategoryGuidance[] = categories.slice(0, 5).map((category, index) => {
     const spend = transactions.filter((t) => (t.category_id || t.subcategory_id) === category.id && t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const status = index < 2 ? "protected" : index < 4 ? "reduce" : "cut";
+    const contract = isContractCategory(category);
+    const status = contract ? "protected" : index < 2 ? "protected" : index < 4 ? "reduce" : "cut";
     const recommendedMax = status === "protected" ? spend * 1.05 : status === "reduce" ? spend * 0.85 : spend * 0.7;
     return {
       categoryId: category.id,
@@ -146,7 +152,9 @@ export async function getCoachOverview(): Promise<CoachOverview> {
       recommendedMax,
       currentSpend: spend,
       savingsOpportunity: Math.max(0, spend - recommendedMax),
-      reason: protectedNames.some((name) => category.name.toLowerCase().includes(name)) ? "Wichtig und geschützt" : status === "cut" ? "Niedrige Priorität im aktuellen Budget" : "Kann leicht reduziert werden",
+      reason: contract
+        ? "Vertrag mit festem Preis – nur durch Kündigung oder Wechsel beeinflussbar"
+        : protectedNames.some((name) => category.name.toLowerCase().includes(name)) ? "Wichtig und geschützt" : status === "cut" ? "Niedrige Priorität im aktuellen Budget" : "Kann leicht reduziert werden",
     };
   });
 

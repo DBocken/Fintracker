@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { Category } from '@/types';
-import { SimulationEngine, BudgetSuggestion } from './SimulationEngine';
+import { Link } from 'react-router-dom';
+import { SimulationEngine, BudgetSuggestion, ContractAction } from './SimulationEngine';
 
 interface BudgetOptimizerProps {
   engine: SimulationEngine;
@@ -48,6 +49,10 @@ export function BudgetOptimizer({ engine, categories, months, riskK, onApplyOver
     }
   };
 
+  // Verträge werden getrennt von variablen Ausgaben behandelt: feste Preise
+  // lassen sich nicht „herunterkürzen", nur kündigen/wechseln/bündeln.
+  const contractActions = useMemo<ContractAction[]>(() => engine.generateContractActions(), [engine]);
+
   const emergencyHint = useMemo(() => {
     // einfache Heuristik: Notrücklage = 3x typische Vertragskosten/Monat
     const contracts = engine.getDetectedContracts();
@@ -72,6 +77,43 @@ export function BudgetOptimizer({ engine, categories, months, riskK, onApplyOver
             Empfehlung: Baue zuerst eine Notrücklage von ca. {emergencyHint.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })} (≈3 Monate Fixkosten).
           </AlertDescription>
         </Alert>
+
+        {/* Verträge: feste Preise -> konkrete Aktionen statt Betragskürzung */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Verträge</Label>
+            <Badge variant="outline">{contractActions.length} Hinweise</Badge>
+          </div>
+          {contractActions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Keine offensichtlichen Vertrags-Hebel erkannt. Verträge haben feste Preise – sie lassen sich nur
+              kündigen, wechseln oder bündeln.{' '}
+              <Link to="/contracts" className="underline">Verträge ansehen</Link>
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {contractActions.map((a, i) => (
+                <div key={i} className="rounded-lg border p-3 bg-muted/50">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium">{a.title}</div>
+                    <Badge variant={a.kind === 'bundle' ? 'secondary' : 'outline'}>
+                      {a.kind === 'bundle' ? 'Bündeln' : a.kind === 'cancel' ? 'Kündigen' : 'Prüfen'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{a.reason}</p>
+                  {a.monthlySavingsEstimate > 0 && (
+                    <div className="text-sm font-medium mt-1">
+                      Bis zu {a.monthlySavingsEstimate.toLocaleString('de-DE')}€/Monat
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <Link to="/contracts" className="text-xs underline">Verträge verwalten</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Tabs value={mode} onValueChange={(v: string) => setMode(v as 'survival' | 'goal')}>
           <TabsList className="grid grid-cols-2 w-full max-w-md">
@@ -142,7 +184,7 @@ export function BudgetOptimizer({ engine, categories, months, riskK, onApplyOver
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Vorschläge</Label>
+            <Label>Variable Ausgaben</Label>
             <Badge variant="outline">{suggestions.length} Kategorien</Badge>
           </div>
           {suggestions.length === 0 ? (
@@ -160,7 +202,8 @@ export function BudgetOptimizer({ engine, categories, months, riskK, onApplyOver
                   <div className="text-sm text-muted-foreground mt-1">
                     Von {s.from.toLocaleString('de-DE')}€ auf {s.to.toLocaleString('de-DE')}€ · Ersparnis {s.savingsPerMonth.toLocaleString('de-DE')}€/Monat
                   </div>
-                  {s.note && <div className="text-xs mt-1">{s.note}</div>}
+                  {s.reason && <div className="text-xs text-muted-foreground mt-1">{s.reason}</div>}
+                  {s.note && <div className="text-xs mt-1 font-medium">{s.note}</div>}
                   <div className="mt-2 flex items-center justify-between">
                     <Button
                       size="sm"
