@@ -1,8 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
 import type { Category, Transaction } from '@/types';
-import { requireUserId } from './auth-service';
-import { localEncryption } from './local-crypto';
-import { getAnalyticsConsent } from './analytics-consent-service';
 import { getCategories, getTransactions } from './transaction-service';
 
 export type AnalyticsAggregationRecord = {
@@ -52,12 +48,6 @@ function mapCategoryGroup(category?: Category): string {
   if (/freizeit|reise|urlaub|hobby|sport/.test(name)) return 'freizeit';
   if (/einkommen|gehalt|lohn/.test(name)) return 'einkommen';
   return 'sonstiges';
-}
-
-async function hashDimensions(value: unknown): Promise<string> {
-  const bytes = new TextEncoder().encode(JSON.stringify(value));
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
@@ -116,35 +106,5 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
 }
 
 export async function uploadEncryptedAnalyticsPackage(): Promise<{ uploaded: number; suppressed: number }> {
-  const consent = await getAnalyticsConsent();
-  if (!consent.opted_in) {
-    throw new Error('Anonyme Auswertung ist nicht aktiviert.');
-  }
-  if (!localEncryption.isEnabled() || !localEncryption.isUnlocked()) {
-    throw new Error('Bitte lokale Verschlüsselung entsperren.');
-  }
-
-  const userId = await requireUserId();
-  const pkg = await buildAnalyticsPackage();
-  if (pkg.records.length === 0) {
-    return { uploaded: 0, suppressed: pkg.suppressed_records };
-  }
-
-  for (const record of pkg.records) {
-    const payload = await localEncryption.encryptJson({ ...pkg, records: [record] });
-    const dimensionsHash = await hashDimensions(record.dimensions);
-    const { error } = await supabase.from('encrypted_analytics_blobs').insert({
-      user_id: userId,
-      schema_version: record.schema_version,
-      blob_type: 'local-aggregate',
-      period: record.period,
-      cohort_size: record.cohort_size,
-      dimensions_hash: dimensionsHash,
-      payload,
-    });
-    if (error) throw new Error(error.message);
-  }
-
-  localStorage.setItem('ausgabentracker_analytics_last_generated_at_v1', pkg.generated_at);
-  return { uploaded: pkg.records.length, suppressed: pkg.suppressed_records };
+  throw new Error('Analytics-Upload ist deaktiviert: Finanz- und Nutzungsdaten bleiben ausschließlich lokal.');
 }

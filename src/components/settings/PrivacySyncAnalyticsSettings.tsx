@@ -10,7 +10,6 @@ import {
   HardDrive,
   ShieldCheck,
   Sparkles,
-  UploadCloud,
   X,
 } from 'lucide-react';
 
@@ -20,12 +19,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { showError, showSuccess } from '@/utils/toast';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import { getLocalFinanceStorageStatus } from '@/services/local-finance-store';
-import { getAnalyticsConsent, setAnalyticsConsent } from '@/services/analytics-consent-service';
-import { uploadEncryptedAnalyticsPackage } from '@/services/analytics-aggregation-service';
 import {
   exportEncryptedSnapshot,
   getLatestSyncMetadata,
@@ -89,24 +85,10 @@ export function PrivacySyncAnalyticsSettings() {
   const syncPaths = useMemo(() => { void pathsVersion; return getSyncPaths(); }, [pathsVersion]);
   const selectedPath = syncPaths[0];
 
-  const consentQuery = useQuery({
-    queryKey: ['analytics-consent'],
-    queryFn: getAnalyticsConsent,
-  });
-
   const latestSyncQuery = useQuery({
     queryKey: ['sync-metadata-latest'],
     queryFn: getLatestSyncMetadata,
     retry: false,
-  });
-
-  const consentMutation = useMutation({
-    mutationFn: (optedIn: boolean) => setAnalyticsConsent(optedIn),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['analytics-consent'] });
-      showSuccess('Analytics-Einwilligung aktualisiert');
-    },
-    onError: (error: Error) => showError(error.message),
   });
 
   const snapshotMutation = useMutation({
@@ -128,13 +110,6 @@ export function PrivacySyncAnalyticsSettings() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       showSuccess(`Sync-Datei v${snapshot.snapshot_version} importiert`);
     },
-    onError: (error: Error) => showError(error.message),
-  });
-
-  const analyticsMutation = useMutation({
-    mutationFn: uploadEncryptedAnalyticsPackage,
-    onSuccess: (result) =>
-      showSuccess(`${result.uploaded} verschlüsselte Analysepakete hochgeladen (${result.suppressed} unterdrückt)`),
     onError: (error: Error) => showError(error.message),
   });
 
@@ -209,11 +184,9 @@ export function PrivacySyncAnalyticsSettings() {
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <BarChart3 className="h-4 w-4 text-warning" />
-              Anonyme Auswertung
+              Cloud-Finanzdaten
             </div>
-            <StatusBadge ok={!!consentQuery.data?.opted_in}>
-              {consentQuery.data?.opted_in ? 'aktiv' : 'inaktiv'}
-            </StatusBadge>
+            <StatusBadge ok>keine</StatusBadge>
           </div>
         </div>
 
@@ -350,40 +323,15 @@ export function PrivacySyncAnalyticsSettings() {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+        <div className="space-y-2 rounded-2xl border border-positive/20 bg-positive/10 p-4">
           <h3 className="flex items-center gap-2 font-semibold text-foreground">
-            <UploadCloud className="h-4 w-4 text-warning" />
-            Anonyme Auswertung
+            <ShieldCheck className="h-4 w-4 text-positive" />
+            Strikte lokale Datengrenze
           </h3>
-
           <p className="text-sm text-muted-foreground">
-            Es werden keine Einzeltransaktionen oder Freitexte hochgeladen. Nur lokal erzeugte, verschlüsselte
-            Aggregationen werden übertragen.
+            Transaktionen, Verträge, Kategorien, Simulationen und Analysewerte bleiben auf diesem Gerät.
+            Supabase wird nicht als Speicher für Finanz- oder Nutzungsdaten verwendet.
           </p>
-
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-3">
-            <div>
-              <div className="text-sm font-medium text-foreground">Anonyme Auswertung erlauben</div>
-              <div className="text-xs text-muted-foreground">
-                Zeitraum, Kategoriegruppe und aggregierte Kennzahlen; Mindestgruppe lokal: n ≥ 5
-              </div>
-            </div>
-
-            <Switch
-              checked={!!consentQuery.data?.opted_in}
-              onCheckedChange={(checked) => consentMutation.mutate(checked)}
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            onClick={() => analyticsMutation.mutate()}
-            disabled={!consentQuery.data?.opted_in || !encryption.unlocked || analyticsMutation.isPending}
-            className="border-border bg-card text-foreground hover:bg-accent"
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Analysepakete erzeugen & hochladen
-          </Button>
         </div>
       </CardContent>
     </Card>

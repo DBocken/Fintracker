@@ -1,17 +1,28 @@
-import { supabase } from '@/integrations/supabase/client';
-import { requireUserId } from './auth-service';
 import { localEncryption, type EncryptedEnvelopeV1 } from './local-crypto';
 import { LOCAL_FINANCE_KEYS } from './local-finance-store';
+import { idbGet, idbSet } from './idb-kv';
+import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from './local-settings-service';
 
 const DEVICE_ID_KEY = 'ausgabentracker_device_id_v1';
 const SYNC_PATHS_KEY = 'ausgabentracker_sync_paths_v1';
 const SNAPSHOT_VERSION_KEY = 'ausgabentracker_snapshot_version_v1';
+const LATEST_SYNC_METADATA_KEY = 'ausgabentracker_latest_sync_metadata_v1';
 
 export type SyncPathConfig = {
   id: string;
   label: string;
   pathHint: string;
   createdAt: string;
+};
+
+export type LocalSyncMetadata = {
+  device_id: string;
+  snapshot_id: string;
+  snapshot_version: number;
+  schema_version: number;
+  storage_label: string | null;
+  storage_path_hint: string | null;
+  created_at: string;
 };
 
 export type EncryptedSnapshotFileV1 = {
@@ -52,12 +63,6 @@ function downloadJson(filename: string, data: unknown) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const bytes = new TextEncoder().encode(input);
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function getOrCreateDeviceId(): string {
@@ -101,11 +106,12 @@ export async function createEncryptedSnapshot(): Promise<EncryptedSnapshotFileV1
 
   const financeData: SnapshotPlainSegment = {};
   for (const [name, key] of Object.entries(LOCAL_FINANCE_KEYS)) {
-    financeData[name] = localStorage.getItem(key);
+    financeData[name] = (await idbGet(key)) ?? localStorage.getItem(key);
   }
 
   const localSettings: SnapshotPlainSegment = {
-
+    categories: (await idbGet(LOCAL_CATEGORIES_KEY)) ?? localStorage.getItem(LOCAL_CATEGORIES_KEY),
+    userSettings: (await idbGet(LOCAL_SETTINGS_KEY)) ?? localStorage.getItem(LOCAL_SETTINGS_KEY),
     syncPaths: getSyncPaths(),
     deviceId: getOrCreateDeviceId(),
   };
@@ -136,22 +142,15 @@ export async function exportEncryptedSnapshot(storageLabel?: string, storagePath
   const filename = `ausgabentracker_snapshot_v${snapshot.snapshot_version}_${snapshot.created_at.slice(0, 10)}.enc.json`;
   downloadJson(filename, snapshot);
 
-  try {
-    const userId = await requireUserId();
-    const hash = await sha256Hex(JSON.stringify(snapshot));
-    await supabase.from('sync_metadata').insert({
-      user_id: userId,
-      device_id: snapshot.device_id,
-      snapshot_id: snapshot.snapshot_id,
-      snapshot_version: snapshot.snapshot_version,
-      schema_version: snapshot.schema_version,
-      encrypted_snapshot_hash: hash,
-      storage_label: storageLabel || null,
-      storage_path_hint: storagePathHint || null,
-    });
-  } catch {
-    // Snapshot export remains local-first; metadata upload is best effort.
-  }
+  localStorage.setItem(LATEST_SYNC_METADATA_KEY, JSON.stringify({
+    device_id: snapshot.device_id,
+    snapshot_id: snapshot.snapshot_id,
+    snapshot_version: snapshot.snapshot_version,
+    schema_version: snapshot.schema_version,
+    storage_label: storageLabel || null,
+    storage_path_hint: storagePathHint || null,
+    created_at: snapshot.created_at,
+  }));
 
   return snapshot;
 }
@@ -170,7 +169,18 @@ export async function importEncryptedSnapshot(file: File): Promise<EncryptedSnap
   const financeData = await localEncryption.decryptJson<Record<string, string | null>>(parsed.segments['finance-data']);
   for (const [name, key] of Object.entries(LOCAL_FINANCE_KEYS)) {
     const rawSegment = financeData[name];
-    if (rawSegment) localStorage.setItem(key, rawSegment);
+    if (rawSegment) await idbSet(key, rawSegment);
+  }
+
+  const localSettings = await localEncryption.decryptJson<Record<string, unknown>>(parsed.segments['local-settings']);
+  if (typeof localSettings.categories === 'string') {
+    await idbSet(LOCAL_CATEGORIES_KEY, localSettings.categories);
+  }
+  if (typeof localSettings.userSettings === 'string') {
+    await idbSet(LOCAL_SETTINGS_KEY, localSettings.userSettings);
+  }
+  if (Array.isArray(localSettings.syncPaths)) {
+    localStorage.setItem(SYNC_PATHS_KEY, JSON.stringify(localSettings.syncPaths));
   }
 
   localStorage.setItem(SNAPSHOT_VERSION_KEY, String(parsed.snapshot_version));
@@ -178,15 +188,5 @@ export async function importEncryptedSnapshot(file: File): Promise<EncryptedSnap
 }
 
 export async function getLatestSyncMetadata() {
-  const userId = await requireUserId();
-  const { data, error } = await supabase
-    .from('sync_metadata')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  return data;
+  return readJson<LocalSyncMetadata | null>(LATEST_SYNC_METADATA_KEY, null);
 }

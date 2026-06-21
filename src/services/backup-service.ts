@@ -1,7 +1,13 @@
-import { supabase } from '../integrations/supabase/client';
 import { requireUserId } from './auth-service';
 import type { Category, Account, UserSettings } from '../types';
-import { getCategories, getTransactions, getUserSettings, saveTransactions } from './transaction-service';
+import {
+  getCategories,
+  getTransactions,
+  getUserSettings,
+  saveCategory,
+  saveTransactions,
+  updateUserSettings,
+} from './transaction-service';
 import { createAccount, getAccounts } from './account-service';
 import {
   encryptJsonWithPassword,
@@ -342,28 +348,15 @@ class BackupService {
   }
 
   private async restoreCategories(
-    userId: string,
+    _userId: string,
     categories: Category[]
   ): Promise<number> {
     let restored = 0;
     
     for (const cat of categories) {
       try {
-        const { error } = await supabase
-          .from('categories')
-          .insert({
-            name: cat.name,
-            color: cat.color,
-            icon: cat.icon,
-            filters: cat.filters,
-            parent_id: cat.parent_id,
-            attributes: cat.attributes,
-            user_id: userId,
-          });
-        
-        if (!error) {
-          restored++;
-        }
+        await saveCategory(cat);
+        restored++;
       } catch (error) {
         console.error('[BackupService] Error restoring category:', error);
       }
@@ -395,13 +388,8 @@ class BackupService {
     settings: UserSettings
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert(settings)
-        .select('*')
-        .single();
-
-      return !error;
+      await updateUserSettings(settings);
+      return true;
     } catch (error) {
       console.error('[BackupService] Error restoring settings:', error);
       return false;

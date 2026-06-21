@@ -1,5 +1,3 @@
-import { supabase } from '../integrations/supabase/client';
-import { getCurrentUserId } from './auth-service';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 
 /**
@@ -17,74 +15,33 @@ export interface MerchantRule {
 }
 
 export async function getMerchantRules(): Promise<MerchantRule[]> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return readLocalFinanceList<MerchantRule>('merchantRules');
-
-  const { data, error } = await supabase
-    .from('user_merchant_rules')
-    .select('*')
-    .eq('user_id', maybeUid);
-
-  if (error) throw new Error(error.message);
-  return (data || []) as MerchantRule[];
+  return readLocalFinanceList<MerchantRule>('merchantRules');
 }
 
 export async function upsertMerchantRule(merchantPattern: string, categoryId: string): Promise<void> {
   const pattern = merchantPattern.trim();
   if (!pattern) return;
 
-  const maybeUid = await getCurrentUserId();
   const now = new Date().toISOString();
-
-  if (!maybeUid) {
-    const rules = await readLocalFinanceList<MerchantRule>('merchantRules');
-    const existing = rules.find((r) => r.merchant_pattern === pattern);
-    if (existing) {
-      existing.category_id = categoryId;
-      existing.updated_at = now;
-    } else {
-      rules.push({
-        id: crypto.randomUUID(),
-        user_id: 'local',
-        merchant_pattern: pattern,
-        category_id: categoryId,
-        created_at: now,
-        updated_at: now,
-      });
-    }
-    await writeLocalFinanceList('merchantRules', rules);
-    return;
+  const rules = await readLocalFinanceList<MerchantRule>('merchantRules');
+  const existing = rules.find((r) => r.merchant_pattern === pattern);
+  if (existing) {
+    existing.category_id = categoryId;
+    existing.updated_at = now;
+  } else {
+    rules.push({
+      id: crypto.randomUUID(),
+      user_id: 'local',
+      merchant_pattern: pattern,
+      category_id: categoryId,
+      created_at: now,
+      updated_at: now,
+    });
   }
-
-  const { error } = await supabase
-    .from('user_merchant_rules')
-    .upsert(
-      {
-        user_id: maybeUid,
-        merchant_pattern: pattern,
-        category_id: categoryId,
-        updated_at: now,
-      },
-      { onConflict: 'user_id,merchant_pattern' }
-    );
-
-  if (error) throw new Error(error.message);
+  await writeLocalFinanceList('merchantRules', rules);
 }
 
 export async function deleteMerchantRule(id: string): Promise<void> {
-  const maybeUid = await getCurrentUserId();
-
-  if (!maybeUid) {
-    const rules = await readLocalFinanceList<MerchantRule>('merchantRules');
-    await writeLocalFinanceList('merchantRules', rules.filter((r) => r.id !== id));
-    return;
-  }
-
-  const { error } = await supabase
-    .from('user_merchant_rules')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', maybeUid);
-
-  if (error) throw new Error(error.message);
+  const rules = await readLocalFinanceList<MerchantRule>('merchantRules');
+  await writeLocalFinanceList('merchantRules', rules.filter((r) => r.id !== id));
 }

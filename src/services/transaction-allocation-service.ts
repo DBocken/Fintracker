@@ -1,5 +1,3 @@
-import { supabase } from '../integrations/supabase/client';
-import { getCurrentUserId } from './auth-service';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 import { toMinor, sumMinor } from '@/lib/money';
 import type { Transaction, TransactionAllocation } from '@/types';
@@ -14,8 +12,8 @@ import type { Transaction, TransactionAllocation } from '@/types';
  *  - Manuelle Aufteilungen werden nicht ungefragt durch automatische
  *    Familien-/Ähnlichkeitsänderungen überschrieben (hasManualAllocations()).
  *
- * Persistenz wie contract-decision-service: Supabase wenn eingeloggt, sonst der
- * verschlüsselbare lokale Finanz-Store. CRUD erfolgt „replace-all pro Transaktion“,
+ * Persistenz ausschließlich im verschlüsselbaren lokalen Finanz-Store.
+ * CRUD erfolgt „replace-all pro Transaktion“,
  * damit nie ein Satz mit falscher Summe gespeichert werden kann.
  */
 
@@ -75,45 +73,8 @@ export class AllocationInvariantError extends Error {
   }
 }
 
-type DbRow = {
-  id: string;
-  transaction_id: string;
-  amount_minor: number;
-  category_id: string | null;
-  subcategory_id: string | null;
-  label: string | null;
-  source: string;
-  external_origin_id: string | null;
-  created_at?: string;
-  updated_at?: string;
-};
-
-function fromDbRow(row: DbRow): TransactionAllocation {
-  return {
-    id: row.id,
-    transaction_id: row.transaction_id,
-    amount_minor: row.amount_minor,
-    category_id: row.category_id,
-    subcategory_id: row.subcategory_id,
-    label: row.label,
-    source: (row.source as TransactionAllocation['source']) || 'manual',
-    external_origin_id: row.external_origin_id,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
-
 export async function getAllocations(): Promise<TransactionAllocation[]> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return readLocalFinanceList<TransactionAllocation>('transactionAllocations');
-
-  const { data, error } = await supabase
-    .from('user_transaction_allocations')
-    .select('*')
-    .eq('user_id', maybeUid);
-
-  if (error) throw new Error(error.message);
-  return (data || []).map((r) => fromDbRow(r as DbRow));
+  return readLocalFinanceList<TransactionAllocation>('transactionAllocations');
 }
 
 export async function getAllocationsForTransaction(transactionId: string): Promise<TransactionAllocation[]> {
@@ -171,27 +132,9 @@ export async function setAllocations(
   const result = validateAllocations(transaction, next);
   if (!result.valid) throw new AllocationInvariantError(result);
 
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) {
-    const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
-    const rest = all.filter((a) => a.transaction_id !== txId);
-    await writeLocalFinanceList('transactionAllocations', [...rest, ...next]);
-    return next;
-  }
-
-  const { error: delError } = await supabase
-    .from('user_transaction_allocations')
-    .delete()
-    .eq('user_id', maybeUid)
-    .eq('transaction_id', txId);
-  if (delError) throw new Error(delError.message);
-
-  if (next.length > 0) {
-    const { error: insError } = await supabase
-      .from('user_transaction_allocations')
-      .insert(next.map((a) => ({ ...a, user_id: maybeUid })));
-    if (insError) throw new Error(insError.message);
-  }
+  const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
+  const rest = all.filter((a) => a.transaction_id !== txId);
+  await writeLocalFinanceList('transactionAllocations', [...rest, ...next]);
   return next;
 }
 
@@ -205,22 +148,11 @@ export async function deleteAllocationsForTransactions(transactionIds: string[])
   if (transactionIds.length === 0) return;
   const idSet = new Set(transactionIds);
 
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) {
-    const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
-    await writeLocalFinanceList(
-      'transactionAllocations',
-      all.filter((a) => !idSet.has(a.transaction_id)),
-    );
-    return;
-  }
-
-  const { error } = await supabase
-    .from('user_transaction_allocations')
-    .delete()
-    .eq('user_id', maybeUid)
-    .in('transaction_id', transactionIds);
-  if (error) throw new Error(error.message);
+  const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
+  await writeLocalFinanceList(
+    'transactionAllocations',
+    all.filter((a) => !idSet.has(a.transaction_id)),
+  );
 }
 
 /**

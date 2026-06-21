@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "test:security": "vitest run src/lib/tier.security.test.ts src/services/local-crypto.security.test.ts src/services/transaction-storage-service.security.test.ts src/services/csv-service.test.ts src/services/__tests__/csv-service.test.ts src/services/__tests__/receipt-parser-service.test.ts --testNamePattern='\\[SECURITY\\]'",
     "test:integrity": "vitest run src/services/__tests__/transaction-allocation-service.test.ts src/services/transaction-storage-service.security.test.ts src/services/__tests__/csv-service.test.ts src/services/__tests__/receipt-parser-service.test.ts src/components/dashboard/filter-utils.test.ts src/lib/__tests__/contract-derivation.test.ts --testNamePattern='\\[INTEGRITY\\]'",
-    "test:privacy": "vitest run src/services/local-crypto.security.test.ts --testNamePattern='\\[PRIVACY\\]'",
+    "test:privacy": "vitest run src/services/local-crypto.security.test.ts src/services/local-data-boundary.security.test.ts --testNamePattern='\\[PRIVACY\\]'",
     "test:mobile": "vitest run src/components/dashboard/DashboardMobileStory.security.test.ts src/components/dashboard/TransactionListMobile.mobile.test.tsx --testNamePattern='\\[MOBILE\\]'",
     "security:secrets": "node scripts/security-check.mjs"
   },

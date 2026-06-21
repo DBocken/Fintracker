@@ -1,5 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
-import { requireUserId } from './auth-service';
+import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 
 export type AnalyticsConsent = {
   user_id: string;
@@ -13,18 +12,10 @@ export type AnalyticsConsent = {
 const DEFAULT_ALLOWED_CLASSES = ['period', 'category_group', 'measures'];
 
 export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
-  const userId = await requireUserId();
-  const { data, error } = await supabase
-    .from('analytics_consent')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-
+  const [data] = await readLocalFinanceList<AnalyticsConsent>('analyticsConsent');
   if (!data) {
     return {
-      user_id: userId,
+      user_id: 'local',
       opted_in: false,
       consent_version: 'analytics-v1',
       allowed_data_classes: DEFAULT_ALLOWED_CLASSES,
@@ -32,7 +23,7 @@ export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
     };
   }
 
-  const row = data as Record<string, unknown>;
+  const row = data as unknown as Record<string, unknown>;
   return {
     ...row,
     allowed_data_classes: Array.isArray(row.allowed_data_classes)
@@ -42,9 +33,8 @@ export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
 }
 
 export async function setAnalyticsConsent(optedIn: boolean, allowedDataClasses = DEFAULT_ALLOWED_CLASSES): Promise<AnalyticsConsent> {
-  const userId = await requireUserId();
-  const payload = {
-    user_id: userId,
+  const payload: AnalyticsConsent = {
+    user_id: 'local',
     opted_in: optedIn,
     consent_version: 'analytics-v1',
     allowed_data_classes: allowedDataClasses,
@@ -52,12 +42,6 @@ export async function setAnalyticsConsent(optedIn: boolean, allowedDataClasses =
     withdrawn_at: optedIn ? null : new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
-    .from('analytics_consent')
-    .upsert(payload, { onConflict: 'user_id' })
-    .select('*')
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as AnalyticsConsent;
+  await writeLocalFinanceList('analyticsConsent', [payload]);
+  return payload;
 }

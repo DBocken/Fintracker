@@ -1,8 +1,7 @@
-import { supabase } from "../integrations/supabase/client";
 import type { Milestone } from "../types";
-import { getCurrentUserId } from "./auth-service";
 import { getFinancialHealth } from "./financial-health-service";
 import { getDebts } from "./debt-service";
+import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 
 export interface MilestoneDefinition {
   key: string;
@@ -61,26 +60,19 @@ export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
 ];
 
 export async function getAchievedMilestones(): Promise<Milestone[]> {
-  const uid = await getCurrentUserId();
-  if (!uid) return [];
-
-  const { data, error } = await supabase
-    .from("milestones")
-    .select("*")
-    .eq("user_id", uid);
-
-  if (error) throw new Error(error.message);
-  return (data || []) as Milestone[];
+  return readLocalFinanceList<Milestone>('milestones');
 }
 
 async function markAchieved(key: string): Promise<void> {
-  // Anonymer Modus: kein Supabase-Persist — der Status wird bei jeder
-  // Auswertung neu berechnet (lokale Persistenz kommt mit dem Vault, Epic #22).
-  const uid = await getCurrentUserId();
-  if (!uid) return;
-  await supabase
-    .from("milestones")
-    .upsert({ user_id: uid, milestone_key: key }, { onConflict: "user_id,milestone_key" });
+  const milestones = await readLocalFinanceList<Milestone>('milestones');
+  if (milestones.some((item) => item.milestone_key === key)) return;
+  milestones.push({
+    id: crypto.randomUUID(),
+    user_id: 'local',
+    milestone_key: key,
+    achieved_at: new Date().toISOString(),
+  });
+  await writeLocalFinanceList('milestones', milestones);
 }
 
 export interface MilestoneStatus {

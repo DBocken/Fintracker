@@ -1,6 +1,4 @@
-import { supabase } from '../integrations/supabase/client';
 import type { Transaction, Category, UserSettings, HierarchicalCategory, Rhythmus } from '../types';
-import { getCurrentUserId } from './auth-service';
 import { transactionStorage } from './transaction-storage-service';
 import {
   getLocalCategories,
@@ -339,27 +337,11 @@ export async function remapCategoryInLocalTransactions(
 }
 
 // -----------------------------------------------------------------------------
-// Categories (Supabase)
+// Categories (local only)
 // -----------------------------------------------------------------------------
 
 export async function getCategories(): Promise<Category[]> {
-  // Anonymer Modus: Kategorien leben lokal (kein Supabase-Call)
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return getLocalCategories();
-
-  // Uses RLS to return: user categories + public defaults (user_id IS NULL)
-  const uid = maybeUid;
-
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .or(`user_id.is.null,user_id.eq.${uid}`)
-    .order('created_at', { ascending: true });
-
-  if (error) throw new Error(error.message);
-
-  // Apply backfill to ensure ausgabenklasse is set on all categories
-  const { categories: backfilled } = backfillAusgabenklasse(data || []);
+  const { categories: backfilled } = backfillAusgabenklasse(await getLocalCategories());
   return backfilled;
 }
 
@@ -391,103 +373,11 @@ export async function getHierarchicalCategories(): Promise<HierarchicalCategory[
 }
 
 export async function saveCategory(category: Partial<Category>): Promise<Category> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return saveLocalCategory(category);
-  const uid = maybeUid;
-
-  // Duplikate vermeiden (Name + User)
-  const { data: existing, error: existsError } = await supabase
-    .from('categories')
-    .select('id, name')
-    .eq('user_id', uid)
-    .eq('name', category.name || '')
-    .limit(1);
-
-  if (existsError) throw new Error(existsError.message);
-  if (existing && existing.length > 0) {
-    throw new Error('Eine Kategorie mit diesem Namen existiert bereits');
-  }
-
-  const payload: Omit<Category, 'id'> = {
-    user_id: uid,
-    name: category.name || 'Kategorie',
-    color: category.color || '#2e7d72',
-    icon: category.icon || '🛒',
-    filters: category.filters || [],
-    is_default: false,
-    parent_id: category.parent_id || null,
-    attributes: category.attributes || {},
-  };
-
-  const { data, error } = await supabase
-    .from('categories')
-    .insert(payload)
-    .select('*')
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Category;
+  return saveLocalCategory(category);
 }
 
 export async function updateCategory(category: Category): Promise<Category> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return updateLocalCategory(category);
-  const uid = maybeUid;
-
-  // Prüfe, wem die Kategorie gehört
-  const { data: existingRow, error: fetchError } = await supabase
-    .from('categories')
-    .select('id, user_id')
-    .eq('id', category.id)
-    .single();
-
-  if (fetchError) throw new Error(fetchError.message);
-
-  // Falls es eine Standard-Kategorie ist (user_id = NULL), lege eine Benutzer-Kopie an
-  if (!existingRow.user_id) {
-    return await saveCategory({
-      name: category.name,
-      color: category.color,
-      icon: category.icon,
-      filters: category.filters || [],
-      parent_id: category.parent_id || null,
-      attributes: category.attributes || {},
-    });
-  }
-
-  // Duplikate prüfen (ohne sich selbst) innerhalb der Benutzer-Kategorien
-  const { data: dup, error: dupError } = await supabase
-    .from('categories')
-    .select('id, name')
-    .eq('user_id', uid)
-    .eq('name', category.name)
-    .neq('id', category.id)
-    .limit(1);
-
-  if (dupError) throw new Error(dupError.message);
-  if (dup && dup.length > 0) {
-    throw new Error('Eine Kategorie mit diesem Namen existiert bereits');
-  }
-
-  const payload: Partial<Category> = {
-    name: category.name,
-    color: category.color,
-    icon: category.icon,
-    filters: category.filters || [],
-    parent_id: category.parent_id || null,
-    attributes: category.attributes || {},
-  };
-
-  const { data, error } = await supabase
-    .from('categories')
-    .update(payload)
-    .eq('id', category.id)
-    .eq('user_id', uid)
-    .select('*')
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Category;
+  return updateLocalCategory(category);
 }
 
 // -----------------------------------------------------------------------------
@@ -594,69 +484,13 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
 }
 
 // -----------------------------------------------------------------------------
-// User settings (Supabase)
+// User settings (local only)
 // -----------------------------------------------------------------------------
 
 export async function getUserSettings(): Promise<UserSettings> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return getLocalUserSettings();
-  const uid = maybeUid;
-
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('*')
-    .eq('user_id', uid)
-    .single();
-
-  // Wenn noch kein Eintrag existiert, mit Defaults anlegen
-  if (error && (error as { code?: string }).code === 'PGRST116') {
-    const defaultSettings: UserSettings = {
-      user_id: uid,
-      auto_confirm_mapping: false,
-      retention_months: 36,
-      default_currency: 'EUR',
-      enable_subcategories: true,
-      theme: 'legacy',
-      kpi_prefs: {
-        order: ['net_cashflow', 'savings_rate', 'transactions_count'],
-        active: ['net_cashflow', 'savings_rate', 'transactions_count'],
-      },
-    };
-
-    const { data: inserted, error: insertError } = await supabase
-      .from('user_settings')
-      .insert(defaultSettings)
-      .select('*')
-      .single();
-
-    if (insertError) throw new Error(insertError.message);
-    return inserted as UserSettings;
-  }
-
-  if (error) throw new Error(error.message);
-  // Ensure theme has a default
-  const withTheme = { ...(data as UserSettings), theme: (data as UserSettings)?.theme ?? 'legacy' };
-  return withTheme as UserSettings;
+  return getLocalUserSettings();
 }
 
 export async function updateUserSettings(settings: Partial<UserSettings>): Promise<UserSettings> {
-  const maybeUid = await getCurrentUserId();
-  if (!maybeUid) return updateLocalUserSettings(settings);
-  const uid = maybeUid;
-
-  const toSave: Partial<UserSettings> = {
-    ...settings,
-    user_id: uid,
-  };
-
-  const { data, error } = await supabase
-    .from('user_settings')
-    .upsert(toSave, { onConflict: 'user_id' })
-    .select('*')
-    .single();
-
-  if (error) throw new Error(error.message);
-  // Ensure theme default
-  const withTheme = { ...(data as UserSettings), theme: (data as UserSettings)?.theme ?? 'legacy' };
-  return withTheme as UserSettings;
+  return updateLocalUserSettings(settings);
 }

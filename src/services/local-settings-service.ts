@@ -1,21 +1,19 @@
 "use client";
 
 /**
- * Lokaler Fallback für Kategorien und Nutzereinstellungen im anonymen Modus
+ * Lokaler Speicher für Kategorien und Nutzereinstellungen
  * (Issue #26, Epic #19).
  *
- * Im anonymen Modus gibt es keine Supabase-Identität — Kategorien und
- * Einstellungen leben dann (wie Transaktionen, Konten, Schulden bereits)
- * verschlüsselbar im lokalen Speicher. transaction-service/category-service
- * verzweigen hierher, wenn getCurrentUserId() null liefert.
+ * Kategorien und Einstellungen bleiben unabhängig vom Login verschlüsselbar
+ * auf dem Gerät.
  */
 
 import type { Category, UserSettings } from "../types";
 import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
 
-const LOCAL_CATEGORIES_KEY = "ausgabentracker_categories_v1";
-const LOCAL_SETTINGS_KEY = "ausgabentracker_user_settings_v1";
+export const LOCAL_CATEGORIES_KEY = "ausgabentracker_categories_v1";
+export const LOCAL_SETTINGS_KEY = "ausgabentracker_user_settings_v1";
 
 /** Pseudo-Identität für lokale Datensätze (Muster wie debt-/account-service). */
 export const LOCAL_USER_ID = "local";
