@@ -14,6 +14,7 @@ import {
   Coins,
   Trophy,
   Receipt,
+  Activity,
 } from "lucide-react";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
 
@@ -51,6 +52,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Heute für dich", path: "/coach", icon: Sparkles },
       { label: "Schulden", path: "/debts", icon: Banknote },
       { label: "Nettovermögen", path: "/net-worth", icon: Coins },
+      {
+        label: "Liquidität",
+        path: "/liquidity",
+        icon: Activity,
+        subtitle: "Wann wird dein Geld knapp?",
+      },
       { label: "Meilensteine", path: "/milestones", icon: Trophy },
     ],
   },
