@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
@@ -385,6 +385,21 @@ export function Dashboard() {
 
   return (
     <div {...dyadProps("Dashboard")} className="space-y-6 md:space-y-8">
+      {/* Das Dashboard ist Analyse-Support; die Handlung lebt im Coach
+          (Audit C-P1). CTA zurück zum „nächsten Schritt". */}
+      <div className="flex flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Sparkles className="h-4 w-4 text-brand" />
+          Detailansicht für Charts &amp; Transaktionen. Deine nächste Aktion zeigt dir der Coach.
+        </div>
+        <Button asChild variant="outline" size="sm" className="shrink-0">
+          <Link to="/coach">
+            Zum nächsten Schritt
+            <ArrowRight className="ml-1.5 h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+
       <TransactionStats
         income={stats.income}
         expenses={stats.expenses}

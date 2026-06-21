@@ -21,6 +21,7 @@ import { AccountFormDialog } from './AccountFormDialog';
 import { TransferSuggestions } from './TransferSuggestions';
 import { GoCardlessConnect } from '../GoCardlessConnect';
 import RequireTier from '@/components/common/RequireTier';
+import { getRedirectOrigin } from '@/lib/app-origin';
 import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus, reconcileAllInternalTransfers } from '../../services/gocardless-sync-service';
 import { gocardlessService } from '../../services/gocardless-service';
 import {
@@ -38,15 +39,6 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   other: <Wallet className="h-5 w-5" />,
 };
 
-const PRODUCTION_APP_ORIGIN = 'https://fintracker-phi.vercel.app';
-
-function getRedirectOrigin() {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return window.location.origin;
-  }
-
-  return PRODUCTION_APP_ORIGIN;
-}
 
 export function AccountManager() {
 

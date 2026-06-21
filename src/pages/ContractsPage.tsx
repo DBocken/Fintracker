@@ -1,10 +1,6 @@
 import { ContractsDashboard } from "@/components/contracts/ContractsDashboard";
-import { FeatureGate } from "@/components/FeatureGate";
 
+/** Tier-Gating erfolgt zentral über die Route-Guard-Schicht (ROUTE_GUARDS). */
 export default function ContractsPage() {
-  return (
-    <FeatureGate feature="bankSync">
-      <ContractsDashboard />
-    </FeatureGate>
-  );
+  return <ContractsDashboard />;
 }

@@ -9,6 +9,7 @@ import './index.css'
 import './skins/skins.css'
 import './skins/skins-components.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import ToastProvider from './components/providers/ToastProvider'
 import AuthProvider from './components/providers/AuthProvider'
 import SkinProvider from './components/providers/SkinProvider'
@@ -39,6 +40,9 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    {/* Reduced-Motion-Policy (Audit C-P2/G): respektiert global
+        prefers-reduced-motion für alle Framer-Motion-Animationen. */}
+    <MotionConfig reducedMotion="user">
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
@@ -54,11 +58,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+    </MotionConfig>
   </React.StrictMode>,
 )
 
-// Debug: Expose contract detection to console
-if (typeof window !== 'undefined') {
+// Debug: Expose contract detection to console — nur im Dev-Build, damit das
+// Debug-Objekt nicht in Produktion global exponiert wird (Audit D).
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as any).__debug = {
     applyDetectedContracts: async () => {
       console.log('🔍 Triggering contract detection...')

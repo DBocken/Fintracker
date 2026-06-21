@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
 
-import type { Tier } from "@/lib/tier";
+import type { Tier, FeatureKey } from "@/lib/tier";
 
 export type NavItem = {
   label: string;
@@ -25,6 +25,8 @@ export type NavItem = {
   requiredTier?: Tier;
   /** Nur sichtbar, wenn dieses lokale Feature-Flag aktiv ist (z. B. Trading-Beta). */
   betaFlag?: FeatureFlag;
+  /** Kurzer Teaser-Untertitel (nur im Nav-Sheet/Sidebar, nicht Bottom-Nav). */
+  subtitle?: string;
 };
 
 export type NavGroup = {
@@ -54,14 +56,27 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Analysen",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-      { label: "Analyse", path: "/premium", icon: Zap, requiredTier: "premium" },
-      { label: "Simulation", path: "/simulation", icon: PlayCircle, requiredTier: "premium" },
+      {
+        label: "Analyse",
+        path: "/premium",
+        icon: Zap,
+        requiredTier: "premium",
+        subtitle: "Sankey, Heatmap & Smart Insights",
+      },
+      {
+        label: "Simulation",
+        path: "/simulation",
+        icon: PlayCircle,
+        requiredTier: "premium",
+        subtitle: "Zukunft durchspielen",
+      },
       {
         label: "Trading",
         path: "/trading",
         icon: LineChart,
         requiredTier: "premium",
         betaFlag: "trading_beta",
+        subtitle: "Depot im Blick (Beta)",
       },
     ],
   },
@@ -83,6 +98,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Zentrale Route-Guard-Schicht (Audit B/D): Pfad → benötigtes Feature.
+ * Statt das Gating pro Seite zu verstreuen, rendert `App.tsx` diese Routen
+ * über ein gemeinsames `<RouteGuard>`. Eine Quelle der Wahrheit für den
+ * Tier-Zugriff auf Route-Ebene.
+ */
+export const ROUTE_GUARDS: Record<string, FeatureKey> = {
+  "/premium": "premiumAnalytics",
+  "/simulation": "simulation",
+  "/trading": "trading",
+  "/contracts": "bankSync",
+};
 
 /**
  * Liefert die Nav-Gruppen, gefiltert nach aktiven lokalen Feature-Flags.

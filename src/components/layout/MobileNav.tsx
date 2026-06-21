@@ -61,8 +61,15 @@ export default function MobileNav() {
                             )
                           }
                         >
-                          <Icon className="h-4 w-4" />
-                          <span className="flex-1">{item.label}</span>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="flex min-w-0 flex-1 flex-col">
+                            <span className="truncate">{item.label}</span>
+                            {item.subtitle && (
+                              <span className="truncate text-[11px] text-sidebar-muted">
+                                {item.subtitle}
+                              </span>
+                            )}
+                          </span>
                           {item.requiredTier === "premium" && <Badge variant="secondary">Premium</Badge>}
                         </NavLink>
                       </SheetClose>

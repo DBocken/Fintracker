@@ -7,6 +7,7 @@ import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
 import AppShell from "@/components/layout/AppShell";
+import RouteGuard from "@/components/layout/RouteGuard";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 
 import CoachPage from "@/pages/CoachPage";
@@ -86,13 +87,28 @@ function App() {
               <Route path="/debts" element={<DebtsPage />} />
               <Route path="/net-worth" element={<NetWorthPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/premium" element={<AnalysisPage />} />
-              <Route path="/simulation" element={<SimulationPage />} />
+              <Route
+                path="/premium"
+                element={<RouteGuard path="/premium"><AnalysisPage /></RouteGuard>}
+              />
+              <Route
+                path="/simulation"
+                element={<RouteGuard path="/simulation"><SimulationPage /></RouteGuard>}
+              />
               <Route
                 path="/trading"
-                element={isFeatureEnabled("trading_beta") ? <TradingPage /> : <Navigate to="/coach" replace />}
+                element={
+                  isFeatureEnabled("trading_beta") ? (
+                    <RouteGuard path="/trading"><TradingPage /></RouteGuard>
+                  ) : (
+                    <Navigate to="/coach" replace />
+                  )
+                }
               />
-              <Route path="/contracts" element={<ContractsPage />} />
+              <Route
+                path="/contracts"
+                element={<RouteGuard path="/contracts"><ContractsPage /></RouteGuard>}
+              />
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/csv" element={<CsvPage />} />
               <Route path="/export" element={<ExportPage />} />

@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { gocardlessService } from '../services/gocardless-service'
 import { CreditCard, ExternalLink, Loader2, RefreshCw, AlertTriangle, Search, Building2, Check } from 'lucide-react'
+import { getRedirectOrigin, PRODUCTION_APP_ORIGIN } from '@/lib/app-origin'
+import InfoButton from '@/components/common/InfoSheet'
 
 interface Institution {
   id: string
@@ -20,15 +22,6 @@ interface GoCardlessConnectProps {
   onConnectionSuccess: (accountId: string) => void
 }
 
-const PRODUCTION_APP_ORIGIN = 'https://fintracker-phi.vercel.app'
-
-function getRedirectOrigin() {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return window.location.origin
-  }
-
-  return PRODUCTION_APP_ORIGIN
-}
 
 export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }: GoCardlessConnectProps) {
 
@@ -444,12 +437,17 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
         </div>
 
         <div className="text-xs text-muted-foreground space-y-1 border-t pt-4">
-          <p className="font-medium text-foreground">So funktioniert&apos;s:</p>
-          <p>• Tippe den Namen deiner Bank (z.B. &quot;Sparkasse Berlin&quot; oder &quot;Revolut&quot;)</p>
-          <p>• Wähle aus der Liste die passende Bank aus</p>
-          <p>• Du wirst zur Bank weitergeleitet für sichere Anmeldung</p>
-          <p>• Nach der Authentifizierung werden deine Konten angezeigt</p>
-          <p className="mt-2">• Rate Limit: 4 Abrufe/Tag pro Konto • Max. 90 Tage Historie</p>
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-foreground">Du behältst die Kontrolle</p>
+            <InfoButton title="Technische Details der Bankanbindung" description="Was im Hintergrund passiert">
+              <p>• Du wirst zur sicheren Anmeldung deiner Bank weitergeleitet.</p>
+              <p>• Nach der Authentifizierung werden deine Konten angezeigt.</p>
+              <p>• Rate Limit: 4 Abrufe/Tag pro Konto.</p>
+              <p>• Es werden maximal 90 Tage Historie geladen.</p>
+              <p>• Die Verbindung läuft verschlüsselt (HTTPS) und ist jederzeit trennbar.</p>
+            </InfoButton>
+          </div>
+          <p>Deine Verbindung ist jederzeit trennbar – Finanzdaten bleiben lokal auf deinem Gerät.</p>
         </div>
       </CardContent>
     </Card>

@@ -5,3 +5,5 @@ build/
 .env
 .env.local
 .DS_Store
+# Projekt nutzt pnpm (pnpm-lock.yaml); npm-Lockfile nicht committen
+package-lock.json

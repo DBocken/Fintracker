@@ -42,7 +42,7 @@ export default function CoachPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
-        <FinancialLandscape health={health} />
+        <FinancialLandscape health={health} variant="strip" />
         <FinanceEmptyState />
       </div>
     );
@@ -52,12 +52,16 @@ export default function CoachPage() {
     <div className="space-y-8">
       <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
 
-      {/* Side-by-side: portrait landscape left, score right */}
-      <div className="flex gap-4 items-start">
-        <div className="w-80 shrink-0 sm:w-[416px]">
-          <FinancialLandscape health={health} />
+      {/* Mobile-first (Audit C-P0): mobil kompakter Statusstreifen + Score
+          untereinander; ab lg die Portrait-Illustration neben dem Score. */}
+      <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
+        <div className="lg:hidden">
+          <FinancialLandscape health={health} variant="strip" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="hidden shrink-0 lg:block lg:w-80 xl:w-[416px]">
+          <FinancialLandscape health={health} variant="hero" />
+        </div>
+        <div className="min-w-0 lg:flex-1">
           {coachLoading ? (
             <Skeleton className="h-36 w-full rounded-2xl" />
           ) : coach && health ? (
@@ -89,14 +93,14 @@ export default function CoachPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+        <div className="ds-section">
           <div className="text-sm text-muted-foreground">Roadmap-Status</div>
           <div className="mt-2 text-xl font-semibold">{coach?.stage.title}</div>
           <p className="mt-2 text-sm text-muted-foreground">{coach?.stage.description}</p>
           <p className="mt-3 text-sm">{coach?.stage.whyItMatters}</p>
         </div>
         {coach && coach.debtSummary.totalDebt > 0 ? (
-          <div className="rounded-2xl border bg-card p-5 shadow-sm">
+          <div className="ds-section">
             <div className="text-sm text-muted-foreground">Schuldenkontext</div>
             <div className="mt-2 text-xl font-semibold">
               {gentleModeEnabled ? "*** € offen" : `${coach.debtSummary.totalDebt.toFixed(0)} € offen`}

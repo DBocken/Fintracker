@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { CoachRecommendation } from "@/types";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const STYLES = {
   danger: { border: "border-warning/20", bg: "bg-warning/5", icon: ShieldAlert, iconColor: "text-warning" },
@@ -15,12 +16,13 @@ const STYLES = {
 export default function CoachFeedCard({ card, index, featured }: { card: CoachRecommendation; index: number; featured?: boolean }) {
   const style = STYLES[card.severity];
   const Icon = style.icon;
+  const reduce = useReducedMotion();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={reduce ? { duration: 0 } : { delay: index * 0.05 }}
       className={cn(
         "rounded-2xl border bg-card p-4 shadow-sm",
         style.border,

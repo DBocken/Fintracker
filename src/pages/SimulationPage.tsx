@@ -1,10 +1,6 @@
 import { SimulationPage } from '../components/simulation/SimulationPage';
-import { FeatureGate } from "@/components/FeatureGate";
 
+/** Tier-Gating erfolgt zentral über die Route-Guard-Schicht (ROUTE_GUARDS). */
 export default function SimulationPageWrapper() {
-  return (
-    <FeatureGate feature="simulation">
-      <SimulationPage />
-    </FeatureGate>
-  );
+  return <SimulationPage />;
 }
