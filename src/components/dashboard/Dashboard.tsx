@@ -29,6 +29,7 @@ import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
+import { usePersistedSet } from '@/hooks/usePersistedSet';
 import {
   DEFAULT_DASHBOARD_FILTERS,
   type ContractFilter,
@@ -109,7 +110,7 @@ export function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
-  const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
+  const [hiddenTransactions, toggleHiddenTransaction] = usePersistedSet('dashboard_hidden_transactions');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -296,16 +297,8 @@ export function Dashboard() {
   }, []);
 
   const handleToggleVisibility = useCallback((id: string) => {
-    setHiddenTransactions(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+    toggleHiddenTransaction(id);
+  }, [toggleHiddenTransaction]);
 
   const handleResetFilters = useCallback(() => {
     _setFilterCat(DEFAULT_DASHBOARD_FILTERS.category);

@@ -84,7 +84,8 @@ export function CategoryTree({
               </span>
             </div>
             
-            <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            {/* Aktionen immer voll sichtbar – Hover-only funktioniert auf Touch nicht zuverlässig. */}
+            <div className="flex items-center gap-1">
               <Button
                 size="sm"
                 variant="ghost"
