@@ -35,6 +35,7 @@ import type {
   ForecastTransfer,
   LiquidityRisk,
   RecurringCadence,
+  RecurringFlow,
   ResolvedForecastConfig,
 } from './forecast-types';
 
@@ -151,6 +152,30 @@ function occurrencesInRange(
     n++;
   }
   return out;
+}
+
+/**
+ * Öffentlicher Helfer: alle Fälligkeiten eines wiederkehrenden Flows im Bereich
+ * [startISO, endISO] (inklusive) als ISO-Strings. Wird vom Insight-Layer für die
+ * Risikotreiber-Attribution genutzt.
+ */
+export function listFlowOccurrences(
+  flow: RecurringFlow,
+  startISO: string,
+  endISO: string,
+): string[] {
+  const dates = occurrencesInRange(
+    flow.cadence,
+    parseISO(flow.anchorDate),
+    parseISO(startISO),
+    parseISO(endISO),
+    {
+      intervalDays: flow.intervalDays,
+      startDate: flow.startDate ? parseISO(flow.startDate) : undefined,
+      endDate: flow.endDate ? parseISO(flow.endDate) : undefined,
+    },
+  );
+  return dates.map((d) => format(d, ISO));
 }
 
 /** Mutable Tages-Akkumulator (alles in Cent). */

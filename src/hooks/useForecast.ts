@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { buildForecastInput } from '@/lib/forecast-data';
 import { calculateDeterministicForecast } from '@/lib/forecast';
+import { analyzeRisk, type RiskAnalysis } from '@/lib/forecast-insights';
 import type { ForecastConfig, ForecastResult } from '@/lib/forecast-types';
 
 /**
@@ -14,6 +15,7 @@ import type { ForecastConfig, ForecastResult } from '@/lib/forecast-types';
  */
 export function useForecast(config: ForecastConfig = {}): {
   forecast: ForecastResult | null;
+  analysis: RiskAnalysis | null;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -37,8 +39,14 @@ export function useForecast(config: ForecastConfig = {}): {
     });
   }, [query.data, months, safetyBuffer, bufferBasis, startDate]);
 
+  const analysis = useMemo(() => {
+    if (!query.data || !forecast) return null;
+    return analyzeRisk(query.data, forecast);
+  }, [query.data, forecast]);
+
   return {
     forecast,
+    analysis,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

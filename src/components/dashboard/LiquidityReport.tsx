@@ -9,7 +9,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, ShieldCheck, TrendingDown, CalendarClock } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, TrendingDown, CalendarClock, Lightbulb } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,7 +95,7 @@ export default function LiquidityReport() {
   const [safetyBuffer, setSafetyBuffer] = useState(1000);
   const [bufferBasis, setBufferBasis] = useState<BufferBasis>('operating');
 
-  const { forecast, isLoading, isError, error } = useForecast({
+  const { forecast, analysis, isLoading, isError, error } = useForecast({
     months,
     safetyBuffer,
     bufferBasis,
@@ -204,6 +204,56 @@ export default function LiquidityReport() {
           </AlertTitle>
           <AlertDescription>{insights[0].message}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Risikotreiber & Empfehlung */}
+      {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {analysis.drivers.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Risikotreiber</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
+                  {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
+                </p>
+                <ul className="space-y-2">
+                  {analysis.drivers.map((d, i) => (
+                    <li key={`${d.name}-${i}`} className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm">{d.name}</span>
+                        {d.occurrences && d.occurrences > 1 && (
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {d.occurrences}×
+                          </Badge>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">
+                        −{eur.format(d.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {analysis.recommendation && (
+            <Card className="border-emerald-600/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Empfehlung
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">{analysis.recommendation.message}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* KPIs */}
