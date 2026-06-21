@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import BankCallbackPage from "./pages/BankCallbackPage";
 import Login from "./pages/Login";
@@ -10,25 +10,29 @@ import AppShell from "@/components/layout/AppShell";
 import RouteGuard from "@/components/layout/RouteGuard";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 
-import CoachPage from "@/pages/CoachPage";
-import DebtsPage from "@/pages/DebtsPage";
-import NetWorthPage from "@/pages/NetWorthPage";
-import DashboardPage from "@/pages/DashboardPage";
-import AnalysisPage from "@/pages/AnalysisPage";
-import SimulationPage from "@/pages/SimulationPage";
-import TradingPage from "@/pages/TradingPage";
-import ContractsPage from "@/pages/ContractsPage";
-import AccountsPage from "@/pages/AccountsPage";
-import CsvPage from "@/pages/CsvPage";
-import ExportPage from "@/pages/ExportPage";
-import SettingsPage from "@/pages/SettingsPage";
-import PrivacyPage from "@/pages/PrivacyPage";
+// Route-Level Code-Splitting: schwere Seiten (Charts, PDF-Export, Trading) werden
+// erst beim Aufruf geladen, damit das initiale Bundle kleiner bleibt.
+const CoachPage = lazy(() => import("@/pages/CoachPage"));
+const DebtsPage = lazy(() => import("@/pages/DebtsPage"));
+const NetWorthPage = lazy(() => import("@/pages/NetWorthPage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
+const SimulationPage = lazy(() => import("@/pages/SimulationPage"));
+const TradingPage = lazy(() => import("@/pages/TradingPage"));
+const ContractsPage = lazy(() => import("@/pages/ContractsPage"));
+const AccountsPage = lazy(() => import("@/pages/AccountsPage"));
+const CsvPage = lazy(() => import("@/pages/CsvPage"));
+const ExportPage = lazy(() => import("@/pages/ExportPage"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 
 function LockedRedirect() {
   const location = useLocation();
   const next = `${location.pathname}${location.search}`;
   return <Navigate to={`/unlock?next=${encodeURIComponent(next)}`} replace />;
 }
+
+const RouteFallback = <div className="min-h-screen bg-background" />;
 
 function App() {
   const { status } = useAuth();
@@ -46,12 +50,14 @@ function App() {
   if (!isAuthenticated && !anonymousStarted) {
     return (
       <BrowserRouter>
-        <Routes>
-          <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
-          {/* Privacy-Seite auch vor dem Einstieg erreichbar (Issue #41) */}
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
-        </Routes>
+        <Suspense fallback={RouteFallback}>
+          <Routes>
+            <Route path="/ausgabentracker/return" element={<BankCallbackPage />} />
+            {/* Privacy-Seite auch vor dem Einstieg erreichbar (Issue #41) */}
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="*" element={<Login onStartAnonymous={() => setAnonymousStarted(true)} />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     );
   }
@@ -61,6 +67,7 @@ function App() {
   // Ab hier: volle App — angemeldet ODER bewusst anonym (Issue #26).
   return (
     <BrowserRouter>
+      <Suspense fallback={RouteFallback}>
       <Routes>
         <Route path="/unlock" element={<UnlockPage />} />
 
@@ -123,6 +130,7 @@ function App() {
           </>
         )}
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
