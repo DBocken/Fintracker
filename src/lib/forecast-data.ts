@@ -9,17 +9,20 @@
  * wiederkehrenden Zahlungen und Transaktionen auf; manuelle Eingaben sind
  * spätere Overrides, keine Pflicht.
  */
-import type { Account, AccountType } from '@/types';
+import { subMonths } from 'date-fns';
+import type { Account, AccountType, Transaction } from '@/types';
 import type { ContractRow, Cycle } from '@/components/contracts/contract-types';
 import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { detectRecurringTransactions } from '@/services/contract-detection-service';
+import { getTransactions } from '@/services/transaction-service';
 import type {
   ForecastAccount,
   ForecastAccountKind,
   ForecastInput,
   RecurringCadence,
   RecurringFlow,
+  VariableExpenseBaseline,
 } from './forecast-types';
 
 /** Mappt die App-Kontoart auf die Forecast-Kontoart. */
@@ -118,17 +121,66 @@ function bindFlowsToDefaultAccount(
 }
 
 /**
+ * Leitet eine variable Ausgaben-Baseline je Kategorie aus der echten Historie
+ * ab. Berücksichtigt nur *echte* Ausgaben: keine Transfers, keine als Vertrag
+ * markierten Buchungen (die laufen als wiederkehrende Flows).
+ *
+ * Reine Funktion (kein IO) – damit unabhängig testbar.
+ *
+ * @param transactions Historische Transaktionen.
+ * @param options.monthsBack Rückblickfenster in Monaten (Default 6).
+ * @param options.now Referenzdatum (Default: jetzt).
+ */
+export function buildVariableExpenseBaselines(
+  transactions: Transaction[],
+  options: { monthsBack?: number; now?: Date } = {},
+): VariableExpenseBaseline[] {
+  const monthsBack = options.monthsBack ?? 6;
+  const now = options.now ?? new Date();
+  const windowStart = subMonths(now, monthsBack);
+
+  const sums = new Map<string, number>();
+  const monthsSeen = new Set<string>();
+
+  for (const t of transactions) {
+    if (t.is_transfer || t.is_contract) continue;
+    if (t.amount >= 0) continue; // nur Ausgaben
+    const date = new Date(t.date);
+    if (Number.isNaN(date.getTime())) continue;
+    if (date < windowStart || date > now) continue;
+
+    const category = t.category?.trim() || 'Sonstiges';
+    sums.set(category, (sums.get(category) ?? 0) + Math.abs(t.amount));
+    monthsSeen.add(t.date.slice(0, 7));
+  }
+
+  const denom = Math.max(monthsSeen.size, 1);
+  const confidence = monthsSeen.size >= 3 ? 0.75 : 0.5;
+
+  const baselines: VariableExpenseBaseline[] = [];
+  for (const [category, total] of sums) {
+    const monthlyAmount = Math.round((total / denom) * 100) / 100;
+    if (monthlyAmount <= 0) continue;
+    baselines.push({ category, monthlyAmount, confidence });
+  }
+  // Größte Kategorien zuerst – stabil und gut für die UI.
+  baselines.sort((a, b) => b.monthlyAmount - a.monthlyAmount);
+  return baselines;
+}
+
+/**
  * Sammelt alle Eingaben für die Forecast-Engine aus den echten Services.
  *
- * PR1-Scope: Konten + wiederkehrende Flows. Variable Ausgaben-Baseline,
- * Transfers und geplante Events folgen, sobald die jeweiligen Adapter
- * angebunden werden.
+ * Auto-seeded: Konten (mit echten Salden), wiederkehrende Flows (aus der
+ * Vertragserkennung) und die variable Ausgaben-Baseline (aus der Historie).
+ * Transfers und geplante Events folgen als spätere Adapter / Overrides.
  */
 export async function buildForecastInput(): Promise<ForecastInput> {
-  const [accounts, netWorth, contracts] = await Promise.all([
+  const [accounts, netWorth, contracts, transactions] = await Promise.all([
     getAccounts(),
     getNetWorthBreakdown(),
     detectRecurringTransactions(),
+    getTransactions(2000),
   ]);
 
   const forecastAccounts = buildForecastAccounts(accounts, netWorth.accountBalances);
@@ -136,9 +188,11 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     buildRecurringFlows(contracts),
     forecastAccounts,
   );
+  const variableExpenses = buildVariableExpenseBaselines(transactions);
 
   return {
     accounts: forecastAccounts,
     recurringFlows,
+    variableExpenses,
   };
 }
