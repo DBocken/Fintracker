@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
 import { updateTransaction } from "@/services/transaction-service";
+import { upsertContractDecision } from "@/services/contract-decision-service";
 import { showSuccess, showError } from "@/utils/toast";
 import type { ContractRow } from "./contract-types";
 import { mapCycleToRhythmus } from "./contract-types";
@@ -36,6 +37,7 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
   const suggestions = useMemo(() => {
     return rows.filter((row) => {
       if (dismissed.has(row.key)) return false;
+      if (row.status !== "candidate") return false; // nur noch unentschiedene Kandidaten
       if (row.confirmed) return false; // bereits bestätigt → nicht mehr vorschlagen
       if (row.cycle === "Unbekannt") return false;
       if (row.transactionIds.length === 0) return false;
@@ -44,24 +46,32 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
   }, [rows, dismissed]);
 
   const confirmMutation = useMutation({
-    mutationFn: (row: ContractRow) => {
+    mutationFn: async (row: ContractRow) => {
       const cycle = mapCycleToRhythmus(row.cycle);
-      return updateTransaction(
+      await updateTransaction(
         row.transactionIds.map((id) => ({ id, is_contract: true, contract_cycle: cycle }))
       );
+      // Dauerhafte Entscheidung an die Händlerfamilie binden (überlebt Re-Ableitung).
+      await upsertContractDecision(row.fingerprint, { status: "active", cycle_override: cycle });
     },
     onSuccess: (_data, row) => {
       showSuccess(`„${row.payee}" als Vertrag bestätigt`);
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
     },
     onError: () => showError("Fehler beim Bestätigen des Vertrags"),
   });
 
-  const handleDismiss = (key: string) => {
-    localStorage.setItem(`${DISMISS_PREFIX}${key}`, "1");
-    setDismissed((prev) => new Set(prev).add(key));
-  };
+  const dismissMutation = useMutation({
+    mutationFn: (row: ContractRow) => upsertContractDecision(row.fingerprint, { status: "rejected" }),
+    onSuccess: (_data, row) => {
+      localStorage.setItem(`${DISMISS_PREFIX}${row.key}`, "1");
+      setDismissed((prev) => new Set(prev).add(row.key));
+      queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
+    },
+    onError: () => showError("Fehler beim Ablehnen"),
+  });
 
   if (suggestions.length === 0) return null;
 
@@ -98,7 +108,12 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
                 >
                   <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Bestätigen
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleDismiss(row.key)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => dismissMutation.mutate(row)}
+                  disabled={dismissMutation.isPending}
+                >
                   <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
                 </Button>
               </div>
