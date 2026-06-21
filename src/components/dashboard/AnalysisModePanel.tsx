@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
-import { Lock, TrendingUp, TrendingDown, CalendarRange } from "lucide-react";
+import { Lock, TrendingUp, TrendingDown, CalendarRange, Sparkles } from "lucide-react";
 import type { Category, Transaction } from "@/types";
-import { computeTypicalMonth, computeTrend } from "@/lib/analysis-modes";
+import { computeTypicalMonth, computeTrend, computeMonthComparison, listMonths } from "@/lib/analysis-modes";
 import { getDashboardDateRange } from "./filter-utils";
 import type { DashboardRange } from "./filter-constants";
+import { useFeatureAccess } from "@/hooks/useTier";
 import { cn } from "@/lib/utils";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const monthLabel = (key: string) =>
+  new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date(`${key}-01T00:00:00`));
 
-type AnalysisMode = "zeitraum" | "typical" | "trend";
+type AnalysisMode = "zeitraum" | "typical" | "trend" | "compare";
 
 const MODES: { key: AnalysisMode; label: string }[] = [
   { key: "zeitraum", label: "Zeitraum" },
@@ -32,11 +35,23 @@ interface Props {
  */
 export default function AnalysisModePanel({ allTransactions, categories, range, customDays }: Props) {
   const [mode, setMode] = useState<AnalysisMode>("zeitraum");
+  const canCompare = useFeatureAccess("premiumAnalytics");
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, c.name]));
     return (id: string | null) => (id ? map.get(id) ?? "Unbekannt" : "Unkategorisiert");
   }, [categories]);
+
+  const months = useMemo(() => listMonths(allTransactions).reverse(), [allTransactions]);
+  const [monthB, setMonthB] = useState<string>("");
+  const [monthA, setMonthA] = useState<string>("");
+  // Vorbelegung: neuester Monat (B) gegen den vorherigen (A).
+  const effB = monthB || months[0] || "";
+  const effA = monthA || months[1] || months[0] || "";
+  const comparison = useMemo(
+    () => (effA && effB ? computeMonthComparison(allTransactions, effA, effB) : null),
+    [allTransactions, effA, effB],
+  );
 
   const typical = useMemo(() => computeTypicalMonth(allTransactions), [allTransactions]);
   const trend = useMemo(() => {
@@ -65,15 +80,30 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             {m.label}
           </button>
         ))}
-        <button
-          type="button"
-          disabled
-          title="Premium-Funktion – für Alpha-Tester freigeschaltet"
-          className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70"
-        >
-          <Lock className="h-3 w-3" />
-          Monate vergleichen
-        </button>
+        {canCompare ? (
+          <button
+            type="button"
+            onClick={() => setMode("compare")}
+            aria-pressed={mode === "compare"}
+            className={cn(
+              "inline-flex min-h-[36px] items-center gap-1 rounded-full border px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              mode === "compare" ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
+            )}
+          >
+            <Sparkles className="h-3 w-3" />
+            Monate vergleichen
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Premium-Funktion – für Alpha-Tester freigeschaltet"
+            className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70"
+          >
+            <Lock className="h-3 w-3" />
+            Monate vergleichen
+          </button>
+        )}
       </div>
 
       {mode === "zeitraum" && (
@@ -145,7 +175,107 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
           )}
         </div>
       )}
+
+      {mode === "compare" && canCompare && (
+        <div className="mt-3">
+          {months.length < 2 ? (
+            <p className="text-sm text-muted-foreground">
+              Für einen Vergleich werden Buchungen aus mindestens zwei Monaten benötigt.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="text-xs text-muted-foreground">
+                  <span className="mb-1 block">Monat A</span>
+                  <select
+                    value={effA}
+                    onChange={(e) => setMonthA(e.target.value)}
+                    className="min-h-[36px] rounded-lg border bg-background px-2 py-1 text-sm"
+                  >
+                    {months.map((m) => (
+                      <option key={m} value={m}>
+                        {monthLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  <span className="mb-1 block">Monat B</span>
+                  <select
+                    value={effB}
+                    onChange={(e) => setMonthB(e.target.value)}
+                    className="min-h-[36px] rounded-lg border bg-background px-2 py-1 text-sm"
+                  >
+                    {months.map((m) => (
+                      <option key={m} value={m}>
+                        {monthLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {comparison && (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground">
+                        <th className="py-1 text-left font-medium"> </th>
+                        <th className="py-1 text-right font-medium">{monthLabel(effA)}</th>
+                        <th className="py-1 text-right font-medium">{monthLabel(effB)}</th>
+                        <th className="py-1 text-right font-medium">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <CompareRow label="Einnahmen" a={comparison.a.income} b={comparison.b.income} delta={comparison.delta.income} positiveGood />
+                      <CompareRow label="Ausgaben" a={comparison.a.expenses} b={comparison.b.expenses} delta={comparison.delta.expenses} />
+                      <CompareRow label="Saldo" a={comparison.a.net} b={comparison.b.net} delta={comparison.delta.net} positiveGood />
+                    </tbody>
+                  </table>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Ausgaben{" "}
+                    <span className="font-semibold">
+                      {comparison.expensesChangePct == null
+                        ? "—"
+                        : `${comparison.expensesChangePct > 0 ? "+" : ""}${comparison.expensesChangePct.toFixed(0)} %`}
+                    </span>{" "}
+                    von {monthLabel(effA)} zu {monthLabel(effB)}.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </section>
+  );
+}
+
+function CompareRow({
+  label,
+  a,
+  b,
+  delta,
+  positiveGood,
+}: {
+  label: string;
+  a: number;
+  b: number;
+  delta: number;
+  positiveGood?: boolean;
+}) {
+  // Bei Ausgaben ist ein Anstieg „schlecht" (warning), bei Einnahmen/Saldo gut.
+  const deltaTone = delta === 0 ? "text-muted-foreground" : (delta > 0) === !!positiveGood ? "text-positive" : "text-warning";
+  return (
+    <tr className="border-t">
+      <td className="py-1.5 text-muted-foreground">{label}</td>
+      <td className="py-1.5 text-right">{eur.format(a)}</td>
+      <td className="py-1.5 text-right">{eur.format(b)}</td>
+      <td className={cn("py-1.5 text-right font-medium", deltaTone)}>
+        {delta > 0 ? "+" : ""}
+        {eur.format(delta)}
+      </td>
+    </tr>
   );
 }
 

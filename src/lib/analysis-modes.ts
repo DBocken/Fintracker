@@ -95,6 +95,35 @@ export function computeTypicalMonth(transactions: Transaction[], now = new Date(
   };
 }
 
+export interface MonthComparison {
+  a: PeriodTotals;
+  b: PeriodTotals;
+  /** Differenz b − a je Kennzahl. */
+  delta: PeriodTotals;
+  /** Prozentuale Ausgabenänderung von a nach b (null wenn a keine Ausgaben hatte). */
+  expensesChangePct: number | null;
+}
+
+/**
+ * Vergleicht zwei Kalendermonate (yyyy-MM) direkt. Reine Funktion für die
+ * Premium-„Monate vergleichen"-Ansicht (Audit P1.5).
+ */
+export function computeMonthComparison(
+  transactions: Transaction[],
+  monthA: string,
+  monthB: string,
+): MonthComparison {
+  const a = totalsFor(transactions.filter((t) => !t.is_transfer && monthKey(t.date) === monthA));
+  const b = totalsFor(transactions.filter((t) => !t.is_transfer && monthKey(t.date) === monthB));
+  const expensesChangePct = a.expenses > 0 ? ((b.expenses - a.expenses) / a.expenses) * 100 : null;
+  return {
+    a,
+    b,
+    delta: { income: b.income - a.income, expenses: b.expenses - a.expenses, net: b.net - a.net },
+    expensesChangePct,
+  };
+}
+
 export interface CategoryCause {
   categoryId: string | null;
   /** Veränderung der Ausgaben in dieser Kategorie (aktuell − vorher), positiv = Anstieg. */

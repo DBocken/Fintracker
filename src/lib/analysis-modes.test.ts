@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeTypicalMonth, computeTrend, listMonths } from "./analysis-modes";
+import { computeTypicalMonth, computeTrend, listMonths, computeMonthComparison } from "./analysis-modes";
 import type { Transaction } from "@/types";
 
 function tx(date: string, amount: number, extra: Partial<Transaction> = {}): Transaction {
@@ -112,5 +112,44 @@ describe("computeTrend", () => {
     expect(r.current.expenses).toBeCloseTo(50, 2);
     expect(r.previous).toMatchObject({ income: 0, expenses: 0, net: 0 });
     expect(r.topCauses).toHaveLength(1);
+  });
+});
+
+describe("computeMonthComparison", () => {
+  it("vergleicht zwei Kalendermonate direkt", () => {
+    const txs = [
+      tx("2026-01-10", 2000),
+      tx("2026-01-20", -800),
+      tx("2026-02-10", 2000),
+      tx("2026-02-20", -1000),
+      tx("2026-02-25", -200),
+    ];
+    const r = computeMonthComparison(txs, "2026-01", "2026-02");
+    expect(r.a.expenses).toBeCloseTo(800, 2);
+    expect(r.b.expenses).toBeCloseTo(1200, 2);
+    expect(r.delta.expenses).toBeCloseTo(400, 2);
+    expect(r.delta.net).toBeCloseTo(-400, 2);
+    expect(r.expensesChangePct).toBeCloseTo(50, 2);
+  });
+
+  it("ignoriert Transfers", () => {
+    const txs = [tx("2026-01-10", -100), tx("2026-01-11", -50, { is_transfer: true })];
+    const r = computeMonthComparison(txs, "2026-01", "2026-02");
+    expect(r.a.expenses).toBeCloseTo(100, 2);
+    expect(r.b.expenses).toBe(0);
+  });
+
+  it("liefert null-Prozent wenn Monat A keine Ausgaben hatte", () => {
+    const txs = [tx("2026-02-10", -300)];
+    const r = computeMonthComparison(txs, "2026-01", "2026-02");
+    expect(r.a.expenses).toBe(0);
+    expect(r.expensesChangePct).toBeNull();
+  });
+
+  it("identische Monate ergeben keine Differenz", () => {
+    const txs = [tx("2026-01-10", -300), tx("2026-01-15", 1000)];
+    const r = computeMonthComparison(txs, "2026-01", "2026-01");
+    expect(r.delta).toMatchObject({ income: 0, expenses: 0, net: 0 });
+    expect(r.expensesChangePct).toBeCloseTo(0, 2);
   });
 });
