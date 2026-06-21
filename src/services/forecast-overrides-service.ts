@@ -8,7 +8,7 @@
  * Persistenz als versioniertes JSON im localStorage – gleiches Muster wie die
  * KPI-Präferenzen. Diese Werte sind Planungsannahmen, keine Rohkontodaten.
  */
-import type { BufferBasis, PlannedForecastEvent, SinkingFund } from '@/lib/forecast-types';
+import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer } from '@/lib/forecast-types';
 
 const STORAGE_KEY = 'fintracker_forecast_overrides_v1';
 
@@ -22,6 +22,7 @@ export interface ForecastOverrides {
   categoryBudgets: Record<string, number>;
   plannedEvents: PlannedForecastEvent[];
   sinkingFunds: SinkingFund[];
+  transfers: ForecastTransfer[];
 }
 
 export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
@@ -32,6 +33,7 @@ export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
   categoryBudgets: {},
   plannedEvents: [],
   sinkingFunds: [],
+  transfers: [],
 };
 
 function normalize(raw: Partial<ForecastOverrides> | null | undefined): ForecastOverrides {
@@ -43,6 +45,7 @@ function normalize(raw: Partial<ForecastOverrides> | null | undefined): Forecast
     categoryBudgets: raw?.categoryBudgets ?? {},
     plannedEvents: Array.isArray(raw?.plannedEvents) ? raw!.plannedEvents! : [],
     sinkingFunds: Array.isArray(raw?.sinkingFunds) ? raw!.sinkingFunds! : [],
+    transfers: Array.isArray(raw?.transfers) ? raw!.transfers! : [],
   };
 }
 

@@ -174,8 +174,8 @@ export function buildVariableExpenseBaselines(
 
 /**
  * Wendet die nutzerseitigen Planungs-Overrides auf den auto-seeded Input an:
- * Tagesgeld-Zinssätze, Budget-Overrides je Kategorie, geplante Einmalposten
- * und Rücklagen. Reine Funktion (kein IO) – damit unabhängig testbar.
+ * Tagesgeld-Zinssätze, Budget-Overrides je Kategorie, geplante Einmalposten,
+ * Rücklagen und Transfers. Reine Funktion (kein IO) – damit unabhängig testbar.
  */
 export function applyForecastOverrides(
   input: ForecastInput,
@@ -199,6 +199,7 @@ export function applyForecastOverrides(
     variableExpenses,
     plannedEvents: [...(input.plannedEvents ?? []), ...overrides.plannedEvents],
     sinkingFunds: [...(input.sinkingFunds ?? []), ...overrides.sinkingFunds],
+    transfers: [...(input.transfers ?? []), ...overrides.transfers],
   };
 }
 

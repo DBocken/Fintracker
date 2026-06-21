@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
-import type { PlannedForecastEvent, SinkingFund, ForecastInput } from '@/lib/forecast-types';
+import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -113,6 +113,56 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
                   onChange={onChange}
                 />
               )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Transfers */}
+          <AccordionItem value="transfers">
+            <AccordionTrigger className="px-2 text-sm">
+              <span className="flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4" /> Transfers
+                {overrides.transfers.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({overrides.transfers.length})
+                  </span>
+                )}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 px-2">
+              {overrides.transfers.map((t) => (
+                <div key={t.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">
+                      {t.name || `${accountName(t.fromAccountId)} → ${accountName(t.toAccountId)}`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {t.date
+                        ? `${t.date}`
+                        : `${t.cadence} ${t.anchorDate ? `(ab ${t.anchorDate})` : ''}`}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{eur.format(t.amount)}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label="Transfer entfernen"
+                      onClick={() =>
+                        onChange({
+                          transfers: overrides.transfers.filter((x) => x.id !== t.id),
+                        })
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <TransferForm
+                accounts={accounts}
+                onAdd={(t) => onChange({ transfers: [...overrides.transfers, t] })}
+              />
             </AccordionContent>
           </AccordionItem>
 
@@ -401,6 +451,95 @@ function BudgetOverrideForm({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function TransferForm({
+  accounts,
+  onAdd,
+}: {
+  accounts: AccountLite[];
+  onAdd: (t: ForecastTransfer) => void;
+}) {
+  const [fromAccountId, setFromAccountId] = useState('');
+  const [toAccountId, setToAccountId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [date, setDate] = useState(today());
+  const [cadence, setCadence] = useState<'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual'>('monthly');
+  const [anchorDate, setAnchorDate] = useState(today());
+
+  const valid =
+    fromAccountId && toAccountId && amount && Number(amount) > 0 && fromAccountId !== toAccountId;
+
+  return (
+    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+      <div className="col-span-2">
+        <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
+          <SelectTrigger className="h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="onetime">Einmalig</SelectItem>
+            <SelectItem value="recurring">Wiederkehrend</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <AccountSelect accounts={accounts} value={fromAccountId} onValueChange={setFromAccountId} placeholder="Von Konto" />
+      <AccountSelect accounts={accounts} value={toAccountId} onValueChange={setToAccountId} placeholder="Zu Konto" />
+
+      <Input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        placeholder="Betrag"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+      />
+
+      {isRecurring ? (
+        <>
+          <Select value={cadence} onValueChange={(v) => setCadence(v as typeof cadence)}>
+            <SelectTrigger className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Wöchentlich</SelectItem>
+              <SelectItem value="biweekly">Alle 2 Wochen</SelectItem>
+              <SelectItem value="monthly">Monatlich</SelectItem>
+              <SelectItem value="quarterly">Vierteljährlich</SelectItem>
+              <SelectItem value="semiannual">Halbjährlich</SelectItem>
+              <SelectItem value="annual">Jährlich</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={anchorDate} onChange={(e) => setAnchorDate(e.target.value)} />
+        </>
+      ) : (
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      )}
+
+      <Button
+        className="col-span-2"
+        disabled={!valid}
+        onClick={() => {
+          onAdd({
+            id: `tf-${Date.now()}`,
+            amount: Number(amount),
+            fromAccountId,
+            toAccountId,
+            ...(isRecurring ? { cadence, anchorDate } : { date }),
+          });
+          setFromAccountId('');
+          setToAccountId('');
+          setAmount('');
+          setDate(today());
+          setAnchorDate(today());
+        }}
+      >
+        <Plus className="mr-1 h-4 w-4" /> Transfer hinzufügen
+      </Button>
     </div>
   );
 }
