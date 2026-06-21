@@ -621,8 +621,11 @@ function RecurringFlowOverrideForm({
                       } else {
                         const updated = { ...override };
                         delete updated.enabled;
-                        next[flow.id] = Object.keys(updated).length > 0 ? updated : undefined;
-                        if (!next[flow.id]) delete next[flow.id];
+                        if (Object.keys(updated).length > 0) {
+                          next[flow.id] = updated;
+                        } else {
+                          delete next[flow.id];
+                        }
                       }
                       onChange({ recurringFlowOverrides: next });
                     }}
@@ -662,9 +665,12 @@ function RecurringFlowOverrideForm({
                       const v = e.target.value;
                       if (v === '') {
                         const updated = { ...override };
-                        delete updated?.amount;
-                        next[flow.id] = Object.keys(updated ?? {}).length > 0 ? updated : undefined;
-                        if (!next[flow.id]) delete next[flow.id];
+                        delete updated.amount;
+                        if (Object.keys(updated).length > 0) {
+                          next[flow.id] = updated;
+                        } else {
+                          delete next[flow.id];
+                        }
                       } else {
                         next[flow.id] = { ...override, amount: Number(v) };
                       }
@@ -683,9 +689,12 @@ function RecurringFlowOverrideForm({
                       const v = e.target.value;
                       if (v === '') {
                         const updated = { ...override };
-                        delete updated?.endDate;
-                        next[flow.id] = Object.keys(updated ?? {}).length > 0 ? updated : undefined;
-                        if (!next[flow.id]) delete next[flow.id];
+                        delete updated.endDate;
+                        if (Object.keys(updated).length > 0) {
+                          next[flow.id] = updated;
+                        } else {
+                          delete next[flow.id];
+                        }
                       } else {
                         next[flow.id] = { ...override, endDate: v };
                       }

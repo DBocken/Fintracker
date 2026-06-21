@@ -9,7 +9,7 @@
  * Persistenz als versioniertes JSON im localStorage – gleiches Muster wie die
  * KPI-Präferenzen. Diese Werte sind Planungsannahmen, keine Rohkontodaten.
  */
-import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer, RecurringFlow } from '@/lib/forecast-types';
+import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer } from '@/lib/forecast-types';
 
 const STORAGE_KEY = 'fintracker_forecast_overrides_v1';
 
