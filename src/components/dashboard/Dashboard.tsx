@@ -20,6 +20,7 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { TransactionDetailsModal } from './TransactionDetailsModal';
+import DashboardMobileStory from './DashboardMobileStory';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
 import { getAccounts } from '../../services/account-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
@@ -377,30 +378,45 @@ export function Dashboard() {
 
       <KpiSection data={{ transactions: visibleTransactions }} />
 
-      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-8">
-          <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
-        </div>
-        <div className="xl:col-span-4">
-          <SpendingBreakdownCard sunburst={stats.sunburst} />
-        </div>
-        <div className="xl:col-span-7">
-          <ExpensesOverTimeCard series={stats.series} />
-        </div>
-        <div className="xl:col-span-5">
-          <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
-        </div>
-      </div>
+      {/* Mobile: Finanz-Story mit adressierbaren Ansichten (Audit P1.4) */}
+      <DashboardMobileStory
+        className="lg:hidden"
+        currentBalance={stats.currentBalance}
+        periodNet={stats.balance}
+        sunburst={stats.sunburst}
+        series={stats.series}
+        sankeyData={sankeyData}
+        effectiveBalances={effectiveBalances}
+        totalEffectiveBalance={totalEffectiveBalance}
+      />
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
-          <p className="text-xs text-muted-foreground">
-            Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
-          </p>
+      {/* Desktop: bisheriges Raster + Cashflow */}
+      <div className="hidden lg:block space-y-6">
+        <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
+          </div>
+          <div className="xl:col-span-4">
+            <SpendingBreakdownCard sunburst={stats.sunburst} />
+          </div>
+          <div className="xl:col-span-7">
+            <ExpensesOverTimeCard series={stats.series} />
+          </div>
+          <div className="xl:col-span-5">
+            <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
+          </div>
         </div>
-        <SankeyChart data={sankeyData} enableDrilldown={false} />
-      </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
+            <p className="text-xs text-muted-foreground">
+              Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
+            </p>
+          </div>
+          <SankeyChart data={sankeyData} enableDrilldown={false} />
+        </section>
+      </div>
 
       <Card className="card-premium">
         <CardHeader>
