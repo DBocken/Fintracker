@@ -5,10 +5,10 @@ import { OPEN_NAV_SHEET_EVENT } from "@/components/layout/MobileNav";
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile Bottom-Nav (Issue #42): 4 Kernziele + „Mehr"-Tab.
+ * Mobile Bottom-Nav (Audit P1.3): Heute · Übersicht · Buchungen + „Mehr"-Tab.
  * Die Kernziele kommen aus nav-config (eine Quelle für SideNav,
  * Command-Palette und Bottom-Nav); „Mehr" öffnet das bestehende
- * Navigations-Sheet mit allen übrigen Zielen.
+ * Navigations-Sheet mit allen übrigen Zielen (Schulden, Konten, Verträge …).
  */
 export default function BottomNav() {
   const items = getBottomNavItems();

@@ -13,6 +13,7 @@ import {
   Banknote,
   Coins,
   Trophy,
+  Receipt,
 } from "lucide-react";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
 
@@ -58,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Analysen",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
+      { label: "Buchungen", path: "/transactions", icon: Receipt },
       {
         label: "Analyse",
         path: "/premium",
@@ -133,9 +135,8 @@ export function getVisibleNavGroups(): NavGroup[] {
  */
 const BOTTOM_NAV_TARGETS: { path: string; shortLabel: string }[] = [
   { path: "/coach", shortLabel: "Heute" },
-  { path: "/debts", shortLabel: "Schulden" },
-  { path: "/dashboard", shortLabel: "Analyse" },
-  { path: "/accounts", shortLabel: "Konten" },
+  { path: "/dashboard", shortLabel: "Übersicht" },
+  { path: "/transactions", shortLabel: "Buchungen" },
 ];
 
 export type BottomNavItem = NavItem & { shortLabel: string };
