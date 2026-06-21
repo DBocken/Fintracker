@@ -45,6 +45,11 @@ export interface ForecastAccount {
    * und Tagesgeld/Spar zählen als verfügbar, Depot/Kredit/Kreditkarte nicht.
    */
   liquidReserve?: boolean;
+  /**
+   * Jährlicher Zinssatz in Prozent (z. B. 2.5 für 2,5 % p. a.). Wird monatlich
+   * auf den positiven Saldo verzinst (deterministisch, kein Zufall). Default: 0.
+   */
+  annualInterestRate?: number;
 }
 
 /** Zahlungsrhythmus einer wiederkehrenden Zahlung. */
@@ -136,6 +141,33 @@ export interface PlannedForecastEvent {
   category?: string;
 }
 
+/**
+ * Rücklage (Sinking Fund) für eine bekannte, aber unregelmäßige Großausgabe
+ * (Jahresversicherung, Urlaub, Kfz-Steuer …). Statt die Zahlung in einem Monat
+ * zu stemmen, wird sie über monatliche Beiträge angespart.
+ *
+ * Die Engine expandiert die Rücklage in monatliche Transfers (vom operativen
+ * Konto auf das Reservekonto) und – falls gewünscht – die Großausgabe als
+ * Einmalposten am Fälligkeitstag.
+ */
+export interface SinkingFund {
+  id: string;
+  name: string;
+  /** Zielbetrag der anzusparenden Ausgabe. */
+  targetAmount: number;
+  /** Fälligkeit der Großausgabe (ISO yyyy-mm-dd). */
+  dueDate: string;
+  /** Bereits zurückgelegter Betrag. Default 0. */
+  currentSaved?: number;
+  /** Reservekonto, auf dem angespart wird. */
+  accountId: string;
+  /** Operatives Konto, von dem die Beiträge fließen. Default: erstes Giro. */
+  fundedFromAccountId?: string;
+  /** Buche die Großausgabe am Fälligkeitstag als Abfluss. Default true. */
+  bookExpenseAtDue?: boolean;
+  category?: string;
+}
+
 /** Gesamteingabe der Engine – idealerweise auto-seeded aus echten Services. */
 export interface ForecastInput {
   accounts: ForecastAccount[];
@@ -143,6 +175,7 @@ export interface ForecastInput {
   transfers?: ForecastTransfer[];
   variableExpenses?: VariableExpenseBaseline[];
   plannedEvents?: PlannedForecastEvent[];
+  sinkingFunds?: SinkingFund[];
 }
 
 /** Auf welche Cash-Sicht sich der Sicherheitspuffer bezieht. */
@@ -184,6 +217,8 @@ export interface ForecastDailyPoint {
   variableExpenses: number;
   /** Netto-Effekt geplanter Einmalposten an diesem Tag (signiert). */
   events: number;
+  /** Gutgeschriebene Zinsen an diesem Tag (positiv). */
+  interest: number;
   /** Summe aller Abflüsse (fix + variabel) als positive Zahl. */
   outflows: number;
   /** In operative Konten transferiertes Geld an diesem Tag. */
@@ -209,6 +244,8 @@ export interface ForecastMonthlySummary {
   transfersOut: number;
   /** Netto-Summe geplanter Einmalposten im Monat. */
   events: number;
+  /** Gutgeschriebene Zinsen im Monat. */
+  interest: number;
   /** operatingCash zum Monatsende. */
   closingBalance: number;
   /** Niedrigster operatingCash-Stand im Monat (Monatstief). */

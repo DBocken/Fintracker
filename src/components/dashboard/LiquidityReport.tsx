@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   ResponsiveContainer,
   Area,
@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useForecast } from '@/hooks/useForecast';
+import { useForecastOverrides } from '@/hooks/useForecastOverrides';
+import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import type { BufferBasis } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -91,9 +93,11 @@ const HORIZON_OPTIONS = [6, 12, 24, 36];
  * Sicherheitspuffer, Monatstief, Risiko-Kennzahlen und Monatszusammenfassungen.
  */
 export default function LiquidityReport() {
-  const [months, setMonths] = useState(6);
-  const [safetyBuffer, setSafetyBuffer] = useState(1000);
-  const [bufferBasis, setBufferBasis] = useState<BufferBasis>('operating');
+  const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
+  const { months, safetyBuffer, bufferBasis } = overrides;
+  const setMonths = (m: number) => updateConfig({ months: m });
+  const setSafetyBuffer = (b: number) => updateConfig({ safetyBuffer: b });
+  const setBufferBasis = (b: BufferBasis) => updateConfig({ bufferBasis: b });
 
   const { forecast, analysis, isLoading, isError, error } = useForecast({
     months,
@@ -188,6 +192,9 @@ export default function LiquidityReport() {
           </Select>
         </label>
       </div>
+
+      {/* Planung: Zinsen, geplante Posten, Rücklagen */}
+      <ForecastPlanner overrides={overrides} onChange={updatePlanning} />
 
       {/* Insight */}
       {insights[0] && (
@@ -362,6 +369,9 @@ export default function LiquidityReport() {
                   <Row label="Variabel" value={`−${eur.format(m.variableExpenses)}`} />
                   {m.transfersOut > 0 && (
                     <Row label="Sparen/Transfer" value={`−${eur.format(m.transfersOut)}`} />
+                  )}
+                  {m.interest > 0 && (
+                    <Row label="Zinsen" value={`+${eur.format(m.interest)}`} positive />
                   )}
                   <div className="my-1 border-t" />
                   <Row label="Monatsende" value={eur.format(m.closingBalance)} bold />

@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDeterministicForecast } from '@/lib/forecast';
+import {
+  calculateDeterministicForecast,
+  calculateRequiredContribution,
+} from '@/lib/forecast';
 import type {
   ForecastAccount,
   ForecastInput,
   RecurringFlow,
+  SinkingFund,
 } from '@/lib/forecast-types';
 
 const START = '2026-01-01';
@@ -345,5 +349,97 @@ describe('Endsaldo-Korrektheit über mehrere Monate', () => {
     // Ende März (31.03.): Start 1000 + 3*2000 - 3*800 = 4600.
     const march = day(result, '2026-03-31');
     expect(march.operatingCash).toBe(4600);
+  });
+});
+
+describe('Tagesgeld-Zinsen', () => {
+  it('schreibt am Monatsende Zinsen auf den positiven Saldo gut', () => {
+    const result = run({
+      accounts: [
+        checking(0),
+        { id: 'tg', name: 'Tagesgeld', kind: 'savings', openingBalance: 10_000, annualInterestRate: 3 },
+      ],
+    });
+    // 3 % p.a. auf 10.000 -> 25 €/Monat (10000*3/1200).
+    const jan31 = day(result, '2026-01-31');
+    expect(jan31.interest).toBeCloseTo(25, 2);
+    expect(jan31.accountBalances.tg).toBeCloseTo(10_025, 2);
+    // verfügbar steigt, Giro (operativ) unverändert.
+    expect(jan31.operatingCash).toBe(0);
+    expect(jan31.availableCash).toBeCloseTo(10_025, 2);
+  });
+
+  it('verzinst negative Salden nicht', () => {
+    const result = run({
+      accounts: [
+        { id: 'cc', name: 'Kreditkarte', kind: 'credit_card', openingBalance: -500, annualInterestRate: 5 },
+      ],
+    });
+    expect(day(result, '2026-01-31').interest).toBe(0);
+  });
+
+  it('summiert Zinsen in der Monatszusammenfassung', () => {
+    const result = run({
+      accounts: [
+        checking(0),
+        { id: 'tg', name: 'Tagesgeld', kind: 'savings', openingBalance: 10_000, annualInterestRate: 3 },
+      ],
+    });
+    const jan = result.monthly.find((m) => m.month === '2026-01')!;
+    expect(jan.interest).toBeCloseTo(25, 2);
+  });
+});
+
+describe('Rücklagen (Sinking Funds)', () => {
+  it('berechnet den erforderlichen Monatsbeitrag', () => {
+    const fund: SinkingFund = {
+      id: 'kfz',
+      name: 'Kfz-Versicherung',
+      targetAmount: 1200,
+      dueDate: '2026-07-01',
+      accountId: 'tg',
+    };
+    // 01.01 -> 01.07 = 6 Monate, 1200/6 = 200.
+    expect(calculateRequiredContribution(fund, '2026-01-01')).toBe(200);
+  });
+
+  it('berücksichtigt bereits Zurückgelegtes', () => {
+    const fund: SinkingFund = {
+      id: 'urlaub',
+      name: 'Urlaub',
+      targetAmount: 1200,
+      currentSaved: 600,
+      dueDate: '2026-07-01',
+      accountId: 'tg',
+    };
+    expect(calculateRequiredContribution(fund, '2026-01-01')).toBe(100);
+  });
+
+  it('spart über Transfers an und bucht die Ausgabe – Net Worth sinkt nur einmal', () => {
+    const result = run({
+      accounts: [
+        checking(3000),
+        { id: 'tg', name: 'Tagesgeld', kind: 'savings', openingBalance: 0 },
+      ],
+      sinkingFunds: [
+        {
+          id: 'kfz',
+          name: 'Kfz-Versicherung',
+          targetAmount: 600,
+          dueDate: '2026-04-15',
+          accountId: 'tg',
+          fundedFromAccountId: 'giro',
+        },
+      ],
+    });
+    // Beiträge: 600/3 Monate = 200/Monat, vom Giro aufs Tagesgeld.
+    // Am 15.04. wird die 600-€-Ausgabe vom Tagesgeld gebucht.
+    const last = result.daily.at(-1)!;
+    // Giro: 3000 - 3*200 (Jan/Feb/Mär Beiträge) = 2400.
+    expect(last.accountBalances.giro).toBe(2400);
+    // Tagesgeld: 3*200 angespart - 600 Ausgabe = 0.
+    expect(last.accountBalances.tg).toBe(0);
+    // Net Worth: 3000 - 600 = 2400 (Ausgabe genau einmal wirksam).
+    expect(last.netWorth).toBe(2400);
   });
 });

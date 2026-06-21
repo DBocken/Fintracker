@@ -17,6 +17,7 @@ import {
   addMonths,
   differenceInCalendarDays,
   format,
+  getDate,
   getDaysInMonth,
   isAfter,
   isBefore,
@@ -32,11 +33,13 @@ import type {
   ForecastInsight,
   ForecastMonthlySummary,
   ForecastResult,
+  PlannedForecastEvent,
   ForecastTransfer,
   LiquidityRisk,
   RecurringCadence,
   RecurringFlow,
   ResolvedForecastConfig,
+  SinkingFund,
 } from './forecast-types';
 
 const ISO = 'yyyy-MM-dd';
@@ -178,6 +181,73 @@ export function listFlowOccurrences(
   return dates.map((d) => format(d, ISO));
 }
 
+/**
+ * Beitragstermine einer Rücklage: monatlich, verankert am Startdatum, bis zum
+ * Tag vor der Fälligkeit (am Fälligkeitstag wird die Ausgabe gebucht).
+ */
+function sinkingContributionDates(fund: SinkingFund, startISO: string): string[] {
+  const start = parseISO(startISO);
+  const contribEnd = addDays(parseISO(fund.dueDate), -1);
+  if (isBefore(contribEnd, start)) return [];
+  return occurrencesInRange('monthly', start, start, contribEnd).map((d) => format(d, ISO));
+}
+
+/**
+ * Berechnet den erforderlichen monatlichen Beitrag, um den Zielbetrag einer
+ * Rücklage bis zur Fälligkeit anzusparen (abzüglich bereits Zurückgelegtem).
+ * Der Divisor ist die tatsächliche Anzahl der Beitragstermine – damit stimmen
+ * angezeigter Beitrag und tatsächlich gebuchte Summe exakt überein.
+ */
+export function calculateRequiredContribution(fund: SinkingFund, startISO: string): number {
+  const count = Math.max(1, sinkingContributionDates(fund, startISO).length);
+  const remaining = Math.max(0, fund.targetAmount - (fund.currentSaved ?? 0));
+  return Math.round((remaining / count) * 100) / 100;
+}
+
+/**
+ * Expandiert Rücklagen in synthetische Beiträge (monatlicher Transfer vom
+ * operativen Konto auf das Reservekonto) und – falls gewünscht – die
+ * Großausgabe am Fälligkeitstag.
+ */
+function expandSinkingFunds(
+  funds: SinkingFund[],
+  startISO: string,
+  defaultFundedFrom: string | null,
+): { transfers: ForecastTransfer[]; events: PlannedForecastEvent[] } {
+  const transfers: ForecastTransfer[] = [];
+  const events: PlannedForecastEvent[] = [];
+
+  for (const fund of funds) {
+    const fundedFrom = fund.fundedFromAccountId ?? defaultFundedFrom;
+    const contribution = calculateRequiredContribution(fund, startISO);
+    // Beiträge nur bis zum Tag vor Fälligkeit (am Fälligkeitstag wird gezahlt).
+    const contribEnd = format(addDays(parseISO(fund.dueDate), -1), ISO);
+    if (fundedFrom && contribution > 0 && contribEnd >= startISO) {
+      transfers.push({
+        id: `sf-${fund.id}-contrib`,
+        name: `Rücklage: ${fund.name}`,
+        amount: contribution,
+        fromAccountId: fundedFrom,
+        toAccountId: fund.accountId,
+        cadence: 'monthly',
+        anchorDate: startISO,
+        endDate: contribEnd,
+      });
+    }
+    if (fund.bookExpenseAtDue ?? true) {
+      events.push({
+        id: `sf-${fund.id}-expense`,
+        name: fund.name,
+        amount: -Math.abs(fund.targetAmount),
+        date: fund.dueDate,
+        accountId: fund.accountId,
+        category: fund.category,
+      });
+    }
+  }
+  return { transfers, events };
+}
+
 /** Mutable Tages-Akkumulator (alles in Cent). */
 interface DayBucket {
   inflows: number;
@@ -200,6 +270,11 @@ function emptyBucket(): DayBucket {
     transfersOut: 0,
     accountDeltas: {},
   };
+}
+
+/** Ist `d` der letzte Tag seines Monats? */
+function isMonthEnd(d: Date): boolean {
+  return getDate(d) === getDaysInMonth(d);
 }
 
 function bucketFor(map: Map<string, DayBucket>, key: string): DayBucket {
@@ -234,6 +309,15 @@ export function calculateDeterministicForecast(
 
   const accountById = new Map(input.accounts.map((a) => [a.id, a]));
   const buckets = new Map<string, DayBucket>();
+
+  // 0) Rücklagen in synthetische Beiträge (Transfers) + Großausgaben (Events)
+  //    expandieren und mit den expliziten Eingaben zusammenführen.
+  const operatingDefault =
+    input.accounts.find((a) => a.kind === 'checking')?.id ??
+    pickVariableExpenseAccount(input.accounts);
+  const expanded = expandSinkingFunds(input.sinkingFunds ?? [], resolved.startDate, operatingDefault);
+  const allTransfers = [...(input.transfers ?? []), ...expanded.transfers];
+  const allEvents = [...(input.plannedEvents ?? []), ...expanded.events];
 
   // 1) Wiederkehrende Flows einplanen (zykluskorrekt).
   for (const flow of input.recurringFlows ?? []) {
@@ -271,7 +355,7 @@ export function calculateDeterministicForecast(
   }
 
   // 3) Transfers anwenden (Net-Worth-neutral, liquiditätswirksam).
-  for (const transfer of input.transfers ?? []) {
+  for (const transfer of allTransfers) {
     if (!accountById.has(transfer.fromAccountId) || !accountById.has(transfer.toAccountId)) {
       continue;
     }
@@ -290,7 +374,7 @@ export function calculateDeterministicForecast(
   }
 
   // 4) Geplante Einmalposten.
-  for (const event of input.plannedEvents ?? []) {
+  for (const event of allEvents) {
     if (!accountById.has(event.accountId)) continue;
     const d = parseISO(event.date);
     if (isBefore(d, start) || isAfter(d, rangeEnd)) continue;
@@ -316,6 +400,21 @@ export function calculateDeterministicForecast(
       balances[accountId] = (balances[accountId] ?? 0) + delta;
     }
 
+    // Zinsen am Monatsende auf positive Salden gutschreiben (deterministisch).
+    let interestCents = 0;
+    if (isMonthEnd(d)) {
+      for (const account of input.accounts) {
+        const rate = account.annualInterestRate ?? 0;
+        if (rate <= 0) continue;
+        const bal = balances[account.id] ?? 0;
+        if (bal <= 0) continue;
+        const monthInterest = Math.round((bal * rate) / 1200);
+        if (monthInterest === 0) continue;
+        balances[account.id] = bal + monthInterest;
+        interestCents += monthInterest;
+      }
+    }
+
     const operating = sumOperating(balances, accountById);
     const available = sumAvailable(balances, accountById);
     const netWorth = sumAll(balances);
@@ -332,6 +431,7 @@ export function calculateDeterministicForecast(
       fixedExpenses: toMajor(bucket.fixedExpenses),
       variableExpenses: toMajor(bucket.variableExpenses),
       events: toMajor(bucket.events),
+      interest: toMajor(interestCents),
       outflows: toMajor(bucket.fixedExpenses + bucket.variableExpenses),
       transfersIn: toMajor(bucket.transfersIn),
       transfersOut: toMajor(bucket.transfersOut),
@@ -428,6 +528,7 @@ export function summarizeMonths(daily: ForecastDailyPoint[]): ForecastMonthlySum
         transfersIn: 0,
         transfersOut: 0,
         events: 0,
+        interest: 0,
         closingBalance: point.operatingCash,
         lowestBalance: point.operatingCash,
         lowestBalanceDate: point.date,
@@ -441,6 +542,7 @@ export function summarizeMonths(daily: ForecastDailyPoint[]): ForecastMonthlySum
     m.transfersIn = round2(m.transfersIn + point.transfersIn);
     m.transfersOut = round2(m.transfersOut + point.transfersOut);
     m.events = round2(m.events + point.events);
+    m.interest = round2(m.interest + point.interest);
     m.closingBalance = point.operatingCash;
     if (point.operatingCash < m.lowestBalance) {
       m.lowestBalance = point.operatingCash;

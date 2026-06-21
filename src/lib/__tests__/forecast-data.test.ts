@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { buildVariableExpenseBaselines, cycleToCadence, accountTypeToKind } from '@/lib/forecast-data';
+import {
+  buildVariableExpenseBaselines,
+  cycleToCadence,
+  accountTypeToKind,
+  applyForecastOverrides,
+} from '@/lib/forecast-data';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
 import type { Transaction } from '@/types';
+import type { ForecastInput } from '@/lib/forecast-types';
 
 const NOW = new Date('2026-06-15');
 
@@ -79,5 +86,52 @@ describe('Mapping-Helfer', () => {
     expect(accountTypeToKind('savings')).toBe('savings');
     expect(accountTypeToKind('credit_card')).toBe('credit_card');
     expect(accountTypeToKind('other')).toBe('other');
+  });
+});
+
+describe('applyForecastOverrides', () => {
+  const base: ForecastInput = {
+    accounts: [
+      { id: 'giro', name: 'Giro', kind: 'checking', openingBalance: 1000 },
+      { id: 'tg', name: 'Tagesgeld', kind: 'savings', openingBalance: 5000 },
+    ],
+    variableExpenses: [{ category: 'Restaurant', monthlyAmount: 360 }],
+  };
+
+  it('setzt Zinssätze auf die passenden Konten', () => {
+    const result = applyForecastOverrides(base, {
+      ...DEFAULT_FORECAST_OVERRIDES,
+      accountInterest: { tg: 2.5 },
+    });
+    expect(result.accounts.find((a) => a.id === 'tg')?.annualInterestRate).toBe(2.5);
+    expect(result.accounts.find((a) => a.id === 'giro')?.annualInterestRate).toBeUndefined();
+  });
+
+  it('legt Budget-Overrides als budgetOverride über die Baseline', () => {
+    const result = applyForecastOverrides(base, {
+      ...DEFAULT_FORECAST_OVERRIDES,
+      categoryBudgets: { Restaurant: 200 },
+    });
+    expect(result.variableExpenses?.[0].budgetOverride).toBe(200);
+    expect(result.variableExpenses?.[0].monthlyAmount).toBe(360); // Baseline bleibt
+  });
+
+  it('hängt geplante Events und Rücklagen an', () => {
+    const result = applyForecastOverrides(base, {
+      ...DEFAULT_FORECAST_OVERRIDES,
+      plannedEvents: [{ id: 'e1', name: 'Urlaub', amount: -1500, date: '2026-08-01', accountId: 'giro' }],
+      sinkingFunds: [
+        { id: 'f1', name: 'Kfz', targetAmount: 1200, dueDate: '2026-12-01', accountId: 'tg' },
+      ],
+    });
+    expect(result.plannedEvents).toHaveLength(1);
+    expect(result.sinkingFunds).toHaveLength(1);
+  });
+
+  it('lässt den Input bei leeren Overrides inhaltlich unverändert', () => {
+    const result = applyForecastOverrides(base, DEFAULT_FORECAST_OVERRIDES);
+    expect(result.accounts).toEqual(base.accounts);
+    expect(result.plannedEvents).toEqual([]);
+    expect(result.sinkingFunds).toEqual([]);
   });
 });

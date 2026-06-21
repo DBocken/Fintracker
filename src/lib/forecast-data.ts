@@ -16,6 +16,10 @@ import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { detectRecurringTransactions } from '@/services/contract-detection-service';
 import { getTransactions } from '@/services/transaction-service';
+import {
+  getForecastOverrides,
+  type ForecastOverrides,
+} from '@/services/forecast-overrides-service';
 import type {
   ForecastAccount,
   ForecastAccountKind,
@@ -169,11 +173,42 @@ export function buildVariableExpenseBaselines(
 }
 
 /**
- * Sammelt alle Eingaben für die Forecast-Engine aus den echten Services.
+ * Wendet die nutzerseitigen Planungs-Overrides auf den auto-seeded Input an:
+ * Tagesgeld-Zinssätze, Budget-Overrides je Kategorie, geplante Einmalposten
+ * und Rücklagen. Reine Funktion (kein IO) – damit unabhängig testbar.
+ */
+export function applyForecastOverrides(
+  input: ForecastInput,
+  overrides: ForecastOverrides,
+): ForecastInput {
+  const accounts = input.accounts.map((a) =>
+    overrides.accountInterest[a.id] != null
+      ? { ...a, annualInterestRate: overrides.accountInterest[a.id] }
+      : a,
+  );
+
+  const variableExpenses = (input.variableExpenses ?? []).map((b) =>
+    overrides.categoryBudgets[b.category] != null
+      ? { ...b, budgetOverride: overrides.categoryBudgets[b.category] }
+      : b,
+  );
+
+  return {
+    ...input,
+    accounts,
+    variableExpenses,
+    plannedEvents: [...(input.plannedEvents ?? []), ...overrides.plannedEvents],
+    sinkingFunds: [...(input.sinkingFunds ?? []), ...overrides.sinkingFunds],
+  };
+}
+
+/**
+ * Sammelt alle Eingaben für die Forecast-Engine aus den echten Services und
+ * legt die nutzerseitigen Planungs-Overrides darüber.
  *
  * Auto-seeded: Konten (mit echten Salden), wiederkehrende Flows (aus der
  * Vertragserkennung) und die variable Ausgaben-Baseline (aus der Historie).
- * Transfers und geplante Events folgen als spätere Adapter / Overrides.
+ * Overrides: Zinssätze, Budgets, geplante Events und Rücklagen.
  */
 export async function buildForecastInput(): Promise<ForecastInput> {
   const [accounts, netWorth, contracts, transactions] = await Promise.all([
@@ -190,9 +225,11 @@ export async function buildForecastInput(): Promise<ForecastInput> {
   );
   const variableExpenses = buildVariableExpenseBaselines(transactions);
 
-  return {
+  const seeded: ForecastInput = {
     accounts: forecastAccounts,
     recurringFlows,
     variableExpenses,
   };
+
+  return applyForecastOverrides(seeded, getForecastOverrides());
 }
