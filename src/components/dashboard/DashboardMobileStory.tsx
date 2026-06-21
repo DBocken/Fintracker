@@ -122,7 +122,7 @@ export default function DashboardMobileStory({
       </Card>
 
       {/* Ansicht-Navigation: vollständig sichtbares Icon-Raster, kein horizontales Scrollen */}
-      <div className="grid grid-cols-6 gap-1" role="tablist" aria-label="Diagramm-Ansicht">
+      <div className="grid grid-cols-3 gap-1 min-[400px]:grid-cols-6" role="tablist" aria-label="Diagramm-Ansicht">
         {VIEWS.map((v) => {
           const Icon = v.icon;
           const active = v.key === current;
