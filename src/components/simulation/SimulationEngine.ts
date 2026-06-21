@@ -122,6 +122,28 @@ export interface BudgetSuggestion {
   to: number;
   savingsPerMonth: number;
   note?: string;
+  /** Konkrete, nachvollziehbare Begründung des Vorschlags. */
+  reason?: string;
+}
+
+/**
+ * Vorschläge für Verträge (Audit P2-UX U5). Verträge haben feste Preise – statt
+ * sinnloser Betragskürzungen werden konkrete Aktionen vorgeschlagen: bündeln/
+ * reduzieren (z.B. mehrere Streaming-Abos), prüfen/wechseln oder kündigen.
+ */
+export type ContractActionKind = 'bundle' | 'review' | 'cancel';
+
+export interface ContractAction {
+  kind: ContractActionKind;
+  /** Betroffene Vertragskategorien. */
+  categoryIds: string[];
+  title: string;
+  /** Konkrete Begründung inkl. Zahlen. */
+  reason: string;
+  /** Geschätzte mögliche Ersparnis pro Monat (0 = unbestimmt, nur prüfen). */
+  monthlySavingsEstimate: number;
+  /** Domäne der Verträge, z.B. „Streaming". */
+  domain: string;
 }
 
 export class SimulationEngine {
@@ -169,6 +191,66 @@ export class SimulationEngine {
   private isVariableTypicalName(name: string): boolean {
     const n = (name || '').toLowerCase();
     return ['gastronomie', 'gastro', 'restaurant', 'ausgehen', 'freizeit', 'shopping', 'mode'].some(k => n.includes(k));
+  }
+
+  /**
+   * Ordnet eine Vertragskategorie einer Domäne zu (für Bündelungs-/Redundanz-
+   * Vorschläge). `null`, wenn keine bekannte Domäne erkannt wird.
+   */
+  private contractDomain(name: string): string | null {
+    const n = (name || '').toLowerCase();
+    const domains: { domain: string; keywords: string[] }[] = [
+      { domain: 'Streaming', keywords: ['streaming', 'netflix', 'spotify', 'prime', 'disney', 'dazn', 'sky', 'audible', 'youtube', 'wow', 'paramount', 'apple tv', 'crunchyroll', 'deezer'] },
+      { domain: 'Fitness', keywords: ['fitness', 'fitnessstudio', 'gym', 'mcfit', 'urban sports', 'clever fit', 'sportstudio', 'mitgliedschaft'] },
+      { domain: 'Versicherung', keywords: ['versicherung', 'haftpflicht', 'hausrat', 'krankenkasse', 'kfz', 'rechtsschutz', 'lebensversicherung'] },
+      { domain: 'Telekommunikation', keywords: ['mobilfunk', 'internet', 'telekom', 'vodafone', 'o2', 'handy', 'dsl', 'tarif'] },
+      { domain: 'Energie', keywords: ['strom', 'gas', 'energie'] },
+    ];
+    for (const d of domains) {
+      if (d.keywords.some(k => n.includes(k))) return d.domain;
+    }
+    return null;
+  }
+
+  /** Monatssummen (Ausgaben) einer Kategorie über die letzten n Monate. */
+  private monthlyTotalsForCategory(catId: string, nMonths = 12): number[] {
+    const keys = this.lastNMonthKeys(nMonths);
+    const totals = keys.map(() => 0);
+    for (const t of this.transactions) {
+      if (t.amount >= 0) continue;
+      if (t.category_id !== catId) continue;
+      const idx = keys.indexOf(t.date.slice(0, 7));
+      if (idx >= 0) totals[idx] += Math.abs(t.amount);
+    }
+    return totals;
+  }
+
+  /**
+   * Mustererkennung: eine Kategorie verhält sich vertragsartig, wenn ihre
+   * monatlichen Ausgaben regelmäßig und stabil sind (gleicher Betrag über
+   * mehrere Monate). Fängt Fälle wie „Fitnessstudio 24,99 €/Monat" ab, die
+   * weder explizit markiert noch namentlich erkannt werden.
+   */
+  private hasStableRecurringSpend(catId: string): boolean {
+    const totals = this.monthlyTotalsForCategory(catId, 12);
+    const active = totals.filter(v => v > 0);
+    if (active.length < 3) return false;
+    const mean = active.reduce((a, b) => a + b, 0) / active.length;
+    if (mean <= 0) return false;
+    const variance = active.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / active.length;
+    const cv = Math.sqrt(variance) / mean;
+    return cv < 0.2;
+  }
+
+  /** Einheitliche Klassifikation einer Kategorie. */
+  private isContractCategory(cat: Category): boolean {
+    const name = cat.name || '';
+    if (this.isIncomeName(name)) return false;
+    if (this.isVariableTypicalName(name)) return false;
+    if (cat.attributes?.ist_vertrag) return true;
+    if (this.isContractName(name)) return true;
+    if (this.contractDomain(name)) return true;
+    return this.hasStableRecurringSpend(cat.id);
   }
 
   analyzeFixedExpenses(): FixedExpense[] {
@@ -356,12 +438,7 @@ export class SimulationEngine {
   }
 
   getDetectedContracts(): DetectedContract[] {
-    const contractCats = this.categories.filter(c => {
-      const nm = c.name || '';
-      if (this.isIncomeName(nm)) return false;
-      if (this.isVariableTypicalName(nm)) return false;
-      return c.attributes?.ist_vertrag || this.isContractName(nm);
-    });
+    const contractCats = this.categories.filter(c => this.isContractCategory(c));
     const byCategory: DetectedContract[] = [];
 
     for (const cat of contractCats) {
@@ -423,7 +500,7 @@ export class SimulationEngine {
     const keys = this.lastNMonthKeys(nMonths);
     const nonContract = new Set(
       this.categories
-        .filter(c => !(c.attributes?.ist_vertrag || this.isContractName(c.name)))
+        .filter(c => !this.isContractCategory(c))
         .map(c => c.id)
     );
 
@@ -793,6 +870,13 @@ export class SimulationEngine {
 
         budgets[s.categoryId] = target;
 
+        const priLabel = pri >= 4 ? 'niedrige Priorität' : pri >= 2 ? 'mittlere Priorität' : 'hohe Priorität';
+        const reason = isProtected
+          ? 'Von dir geschützt – keine Kürzung.'
+          : savings > 0
+            ? `Variable Ausgabe mit ${priLabel}: Ø ${Math.round(mean)}€/Monat, bis ${Math.round(perc * 100)}% über dem Mindestbudget (${Math.round(floor)}€) kürzbar.`
+            : `Bereits am Mindestbudget (${Math.round(floor)}€) – keine weitere Kürzung empfohlen.`;
+
         suggestions.push({
           categoryId: s.categoryId,
           categoryName: s.categoryName,
@@ -800,7 +884,8 @@ export class SimulationEngine {
           from: Math.round(mean),
           to: Math.round(target),
           savingsPerMonth: Math.round(savings),
-          note: isProtected ? 'Geschützt' : undefined
+          note: isProtected ? 'Geschützt' : undefined,
+          reason,
         });
       }
     };
@@ -873,14 +958,23 @@ export class SimulationEngine {
 
       budgets[s.categoryId] = target;
 
+      const savings = Math.max(0, mean - target);
+      const priLabel = pri >= 4 ? 'niedrige Priorität' : pri >= 2 ? 'mittlere Priorität' : 'hohe Priorität';
+      const reason = isProtected
+        ? 'Von dir geschützt – keine Kürzung.'
+        : savings > 0
+          ? `Beitrag zum Sparziel (${priLabel}): anteilig ${Math.round(savings)}€/Monat von Ø ${Math.round(mean)}€, Mindestbudget ${Math.round(floor)}€.`
+          : `Bereits am Mindestbudget (${Math.round(floor)}€) – kein weiterer Beitrag möglich.`;
+
       suggestions.push({
         categoryId: s.categoryId,
         categoryName: s.categoryName,
         priority: pri,
         from: Math.round(mean),
         to: Math.round(target),
-        savingsPerMonth: Math.round(Math.max(0, mean - target)),
-        note: isProtected ? 'Geschützt' : undefined
+        savingsPerMonth: Math.round(savings),
+        note: isProtected ? 'Geschützt' : undefined,
+        reason,
       });
     }
 
@@ -893,5 +987,93 @@ export class SimulationEngine {
     }
 
     return { suggestions, overrides: ov, warnings };
+  }
+
+  /** Kündigungs-Hinweis aus Vertrags-Attributen (Frist/Ende), falls vorhanden. */
+  private cancellationNote(attributes: Category['attributes'] | undefined): string {
+    if (!attributes) return '';
+    const parts: string[] = [];
+    if (attributes.kuendigungsfrist_tage) {
+      parts.push(`Kündigungsfrist ${attributes.kuendigungsfrist_tage} Tage`);
+    }
+    if (attributes.vertragsende) {
+      parts.push(`Vertragsende ${attributes.vertragsende}`);
+    }
+    return parts.length ? ` Ersparnis erst nach Ablauf: ${parts.join(', ')}.` : '';
+  }
+
+  /**
+   * Konkrete, begründete Vertragsvorschläge (Audit P2-UX U5). Statt fiktiver
+   * Preissenkungen werden echte Hebel vorgeschlagen: Redundante Abos derselben
+   * Domäne bündeln/reduzieren (z.B. mehrere Streaming-Dienste), teure Verträge
+   * zum Wechsel/Prüfen markieren. Jede Empfehlung trägt eine Begründung mit Zahlen.
+   */
+  generateContractActions(): ContractAction[] {
+    const contracts = this.getDetectedContracts();
+    const eur = (v: number) =>
+      v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+
+    // Pro Vertrag den monatlichen Äquivalenzbetrag bestimmen.
+    const withMonthly = contracts.map(c => ({
+      ...c,
+      monthly: this.monthlyEquivalent(c.amountTypical || 0, c.cycle),
+    }));
+
+    // Nach Domäne gruppieren (nur erkannte Domänen).
+    const byDomain = new Map<string, typeof withMonthly>();
+    for (const c of withMonthly) {
+      const domain = this.contractDomain(c.categoryName);
+      if (!domain) continue;
+      const arr = byDomain.get(domain) ?? [];
+      arr.push(c);
+      byDomain.set(domain, arr);
+    }
+
+    const actions: ContractAction[] = [];
+    // Domänen, in denen Redundanz typisch und Bündelung/Reduktion sinnvoll ist.
+    const bundleDomains = new Set(['Streaming', 'Fitness']);
+
+    for (const [domain, items] of byDomain) {
+      const active = items.filter(i => i.monthly > 0);
+      if (bundleDomains.has(domain) && active.length >= 2) {
+        const sorted = [...active].sort((a, b) => b.monthly - a.monthly);
+        const total = sorted.reduce((s, i) => s + i.monthly, 0);
+        const cheapest = sorted[sorted.length - 1].monthly;
+        // Reduktion auf einen Dienst spart alle bis auf den günstigsten.
+        const savings = Math.round(total - cheapest);
+        const names = sorted.map(i => `${i.categoryName} (${eur(i.monthly)}/Monat)`).join(', ');
+        const cancelNote = sorted.map(i => this.cancellationNote(i.attributes)).find(Boolean) ?? '';
+        actions.push({
+          kind: 'bundle',
+          categoryIds: sorted.map(i => i.categoryId),
+          domain,
+          title: `${active.length} ${domain}-Abos gefunden`,
+          reason:
+            `${names} – zusammen ${eur(total)}/Monat. Auf einen Dienst reduzieren spart bis zu ${eur(savings)}/Monat.` +
+            cancelNote,
+          monthlySavingsEstimate: savings,
+        });
+      } else if (!bundleDomains.has(domain)) {
+        // Wechsel-/Prüf-Domänen (Versicherung, Telekom, Energie): teuersten Vertrag
+        // zum Anbietervergleich markieren – ohne erfundene Sparsumme.
+        const top = [...active].sort((a, b) => b.monthly - a.monthly)[0];
+        if (top && top.monthly > 0) {
+          actions.push({
+            kind: 'review',
+            categoryIds: [top.categoryId],
+            domain,
+            title: `${top.categoryName} prüfen`,
+            reason:
+              `${top.categoryName} kostet ${eur(top.monthly)}/Monat (${eur(top.monthly * 12)}/Jahr). ` +
+              `Ein Anbietervergleich/Tarifwechsel kann die feste Belastung senken.` +
+              this.cancellationNote(top.attributes),
+            monthlySavingsEstimate: 0,
+          });
+        }
+      }
+    }
+
+    // Stärkste Hebel zuerst.
+    return actions.sort((a, b) => b.monthlySavingsEstimate - a.monthlySavingsEstimate);
   }
 }

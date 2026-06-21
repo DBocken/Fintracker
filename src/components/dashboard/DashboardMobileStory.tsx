@@ -40,7 +40,11 @@ function LandscapeView() {
       </Card>
     );
   }
-  return <FinancialLandscape health={health} variant="strip" />;
+  return (
+    <div className="mx-auto w-full max-w-xs">
+      <FinancialLandscape health={health} variant="hero-compact" />
+    </div>
+  );
 }
 
 interface Props {

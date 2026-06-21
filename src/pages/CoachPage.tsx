@@ -85,10 +85,17 @@ export default function CoachPage() {
         )}
       </section>
 
-      {/* Reichere Illustration + Score: ab lg neben dem Score, mobil darunter. */}
+      {/* Reichere Illustration + Score: ab lg neben dem Score, mobil darüber.
+          Mobil wird die Illustration als kompakte, antippbare Variante gezeigt
+          (statt komplett ausgeblendet zu sein). */}
       <div className="space-y-4 lg:flex lg:items-start lg:gap-4 lg:space-y-0">
+        {/* Desktop: volle Illustration in der Seitenspalte */}
         <div className="hidden shrink-0 lg:block lg:w-80 xl:w-[416px]">
           <FinancialLandscape health={health} variant="hero" />
+        </div>
+        {/* Mobil: kompakte Illustration mit antippbaren Hotspots */}
+        <div className="mx-auto w-full max-w-xs lg:hidden">
+          <FinancialLandscape health={health} variant="hero-compact" />
         </div>
         <div className="min-w-0 lg:flex-1">
           {coachLoading ? (

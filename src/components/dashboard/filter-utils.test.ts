@@ -4,6 +4,7 @@ import {
   getDashboardDateRange,
   encodeDashboardFilters,
   decodeDashboardFilters,
+  buildTransactionsHref,
   type DashboardFilterState,
 } from "./filter-utils";
 import { DEFAULT_DASHBOARD_FILTERS } from "./filter-constants";
@@ -70,6 +71,35 @@ describe("filterTransactions", () => {
   it("gibt bei 'Gesamt' und leerer Suche alle Transaktionen zurück", () => {
     const result = filterTransactions(txs, categories, accounts, baseFilters, NOW);
     expect(result).toHaveLength(3);
+  });
+
+  it("Kategorie-Filter ist hierarchie-bewusst (Haupt erfasst Unterkategorien)", () => {
+    const cats: Category[] = [
+      { id: "main", name: "Wohnen", parent_id: null } as Category,
+      { id: "sub", name: "Strom", parent_id: "main" } as Category,
+    ];
+    const list = [
+      tx({ id: "a", date: "2024-06-10", category_id: "main" }),
+      tx({ id: "b", date: "2024-06-10", category_id: "main", subcategory_id: "sub" }),
+      tx({ id: "c", date: "2024-06-10", category_id: "other" }),
+    ];
+    const byMain = filterTransactions(list, cats, accounts, { ...baseFilters, category: "main" }, NOW);
+    expect(byMain.map((t) => t.id).sort()).toEqual(["a", "b"]);
+
+    const bySub = filterTransactions(list, cats, accounts, { ...baseFilters, category: "sub" }, NOW);
+    expect(bySub.map((t) => t.id)).toEqual(["b"]);
+  });
+});
+
+describe("buildTransactionsHref", () => {
+  it("baut Deep-Link mit Kategorie", () => {
+    expect(buildTransactionsHref({ category: "cat-9" })).toBe("/transactions?cat=cat-9");
+  });
+  it("baut Deep-Link mit Ausgabenklasse", () => {
+    expect(buildTransactionsHref({ ausgabenklasse: "essenziell" })).toBe("/transactions?klasse=essenziell");
+  });
+  it("liefert nackten Pfad ohne Filter", () => {
+    expect(buildTransactionsHref({})).toBe("/transactions");
   });
 });
 

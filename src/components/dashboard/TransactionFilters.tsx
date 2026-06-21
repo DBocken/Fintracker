@@ -7,12 +7,14 @@ import { getAccounts } from '../../services/account-service';
 import type { Account, Category } from '../../types';
 import {
   DASHBOARD_RANGE_OPTIONS,
+  PERIOD_RANGES,
   type ContractFilter,
   type DashboardGranularity,
   type DashboardRange,
   type EssentialFilter,
   type AusgabenklasseFilter,
 } from './filter-constants';
+import type { PeriodOption } from './period-utils';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 
 interface TransactionFiltersProps {
@@ -28,6 +30,10 @@ interface TransactionFiltersProps {
   setCustomDays: (value: number) => void;
   customGran: DashboardGranularity;
   setCustomGran: (value: DashboardGranularity) => void;
+  customPeriod: string;
+  setCustomPeriod: (value: string) => void;
+  /** Verfügbare Perioden (Jahr/Quartal/Monat) je nach gewählter Granularität. */
+  periodOptions: PeriodOption[];
   categories: Category[];
   filterContract: ContractFilter;
   setFilterContract: (v: ContractFilter) => void;
@@ -51,6 +57,9 @@ export function TransactionFilters({
   setCustomDays,
   customGran,
   setCustomGran,
+  customPeriod,
+  setCustomPeriod,
+  periodOptions,
   categories,
   filterContract,
   setFilterContract,
@@ -154,6 +163,26 @@ export function TransactionFilters({
           ))}
         </SelectContent>
       </Select>
+
+      {PERIOD_RANGES.has(range) && (
+        <Select value={customPeriod} onValueChange={setCustomPeriod}>
+          <SelectTrigger
+            aria-label="Periode auswählen"
+            className="w-40 bg-background/50 backdrop-blur-sm"
+          >
+            <SelectValue placeholder="Periode wählen…" />
+          </SelectTrigger>
+          <SelectContent>
+            {periodOptions.length === 0 ? (
+              <SelectItem value="__none" disabled>Keine Daten</SelectItem>
+            ) : (
+              periodOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      )}
 
       {range === 'Benutzerdefiniert' && (
         <>

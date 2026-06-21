@@ -32,6 +32,7 @@ import { dyadProps } from '@/lib/dyad';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import {
   DEFAULT_DASHBOARD_FILTERS,
+  PERIOD_RANGES,
   type ContractFilter,
   type DashboardGranularity,
   type DashboardRange,
@@ -39,6 +40,7 @@ import {
   type AusgabenklasseFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from './filter-utils';
+import { listAvailablePeriods } from './period-utils';
 import AnalysisModePanel from './AnalysisModePanel';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
@@ -114,6 +116,7 @@ export function Dashboard() {
   const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
   const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_DASHBOARD_FILTERS.customGranularity);
+  const [customPeriod, setCustomPeriod] = useState<string>(DEFAULT_DASHBOARD_FILTERS.customPeriod);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
@@ -240,6 +243,7 @@ export function Dashboard() {
     setRange(DEFAULT_DASHBOARD_FILTERS.range);
     setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
     setCustomGran(DEFAULT_DASHBOARD_FILTERS.customGranularity);
+    setCustomPeriod(DEFAULT_DASHBOARD_FILTERS.customPeriod);
   }, []);
 
   const activeFilterCount = useMemo(() => {
@@ -257,6 +261,24 @@ export function Dashboard() {
     [range, customDays, customGran],
   );
 
+  // Verfügbare Perioden (Jahr/Quartal/Monat) aus den Buchungen ableiten.
+  const periodOptions = useMemo(
+    () => (PERIOD_RANGES.has(range) ? listAvailablePeriods(txs, range) : []),
+    [txs, range],
+  );
+
+  // Beim Wechsel der Granularität die neueste verfügbare Periode vorbelegen,
+  // damit sofort sinnvolle Daten erscheinen.
+  const handleSetRange = useCallback((next: DashboardRange) => {
+    setRange(next);
+    if (PERIOD_RANGES.has(next)) {
+      const opts = listAvailablePeriods(txs, next);
+      setCustomPeriod(opts[0]?.value ?? '');
+    } else {
+      setCustomPeriod('');
+    }
+  }, [txs]);
+
   const filteredTransactions = useMemo(() => {
     return filterTransactions(txs, cats, accounts, {
       category: _filterCat,
@@ -267,8 +289,9 @@ export function Dashboard() {
       search: searchInput,
       range,
       customDays,
+      customPeriod,
     }, new Date(), contractDecisions);
-  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, contractDecisions]);
+  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, customPeriod, contractDecisions]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
 
@@ -307,10 +330,11 @@ export function Dashboard() {
       search: searchInput,
       range,
       customDays,
+      customPeriod,
     });
     const qs = params.toString();
     return qs ? `/transactions?${qs}` : '/transactions';
-  }, [_filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays]);
+  }, [_filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, customPeriod]);
 
   const stats = useMemo(() => {
     const flowTransactions = visibleTransactions.filter(t => !t.is_transfer);
@@ -507,11 +531,14 @@ export function Dashboard() {
                   searchInput={searchInput}
                   setSearchInput={setSearchInput}
                   range={range}
-                  setRange={setRange}
+                  setRange={handleSetRange}
                   customDays={customDays}
                   setCustomDays={setCustomDays}
                   customGran={customGran}
                   setCustomGran={setCustomGran}
+                  customPeriod={customPeriod}
+                  setCustomPeriod={setCustomPeriod}
+                  periodOptions={periodOptions}
                   categories={cats}
                   filterContract={filterContract}
                   setFilterContract={setFilterContract}

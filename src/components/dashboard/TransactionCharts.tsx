@@ -1,8 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { chartRamp, CHART_BRAND } from '@/lib/chart-colors';
+import { buildTransactionsHref } from './filter-utils';
+import type { AusgabenklasseFilter } from './filter-constants';
 
 interface SunburstInner {
   id: string;
@@ -88,6 +91,18 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Ausgabenklasse- oder Hauptkategorie-ID sein)
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // Klick auf den Innenring (Ausgabenklasse) -> gefilterte Buchungen je Klasse.
+  const navigateToKlasse = (superId: string) => {
+    navigate(buildTransactionsHref({ ausgabenklasse: superId as AusgabenklasseFilter }));
+  };
+  // Klick auf den Außenring (Hauptkategorie) -> gefilterte Buchungen je Kategorie.
+  // Die Außenring-ID hat die Form `${superId}::${mainId}`.
+  const navigateToCategory = (outerId: string) => {
+    const mainId = outerId.split('::')[1];
+    if (mainId) navigate(buildTransactionsHref({ category: mainId }));
+  };
 
   const totalExpenses = sunburst?.total ?? 0;
 
@@ -203,7 +218,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                       className="cursor-pointer"
                       onMouseEnter={() => setHoveredKey(entry.id)}
                       onMouseLeave={() => setHoveredKey(null)}
-                      onClick={() => setHoveredKey((k) => (k === entry.id ? null : entry.id))}
+                      onClick={() => navigateToKlasse(entry.id)}
                     />
                   );
                 })}
@@ -241,7 +256,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                           className="cursor-pointer"
                           onMouseEnter={() => setHoveredKey(entry.id)}
                           onMouseLeave={() => setHoveredKey(null)}
-                          onClick={() => setHoveredKey((k) => (k === entry.id ? null : entry.id))}
+                          onClick={() => navigateToCategory(entry.id)}
                         />
                       );
                     })}
@@ -264,6 +279,8 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                 type="button"
                 onMouseEnter={() => setHoveredKey(item.id)}
                 onMouseLeave={() => setHoveredKey(null)}
+                onClick={() => navigateToKlasse(item.id)}
+                aria-label={`${item.name}: Buchungen ansehen`}
                 className={`flex items-center gap-1.5 rounded px-2 py-1 transition-colors ${
                   isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'
                 }`}
