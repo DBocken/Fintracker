@@ -2,6 +2,8 @@ import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-f
 import type { Account, Category, Transaction } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
+import type { ContractDecision } from '@/services/contract-decision-service';
 
 interface DateRange {
   start: Date;
@@ -68,14 +70,16 @@ function getAccountById(accounts: Account[]): Map<string, Account> {
   return new Map(accounts.map((account) => [account.id, account]));
 }
 
-function matchesContractFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: ContractFilter): boolean {
+function matchesContractFilter(
+  transaction: Transaction,
+  categoriesById: Map<string, Category>,
+  decisions: Map<string, ContractDecision>,
+  filter: ContractFilter,
+): boolean {
   if (filter === 'all') return true;
-  if (!transaction.category_id) return false;
 
-  const category = categoriesById.get(transaction.category_id);
-  if (!category) return false;
-
-  const isContract = category.attributes?.ist_vertrag === true;
+  const category = transaction.category_id ? categoriesById.get(transaction.category_id) : undefined;
+  const isContract = isContractStatus(resolveContractStatus(transaction, decisions, category));
   return filter === 'vertrag' ? isContract : !isContract;
 }
 
@@ -113,6 +117,7 @@ export function filterTransactions(
   accounts: Account[],
   filters: DashboardFilterState,
   now = new Date(),
+  contractDecisions: Map<string, ContractDecision> = new Map(),
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now);
   const search = filters.search.trim().toLowerCase();
@@ -125,7 +130,7 @@ export function filterTransactions(
 
     if (filters.category !== 'all' && transaction.category_id !== filters.category) return false;
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
-    if (!matchesContractFilter(transaction, categoriesById, filters.contract)) return false;
+    if (!matchesContractFilter(transaction, categoriesById, contractDecisions, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 

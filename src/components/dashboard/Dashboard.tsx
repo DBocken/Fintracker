@@ -39,6 +39,7 @@ import {
   type AusgabenklasseFilter,
 } from './filter-constants';
 import { filterTransactions, getDashboardGranularity } from './filter-utils';
+import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
@@ -59,6 +60,11 @@ export function Dashboard() {
   const { data: accounts = [] } = useQuery<Account[], Error>({
     queryKey: ['accounts'],
     queryFn: () => getAccounts(),
+  });
+
+  const { data: contractDecisions = new Map<string, ContractDecision>() } = useQuery({
+    queryKey: ['contract-decisions'],
+    queryFn: getContractDecisionMap,
   });
 
   const localBalances = useMemo(() => {
@@ -260,8 +266,8 @@ export function Dashboard() {
       search: searchInput,
       range,
       customDays,
-    });
-  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays]);
+    }, new Date(), contractDecisions);
+  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, contractDecisions]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
 
