@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   Area,
+  Line,
   ComposedChart,
   CartesianGrid,
   XAxis,
@@ -25,7 +26,10 @@ import {
 } from '@/components/ui/select';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
+import { useScenarioForecast } from '@/hooks/useScenarioForecast';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
+import ScenarioPanel from '@/components/dashboard/ScenarioPanel';
+import { buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -105,13 +109,34 @@ export default function LiquidityReport() {
     bufferBasis,
   });
 
+  // Szenarien (Stufe 3): Presets + eigene, aktives Szenario als lokaler Zustand.
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const scenarios = useMemo(() => {
+    const presets = forecast ? buildPresetScenarios(forecast.config.startDate) : [];
+    return [...presets, ...overrides.scenarios];
+  }, [forecast, overrides.scenarios]);
+  const activeScenario = scenarios.find((s) => s.id === activeScenarioId) ?? null;
+
+  const { scenarioResult, comparison } = useScenarioForecast(
+    input,
+    forecast,
+    { months, safetyBuffer, bufferBasis },
+    activeScenario,
+  );
+
   const chartData = useMemo(() => {
     if (!forecast) return [];
+    const pick = (d: { availableCash: number; operatingCash: number }) =>
+      bufferBasis === 'available' ? d.availableCash : d.operatingCash;
+    const scenarioByDate = new Map(
+      (scenarioResult?.daily ?? []).map((d) => [d.date, pick(d)]),
+    );
     return forecast.daily.map((d) => ({
       date: d.date,
-      operating: bufferBasis === 'available' ? d.availableCash : d.operatingCash,
+      operating: pick(d),
+      scenario: scenarioByDate.get(d.date),
     }));
-  }, [forecast, bufferBasis]);
+  }, [forecast, scenarioResult, bufferBasis]);
 
   if (isLoading) {
     return (
@@ -195,6 +220,19 @@ export default function LiquidityReport() {
 
       {/* Planung: Zinsen, Budgets, geplante Posten, Rücklagen */}
       <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
+
+      {/* Szenarien: Was-wäre-wenn */}
+      <ScenarioPanel
+        scenarios={scenarios}
+        activeId={activeScenarioId}
+        onSelect={setActiveScenarioId}
+        comparison={comparison}
+        customScenarios={overrides.scenarios}
+        onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
+        onDeleteScenario={(id) =>
+          updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
+        }
+      />
 
       {/* Insight */}
       {insights[0] && (
@@ -323,16 +361,31 @@ export default function LiquidityReport() {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(v: number) => [eur.format(v), 'Saldo']}
+                  formatter={(v: number, name: string) => [
+                    eur.format(v),
+                    name === 'scenario' ? activeScenario?.name ?? 'Szenario' : 'Basis',
+                  ]}
                   labelFormatter={(l: string) => fmtDate(l)}
                 />
                 <Area
                   type="monotone"
                   dataKey="operating"
+                  name="operating"
                   stroke="#1d5c54"
                   strokeWidth={2}
                   fill="url(#liqFill)"
                 />
+                {activeScenario && (
+                  <Line
+                    type="monotone"
+                    dataKey="scenario"
+                    name="scenario"
+                    stroke="#d97706"
+                    strokeWidth={2}
+                    strokeDasharray="5 4"
+                    dot={false}
+                  />
+                )}
                 {safetyBuffer > 0 && (
                   <ReferenceLine
                     y={safetyBuffer}

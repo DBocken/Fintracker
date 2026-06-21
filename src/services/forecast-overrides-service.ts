@@ -10,6 +10,7 @@
  * KPI-Präferenzen. Diese Werte sind Planungsannahmen, keine Rohkontodaten.
  */
 import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer } from '@/lib/forecast-types';
+import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 
 const STORAGE_KEY = 'fintracker_forecast_overrides_v1';
 
@@ -36,6 +37,8 @@ export interface ForecastOverrides {
   transfers: ForecastTransfer[];
   /** flowId -> Overrides für auto-erkannte wiederkehrende Zahlungen. */
   recurringFlowOverrides: Record<string, RecurringFlowOverride>;
+  /** Nutzerdefinierte Was-wäre-wenn-Szenarien (Stufe 3). */
+  scenarios: ForecastScenario[];
 }
 
 export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
@@ -48,6 +51,7 @@ export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
   sinkingFunds: [],
   transfers: [],
   recurringFlowOverrides: {},
+  scenarios: [],
 };
 
 function normalize(raw: Partial<ForecastOverrides> | null | undefined): ForecastOverrides {
@@ -61,6 +65,7 @@ function normalize(raw: Partial<ForecastOverrides> | null | undefined): Forecast
     sinkingFunds: Array.isArray(raw?.sinkingFunds) ? raw!.sinkingFunds! : [],
     transfers: Array.isArray(raw?.transfers) ? raw!.transfers! : [],
     recurringFlowOverrides: raw?.recurringFlowOverrides ?? {},
+    scenarios: Array.isArray(raw?.scenarios) ? raw!.scenarios! : [],
   };
 }
 
