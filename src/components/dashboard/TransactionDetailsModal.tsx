@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Trash2, SplitSquareHorizontal } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { Link } from 'react-router-dom';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
+import { FeatureGate } from '@/components/FeatureGate';
 import { Users } from 'lucide-react';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
@@ -208,9 +210,26 @@ export function TransactionDetailsModal({
         </div>
       )}
 
-      {/* Aufteilung auf mehrere Kategorien */}
+      {/* Aufteilung auf mehrere Kategorien (Premium) */}
       <div className="border-t pt-4">
-        <TransactionSplitPanel transaction={transaction} categories={categories} />
+        <FeatureGate
+          feature="splitTransactions"
+          fallback={
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <SplitSquareHorizontal className="h-4 w-4" />
+                Buchung aufteilen
+                <Badge className="border-none bg-premium text-premium-foreground">Pro</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Buchungen cent-genau auf mehrere Kategorien aufteilen.{' '}
+                <Link to="/settings" className="underline underline-offset-2">Premium freischalten</Link>
+              </p>
+            </div>
+          }
+        >
+          <TransactionSplitPanel transaction={transaction} categories={categories} />
+        </FeatureGate>
       </div>
 
       {/* Vertragsinformationen */}

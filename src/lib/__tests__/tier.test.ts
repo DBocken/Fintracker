@@ -42,10 +42,11 @@ describe("hasFeatureAccess", () => {
     }
   });
 
-  it("includes premiumAnalytics, simulation and trading as premium-gated features", () => {
+  it("includes premiumAnalytics, simulation, trading and splitTransactions as premium-gated features", () => {
     expect(FEATURES.premiumAnalytics).toBe("premium");
     expect(FEATURES.simulation).toBe("premium");
     expect(FEATURES.trading).toBe("premium");
+    expect(FEATURES.splitTransactions).toBe("premium");
   });
 });
 

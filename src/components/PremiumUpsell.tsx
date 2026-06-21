@@ -5,6 +5,7 @@ import {
   TrendingUp,
   LineChart as LineChartIcon,
   CreditCard,
+  SplitSquareHorizontal,
 } from "lucide-react";
 import LockedPreview from "@/components/premium/LockedPreview";
 import { FEATURES, type FeatureKey } from "@/lib/tier";
@@ -53,6 +54,21 @@ function PreviewMock({ feature }: { feature: FeatureKey }) {
               strokeWidth="2"
             />
           </svg>
+        </div>
+      );
+    case "splitTransactions":
+      return (
+        <div className="space-y-3">
+          <SplitSquareHorizontal className="h-5 w-5 text-brand" />
+          {[
+            [60, 40],
+            [45, 55],
+          ].map((parts, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded-lg border p-2">
+              <div className="h-2.5 rounded bg-brand/40" style={{ width: `${parts[0]}%` }} />
+              <div className="h-2.5 rounded bg-muted" style={{ width: `${parts[1]}%` }} />
+            </div>
+          ))}
         </div>
       );
     case "premiumAnalytics":
@@ -111,6 +127,15 @@ const FEATURE_COPY: Record<
       "Behalte Wertentwicklung und Allokation an einem Ort.",
       "Verbinde Investitionen mit deiner Gesamtfinanzlage.",
       "Experimentelle Beta – ohne Anlageempfehlung.",
+    ],
+  },
+  splitTransactions: {
+    title: "Buchungen auf mehrere Kategorien aufteilen",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Teile eine Buchung cent-genau auf mehrere Kategorien auf.",
+      "Großeinkäufe sauber trennen – Lebensmittel, Drogerie, Haushalt.",
+      "Deine Auswertungen werden dadurch deutlich präziser.",
     ],
   },
 };

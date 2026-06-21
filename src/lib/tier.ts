@@ -9,7 +9,7 @@ export type Tier = "anonymous" | "free" | "premium";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
-export type FeatureKey = "bankSync" | "premiumAnalytics" | "simulation" | "trading";
+export type FeatureKey = "bankSync" | "premiumAnalytics" | "simulation" | "trading" | "splitTransactions";
 
 /** Maps each gated feature to the minimum tier required to use it. */
 export const FEATURES: Record<FeatureKey, Tier> = {
@@ -17,6 +17,7 @@ export const FEATURES: Record<FeatureKey, Tier> = {
   premiumAnalytics: "premium",
   simulation: "premium",
   trading: "premium",
+  splitTransactions: "premium",
 };
 
 const TIER_RANK: Record<Tier, number> = {
