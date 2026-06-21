@@ -437,11 +437,19 @@ function BudgetOverrideForm({
   overrides,
   onChange,
 }: {
-  variableExpenses: Array<{ category: string; monthlyAmount: number; budgetOverride?: number }>;
+  variableExpenses: Array<{ category: string; monthlyAmount: number; confidence?: number; budgetOverride?: number }>;
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
 }) {
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+
+  const getConfidenceBadge = (confidence?: number) => {
+    if (!confidence) return null;
+    const pct = Math.round(confidence * 100);
+    if (pct >= 75) return 'text-emerald-600 dark:text-emerald-400';
+    if (pct >= 50) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-orange-600 dark:text-orange-400';
+  };
 
   return (
     <div className="space-y-3">
@@ -449,9 +457,14 @@ function BudgetOverrideForm({
         <div key={expense.category} className="rounded-md border p-3">
           <div className="mb-2 flex items-center justify-between">
             <Label className="text-sm font-medium">{expense.category}</Label>
-            <span className="text-xs text-muted-foreground">
-              Baseline: {eur.format(expense.monthlyAmount)}
-            </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Baseline: {eur.format(expense.monthlyAmount)}</span>
+              {expense.confidence != null && (
+                <span className={`font-semibold ${getConfidenceBadge(expense.confidence)}`}>
+                  {Math.round(expense.confidence * 100)}%
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Input
