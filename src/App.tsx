@@ -15,6 +15,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 const CoachPage = lazy(() => import("@/pages/CoachPage"));
 const DebtsPage = lazy(() => import("@/pages/DebtsPage"));
 const NetWorthPage = lazy(() => import("@/pages/NetWorthPage"));
+const MilestonesPage = lazy(() => import("@/pages/MilestonesPage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
 const SimulationPage = lazy(() => import("@/pages/SimulationPage"));
@@ -93,6 +94,7 @@ function App() {
               <Route path="/coach" element={<CoachPage />} />
               <Route path="/debts" element={<DebtsPage />} />
               <Route path="/net-worth" element={<NetWorthPage />} />
+              <Route path="/milestones" element={<MilestonesPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route
                 path="/premium"

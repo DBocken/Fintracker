@@ -131,10 +131,15 @@ export default function CoachPage() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          🏆 Deine Meilensteine
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            🏆 Deine Meilensteine
+          </div>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/milestones">Alle ansehen<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
+          </Button>
         </div>
-        {milestonesLoading ? <Skeleton className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} /> : null}
+        {milestonesLoading ? <Skeleton className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} variant="compact" /> : null}
       </section>
 
       <section>
