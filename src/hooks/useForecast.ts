@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { buildForecastInput } from '@/lib/forecast-data';
 import { calculateDeterministicForecast } from '@/lib/forecast';
 import { analyzeRisk, type RiskAnalysis } from '@/lib/forecast-insights';
-import type { ForecastConfig, ForecastResult } from '@/lib/forecast-types';
+import type { ForecastConfig, ForecastResult, ForecastInput } from '@/lib/forecast-types';
 
 /**
  * Lädt die echten Forecast-Eingaben (Konten, wiederkehrende Flows, variable
@@ -15,6 +15,7 @@ import type { ForecastConfig, ForecastResult } from '@/lib/forecast-types';
  */
 export function useForecast(config: ForecastConfig = {}): {
   forecast: ForecastResult | null;
+  input: ForecastInput | null;
   analysis: RiskAnalysis | null;
   isLoading: boolean;
   isError: boolean;
@@ -46,6 +47,7 @@ export function useForecast(config: ForecastConfig = {}): {
 
   return {
     forecast,
+    input: query.data ?? null,
     analysis,
     isLoading: query.isLoading,
     isError: query.isError,

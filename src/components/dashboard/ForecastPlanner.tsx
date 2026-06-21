@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, PiggyBank, CalendarPlus, Percent } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
-import type { PlannedForecastEvent, SinkingFund } from '@/lib/forecast-types';
+import type { PlannedForecastEvent, SinkingFund, ForecastInput } from '@/lib/forecast-types';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -29,16 +29,18 @@ const today = () => new Date().toISOString().slice(0, 10);
 interface Props {
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
+  input?: ForecastInput | null;
 }
 
 /** Konten, die sinnvoll verzinst werden (Tagesgeld/Spar, Giro). */
 const INTEREST_KINDS = new Set(['savings', 'checking']);
 
 /**
- * Planungs-Panel (Stufe 2): Tagesgeld-Zinsen, geplante Einmalposten und
- * Rücklagen. Schreibt direkt in die persistierten Forecast-Overrides.
+ * Planungs-Panel (Stufe 2): Tagesgeld-Zinsen, variable Ausgaben-Budgets,
+ * geplante Einmalposten und Rücklagen. Schreibt direkt in die persistierten
+ * Forecast-Overrides.
  */
-export default function ForecastPlanner({ overrides, onChange }: Props) {
+export default function ForecastPlanner({ overrides, onChange, input }: Props) {
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
@@ -84,6 +86,33 @@ export default function ForecastPlanner({ overrides, onChange }: Props) {
                   </div>
                 </div>
               ))}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Variable Ausgaben-Budgets */}
+          <AccordionItem value="budgets">
+            <AccordionTrigger className="px-2 text-sm">
+              <span className="flex items-center gap-2">
+                <Target className="h-4 w-4" /> Variable Budgets
+                {Object.keys(overrides.categoryBudgets).length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({Object.keys(overrides.categoryBudgets).length})
+                  </span>
+                )}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3 px-2">
+              {!input || !input.variableExpenses || input.variableExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Keine variablen Ausgaben gefunden.
+                </p>
+              ) : (
+                <BudgetOverrideForm
+                  variableExpenses={input.variableExpenses}
+                  overrides={overrides}
+                  onChange={onChange}
+                />
+              )}
             </AccordionContent>
           </AccordionItem>
 
@@ -322,6 +351,56 @@ function FundForm({
       >
         <Plus className="mr-1 h-4 w-4" /> Rücklage anlegen
       </Button>
+    </div>
+  );
+}
+
+function BudgetOverrideForm({
+  variableExpenses,
+  overrides,
+  onChange,
+}: {
+  variableExpenses: Array<{ category: string; monthlyAmount: number; budgetOverride?: number }>;
+  overrides: ForecastOverrides;
+  onChange: (patch: Partial<ForecastOverrides>) => void;
+}) {
+  const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+
+  return (
+    <div className="space-y-3">
+      {variableExpenses.map((expense) => (
+        <div key={expense.category} className="rounded-md border p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <Label className="text-sm font-medium">{expense.category}</Label>
+            <span className="text-xs text-muted-foreground">
+              Baseline: {eur.format(expense.monthlyAmount)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              placeholder={String(expense.monthlyAmount)}
+              value={overrides.categoryBudgets[expense.category] ?? ''}
+              onChange={(e) => {
+                const next = { ...overrides.categoryBudgets };
+                const v = e.target.value;
+                if (v === '') delete next[expense.category];
+                else next[expense.category] = Number(v);
+                onChange({ categoryBudgets: next });
+              }}
+              className="h-9 flex-1"
+            />
+            {overrides.categoryBudgets[expense.category] != null && (
+              <span className="text-sm font-semibold whitespace-nowrap">
+                {eur.format(overrides.categoryBudgets[expense.category])}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

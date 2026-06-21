@@ -99,7 +99,7 @@ export default function LiquidityReport() {
   const setSafetyBuffer = (b: number) => updateConfig({ safetyBuffer: b });
   const setBufferBasis = (b: BufferBasis) => updateConfig({ bufferBasis: b });
 
-  const { forecast, analysis, isLoading, isError, error } = useForecast({
+  const { forecast, input, analysis, isLoading, isError, error } = useForecast({
     months,
     safetyBuffer,
     bufferBasis,
@@ -193,8 +193,8 @@ export default function LiquidityReport() {
         </label>
       </div>
 
-      {/* Planung: Zinsen, geplante Posten, Rücklagen */}
-      <ForecastPlanner overrides={overrides} onChange={updatePlanning} />
+      {/* Planung: Zinsen, Budgets, geplante Posten, Rücklagen */}
+      <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
 
       {/* Insight */}
       {insights[0] && (
