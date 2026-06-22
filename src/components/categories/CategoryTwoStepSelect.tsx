@@ -73,7 +73,7 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
         subcategoryCount: Array.from(childrenByParent.values()).reduce((sum, arr) => sum + arr.length, 0),
         categoriesByParent: Object.fromEntries(childrenByParent),
       };
-      window.__DEBUG_CATEGORY_HIERARCHY__ = hierarchyInfo;
+      (window as unknown as Record<string, unknown>).__DEBUG_CATEGORY_HIERARCHY__ = hierarchyInfo;
 
       // Bei fehlender Hierarchie Warnung
       if (mains.length === 0 && categories.length > 0) {
