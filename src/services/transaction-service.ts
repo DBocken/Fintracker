@@ -58,12 +58,35 @@ function generateId(): string {
   return `tx_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 }
 
-// Kern der intelligenten Kategorien: gelernte Regeln -> Filter-Matching -> Regex-Fallback
-export function categorizeTransaction(
+/**
+ * Quelle einer Kategorisierungsentscheidung – für erklärbare Vorschläge.
+ */
+export type CategorizationSource =
+  | 'merchant_rule'
+  | 'category_filter'
+  | 'regex_fallback'
+  | 'none';
+
+/**
+ * Erklärbares Ergebnis der Kategorisierung. `confidence` ist eine reine Heuristik
+ * (kein echtes Wahrscheinlichkeitsmodell) und sollte in der UI als Sicherheitsstufe
+ * (hoch/mittel/niedrig) dargestellt werden, nicht als Prozentwert.
+ */
+export interface CategorizationResult {
+  categoryId: string | null;
+  confidence: number;
+  reasons: string[];
+  source: CategorizationSource;
+}
+
+// Kern der intelligenten Kategorien: gelernte Regeln -> Filter-Matching -> Regex-Fallback.
+// Liefert zusätzlich Confidence + erklärbare Gründe, damit die UI Vorschläge statt
+// stiller Änderungen anbieten kann.
+export function explainCategorization(
   transaction: Transaction,
   categories: Category[],
   learnedRules?: MerchantRule[]
-): string | null {
+): CategorizationResult {
   const normalizedPayee = normalizeMerchantName(transaction.payee);
 
   // Stufe 1: vom Nutzer gelernte Zuordnungen (höchste Priorität)
@@ -71,11 +94,19 @@ export function categorizeTransaction(
     const rule = learnedRules.find(
       (r) => r.merchant_pattern && normalizedPayee.includes(r.merchant_pattern)
     );
-    if (rule) return rule.category_id;
+    if (rule) {
+      return {
+        categoryId: rule.category_id,
+        confidence: 0.95,
+        reasons: [`Gelernte Händlerregel für „${rule.merchant_pattern}“`],
+        source: 'merchant_rule',
+      };
+    }
   }
 
   // Stufe 2: Filter-Matching (Spezifität), inkl. normalisiertem Zahlungsempfänger
   let bestMatch: Category | null = null;
+  let bestMatchedFilters: string[] = [];
   let bestSpecificity = 0;
 
   for (const category of categories) {
@@ -92,22 +123,50 @@ export function categorizeTransaction(
 
     if (matches.length > bestSpecificity) {
       bestMatch = category;
+      bestMatchedFilters = matches;
       bestSpecificity = matches.length;
     }
   }
 
-  if (bestMatch) return bestMatch.id;
+  if (bestMatch) {
+    return {
+      categoryId: bestMatch.id,
+      confidence: bestSpecificity >= 2 ? 0.85 : 0.7,
+      reasons: bestMatchedFilters.map((filter) => `Beschreibung enthält Filter „${filter}“`),
+      source: 'category_filter',
+    };
+  }
 
   // Stufe 3: generische Regex-Fallback-Regeln
   const haystack = `${normalizedPayee} ${transaction.description || ''} ${transaction.original_text || ''}`.toLowerCase();
   for (const rule of REGEX_FALLBACK_RULES) {
     if (rule.pattern.test(haystack)) {
       const fallbackCategory = categories.find((c) => c.name === rule.category);
-      if (fallbackCategory) return fallbackCategory.id;
+      if (fallbackCategory) {
+        return {
+          categoryId: fallbackCategory.id,
+          confidence: 0.55,
+          reasons: [`Fallback-Regel für „${rule.category}“ erkannt`],
+          source: 'regex_fallback',
+        };
+      }
     }
   }
 
-  return null;
+  return { categoryId: null, confidence: 0, reasons: [], source: 'none' };
+}
+
+/**
+ * Liefert nur die Kategorie-ID. Bleibt als dünner Wrapper über `explainCategorization`
+ * erhalten, damit bestehende Aufrufer (CSV-Import, GoCardless-Sync, Receipt-Scan,
+ * Recategorize) unverändert funktionieren.
+ */
+export function categorizeTransaction(
+  transaction: Transaction,
+  categories: Category[],
+  learnedRules?: MerchantRule[]
+): string | null {
+  return explainCategorization(transaction, categories, learnedRules).categoryId;
 }
 
 // -----------------------------------------------------------------------------
