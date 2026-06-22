@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { showSuccess, showError } from "@/utils/toast";
+import { useI18n } from "@/i18n/useI18n";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
 import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
@@ -55,6 +56,7 @@ import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export default function DebtsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function DebtsPage() {
     mutationFn: createDebt,
     onSuccess: () => {
       invalidate();
-      showSuccess("Schuld hinzugefügt");
+      showSuccess(t("debts.addSuccess"));
       setDialogOpen(false);
     },
     onError: (e: Error) => showError(e.message),
@@ -113,7 +115,7 @@ export default function DebtsPage() {
     mutationFn: updateDebt,
     onSuccess: () => {
       invalidate();
-      showSuccess("Schuld aktualisiert");
+      showSuccess(t("debts.updateSuccess"));
       setDialogOpen(false);
       setEditing(null);
     },
@@ -124,7 +126,7 @@ export default function DebtsPage() {
     mutationFn: deleteDebt,
     onSuccess: () => {
       invalidate();
-      showSuccess("Schuld gelöscht");
+      showSuccess(t("debts.deleteSuccess"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -133,7 +135,7 @@ export default function DebtsPage() {
     mutationFn: assignTransactionToDebt,
     onSuccess: () => {
       invalidate();
-      showSuccess("Zahlung als Tilgung zugewiesen");
+      showSuccess(t("debts.assignSuccess"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -142,7 +144,7 @@ export default function DebtsPage() {
     mutationFn: unassignDebtTransaction,
     onSuccess: () => {
       invalidate();
-      showSuccess("Zuweisung entfernt");
+      showSuccess(t("debts.unassignSuccess"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -239,14 +241,14 @@ export default function DebtsPage() {
 
     <div>
       <PageHeader
-        title="Schulden & Forderungen"
-        description="Behalte Verbindlichkeiten und verliehenes Geld im Blick und plane deinen Schuldenabbau."
+        title={t("debts.title")}
+        description={t("debts.description")}
       />
 
       <Tabs defaultValue="debts" className="mt-2">
         <TabsList>
-          <TabsTrigger value="debts">Schulden</TabsTrigger>
-          <TabsTrigger value="receivables">Forderungen</TabsTrigger>
+          <TabsTrigger value="debts">{t("debts.tabDebts")}</TabsTrigger>
+          <TabsTrigger value="receivables">{t("debts.tabReceivables")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="debts" className="space-y-6">
@@ -262,7 +264,7 @@ export default function DebtsPage() {
               }}
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Schuld hinzufügen
+              {t("debts.addDebt")}
             </Button>
           </div>
 
