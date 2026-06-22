@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "@/services/net-worth-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" });
@@ -111,6 +112,7 @@ function CompositionBar({ data }: { data: NetWorthBreakdown }) {
 }
 
 export default function NetWorthPage() {
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({
     queryKey: ["net-worth"],
     queryFn: getNetWorthBreakdown,
@@ -128,10 +130,10 @@ export default function NetWorthPage() {
   // Kontextuelle Hauptaktion: das Naheliegendste zuerst.
   const primaryAction = data
     ? data.portfolioSources.length === 0
-      ? { to: "/trading", label: "Depot hinzufügen" }
+      ? { to: "/trading", label: t("netWorth.addPortfolio") }
       : data.accountSources.length === 0
-        ? { to: "/accounts", label: "Konto hinzufügen" }
-        : { to: "/accounts", label: "Konten verwalten" }
+        ? { to: "/accounts", label: t("netWorth.addAccount") }
+        : { to: "/accounts", label: t("netWorth.addAccount") }
     : null;
 
   const hasLive = data?.accountSources.some((acc) => acc.source === "live") ?? false;
@@ -139,8 +141,8 @@ export default function NetWorthPage() {
   return (
     <div>
       <PageHeader
-        title="Nettovermögen"
-        description="Konten und Investitionen abzüglich deiner Schulden – dein wahres Vermögen."
+        title={t("netWorth.title")}
+        description={t("netWorth.description")}
       />
 
       {isEmpty ? (

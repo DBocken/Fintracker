@@ -6,8 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { evaluateMilestones } from "@/services/milestones-service";
+import { useI18n } from "@/i18n/useI18n";
 
 export default function MilestonesPage() {
+  const { t } = useI18n();
   const { data: milestones, isLoading } = useQuery({
     queryKey: ["milestones"],
     queryFn: evaluateMilestones,
@@ -21,8 +23,8 @@ export default function MilestonesPage() {
   return (
     <div>
       <PageHeader
-        title="Meilensteine"
-        description="Dein Fortschritt auf dem Weg zu finanzieller Sicherheit – Schritt für Schritt."
+        title={t("milestones.title")}
+        description={t("milestones.description")}
       />
 
       {isLoading ? (
@@ -35,7 +37,7 @@ export default function MilestonesPage() {
           <Card variant="premium">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Erreichte Meilensteine</div>
+                <div className="text-sm text-muted-foreground">{t("milestones.achieved")}</div>
                 <div className="text-sm font-semibold">{achievedCount} / {total}</div>
               </div>
               <Progress value={pct} className="mt-3" />
@@ -69,9 +71,9 @@ export default function MilestonesPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{m.definition.title}</span>
                       {m.achieved ? (
-                        <span className="text-xs font-medium text-positive">Erreicht</span>
+                        <span className="text-xs font-medium text-positive">{t("milestones.achieved")}</span>
                       ) : isNext ? (
-                        <span className="text-xs font-medium text-primary">Als Nächstes</span>
+                        <span className="text-xs font-medium text-primary">{t("milestones.next")}</span>
                       ) : (
                         <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                       )}
