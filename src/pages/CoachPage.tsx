@@ -17,8 +17,10 @@ import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useI18n } from "@/i18n/useI18n";
 
 export default function CoachPage() {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview"], queryFn: getCoachOverview });
   const { data: health } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
@@ -42,7 +44,7 @@ export default function CoachPage() {
   if (hasData === false) {
     return (
       <div className="space-y-8">
-        <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
+        <PageHeader title={t("coach.title")} description={t("coach.description")} />
         <FinancialLandscape health={health} variant="strip" />
         <FinanceEmptyState />
       </div>
@@ -55,14 +57,14 @@ export default function CoachPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <PageHeader title="Heute für dich" description="Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst." />
+      <PageHeader title={t("coach.title")} description={t("coach.description")} />
 
       {/* Fokuskarte zuerst (Audit P1.4): der priorisierte nächste Schritt steht
           ganz oben; darunter ein glanceable 2×2-Statusraster mit Details per Tap. */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Sparkles className="h-4 w-4" />
-          Priorität jetzt
+          {t("coach.priorityNow")}
         </div>
         {coachLoading ? (
           <Skeleton className="h-32 w-full rounded-2xl" />
@@ -72,8 +74,8 @@ export default function CoachPage() {
           <div className="flex items-start gap-3 rounded-2xl border border-positive/20 bg-positive/5 p-4 shadow-sm">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-positive" />
             <div>
-              <div className="font-semibold">Alles im grünen Bereich</div>
-              <p className="mt-1 text-sm text-muted-foreground">Aktuell gibt es keine dringenden Empfehlungen.</p>
+              <div className="font-semibold">{t("coach.allGood")}</div>
+              <p className="mt-1 text-sm text-muted-foreground">{t("coach.noRecommendations")}</p>
             </div>
           </div>
         )}
@@ -108,7 +110,7 @@ export default function CoachPage() {
 
       {followUps.length > 0 && (
         <section className="space-y-3">
-          <div className="text-sm font-medium text-muted-foreground">Weitere Empfehlungen</div>
+          <div className="text-sm font-medium text-muted-foreground">{t("coach.moreRecommendations")}</div>
           <div className="space-y-3">
             {followUps.map((card, i) => (
               <CoachFeedCard key={card.id} card={card} index={i + 1} />
@@ -119,35 +121,35 @@ export default function CoachPage() {
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="ds-section">
-          <div className="text-sm text-muted-foreground">Roadmap-Status</div>
+          <div className="text-sm text-muted-foreground">{t("coach.roadmapStatus")}</div>
           <div className="mt-2 text-xl font-semibold">{coach?.stage.title}</div>
           <p className="mt-2 text-sm text-muted-foreground">{coach?.stage.description}</p>
           <p className="mt-3 text-sm">{coach?.stage.whyItMatters}</p>
         </div>
         {coach && coach.debtSummary.totalDebt > 0 ? (
           <div className="ds-section">
-            <div className="text-sm text-muted-foreground">Schuldenkontext</div>
+            <div className="text-sm text-muted-foreground">{t("coach.debtContext")}</div>
             <div className="mt-2 text-xl font-semibold">
-              {gentleModeEnabled ? "*** € offen" : `${coach.debtSummary.totalDebt.toFixed(0)} € offen`}
+              {gentleModeEnabled ? "*** " + t("coach.openDebt") : `${coach.debtSummary.totalDebt.toFixed(0)} ` + t("coach.openDebt")}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Mindestraten: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} € / Monat
+              {t("coach.minimumPayment")}: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} {t("coach.perMonth")}
             </p>
-            <p className="mt-3 text-sm">Schneller ist aktuell: {coach.debtSummary.preferredStrategy === "avalanche" ? "Lawine (höchster Zins zuerst)" : "Schneeball (kleinste Schuld zuerst)"}</p>
+            <p className="mt-3 text-sm">{t("coach.fasterStrategy")}: {coach.debtSummary.preferredStrategy === "avalanche" ? t("coach.avalanche") : t("coach.snowball")}</p>
           </div>
         ) : (
           <div className="rounded-2xl border border-positive/20 bg-positive/5 p-5 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <PartyPopper className="h-4 w-4 text-positive" />
-              Schuldenkontext
+              {t("coach.debtContext")}
             </div>
-            <div className="mt-2 text-xl font-semibold">Du bist schuldenfrei!</div>
+            <div className="mt-2 text-xl font-semibold">{t("coach.debtFree")}</div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Keine offenen Schulden – nutze deinen Spielraum für deine Ziele.
+              {t("coach.debtFreeDescription")}
             </p>
             <Button asChild variant="outline" size="sm" className="mt-3">
               <Link to="/net-worth">
-                Nettovermögen ansehen
+                {t("coach.viewNetWorth")}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
@@ -158,10 +160,10 @@ export default function CoachPage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            🏆 Deine Meilensteine
+            {t("coach.yourMilestones")}
           </div>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/milestones">Alle ansehen<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
+            <Link to="/milestones">{t("coach.viewAll")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
           </Button>
         </div>
         {milestonesLoading ? <Skeleton className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} variant="compact" /> : null}
@@ -171,11 +173,11 @@ export default function CoachPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
-            Details & Charts
+            {t("coach.detailsAndCharts")}
           </div>
-          <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Alle Ausgaben ansehen<ArrowRight className="ml-1.5 h-4 w-4" /></Link></Button>
+          <Button asChild variant="ghost" size="sm"><Link to="/dashboard">{t("coach.viewAllExpenses")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link></Button>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">Das Dashboard bleibt dein Analyse-Support für Charts, Transaktionen und Filter.</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("coach.dashboardSupport")}</p>
       </section>
     </div>
   );
