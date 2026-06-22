@@ -1,4 +1,5 @@
 import type { Ausgabenklasse, Category, Rhythmus, Transaction } from '@/types';
+import type { CategorizationResult } from '@/services/transaction-service';
 
 /**
  * Reine, testbare Logik für das Transaktions-Detail-Modal. Bewusst frei von
@@ -76,6 +77,59 @@ export interface TransactionDetailDraft {
    * Entwürfe ohne dieses Feld unverändert funktionieren.
    */
   is_transfer?: boolean;
+}
+
+/**
+ * Sicherheitsstufe einer heuristischen Kategorisierung – die UI zeigt bewusst
+ * Stufen statt Prozentwerte (Confidence ist eine Heuristik, kein Modell).
+ */
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+export const CONFIDENCE_LEVEL_LABEL: Record<ConfidenceLevel, string> = {
+  high: 'Hohe Sicherheit',
+  medium: 'Mittlere Sicherheit',
+  low: 'Niedrige Sicherheit',
+};
+
+export function confidenceLevel(confidence: number): ConfidenceLevel {
+  if (confidence >= 0.85) return 'high';
+  if (confidence >= 0.7) return 'medium';
+  return 'low';
+}
+
+export interface DetailCategorySuggestion {
+  categoryId: string;
+  categoryLabel: string;
+  reasons: string[];
+  confidenceLevel: ConfidenceLevel;
+}
+
+/**
+ * Baut – falls sinnvoll – einen Kategorie-Vorschlag für das Detail-Modal.
+ *
+ * Bewusst eine reine Funktion (kein DOM/React), die ein bereits berechnetes
+ * `CategorizationResult` (aus `explainCategorization`) entgegennimmt. Vorschlag
+ * nur, wenn:
+ *  - ein Kandidat existiert,
+ *  - die Sicherheit < 0.85 ist (hohe Sicherheit bleibt stille Zuordnung) und
+ *  - die Buchung noch nicht kategorisiert ist (Nutzerwahl wird nie überschrieben).
+ */
+export function buildDetailCategorySuggestion(
+  tx: Pick<Transaction, 'category_id' | 'subcategory_id'>,
+  result: CategorizationResult,
+  categoriesById: Map<string, Category>,
+): DetailCategorySuggestion | null {
+  if (!result.categoryId) return null;
+  if (result.confidence >= 0.85) return null;
+  if (tx.category_id || tx.subcategory_id) return null;
+
+  const category = categoriesById.get(result.categoryId);
+  return {
+    categoryId: result.categoryId,
+    categoryLabel: category?.name ?? 'Vorgeschlagene Kategorie',
+    reasons: result.reasons,
+    confidenceLevel: confidenceLevel(result.confidence),
+  };
 }
 
 /** Initialisiert den bearbeitbaren Entwurf aus einer Transaktion. */

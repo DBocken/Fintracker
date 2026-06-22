@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { draftFromTransaction, diffTransactionDraft, currentCategoryValue } from '../transaction-details';
-import type { Transaction, Rhythmus } from '@/types';
+import {
+  draftFromTransaction,
+  diffTransactionDraft,
+  currentCategoryValue,
+  buildDetailCategorySuggestion,
+  confidenceLevel,
+} from '../transaction-details';
+import type { CategorizationResult } from '@/services/transaction-service';
+import type { Category, Transaction, Rhythmus } from '@/types';
 
 /**
  * Test suite for transaction editing functionality
@@ -165,6 +172,49 @@ describe('Transaction Editing - Draft Management', () => {
       const patch = diffTransactionDraft(mockTransaction, draft);
 
       expect('is_transfer' in patch).toBe(false);
+    });
+  });
+
+  describe('buildDetailCategorySuggestion', () => {
+    const categoriesById = new Map<string, Category>([
+      ['food', { id: 'food', name: 'Lebensmittel', filters: [] }],
+    ]);
+    const uncategorized: Transaction = { ...mockTransaction, category_id: null, subcategory_id: null };
+
+    const result = (over: Partial<CategorizationResult>): CategorizationResult => ({
+      categoryId: 'food',
+      confidence: 0.7,
+      reasons: ['Beschreibung enthält Filter „rewe“'],
+      source: 'category_filter',
+      ...over,
+    });
+
+    it('suggests for an uncategorized low-confidence match', () => {
+      const s = buildDetailCategorySuggestion(uncategorized, result({ confidence: 0.7 }), categoriesById);
+      expect(s).not.toBeNull();
+      expect(s?.categoryId).toBe('food');
+      expect(s?.categoryLabel).toBe('Lebensmittel');
+      expect(s?.confidenceLevel).toBe('medium');
+      expect(s?.reasons.length).toBeGreaterThan(0);
+    });
+
+    it('does not suggest at high confidence (>= 0.85)', () => {
+      expect(buildDetailCategorySuggestion(uncategorized, result({ confidence: 0.95, source: 'merchant_rule' }), categoriesById)).toBeNull();
+    });
+
+    it('does not suggest when there is no candidate', () => {
+      expect(buildDetailCategorySuggestion(uncategorized, result({ categoryId: null, confidence: 0, source: 'none' }), categoriesById)).toBeNull();
+    });
+
+    it('does not override an already categorized transaction', () => {
+      const categorized: Transaction = { ...mockTransaction, category_id: 'unt-1' };
+      expect(buildDetailCategorySuggestion(categorized, result({ confidence: 0.7 }), categoriesById)).toBeNull();
+    });
+
+    it('maps confidence to levels', () => {
+      expect(confidenceLevel(0.9)).toBe('high');
+      expect(confidenceLevel(0.7)).toBe('medium');
+      expect(confidenceLevel(0.55)).toBe('low');
     });
   });
 
