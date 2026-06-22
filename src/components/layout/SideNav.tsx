@@ -5,19 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import UserProfile from "@/components/UserProfile";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
+import { useI18n } from "@/i18n/useI18n";
 
 export default function SideNav() {
   // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
   useFeatureFlag("trading_beta");
+  const { t } = useI18n();
   const navGroups = getVisibleNavGroups();
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 py-5">
         <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-muted">
-          Finanz-Copilot
+          {t("shell.copilot")}
         </div>
         <div className="font-display text-base font-semibold text-sidebar-foreground">
-          Ausgabentracker
+          {t("shell.appName")}
         </div>
       </div>
 
@@ -26,7 +28,7 @@ export default function SideNav() {
           {navGroups.map((group) => (
             <AccordionItem key={group.id} value={group.id} className="border-none">
               <AccordionTrigger className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-muted hover:no-underline hover:text-sidebar-foreground">
-                {group.label}
+                {t(group.labelKey ?? "", group.label)}
               </AccordionTrigger>
               <AccordionContent className="pb-2">
                 <div className="space-y-0.5">
@@ -47,16 +49,16 @@ export default function SideNav() {
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         <span className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate">{t(item.labelKey ?? "", item.label)}</span>
                           {item.subtitle && (
                             <span className="truncate text-[11px] text-sidebar-muted">
-                              {item.subtitle}
+                              {t(item.subtitleKey ?? "", item.subtitle)}
                             </span>
                           )}
                         </span>
                         {item.requiredTier === "premium" && (
                           <Badge className="border-none bg-premium text-premium-foreground hover:bg-premium">
-                            Pro
+                            {t("shell.pro")}
                           </Badge>
                         )}
                       </NavLink>

@@ -22,6 +22,8 @@ import type { Tier, FeatureKey } from "@/lib/tier";
 
 export type NavItem = {
   label: string;
+  /** i18n-Key für das Label; `label` dient als Fallback (DE). */
+  labelKey?: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   /** Mindest-Tier für dieses Ziel (Issue #27). Ohne Angabe: anonym nutzbar. */
@@ -30,11 +32,15 @@ export type NavItem = {
   betaFlag?: FeatureFlag;
   /** Kurzer Teaser-Untertitel (nur im Nav-Sheet/Sidebar, nicht Bottom-Nav). */
   subtitle?: string;
+  /** i18n-Key für den Untertitel; `subtitle` dient als Fallback (DE). */
+  subtitleKey?: string;
 };
 
 export type NavGroup = {
   id: string;
   label: string;
+  /** i18n-Key für das Gruppen-Label; `label` dient als Fallback (DE). */
+  labelKey?: string;
   items: NavItem[];
 };
 
@@ -48,64 +54,76 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "coach",
     label: "Coach",
+    labelKey: "nav.groups.coach",
     items: [
-      { label: "Heute für dich", path: "/coach", icon: Sparkles },
-      { label: "Schulden", path: "/debts", icon: Banknote },
-      { label: "Nettovermögen", path: "/net-worth", icon: Coins },
+      { label: "Heute für dich", labelKey: "nav.items.coach", path: "/coach", icon: Sparkles },
+      { label: "Schulden", labelKey: "nav.items.debts", path: "/debts", icon: Banknote },
+      { label: "Nettovermögen", labelKey: "nav.items.netWorth", path: "/net-worth", icon: Coins },
       {
         label: "Liquidität",
+        labelKey: "nav.items.liquidity",
         path: "/liquidity",
         icon: Activity,
         subtitle: "Wann wird dein Geld knapp?",
+        subtitleKey: "nav.subtitles.liquidity",
       },
-      { label: "Meilensteine", path: "/milestones", icon: Trophy },
+      { label: "Meilensteine", labelKey: "nav.items.milestones", path: "/milestones", icon: Trophy },
     ],
   },
   {
     id: "analysen",
     label: "Analysen",
+    labelKey: "nav.groups.analysen",
     items: [
-      { label: "Dashboard", path: "/dashboard", icon: BarChart3 },
-      { label: "Buchungen", path: "/transactions", icon: Receipt },
+      { label: "Dashboard", labelKey: "nav.items.dashboard", path: "/dashboard", icon: BarChart3 },
+      { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
       {
         label: "Analyse",
+        labelKey: "nav.items.premium",
         path: "/premium",
         icon: Zap,
         requiredTier: "premium",
         subtitle: "Sankey, Heatmap & Smart Insights",
+        subtitleKey: "nav.subtitles.premium",
       },
       {
         label: "Simulation",
+        labelKey: "nav.items.simulation",
         path: "/simulation",
         icon: PlayCircle,
         requiredTier: "premium",
         subtitle: "Zukunft durchspielen",
+        subtitleKey: "nav.subtitles.simulation",
       },
       {
         label: "Trading",
+        labelKey: "nav.items.trading",
         path: "/trading",
         icon: LineChart,
         requiredTier: "premium",
         betaFlag: "trading_beta",
         subtitle: "Depot im Blick (Beta)",
+        subtitleKey: "nav.subtitles.trading",
       },
     ],
   },
   {
     id: "daten",
     label: "Daten & Konten",
+    labelKey: "nav.groups.daten",
     items: [
-      { label: "Konten", path: "/accounts", icon: CreditCard },
-      { label: "CSV Upload", path: "/csv", icon: Upload },
-      { label: "Daten Export", path: "/export", icon: Download },
-      { label: "Verträge", path: "/contracts", icon: Wallet },
+      { label: "Konten", labelKey: "nav.items.accounts", path: "/accounts", icon: CreditCard },
+      { label: "CSV Upload", labelKey: "nav.items.csv", path: "/csv", icon: Upload },
+      { label: "Daten Export", labelKey: "nav.items.export", path: "/export", icon: Download },
+      { label: "Verträge", labelKey: "nav.items.contracts", path: "/contracts", icon: Wallet },
     ],
   },
   {
     id: "verwaltung",
     label: "Verwaltung",
+    labelKey: "nav.groups.verwaltung",
     items: [
-      { label: "Einstellungen", path: "/settings", icon: Settings },
+      { label: "Einstellungen", labelKey: "nav.items.settings", path: "/settings", icon: Settings },
     ],
   },
 ];
@@ -140,18 +158,18 @@ export function getVisibleNavGroups(): NavGroup[] {
  * Command-Palette und Bottom-Nav aus derselben Quelle gespeist werden.
  * `shortLabel` ist die platzsparende Beschriftung für den Tab.
  */
-const BOTTOM_NAV_TARGETS: { path: string; shortLabel: string }[] = [
-  { path: "/coach", shortLabel: "Heute" },
-  { path: "/dashboard", shortLabel: "Übersicht" },
-  { path: "/transactions", shortLabel: "Buchungen" },
+const BOTTOM_NAV_TARGETS: { path: string; shortLabel: string; shortLabelKey: string }[] = [
+  { path: "/coach", shortLabel: "Heute", shortLabelKey: "nav.short.coach" },
+  { path: "/dashboard", shortLabel: "Übersicht", shortLabelKey: "nav.short.dashboard" },
+  { path: "/transactions", shortLabel: "Buchungen", shortLabelKey: "nav.short.transactions" },
 ];
 
-export type BottomNavItem = NavItem & { shortLabel: string };
+export type BottomNavItem = NavItem & { shortLabel: string; shortLabelKey: string };
 
 export function getBottomNavItems(): BottomNavItem[] {
   const allItems = NAV_GROUPS.flatMap((group) => group.items);
-  return BOTTOM_NAV_TARGETS.flatMap(({ path, shortLabel }) => {
+  return BOTTOM_NAV_TARGETS.flatMap(({ path, shortLabel, shortLabelKey }) => {
     const item = allItems.find((i) => i.path === path);
-    return item ? [{ ...item, shortLabel }] : [];
+    return item ? [{ ...item, shortLabel, shortLabelKey }] : [];
   });
 }

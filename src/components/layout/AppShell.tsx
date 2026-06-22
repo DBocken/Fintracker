@@ -12,21 +12,24 @@ import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
+import { useI18n } from "@/i18n/useI18n";
 
-function getTitle(pathname: string) {
+function getTitle(pathname: string, t: (key: string, fallback?: string) => string) {
   for (const g of NAV_GROUPS) {
     for (const item of g.items) {
       if (item.path === pathname) {
-        return item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label;
+        const label = t(item.labelKey ?? "", item.label);
+        return item.requiredTier === "premium" ? `${label} (${t("shell.premium")})` : label;
       }
     }
   }
-  return "Ausgabentracker";
+  return t("shell.appName");
 }
 
 export default function AppShell() {
   const location = useLocation();
-  const title = getTitle(location.pathname);
+  const { t } = useI18n();
+  const title = getTitle(location.pathname, t);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -52,7 +55,7 @@ export default function AppShell() {
                 onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
               >
                 <Search className="mr-2 h-4 w-4" />
-                Suchen
+                {t("shell.search")}
                 <span className="ml-2 text-xs text-muted-foreground">⌘K</span>
               </Button>
 
@@ -60,7 +63,7 @@ export default function AppShell() {
                 variant="ghost"
                 size="icon"
                 className="sm:hidden"
-                aria-label="Suchen"
+                aria-label={t("shell.search")}
                 onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
               >
                 <Search className="h-4 w-4" />
