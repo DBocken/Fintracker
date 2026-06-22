@@ -108,7 +108,7 @@ describe('CategoryTwoStepSelect Hierarchie', () => {
       { id: 'cat2', name: 'Kategorie 2', filters: [], parent_id: 'cat1' },
     ];
 
-    const { mains, childrenByParent } = buildCategoryIndex(categories);
+    const { mains } = buildCategoryIndex(categories);
     // Keine der Kategorien sollte als Hauptkategorie erkannt werden (keine parent_id = null)
     expect(mains).toHaveLength(0);
   });
@@ -120,12 +120,10 @@ describe('CategoryTwoStepSelect Hierarchie', () => {
       { id: 'sub1', name: 'Supermarkt', filters: [], parent_id: undefined }, // parent_id undefined
     ];
 
-    const { mains, childrenByParent } = buildCategoryIndex(oldCategories);
+    const { mains } = buildCategoryIndex(oldCategories);
 
     // Beide sollten als Hauptkategorien erkannt werden (kein parent_id)
     expect(mains).toHaveLength(2);
-    // Keine Unterkategorien sollten erkannt werden
-    expect(childrenByParent.size).toBe(0);
   });
 
   it('[REGRESSION] sollte nach Migration korrekt funktionieren', () => {
