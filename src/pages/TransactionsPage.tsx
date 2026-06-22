@@ -11,6 +11,7 @@ import { TransactionTable } from "@/components/dashboard/TransactionTable";
 import { TransactionListMobile } from "@/components/dashboard/TransactionListMobile";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import { useI18n } from "@/i18n/useI18n";
 import {
   getTransactions,
   getCategories,
@@ -31,6 +32,7 @@ import type { Transaction, Category, Account } from "@/types";
  * das Detail-Sheet (mit Sammeländerung + Undo über den geteilten Hook).
  */
 export default function TransactionsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   // Filter aus der URL (Übergabe vom Dashboard, Audit P1.3). Die Suche bleibt
@@ -69,7 +71,7 @@ export default function TransactionsPage() {
     mutationFn: (updates: { id: string; category_id: string }[]) => updateTransaction(updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Kategorie aktualisiert");
+      toast.success(t("dashboard.categoriesUpdated"));
     },
   });
 
@@ -77,7 +79,7 @@ export default function TransactionsPage() {
     mutationFn: (id: string) => deleteTransaction(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Transaktion gelöscht");
+      toast.success(t("dashboard.transactionDeleted"));
     },
   });
 
@@ -124,7 +126,7 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <PageHeader title="Buchungen" description="Alle Transaktionen – tippe eine Zeile an, um sie zu bearbeiten." />
+      <PageHeader title={t("transactions.title")} description={t("transactions.description")} />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -138,7 +140,7 @@ export default function TransactionsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buchungen durchsuchen…"
+              placeholder={t("transactions.search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
