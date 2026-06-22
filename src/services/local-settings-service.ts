@@ -40,12 +40,27 @@ export async function getLocalCategories(): Promise<Category[]> {
 
   const stored = await localEncryption.loadAndMaybeDecrypt<Category[]>(LOCAL_CATEGORIES_KEY);
   if (Array.isArray(stored) && stored.length > 0) {
+    // Migriere fehlende parent_id-Informationen: Kategorien, die vor der Hierarchie-Umstrukturierung
+    // (20260614120000_restructure_categories_hierarchy) gespeichert wurden, haben möglicherweise
+    // keine parent_id. Wir füllen diese aus den Default-Kategorien nach.
+    let migrated = stored.map((cat) => {
+      if (cat.parent_id !== undefined) return cat; // Bereits mit parent_id
+      const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
+      if (defaultCat && defaultCat.parent_id !== undefined) {
+        return { ...cat, parent_id: defaultCat.parent_id };
+      }
+      return cat;
+    });
+
     // Bestandsdaten nachrüsten: Kategorien, die vor Einführung der
     // Ausgabenklasse geseedet wurden, haben kein `ausgabenklasse`-Attribut.
     // Ohne dieses Feld zeigt das Sunburst nur "essenziell"/"unkategorisiert".
     // Wir füllen fehlende Werte aus den Default-Kategorien (per ID) nach.
-    const { categories: backfilled, changed } = backfillAusgabenklasse(stored);
-    if (changed) await writeLocalCategories(backfilled);
+    const { categories: backfilled, changed: backfillChanged } = backfillAusgabenklasse(migrated);
+    const parentIdMigrated = migrated !== stored;
+    if (parentIdMigrated || backfillChanged) {
+      await writeLocalCategories(backfilled);
+    }
     return backfilled;
   }
 
