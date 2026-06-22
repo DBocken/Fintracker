@@ -4,6 +4,7 @@ import {
   diffTransactionDraft,
   currentCategoryValue,
   buildDetailCategorySuggestion,
+  buildContractHint,
   confidenceLevel,
 } from '../transaction-details';
 import type { CategorizationResult } from '@/services/transaction-service';
@@ -215,6 +216,74 @@ describe('Transaction Editing - Draft Management', () => {
       expect(confidenceLevel(0.9)).toBe('high');
       expect(confidenceLevel(0.7)).toBe('medium');
       expect(confidenceLevel(0.55)).toBe('low');
+    });
+  });
+
+  describe('buildContractHint', () => {
+    const base = (over: Partial<Transaction>): Transaction => ({
+      ...mockTransaction,
+      ...over,
+    });
+
+    const recurring = (payee: string, amount: number): Transaction[] => [
+      base({ id: 'a', payee, amount, date: '2024-04-10' }),
+      base({ id: 'b', payee, amount, date: '2024-05-10' }),
+      base({ id: 'c', payee, amount, date: '2024-06-10' }),
+    ];
+
+    it('hints when the same payee recurs across multiple months', () => {
+      const txns = recurring('Netflix', -13.99);
+      const hint = buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns);
+
+      expect(hint).not.toBeNull();
+      expect(hint?.occurrences).toBe(3);
+      expect(hint?.reason).toContain('Netflix');
+    });
+
+    it('returns null when already marked as a contract', () => {
+      const txns = recurring('Netflix', -13.99);
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, true, txns)).toBeNull();
+    });
+
+    it('returns null with too few months', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-05-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('does not count multiple same-day bookings as recurring', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: 'c', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('tolerates small price changes but excludes large ones', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -14.99, date: '2024-05-10' }),
+        base({ id: 'c', payee: 'Netflix', amount: -50.0, date: '2024-06-10' }), // out of tolerance
+      ];
+      const hint = buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns);
+      expect(hint).toBeNull(); // only 2 in tolerance → below threshold
+    });
+
+    it('ignores transfers and opposite directions', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-05-10', is_transfer: true }),
+        base({ id: 'c', payee: 'Netflix', amount: 13.99, date: '2024-06-10' }), // refund, other direction
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('returns null for empty payee', () => {
+      const txns = recurring('', -13.99);
+      expect(buildContractHint({ payee: '', amount: -13.99 }, false, txns)).toBeNull();
     });
   });
 

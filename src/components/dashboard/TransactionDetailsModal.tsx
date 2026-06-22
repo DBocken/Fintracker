@@ -26,6 +26,7 @@ import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-
 import {
   RHYTHMUS_OPTIONS,
   ausgabenklasseLabel,
+  buildContractHint,
   buildDetailCategorySuggestion,
   CONFIDENCE_LEVEL_LABEL,
   currentCategoryValue,
@@ -121,6 +122,14 @@ export function TransactionDetailsModal({
     return buildDetailCategorySuggestion(draft, result, categoriesById);
   }, [transaction, categories, learnedRules, draft, categoriesById]);
 
+  // Leichter Hinweis „Wirkt wie ein Vertrag“ – nur wenn noch nicht als Vertrag
+  // markiert und das wiederkehrende Muster im Bestand erkennbar ist. Die
+  // Bestätigung läuft über die bestehende is_contract-Checkbox (kein Parallelpfad).
+  const contractHint = useMemo(() => {
+    if (!transaction || !draft) return null;
+    return buildContractHint(transaction, draft.is_contract, allTransactions);
+  }, [transaction, draft, allTransactions]);
+
   if (!transaction || !draft) return null;
 
   const similarIds = similar.exact.map((t) => t.id!).filter(Boolean);
@@ -155,6 +164,23 @@ export function TransactionDetailsModal({
           showSuccess('Händlerregel gespeichert'),
         );
       }
+    }
+
+    // Annahme des Vorschlags als reversiblen Audit-Eintrag festhalten. Die
+    // eigentliche Kategorie-Persistenz läuft über den normalen Speichern-Pfad
+    // (Draft → onSave); hier wird nur die Nutzerentscheidung dokumentiert.
+    if (transaction.id) {
+      void safeAudit({
+        actor: 'user',
+        entityType: 'transaction',
+        entityId: transaction.id,
+        action: rememberMerchant ? 'accept_category_suggestion_always' : 'accept_category_suggestion',
+        title: `Kategorie-Vorschlag übernommen: ${categorySuggestion.categoryLabel}`,
+        redactedBefore: redactForAudit(transaction, ['category_id', 'subcategory_id']),
+        redactedAfter: { category_id, subcategory_id },
+        reversible: true,
+        reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
+      });
     }
   };
 
@@ -345,6 +371,20 @@ export function TransactionDetailsModal({
       {/* Vertragsinformationen */}
       <div className="space-y-3 border-t pt-4">
         <h3 className="text-sm font-semibold text-muted-foreground">Vertrag</h3>
+
+        {/* Hinweis (kein Zwang): wirkt wie ein wiederkehrender Vertrag */}
+        {contractHint && (
+          <div className="flex items-start gap-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Wirkt wie ein Vertrag</p>
+              <p className="text-xs text-muted-foreground">
+                {contractHint.reason} Markiere die Buchung unten, falls das zutrifft.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
           <Checkbox
             id="is-contract"

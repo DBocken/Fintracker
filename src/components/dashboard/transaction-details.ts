@@ -132,6 +132,57 @@ export function buildDetailCategorySuggestion(
   };
 }
 
+export interface ContractHint {
+  reason: string;
+  occurrences: number;
+}
+
+function normalizePayeeForHint(payee: string | null | undefined): string {
+  return (payee || '').toLowerCase().trim();
+}
+
+/**
+ * Leichte, reine Heuristik: wirkt eine Buchung wie ein wiederkehrender Vertrag?
+ *
+ * Signal ist ein gleicher Empfänger mit ähnlichem Betrag (Toleranz 15 %, mind.
+ * 0,50 €) in **mehreren verschiedenen Monaten**. Es werden bewusst Monate statt
+ * roher Treffer gezählt, damit Mehrfachbuchungen am selben Tag nicht als
+ * „wiederkehrend“ durchgehen. Liefert `null`, wenn bereits als Vertrag markiert
+ * oder das Signal zu schwach ist (keine Bevormundung – nur ein Hinweis).
+ */
+export function buildContractHint(
+  tx: Pick<Transaction, 'payee' | 'amount'>,
+  isContractDraft: boolean,
+  allTransactions: Pick<Transaction, 'payee' | 'amount' | 'date' | 'is_transfer'>[],
+  minOccurrences = 3,
+): ContractHint | null {
+  if (isContractDraft) return null;
+
+  const refPayee = normalizePayeeForHint(tx.payee);
+  if (!refPayee) return null;
+
+  const refAmount = Math.abs(tx.amount);
+  if (refAmount === 0) return null;
+  const tolerance = Math.max(0.5, refAmount * 0.15);
+
+  const months = new Set<string>();
+  for (const t of allTransactions) {
+    if (t.is_transfer) continue;
+    if (normalizePayeeForHint(t.payee) !== refPayee) continue;
+    if (Math.sign(t.amount) !== Math.sign(tx.amount)) continue;
+    if (Math.abs(Math.abs(t.amount) - refAmount) > tolerance) continue;
+    if (t.date) months.add(t.date.slice(0, 7));
+  }
+
+  if (months.size < minOccurrences) return null;
+
+  const payeeLabel = tx.payee || 'diesem Empfänger';
+  return {
+    reason: `${months.size} ähnliche Buchungen bei „${payeeLabel}“ über mehrere Monate erkannt.`,
+    occurrences: months.size,
+  };
+}
+
 /** Initialisiert den bearbeitbaren Entwurf aus einer Transaktion. */
 export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
   return {
