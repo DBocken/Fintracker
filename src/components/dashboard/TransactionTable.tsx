@@ -7,6 +7,7 @@ import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp, MoreVertical, Pen
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Account, Category } from '../../types';
 import { getAccounts } from '../../services/account-service';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
@@ -48,6 +49,7 @@ export function TransactionTable({
   onSort,
   onOpenDetails,
 }: TransactionTableProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
@@ -81,7 +83,7 @@ export function TransactionTable({
         size="sm"
         onClick={() => onSort(columnKey)}
         className="-ml-3 h-8 gap-1 px-2 font-medium"
-        aria-label={`${label} sortieren${sortConfig?.key === columnKey ? `, aktuell ${sortConfig.direction === 'asc' ? 'aufsteigend' : 'absteigend'}` : ''}`}
+        aria-label={`${label} ${t("dashboard.sort")}${sortConfig?.key === columnKey ? `, aktuell ${sortConfig.direction === 'asc' ? t("dashboard.ascending") : t("dashboard.descending")}` : ''}`}
       >
         <span>{label}</span>
         {getSortIcon(columnKey)}
@@ -95,12 +97,12 @@ export function TransactionTable({
       <TableHeader>
         <TableRow>
           <TableHead></TableHead>
-          <SortHeader columnKey="date" label="Datum" />
-          <TableHead>Konto</TableHead>
-          <SortHeader columnKey="description" label="Beschreibung" />
-          <SortHeader columnKey="payee" label="Empfänger" />
-          <SortHeader columnKey="amount" label="Betrag" />
-          <TableHead>Kategorie</TableHead>
+          <SortHeader columnKey="date" label={t("dashboard.date")} />
+          <TableHead>{t("dashboard.account", "Konto")}</TableHead>
+          <SortHeader columnKey="description" label={t("dashboard.description")} />
+          <SortHeader columnKey="payee" label={t("dashboard.payee")} />
+          <SortHeader columnKey="amount" label={t("dashboard.amount")} />
+          <TableHead>{t("dashboard.category", "Kategorie")}</TableHead>
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
@@ -119,7 +121,7 @@ export function TransactionTable({
             >
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <Checkbox
-                  aria-label={`Transaktion ${transaction.description || transaction.payee || rowId} auswählen`}
+                  aria-label={`${t("dashboard.selectTransaction")} ${transaction.description || transaction.payee || rowId}`}
                   checked={selected.has(rowId)}
                   disabled={!rowId}
                   onCheckedChange={() => onSelect(rowId)}
@@ -152,14 +154,14 @@ export function TransactionTable({
                     className="flex items-center gap-1.5 text-left hover:underline"
                   >
                     {transaction.is_contract && (
-                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t("dashboard.contract")} />
                     )}
                     <span className="truncate">{transaction.description || '–'}</span>
                   </button>
                 ) : (
                   <span className="flex items-center gap-1.5">
                     {transaction.is_contract && (
-                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t("dashboard.contract")} />
                     )}
                     {transaction.description}
                   </span>
@@ -191,7 +193,7 @@ export function TransactionTable({
                       size="sm"
                       disabled={!rowId}
                       className="p-1 h-8 w-8"
-                      aria-label="Aktionen"
+                      aria-label={t("dashboard.actions")}
                     >
                       <MoreVertical className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -199,18 +201,18 @@ export function TransactionTable({
                   <DropdownMenuContent align="end">
                     {onOpenDetails && (
                       <DropdownMenuItem onClick={() => onOpenDetails(transaction)}>
-                        <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Details bearbeiten
+                        <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> {t("dashboard.editDetails")}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => onToggleVisibility(rowId)}>
                       {hidden ? (
-                        <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Einblenden</>
+                        <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> {t("dashboard.show")}</>
                       ) : (
-                        <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> Ausblenden</>
+                        <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> {t("dashboard.hide")}</>
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDelete(rowId)} className="text-warning focus:text-warning">
-                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                      <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> {t("dashboard.delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

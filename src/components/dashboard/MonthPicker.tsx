@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 
-function monthLabel(key: string): string {
-  if (!/^\d{4}-\d{2}$/.test(key)) return "Monat wählen…";
+function monthLabel(key: string, t: (key: string, fallback?: string) => string): string {
+  if (!/^\d{4}-\d{2}$/.test(key)) return t("dashboard.selectMonth", "Monat wählen…");
   return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(
     new Date(`${key}-01T00:00:00`),
   );
@@ -28,6 +29,7 @@ interface MonthPickerProps {
  * Monate ohne Buchungen sind deaktiviert.
  */
 export function MonthPicker({ value, onChange, availableMonths, label, id }: MonthPickerProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const available = useMemo(() => new Set(availableMonths), [availableMonths]);
 
@@ -59,14 +61,14 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
             className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            {monthLabel(value)}
+            {monthLabel(value, t)}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
-              aria-label="Vorheriges Jahr"
+              aria-label={t("dashboard.prevYear")}
               disabled={viewYear <= minYear}
               onClick={() => setViewYear((y) => y - 1)}
               className="rounded p-1 hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent"
@@ -76,7 +78,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
             <span className="text-sm font-semibold tabular-nums">{viewYear}</span>
             <button
               type="button"
-              aria-label="Nächstes Jahr"
+              aria-label={t("dashboard.nextYear")}
               disabled={viewYear >= maxYear}
               onClick={() => setViewYear((y) => y + 1)}
               className="rounded p-1 hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent"
