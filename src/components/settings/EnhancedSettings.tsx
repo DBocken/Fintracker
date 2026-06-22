@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette, Languages } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction, Category } from '../../types';
 import {
@@ -25,6 +25,7 @@ import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import { AppearanceSettings } from './AppearanceSettings';
+import { LanguageSettings } from './LanguageSettings';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -228,6 +229,15 @@ export function EnhancedSettings() {
             description="Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche."
           />
           <AppearanceSettings />
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<Languages className="h-5 w-5" />}
+            title="Sprache"
+            description="Wähle die Sprache der App (Deutsch/Englisch)."
+          />
+          <LanguageSettings />
         </section>
 
         <section className="mb-10">

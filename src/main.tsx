@@ -15,6 +15,7 @@ import AuthProvider from './components/providers/AuthProvider'
 import SkinProvider from './components/providers/SkinProvider'
 import GentleModeProvider from './components/providers/GentleModeProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { I18nProvider } from '@/i18n/I18nProvider'
 import '@/integrations/capacitor/setup'
 import { LocalEncryptionProvider } from '@/components/providers/LocalEncryptionProvider'
 import { migrateLocalStorageToIdb } from './services/idb-kv'
@@ -44,19 +45,21 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         prefers-reduced-motion für alle Framer-Motion-Animationen. */}
     <MotionConfig reducedMotion="user">
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <LocalEncryptionProvider>
-            <SkinProvider>
-              <GentleModeProvider>
-                <ToastProvider>
-                  <App />
-                </ToastProvider>
-              </GentleModeProvider>
-            </SkinProvider>
-          </LocalEncryptionProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+      <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <LocalEncryptionProvider>
+              <SkinProvider>
+                <GentleModeProvider>
+                  <ToastProvider>
+                    <App />
+                  </ToastProvider>
+                </GentleModeProvider>
+              </SkinProvider>
+            </LocalEncryptionProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </I18nProvider>
     </ErrorBoundary>
     </MotionConfig>
   </React.StrictMode>,

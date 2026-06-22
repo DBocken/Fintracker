@@ -64,3 +64,22 @@ describe("Tier-Override (localStorage)", () => {
     expect(hasFeatureAccess(deriveTier("authenticated", getTierOverride()), "premiumAnalytics")).toBe(true);
   });
 });
+
+describe("Tier-Recut: Free-Kernnutzen", () => {
+  it("gibt Free-Nutzern Zugriff auf Basis-Verträge und Basis-Forecast", () => {
+    expect(hasFeatureAccess("free", "basicContracts")).toBe(true);
+    expect(hasFeatureAccess("free", "basicForecast")).toBe(true);
+  });
+
+  it("hält Advanced-Verträge/-Forecast und Family/Belegzeilen hinter Premium", () => {
+    for (const feature of ["advancedContracts", "advancedForecast", "familyMode", "receiptLineItems"] as const) {
+      expect(hasFeatureAccess("free", feature)).toBe(false);
+      expect(hasFeatureAccess("premium", feature)).toBe(true);
+    }
+  });
+
+  it("lässt anonyme Nutzer nicht an Free-Kernnutzen (Login nötig)", () => {
+    expect(hasFeatureAccess("anonymous", "basicContracts")).toBe(false);
+    expect(hasFeatureAccess("anonymous", "basicForecast")).toBe(false);
+  });
+});
