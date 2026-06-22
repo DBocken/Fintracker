@@ -144,9 +144,11 @@ export function computeContracts(
     const cat = firstCatId ? categoryMap.get(firstCatId) : undefined;
     const explicit = !!cat?.attributes?.ist_vertrag;
     const decision = decisions?.get(fingerprint);
+    // Einzelne Buchungen, die der Nutzer manuell als Vertrag markiert hat.
+    const manuallyMarked = list.some((t) => t.is_contract === true);
 
     // Mindestanzahl nur verlangen, wenn weder explizit markiert noch entschieden.
-    if (list.length < 3 && !explicit && !decision) return;
+    if (list.length < 3 && !explicit && !decision && !manuallyMarked) return;
 
     const sorted = [...list].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
@@ -171,15 +173,18 @@ export function computeContracts(
     const avgDays = diffs.length ? Math.round(diffs.reduce((s, v) => s + v, 0) / diffs.length) : 0;
     let cycle = getCycleFromDays(avgDays);
 
-    // Zyklus-Override: Entscheidung > Kategorie-Attribut > erkannt.
+    // Zyklus-Override: Entscheidung > Buchungs-Zyklus (manuell) > Kategorie-Attribut > erkannt.
+    const txCycle = sorted.find((t) => t.is_contract && t.contract_cycle)?.contract_cycle;
     if (decision?.cycle_override) {
       cycle = rhythmusToCycle(decision.cycle_override, cycle);
+    } else if (txCycle) {
+      cycle = rhythmusToCycle(txCycle, cycle);
     } else if (explicit && cat?.attributes?.rhythmus) {
       cycle = rhythmusToCycle(cat.attributes.rhythmus, cycle);
     }
 
     const isLikelyContract = cycle !== "Unbekannt" && stddev <= Math.max(1, median * 0.03);
-    if (!isLikelyContract && !explicit && !decision) return;
+    if (!isLikelyContract && !explicit && !decision && !manuallyMarked) return;
 
     const last = sorted[sorted.length - 1];
     const first = sorted[0];

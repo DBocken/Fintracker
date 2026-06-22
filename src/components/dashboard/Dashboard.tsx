@@ -125,7 +125,7 @@ export function Dashboard() {
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const mutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
+  const mutation = useMutation<Transaction[], Error, { id: string; category_id: string | null; subcategory_id?: string | null }[]>({
     mutationFn: updateTransaction,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -183,9 +183,9 @@ export function Dashboard() {
     });
   }, []);
 
-  const handleUpdateCategory = useCallback((transactionId: string, categoryId: string) => {
+  const handleUpdateCategory = useCallback((transactionId: string, categoryId: string | null, subcategoryId: string | null) => {
     if (!transactionId) return;
-    mutation.mutate([{ id: transactionId, category_id: categoryId }]);
+    mutation.mutate([{ id: transactionId, category_id: categoryId, subcategory_id: subcategoryId }]);
   }, [mutation]);
 
   const handleDelete = useCallback((transactionId: string) => {

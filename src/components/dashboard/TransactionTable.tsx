@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +12,7 @@ import type { Transaction, Account, Category } from '../../types';
 import { getAccounts } from '../../services/account-service';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { resolveCategorySelection } from '@/components/dashboard/transaction-details';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -20,7 +22,7 @@ interface TransactionTableProps {
   sortConfig: { key: keyof Transaction; direction: 'asc' | 'desc' } | null;
   onSelect: (id: string) => void;
   onToggleVisibility: (id: string) => void;
-  onUpdateCategory: (id: string, categoryId: string) => void;
+  onUpdateCategory: (id: string, categoryId: string | null, subcategoryId: string | null) => void;
   onDelete: (id: string) => void;
   onSort: (key: keyof Transaction) => void;
   onOpenDetails?: (transaction: Transaction) => void;
@@ -53,6 +55,7 @@ export function TransactionTable({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
     if (!accountId) return undefined;
@@ -173,12 +176,13 @@ export function TransactionTable({
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <CategoryCellEditor
                   categories={categories}
-                  value={transaction.category_id || ''}
+                  value={transaction.subcategory_id || transaction.category_id || ''}
                   disabled={!rowId}
                   className="w-40"
                   onChange={(catId) => {
                     if (!rowId) return;
-                    onUpdateCategory(rowId, catId);
+                    const { category_id, subcategory_id } = resolveCategorySelection(categoriesById, catId);
+                    onUpdateCategory(rowId, category_id, subcategory_id);
                   }}
                 />
               </TableCell>

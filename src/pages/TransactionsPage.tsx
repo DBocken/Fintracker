@@ -66,7 +66,7 @@ export default function TransactionsPage() {
   );
 
   const categoryMutation = useMutation({
-    mutationFn: (updates: { id: string; category_id: string }[]) => updateTransaction(updates),
+    mutationFn: (updates: { id: string; category_id: string | null; subcategory_id?: string | null }[]) => updateTransaction(updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       toast.success("Kategorie aktualisiert");
@@ -177,7 +177,7 @@ export default function TransactionsPage() {
               sortConfig={sortConfig}
               onSelect={() => {}}
               onToggleVisibility={toggleHidden}
-              onUpdateCategory={(id, categoryId) => categoryMutation.mutate([{ id, category_id: categoryId }])}
+              onUpdateCategory={(id, categoryId, subcategoryId) => categoryMutation.mutate([{ id, category_id: categoryId, subcategory_id: subcategoryId }])}
               onDelete={(id) => deleteMut.mutate(id)}
               onSort={handleSort}
               onOpenDetails={openDetails}
