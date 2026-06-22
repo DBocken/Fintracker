@@ -19,17 +19,30 @@ function buildCategoryIndex(categories: Category[]) {
   const byId = new Map<string, Category>();
   const childrenByParent = new Map<string, Category[]>();
   const mains: Category[] = [];
-  for (const c of categories) byId.set(c.id, c);
+
   for (const c of categories) {
-    if (!c.parent_id) mains.push(c);
-    else {
-      const arr = childrenByParent.get(c.parent_id) || [];
-      arr.push(c);
-      childrenByParent.set(c.parent_id, arr);
+    byId.set(c.id, c);
+  }
+
+  for (const c of categories) {
+    // Kategorie ohne parent_id oder mit null parent_id ist eine Hauptkategorie
+    if (!c.parent_id) {
+      mains.push(c);
+    } else {
+      // Nur hinzufügen, wenn die Elternkategorie existiert
+      if (byId.has(c.parent_id)) {
+        const arr = childrenByParent.get(c.parent_id) || [];
+        arr.push(c);
+        childrenByParent.set(c.parent_id, arr);
+      }
     }
   }
+
   mains.sort((a, b) => a.name.localeCompare(b.name));
-  for (const arr of childrenByParent.values()) arr.sort((a, b) => a.name.localeCompare(b.name));
+  for (const arr of childrenByParent.values()) {
+    arr.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   return { byId, childrenByParent, mains };
 }
 
@@ -49,6 +62,33 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
   const { byId, childrenByParent, mains } = useMemo(() => buildCategoryIndex(categories), [categories]);
   const [mainId, setMainId] = useState('');
   const [subId, setSubId] = useState('');
+
+  // Diagnose: Kategorie-Hierarchie im LocalStorage speichern für Debug
+  useEffect(() => {
+    if (categories.length > 0) {
+      const hierarchyInfo = {
+        timestamp: new Date().toISOString(),
+        totalCategories: categories.length,
+        mainCategories: mains.length,
+        subcategoryCount: Array.from(childrenByParent.values()).reduce((sum, arr) => sum + arr.length, 0),
+        categoriesByParent: Object.fromEntries(childrenByParent),
+      };
+      (window as unknown as Record<string, unknown>).__DEBUG_CATEGORY_HIERARCHY__ = hierarchyInfo;
+
+      // Bei fehlender Hierarchie Warnung
+      if (mains.length === 0 && categories.length > 0) {
+        console.warn('[CategoryTwoStepSelect] PROBLEM: Keine Hauptkategorien gefunden!', {
+          categories: categories.slice(0, 3),
+          allCategories: categories.map(c => ({ id: c.id, name: c.name, parent_id: c.parent_id })),
+        });
+      }
+      if (childrenByParent.size === 0 && categories.length > 0) {
+        console.warn('[CategoryTwoStepSelect] INFO: Keine Unterkategorien gefunden', {
+          hint: 'Überprüfe ob Kategorien parent_id haben',
+        });
+      }
+    }
+  }, [categories, mains, childrenByParent]);
 
   const children = useMemo(() => (mainId ? childrenByParent.get(mainId) || [] : []), [childrenByParent, mainId]);
 
