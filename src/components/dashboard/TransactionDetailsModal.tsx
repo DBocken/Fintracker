@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, SplitSquareHorizontal } from 'lucide-react';
+import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X } from 'lucide-react';
+import { safeAudit, redactForAudit } from '@/services/audit-log-service';
+import { explainCategorization } from '@/services/transaction-service';
+import { getMerchantRules, upsertMerchantRule } from '@/services/merchant-rules-service';
+import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { showSuccess } from '@/utils/toast';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
@@ -20,6 +26,9 @@ import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-
 import {
   RHYTHMUS_OPTIONS,
   ausgabenklasseLabel,
+  buildContractHint,
+  buildDetailCategorySuggestion,
+  CONFIDENCE_LEVEL_LABEL,
   currentCategoryValue,
   diffTransactionDraft,
   draftFromTransaction,
@@ -80,19 +89,46 @@ export function TransactionDetailsModal({
 
   // Bearbeitbarer Entwurf; wird bei jedem Öffnen aus der Transaktion neu gesetzt.
   const [draft, setDraft] = useState<TransactionDetailDraft | null>(null);
+  // Pro Sitzung abgelehnte Kategorie-Vorschläge (nicht erneut zeigen).
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
   useEffect(() => {
     if (transaction && open) {
       setDraft(draftFromTransaction(transaction));
       setApplyToSimilar(true);
+      setSuggestionDismissed(false);
     }
   }, [transaction, open]);
+
+  // Gelernte Händlerregeln für erklärbare Kategorie-Vorschläge.
+  const { data: learnedRules = [] } = useQuery({
+    queryKey: ['merchant-rules'],
+    queryFn: getMerchantRules,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Gleichartige Buchungen (Familie) für die Sammeländerung bestimmen.
   const similar = useMemo(() => {
     if (!transaction) return { exact: [], probable: [], reason: 'merchant' as const };
     return findSimilarTransactions(transaction, allTransactions);
   }, [transaction, allTransactions]);
+
+  // Erklärbarer Kategorie-Vorschlag (nur bei unsicherer, unkategorisierter Buchung).
+  // Vor dem Early-Return, damit die Hook-Reihenfolge stabil bleibt.
+  const categorySuggestion = useMemo(() => {
+    if (!transaction || !draft) return null;
+    const result = explainCategorization(transaction, categories, learnedRules);
+    return buildDetailCategorySuggestion(draft, result, categoriesById);
+  }, [transaction, categories, learnedRules, draft, categoriesById]);
+
+  // Leichter Hinweis „Wirkt wie ein Vertrag“ – nur wenn noch nicht als Vertrag
+  // markiert und das wiederkehrende Muster im Bestand erkennbar ist. Die
+  // Bestätigung läuft über die bestehende is_contract-Checkbox (kein Parallelpfad).
+  const contractHint = useMemo(() => {
+    if (!transaction || !draft) return null;
+    return buildContractHint(transaction, draft.is_contract, allTransactions);
+  }, [transaction, draft, allTransactions]);
 
   if (!transaction || !draft) return null;
 
@@ -111,9 +147,62 @@ export function TransactionDetailsModal({
     setDraft((d) => (d ? { ...d, category_id, subcategory_id } : d));
   };
 
+  // Vorschlag übernehmen: setzt die Kategorie im Entwurf (persistiert beim Speichern).
+  const acceptSuggestion = (rememberMerchant: boolean) => {
+    if (!categorySuggestion) return;
+    const { category_id, subcategory_id } = resolveCategorySelection(
+      categoriesById,
+      categorySuggestion.categoryId,
+    );
+    setDraft((d) => (d ? { ...d, category_id, subcategory_id } : d));
+
+    if (rememberMerchant) {
+      // Fachliche Mutation zuerst (schreibt selbst Audit), dann UI-Feedback.
+      const pattern = normalizeMerchantName(transaction.payee);
+      if (pattern) {
+        void upsertMerchantRule(pattern, categorySuggestion.categoryId).then(() =>
+          showSuccess('Händlerregel gespeichert'),
+        );
+      }
+    }
+
+    // Annahme des Vorschlags als reversiblen Audit-Eintrag festhalten. Die
+    // eigentliche Kategorie-Persistenz läuft über den normalen Speichern-Pfad
+    // (Draft → onSave); hier wird nur die Nutzerentscheidung dokumentiert.
+    if (transaction.id) {
+      void safeAudit({
+        actor: 'user',
+        entityType: 'transaction',
+        entityId: transaction.id,
+        action: rememberMerchant ? 'accept_category_suggestion_always' : 'accept_category_suggestion',
+        title: `Kategorie-Vorschlag übernommen: ${categorySuggestion.categoryLabel}`,
+        redactedBefore: redactForAudit(transaction, ['category_id', 'subcategory_id']),
+        redactedAfter: { category_id, subcategory_id },
+        reversible: true,
+        reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
+      });
+    }
+  };
+
   const handleSave = () => {
     const patch = diffTransactionDraft(transaction, draft);
     if (Object.keys(patch).length > 0 && transaction.id) {
+      // Manuelle Transfer-Markierung als reversiblen Audit-Eintrag festhalten.
+      if ('is_transfer' in patch) {
+        void safeAudit({
+          actor: 'user',
+          entityType: 'transaction',
+          entityId: transaction.id,
+          action: patch.is_transfer ? 'mark_transfer' : 'unmark_transfer',
+          title: patch.is_transfer
+            ? 'Als internen Übertrag markiert'
+            : 'Transfer-Markierung entfernt',
+          redactedBefore: redactForAudit(transaction, ['is_transfer', 'transfer_pair_id']),
+          redactedAfter: { is_transfer: patch.is_transfer ?? false },
+          reversible: true,
+          reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
+        });
+      }
       onSave(transaction.id, patch, {
         applyToSimilar: applyToSimilar && similarCount > 0,
         similarIds,
@@ -168,6 +257,53 @@ export function TransactionDetailsModal({
       {/* Kategorisierung */}
       <div className="space-y-2 border-t pt-4">
         <h3 className="text-sm font-semibold text-muted-foreground">Kategorisierung</h3>
+
+        {/* Erklärbarer Vorschlag – nur bei unsicherer, unkategorisierter Buchung */}
+        {categorySuggestion && !suggestionDismissed && (
+          <div className="space-y-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  Vorschlag: {categorySuggestion.categoryLabel}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {CONFIDENCE_LEVEL_LABEL[categorySuggestion.confidenceLevel]}
+                  {categorySuggestion.reasons[0] ? ` · ${categorySuggestion.reasons[0]}` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={isLoading}
+                onClick={() => acceptSuggestion(false)}
+              >
+                <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Übernehmen
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isLoading}
+                onClick={() => acceptSuggestion(true)}
+              >
+                Immer für „{transaction.payee || 'diesen Händler'}“
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={isLoading}
+                onClick={() => setSuggestionDismissed(true)}
+              >
+                <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs text-muted-foreground">Kategorie</Label>
           <CategoryTwoStepSelect
@@ -235,6 +371,20 @@ export function TransactionDetailsModal({
       {/* Vertragsinformationen */}
       <div className="space-y-3 border-t pt-4">
         <h3 className="text-sm font-semibold text-muted-foreground">Vertrag</h3>
+
+        {/* Hinweis (kein Zwang): wirkt wie ein wiederkehrender Vertrag */}
+        {contractHint && (
+          <div className="flex items-start gap-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Wirkt wie ein Vertrag</p>
+              <p className="text-xs text-muted-foreground">
+                {contractHint.reason} Markiere die Buchung unten, falls das zutrifft.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
           <Checkbox
             id="is-contract"
@@ -274,6 +424,33 @@ export function TransactionDetailsModal({
             </Select>
           </div>
         )}
+      </div>
+
+      {/* Interner Übertrag */}
+      <div className="space-y-2 border-t pt-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Interner Übertrag</h3>
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="is-transfer"
+            checked={draft.is_transfer ?? false}
+            disabled={isLoading}
+            onCheckedChange={(checked) =>
+              setDraft((d) => (d ? { ...d, is_transfer: checked === true } : d))
+            }
+          />
+          <div className="flex-1">
+            <Label htmlFor="is-transfer" className="flex cursor-pointer items-center gap-1.5 text-sm font-normal">
+              <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+              Als internen Übertrag zwischen eigenen Konten markieren
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Überträge werden aus Ausgaben-/Einnahmen-Analysen ausgeschlossen.
+              {transaction.transfer_pair_id
+                ? ' Beim Entfernen wird auch die verknüpfte Gegenbuchung gelöst.'
+                : ''}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Aktionen: Sichtbarkeit & Löschen */}

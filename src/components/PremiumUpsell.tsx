@@ -138,6 +138,61 @@ const FEATURE_COPY: Record<
       "Deine Auswertungen werden dadurch deutlich präziser.",
     ],
   },
+  // Free-Kernnutzen: erscheint nur, falls einmal anonym (Login-Story).
+  basicContracts: {
+    title: "Verträge & Fixkosten erkennen",
+    eyebrow: "Anmeldung nötig",
+    benefits: [
+      "Wiederkehrende Kosten und Einnahmen werden automatisch erkannt.",
+      "Status setzen, ablehnen oder beenden – du behältst die Kontrolle.",
+      "Kostenlos mit Login, deine Daten bleiben lokal.",
+    ],
+  },
+  basicForecast: {
+    title: "Monatsprognose",
+    eyebrow: "Anmeldung nötig",
+    benefits: [
+      "Sieh, wie sich dein Kontostand über den Monat entwickelt.",
+      "Erkenne früh, wann es eng werden könnte.",
+      "Kostenlos mit Login, deine Daten bleiben lokal.",
+    ],
+  },
+  advancedContracts: {
+    title: "Vertrags-Tiefenanalyse",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Historische Entwicklung von Verträgen und Einnahmen über die Zeit.",
+      "Optimierungs- und Kündigungshinweise für teure Verträge.",
+      "Tiefe Insights statt nur einer Liste.",
+    ],
+  },
+  advancedForecast: {
+    title: "Erweiterte Prognose",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Szenarien und Was-wäre-wenn-Analysen durchspielen.",
+      "Monte-Carlo-Bandbreiten statt nur einer Linie.",
+      "Plane größere Entscheidungen mit Sicherheitspuffer.",
+    ],
+  },
+  familyMode: {
+    title: "Haushalts- & Paarmodus",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Gemeinsame Ausgaben fair aufteilen und ausgleichen.",
+      "Behalte private und geteilte Kosten getrennt im Blick.",
+      "Alles lokal – ohne deine Daten zu teilen.",
+    ],
+  },
+  receiptLineItems: {
+    title: "Belege bis auf Produktebene",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Einzelne Produkte vom Kassenbon erfassen.",
+      "Auswertungen bis auf Artikelebene.",
+      "Konservativ erkannt – im Zweifel lieber nichts Falsches.",
+    ],
+  },
 };
 
 interface PremiumUpsellProps {

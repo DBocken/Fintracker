@@ -18,9 +18,23 @@ export const LOCAL_FINANCE_KEYS = {
   categoryPriorities: 'ausgabentracker_category_priorities_v1',
   milestones: 'ausgabentracker_milestones_v1',
   analyticsConsent: 'ausgabentracker_analytics_consent_v1',
+  automationSuggestions: 'ausgabentracker_automation_suggestions_v1',
+  auditLog: 'ausgabentracker_audit_log_v1',
+  households: 'ausgabentracker_households_v1',
+  householdMembers: 'ausgabentracker_household_members_v1',
+  sharedExpenseSplits: 'ausgabentracker_shared_expense_splits_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
+
+/**
+ * Schema-Version des lokalen Finanzspeichers. Wird erhöht, sobald bestehende
+ * Datenstrukturen migrationsbedürftig erweitert werden. Reine Neuanlage weiterer
+ * Collections braucht keine Migration. Der Wert wird lokal persistiert, damit ein
+ * späterer Migrationshook erkennt, ob er laufen muss. Alles bleibt strikt lokal.
+ */
+export const LOCAL_STORE_SCHEMA_VERSION = 2;
+export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_version';
 
 function assertClientStorage() {
   if (typeof window === 'undefined') {

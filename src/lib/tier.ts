@@ -5,21 +5,48 @@
  * `if (user)`/`if (premium)` checks.
  */
 
+// Tier-Reihenfolge ist additiv gedacht: ein späteres "pro" (rank 3) kann ohne Umbau
+// ergänzt werden – Tier-Union, TIER_RANK und FEATURES bleiben die einzige Quelle.
 export type Tier = "anonymous" | "free" | "premium";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
-export type FeatureKey = "bankSync" | "premiumAnalytics" | "simulation" | "trading" | "splitTransactions";
+export type FeatureKey =
+  | "bankSync"
+  | "basicContracts"
+  | "advancedContracts"
+  | "basicForecast"
+  | "advancedForecast"
+  | "premiumAnalytics"
+  | "simulation"
+  | "trading"
+  | "splitTransactions"
+  | "familyMode"
+  | "receiptLineItems";
 
-/** Maps each gated feature to the minimum tier required to use it. */
+/**
+ * Maps each gated feature to the minimum tier required to use it.
+ *
+ * Produktentscheidung (Review-Learning): Kernnutzen bleibt frei – einfache Verträge
+ * und Basis-Forecast in `free`, damit Free nicht „nutzlos“ wirkt. Tiefe Insights,
+ * Simulation, Family, Belegzeilen und Advanced-Forecast bleiben Premium.
+ */
 export const FEATURES: Record<FeatureKey, Tier> = {
   bankSync: "free",
+  basicContracts: "free",
+  basicForecast: "free",
+  advancedContracts: "premium",
+  advancedForecast: "premium",
   premiumAnalytics: "premium",
   simulation: "premium",
   trading: "premium",
   splitTransactions: "premium",
+  familyMode: "premium",
+  receiptLineItems: "premium",
 };
 
+// Rank ist bewusst lückenlos und aufsteigend, damit ein künftiges "pro": 3 nur hier
+// und in der Tier-Union ergänzt werden muss.
 const TIER_RANK: Record<Tier, number> = {
   anonymous: 0,
   free: 1,

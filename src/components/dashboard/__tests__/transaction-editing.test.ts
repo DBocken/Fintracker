@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { draftFromTransaction, diffTransactionDraft, currentCategoryValue } from '../transaction-details';
-import type { Transaction, Rhythmus } from '@/types';
+import {
+  draftFromTransaction,
+  diffTransactionDraft,
+  currentCategoryValue,
+  buildDetailCategorySuggestion,
+  buildContractHint,
+  confidenceLevel,
+} from '../transaction-details';
+import type { CategorizationResult } from '@/services/transaction-service';
+import type { Category, Transaction, Rhythmus } from '@/types';
 
 /**
  * Test suite for transaction editing functionality
@@ -131,6 +139,151 @@ describe('Transaction Editing - Draft Management', () => {
       expect(Object.keys(patch).includes('subcategory_id')).toBe(true);
       // These shouldn't change
       expect(Object.keys(patch).includes('is_contract')).toBe(false);
+    });
+
+    it('marks a transaction as internal transfer', () => {
+      const draft = { ...draftFromTransaction(mockTransaction), is_transfer: true };
+      const patch = diffTransactionDraft(mockTransaction, draft);
+
+      expect(patch.is_transfer).toBe(true);
+      // Marking on without a pair must not touch transfer_pair_id
+      expect('transfer_pair_id' in patch).toBe(false);
+    });
+
+    it('clears the pair when transfer marking is removed', () => {
+      const transferTx: Transaction = {
+        ...mockTransaction,
+        is_transfer: true,
+        transfer_pair_id: 'tx-2',
+      };
+      const draft = { ...draftFromTransaction(transferTx), is_transfer: false };
+      const patch = diffTransactionDraft(transferTx, draft);
+
+      expect(patch.is_transfer).toBe(false);
+      expect(patch.transfer_pair_id).toBe(null);
+    });
+
+    it('ignores transfer state when the draft omits the field', () => {
+      const draft = {
+        category_id: 'unt-1',
+        subcategory_id: 'stream-1',
+        is_contract: false,
+        contract_cycle: null,
+      };
+      const patch = diffTransactionDraft(mockTransaction, draft);
+
+      expect('is_transfer' in patch).toBe(false);
+    });
+  });
+
+  describe('buildDetailCategorySuggestion', () => {
+    const categoriesById = new Map<string, Category>([
+      ['food', { id: 'food', name: 'Lebensmittel', filters: [] }],
+    ]);
+    const uncategorized: Transaction = { ...mockTransaction, category_id: null, subcategory_id: null };
+
+    const result = (over: Partial<CategorizationResult>): CategorizationResult => ({
+      categoryId: 'food',
+      confidence: 0.7,
+      reasons: ['Beschreibung enthält Filter „rewe“'],
+      source: 'category_filter',
+      ...over,
+    });
+
+    it('suggests for an uncategorized low-confidence match', () => {
+      const s = buildDetailCategorySuggestion(uncategorized, result({ confidence: 0.7 }), categoriesById);
+      expect(s).not.toBeNull();
+      expect(s?.categoryId).toBe('food');
+      expect(s?.categoryLabel).toBe('Lebensmittel');
+      expect(s?.confidenceLevel).toBe('medium');
+      expect(s?.reasons.length).toBeGreaterThan(0);
+    });
+
+    it('does not suggest at high confidence (>= 0.85)', () => {
+      expect(buildDetailCategorySuggestion(uncategorized, result({ confidence: 0.95, source: 'merchant_rule' }), categoriesById)).toBeNull();
+    });
+
+    it('does not suggest when there is no candidate', () => {
+      expect(buildDetailCategorySuggestion(uncategorized, result({ categoryId: null, confidence: 0, source: 'none' }), categoriesById)).toBeNull();
+    });
+
+    it('does not override an already categorized transaction', () => {
+      const categorized: Transaction = { ...mockTransaction, category_id: 'unt-1' };
+      expect(buildDetailCategorySuggestion(categorized, result({ confidence: 0.7 }), categoriesById)).toBeNull();
+    });
+
+    it('maps confidence to levels', () => {
+      expect(confidenceLevel(0.9)).toBe('high');
+      expect(confidenceLevel(0.7)).toBe('medium');
+      expect(confidenceLevel(0.55)).toBe('low');
+    });
+  });
+
+  describe('buildContractHint', () => {
+    const base = (over: Partial<Transaction>): Transaction => ({
+      ...mockTransaction,
+      ...over,
+    });
+
+    const recurring = (payee: string, amount: number): Transaction[] => [
+      base({ id: 'a', payee, amount, date: '2024-04-10' }),
+      base({ id: 'b', payee, amount, date: '2024-05-10' }),
+      base({ id: 'c', payee, amount, date: '2024-06-10' }),
+    ];
+
+    it('hints when the same payee recurs across multiple months', () => {
+      const txns = recurring('Netflix', -13.99);
+      const hint = buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns);
+
+      expect(hint).not.toBeNull();
+      expect(hint?.occurrences).toBe(3);
+      expect(hint?.reason).toContain('Netflix');
+    });
+
+    it('returns null when already marked as a contract', () => {
+      const txns = recurring('Netflix', -13.99);
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, true, txns)).toBeNull();
+    });
+
+    it('returns null with too few months', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-05-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('does not count multiple same-day bookings as recurring', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: 'c', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('tolerates small price changes but excludes large ones', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -14.99, date: '2024-05-10' }),
+        base({ id: 'c', payee: 'Netflix', amount: -50.0, date: '2024-06-10' }), // out of tolerance
+      ];
+      const hint = buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns);
+      expect(hint).toBeNull(); // only 2 in tolerance → below threshold
+    });
+
+    it('ignores transfers and opposite directions', () => {
+      const txns = [
+        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-05-10', is_transfer: true }),
+        base({ id: 'c', payee: 'Netflix', amount: 13.99, date: '2024-06-10' }), // refund, other direction
+      ];
+      expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
+    });
+
+    it('returns null for empty payee', () => {
+      const txns = recurring('', -13.99);
+      expect(buildContractHint({ payee: '', amount: -13.99 }, false, txns)).toBeNull();
     });
   });
 

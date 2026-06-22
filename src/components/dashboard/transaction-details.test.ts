@@ -83,12 +83,13 @@ describe('draftFromTransaction', () => {
       subcategory_id: 'strom',
       is_contract: true,
       contract_cycle: 'monthly',
+      is_transfer: false,
     });
   });
 
   it('setzt sinnvolle Defaults für fehlende Felder', () => {
     const d = draftFromTransaction(tx({}));
-    expect(d).toEqual({ category_id: null, subcategory_id: null, is_contract: false, contract_cycle: null });
+    expect(d).toEqual({ category_id: null, subcategory_id: null, is_contract: false, contract_cycle: null, is_transfer: false });
   });
 });
 

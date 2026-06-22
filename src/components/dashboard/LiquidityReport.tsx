@@ -34,6 +34,7 @@ import MonteCarloPanel, {
   type MonteCarloSettings,
 } from '@/components/dashboard/MonteCarloPanel';
 import { FeatureGate } from '@/components/FeatureGate';
+import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import SimulationWizard from '@/components/dashboard/SimulationWizard';
 import { applyScenario, buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
@@ -201,6 +202,9 @@ export default function LiquidityReport() {
 
   return (
     <div className="space-y-6">
+      {/* Hinweis auf unvollständige Datenbasis (ändert die Berechnung nicht) */}
+      <DataQualityNotice />
+
       {/* Steuerung */}
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm">

@@ -54,3 +54,51 @@ describe("parseReceipt", () => {
     expect(parsed.merchant?.value).not.toContain("\u0000");
   });
 });
+
+describe("parseReceipt line items", () => {
+  it("extracts product lines with quantity and unit price", () => {
+    const text = [
+      "REWE",
+      "Apfel 2 x 1,99 3,98",
+      "Brot 2,49",
+      "SUMME EUR 6,47",
+      "Bar 10,00",
+      "Rückgeld 3,53",
+    ].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.lineItems).toHaveLength(2);
+
+    const [apfel, brot] = parsed.lineItems!;
+    expect(apfel.name).toBe("Apfel");
+    expect(apfel.quantity).toBe(2);
+    expect(apfel.unitPrice).toBeCloseTo(1.99);
+    expect(apfel.total).toBeCloseTo(3.98);
+    expect(apfel.confidence).toBeGreaterThanOrEqual(0.75);
+
+    expect(brot.name).toBe("Brot");
+    expect(brot.quantity).toBeUndefined();
+    expect(brot.total).toBeCloseTo(2.49);
+  });
+
+  it("excludes summary, tax and payment lines", () => {
+    const text = [
+      "Bäckerei Schmidt",
+      "Brötchen 0,45",
+      "Kaffee 2,80",
+      "Netto 3,04",
+      "MwSt 0,21",
+      "Gesamt 3,25",
+    ].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.lineItems).toHaveLength(2);
+    expect(parsed.lineItems!.map((i) => i.name).sort()).toEqual(["Brötchen", "Kaffee"]);
+  });
+
+  it("returns no line items when nothing looks like a product (rather than guessing)", () => {
+    const text = ["Kiosk", "SUMME 8,90", "MwSt 19% 1,42", "Gegeben 10,00", "Rückgeld 1,10"].join("\n");
+    const parsed = parseReceipt(text);
+    expect(parsed.lineItems).toBeUndefined();
+  });
+});

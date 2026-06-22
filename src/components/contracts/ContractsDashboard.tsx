@@ -17,6 +17,7 @@ import { de } from "date-fns/locale";
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from "recharts";
 import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
 import { ContractDetailSheet } from "./ContractDetailSheet";
+import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 
@@ -231,21 +232,33 @@ export function ContractsDashboard() {
             </p>
           </div>
 
-          <div className="w-full h-64 mb-4 rounded-lg border bg-card">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis tickFormatter={(v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 })} />
-                <Tooltip formatter={(value: number) => euro(value)} />
-                <Legend />
-                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
-                <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
-                <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
-                <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Historische Entwicklung ist ein Advanced-Bereich (Premium). Die Basis-
+              Vertragsliste darunter bleibt für Free zugänglich. */}
+          <FeatureGate
+            feature="advancedContracts"
+            fallback={
+              <div className="mb-4 rounded-lg border border-dashed bg-muted/40 p-4 text-center text-sm text-muted-foreground">
+                Der Verlauf von Verträgen und Einnahmen über die Zeit ist Teil der
+                Premium-Vertragsanalyse. Die aktuelle Vertragsliste kannst du frei nutzen.
+              </div>
+            }
+          >
+            <div className="w-full h-64 mb-4 rounded-lg border bg-card">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis tickFormatter={(v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 })} />
+                  <Tooltip formatter={(value: number) => euro(value)} />
+                  <Legend />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
+                  <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </FeatureGate>
 
           <ContractSuggestionsBanner rows={candidateRows} />
 

@@ -1,4 +1,5 @@
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { safeAudit, redactForAudit } from './audit-log-service';
 import type { Rhythmus } from '@/types';
 
 /**
@@ -65,6 +66,7 @@ export async function upsertContractDecision(
   const now = new Date().toISOString();
   const decisions = await readLocalFinanceList<ContractDecision>('contractDecisions');
   const existing = decisions.find((d) => d.fingerprint === fp);
+  const before = existing ? { ...existing } : null;
   if (existing) {
     existing.status = input.status;
     existing.cycle_override = input.cycle_override ?? null;
@@ -85,6 +87,19 @@ export async function upsertContractDecision(
     });
   }
   await writeLocalFinanceList('contractDecisions', decisions);
+
+  const saved = decisions.find((d) => d.fingerprint === fp);
+  await safeAudit({
+    actor: 'user',
+    entityType: 'contract',
+    entityId: saved?.id ?? fp,
+    action: existing ? 'update' : 'create',
+    title: `Vertragsentscheidung: ${input.status}`,
+    redactedBefore: redactForAudit(before, ['fingerprint', 'status', 'cycle_override']),
+    redactedAfter: redactForAudit(saved, ['fingerprint', 'status', 'cycle_override']),
+    reversible: true,
+    reversal: saved ? { operation: 'update', targetCollection: 'contractDecisions', targetId: saved.id } : null,
+  });
 }
 
 export async function deleteContractDecision(fingerprint: string): Promise<void> {
@@ -92,8 +107,21 @@ export async function deleteContractDecision(fingerprint: string): Promise<void>
   if (!fp) return;
 
   const decisions = await readLocalFinanceList<ContractDecision>('contractDecisions');
+  const removed = decisions.find((d) => d.fingerprint === fp) ?? null;
   await writeLocalFinanceList(
     'contractDecisions',
     decisions.filter((d) => d.fingerprint !== fp),
   );
+
+  await safeAudit({
+    actor: 'user',
+    entityType: 'contract',
+    entityId: removed?.id ?? fp,
+    action: 'delete',
+    title: 'Vertragsentscheidung gelöscht',
+    redactedBefore: redactForAudit(removed, ['fingerprint', 'status', 'cycle_override']),
+    redactedAfter: null,
+    reversible: true,
+    reversal: removed ? { operation: 'restore', targetCollection: 'contractDecisions', targetId: removed.id } : null,
+  });
 }
