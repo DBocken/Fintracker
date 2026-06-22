@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette, Languages } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette, Languages, Home } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import type { HierarchicalCategory, Transaction, Category } from '../../types';
 import {
@@ -26,6 +26,8 @@ import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
+import { HouseholdSettings } from './HouseholdSettings';
+import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -239,6 +241,17 @@ export function EnhancedSettings() {
           />
           <LanguageSettings />
         </section>
+
+        <FeatureGate feature="familyMode" fallback={null}>
+          <section className="mb-10">
+            <SectionHeader
+              icon={<Home className="h-5 w-5" />}
+              title="Haushalt"
+              description="Haushalt und Mitglieder für geteilte Ausgaben – lokal auf deinem Gerät."
+            />
+            <HouseholdSettings />
+          </section>
+        </FeatureGate>
 
         <section className="mb-10">
           <SectionHeader

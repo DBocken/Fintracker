@@ -20,6 +20,9 @@ export const LOCAL_FINANCE_KEYS = {
   analyticsConsent: 'ausgabentracker_analytics_consent_v1',
   automationSuggestions: 'ausgabentracker_automation_suggestions_v1',
   auditLog: 'ausgabentracker_audit_log_v1',
+  households: 'ausgabentracker_households_v1',
+  householdMembers: 'ausgabentracker_household_members_v1',
+  sharedExpenseSplits: 'ausgabentracker_shared_expense_splits_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
