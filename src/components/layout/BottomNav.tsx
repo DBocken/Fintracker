@@ -3,6 +3,7 @@ import { MoreHorizontal } from "lucide-react";
 import { getBottomNavItems } from "@/components/layout/nav-config";
 import { OPEN_NAV_SHEET_EVENT } from "@/components/layout/MobileNav";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 
 /**
  * Mobile Bottom-Nav (Audit P1.3): Heute · Übersicht · Buchungen + „Mehr"-Tab.
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
  * Navigations-Sheet mit allen übrigen Zielen (Schulden, Konten, Verträge …).
  */
 export default function BottomNav() {
+  const { t } = useI18n();
   const items = getBottomNavItems();
 
   return (
@@ -30,7 +32,7 @@ export default function BottomNav() {
               }
             >
               <Icon className="h-5 w-5" />
-              <span>{item.shortLabel}</span>
+              <span>{t(item.shortLabelKey ?? "", item.shortLabel)}</span>
             </NavLink>
           );
         })}
@@ -39,10 +41,10 @@ export default function BottomNav() {
           type="button"
           onClick={() => window.dispatchEvent(new Event(OPEN_NAV_SHEET_EVENT))}
           className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors"
-          aria-label="Weitere Navigationsziele öffnen"
+          aria-label={t("shell.openMore")}
         >
           <MoreHorizontal className="h-5 w-5" />
-          <span>Mehr</span>
+          <span>{t("shell.more")}</span>
         </button>
       </div>
     </nav>

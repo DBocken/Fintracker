@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, Plus, Settings } from "lucide-react";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
+import { useI18n } from "@/i18n/useI18n";
 import {
   Command,
   CommandDialog,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/command";
 
 type QuickAction = {
+  labelKey: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   onSelect: () => void;
@@ -23,6 +25,7 @@ type QuickAction = {
 
 export default function CommandPalette() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,12 +49,14 @@ export default function CommandPalette() {
   const quickActions: QuickAction[] = useMemo(
     () => [
       {
+        labelKey: "nav.items.csv",
         label: "CSV importieren",
         icon: Upload,
         onSelect: () => navigate("/csv"),
         shortcut: "G",
       },
       {
+        labelKey: "premium.addWidget",
         label: "Widget hinzufügen",
         icon: Plus,
         onSelect: () => {
@@ -61,6 +66,7 @@ export default function CommandPalette() {
         shortcut: "W",
       },
       {
+        labelKey: "nav.items.settings",
         label: "Einstellungen",
         icon: Settings,
         onSelect: () => navigate("/settings"),
@@ -73,23 +79,23 @@ export default function CommandPalette() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <Command className="rounded-lg border shadow-md">
-        <CommandInput placeholder="Suchen…" />
+        <CommandInput placeholder={t("shell.search") + "…"} />
         <CommandList>
-          <CommandEmpty>Keine Ergebnisse gefunden.</CommandEmpty>
+          <CommandEmpty>{t("common.noResults", "Keine Ergebnisse gefunden.")}</CommandEmpty>
 
           <CommandGroup heading="Quick Actions">
             {quickActions.map((a) => {
               const Icon = a.icon;
               return (
                 <CommandItem
-                  key={a.label}
+                  key={a.labelKey}
                   onSelect={() => {
                     setOpen(false);
                     a.onSelect();
                   }}
                 >
                   <Icon className="mr-2 h-4 w-4" />
-                  <span>{a.label}</span>
+                  <span>{t(a.labelKey, a.label)}</span>
                   {a.shortcut && <CommandShortcut>{a.shortcut}</CommandShortcut>}
                 </CommandItem>
               );
@@ -99,7 +105,7 @@ export default function CommandPalette() {
           <CommandSeparator />
 
           {getVisibleNavGroups().map((g) => (
-            <CommandGroup key={g.id} heading={g.label}>
+            <CommandGroup key={g.id} heading={t(g.labelKey ?? "", g.label)}>
               {g.items.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -111,7 +117,11 @@ export default function CommandPalette() {
                     }}
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    <span>{item.requiredTier === "premium" ? `${item.label} (Premium)` : item.label}</span>
+                    <span>
+                      {item.requiredTier === "premium"
+                        ? `${t(item.labelKey ?? "", item.label)} (${t("shell.premium")})`
+                        : t(item.labelKey ?? "", item.label)}
+                    </span>
                   </CommandItem>
                 );
               })}
