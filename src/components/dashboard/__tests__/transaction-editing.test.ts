@@ -132,6 +132,40 @@ describe('Transaction Editing - Draft Management', () => {
       // These shouldn't change
       expect(Object.keys(patch).includes('is_contract')).toBe(false);
     });
+
+    it('marks a transaction as internal transfer', () => {
+      const draft = { ...draftFromTransaction(mockTransaction), is_transfer: true };
+      const patch = diffTransactionDraft(mockTransaction, draft);
+
+      expect(patch.is_transfer).toBe(true);
+      // Marking on without a pair must not touch transfer_pair_id
+      expect('transfer_pair_id' in patch).toBe(false);
+    });
+
+    it('clears the pair when transfer marking is removed', () => {
+      const transferTx: Transaction = {
+        ...mockTransaction,
+        is_transfer: true,
+        transfer_pair_id: 'tx-2',
+      };
+      const draft = { ...draftFromTransaction(transferTx), is_transfer: false };
+      const patch = diffTransactionDraft(transferTx, draft);
+
+      expect(patch.is_transfer).toBe(false);
+      expect(patch.transfer_pair_id).toBe(null);
+    });
+
+    it('ignores transfer state when the draft omits the field', () => {
+      const draft = {
+        category_id: 'unt-1',
+        subcategory_id: 'stream-1',
+        is_contract: false,
+        contract_cycle: null,
+      };
+      const patch = diffTransactionDraft(mockTransaction, draft);
+
+      expect('is_transfer' in patch).toBe(false);
+    });
   });
 
   describe('currentCategoryValue', () => {

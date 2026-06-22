@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, SplitSquareHorizontal } from 'lucide-react';
+import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight } from 'lucide-react';
+import { safeAudit, redactForAudit } from '@/services/audit-log-service';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
@@ -114,6 +115,22 @@ export function TransactionDetailsModal({
   const handleSave = () => {
     const patch = diffTransactionDraft(transaction, draft);
     if (Object.keys(patch).length > 0 && transaction.id) {
+      // Manuelle Transfer-Markierung als reversiblen Audit-Eintrag festhalten.
+      if ('is_transfer' in patch) {
+        void safeAudit({
+          actor: 'user',
+          entityType: 'transaction',
+          entityId: transaction.id,
+          action: patch.is_transfer ? 'mark_transfer' : 'unmark_transfer',
+          title: patch.is_transfer
+            ? 'Als internen Übertrag markiert'
+            : 'Transfer-Markierung entfernt',
+          redactedBefore: redactForAudit(transaction, ['is_transfer', 'transfer_pair_id']),
+          redactedAfter: { is_transfer: patch.is_transfer ?? false },
+          reversible: true,
+          reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
+        });
+      }
       onSave(transaction.id, patch, {
         applyToSimilar: applyToSimilar && similarCount > 0,
         similarIds,
@@ -274,6 +291,33 @@ export function TransactionDetailsModal({
             </Select>
           </div>
         )}
+      </div>
+
+      {/* Interner Übertrag */}
+      <div className="space-y-2 border-t pt-4">
+        <h3 className="text-sm font-semibold text-muted-foreground">Interner Übertrag</h3>
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="is-transfer"
+            checked={draft.is_transfer ?? false}
+            disabled={isLoading}
+            onCheckedChange={(checked) =>
+              setDraft((d) => (d ? { ...d, is_transfer: checked === true } : d))
+            }
+          />
+          <div className="flex-1">
+            <Label htmlFor="is-transfer" className="flex cursor-pointer items-center gap-1.5 text-sm font-normal">
+              <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+              Als internen Übertrag zwischen eigenen Konten markieren
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Überträge werden aus Ausgaben-/Einnahmen-Analysen ausgeschlossen.
+              {transaction.transfer_pair_id
+                ? ' Beim Entfernen wird auch die verknüpfte Gegenbuchung gelöst.'
+                : ''}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Aktionen: Sichtbarkeit & Löschen */}

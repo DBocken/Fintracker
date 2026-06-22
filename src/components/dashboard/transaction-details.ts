@@ -71,6 +71,11 @@ export interface TransactionDetailDraft {
   subcategory_id: string | null;
   is_contract: boolean;
   contract_cycle: Rhythmus | null;
+  /**
+   * Manuelle Markierung als interner Übertrag. Optional, damit bestehende
+   * Entwürfe ohne dieses Feld unverändert funktionieren.
+   */
+  is_transfer?: boolean;
 }
 
 /** Initialisiert den bearbeitbaren Entwurf aus einer Transaktion. */
@@ -80,6 +85,7 @@ export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
     subcategory_id: tx.subcategory_id ?? null,
     is_contract: tx.is_contract ?? false,
     contract_cycle: tx.contract_cycle ?? null,
+    is_transfer: tx.is_transfer ?? false,
   };
 }
 
@@ -107,6 +113,16 @@ export function diffTransactionDraft(
   }
   if ((tx.contract_cycle ?? null) !== normalizedCycle) {
     patch.contract_cycle = normalizedCycle;
+  }
+
+  // Transfer-Markierung nur berücksichtigen, wenn der Entwurf das Feld kennt.
+  // Wird die Markierung entfernt, wird zugleich eine evtl. vorhandene
+  // Gegenbuchungs-Verknüpfung gelöst (kein Pair ohne Transfer).
+  if (draft.is_transfer !== undefined && (tx.is_transfer ?? false) !== draft.is_transfer) {
+    patch.is_transfer = draft.is_transfer;
+    if (!draft.is_transfer) {
+      patch.transfer_pair_id = null;
+    }
   }
 
   return patch;
