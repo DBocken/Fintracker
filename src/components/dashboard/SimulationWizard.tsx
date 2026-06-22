@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -12,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
 import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 import type { MonteCarloSettings } from '@/components/dashboard/MonteCarloPanel';
@@ -250,14 +252,50 @@ export default function SimulationWizard({
                 Die Werte stammen aus deinen Konten, erkannten Verträgen und bisherigen Buchungen.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <DataPoint label="Direkt verfügbar" value={money.format(suggestions.operatingBalance)} explanation="Giro, Bargeld und Wallets" />
-              <DataPoint label="Mit Reserven" value={money.format(suggestions.availableBalance)} explanation="Zusätzlich kurzfristige Sparkonten" />
-              <DataPoint label="Einnahmen/Monat" value={money.format(suggestions.monthlyIncome)} explanation="Erkannte wiederkehrende Einnahmen" />
-              <DataPoint label="Fixkosten/Monat" value={money.format(suggestions.monthlyFixedExpenses)} explanation="Nur aktive, aktuelle Verträge" />
-              <DataPoint label="Alltag/Monat" value={money.format(suggestions.monthlyVariableExpenses)} explanation="Gemittelt aus deinen Buchungen" />
-              <DataPoint label="Datengrundlage" value={`${Math.round(suggestions.historyConfidence * 100)} %`} explanation="Je höher, desto weniger Annahmen" />
+
+            {/* Kontostände mit Confidence-Styling */}
+            <div className="grid grid-cols-3 gap-3">
+              <DataPoint
+                label="Direkt verfügbar"
+                value={money.format(suggestions.operatingBalance)}
+                explanation="Giro, Bargeld und Wallets"
+              />
+              <DataPoint
+                label="Mit Reserven"
+                value={money.format(suggestions.availableBalance)}
+                explanation="Zusätzlich kurzfristige Sparkonten"
+              />
+              <DataPoint
+                label="Datengrundlage"
+                value={`${Math.round(suggestions.historyConfidence * 100)} %`}
+                explanation="Je höher, desto weniger Annahmen"
+                tone={suggestions.historyConfidence >= 0.7 ? 'good' : suggestions.historyConfidence >= 0.4 ? 'warning' : 'critical'}
+              />
             </div>
+
+            {/* Kontostand-Warnung */}
+            {suggestions.operatingBalance < suggestions.monthlyFixedExpenses && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Dein verfügbarer Kontostand ({money.format(suggestions.operatingBalance)}) liegt unter deinen monatlichen Fixkosten ({money.format(suggestions.monthlyFixedExpenses)}). Das kann kurzfristig zu Engpässen führen.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Cash-Flow-Diagramm + Monatliche Kaufkraft */}
+            <CashFlowBar
+              income={suggestions.monthlyIncome}
+              fixed={suggestions.monthlyFixedExpenses}
+              variable={suggestions.monthlyVariableExpenses}
+            />
+
+            {/* Kontotypen-Breakdown */}
+            {input?.accounts && input.accounts.length > 0 && (
+              <AccountKindBreakdown accounts={input.accounts} />
+            )}
+
+            {/* Warum diese Vorschläge */}
             <div className="rounded-xl bg-muted/50 p-4">
               <div className="mb-2 flex items-center gap-2 font-medium">
                 <Lightbulb className="h-4 w-4 text-warning" /> Warum diese Vorschläge?
@@ -339,14 +377,131 @@ export default function SimulationWizard({
   );
 }
 
-function DataPoint({ label, value, explanation }: { label: string; value: string; explanation: string }) {
+function DataPoint({
+  label,
+  value,
+  explanation,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  explanation: string;
+  tone?: 'default' | 'good' | 'warning' | 'critical';
+}) {
+  const valueClass =
+    tone === 'good' ? 'text-positive' :
+    tone === 'warning' ? 'text-warning' :
+    tone === 'critical' ? 'text-destructive' :
+    '';
   return (
     <div className="rounded-xl border p-3">
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
         {label} <HelpCircle className="h-3 w-3" aria-hidden />
       </div>
-      <div className="mt-1 text-lg font-bold">{value}</div>
+      <div className={`mt-1 text-lg font-bold ${valueClass}`}>{value}</div>
       <div className="mt-1 text-xs text-muted-foreground">{explanation}</div>
+    </div>
+  );
+}
+
+const KIND_LABELS: Record<string, string> = {
+  checking: 'Girokonto',
+  cash: 'Bargeld',
+  wallet: 'Wallet',
+  savings: 'Sparkonto',
+  credit_card: 'Kreditkarte',
+  investment: 'Depot',
+  loan: 'Kredit',
+  other: 'Sonstige',
+};
+
+function CashFlowBar({ income, fixed, variable }: { income: number; fixed: number; variable: number }) {
+  const remainder = income - fixed - variable;
+  const total = Math.max(income, fixed + variable, 1);
+  const fixedPct = Math.min((fixed / total) * 100, 100);
+  const variablePct = Math.min((variable / total) * 100, Math.max(0, 100 - fixedPct));
+  const remainderPct = Math.max(0, 100 - fixedPct - variablePct);
+  const overdrawn = remainder < 0;
+
+  return (
+    <div className="space-y-3 rounded-xl border p-4">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">Cash-Flow / Monat</span>
+        <span className="text-muted-foreground">Einnahmen: {money.format(income)}</span>
+      </div>
+      <div className="flex h-5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="bg-destructive/70 transition-all"
+          style={{ width: `${fixedPct}%` }}
+          title={`Fixkosten: ${money.format(fixed)}`}
+        />
+        <div
+          className="bg-warning/70 transition-all"
+          style={{ width: `${variablePct}%` }}
+          title={`Alltag: ${money.format(variable)}`}
+        />
+        {!overdrawn && (
+          <div
+            className="bg-positive/40 transition-all"
+            style={{ width: `${remainderPct}%` }}
+            title={`Kaufkraft: ${money.format(remainder)}`}
+          />
+        )}
+      </div>
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-destructive/70" />
+          Fixkosten {money.format(fixed)}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-warning/70" />
+          Alltag {money.format(variable)}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className={`inline-block h-2 w-2 rounded-full ${overdrawn ? 'bg-destructive' : 'bg-positive/70'}`} />
+          Kaufkraft {overdrawn ? '' : '+'}{money.format(remainder)}
+        </span>
+      </div>
+      <div className={`text-center text-xl font-bold ${overdrawn ? 'text-destructive' : 'text-positive'}`}>
+        {overdrawn ? '' : '+'}{money.format(remainder)} monatlich verfügbar
+      </div>
+    </div>
+  );
+}
+
+function AccountKindBreakdown({ accounts }: { accounts: ForecastInput['accounts'] }) {
+  const groups = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const acc of accounts) {
+      map.set(acc.kind, (map.get(acc.kind) ?? 0) + acc.openingBalance);
+    }
+    return Array.from(map.entries()).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  }, [accounts]);
+
+  const totalAbs = groups.reduce((s, [, v]) => s + Math.abs(v), 0) || 1;
+
+  return (
+    <div className="space-y-3 rounded-xl border p-4">
+      <div className="text-sm font-medium">Kontotypen-Übersicht</div>
+      <div className="space-y-2">
+        {groups.map(([kind, balance]) => {
+          const pct = (Math.abs(balance) / totalAbs) * 100;
+          return (
+            <div key={kind} className="flex items-center gap-2 text-sm">
+              <span className="w-28 shrink-0 text-muted-foreground">{KIND_LABELS[kind] ?? kind}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all ${balance >= 0 ? 'bg-brand/60' : 'bg-destructive/60'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className={`w-24 text-right font-medium tabular-nums ${balance < 0 ? 'text-warning' : ''}`}>
+                {money.format(balance)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
