@@ -5,6 +5,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -66,6 +67,7 @@ export default function AppShell() {
               </Button>
 
               <PrivacyIndicator />
+              <LanguageSwitcher />
               <ThemeToggle />
               <NotificationsBell />
               <UserQuickProfile />
