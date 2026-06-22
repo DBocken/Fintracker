@@ -18,7 +18,9 @@ import {
   formatSyncStatus
 } from '../../services/account-service';
 import { AccountFormDialog } from './AccountFormDialog';
+import { AccountDataQualityBadge } from './AccountDataQualityBadge';
 import { TransferSuggestions } from './TransferSuggestions';
+import { deriveAccountDataQuality } from '../../services/account-data-quality-service';
 import { GoCardlessConnect } from '../GoCardlessConnect';
 import RequireTier from '@/components/common/RequireTier';
 import { getRedirectOrigin } from '@/lib/app-origin';
@@ -402,6 +404,7 @@ export function AccountManager() {
                               )}
                             </div>
                           )}
+                          <AccountDataQualityBadge quality={deriveAccountDataQuality(account)} />
                         </div>
                       </div>
                     </div>
