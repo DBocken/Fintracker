@@ -44,12 +44,12 @@ export async function getLocalCategories(): Promise<Category[]> {
     // (20260614120000_restructure_categories_hierarchy) gespeichert wurden, haben möglicherweise
     // keine parent_id. Wir füllen diese aus den Default-Kategorien nach.
     let migrated = stored.map((cat) => {
-      if (cat.parent_id !== undefined) return cat; // Bereits mit parent_id
+      // Wenn parent_id bereits gesetzt (null oder string), nicht verändern
+      if (cat.parent_id !== undefined) return cat;
+      // Sonst: versuche aus Default-Kategorien zu laden
       const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
-      if (defaultCat && defaultCat.parent_id !== undefined) {
-        return { ...cat, parent_id: defaultCat.parent_id };
-      }
-      return cat;
+      const resolvedParentId = defaultCat?.parent_id ?? null;
+      return { ...cat, parent_id: resolvedParentId };
     });
 
     // Bestandsdaten nachrüsten: Kategorien, die vor Einführung der
