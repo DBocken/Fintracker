@@ -26,6 +26,13 @@ export interface MonteCarloConfig {
   variableVolatility?: number;
   /** Variationskoeffizient der Einnahmen (wiederkehrende Zuflüsse). Default 0. */
   incomeVolatility?: number;
+  /**
+   * Sammelt die einzelnen Trial-Pfade (pfad-major: `paths[trial][tag]`) und gibt
+   * sie in {@link MonteCarloResult.paths} zurück. Default `false` – nur aktivieren,
+   * wenn die Pfade weiterverarbeitet werden (z. B. Stress-Capacity, Breach-Kurven),
+   * da der Speicherbedarf mit `trials × Tagen` wächst.
+   */
+  collectPaths?: boolean;
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -67,4 +74,10 @@ export interface MonteCarloResult {
   lowestBalance: MonteCarloDistribution;
   /** Verteilung des Endvermögens (Net Worth) über die Durchläufe. */
   endingNetWorth: MonteCarloDistribution;
+  /**
+   * Die einzelnen Trial-Pfade der maßgeblichen Cash-Sicht (pfad-major:
+   * `paths[trial][tag]`). Nur gesetzt, wenn {@link MonteCarloConfig.collectPaths}
+   * aktiviert wurde. Grundlage für Stress-Capacity und tagesgenaue Breach-Kurven.
+   */
+  paths?: number[][];
 }

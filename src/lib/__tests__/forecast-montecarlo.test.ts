@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runMonteCarloForecast } from '@/lib/forecast-montecarlo';
+import { runMonteCarloForecast, percentile } from '@/lib/forecast-montecarlo';
 import { calculateDeterministicForecast } from '@/lib/forecast';
 import { applyScenario } from '@/lib/forecast-scenario';
 import type { ForecastAccount, ForecastInput, RecurringFlow } from '@/lib/forecast-types';
@@ -146,5 +146,53 @@ describe('Szenario + Monte Carlo', () => {
 
     expect(baselineRisk.breachProbability).toBe(0);
     expect(scenarioRisk.breachProbability).toBe(1);
+  });
+});
+
+describe('Trial-Pfade exponieren (collectPaths)', () => {
+  it('liefert ohne Flag keine Pfade', () => {
+    const res = runMonteCarloForecast(input(0.4), CONFIG, { trials: 50, seed: 1 });
+    expect(res.paths).toBeUndefined();
+  });
+
+  it('liefert mit Flag genau so viele Pfade wie Trials, je in Tageslänge', () => {
+    const res = runMonteCarloForecast(input(0.4), CONFIG, {
+      trials: 80,
+      seed: 1,
+      collectPaths: true,
+    });
+    expect(res.paths).toBeDefined();
+    expect(res.paths).toHaveLength(80);
+    for (const path of res.paths!) {
+      expect(path).toHaveLength(res.band.length);
+    }
+  });
+
+  it('[REGRESSION] pro-Tag-Perzentile der Pfade entsprechen dem Band (Konsistenz alt/neu)', () => {
+    const res = runMonteCarloForecast(input(0.5), CONFIG, {
+      trials: 200,
+      seed: 7,
+      collectPaths: true,
+    });
+    const paths = res.paths!;
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+    res.band.forEach((point, day) => {
+      const sorted = paths.map((p) => p[day]).sort((a, b) => a - b);
+      expect(round2(percentile(sorted, 10))).toBeCloseTo(point.p10, 6);
+      expect(round2(percentile(sorted, 50))).toBeCloseTo(point.p50, 6);
+      expect(round2(percentile(sorted, 90))).toBeCloseTo(point.p90, 6);
+    });
+  });
+
+  it('verändert die übrigen Kennzahlen nicht (additive Erweiterung)', () => {
+    const without = runMonteCarloForecast(input(0.4), CONFIG, { trials: 100, seed: 3 });
+    const withPaths = runMonteCarloForecast(input(0.4), CONFIG, {
+      trials: 100,
+      seed: 3,
+      collectPaths: true,
+    });
+    expect(withPaths.band).toEqual(without.band);
+    expect(withPaths.lowestBalance).toEqual(without.lowestBalance);
+    expect(withPaths.breachProbability).toBe(without.breachProbability);
   });
 });

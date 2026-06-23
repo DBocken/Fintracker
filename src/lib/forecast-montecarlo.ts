@@ -115,7 +115,7 @@ function perturbInput(
 }
 
 /** Linear interpoliertes Perzentil eines aufsteigend sortierten Arrays. */
-function percentile(sorted: number[], p: number): number {
+export function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   if (sorted.length === 1) return sorted[0];
   const idx = (p / 100) * (sorted.length - 1);
@@ -168,6 +168,8 @@ export function runMonteCarloForecast(
   const lowestArr: number[] = [];
   const endingNwArr: number[] = [];
   let breaches = 0;
+  // Pfad-major (paths[trial][tag]) – nur befüllt, wenn collectPaths aktiv ist.
+  const paths: number[][] | null = mc.collectPaths ? [] : null;
 
   for (let t = 0; t < resolvedMc.trials; t++) {
     const result = calculateDeterministicForecast(
@@ -179,9 +181,13 @@ export function runMonteCarloForecast(
       resolvedConfig = result.config;
       byDay = dates.map(() => [] as number[]);
     }
+    const trialPath = paths ? new Array<number>(result.daily.length) : null;
     result.daily.forEach((p, i) => {
-      byDay[i].push(useAvailable ? p.availableCash : p.operatingCash);
+      const cash = useAvailable ? p.availableCash : p.operatingCash;
+      byDay[i].push(cash);
+      if (trialPath) trialPath[i] = cash;
     });
+    if (paths && trialPath) paths.push(trialPath);
     lowestArr.push(result.risk.lowestBalance);
     endingNwArr.push(result.daily.at(-1)?.netWorth ?? 0);
     if (result.risk.daysBelowSafetyBuffer > 0) breaches++;
@@ -204,5 +210,6 @@ export function runMonteCarloForecast(
     breachProbability: round2(breaches / resolvedMc.trials),
     lowestBalance: distribution(lowestArr),
     endingNetWorth: distribution(endingNwArr),
+    ...(paths ? { paths } : {}),
   };
 }

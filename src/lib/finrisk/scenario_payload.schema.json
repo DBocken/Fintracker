@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.example/schemas/scenario_payload.schema.json",
+  "title": "ScenarioPayload",
+  "type": "object",
+  "required": [
+    "scenarioId",
+    "scenarioType",
+    "timeHorizonDays"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "scenarioId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarioType": {
+      "type": "string",
+      "enum": [
+        "base_check",
+        "large_purchase",
+        "income_loss",
+        "higher_cost_of_living",
+        "shock_recovery",
+        "stress_capacity",
+        "custom_combination"
+      ]
+    },
+    "timeHorizonDays": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 730
+    },
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1
+    },
+    "thresholdAmount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Mindestpuffer / Sicherheitsgrenze in EUR"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "eventType",
+          "amount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "income",
+              "income_reduction",
+              "baseline_multiplier"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Positive Zahl. Richtung ergibt sich aus eventType."
+          },
+          "dayIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "startDayIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "endDayIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 1
+          },
+          "layer": {
+            "type": "string",
+            "enum": [
+              "income_layer",
+              "recurring_layer",
+              "baseline_layer",
+              "lumpy_layer",
+              "stress_layer",
+              "recovery_layer"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "baselineMultiplier": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 5
+    },
+    "confidenceLevels": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0.5,
+        "maximum": 0.999
+      },
+      "default": [
+        0.8,
+        0.9,
+        0.95
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
