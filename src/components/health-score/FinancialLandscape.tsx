@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useI18n } from "@/i18n/useI18n";
 import {
   Sheet,
   SheetContent,
@@ -29,12 +30,13 @@ type MetricMeta = {
 };
 
 // Positionen für das Portrait-9:16-Bild (Hero). Emoji = Fallback-Metapher.
-const METRICS: Record<string, MetricMeta> = {
-  emergency_fund: { top: "22%", left: "48%", file: "notgroschen", label: "Notgroschen", emoji: "🛡️" },
-  debt:           { top: "35%", left: "5%",  file: "schulden",    label: "Schulden",    emoji: "🎒" },
-  savings_rate:   { top: "50%", left: "50%", file: "sparquote",   label: "Sparquote",   emoji: "🌱" },
-  liquidity:      { top: "60%", left: "1%",  file: "liquiditaet", label: "Liquidität",  emoji: "💧" },
-  contracts:      { top: "70%", left: "38%", file: "vertraege",   label: "Verträge",    emoji: "🗂️" },
+// Labels werden dynamisch durch useI18n gesetzt
+const METRICS_BASE: Record<string, Omit<MetricMeta, 'label'> & { labelKey: string }> = {
+  emergency_fund: { top: "22%", left: "48%", file: "notgroschen", labelKey: "health.emergencyFund", emoji: "🛡️" },
+  debt:           { top: "35%", left: "5%",  file: "schulden",    labelKey: "health.debt", emoji: "🎒" },
+  savings_rate:   { top: "50%", left: "50%", file: "sparquote",   labelKey: "health.savingsRate", emoji: "🌱" },
+  liquidity:      { top: "60%", left: "1%",  file: "liquiditaet", labelKey: "health.liquidity", emoji: "💧" },
+  contracts:      { top: "70%", left: "38%", file: "vertraege",   labelKey: "health.contracts", emoji: "🗂️" },
 };
 
 /** Asset-Indikator mit Emoji-Fallback bei fehlender PNG (kein Broken-Image). */
@@ -114,10 +116,26 @@ function MetricDetailSheet({
 }
 
 export default function FinancialLandscape({ health, variant = "hero", className }: FinancialLandscapeProps) {
+  const { t } = useI18n();
   const { enabled: gentleMode } = useGentleMode();
   const reduce = useReducedMotion();
   const isCompact = variant === "hero-compact";
   const iconSize = isCompact ? 72 : 112;
+
+  const METRICS: Record<string, MetricMeta> = useMemo(() => {
+    const baseLabels = {
+      emergency_fund: t("health.emergencyFund", "Notgroschen"),
+      debt: t("health.debt", "Schulden"),
+      savings_rate: t("health.savingsRate", "Sparquote"),
+      liquidity: t("health.liquidity", "Liquidität"),
+      contracts: t("health.contracts", "Verträge"),
+    };
+
+    return Object.entries(METRICS_BASE).reduce((acc, [key, meta]) => {
+      acc[key] = { ...meta, label: baseLabels[key as keyof typeof baseLabels] || key };
+      return acc;
+    }, {} as Record<string, MetricMeta>);
+  }, [t]);
 
   // Kompakter, interaktiver Status-Raster (Audit C-P0/F): mobil-first, kein
   // horizontales Scrollen mehr. Jede Kachel ist ein vollwertiges Touch-Ziel und

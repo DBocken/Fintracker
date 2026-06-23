@@ -22,6 +22,7 @@ import {
 import type { Transaction } from '../types'
 import { applyAutoCategorization } from '../services/transaction-service'
 import { getAccounts, getOrCreateDefaultAccount, ACCOUNT_TYPE_LABELS } from '../services/account-service'
+import { useI18n } from '@/i18n/useI18n'
 
 interface CsvUploaderProps {
   onTransactionsLoaded: (transactions: Transaction[]) => void
@@ -31,6 +32,7 @@ interface CsvUploaderProps {
 const LAST_ACCOUNT_KEY = 'ausgabentracker_last_import_account';
 
 export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
+  const { t } = useI18n();
   const [rawHeaderLine, setRawHeaderLine] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [delimiter, setDelimiter] = useState<string>(';')
@@ -181,13 +183,13 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                 </Alert>
               ) : (
                 <>
-                  <Select 
-                    value={selectedAccountId || ''} 
+                  <Select
+                    value={selectedAccountId || ''}
                     onValueChange={handleAccountChange}
                     disabled={accountsLoading}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder={accountsLoading ? "Lade Konten..." : "Konto auswählen"} />
+                      <SelectValue placeholder={accountsLoading ? t("csv.loadingAccounts", "Lade Konten...") : t("forms.selectAccountPlaceholder", "Konto auswählen")} />
                     </SelectTrigger>
                     <SelectContent>
                       {accounts.map((account) => (
@@ -337,7 +339,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Spalte wählen" />
+                <SelectValue placeholder={t("csv.selectColumn", "Spalte wählen")} />
               </SelectTrigger>
               <SelectContent>
                 {(['currencyColumn', 'categoryColumn', 'ibanColumn'] as ReadonlyArray<string>).includes(key) && (
