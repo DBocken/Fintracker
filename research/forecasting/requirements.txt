@@ -1,0 +1,9 @@
+# Pflicht-Abhängigkeiten für den Benchmark.
+pandas>=2.0
+numpy>=1.24
+statsmodels>=0.14
+
+# Optionale Modelle – Benchmark überspringt sie sauber, wenn nicht installiert.
+# tbats>=1.1          # TBATS (Mehrfachsaison-Spezialist)
+# lightgbm>=4.0       # tabellarischer Gradient-Boosting-Challenger
+# scikit-learn>=1.3   # Hilfsmetriken / LightGBM-Feature-Pipeline

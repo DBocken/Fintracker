@@ -1,0 +1,5 @@
+# Generierte Benchmark-Artefakte und lokale Umgebung
+results.csv
+.venv/
+__pycache__/
+*.pyc
