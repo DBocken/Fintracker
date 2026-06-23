@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SlidersHorizontal, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useI18n } from '@/i18n/useI18n';
 import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
 import { TransactionStats } from './TransactionStats';
@@ -48,6 +49,7 @@ import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
 
 export function Dashboard() {
+  const { t } = useI18n();
   const qc = useQueryClient();
 
   const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
@@ -129,12 +131,12 @@ export function Dashboard() {
     mutationFn: updateTransaction,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Kategorien aktualisiert');
+      toast.success(t('dashboard.categoriesUpdated'));
       setSelected(new Set());
       setBulkCat('');
     },
     onError: (error) => {
-      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+      toast.error(`${t('dashboard.updateError')}${error.message}`);
     },
   });
 
@@ -147,11 +149,11 @@ export function Dashboard() {
     mutationFn: deleteTransaction,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transaktion gelöscht');
+      toast.success(t('dashboard.transactionDeleted'));
       setSelected(new Set());
     },
     onError: (error) => {
-      toast.error(`Fehler beim Löschen: ${error.message}`);
+      toast.error(`${t('dashboard.deleteError')}${error.message}`);
     },
   });
 
@@ -163,11 +165,11 @@ export function Dashboard() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success(`${selected.size} Transaktionen gelöscht`);
+      toast.success(t('dashboard.transactionsDeleted', `${selected.size} Transaktionen gelöscht`));
       setSelected(new Set());
     },
     onError: (error) => {
-      toast.error(`Fehler beim Löschen: ${error.message}`);
+      toast.error(`${t('dashboard.deleteError')}${error.message}`);
     },
   });
 
@@ -491,7 +493,7 @@ export function Dashboard() {
           
           <div className="flex gap-2 items-center flex-wrap">
             <Checkbox
-              aria-label="Alle sichtbaren Transaktionen auswählen"
+              aria-label={t("dashboard.allTransactions")}
               checked={visibleTransactions.length > 0 && visibleTransactions.every(t => selected.has(t.id || ''))}
               onCheckedChange={handleSelectAll}
             />
@@ -500,7 +502,7 @@ export function Dashboard() {
               <Input
                 id="transaction-search"
                 type="search"
-                placeholder="Suche..."
+                placeholder={t("dashboard.search")}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="w-48 bg-background/50 backdrop-blur-sm"

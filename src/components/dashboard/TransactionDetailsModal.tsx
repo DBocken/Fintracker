@@ -15,6 +15,7 @@ import { normalizeMerchantName } from '@/services/merchant-normalization';
 import { showSuccess } from '@/utils/toast';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
@@ -74,6 +75,7 @@ export function TransactionDetailsModal({
   isHidden = false,
   isLoading = false,
 }: TransactionDetailsModalProps) {
+  const { t } = useI18n();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
   const [isDesktop, setIsDesktop] = useState(true);
 
@@ -412,7 +414,7 @@ export function TransactionDetailsModal({
               }
             >
               <SelectTrigger id="cycle-select">
-                <SelectValue placeholder="Zyklus wählen…" />
+                <SelectValue placeholder={t("dashboard.selectCycle")} />
               </SelectTrigger>
               <SelectContent>
                 {RHYTHMUS_OPTIONS.map((option) => (
