@@ -22,6 +22,7 @@ import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useTier, TIER_OVERRIDE_EVENT } from "@/hooks/useTier";
 import { setTierOverride, clearTierOverride } from "@/lib/tier";
+import { useI18n } from "@/i18n/useI18n";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'ruhe';
@@ -33,6 +34,7 @@ function normalizeSkinId(raw?: string | null): SkinId {
 }
 
 export function UserProfile() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { enabled: gentleModeEnabled, toggle: toggleGentleMode } = useGentleMode();
@@ -47,7 +49,7 @@ export function UserProfile() {
       setAccessCode("");
       showSuccess("Premiumzugang freigeschaltet");
     } else {
-      showError("Code ungültig");
+      showError(t("auth.invalidCode", "Code ungültig"));
     }
   };
 
@@ -149,7 +151,7 @@ export function UserProfile() {
                 onValueChange={(v) => updateSkinMutation.mutate(v as SkinId)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Skin wählen" />
+                  <SelectValue placeholder={t("utility.selectSkin", "Skin wählen")} />
                 </SelectTrigger>
                 <SelectContent>
                   {SKINS.map(s => (

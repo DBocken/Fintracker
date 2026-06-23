@@ -11,6 +11,7 @@ import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvid
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
+import { useI18n } from "@/i18n/useI18n";
 
 /**
  * Privacy-Indikator (#41, #54): Schloss im Header jedes Screens.
@@ -18,6 +19,7 @@ import { getAnalyticsConsent } from "@/services/analytics-consent-service";
  * tatsächlichen Server-Kontakt (anonym: keiner).
  */
 export default function PrivacyIndicator() {
+  const { t } = useI18n();
   const { enabled, unlocked } = useLocalEncryption();
   const tier = useTier();
 
@@ -38,7 +40,7 @@ export default function PrivacyIndicator() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Datenschutz-Status">
+        <Button variant="ghost" size="icon" aria-label={t("privacy.title", "Datenschutz")}>
           <Icon className={`h-4 w-4 ${iconClass}`} />
         </Button>
       </DropdownMenuTrigger>
@@ -49,14 +51,14 @@ export default function PrivacyIndicator() {
             <p className="font-semibold">
               {enabled
                 ? unlocked
-                  ? "Lokal verschlüsselt & entsperrt"
-                  : "Lokal verschlüsselt & gesperrt"
-                : "Daten bleiben auf deinem Gerät"}
+                  ? t("utility.encryptedAndUnlocked", "Lokal verschlüsselt & entsperrt")
+                  : t("utility.encryptedAndLocked", "Lokal verschlüsselt & gesperrt")
+                : t("utility.localOnly", "Daten bleiben auf deinem Gerät")}
             </p>
             <p className="text-muted-foreground">
               {enabled
-                ? "Deine Finanzdaten sind mit deinem Passwort verschlüsselt und verlassen dein Gerät nicht."
-                : "Deine Finanzdaten verlassen dein Gerät nicht. Aktiviere die Verschlüsselung für zusätzlichen Schutz."}
+                ? t("utility.staysOnDevice", "Deine Finanzdaten sind mit deinem Passwort verschlüsselt und verlassen dein Gerät nicht.")
+                : t("utility.staysOnDeviceNoEncryption", "Deine Finanzdaten verlassen dein Gerät nicht. Aktiviere die Verschlüsselung für zusätzlichen Schutz.")}
             </p>
 
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
@@ -70,14 +72,14 @@ export default function PrivacyIndicator() {
                   to="/settings"
                   className="font-medium text-brand underline-offset-2 hover:underline"
                 >
-                  Verschlüsselung aktivieren
+                  {t("privacy.enableEncryption", "Verschlüsselung aktivieren")}
                 </Link>
               )}
               <Link
                 to="/privacy"
                 className="font-medium text-brand underline-offset-2 hover:underline"
               >
-                Wie wir mit deinen Daten umgehen
+                {t("privacy.title", "Wie wir mit deinen Daten umgehen")}
               </Link>
             </div>
           </div>
