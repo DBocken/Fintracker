@@ -11,6 +11,7 @@ import {
   CONTRACT_STATUS_LABELS,
   type ContractDecision,
 } from "@/services/contract-decision-service";
+import { useI18n } from "@/i18n/useI18n";
 import type { Transaction, Category } from "@/types";
 import { format, parseISO, addMonths, startOfMonth } from "date-fns";
 import { de } from "date-fns/locale";
@@ -26,6 +27,7 @@ function euro(n: number) {
 }
 
 export function ContractsDashboard() {
+  const { t } = useI18n();
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["transactions", "contracts"],
     queryFn: () => getTransactions(2000),
@@ -209,19 +211,19 @@ export function ContractsDashboard() {
           <div className="mb-4 p-3 rounded-lg border bg-muted">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-muted-foreground">Summe der Verbindlichkeiten ({viewMode === "monthly" ? "monatlich" : "jährlich"})</p>
+                <p className="text-sm text-muted-foreground">{t("contracts.liabilitiesSum", "Summe der Verbindlichkeiten")} ({viewMode === "monthly" ? t("contracts.monthlyLabel", "monatlich") : t("contracts.annuallyLabel", "jährlich")})</p>
                 <p className="text-2xl font-bold">{euro(displayedLiabilities)}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Vertrags-Einnahmen ({viewMode === "monthly" ? "monatlich" : "jährlich"})</p>
+                <p className="text-sm text-muted-foreground">{t("contracts.incomeSum", "Vertrags-Einnahmen")} ({viewMode === "monthly" ? t("contracts.monthlyLabel", "monatlich") : t("contracts.annuallyLabel", "jährlich")})</p>
                 <p className="text-2xl font-bold text-positive">{euro(displayedIncome)}</p>
               </div>
               <div className="min-w-[160px]">
                 <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="Ansicht" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Monatsansicht (normiert)</SelectItem>
-                    <SelectItem value="yearly">Jahresansicht (tatsächlich)</SelectItem>
+                    <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
+                    <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -252,9 +254,9 @@ export function ContractsDashboard() {
                   <Tooltip formatter={(value: number) => euro(value)} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
-                  <Area type="monotone" dataKey="income" name="Einnahmen" stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
-                  <Area type="monotone" dataKey="expenses" name="Verträge" stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
-                  <Area type="monotone" dataKey="net" name="Einnahmen − Verträge (Saldo)" stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
+                  <Area type="monotone" dataKey="income" name={t("other.importTitle", "Einnahmen")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="expenses" name={t("contracts.contractsLabel", "Verträge")} stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="net" name={t("contracts.incomesMinusContracts", "Einnahmen − Verträge (Saldo)")} stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -295,7 +297,7 @@ export function ContractsDashboard() {
                 onClick={() => setShowEnded((v) => !v)}
                 className="text-sm font-semibold text-muted-foreground hover:text-foreground"
               >
-                {showEnded ? "▾" : "▸"} Beendet & Archiv ({endedRows.length})
+                {showEnded ? "▾" : "▸"} {t("contracts.archivedAndEnded", "Beendet & Archiv")} ({endedRows.length})
               </button>
               {showEnded && (
                 <div className="mt-2 overflow-x-auto">
