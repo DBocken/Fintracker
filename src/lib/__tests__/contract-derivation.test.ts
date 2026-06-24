@@ -174,4 +174,33 @@ describe("computeContracts status awareness", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].cycle).toBe("Monatlich");
   });
+
+  it("[REGRESSION] erkennt Gehalt von zwei verschiedenen IBANs als eine Serie", () => {
+    // Gehalt: alte Bank (IBAN1) 2 Mal, neue Bank (IBAN2) 2 Mal → sollte ein Vertrag sein
+    const series = [
+      tx({ id: "g1", payee: "Arbeitgeber AG", amount: 3000, date: "2024-03-28", counterparty_iban: "DE89370400440532013000" }),
+      tx({ id: "g2", payee: "Arbeitgeber AG", amount: 3000, date: "2024-04-29", counterparty_iban: "DE89370400440532013000" }),
+      tx({ id: "g3", payee: "Arbeitgeber AG", amount: 3000, date: "2024-05-28", counterparty_iban: "DE89999999999999999999" }), // neue Bank
+      tx({ id: "g4", payee: "Arbeitgeber AG", amount: 3000, date: "2024-06-28", counterparty_iban: "DE89999999999999999999" }),
+    ];
+    // Merchant-Fallback sollte die zwei IBAN-Gruppen mergen
+    const rows = computeContracts(series, cats, "Einnahme", { now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cycle).toBe("Monatlich");
+    expect(rows[0].status).toBe("candidate");
+  });
+
+  it("[REGRESSION] erkennt Energieversorger-Wechsel (IBAN-Wechsel) als eine Serie", () => {
+    // Energieversorger: zwei verschiedene IBANs (Dienstleister-Wechsel) → sollte gemergelt werden
+    const series = [
+      tx({ id: "e1", payee: "Stadtwerke", amount: -200, date: "2024-03-15", counterparty_iban: "DE11111111111111111111" }),
+      tx({ id: "e2", payee: "Stadtwerke", amount: -200, date: "2024-04-15", counterparty_iban: "DE22222222222222222222" }), // neuer Dienstleister
+      tx({ id: "e3", payee: "Stadtwerke", amount: -260, date: "2024-05-15", counterparty_iban: "DE22222222222222222222" }),
+      tx({ id: "e4", payee: "Stadtwerke", amount: -260, date: "2024-06-15", counterparty_iban: "DE22222222222222222222" }),
+    ];
+    // Merchant-Fallback-Merging + 20% Streuungstoleranz sollte alles erkennen
+    const rows = computeContracts(series, cats, "Ausgabe", { now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cycle).toBe("Monatlich");
+  });
 });

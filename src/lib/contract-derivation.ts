@@ -3,6 +3,7 @@ import type { Transaction, Category, Rhythmus } from "@/types";
 import type { Cycle, ContractRow } from "@/components/contracts/contract-types";
 import type { ContractDecision, ContractStatus } from "@/services/contract-decision-service";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
+import { normalizeMerchantName } from "@/services/merchant-normalization";
 
 /**
  * Reine, testbare Ableitung von Verträgen aus Transaktionen. Verträge bleiben
@@ -130,12 +131,58 @@ export function computeContracts(
 
   // Gruppierung nach Händler-Fingerprint (IBAN → normalisierter Händler, + Richtung).
   const groups = new Map<string, Transaction[]>();
+  const ibanGroups = new Map<string, Transaction[]>();
+  const merchantGroups = new Map<string, Transaction[]>();
+
   filtered.forEach((t) => {
     const key = merchantFingerprint(t);
     const arr = groups.get(key) || [];
     arr.push(t);
     groups.set(key, arr);
+
+    // Parallel: Track IBAN und Merchant-basierte Gruppen für Fallback-Matching
+    if (key.startsWith("iban:")) {
+      const ibanArr = ibanGroups.get(key) || [];
+      ibanArr.push(t);
+      ibanGroups.set(key, ibanArr);
+    } else {
+      const merchArr = merchantGroups.get(key) || [];
+      merchArr.push(t);
+      merchantGroups.set(key, merchArr);
+    }
   });
+
+  // Fallback-Merging: Wenn mehrere verschiedene IBANs für den gleichen Merchant vorhanden sind,
+  // merging alle IBAN-Gruppen mit der Merchant-Gruppe (Bankwechsel, Dienstleister-Wechsel).
+  const merchantToIbanKeys = new Map<string, string[]>();
+  for (const [ibanKey, ibanList] of ibanGroups) {
+    const merchant = normalizeMerchantName(ibanList[0]?.payee) || "";
+    if (merchant) {
+      const keys = merchantToIbanKeys.get(merchant) || [];
+      keys.push(ibanKey);
+      merchantToIbanKeys.set(merchant, keys);
+    }
+  }
+
+  const ibanKeysToMerge = new Set<string>();
+  for (const [merchant, ibanKeys] of merchantToIbanKeys) {
+    if (ibanKeys.length < 2) continue; // Nur mergen wenn mehrere IBANs für einen Merchant
+    const dir = ibanKeys[0].split("|")[1];
+    const merchantKey = `merchant:${merchant}|${dir}`;
+
+    // Merging: kombiniere alle IBAN-Gruppen + Merchant-Gruppe
+    let merged: Transaction[] = [];
+    ibanKeys.forEach((key) => {
+      merged = [...merged, ...ibanGroups.get(key)!];
+      ibanKeysToMerge.add(key);
+    });
+    if (merchantGroups.has(merchantKey)) {
+      merged = [...merged, ...merchantGroups.get(merchantKey)!];
+    }
+
+    groups.set(merchantKey, merged);
+  }
+  ibanKeysToMerge.forEach((k) => groups.delete(k));
 
   const rows: ContractRow[] = [];
 
@@ -145,8 +192,11 @@ export function computeContracts(
     const explicit = !!cat?.attributes?.ist_vertrag;
     const decision = decisions?.get(fingerprint);
 
-    // Mindestanzahl nur verlangen, wenn weder explizit markiert noch entschieden.
-    if (list.length < 3 && !explicit && !decision) return;
+    // Mindestanzahl: 2 wenn IBAN (starkes Signal: Gehalt, Energieversorger),
+    // sonst 3 (Merchant-Name allein ist schwächer).
+    const hasIban = fingerprint.startsWith("iban:");
+    const minCount = hasIban ? 2 : 3;
+    if (list.length < minCount && !explicit && !decision) return;
 
     const sorted = [...list].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
