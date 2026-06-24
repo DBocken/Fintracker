@@ -127,7 +127,7 @@ export default function LiquidityReport() {
   const { scenarioResult, comparison } = useScenarioForecast(
     input,
     forecast,
-    { months, safetyBuffer, bufferBasis },
+    { months, safetyBuffer, bufferBasis, useDailyProfile: true },
     activeScenario,
   );
 
@@ -147,7 +147,7 @@ export default function LiquidityReport() {
   });
   const { result: monteCarlo, isCalculating: isMonteCarloCalculating } = useMonteCarloForecast(
     simulationInput,
-    { months, safetyBuffer, bufferBasis },
+    { months, safetyBuffer, bufferBasis, useDailyProfile: true },
     {
       trials: mcSettings.trials,
       seed: 1,

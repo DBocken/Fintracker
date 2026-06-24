@@ -37,6 +37,7 @@ export function useForecast(config: ForecastConfig = {}): {
       safetyBuffer,
       bufferBasis,
       startDate,
+      useDailyProfile: true,
     });
   }, [query.data, months, safetyBuffer, bufferBasis, startDate]);
 

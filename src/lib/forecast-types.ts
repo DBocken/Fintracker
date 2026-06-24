@@ -114,6 +114,15 @@ export interface ForecastTransfer {
 }
 
 /**
+ * Wochentags-Tagesprofil für die Verteilung einer Monatsbaseline.
+ * Index = `getDay()` (0 = Sonntag … 6 = Samstag), auf Mittel 1.0 normiert
+ * (Summe = 7). Neutral = alle 1 (entspricht der Linearverteilung).
+ */
+export interface DailySpendingProfile {
+  weekdayWeights: number[];
+}
+
+/**
  * Variable Ausgaben-Baseline pro Kategorie. Wird getrennt von wiederkehrenden
  * Zahlungen behandelt und in PR1 gleichmäßig über die Tage des Monats verteilt.
  */
@@ -139,6 +148,12 @@ export interface VariableExpenseBaseline {
    * über den gesamten Horizont missverstanden werden.
    */
   monthlyAmounts?: Record<string, number>;
+  /**
+   * Optionales Wochentags-Tagesprofil (PR 2). Verteilt den Monatsbetrag
+   * profilgewichtet statt linear – nur wirksam, wenn `ForecastConfig.useDailyProfile`
+   * gesetzt ist. Ohne Profil bleibt die bisherige Linearverteilung.
+   */
+  dailyProfile?: DailySpendingProfile;
 }
 
 /** Einmaliger geplanter Posten (Urlaub, Steuererstattung, Anschaffung …). */
@@ -202,6 +217,12 @@ export interface ForecastConfig {
   safetyBuffer?: number;
   /** Cash-Sicht für den Puffer. Default 'operating'. */
   bufferBasis?: BufferBasis;
+  /**
+   * Verteilt variable Ausgaben profilgewichtet (Wochentags-Tagesprofil) statt
+   * linear. Default `false` (Abwärtskompatibilität); die App aktiviert es. Nur
+   * Baselines mit `dailyProfile` sind betroffen, die Monatssumme bleibt exakt.
+   */
+  useDailyProfile?: boolean;
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -210,6 +231,7 @@ export interface ResolvedForecastConfig {
   months: number;
   safetyBuffer: number;
   bufferBasis: BufferBasis;
+  useDailyProfile: boolean;
 }
 
 /** Ein tagesgenauer Punkt der Liquiditätsprojektion. */

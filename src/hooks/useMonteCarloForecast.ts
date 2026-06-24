@@ -16,7 +16,7 @@ export function useMonteCarloForecast(
   mc: MonteCarloConfig,
   enabled: boolean,
 ): { result: MonteCarloResult | null; isCalculating: boolean } {
-  const { months, safetyBuffer, bufferBasis, startDate } = config;
+  const { months, safetyBuffer, bufferBasis, startDate, useDailyProfile } = config;
   const { trials, seed, variableVolatility, incomeVolatility } = mc;
 
   const [result, setResult] = useState<MonteCarloResult | null>(null);
@@ -47,7 +47,7 @@ export function useMonteCarloForecast(
     };
     worker.postMessage({
       input,
-      config: { months, safetyBuffer, bufferBasis, startDate },
+      config: { months, safetyBuffer, bufferBasis, startDate, useDailyProfile },
       monteCarlo: { trials, seed, variableVolatility, incomeVolatility },
     });
 
@@ -59,6 +59,7 @@ export function useMonteCarloForecast(
     safetyBuffer,
     bufferBasis,
     startDate,
+    useDailyProfile,
     trials,
     seed,
     variableVolatility,

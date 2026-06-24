@@ -17,6 +17,7 @@ import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { getCategories, getTransactions } from '@/services/transaction-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
+import { buildDailySpendingProfile } from '@/lib/forecast-profile';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { normalizeMerchantName } from '@/services/merchant-normalization';
 import {
@@ -283,6 +284,14 @@ export function buildVariableExpenseBaselines(
   const denom = Math.max(monthKeys.length, 1);
   const confidence = monthKeys.length >= 6 ? 0.9 : monthKeys.length >= 3 ? 0.75 : 0.5;
 
+  // Wochentags-Tagesprofile je Kategorie (PR 2) – aus derselben Historie
+  // abgeleitet, damit die Tagesverteilung das reale Muster widerspiegelt.
+  const dailyProfiles = buildDailySpendingProfile(transactions, {
+    now,
+    excludedFingerprints: options.excludedFingerprints,
+    categoryNames: options.categoryNames,
+  });
+
   const baselines: VariableExpenseBaseline[] = [];
   for (const [category, byMonth] of perCategoryMonth) {
     // Vektor über alle beobachteten Monate (0, wo nichts ausgegeben wurde).
@@ -294,7 +303,13 @@ export function buildVariableExpenseBaselines(
     const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / denom;
     const volatility = mean > 0 ? Math.round((Math.sqrt(variance) / mean) * 100) / 100 : 0;
 
-    baselines.push({ category, monthlyAmount, confidence, volatility });
+    baselines.push({
+      category,
+      monthlyAmount,
+      confidence,
+      volatility,
+      dailyProfile: dailyProfiles.get(category),
+    });
   }
   // Größte Kategorien zuerst – stabil und gut für die UI.
   baselines.sort((a, b) => b.monthlyAmount - a.monthlyAmount);

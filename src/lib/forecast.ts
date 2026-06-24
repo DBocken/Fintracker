@@ -18,12 +18,15 @@ import {
   differenceInCalendarDays,
   format,
   getDate,
+  getDay,
   getDaysInMonth,
   isAfter,
   isBefore,
   parseISO,
+  startOfMonth,
 } from 'date-fns';
 import { toMajor, toMinor } from './money';
+import { distributeMonthlyByProfile } from './forecast-profile';
 import type {
   ForecastAccount,
   ForecastAccountKind,
@@ -75,6 +78,7 @@ function resolveConfig(config: ForecastConfig = {}): ResolvedForecastConfig {
     months: Math.max(config.months ?? 6, 6),
     safetyBuffer: config.safetyBuffer ?? 0,
     bufferBasis: config.bufferBasis ?? 'operating',
+    useDailyProfile: config.useDailyProfile ?? false,
   };
 }
 
@@ -336,11 +340,16 @@ export function calculateDeterministicForecast(
     }
   }
 
-  // 2) Variable Ausgaben-Baseline gleichmäßig über jeden Monatstag verteilen.
-  //    Buchung erfolgt auf das erste operative Konto (Default-Zahlungsmedium).
+  // 2) Variable Ausgaben-Baseline über die Monatstage verteilen. Standardmäßig
+  //    gleichmäßig; mit `useDailyProfile` und vorhandenem `dailyProfile`
+  //    profilgewichtet (Wochentagsmuster) – in beiden Fällen bleibt die
+  //    Monatssumme exakt erhalten. Buchung auf das erste operative Konto.
   const variableAccountId = pickVariableExpenseAccount(input.accounts);
   if (variableAccountId) {
     for (const baseline of input.variableExpenses ?? []) {
+      const profile = resolved.useDailyProfile ? baseline.dailyProfile : undefined;
+      // Profil-Allokation je Monat (über alle Monatstage) einmal cachen.
+      const profileByMonth = new Map<string, number[]>();
       for (let i = 0; i < totalDays; i++) {
         const d = addDays(start, i);
         const monthKey = format(d, 'yyyy-MM');
@@ -350,12 +359,27 @@ export function calculateDeterministicForecast(
             baseline.monthlyAmount,
         );
         if (monthlyCents <= 0) continue;
-        const daysInMonth = getDaysInMonth(d);
-        const baseDailyCents = Math.floor(monthlyCents / daysInMonth);
-        const remainderCents = monthlyCents - baseDailyCents * daysInMonth;
-        // Rest-Cent deterministisch auf die ersten Monatstage verteilen. Damit
-        // entspricht die Monatssumme exakt dem Planwert, ohne Float-Drift.
-        const dailyCents = baseDailyCents + (getDate(d) <= remainderCents ? 1 : 0);
+
+        let dailyCents: number;
+        if (profile) {
+          let alloc = profileByMonth.get(monthKey);
+          if (!alloc) {
+            const monthStart = startOfMonth(d);
+            const dim = getDaysInMonth(d);
+            const weekdays = Array.from({ length: dim }, (_, k) => getDay(addDays(monthStart, k)));
+            alloc = distributeMonthlyByProfile(monthlyCents, weekdays, profile);
+            profileByMonth.set(monthKey, alloc);
+          }
+          dailyCents = alloc[getDate(d) - 1] ?? 0;
+        } else {
+          const daysInMonth = getDaysInMonth(d);
+          const baseDailyCents = Math.floor(monthlyCents / daysInMonth);
+          const remainderCents = monthlyCents - baseDailyCents * daysInMonth;
+          // Rest-Cent deterministisch auf die ersten Monatstage verteilen. Damit
+          // entspricht die Monatssumme exakt dem Planwert, ohne Float-Drift.
+          dailyCents = baseDailyCents + (getDate(d) <= remainderCents ? 1 : 0);
+        }
+
         if (dailyCents === 0) continue;
         const bucket = bucketFor(buckets, format(d, ISO));
         bucket.variableExpenses += dailyCents;
