@@ -251,14 +251,19 @@ export function runScenarioComparison(
  * Forecast-Start. Dient als Startpunkt; Nutzer können eigene Szenarien anlegen.
  */
 export function buildPresetScenarios(startISO: string): ForecastScenario[] {
-  const inThreeMonths = format(addDays(parseISO(startISO), 90), ISO);
+  const base = parseISO(startISO);
+  const in30 = format(addDays(base, 30), ISO);
+  const in42 = format(addDays(base, 42), ISO);
+  const in60 = format(addDays(base, 60), ISO);
+  const in90 = format(addDays(base, 90), ISO);
+  const in120 = format(addDays(base, 120), ISO);
   return [
     {
       id: 'preset-job-loss',
       name: 'Jobverlust',
       description: 'Einnahmen entfallen ab in 3 Monaten.',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -100, fromDate: inThreeMonths },
+        { id: 'm1', type: 'income', percentChange: -100, fromDate: in90 },
       ],
     },
     {
@@ -268,12 +273,29 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
       modifiers: [{ id: 'm1', type: 'income', percentChange: 5 }],
     },
     {
-      id: 'preset-inflation',
-      name: 'Inflation +10 %',
-      description: 'Fixe und variable Ausgaben steigen um 10 %.',
+      id: 'preset-job-change',
+      name: 'Jobwechsel',
+      description: 'Altes Einkommen endet, neues startet nach einer kurzen Pause.',
       modifiers: [
-        { id: 'm1', type: 'expenses', percentChange: 10 },
-        { id: 'm2', type: 'variable', percentChange: 10 },
+        { id: 'm1', type: 'income', percentChange: -100, fromDate: in30 },
+        { id: 'm2', type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: in60, label: 'Neues Gehalt' },
+      ],
+    },
+    {
+      id: 'preset-car-breakdown',
+      name: 'Auto kaputt',
+      description: 'Unerwartete Reparatur – Versicherung erstattet verzögert einen Teil.',
+      modifiers: [
+        { id: 'm1', type: 'oneTime', amount: -2000, date: in30, label: 'Reparaturkosten' },
+        { id: 'm2', type: 'oneTime', amount: 800, date: in120, label: 'Versicherungserstattung' },
+      ],
+    },
+    {
+      id: 'preset-sick-leave',
+      name: 'Krankenausfall',
+      description: 'Nach 6 Wochen Krankenstand: Krankengeld statt Gehalt (ca. 70 %).',
+      modifiers: [
+        { id: 'm1', type: 'income', percentChange: -30, fromDate: in42 },
       ],
     },
     {
@@ -285,7 +307,7 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
           id: 'm1',
           type: 'oneTime',
           amount: -3000,
-          date: inThreeMonths,
+          date: in90,
           label: 'Große Anschaffung',
         },
       ],

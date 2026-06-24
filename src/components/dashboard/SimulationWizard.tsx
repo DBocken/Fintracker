@@ -18,7 +18,7 @@ import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
 import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 import type { MonteCarloSettings } from '@/components/dashboard/MonteCarloPanel';
 
-type Goal = 'everyday' | 'income-loss' | 'cost-rise' | 'purchase';
+type Goal = 'everyday' | 'income-loss' | 'unexpected-cost' | 'purchase';
 type Caution = 'simple' | 'balanced' | 'cautious';
 
 export interface WizardSuggestions {
@@ -149,10 +149,10 @@ const GOALS: Array<{ id: Goal; title: string; example: string; scenarioId: strin
     scenarioId: 'preset-job-loss',
   },
   {
-    id: 'cost-rise',
-    title: 'Was, wenn mein Leben teurer wird?',
-    example: 'Beispiel: Verträge und Alltagseinkäufe steigen um zehn Prozent.',
-    scenarioId: 'preset-inflation',
+    id: 'unexpected-cost',
+    title: 'Was passiert bei einer unerwarteten Ausgabe?',
+    example: 'Beispiel: Das Auto muss repariert werden – die Versicherung zahlt erst später einen Teil zurück.',
+    scenarioId: 'preset-car-breakdown',
   },
   {
     id: 'purchase',
