@@ -33,6 +33,13 @@ export interface MonteCarloConfig {
    * da der Speicherbedarf mit `trials × Tagen` wächst.
    */
   collectPaths?: boolean;
+  /**
+   * Zieht variable Ausgaben pro Trial als spiky Ereignisse aus dem
+   * Occurrence-Amount-Modell (PR 3), statt sie geglättet über den Monat zu
+   * verteilen. Nur Baselines mit `occurrenceModel` sind betroffen; alle anderen
+   * behalten die geglättete Perturbation. Default `false`.
+   */
+  occurrenceSampling?: boolean;
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -41,6 +48,7 @@ export interface ResolvedMonteCarloConfig {
   seed: number;
   variableVolatility: number | null;
   incomeVolatility: number;
+  occurrenceSampling: boolean;
 }
 
 /** Ein Tagespunkt der Wahrscheinlichkeits-Bandbreite (maßgebliche Cash-Sicht). */

@@ -80,7 +80,14 @@ export function runScenarioPayload(
     months: Math.max(config.months ?? 0, neededMonths),
   };
 
-  const mc: MonteCarloConfig = { ...options.monteCarlo, collectPaths: true };
+  // Risiko-Pfade nutzen die spiky Occurrence-Amount-Stufe (PR 3), damit
+  // Stress-Capacity und Breach realistische Saldo-Verläufe sehen. Kategorien
+  // ohne Modell behalten automatisch die geglättete Perturbation.
+  const mc: MonteCarloConfig = {
+    ...options.monteCarlo,
+    collectPaths: true,
+    occurrenceSampling: options.monteCarlo?.occurrenceSampling ?? true,
+  };
   const scenario = payloadToScenario(payload, startISO);
 
   const baselineRun = runMonteCarloForecast(input, effectiveConfig, mc);

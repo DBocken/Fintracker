@@ -483,7 +483,7 @@ export function calculateDeterministicForecast(
 }
 
 /** Wählt das Default-Konto für variable Ausgaben (erstes operatives Konto). */
-function pickVariableExpenseAccount(accounts: ForecastAccount[]): string | null {
+export function pickVariableExpenseAccount(accounts: ForecastAccount[]): string | null {
   const operating = accounts.find((a) => isOperating(a.kind));
   return (operating ?? accounts[0])?.id ?? null;
 }

@@ -8,11 +8,13 @@
  *
  * Mit festem Seed ist der Lauf vollständig reproduzierbar und damit testbar.
  */
-import { calculateDeterministicForecast } from './forecast';
-import { addMonths, format, parseISO } from 'date-fns';
+import { calculateDeterministicForecast, pickVariableExpenseAccount } from './forecast';
+import { addDays, addMonths, format, getDay, getDaysInMonth, parseISO, startOfMonth } from 'date-fns';
+import { sampleOccurrenceMonth } from './finrisk/occurrence-amount';
 import type {
   ForecastConfig,
   ForecastInput,
+  PlannedForecastEvent,
   RecurringFlow,
   ResolvedForecastConfig,
   VariableExpenseBaseline,
@@ -78,21 +80,100 @@ function resolveMonteCarlo(mc: MonteCarloConfig): ResolvedMonteCarloConfig {
     seed: mc.seed ?? 1,
     variableVolatility: mc.variableVolatility ?? null,
     incomeVolatility: Math.max(0, mc.incomeVolatility ?? 0),
+    occurrenceSampling: mc.occurrenceSampling ?? false,
   };
+}
+
+/**
+ * Erzeugt die spiky Tagesereignisse einer Baseline mit Occurrence-Modell über
+ * den Horizont (PR 3). Jeder Monat wird erwartungstreu auf seinen Zielwert
+ * kalibriert; gebucht werden nur Tage im Horizont.
+ */
+function buildOccurrenceEvents(
+  baseline: VariableExpenseBaseline,
+  accountId: string,
+  startISO: string,
+  horizonMonths: number,
+  normal: () => number,
+  rng: () => number,
+): PlannedForecastEvent[] {
+  const model = baseline.occurrenceModel;
+  if (!model) return [];
+  const start = parseISO(startISO);
+  const endExclusive = addMonths(start, horizonMonths);
+  const events: PlannedForecastEvent[] = [];
+
+  for (let m = 0; m < horizonMonths; m++) {
+    const monthDate = addMonths(start, m);
+    const monthKey = format(monthDate, 'yyyy-MM');
+    const target = baseline.monthlyAmounts?.[monthKey] ?? baseline.budgetOverride ?? baseline.monthlyAmount;
+    if (target <= 0) continue;
+
+    const monthStart = startOfMonth(monthDate);
+    const dim = getDaysInMonth(monthDate);
+    const fullWeekdays = Array.from({ length: dim }, (_, k) => getDay(addDays(monthStart, k)));
+
+    // Nur Tage im Horizont (>= start, < endExclusive) emittieren.
+    const emitDates: Date[] = [];
+    const emitWeekdays: number[] = [];
+    for (let k = 0; k < dim; k++) {
+      const d = addDays(monthStart, k);
+      if (d < start || d >= endExclusive) continue;
+      emitDates.push(d);
+      emitWeekdays.push(getDay(d));
+    }
+    if (emitDates.length === 0) continue;
+
+    const daily = sampleOccurrenceMonth(model, fullWeekdays, emitWeekdays, target, normal, rng);
+    daily.forEach((amount, i) => {
+      if (amount <= 0) return;
+      const date = format(emitDates[i], 'yyyy-MM-dd');
+      events.push({
+        id: `occ-${baseline.category}-${date}`,
+        name: baseline.category,
+        amount: -round2(amount),
+        date,
+        accountId,
+      });
+    });
+  }
+
+  return events;
 }
 
 /**
  * Erzeugt eine zufällig perturbierte Kopie des Inputs: variable Ausgaben je
  * Kategorie (um ihren Planwert) und – falls aktiviert – wiederkehrende
  * Einnahmen. Fixkosten/Transfers/Events bleiben unangetastet.
+ *
+ * Mit `occurrenceSampling` werden Baselines, die ein `occurrenceModel` tragen,
+ * stattdessen als spiky Tagesereignisse gezogen (PR 3); alle übrigen behalten
+ * die geglättete Perturbation.
  */
 function perturbInput(
   input: ForecastInput,
   normal: () => number,
+  rng: () => number,
   mc: ResolvedMonteCarloConfig,
   monthKeys: string[],
+  startISO: string,
+  horizonMonths: number,
 ): ForecastInput {
-  const variableExpenses: VariableExpenseBaseline[] = (input.variableExpenses ?? []).map((b) => {
+  const useOccurrence = mc.occurrenceSampling === true;
+  const variableAccountId = useOccurrence ? pickVariableExpenseAccount(input.accounts) : null;
+
+  const variableExpenses: VariableExpenseBaseline[] = [];
+  const occurrenceEvents: PlannedForecastEvent[] = [];
+
+  for (const b of input.variableExpenses ?? []) {
+    // Occurrence-Pfad: Baselines mit Modell werden als Ereignisse gezogen und
+    // verlassen die geglättete Baseline.
+    if (useOccurrence && b.occurrenceModel && variableAccountId) {
+      occurrenceEvents.push(
+        ...buildOccurrenceEvents(b, variableAccountId, startISO, horizonMonths, normal, rng),
+      );
+      continue;
+    }
     const confidenceFloor =
       b.confidence == null ? 0 : b.confidence < 0.6 ? 0.5 : b.confidence < 0.85 ? 0.25 : 0.1;
     const cv = Math.max(mc.variableVolatility ?? b.volatility ?? 0, confidenceFloor);
@@ -100,8 +181,8 @@ function perturbInput(
     const monthlyAmounts = Object.fromEntries(
       monthKeys.map((month) => [month, round2(effective * lognormalMultiplier(normal, cv))]),
     );
-    return { ...b, monthlyAmounts };
-  });
+    variableExpenses.push({ ...b, monthlyAmounts });
+  }
 
   const recurringFlows: RecurringFlow[] = (input.recurringFlows ?? []).map((f) => {
     if (f.amount > 0 && mc.incomeVolatility > 0) {
@@ -111,7 +192,11 @@ function perturbInput(
     return f;
   });
 
-  return { ...input, variableExpenses, recurringFlows };
+  const plannedEvents = occurrenceEvents.length
+    ? [...(input.plannedEvents ?? []), ...occurrenceEvents]
+    : input.plannedEvents;
+
+  return { ...input, variableExpenses, recurringFlows, plannedEvents };
 }
 
 /** Linear interpoliertes Perzentil eines aufsteigend sortierten Arrays. */
@@ -173,7 +258,7 @@ export function runMonteCarloForecast(
 
   for (let t = 0; t < resolvedMc.trials; t++) {
     const result = calculateDeterministicForecast(
-      perturbInput(input, normal, resolvedMc, monthKeys),
+      perturbInput(input, normal, rng, resolvedMc, monthKeys, startDate, horizonMonths),
       config,
     );
     if (!dates) {

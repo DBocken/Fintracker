@@ -18,6 +18,7 @@ import { getCategories, getTransactions } from '@/services/transaction-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
 import { buildDailySpendingProfile } from '@/lib/forecast-profile';
+import { buildOccurrenceModel } from '@/lib/finrisk/occurrence-amount';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { normalizeMerchantName } from '@/services/merchant-normalization';
 import {
@@ -291,6 +292,13 @@ export function buildVariableExpenseBaselines(
     excludedFingerprints: options.excludedFingerprints,
     categoryNames: options.categoryNames,
   });
+  // Occurrence-Amount-Modelle je Kategorie (PR 3) – speisen die spiky
+  // Monte-Carlo-Pfade (nur bei occurrenceSampling wirksam).
+  const occurrenceModels = buildOccurrenceModel(transactions, {
+    now,
+    excludedFingerprints: options.excludedFingerprints,
+    categoryNames: options.categoryNames,
+  });
 
   const baselines: VariableExpenseBaseline[] = [];
   for (const [category, byMonth] of perCategoryMonth) {
@@ -309,6 +317,7 @@ export function buildVariableExpenseBaselines(
       confidence,
       volatility,
       dailyProfile: dailyProfiles.get(category),
+      occurrenceModel: occurrenceModels.get(category),
     });
   }
   // Größte Kategorien zuerst – stabil und gut für die UI.

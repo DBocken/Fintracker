@@ -123,6 +123,19 @@ export interface DailySpendingProfile {
 }
 
 /**
+ * Occurrence-Amount-Modell (PR 3) für spiky variable Buchungslinien. Trennt
+ * „tritt an einem Tag eine Ausgabe auf?" (Wochentags-Wahrscheinlichkeit) von
+ * „wie hoch ist sie?" (Streuung). Speist nur den Monte-Carlo-Pfad – der
+ * deterministische Pfad bleibt das geglättete Tagesprofil.
+ */
+export interface OccurrenceModel {
+  /** P(Ausgabetag | Wochentag), Index = `getDay()` (0 = So … 6 = Sa), je 0..1. */
+  weekdayProb: number[];
+  /** Variationskoeffizient der Ereignisbeträge (lognormale Streuung). */
+  amountCv: number;
+}
+
+/**
  * Variable Ausgaben-Baseline pro Kategorie. Wird getrennt von wiederkehrenden
  * Zahlungen behandelt und in PR1 gleichmäßig über die Tage des Monats verteilt.
  */
@@ -154,6 +167,11 @@ export interface VariableExpenseBaseline {
    * gesetzt ist. Ohne Profil bleibt die bisherige Linearverteilung.
    */
   dailyProfile?: DailySpendingProfile;
+  /**
+   * Optionales Occurrence-Amount-Modell (PR 3) für realistische Spikes im
+   * Monte-Carlo-Pfad. Nur wirksam bei `MonteCarloConfig.occurrenceSampling`.
+   */
+  occurrenceModel?: OccurrenceModel;
 }
 
 /** Einmaliger geplanter Posten (Urlaub, Steuererstattung, Anschaffung …). */
