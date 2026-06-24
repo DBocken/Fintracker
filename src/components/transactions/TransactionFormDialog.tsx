@@ -15,6 +15,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { getAccounts } from "@/services/account-service";
 import { createTransaction, getCategories } from "@/services/transaction-service";
+import { useI18n } from "@/i18n/useI18n";
 import type { Account, Category } from "@/types";
 
 export interface TransactionPrefill {
@@ -51,6 +52,7 @@ export function TransactionFormDialog({
   title,
   onSaved,
 }: TransactionFormDialogProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -98,8 +100,8 @@ export function TransactionFormDialog({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const numeric = Math.abs(parseFloat(amount.replace(",", ".")) || 0);
-      if (numeric <= 0) throw new Error("Bitte einen Betrag größer 0 angeben.");
-      if (!accountId) throw new Error("Bitte ein Konto auswählen.");
+      if (numeric <= 0) throw new Error(t("forms.amountGreaterThanZero", "Bitte einen Betrag größer 0 angeben."));
+      if (!accountId) throw new Error(t("forms.selectAccountRequired", "Bitte ein Konto auswählen."));
       const signed = direction === "expense" ? -numeric : numeric;
       return createTransaction({
         account_id: accountId,
@@ -117,7 +119,7 @@ export function TransactionFormDialog({
       queryClient.invalidateQueries({ queryKey: ["financial-health"] });
       queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      showSuccess("Buchung gespeichert");
+      showSuccess(t("dashboard.updateSuccess", "Buchung gespeichert"));
       onOpenChange(false);
       onSaved?.();
     },
@@ -128,7 +130,7 @@ export function TransactionFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{title ?? "Buchung hinzufügen"}</DialogTitle>
+          <DialogTitle>{title ?? t("forms.addTransaction", "Buchung hinzufügen")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -143,7 +145,7 @@ export function TransactionFormDialog({
             <Label>Konto</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger>
-                <SelectValue placeholder="Konto auswählen" />
+                <SelectValue placeholder={t("forms.selectAccountPlaceholder", "Konto auswählen")} />
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((acc) => (
@@ -202,7 +204,7 @@ export function TransactionFormDialog({
             <Label>Kategorie (optional)</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder="Kategorie auswählen" />
+                <SelectValue placeholder={t("forms.selectCategoryPlaceholder", "Kategorie auswählen")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NO_CATEGORY}>— Keine —</SelectItem>
