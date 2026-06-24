@@ -474,6 +474,7 @@ export default function LiquidityReport() {
                 onDeleteScenario={(id) =>
                   updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
                 }
+                showPresets={false}
               />
               <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
             </div>

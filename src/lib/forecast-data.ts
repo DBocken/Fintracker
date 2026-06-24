@@ -134,7 +134,52 @@ export function buildRecurringFlows(
 }
 
 /**
- * Erkennt Gehalt als eigene Produktdomäne statt als „Einnahmen-Vertrag“.
+ * Baut ALLE erkannten Vertrag-Flows für die UI-Anzeige – unabhängig vom Status.
+ * Beendete/abgelehnte/pausierte Verträge werden mit `disabled: true` markiert,
+ * damit sie sichtbar bleiben, aber nicht in die Prognose einfließen.
+ * Nutzerseitig abgehakte Flows (`enabled: false`) werden EBENFALLS einbezogen
+ * (damit sie in der Liste sichtbar und wieder aktivierbar sind).
+ */
+export function buildAllContractFlowsForDisplay(
+  contracts: ContractRow[],
+  overrides?: Record<string, { enabled?: boolean; amount?: number; endDate?: string }>,
+): RecurringFlow[] {
+  const flows: RecurringFlow[] = [];
+  const INACTIVE_STATUSES = new Set(['ended', 'rejected', 'paused', 'archived']);
+
+  for (const contract of contracts) {
+    const cadence = cycleToCadence(contract.cycle);
+    if (!cadence) continue;
+    const anchorDate = contract.nextDateISO ?? contract.lastDateISO;
+    if (!anchorDate) continue;
+
+    const magnitude = Math.abs(contract.amountRecentTypical ?? contract.amountTypical);
+    const signed = contract.type === 'Einnahme' ? magnitude : -magnitude;
+    const flowOverride = overrides?.[contract.key];
+
+    // Auto-deaktiviert wenn Vertragsstatus inaktiv oder veraltet (stale) – aber
+    // nicht wenn der Nutzer es explizit selbst deaktiviert hat (das wird in der
+    // UI über den Override gesteuert).
+    const autoDisabled = INACTIVE_STATUSES.has(contract.status) || contract.stale;
+
+    flows.push({
+      id: contract.key,
+      name: contract.payee,
+      amount: flowOverride?.amount ?? signed,
+      cadence,
+      anchorDate: anchorDate.slice(0, 10),
+      accountId: '',
+      category: contract.categoryName,
+      confidence: contract.confirmed ? 1 : 0.6,
+      endDate: flowOverride?.endDate,
+      disabled: autoDisabled ? true : undefined,
+    });
+  }
+  return flows;
+}
+
+/**
+ * Erkennt Gehalt als eigene Produktdomäne statt als „Einnahmen-Vertrag”.
  * Gruppiert bewusst nach normalisiertem Arbeitgeber und nicht nach IBAN, weil
  * Bank- und CSV-Importe dieselbe Gehaltsserie sonst in Teilgruppen zerlegen können.
  */
@@ -408,9 +453,21 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     categoryNames: new Map(categories.map((category) => [category.id, category.name])),
   });
 
+  // Alle Vertrags-Flows für die UI (inkl. beendete/pausierte mit disabled-Flag).
+  // Gehalts-Flows werden vorangestellt und danach die Vertragsflows ohne Gehalt.
+  const allContractFlows = buildAllContractFlowsForDisplay(
+    contracts,
+    overrides.recurringFlowOverrides,
+  ).filter((flow) => flow.amount < 0 || !salaryEmployers.has(normalizeMerchantName(flow.name)));
+  const allRecurringFlows = bindFlowsToDefaultAccount(
+    [...salaryFlows, ...allContractFlows],
+    forecastAccounts,
+  );
+
   const seeded: ForecastInput = {
     accounts: forecastAccounts,
     recurringFlows,
+    allRecurringFlows,
     variableExpenses,
   };
 

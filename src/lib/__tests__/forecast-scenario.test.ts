@@ -232,11 +232,65 @@ describe('runScenarioComparison', () => {
 });
 
 describe('buildPresetScenarios', () => {
-  it('liefert benannte Standard-Szenarien mit Modifikatoren', () => {
+  it('liefert alle Standard-Szenarien mit Modifikatoren', () => {
     const presets = buildPresetScenarios(START);
-    expect(presets.map((p) => p.name)).toContain('Jobverlust');
+    const ids = presets.map((p) => p.id);
+    expect(ids).toContain('preset-job-loss');
+    expect(ids).toContain('preset-raise');
+    expect(ids).toContain('preset-job-change');
+    expect(ids).toContain('preset-car-breakdown');
+    expect(ids).toContain('preset-sick-leave');
+    expect(ids).toContain('preset-big-purchase');
     expect(presets.every((p) => p.modifiers.length > 0)).toBe(true);
-    const jobLoss = presets.find((p) => p.id === 'preset-job-loss')!;
-    expect(jobLoss.modifiers[0].fromDate).toBe('2026-04-01'); // +90 Tage
+  });
+
+  it('preset-job-loss: Einnahmen entfallen ab +90 Tage', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-job-loss')!;
+    expect(preset.modifiers[0].percentChange).toBe(-100);
+    expect(preset.modifiers[0].fromDate).toBe('2026-04-01'); // START +90d
+  });
+
+  it('preset-job-change: Einkommen endet ab +30d, neues Gehalt ab +60d', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-job-change')!;
+    expect(preset.modifiers).toHaveLength(2);
+    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -100, fromDate: '2026-01-31' });
+    expect(preset.modifiers[1]).toMatchObject({ type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: '2026-03-02' });
+  });
+
+  it('preset-car-breakdown: Ausgabe in +30d, Erstattung in +120d', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-car-breakdown')!;
+    expect(preset.modifiers).toHaveLength(2);
+    expect(preset.modifiers[0]).toMatchObject({ type: 'oneTime', amount: -2000, date: '2026-01-31' });
+    expect(preset.modifiers[1]).toMatchObject({ type: 'oneTime', amount: 800, date: '2026-05-01' });
+  });
+
+  it('preset-sick-leave: Einnahmen sinken um 30 % ab +42 Tage', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-sick-leave')!;
+    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -30, fromDate: '2026-02-12' });
+  });
+
+  it('preset-sick-leave senkt die Einnahmen messbar im Vergleich zur Basis', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        { id: 'sal', name: 'Gehalt', amount: 3000, cadence: 'monthly', anchorDate: START, accountId: 'giro' },
+      ],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-sick-leave')!;
+    const cmp = runScenarioComparison(input, CONFIG, preset);
+    expect(cmp.endingNetWorth.delta).toBeLessThan(0);
+  });
+
+  it('preset-job-change: nach der Lücke kommt das neue Gehalt an', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        { id: 'sal', name: 'Gehalt', amount: 3000, cadence: 'monthly', anchorDate: START, accountId: 'giro' },
+      ],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-job-change')!;
+    const scenarioInput = applyScenario(input, preset);
+    // Neuer Flow mit 3200 muss vorhanden sein
+    expect(scenarioInput.recurringFlows?.some((f) => f.amount === 3200)).toBe(true);
   });
 });

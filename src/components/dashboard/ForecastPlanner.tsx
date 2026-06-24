@@ -121,21 +121,21 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <Link2Off className="h-4 w-4" /> Wiederkehrende Zahlungen
-                {input && input.recurringFlows && input.recurringFlows.length > 0 && (
+                {input && (input.allRecurringFlows ?? input.recurringFlows) && (input.allRecurringFlows ?? input.recurringFlows)!.length > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    ({input.recurringFlows.length})
+                    ({(input.allRecurringFlows ?? input.recurringFlows)!.length})
                   </span>
                 )}
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
-              {!input || !input.recurringFlows || input.recurringFlows.length === 0 ? (
+              {!input || !(input.allRecurringFlows ?? input.recurringFlows)?.length ? (
                 <p className="text-sm text-muted-foreground">
                   Keine wiederkehrenden Zahlungen gefunden.
                 </p>
               ) : (
                 <RecurringFlowOverrideForm
-                  recurringFlows={input.recurringFlows}
+                  recurringFlows={(input.allRecurringFlows ?? input.recurringFlows)!}
                   overrides={overrides}
                   onChange={onChange}
                 />
@@ -584,6 +584,16 @@ function TransferForm({
   );
 }
 
+const CADENCE_LABELS: Record<string, string> = {
+  weekly: 'Wöchentlich',
+  biweekly: '2-wöchentlich',
+  monthly: 'Monatlich',
+  quarterly: 'Vierteljährlich',
+  semiannual: 'Halbjährlich',
+  annual: 'Jährlich',
+  custom: 'Individuell',
+};
+
 function RecurringFlowOverrideForm({
   recurringFlows,
   overrides,
@@ -600,13 +610,18 @@ function RecurringFlowOverrideForm({
     <div className="space-y-2">
       {recurringFlows.map((flow) => {
         const override = overrides.recurringFlowOverrides[flow.id];
-        const isDisabled = override?.enabled === false;
+        // flow.disabled = auto-deaktiviert durch Vertragsstatus (ended/stale)
+        // override?.enabled === false = nutzerseitig abgehakt
+        const isAutoDisabled = flow.disabled === true;
+        const isUserDisabled = override?.enabled === false;
+        const isDisabled = isAutoDisabled || isUserDisabled;
         const displayAmount = override?.amount ?? flow.amount;
+        const isIncome = displayAmount > 0;
 
         return (
           <div
             key={flow.id}
-            className={`rounded-md border p-3 ${isDisabled ? 'opacity-50' : ''}`}
+            className={`rounded-md border p-3 transition-opacity ${isDisabled ? 'opacity-50' : ''}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -614,7 +629,10 @@ function RecurringFlowOverrideForm({
                   <input
                     type="checkbox"
                     checked={!isDisabled}
+                    disabled={isAutoDisabled}
+                    title={isAutoDisabled ? 'Vertrag ist beendet oder veraltet – Status in Verträge ändern' : undefined}
                     onChange={(e) => {
+                      if (isAutoDisabled) return;
                       const next = { ...overrides.recurringFlowOverrides };
                       if (!e.target.checked) {
                         next[flow.id] = { ...override, enabled: false };
@@ -633,24 +651,30 @@ function RecurringFlowOverrideForm({
                   />
                   <span className="text-sm font-medium">{flow.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {flow.cadence}
+                    {CADENCE_LABELS[flow.cadence] ?? flow.cadence}
                   </span>
+                  {isAutoDisabled && (
+                    <span className="text-xs text-muted-foreground italic">beendet</span>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {eur.format(displayAmount)}
+                <div className={`text-xs mt-1 ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                  {isIncome ? '+' : ''}{eur.format(displayAmount)}
+                  {flow.category && <span className="ml-1 text-muted-foreground">· {flow.category}</span>}
                 </div>
               </div>
 
-              <button
-                onClick={() => setExpandedFlow(expandedFlow === flow.id ? null : flow.id)}
-                className="p-1.5 hover:bg-muted rounded transition-colors"
-                aria-label="Bearbeiten"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
+              {!isAutoDisabled && (
+                <button
+                  onClick={() => setExpandedFlow(expandedFlow === flow.id ? null : flow.id)}
+                  className="p-1.5 hover:bg-muted rounded transition-colors"
+                  aria-label="Bearbeiten"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            {expandedFlow === flow.id && (
+            {expandedFlow === flow.id && !isAutoDisabled && (
               <div className="mt-3 space-y-2 border-t pt-3">
                 <div>
                   <Label className="text-xs">Betrag</Label>

@@ -28,12 +28,12 @@ const eur = new Intl.NumberFormat('de-DE', {
 const today = () => new Date().toISOString().slice(0, 10);
 
 const MODIFIER_LABELS: Record<ScenarioModifierType, string> = {
-  income: 'Einnahmen ändern',
-  expenses: 'Fixkosten ändern',
-  variable: 'Variable Ausgaben ändern',
+  income: 'Einnahmen anpassen',
+  expenses: 'Fixkosten anpassen',
+  variable: 'Grundverbrauch anpassen',
   interest: 'Zinssatz ändern',
-  oneTime: 'Einmaliger Posten',
-  recurring: 'Neue laufende Rate',
+  oneTime: 'Einmalige Zahlung / Einnahme',
+  recurring: 'Neuer / wegfallender Vertrag',
 };
 
 interface Props {
@@ -48,6 +48,12 @@ interface Props {
   customScenarios: ForecastScenario[];
   onAddScenario: (scenario: ForecastScenario) => void;
   onDeleteScenario: (id: string) => void;
+  /**
+   * Blendet die Preset-Auswahl-Buttons aus (default: true).
+   * Im Feineinstellungs-Modus wird stattdessen nur das aktive Szenario als
+   * Badge und der eigene Szenarien-Builder angezeigt.
+   */
+  showPresets?: boolean;
 }
 
 /**
@@ -62,57 +68,80 @@ export default function ScenarioPanel({
   customScenarios,
   onAddScenario,
   onDeleteScenario,
+  showPresets = true,
 }: Props) {
   const [building, setBuilding] = useState(false);
+  const activeScenario = scenarios.find((s) => s.id === activeId) ?? null;
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <FlaskConical className="h-4 w-4" /> Szenarien (Was-wäre-wenn)
+          <FlaskConical className="h-4 w-4" /> {showPresets ? 'Szenarien (Was-wäre-wenn)' : 'Manuelle Anpassungen'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={activeId === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onSelect(null)}
-          >
-            Basis
-          </Button>
-          {scenarios.map((s) => {
-            const isCustom = customScenarios.some((c) => c.id === s.id);
-            return (
-              <span key={s.id} className="flex items-center">
-                <Button
-                  variant={activeId === s.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => onSelect(s.id)}
-                  title={s.description}
-                >
-                  {s.name}
-                </Button>
-                {isCustom && (
+        {showPresets ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={activeId === null ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onSelect(null)}
+            >
+              Basis
+            </Button>
+            {scenarios.map((s) => {
+              const isCustom = customScenarios.some((c) => c.id === s.id);
+              return (
+                <span key={s.id} className="flex items-center">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    aria-label="Szenario löschen"
-                    onClick={() => {
-                      if (activeId === s.id) onSelect(null);
-                      onDeleteScenario(s.id);
-                    }}
+                    variant={activeId === s.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onSelect(s.id)}
+                    title={s.description}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {s.name}
                   </Button>
-                )}
-              </span>
-            );
-          })}
-        </div>
+                  {isCustom && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label="Szenario löschen"
+                      onClick={() => {
+                        if (activeId === s.id) onSelect(null);
+                        onDeleteScenario(s.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {activeScenario ? (
+              <>
+                <Badge variant="secondary">Aktives Szenario: {activeScenario.name}</Badge>
+                <Button variant="ghost" size="sm" onClick={() => onSelect(null)}>
+                  Zurücksetzen
+                </Button>
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground">Kein Szenario aktiv – Basis wird verwendet.</span>
+            )}
+          </div>
+        )}
 
         {comparison && <ComparisonGrid comparison={comparison} />}
+
+        {!showPresets && (
+          <p className="text-xs text-muted-foreground">
+            Diese Anpassungen ergänzen das aktive Szenario (oder die Basisplanung).
+          </p>
+        )}
 
         {building ? (
           <ScenarioBuilder
@@ -127,6 +156,36 @@ export default function ScenarioPanel({
           <Button variant="outline" size="sm" onClick={() => setBuilding(true)}>
             <Plus className="mr-1 h-4 w-4" /> Eigenes Szenario
           </Button>
+        )}
+
+        {!showPresets && customScenarios.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-t pt-2">
+            <span className="text-xs text-muted-foreground">Gespeicherte Szenarien:</span>
+            {customScenarios.map((s) => (
+              <span key={s.id} className="flex items-center">
+                <Button
+                  variant={activeId === s.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onSelect(s.id)}
+                  title={s.description}
+                >
+                  {s.name}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Szenario löschen"
+                  onClick={() => {
+                    if (activeId === s.id) onSelect(null);
+                    onDeleteScenario(s.id);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </span>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>

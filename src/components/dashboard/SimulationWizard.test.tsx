@@ -20,9 +20,12 @@ const input: ForecastInput = {
 };
 
 const scenarios: ForecastScenario[] = [{
-  id: 'preset-inflation',
-  name: 'Inflation +10 %',
-  modifiers: [{ id: 'm1', type: 'variable', percentChange: 10 }],
+  id: 'preset-car-breakdown',
+  name: 'Auto kaputt',
+  modifiers: [
+    { id: 'm1', type: 'oneTime', amount: -2000, date: '2026-07-24', label: 'Reparaturkosten' },
+    { id: 'm2', type: 'oneTime', amount: 800, date: '2026-10-22', label: 'Versicherungserstattung' },
+  ],
 }];
 
 describe('deriveWizardSuggestions', () => {
@@ -56,14 +59,14 @@ describe('SimulationWizard', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /leben teurer/i }));
+    await user.click(screen.getByRole('button', { name: /unerwarteten ausgabe/i }));
     await user.click(screen.getByRole('button', { name: /weiter/i }));
     expect(screen.getByText(/bereits für dich übernommen/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /weiter/i }));
     expect(screen.getByText(/wie vorsichtig/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /simulation starten/i }));
 
-    expect(onScenarioSelect).toHaveBeenCalledWith('preset-inflation');
+    expect(onScenarioSelect).toHaveBeenCalledWith('preset-car-breakdown');
     expect(onSafetyBufferChange).toHaveBeenCalledWith(1000);
     expect(onMonteCarloChange).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
     expect(screen.getByText(/simulation ist vorbereitet/i)).toBeInTheDocument();
