@@ -36,6 +36,7 @@ import MonteCarloPanel, {
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import SimulationWizard from '@/components/dashboard/SimulationWizard';
+import FinRiskSection from '@/components/dashboard/finrisk/FinRiskSection';
 import { applyScenario, buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
 
@@ -477,6 +478,14 @@ export default function LiquidityReport() {
               <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
             </div>
           </details>
+
+          <FinRiskSection
+            input={input}
+            months={months}
+            safetyBuffer={safetyBuffer}
+            bufferBasis={bufferBasis}
+            startISO={forecast.config.startDate}
+          />
         </section>
       </FeatureGate>
 
