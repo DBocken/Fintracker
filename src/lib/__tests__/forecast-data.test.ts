@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildVariableExpenseBaselines,
   buildRecurringFlows,
+  buildAllContractFlowsForDisplay,
   buildDetectedSalaryFlows,
   cycleToCadence,
   accountTypeToKind,
@@ -152,6 +153,77 @@ describe('buildRecurringFlows', () => {
     const endedSalary = { ...row('ended'), type: 'Einnahme' as const };
     const staleSalary = { ...row('candidate'), type: 'Einnahme' as const, stale: true };
     expect(buildRecurringFlows([endedSalary, staleSalary])).toEqual([]);
+  });
+});
+
+describe('buildAllContractFlowsForDisplay', () => {
+  const makeRow = (status: ContractRow['status'], extra: Partial<ContractRow> = {}): ContractRow => ({
+    key: `contract-${status}`,
+    type: 'Ausgabe',
+    payee: 'Netflix',
+    categoryName: 'Streaming',
+    categoryId: null,
+    amountTypical: 20,
+    amountLast: 20,
+    cycle: 'Monatlich',
+    lastDateISO: '2026-06-01',
+    firstDateISO: '2026-01-01',
+    nextDateISO: '2026-07-01',
+    changed: false,
+    changeAmount: 0,
+    changeSinceLabel: null,
+    confirmed: false,
+    transactionIds: [],
+    fingerprint: `merchant:netflix|out`,
+    status,
+    stale: false,
+    cycleKnown: true,
+    ...extra,
+  });
+
+  it('sollte aktive Verträge ohne disabled-Flag zurückgeben', () => {
+    const result = buildAllContractFlowsForDisplay([makeRow('active')]);
+    expect(result).toHaveLength(1);
+    expect(result[0].disabled).toBeUndefined();
+    expect(result[0].amount).toBe(-20);
+  });
+
+  it('sollte beendete Verträge als disabled markieren statt sie auszuschließen', () => {
+    const result = buildAllContractFlowsForDisplay([makeRow('ended')]);
+    expect(result).toHaveLength(1);
+    expect(result[0].disabled).toBe(true);
+  });
+
+  it('[REGRESSION] sollte abgelehnte und pausierte Verträge als disabled markieren', () => {
+    const rejected = buildAllContractFlowsForDisplay([makeRow('rejected')]);
+    const paused = buildAllContractFlowsForDisplay([makeRow('paused')]);
+    expect(rejected[0].disabled).toBe(true);
+    expect(paused[0].disabled).toBe(true);
+  });
+
+  it('sollte veraltete (stale) Verträge als disabled markieren', () => {
+    const result = buildAllContractFlowsForDisplay([makeRow('candidate', { stale: true })]);
+    expect(result).toHaveLength(1);
+    expect(result[0].disabled).toBe(true);
+  });
+
+  it('[REGRESSION] sollte nutzerseitig deaktivierte Flows trotzdem anzeigen (nicht ausfiltern)', () => {
+    const overrides = { 'contract-active': { enabled: false as const } };
+    const result = buildAllContractFlowsForDisplay([makeRow('active')], overrides);
+    // Muss sichtbar bleiben – die Checkbox-Logik in der UI filtert via override
+    expect(result).toHaveLength(1);
+    expect(result[0].disabled).toBeUndefined(); // kein auto-disabled, nur user-disabled
+  });
+
+  it('sollte Einnahme-Verträge korrekt als positive Beträge darstellen', () => {
+    const incomeRow = makeRow('active', { type: 'Einnahme', amountTypical: 4000 });
+    const result = buildAllContractFlowsForDisplay([incomeRow]);
+    expect(result[0].amount).toBe(4000); // positiv = Einnahme
+  });
+
+  it('sollte Verträge ohne bekannten Zyklus ausschließen', () => {
+    const result = buildAllContractFlowsForDisplay([makeRow('active', { cycle: 'Unbekannt', cycleKnown: false })]);
+    expect(result).toHaveLength(0);
   });
 });
 

@@ -87,6 +87,12 @@ export interface RecurringFlow {
   endDate?: string;
   /** Erkennungsqualität 0..1 (nur Metadatum, beeinflusst PR1-Logik nicht). */
   confidence?: number;
+  /**
+   * Auto-deaktiviert durch Vertragsstatus (ended/rejected/paused/stale).
+   * Flows mit disabled=true fließen NICHT in die Prognose ein, werden aber
+   * in der UI angezeigt, damit der Nutzer den Zustand sieht.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -215,7 +221,13 @@ export interface SinkingFund {
 /** Gesamteingabe der Engine – idealerweise auto-seeded aus echten Services. */
 export interface ForecastInput {
   accounts: ForecastAccount[];
+  /** Aktive Flows für die Prognose-Engine (ohne disabled-Flows). */
   recurringFlows?: RecurringFlow[];
+  /**
+   * Alle erkannten Flows inkl. deaktivierter (ended, rejected, paused, stale,
+   * nutzerseitig abgehakt). Nur für die UI – die Engine nutzt `recurringFlows`.
+   */
+  allRecurringFlows?: RecurringFlow[];
   transfers?: ForecastTransfer[];
   variableExpenses?: VariableExpenseBaseline[];
   plannedEvents?: PlannedForecastEvent[];
