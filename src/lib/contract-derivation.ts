@@ -178,7 +178,9 @@ export function computeContracts(
       cycle = rhythmusToCycle(cat.attributes.rhythmus, cycle);
     }
 
-    const isLikelyContract = cycle !== "Unbekannt" && stddev <= Math.max(1, median * 0.03);
+    // 20 % Streuungstoleranz: erfasst saisonale Schwankungen (Energie, Wasser)
+    // und Gehaltsanpassungen, ohne wirklich unregelmäßige Zahlungen fälschlich einzuschließen.
+    const isLikelyContract = cycle !== "Unbekannt" && stddev <= Math.max(1, median * 0.20);
     if (!isLikelyContract && !explicit && !decision) return;
 
     const last = sorted[sorted.length - 1];

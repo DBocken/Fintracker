@@ -144,4 +144,34 @@ describe("computeContracts status awareness", () => {
     expect(rows[0].stale).toBe(true);
     expect(isActiveForTotals(rows[0])).toBe(false);
   });
+
+  it("[REGRESSION] erkennt Energieversorger mit Abschlagserhöhung als Kandidat", () => {
+    // Typisches Stadtwerke-Modell: monatlicher Abschlag, Erhöhung nach 3 Monaten (~15 % Anstieg)
+    const series = [
+      tx({ id: "e1", payee: "Stadtwerke", amount: -150, date: "2024-01-15" }),
+      tx({ id: "e2", payee: "Stadtwerke", amount: -150, date: "2024-02-15" }),
+      tx({ id: "e3", payee: "Stadtwerke", amount: -150, date: "2024-03-15" }),
+      tx({ id: "e4", payee: "Stadtwerke", amount: -175, date: "2024-04-15" }),
+      tx({ id: "e5", payee: "Stadtwerke", amount: -175, date: "2024-05-15" }),
+    ];
+    // median = 150, stddev ≈ 12 (8 % von median) → sollte mit 20 %-Schwelle erkannt werden
+    const rows = computeContracts(series, cats, "Ausgabe", { now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cycle).toBe("Monatlich");
+    expect(rows[0].status).toBe("candidate");
+  });
+
+  it("[REGRESSION] Gehaltsbuchung mit Betragswechsel wird weiterhin erkannt", () => {
+    // Gehalt: 6 Monate 4044€, dann 5 Monate 4028€ → stddev ≈ 8€ << 20% × 4035€
+    const dates = [
+      "2023-08-28", "2023-09-29", "2023-10-29", "2023-11-27", "2023-12-29",
+      "2024-01-28", "2024-02-27", "2024-03-30", "2024-04-29", "2024-05-28",
+    ];
+    const salary = dates.map((date, i) =>
+      tx({ id: `s-${i}`, payee: "Arbeitgeber AG", amount: i < 5 ? 4044.26 : 4028.48, date })
+    );
+    const rows = computeContracts(salary, cats, "Einnahme", { now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cycle).toBe("Monatlich");
+  });
 });
