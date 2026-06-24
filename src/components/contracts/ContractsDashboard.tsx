@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { showSuccess, showError } from "@/utils/toast";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { getTransactions, getCategories } from "@/services/transaction-service";
+import { applyDetectedContracts } from "@/services/contract-detection-service";
 import {
   getContractDecisionMap,
   CONTRACT_STATUS_LABELS,
@@ -49,9 +52,20 @@ export function ContractsDashboard() {
     return m;
   }, [categories]);
 
+  const queryClient = useQueryClient();
+
+  const rescanMutation = useMutation({
+    mutationFn: applyDetectedContracts,
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
+      showSuccess(count > 0 ? `${count} Buchungen als Verträge erkannt` : "Keine neuen Verträge gefunden");
+    },
+    onError: () => showError("Neueinlesen fehlgeschlagen"),
+  });
+
   const [onlyChanges, setOnlyChanges] = useState(false);
   const [viewMode, setViewMode] = useState<"monthly" | "yearly">("monthly");
-  const [showEnded, setShowEnded] = useState(false);
+  const [showEnded, setShowEnded] = useState(true);
   const [detailRow, setDetailRow] = useState<ContractRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -267,9 +281,19 @@ export function ContractsDashboard() {
           {/* Aktive Verträge */}
           <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
             <h3 className="text-sm font-semibold text-muted-foreground">Aktive Verträge ({activeRows.length})</h3>
-            <div className="flex items-center gap-2">
-              <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
-              <span className="text-sm text-muted-foreground">Nur Veränderungen zeigen</span>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={rescanMutation.isPending}
+                onClick={() => rescanMutation.mutate()}
+              >
+                {rescanMutation.isPending ? "Einlesen…" : "Verträge neu einlesen"}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
+                <span className="text-sm text-muted-foreground">Nur Veränderungen zeigen</span>
+              </div>
             </div>
           </div>
 
