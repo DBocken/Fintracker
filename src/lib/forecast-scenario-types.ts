@@ -19,12 +19,28 @@ import type { RecurringCadence } from './forecast-types';
 
 /** Art eines Szenario-Modifikators. */
 export type ScenarioModifierType =
-  | 'income' // skaliert Einnahmen (positive Flows)
-  | 'expenses' // skaliert fixe Ausgaben (negative Flows)
+  | 'income' // skaliert ALLE Einnahmen (positive Flows) – grobe Sammeländerung
+  | 'expenses' // skaliert ALLE fixe Ausgaben (negative Flows) – grobe Sammeländerung
   | 'variable' // skaliert die variable Ausgaben-Baseline
   | 'interest' // verändert Zinssätze (Prozentpunkte, absolut)
   | 'oneTime' // einmaliger Schock (geplanter Posten)
-  | 'recurring'; // neue wiederkehrende Verpflichtung
+  | 'recurring' // neue wiederkehrende Verpflichtung
+  | 'flow'; // skaliert/deaktiviert konkrete, erkannte Einträge (Gehalt, Unterhalt …)
+
+/**
+ * Auswahlregel für `flow`-Modifikatoren. Ein Jobverlust ist eben *nicht*
+ * „alle Einnahmen −100 %" (Nebenjob/Unterhalt blieben ja), sondern „der größte
+ * erkannte Einkommens-Eintrag fällt weg". Deshalb treffen Szenarien konkrete
+ * Einträge statt pauschaler Prozentsätze:
+ *  - `ids`: explizite Flow-IDs (was der Editor speichert).
+ *  - `largestIncome`: der größte (monatlich normierte) Einkommens-Eintrag.
+ *  - `keyword`: Einträge, deren Name/Kategorie das Schlüsselwort enthält
+ *    (z. B. „unterhalt"), optional gefiltert nach Richtung.
+ */
+export type FlowSelector =
+  | { kind: 'ids'; ids: string[] }
+  | { kind: 'largestIncome' }
+  | { kind: 'keyword'; keyword: string; direction?: 'income' | 'expense' };
 
 /**
  * Ein einzelner Modifikator. Welche Felder relevant sind, hängt vom `type` ab:
@@ -32,6 +48,8 @@ export type ScenarioModifierType =
  *  - interest: `amount` als Prozentpunkt-Delta (z. B. +1.5).
  *  - oneTime: `amount` (signiert) + `date` + optional `accountId`.
  *  - recurring: `amount` (signiert) + `cadence` + `anchorDate` + optional `accountId`.
+ *  - flow: `flowSelector` (welche Einträge) + `factor` (0 = aus, 0.7 = −30 %)
+ *    und optional `fromDate`.
  */
 export interface ScenarioModifier {
   id: string;
@@ -43,7 +61,14 @@ export interface ScenarioModifier {
    * Prozentpunkt-Delta für interest.
    */
   amount?: number;
-  /** Wirksam ab diesem Datum (income/expenses) – davor gilt der Originalwert. */
+  /** Für `flow`: welche erkannten Einträge getroffen werden. */
+  flowSelector?: FlowSelector;
+  /**
+   * Für `flow`: Faktor auf die getroffenen Einträge. 0 = Eintrag entfällt,
+   * 0.7 = auf 70 % (Krankengeld), 1.05 = +5 % (Gehaltserhöhung).
+   */
+  factor?: number;
+  /** Wirksam ab diesem Datum (income/expenses/flow) – davor gilt der Originalwert. */
   fromDate?: string;
   /** Anzeigename für oneTime/recurring. */
   label?: string;

@@ -21,10 +21,12 @@ import type {
   VariableExpenseBaseline,
 } from './forecast-types';
 import type {
+  FlowSelector,
   ForecastScenario,
   ScenarioComparison,
   ScenarioMetricDelta,
 } from './forecast-scenario-types';
+import type { RecurringCadence } from './forecast-types';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -38,6 +40,59 @@ function pickDefaultAccount(accounts: ForecastAccount[]): string | null {
   return (operating ?? accounts[0])?.id ?? null;
 }
 
+/** Normiert einen Flow-Betrag auf einen Monatswert – für „größter Eintrag". */
+function monthlyMagnitude(flow: RecurringFlow): number {
+  const factorByCadence: Record<RecurringCadence, number> = {
+    weekly: 52 / 12,
+    biweekly: 26 / 12,
+    monthly: 1,
+    quarterly: 1 / 3,
+    semiannual: 1 / 6,
+    annual: 1 / 12,
+    custom: 30 / Math.max(1, flow.intervalDays ?? 30),
+  };
+  return Math.abs(flow.amount) * factorByCadence[flow.cadence];
+}
+
+/**
+ * Löst eine {@link FlowSelector} gegen die aktuellen Flows auf und liefert die
+ * Menge der getroffenen Flow-IDs. So treffen Szenarien konkrete Einträge:
+ *  - `ids`: genau diese IDs.
+ *  - `largestIncome`: der größte (monatlich normierte) Einkommens-Eintrag –
+ *    ein Jobverlust trifft das Hauptgehalt, nicht zusätzlich den Nebenjob.
+ *  - `keyword`: Einträge, deren Name oder Kategorie das Schlüsselwort enthält.
+ */
+export function resolveFlowSelector(
+  selector: FlowSelector,
+  flows: RecurringFlow[],
+): Set<string> {
+  switch (selector.kind) {
+    case 'ids':
+      return new Set(selector.ids);
+
+    case 'largestIncome': {
+      let best: RecurringFlow | null = null;
+      for (const flow of flows) {
+        if (flow.amount <= 0) continue;
+        if (!best || monthlyMagnitude(flow) > monthlyMagnitude(best)) best = flow;
+      }
+      return best ? new Set([best.id]) : new Set();
+    }
+
+    case 'keyword': {
+      const needle = selector.keyword.toLowerCase();
+      const ids = new Set<string>();
+      for (const flow of flows) {
+        if (selector.direction === 'income' && flow.amount <= 0) continue;
+        if (selector.direction === 'expense' && flow.amount >= 0) continue;
+        const haystack = `${flow.name} ${flow.category ?? ''}`.toLowerCase();
+        if (haystack.includes(needle)) ids.add(flow.id);
+      }
+      return ids;
+    }
+  }
+}
+
 /**
  * Skaliert die Flows, die `predicate` erfüllen, um `factor`. Mit `fromDate`
  * wird der Flow am Stichtag gesplittet: das Original endet am Vortag, ein
@@ -49,18 +104,20 @@ function pickDefaultAccount(accounts: ForecastAccount[]): string | null {
  */
 function scaleFlows(
   flows: RecurringFlow[],
-  predicate: (amount: number) => boolean,
+  predicate: (flow: RecurringFlow) => boolean,
   factor: number,
   fromDate?: string,
 ): RecurringFlow[] {
   const out: RecurringFlow[] = [];
   for (const flow of flows) {
-    if (!predicate(flow.amount)) {
+    if (!predicate(flow)) {
       out.push(flow);
       continue;
     }
     if (!fromDate) {
-      out.push({ ...flow, amount: round2(flow.amount * factor) });
+      // Faktor 0 = der Eintrag entfällt vollständig (kein Null-Flow, der in der
+      // UI weiter als „aktiv mit 0 €" auftauchen würde).
+      if (factor !== 0) out.push({ ...flow, amount: round2(flow.amount * factor) });
       continue;
     }
 
@@ -115,7 +172,7 @@ export function applyScenario(
       case 'income':
         recurringFlows = scaleFlows(
           recurringFlows,
-          (a) => a > 0,
+          (f) => f.amount > 0,
           1 + (mod.percentChange ?? 0) / 100,
           mod.fromDate,
         );
@@ -124,11 +181,27 @@ export function applyScenario(
       case 'expenses':
         recurringFlows = scaleFlows(
           recurringFlows,
-          (a) => a < 0,
+          (f) => f.amount < 0,
           1 + (mod.percentChange ?? 0) / 100,
           mod.fromDate,
         );
         break;
+
+      case 'flow': {
+        // Konkrete Einträge treffen (Gehalt, Unterhalt …) statt pauschaler
+        // Prozentsätze. Ohne Treffer ist der Modifikator ein No-Op – wer keinen
+        // Unterhalt bezieht, dessen „Unterhalt fällt weg" ändert nichts.
+        if (!mod.flowSelector) break;
+        const targetIds = resolveFlowSelector(mod.flowSelector, recurringFlows);
+        if (targetIds.size === 0) break;
+        recurringFlows = scaleFlows(
+          recurringFlows,
+          (f) => targetIds.has(f.id),
+          mod.factor ?? 0,
+          mod.fromDate,
+        );
+        break;
+      }
 
       case 'variable':
         variableExpenses = scaleVariable(variableExpenses, 1 + (mod.percentChange ?? 0) / 100);
@@ -262,23 +335,25 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
     {
       id: 'preset-job-loss',
       name: 'Jobverlust',
-      description: 'Einnahmen entfallen ab in 3 Monaten.',
+      description: 'Das Haupteinkommen entfällt ab in 3 Monaten – andere Einnahmen bleiben.',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -100, fromDate: in90 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: in90 },
       ],
     },
     {
       id: 'preset-raise',
       name: 'Gehaltserhöhung +5 %',
-      description: 'Alle Einnahmen steigen dauerhaft um 5 %.',
-      modifiers: [{ id: 'm1', type: 'income', percentChange: 5 }],
+      description: 'Das Haupteinkommen steigt dauerhaft um 5 %.',
+      modifiers: [
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 1.05 },
+      ],
     },
     {
       id: 'preset-job-change',
       name: 'Jobwechsel',
-      description: 'Altes Einkommen endet, neues startet nach einer kurzen Pause.',
+      description: 'Das alte Haupteinkommen endet, ein neues startet nach einer kurzen Pause.',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -100, fromDate: in30 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: in30 },
         { id: 'm2', type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: in60, label: 'Neues Gehalt' },
       ],
     },
@@ -296,7 +371,7 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
       name: 'Krankenausfall',
       description: 'Nach 6 Wochen Krankenstand: Krankengeld statt Gehalt (ca. 70 %).',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -30, fromDate: in42 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.7, fromDate: in42 },
       ],
     },
     {
@@ -318,17 +393,17 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
     {
       id: 'preset-parental-leave',
       name: 'Elternzeit',
-      description: 'Elterngeld ersetzt nur ~65 % des letzten Nettogehalts – Einnahmen sinken dauerhaft bis Rückkehr.',
+      description: 'Elterngeld ersetzt nur ~65 % des letzten Nettogehalts – das Haupteinkommen sinkt bis zur Rückkehr.',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -35, fromDate: in30 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.65, fromDate: in30 },
       ],
     },
     {
       id: 'preset-alimony-loss',
       name: 'Unterhalt fällt weg',
-      description: 'Unterhaltszahlungen bleiben aus – Einnahmen sinken um ca. 20 %.',
+      description: 'Die erkannte Unterhaltszahlung bleibt aus – nur dieser Eintrag entfällt.',
       modifiers: [
-        { id: 'm1', type: 'income', percentChange: -20, fromDate: in14 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'keyword', keyword: 'unterhalt', direction: 'income' }, factor: 0, fromDate: in14 },
       ],
     },
   ];

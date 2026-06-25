@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
 import type { ForecastScenario, ScenarioComparison } from '@/lib/forecast-scenario-types';
+import { resolveFlowSelector } from '@/lib/forecast-scenario';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -67,11 +69,27 @@ interface RecurringEntry {
   anchorDate: string;
   label: string;
 }
+/**
+ * Ein konkreter erkannter Eintrag (Gehalt, Unterhalt, Miete …) als an-/
+ * abschaltbarer Szenario-Hebel. `factorPct` 100 = unverändert, 0 = entfällt,
+ * 70 = auf 70 % (z. B. Krankengeld). So trifft ein Szenario echte Posten statt
+ * pauschaler Prozentsätze.
+ */
+interface FlowEntry {
+  id: string;
+  name: string;
+  /** Auf den Monat normierter, signierter Betrag (nur Anzeige). */
+  monthlyAmount: number;
+  isIncome: boolean;
+  factorPct: number;
+  fromDate: string;
+}
 interface ParamForm {
   income: { pct: number; fromDate: string };
   expenses: { pct: number; fromDate: string };
   variable: { pct: number };
   interest: { delta: number };
+  flows: FlowEntry[];
   oneTime: OneTimeEntry[];
   recurring: RecurringEntry[];
 }
@@ -82,9 +100,38 @@ function emptyForm(): ParamForm {
     expenses: { pct: 0, fromDate: '' },
     variable: { pct: 0 },
     interest: { delta: 0 },
+    flows: [],
     oneTime: [],
     recurring: [],
   };
+}
+
+/**
+ * Baut die an-/abschaltbaren Einträge aus den echten erkannten Flows: Einnahmen
+ * zuerst, danach Ausgaben, je absteigend nach Betrag. Anfangs steht jeder
+ * Eintrag auf 100 % (unverändert).
+ */
+function baseFlowEntries(input: ForecastInput | null): FlowEntry[] {
+  if (!input?.recurringFlows) return [];
+  return input.recurringFlows
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      monthlyAmount: Math.round(f.amount * monthlyFactor(f.cadence, f.intervalDays)),
+      isIncome: f.amount > 0,
+      factorPct: 100,
+      fromDate: '',
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.isIncome) - Number(a.isIncome) ||
+        Math.abs(b.monthlyAmount) - Math.abs(a.monthlyAmount),
+    );
+}
+
+/** Neutrales Formular inkl. der realen Einträge (alle auf 100 %). */
+function neutralForm(input: ForecastInput | null): ParamForm {
+  return { ...emptyForm(), flows: baseFlowEntries(input) };
 }
 
 let entryCounter = 0;
@@ -93,9 +140,15 @@ function nextLocalId(): string {
   return `entry-${Date.now()}-${entryCounter}`;
 }
 
-/** Baut aus einem Preset/Szenario das volle Parameter-Formular. */
-function scenarioToForm(scenario: ForecastScenario): ParamForm {
-  const form = emptyForm();
+/**
+ * Baut aus einem Preset/Szenario das volle Parameter-Formular. `flow`-
+ * Modifikatoren werden gegen die echten Flows aufgelöst, damit der Nutzer
+ * sieht, WELCHER konkrete Eintrag betroffen ist (z. B. „Jobverlust" → das
+ * Hauptgehalt steht auf 0 %).
+ */
+function scenarioToForm(scenario: ForecastScenario, input: ForecastInput | null): ParamForm {
+  const form = neutralForm(input);
+  const realFlows = input?.recurringFlows ?? [];
   for (const m of scenario.modifiers) {
     switch (m.type) {
       case 'income':
@@ -110,6 +163,15 @@ function scenarioToForm(scenario: ForecastScenario): ParamForm {
       case 'interest':
         form.interest = { delta: m.amount ?? 0 };
         break;
+      case 'flow': {
+        if (!m.flowSelector) break;
+        const targetIds = resolveFlowSelector(m.flowSelector, realFlows);
+        const factorPct = Math.round((m.factor ?? 0) * 100);
+        form.flows = form.flows.map((fl) =>
+          targetIds.has(fl.id) ? { ...fl, factorPct, fromDate: m.fromDate ?? '' } : fl,
+        );
+        break;
+      }
       case 'oneTime':
         form.oneTime.push({
           localId: m.id || nextLocalId(),
@@ -156,6 +218,17 @@ function formToScenario(form: ParamForm, id: string, name: string, description?:
     modifiers.push({ id: 'variable', type: 'variable', percentChange: form.variable.pct });
   if (form.interest.delta !== 0)
     modifiers.push({ id: 'interest', type: 'interest', amount: form.interest.delta });
+  for (const fl of form.flows) {
+    // Nur abweichende Einträge werden zu Modifikatoren – 100 % = unverändert.
+    if (fl.factorPct !== 100)
+      modifiers.push({
+        id: `flow-${fl.id}`,
+        type: 'flow',
+        flowSelector: { kind: 'ids', ids: [fl.id] },
+        factor: fl.factorPct / 100,
+        fromDate: fl.fromDate || undefined,
+      });
+  }
   for (const e of form.oneTime) {
     if (e.amount !== 0 && e.date)
       modifiers.push({ id: e.localId, type: 'oneTime', amount: e.amount, date: e.date, label: e.label || undefined });
@@ -209,7 +282,7 @@ export default function ScenarioExplorer({
 }: Props) {
   // Aktuelle Auswahl: null = Basis; sonst id + Name + (optional) Beschreibung.
   const [selected, setSelected] = useState<{ id: string; name: string; description?: string } | null>(null);
-  const [form, setForm] = useState<ParamForm>(emptyForm());
+  const [form, setForm] = useState<ParamForm>(() => neutralForm(input));
   const [isCustom, setIsCustom] = useState(false);
 
   const basePreset = useMemo(
@@ -218,7 +291,7 @@ export default function ScenarioExplorer({
   );
   const isEdited = useMemo(() => {
     if (!selected || !basePreset) return isCustom && !isFormEmpty(form);
-    const baseForm = personalizeForm(scenarioToForm(basePreset), input);
+    const baseForm = personalizeForm(scenarioToForm(basePreset, input), input);
     return JSON.stringify(form) !== JSON.stringify(baseForm);
   }, [selected, basePreset, form, input, isCustom]);
 
@@ -233,12 +306,12 @@ export default function ScenarioExplorer({
   const selectBase = () => {
     setSelected(null);
     setIsCustom(false);
-    setForm(emptyForm());
+    setForm(neutralForm(input));
     onApply(null);
   };
 
   const selectPreset = (preset: ForecastScenario) => {
-    const personalized = personalizeForm(scenarioToForm(preset), input);
+    const personalized = personalizeForm(scenarioToForm(preset, input), input);
     const sel = { id: preset.id, name: preset.name, description: preset.description };
     setSelected(sel);
     setIsCustom(false);
@@ -250,8 +323,8 @@ export default function ScenarioExplorer({
     const sel = { id: `custom-${Date.now()}`, name: 'Eigenes Szenario' };
     setSelected(sel);
     setIsCustom(true);
-    setForm(emptyForm());
-    onApply(null); // leeres Formular = Basis, bis der Nutzer etwas setzt
+    setForm(neutralForm(input));
+    onApply(null); // neutrales Formular = Basis, bis der Nutzer etwas setzt
   };
 
   const update = (patch: (f: ParamForm) => ParamForm) => {
@@ -264,7 +337,7 @@ export default function ScenarioExplorer({
 
   const resetToPreset = () => {
     if (!basePreset) return;
-    const personalized = personalizeForm(scenarioToForm(basePreset), input);
+    const personalized = personalizeForm(scenarioToForm(basePreset, input), input);
     setForm(personalized);
     apply(personalized, selected);
   };
@@ -409,6 +482,44 @@ export default function ScenarioExplorer({
                 </Field>
               </ParamGroup>
             </div>
+
+            {/* Konkrete erkannte Einträge an-/abschalten – der Kern: ein Jobverlust
+                trifft genau das Hauptgehalt, nicht pauschal „alle Einnahmen". */}
+            {form.flows.length > 0 && (
+              <div className="space-y-3 rounded-lg border bg-background p-3">
+                <div>
+                  <div className="text-sm font-medium">Erkannte Einträge an- oder abschalten</div>
+                  <div className="text-xs text-muted-foreground">
+                    Schalte einzelne Einnahmen oder Verträge ab oder reduziere sie. Beispiel-Szenarien
+                    markieren automatisch den passenden Eintrag (z. B. das größte Einkommen bei „Jobverlust").
+                  </div>
+                </div>
+
+                {(['income', 'expense'] as const).map((side) => {
+                  const rows = form.flows.filter((fl) => (side === 'income' ? fl.isIncome : !fl.isIncome));
+                  if (rows.length === 0) return null;
+                  return (
+                    <div key={side} className="space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        {side === 'income' ? 'Einnahmen' : 'Verträge & Fixkosten'}
+                      </div>
+                      {rows.map((fl) => (
+                        <FlowRow
+                          key={fl.id}
+                          entry={fl}
+                          onChange={(patch) =>
+                            update((f) => ({
+                              ...f,
+                              flows: f.flows.map((x) => (x.id === fl.id ? { ...x, ...patch } : x)),
+                            }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Einmalige Posten */}
             <ListGroup
@@ -576,6 +687,62 @@ export default function ScenarioExplorer({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Eine Zeile je erkanntem Eintrag: an/aus per Schalter plus optionale Reduktion
+ * in % und „ab Datum". Aus = 0 % (Eintrag entfällt), 100 % = unverändert.
+ */
+function FlowRow({
+  entry,
+  onChange,
+}: {
+  entry: FlowEntry;
+  onChange: (patch: Partial<FlowEntry>) => void;
+}) {
+  const active = entry.factorPct > 0;
+  const reduced = active && entry.factorPct !== 100;
+  return (
+    <div className="rounded-lg border bg-muted/20 p-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{entry.name}</div>
+          <div className="text-xs text-muted-foreground tabular-nums">
+            {eur.format(entry.monthlyAmount)} / Monat
+            {reduced && <span className="ml-1 text-amber-600 dark:text-amber-400">→ {entry.factorPct} %</span>}
+            {!active && <span className="ml-1 text-destructive">entfällt</span>}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-xs text-muted-foreground">{active ? 'aktiv' : 'aus'}</span>
+          <Switch
+            checked={active}
+            aria-label={`${entry.name} ${active ? 'abschalten' : 'aktivieren'}`}
+            onCheckedChange={(on) => onChange({ factorPct: on ? 100 : 0 })}
+          />
+        </div>
+      </div>
+      {active && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <Field label="Anteil in % (100 = unverändert)">
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={entry.factorPct}
+              onChange={(e) => onChange({ factorPct: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="Wirksam ab (optional)">
+            <Input
+              type="date"
+              value={entry.fromDate}
+              onChange={(e) => onChange({ fromDate: e.target.value })}
+            />
+          </Field>
+        </div>
+      )}
+    </div>
   );
 }
 
