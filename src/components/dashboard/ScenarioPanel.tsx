@@ -135,7 +135,7 @@ export default function ScenarioPanel({
           </div>
         )}
 
-        {comparison && <ComparisonGrid comparison={comparison} />}
+        {comparison && showPresets && <ComparisonGrid comparison={comparison} />}
 
         {!showPresets && (
           <p className="text-xs text-muted-foreground">
