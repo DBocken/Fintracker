@@ -33,7 +33,6 @@ import MonteCarloPanel, {
   type MonteCarloSettings,
 } from '@/components/dashboard/MonteCarloPanel';
 import { FeatureGate } from '@/components/FeatureGate';
-import { Switch } from '@/components/ui/switch';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import ScenarioExplorer from '@/components/dashboard/ScenarioExplorer';
 import FinRiskSection from '@/components/dashboard/finrisk/FinRiskSection';
@@ -154,9 +153,12 @@ export default function LiquidityReport() {
     [input, activeScenario],
   );
 
-  // Monte Carlo (Stufe 4): stochastische Bandbreite, hinter einem Schalter.
+  // Monte Carlo (Stufe 4): stochastische Bandbreite. Standardmäßig an – die
+  // eigentliche Simulation über X Durchläufe ist das Herzstück der Seite und
+  // soll die Wahrscheinlichkeitsverteilung sofort zeigen (Web-Worker, blockiert
+  // das UI nicht).
   const [mcSettings, setMcSettings] = useState<MonteCarloSettings>({
-    enabled: false,
+    enabled: true,
     trials: 500,
     incomeUncertain: false,
   });
@@ -460,39 +462,27 @@ export default function LiquidityReport() {
             }
           />
 
-          {/* Die wertvollen Spezialanalysen bleiben erhalten, aber gebündelt und
-              einklappbar – damit die Hauptansicht genau eine Grafik zeigt. */}
+          {/* Die eigentliche Simulation: Wahrscheinlichkeitsverteilung des aktiven
+              Szenarios über X Durchläufe (Gradient-Band). Prominent statt versteckt. */}
+          <MonteCarloPanel
+            settings={mcSettings}
+            onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+            result={monteCarlo}
+            isCalculating={isMonteCarloCalculating}
+            safetyBuffer={safetyBuffer}
+            contextLabel={activeScenario?.name ?? 'Basisplanung'}
+          />
+
+          {/* Die übrigen Spezialanalysen bleiben erhalten, aber gebündelt und
+              einklappbar – damit die Hauptansicht fokussiert bleibt. */}
           <details className="group rounded-xl border bg-card">
             <summary className="cursor-pointer list-none px-4 py-3 font-medium">
               Erweiterte Analysen{' '}
               <span className="ml-1 text-sm font-normal text-muted-foreground">
-                Wahrscheinlichkeit, Risiko, Budget, Detailplanung
+                Risiko, Budget, Detailplanung
               </span>
             </summary>
             <div className="space-y-6 border-t p-3 sm:p-4">
-              {/* Monte Carlo – Wahrscheinlichkeitsspanne des aktiven Szenarios. */}
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch
-                    checked={mcSettings.enabled}
-                    onCheckedChange={(v) =>
-                      setMcSettings((prev) => ({ ...prev, enabled: Boolean(v) }))
-                    }
-                  />
-                  <span>Wahrscheinlichkeitsspanne (Monte Carlo) berechnen</span>
-                </label>
-                {mcSettings.enabled && (
-                  <MonteCarloPanel
-                    settings={mcSettings}
-                    onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
-                    result={monteCarlo}
-                    isCalculating={isMonteCarloCalculating}
-                    safetyBuffer={safetyBuffer}
-                    contextLabel={activeScenario?.name ?? 'Basisplanung'}
-                  />
-                )}
-              </div>
-
               <FinRiskSection
                 input={input}
                 months={months}

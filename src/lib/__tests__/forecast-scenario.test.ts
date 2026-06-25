@@ -156,6 +156,137 @@ describe('applyScenario – Eingabe-Transformation', () => {
   });
 });
 
+describe('flow-Modifikator – konkrete Einträge treffen', () => {
+  const sideJob: RecurringFlow = {
+    id: 'sidejob',
+    name: 'Nebenjob',
+    amount: 400,
+    cadence: 'monthly',
+    anchorDate: '2026-01-01',
+    accountId: 'giro',
+  };
+  const alimony: RecurringFlow = {
+    id: 'alimony',
+    name: 'Unterhalt Kind',
+    amount: 350,
+    cadence: 'monthly',
+    anchorDate: '2026-01-01',
+    accountId: 'giro',
+    category: 'Unterhalt',
+  };
+
+  function multiIncomeInput(): ForecastInput {
+    return {
+      accounts: [checking(5000)],
+      recurringFlows: [salary, sideJob, alimony, rent],
+    };
+  }
+
+  it('largestIncome deaktiviert nur das Hauptgehalt – Nebenjob & Unterhalt bleiben', () => {
+    const out = applyScenario(multiIncomeInput(), {
+      id: 's',
+      name: 'Jobverlust',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0 }],
+    });
+    // Gehalt (2500, größter Eintrag) entfällt vollständig.
+    expect(out.recurringFlows!.some((f) => f.id.startsWith('salary'))).toBe(false);
+    // Nebenjob und Unterhalt bleiben unangetastet.
+    expect(out.recurringFlows!.find((f) => f.id === 'sidejob')!.amount).toBe(400);
+    expect(out.recurringFlows!.find((f) => f.id === 'alimony')!.amount).toBe(350);
+    // Ausgaben ohnehin unberührt.
+    expect(out.recurringFlows!.find((f) => f.id === 'rent')!.amount).toBe(-1000);
+  });
+
+  it('[REGRESSION] Jobverlust ist NICHT income −100 %: andere Einnahmen überleben', () => {
+    // Der alte Pauschalansatz (income −100 %) hätte auch Nebenjob & Unterhalt
+    // auf 0 gesetzt. Der eintragsbasierte Ansatz darf das nicht tun.
+    const out = applyScenario(multiIncomeInput(), {
+      id: 's',
+      name: 'Jobverlust',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0 }],
+    });
+    const remainingIncome = out
+      .recurringFlows!.filter((f) => f.amount > 0)
+      .reduce((sum, f) => sum + f.amount, 0);
+    expect(remainingIncome).toBe(750); // 400 Nebenjob + 350 Unterhalt
+  });
+
+  it('largestIncome mit Faktor 0.7 reduziert nur das Hauptgehalt (Krankengeld)', () => {
+    const out = applyScenario(multiIncomeInput(), {
+      id: 's',
+      name: 'Krankenausfall',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.7 }],
+    });
+    expect(out.recurringFlows!.find((f) => f.id === 'salary')!.amount).toBe(1750); // 2500 * 0.7
+    expect(out.recurringFlows!.find((f) => f.id === 'sidejob')!.amount).toBe(400);
+  });
+
+  it('largestExpense trifft den größten Fixkosten-Eintrag (Miete vor Abo)', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        salary,
+        rent, // -1000
+        { id: 'gym', name: 'Fitness', amount: -40, cadence: 'monthly', anchorDate: '2026-01-01', accountId: 'giro' },
+      ],
+    };
+    const out = applyScenario(input, {
+      id: 's',
+      name: 'Mieterhöhung',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestExpense' }, factor: 1.15 }],
+    });
+    expect(out.recurringFlows!.find((f) => f.id === 'rent')!.amount).toBe(-1150);
+    expect(out.recurringFlows!.find((f) => f.id === 'gym')!.amount).toBe(-40);
+    // Einnahmen unberührt.
+    expect(out.recurringFlows!.find((f) => f.id === 'salary')!.amount).toBe(2500);
+  });
+
+  it('keyword trifft den Unterhalts-Eintrag über Name/Kategorie', () => {
+    const out = applyScenario(multiIncomeInput(), {
+      id: 's',
+      name: 'Unterhalt fällt weg',
+      modifiers: [
+        { id: 'm', type: 'flow', flowSelector: { kind: 'keyword', keyword: 'unterhalt', direction: 'income' }, factor: 0 },
+      ],
+    });
+    // Nur der Unterhalt entfällt; Gehalt & Nebenjob bleiben.
+    expect(out.recurringFlows!.some((f) => f.id === 'alimony')).toBe(false);
+    expect(out.recurringFlows!.find((f) => f.id === 'salary')!.amount).toBe(2500);
+    expect(out.recurringFlows!.find((f) => f.id === 'sidejob')!.amount).toBe(400);
+  });
+
+  it('ein flow-Modifikator ohne Treffer ist ein No-Op (kein Unterhalt vorhanden)', () => {
+    const input: ForecastInput = { accounts: [checking(5000)], recurringFlows: [salary, rent] };
+    const out = applyScenario(input, {
+      id: 's',
+      name: 'Unterhalt fällt weg',
+      modifiers: [
+        { id: 'm', type: 'flow', flowSelector: { kind: 'keyword', keyword: 'unterhalt', direction: 'income' }, factor: 0 },
+      ],
+    });
+    expect(out.recurringFlows!.find((f) => f.id === 'salary')!.amount).toBe(2500);
+    expect(out.recurringFlows!.find((f) => f.id === 'rent')!.amount).toBe(-1000);
+  });
+
+  it('largestIncome normiert auf den Monat – monatliches Gehalt schlägt jährlichen Bonus', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        salary, // 2500/Monat
+        { id: 'bonus', name: 'Bonus', amount: 6000, cadence: 'annual', anchorDate: '2026-06-01', accountId: 'giro' },
+      ],
+    };
+    const out = applyScenario(input, {
+      id: 's',
+      name: 'Jobverlust',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0 }],
+    });
+    // 2500/Monat (30k/Jahr) > 6000/Jahr Bonus → Gehalt ist das Haupteinkommen.
+    expect(out.recurringFlows!.some((f) => f.id.startsWith('salary'))).toBe(false);
+    expect(out.recurringFlows!.find((f) => f.id === 'bonus')!.amount).toBe(6000);
+  });
+});
+
 describe('Szenario-Effekt auf die Projektion', () => {
   it('Jobverlust senkt den Endbestand gegenüber der Basis deutlich', () => {
     const input = baseInput();
@@ -247,16 +378,20 @@ describe('buildPresetScenarios', () => {
     expect(presets.every((p) => p.modifiers.length > 0)).toBe(true);
   });
 
-  it('preset-job-loss: Einnahmen entfallen ab +90 Tage', () => {
+  it('preset-job-loss: größter Einkommens-Eintrag entfällt ab +90 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-job-loss')!;
-    expect(preset.modifiers[0].percentChange).toBe(-100);
-    expect(preset.modifiers[0].fromDate).toBe('2026-04-01'); // START +90d
+    expect(preset.modifiers[0]).toMatchObject({
+      type: 'flow',
+      flowSelector: { kind: 'largestIncome' },
+      factor: 0,
+      fromDate: '2026-04-01', // START +90d
+    });
   });
 
-  it('preset-job-change: Einkommen endet ab +30d, neues Gehalt ab +60d', () => {
+  it('preset-job-change: Haupteinkommen endet ab +30d, neues Gehalt ab +60d', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-job-change')!;
     expect(preset.modifiers).toHaveLength(2);
-    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -100, fromDate: '2026-01-31' });
+    expect(preset.modifiers[0]).toMatchObject({ type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: '2026-01-31' });
     expect(preset.modifiers[1]).toMatchObject({ type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: '2026-03-02' });
   });
 
@@ -267,9 +402,14 @@ describe('buildPresetScenarios', () => {
     expect(preset.modifiers[1]).toMatchObject({ type: 'oneTime', amount: 800, date: '2026-05-01' });
   });
 
-  it('preset-sick-leave: Einnahmen sinken um 30 % ab +42 Tage', () => {
+  it('preset-sick-leave: Haupteinkommen sinkt auf 70 % ab +42 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-sick-leave')!;
-    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -30, fromDate: '2026-02-12' });
+    expect(preset.modifiers[0]).toMatchObject({
+      type: 'flow',
+      flowSelector: { kind: 'largestIncome' },
+      factor: 0.7,
+      fromDate: '2026-02-12',
+    });
   });
 
   it('preset-sick-leave senkt die Einnahmen messbar im Vergleich zur Basis', () => {
@@ -297,10 +437,30 @@ describe('buildPresetScenarios', () => {
     expect(scenarioInput.recurringFlows?.some((f) => f.amount === 3200)).toBe(true);
   });
 
-  it('preset-rent-increase: Fixausgaben steigen um 15 % ab +30 Tage', () => {
+  it('preset-rent-increase: größter Fixkosten-Eintrag steigt um 15 % ab +30 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
-    expect(preset.modifiers[0]).toMatchObject({ type: 'expenses', percentChange: 15 });
+    expect(preset.modifiers[0]).toMatchObject({
+      type: 'flow',
+      flowSelector: { kind: 'largestExpense' },
+      factor: 1.15,
+    });
     expect(preset.modifiers[0].fromDate).toBeDefined();
+  });
+
+  it('preset-rent-increase trifft konkret die Miete (größte Fixkosten), nicht alle Ausgaben', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        salary,
+        rent, // -1000, größte Fixkosten
+        { id: 'spotify', name: 'Spotify', amount: -10, cadence: 'monthly', anchorDate: START, accountId: 'giro' },
+      ],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
+    const out = applyScenario(input, preset);
+    // Nur die Miete steigt (auf -1150 ab Stichtag), das Abo bleibt unberührt.
+    expect(out.recurringFlows!.some((f) => f.id === 'rent__post' && f.amount === -1150)).toBe(true);
+    expect(out.recurringFlows!.find((f) => f.id === 'spotify')!.amount).toBe(-10);
   });
 
   it('preset-rent-increase senkt den Endbestand gegenüber Basis', () => {
@@ -313,9 +473,9 @@ describe('buildPresetScenarios', () => {
     expect(cmp.endingNetWorth.delta).toBeLessThan(0);
   });
 
-  it('preset-parental-leave: Einkommen sinkt um 35 % ab +30 Tage', () => {
+  it('preset-parental-leave: Haupteinkommen sinkt auf 65 % ab +30 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-parental-leave')!;
-    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -35 });
+    expect(preset.modifiers[0]).toMatchObject({ type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.65 });
     expect(preset.modifiers[0].fromDate).toBeDefined();
   });
 
@@ -329,9 +489,13 @@ describe('buildPresetScenarios', () => {
     expect(cmp.endingNetWorth.delta).toBeLessThan(0);
   });
 
-  it('preset-alimony-loss: Einkommen sinkt um 20 % ab +14 Tage', () => {
+  it('preset-alimony-loss: nur der erkannte Unterhalts-Eintrag entfällt ab +14 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-alimony-loss')!;
-    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -20 });
+    expect(preset.modifiers[0]).toMatchObject({
+      type: 'flow',
+      flowSelector: { kind: 'keyword', keyword: 'unterhalt', direction: 'income' },
+      factor: 0,
+    });
     expect(preset.modifiers[0].fromDate).toBeDefined();
   });
 

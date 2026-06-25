@@ -34,6 +34,7 @@ const MODIFIER_LABELS: Record<ScenarioModifierType, string> = {
   interest: 'Zinssatz ändern',
   oneTime: 'Einmalige Zahlung / Einnahme',
   recurring: 'Neuer / wegfallender Vertrag',
+  flow: 'Eintrag an-/abschalten',
 };
 
 interface Props {
@@ -354,6 +355,12 @@ function describeModifier(m: ScenarioModifier): string {
       return `${m.label || 'Einmalposten'}: ${eur.format(m.amount ?? 0)} am ${m.date}`;
     case 'recurring':
       return `${m.label || 'Rate'}: ${eur.format(m.amount ?? 0)} ${m.cadence}`;
+    case 'flow': {
+      const pct = Math.round((m.factor ?? 0) * 100);
+      const what = pct === 0 ? 'entfällt' : `auf ${pct} %`;
+      const from = m.fromDate ? ` ab ${m.fromDate}` : '';
+      return `Erkannter Eintrag ${what}${from}`;
+    }
   }
 }
 

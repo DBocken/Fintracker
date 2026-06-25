@@ -99,6 +99,50 @@ describe('ScenarioExplorer', () => {
     expect(onApply).toHaveBeenLastCalledWith(null);
   });
 
+  it('zeigt die erkannten Einträge und schaltet einen gezielt ab (flow-Modifikator)', async () => {
+    const user = userEvent.setup();
+    const { onApply } = renderExplorer();
+
+    await user.click(screen.getByRole('button', { name: /Eigenes Szenario/i }));
+
+    // Die realen Einträge sind als Hebel sichtbar.
+    expect(screen.getByText('Erkannte Einträge an- oder abschalten')).toBeInTheDocument();
+    expect(screen.getByText('Gehalt')).toBeInTheDocument();
+    expect(screen.getByText('Miete')).toBeInTheDocument();
+
+    // Gehalt gezielt abschalten -> flow-Modifikator nur auf diesen Eintrag.
+    onApply.mockClear();
+    await user.click(screen.getByRole('switch', { name: /Gehalt abschalten/i }));
+
+    const applied = onApply.mock.calls.at(-1)?.[0] as ForecastScenario;
+    const flowMod = applied.modifiers.find((m) => m.type === 'flow');
+    expect(flowMod).toMatchObject({ flowSelector: { kind: 'ids', ids: ['salary'] }, factor: 0 });
+    // Nur dieser eine Eintrag ist betroffen – die Miete bleibt unberührt.
+    expect(applied.modifiers.filter((m) => m.type === 'flow')).toHaveLength(1);
+  });
+
+  it('[REGRESSION] Jobverlust-Preset löst auf das konkrete Hauptgehalt auf, nicht „alle Einnahmen"', async () => {
+    const user = userEvent.setup();
+    const jobLoss: ForecastScenario = {
+      id: 'preset-job-loss',
+      name: 'Jobverlust',
+      description: 'Das Haupteinkommen entfällt.',
+      modifiers: [
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: '2026-04-01' },
+      ],
+    };
+    const { onApply } = renderExplorer({ presets: [jobLoss] });
+
+    await user.click(screen.getByRole('button', { name: 'Jobverlust' }));
+
+    // Das Preset wird auf den größten Einkommens-Eintrag (Gehalt) aufgelöst.
+    const applied = onApply.mock.calls.at(-1)?.[0] as ForecastScenario;
+    const flowMod = applied.modifiers.find((m) => m.type === 'flow');
+    expect(flowMod).toMatchObject({ flowSelector: { kind: 'ids', ids: ['salary'] }, factor: 0 });
+    // Der Gehalt-Schalter steht auf „aus" (wieder aktivierbar).
+    expect(screen.getByRole('switch', { name: /Gehalt aktivieren/i })).toBeInTheDocument();
+  });
+
   it('baut ein eigenes Szenario aus leeren Parametern und speichert es', async () => {
     const user = userEvent.setup();
     const { onApply, onAddScenario } = renderExplorer();
