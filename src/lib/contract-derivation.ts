@@ -4,6 +4,7 @@ import type { Cycle, ContractRow } from "@/components/contracts/contract-types";
 import type { ContractDecision, ContractStatus } from "@/services/contract-decision-service";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import { normalizeMerchantName } from "@/services/merchant-normalization";
+import { detectSalarySeries } from "@/lib/salary-detection";
 
 /**
  * Reine, testbare Ableitung von Verträgen aus Transaktionen. Verträge bleiben
@@ -279,6 +280,79 @@ export function computeContracts(
   });
 
   return rows;
+}
+
+/**
+ * Leitet Gehalts-Verträge aus der gehaltsspezifischen Domänen-Erkennung ab
+ * (Arbeitgeber-basiert statt IBAN-basiert). Damit erscheint Gehalt auf der
+ * Vertragsseite konsistent mit dem Liquiditäts-Forecast – auch wenn die
+ * generische IBAN-Vertragsableitung es (wechselnde Bank, Betragsschwankung,
+ * variabler Zahler-Text) nicht zuverlässig gruppieren würde.
+ */
+export function buildSalaryContractRows(
+  transactions: Transaction[],
+  categoryMap: Map<string, Category>,
+  options: DeriveOptions = {},
+): ContractRow[] {
+  const { decisions, now = new Date() } = options;
+  const rows: ContractRow[] = [];
+
+  for (const series of detectSalarySeries(transactions, now)) {
+    const last = series.monthly[series.monthly.length - 1];
+    const fingerprint = merchantFingerprint(last);
+    const decision = decisions?.get(fingerprint);
+    const confirmed = series.all.some((t) => t.is_contract === true);
+
+    const firstCatId = last.category_id || null;
+    const cat = firstCatId ? categoryMap.get(firstCatId) : undefined;
+
+    const changeAmount = Math.round((series.amountLast - series.amountTypical) * 100) / 100;
+    const changed = Math.abs(changeAmount) > 0.5;
+
+    rows.push({
+      key: fingerprint,
+      type: "Einnahme",
+      payee: (cat?.attributes?.merchant_alias || series.payeeLabel || "Gehalt").trim(),
+      categoryName: cat?.name || "Gehalt",
+      categoryId: firstCatId,
+      amountTypical: series.amountTypical,
+      amountRecentTypical: series.amountRecentTypical,
+      amountLast: series.amountLast,
+      cycle: "Monatlich",
+      lastDateISO: series.lastDateISO,
+      firstDateISO: series.firstDateISO,
+      nextDateISO: series.nextDateISO,
+      changed,
+      changeAmount,
+      changeSinceLabel: changed ? format(parseISO(series.lastDateISO), "MMM yyyy") : null,
+      confirmed,
+      transactionIds: series.all.map((t) => t.id || "").filter(Boolean),
+      fingerprint,
+      status: resolveStatus(decision, confirmed),
+      stale: false, // Domänen-Erkennung filtert bereits veraltete Serien (Alter > 50 Tage)
+      cycleKnown: true,
+    });
+  }
+
+  return rows;
+}
+
+/**
+ * Vereint die generische (IBAN-basierte) Einnahmen-Vertragsableitung mit der
+ * gehaltsspezifischen Erkennung. Gehalt hat Vorrang: Eine generische
+ * Einnahmen-Zeile desselben Arbeitgebers entfällt, um Dopplungen zu vermeiden.
+ */
+export function computeIncomeContracts(
+  transactions: Transaction[],
+  categoryMap: Map<string, Category>,
+  options: DeriveOptions = {},
+): ContractRow[] {
+  const salaryRows = buildSalaryContractRows(transactions, categoryMap, options);
+  const salaryEmployers = new Set(salaryRows.map((r) => normalizeMerchantName(r.payee)));
+  const generic = computeContracts(transactions, categoryMap, "Einnahme", options).filter(
+    (r) => !salaryEmployers.has(normalizeMerchantName(r.payee)),
+  );
+  return [...salaryRows, ...generic];
 }
 
 /** Verträge, die in aktuelle Fixkosten/Prognosen einfließen dürfen. */

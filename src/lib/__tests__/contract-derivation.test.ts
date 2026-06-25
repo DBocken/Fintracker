@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   computeContracts,
+  computeIncomeContracts,
+  buildSalaryContractRows,
   isActiveForTotals,
   monthlyEquivalent,
   yearlyEquivalent,
@@ -173,6 +175,40 @@ describe("computeContracts status awareness", () => {
     const rows = computeContracts(salary, cats, "Einnahme", { now: NOW });
     expect(rows).toHaveLength(1);
     expect(rows[0].cycle).toBe("Monatlich");
+  });
+
+  it("[REGRESSION] erkennt Gehalt als Vertrag, das die generische IBAN-Ableitung verwirft", () => {
+    // Gehalt mit Bonusmonat (5000 statt 3000) → stddev > 20 % → generische
+    // Einnahmen-Ableitung lehnt ab. Die Gehaltsdomäne (Median, Keyword) erkennt es.
+    const salary = [
+      tx({ id: "g1", payee: "Arbeitgeber AG", amount: 3000, date: "2024-01-31", description: "Gehalt Januar" }),
+      tx({ id: "g2", payee: "Arbeitgeber AG", amount: 3000, date: "2024-02-28", description: "Gehalt Februar" }),
+      tx({ id: "g3", payee: "Arbeitgeber AG", amount: 5000, date: "2024-03-29", description: "Gehalt + Bonus" }),
+      tx({ id: "g4", payee: "Arbeitgeber AG", amount: 3000, date: "2024-04-30", description: "Gehalt April" }),
+      tx({ id: "g5", payee: "Arbeitgeber AG", amount: 3000, date: "2024-05-30", description: "Gehalt Mai" }),
+    ];
+
+    // Generisch: nichts (zu starke Streuung).
+    expect(computeContracts(salary, cats, "Einnahme", { now: NOW })).toHaveLength(0);
+
+    // Gehaltsdomäne: ein Einnahmen-Vertrag, monatlich.
+    const salaryRows = buildSalaryContractRows(salary, cats, { now: NOW });
+    expect(salaryRows).toHaveLength(1);
+    expect(salaryRows[0]).toMatchObject({ type: "Einnahme", cycle: "Monatlich", amountTypical: 3000 });
+
+    // Vereint: erscheint genau einmal.
+    const income = computeIncomeContracts(salary, cats, { now: NOW });
+    expect(income.filter((r) => r.payee === "Arbeitgeber AG")).toHaveLength(1);
+  });
+
+  it("[REGRESSION] dedupliziert: Gehalt nicht doppelt (Domäne + generisch)", () => {
+    // Stabiles Gehalt: würde BEIDE Detektoren auslösen → darf nur einmal erscheinen.
+    const dates = ["2024-01-30", "2024-02-28", "2024-03-29", "2024-04-30", "2024-05-30"];
+    const salary = dates.map((date, i) =>
+      tx({ id: `s-${i}`, payee: "Stabiler Arbeitgeber", amount: 3500, date, description: "Lohn/Gehalt", counterparty_iban: "DE89370400440532013000" })
+    );
+    const income = computeIncomeContracts(salary, cats, { now: NOW });
+    expect(income.filter((r) => r.payee === "Stabiler Arbeitgeber")).toHaveLength(1);
   });
 
   it("[REGRESSION] erkennt Gehalt von zwei verschiedenen IBANs als eine Serie", () => {

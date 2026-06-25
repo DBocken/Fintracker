@@ -23,7 +23,7 @@ import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
 import { ContractDetailSheet } from "./ContractDetailSheet";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
-import { computeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
+import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -82,7 +82,7 @@ export function ContractsDashboard() {
     [transactions, categoryMap, decisions]
   );
   const contractsIncome = useMemo(
-    () => computeContracts(transactions, categoryMap, "Einnahme", { decisions }),
+    () => computeIncomeContracts(transactions, categoryMap, { decisions }),
     [transactions, categoryMap, decisions]
   );
 
