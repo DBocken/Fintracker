@@ -1,5 +1,5 @@
 import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
 
@@ -19,7 +19,7 @@ const TONE_DOT: Record<Tone, string> = {
 
 function Row({ tone, label, value }: { tone: Tone; label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
+    <div className="flex items-center justify-between gap-3 py-1.5">
       <span className="flex items-center gap-2">
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[tone]}`} aria-hidden />
         <span className="text-sm">{label}</span>
@@ -82,13 +82,11 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
       : `${eur.format(stress90.maxAffordableShock)} bei 90 %`;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4" /> Risiko-Kurzdiagnose
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="divide-y">
+    <Card className="p-3 sm:p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold sm:text-base">
+        <Activity className="h-4 w-4" /> Risiko-Kurzdiagnose
+      </div>
+      <div className="mt-1 divide-y">
         <Row tone={alltagTone} label="Alltag tragfähig" value={alltagValue} />
         <Row tone={lumpyTone} label="Lumpy-Risiko (seltene Großausgaben)" value={lumpyValue} />
         <Row tone={stressTone} label="Stress-Tragfähigkeit" value={stressValue} />
@@ -100,7 +98,7 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
           )}
           Lokal berechnet · keine Finanzberatung.
         </p>
-      </CardContent>
+      </div>
     </Card>
   );
 }

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { Info } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -276,31 +278,56 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
 
   return (
     <div className="space-y-2">
-      {/* Kopfzeile: Sicherheitsniveau-Auswahl + Stress-Readout (Auswahl an sinnvoller Stelle). */}
+      {/* Kopfzeile: Titel + „Wie lese ich das?"-Popover + Sicherheitsniveau-Auswahl. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-medium">Liquiditäts-Wahrscheinlichkeit über die Zeit</div>
-        <div className="flex items-center gap-2">
-          <div
-            role="group"
-            aria-label="Sicherheitsniveau"
-            className="inline-flex overflow-hidden rounded-lg border text-xs"
-          >
-            {confidenceLevels.map((c) => (
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium">Liquiditäts-Wahrscheinlichkeit über die Zeit</span>
+          <Popover>
+            <PopoverTrigger asChild>
               <button
-                key={c}
                 type="button"
-                onClick={() => setConfidence(c)}
-                aria-pressed={Math.abs(c - confidence) < 1e-9}
-                className={`px-2.5 py-1 tabular-nums transition-colors ${
-                  Math.abs(c - confidence) < 1e-9
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background hover:bg-muted'
-                }`}
+                aria-label="Wie lese ich die Grafik?"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                {Math.round(c * 100)} %
+                <Info className="h-3.5 w-3.5" />
               </button>
-            ))}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 space-y-1.5 p-3 text-xs">
+              <div className="font-medium">Wie lese ich die Grafik?</div>
+              <p>
+                <span className="font-medium text-foreground">Farbe</span> = Wertregion (Defizit /
+                unter Puffer / gesund), <span className="font-medium text-foreground">Helligkeit</span>{' '}
+                = Wahrscheinlichkeit.
+              </p>
+              <p>
+                Die <span className="font-medium text-foreground">weiße Linie</span> ist der Median
+                (P50). Mehrere helle Rücken zeigen eine{' '}
+                <span className="font-medium text-foreground">multimodale</span> Verteilung.
+              </p>
+              <p>Gestrichelt: 0 €, Sicherheitspuffer und der kritische Tag des gewählten Niveaus.</p>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div
+          role="group"
+          aria-label="Sicherheitsniveau"
+          className="inline-flex overflow-hidden rounded-lg border text-xs"
+        >
+          {confidenceLevels.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setConfidence(c)}
+              aria-pressed={Math.abs(c - confidence) < 1e-9}
+              className={`px-2.5 py-1 tabular-nums transition-colors ${
+                Math.abs(c - confidence) < 1e-9
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background hover:bg-muted'
+              }`}
+            >
+              {Math.round(c * 100)} %
+            </button>
+          ))}
         </div>
       </div>
 
@@ -371,7 +398,6 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
           <span className="inline-block h-2.5 w-10 rounded-sm" style={{ background: 'linear-gradient(90deg, rgba(148,163,184,0.15), rgb(148,163,184))' }} />
           heller = wahrscheinlicher
         </span>
-        <span className="ml-auto">Median (weiße Linie) · Multimodalität sichtbar als mehrere Rücken</span>
       </div>
     </div>
   );

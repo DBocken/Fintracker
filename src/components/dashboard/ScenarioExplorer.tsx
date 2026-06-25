@@ -3,12 +3,24 @@ import {
   SlidersHorizontal,
   RotateCcw,
   TrendingDown,
+  TrendingUp,
   CalendarClock,
   Plus,
   Trash2,
   Save,
+  LayoutGrid,
+  ShieldCheck,
+  Briefcase,
+  ArrowLeftRight,
+  Car,
+  HeartPulse,
+  ShoppingCart,
+  Home,
+  Baby,
+  HandCoins,
+  type LucideIcon,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +33,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
 import type { ForecastScenario, ScenarioComparison } from '@/lib/forecast-scenario-types';
 import { resolveFlowSelector } from '@/lib/forecast-scenario';
@@ -30,6 +56,22 @@ const eur = new Intl.NumberFormat('de-DE', {
   currency: 'EUR',
   maximumFractionDigits: 0,
 });
+
+/** Passendes Symbol je Beispiel-Szenario – erleichtert das Scannen im Popup. */
+const PRESET_ICONS: Record<string, LucideIcon> = {
+  'preset-job-loss': Briefcase,
+  'preset-raise': TrendingUp,
+  'preset-job-change': ArrowLeftRight,
+  'preset-car-breakdown': Car,
+  'preset-sick-leave': HeartPulse,
+  'preset-big-purchase': ShoppingCart,
+  'preset-rent-increase': Home,
+  'preset-parental-leave': Baby,
+  'preset-alimony-loss': HandCoins,
+};
+function presetIcon(id: string): LucideIcon {
+  return PRESET_ICONS[id] ?? SlidersHorizontal;
+}
 
 function monthlyFactor(cadence: RecurringCadence, intervalDays?: number): number {
   switch (cadence) {
@@ -52,8 +94,8 @@ function detectMonthlyIncome(input: ForecastInput | null): number {
 }
 
 // -----------------------------------------------------------------------------
-// Parameter-Formular: IMMER die volle Palette, damit der Nutzer sieht, was ein
-// Szenario ändern kann – und jeden Parameter selbst setzen darf.
+// Parameter-Formular: die volle Palette steht hinter einklappbaren Sektionen,
+// damit der Nutzer alles anpassen kann, die Ansicht aber kompakt bleibt.
 // -----------------------------------------------------------------------------
 
 interface OneTimeEntry {
@@ -250,6 +292,11 @@ const CADENCE_OPTIONS: { value: RecurringCadence; label: string }[] = [
   { value: 'annual', label: 'Jährlich' },
 ];
 
+/** „+5 %" / „0 %" – kompakter Wertindikator auf einem Sektions-Header. */
+function pctLabel(pct: number): string {
+  return `${pct > 0 ? '+' : ''}${pct} %`;
+}
+
 interface Props {
   /** Beispiel-Szenarien (Presets) und gespeicherte eigene Szenarien. */
   presets: ForecastScenario[];
@@ -267,9 +314,10 @@ interface Props {
 }
 
 /**
- * Einziger Szenario-Bereich der Simulationsseite: Beispiele wählen, ALLE
- * Parameter sehen und anpassen, eigene Szenarien bauen und speichern. Jede
- * Änderung fließt sofort in die Prognose („Live-Vorschau ohne Speichern").
+ * Einziger Szenario-Bereich der Simulationsseite: eine Vorlage im Popup wählen,
+ * ALLE Parameter hinter einklappbaren Sektionen sehen und anpassen, eigene
+ * Szenarien bauen und speichern. Jede Änderung fließt sofort in die Prognose
+ * („Live-Vorschau ohne Speichern"). Kompakt – passt auch in eine Seitenspalte.
  */
 export default function ScenarioExplorer({
   presets,
@@ -284,6 +332,7 @@ export default function ScenarioExplorer({
   const [selected, setSelected] = useState<{ id: string; name: string; description?: string } | null>(null);
   const [form, setForm] = useState<ParamForm>(() => neutralForm(input));
   const [isCustom, setIsCustom] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const basePreset = useMemo(
     () => (selected ? presets.find((p) => p.id === selected.id) ?? null : null),
@@ -361,157 +410,209 @@ export default function ScenarioExplorer({
     return presetHasFlow && !anyFlowDeviates;
   }, [basePreset, form.flows]);
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <SlidersHorizontal className="h-4 w-4 text-brand" />
-          Szenarien
-        </CardTitle>
-        <CardDescription>
-          Wähle ein Beispiel oder baue ein eigenes Szenario. Jeder Parameter ist sichtbar und
-          anpassbar – die Vorschau aktualisiert sich sofort.
-        </CardDescription>
-      </CardHeader>
+  const changedFlows = form.flows.filter((f) => f.factorPct !== 100).length;
 
-      <CardContent className="space-y-4">
-        {/* Auswahl: Basis + Beispiele + eigene + „Eigenes Szenario" */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selected === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={selectBase}
-          >
-            Basis
-          </Button>
-          {presets.map((preset) => {
-            const saved = customScenarios.some((c) => c.id === preset.id);
-            return (
-              <span key={preset.id} className="flex items-center">
-                <Button
-                  variant={selected?.id === preset.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => selectPreset(preset)}
-                  title={preset.description}
-                >
-                  {preset.name}
-                </Button>
-                {saved && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    aria-label="Szenario löschen"
-                    onClick={() => {
-                      if (selected?.id === preset.id) selectBase();
-                      onDeleteScenario(preset.id);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </span>
-            );
-          })}
-          <Button variant="outline" size="sm" onClick={startCustom}>
-            <Plus className="mr-1 h-4 w-4" /> Eigenes Szenario
-          </Button>
+  // Auswahl im Popup + Schließen in einem Schritt.
+  const pick = (fn: () => void) => () => {
+    fn();
+    setPickerOpen(false);
+  };
+
+  return (
+    <Card className="space-y-3 p-3 sm:p-4">
+      {/* Kopf: aktives Szenario + Vorlage-Popup */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">Aktives Szenario</div>
+          <div className="flex items-center gap-2">
+            <span className="truncate font-semibold">{selected?.name ?? 'Basis'}</span>
+            {isEdited && (
+              <Badge variant="secondary" className="text-[10px]">angepasst</Badge>
+            )}
+          </div>
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            {selected?.description ??
+              (selected
+                ? 'Eigene Parameter – passe sie unten an.'
+                : 'Normale Planung ohne Änderungen.')}
+          </p>
         </div>
 
-        {/* Editor: volle Parameter-Palette */}
-        {selected && (
-          <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{selected.name}</span>
-                  {isEdited && (
-                    <Badge variant="secondary" className="text-[10px]">angepasst</Badge>
-                  )}
-                </div>
-                {selected.description && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{selected.description}</p>
-                )}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Alle Parameter sind sichtbar. Was du veränderst, wird zum Szenario.
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                {isEdited && basePreset && (
-                  <Button variant="ghost" size="sm" onClick={resetToPreset}>
-                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Zurücksetzen
-                  </Button>
-                )}
-                {!isSavedCustom && !isFormEmpty(form) && (
-                  <Button variant="ghost" size="sm" onClick={saveCustom}>
-                    <Save className="mr-1.5 h-3.5 w-3.5" /> Speichern
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Prozentuale Anpassungen */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <ParamGroup title="Einnahmen ändern" hint="z. B. Gehaltserhöhung, Nebenjob, Jobverlust (−100 %)">
-                <PercentRow
-                  pct={form.income.pct}
-                  fromDate={form.income.fromDate}
-                  onPct={(pct) => update((f) => ({ ...f, income: { ...f.income, pct } }))}
-                  onFrom={(fromDate) => update((f) => ({ ...f, income: { ...f.income, fromDate } }))}
-                />
-              </ParamGroup>
-
-              <ParamGroup title="Fixkosten ändern" hint="z. B. Mieterhöhung, Nebenkostennachzahlung">
-                <PercentRow
-                  pct={form.expenses.pct}
-                  fromDate={form.expenses.fromDate}
-                  onPct={(pct) => update((f) => ({ ...f, expenses: { ...f.expenses, pct } }))}
-                  onFrom={(fromDate) => update((f) => ({ ...f, expenses: { ...f.expenses, fromDate } }))}
-                />
-              </ParamGroup>
-
-              <ParamGroup title="Variable Ausgaben ändern" hint="Grundverbrauch (Lebensmittel, Freizeit …)">
-                <Field label="Änderung in %">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    value={form.variable.pct}
-                    onChange={(e) => update((f) => ({ ...f, variable: { pct: Number(e.target.value) } }))}
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="shrink-0">
+              <LayoutGrid className="mr-1.5 h-4 w-4" /> Vorlage wählen
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[80vh] gap-0 overflow-y-auto p-0 sm:max-w-md">
+            <DialogHeader className="border-b p-4">
+              <DialogTitle className="text-base">Vorlage wählen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-0.5 p-2">
+              <TemplateRow
+                icon={ShieldCheck}
+                name="Basis"
+                description="Normale Planung ohne Änderungen."
+                active={selected === null}
+                onSelect={pick(selectBase)}
+              />
+              {presets.map((preset) => {
+                const saved = customScenarios.some((c) => c.id === preset.id);
+                return (
+                  <TemplateRow
+                    key={preset.id}
+                    icon={presetIcon(preset.id)}
+                    name={preset.name}
+                    description={preset.description}
+                    active={selected?.id === preset.id}
+                    onSelect={pick(() => selectPreset(preset))}
+                    onDelete={
+                      saved
+                        ? () => {
+                            if (selected?.id === preset.id) selectBase();
+                            onDeleteScenario(preset.id);
+                          }
+                        : undefined
+                    }
                   />
-                </Field>
-              </ParamGroup>
-
-              <ParamGroup title="Zinssatz ändern" hint="Δ Prozentpunkte auf verzinste Konten">
-                <Field label="Δ Prozentpunkte">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    value={form.interest.delta}
-                    onChange={(e) => update((f) => ({ ...f, interest: { delta: Number(e.target.value) } }))}
-                  />
-                </Field>
-              </ParamGroup>
+                );
+              })}
+              <TemplateRow
+                icon={Plus}
+                name="Eigenes Szenario"
+                description="Aktuelle Einstellungen beibehalten und frei anpassen."
+                active={!!selected && isCustom}
+                onSelect={pick(startCustom)}
+              />
             </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Live-Wirkung – immer sichtbar, ohne Aufklappen */}
+      {comparison && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <ImpactStat
+            icon={<TrendingDown className="h-3.5 w-3.5" />}
+            label="Tiefststand"
+            baseline={comparison.lowestBalance.baseline}
+            scenario={comparison.lowestBalance.scenario}
+            higherIsBetter
+          />
+          <ImpactStat
+            icon={<CalendarClock className="h-3.5 w-3.5" />}
+            label="Tage unter Puffer"
+            baseline={comparison.daysBelowSafetyBuffer.baseline}
+            scenario={comparison.daysBelowSafetyBuffer.scenario}
+            higherIsBetter={false}
+            unit=" T"
+          />
+          <ImpactStat
+            icon={<TrendingDown className="h-3.5 w-3.5" />}
+            label="Endvermögen"
+            baseline={comparison.endingNetWorth.baseline}
+            scenario={comparison.endingNetWorth.scenario}
+            higherIsBetter
+          />
+        </div>
+      )}
+
+      {/* Parameter – einklappbar, Wertindikator je Sektion */}
+      {selected ? (
+        <div className="rounded-xl border bg-muted/20">
+          <div className="flex items-center justify-between gap-2 px-3 pt-3">
+            <span className="text-sm font-medium">Parameter anpassen</span>
+            <div className="flex shrink-0 gap-1">
+              {isEdited && basePreset && (
+                <Button variant="ghost" size="sm" onClick={resetToPreset}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Zurücksetzen
+                </Button>
+              )}
+              {!isSavedCustom && !isFormEmpty(form) && (
+                <Button variant="ghost" size="sm" onClick={saveCustom}>
+                  <Save className="mr-1.5 h-3.5 w-3.5" /> Speichern
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {flowPresetUnmatched && (
+            <div className="mx-3 mt-2 rounded-md border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+              Für dieses Beispiel wurde kein passender Eintrag in deinen Daten erkannt.
+              Wähle den betroffenen Eintrag unter „Erkannte Einträge" manuell, damit das Szenario wirkt.
+            </div>
+          )}
+
+          <Accordion type="multiple" className="px-3 pb-2">
+            <ParamSection
+              value="income"
+              title="Einnahmen ändern"
+              indicator={pctLabel(form.income.pct)}
+              hint="z. B. Gehaltserhöhung, Nebenjob, Jobverlust (−100 %)"
+            >
+              <PercentRow
+                pct={form.income.pct}
+                fromDate={form.income.fromDate}
+                onPct={(pct) => update((f) => ({ ...f, income: { ...f.income, pct } }))}
+                onFrom={(fromDate) => update((f) => ({ ...f, income: { ...f.income, fromDate } }))}
+              />
+            </ParamSection>
+
+            <ParamSection
+              value="expenses"
+              title="Fixkosten ändern"
+              indicator={pctLabel(form.expenses.pct)}
+              hint="z. B. Mieterhöhung, Nebenkostennachzahlung"
+            >
+              <PercentRow
+                pct={form.expenses.pct}
+                fromDate={form.expenses.fromDate}
+                onPct={(pct) => update((f) => ({ ...f, expenses: { ...f.expenses, pct } }))}
+                onFrom={(fromDate) => update((f) => ({ ...f, expenses: { ...f.expenses, fromDate } }))}
+              />
+            </ParamSection>
+
+            <ParamSection
+              value="variable"
+              title="Variable Ausgaben ändern"
+              indicator={pctLabel(form.variable.pct)}
+              hint="Grundverbrauch (Lebensmittel, Freizeit …)"
+            >
+              <Field label="Änderung in %">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={form.variable.pct}
+                  onChange={(e) => update((f) => ({ ...f, variable: { pct: Number(e.target.value) } }))}
+                />
+              </Field>
+            </ParamSection>
+
+            <ParamSection
+              value="interest"
+              title="Zinssatz ändern"
+              indicator={form.interest.delta !== 0 ? `${form.interest.delta > 0 ? '+' : ''}${form.interest.delta} pp` : 'nicht gesetzt'}
+              hint="Δ Prozentpunkte auf verzinste Konten"
+            >
+              <Field label="Δ Prozentpunkte">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={form.interest.delta}
+                  onChange={(e) => update((f) => ({ ...f, interest: { delta: Number(e.target.value) } }))}
+                />
+              </Field>
+            </ParamSection>
 
             {/* Konkrete erkannte Einträge an-/abschalten – der Kern: ein Jobverlust
                 trifft genau das Hauptgehalt, nicht pauschal „alle Einnahmen". */}
             {form.flows.length > 0 && (
-              <div className="space-y-3 rounded-lg border bg-background p-3">
-                <div>
-                  <div className="text-sm font-medium">Erkannte Einträge an- oder abschalten</div>
-                  <div className="text-xs text-muted-foreground">
-                    Schalte einzelne Einnahmen oder Verträge ab oder reduziere sie. Beispiel-Szenarien
-                    markieren automatisch den passenden Eintrag (z. B. das größte Einkommen bei „Jobverlust").
-                  </div>
-                </div>
-
-                {flowPresetUnmatched && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                    Für dieses Beispiel wurde kein passender Eintrag in deinen Daten erkannt.
-                    Wähle den betroffenen Eintrag unten manuell, damit das Szenario wirkt.
-                  </div>
-                )}
-
+              <ParamSection
+                value="flows"
+                title="Erkannte Einträge an- oder abschalten"
+                indicator={changedFlows > 0 ? `${changedFlows} angepasst` : 'unverändert'}
+                hint="Schalte einzelne Einnahmen oder Verträge ab oder reduziere sie. Beispiele markieren automatisch den passenden Eintrag (z. B. das größte Einkommen bei Jobverlust)."
+              >
                 {(['income', 'expense'] as const).map((side) => {
                   const rows = form.flows.filter((fl) => (side === 'income' ? fl.isIncome : !fl.isIncome));
                   if (rows.length === 0) return null;
@@ -535,19 +636,14 @@ export default function ScenarioExplorer({
                     </div>
                   );
                 })}
-              </div>
+              </ParamSection>
             )}
 
-            {/* Einmalige Posten */}
-            <ListGroup
+            <ParamSection
+              value="oneTime"
               title="Einmalige Posten"
+              indicator={form.oneTime.length > 0 ? String(form.oneTime.length) : 'keine'}
               hint="z. B. Reparatur (−), Erstattung (+)"
-              onAdd={() =>
-                update((f) => ({
-                  ...f,
-                  oneTime: [...f.oneTime, { localId: nextLocalId(), amount: 0, date: '', label: '' }],
-                }))
-              }
             >
               {form.oneTime.map((e) => (
                 <div key={e.localId} className="grid gap-2 rounded-lg border bg-background p-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
@@ -593,21 +689,25 @@ export default function ScenarioExplorer({
                   />
                 </div>
               ))}
-            </ListGroup>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  update((f) => ({
+                    ...f,
+                    oneTime: [...f.oneTime, { localId: nextLocalId(), amount: 0, date: '', label: '' }],
+                  }))
+                }
+              >
+                <Plus className="mr-1 h-4 w-4" /> Hinzufügen
+              </Button>
+            </ParamSection>
 
-            {/* Wiederkehrende Posten */}
-            <ListGroup
+            <ParamSection
+              value="recurring"
               title="Wiederkehrende Posten"
+              indicator={form.recurring.length > 0 ? String(form.recurring.length) : 'keine'}
               hint="neuer/wegfallender Vertrag, neues Gehalt (+)"
-              onAdd={() =>
-                update((f) => ({
-                  ...f,
-                  recurring: [
-                    ...f.recurring,
-                    { localId: nextLocalId(), amount: Math.round(detectMonthlyIncome(input)) || 0, cadence: 'monthly', anchorDate: '', label: '' },
-                  ],
-                }))
-              }
             >
               {form.recurring.map((e) => (
                 <div key={e.localId} className="grid gap-2 rounded-lg border bg-background p-2 sm:grid-cols-[1fr_1fr_1fr_1fr_auto]">
@@ -671,39 +771,117 @@ export default function ScenarioExplorer({
                   />
                 </div>
               ))}
-            </ListGroup>
-
-            {/* Live-Wirkung */}
-            {comparison && (
-              <div className="grid grid-cols-2 gap-2 border-t pt-3 sm:grid-cols-3">
-                <ImpactStat
-                  icon={<TrendingDown className="h-3.5 w-3.5" />}
-                  label="Tiefststand"
-                  baseline={comparison.lowestBalance.baseline}
-                  scenario={comparison.lowestBalance.scenario}
-                  higherIsBetter
-                />
-                <ImpactStat
-                  icon={<CalendarClock className="h-3.5 w-3.5" />}
-                  label="Tage unter Puffer"
-                  baseline={comparison.daysBelowSafetyBuffer.baseline}
-                  scenario={comparison.daysBelowSafetyBuffer.scenario}
-                  higherIsBetter={false}
-                  unit=" T"
-                />
-                <ImpactStat
-                  icon={<TrendingDown className="h-3.5 w-3.5" />}
-                  label="Endvermögen"
-                  baseline={comparison.endingNetWorth.baseline}
-                  scenario={comparison.endingNetWorth.scenario}
-                  higherIsBetter
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  update((f) => ({
+                    ...f,
+                    recurring: [
+                      ...f.recurring,
+                      { localId: nextLocalId(), amount: Math.round(detectMonthlyIncome(input)) || 0, cadence: 'monthly', anchorDate: '', label: '' },
+                    ],
+                  }))
+                }
+              >
+                <Plus className="mr-1 h-4 w-4" /> Hinzufügen
+              </Button>
+            </ParamSection>
+          </Accordion>
+        </div>
+      ) : (
+        <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
+          Wähle oben eine Vorlage oder „Eigenes Szenario", um Parameter anzupassen.
+        </p>
+      )}
     </Card>
+  );
+}
+
+/** Eine Zeile im Vorlage-Popup: Symbol, Name, Beschreibung – optional löschbar. */
+function TemplateRow({
+  icon: Icon,
+  name,
+  description,
+  active,
+  onSelect,
+  onDelete,
+}: {
+  icon: LucideIcon;
+  name: string;
+  description?: string;
+  active: boolean;
+  onSelect: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={active}
+        className={cn(
+          'flex flex-1 items-center gap-3 rounded-lg p-2.5 text-left transition-colors hover:bg-muted',
+          active && 'bg-muted',
+        )}
+      >
+        <span
+          className={cn(
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+            active ? 'border-primary text-primary' : 'text-muted-foreground',
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">{name}</span>
+          {description && (
+            <span className="block truncate text-xs text-muted-foreground">{description}</span>
+          )}
+        </span>
+      </button>
+      {onDelete && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label={`${name} löschen`}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Einklappbare Parameter-Sektion mit Wertindikator im Header. */
+function ParamSection({
+  value,
+  title,
+  indicator,
+  hint,
+  children,
+}: {
+  value: string;
+  title: string;
+  indicator: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <AccordionItem value={value} className="last:border-b-0">
+      <AccordionTrigger className="py-3 hover:no-underline">
+        <span className="flex flex-1 items-center justify-between gap-2 pr-2">
+          <span className="font-medium">{title}</span>
+          <span className="text-xs font-normal tabular-nums text-muted-foreground">{indicator}</span>
+        </span>
+      </AccordionTrigger>
+      <AccordionContent className="space-y-2">
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {children}
+      </AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -721,7 +899,7 @@ function FlowRow({
   const active = entry.factorPct > 0;
   const reduced = active && entry.factorPct !== 100;
   return (
-    <div className="rounded-lg border bg-muted/20 p-2.5">
+    <div className="rounded-lg border bg-background p-2.5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{entry.name}</div>
@@ -763,18 +941,6 @@ function FlowRow({
   );
 }
 
-function ParamGroup({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border bg-background p-3">
-      <div className="mb-2">
-        <div className="text-sm font-medium">{title}</div>
-        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function PercentRow({
   pct,
   fromDate,
@@ -794,33 +960,6 @@ function PercentRow({
       <Field label="Wirksam ab">
         <Input type="date" value={fromDate} onChange={(e) => onFrom(e.target.value)} />
       </Field>
-    </div>
-  );
-}
-
-function ListGroup({
-  title,
-  hint,
-  onAdd,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  onAdd: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2 rounded-lg border bg-background p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-sm font-medium">{title}</div>
-          {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-        </div>
-        <Button variant="outline" size="sm" onClick={onAdd}>
-          <Plus className="mr-1 h-4 w-4" /> Hinzufügen
-        </Button>
-      </div>
-      <div className="space-y-2">{children}</div>
     </div>
   );
 }

@@ -41,3 +41,18 @@ if (typeof Blob !== "undefined" && !Blob.prototype.text) {
     })
   }
 }
+
+// Radix-Primitives (Popover/Dialog/Select) rufen Pointer-/Scroll-APIs auf, die
+// jsdom nicht implementiert. Ohne diese Shims wirft das Öffnen im Test.
+if (typeof Element !== "undefined") {
+  const proto = Element.prototype as unknown as {
+    hasPointerCapture?: (pointerId: number) => boolean
+    setPointerCapture?: (pointerId: number) => void
+    releasePointerCapture?: (pointerId: number) => void
+    scrollIntoView?: () => void
+  }
+  proto.hasPointerCapture ||= () => false
+  proto.setPointerCapture ||= () => {}
+  proto.releasePointerCapture ||= () => {}
+  proto.scrollIntoView ||= () => {}
+}

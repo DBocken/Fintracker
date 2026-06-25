@@ -86,15 +86,13 @@ function Kpi({
           ? 'text-emerald-600 dark:text-emerald-400'
           : '';
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-1 p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="shrink-0">{icon}</span>
-          <span className="truncate">{label}</span>
-        </div>
-        <div className={`text-xl font-bold ${toneClass}`}>{value}</div>
-        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-      </CardContent>
+    <Card className="p-3">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </div>
+      <div className={`mt-1 text-xl font-bold ${toneClass}`}>{value}</div>
+      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
     </Card>
   );
 }
@@ -104,6 +102,10 @@ const HORIZON_OPTIONS = [6, 12, 24, 36];
 /**
  * Liquiditäts-Report (Stufe 1): zeigt die tagesgenaue Liquiditätsprojektion mit
  * Sicherheitspuffer, Monatstief, Risiko-Kennzahlen und Monatszusammenfassungen.
+ *
+ * Layout: auf großen Schirmen zweispaltig – links das Ergebnis (Chart +
+ * Kennzahlen), rechts die Szenario-Steuerung (klebt beim Scrollen). So geht
+ * durch die Zentrierung keine Fläche verloren. Mobil bleibt alles gestapelt.
  */
 export default function LiquidityReport() {
   const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
@@ -235,6 +237,19 @@ export default function LiquidityReport() {
   const breach = risk.firstBelowSafetyBufferDate;
   const lowestTone = risk.lowestBalance < 0 ? 'critical' : breach ? 'warning' : 'good';
 
+  // Kompakter Status fürs Chart-Label (statt einer großen Box bei „alles ok").
+  const status: { label: string; tone: 'good' | 'warning' | 'critical' } = breach
+    ? risk.lowestBalance < 0
+      ? { label: 'Risiko', tone: 'critical' }
+      : { label: 'Knapp', tone: 'warning' }
+    : { label: 'Stabil', tone: 'good' };
+  const statusClass =
+    status.tone === 'critical'
+      ? 'border-destructive/40 text-destructive'
+      : status.tone === 'warning'
+        ? 'border-warning/50 text-warning'
+        : 'border-emerald-600/40 text-emerald-600 dark:text-emerald-400';
+
   return (
     <div className="space-y-6">
       {/* Hinweis auf unvollständige Datenbasis (ändert die Berechnung nicht) */}
@@ -288,291 +303,297 @@ export default function LiquidityReport() {
         </label>
       </div>
 
-      {/* Insight */}
-      {insights[0] && (
-        <Alert variant={insights[0].kind === 'below_buffer' ? 'destructive' : 'default'}>
-          {insights[0].kind === 'below_buffer' ? (
-            <AlertTriangle className="h-4 w-4" />
-          ) : (
-            <ShieldCheck className="h-4 w-4" />
-          )}
-          <AlertTitle>
-            {insights[0].kind === 'below_buffer'
-              ? 'Liquiditätsrisiko erkannt'
-              : 'Liquidität stabil'}
-          </AlertTitle>
-          <AlertDescription>{insights[0].message}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Risikotreiber & Empfehlung */}
-      {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {analysis.drivers.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Risikotreiber</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-3 text-xs text-muted-foreground">
-                  Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
-                  {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
-                </p>
-                <ul className="space-y-2">
-                  {analysis.drivers.map((d, i) => (
-                    <li key={`${d.name}-${i}`} className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm">{d.name}</span>
-                        {d.occurrences && d.occurrences > 1 && (
-                          <Badge variant="outline" className="shrink-0 text-[10px]">
-                            {d.occurrences}×
-                          </Badge>
-                        )}
-                      </span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums">
-                        −{eur.format(d.amount)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+      {/* Zweispaltig auf Desktop: links Ergebnis, rechts Szenario-Steuerung. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_420px]">
+        {/* LINKS: Ergebnis */}
+        <div className="min-w-0 space-y-4">
+          {/* Insight nur bei echtem Risiko als Box – „stabil" steht kompakt im Chart-Label. */}
+          {insights[0] && insights[0].kind === 'below_buffer' && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Liquiditätsrisiko erkannt</AlertTitle>
+              <AlertDescription>{insights[0].message}</AlertDescription>
+            </Alert>
           )}
 
-          {analysis.recommendation && (
-            <Card className="border-emerald-600/40">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  Empfehlung
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{analysis.recommendation.message}</p>
-              </CardContent>
-            </Card>
+          {/* Chart */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
+                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}>
+                  {status.label}
+                </span>
+                {monteCarlo && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    · Wahrscheinlichkeitsband P10–P90
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                    <defs>
+                      <linearGradient id="liqFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#1d5c54" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#1d5c54" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="mcBandFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
+                      minTickGap={32}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) => eur.format(v)}
+                      width={72}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
+                      labelFormatter={(l: string) => fmtDate(l)}
+                    />
+                    {/* Monte-Carlo-Wahrscheinlichkeitsband (P10–P90) als Gradient,
+                        hinter den Linien – damit es genau EINE Darstellung gibt. */}
+                    {monteCarlo && (
+                      <>
+                        <Area
+                          type="monotone"
+                          dataKey="bandFloor"
+                          name="bandFloor"
+                          stackId="mc"
+                          stroke="none"
+                          fill="transparent"
+                          isAnimationActive={false}
+                          legendType="none"
+                          tooltipType="none"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="bandHeight"
+                          name="bandHeight"
+                          stackId="mc"
+                          stroke="none"
+                          fill="url(#mcBandFill)"
+                          isAnimationActive={false}
+                          legendType="none"
+                          tooltipType="none"
+                        />
+                      </>
+                    )}
+                    <Area
+                      type="monotone"
+                      dataKey="operating"
+                      name="operating"
+                      stroke="#1d5c54"
+                      strokeWidth={2}
+                      fill={monteCarlo ? 'transparent' : 'url(#liqFill)'}
+                    />
+                    {activeScenario && (
+                      <Line
+                        type="monotone"
+                        dataKey="scenario"
+                        name="scenario"
+                        stroke="#d97706"
+                        strokeWidth={2}
+                        strokeDasharray="5 4"
+                        dot={false}
+                      />
+                    )}
+                    {monteCarlo && (
+                      <Line
+                        type="monotone"
+                        dataKey="median"
+                        name="median"
+                        stroke="#6366f1"
+                        strokeWidth={1.5}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    )}
+                    {safetyBuffer > 0 && (
+                      <ReferenceLine
+                        y={safetyBuffer}
+                        stroke="#d97706"
+                        strokeDasharray="4 4"
+                        label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11 }}
+                      />
+                    )}
+                    <ReferenceLine y={0} stroke="currentColor" className="stroke-muted-foreground" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <Kpi
+              icon={<TrendingDown className="h-4 w-4" />}
+              label="Tiefststand"
+              value={eur.format(risk.lowestBalance)}
+              tone={lowestTone}
+              hint={fmtDate(risk.lowestBalanceDate)}
+            />
+            <Kpi
+              icon={<CalendarClock className="h-4 w-4" />}
+              label="Erster Pufferbruch"
+              value={breach ? fmtDate(breach) : 'keiner'}
+              tone={breach ? 'warning' : 'good'}
+              hint={breach ? `${risk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont'}
+            />
+            <Kpi
+              icon={<ShieldCheck className="h-4 w-4" />}
+              label="Min. Giro"
+              value={eur.format(risk.minimumOperatingCash)}
+              hint="operativ verfügbar"
+            />
+            <Kpi
+              icon={<ShieldCheck className="h-4 w-4" />}
+              label="Min. verfügbar"
+              value={eur.format(risk.minimumAvailableCash)}
+              hint="inkl. Reserve"
+            />
+          </div>
+
+          {/* Risikotreiber & Empfehlung */}
+          {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {analysis.drivers.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Risikotreiber</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
+                      {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
+                    </p>
+                    <ul className="space-y-2">
+                      {analysis.drivers.map((d, i) => (
+                        <li key={`${d.name}-${i}`} className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm">{d.name}</span>
+                            {d.occurrences && d.occurrences > 1 && (
+                              <Badge variant="outline" className="shrink-0 text-[10px]">
+                                {d.occurrences}×
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums">
+                            −{eur.format(d.amount)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {analysis.recommendation && (
+                <Card className="border-emerald-600/40">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Empfehlung
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{analysis.recommendation.message}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi
-          icon={<TrendingDown className="h-4 w-4" />}
-          label="Tiefststand"
-          value={eur.format(risk.lowestBalance)}
-          tone={lowestTone}
-          hint={fmtDate(risk.lowestBalanceDate)}
-        />
-        <Kpi
-          icon={<CalendarClock className="h-4 w-4" />}
-          label="Erster Pufferbruch"
-          value={breach ? fmtDate(breach) : 'keiner'}
-          tone={breach ? 'warning' : 'good'}
-          hint={breach ? `${risk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont'}
-        />
-        <Kpi
-          icon={<ShieldCheck className="h-4 w-4" />}
-          label="Min. Giro"
-          value={eur.format(risk.minimumOperatingCash)}
-          hint="operativ verfügbar"
-        />
-        <Kpi
-          icon={<ShieldCheck className="h-4 w-4" />}
-          label="Min. verfügbar"
-          value={eur.format(risk.minimumAvailableCash)}
-          hint="inkl. Reserve"
-        />
+        {/* RECHTS: Szenario-Steuerung – klebt beim Scrollen auf großen Schirmen. */}
+        <FeatureGate feature="simulation">
+          <div
+            className="space-y-4 lg:sticky lg:top-4 lg:self-start"
+            aria-labelledby="simulation-tools-heading"
+          >
+            <div>
+              <h2 id="simulation-tools-heading" className="text-lg font-semibold">
+                Zukunft durchspielen
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Wähle eine Vorlage oder baue ein eigenes Szenario – die Grafik links zeigt die
+                Wirkung sofort.
+              </p>
+            </div>
+
+            <ScenarioExplorer
+              presets={scenarios}
+              customScenarios={overrides.scenarios}
+              input={input}
+              comparison={comparison}
+              onApply={applyEditedScenario}
+              onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
+              onDeleteScenario={(id) =>
+                updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
+              }
+            />
+
+            {/* Steuerung & Kennzahlen der Wahrscheinlichkeits-Simulation. Das
+                Gradient-Band selbst liegt in der EINEN Hauptgrafik links. */}
+            <MonteCarloPanel
+              settings={mcSettings}
+              onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+              result={monteCarlo}
+              isCalculating={isMonteCarloCalculating}
+              contextLabel={activeScenario?.name ?? 'Basisplanung'}
+            />
+          </div>
+        </FeatureGate>
       </div>
 
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
-            {monteCarlo && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                · Wahrscheinlichkeitsband P10–P90
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <defs>
-                  <linearGradient id="liqFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1d5c54" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#1d5c54" stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="mcBandFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
-                  minTickGap={32}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis
-                  tickFormatter={(v: number) => eur.format(v)}
-                  width={72}
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip
-                  formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
-                  labelFormatter={(l: string) => fmtDate(l)}
-                />
-                {/* Monte-Carlo-Wahrscheinlichkeitsband (P10–P90) als Gradient,
-                    hinter den Linien – damit es genau EINE Darstellung gibt. */}
-                {monteCarlo && (
-                  <>
-                    <Area
-                      type="monotone"
-                      dataKey="bandFloor"
-                      name="bandFloor"
-                      stackId="mc"
-                      stroke="none"
-                      fill="transparent"
-                      isAnimationActive={false}
-                      legendType="none"
-                      tooltipType="none"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="bandHeight"
-                      name="bandHeight"
-                      stackId="mc"
-                      stroke="none"
-                      fill="url(#mcBandFill)"
-                      isAnimationActive={false}
-                      legendType="none"
-                      tooltipType="none"
-                    />
-                  </>
-                )}
-                <Area
-                  type="monotone"
-                  dataKey="operating"
-                  name="operating"
-                  stroke="#1d5c54"
-                  strokeWidth={2}
-                  fill={monteCarlo ? 'transparent' : 'url(#liqFill)'}
-                />
-                {activeScenario && (
-                  <Line
-                    type="monotone"
-                    dataKey="scenario"
-                    name="scenario"
-                    stroke="#d97706"
-                    strokeWidth={2}
-                    strokeDasharray="5 4"
-                    dot={false}
-                  />
-                )}
-                {monteCarlo && (
-                  <Line
-                    type="monotone"
-                    dataKey="median"
-                    name="median"
-                    stroke="#6366f1"
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                )}
-                {safetyBuffer > 0 && (
-                  <ReferenceLine
-                    y={safetyBuffer}
-                    stroke="#d97706"
-                    strokeDasharray="4 4"
-                    label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11 }}
-                  />
-                )}
-                <ReferenceLine y={0} stroke="currentColor" className="stroke-muted-foreground" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Die übrigen Spezialanalysen bleiben erhalten, aber volle Breite und
+          einklappbar – damit die Hauptansicht fokussiert bleibt. */}
+      <FeatureGate feature="simulation" fallback={null}>
+        <details className="group rounded-xl border bg-card">
+          <summary className="cursor-pointer list-none px-4 py-3 font-medium">
+            Erweiterte Analysen{' '}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">
+              Risiko, Budget, Detailplanung
+            </span>
+          </summary>
+          <div className="space-y-6 border-t p-3 sm:p-4">
+            <FinRiskSection
+              input={input}
+              months={months}
+              safetyBuffer={safetyBuffer}
+              bufferBasis={bufferBasis}
+              startISO={forecast.config.startDate}
+            />
 
-      {/* Ein Szenario-Bereich – direkt unter der einzigen Hauptgrafik. */}
-      <FeatureGate feature="simulation">
-        <section className="space-y-4" aria-labelledby="simulation-tools-heading">
-          <div>
-            <h2 id="simulation-tools-heading" className="text-lg font-semibold">
-              Zukunft durchspielen
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Wähle ein Beispiel-Szenario oder baue ein eigenes. Alle Parameter sind sichtbar –
-              die Grafik oben zeigt die Wirkung sofort.
-            </p>
-          </div>
+            <BudgetOptimizerPanel input={input} />
 
-          <ScenarioExplorer
-            presets={scenarios}
-            customScenarios={overrides.scenarios}
-            input={input}
-            comparison={comparison}
-            onApply={applyEditedScenario}
-            onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
-            onDeleteScenario={(id) =>
-              updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
-            }
-          />
-
-          {/* Steuerung & Kennzahlen der Wahrscheinlichkeits-Simulation. Das
-              Gradient-Band selbst liegt in der EINEN Hauptgrafik oben. */}
-          <MonteCarloPanel
-            settings={mcSettings}
-            onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
-            result={monteCarlo}
-            isCalculating={isMonteCarloCalculating}
-            contextLabel={activeScenario?.name ?? 'Basisplanung'}
-          />
-
-          {/* Die übrigen Spezialanalysen bleiben erhalten, aber gebündelt und
-              einklappbar – damit die Hauptansicht fokussiert bleibt. */}
-          <details className="group rounded-xl border bg-card">
-            <summary className="cursor-pointer list-none px-4 py-3 font-medium">
-              Erweiterte Analysen{' '}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
-                Risiko, Budget, Detailplanung
-              </span>
-            </summary>
-            <div className="space-y-6 border-t p-3 sm:p-4">
-              <FinRiskSection
-                input={input}
-                months={months}
-                safetyBuffer={safetyBuffer}
-                bufferBasis={bufferBasis}
-                startISO={forecast.config.startDate}
-              />
-
-              <BudgetOptimizerPanel input={input} />
-
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Detailplanung: einzelne Budgets, Verträge, Transfers und Ereignisse gezielt anpassen.
-                </p>
-                <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
-              </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Detailplanung: einzelne Budgets, Verträge, Transfers und Ereignisse gezielt anpassen.
+              </p>
+              <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
             </div>
-          </details>
-        </section>
+          </div>
+        </details>
       </FeatureGate>
 
       {/* Monatskarten */}
       <div>
         <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Monatsübersicht</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {monthly.map((m) => (
             <Card key={m.month} className={m.belowSafetyBuffer ? 'border-warning' : undefined}>
-              <CardContent className="space-y-2 p-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{fmtMonth(m.month)}</span>
                   {m.belowSafetyBuffer && (
@@ -599,7 +620,7 @@ export default function LiquidityReport() {
                     muted
                   />
                 </dl>
-              </CardContent>
+              </div>
             </Card>
           ))}
         </div>
