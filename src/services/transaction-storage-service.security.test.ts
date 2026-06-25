@@ -20,6 +20,10 @@ function transaction(id: string, categoryId: string | null = null): Transaction 
   };
 }
 
+function transactionOn(id: string, date: string): Transaction {
+  return { ...transaction(id), date };
+}
+
 beforeEach(async () => {
   localEncryption.lock();
   localStorage.clear();
@@ -48,6 +52,34 @@ describe('[INTEGRITY] transaction storage idempotency', () => {
     await transactionStorage.saveTransactions([transaction('row-1'), transaction('row-2')]);
     const stored = await transactionStorage.getTransactions(100, 0);
     expect(stored.data?.map((item) => item.id)).toEqual(['row-1', 'row-2']);
+  });
+});
+
+describe('Transaction window (limit) ordering', () => {
+  it('[REGRESSION] behält bei einem Limit die JÜNGSTEN Buchungen, nicht die Import-Reihenfolge', async () => {
+    // In Speicher-/Importreihenfolge zuerst alte, dann neue Buchungen ablegen.
+    // Ein Limit darf nicht die ersten N in Import-Reihenfolge nehmen (sonst gehen
+    // die jüngsten verloren und laufende Verträge wirken beendet).
+    await transactionStorage.saveTransactions([
+      transactionOn('alt-1', '2024-01-15'),
+      transactionOn('alt-2', '2024-02-15'),
+      transactionOn('neu-1', '2026-05-15'),
+      transactionOn('neu-2', '2026-06-15'),
+    ]);
+
+    const limited = await transactionStorage.getTransactions(2, 0);
+    expect(limited.data?.map((t) => t.id)).toEqual(['neu-2', 'neu-1']);
+  });
+
+  it('liefert alle Buchungen nach Datum absteigend sortiert', async () => {
+    await transactionStorage.saveTransactions([
+      transactionOn('b', '2026-03-01'),
+      transactionOn('a', '2026-06-01'),
+      transactionOn('c', '2026-01-01'),
+    ]);
+
+    const all = await transactionStorage.getTransactions(100, 0);
+    expect(all.data?.map((t) => t.id)).toEqual(['a', 'b', 'c']);
   });
 });
 

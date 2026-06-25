@@ -86,7 +86,12 @@ class TransactionStorageService {
     try {
       const localResult = await this.getLocalTransactions();
       const rows = localResult.data || [];
-      return { success: true, data: rows.slice(offset, offset + limit) };
+      // Nach Datum absteigend sortieren, BEVOR das Limit greift. Sonst schneidet
+      // ein Limit (z. B. 2000) einen beliebigen Ausschnitt in Speicher-/Import-
+      // reihenfolge ab und verliert die jüngsten Buchungen – wodurch laufende
+      // Verträge (Gehalt, Energie) fälschlich als beendet/nicht erkannt gelten.
+      const sorted = [...rows].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      return { success: true, data: sorted.slice(offset, offset + limit) };
     } catch (error) {
       console.error('[TransactionStorage] Error getting transactions:', error);
       return {
