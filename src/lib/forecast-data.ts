@@ -220,8 +220,15 @@ export function buildDetectedSalaryFlows(
 }
 
 /**
- * Setzt das Standardkonto für Flows, die kein Konto tragen (Verträge führen
- * keine Konto-Zuordnung). Default: erstes Girokonto, sonst erstes Konto.
+ * Bindet Flows an ein operatives Konto. Greift in zwei Fällen:
+ *  1. Flow trägt kein Konto (Verträge führen keine Konto-Zuordnung), ODER
+ *  2. Flow verweist auf ein Konto, das es in der Prognose nicht (mehr) gibt –
+ *     z. B. eine erkannte Gehaltsserie, deren Buchungen auf ein gelöschtes/
+ *     archiviertes Konto zeigen.
+ *
+ * Ohne (2) würde ein solcher Flow auf ein „Phantomkonto" buchen und in der
+ * Engine spurlos verschwinden: Das Einkommen wäre erkannt, aber weder im
+ * operativen noch im verfügbaren Bestand sichtbar. Default: erstes Girokonto.
  */
 function bindFlowsToDefaultAccount(
   flows: RecurringFlow[],
@@ -230,7 +237,12 @@ function bindFlowsToDefaultAccount(
   const defaultAccount =
     accounts.find((a) => a.kind === 'checking') ?? accounts[0];
   if (!defaultAccount) return flows;
-  return flows.map((flow) => (flow.accountId ? flow : { ...flow, accountId: defaultAccount.id }));
+  const knownAccountIds = new Set(accounts.map((a) => a.id));
+  return flows.map((flow) =>
+    flow.accountId && knownAccountIds.has(flow.accountId)
+      ? flow
+      : { ...flow, accountId: defaultAccount.id },
+  );
 }
 
 /**
