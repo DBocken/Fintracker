@@ -4,7 +4,7 @@ import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
 import { mapCycleToRhythmus } from "@/components/contracts/contract-types";
 import { getTransactions, getCategories, updateTransaction, type TransactionUpdate } from "./transaction-service";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
-import { computeContracts } from "@/lib/contract-derivation";
+import { computeContracts, computeIncomeContracts } from "@/lib/contract-derivation";
 
 /**
  * Detects recurring transactions with equal amounts and identifies price increases.
@@ -208,7 +208,8 @@ export async function applyDetectedContracts(): Promise<number> {
 
   const allContracts = [
     ...computeContracts(transactions, categoryMap, "Ausgabe"),
-    ...computeContracts(transactions, categoryMap, "Einnahme"),
+    // Einnahmen inkl. gehaltsspezifischer Erkennung (Arbeitgeber-basiert).
+    ...computeIncomeContracts(transactions, categoryMap),
   ];
 
   if (allContracts.length === 0) return 0;

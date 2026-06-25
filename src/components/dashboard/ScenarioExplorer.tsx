@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { SlidersHorizontal, RotateCcw, ChevronDown, TrendingDown, CalendarClock } from 'lucide-react';
+import {
+  SlidersHorizontal,
+  RotateCcw,
+  TrendingDown,
+  CalendarClock,
+  Plus,
+  Trash2,
+  Save,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
-import type {
-  ForecastScenario,
-  ScenarioComparison,
-  ScenarioModifier,
-} from '@/lib/forecast-scenario-types';
+import type { ForecastScenario, ScenarioComparison } from '@/lib/forecast-scenario-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -45,185 +49,501 @@ function detectMonthlyIncome(input: ForecastInput | null): number {
     .reduce((sum, f) => sum + f.amount * monthlyFactor(f.cadence, f.intervalDays), 0);
 }
 
-/**
- * Personalisiert ein Preset mit echten Nutzerwerten. So sieht der Nutzer beim
- * Wechsel des Beispiels sofort *seine* Zahlen statt generischer Platzhalter –
- * z. B. das erkannte Gehalt als Default für das „neue Gehalt" beim Jobwechsel.
- */
-function personalizePreset(preset: ForecastScenario, input: ForecastInput | null): ForecastScenario {
-  const income = Math.round(detectMonthlyIncome(input));
-  if (income <= 0) return structuredClone(preset);
+// -----------------------------------------------------------------------------
+// Parameter-Formular: IMMER die volle Palette, damit der Nutzer sieht, was ein
+// Szenario ändern kann – und jeden Parameter selbst setzen darf.
+// -----------------------------------------------------------------------------
 
+interface OneTimeEntry {
+  localId: string;
+  amount: number;
+  date: string;
+  label: string;
+}
+interface RecurringEntry {
+  localId: string;
+  amount: number;
+  cadence: RecurringCadence;
+  anchorDate: string;
+  label: string;
+}
+interface ParamForm {
+  income: { pct: number; fromDate: string };
+  expenses: { pct: number; fromDate: string };
+  variable: { pct: number };
+  interest: { delta: number };
+  oneTime: OneTimeEntry[];
+  recurring: RecurringEntry[];
+}
+
+function emptyForm(): ParamForm {
   return {
-    ...preset,
-    modifiers: preset.modifiers.map((m) => {
-      // Neues Gehalt (recurring, positiver Betrag) → erkanntes Einkommen vorbelegen.
-      if (m.type === 'recurring' && (m.amount ?? 0) > 0) {
-        return { ...m, amount: income };
-      }
-      return { ...m };
-    }),
+    income: { pct: 0, fromDate: '' },
+    expenses: { pct: 0, fromDate: '' },
+    variable: { pct: 0 },
+    interest: { delta: 0 },
+    oneTime: [],
+    recurring: [],
   };
 }
 
-const CADENCE_LABELS: Record<string, string> = {
-  monthly: 'monatlich',
-  quarterly: 'vierteljährlich',
-  annual: 'jährlich',
-  weekly: 'wöchentlich',
-  biweekly: '14-tägig',
-  semiannual: 'halbjährlich',
-  custom: 'individuell',
-};
-
-function modifierTitle(m: ScenarioModifier): string {
-  if (m.label) return m.label;
-  switch (m.type) {
-    case 'income': return 'Einnahmen';
-    case 'expenses': return 'Fixkosten';
-    case 'variable': return 'Grundverbrauch';
-    case 'interest': return 'Zinssatz';
-    case 'oneTime': return 'Einmalbetrag';
-    case 'recurring': return 'Wiederkehrend';
-  }
+let entryCounter = 0;
+function nextLocalId(): string {
+  entryCounter += 1;
+  return `entry-${Date.now()}-${entryCounter}`;
 }
 
-interface Props {
-  presets: ForecastScenario[];
-  input: ForecastInput | null;
-  /** Liefert für ein editiertes Szenario den Live-Vergleich (oder null bei Basis). */
-  comparison: ScenarioComparison | null;
-  /** Wird bei jeder Änderung aufgerufen – das editierte Szenario fließt live in die Prognose. */
-  onApply: (scenario: ForecastScenario | null) => void;
-  /** Aktuell angewandtes Szenario (zur Markierung der ausgewählten Kachel). */
-  activeId: string | null;
+/** Baut aus einem Preset/Szenario das volle Parameter-Formular. */
+function scenarioToForm(scenario: ForecastScenario): ParamForm {
+  const form = emptyForm();
+  for (const m of scenario.modifiers) {
+    switch (m.type) {
+      case 'income':
+        form.income = { pct: m.percentChange ?? 0, fromDate: m.fromDate ?? '' };
+        break;
+      case 'expenses':
+        form.expenses = { pct: m.percentChange ?? 0, fromDate: m.fromDate ?? '' };
+        break;
+      case 'variable':
+        form.variable = { pct: m.percentChange ?? 0 };
+        break;
+      case 'interest':
+        form.interest = { delta: m.amount ?? 0 };
+        break;
+      case 'oneTime':
+        form.oneTime.push({
+          localId: m.id || nextLocalId(),
+          amount: m.amount ?? 0,
+          date: m.date ?? '',
+          label: m.label ?? '',
+        });
+        break;
+      case 'recurring':
+        form.recurring.push({
+          localId: m.id || nextLocalId(),
+          amount: m.amount ?? 0,
+          cadence: m.cadence ?? 'monthly',
+          anchorDate: m.anchorDate ?? '',
+          label: m.label ?? '',
+        });
+        break;
+    }
+  }
+  return form;
 }
 
 /**
- * Szenario-Explorer: Der Nutzer wählt aus einer Liste typischer Beispiele,
- * klappt die Details auf und passt jeden Parameter an seine persönliche Lage an.
- * Jede Änderung fließt sofort in die Prognose – „Live-Vorschau ohne Speichern".
+ * Personalisiert ein Formular mit echten Nutzerwerten: ein neues, positives
+ * wiederkehrendes Gehalt wird mit dem erkannten Einkommen vorbelegt.
  */
-export default function ScenarioExplorer({ presets, input, comparison, onApply, activeId }: Props) {
-  // Editierbarer Arbeitsstand des gewählten Presets (personalisiert vorbelegt).
-  const [working, setWorking] = useState<ForecastScenario | null>(null);
+function personalizeForm(form: ParamForm, input: ForecastInput | null): ParamForm {
+  const income = Math.round(detectMonthlyIncome(input));
+  if (income <= 0) return form;
+  return {
+    ...form,
+    recurring: form.recurring.map((r) => (r.amount > 0 ? { ...r, amount: income } : r)),
+  };
+}
 
-  // Basis-Preset des aktuellen Arbeitsstands (für Reset/Diff-Erkennung).
+/** Erzeugt aus dem Formular ein Szenario – nur gesetzte Parameter werden zu Modifikatoren. */
+function formToScenario(form: ParamForm, id: string, name: string, description?: string): ForecastScenario {
+  const modifiers: ForecastScenario['modifiers'] = [];
+  if (form.income.pct !== 0)
+    modifiers.push({ id: 'income', type: 'income', percentChange: form.income.pct, fromDate: form.income.fromDate || undefined });
+  if (form.expenses.pct !== 0)
+    modifiers.push({ id: 'expenses', type: 'expenses', percentChange: form.expenses.pct, fromDate: form.expenses.fromDate || undefined });
+  if (form.variable.pct !== 0)
+    modifiers.push({ id: 'variable', type: 'variable', percentChange: form.variable.pct });
+  if (form.interest.delta !== 0)
+    modifiers.push({ id: 'interest', type: 'interest', amount: form.interest.delta });
+  for (const e of form.oneTime) {
+    if (e.amount !== 0 && e.date)
+      modifiers.push({ id: e.localId, type: 'oneTime', amount: e.amount, date: e.date, label: e.label || undefined });
+  }
+  for (const e of form.recurring) {
+    if (e.amount !== 0 && e.anchorDate)
+      modifiers.push({ id: e.localId, type: 'recurring', amount: e.amount, cadence: e.cadence, anchorDate: e.anchorDate, label: e.label || undefined });
+  }
+  return { id, name, description, modifiers };
+}
+
+function isFormEmpty(form: ParamForm): boolean {
+  return formToScenario(form, '', '').modifiers.length === 0;
+}
+
+const CADENCE_OPTIONS: { value: RecurringCadence; label: string }[] = [
+  { value: 'monthly', label: 'Monatlich' },
+  { value: 'quarterly', label: 'Vierteljährlich' },
+  { value: 'annual', label: 'Jährlich' },
+];
+
+interface Props {
+  /** Beispiel-Szenarien (Presets) und gespeicherte eigene Szenarien. */
+  presets: ForecastScenario[];
+  /** Vom Nutzer gespeicherte eigene Szenarien (für Löschen/Markierung). */
+  customScenarios: ForecastScenario[];
+  input: ForecastInput | null;
+  /** Live-Vergleich Basis ↔ aktuelles Szenario. */
+  comparison: ScenarioComparison | null;
+  /** Wird bei jeder Änderung aufgerufen – das Szenario fließt live in die Prognose. */
+  onApply: (scenario: ForecastScenario | null) => void;
+  /** Eigenes Szenario speichern. */
+  onAddScenario: (scenario: ForecastScenario) => void;
+  /** Eigenes Szenario löschen. */
+  onDeleteScenario: (id: string) => void;
+}
+
+/**
+ * Einziger Szenario-Bereich der Simulationsseite: Beispiele wählen, ALLE
+ * Parameter sehen und anpassen, eigene Szenarien bauen und speichern. Jede
+ * Änderung fließt sofort in die Prognose („Live-Vorschau ohne Speichern").
+ */
+export default function ScenarioExplorer({
+  presets,
+  customScenarios,
+  input,
+  comparison,
+  onApply,
+  onAddScenario,
+  onDeleteScenario,
+}: Props) {
+  // Aktuelle Auswahl: null = Basis; sonst id + Name + (optional) Beschreibung.
+  const [selected, setSelected] = useState<{ id: string; name: string; description?: string } | null>(null);
+  const [form, setForm] = useState<ParamForm>(emptyForm());
+  const [isCustom, setIsCustom] = useState(false);
+
   const basePreset = useMemo(
-    () => (working ? presets.find((p) => p.id === working.id) ?? null : null),
-    [working, presets],
+    () => (selected ? presets.find((p) => p.id === selected.id) ?? null : null),
+    [selected, presets],
   );
-  const personalizedBase = useMemo(
-    () => (basePreset ? personalizePreset(basePreset, input) : null),
-    [basePreset, input],
-  );
-  const isEdited = useMemo(
-    () =>
-      !!working &&
-      !!personalizedBase &&
-      JSON.stringify(working.modifiers) !== JSON.stringify(personalizedBase.modifiers),
-    [working, personalizedBase],
-  );
+  const isEdited = useMemo(() => {
+    if (!selected || !basePreset) return isCustom && !isFormEmpty(form);
+    const baseForm = personalizeForm(scenarioToForm(basePreset), input);
+    return JSON.stringify(form) !== JSON.stringify(baseForm);
+  }, [selected, basePreset, form, input, isCustom]);
 
-  const selectPreset = (preset: ForecastScenario | null) => {
-    if (!preset) {
-      setWorking(null);
+  const apply = (nextForm: ParamForm, sel: { id: string; name: string; description?: string } | null) => {
+    if (!sel || isFormEmpty(nextForm)) {
       onApply(null);
       return;
     }
-    const personalized = personalizePreset(preset, input);
-    setWorking(personalized);
-    onApply(personalized);
+    onApply(formToScenario(nextForm, sel.id, sel.name, sel.description));
   };
 
-  const patchModifier = (modId: string, patch: Partial<ScenarioModifier>) => {
-    setWorking((prev) => {
-      if (!prev) return prev;
-      const next: ForecastScenario = {
-        ...prev,
-        modifiers: prev.modifiers.map((m) => (m.id === modId ? { ...m, ...patch } : m)),
-      };
-      onApply(next);
+  const selectBase = () => {
+    setSelected(null);
+    setIsCustom(false);
+    setForm(emptyForm());
+    onApply(null);
+  };
+
+  const selectPreset = (preset: ForecastScenario) => {
+    const personalized = personalizeForm(scenarioToForm(preset), input);
+    const sel = { id: preset.id, name: preset.name, description: preset.description };
+    setSelected(sel);
+    setIsCustom(false);
+    setForm(personalized);
+    apply(personalized, sel);
+  };
+
+  const startCustom = () => {
+    const sel = { id: `custom-${Date.now()}`, name: 'Eigenes Szenario' };
+    setSelected(sel);
+    setIsCustom(true);
+    setForm(emptyForm());
+    onApply(null); // leeres Formular = Basis, bis der Nutzer etwas setzt
+  };
+
+  const update = (patch: (f: ParamForm) => ParamForm) => {
+    setForm((prev) => {
+      const next = patch(prev);
+      apply(next, selected);
       return next;
     });
   };
 
   const resetToPreset = () => {
-    if (personalizedBase) {
-      setWorking(personalizedBase);
-      onApply(personalizedBase);
-    }
+    if (!basePreset) return;
+    const personalized = personalizeForm(scenarioToForm(basePreset), input);
+    setForm(personalized);
+    apply(personalized, selected);
   };
+
+  const saveCustom = () => {
+    if (!selected || isFormEmpty(form)) return;
+    const scenario = formToScenario(form, selected.id, selected.name, selected.description);
+    onAddScenario(scenario);
+    setIsCustom(false);
+  };
+
+  const isSavedCustom = !!selected && customScenarios.some((c) => c.id === selected.id);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <SlidersHorizontal className="h-4 w-4 text-brand" />
-          Szenarien erkunden &amp; anpassen
+          Szenarien
         </CardTitle>
         <CardDescription>
-          Wähle ein Beispiel, öffne die Details und passe jeden Wert an deine Lage an. Die Vorschau
-          aktualisiert sich sofort.
+          Wähle ein Beispiel oder baue ein eigenes Szenario. Jeder Parameter ist sichtbar und
+          anpassbar – die Vorschau aktualisiert sich sofort.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Preset-Liste */}
+        {/* Auswahl: Basis + Beispiele + eigene + „Eigenes Szenario" */}
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={working === null && activeId === null ? 'default' : 'outline'}
+            variant={selected === null ? 'default' : 'outline'}
             size="sm"
-            onClick={() => selectPreset(null)}
+            onClick={selectBase}
           >
-            Basis (ohne Szenario)
+            Basis
           </Button>
-          {presets.map((preset) => (
-            <Button
-              key={preset.id}
-              variant={working?.id === preset.id ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => selectPreset(preset)}
-              title={preset.description}
-            >
-              {preset.name}
-            </Button>
-          ))}
+          {presets.map((preset) => {
+            const saved = customScenarios.some((c) => c.id === preset.id);
+            return (
+              <span key={preset.id} className="flex items-center">
+                <Button
+                  variant={selected?.id === preset.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => selectPreset(preset)}
+                  title={preset.description}
+                >
+                  {preset.name}
+                </Button>
+                {saved && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label="Szenario löschen"
+                    onClick={() => {
+                      if (selected?.id === preset.id) selectBase();
+                      onDeleteScenario(preset.id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </span>
+            );
+          })}
+          <Button variant="outline" size="sm" onClick={startCustom}>
+            <Plus className="mr-1 h-4 w-4" /> Eigenes Szenario
+          </Button>
         </div>
 
-        {/* Details: editierbare Parameter des gewählten Presets */}
-        {working && (
-          <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+        {/* Editor: volle Parameter-Palette */}
+        {selected && (
+          <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{working.name}</span>
+                  <span className="font-medium">{selected.name}</span>
                   {isEdited && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      angepasst
-                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">angepasst</Badge>
                   )}
                 </div>
-                {basePreset?.description && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{basePreset.description}</p>
+                {selected.description && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{selected.description}</p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Alle Parameter sind sichtbar. Was du veränderst, wird zum Szenario.
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                {isEdited && basePreset && (
+                  <Button variant="ghost" size="sm" onClick={resetToPreset}>
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Zurücksetzen
+                  </Button>
+                )}
+                {!isSavedCustom && !isFormEmpty(form) && (
+                  <Button variant="ghost" size="sm" onClick={saveCustom}>
+                    <Save className="mr-1.5 h-3.5 w-3.5" /> Speichern
+                  </Button>
                 )}
               </div>
-              {isEdited && (
-                <Button variant="ghost" size="sm" onClick={resetToPreset}>
-                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Zurücksetzen
-                </Button>
-              )}
             </div>
 
-            <div className="space-y-3">
-              {working.modifiers.map((mod) => (
-                <ModifierEditor
-                  key={mod.id}
-                  modifier={mod}
-                  onChange={(patch) => patchModifier(mod.id, patch)}
+            {/* Prozentuale Anpassungen */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ParamGroup title="Einnahmen ändern" hint="z. B. Gehaltserhöhung, Nebenjob, Jobverlust (−100 %)">
+                <PercentRow
+                  pct={form.income.pct}
+                  fromDate={form.income.fromDate}
+                  onPct={(pct) => update((f) => ({ ...f, income: { ...f.income, pct } }))}
+                  onFrom={(fromDate) => update((f) => ({ ...f, income: { ...f.income, fromDate } }))}
                 />
-              ))}
+              </ParamGroup>
+
+              <ParamGroup title="Fixkosten ändern" hint="z. B. Mieterhöhung, Nebenkostennachzahlung">
+                <PercentRow
+                  pct={form.expenses.pct}
+                  fromDate={form.expenses.fromDate}
+                  onPct={(pct) => update((f) => ({ ...f, expenses: { ...f.expenses, pct } }))}
+                  onFrom={(fromDate) => update((f) => ({ ...f, expenses: { ...f.expenses, fromDate } }))}
+                />
+              </ParamGroup>
+
+              <ParamGroup title="Variable Ausgaben ändern" hint="Grundverbrauch (Lebensmittel, Freizeit …)">
+                <Field label="Änderung in %">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    value={form.variable.pct}
+                    onChange={(e) => update((f) => ({ ...f, variable: { pct: Number(e.target.value) } }))}
+                  />
+                </Field>
+              </ParamGroup>
+
+              <ParamGroup title="Zinssatz ändern" hint="Δ Prozentpunkte auf verzinste Konten">
+                <Field label="Δ Prozentpunkte">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    value={form.interest.delta}
+                    onChange={(e) => update((f) => ({ ...f, interest: { delta: Number(e.target.value) } }))}
+                  />
+                </Field>
+              </ParamGroup>
             </div>
+
+            {/* Einmalige Posten */}
+            <ListGroup
+              title="Einmalige Posten"
+              hint="z. B. Reparatur (−), Erstattung (+)"
+              onAdd={() =>
+                update((f) => ({
+                  ...f,
+                  oneTime: [...f.oneTime, { localId: nextLocalId(), amount: 0, date: '', label: '' }],
+                }))
+              }
+            >
+              {form.oneTime.map((e) => (
+                <div key={e.localId} className="grid gap-2 rounded-lg border bg-background p-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                  <Field label="Betrag (− / +)">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={e.amount}
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          oneTime: f.oneTime.map((x) => (x.localId === e.localId ? { ...x, amount: Number(ev.target.value) } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Datum">
+                    <Input
+                      type="date"
+                      value={e.date}
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          oneTime: f.oneTime.map((x) => (x.localId === e.localId ? { ...x, date: ev.target.value } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Bezeichnung">
+                    <Input
+                      value={e.label}
+                      placeholder="z. B. Reparatur"
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          oneTime: f.oneTime.map((x) => (x.localId === e.localId ? { ...x, label: ev.target.value } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <RemoveButton
+                    onClick={() => update((f) => ({ ...f, oneTime: f.oneTime.filter((x) => x.localId !== e.localId) }))}
+                  />
+                </div>
+              ))}
+            </ListGroup>
+
+            {/* Wiederkehrende Posten */}
+            <ListGroup
+              title="Wiederkehrende Posten"
+              hint="neuer/wegfallender Vertrag, neues Gehalt (+)"
+              onAdd={() =>
+                update((f) => ({
+                  ...f,
+                  recurring: [
+                    ...f.recurring,
+                    { localId: nextLocalId(), amount: Math.round(detectMonthlyIncome(input)) || 0, cadence: 'monthly', anchorDate: '', label: '' },
+                  ],
+                }))
+              }
+            >
+              {form.recurring.map((e) => (
+                <div key={e.localId} className="grid gap-2 rounded-lg border bg-background p-2 sm:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+                  <Field label="Betrag (− / +)">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={e.amount}
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          recurring: f.recurring.map((x) => (x.localId === e.localId ? { ...x, amount: Number(ev.target.value) } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Rhythmus">
+                    <Select
+                      value={e.cadence}
+                      onValueChange={(v) =>
+                        update((f) => ({
+                          ...f,
+                          recurring: f.recurring.map((x) => (x.localId === e.localId ? { ...x, cadence: v as RecurringCadence } : x)),
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CADENCE_OPTIONS.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Beginnt am">
+                    <Input
+                      type="date"
+                      value={e.anchorDate}
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          recurring: f.recurring.map((x) => (x.localId === e.localId ? { ...x, anchorDate: ev.target.value } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Bezeichnung">
+                    <Input
+                      value={e.label}
+                      placeholder="z. B. Neues Gehalt"
+                      onChange={(ev) =>
+                        update((f) => ({
+                          ...f,
+                          recurring: f.recurring.map((x) => (x.localId === e.localId ? { ...x, label: ev.target.value } : x)),
+                        }))
+                      }
+                    />
+                  </Field>
+                  <RemoveButton
+                    onClick={() => update((f) => ({ ...f, recurring: f.recurring.filter((x) => x.localId !== e.localId) }))}
+                  />
+                </div>
+              ))}
+            </ListGroup>
 
             {/* Live-Wirkung */}
             {comparison && (
@@ -259,121 +579,74 @@ export default function ScenarioExplorer({ presets, input, comparison, onApply, 
   );
 }
 
-/** Ein editierbarer Parameter-Block für einen einzelnen Modifikator. */
-function ModifierEditor({
-  modifier: m,
-  onChange,
-}: {
-  modifier: ScenarioModifier;
-  onChange: (patch: Partial<ScenarioModifier>) => void;
-}) {
-  const [open, setOpen] = useState(true);
-
+function ParamGroup({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-background">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
-      >
-        <span className="text-sm font-medium">{modifierTitle(m)}</span>
-        <span className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{summarizeModifier(m)}</span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
-        </span>
-      </button>
+    <div className="rounded-lg border bg-background p-3">
+      <div className="mb-2">
+        <div className="text-sm font-medium">{title}</div>
+        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
-      {open && (
-        <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
-          {(m.type === 'income' || m.type === 'expenses' || m.type === 'variable') && (
-            <>
-              <Field label="Änderung in %">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={m.percentChange ?? 0}
-                  onChange={(e) => onChange({ percentChange: Number(e.target.value) })}
-                />
-              </Field>
-              {m.type !== 'variable' && (
-                <Field label="Wirksam ab">
-                  <Input
-                    type="date"
-                    value={m.fromDate ?? ''}
-                    onChange={(e) => onChange({ fromDate: e.target.value || undefined })}
-                  />
-                </Field>
-              )}
-            </>
-          )}
+function PercentRow({
+  pct,
+  fromDate,
+  onPct,
+  onFrom,
+}: {
+  pct: number;
+  fromDate: string;
+  onPct: (v: number) => void;
+  onFrom: (v: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <Field label="Änderung in %">
+        <Input type="number" inputMode="decimal" value={pct} onChange={(e) => onPct(Number(e.target.value))} />
+      </Field>
+      <Field label="Wirksam ab">
+        <Input type="date" value={fromDate} onChange={(e) => onFrom(e.target.value)} />
+      </Field>
+    </div>
+  );
+}
 
-          {m.type === 'interest' && (
-            <Field label="Δ Prozentpunkte">
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={m.amount ?? 0}
-                onChange={(e) => onChange({ amount: Number(e.target.value) })}
-              />
-            </Field>
-          )}
-
-          {m.type === 'oneTime' && (
-            <>
-              <Field label="Betrag (− Ausgabe, + Einnahme)">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={m.amount ?? 0}
-                  onChange={(e) => onChange({ amount: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label="Datum">
-                <Input
-                  type="date"
-                  value={m.date ?? ''}
-                  onChange={(e) => onChange({ date: e.target.value })}
-                />
-              </Field>
-            </>
-          )}
-
-          {m.type === 'recurring' && (
-            <>
-              <Field label="Betrag (− Ausgabe, + Einnahme)">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={m.amount ?? 0}
-                  onChange={(e) => onChange({ amount: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label="Rhythmus">
-                <Select
-                  value={m.cadence ?? 'monthly'}
-                  onValueChange={(v) => onChange({ cadence: v as RecurringCadence })}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monatlich</SelectItem>
-                    <SelectItem value="quarterly">Vierteljährlich</SelectItem>
-                    <SelectItem value="annual">Jährlich</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Beginnt am">
-                <Input
-                  type="date"
-                  value={m.anchorDate ?? ''}
-                  onChange={(e) => onChange({ anchorDate: e.target.value })}
-                />
-              </Field>
-            </>
-          )}
+function ListGroup({
+  title,
+  hint,
+  onAdd,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  onAdd: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border bg-background p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium">{title}</div>
+          {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
         </div>
-      )}
+        <Button variant="outline" size="sm" onClick={onAdd}>
+          <Plus className="mr-1 h-4 w-4" /> Hinzufügen
+        </Button>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function RemoveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="flex items-end">
+      <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Posten entfernen" onClick={onClick}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
@@ -385,24 +658,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   );
-}
-
-function summarizeModifier(m: ScenarioModifier): string {
-  switch (m.type) {
-    case 'income':
-    case 'expenses':
-    case 'variable': {
-      const pct = m.percentChange ?? 0;
-      const from = m.fromDate ? ` ab ${m.fromDate}` : '';
-      return `${pct >= 0 ? '+' : ''}${pct} %${from}`;
-    }
-    case 'interest':
-      return `${(m.amount ?? 0) >= 0 ? '+' : ''}${m.amount ?? 0} %-Pkt.`;
-    case 'oneTime':
-      return `${eur.format(m.amount ?? 0)}${m.date ? ` · ${m.date}` : ''}`;
-    case 'recurring':
-      return `${eur.format(m.amount ?? 0)} ${CADENCE_LABELS[m.cadence ?? 'monthly']}`;
-  }
 }
 
 function ImpactStat({
