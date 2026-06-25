@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTable } from "@/components/dashboard/TransactionTable";
 import { TransactionListMobile } from "@/components/dashboard/TransactionListMobile";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
+import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useI18n } from "@/i18n/useI18n";
 import {
@@ -41,6 +42,7 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState(urlFilters.search);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: "asc" | "desc" } | null>(null);
   const [hidden, toggleHidden] = usePersistedSet("transactions_hidden");
 
@@ -126,7 +128,16 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <PageHeader title={t("transactions.title")} description={t("transactions.description")} />
+      <PageHeader
+        title={t("transactions.title")}
+        description={t("transactions.description")}
+        actions={
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Buchung hinzufügen
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -200,6 +211,12 @@ export default function TransactionsPage() {
         onDelete={(id) => deleteMut.mutate(id)}
         isHidden={detailsTransaction?.id ? hidden.has(detailsTransaction.id) : false}
         isLoading={detailsSaving}
+      />
+
+      <TransactionFormDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["transactions"] })}
       />
     </div>
   );
