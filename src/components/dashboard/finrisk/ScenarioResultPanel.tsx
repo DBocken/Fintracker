@@ -1,5 +1,4 @@
 import { LoaderCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import RiskDensityChart from './RiskDensityChart';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
@@ -11,10 +10,10 @@ const eur = new Intl.NumberFormat('de-DE', {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-md border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-bold tabular-nums">{value}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+    <div className="rounded-md border bg-background p-2.5">
+      <div className="text-[11px] leading-tight text-muted-foreground">{label}</div>
+      <div className="text-base font-bold tabular-nums sm:text-lg">{value}</div>
+      {hint && <div className="text-[11px] leading-tight text-muted-foreground">{hint}</div>}
     </div>
   );
 }
@@ -29,6 +28,10 @@ interface Props {
  * Ergebnis-Panel (FinRisk): kompakte Kennzahlen + EINE Grafik – die
  * Wahrscheinlichkeits-Heatmap, die Band, Multimodalität, Pufferbruch und
  * Stress-Tragfähigkeit in einer Darstellung vereint – plus Klartext-Diagnose.
+ *
+ * Bewusst FLACH (keine Karte-in-Karte): Das Panel sitzt bereits in einem
+ * umrandeten Bereich; verschachtelte Cards wirken auf Mobile gedrängt. Stattdessen
+ * leichte Sektionen mit kleinen Überschriften.
  */
 export default function ScenarioResultPanel({ result, isCalculating, safetyBuffer }: Props) {
   if (isCalculating) {
@@ -48,7 +51,7 @@ export default function ScenarioResultPanel({ result, isCalculating, safetyBuffe
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Endsaldo vorher (P50)" value={eur.format(result.baselineEndP50)} />
         <Stat label="Endsaldo nachher (P50)" value={eur.format(result.scenarioEndP50)} />
         <Stat
@@ -63,30 +66,19 @@ export default function ScenarioResultPanel({ result, isCalculating, safetyBuffe
         />
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Liquiditäts-Heatmap nach Szenario</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RiskDensityChart result={result} safetyBuffer={safetyBuffer} />
-        </CardContent>
-      </Card>
+      <RiskDensityChart result={result} safetyBuffer={safetyBuffer} />
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Diagnose</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{result.diagnosis}</p>
-          {result.warnings.length > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-              {result.warnings.map((w, i) => (
-                <li key={i}>{w}</li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <section className="space-y-1 border-t pt-3">
+        <h4 className="text-sm font-medium">Diagnose</h4>
+        <p className="text-sm">{result.diagnosis}</p>
+        {result.warnings.length > 0 && (
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+            {result.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

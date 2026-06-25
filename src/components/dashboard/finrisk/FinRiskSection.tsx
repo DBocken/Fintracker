@@ -6,7 +6,7 @@ import { buildBaseCheckPayload, type QuestionContext } from '@/lib/finrisk/scena
 import type { ForecastInput, BufferBasis } from '@/lib/forecast-types';
 import type { ScenarioPayload } from '@/lib/finrisk/scenario-payload-types';
 import RiskSummaryCard from './RiskSummaryCard';
-import ScenarioQuestionCards from './ScenarioQuestionCards';
+import ScenarioSelector from './ScenarioSelector';
 import ScenarioResultPanel from './ScenarioResultPanel';
 import FinRiskDebugView from './FinRiskDebugView';
 
@@ -87,7 +87,7 @@ export default function FinRiskSection({ input, months, safetyBuffer, bufferBasi
         baseBreachProbability={maxBreach(baseResult?.breachProbabilities, safetyBuffer)}
       />
 
-      <ScenarioQuestionCards ctx={ctx} onRun={setActivePayload} activeId={activePayload?.scenarioId} />
+      <ScenarioSelector ctx={ctx} onRun={setActivePayload} activeId={activePayload?.scenarioId} />
 
       <ScenarioResultPanel
         result={scenarioResult}
