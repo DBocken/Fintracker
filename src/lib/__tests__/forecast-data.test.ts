@@ -4,12 +4,13 @@ import {
   buildRecurringFlows,
   buildAllContractFlowsForDisplay,
   buildDetectedSalaryFlows,
+  composeForecastInput,
   cycleToCadence,
   accountTypeToKind,
   applyForecastOverrides,
 } from '@/lib/forecast-data';
 import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
-import type { Transaction } from '@/types';
+import type { Account, Transaction } from '@/types';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { ContractRow } from '@/components/contracts/contract-types';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
@@ -283,6 +284,84 @@ describe('buildDetectedSalaryFlows', () => {
     }));
     const id = `salary:${normalizeMerchantName('Aktueller Arbeitgeber')}`;
     expect(buildDetectedSalaryFlows(currentSalary, { [id]: { enabled: false } }, new Date('2026-06-22T12:00:00'))).toEqual([]);
+  });
+});
+
+describe('[REGRESSION] composeForecastInput – regelmäßiges Einkommen wird in der Forecast-Darstellung berücksichtigt', () => {
+  const NOW_INCOME = new Date('2026-06-22T12:00:00');
+
+  function acct(id = 'giro', opening_balance = 1000): Account {
+    return {
+      id,
+      user_id: 'u',
+      name: 'Girokonto',
+      type: 'checking',
+      currency: 'EUR',
+      color: '#000000',
+      icon: 'bank',
+      is_budget_pool_member: false,
+      order_index: 0,
+      opening_balance,
+    } as Account;
+  }
+
+  /** Vier aufeinanderfolgende Monatsbuchungen (letzte aktuell zu NOW_INCOME). */
+  function monthlyIncome(partial: Partial<Transaction>): Transaction[] {
+    return ['2026-03-30', '2026-04-29', '2026-05-28', '2026-06-26'].map((date, index) =>
+      tx({ ...partial, id: `${partial.payee ?? 'in'}-${index}`, account_id: 'giro', date }),
+    );
+  }
+
+  function compose(transactions: Transaction[]) {
+    return composeForecastInput({
+      accounts: [acct()],
+      accountBalances: { giro: 1000 },
+      categories: [],
+      decisions: new Map(),
+      transactions,
+      overrides: DEFAULT_FORECAST_OVERRIDES,
+      now: NOW_INCOME,
+    });
+  }
+
+  it('berücksichtigt ein erkanntes Gehalt (Schlüsselwort) als positiven Flow und in der Projektion', () => {
+    const input = compose(
+      monthlyIncome({ amount: 3000, payee: 'Aktueller Arbeitgeber', description: 'Gehalt' }),
+    );
+
+    const incomeFlows = (input.recurringFlows ?? []).filter((f) => f.amount > 0);
+    expect(incomeFlows.length).toBeGreaterThan(0);
+    expect(incomeFlows.some((f) => f.amount === 3000)).toBe(true);
+
+    // Darstellung: die Projektion weist die Einnahme in einem Monat aus.
+    const result = calculateDeterministicForecast(input, { startDate: '2026-06-22', months: 3 });
+    expect(result.monthly.some((m) => m.income >= 3000)).toBe(true);
+  });
+
+  it('berücksichtigt regelmäßiges Einkommen OHNE Gehalts-Schlüsselwort (IBAN-Vertrag) in der Projektion', () => {
+    // Freiberufliche/wiederkehrende Einnahme: kein „Gehalt"-Text, aber gleiche
+    // Gegen-IBAN und stabiler Betrag -> als Einnahmen-Vertrag erkennbar.
+    const input = compose(
+      monthlyIncome({
+        amount: 2400,
+        payee: 'Studio Kunde GmbH',
+        description: 'Rechnung',
+        counterparty_iban: 'DE02120300000000202051',
+      }),
+    );
+
+    const incomeFlows = (input.recurringFlows ?? []).filter((f) => f.amount > 0);
+    expect(incomeFlows.some((f) => f.amount === 2400)).toBe(true);
+
+    const result = calculateDeterministicForecast(input, { startDate: '2026-06-22', months: 3 });
+    expect(result.monthly.some((m) => m.income >= 2400)).toBe(true);
+  });
+
+  it('das Einkommen erscheint auch in allRecurringFlows (UI-Darstellung der Einträge)', () => {
+    const input = compose(
+      monthlyIncome({ amount: 3000, payee: 'Aktueller Arbeitgeber', description: 'Gehalt' }),
+    );
+    expect((input.allRecurringFlows ?? []).some((f) => f.amount === 3000)).toBe(true);
   });
 });
 

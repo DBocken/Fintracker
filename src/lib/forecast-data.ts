@@ -15,7 +15,7 @@ import type { ContractRow, Cycle } from '@/components/contracts/contract-types';
 import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { getCategories, getTransactions } from '@/services/transaction-service';
-import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
 import { buildDailySpendingProfile } from '@/lib/forecast-profile';
 import { buildOccurrenceModel } from '@/lib/finrisk/occurrence-amount';
@@ -366,35 +366,41 @@ export function applyForecastOverrides(
   };
 }
 
-/**
- * Sammelt alle Eingaben für die Forecast-Engine aus den echten Services und
- * legt die nutzerseitigen Planungs-Overrides darüber.
- *
- * Auto-seeded: Konten (mit echten Salden), wiederkehrende Flows (aus der
- * Vertragserkennung) und die variable Ausgaben-Baseline (aus der Historie).
- * Overrides: Zinssätze, Budgets, geplante Events, Rücklagen, Transfers und
- * Anpassungen an erkannten wiederkehrenden Zahlungen (aktivieren/deaktivieren,
- * Betrag, End-Datum).
- */
-export async function buildForecastInput(): Promise<ForecastInput> {
-  const [accounts, netWorth, categories, decisions, transactions] = await Promise.all([
-    getAccounts(),
-    getNetWorthBreakdown(),
-    getCategories(),
-    getContractDecisionMap(),
-    getTransactions(10000),
-  ]);
+/** Bereits geladene Quellen für die reine Forecast-Komposition (kein IO). */
+export interface ForecastInputSources {
+  accounts: Account[];
+  accountBalances: Record<string, number>;
+  categories: Category[];
+  decisions: Map<string, ContractDecision>;
+  transactions: Transaction[];
+  overrides: ForecastOverrides;
+  /** Referenzdatum für Erkennung & Baseline (Default: jetzt). */
+  now?: Date;
+}
 
-  const overrides = getForecastOverrides();
-  const forecastAccounts = buildForecastAccounts(accounts, netWorth.accountBalances);
+/**
+ * Reine Komposition der Forecast-Eingaben aus bereits geladenen Quellen –
+ * ohne IO und damit vollständig testbar. Hier entsteht das Auto-Seeding:
+ *  - Einnahmen: erkannte Gehaltsserien (arbeitgeber-basiert) UND regelmäßige
+ *    Einnahmen-Verträge (IBAN-/händlerbasiert) fließen als positive Flows ein.
+ *  - Ausgaben: bestätigte Verträge als Fixkosten, der Rest als variable Baseline.
+ *
+ * {@link buildForecastInput} beschafft die Quellen und delegiert hierher, damit
+ * die gesamte Logik – insbesondere ob regelmäßiges Einkommen berücksichtigt
+ * wird – ohne Service-Mocks geprüft werden kann.
+ */
+export function composeForecastInput(sources: ForecastInputSources): ForecastInput {
+  const { accounts, accountBalances, categories, decisions, transactions, overrides, now } = sources;
+  const forecastAccounts = buildForecastAccounts(accounts, accountBalances);
   const categoryMap = new Map<string, Category>(categories.map((category) => [category.id, category]));
   const contracts = [
-    ...computeContracts(transactions, categoryMap, 'Einnahme', { decisions }),
-    ...computeContracts(transactions, categoryMap, 'Ausgabe', { decisions }),
+    ...computeContracts(transactions, categoryMap, 'Einnahme', { decisions, now }),
+    ...computeContracts(transactions, categoryMap, 'Ausgabe', { decisions, now }),
   ];
   const salaryFlows = buildDetectedSalaryFlows(
     transactions,
     overrides.recurringFlowOverrides,
+    now,
   );
   const salaryEmployers = new Set(salaryFlows.map((flow) => normalizeMerchantName(flow.name)));
   const otherRecurringFlows = buildRecurringFlows(
@@ -414,6 +420,7 @@ export async function buildForecastInput(): Promise<ForecastInput> {
       .map((contract) => contract.fingerprint),
   );
   const variableExpenses = buildVariableExpenseBaselines(transactions, {
+    now,
     excludedFingerprints,
     categoryNames: new Map(categories.map((category) => [category.id, category.name])),
   });
@@ -437,4 +444,28 @@ export async function buildForecastInput(): Promise<ForecastInput> {
   };
 
   return applyForecastOverrides(seeded, overrides);
+}
+
+/**
+ * Sammelt alle Eingaben für die Forecast-Engine aus den echten Services und
+ * legt die nutzerseitigen Planungs-Overrides darüber. Reines IO – die Logik
+ * liegt in {@link composeForecastInput}.
+ */
+export async function buildForecastInput(): Promise<ForecastInput> {
+  const [accounts, netWorth, categories, decisions, transactions] = await Promise.all([
+    getAccounts(),
+    getNetWorthBreakdown(),
+    getCategories(),
+    getContractDecisionMap(),
+    getTransactions(10000),
+  ]);
+
+  return composeForecastInput({
+    accounts,
+    accountBalances: netWorth.accountBalances,
+    categories,
+    decisions,
+    transactions,
+    overrides: getForecastOverrides(),
+  });
 }
