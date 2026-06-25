@@ -2,8 +2,9 @@ import { parseISO, differenceInDays, addMonths, addWeeks, addQuarters, addYears 
 import type { Transaction, Rhythmus } from "@/types";
 import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
 import { mapCycleToRhythmus } from "@/components/contracts/contract-types";
-import { getTransactions, updateTransaction, type TransactionUpdate } from "./transaction-service";
+import { getTransactions, getCategories, updateTransaction, type TransactionUpdate } from "./transaction-service";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
+import { computeContracts } from "@/lib/contract-derivation";
 
 /**
  * Detects recurring transactions with equal amounts and identifies price increases.
@@ -194,17 +195,37 @@ export async function applyContractToSimilar(
 
 /**
  * Erkennt wiederkehrende Transaktionen und markiert die zugehörigen Buchungen
- * als Vertrag (inkl. Zyklus). Persistiert die Änderungen und gibt die Anzahl
- * der aktualisierten Transaktionen zurück.
+ * als Vertrag (inkl. Zyklus). Nutzt IBAN-basiertes Fingerprinting (computeContracts)
+ * statt exakter Payee-Suche, damit auch Gehalt und Versorger sicher erkannt werden.
  */
 export async function applyDetectedContracts(): Promise<number> {
-  const contracts = await detectRecurringTransactions();
-  if (contracts.length === 0) return 0;
+  const [transactions, categories] = await Promise.all([
+    getTransactions(2000),
+    getCategories(),
+  ]);
 
-  const transactions = await getTransactions(2000);
-  const updates = matchContractsToTransactions(transactions, contracts);
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+  const allContracts = [
+    ...computeContracts(transactions, categoryMap, "Ausgabe"),
+    ...computeContracts(transactions, categoryMap, "Einnahme"),
+  ];
+
+  if (allContracts.length === 0) return 0;
+
+  const seen = new Set<string>();
+  const updates: TransactionUpdate[] = [];
+  for (const contract of allContracts) {
+    const cycle = mapCycleToRhythmus(contract.cycle) ?? null;
+    for (const id of contract.transactionIds) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        updates.push({ id, is_contract: true, contract_cycle: cycle });
+      }
+    }
+  }
+
   if (updates.length === 0) return 0;
-
   await updateTransaction(updates);
   return updates.length;
 }

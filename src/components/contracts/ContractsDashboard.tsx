@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -62,6 +62,14 @@ export function ContractsDashboard() {
     },
     onError: () => showError("Neueinlesen fehlgeschlagen"),
   });
+
+  // Auto-Scan einmal pro Seitenaufruf, sobald Transaktionen geladen sind.
+  const autoScanned = useRef(false);
+  useEffect(() => {
+    if (autoScanned.current || transactions.length === 0) return;
+    autoScanned.current = true;
+    rescanMutation.mutate();
+  }, [transactions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [onlyChanges, setOnlyChanges] = useState(false);
   const [viewMode, setViewMode] = useState<"monthly" | "yearly">("monthly");
