@@ -180,12 +180,22 @@ export default function LiquidityReport() {
     const scenarioByDate = new Map(
       (scenarioResult?.daily ?? []).map((d) => [d.date, pick(d)]),
     );
-    return forecast.daily.map((d) => ({
-      date: d.date,
-      operating: pick(d),
-      scenario: scenarioByDate.get(d.date),
-    }));
-  }, [forecast, scenarioResult, bufferBasis]);
+    // Das Monte-Carlo-Band (P10–P90) wird hier in dieselbe Zeitachse gelegt,
+    // damit die Wahrscheinlichkeitsverteilung als Gradient im EINEN Chart liegt.
+    const bandByDate = new Map((monteCarlo?.band ?? []).map((d) => [d.date, d]));
+    return forecast.daily.map((d) => {
+      const band = bandByDate.get(d.date);
+      return {
+        date: d.date,
+        operating: pick(d),
+        scenario: scenarioByDate.get(d.date),
+        // Untere Kante + Bandhöhe (gestapelt) ergeben die P10–P90-Fläche.
+        bandFloor: band?.p10,
+        bandHeight: band ? band.p90 - band.p10 : undefined,
+        median: band?.p50,
+      };
+    });
+  }, [forecast, scenarioResult, bufferBasis, monteCarlo]);
 
   if (isLoading) {
     return (
@@ -212,6 +222,14 @@ export default function LiquidityReport() {
   }
 
   if (!forecast) return null;
+
+  // Tooltip-Beschriftung der Chart-Serien (eine Darstellung: Basis, Szenario,
+  // Monte-Carlo-Median).
+  const CHART_SERIES_LABELS: Record<string, string> = {
+    operating: 'Basis',
+    scenario: activeScenario?.name ?? 'Szenario',
+    median: 'Median (P50)',
+  };
 
   const { risk, monthly, insights } = forecast;
   const breach = risk.firstBelowSafetyBufferDate;
@@ -372,6 +390,11 @@ export default function LiquidityReport() {
         <CardHeader>
           <CardTitle className="text-base">
             Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
+            {monteCarlo && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                · Wahrscheinlichkeitsband P10–P90
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -382,6 +405,10 @@ export default function LiquidityReport() {
                   <linearGradient id="liqFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1d5c54" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#1d5c54" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="mcBandFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -397,19 +424,44 @@ export default function LiquidityReport() {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(v: number, name: string) => [
-                    eur.format(v),
-                    name === 'scenario' ? activeScenario?.name ?? 'Szenario' : 'Basis',
-                  ]}
+                  formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
                   labelFormatter={(l: string) => fmtDate(l)}
                 />
+                {/* Monte-Carlo-Wahrscheinlichkeitsband (P10–P90) als Gradient,
+                    hinter den Linien – damit es genau EINE Darstellung gibt. */}
+                {monteCarlo && (
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="bandFloor"
+                      name="bandFloor"
+                      stackId="mc"
+                      stroke="none"
+                      fill="transparent"
+                      isAnimationActive={false}
+                      legendType="none"
+                      tooltipType="none"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="bandHeight"
+                      name="bandHeight"
+                      stackId="mc"
+                      stroke="none"
+                      fill="url(#mcBandFill)"
+                      isAnimationActive={false}
+                      legendType="none"
+                      tooltipType="none"
+                    />
+                  </>
+                )}
                 <Area
                   type="monotone"
                   dataKey="operating"
                   name="operating"
                   stroke="#1d5c54"
                   strokeWidth={2}
-                  fill="url(#liqFill)"
+                  fill={monteCarlo ? 'transparent' : 'url(#liqFill)'}
                 />
                 {activeScenario && (
                   <Line
@@ -420,6 +472,17 @@ export default function LiquidityReport() {
                     strokeWidth={2}
                     strokeDasharray="5 4"
                     dot={false}
+                  />
+                )}
+                {monteCarlo && (
+                  <Line
+                    type="monotone"
+                    dataKey="median"
+                    name="median"
+                    stroke="#6366f1"
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
                   />
                 )}
                 {safetyBuffer > 0 && (
@@ -462,14 +525,13 @@ export default function LiquidityReport() {
             }
           />
 
-          {/* Die eigentliche Simulation: Wahrscheinlichkeitsverteilung des aktiven
-              Szenarios über X Durchläufe (Gradient-Band). Prominent statt versteckt. */}
+          {/* Steuerung & Kennzahlen der Wahrscheinlichkeits-Simulation. Das
+              Gradient-Band selbst liegt in der EINEN Hauptgrafik oben. */}
           <MonteCarloPanel
             settings={mcSettings}
             onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
             result={monteCarlo}
             isCalculating={isMonteCarloCalculating}
-            safetyBuffer={safetyBuffer}
             contextLabel={activeScenario?.name ?? 'Basisplanung'}
           />
 
