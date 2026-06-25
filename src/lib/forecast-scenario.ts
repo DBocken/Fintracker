@@ -54,6 +54,19 @@ function monthlyMagnitude(flow: RecurringFlow): number {
   return Math.abs(flow.amount) * factorByCadence[flow.cadence];
 }
 
+/** Der nach Monatsbetrag größte Flow, der `predicate` erfüllt (als ID-Set). */
+function largestBy(
+  flows: RecurringFlow[],
+  predicate: (flow: RecurringFlow) => boolean,
+): Set<string> {
+  let best: RecurringFlow | null = null;
+  for (const flow of flows) {
+    if (!predicate(flow)) continue;
+    if (!best || monthlyMagnitude(flow) > monthlyMagnitude(best)) best = flow;
+  }
+  return best ? new Set([best.id]) : new Set();
+}
+
 /**
  * Löst eine {@link FlowSelector} gegen die aktuellen Flows auf und liefert die
  * Menge der getroffenen Flow-IDs. So treffen Szenarien konkrete Einträge:
@@ -70,14 +83,11 @@ export function resolveFlowSelector(
     case 'ids':
       return new Set(selector.ids);
 
-    case 'largestIncome': {
-      let best: RecurringFlow | null = null;
-      for (const flow of flows) {
-        if (flow.amount <= 0) continue;
-        if (!best || monthlyMagnitude(flow) > monthlyMagnitude(best)) best = flow;
-      }
-      return best ? new Set([best.id]) : new Set();
-    }
+    case 'largestIncome':
+      return largestBy(flows, (f) => f.amount > 0);
+
+    case 'largestExpense':
+      return largestBy(flows, (f) => f.amount < 0);
 
     case 'keyword': {
       const needle = selector.keyword.toLowerCase();
@@ -385,9 +395,9 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
     {
       id: 'preset-rent-increase',
       name: 'Mieterhöhung',
-      description: 'Alle Fixkosten steigen um 15 % – typisch bei Mieterhöhung oder Nebenkostennachzahlung.',
+      description: 'Der größte Fixkosten-Eintrag (meist die Miete) steigt um 15 %.',
       modifiers: [
-        { id: 'm1', type: 'expenses', percentChange: 15, fromDate: in30 },
+        { id: 'm1', type: 'flow', flowSelector: { kind: 'largestExpense' }, factor: 1.15, fromDate: in30 },
       ],
     },
     {

@@ -351,6 +351,16 @@ export default function ScenarioExplorer({
 
   const isSavedCustom = !!selected && customScenarios.some((c) => c.id === selected.id);
 
+  // Ein Beispiel kann einen konkreten Eintrag adressieren, den es bei diesem
+  // Nutzer nicht gibt (z. B. „Unterhalt fällt weg" ohne erkannten Unterhalt).
+  // Dann ist das Szenario wirkungslos – das machen wir transparent statt es
+  // stillschweigend ins Leere laufen zu lassen.
+  const flowPresetUnmatched = useMemo(() => {
+    const presetHasFlow = basePreset?.modifiers.some((m) => m.type === 'flow') ?? false;
+    const anyFlowDeviates = form.flows.some((f) => f.factorPct !== 100);
+    return presetHasFlow && !anyFlowDeviates;
+  }, [basePreset, form.flows]);
+
   return (
     <Card>
       <CardHeader>
@@ -494,6 +504,13 @@ export default function ScenarioExplorer({
                     markieren automatisch den passenden Eintrag (z. B. das größte Einkommen bei „Jobverlust").
                   </div>
                 </div>
+
+                {flowPresetUnmatched && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                    Für dieses Beispiel wurde kein passender Eintrag in deinen Daten erkannt.
+                    Wähle den betroffenen Eintrag unten manuell, damit das Szenario wirkt.
+                  </div>
+                )}
 
                 {(['income', 'expense'] as const).map((side) => {
                   const rows = form.flows.filter((fl) => (side === 'income' ? fl.isIncome : !fl.isIncome));

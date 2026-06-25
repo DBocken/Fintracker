@@ -34,12 +34,15 @@ export type ScenarioModifierType =
  * Einträge statt pauschaler Prozentsätze:
  *  - `ids`: explizite Flow-IDs (was der Editor speichert).
  *  - `largestIncome`: der größte (monatlich normierte) Einkommens-Eintrag.
+ *  - `largestExpense`: der größte fixe Ausgaben-Eintrag – in der Praxis fast
+ *    immer die Miete (deshalb robuster als ein Schlüsselwort-Treffer).
  *  - `keyword`: Einträge, deren Name/Kategorie das Schlüsselwort enthält
  *    (z. B. „unterhalt"), optional gefiltert nach Richtung.
  */
 export type FlowSelector =
   | { kind: 'ids'; ids: string[] }
   | { kind: 'largestIncome' }
+  | { kind: 'largestExpense' }
   | { kind: 'keyword'; keyword: string; direction?: 'income' | 'expense' };
 
 /**

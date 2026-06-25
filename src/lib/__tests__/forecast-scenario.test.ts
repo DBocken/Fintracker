@@ -221,6 +221,26 @@ describe('flow-Modifikator – konkrete Einträge treffen', () => {
     expect(out.recurringFlows!.find((f) => f.id === 'sidejob')!.amount).toBe(400);
   });
 
+  it('largestExpense trifft den größten Fixkosten-Eintrag (Miete vor Abo)', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        salary,
+        rent, // -1000
+        { id: 'gym', name: 'Fitness', amount: -40, cadence: 'monthly', anchorDate: '2026-01-01', accountId: 'giro' },
+      ],
+    };
+    const out = applyScenario(input, {
+      id: 's',
+      name: 'Mieterhöhung',
+      modifiers: [{ id: 'm', type: 'flow', flowSelector: { kind: 'largestExpense' }, factor: 1.15 }],
+    });
+    expect(out.recurringFlows!.find((f) => f.id === 'rent')!.amount).toBe(-1150);
+    expect(out.recurringFlows!.find((f) => f.id === 'gym')!.amount).toBe(-40);
+    // Einnahmen unberührt.
+    expect(out.recurringFlows!.find((f) => f.id === 'salary')!.amount).toBe(2500);
+  });
+
   it('keyword trifft den Unterhalts-Eintrag über Name/Kategorie', () => {
     const out = applyScenario(multiIncomeInput(), {
       id: 's',
@@ -417,10 +437,30 @@ describe('buildPresetScenarios', () => {
     expect(scenarioInput.recurringFlows?.some((f) => f.amount === 3200)).toBe(true);
   });
 
-  it('preset-rent-increase: Fixausgaben steigen um 15 % ab +30 Tage', () => {
+  it('preset-rent-increase: größter Fixkosten-Eintrag steigt um 15 % ab +30 Tage', () => {
     const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
-    expect(preset.modifiers[0]).toMatchObject({ type: 'expenses', percentChange: 15 });
+    expect(preset.modifiers[0]).toMatchObject({
+      type: 'flow',
+      flowSelector: { kind: 'largestExpense' },
+      factor: 1.15,
+    });
     expect(preset.modifiers[0].fromDate).toBeDefined();
+  });
+
+  it('preset-rent-increase trifft konkret die Miete (größte Fixkosten), nicht alle Ausgaben', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [
+        salary,
+        rent, // -1000, größte Fixkosten
+        { id: 'spotify', name: 'Spotify', amount: -10, cadence: 'monthly', anchorDate: START, accountId: 'giro' },
+      ],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
+    const out = applyScenario(input, preset);
+    // Nur die Miete steigt (auf -1150 ab Stichtag), das Abo bleibt unberührt.
+    expect(out.recurringFlows!.some((f) => f.id === 'rent__post' && f.amount === -1150)).toBe(true);
+    expect(out.recurringFlows!.find((f) => f.id === 'spotify')!.amount).toBe(-10);
   });
 
   it('preset-rent-increase senkt den Endbestand gegenüber Basis', () => {
