@@ -36,9 +36,12 @@ import MonteCarloPanel, {
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import SimulationWizard from '@/components/dashboard/SimulationWizard';
+import ScenarioExplorer from '@/components/dashboard/ScenarioExplorer';
 import FinRiskSection from '@/components/dashboard/finrisk/FinRiskSection';
+import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import { applyScenario, buildPresetScenarios } from '@/lib/forecast-scenario';
 import type { BufferBasis } from '@/lib/forecast-types';
+import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -119,11 +122,27 @@ export default function LiquidityReport() {
 
   // Szenarien (Stufe 3): Presets + eigene, aktives Szenario als lokaler Zustand.
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  // Live im Explorer editiertes Szenario (gleiche id, angepasste Parameter).
+  // Hat Vorrang vor dem unveränderten Preset, damit Parameteränderungen sofort
+  // in die Prognose fließen, ohne den Preset-Katalog zu mutieren.
+  const [editedScenario, setEditedScenario] = useState<ForecastScenario | null>(null);
   const scenarios = useMemo(() => {
     const presets = forecast ? buildPresetScenarios(forecast.config.startDate) : [];
     return [...presets, ...overrides.scenarios];
   }, [forecast, overrides.scenarios]);
-  const activeScenario = scenarios.find((s) => s.id === activeScenarioId) ?? null;
+  const activeScenario =
+    editedScenario ?? scenarios.find((s) => s.id === activeScenarioId) ?? null;
+
+  // Auswahl über Wizard/Panel verwirft etwaige Live-Edits (klarer Zustand).
+  const selectScenario = (id: string | null) => {
+    setEditedScenario(null);
+    setActiveScenarioId(id);
+  };
+  // Der Explorer liefert ein bereits editiertes Szenario; es gilt direkt.
+  const applyEditedScenario = (scenario: ForecastScenario | null) => {
+    setEditedScenario(scenario);
+    setActiveScenarioId(scenario?.id ?? null);
+  };
 
   const { scenarioResult, comparison } = useScenarioForecast(
     input,
@@ -440,8 +459,16 @@ export default function LiquidityReport() {
             activeScenarioId={activeScenarioId}
             safetyBuffer={safetyBuffer}
             onSafetyBufferChange={setSafetyBuffer}
-            onScenarioSelect={setActiveScenarioId}
+            onScenarioSelect={selectScenario}
             onMonteCarloChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
+          />
+
+          <ScenarioExplorer
+            presets={scenarios}
+            input={input}
+            comparison={comparison}
+            activeId={activeScenarioId}
+            onApply={applyEditedScenario}
           />
 
           {mcSettings.enabled && (
@@ -467,7 +494,7 @@ export default function LiquidityReport() {
               <ScenarioPanel
                 scenarios={scenarios}
                 activeId={activeScenarioId}
-                onSelect={setActiveScenarioId}
+                onSelect={selectScenario}
                 comparison={comparison}
                 customScenarios={overrides.scenarios}
                 onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
@@ -487,6 +514,8 @@ export default function LiquidityReport() {
             bufferBasis={bufferBasis}
             startISO={forecast.config.startDate}
           />
+
+          <BudgetOptimizerPanel input={input} />
         </section>
       </FeatureGate>
 
