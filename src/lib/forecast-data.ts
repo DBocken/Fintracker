@@ -19,7 +19,7 @@ import { getContractDecisionMap, type ContractDecision } from '@/services/contra
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
 import { buildDailySpendingProfile } from '@/lib/forecast-profile';
 import { buildOccurrenceModel } from '@/lib/finrisk/occurrence-amount';
-import { merchantFingerprint } from '@/lib/merchant-fingerprint';
+import { classifyForecastTreatment } from '@/lib/forecast-treatment';
 import { normalizeMerchantName } from '@/services/merchant-normalization';
 import { detectSalarySeries } from '@/lib/salary-detection';
 import {
@@ -247,14 +247,17 @@ function bindFlowsToDefaultAccount(
 
 /**
  * Leitet eine variable Ausgaben-Baseline je Kategorie aus der echten Historie
- * ab. Berücksichtigt nur *echte* Ausgaben: keine Transfers, keine als Vertrag
- * markierten Buchungen (die laufen als wiederkehrende Flows).
+ * ab. Berücksichtigt ausschließlich Buchungen, die {@link classifyForecastTreatment}
+ * als `variable_consumption` einstuft – also echte variable Konsumausgaben.
+ * Einkommen (auch fälschlich negativ kategorisiert), Verträge/Fixkosten,
+ * Sparen/Investieren, Transfers und unkategorisierte Ausgaben fließen NICHT ein.
  *
  * Reine Funktion (kein IO) – damit unabhängig testbar.
  *
  * @param transactions Historische Transaktionen.
  * @param options.monthsBack Rückblickfenster in Monaten (Default 6).
  * @param options.now Referenzdatum (Default: jetzt).
+ * @param options.categoriesById Kategorien per ID zur Auflösung der Forecast-Behandlung.
  */
 export function buildVariableExpenseBaselines(
   transactions: Transaction[],
@@ -262,12 +265,21 @@ export function buildVariableExpenseBaselines(
     monthsBack?: number;
     now?: Date;
     excludedFingerprints?: ReadonlySet<string>;
-    categoryNames?: ReadonlyMap<string, string>;
+    categoriesById?: Map<string, Category>;
   } = {},
 ): VariableExpenseBaseline[] {
   const monthsBack = options.monthsBack ?? 6;
   const now = options.now ?? new Date();
   const windowStart = startOfMonth(subMonths(now, Math.max(0, monthsBack - 1)));
+
+  const categoriesById = options.categoriesById ?? new Map<string, Category>();
+  const treatmentCtx = {
+    categoriesById,
+    excludedFingerprints: options.excludedFingerprints,
+  };
+  // Namen für Labels/Untermodelle aus der Kategorie-Map ableiten.
+  const categoryNames = new Map<string, string>();
+  for (const [id, c] of categoriesById) categoryNames.set(id, c.name);
 
   // Pro Kategorie die Ausgaben je Monat sammeln – Basis für Mittelwert *und*
   // Streuung (Variationskoeffizient).
@@ -275,17 +287,16 @@ export function buildVariableExpenseBaselines(
   let earliestIncludedMonth: string | null = null;
 
   for (const t of transactions) {
-    if (t.is_transfer || t.is_contract) continue;
-    if (options.excludedFingerprints?.has(merchantFingerprint(t))) continue;
-    if (t.amount >= 0) continue; // nur Ausgaben
+    // Fachliche Forecast-Behandlung ist die einzige Eintrittskarte in die
+    // Baseline – nur echter variabler Konsum (kein Income/Vertrag/Sparen/Transfer).
+    if (classifyForecastTreatment(t, treatmentCtx) !== 'variable_consumption') continue;
     const date = new Date(t.date);
     if (Number.isNaN(date.getTime())) continue;
     if (date < windowStart || date > now) continue;
 
+    const labelId = t.subcategory_id ?? t.category_id ?? undefined;
     const category =
-      t.category?.trim() ||
-      (t.category_id ? options.categoryNames?.get(t.category_id) : undefined) ||
-      'Sonstiges';
+      t.category?.trim() || (labelId ? categoryNames.get(labelId) : undefined) || 'Sonstiges';
     const month = t.date.slice(0, 7);
     if (!earliestIncludedMonth || month < earliestIncludedMonth) earliestIncludedMonth = month;
     let byMonth = perCategoryMonth.get(category);
@@ -312,18 +323,26 @@ export function buildVariableExpenseBaselines(
   const dailyProfiles = buildDailySpendingProfile(transactions, {
     now,
     excludedFingerprints: options.excludedFingerprints,
-    categoryNames: options.categoryNames,
+    categoryNames,
   });
   // Occurrence-Amount-Modelle je Kategorie (PR 3) – speisen die spiky
   // Monte-Carlo-Pfade (nur bei occurrenceSampling wirksam).
   const occurrenceModels = buildOccurrenceModel(transactions, {
     now,
     excludedFingerprints: options.excludedFingerprints,
-    categoryNames: options.categoryNames,
+    categoryNames,
   });
 
   const baselines: VariableExpenseBaseline[] = [];
   for (const [category, byMonth] of perCategoryMonth) {
+    // Eine wiederkehrende Ausgaben-Baseline braucht mindestens zwei Monate mit
+    // Ausgaben in dieser Kategorie. Aus einer einzelnen Buchung – etwa einer
+    // einmaligen Großanschaffung oder einer Fehleingabe im laufenden Monat –
+    // lässt sich kein monatliches Muster ableiten. Andernfalls würde sie als
+    // Dauerlast über den gesamten Horizont projiziert und ein Phantom-
+    // Liquiditätsrisiko erzeugen (Einnahmen sind einmalig, eine einzelne Ausgabe
+    // muss es ebenso sein).
+    if (byMonth.size < 2) continue;
     // Vektor über alle beobachteten Monate (0, wo nichts ausgegeben wurde).
     const values = monthKeys.map((mk) => byMonth.get(mk) ?? 0);
     const mean = values.reduce((s, v) => s + v, 0) / denom;
@@ -434,7 +453,7 @@ export function composeForecastInput(sources: ForecastInputSources): ForecastInp
   const variableExpenses = buildVariableExpenseBaselines(transactions, {
     now,
     excludedFingerprints,
-    categoryNames: new Map(categories.map((category) => [category.id, category.name])),
+    categoriesById: categoryMap,
   });
 
   // Alle Vertrags-Flows für die UI (inkl. beendete/pausierte mit disabled-Flag).
