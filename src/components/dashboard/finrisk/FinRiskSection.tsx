@@ -20,6 +20,13 @@ interface Props {
 
 const MC = { trials: 500, seed: 1 };
 
+/**
+ * Dispozins (Überziehungszins) p. a. in Prozent. Eine Überziehung kostet Geld;
+ * die Simulation soll die Erholung aus einem Liquiditätstief nicht zinsfrei und
+ * damit zu optimistisch darstellen. Konservativ-marktüblicher Default.
+ */
+const OVERDRAFT_RATE = 11;
+
 function maxBreach(
   breach: Record<string, number[]> | undefined,
   threshold: number,
@@ -42,7 +49,7 @@ export default function FinRiskSection({ input, months, safetyBuffer, bufferBasi
     [months, safetyBuffer],
   );
   const config = useMemo(
-    () => ({ months, safetyBuffer, bufferBasis, startDate: startISO }),
+    () => ({ months, safetyBuffer, bufferBasis, startDate: startISO, overdraftAnnualRate: OVERDRAFT_RATE }),
     [months, safetyBuffer, bufferBasis, startISO],
   );
 

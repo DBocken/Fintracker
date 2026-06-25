@@ -44,6 +44,40 @@ describe('generateRiskDiagnosis', () => {
     });
   });
 
+  describe('Regression Protection', () => {
+    it('[REGRESSION] sollte NICHT bedingungslos entwarnen, wenn die Basis ins Minus läuft', () => {
+      const diag = generateRiskDiagnosis({
+        baselineEndP50: -2500,
+        scenarioEndP50: -3000,
+        stressCapacity: [capacity(0)],
+        threshold: 1000,
+      });
+      expect(diag.summary).not.toContain('kommst du voraussichtlich hin');
+      expect(diag.summary).toContain('Minus');
+    });
+
+    it('[REGRESSION] sollte warnen, wenn die Basis unter dem Sicherheitspuffer endet', () => {
+      const diag = generateRiskDiagnosis({
+        baselineEndP50: 400,
+        scenarioEndP50: 300,
+        stressCapacity: [capacity(0)],
+        threshold: 1000,
+      });
+      expect(diag.summary).not.toContain('kommst du voraussichtlich hin');
+      expect(diag.summary).toContain('Sicherheitspuffer');
+    });
+
+    it('sollte bei tragfähiger Basis weiterhin entwarnen', () => {
+      const diag = generateRiskDiagnosis({
+        baselineEndP50: 8000,
+        scenarioEndP50: 7800,
+        stressCapacity: [capacity(2000)],
+        threshold: 1000,
+      });
+      expect(diag.summary).toContain('kommst du voraussichtlich hin');
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte keine absolute „maximal“-Aussage ohne Sicherheitsniveau treffen', () => {
       const diag = generateRiskDiagnosis({

@@ -79,6 +79,7 @@ function resolveConfig(config: ForecastConfig = {}): ResolvedForecastConfig {
     safetyBuffer: config.safetyBuffer ?? 0,
     bufferBasis: config.bufferBasis ?? 'operating',
     useDailyProfile: config.useDailyProfile ?? false,
+    overdraftAnnualRate: Math.max(0, config.overdraftAnnualRate ?? 0),
   };
 }
 
@@ -434,18 +435,28 @@ export function calculateDeterministicForecast(
       balances[accountId] = (balances[accountId] ?? 0) + delta;
     }
 
-    // Zinsen am Monatsende auf positive Salden gutschreiben (deterministisch).
+    // Netto-Zinsen am Monatsende (deterministisch): Gutschrift auf positive
+    // Salden, Dispozins-Belastung auf negative operative Salden. Eine
+    // Überziehung kostet also Geld, statt zinsfrei zu bleiben.
     let interestCents = 0;
     if (isMonthEnd(d)) {
+      const overdraftRate = resolved.overdraftAnnualRate;
       for (const account of input.accounts) {
-        const rate = account.annualInterestRate ?? 0;
-        if (rate <= 0) continue;
         const bal = balances[account.id] ?? 0;
-        if (bal <= 0) continue;
-        const monthInterest = Math.round((bal * rate) / 1200);
-        if (monthInterest === 0) continue;
-        balances[account.id] = bal + monthInterest;
-        interestCents += monthInterest;
+        if (bal > 0) {
+          const rate = account.annualInterestRate ?? 0;
+          if (rate <= 0) continue;
+          const monthInterest = Math.round((bal * rate) / 1200);
+          if (monthInterest === 0) continue;
+          balances[account.id] = bal + monthInterest;
+          interestCents += monthInterest;
+        } else if (bal < 0 && overdraftRate > 0 && isOperating(account.kind)) {
+          // bal < 0 -> monthCharge < 0: zieht den Saldo weiter ins Minus.
+          const monthCharge = Math.round((bal * overdraftRate) / 1200);
+          if (monthCharge === 0) continue;
+          balances[account.id] = bal + monthCharge;
+          interestCents += monthCharge;
+        }
       }
     }
 

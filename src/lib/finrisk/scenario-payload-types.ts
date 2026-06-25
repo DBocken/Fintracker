@@ -11,6 +11,7 @@
  * Privatsphäre: Diese Strukturen bleiben lokal. Es werden keine Transaktionen,
  * Salden, Forecasts oder Szenario-Ergebnisse an ein Backend gesendet.
  */
+import type { DensityField } from './density';
 
 /** Fachlicher Szenario-Typ (Frage, die der Nutzer stellt). */
 export type ScenarioType =
@@ -106,4 +107,12 @@ export interface ScenarioResult {
   warnings: string[];
   /** Tagesgenaue P10/P50/P90-Bandbreite nach Szenario. */
   daily: Array<{ date: string; p10: number; p50: number; p90: number }>;
+  /**
+   * Wert×Tag-Dichtefeld der gemischten Pfade – die Datengrundlage der
+   * Wahrscheinlichkeits-Heatmap. Bildet multimodale Verteilungen ab, die ein
+   * P10/P50/P90-Band nicht zeigen kann.
+   */
+  density: DensityField;
+  /** Effektiv ausgewertetes Fenster in Tagen (= Länge von `daily`/Heatmap). */
+  horizonDays: number;
 }

@@ -21,6 +21,11 @@ export interface RiskDiagnosisInput {
   stressCapacity: StressCapacityLevel[];
   /** Optionales Lumpy-Risikoprofil aus der Historie. */
   lumpy?: LumpyRiskProfile;
+  /**
+   * Maßgebliche Sicherheitsschwelle (Puffer) in EUR. Bestimmt, ob die Basis
+   * selbst tragfähig ist. Fallback: Schwelle aus der Stress-Capacity, sonst 0.
+   */
+  threshold?: number;
 }
 
 export interface RiskDiagnosis {
@@ -48,7 +53,21 @@ export function generateRiskDiagnosis(input: RiskDiagnosisInput): RiskDiagnosis 
   const delta = Math.round((input.scenarioEndP50 - input.baselineEndP50) * 100) / 100;
   const parts: string[] = [];
 
-  parts.push('Mit deinen normalen Alltagsausgaben kommst du voraussichtlich hin.');
+  // Die Eröffnung MUSS die Basis-Lage widerspiegeln. Eine bedingungslose
+  // Entwarnung ist für ein Liquiditäts-Risiko-Tool der schädlichste Fehler:
+  // Wer ohnehin auf ein Minus zusteuert, darf nicht zuerst „kommst du hin" lesen.
+  const threshold = input.threshold ?? input.stressCapacity[0]?.thresholdAmount ?? 0;
+  if (input.baselineEndP50 < 0) {
+    parts.push(
+      'Achtung: Schon ohne zusätzliches Szenario rutscht deine Liquidität im betrachteten Zeitraum voraussichtlich ins Minus.',
+    );
+  } else if (threshold > 0 && input.baselineEndP50 < threshold) {
+    parts.push(
+      'Schon ohne zusätzliches Szenario bleibt deine Liquidität voraussichtlich unter deinem Sicherheitspuffer.',
+    );
+  } else {
+    parts.push('Mit deinen normalen Alltagsausgaben kommst du voraussichtlich hin.');
+  }
 
   if (input.lumpy && input.lumpy.lumpyCount > 0) {
     if (input.lumpy.lumpyRiskLevel === 'high') {

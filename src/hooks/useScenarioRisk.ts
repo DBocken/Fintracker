@@ -15,7 +15,7 @@ export function useScenarioRisk(
   payload: ScenarioPayload | null,
   options: { monteCarlo?: MonteCarloConfig; lumpy?: LumpyRiskProfile } = {},
 ): { result: ScenarioResult | null; isCalculating: boolean } {
-  const { months, safetyBuffer, bufferBasis, startDate } = config;
+  const { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate } = config;
   const payloadKey = payload ? JSON.stringify(payload) : null;
   const mcKey = options.monteCarlo ? JSON.stringify(options.monteCarlo) : null;
 
@@ -47,7 +47,7 @@ export function useScenarioRisk(
     };
     worker.postMessage({
       input,
-      config: { months, safetyBuffer, bufferBasis, startDate },
+      config: { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate },
       payload,
       monteCarlo: options.monteCarlo,
       lumpy: options.lumpy,
@@ -56,7 +56,7 @@ export function useScenarioRisk(
     return () => worker.terminate();
     // payloadKey/mcKey serialisieren die relevanten Objekt-Eingaben stabil.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, months, safetyBuffer, bufferBasis, startDate, payloadKey, mcKey, options.lumpy]);
+  }, [input, months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate, payloadKey, mcKey, options.lumpy]);
 
   return { result, isCalculating };
 }

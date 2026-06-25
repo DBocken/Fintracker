@@ -20,6 +20,7 @@ import type { MonteCarloConfig } from '../forecast-montecarlo-types';
 import { payloadToScenario } from './scenario-payload-adapter';
 import { calculateStressCapacity } from './stress-capacity';
 import { calculateBreachProbabilities } from './breach';
+import { buildDensityField } from './density';
 import { generateRiskDiagnosis } from './risk-diagnosis';
 import type { LumpyRiskProfile } from './lumpy-risk';
 import type { ScenarioPayload, ScenarioResult } from './scenario-payload-types';
@@ -97,12 +98,22 @@ export function runScenarioPayload(
     mc,
   );
 
-  const baselinePaths = baselineRun.paths ?? [];
-  const scenarioPaths = scenarioRun.paths ?? [];
+  // Auswertungsfenster auf den gefragten Horizont begrenzen. Der Monte-Carlo-Lauf
+  // erzwingt einen 6-Monats-Boden für stabile Bänder; die Risiko-Kennzahlen
+  // (Breach, Stress, Endsaldo, Heatmap) dürfen aber NICHT über ein längeres
+  // Fenster als die gestellte Frage laufen – sonst wäre die kumulative
+  // Bruchwahrscheinlichkeit künstlich aufgebläht.
+  const fullDates = baselineRun.band.map((b) => b.date);
+  const horizonDays = Math.max(1, Math.min(fullDates.length, payload.timeHorizonDays));
+  const dates = fullDates.slice(0, horizonDays);
+  const clipToHorizon = (paths: number[][]): number[][] =>
+    horizonDays >= fullDates.length ? paths : paths.map((p) => p.slice(0, horizonDays));
+
+  const baselinePaths = clipToHorizon(baselineRun.paths ?? []);
+  const scenarioPaths = clipToHorizon(scenarioRun.paths ?? []);
   const probability = payload.probability ?? 1;
   const mixedPaths = mixPaths(baselinePaths, scenarioPaths, probability);
 
-  const dates = baselineRun.band.map((b) => b.date);
   const daily = dailyBand(mixedPaths, dates);
 
   const lastDay = dates.length - 1;
@@ -120,11 +131,16 @@ export function runScenarioPayload(
   const breachThresholds = Array.from(new Set([0, threshold]));
   const breachProbabilities = calculateBreachProbabilities(mixedPaths, breachThresholds);
 
+  // Dichtefeld der gemischten Pfade – Grundlage der Heatmap. 0 € und der Puffer
+  // bleiben garantiert im Wertefenster, damit die Trennlinien sichtbar sind.
+  const density = buildDensityField(mixedPaths, dates, { bins: 48, include: [0, threshold] });
+
   const diagnosis = generateRiskDiagnosis({
     baselineEndP50,
     scenarioEndP50,
     stressCapacity,
     lumpy: options.lumpy,
+    threshold,
   });
 
   const warnings: string[] = [];
@@ -146,5 +162,7 @@ export function runScenarioPayload(
     diagnosis: diagnosis.summary,
     warnings,
     daily,
+    density,
+    horizonDays,
   };
 }
