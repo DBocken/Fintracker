@@ -253,6 +253,12 @@ export interface ForecastConfig {
    * Baselines mit `dailyProfile` sind betroffen, die Monatssumme bleibt exakt.
    */
   useDailyProfile?: boolean;
+  /**
+   * Jährlicher Dispozins in Prozent (z. B. 11 für 11 % p. a.). Wird monatlich
+   * auf NEGATIVE operative Salden belastet – eine Überziehung kostet also Geld,
+   * statt zinsfrei zu bleiben. Default 0 (abwärtskompatibel).
+   */
+  overdraftAnnualRate?: number;
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -262,6 +268,7 @@ export interface ResolvedForecastConfig {
   safetyBuffer: number;
   bufferBasis: BufferBasis;
   useDailyProfile: boolean;
+  overdraftAnnualRate: number;
 }
 
 /** Ein tagesgenauer Punkt der Liquiditätsprojektion. */
@@ -280,7 +287,7 @@ export interface ForecastDailyPoint {
   variableExpenses: number;
   /** Netto-Effekt geplanter Einmalposten an diesem Tag (signiert). */
   events: number;
-  /** Gutgeschriebene Zinsen an diesem Tag (positiv). */
+  /** Netto-Zinsen an diesem Tag (Gutschrift minus Dispozins; kann negativ sein). */
   interest: number;
   /** Summe aller Abflüsse (fix + variabel) als positive Zahl. */
   outflows: number;
