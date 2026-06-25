@@ -252,6 +252,7 @@ export function runScenarioComparison(
  */
 export function buildPresetScenarios(startISO: string): ForecastScenario[] {
   const base = parseISO(startISO);
+  const in14 = format(addDays(base, 14), ISO);
   const in30 = format(addDays(base, 30), ISO);
   const in42 = format(addDays(base, 42), ISO);
   const in60 = format(addDays(base, 60), ISO);
@@ -303,13 +304,31 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
       name: 'Große Anschaffung',
       description: 'Einmalige Ausgabe von 3.000 € in 3 Monaten.',
       modifiers: [
-        {
-          id: 'm1',
-          type: 'oneTime',
-          amount: -3000,
-          date: in90,
-          label: 'Große Anschaffung',
-        },
+        { id: 'm1', type: 'oneTime', amount: -3000, date: in90, label: 'Große Anschaffung' },
+      ],
+    },
+    {
+      id: 'preset-rent-increase',
+      name: 'Mieterhöhung',
+      description: 'Alle Fixkosten steigen um 15 % – typisch bei Mieterhöhung oder Nebenkostennachzahlung.',
+      modifiers: [
+        { id: 'm1', type: 'expenses', percentChange: 15, fromDate: in30 },
+      ],
+    },
+    {
+      id: 'preset-parental-leave',
+      name: 'Elternzeit',
+      description: 'Elterngeld ersetzt nur ~65 % des letzten Nettogehalts – Einnahmen sinken dauerhaft bis Rückkehr.',
+      modifiers: [
+        { id: 'm1', type: 'income', percentChange: -35, fromDate: in30 },
+      ],
+    },
+    {
+      id: 'preset-alimony-loss',
+      name: 'Unterhalt fällt weg',
+      description: 'Unterhaltszahlungen bleiben aus – Einnahmen sinken um ca. 20 %.',
+      modifiers: [
+        { id: 'm1', type: 'income', percentChange: -20, fromDate: in14 },
       ],
     },
   ];

@@ -18,7 +18,7 @@ import type { ForecastInput, RecurringCadence } from '@/lib/forecast-types';
 import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 import type { MonteCarloSettings } from '@/components/dashboard/MonteCarloPanel';
 
-type Goal = 'everyday' | 'income-loss' | 'unexpected-cost' | 'purchase';
+type Goal = 'everyday' | 'income-loss' | 'job-change' | 'sick-leave' | 'unexpected-cost' | 'rent-increase' | 'parental-leave' | 'alimony-loss' | 'purchase';
 type Caution = 'simple' | 'balanced' | 'cautious';
 
 export interface WizardSuggestions {
@@ -135,30 +135,77 @@ const money = new Intl.NumberFormat('de-DE', {
   maximumFractionDigits: 0,
 });
 
-const GOALS: Array<{ id: Goal; title: string; example: string; scenarioId: string | null }> = [
+interface GoalDef {
+  id: Goal;
+  title: string;
+  example: string;
+  scenarioId: string | null;
+  group: 'risk' | 'change' | 'goal';
+}
+
+const GOALS: GoalDef[] = [
   {
     id: 'everyday',
-    title: 'Reicht mein Geld im normalen Alltag?',
-    example: 'Beispiel: Bleibt mein Girokonto in den nächsten Monaten über meinem Sicherheitspuffer?',
+    title: 'Reicht mein Geld?',
+    example: 'Bleibt mein Konto in den nächsten Monaten über meinem Sicherheitspuffer?',
     scenarioId: null,
+    group: 'goal',
   },
   {
     id: 'income-loss',
-    title: 'Was passiert, wenn Einkommen wegfällt?',
-    example: 'Beispiel: Drei Monate ab heute kommt vorübergehend kein Gehalt.',
+    title: 'Jobverlust',
+    example: 'Was passiert, wenn das Gehalt in 3 Monaten wegfällt?',
     scenarioId: 'preset-job-loss',
+    group: 'risk',
+  },
+  {
+    id: 'sick-leave',
+    title: 'Krankenausfall',
+    example: 'Nach 6 Wochen AU: Krankengeld statt Gehalt (ca. 70 %).',
+    scenarioId: 'preset-sick-leave',
+    group: 'risk',
+  },
+  {
+    id: 'alimony-loss',
+    title: 'Unterhalt fällt weg',
+    example: 'Die andere Partei zahlt keinen Unterhalt mehr – Einnahmen sinken um ~20 %.',
+    scenarioId: 'preset-alimony-loss',
+    group: 'risk',
   },
   {
     id: 'unexpected-cost',
     title: 'Was passiert bei einer unerwarteten Ausgabe?',
-    example: 'Beispiel: Das Auto muss repariert werden – die Versicherung zahlt erst später einen Teil zurück.',
+    example: 'Das Auto muss repariert werden – die Versicherung zahlt erst später einen Teil zurück.',
     scenarioId: 'preset-car-breakdown',
+    group: 'risk',
+  },
+  {
+    id: 'job-change',
+    title: 'Jobwechsel',
+    example: 'Altes Gehalt endet, neues Gehalt startet nach einer kurzen Pause.',
+    scenarioId: 'preset-job-change',
+    group: 'change',
+  },
+  {
+    id: 'rent-increase',
+    title: 'Mieterhöhung',
+    example: 'Alle Fixkosten steigen ab nächstem Monat um 15 % (Miete, NK-Nachzahlung).',
+    scenarioId: 'preset-rent-increase',
+    group: 'change',
+  },
+  {
+    id: 'parental-leave',
+    title: 'Elternzeit',
+    example: 'Elterngeld ersetzt nur ~65 % des Nettogehalts – wie lange reicht das Erspartes?',
+    scenarioId: 'preset-parental-leave',
+    group: 'change',
   },
   {
     id: 'purchase',
-    title: 'Kann ich mir eine größere Anschaffung leisten?',
-    example: 'Beispiel: In drei Monaten werden einmalig 3.000 € fällig.',
+    title: 'Große Anschaffung',
+    example: 'In 3 Monaten werden einmalig 3.000 € fällig – reicht das Geld danach noch?',
     scenarioId: 'preset-big-purchase',
+    group: 'goal',
   },
 ];
 
@@ -198,6 +245,18 @@ export default function SimulationWizard({
     setStep(3);
   };
 
+  const goalsByGroup = useMemo(() => {
+    const groups: { id: string; label: string; goals: GoalDef[] }[] = [
+      { id: 'goal', label: 'Planung', goals: [] },
+      { id: 'risk', label: 'Risiken', goals: [] },
+      { id: 'change', label: 'Veränderungen', goals: [] },
+    ];
+    for (const g of GOALS) {
+      groups.find((gr) => gr.id === g.group)?.goals.push(g);
+    }
+    return groups.filter((gr) => gr.goals.length > 0);
+  }, []);
+
   return (
     <Card className="overflow-hidden border-brand/30">
       <CardHeader className="space-y-3 bg-brand/5 pb-4">
@@ -217,30 +276,37 @@ export default function SimulationWizard({
 
       <CardContent className="space-y-5 p-4 sm:p-6">
         {step === 0 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Du brauchst keine Fachbegriffe. Wähle einfach die Frage, die dir gerade im Kopf herumgeht.
+              Wähle die Frage, die dir gerade im Kopf herumgeht. Keine Fachbegriffe nötig.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {GOALS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setGoal(item.id)}
-                  className={`rounded-xl border p-4 text-left transition-colors ${goal === item.id ? 'border-brand bg-brand/10' : 'hover:bg-muted/50'}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className={`mt-0.5 grid h-5 w-5 place-items-center rounded-full border ${goal === item.id ? 'border-brand bg-brand text-white' : ''}`}>
-                      {goal === item.id && <Check className="h-3 w-3" />}
-                    </span>
-                    <span>
-                      <span className="block font-medium">{item.title}</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">{item.example}</span>
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            {goalsByGroup.map((group) => (
+              <div key={group.id}>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.label}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {group.goals.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setGoal(item.id)}
+                      className={`rounded-xl border p-3 text-left transition-colors ${goal === item.id ? 'border-brand bg-brand/10' : 'hover:bg-muted/50'}`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border ${goal === item.id ? 'border-brand bg-brand text-white' : ''}`}>
+                          {goal === item.id && <Check className="h-2.5 w-2.5" />}
+                        </span>
+                        <span>
+                          <span className="block text-sm font-medium">{item.title}</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{item.example}</span>
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

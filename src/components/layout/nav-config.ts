@@ -2,7 +2,6 @@ import type React from "react";
 import {
   BarChart3,
   Zap,
-  PlayCircle,
   LineChart,
   Upload,
   Download,
@@ -85,15 +84,6 @@ export const NAV_GROUPS: NavGroup[] = [
         requiredTier: "premium",
         subtitle: "Sankey, Heatmap & Smart Insights",
         subtitleKey: "nav.subtitles.premium",
-      },
-      {
-        label: "Simulation",
-        labelKey: "nav.items.simulation",
-        path: "/simulation",
-        icon: PlayCircle,
-        requiredTier: "premium",
-        subtitle: "Zukunft durchspielen",
-        subtitleKey: "nav.subtitles.simulation",
       },
       {
         label: "Trading",

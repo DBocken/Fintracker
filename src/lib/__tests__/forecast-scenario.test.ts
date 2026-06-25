@@ -241,6 +241,9 @@ describe('buildPresetScenarios', () => {
     expect(ids).toContain('preset-car-breakdown');
     expect(ids).toContain('preset-sick-leave');
     expect(ids).toContain('preset-big-purchase');
+    expect(ids).toContain('preset-rent-increase');
+    expect(ids).toContain('preset-parental-leave');
+    expect(ids).toContain('preset-alimony-loss');
     expect(presets.every((p) => p.modifiers.length > 0)).toBe(true);
   });
 
@@ -292,5 +295,52 @@ describe('buildPresetScenarios', () => {
     const scenarioInput = applyScenario(input, preset);
     // Neuer Flow mit 3200 muss vorhanden sein
     expect(scenarioInput.recurringFlows?.some((f) => f.amount === 3200)).toBe(true);
+  });
+
+  it('preset-rent-increase: Fixausgaben steigen um 15 % ab +30 Tage', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
+    expect(preset.modifiers[0]).toMatchObject({ type: 'expenses', percentChange: 15 });
+    expect(preset.modifiers[0].fromDate).toBeDefined();
+  });
+
+  it('preset-rent-increase senkt den Endbestand gegenüber Basis', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [salary, rent],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-rent-increase')!;
+    const cmp = runScenarioComparison(input, CONFIG, preset);
+    expect(cmp.endingNetWorth.delta).toBeLessThan(0);
+  });
+
+  it('preset-parental-leave: Einkommen sinkt um 35 % ab +30 Tage', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-parental-leave')!;
+    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -35 });
+    expect(preset.modifiers[0].fromDate).toBeDefined();
+  });
+
+  it('preset-parental-leave senkt den Endbestand gegenüber Basis', () => {
+    const input: ForecastInput = {
+      accounts: [checking(5000)],
+      recurringFlows: [salary, rent],
+    };
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-parental-leave')!;
+    const cmp = runScenarioComparison(input, CONFIG, preset);
+    expect(cmp.endingNetWorth.delta).toBeLessThan(0);
+  });
+
+  it('preset-alimony-loss: Einkommen sinkt um 20 % ab +14 Tage', () => {
+    const preset = buildPresetScenarios(START).find((p) => p.id === 'preset-alimony-loss')!;
+    expect(preset.modifiers[0]).toMatchObject({ type: 'income', percentChange: -20 });
+    expect(preset.modifiers[0].fromDate).toBeDefined();
+  });
+
+  it('buildPresetScenarios enthält alle 9 Standard-Szenarien', () => {
+    const presets = buildPresetScenarios(START);
+    expect(presets).toHaveLength(9);
+    const ids = presets.map((p) => p.id);
+    expect(ids).toContain('preset-rent-increase');
+    expect(ids).toContain('preset-parental-leave');
+    expect(ids).toContain('preset-alimony-loss');
   });
 });
