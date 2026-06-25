@@ -324,6 +324,14 @@ export function buildVariableExpenseBaselines(
 
   const baselines: VariableExpenseBaseline[] = [];
   for (const [category, byMonth] of perCategoryMonth) {
+    // Eine wiederkehrende Ausgaben-Baseline braucht mindestens zwei Monate mit
+    // Ausgaben in dieser Kategorie. Aus einer einzelnen Buchung – etwa einer
+    // einmaligen Großanschaffung oder einer Fehleingabe im laufenden Monat –
+    // lässt sich kein monatliches Muster ableiten. Andernfalls würde sie als
+    // Dauerlast über den gesamten Horizont projiziert und ein Phantom-
+    // Liquiditätsrisiko erzeugen (Einnahmen sind einmalig, eine einzelne Ausgabe
+    // muss es ebenso sein).
+    if (byMonth.size < 2) continue;
     // Vektor über alle beobachteten Monate (0, wo nichts ausgegeben wurde).
     const values = monthKeys.map((mk) => byMonth.get(mk) ?? 0);
     const mean = values.reduce((s, v) => s + v, 0) / denom;
