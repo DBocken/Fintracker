@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { UserEvent } from '@testing-library/user-event';
 import ScenarioExplorer from './ScenarioExplorer';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { ForecastScenario } from '@/lib/forecast-scenario-types';
@@ -44,12 +45,23 @@ function renderExplorer(overrides: Partial<React.ComponentProps<typeof ScenarioE
   return { onApply, onAddScenario, onDeleteScenario };
 }
 
+/** Öffnet das Vorlage-Popup und wählt die Vorlage per Namen aus. */
+async function pickTemplate(user: UserEvent, name: RegExp) {
+  await user.click(screen.getByRole('button', { name: /Vorlage wählen/i }));
+  await user.click(await screen.findByRole('button', { name }));
+}
+
+/** Klappt eine Parameter-Sektion (Accordion) über ihren Titel auf. */
+async function expandSection(user: UserEvent, title: RegExp) {
+  await user.click(screen.getByRole('button', { name: title }));
+}
+
 describe('ScenarioExplorer', () => {
   it('personalisiert das neue Gehalt mit dem erkannten Einkommen beim Auswählen', async () => {
     const user = userEvent.setup();
     const { onApply } = renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: 'Jobwechsel' }));
+    await pickTemplate(user, /Jobwechsel/);
 
     // Der recurring-Modifier (neues Gehalt) soll mit 2800 (erkanntes Einkommen)
     // statt dem generischen Preset-Wert 3200 vorbelegt werden.
@@ -62,8 +74,9 @@ describe('ScenarioExplorer', () => {
     const user = userEvent.setup();
     renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: 'Jobwechsel' }));
+    await pickTemplate(user, /Jobwechsel/);
 
+    // Die Sektions-Titel sind die Accordion-Header (auch eingeklappt sichtbar).
     expect(screen.getByText('Einnahmen ändern')).toBeInTheDocument();
     expect(screen.getByText('Fixkosten ändern')).toBeInTheDocument();
     expect(screen.getByText('Variable Ausgaben ändern')).toBeInTheDocument();
@@ -76,7 +89,8 @@ describe('ScenarioExplorer', () => {
     const user = userEvent.setup();
     const { onApply } = renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: 'Jobwechsel' }));
+    await pickTemplate(user, /Jobwechsel/);
+    await expandSection(user, /Wiederkehrende Posten/);
     onApply.mockClear();
 
     // Den Betrag des neuen Gehalts (recurring) auf 4000 ändern.
@@ -93,8 +107,8 @@ describe('ScenarioExplorer', () => {
     const user = userEvent.setup();
     const { onApply } = renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: 'Jobwechsel' }));
-    await user.click(screen.getByRole('button', { name: /Basis/i }));
+    await pickTemplate(user, /Jobwechsel/);
+    await pickTemplate(user, /Basis/);
 
     expect(onApply).toHaveBeenLastCalledWith(null);
   });
@@ -103,10 +117,10 @@ describe('ScenarioExplorer', () => {
     const user = userEvent.setup();
     const { onApply } = renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: /Eigenes Szenario/i }));
+    await pickTemplate(user, /Eigenes Szenario/);
+    await expandSection(user, /Erkannte Einträge/);
 
     // Die realen Einträge sind als Hebel sichtbar.
-    expect(screen.getByText('Erkannte Einträge an- oder abschalten')).toBeInTheDocument();
     expect(screen.getByText('Gehalt')).toBeInTheDocument();
     expect(screen.getByText('Miete')).toBeInTheDocument();
 
@@ -133,13 +147,15 @@ describe('ScenarioExplorer', () => {
     };
     const { onApply } = renderExplorer({ presets: [jobLoss] });
 
-    await user.click(screen.getByRole('button', { name: 'Jobverlust' }));
+    await pickTemplate(user, /Jobverlust/);
 
     // Das Preset wird auf den größten Einkommens-Eintrag (Gehalt) aufgelöst.
     const applied = onApply.mock.calls.at(-1)?.[0] as ForecastScenario;
     const flowMod = applied.modifiers.find((m) => m.type === 'flow');
     expect(flowMod).toMatchObject({ flowSelector: { kind: 'ids', ids: ['salary'] }, factor: 0 });
+
     // Der Gehalt-Schalter steht auf „aus" (wieder aktivierbar).
+    await expandSection(user, /Erkannte Einträge/);
     expect(screen.getByRole('switch', { name: /Gehalt aktivieren/i })).toBeInTheDocument();
   });
 
@@ -147,11 +163,12 @@ describe('ScenarioExplorer', () => {
     const user = userEvent.setup();
     const { onApply, onAddScenario } = renderExplorer();
 
-    await user.click(screen.getByRole('button', { name: /Eigenes Szenario/i }));
+    await pickTemplate(user, /Eigenes Szenario/);
     // Leeres Formular = Basis, bis etwas gesetzt wird.
     expect(onApply).toHaveBeenLastCalledWith(null);
 
     // Einnahmen +10 % setzen.
+    await expandSection(user, /Einnahmen ändern/);
     const pctInput = screen.getAllByDisplayValue('0')[0];
     await user.clear(pctInput);
     await user.type(pctInput, '10');
