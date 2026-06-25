@@ -10,7 +10,7 @@ import {
   applyForecastOverrides,
 } from '@/lib/forecast-data';
 import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
-import type { Account, Transaction } from '@/types';
+import type { Account, Ausgabenklasse, Category, Transaction } from '@/types';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { ContractRow } from '@/components/contracts/contract-types';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
@@ -32,14 +32,30 @@ function tx(partial: Partial<Transaction>): Transaction {
   };
 }
 
+// Kategorie-Map: die Forecast-Behandlung wird über die Ausgabenklasse aufgelöst.
+function cat(id: string, name: string, klasse: Ausgabenklasse): Category {
+  return { id, name, filters: [], attributes: { ausgabenklasse: klasse } } as Category;
+}
+const CATS = new Map<string, Category>([
+  ['lebensmittel', cat('lebensmittel', 'Lebensmittel', 'essenziell')],
+  ['food', cat('food', 'Lebensmittel', 'essenziell')],
+  ['restaurant', cat('restaurant', 'Restaurant', 'diskretionaer')],
+  ['neu', cat('neu', 'Neu', 'diskretionaer')],
+  ['alt', cat('alt', 'Alt', 'diskretionaer')],
+  ['klein', cat('klein', 'Klein', 'diskretionaer')],
+  ['gross', cat('gross', 'Groß', 'diskretionaer')],
+  ['moebel', cat('moebel', 'Möbel', 'diskretionaer')],
+  ['einkommen', cat('einkommen', 'Einkommen', 'einkommen')],
+]);
+
 describe('buildVariableExpenseBaselines', () => {
   it('mittelt Ausgaben je Kategorie über die beobachteten Monate', () => {
     const txns: Transaction[] = [
-      tx({ date: '2026-04-10', amount: -100, category: 'Lebensmittel' }),
-      tx({ date: '2026-05-10', amount: -200, category: 'Lebensmittel' }),
-      tx({ date: '2026-06-10', amount: -300, category: 'Lebensmittel' }),
+      tx({ date: '2026-04-10', amount: -100, category_id: 'lebensmittel' }),
+      tx({ date: '2026-05-10', amount: -200, category_id: 'lebensmittel' }),
+      tx({ date: '2026-06-10', amount: -300, category_id: 'lebensmittel' }),
     ];
-    const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6 });
+    const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6, categoriesById: CATS });
     // 3 Monate beobachtet, Summe 600 -> 200/Monat. Streuung [100,200,300]:
     // sd = sqrt(20000/3) ≈ 81.65 -> cv ≈ 0.41.
     expect(result).toEqual([
@@ -49,14 +65,14 @@ describe('buildVariableExpenseBaselines', () => {
 
   it('ignoriert Einnahmen, Transfers und Verträge', () => {
     const txns: Transaction[] = [
-      tx({ date: '2026-06-01', amount: 2500, category: 'Gehalt' }), // Einnahme
-      tx({ date: '2026-06-02', amount: -500, category: 'Sparen', is_transfer: true }),
-      tx({ date: '2026-06-03', amount: -50, category: 'Netflix', is_contract: true }),
+      tx({ date: '2026-06-01', amount: 2500, category_id: 'einkommen' }), // Einnahme (positiv)
+      tx({ date: '2026-06-02', amount: -500, is_transfer: true }), // Transfer
+      tx({ date: '2026-06-03', amount: -50, is_contract: true }), // Vertrag
       // Restaurant in zwei Monaten, damit es als wiederkehrend gilt.
-      tx({ date: '2026-05-04', amount: -40, category: 'Restaurant' }),
-      tx({ date: '2026-06-04', amount: -40, category: 'Restaurant' }),
+      tx({ date: '2026-05-04', amount: -40, category_id: 'restaurant' }),
+      tx({ date: '2026-06-04', amount: -40, category_id: 'restaurant' }),
     ];
-    const result = buildVariableExpenseBaselines(txns, { now: NOW });
+    const result = buildVariableExpenseBaselines(txns, { now: NOW, categoriesById: CATS });
     // Zwei Monate beobachtet (Mai+Juni), je 40 -> 40/Monat, keine Streuung.
     expect(result).toEqual([
       { category: 'Restaurant', monthlyAmount: 40, confidence: 0.5, volatility: 0 },
@@ -65,83 +81,94 @@ describe('buildVariableExpenseBaselines', () => {
 
   it('blendet Transaktionen außerhalb des Fensters aus', () => {
     const txns: Transaction[] = [
-      tx({ date: '2024-01-01', amount: -999, category: 'Alt' }),
+      tx({ date: '2024-01-01', amount: -999, category_id: 'alt' }),
       // Zwei Monate im Fenster, damit „Neu“ als wiederkehrend gilt.
-      tx({ date: '2026-05-01', amount: -30, category: 'Neu' }),
-      tx({ date: '2026-06-01', amount: -30, category: 'Neu' }),
+      tx({ date: '2026-05-01', amount: -30, category_id: 'neu' }),
+      tx({ date: '2026-06-01', amount: -30, category_id: 'neu' }),
     ];
-    const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6 });
+    const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6, categoriesById: CATS });
     expect(result.map((b) => b.category)).toEqual(['Neu']);
   });
 
   it('sortiert die größten Kategorien zuerst', () => {
     const txns: Transaction[] = [
-      tx({ date: '2026-05-01', amount: -10, category: 'Klein' }),
-      tx({ date: '2026-06-01', amount: -10, category: 'Klein' }),
-      tx({ date: '2026-05-01', amount: -500, category: 'Groß' }),
-      tx({ date: '2026-06-01', amount: -500, category: 'Groß' }),
+      tx({ date: '2026-05-01', amount: -10, category_id: 'klein' }),
+      tx({ date: '2026-06-01', amount: -10, category_id: 'klein' }),
+      tx({ date: '2026-05-01', amount: -500, category_id: 'gross' }),
+      tx({ date: '2026-06-01', amount: -500, category_id: 'gross' }),
     ];
-    const result = buildVariableExpenseBaselines(txns, { now: NOW });
+    const result = buildVariableExpenseBaselines(txns, { now: NOW, categoriesById: CATS });
     expect(result.map((b) => b.category)).toEqual(['Groß', 'Klein']);
   });
 
-  it('nutzt Sonstiges als Fallback-Kategorie', () => {
+  it('ignoriert unkategorisierte Ausgaben (kein Sonstiges-Sammelbecken mehr)', () => {
     const result = buildVariableExpenseBaselines(
       [tx({ date: '2026-05-01', amount: -20 }), tx({ date: '2026-06-01', amount: -20 })],
-      { now: NOW },
+      { now: NOW, categoriesById: CATS },
     );
-    expect(result[0].category).toBe('Sonstiges');
+    expect(result).toEqual([]);
   });
 
   it('schließt bekannte Vertragsfamilien aus der variablen Baseline aus', () => {
-    const netflix = tx({ date: '2026-06-01', amount: -20, payee: 'Netflix' });
-    // Zwei Monate Historie, damit die Lebensmittel-Kategorie als wiederkehrend gilt.
+    // Netflix trägt eine gültige Konsum-Kategorie, ist aber als beendeter Vertrag
+    // ausgeschlossen – der Fingerprint schlägt die Kategorie.
+    const netflix = tx({ date: '2026-06-01', amount: -20, payee: 'Netflix', category_id: 'restaurant' });
     const food1 = tx({ date: '2026-05-02', amount: -40, payee: 'Aldi', category_id: 'food' });
     const food2 = tx({ date: '2026-06-02', amount: -40, payee: 'Aldi', category_id: 'food' });
     const result = buildVariableExpenseBaselines([netflix, food1, food2], {
       now: NOW,
       excludedFingerprints: new Set([merchantFingerprint(netflix)]),
-      categoryNames: new Map([['food', 'Lebensmittel']]),
+      categoriesById: CATS,
     });
     expect(result.map((entry) => entry.category)).toEqual(['Lebensmittel']);
   });
 
-  describe('Regression Protection – Mindesthistorie', () => {
-    it('[REGRESSION] eine einzelne Ausgabe erzeugt KEINE wiederkehrende Baseline (kein Phantom-Crash)', () => {
-      // Reales Szenario: Nutzer hat genau eine Buchung im laufenden Monat (hier
-      // versehentlich als Ausgabe statt Einnahme erfasst). Daraus darf keine
-      // 6-Monats-Dauerlast projiziert werden.
+  describe('Regression Protection – Forecast-Behandlung & Mindesthistorie', () => {
+    it('[REGRESSION] negative Buchung in Einkommens-Kategorie fließt nicht in die Baseline (realer Bug)', () => {
+      // Selbst über zwei Monate: eine als „Einkommen“ kategorisierte negative
+      // Buchung ist kein variabler Konsum und darf nicht projiziert werden.
       const result = buildVariableExpenseBaselines(
-        [tx({ date: '2026-06-20', amount: -4000, category: 'Sonstiges' })],
-        { now: NOW, monthsBack: 6 },
+        [
+          tx({ date: '2026-05-25', amount: -4000, category_id: 'einkommen' }),
+          tx({ date: '2026-06-25', amount: -4000, category_id: 'einkommen' }),
+        ],
+        { now: NOW, categoriesById: CATS },
       );
       expect(result).toEqual([]);
     });
 
-    it('[REGRESSION] Einnahme und einzelne Ausgabe sind symmetrisch – beide einmalig, keine Baseline', () => {
+    it('[REGRESSION] Einnahme (+) und fälschlich negative Einkommens-Buchung – beide raus', () => {
       const result = buildVariableExpenseBaselines(
         [
-          tx({ date: '2026-06-25', amount: 5000, category: 'Gehalt' }),
-          tx({ date: '2026-06-25', amount: -4000, category: 'Einkommen' }),
+          tx({ date: '2026-06-25', amount: 5000, category_id: 'einkommen' }),
+          tx({ date: '2026-06-25', amount: -4000, category_id: 'einkommen' }),
         ],
-        { now: NOW, monthsBack: 6 },
+        { now: NOW, monthsBack: 6, categoriesById: CATS },
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('[REGRESSION] eine einzelne Konsum-Ausgabe erzeugt KEINE wiederkehrende Baseline', () => {
+      const result = buildVariableExpenseBaselines(
+        [tx({ date: '2026-06-20', amount: -4000, category_id: 'lebensmittel' })],
+        { now: NOW, monthsBack: 6, categoriesById: CATS },
       );
       expect(result).toEqual([]);
     });
 
     it('projiziert eine Baseline erst ab zwei Monaten mit Ausgaben in der Kategorie', () => {
       const oneMonth = buildVariableExpenseBaselines(
-        [tx({ date: '2026-06-10', amount: -100, category: 'Lebensmittel' })],
-        { now: NOW },
+        [tx({ date: '2026-06-10', amount: -100, category_id: 'lebensmittel' })],
+        { now: NOW, categoriesById: CATS },
       );
       expect(oneMonth).toEqual([]);
 
       const twoMonths = buildVariableExpenseBaselines(
         [
-          tx({ date: '2026-05-10', amount: -100, category: 'Lebensmittel' }),
-          tx({ date: '2026-06-10', amount: -100, category: 'Lebensmittel' }),
+          tx({ date: '2026-05-10', amount: -100, category_id: 'lebensmittel' }),
+          tx({ date: '2026-06-10', amount: -100, category_id: 'lebensmittel' }),
         ],
-        { now: NOW },
+        { now: NOW, categoriesById: CATS },
       );
       expect(twoMonths).toHaveLength(1);
       expect(twoMonths[0].category).toBe('Lebensmittel');
@@ -152,12 +179,12 @@ describe('buildVariableExpenseBaselines', () => {
       // Großanschaffung in nur einem Monat soll nicht als Dauerlast projiziert werden.
       const result = buildVariableExpenseBaselines(
         [
-          tx({ date: '2026-04-10', amount: -100, category: 'Lebensmittel' }),
-          tx({ date: '2026-05-10', amount: -100, category: 'Lebensmittel' }),
-          tx({ date: '2026-06-10', amount: -100, category: 'Lebensmittel' }),
-          tx({ date: '2026-06-12', amount: -3000, category: 'Möbel' }), // einmalig
+          tx({ date: '2026-04-10', amount: -100, category_id: 'lebensmittel' }),
+          tx({ date: '2026-05-10', amount: -100, category_id: 'lebensmittel' }),
+          tx({ date: '2026-06-10', amount: -100, category_id: 'lebensmittel' }),
+          tx({ date: '2026-06-12', amount: -3000, category_id: 'moebel' }), // einmalig
         ],
-        { now: NOW, monthsBack: 6 },
+        { now: NOW, monthsBack: 6, categoriesById: CATS },
       );
       expect(result.map((b) => b.category)).toEqual(['Lebensmittel']);
     });
