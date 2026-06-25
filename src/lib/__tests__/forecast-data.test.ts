@@ -363,6 +363,38 @@ describe('[REGRESSION] composeForecastInput – regelmäßiges Einkommen wird in
     );
     expect((input.allRecurringFlows ?? []).some((f) => f.amount === 3000)).toBe(true);
   });
+
+  it('[REGRESSION] Gehalt auf einem unbekannten/gelöschten Konto landet trotzdem im operativen Bestand', () => {
+    // Reale Ursache eines „Einkommen wird nicht berücksichtigt": die erkannte
+    // Gehaltsserie verweist auf ein Konto, das nicht (mehr) in der Prognose ist.
+    // Ohne Rebinding bucht der Flow auf ein Phantomkonto und verschwindet aus
+    // operativem UND verfügbarem Bestand – der Verlauf fällt, als gäbe es kein
+    // Einkommen.
+    const income = monthlyIncome({
+      amount: 4044,
+      payee: 'BREDEX Software',
+      description: 'Gehalt',
+      account_id: 'geloeschtes-konto-xyz', // existiert nicht in den Konten unten
+    });
+    const input = composeForecastInput({
+      accounts: [acct('giro', 5000)],
+      accountBalances: { giro: 5000 },
+      categories: [],
+      decisions: new Map(),
+      transactions: income,
+      overrides: DEFAULT_FORECAST_OVERRIDES,
+      now: NOW_INCOME,
+    });
+
+    // Der Gehalts-Flow wird an das vorhandene Girokonto gebunden, nicht an das
+    // Phantomkonto.
+    const salaryFlow = (input.recurringFlows ?? []).find((f) => f.amount === 4044);
+    expect(salaryFlow?.accountId).toBe('giro');
+
+    // Und damit erhöht das Gehalt den operativen Bestand spürbar.
+    const result = calculateDeterministicForecast(input, { startDate: '2026-06-22', months: 3 });
+    expect(result.daily.at(-1)!.operatingCash).toBeGreaterThan(5000);
+  });
 });
 
 describe('Mapping-Helfer', () => {
