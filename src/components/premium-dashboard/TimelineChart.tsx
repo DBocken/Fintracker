@@ -2,11 +2,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ResponsiveContainer, ComposedChart, Bar, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Bar, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { parseISO, startOfMonth, format } from 'date-fns';
 import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
-import { chartRamp } from '@/lib/chart-colors';
+import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 
 interface TimelineChartProps {
   data: Array<{
@@ -165,10 +165,17 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
         </div>
 
         <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="formattedDate" />
-            <YAxis tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
+          <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <defs>
+              {/* Sanfter Verlauf unter der Netto-Linie – gleicher Stil wie der Saldo-Chart (Design-Direktive C). */}
+              <linearGradient id="fillTimelineNet" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_NET} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={CHART_NET} stopOpacity={0.03} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey="formattedDate" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={64} tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
             <Tooltip 
               formatter={(value: number, name: string) => [
                 value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
@@ -201,8 +208,17 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
               </>
             )}
 
-            {/* Netto-Bilanz als Linie */}
-            <Line type="monotone" dataKey="net" stroke="hsl(var(--foreground))" name="Netto-Bilanz" strokeWidth={3} />
+            {/* Netto-Bilanz als Linie mit sanftem Verlauf darunter (Vorlagen-Look, semantisches Periwinkle) */}
+            <Area
+              type="monotone"
+              dataKey="net"
+              stroke={CHART_NET}
+              strokeWidth={2.5}
+              fill="url(#fillTimelineNet)"
+              dot={false}
+              activeDot={{ r: 5, stroke: CHART_NET, strokeWidth: 2 }}
+              name="Netto-Bilanz"
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
