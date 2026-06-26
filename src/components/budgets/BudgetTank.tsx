@@ -1,69 +1,171 @@
-import { useEffect, useRef } from "react";
-// Light-Player ohne Expression-/eval-Pfad – CSP-konform (script-src 'self').
-import lottie, { type AnimationItem } from "lottie-web/build/player/lottie_light";
+import { useId } from "react";
 import type { BudgetHealth } from "@/types";
-import { buildTankAnimation } from "./tank-animation";
 
-/** Statusfarben der Flüssigkeit (Lottie-RGB, 0..1). */
-const HEALTH_RGB: Record<BudgetHealth, [number, number, number]> = {
-  ok: [0.13, 0.55, 0.78], // ruhiges Blau
-  warn: [0.93, 0.6, 0.04], // Bernstein
-  over: [0.86, 0.22, 0.22], // Rot
+/** Verlaufsfarben der Flüssigkeit je Status (oben → unten). */
+const HEALTH_GRADIENT: Record<BudgetHealth, { top: string; bottom: string; surface: string }> = {
+  ok: { top: "#38bdf8", bottom: "#0369a1", surface: "#7dd3fc" },
+  warn: { top: "#fbbf24", bottom: "#b45309", surface: "#fcd34d" },
+  over: { top: "#f87171", bottom: "#b91c1c", surface: "#fca5a5" },
 };
 
+// Tank-Geometrie im viewBox 0 0 100 130.
+const INNER_X = 14;
+const INNER_TOP = 16;
+const INNER_BOTTOM = 120;
+const INNER_W = 72;
+const INNER_H = INNER_BOTTOM - INNER_TOP; // 104
+
+/**
+ * Baut einen geschlossenen Wellen-Pfad an der Flüssigkeits-Oberfläche.
+ * Der Pfad ist doppelt so breit wie der Tank (144) und enthält eine ganze
+ * Zahl Wellen, damit das horizontale Verschieben um 72 nahtlos loopt.
+ */
+function wavePath(surfaceY: number, amp: number, phaseDown: boolean): string {
+  const segW = 18; // halbe Wellenlänge
+  const segs = 8; // → 144 breit, 4 volle Wellen (2 je 72 → nahtloser Loop)
+  let d = `M ${INNER_X} ${surfaceY}`;
+  let up = !phaseDown;
+  for (let i = 0; i < segs; i++) {
+    const x0 = INNER_X + i * segW;
+    const cx = x0 + segW / 2;
+    const cy = surfaceY + (up ? -amp : amp);
+    const ex = x0 + segW;
+    d += ` Q ${cx} ${cy} ${ex} ${surfaceY}`;
+    up = !up;
+  }
+  // Bis zum Tankboden schließen.
+  d += ` L ${INNER_X + 144} ${INNER_BOTTOM} L ${INNER_X} ${INNER_BOTTOM} Z`;
+  return d;
+}
+
 interface BudgetTankProps {
-  /** Füllstand in Prozent (0..100). Wird auf den gleichen Lottie-Frame gemappt. */
+  /** Füllstand in Prozent (0..100). */
   fillPercent: number;
   health: BudgetHealth;
-  /** Breite in px; die Höhe folgt dem Seitenverhältnis 220:280. */
+  /** Breite in px; Höhe folgt dem Seitenverhältnis 100:130. */
   size?: number;
   className?: string;
 }
 
 /**
- * Budget-„Tank": eine Lottie-Animation, deren Flüssigkeit auf den dem Füllstand
- * entsprechenden Frame eingefroren wird (Frame N = N % gefüllt). Statusabhängig
- * eingefärbt.
+ * Budget-„Tank" als animiertes SVG: Glas mit Deckel, Flüssigkeits-Verlauf,
+ * lebendiger Oberflächen-Welle, Glanzlicht und Skala-Strichen. Der Füllstand
+ * ist exakt datengetrieben (Höhe der Flüssigkeit = Prozentwert). Statusfarbe
+ * über `health`. Die Wellenbewegung respektiert `prefers-reduced-motion`
+ * (globale Policy in index.css).
  */
 export default function BudgetTank({ fillPercent, health, size = 120, className }: BudgetTankProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<AnimationItem | null>(null);
+  const uid = useId().replace(/:/g, "");
+  const fill = Math.max(0, Math.min(100, Number.isFinite(fillPercent) ? fillPercent : 0)) / 100;
+  const colors = HEALTH_GRADIENT[health];
 
-  const frame = Math.max(0, Math.min(100, Number.isFinite(fillPercent) ? fillPercent : 0));
+  // Oberkante der Flüssigkeit; bei sehr kleinem Füllstand etwas Sockel lassen.
+  const surfaceY = INNER_TOP + (1 - fill) * INNER_H;
+  const hasLiquid = fill > 0.001;
 
-  // (Neu-)Laden, wenn sich die Statusfarbe ändert – die Farbe ist in den
-  // Animationsdaten gebacken.
-  useEffect(() => {
-    if (!containerRef.current) return;
-    animRef.current?.destroy();
-    const anim = lottie.loadAnimation({
-      container: containerRef.current,
-      renderer: "svg",
-      loop: false,
-      autoplay: false,
-      animationData: buildTankAnimation(HEALTH_RGB[health]),
-    });
-    animRef.current = anim;
-    anim.addEventListener("DOMLoaded", () => anim.goToAndStop(frame, true));
-    return () => {
-      anim.destroy();
-      animRef.current = null;
-    };
-    // `frame` wird absichtlich im zweiten Effekt behandelt, nicht hier.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [health]);
-
-  // Bei reiner Füllstandsänderung nur neu positionieren (kein Reload).
-  useEffect(() => {
-    animRef.current?.goToAndStop(frame, true);
-  }, [frame]);
+  const gradId = `tank-grad-${uid}`;
+  const clipId = `tank-clip-${uid}`;
+  const glossId = `tank-gloss-${uid}`;
 
   return (
-    <div
-      ref={containerRef}
+    <svg
+      viewBox="0 0 100 130"
+      width={size}
+      height={size * 1.3}
       className={className}
-      style={{ width: size, height: size * (280 / 220) }}
+      role="img"
       aria-hidden
-    />
+      data-fill={Math.round(fill * 100)}
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={colors.top} />
+          <stop offset="100%" stopColor={colors.bottom} />
+        </linearGradient>
+        <linearGradient id={glossId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+          <stop offset="35%" stopColor="#ffffff" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+        <clipPath id={clipId}>
+          <rect x={INNER_X} y={INNER_TOP} width={INNER_W} height={INNER_H} rx="12" />
+        </clipPath>
+      </defs>
+
+      {/* Deckel */}
+      <rect x="38" y="2" width="24" height="11" rx="4" className="fill-foreground/70" />
+      <rect x="44" y="0" width="12" height="6" rx="2" className="fill-foreground/70" />
+
+      {/* Leerer Tank-Hintergrund */}
+      <rect
+        x={INNER_X}
+        y={INNER_TOP}
+        width={INNER_W}
+        height={INNER_H}
+        rx="12"
+        className="fill-muted/40"
+      />
+
+      {/* Flüssigkeit + Wellen, auf den Innenraum geclippt */}
+      {hasLiquid && (
+        <g clipPath={`url(#${clipId})`}>
+          <rect
+            x={INNER_X}
+            y={surfaceY}
+            width={INNER_W}
+            height={INNER_BOTTOM - surfaceY + 2}
+            fill={`url(#${gradId})`}
+          />
+          {/* Zwei Wellen unterschiedlicher Geschwindigkeit für Tiefe */}
+          <g
+            style={{ animation: "budget-wave 2.6s linear infinite", willChange: "transform" }}
+          >
+            <path d={wavePath(surfaceY, 2.4, false)} fill={`url(#${gradId})`} opacity={0.55} />
+          </g>
+          <g
+            style={{ animation: "budget-wave 1.7s linear infinite", willChange: "transform" }}
+          >
+            <path d={wavePath(surfaceY, 1.6, true)} fill={colors.surface} opacity={0.7} />
+          </g>
+        </g>
+      )}
+
+      {/* Skala-Striche (25/50/75 %) */}
+      {[0.25, 0.5, 0.75].map((t) => (
+        <line
+          key={t}
+          x1={INNER_X + 3}
+          x2={INNER_X + 9}
+          y1={INNER_TOP + (1 - t) * INNER_H}
+          y2={INNER_TOP + (1 - t) * INNER_H}
+          className="stroke-foreground/25"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+      ))}
+
+      {/* Glanzlicht über dem Glas */}
+      <rect
+        x={INNER_X + 2}
+        y={INNER_TOP + 2}
+        width={INNER_W * 0.4}
+        height={INNER_H - 4}
+        rx="8"
+        fill={`url(#${glossId})`}
+        clipPath={`url(#${clipId})`}
+      />
+
+      {/* Glas-Umriss */}
+      <rect
+        x={INNER_X}
+        y={INNER_TOP}
+        width={INNER_W}
+        height={INNER_H}
+        rx="12"
+        fill="none"
+        className="stroke-foreground/40"
+        strokeWidth="2.5"
+      />
+    </svg>
   );
 }

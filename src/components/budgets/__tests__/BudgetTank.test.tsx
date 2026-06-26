@@ -1,50 +1,42 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-
-// lottie-web baut beim Import einen Canvas-Kontext auf, den jsdom nicht liefert.
-// Wir mocken den Light-Player und prüfen damit die Verdrahtung der Komponente
-// (loadAnimation + goToAndStop auf den Füllstand-Frame) ohne echten Renderer.
-const { goToAndStop, destroy, loadAnimation } = vi.hoisted(() => {
-  const goToAndStop = vi.fn();
-  const destroy = vi.fn();
-  const addEventListener = vi.fn();
-  const loadAnimation = vi.fn(() => ({ goToAndStop, destroy, addEventListener }));
-  return { goToAndStop, destroy, loadAnimation };
-});
-
-vi.mock("lottie-web/build/player/lottie_light", () => ({
-  default: { loadAnimation },
-}));
-
 import BudgetTank from "../BudgetTank";
 
+// Der Tank ist ein reines SVG (kein Canvas/Lottie), daher in jsdom direkt
+// renderbar. Wir prüfen die datengetriebene Füllung über das data-fill-Attribut
+// und das Kappen außerhalb 0..100.
+function fillOf(container: HTMLElement): number {
+  return Number(container.querySelector("svg")?.getAttribute("data-fill"));
+}
+
 describe("BudgetTank", () => {
-  beforeEach(() => {
-    goToAndStop.mockClear();
-    destroy.mockClear();
-    loadAnimation.mockClear();
-  });
-
-  it("sollte rendern und auf den Füllstand-Frame springen", () => {
+  it("sollte ein SVG mit dem Füllstand als data-fill rendern", () => {
     const { container } = render(<BudgetTank fillPercent={42} health="ok" />);
-    expect(container.firstChild).toBeTruthy();
-    expect(loadAnimation).toHaveBeenCalledTimes(1);
-    expect(goToAndStop).toHaveBeenCalledWith(42, true);
+    expect(container.querySelector("svg")).toBeTruthy();
+    expect(fillOf(container)).toBe(42);
   });
 
-  it("sollte Füllstände außerhalb 0..100 kappen", () => {
-    render(<BudgetTank fillPercent={250} health="over" />);
-    expect(goToAndStop).toHaveBeenCalledWith(100, true);
+  it("sollte Füllstände über 100 kappen", () => {
+    const { container } = render(<BudgetTank fillPercent={250} health="over" />);
+    expect(fillOf(container)).toBe(100);
   });
 
-  it("sollte NaN-Füllstand robust auf 0 setzen", () => {
-    render(<BudgetTank fillPercent={Number.NaN} health="warn" />);
-    expect(goToAndStop).toHaveBeenCalledWith(0, true);
+  it("sollte NaN/negative Füllstände auf 0 setzen und keine Flüssigkeit zeichnen", () => {
+    const nan = render(<BudgetTank fillPercent={Number.NaN} health="warn" />);
+    expect(fillOf(nan.container)).toBe(0);
+    const neg = render(<BudgetTank fillPercent={-20} health="ok" />);
+    expect(fillOf(neg.container)).toBe(0);
   });
 
-  it("sollte beim Unmount aufräumen", () => {
-    const { unmount } = render(<BudgetTank fillPercent={10} health="ok" />);
-    unmount();
-    expect(destroy).toHaveBeenCalled();
+  it("sollte eindeutige Gradient-IDs je Instanz vergeben (keine Kollision)", () => {
+    const { container } = render(
+      <div>
+        <BudgetTank fillPercent={30} health="ok" />
+        <BudgetTank fillPercent={60} health="warn" />
+      </div>,
+    );
+    const grads = container.querySelectorAll("linearGradient[id^='tank-grad-']");
+    const ids = new Set(Array.from(grads).map((g) => g.id));
+    expect(ids.size).toBe(grads.length);
   });
 });

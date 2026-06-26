@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showSuccess, showError } from "@/utils/toast";
-import type { Budget, BudgetSuggestion } from "@/types";
+import type { Budget, BudgetStatus, BudgetSuggestion } from "@/types";
 import { getBudgetOverview, saveBudget, deleteBudget } from "@/services/budget-service";
 import { getHierarchicalCategories } from "@/services/transaction-service";
-import BudgetCard from "@/components/budgets/BudgetCard";
+import BudgetTile from "@/components/budgets/BudgetTile";
+import BudgetDetailDialog from "@/components/budgets/BudgetDetailDialog";
 import BudgetFormDialog from "@/components/budgets/BudgetFormDialog";
 import SuggestedBudgets from "@/components/budgets/SuggestedBudgets";
 
 export default function BudgetsPage() {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Budget | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ["budget-overview"],
@@ -35,7 +37,7 @@ export default function BudgetsPage() {
     mutationFn: (data: Partial<Budget>) => saveBudget(data),
     onSuccess: () => {
       invalidate();
-      setDialogOpen(false);
+      setFormOpen(false);
       setEditing(null);
       showSuccess("Budget gespeichert");
     },
@@ -46,6 +48,7 @@ export default function BudgetsPage() {
     mutationFn: (id: string) => deleteBudget(id),
     onSuccess: () => {
       invalidate();
+      setDetailId(null);
       showSuccess("Budget gelöscht");
     },
     onError: (e) => showError(e instanceof Error ? e.message : "Löschen fehlgeschlagen"),
@@ -70,17 +73,18 @@ export default function BudgetsPage() {
 
   const openNew = () => {
     setEditing(null);
-    setDialogOpen(true);
+    setFormOpen(true);
   };
 
-  const statuses = overview?.statuses ?? [];
+  const statuses: BudgetStatus[] = overview?.statuses ?? [];
   const suggestions = overview?.suggestions ?? [];
+  const detail = statuses.find((s) => s.budget.id === detailId) ?? null;
 
   return (
     <div>
       <PageHeader
         title="Budgets"
-        description="Behalte deine Ausgaben im Griff – jedes Budget ist ein Tank, der sich mit dem Monat füllt."
+        description="Behalte deine Ausgaben im Griff – jedes Budget ist ein Tank, der sich mit dem Monat füllt. Tippe einen Tank an für Details."
         actions={
           <Button onClick={openNew}>
             <Plus className="mr-1.5 h-4 w-4" /> Budget hinzufügen
@@ -89,9 +93,9 @@ export default function BudgetsPage() {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 w-full" />
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
@@ -105,16 +109,12 @@ export default function BudgetsPage() {
           )}
 
           {statuses.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
               {statuses.map((status) => (
-                <BudgetCard
+                <BudgetTile
                   key={status.budget.id}
                   status={status}
-                  onEdit={() => {
-                    setEditing(status.budget);
-                    setDialogOpen(true);
-                  }}
-                  onDelete={() => handleDelete(status.budget)}
+                  onClick={() => setDetailId(status.budget.id ?? null)}
                 />
               ))}
             </div>
@@ -137,9 +137,22 @@ export default function BudgetsPage() {
         </div>
       )}
 
+      <BudgetDetailDialog
+        status={detail}
+        onOpenChange={(open) => !open && setDetailId(null)}
+        onEdit={() => {
+          if (detail) {
+            setEditing(detail.budget);
+            setDetailId(null);
+            setFormOpen(true);
+          }
+        }}
+        onDelete={() => detail && handleDelete(detail.budget)}
+      />
+
       <BudgetFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={formOpen}
+        onOpenChange={setFormOpen}
         budget={editing}
         categories={categories}
         onSave={(data) => saveMutation.mutate(data)}
