@@ -71,13 +71,13 @@ export function DebtCard({
         <Button
           variant={debt.is_paid_off ? "secondary" : "outline"}
           size="sm"
-          className="flex-1"
+          className="h-11 flex-1"
           onClick={() => onTogglePaid(debt)}
         >
           <CheckCircle2 className="mr-1.5 h-4 w-4" />
           {debt.is_paid_off ? "Rückgängig" : "Bezahlt markieren"}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onOpenDetails(debt)}>
+        <Button variant="ghost" size="sm" className="h-11" onClick={() => onOpenDetails(debt)}>
           Details
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>

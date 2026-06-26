@@ -44,11 +44,11 @@ export function BulkAssignment({
             </ul>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button
               onClick={onBulkAssign}
               disabled={status === 'processing'}
-              className="btn-premium"
+              className="btn-premium w-full sm:w-auto"
             >
               {status === 'processing' ? (
                 <>
@@ -66,7 +66,7 @@ export function BulkAssignment({
               onClick={onRecategorize}
               disabled={isRecategorizing}
               variant="outline"
-              className="btn-secondary-premium"
+              className="btn-secondary-premium w-full sm:w-auto"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Neu kategorisieren

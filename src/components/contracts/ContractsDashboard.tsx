@@ -21,6 +21,8 @@ import { de } from "date-fns/locale";
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from "recharts";
 import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
 import { ContractDetailSheet } from "./ContractDetailSheet";
+import ListRow from "@/components/common/ListRow";
+import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
@@ -203,6 +205,29 @@ export function ContractsDashboard() {
     </TableRow>
   );
 
+  // Mobile: kompakte Kartenzeile statt 9-Spalten-Tabelle. Öffnet dasselbe
+  // Detail-Sheet wie die Tabelle (openDetail) – identische Funktion, ruhigere Darstellung.
+  const renderMobileRow = (row: ContractRow) => (
+    <li key={row.key}>
+      <ListRow
+        icon={<Repeat className="h-4 w-4 text-muted-foreground" aria-hidden />}
+        title={row.payee}
+        titleSuffix={
+          row.stale ? (
+            <Badge variant="outline" className="shrink-0 text-warning">evtl. beendet</Badge>
+          ) : row.changed ? (
+            <Badge variant="secondary" className="shrink-0">geändert</Badge>
+          ) : null
+        }
+        subtitle={`${row.type} · ${row.cycleKnown ? row.cycle : "Zyklus unklar"} · ${row.categoryName}`}
+        value={euro(row.amountLast)}
+        valueTone={row.type === "Einnahme" ? "positive" : "default"}
+        valueHint={row.nextDateISO ? `fällig ${format(parseISO(row.nextDateISO), "dd.MM.yyyy")}` : undefined}
+        onClick={() => openDetail(row)}
+      />
+    </li>
+  );
+
   const tableHead = (
     <TableHeader>
       <TableRow>
@@ -230,27 +255,25 @@ export function ContractsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 p-3 rounded-lg border bg-muted">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-4 space-y-3 rounded-lg border bg-muted p-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-sm text-muted-foreground">{t("contracts.liabilitiesSum", "Summe der Verbindlichkeiten")} ({viewMode === "monthly" ? t("contracts.monthlyLabel", "monatlich") : t("contracts.annuallyLabel", "jährlich")})</p>
-                <p className="text-2xl font-bold">{euro(displayedLiabilities)}</p>
+                <p className="text-xl font-bold sm:text-2xl">{euro(displayedLiabilities)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{t("contracts.incomeSum", "Vertrags-Einnahmen")} ({viewMode === "monthly" ? t("contracts.monthlyLabel", "monatlich") : t("contracts.annuallyLabel", "jährlich")})</p>
-                <p className="text-2xl font-bold text-positive">{euro(displayedIncome)}</p>
-              </div>
-              <div className="min-w-[160px]">
-                <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="Ansicht" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
-                    <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <p className="text-xl font-bold text-positive sm:text-2xl">{euro(displayedIncome)}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
+              <SelectTrigger className="h-10 w-full sm:w-64"><SelectValue placeholder="Ansicht" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
+                <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
               Nur aktive Verträge mit bekanntem Zyklus zählen. Verträge mit unklarem Zyklus oder lange
               ohne Buchung werden nicht hochgerechnet, damit alte Verträge die Fixkosten nicht verfälschen.
             </p>
@@ -305,7 +328,18 @@ export function ContractsDashboard() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile: Kartenliste */}
+          <ul className="divide-y divide-border/70 lg:hidden">
+            {visibleActive.map(renderMobileRow)}
+            {visibleActive.length === 0 && (
+              <li className="py-6 text-center text-sm text-muted-foreground">
+                Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.
+              </li>
+            )}
+          </ul>
+
+          {/* Desktop: vollständige Tabelle */}
+          <div className="hidden overflow-x-auto lg:block">
             <Table>
               {tableHead}
               <TableBody>
@@ -332,26 +366,48 @@ export function ContractsDashboard() {
                 {showEnded ? "▾" : "▸"} {t("contracts.archivedAndEnded", "Beendet & Archiv")} ({endedRows.length})
               </button>
               {showEnded && (
-                <div className="mt-2 overflow-x-auto">
-                  <Table>
-                    {tableHead}
-                    <TableBody>
-                      {endedRows.map((row) => (
-                        <TableRow key={row.key} onClick={() => openDetail(row)} className="cursor-pointer text-muted-foreground hover:bg-muted/50">
-                          <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
-                          <TableCell className="font-medium">{row.payee}</TableCell>
-                          <TableCell>{row.categoryName}</TableCell>
-                          <TableCell>{row.cycleKnown ? row.cycle : "—"}</TableCell>
-                          <TableCell>{euro(row.amountTypical)}</TableCell>
-                          <TableCell>{euro(row.amountLast)}</TableCell>
-                          <TableCell>{format(parseISO(row.lastDateISO), "dd.MM.yyyy")}</TableCell>
-                          <TableCell>—</TableCell>
-                          <TableCell><Badge variant="outline">{CONTRACT_STATUS_LABELS[row.status]}</Badge></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {/* Mobile: Kartenliste (gedämpft) */}
+                  <ul className="mt-2 divide-y divide-border/70 lg:hidden">
+                    {endedRows.map((row) => (
+                      <li key={row.key} className="text-muted-foreground">
+                        <ListRow
+                          icon={<Repeat className="h-4 w-4 text-muted-foreground" aria-hidden />}
+                          title={row.payee}
+                          titleSuffix={
+                            <Badge variant="outline" className="shrink-0">{CONTRACT_STATUS_LABELS[row.status]}</Badge>
+                          }
+                          subtitle={`${row.type} · ${row.cycleKnown ? row.cycle : "—"} · ${row.categoryName}`}
+                          value={euro(row.amountLast)}
+                          valueTone="muted"
+                          onClick={() => openDetail(row)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Desktop: vollständige Tabelle */}
+                  <div className="mt-2 hidden overflow-x-auto lg:block">
+                    <Table>
+                      {tableHead}
+                      <TableBody>
+                        {endedRows.map((row) => (
+                          <TableRow key={row.key} onClick={() => openDetail(row)} className="cursor-pointer text-muted-foreground hover:bg-muted/50">
+                            <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
+                            <TableCell className="font-medium">{row.payee}</TableCell>
+                            <TableCell>{row.categoryName}</TableCell>
+                            <TableCell>{row.cycleKnown ? row.cycle : "—"}</TableCell>
+                            <TableCell>{euro(row.amountTypical)}</TableCell>
+                            <TableCell>{euro(row.amountLast)}</TableCell>
+                            <TableCell>{format(parseISO(row.lastDateISO), "dd.MM.yyyy")}</TableCell>
+                            <TableCell>—</TableCell>
+                            <TableCell><Badge variant="outline">{CONTRACT_STATUS_LABELS[row.status]}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           )}

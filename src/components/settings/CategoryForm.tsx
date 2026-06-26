@@ -123,7 +123,7 @@ export function CategoryForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <fieldset>
             <legend className="text-sm font-medium">Farbe</legend>
             <div className="grid grid-cols-5 gap-1 mt-1">

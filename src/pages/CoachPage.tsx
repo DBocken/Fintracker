@@ -7,6 +7,7 @@ import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
 import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
+import SectionHeader from "@/components/common/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCoachOverview } from "@/services/coach-service";
@@ -62,10 +63,7 @@ export default function CoachPage() {
       {/* Fokuskarte zuerst (Audit P1.4): der priorisierte nächste Schritt steht
           ganz oben; darunter ein glanceable 2×2-Statusraster mit Details per Tap. */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Sparkles className="h-4 w-4" />
-          {t("coach.priorityNow")}
-        </div>
+        <SectionHeader icon={<Sparkles className="h-4 w-4" />} title={t("coach.priorityNow")} />
         {coachLoading ? (
           <Skeleton className="h-32 w-full rounded-2xl" />
         ) : focusCard ? (
@@ -110,7 +108,7 @@ export default function CoachPage() {
 
       {followUps.length > 0 && (
         <section className="space-y-3">
-          <div className="text-sm font-medium text-muted-foreground">{t("coach.moreRecommendations")}</div>
+          <SectionHeader title={t("coach.moreRecommendations")} />
           <div className="space-y-3">
             {followUps.map((card, i) => (
               <CoachFeedCard key={card.id} card={card} index={i + 1} />
@@ -158,26 +156,28 @@ export default function CoachPage() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            {t("coach.yourMilestones")}
-          </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/milestones">{t("coach.viewAll")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
-          </Button>
-        </div>
+        <SectionHeader
+          title={t("coach.yourMilestones")}
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/milestones">{t("coach.viewAll")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
+            </Button>
+          }
+        />
         {milestonesLoading ? <Skeleton className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} variant="compact" /> : null}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <BarChart3 className="h-4 w-4" />
-            {t("coach.detailsAndCharts")}
-          </div>
-          <Button asChild variant="ghost" size="sm"><Link to="/dashboard">{t("coach.viewAllExpenses")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link></Button>
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">{t("coach.dashboardSupport")}</p>
+      <section className="space-y-2">
+        <SectionHeader
+          icon={<BarChart3 className="h-4 w-4" />}
+          title={t("coach.detailsAndCharts")}
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/dashboard">{t("coach.viewAllExpenses")}<ArrowRight className="ml-1.5 h-4 w-4" /></Link>
+            </Button>
+          }
+        />
+        <p className="text-sm text-muted-foreground">{t("coach.dashboardSupport")}</p>
       </section>
     </div>
   );

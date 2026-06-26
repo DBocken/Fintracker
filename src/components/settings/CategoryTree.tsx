@@ -89,7 +89,7 @@ export function CategoryTree({
                   e.stopPropagation();
                   onAddSubcategory(category.id);
                 }}
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0"
                 title="Unterkategorie erstellen"
               >
                 <Plus className="h-4 w-4" />
@@ -101,7 +101,7 @@ export function CategoryTree({
                   e.stopPropagation();
                   onEdit(category);
                 }}
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0"
                 title="Bearbeiten"
               >
                 <Edit3 className="h-4 w-4" />
@@ -114,7 +114,7 @@ export function CategoryTree({
                     e.stopPropagation();
                     onDelete(category);
                   }}
-                  className="h-8 w-8 p-0"
+                  className="h-9 w-9 p-0"
                   title="Löschen"
                 >
                   <Trash2 className="h-4 w-4" />

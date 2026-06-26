@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Wallet, LineChart, CreditCard, HandCoins, Info, ChevronRight, Plus } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import StatHero from "@/components/common/StatHero";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,7 +50,7 @@ function NetWorthRow({
           type="button"
           className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
             {icon}
           </span>
           <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
@@ -155,23 +155,17 @@ export default function NetWorthPage() {
       ) : data ? (
         <div className="mx-auto max-w-2xl space-y-4">
           {/* Hauptzahl + kompakte Zusammensetzung */}
-          <Card variant="premium">
-            <CardContent className="space-y-3 p-5">
-              <div>
-                <div className="text-sm text-muted-foreground">Nettovermögen</div>
-                <div className={`mt-1 text-4xl font-bold ${data.netWorth >= 0 ? "text-positive" : "text-warning"}`}>
-                  {eur.format(data.netWorth)}
-                </div>
-              </div>
-              <CompositionBar data={data} />
-              <div className="text-xs text-muted-foreground">
-                Liquidität + Investitionen + Forderungen − Schulden
-              </div>
-            </CardContent>
-          </Card>
+          <StatHero
+            label="Nettovermögen"
+            value={eur.format(data.netWorth)}
+            tone={data.netWorth >= 0 ? "positive" : "warning"}
+            caption="Liquidität + Investitionen + Forderungen − Schulden"
+          >
+            <CompositionBar data={data} />
+          </StatHero>
 
           {/* Antippbare Zeilen mit Detail-Sheets */}
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <NetWorthRow
               icon={<Wallet className="h-4 w-4" />}
               label="Liquidität"

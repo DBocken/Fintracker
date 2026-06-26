@@ -279,7 +279,7 @@ export function AccountManager() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
@@ -289,7 +289,7 @@ export function AccountManager() {
                 Verwalte deine Bank-, Kreditkarten- und Sparkonten
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -300,6 +300,7 @@ export function AccountManager() {
                 Alle aktualisieren
               </Button>
               <Button
+                size="sm"
                 onClick={handleCreate}
                 disabled={!limitInfo?.allowed}
               >
@@ -408,17 +409,18 @@ export function AccountManager() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="secondary">{account.currency}</Badge>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Badge variant="secondary" className="mr-1">{account.currency}</Badge>
 
                       {account.gocardless_account_id && (
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => handleSync(account)}
                           disabled={syncingAccounts.has(account.id) || !canSyncAccount(account).canSync}
-                          className="text-positive dark:text-positive hover:text-positive dark:hover:text-positive hover:bg-positive/10"
+                          className="h-9 w-9 text-positive hover:bg-positive/10 hover:text-positive dark:text-positive dark:hover:text-positive"
                           title="Transaktionen synchronisieren"
+                          aria-label="Transaktionen synchronisieren"
                         >
                           {syncingAccounts.has(account.id) ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -428,26 +430,36 @@ export function AccountManager() {
                         </Button>
                       )}
 
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(account)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handleEdit(account)}
+                        aria-label="Konto bearbeiten"
+                        title="Konto bearbeiten"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
 
                       {account.gocardless_account_id ? (
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => handleDisconnect(account)}
-                          className="text-warning hover:text-warning"
+                          className="h-9 w-9 text-warning hover:text-warning"
                           title="Bankverbindung trennen"
+                          aria-label="Bankverbindung trennen"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                       ) : (
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => handleDelete(account)}
-                          className="text-warning hover:text-warning"
+                          className="h-9 w-9 text-warning hover:text-warning"
+                          title="Konto löschen"
+                          aria-label="Konto löschen"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

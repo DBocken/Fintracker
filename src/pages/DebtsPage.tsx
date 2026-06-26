@@ -31,6 +31,7 @@ import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
+import StatTile from "@/components/common/StatTile";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -300,26 +301,9 @@ export default function DebtsPage() {
       ) : (
         <div className="space-y-6">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Gesamtschuld</div>
-                <div className="mt-1 text-2xl font-bold">{eur.format(totalDebt)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Mindestraten / Monat</div>
-                <div className="mt-1 text-2xl font-bold">{eur.format(totalMin)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Offene Schulden</div>
-                <div className="mt-1 text-2xl font-bold">
-                  {debts.filter((d) => !d.is_paid_off).length}
-                </div>
-              </CardContent>
-            </Card>
+            <StatTile label="Gesamtschuld" value={eur.format(totalDebt)} />
+            <StatTile label="Mindestraten / Monat" value={eur.format(totalMin)} />
+            <StatTile label="Offene Schulden" value={debts.filter((d) => !d.is_paid_off).length} />
           </div>
 
           {/* Mobile: kompakte Karten mit Detail-Sheet (Audit C-P1/F) */}

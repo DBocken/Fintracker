@@ -33,12 +33,18 @@ export default function MilestonesPage() {
           <Skeleton className="h-64 w-full" />
         </div>
       ) : milestones ? (
-        <div className="space-y-6">
+        <div className="mx-auto max-w-2xl space-y-6">
           <Card variant="premium">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">{t("milestones.achieved")}</div>
-                <div className="text-sm font-semibold">{achievedCount} / {total}</div>
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <div className="text-sm text-muted-foreground">{t("milestones.achieved")}</div>
+                  <div className="mt-1 text-3xl font-semibold tabular-nums">
+                    {achievedCount}
+                    <span className="text-lg font-normal text-muted-foreground"> / {total}</span>
+                  </div>
+                </div>
+                <div className="text-2xl font-semibold tabular-nums text-primary">{pct}%</div>
               </div>
               <Progress value={pct} className="mt-3" />
             </CardContent>
