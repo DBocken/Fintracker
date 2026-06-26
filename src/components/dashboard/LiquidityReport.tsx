@@ -10,13 +10,14 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, ShieldCheck, TrendingDown, CalendarClock, Lightbulb } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, TrendingDown, CalendarClock, Lightbulb, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -26,7 +27,6 @@ import {
 } from '@/components/ui/select';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
-import { useScenarioForecast } from '@/hooks/useScenarioForecast';
 import { useMonteCarloForecast } from '@/hooks/useMonteCarloForecast';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import MonteCarloPanel, {
@@ -34,12 +34,11 @@ import MonteCarloPanel, {
 } from '@/components/dashboard/MonteCarloPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
-import ScenarioExplorer from '@/components/dashboard/ScenarioExplorer';
 import FinRiskSection from '@/components/dashboard/finrisk/FinRiskSection';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
-import { applyScenario, buildPresetScenarios } from '@/lib/forecast-scenario';
+import { summarizeOverrides, type OverrideChange } from '@/lib/forecast-overrides-summary';
+import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { BufferBasis } from '@/lib/forecast-types';
-import type { ForecastScenario } from '@/lib/forecast-scenario-types';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -120,52 +119,32 @@ export default function LiquidityReport() {
     bufferBasis,
   });
 
-  // Szenarien (Stufe 3): Presets + eigene, aktives Szenario als lokaler Zustand.
-  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
-  // Live im Explorer editiertes Szenario (gleiche id, angepasste Parameter).
-  // Hat Vorrang vor dem unveränderten Preset, damit Parameteränderungen sofort
-  // in die Prognose fließen, ohne den Preset-Katalog zu mutieren.
-  const [editedScenario, setEditedScenario] = useState<ForecastScenario | null>(null);
-  const scenarios = useMemo(() => {
-    const presets = forecast ? buildPresetScenarios(forecast.config.startDate) : [];
-    return [...presets, ...overrides.scenarios];
-  }, [forecast, overrides.scenarios]);
-  const activeScenario =
-    editedScenario ?? scenarios.find((s) => s.id === activeScenarioId) ?? null;
-
-  // Der Szenario-Explorer ist die einzige Quelle der Szenario-Auswahl und
-  // liefert ein bereits (ggf. live editiertes) Szenario – es gilt direkt.
-  const applyEditedScenario = (scenario: ForecastScenario | null) => {
-    setEditedScenario(scenario);
-    setActiveScenarioId(scenario?.id ?? null);
-  };
-
-  const { scenarioResult, comparison } = useScenarioForecast(
-    input,
-    forecast,
-    { months, safetyBuffer, bufferBasis, useDailyProfile: true },
-    activeScenario,
+  // Aktive Annahmen: aus den direkt eingetragenen Overrides verdichtet. Ersetzt
+  // den früheren Szenario-Vergleich – der Nutzer plant unmittelbar, sieht hier
+  // jede Abweichung vom Ist-Zustand und kann sie einzeln zurücknehmen.
+  const activeChanges = useMemo(
+    () =>
+      summarizeOverrides(overrides, {
+        flows: input?.allRecurringFlows ?? input?.recurringFlows,
+      }),
+    [overrides, input],
   );
 
-  // Ein aktives Was-wäre-wenn-Szenario ist zugleich die Eingabe für Monte
-  // Carlo. So beantworten deterministische Linie und Wahrscheinlichkeitsband
-  // dieselbe Frage, statt zwei widersprüchliche Welten nebeneinander zu zeigen.
-  const simulationInput = useMemo(
-    () => (input && activeScenario ? applyScenario(input, activeScenario) : input),
-    [input, activeScenario],
-  );
+  // Einen einzelnen Annahme-Chip lösen (gezielt das richtige Feld räumen).
+  const clearChange = (c: OverrideChange) => clearOverrideChange(overrides, c, updatePlanning);
 
   // Monte Carlo (Stufe 4): stochastische Bandbreite. Standardmäßig an – die
   // eigentliche Simulation über X Durchläufe ist das Herzstück der Seite und
   // soll die Wahrscheinlichkeitsverteilung sofort zeigen (Web-Worker, blockiert
-  // das UI nicht).
+  // das UI nicht). Speist direkt aus `input`, das die eingetragenen Annahmen
+  // bereits enthält – deterministische Linie und Band beantworten dieselbe Frage.
   const [mcSettings, setMcSettings] = useState<MonteCarloSettings>({
     enabled: true,
     trials: 500,
     incomeUncertain: false,
   });
   const { result: monteCarlo, isCalculating: isMonteCarloCalculating } = useMonteCarloForecast(
-    simulationInput,
+    input,
     { months, safetyBuffer, bufferBasis, useDailyProfile: true },
     {
       trials: mcSettings.trials,
@@ -179,9 +158,6 @@ export default function LiquidityReport() {
     if (!forecast) return [];
     const pick = (d: { availableCash: number; operatingCash: number }) =>
       bufferBasis === 'available' ? d.availableCash : d.operatingCash;
-    const scenarioByDate = new Map(
-      (scenarioResult?.daily ?? []).map((d) => [d.date, pick(d)]),
-    );
     // Das Monte-Carlo-Band (P10–P90) wird hier in dieselbe Zeitachse gelegt,
     // damit die Wahrscheinlichkeitsverteilung als Gradient im EINEN Chart liegt.
     const bandByDate = new Map((monteCarlo?.band ?? []).map((d) => [d.date, d]));
@@ -190,14 +166,13 @@ export default function LiquidityReport() {
       return {
         date: d.date,
         operating: pick(d),
-        scenario: scenarioByDate.get(d.date),
         // Untere Kante + Bandhöhe (gestapelt) ergeben die P10–P90-Fläche.
         bandFloor: band?.p10,
         bandHeight: band ? band.p90 - band.p10 : undefined,
         median: band?.p50,
       };
     });
-  }, [forecast, scenarioResult, bufferBasis, monteCarlo]);
+  }, [forecast, bufferBasis, monteCarlo]);
 
   if (isLoading) {
     return (
@@ -225,11 +200,9 @@ export default function LiquidityReport() {
 
   if (!forecast) return null;
 
-  // Tooltip-Beschriftung der Chart-Serien (eine Darstellung: Basis, Szenario,
-  // Monte-Carlo-Median).
+  // Tooltip-Beschriftung der Chart-Serien (eine Darstellung: Plan + Monte-Carlo-Median).
   const CHART_SERIES_LABELS: Record<string, string> = {
-    operating: 'Basis',
-    scenario: activeScenario?.name ?? 'Szenario',
+    operating: 'Plan',
     median: 'Median (P50)',
   };
 
@@ -304,10 +277,14 @@ export default function LiquidityReport() {
         </label>
       </div>
 
-      {/* Zweispaltig auf Desktop: links Ergebnis, rechts Szenario-Steuerung. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_420px]">
-        {/* LINKS: Ergebnis */}
-        <div className="min-w-0 space-y-4">
+      {/* Drei Zonen: ÄNDERN (Editor) · SEHEN (Chart) · KONTEXT (Annahmen + MC).
+          Mobil/Tablet gestapelt – das Ergebnis steht oben (order-1), damit der
+          Nutzer die Wirkung jeder Eingabe sofort sieht; der Editor folgt direkt.
+          Ab xl drei Spalten: Editor links, Chart breit in der Mitte (wächst auf
+          großen Schirmen), Kontext rechts. Beide Seitenspalten kleben mit. */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)_minmax(300px,360px)]">
+        {/* SEHEN: Ergebnis (Chart, KPIs) – mobil zuerst, auf Desktop in die Mitte. */}
+        <div className="order-1 min-w-0 space-y-4 xl:order-2">
           {/* Insight nur bei echtem Risiko als Box – „stabil" steht kompakt im Chart-Label. */}
           {insights[0] && insights[0].kind === 'below_buffer' && (
             <Alert variant="destructive">
@@ -398,17 +375,6 @@ export default function LiquidityReport() {
                       strokeWidth={2}
                       fill={monteCarlo ? 'transparent' : 'url(#liqFill)'}
                     />
-                    {activeScenario && (
-                      <Line
-                        type="monotone"
-                        dataKey="scenario"
-                        name="scenario"
-                        stroke="#d97706"
-                        strokeWidth={2}
-                        strokeDasharray="5 4"
-                        dot={false}
-                      />
-                    )}
                     {monteCarlo && (
                       <Line
                         type="monotone"
@@ -516,55 +482,55 @@ export default function LiquidityReport() {
           )}
         </div>
 
-        {/* RECHTS: Szenario-Steuerung – klebt beim Scrollen auf großen Schirmen. */}
+        {/* ÄNDERN: direkter Editor – Verträge zu Punkt X beenden, neue Posten,
+            Budgets, Transfers. Auf Desktop links und klebend, mobil unter dem
+            Chart. Ersetzt den früheren Szenario-Explorer durch echtes Eintragen. */}
         <FeatureGate feature="simulation">
           <div
-            className="space-y-4 lg:sticky lg:top-4 lg:self-start"
-            aria-labelledby="simulation-tools-heading"
+            className="order-2 space-y-3 xl:order-1 xl:sticky xl:top-4 xl:self-start"
+            aria-labelledby="planning-tools-heading"
           >
             <div>
-              <h2 id="simulation-tools-heading" className="text-lg font-semibold">
-                Zukunft durchspielen
+              <h2 id="planning-tools-heading" className="text-lg font-semibold">
+                Annahmen eintragen
               </h2>
               <p className="text-sm text-muted-foreground">
-                Wähle eine Vorlage oder baue ein eigenes Szenario – die Grafik links zeigt die
-                Wirkung sofort.
+                Beende Verträge zum Stichtag, plane neue Posten oder ändere Budgets – die Grafik
+                zeigt die Wirkung sofort.
               </p>
             </div>
 
-            <ScenarioExplorer
-              presets={scenarios}
-              customScenarios={overrides.scenarios}
-              input={input}
-              comparison={comparison}
-              onApply={applyEditedScenario}
-              onAddScenario={(s) => updateConfig({ scenarios: [...overrides.scenarios, s] })}
-              onDeleteScenario={(id) =>
-                updateConfig({ scenarios: overrides.scenarios.filter((s) => s.id !== id) })
-              }
-            />
+            <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
+          </div>
+        </FeatureGate>
+
+        {/* KONTEXT: aktive Annahmen (zum Zurücknehmen) + Wahrscheinlichkeits-
+            Simulation. Mobil zuletzt, auf Desktop rechts und klebend. */}
+        <FeatureGate feature="simulation">
+          <div className="order-3 space-y-4 xl:sticky xl:top-4 xl:self-start">
+            <ActiveChangesPanel changes={activeChanges} onClear={clearChange} />
 
             {/* Steuerung & Kennzahlen der Wahrscheinlichkeits-Simulation. Das
-                Gradient-Band selbst liegt in der EINEN Hauptgrafik links. */}
+                Gradient-Band selbst liegt in der EINEN Hauptgrafik in der Mitte. */}
             <MonteCarloPanel
               settings={mcSettings}
               onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
               result={monteCarlo}
               isCalculating={isMonteCarloCalculating}
-              contextLabel={activeScenario?.name ?? 'Basisplanung'}
+              contextLabel={activeChanges.length > 0 ? `${activeChanges.length} Annahmen` : 'Basisplanung'}
             />
           </div>
         </FeatureGate>
       </div>
 
-      {/* Die übrigen Spezialanalysen bleiben erhalten, aber volle Breite und
-          einklappbar – damit die Hauptansicht fokussiert bleibt. */}
+      {/* Tiefer gehende Analysen – volle Breite, einklappbar, damit die
+          Hauptansicht (Eintragen → Sehen) fokussiert bleibt. */}
       <FeatureGate feature="simulation" fallback={null}>
         <details className="group rounded-xl border bg-card">
           <summary className="cursor-pointer list-none px-4 py-3 font-medium">
             Erweiterte Analysen{' '}
             <span className="ml-1 text-sm font-normal text-muted-foreground">
-              Risiko, Budget, Detailplanung
+              Risiko &amp; Budget-Optimierung
             </span>
           </summary>
           <div className="space-y-6 border-t p-3 sm:p-4">
@@ -577,13 +543,6 @@ export default function LiquidityReport() {
             />
 
             <BudgetOptimizerPanel input={input} />
-
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Detailplanung: einzelne Budgets, Verträge, Transfers und Ereignisse gezielt anpassen.
-              </p>
-              <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
-            </div>
           </div>
         </details>
       </FeatureGate>
@@ -659,4 +618,103 @@ function Row({
       </dd>
     </div>
   );
+}
+
+/**
+ * Aktive Annahmen als entfernbare Chips. Macht sichtbar, welche Eingaben die
+ * Prognose gerade vom Ist-Zustand entfernen – kritisch, damit der Nutzer den
+ * Chart nicht mit der Realität verwechselt. Jeder Chip lässt sich einzeln lösen.
+ */
+function ActiveChangesPanel({
+  changes,
+  onClear,
+}: {
+  changes: OverrideChange[];
+  onClear: (c: OverrideChange) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center justify-between gap-2 text-base">
+          Aktive Annahmen
+          {changes.length > 0 && (
+            <Badge variant="outline" className="font-normal">
+              {changes.length}
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {changes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Noch keine Änderungen. Trage links Annahmen ein – sie erscheinen hier und du kannst sie
+            jederzeit einzeln zurücknehmen.
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {changes.map((c) => (
+              <li key={c.id}>
+                <span className="inline-flex items-center gap-1 rounded-full border bg-muted/40 py-1 pl-3 pr-1 text-xs">
+                  <span className="max-w-[16rem] truncate">{c.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 rounded-full"
+                    aria-label={`Annahme entfernen: ${c.label}`}
+                    onClick={() => onClear(c)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Nimmt genau eine aktive Annahme zurück. Bei zusammengesetzten Vertrags-
+ * Overrides (Betrag + End-Datum) wird nur das betroffene Feld geräumt; bleibt
+ * danach ein leeres Override-Objekt, wird der ganze Eintrag entfernt.
+ */
+function clearOverrideChange(
+  overrides: ForecastOverrides,
+  change: OverrideChange,
+  updatePlanning: (patch: Partial<ForecastOverrides>) => void,
+): void {
+  switch (change.source) {
+    case 'recurringFlowOverrides': {
+      const next = { ...overrides.recurringFlowOverrides };
+      const updated = { ...next[change.key] };
+      if (change.field) delete updated[change.field];
+      if (Object.keys(updated).length > 0) next[change.key] = updated;
+      else delete next[change.key];
+      updatePlanning({ recurringFlowOverrides: next });
+      break;
+    }
+    case 'categoryBudgets': {
+      const next = { ...overrides.categoryBudgets };
+      delete next[change.key];
+      updatePlanning({ categoryBudgets: next });
+      break;
+    }
+    case 'accountInterest': {
+      const next = { ...overrides.accountInterest };
+      delete next[change.key];
+      updatePlanning({ accountInterest: next });
+      break;
+    }
+    case 'plannedEvents':
+      updatePlanning({ plannedEvents: overrides.plannedEvents.filter((e) => e.id !== change.key) });
+      break;
+    case 'transfers':
+      updatePlanning({ transfers: overrides.transfers.filter((t) => t.id !== change.key) });
+      break;
+    case 'sinkingFunds':
+      updatePlanning({ sinkingFunds: overrides.sinkingFunds.filter((f) => f.id !== change.key) });
+      break;
+  }
 }
