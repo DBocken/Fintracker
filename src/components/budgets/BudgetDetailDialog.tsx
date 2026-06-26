@@ -59,7 +59,13 @@ export default function BudgetDetailDialog({
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2">
-          <BudgetTank fillPercent={fillPercent} health={health} size={150} />
+          <BudgetTank
+            fillPercent={fillPercent}
+            health={health}
+            size={150}
+            animate
+            warnThreshold={budget.warn_threshold ?? 80}
+          />
 
           <Badge variant="outline" className={cn("text-xs", badge.className)}>
             {badge.label} · {pct}%

@@ -1,8 +1,11 @@
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { BudgetHealth } from "@/types";
 
+type Rgb = { top: string; bottom: string; surface: string };
+
 /** Verlaufsfarben der Flüssigkeit je Status (oben → unten). */
-const HEALTH_GRADIENT: Record<BudgetHealth, { top: string; bottom: string; surface: string }> = {
+const HEALTH_GRADIENT: Record<BudgetHealth, Rgb> = {
   ok: { top: "#38bdf8", bottom: "#0369a1", surface: "#7dd3fc" },
   warn: { top: "#fbbf24", bottom: "#b45309", surface: "#fcd34d" },
   over: { top: "#f87171", bottom: "#b91c1c", surface: "#fca5a5" },
@@ -15,14 +18,67 @@ const INNER_BOTTOM = 120;
 const INNER_W = 72;
 const INNER_H = INNER_BOTTOM - INNER_TOP; // 104
 
+const FILL_ANIM_MS = 1300;
+
+function clamp01(x: number) {
+  return Math.max(0, Math.min(1, x));
+}
+
+/** Weiche 0→1-Rampe zwischen zwei Kanten (wie GLSL smoothstep). */
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  if (edge0 === edge1) return x < edge0 ? 0 : 1;
+  const t = clamp01((x - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
+}
+
+type RgbTuple = [number, number, number];
+
+function hexToRgb(hex: string): RgbTuple {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function lerpRgb(a: RgbTuple, b: RgbTuple, t: number): RgbTuple {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+const rgbStr = ([r, g, b]: RgbTuple) => `rgb(${r}, ${g}, ${b})`;
+
+// Paletten einmalig nach numerischem RGB auflösen.
+const PALETTE: Record<BudgetHealth, { top: RgbTuple; bottom: RgbTuple; surface: RgbTuple }> = {
+  ok: { top: hexToRgb("#38bdf8"), bottom: hexToRgb("#0369a1"), surface: hexToRgb("#7dd3fc") },
+  warn: { top: hexToRgb("#fbbf24"), bottom: hexToRgb("#b45309"), surface: hexToRgb("#fcd34d") },
+  over: { top: hexToRgb("#f87171"), bottom: hexToRgb("#b91c1c"), surface: hexToRgb("#fca5a5") },
+};
+
 /**
- * Baut einen geschlossenen Wellen-Pfad an der Flüssigkeits-Oberfläche.
- * Der Pfad ist doppelt so breit wie der Tank (144) und enthält eine ganze
- * Zahl Wellen, damit das horizontale Verschieben um 72 nahtlos loopt.
+ * Farbe für einen gegebenen (Live-)Füllstand: blendet beim Überschreiten der
+ * Warnschwelle weich von Blau nach Bernstein und – falls das Budget überzogen
+ * ist – nahe der Vollmarke weiter nach Rot. Die Interpolation läuft komplett in
+ * numerischem RGB; erst am Ende wird in CSS-Strings gewandelt.
  */
+export function colorForFill(fillPercent: number, warn: number, over: boolean): Rgb {
+  const tWarn = smoothstep(warn - 6, warn + 6, fillPercent);
+  let top = lerpRgb(PALETTE.ok.top, PALETTE.warn.top, tWarn);
+  let bottom = lerpRgb(PALETTE.ok.bottom, PALETTE.warn.bottom, tWarn);
+  let surface = lerpRgb(PALETTE.ok.surface, PALETTE.warn.surface, tWarn);
+  if (over) {
+    const tOver = smoothstep(94, 100, fillPercent);
+    top = lerpRgb(top, PALETTE.over.top, tOver);
+    bottom = lerpRgb(bottom, PALETTE.over.bottom, tOver);
+    surface = lerpRgb(surface, PALETTE.over.surface, tOver);
+  }
+  return { top: rgbStr(top), bottom: rgbStr(bottom), surface: rgbStr(surface) };
+}
+
+/** Baut einen geschlossenen Wellen-Pfad an der Flüssigkeits-Oberfläche. */
 function wavePath(surfaceY: number, amp: number, phaseDown: boolean): string {
-  const segW = 18; // halbe Wellenlänge
-  const segs = 8; // → 144 breit, 4 volle Wellen (2 je 72 → nahtloser Loop)
+  const segW = 18;
+  const segs = 8;
   let d = `M ${INNER_X} ${surfaceY}`;
   let up = !phaseDown;
   for (let i = 0; i < segs; i++) {
@@ -33,33 +89,71 @@ function wavePath(surfaceY: number, amp: number, phaseDown: boolean): string {
     d += ` Q ${cx} ${cy} ${ex} ${surfaceY}`;
     up = !up;
   }
-  // Bis zum Tankboden schließen.
   d += ` L ${INNER_X + 144} ${INNER_BOTTOM} L ${INNER_X} ${INNER_BOTTOM} Z`;
   return d;
 }
 
 interface BudgetTankProps {
-  /** Füllstand in Prozent (0..100). */
+  /** Ziel-Füllstand in Prozent (0..100). */
   fillPercent: number;
   health: BudgetHealth;
   /** Breite in px; Höhe folgt dem Seitenverhältnis 100:130. */
   size?: number;
   className?: string;
+  /**
+   * Beim Mounten von 0 hochfüllen und die Farbe beim Überschreiten der
+   * Warnschwelle weich umblenden. Für die Detailansicht; das Raster bleibt
+   * statisch.
+   */
+  animate?: boolean;
+  /** Warnschwelle in Prozent (Default 80) – steuert den Farbumschlag. */
+  warnThreshold?: number;
 }
 
 /**
  * Budget-„Tank" als animiertes SVG: Glas mit Deckel, Flüssigkeits-Verlauf,
  * lebendiger Oberflächen-Welle, Glanzlicht und Skala-Strichen. Der Füllstand
- * ist exakt datengetrieben (Höhe der Flüssigkeit = Prozentwert). Statusfarbe
- * über `health`. Die Wellenbewegung respektiert `prefers-reduced-motion`
- * (globale Policy in index.css).
+ * ist exakt datengetrieben. Mit `animate` läuft die Flüssigkeit beim Öffnen von
+ * unten hoch und wechselt dabei weich die Farbe an den Schwellen.
  */
-export default function BudgetTank({ fillPercent, health, size = 120, className }: BudgetTankProps) {
+export default function BudgetTank({
+  fillPercent,
+  health,
+  size = 120,
+  className,
+  animate = false,
+  warnThreshold = 80,
+}: BudgetTankProps) {
   const uid = useId().replace(/:/g, "");
-  const fill = Math.max(0, Math.min(100, Number.isFinite(fillPercent) ? fillPercent : 0)) / 100;
-  const colors = HEALTH_GRADIENT[health];
+  const reduce = useReducedMotion();
+  const target = Math.max(0, Math.min(100, Number.isFinite(fillPercent) ? fillPercent : 0));
 
-  // Oberkante der Flüssigkeit; bei sehr kleinem Füllstand etwas Sockel lassen.
+  const [displayed, setDisplayed] = useState(animate && !reduce ? 0 : target);
+
+  // Einfüll-Animation: von 0 auf den Zielwert (easeOut), pro Mount einmal.
+  useEffect(() => {
+    if (!animate || reduce) {
+      setDisplayed(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / FILL_ANIM_MS);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplayed(target * eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [animate, target, reduce]);
+
+  const fill = displayed / 100;
+  // Beim Animieren folgt die Farbe dem Live-Füllstand, sonst dem festen Status.
+  const colors = animate
+    ? colorForFill(displayed, warnThreshold, health === "over")
+    : HEALTH_GRADIENT[health];
+
   const surfaceY = INNER_TOP + (1 - fill) * INNER_H;
   const hasLiquid = fill > 0.001;
 
@@ -75,7 +169,7 @@ export default function BudgetTank({ fillPercent, health, size = 120, className 
       className={className}
       role="img"
       aria-hidden
-      data-fill={Math.round(fill * 100)}
+      data-fill={Math.round(target)}
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -97,14 +191,7 @@ export default function BudgetTank({ fillPercent, health, size = 120, className 
       <rect x="44" y="0" width="12" height="6" rx="2" className="fill-foreground/70" />
 
       {/* Leerer Tank-Hintergrund */}
-      <rect
-        x={INNER_X}
-        y={INNER_TOP}
-        width={INNER_W}
-        height={INNER_H}
-        rx="12"
-        className="fill-muted/40"
-      />
+      <rect x={INNER_X} y={INNER_TOP} width={INNER_W} height={INNER_H} rx="12" className="fill-muted/40" />
 
       {/* Flüssigkeit + Wellen, auf den Innenraum geclippt */}
       {hasLiquid && (
@@ -116,15 +203,10 @@ export default function BudgetTank({ fillPercent, health, size = 120, className 
             height={INNER_BOTTOM - surfaceY + 2}
             fill={`url(#${gradId})`}
           />
-          {/* Zwei Wellen unterschiedlicher Geschwindigkeit für Tiefe */}
-          <g
-            style={{ animation: "budget-wave 2.6s linear infinite", willChange: "transform" }}
-          >
+          <g style={{ animation: "budget-wave 2.6s linear infinite", willChange: "transform" }}>
             <path d={wavePath(surfaceY, 2.4, false)} fill={`url(#${gradId})`} opacity={0.55} />
           </g>
-          <g
-            style={{ animation: "budget-wave 1.7s linear infinite", willChange: "transform" }}
-          >
+          <g style={{ animation: "budget-wave 1.7s linear infinite", willChange: "transform" }}>
             <path d={wavePath(surfaceY, 1.6, true)} fill={colors.surface} opacity={0.7} />
           </g>
         </g>
