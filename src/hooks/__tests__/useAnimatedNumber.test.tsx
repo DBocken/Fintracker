@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useAnimatedNumber } from "../useAnimatedNumber";
 
 // Reduced-Motion-Status pro Test steuerbar machen.
@@ -14,9 +14,26 @@ afterEach(() => {
 
 describe("useAnimatedNumber", () => {
   describe("Normal Behavior", () => {
-    it("sollte am Ende exakt den Zielwert erreichen", async () => {
-      const { result } = renderHook(() => useAnimatedNumber(80, { durationMs: 50 }));
-      await waitFor(() => expect(result.current).toBe(80));
+    // rAF/performance.now deterministisch stubben statt auf echte Frames zu
+    // warten — sonst feuert rAF in headless-CI throttled und der finale Frame
+    // (Snap auf exakt das Ziel) kommt gelegentlich nicht im waitFor-Fenster.
+    it("sollte am Ende exakt den Zielwert erreichen", () => {
+      let now = 1000;
+      const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => now);
+      const rafSpy = vi
+        .spyOn(globalThis, "requestAnimationFrame")
+        .mockImplementation((cb: FrameRequestCallback) => {
+          now += 10_000; // weit hinter durationMs → p>=1 im ersten Frame
+          cb(now);
+          return 0;
+        });
+      try {
+        const { result } = renderHook(() => useAnimatedNumber(80, { durationMs: 50 }));
+        expect(result.current).toBe(80);
+      } finally {
+        rafSpy.mockRestore();
+        nowSpy.mockRestore();
+      }
     });
 
     it("sollte unterhalb des Ziels starten (nicht sofort springen)", () => {
