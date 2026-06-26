@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +30,10 @@ interface Props {
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
   input?: ForecastInput | null;
+  /** Accordion section to highlight briefly (e.g., "budgets" for higher-cost preset) */
+  highlightedSection?: string | null;
+  /** Callback when highlight animation completes */
+  onHighlightComplete?: () => void;
 }
 
 /** Konten, die sinnvoll verzinst werden (Tagesgeld/Spar, Giro). */
@@ -38,17 +42,44 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
 /**
  * Planungs-Panel (Stufe 2): Tagesgeld-Zinsen, variable Ausgaben-Budgets,
  * geplante Einmalposten und Rücklagen. Schreibt direkt in die persistierten
- * Forecast-Overrides.
+ * Forecast-Overrides. Unterstützt Highlighting nach Stresstest-Preset-Anwendung.
  */
-export default function ForecastPlanner({ overrides, onChange, input }: Props) {
+export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete }: Props) {
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
+  const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
+
+  // Auto-clear highlight after animation completes (2.5s for keyframe animation)
+  useEffect(() => {
+    if (highlightedSection && highlightedSection !== activeHighlight) {
+      setActiveHighlight(highlightedSection);
+      const timer = setTimeout(() => {
+        setActiveHighlight(null);
+        onHighlightComplete?.();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedSection, onHighlightComplete]);
+
+  // Define highlight animation styles
+  const highlightClass = (sectionId: string) =>
+    activeHighlight === sectionId
+      ? 'animate-[background-color_0.5s_ease-in-out_0s_1_forwards] bg-primary/10 transition-colors'
+      : '';
 
   return (
-    <Card>
-      <CardContent className="p-2">
-        <Accordion type="single" collapsible>
+    <>
+      <style>{`
+        @keyframes highlightPulse {
+          0% { background-color: hsl(var(--primary) / 0.15); }
+          50% { background-color: hsl(var(--primary) / 0.25); }
+          100% { background-color: transparent; }
+        }
+      `}</style>
+      <Card>
+        <CardContent className="p-2">
+          <Accordion type="single" collapsible>
           {/* Zinsen */}
           <AccordionItem value="interest">
             <AccordionTrigger className="px-2 text-sm">
@@ -90,7 +121,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
           </AccordionItem>
 
           {/* Variable Ausgaben-Budgets */}
-          <AccordionItem value="budgets">
+          <AccordionItem value="budgets" className={highlightClass('budgets')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <Target className="h-4 w-4" /> Variable Budgets
@@ -194,7 +225,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
           </AccordionItem>
 
           {/* Geplante Posten */}
-          <AccordionItem value="events">
+          <AccordionItem value="events" className={highlightClass('events')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <CalendarPlus className="h-4 w-4" /> Geplante Posten
@@ -290,6 +321,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
         </Accordion>
       </CardContent>
     </Card>
+    </>
   );
 }
 

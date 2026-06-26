@@ -150,6 +150,18 @@ export default function LiquidityReport() {
   const [chartView, setChartView] = useState<ChartView>('lines');
   const [trials, setTrials] = useState(500);
   const [incomeUncertain, setIncomeUncertain] = useState(false);
+  const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
+
+  // Wrapper for preset application with highlighting
+  const handlePresetApply = (patch: Partial<ForecastOverrides>) => {
+    updatePlanning(patch);
+    // Determine which section to highlight based on patch contents
+    if (patch.categoryBudgets && Object.keys(patch.categoryBudgets).length > 0) {
+      setHighlightedSection('budgets');
+    } else if (patch.plannedEvents && patch.plannedEvents.length > 0) {
+      setHighlightedSection('events');
+    }
+  };
 
   // EINE Wahrscheinlichkeits-Simulation (FinRisk-Basislauf): liefert Band,
   // Dichte-Heatmap, Pufferbruch- und Stress-Kennzahlen in einem Lauf. Speist
@@ -558,10 +570,16 @@ export default function LiquidityReport() {
               accountId={primaryAccountId}
               variableExpenses={input?.variableExpenses}
               overrides={overrides}
-              onApply={updatePlanning}
+              onApply={handlePresetApply}
             />
 
-            <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
+            <ForecastPlanner
+              overrides={overrides}
+              onChange={updatePlanning}
+              input={input}
+              highlightedSection={highlightedSection}
+              onHighlightComplete={() => setHighlightedSection(null)}
+            />
           </div>
         </FeatureGate>
 
