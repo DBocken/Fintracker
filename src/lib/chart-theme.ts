@@ -56,7 +56,7 @@ export const CHART_COLORS = {
     heatmapGrid: '#d1d5db',          // light gray grid
     heatmapAxis: '#6b7280',          // medium gray
     heatmapAxisText: '#1f2937',      // dark text
-    heatmapMedian: '#1f2937',        // dark for P50 line
+    heatmapMedian: '#4f46e5',        // indigo for P50 line (consistent with chart)
   },
   dark: {
     // Liquidity line chart
