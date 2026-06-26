@@ -160,6 +160,90 @@ export interface HierarchicalCategory extends Category {
   parent?: HierarchicalCategory;
 }
 
+/**
+ * Budget-Periode. Aktuell ist nur `monthly` aktiv – `weekly`/`yearly` sind im
+ * Typ schon vorgesehen, werden aber erst mit dem Premium-Ausbau freigeschaltet.
+ */
+export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
+
+/**
+ * Eine einzelne Matching-Regel eines (Premium-)Budgets. Ohne Premium bleibt
+ * `rules` leer – das Budget rechnet dann rein kategorie-basiert. Die Felder sind
+ * bereits modelliert, damit der spätere Regel-Editor keine Datenmigration braucht.
+ */
+export interface BudgetRule {
+  /** Worauf die Regel prüft. */
+  field: 'payee' | 'description' | 'amount' | 'account';
+  /** Vergleichsoperator. */
+  op: 'contains' | 'equals' | 'gt' | 'lt';
+  /** Vergleichswert (String für Text/Konto, Zahl für Betrag – als String gehalten). */
+  value: string;
+}
+
+/**
+ * Ein benutzerdefiniertes Budget – visualisiert als „Tank". Ein Budget bindet
+ * an genau eine Hauptkategorie; optional lassen sich einzelne Unterkategorien
+ * auswählen (leer = alle Unterkategorien zählen). Alles strikt lokal gespeichert.
+ */
+export interface Budget {
+  id: string;
+  name: string;
+  /** Hauptkategorie, deren Ausgaben in den Tank fließen. */
+  category_id: string;
+  /** Teilmenge der Unterkategorien; leer/undefined = alle zählen. */
+  subcategory_ids?: string[];
+  /** Monatslimit in EUR (positiv). */
+  limit: number;
+  /** Warnschwelle in Prozent (Default 80). Ab hier färbt sich der Tank. */
+  warn_threshold?: number;
+  /** Akzentfarbe des Tanks (CSS-Farbe); fällt sonst auf die Kategoriefarbe zurück. */
+  color?: string;
+  /** Emoji/Icon-Hinweis für die Karte. */
+  icon?: string;
+  /** Aus einem Vorschlag erstellt (für Analytics/Hinweise). */
+  from_suggestion?: boolean;
+
+  // --- Premium-Felder (bereits modelliert, UI erst mit Premium) ---
+  /** Abrechnungsperiode. Ohne Premium immer `monthly`. */
+  period?: BudgetPeriod;
+  /** Nicht genutztes Budget in die Folgeperiode übertragen. Premium. */
+  rollover?: boolean;
+  /** Zusätzliche Match-Regeln. Premium; ohne Premium leer. */
+  rules?: BudgetRule[];
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Ampel-Status eines Budgets relativ zur Warnschwelle/zum Limit. */
+export type BudgetHealth = 'ok' | 'warn' | 'over';
+
+/** Berechneter Live-Stand eines Budgets für eine konkrete Periode. */
+export interface BudgetStatus {
+  budget: Budget;
+  /** Ausgegeben in der Periode (positiver EUR-Betrag). */
+  spent: number;
+  /** Verbleibend (kann negativ sein bei Überschreitung). */
+  remaining: number;
+  /** Auslastung 0..1+ (Ausgaben / Limit). */
+  ratio: number;
+  /** Füllstand in Prozent, 0..100 gekappt (für den Tank). */
+  fillPercent: number;
+  health: BudgetHealth;
+}
+
+/** Vorgeschlagenes Budget für eine Hauptkategorie (noch nicht gespeichert). */
+export interface BudgetSuggestion {
+  category_id: string;
+  name: string;
+  /** Vorgeschlagenes Limit (gerundet) auf Basis des Durchschnitts. */
+  limit: number;
+  /** Durchschnittliche Monatsausgabe, auf der der Vorschlag basiert. */
+  avgMonthly: number;
+  color?: string;
+  icon?: string;
+}
+
 export type DebtType = 'credit_card' | 'bnpl' | 'installment' | 'overdraft' | 'private_loan' | 'car_loan' | 'student_loan' | 'mortgage' | 'other';
 
 /** Existenzsichernde Rückstände (Miete, Energie, Unterhalt) gehen im Plan immer vor Konsumschulden (#51). */

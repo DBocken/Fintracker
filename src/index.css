@@ -213,3 +213,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Budget-Tank: horizontale Endlos-Bewegung der Flüssigkeits-Wellen.
+ * Die Welle ist 2 Wellenlängen (72 user-units) breiter als der Tank und
+ * verschiebt sich nahtlos um genau diese Distanz – dadurch wirkt sie endlos.
+ * Wird durch die globale reduced-motion-Policy oben automatisch gestoppt.
+ */
+@keyframes budget-wave {
+  from { transform: translateX(0); }
+  to { transform: translateX(-72px); }
+}
