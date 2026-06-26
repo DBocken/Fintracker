@@ -181,6 +181,52 @@ export interface BudgetRule {
 }
 
 /**
+ * Übertrags-Modus eines Budgets zwischen zwei Perioden:
+ * - `off`        – jeder Monat startet frisch beim Basislimit
+ * - `accumulate` – nicht genutztes Budget wandert mit (Limit steigt)
+ * - `overspend`  – Überschreitung wird vom Folgemonat abgezogen (Start im Minus)
+ * - `both`       – positiver und negativer Übertrag
+ */
+export type RolloverMode = 'off' | 'accumulate' | 'overspend' | 'both';
+
+/** Was mit positivem Restbudget am Periodenende geschieht. */
+export type SurplusAction = 'carry' | 'sweep_savings' | 'sweep_invest';
+
+/** Rollover-Konfiguration eines Budgets (löst das alte boolean `rollover` ab). */
+export interface BudgetRollover {
+  mode: RolloverMode;
+  /** Obergrenze des angesparten positiven Übertrags in EUR (0/undefined = unbegrenzt). */
+  cap?: number;
+  /** Verbleib des positiven Rests (Default `carry`). `sweep_*` führt ihn ab statt zu kumulieren. */
+  surplusAction?: SurplusAction;
+  /** Zielkonto für einen Sweep (z. B. Tagesgeld). */
+  sweepTargetAccountId?: string;
+  /** Ziel-Sparziel/Milestone für einen Sweep. */
+  sweepTargetGoalId?: string;
+}
+
+/** Abgeleiteter Übertrags-Stand eines Budgets für eine konkrete Periode. */
+export interface BudgetPeriodLedger {
+  budgetId: string;
+  /** Periode `YYYY-MM`. */
+  period: string;
+  /** Basislimit der Periode (ggf. datengetrieben). */
+  baseLimit: number;
+  /** Übertrag aus der Vorperiode (kann negativ sein). */
+  carryIn: number;
+  /** Effektives Limit = Basislimit + carryIn. */
+  effectiveLimit: number;
+  /** Tatsächliche Ausgaben der Periode. */
+  spent: number;
+  /** Verbleibend = effektives Limit − Ausgaben. */
+  remaining: number;
+  /** Per Sweep abgeführter Überschuss (siehe `surplusAction`). */
+  swept: number;
+  /** An die Folgeperiode weitergereichter Übertrag. */
+  carryOut: number;
+}
+
+/**
  * Ein benutzerdefiniertes Budget – visualisiert als „Tank". Ein Budget bindet
  * an genau eine Hauptkategorie; optional lassen sich einzelne Unterkategorien
  * auswählen (leer = alle Unterkategorien zählen). Alles strikt lokal gespeichert.
@@ -206,8 +252,13 @@ export interface Budget {
   // --- Premium-Felder (bereits modelliert, UI erst mit Premium) ---
   /** Abrechnungsperiode. Ohne Premium immer `monthly`. */
   period?: BudgetPeriod;
-  /** Nicht genutztes Budget in die Folgeperiode übertragen. Premium. */
+  /**
+   * @deprecated Altes boolean-Feld. Wird via `resolveRolloverConfig` auf
+   * `{ mode: 'accumulate' }` migriert. Neue Logik nutzt `rolloverConfig`.
+   */
   rollover?: boolean;
+  /** Rollover-Konfiguration (Übertrag, Cap, Sweep). Premium. */
+  rolloverConfig?: BudgetRollover;
   /** Zusätzliche Match-Regeln. Premium; ohne Premium leer. */
   rules?: BudgetRule[];
 
@@ -230,6 +281,16 @@ export interface BudgetStatus {
   /** Füllstand in Prozent, 0..100 gekappt (für den Tank). */
   fillPercent: number;
   health: BudgetHealth;
+
+  // --- Rollover (optional; nur gesetzt, wenn über die Rollover-Engine berechnet) ---
+  /** Übertrag aus der Vorperiode (kann negativ sein). */
+  carryIn?: number;
+  /** Effektives Limit der Periode (Basislimit + carryIn). */
+  effectiveLimit?: number;
+  /** An die Folgeperiode weitergereichter Übertrag. */
+  carryOut?: number;
+  /** Per Sweep abgeführter Überschuss. */
+  swept?: number;
 }
 
 /** Vorgeschlagenes Budget für eine Hauptkategorie (noch nicht gespeichert). */
