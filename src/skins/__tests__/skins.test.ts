@@ -43,6 +43,24 @@ describe('Skins Registry', () => {
     });
   });
 
+  describe('Cyberpunk & Liquid Holo Themes', () => {
+    it('sollte das Cyberpunk-Theme registriert und auflösbar haben', () => {
+      const cyber = SKINS.find((s) => s.id === 'cyberpunk');
+      expect(cyber?.name).toBe('Cyberpunk');
+      expect(cyber?.className).toBe('theme-cyberpunk');
+      expect(getSkin('cyberpunk').id).toBe('cyberpunk');
+      expect(normalizeSkinId('cyberpunk')).toBe('cyberpunk');
+    });
+
+    it('sollte das Liquid-Holo-Theme registriert und auflösbar haben', () => {
+      const holo = SKINS.find((s) => s.id === 'liquid-holo');
+      expect(holo?.name).toBe('Liquid Holo');
+      expect(holo?.className).toBe('theme-liquid-holo');
+      expect(getSkin('liquid-holo').id).toBe('liquid-holo');
+      expect(normalizeSkinId('liquid-holo')).toBe('liquid-holo');
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte unbekannte Werte auf den Standard "ruhe" normalisieren', () => {
       expect(normalizeSkinId('does-not-exist')).toBe('ruhe');
