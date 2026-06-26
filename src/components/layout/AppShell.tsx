@@ -35,7 +35,7 @@ export default function AppShell() {
     <div className="min-h-screen bg-background text-foreground">
       <CommandPalette />
       <div className="flex min-h-screen">
-        <aside className="hidden md:block w-72 h-screen border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <aside className="hidden md:block w-72 h-screen sticky top-0 self-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SideNav />
         </aside>
 
