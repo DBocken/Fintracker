@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SegmentedControl from "@/components/common/SegmentedControl";
 import { getTransactions, getCategories } from "../../services/transaction-service";
 import { getAccounts } from "../../services/account-service";
 import { parseISO, startOfMonth, format } from "date-fns";
@@ -187,7 +187,7 @@ export function ResponsivePremiumDashboard() {
   const topExpense = fd.topExpenseCategories[0] ?? { name: "Keine Ausgaben", amount: 0 };
 
   return (
-    <div {...dyadProps("ResponsivePremiumDashboard")} className="space-y-12">
+    <div {...dyadProps("ResponsivePremiumDashboard")} className="space-y-8 sm:space-y-12">
       <KpiSection data={{ transactions: flowTransactions }} />
 
       <section {...dyadProps("PremiumTimelineSection")} className="space-y-4">
@@ -197,34 +197,22 @@ export function ResponsivePremiumDashboard() {
             <div className="text-xs text-muted-foreground">Ein Chart pro Bereich, Details über Filter.</div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
+            <SegmentedControl
+              aria-label="Zeitverlauf-Modus"
+              fill={false}
               size="sm"
-              variant={flowMode === "live" ? "default" : "outline"}
-              onClick={() => setFlowMode("live")}
-              aria-pressed={flowMode === "live"}
-            >
-              Alle Daten
-            </Button>
-            <Button
-              size="sm"
-              variant={flowMode === "month" ? "default" : "outline"}
-              onClick={() => setFlowMode("month")}
-              aria-pressed={flowMode === "month"}
-            >
-              Monat
-            </Button>
-            <Button
-              size="sm"
-              variant={flowMode === "average" ? "default" : "outline"}
-              onClick={() => setFlowMode("average")}
-              aria-pressed={flowMode === "average"}
-            >
-              Durchschnitt
-            </Button>
+              value={flowMode}
+              onValueChange={(v) => setFlowMode(v as FlowMode)}
+              options={[
+                { value: "live", label: "Alle Daten" },
+                { value: "month", label: "Monat" },
+                { value: "average", label: "Durchschnitt" },
+              ]}
+            />
             {flowMode === "month" && (
               <Input
                 type="month"
-                className="w-[150px]"
+                className="h-10 w-[150px]"
                 value={selectedMonth ?? ""}
                 onChange={(e) => setSelectedMonth(e.target.value || null)}
               />
