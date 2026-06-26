@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { getHealthLabel } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
-import { useMotionSafe } from "@/hooks/useReducedMotion";
+import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import {
   getStatusBucket,
   statusColorVar,
@@ -21,22 +21,22 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
   const ringColor = statusColorVar(bucket);
 
   const circumference = 2 * Math.PI * 42;
-  const offset = circumference - (health.score / 100) * circumference;
 
-  // Ring-Animation respektiert prefers-reduced-motion (Audit C-P2).
-  const ringMotion = useMotionSafe({
-    initial: { strokeDashoffset: circumference },
-    animate: { strokeDashoffset: offset },
-    transition: { duration: 1, ease: "easeOut" },
-  });
+  // Ring-Sweep und hochzählende Zahl teilen denselben eased Tween wie das
+  // Einfüllen des Budget-Tanks; reduced-motion springt direkt auf das Ziel.
+  const animatedScore = useAnimatedNumber(health.score);
+  const offset = circumference - (animatedScore / 100) * circumference;
 
   return (
-    <div className="rounded-xl border bg-gradient-to-br from-brand/10 to-transparent p-5">
+    <div
+      className="rounded-xl border bg-gradient-to-br from-brand/10 to-transparent p-5"
+      data-health-score={health.score}
+    >
       <div className="flex items-center gap-4 sm:gap-5">
         <div className="relative h-20 w-20 shrink-0 sm:h-28 sm:w-28">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
-            <motion.circle
+            <circle
               cx="50"
               cy="50"
               r="42"
@@ -45,11 +45,13 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
               strokeWidth="8"
               strokeLinecap="round"
               strokeDasharray={circumference}
-              {...ringMotion}
+              strokeDashoffset={offset}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-bold sm:text-2xl">{gentleModeEnabled ? '••' : health.score}</span>
+            <span className="text-xl font-bold tabular-nums sm:text-2xl">
+              {gentleModeEnabled ? '••' : Math.round(animatedScore)}
+            </span>
             <span className="text-[10px] text-muted-foreground">/ 100</span>
           </div>
         </div>

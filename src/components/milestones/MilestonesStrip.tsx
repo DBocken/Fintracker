@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MilestoneStatus } from "@/services/milestones-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import CelebrationBurst from "@/components/common/CelebrationBurst";
 
 /**
  * Meilenstein-Anzeige. `variant="compact"` (Coach) zeigt nur den letzten Erfolg
@@ -34,7 +35,10 @@ export default function MilestonesStrip({
             animate={{ scale: 1, opacity: 1 }}
             className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
           >
-            <div className="text-sm font-semibold text-positive">🎉 Meilenstein erreicht!</div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-positive">
+            <CelebrationBurst size={26} />
+            Meilenstein erreicht!
+          </div>
             <div className="mt-1 flex flex-wrap gap-2">
               {justAchieved.map((m) => (
                 <span key={m.definition.key} className="text-sm">
@@ -82,7 +86,10 @@ export default function MilestonesStrip({
           animate={{ scale: 1, opacity: 1 }}
           className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
         >
-          <div className="text-sm font-semibold text-positive">🎉 Meilenstein erreicht!</div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-positive">
+            <CelebrationBurst size={26} />
+            Meilenstein erreicht!
+          </div>
           <div className="mt-1 flex flex-wrap gap-2">
             {justAchieved.map((m) => (
               <span key={m.definition.key} className="text-sm">

@@ -1,7 +1,11 @@
 import toast from 'react-hot-toast';
+import { createElement } from 'react';
+import AnimatedCheck from '@/components/common/AnimatedCheck';
 
 export const showSuccess = (message: string) => {
-  toast.success(message);
+  // Animierter SVG-Haken statt Default-Icon – gleiches Animations-Qualitätslevel
+  // wie die Tank-Visualisierungen.
+  toast.success(message, { icon: createElement(AnimatedCheck) });
 };
 
 export const showError = (message: string) => {
