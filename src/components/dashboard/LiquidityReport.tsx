@@ -151,6 +151,9 @@ export default function LiquidityReport() {
   const [trials, setTrials] = useState(500);
   const [incomeUncertain, setIncomeUncertain] = useState(false);
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
+  // Sektion, die das gerade gewählte Szenario betrifft (anhaltender Kontrast,
+  // unabhängig vom kurzen Puls nach dem Eintragen).
+  const [activeScenarioSection, setActiveScenarioSection] = useState<string | null>(null);
 
   // Wrapper for preset application with highlighting
   const handlePresetApply = (patch: Partial<ForecastOverrides>) => {
@@ -571,6 +574,7 @@ export default function LiquidityReport() {
               variableExpenses={input?.variableExpenses}
               overrides={overrides}
               onApply={handlePresetApply}
+              onActiveScenarioChange={setActiveScenarioSection}
             />
 
             <ForecastPlanner
@@ -579,6 +583,7 @@ export default function LiquidityReport() {
               input={input}
               highlightedSection={highlightedSection}
               onHighlightComplete={() => setHighlightedSection(null)}
+              activeSection={activeScenarioSection}
             />
           </div>
         </FeatureGate>

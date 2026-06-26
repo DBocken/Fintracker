@@ -13,7 +13,21 @@ interface Props {
   variableExpenses?: VariableExpenseBaseline[];
   overrides: ForecastOverrides;
   onApply: (patch: Partial<ForecastOverrides>) => void;
+  /**
+   * Meldet, welche Editor-Sektion das gerade gewählte Szenario betrifft (oder
+   * null). Der Editor hebt diese „Einstellschrauben" hervor – sie bleiben aber
+   * unabhängig vom Szenario jederzeit direkt bedienbar.
+   */
+  onActiveScenarioChange?: (section: string | null) => void;
 }
+
+/** Welche ForecastPlanner-Sektion ein Szenario anfasst (für die Hervorhebung). */
+const SECTION_BY_PRESET: Record<string, 'events' | 'budgets'> = {
+  purchase: 'events',
+  'income-loss': 'events',
+  'higher-cost': 'budgets',
+  'shock-recovery': 'events',
+};
 
 interface PresetConfig {
   id: string;
@@ -163,7 +177,9 @@ function PresetPanel({
   };
 
   return (
-    <Card className="space-y-3 border-primary/20 bg-primary/5 p-3">
+    // Deckend (bg-card) und mit Schatten, weil das Fenster über dem Editor
+    // darunter schwebt statt ihn nach unten zu schieben.
+    <Card className="space-y-3 border-primary/40 bg-card p-3 shadow-xl">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{preset.title}</h3>
         <button
@@ -175,6 +191,10 @@ function PresetPanel({
           <X className="h-4 w-4" />
         </button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Vorlage – die Werte werden unten in den hervorgehobenen Feldern eingetragen und bleiben
+        dort frei änderbar.
+      </p>
 
       {/* Dynamisch Parameter basierend auf Preset-Typ */}
       <div className="grid gap-2">
@@ -273,8 +293,15 @@ export default function StressPresetQuickAdd({
   variableExpenses,
   overrides,
   onApply,
+  onActiveScenarioChange,
 }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // Auswahl wechseln und dem Editor melden, welche Sektion hervorzuheben ist.
+  const selectPreset = (id: string | null) => {
+    setOpenId(id);
+    onActiveScenarioChange?.(id ? (SECTION_BY_PRESET[id] ?? null) : null);
+  };
 
   const [params, setParams] = useState<PresetParams>({
     purchaseAmount: 3000,
@@ -332,10 +359,15 @@ export default function StressPresetQuickAdd({
   ];
 
   return (
-    <div className="space-y-3">
+    // relative: das Detail-Fenster wird absolut darüber gelegt und schiebt den
+    // Editor darunter nicht weg.
+    <div className="relative space-y-3">
       <div>
-        <h3 className="text-sm font-medium">Stresstest als Annahme</h3>
-        <p className="text-xs text-muted-foreground">Szenario anklicken für Parameter</p>
+        <h3 className="text-sm font-medium">Stresstest-Vorlagen</h3>
+        <p className="text-xs text-muted-foreground">
+          Optionale Hilfe – setzt die passenden Felder unten. Du kannst alles auch direkt im
+          Editor eintragen.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -344,21 +376,23 @@ export default function StressPresetQuickAdd({
             key={preset.id}
             preset={preset}
             isOpen={openId === preset.id}
-            onToggle={() => setOpenId(openId === preset.id ? null : preset.id)}
+            onToggle={() => selectPreset(openId === preset.id ? null : preset.id)}
           />
         ))}
       </div>
 
       {openId && (
-        <PresetPanel
-          preset={presets.find((p) => p.id === openId)!}
-          onApply={onApply}
-          onClose={() => setOpenId(null)}
-          accountId={accountId}
-          startISO={startISO}
-          variableExpenses={variableExpenses}
-          overrides={overrides}
-        />
+        <div className="absolute inset-x-0 top-full z-50 mt-2">
+          <PresetPanel
+            preset={presets.find((p) => p.id === openId)!}
+            onApply={onApply}
+            onClose={() => selectPreset(null)}
+            accountId={accountId}
+            startISO={startISO}
+            variableExpenses={variableExpenses}
+            overrides={overrides}
+          />
+        </div>
       )}
     </div>
   );

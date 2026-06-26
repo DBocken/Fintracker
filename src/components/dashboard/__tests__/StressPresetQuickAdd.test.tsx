@@ -115,6 +115,57 @@ describe('StressPresetQuickAdd', () => {
       expect(buttons.length).toBeGreaterThan(0);
     });
 
+    it('sollte beim Wählen eines Szenarios die Ziel-Sektion melden', () => {
+      const onActiveScenarioChange = vitest.fn();
+      const { container } = render(
+        <StressPresetQuickAdd
+          startISO="2026-06-26"
+          accountId="acc1"
+          variableExpenses={mockVariableExpenses}
+          overrides={mockOverrides}
+          onApply={() => {}}
+          onActiveScenarioChange={onActiveScenarioChange}
+        />
+      );
+
+      const buttons = container.querySelectorAll('button[type="button"]');
+      const costButton = Array.from(buttons).find((b) => b.textContent?.includes('Teurer'));
+      if (costButton) {
+        fireEvent.click(costButton);
+        // "Teurer" betrifft die Budget-Sektion
+        expect(onActiveScenarioChange).toHaveBeenCalledWith('budgets');
+      }
+
+      const purchaseButton = Array.from(buttons).find((b) => b.textContent?.includes('Anschaffung'));
+      if (purchaseButton) {
+        fireEvent.click(purchaseButton);
+        // "Anschaffung" betrifft die geplanten Posten
+        expect(onActiveScenarioChange).toHaveBeenCalledWith('events');
+      }
+    });
+
+    it('sollte null melden wenn das Szenario geschlossen wird', () => {
+      const onActiveScenarioChange = vitest.fn();
+      const { container } = render(
+        <StressPresetQuickAdd
+          startISO="2026-06-26"
+          accountId="acc1"
+          variableExpenses={mockVariableExpenses}
+          overrides={mockOverrides}
+          onApply={() => {}}
+          onActiveScenarioChange={onActiveScenarioChange}
+        />
+      );
+
+      const buttons = container.querySelectorAll('button[type="button"]');
+      const purchaseButton = Array.from(buttons).find((b) => b.textContent?.includes('Anschaffung'));
+      if (purchaseButton) {
+        fireEvent.click(purchaseButton); // öffnen → 'events'
+        fireEvent.click(purchaseButton); // erneut klicken → schließen → null
+        expect(onActiveScenarioChange).toHaveBeenLastCalledWith(null);
+      }
+    });
+
     it('sollte alle Presets bei fehlender accountId deaktivieren', () => {
       const { container } = render(
         <StressPresetQuickAdd

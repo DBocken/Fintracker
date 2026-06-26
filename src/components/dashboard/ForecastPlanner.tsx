@@ -30,10 +30,16 @@ interface Props {
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
   input?: ForecastInput | null;
-  /** Accordion section to highlight briefly (e.g., "budgets" for higher-cost preset) */
+  /** Kurzer Puls nach dem Eintragen eines Stresstests (z. B. "budgets"). */
   highlightedSection?: string | null;
-  /** Callback when highlight animation completes */
+  /** Callback, wenn der Puls abgelaufen ist. */
   onHighlightComplete?: () => void;
+  /**
+   * Sektion, deren „Einstellschrauben" das aktuell gewählte Szenario betrifft.
+   * Sie wird aufgeklappt und in Kontrastfarbe markiert – bleibt aber jederzeit
+   * direkt bedienbar, auch ohne Szenario.
+   */
+  activeSection?: string | null;
 }
 
 /** Konten, die sinnvoll verzinst werden (Tagesgeld/Spar, Giro). */
@@ -44,11 +50,14 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
  * geplante Einmalposten und Rücklagen. Schreibt direkt in die persistierten
  * Forecast-Overrides. Unterstützt Highlighting nach Stresstest-Preset-Anwendung.
  */
-export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete }: Props) {
+export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete, activeSection }: Props) {
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
   const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
+  // Kontrolliertes Akkordeon, damit ein gewähltes Szenario seine Sektion öffnen
+  // kann – der Nutzer kann weiterhin frei auf-/zuklappen.
+  const [expanded, setExpanded] = useState<string | undefined>(undefined);
 
   // Auto-clear highlight after animation completes (2.5s for keyframe animation)
   useEffect(() => {
@@ -60,26 +69,41 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
       }, 2500);
       return () => clearTimeout(timer);
     }
+    // activeHighlight bewusst nicht in den Deps: nur ein neuer highlightedSection
+    // soll den Puls auslösen, nicht das Zurücksetzen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightedSection, onHighlightComplete]);
 
-  // Define highlight animation styles
-  const highlightClass = (sectionId: string) =>
-    activeHighlight === sectionId
-      ? 'animate-[background-color_0.5s_ease-in-out_0s_1_forwards] bg-primary/10 transition-colors'
-      : '';
+  // Gewähltes Szenario klappt seine Sektion auf, damit die Felder sichtbar sind.
+  useEffect(() => {
+    if (activeSection) setExpanded(activeSection);
+  }, [activeSection]);
+
+  // Hervorhebung einer Sektion: anhaltender Kontrast-Rahmen, solange ein Szenario
+  // sie betrifft (activeSection), plus ein kurzer Puls direkt nach dem Eintragen.
+  const sectionClass = (sectionId: string) => {
+    const active = activeSection === sectionId ? 'rounded-md bg-primary/5 ring-2 ring-primary' : '';
+    const pulse = activeHighlight === sectionId ? 'animate-[highlightPulse_2s_ease-out]' : '';
+    return `${active} ${pulse}`.trim();
+  };
 
   return (
     <>
       <style>{`
         @keyframes highlightPulse {
-          0% { background-color: hsl(var(--primary) / 0.15); }
-          50% { background-color: hsl(var(--primary) / 0.25); }
+          0% { background-color: hsl(var(--primary) / 0.18); }
+          50% { background-color: hsl(var(--primary) / 0.28); }
           100% { background-color: transparent; }
         }
       `}</style>
       <Card>
         <CardContent className="p-2">
-          <Accordion type="single" collapsible>
+          <Accordion
+            type="single"
+            collapsible
+            value={expanded}
+            onValueChange={(v) => setExpanded(v || undefined)}
+          >
           {/* Zinsen */}
           <AccordionItem value="interest">
             <AccordionTrigger className="px-2 text-sm">
@@ -121,7 +145,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           </AccordionItem>
 
           {/* Variable Ausgaben-Budgets */}
-          <AccordionItem value="budgets" className={highlightClass('budgets')}>
+          <AccordionItem value="budgets" className={sectionClass('budgets')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <Target className="h-4 w-4" /> Variable Budgets
@@ -225,7 +249,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           </AccordionItem>
 
           {/* Geplante Posten */}
-          <AccordionItem value="events" className={highlightClass('events')}>
+          <AccordionItem value="events" className={sectionClass('events')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <CalendarPlus className="h-4 w-4" /> Geplante Posten
