@@ -65,6 +65,15 @@ const CHART_SERIES_LABELS: Record<string, string> = {
   median: 'Median (P50)',
 };
 
+/** Ein Datenpunkt der Linien-Ansicht (Plan + optionales P10–P90-Band + Median). */
+interface ChartPoint {
+  date: string;
+  operating: number;
+  bandFloor?: number;
+  bandHeight?: number;
+  median?: number;
+}
+
 function fmtDate(iso: string): string {
   try {
     return format(parseISO(iso), 'd. MMM yyyy', { locale: de });
@@ -600,7 +609,7 @@ function ChartLinesView({
   hasBand,
   safetyBuffer,
 }: {
-  chartData: any[];
+  chartData: ChartPoint[];
   hasBand: boolean;
   safetyBuffer: number;
 }) {

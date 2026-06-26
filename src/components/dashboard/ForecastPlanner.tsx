@@ -266,7 +266,10 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{ev.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {ev.date} · {accountName(ev.accountId)}
+                      {ev.cadence
+                        ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
+                        : ev.date}{' '}
+                      · {accountName(ev.accountId)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -378,6 +381,8 @@ function AccountSelect({
   );
 }
 
+type EventCadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+
 function EventForm({
   accounts,
   onAdd,
@@ -390,13 +395,26 @@ function EventForm({
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [accountId, setAccountId] = useState('');
+  // Wiederkehrend: macht aus dem Posten z. B. ein neues Gehalt oder einen
+  // 603-€-Job, der ab `date` zykluskorrekt gebucht wird.
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [cadence, setCadence] = useState<EventCadence>('monthly');
+  const [endDate, setEndDate] = useState('');
 
   const valid = name.trim() && amount && Number(amount) > 0 && accountId;
 
   return (
     <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
       <Input placeholder="Name (z. B. Urlaub)" value={name} onChange={(e) => setName(e.target.value)} />
-      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
+        <SelectTrigger className="h-9">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="onetime">Einmalig</SelectItem>
+          <SelectItem value="recurring">Wiederkehrend</SelectItem>
+        </SelectContent>
+      </Select>
       <Input
         type="number"
         inputMode="decimal"
@@ -414,6 +432,37 @@ function EventForm({
           <SelectItem value="in">Einnahme</SelectItem>
         </SelectContent>
       </Select>
+
+      {isRecurring ? (
+        <>
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Ab wann · wie oft</span>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Wöchentlich</SelectItem>
+                  <SelectItem value="biweekly">Alle 2 Wochen</SelectItem>
+                  <SelectItem value="monthly">Monatlich</SelectItem>
+                  <SelectItem value="quarterly">Vierteljährlich</SelectItem>
+                  <SelectItem value="semiannual">Halbjährlich</SelectItem>
+                  <SelectItem value="annual">Jährlich</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </label>
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Bis (optional)</span>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+        </>
+      ) : (
+        <Input className="col-span-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      )}
+
       <div className="col-span-2">
         <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder="Konto wählen" />
       </div>
@@ -428,9 +477,11 @@ function EventForm({
             amount: signed,
             date,
             accountId,
+            ...(isRecurring ? { cadence, ...(endDate ? { endDate } : {}) } : {}),
           });
           setName('');
           setAmount('');
+          setEndDate('');
         }}
       >
         <Plus className="mr-1 h-4 w-4" /> Posten hinzufügen

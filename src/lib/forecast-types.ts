@@ -180,15 +180,30 @@ export interface VariableExpenseBaseline {
   occurrenceModel?: OccurrenceModel;
 }
 
-/** Einmaliger geplanter Posten (Urlaub, Steuererstattung, Anschaffung …). */
+/**
+ * Geplanter Posten (Urlaub, Steuererstattung, Anschaffung …).
+ *
+ * Standardmäßig einmalig am `date`. Ist `cadence` gesetzt, wird der Posten
+ * stattdessen zykluskorrekt wiederkehrend gebucht – `date` dient dann als
+ * Anker/erste Fälligkeit (z. B. ein neues Gehalt oder ein 603-€-Job ab `date`,
+ * monatlich). So lassen sich auch nutzerseitige wiederkehrende Ein-/Auszahlungen
+ * planen, ohne dass dafür ein erkannter Vertrag existiert.
+ */
 export interface PlannedForecastEvent {
   id: string;
   name: string;
   /** Signierter Betrag (positiv = Zufluss, negativ = Abfluss). */
   amount: number;
+  /** Einmaliges Datum bzw. – bei `cadence` – Anker/erste Fälligkeit (ISO yyyy-mm-dd). */
   date: string;
   accountId: string;
   category?: string;
+  /** Optional: macht den Posten wiederkehrend ab `date` als Anker. */
+  cadence?: RecurringCadence;
+  /** Nur für cadence='custom': Intervalllänge in Tagen. */
+  intervalDays?: number;
+  /** Optional: nicht mehr buchen nach diesem Datum (ISO yyyy-mm-dd). */
+  endDate?: string;
 }
 
 /**

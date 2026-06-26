@@ -408,15 +408,15 @@ export function calculateDeterministicForecast(
     }
   }
 
-  // 4) Geplante Einmalposten.
+  // 4) Geplante Posten – einmalig am Datum oder zykluskorrekt wiederkehrend.
   for (const event of allEvents) {
     if (!accountById.has(event.accountId)) continue;
-    const d = parseISO(event.date);
-    if (isBefore(d, start) || isAfter(d, rangeEnd)) continue;
-    const bucket = bucketFor(buckets, format(d, ISO));
     const cents = toMinor(event.amount);
-    bucket.events += cents;
-    addAccountDelta(bucket, event.accountId, cents);
+    for (const d of eventDates(event, start, rangeEnd)) {
+      const bucket = bucketFor(buckets, format(d, ISO));
+      bucket.events += cents;
+      addAccountDelta(bucket, event.accountId, cents);
+    }
   }
 
   // 5) Tag-für-Tag simulieren.
@@ -514,6 +514,25 @@ function transferDates(transfer: ForecastTransfer, rangeStart: Date, rangeEnd: D
     return [d];
   }
   return [];
+}
+
+/**
+ * Fälligkeiten eines geplanten Postens. Ohne `cadence` genau das `date` (sofern
+ * im Bereich); mit `cadence` zykluskorrekt ab `date` als Anker. `date` wirkt
+ * zugleich als frühestes Buchungsdatum, damit ein künftig startender Posten
+ * (z. B. neues Gehalt) nicht rückdatiert wird.
+ */
+function eventDates(event: PlannedForecastEvent, rangeStart: Date, rangeEnd: Date): Date[] {
+  const anchor = parseISO(event.date);
+  if (event.cadence) {
+    return occurrencesInRange(event.cadence, anchor, rangeStart, rangeEnd, {
+      intervalDays: event.intervalDays,
+      startDate: anchor,
+      endDate: event.endDate ? parseISO(event.endDate) : undefined,
+    });
+  }
+  if (isBefore(anchor, rangeStart) || isAfter(anchor, rangeEnd)) return [];
+  return [anchor];
 }
 
 function sumOperating(

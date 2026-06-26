@@ -56,6 +56,16 @@ function signed(amount: number): string {
   return `${amount >= 0 ? '+' : '−'}${eur.format(Math.abs(amount))}`;
 }
 
+const CADENCE_LABELS: Record<string, string> = {
+  weekly: 'Wöchentlich',
+  biweekly: '2-wöchentlich',
+  monthly: 'Monatlich',
+  quarterly: 'Vierteljährlich',
+  semiannual: 'Halbjährlich',
+  annual: 'Jährlich',
+  custom: 'Individuell',
+};
+
 /**
  * Formatiert ein ISO-Datum (yyyy-mm-dd) als d.m.yyyy. Bewusst ohne date-fns/TZ –
  * reine String-Umstellung, damit ein Tagesdatum nie durch Zeitzonen verrutscht.
@@ -132,12 +142,15 @@ export function summarizeOverrides(
     });
   }
 
-  // Geplante Einmalposten.
+  // Geplante Posten – einmalig oder wiederkehrend.
   for (const ev of overrides.plannedEvents ?? []) {
+    const when = ev.cadence
+      ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${fmtDate(ev.date)}`
+      : `am ${fmtDate(ev.date)}`;
     changes.push({
       id: `event-${ev.id}`,
       kind: 'event',
-      label: `${ev.name}: ${signed(ev.amount)} am ${fmtDate(ev.date)}`,
+      label: `${ev.name}: ${signed(ev.amount)} ${when}`,
       source: 'plannedEvents',
       key: ev.id,
     });

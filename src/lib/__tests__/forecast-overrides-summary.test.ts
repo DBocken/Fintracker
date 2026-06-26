@@ -92,6 +92,19 @@ describe('summarizeOverrides', () => {
       expect(chips[0].label).toContain('1.500');
     });
 
+    it('sollte einen wiederkehrenden Posten mit Rhythmus statt nur Datum melden', () => {
+      const o = make({
+        plannedEvents: [
+          { id: 'job', name: '603-€-Job', amount: 603, date: '2026-07-01', accountId: 'giro', cadence: 'monthly' },
+        ],
+      });
+      const chips = summarizeOverrides(o, { flows });
+      expect(chips[0].kind).toBe('event');
+      expect(chips[0].label).toContain('603-€-Job');
+      expect(chips[0].label).toContain('Monatlich');
+      expect(chips[0].label).toContain('ab 01.07.2026');
+    });
+
     it('sollte einen Transfer melden', () => {
       const o = make({
         transfers: [{ id: 'tf1', amount: 500, fromAccountId: 'giro', toAccountId: 'spar', date: '2026-08-01' }],
