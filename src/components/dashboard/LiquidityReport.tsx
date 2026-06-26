@@ -255,12 +255,13 @@ export default function LiquidityReport() {
       {/* Hinweis auf unvollständige Datenbasis (ändert die Berechnung nicht) */}
       <DataQualityNotice />
 
-      {/* Steuerung */}
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm">
+      {/* Steuerung: mobil ein ruhiges Stapel-Raster (Label über voller Select-Breite),
+          ab sm dreispaltig. Ersetzt die fixen Breiten, die auf dem Handy umbrachen. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Horizont</span>
           <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
-            <SelectTrigger className="h-9 w-28">
+            <SelectTrigger className="h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -273,10 +274,10 @@ export default function LiquidityReport() {
           </Select>
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Sicherheitspuffer</span>
           <Select value={String(safetyBuffer)} onValueChange={(v) => setSafetyBuffer(Number(v))}>
-            <SelectTrigger className="h-9 w-28">
+            <SelectTrigger className="h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -289,10 +290,10 @@ export default function LiquidityReport() {
           </Select>
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Basis</span>
           <Select value={bufferBasis} onValueChange={(v) => setBufferBasis(v as BufferBasis)}>
-            <SelectTrigger className="h-9 w-44">
+            <SelectTrigger className="h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
