@@ -30,6 +30,7 @@ import { HouseholdSettings } from './HouseholdSettings';
 import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import StatTile from '@/components/common/StatTile';
 
 function SectionHeader({
   icon,
@@ -187,14 +188,8 @@ export function EnhancedSettings() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Kategorien</div>
-                <div className="mt-2 text-2xl font-semibold text-foreground">{categories.length}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Aufbewahrung</div>
-                <div className="mt-2 text-2xl font-semibold text-foreground">{settings?.retention_months || 36} M</div>
-              </div>
+              <StatTile label="Kategorien" value={categories.length} />
+              <StatTile label="Aufbewahrung" value={`${settings?.retention_months || 36} M`} />
             </div>
           </div>
         </div>
