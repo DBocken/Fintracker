@@ -4,6 +4,7 @@ import { de } from 'date-fns/locale';
 import { Info } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
+import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
@@ -29,11 +30,6 @@ function niceTicks(lo: number, hi: number, count = 5): number[] {
   for (let v = start; v <= hi + 1e-6; v += step) out.push(Math.round(v));
   return out;
 }
-
-// Dunkle „Bühne" – macht die Gradienten theme-unabhängig sichtbar (wie bei Heatmaps üblich).
-const STAGE_BG = '#0b1220';
-const AXIS = 'rgba(226,232,240,0.65)';
-const GRID = 'rgba(148,163,184,0.16)';
 
 const PAD = { top: 10, right: 12, bottom: 22, left: 58 };
 
@@ -64,6 +60,15 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [hover, setHover] = useState<HoverState | null>(null);
+  const [, setThemeUpdate] = useState(0);
+
+  // Re-render when theme changes
+  useEffect(() => {
+    const cleanup = subscribeToDarkModeChanges(() => {
+      setThemeUpdate((prev) => prev + 1);
+    });
+    return cleanup;
+  }, []);
 
   const confidenceLevels = stressCapacity.map((s) => s.confidenceLevel);
   const [confidence, setConfidence] = useState(
@@ -104,13 +109,14 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     return { plotW, plotH, xAt, yAt, dayAtPx };
   }, [size.w, size.h, nDays, valueMin, valueMax]);
 
-  // Zeichnen.
+  // Zeichnen mit theme-aware Farben.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || size.w === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return; // jsdom/SSR: kein 2D-Context -> No-Op.
 
+    const colors = getChartColors();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size.w * dpr);
     canvas.height = Math.round(size.h * dpr);
@@ -122,7 +128,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     const { plotW, plotH, xAt, yAt } = geom;
 
     // Bühne.
-    ctx.fillStyle = STAGE_BG;
+    ctx.fillStyle = colors.heatmapBg;
     ctx.fillRect(PAD.left, PAD.top, plotW, plotH);
 
     // Heatmap-Zellen.
@@ -151,13 +157,13 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     for (const tick of niceTicks(valueMin, valueMax)) {
       const y = yAt(tick);
       if (y < PAD.top - 1 || y > PAD.top + plotH + 1) continue;
-      ctx.strokeStyle = GRID;
+      ctx.strokeStyle = colors.heatmapGrid;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(PAD.left, y);
       ctx.lineTo(PAD.left + plotW, y);
       ctx.stroke();
-      ctx.fillStyle = AXIS;
+      ctx.fillStyle = colors.heatmapAxisText;
       ctx.fillText(fmtAxis(tick), PAD.left - 6, y);
     }
 
@@ -175,8 +181,8 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       ctx.stroke();
       ctx.restore();
     };
-    hline(0, 'rgba(248,250,252,0.55)', [2, 3]);
-    if (safetyBuffer > 0) hline(safetyBuffer, 'rgba(251,191,36,0.9)', [5, 4]);
+    hline(0, colors.zeroLine, [2, 3]);
+    if (safetyBuffer > 0) hline(safetyBuffer, colors.bufferLine, [5, 4]);
 
     // Kritischer Tag (gewähltes Sicherheitsniveau).
     if (criticalDay >= 0 && criticalDay < nDays) {
@@ -201,7 +207,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         if (d === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+      ctx.strokeStyle = colors.heatmapMedian;
       ctx.lineWidth = 2;
       ctx.shadowColor = 'rgba(0,0,0,0.55)';
       ctx.shadowBlur = 3;
@@ -212,7 +218,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     // X-Achse: Monatswechsel markieren.
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = AXIS;
+    ctx.fillStyle = colors.heatmapAxis;
     let lastMonth = '';
     for (let d = 0; d < nDays; d++) {
       const iso = density.dates[d];
@@ -234,7 +240,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     if (hover && hover.day >= 0 && hover.day < nDays) {
       const x = xAt(hover.day) + cellW / 2;
       ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.strokeStyle = colors.heatmapText;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, PAD.top);

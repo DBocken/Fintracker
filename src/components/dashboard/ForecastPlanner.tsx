@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +30,16 @@ interface Props {
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
   input?: ForecastInput | null;
+  /** Kurzer Puls nach dem Eintragen eines Stresstests (z. B. "budgets"). */
+  highlightedSection?: string | null;
+  /** Callback, wenn der Puls abgelaufen ist. */
+  onHighlightComplete?: () => void;
+  /**
+   * Sektion, deren „Einstellschrauben" das aktuell gewählte Szenario betrifft.
+   * Sie wird aufgeklappt und in Kontrastfarbe markiert – bleibt aber jederzeit
+   * direkt bedienbar, auch ohne Szenario.
+   */
+  activeSection?: string | null;
 }
 
 /** Konten, die sinnvoll verzinst werden (Tagesgeld/Spar, Giro). */
@@ -38,17 +48,62 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
 /**
  * Planungs-Panel (Stufe 2): Tagesgeld-Zinsen, variable Ausgaben-Budgets,
  * geplante Einmalposten und Rücklagen. Schreibt direkt in die persistierten
- * Forecast-Overrides.
+ * Forecast-Overrides. Unterstützt Highlighting nach Stresstest-Preset-Anwendung.
  */
-export default function ForecastPlanner({ overrides, onChange, input }: Props) {
+export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete, activeSection }: Props) {
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
+  const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
+  // Kontrolliertes Akkordeon, damit ein gewähltes Szenario seine Sektion öffnen
+  // kann – der Nutzer kann weiterhin frei auf-/zuklappen.
+  const [expanded, setExpanded] = useState<string | undefined>(undefined);
+
+  // Auto-clear highlight after animation completes (2.5s for keyframe animation)
+  useEffect(() => {
+    if (highlightedSection && highlightedSection !== activeHighlight) {
+      setActiveHighlight(highlightedSection);
+      const timer = setTimeout(() => {
+        setActiveHighlight(null);
+        onHighlightComplete?.();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+    // activeHighlight bewusst nicht in den Deps: nur ein neuer highlightedSection
+    // soll den Puls auslösen, nicht das Zurücksetzen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightedSection, onHighlightComplete]);
+
+  // Gewähltes Szenario klappt seine Sektion auf, damit die Felder sichtbar sind.
+  useEffect(() => {
+    if (activeSection) setExpanded(activeSection);
+  }, [activeSection]);
+
+  // Hervorhebung einer Sektion: anhaltender Kontrast-Rahmen, solange ein Szenario
+  // sie betrifft (activeSection), plus ein kurzer Puls direkt nach dem Eintragen.
+  const sectionClass = (sectionId: string) => {
+    const active = activeSection === sectionId ? 'rounded-md bg-primary/5 ring-2 ring-primary' : '';
+    const pulse = activeHighlight === sectionId ? 'animate-[highlightPulse_2s_ease-out]' : '';
+    return `${active} ${pulse}`.trim();
+  };
 
   return (
-    <Card>
-      <CardContent className="p-2">
-        <Accordion type="single" collapsible>
+    <>
+      <style>{`
+        @keyframes highlightPulse {
+          0% { background-color: hsl(var(--primary) / 0.18); }
+          50% { background-color: hsl(var(--primary) / 0.28); }
+          100% { background-color: transparent; }
+        }
+      `}</style>
+      <Card>
+        <CardContent className="p-2">
+          <Accordion
+            type="single"
+            collapsible
+            value={expanded}
+            onValueChange={(v) => setExpanded(v || undefined)}
+          >
           {/* Zinsen */}
           <AccordionItem value="interest">
             <AccordionTrigger className="px-2 text-sm">
@@ -90,7 +145,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
           </AccordionItem>
 
           {/* Variable Ausgaben-Budgets */}
-          <AccordionItem value="budgets">
+          <AccordionItem value="budgets" className={sectionClass('budgets')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <Target className="h-4 w-4" /> Variable Budgets
@@ -194,7 +249,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
           </AccordionItem>
 
           {/* Geplante Posten */}
-          <AccordionItem value="events">
+          <AccordionItem value="events" className={sectionClass('events')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
                 <CalendarPlus className="h-4 w-4" /> Geplante Posten
@@ -211,7 +266,10 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{ev.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {ev.date} · {accountName(ev.accountId)}
+                      {ev.cadence
+                        ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
+                        : ev.date}{' '}
+                      · {accountName(ev.accountId)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -290,6 +348,7 @@ export default function ForecastPlanner({ overrides, onChange, input }: Props) {
         </Accordion>
       </CardContent>
     </Card>
+    </>
   );
 }
 
@@ -322,6 +381,8 @@ function AccountSelect({
   );
 }
 
+type EventCadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
+
 function EventForm({
   accounts,
   onAdd,
@@ -334,13 +395,26 @@ function EventForm({
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [accountId, setAccountId] = useState('');
+  // Wiederkehrend: macht aus dem Posten z. B. ein neues Gehalt oder einen
+  // 603-€-Job, der ab `date` zykluskorrekt gebucht wird.
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [cadence, setCadence] = useState<EventCadence>('monthly');
+  const [endDate, setEndDate] = useState('');
 
   const valid = name.trim() && amount && Number(amount) > 0 && accountId;
 
   return (
     <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
       <Input placeholder="Name (z. B. Urlaub)" value={name} onChange={(e) => setName(e.target.value)} />
-      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
+        <SelectTrigger className="h-9">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="onetime">Einmalig</SelectItem>
+          <SelectItem value="recurring">Wiederkehrend</SelectItem>
+        </SelectContent>
+      </Select>
       <Input
         type="number"
         inputMode="decimal"
@@ -358,6 +432,37 @@ function EventForm({
           <SelectItem value="in">Einnahme</SelectItem>
         </SelectContent>
       </Select>
+
+      {isRecurring ? (
+        <>
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Ab wann · wie oft</span>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Wöchentlich</SelectItem>
+                  <SelectItem value="biweekly">Alle 2 Wochen</SelectItem>
+                  <SelectItem value="monthly">Monatlich</SelectItem>
+                  <SelectItem value="quarterly">Vierteljährlich</SelectItem>
+                  <SelectItem value="semiannual">Halbjährlich</SelectItem>
+                  <SelectItem value="annual">Jährlich</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </label>
+          <label className="col-span-2 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Bis (optional)</span>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+        </>
+      ) : (
+        <Input className="col-span-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      )}
+
       <div className="col-span-2">
         <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder="Konto wählen" />
       </div>
@@ -372,9 +477,11 @@ function EventForm({
             amount: signed,
             date,
             accountId,
+            ...(isRecurring ? { cadence, ...(endDate ? { endDate } : {}) } : {}),
           });
           setName('');
           setAmount('');
+          setEndDate('');
         }}
       >
         <Plus className="mr-1 h-4 w-4" /> Posten hinzufügen

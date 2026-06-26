@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   Area,
@@ -10,7 +10,18 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { AlertTriangle, ShieldCheck, TrendingDown, CalendarClock, Lightbulb, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ShieldCheck,
+  TrendingDown,
+  CalendarClock,
+  Lightbulb,
+  X,
+  LineChart,
+  Grid3x3,
+  Dices,
+  LoaderCircle,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -27,14 +39,16 @@ import {
 } from '@/components/ui/select';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
-import { useMonteCarloForecast } from '@/hooks/useMonteCarloForecast';
+import { useScenarioRisk } from '@/hooks/useScenarioRisk';
+import { useLumpyRisk } from '@/hooks/useLumpyRisk';
+import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
+import { buildBaseCheckPayload } from '@/lib/finrisk/scenario-questions';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
-import MonteCarloPanel, {
-  type MonteCarloSettings,
-} from '@/components/dashboard/MonteCarloPanel';
+import StressPresetQuickAdd from '@/components/dashboard/StressPresetQuickAdd';
+import RiskDensityChart from '@/components/dashboard/finrisk/RiskDensityChart';
+import RiskSummaryCard from '@/components/dashboard/finrisk/RiskSummaryCard';
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
-import FinRiskSection from '@/components/dashboard/finrisk/FinRiskSection';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import { summarizeOverrides, type OverrideChange } from '@/lib/forecast-overrides-summary';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
@@ -45,6 +59,20 @@ const eur = new Intl.NumberFormat('de-DE', {
   currency: 'EUR',
   maximumFractionDigits: 0,
 });
+
+const CHART_SERIES_LABELS: Record<string, string> = {
+  operating: 'Plan',
+  median: 'Median (P50)',
+};
+
+/** Ein Datenpunkt der Linien-Ansicht (Plan + optionales P10–P90-Band + Median). */
+interface ChartPoint {
+  date: string;
+  operating: number;
+  bandFloor?: number;
+  bandHeight?: number;
+  median?: number;
+}
 
 function fmtDate(iso: string): string {
   try {
@@ -60,6 +88,14 @@ function fmtMonth(yyyymm: string): string {
   } catch {
     return yyyymm;
   }
+}
+
+/** Höchste Pufferbruch-Wahrscheinlichkeit über den Horizont für eine Schwelle. */
+function maxBreach(breach: Record<string, number[]> | undefined, threshold: number): number | null {
+  if (!breach) return null;
+  const series = breach[String(threshold)];
+  if (!series || series.length === 0) return 0;
+  return Math.max(...series);
 }
 
 /** Eine kompakte KPI-Kachel. */
@@ -98,13 +134,20 @@ function Kpi({
 
 const HORIZON_OPTIONS = [6, 12, 24, 36];
 
+/** Dispozins p. a. – eine Überziehung kostet Geld (siehe FinRisk). */
+const OVERDRAFT_RATE = 11;
+
+type ChartView = 'lines' | 'heatmap';
+
 /**
- * Liquiditäts-Report (Stufe 1): zeigt die tagesgenaue Liquiditätsprojektion mit
- * Sicherheitspuffer, Monatstief, Risiko-Kennzahlen und Monatszusammenfassungen.
+ * Liquiditäts-Report: tagesgenaue Projektion mit EINER Wahrscheinlichkeits-
+ * Simulation, die zwei Ansichten derselben Daten speist – Linien (Plan +
+ * P10–P90-Band + Median) und Heatmap (Dichte, auch multimodal). Umschaltbar,
+ * damit es genau eine Grafik gibt statt zwei konkurrierender Simulationen.
  *
- * Layout: auf großen Schirmen zweispaltig – links das Ergebnis (Chart +
- * Kennzahlen), rechts die Szenario-Steuerung (klebt beim Scrollen). So geht
- * durch die Zentrierung keine Fläche verloren. Mobil bleibt alles gestapelt.
+ * Eingaben laufen ausschließlich über die Annahmen (links): direkter Editor plus
+ * Stresstest-Schnellaktionen, die unter passenden Namen echte Posten/Budgets
+ * eintragen. Keine zweite, davon getrennte Szenario-Eingabe mehr.
  */
 export default function LiquidityReport() {
   const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
@@ -119,9 +162,59 @@ export default function LiquidityReport() {
     bufferBasis,
   });
 
-  // Aktive Annahmen: aus den direkt eingetragenen Overrides verdichtet. Ersetzt
-  // den früheren Szenario-Vergleich – der Nutzer plant unmittelbar, sieht hier
-  // jede Abweichung vom Ist-Zustand und kann sie einzeln zurücknehmen.
+  const [chartView, setChartView] = useState<ChartView>('lines');
+  const [trials, setTrials] = useState(500);
+  const [incomeUncertain, setIncomeUncertain] = useState(false);
+  const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
+  // Sektion, die das gerade gewählte Szenario betrifft (anhaltender Kontrast,
+  // unabhängig vom kurzen Puls nach dem Eintragen).
+  const [activeScenarioSection, setActiveScenarioSection] = useState<string | null>(null);
+  const [, setThemeUpdate] = useState(0);
+
+  // Re-render chart when theme changes (dark mode toggle)
+  useEffect(() => {
+    const cleanup = subscribeToDarkModeChanges(() => {
+      setThemeUpdate((prev) => prev + 1);
+    });
+    return cleanup;
+  }, []);
+
+  // Wrapper for preset application with highlighting
+  const handlePresetApply = (patch: Partial<ForecastOverrides>) => {
+    updatePlanning(patch);
+    // Determine which section to highlight based on patch contents
+    if (patch.categoryBudgets && Object.keys(patch.categoryBudgets).length > 0) {
+      setHighlightedSection('budgets');
+    } else if (patch.plannedEvents && patch.plannedEvents.length > 0) {
+      setHighlightedSection('events');
+    }
+  };
+
+  // EINE Wahrscheinlichkeits-Simulation (FinRisk-Basislauf): liefert Band,
+  // Dichte-Heatmap, Pufferbruch- und Stress-Kennzahlen in einem Lauf. Speist
+  // sowohl die Linien- als auch die Heatmap-Ansicht – kein zweiter MC-Apparat.
+  const startISO = forecast?.config.startDate;
+  const basePayload = useMemo(
+    () => buildBaseCheckPayload({ horizonDays: Math.max(months, 6) * 30, thresholdAmount: safetyBuffer }),
+    [months, safetyBuffer],
+  );
+  const riskConfig = useMemo(
+    () => ({ months, safetyBuffer, bufferBasis, startDate: startISO, overdraftAnnualRate: OVERDRAFT_RATE }),
+    [months, safetyBuffer, bufferBasis, startISO],
+  );
+  const { lumpy } = useLumpyRisk();
+  const { result: risk, isCalculating: isRiskCalculating } = useScenarioRisk(
+    input,
+    riskConfig,
+    basePayload,
+    {
+      monteCarlo: { trials, seed: 1, incomeVolatility: incomeUncertain ? 0.08 : 0 },
+      lumpy: lumpy ?? undefined,
+    },
+  );
+
+  // Aktive Annahmen: aus den direkt eingetragenen Overrides verdichtet. Jede
+  // Abweichung vom Ist-Zustand erscheint hier und lässt sich einzeln zurücknehmen.
   const activeChanges = useMemo(
     () =>
       summarizeOverrides(overrides, {
@@ -133,46 +226,34 @@ export default function LiquidityReport() {
   // Einen einzelnen Annahme-Chip lösen (gezielt das richtige Feld räumen).
   const clearChange = (c: OverrideChange) => clearOverrideChange(overrides, c, updatePlanning);
 
-  // Monte Carlo (Stufe 4): stochastische Bandbreite. Standardmäßig an – die
-  // eigentliche Simulation über X Durchläufe ist das Herzstück der Seite und
-  // soll die Wahrscheinlichkeitsverteilung sofort zeigen (Web-Worker, blockiert
-  // das UI nicht). Speist direkt aus `input`, das die eingetragenen Annahmen
-  // bereits enthält – deterministische Linie und Band beantworten dieselbe Frage.
-  const [mcSettings, setMcSettings] = useState<MonteCarloSettings>({
-    enabled: true,
-    trials: 500,
-    incomeUncertain: false,
-  });
-  const { result: monteCarlo, isCalculating: isMonteCarloCalculating } = useMonteCarloForecast(
-    input,
-    { months, safetyBuffer, bufferBasis, useDailyProfile: true },
-    {
-      trials: mcSettings.trials,
-      seed: 1,
-      incomeVolatility: mcSettings.incomeUncertain ? 0.08 : 0,
-    },
-    mcSettings.enabled,
-  );
+  // Operatives Konto, dem Stresstest-Posten zugeordnet werden.
+  const primaryAccountId = useMemo(() => {
+    const accts = input?.accounts ?? [];
+    return (
+      accts.find((a) => a.kind === 'checking') ??
+      accts.find((a) => a.kind === 'cash') ??
+      accts[0]
+    )?.id ?? null;
+  }, [input]);
 
   const chartData = useMemo(() => {
     if (!forecast) return [];
     const pick = (d: { availableCash: number; operatingCash: number }) =>
       bufferBasis === 'available' ? d.availableCash : d.operatingCash;
-    // Das Monte-Carlo-Band (P10–P90) wird hier in dieselbe Zeitachse gelegt,
-    // damit die Wahrscheinlichkeitsverteilung als Gradient im EINEN Chart liegt.
-    const bandByDate = new Map((monteCarlo?.band ?? []).map((d) => [d.date, d]));
+    // Das Wahrscheinlichkeitsband (P10–P90) der EINEN Simulation wird auf
+    // dieselbe Zeitachse gelegt – als Gradient hinter der Plan-Linie.
+    const bandByDate = new Map((risk?.daily ?? []).map((d) => [d.date, d]));
     return forecast.daily.map((d) => {
       const band = bandByDate.get(d.date);
       return {
         date: d.date,
         operating: pick(d),
-        // Untere Kante + Bandhöhe (gestapelt) ergeben die P10–P90-Fläche.
         bandFloor: band?.p10,
         bandHeight: band ? band.p90 - band.p10 : undefined,
         median: band?.p50,
       };
     });
-  }, [forecast, bufferBasis, monteCarlo]);
+  }, [forecast, bufferBasis, risk]);
 
   if (isLoading) {
     return (
@@ -200,19 +281,14 @@ export default function LiquidityReport() {
 
   if (!forecast) return null;
 
-  // Tooltip-Beschriftung der Chart-Serien (eine Darstellung: Plan + Monte-Carlo-Median).
-  const CHART_SERIES_LABELS: Record<string, string> = {
-    operating: 'Plan',
-    median: 'Median (P50)',
-  };
-
-  const { risk, monthly, insights } = forecast;
-  const breach = risk.firstBelowSafetyBufferDate;
-  const lowestTone = risk.lowestBalance < 0 ? 'critical' : breach ? 'warning' : 'good';
+  const { risk: liqRisk, monthly, insights } = forecast;
+  const breach = liqRisk.firstBelowSafetyBufferDate;
+  const lowestTone = liqRisk.lowestBalance < 0 ? 'critical' : breach ? 'warning' : 'good';
+  const hasBand = !!risk && risk.daily.length > 0;
 
   // Kompakter Status fürs Chart-Label (statt einer großen Box bei „alles ok").
   const status: { label: string; tone: 'good' | 'warning' | 'critical' } = breach
-    ? risk.lowestBalance < 0
+    ? liqRisk.lowestBalance < 0
       ? { label: 'Risiko', tone: 'critical' }
       : { label: 'Knapp', tone: 'warning' }
     : { label: 'Stabil', tone: 'good' };
@@ -223,13 +299,15 @@ export default function LiquidityReport() {
         ? 'border-warning/50 text-warning'
         : 'border-emerald-600/40 text-emerald-600 dark:text-emerald-400';
 
+  const stress90 = risk?.stressCapacity.find((s) => Math.abs(s.confidenceLevel - 0.9) < 1e-9) ?? null;
+  const baseBreach = maxBreach(risk?.breachProbabilities, safetyBuffer);
+
   return (
     <div className="space-y-6">
       {/* Hinweis auf unvollständige Datenbasis (ändert die Berechnung nicht) */}
       <DataQualityNotice />
 
-      {/* Steuerung: mobil ein ruhiges Stapel-Raster (Label über voller Select-Breite),
-          ab sm dreispaltig. Ersetzt die fixen Breiten, die auf dem Handy umbrachen. */}
+      {/* Steuerung: mobil ein ruhiges Stapel-Raster, ab sm dreispaltig. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Horizont</span>
@@ -277,11 +355,8 @@ export default function LiquidityReport() {
         </label>
       </div>
 
-      {/* Drei Zonen: ÄNDERN (Editor) · SEHEN (Chart) · KONTEXT (Annahmen + MC).
-          Mobil/Tablet gestapelt – das Ergebnis steht oben (order-1), damit der
-          Nutzer die Wirkung jeder Eingabe sofort sieht; der Editor folgt direkt.
-          Ab xl drei Spalten: Editor links, Chart breit in der Mitte (wächst auf
-          großen Schirmen), Kontext rechts. Beide Seitenspalten kleben mit. */}
+      {/* Drei Zonen: ÄNDERN (Editor) · SEHEN (Chart) · KONTEXT (Annahmen + Risiko).
+          Mobil gestapelt – das Ergebnis steht oben (order-1); ab xl drei Spalten. */}
       <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)_minmax(300px,360px)]">
         {/* SEHEN: Ergebnis (Chart, KPIs) – mobil zuerst, auf Desktop in die Mitte. */}
         <div className="order-1 min-w-0 space-y-4 xl:order-2">
@@ -294,110 +369,41 @@ export default function LiquidityReport() {
             </Alert>
           )}
 
-          {/* Chart */}
+          {/* Die EINE Grafik – umschaltbar zwischen Linien und Heatmap. */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
-                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}>
-                  {status.label}
-                </span>
-                {monteCarlo && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    · Wahrscheinlichkeitsband P10–P90
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                  Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}>
+                    {status.label}
                   </span>
-                )}
-              </CardTitle>
+                </CardTitle>
+                <ChartViewToggle value={chartView} onChange={setChartView} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                    <defs>
-                      <linearGradient id="liqFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#1d5c54" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#1d5c54" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="mcBandFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
-                      minTickGap={32}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      tickFormatter={(v: number) => eur.format(v)}
-                      width={72}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip
-                      formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
-                      labelFormatter={(l: string) => fmtDate(l)}
-                    />
-                    {/* Monte-Carlo-Wahrscheinlichkeitsband (P10–P90) als Gradient,
-                        hinter den Linien – damit es genau EINE Darstellung gibt. */}
-                    {monteCarlo && (
-                      <>
-                        <Area
-                          type="monotone"
-                          dataKey="bandFloor"
-                          name="bandFloor"
-                          stackId="mc"
-                          stroke="none"
-                          fill="transparent"
-                          isAnimationActive={false}
-                          legendType="none"
-                          tooltipType="none"
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="bandHeight"
-                          name="bandHeight"
-                          stackId="mc"
-                          stroke="none"
-                          fill="url(#mcBandFill)"
-                          isAnimationActive={false}
-                          legendType="none"
-                          tooltipType="none"
-                        />
-                      </>
-                    )}
-                    <Area
-                      type="monotone"
-                      dataKey="operating"
-                      name="operating"
-                      stroke="#1d5c54"
-                      strokeWidth={2}
-                      fill={monteCarlo ? 'transparent' : 'url(#liqFill)'}
-                    />
-                    {monteCarlo && (
-                      <Line
-                        type="monotone"
-                        dataKey="median"
-                        name="median"
-                        stroke="#6366f1"
-                        strokeWidth={1.5}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    )}
-                    {safetyBuffer > 0 && (
-                      <ReferenceLine
-                        y={safetyBuffer}
-                        stroke="#d97706"
-                        strokeDasharray="4 4"
-                        label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11 }}
-                      />
-                    )}
-                    <ReferenceLine y={0} stroke="currentColor" className="stroke-muted-foreground" />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+              {chartView === 'heatmap' ? (
+                hasBand ? (
+                  <RiskDensityChart result={risk!} safetyBuffer={safetyBuffer} />
+                ) : (
+                  <div className="flex h-72 items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
+                    {isRiskCalculating ? 'Wahrscheinlichkeiten werden simuliert …' : 'Noch keine Simulation.'}
+                  </div>
+                )
+              ) : (
+                <ChartLinesView
+                  chartData={chartData}
+                  hasBand={hasBand}
+                  safetyBuffer={safetyBuffer}
+                />
+              )}
+              {hasBand && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Wahrscheinlichkeitsband P10–P90 aus {risk!.horizonDays} Tagen ·{' '}
+                  {chartView === 'lines' ? 'als Heatmap umschaltbar' : 'als Linien umschaltbar'}.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -406,27 +412,27 @@ export default function LiquidityReport() {
             <Kpi
               icon={<TrendingDown className="h-4 w-4" />}
               label="Tiefststand"
-              value={eur.format(risk.lowestBalance)}
+              value={eur.format(liqRisk.lowestBalance)}
               tone={lowestTone}
-              hint={fmtDate(risk.lowestBalanceDate)}
+              hint={fmtDate(liqRisk.lowestBalanceDate)}
             />
             <Kpi
               icon={<CalendarClock className="h-4 w-4" />}
               label="Erster Pufferbruch"
               value={breach ? fmtDate(breach) : 'keiner'}
               tone={breach ? 'warning' : 'good'}
-              hint={breach ? `${risk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont'}
+              hint={breach ? `${liqRisk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont'}
             />
             <Kpi
               icon={<ShieldCheck className="h-4 w-4" />}
               label="Min. Giro"
-              value={eur.format(risk.minimumOperatingCash)}
+              value={eur.format(liqRisk.minimumOperatingCash)}
               hint="operativ verfügbar"
             />
             <Kpi
               icon={<ShieldCheck className="h-4 w-4" />}
               label="Min. verfügbar"
-              value={eur.format(risk.minimumAvailableCash)}
+              value={eur.format(liqRisk.minimumAvailableCash)}
               hint="inkl. Reserve"
             />
           </div>
@@ -482,9 +488,8 @@ export default function LiquidityReport() {
           )}
         </div>
 
-        {/* ÄNDERN: direkter Editor – Verträge zu Punkt X beenden, neue Posten,
-            Budgets, Transfers. Auf Desktop links und klebend, mobil unter dem
-            Chart. Ersetzt den früheren Szenario-Explorer durch echtes Eintragen. */}
+        {/* ÄNDERN: direkter Editor + Stresstest-Schnellaktionen. Auf Desktop links
+            und klebend, mobil unter dem Chart. Alle Eingaben an einer Stelle. */}
         <FeatureGate feature="simulation">
           <div
             className="order-2 space-y-3 xl:order-1 xl:sticky xl:top-4 xl:self-start"
@@ -495,53 +500,59 @@ export default function LiquidityReport() {
                 Annahmen eintragen
               </h2>
               <p className="text-sm text-muted-foreground">
-                Beende Verträge zum Stichtag, plane neue Posten oder ändere Budgets – die Grafik
-                zeigt die Wirkung sofort.
+                Beende Verträge zum Stichtag, plane neue Posten oder spiele einen Stresstest durch –
+                die Grafik zeigt die Wirkung sofort.
               </p>
             </div>
 
-            <ForecastPlanner overrides={overrides} onChange={updatePlanning} input={input} />
+            <StressPresetQuickAdd
+              startISO={forecast.config.startDate}
+              accountId={primaryAccountId}
+              variableExpenses={input?.variableExpenses}
+              overrides={overrides}
+              onApply={handlePresetApply}
+              onActiveScenarioChange={setActiveScenarioSection}
+            />
+
+            <ForecastPlanner
+              overrides={overrides}
+              onChange={updatePlanning}
+              input={input}
+              highlightedSection={highlightedSection}
+              onHighlightComplete={() => setHighlightedSection(null)}
+              activeSection={activeScenarioSection}
+            />
           </div>
         </FeatureGate>
 
-        {/* KONTEXT: aktive Annahmen (zum Zurücknehmen) + Wahrscheinlichkeits-
-            Simulation. Mobil zuletzt, auf Desktop rechts und klebend. */}
+        {/* KONTEXT: aktive Annahmen (zum Zurücknehmen), Risiko-Kurzdiagnose und
+            die Steuerung der Wahrscheinlichkeits-Simulation. */}
         <FeatureGate feature="simulation">
           <div className="order-3 space-y-4 xl:sticky xl:top-4 xl:self-start">
             <ActiveChangesPanel changes={activeChanges} onClear={clearChange} />
 
-            {/* Steuerung & Kennzahlen der Wahrscheinlichkeits-Simulation. Das
-                Gradient-Band selbst liegt in der EINEN Hauptgrafik in der Mitte. */}
-            <MonteCarloPanel
-              settings={mcSettings}
-              onChange={(patch) => setMcSettings((prev) => ({ ...prev, ...patch }))}
-              result={monteCarlo}
-              isCalculating={isMonteCarloCalculating}
+            <RiskSummaryCard lumpy={lumpy} stress90={stress90} baseBreachProbability={baseBreach} />
+
+            <SimulationControls
+              trials={trials}
+              onTrials={setTrials}
+              incomeUncertain={incomeUncertain}
+              onIncomeUncertain={setIncomeUncertain}
+              isCalculating={isRiskCalculating}
               contextLabel={activeChanges.length > 0 ? `${activeChanges.length} Annahmen` : 'Basisplanung'}
             />
           </div>
         </FeatureGate>
       </div>
 
-      {/* Tiefer gehende Analysen – volle Breite, einklappbar, damit die
-          Hauptansicht (Eintragen → Sehen) fokussiert bleibt. */}
+      {/* Tiefer gehende Analysen – volle Breite, einklappbar. */}
       <FeatureGate feature="simulation" fallback={null}>
         <details className="group rounded-xl border bg-card">
           <summary className="cursor-pointer list-none px-4 py-3 font-medium">
             Erweiterte Analysen{' '}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">
-              Risiko &amp; Budget-Optimierung
-            </span>
+            <span className="ml-1 text-sm font-normal text-muted-foreground">Budget-Optimierung</span>
           </summary>
           <div className="space-y-6 border-t p-3 sm:p-4">
-            <FinRiskSection
-              input={input}
-              months={months}
-              safetyBuffer={safetyBuffer}
-              bufferBasis={bufferBasis}
-              startISO={forecast.config.startDate}
-            />
-
             <BudgetOptimizerPanel input={input} />
           </div>
         </details>
@@ -589,6 +600,148 @@ export default function LiquidityReport() {
   );
 }
 
+/**
+ * Lines view of the chart with theme-aware colors.
+ * Uses gradients and line colors that adapt to light/dark mode.
+ */
+function ChartLinesView({
+  chartData,
+  hasBand,
+  safetyBuffer,
+}: {
+  chartData: ChartPoint[];
+  hasBand: boolean;
+  safetyBuffer: number;
+}) {
+  const colors = getChartColors();
+  const gradientId = `liqFill-${Date.now()}`;
+  const mcBandGradientId = `mcBandFill-${Date.now()}`;
+
+  return (
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillStartOpacity} />
+              <stop offset="95%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillEndOpacity} />
+            </linearGradient>
+            <linearGradient id={mcBandGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandStartOpacity} />
+              <stop offset="95%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandEndOpacity} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
+            minTickGap={32}
+            tick={{ fontSize: 12, fill: colors.axisText }}
+            axisLine={{ stroke: colors.axisStroke }}
+          />
+          <YAxis
+            tickFormatter={(v: number) => eur.format(v)}
+            width={72}
+            tick={{ fontSize: 12, fill: colors.axisText }}
+            axisLine={{ stroke: colors.axisStroke }}
+          />
+          <Tooltip
+            formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
+            labelFormatter={(l: string) => fmtDate(l)}
+            contentStyle={{
+              backgroundColor: 'var(--background)',
+              borderColor: 'var(--border)',
+              color: 'var(--foreground)',
+            }}
+          />
+          {hasBand && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="bandFloor"
+                name="bandFloor"
+                stackId="mc"
+                stroke="none"
+                fill="transparent"
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+              />
+              <Area
+                type="monotone"
+                dataKey="bandHeight"
+                name="bandHeight"
+                stackId="mc"
+                stroke="none"
+                fill={`url(#${mcBandGradientId})`}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+              />
+            </>
+          )}
+          <Area
+            type="monotone"
+            dataKey="operating"
+            name="operating"
+            stroke={colors.operatingStroke}
+            strokeWidth={2}
+            fill={hasBand ? 'transparent' : `url(#${gradientId})`}
+          />
+          {hasBand && (
+            <Line
+              type="monotone"
+              dataKey="median"
+              name="median"
+              stroke={colors.medianStroke}
+              strokeWidth={1.5}
+              dot={false}
+              isAnimationActive={false}
+            />
+          )}
+          {safetyBuffer > 0 && (
+            <ReferenceLine
+              y={safetyBuffer}
+              stroke={colors.bufferLine}
+              strokeDasharray="4 4"
+              label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11, fill: colors.axisText }}
+            />
+          )}
+          <ReferenceLine
+            y={0}
+            stroke={colors.zeroLine}
+            strokeDasharray="2 2"
+            label={{ value: '0 €', position: 'insideBottomRight', fontSize: 11, fill: colors.axisText, offset: -8 }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Segmentierter Umschalter zwischen Linien- und Heatmap-Ansicht. */
+function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: ChartView) => void }) {
+  const opt = (v: ChartView, label: string, Icon: typeof LineChart) => (
+    <button
+      type="button"
+      onClick={() => onChange(v)}
+      aria-pressed={value === v}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
+        value === v ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {label}
+    </button>
+  );
+  return (
+    <div role="group" aria-label="Ansicht" className="inline-flex overflow-hidden rounded-lg border">
+      {opt('lines', 'Linien', LineChart)}
+      {opt('heatmap', 'Heatmap', Grid3x3)}
+    </div>
+  );
+}
+
 function Row({
   label,
   value,
@@ -617,6 +770,72 @@ function Row({
         {value}
       </dd>
     </div>
+  );
+}
+
+/**
+ * Steuerung der Wahrscheinlichkeits-Simulation (Durchläufe, Einnahme-Streuung).
+ * Die Verteilung selbst liegt in der EINEN Grafik – hier stehen nur die Schalter.
+ */
+function SimulationControls({
+  trials,
+  onTrials,
+  incomeUncertain,
+  onIncomeUncertain,
+  isCalculating,
+  contextLabel,
+}: {
+  trials: number;
+  onTrials: (v: number) => void;
+  incomeUncertain: boolean;
+  onIncomeUncertain: (v: boolean) => void;
+  isCalculating: boolean;
+  contextLabel: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Dices className="h-4 w-4" /> Wahrscheinlichkeits-Simulation
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Durchläufe</span>
+            <Select value={String(trials)} onValueChange={(v) => onTrials(Number(v))}>
+              <SelectTrigger className="h-9 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[200, 500, 1000].map((t) => (
+                  <SelectItem key={t} value={String(t)}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={incomeUncertain}
+              onCheckedChange={onIncomeUncertain}
+              aria-label="Einnahmen pauschal mit acht Prozent Streuung berechnen"
+            />
+            <span className="text-muted-foreground">Einnahmen mit 8 % Streuung</span>
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Berechnet für: <span className="font-medium text-foreground">{contextLabel}</span>
+        </p>
+        {isCalculating && (
+          <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground" role="status">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            Wahrscheinlichkeitsspanne wird berechnet …
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

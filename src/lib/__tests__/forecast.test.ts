@@ -294,6 +294,105 @@ describe('geplante Einmalposten', () => {
   });
 });
 
+describe('wiederkehrende geplante Posten', () => {
+  // Normales Verhalten: ein wiederkehrender Posten (z. B. neues Gehalt oder
+  // 603-€-Job) wird zykluskorrekt entlang seines Rhythmus eingeplant.
+  it('bucht einen monatlichen Posten ab dem Anker-Datum mehrfach', () => {
+    const result = run({
+      accounts: [checking(0)],
+      plannedEvents: [
+        {
+          id: 'minijob',
+          name: '603-€-Job',
+          amount: 603,
+          date: '2026-01-15',
+          accountId: 'giro',
+          cadence: 'monthly',
+        },
+      ],
+    });
+    // 6 Monate (Jan–Jun) -> 6 Buchungen à 603 €.
+    expect(day(result, '2026-01-15').events).toBe(603);
+    expect(day(result, '2026-02-15').events).toBe(603);
+    expect(day(result, '2026-06-15').events).toBe(603);
+    expect(result.daily.at(-1)!.operatingCash).toBe(603 * 6);
+  });
+
+  it('bucht keinen Posten vor dem Anker-Datum (Gehalt startet künftig)', () => {
+    const result = run({
+      accounts: [checking(1000)],
+      plannedEvents: [
+        {
+          id: 'salary',
+          name: 'Neues Gehalt',
+          amount: 2500,
+          date: '2026-03-01',
+          accountId: 'giro',
+          cadence: 'monthly',
+        },
+      ],
+    });
+    // Vor dem Start (Jan/Feb) keine Buchung.
+    expect(day(result, '2026-01-01').events).toBe(0);
+    expect(day(result, '2026-02-01').events).toBe(0);
+    expect(day(result, '2026-03-01').events).toBe(2500);
+    // Mär–Jun = 4 Gehälter.
+    expect(result.daily.at(-1)!.operatingCash).toBe(1000 + 2500 * 4);
+  });
+
+  it('beendet einen wiederkehrenden Posten zum endDate', () => {
+    const result = run({
+      accounts: [checking(0)],
+      plannedEvents: [
+        {
+          id: 'temp',
+          name: 'Befristeter Zuschuss',
+          amount: 200,
+          date: '2026-01-10',
+          accountId: 'giro',
+          cadence: 'monthly',
+          endDate: '2026-03-31',
+        },
+      ],
+    });
+    // Jan, Feb, Mär -> 3 Buchungen; April nicht mehr.
+    expect(day(result, '2026-03-10').events).toBe(200);
+    expect(day(result, '2026-04-10').events).toBe(0);
+    expect(result.daily.at(-1)!.operatingCash).toBe(600);
+  });
+
+  // Edge Case: cadence='annual' soll im 6-Monats-Horizont nur einmal buchen.
+  it('bucht einen jährlichen Posten nur einmal im Halbjahres-Horizont', () => {
+    const result = run({
+      accounts: [checking(0)],
+      plannedEvents: [
+        {
+          id: 'bonus',
+          name: 'Bonus',
+          amount: 1200,
+          date: '2026-02-01',
+          accountId: 'giro',
+          cadence: 'annual',
+        },
+      ],
+    });
+    expect(result.daily.at(-1)!.operatingCash).toBe(1200);
+  });
+
+  // [REGRESSION] Ohne cadence bleibt der Posten ein Einmalposten (Abwärtskompat.).
+  it('[REGRESSION] behandelt Posten ohne cadence weiterhin als Einmalposten', () => {
+    const result = run({
+      accounts: [checking(1000)],
+      plannedEvents: [
+        { id: 'tax', name: 'Steuer', amount: 900, date: '2026-02-20', accountId: 'giro' },
+      ],
+    });
+    expect(day(result, '2026-02-20').events).toBe(900);
+    expect(day(result, '2026-03-20').events).toBe(0);
+    expect(result.daily.at(-1)!.operatingCash).toBe(1900);
+  });
+});
+
 describe('Sicherheitspuffer, Monatstief & Risiko', () => {
   it('erkennt das Monatstief korrekt (Miete früh, Gehalt spät)', () => {
     const result = run({
