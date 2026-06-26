@@ -63,6 +63,7 @@
     "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "lottie-web": "^5.13.0",
     "lucide-react": "^0.395.0",
     "papaparse": "^5.5.3",
     "pdfjs-dist": "^6.0.227",

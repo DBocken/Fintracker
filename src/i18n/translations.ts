@@ -45,6 +45,7 @@ export const translations = {
         debts: 'Schulden',
         netWorth: 'Nettovermögen',
         liquidity: 'Liquidität',
+        budgets: 'Budgets',
         milestones: 'Meilensteine',
         dashboard: 'Dashboard',
         transactions: 'Buchungen',
@@ -59,6 +60,7 @@ export const translations = {
       },
       subtitles: {
         liquidity: 'Wann wird dein Geld knapp?',
+        budgets: 'Tanks für deine Ausgaben',
         premium: 'Sankey, Heatmap & Smart Insights',
         simulation: 'Zukunft durchspielen',
         trading: 'Depot im Blick (Beta)',
@@ -340,6 +342,7 @@ export const translations = {
         debts: 'Debts',
         netWorth: 'Net worth',
         liquidity: 'Liquidity',
+        budgets: 'Budgets',
         milestones: 'Milestones',
         dashboard: 'Dashboard',
         transactions: 'Transactions',
@@ -354,6 +357,7 @@ export const translations = {
       },
       subtitles: {
         liquidity: 'When will your money get tight?',
+        budgets: 'Tanks for your spending',
         premium: 'Sankey, heatmap & smart insights',
         simulation: 'Play through the future',
         trading: 'Portfolio at a glance (Beta)',

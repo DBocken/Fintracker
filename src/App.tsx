@@ -17,6 +17,7 @@ const DebtsPage = lazy(() => import("@/pages/DebtsPage"));
 const NetWorthPage = lazy(() => import("@/pages/NetWorthPage"));
 const LiquidityPage = lazy(() => import("@/pages/LiquidityPage"));
 const MilestonesPage = lazy(() => import("@/pages/MilestonesPage"));
+const BudgetsPage = lazy(() => import("@/pages/BudgetsPage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
@@ -98,6 +99,7 @@ function App() {
               <Route path="/net-worth" element={<NetWorthPage />} />
               <Route path="/liquidity" element={<LiquidityPage />} />
               <Route path="/milestones" element={<MilestonesPage />} />
+              <Route path="/budgets" element={<BudgetsPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route
