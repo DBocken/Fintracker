@@ -93,50 +93,105 @@
   --ring: 212.7 26.8% 83.9%;
 }
 
-/* Theme: Neon (Light) – helle Basis mit neonigen Akzenten */
+/* =====================================================================
+   Theme: Neon (Stranger Things / 80s)
+   Tiefes Rot-Neon auf (fast) reinem Schwarz, CRT-Scanlines, 80s-Drama.
+   Rot dominiert (wie das ikonische Logo); Cyan nur noch als Chart-Kontrast.
+   ===================================================================== */
 .theme-neon {
   --background: 0 0% 100%;
-  --foreground: 222 84% 6%;
+  --foreground: 350 15% 8%;
   --card: 0 0% 100%;
-  --card-foreground: 222 84% 6%;
+  --card-foreground: 350 15% 8%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 84% 6%;
-  --primary: 350 100% 54%;           /* neon red */
-  --primary-foreground: 210 40% 98%;
-  --secondary: 190 100% 42%;         /* vivid cyan */
-  --secondary-foreground: 222 84% 6%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 46%;
-  --accent: 350 100% 54%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 75% 55%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 350 100% 54%;
+  --popover-foreground: 350 15% 8%;
+  --primary: 353 95% 50%;            /* Stranger-Things-Rot */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 350 30% 95%;
+  --secondary-foreground: 350 15% 12%;
+  --muted: 350 20% 95%;
+  --muted-foreground: 350 8% 42%;
+  --accent: 353 95% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 80% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 350 25% 88%;
+  --input: 350 25% 88%;
+  --ring: 353 95% 50%;
+  --radius: 0.25rem;                 /* eckig, 80s-Plakat */
+
+  --brand: 353 95% 50%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 30 100% 50%;            /* Neon-Amber */
+  --premium-foreground: 0 0% 100%;
+  --positive: 150 70% 38%;
+  --warning: 35 100% 50%;
+
+  --sidebar: 350 25% 96%;
+  --sidebar-foreground: 350 15% 14%;
+  --sidebar-muted: 350 8% 45%;
+  --sidebar-accent: 353 90% 92%;
+  --sidebar-accent-foreground: 353 80% 42%;
+  --sidebar-border: 350 25% 86%;
+
+  --chart-income: 150 70% 42%;
+  --chart-expense: 353 90% 58%;
+  --chart-net: 190 90% 45%;
+  --chart-1: 353 90% 58%;
+  --chart-2: 190 90% 45%;
+  --chart-3: 30 100% 55%;
+  --chart-4: 280 70% 60%;
+  --chart-5: 50 100% 55%;
+  --chart-6: 210 90% 55%;
+
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Theme: Neon (Dark) – dunkle Bühne mit neoniger Tiefe */
 .dark.theme-neon {
-  --background: 222 80% 4%;
-  --foreground: 210 40% 96%;
-  --card: 222 80% 6%;
-  --card-foreground: 210 40% 96%;
-  --popover: 222 80% 6%;
-  --popover-foreground: 210 40% 96%;
-  --primary: 350 100% 54%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 190 100% 66%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 222 15% 60%;
-  --muted-foreground: 222 15% 70%;
-  --accent: 350 100% 54%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 222 30% 18%;
-  --input: 222 30% 18%;
-  --ring: 350 100% 54%;
+  --background: 350 25% 3%;           /* fast reines Schwarz, warmer Rot-Hauch */
+  --foreground: 350 20% 92%;
+  --card: 350 25% 5%;
+  --card-foreground: 350 20% 92%;
+  --popover: 350 25% 5%;
+  --popover-foreground: 350 20% 92%;
+  --primary: 353 100% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 350 30% 12%;
+  --secondary-foreground: 350 20% 92%;
+  --muted: 350 20% 12%;
+  --muted-foreground: 350 12% 62%;
+  --accent: 353 100% 55%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 90% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 353 50% 16%;             /* rötliche Kante für den Glow */
+  --input: 350 30% 14%;
+  --ring: 353 100% 55%;
+
+  --brand: 353 100% 55%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 30 100% 55%;
+  --premium-foreground: 350 25% 5%;
+  --positive: 150 65% 50%;
+  --warning: 35 100% 58%;
+
+  --sidebar: 350 30% 2%;
+  --sidebar-foreground: 350 20% 90%;
+  --sidebar-muted: 350 12% 58%;
+  --sidebar-accent: 353 70% 30%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 353 40% 12%;
+
+  --chart-income: 150 65% 52%;
+  --chart-expense: 353 95% 62%;
+  --chart-net: 190 95% 55%;
+  --chart-1: 353 95% 62%;
+  --chart-2: 190 95% 55%;
+  --chart-3: 30 100% 58%;
+  --chart-4: 280 75% 65%;
+  --chart-5: 50 100% 58%;
+  --chart-6: 210 95% 60%;
 }
 
 /* =====================================================================
@@ -338,13 +393,18 @@
   --chart-6: 300 55% 78%;
 }
 
-/* Optionales Neon-Gradient nur im Dark-Mode */
+/* Neon (Stranger Things): roter Bühnen-Glow auf Schwarz mit Vignette */
+.theme-neon body {
+  background-image:
+    radial-gradient(1100px 700px at 50% -5%, hsla(353,90%,55%,.06), transparent 60%);
+  background-attachment: fixed;
+}
 .dark.theme-neon body {
   background-image:
-    radial-gradient(1200px 800px at 70% 15%, rgba(94,231,255,.09), transparent 60%),
-    radial-gradient(900px 700px at 30% 70%, rgba(255,20,54,.10), transparent 62%),
-    radial-gradient(900px 900px at 40% 15%, rgba(255,122,24,.06), transparent 55%),
-    linear-gradient(180deg, hsl(var(--background)), #04050a);
+    radial-gradient(1200px 800px at 50% -10%, rgba(255,20,46,.18), transparent 60%),
+    radial-gradient(900px 700px at 12% 100%, rgba(255,20,46,.08), transparent 60%),
+    radial-gradient(900px 700px at 88% 100%, rgba(255,20,46,.08), transparent 60%),
+    linear-gradient(180deg, #050101, #000);
   background-attachment: fixed;
 }
 

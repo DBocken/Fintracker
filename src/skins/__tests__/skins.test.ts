@@ -61,6 +61,15 @@ describe('Skins Registry', () => {
     });
   });
 
+  describe('Neon (Stranger Things) Theme', () => {
+    it('[REGRESSION] sollte das Neon-Theme nach dem Redesign erhalten bleiben', () => {
+      const neon = SKINS.find((s) => s.id === 'neon');
+      expect(neon?.className).toBe('theme-neon');
+      expect(getSkin('neon').id).toBe('neon');
+      expect(normalizeSkinId('neon')).toBe('neon');
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte unbekannte Werte auf den Standard "ruhe" normalisieren', () => {
       expect(normalizeSkinId('does-not-exist')).toBe('ruhe');
