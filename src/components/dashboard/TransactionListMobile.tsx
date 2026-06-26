@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronRight, Repeat } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Category, Transaction } from '../../types';
 import { getAccounts } from '../../services/account-service';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import ListRow from '@/components/common/ListRow';
 
 interface TransactionListMobileProps {
   transactions: Transaction[];
@@ -28,6 +29,12 @@ function payeeInitial(payee: string): string {
   return match ? match[0].toUpperCase() : '•';
 }
 
+/**
+ * Mobile Buchungsliste: kompakte Icon-Kachel-Zeilen (geteilte ListRow-Primitive)
+ * unter datumsgruppierten Köpfen. Die Gruppierung ist rein darstellend – sie
+ * fasst den Tag einmal zusammen, statt das Datum in jeder Zeile zu wiederholen,
+ * und macht die Liste damit besser scannbar (Audit P1.2 / Mobile-Politur).
+ */
 export function TransactionListMobile({
   transactions,
   categories,
@@ -42,74 +49,80 @@ export function TransactionListMobile({
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
+  // Nach Tag gruppieren, Reihenfolge der (bereits sortierten) Liste beibehalten.
+  const groups = useMemo(() => {
+    const out: { key: string; label: string; items: Transaction[] }[] = [];
+    const byKey = new Map<string, { key: string; label: string; items: Transaction[] }>();
+    for (const tx of transactions) {
+      const key = tx.date;
+      let group = byKey.get(key);
+      if (!group) {
+        let label = key;
+        try {
+          label = format(parseISO(key), 'EEEE, d. MMMM yyyy', { locale: de });
+        } catch {
+          // Ungültiges Datum: Roh-Key als Label nutzen.
+        }
+        group = { key, label, items: [] };
+        byKey.set(key, group);
+        out.push(group);
+      }
+      group.items.push(tx);
+    }
+    return out;
+  }, [transactions]);
+
   return (
-    <ul className="divide-y divide-border">
-      {transactions.map((transaction) => {
-        const rowId = transaction.id || '';
-        const hidden = hiddenTransactions.has(rowId);
-        const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
-        const payee = transaction.payee || transaction.description || '–';
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <section key={group.key} className="space-y-1">
+          <h3 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</h3>
+          <ul className="divide-y divide-border/70">
+            {group.items.map((transaction) => {
+              const rowId = transaction.id || '';
+              const hidden = hiddenTransactions.has(rowId);
+              const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
+              const payee = transaction.payee || transaction.description || '–';
 
-        // Blattkategorie (Unterkategorie bevorzugt) für Icon + Name auflösen.
-        const leaf = categoriesById.get(transaction.subcategory_id || transaction.category_id || '');
-        const categoryName = leaf?.name ?? 'Unkategorisiert';
-        const avatarEmoji = leaf?.icon || null;
+              // Blattkategorie (Unterkategorie bevorzugt) für Icon + Name auflösen.
+              const leaf = categoriesById.get(transaction.subcategory_id || transaction.category_id || '');
+              const categoryName = leaf?.name ?? 'Unkategorisiert';
+              const avatarEmoji = leaf?.icon || null;
 
-        return (
-          <li key={rowId} className={hidden ? 'opacity-50' : undefined}>
-            <div className="flex items-center gap-3 px-1 py-2">
-              <Checkbox
-                aria-label={`Transaktion ${payee} auswählen`}
-                checked={selected.has(rowId)}
-                disabled={!rowId}
-                onCheckedChange={() => onSelect(rowId)}
-              />
-              <button
-                type="button"
-                onClick={() => onOpenDetails(transaction)}
-                disabled={!rowId}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                {/* Avatar: Kategorie-Emoji oder Initiale des Empfängers */}
-                <span
-                  aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg"
-                  style={leaf?.color ? { backgroundColor: `${leaf.color}22` } : undefined}
-                >
-                  {avatarEmoji ?? (
-                    <span className="text-sm font-semibold text-muted-foreground">{payeeInitial(payee)}</span>
-                  )}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 truncate text-sm font-medium">
-                    {transaction.is_contract && (
-                      <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
-                    )}
-                    <span className="truncate">{payee}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="shrink-0">
-                      {format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: de })}
-                    </span>
-                    <span aria-hidden="true">·</span>
-                    <span className="truncate">{categoryName}</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`shrink-0 text-sm font-medium tabular-nums ${
-                    transaction.amount < 0 ? 'text-warning' : 'text-positive'
-                  }`}
-                >
-                  {amountLabel}
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              </button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+              return (
+                <li key={rowId} className={hidden ? 'py-1 opacity-50' : 'py-1'}>
+                  <ListRow
+                    leading={
+                      <Checkbox
+                        aria-label={`Transaktion ${payee} auswählen`}
+                        checked={selected.has(rowId)}
+                        disabled={!rowId}
+                        onCheckedChange={() => onSelect(rowId)}
+                      />
+                    }
+                    icon={
+                      avatarEmoji ?? (
+                        <span className="text-sm font-semibold text-muted-foreground">{payeeInitial(payee)}</span>
+                      )
+                    }
+                    iconColor={leaf?.color || undefined}
+                    title={payee}
+                    titleSuffix={
+                      transaction.is_contract ? (
+                        <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                      ) : undefined
+                    }
+                    subtitle={categoryName}
+                    value={amountLabel}
+                    valueTone={transaction.amount < 0 ? 'warning' : 'positive'}
+                    onClick={rowId ? () => onOpenDetails(transaction) : undefined}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }

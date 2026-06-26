@@ -10,6 +10,7 @@ import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import StatHero from "@/components/common/StatHero";
 import { cn } from "@/lib/utils";
 
 const euro = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -120,22 +121,27 @@ export default function DashboardMobileStory({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Finance Pulse */}
-      <Card variant="premium">
-        <CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">Aktueller Kontostand</div>
-          <div className={cn("text-3xl font-bold", currentBalance >= 0 ? "text-foreground" : "text-warning")}>
-            {euro.format(currentBalance)}
-          </div>
-          <div className="mt-1 text-sm">
-            <span className="text-muted-foreground">Saldo im Zeitraum: </span>
-            <span className={periodNet >= 0 ? "text-positive" : "text-warning"}>
-              {periodNet >= 0 ? "+" : ""}{euro.format(periodNet)}
-            </span>
-          </div>
-          {topInsight && <div className="mt-2 rounded-md bg-muted/50 p-2 text-xs">{topInsight}</div>}
-        </CardContent>
-      </Card>
+      {/* Finance Pulse: eine ruhige Hauptaussage – Kontostand groß, Zeitraum-Saldo als Chip. */}
+      <StatHero
+        icon={<Activity className="h-4 w-4" />}
+        label="Aktueller Kontostand"
+        value={euro.format(currentBalance)}
+        tone={currentBalance >= 0 ? "default" : "warning"}
+        caption="Saldo im Zeitraum"
+        badge={
+          <span
+            className={cn(
+              "rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
+              periodNet >= 0 ? "bg-positive/15 text-positive" : "bg-warning/15 text-warning",
+            )}
+          >
+            {periodNet >= 0 ? "+" : ""}
+            {euro.format(periodNet)}
+          </span>
+        }
+      >
+        {topInsight && <div className="rounded-lg bg-muted/50 p-2.5 text-xs">{topInsight}</div>}
+      </StatHero>
 
       {/* Ansicht-Navigation: vollständig sichtbares Icon-Raster, kein horizontales Scrollen */}
       <div className="grid grid-cols-3 gap-1 min-[400px]:grid-cols-6" role="tablist" aria-label="Diagramm-Ansicht">
