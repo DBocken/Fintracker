@@ -376,3 +376,120 @@
     radial-gradient(900px 700px at 10% 95%, hsla(265,50%,40%,.22), transparent 60%);
   background-attachment: fixed;
 }
+
+/* =====================================================================
+   Theme: Iron Man (Metallic / Tech)
+   Gebürstetes Stahl-Silber, Hot-Rod-Rot-Primär, Gold- & Arc-Reactor-Cyan-
+   Akzente. Eckigere Form (kleiner Radius) für den technischen HUD-Look.
+   ===================================================================== */
+.theme-iron-man {
+  --background: 220 16% 93%;
+  --foreground: 220 28% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 28% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 28% 14%;
+  --primary: 352 80% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 87%;
+  --secondary-foreground: 220 28% 18%;
+  --muted: 220 14% 89%;
+  --muted-foreground: 220 10% 42%;
+  --accent: 43 92% 52%;
+  --accent-foreground: 30 65% 14%;
+  --destructive: 0 78% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 81%;
+  --input: 220 13% 81%;
+  --ring: 352 80% 48%;
+  --radius: 0.5rem;
+
+  --brand: 352 80% 48%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 43 92% 50%;
+  --premium-foreground: 30 65% 12%;
+  --positive: 160 68% 38%;
+  --warning: 35 95% 52%;
+
+  --sidebar: 220 18% 89%;
+  --sidebar-foreground: 220 28% 20%;
+  --sidebar-muted: 220 10% 45%;
+  --sidebar-accent: 352 78% 92%;
+  --sidebar-accent-foreground: 352 72% 40%;
+  --sidebar-border: 220 13% 79%;
+
+  --chart-income: 160 65% 44%;
+  --chart-expense: 352 78% 55%;
+  --chart-net: 43 92% 50%;
+  --chart-1: 352 78% 55%;
+  --chart-2: 43 92% 50%;
+  --chart-3: 190 85% 48%;
+  --chart-4: 28 90% 55%;
+  --chart-5: 220 30% 52%;
+  --chart-6: 280 50% 60%;
+
+  --font-display: 'Orbitron Variable', 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-iron-man {
+  --background: 222 30% 8%;
+  --foreground: 40 28% 90%;
+  --card: 220 24% 12%;
+  --card-foreground: 40 28% 90%;
+  --popover: 220 24% 12%;
+  --popover-foreground: 40 28% 90%;
+  --primary: 352 85% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 18% 18%;
+  --secondary-foreground: 40 28% 90%;
+  --muted: 220 18% 18%;
+  --muted-foreground: 220 12% 62%;
+  --accent: 43 95% 56%;
+  --accent-foreground: 30 65% 10%;
+  --destructive: 0 78% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 22%;
+  --input: 220 18% 22%;
+  --ring: 43 95% 56%;
+
+  --brand: 352 85% 58%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 43 95% 56%;
+  --premium-foreground: 30 65% 10%;
+  --positive: 160 60% 50%;
+  --warning: 35 95% 58%;
+
+  --sidebar: 222 32% 6%;
+  --sidebar-foreground: 40 28% 88%;
+  --sidebar-muted: 220 12% 58%;
+  --sidebar-accent: 352 70% 40%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 220 22% 14%;
+
+  --chart-income: 160 60% 52%;
+  --chart-expense: 352 80% 62%;
+  --chart-net: 43 95% 60%;
+  --chart-1: 352 80% 62%;
+  --chart-2: 43 95% 60%;
+  --chart-3: 190 90% 55%;
+  --chart-4: 28 92% 60%;
+  --chart-5: 220 30% 62%;
+  --chart-6: 280 55% 65%;
+}
+
+/* Iron Man: Gold-/Rot-Glühen, im Dark-Mode mit dezentem Arc-Reactor-Cyan */
+.theme-iron-man body {
+  background-image:
+    radial-gradient(1100px 700px at 85% 0%, hsla(43,90%,60%,.16), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(352,80%,55%,.12), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-iron-man body {
+  background-image:
+    radial-gradient(1100px 700px at 85% 0%, hsla(43,95%,55%,.14), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(352,85%,55%,.16), transparent 58%),
+    radial-gradient(700px 700px at 50% 55%, hsla(190,90%,55%,.05), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(222 40% 4%));
+  background-attachment: fixed;
+}
