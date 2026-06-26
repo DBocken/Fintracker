@@ -1,23 +1,43 @@
-import { useState, type ReactNode } from 'react';
-import { ShoppingCart, TrendingDown, Flame, Wrench, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, TrendingDown, Flame, Wrench, type LucideIcon, ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Card } from '@/components/ui/card';
 import { buildStressOverrides, type StressPreset } from '@/lib/forecast-stress-presets';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { VariableExpenseBaseline } from '@/lib/forecast-types';
 
 interface Props {
-  /** Forecast-Startdatum (ISO yyyy-mm-dd) als Anker für die relativen Tage. */
   startISO: string;
-  /** Operatives Konto, dem die erzeugten Posten zugeordnet werden. */
   accountId: string | null;
   variableExpenses?: VariableExpenseBaseline[];
   overrides: ForecastOverrides;
   onApply: (patch: Partial<ForecastOverrides>) => void;
 }
 
-function Field({
+interface PresetConfig {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  title: string;
+  disabled: boolean;
+  params: PresetParams;
+  onSetParam: (key: string, value: number) => void;
+}
+
+interface PresetParams {
+  purchaseAmount?: number;
+  purchaseInDays?: number;
+  lossMonthly?: number;
+  lossMonths?: number;
+  costPercent?: number;
+  shock?: number;
+  shockDay?: number;
+  recovery?: number;
+  recoveryDay?: number;
+}
+
+function ParamField({
   label,
   value,
   onChange,
@@ -29,73 +49,223 @@ function Field({
   suffix?: string;
 }) {
   return (
-    <label className="flex flex-1 flex-col gap-1 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="flex items-center gap-1">
+    <label className="flex flex-col gap-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-1">
         <Input
           type="number"
           inputMode="decimal"
           value={Number.isFinite(value) ? value : ''}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="h-9"
+          className="h-8 text-sm"
         />
-        {suffix && <span className="text-muted-foreground">{suffix}</span>}
-      </span>
+        {suffix && <span className="whitespace-nowrap text-xs text-muted-foreground">{suffix}</span>}
+      </div>
     </label>
   );
 }
 
-/**
- * Ein Stresstest als Chip + Popover. Beim „Eintragen" wird das Preset in echte
- * Annahmen übersetzt (geplante Posten / Budgets) und an die Overrides angehängt –
- * keine zweite Eingabefläche mehr.
- */
-function PresetChip({
-  label,
-  icon: Icon,
-  title,
-  open,
-  onOpenChange,
-  onSubmit,
-  disabled,
-  children,
+function PresetButton({
+  preset,
+  isOpen,
+  onToggle,
 }: {
-  label: string;
-  icon: LucideIcon;
-  title: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: () => void;
-  disabled?: boolean;
-  children: ReactNode;
+  preset: PresetConfig;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
+  const { icon: Icon, label, disabled } = preset;
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onToggle}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : isOpen
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:bg-muted'
+      }`}
+    >
+      <Icon className="h-4 w-4" aria-hidden />
+      <span>{label}</span>
+      <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden />
+    </button>
+  );
+}
+
+function PresetPanel({
+  preset,
+  onApply,
+  onClose,
+  accountId,
+  startISO,
+  variableExpenses,
+  overrides,
+}: {
+  preset: PresetConfig;
+  onApply: (patch: Partial<ForecastOverrides>) => void;
+  onClose: () => void;
+  accountId: string | null;
+  startISO: string;
+  variableExpenses?: VariableExpenseBaseline[];
+  overrides: ForecastOverrides;
+}) {
+  const handleApply = () => {
+    if (!accountId) return;
+
+    let stressPreset: StressPreset;
+
+    switch (preset.id) {
+      case 'purchase':
+        stressPreset = {
+          kind: 'purchase',
+          amount: preset.params.purchaseAmount ?? 3000,
+          inDays: preset.params.purchaseInDays ?? 60,
+        };
+        break;
+      case 'income-loss':
+        stressPreset = {
+          kind: 'income-loss',
+          monthlyLoss: preset.params.lossMonthly ?? 2000,
+          months: preset.params.lossMonths ?? 3,
+        };
+        break;
+      case 'higher-cost':
+        stressPreset = {
+          kind: 'higher-cost',
+          percent: preset.params.costPercent ?? 20,
+        };
+        break;
+      case 'shock-recovery':
+        stressPreset = {
+          kind: 'shock-recovery',
+          shock: preset.params.shock ?? 4500,
+          shockInDays: preset.params.shockDay ?? 25,
+          recovery: preset.params.recovery ?? 1800,
+          recoveryInDays: preset.params.recoveryDay ?? 70,
+        };
+        break;
+      default:
+        return;
+    }
+
+    const patch = buildStressOverrides(overrides, stressPreset, {
+      startISO,
+      accountId,
+      variableExpenses,
+      makeId: (s) => `stress-${s}-${Date.now()}`,
+    });
+
+    onApply(patch);
+    onClose();
+  };
+
+  return (
+    <Card className="space-y-3 border-primary/20 bg-primary/5 p-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">{preset.title}</h3>
         <button
           type="button"
-          disabled={disabled}
-          className="inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+          onClick={onClose}
+          className="rounded p-1 hover:bg-muted"
+          aria-label="Schließen"
         >
-          <Icon className="h-4 w-4" aria-hidden />
-          {label}
+          <X className="h-4 w-4" />
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 space-y-3 p-3">
-        <div className="text-sm font-medium leading-snug">{title}</div>
-        {children}
-        <Button size="sm" className="w-full" onClick={onSubmit}>
-          Als Annahme eintragen
-        </Button>
-      </PopoverContent>
-    </Popover>
+      </div>
+
+      {/* Dynamisch Parameter basierend auf Preset-Typ */}
+      <div className="grid gap-2">
+        {preset.id === 'purchase' && (
+          <>
+            <ParamField
+              label="Betrag"
+              value={preset.params.purchaseAmount ?? 3000}
+              onChange={(v) => preset.onSetParam('purchaseAmount', v)}
+              suffix="€"
+            />
+            <ParamField
+              label="In Tagen"
+              value={preset.params.purchaseInDays ?? 60}
+              onChange={(v) => preset.onSetParam('purchaseInDays', v)}
+              suffix="Tage"
+            />
+          </>
+        )}
+
+        {preset.id === 'income-loss' && (
+          <>
+            <ParamField
+              label="Ausfall/Monat"
+              value={preset.params.lossMonthly ?? 2000}
+              onChange={(v) => preset.onSetParam('lossMonthly', v)}
+              suffix="€"
+            />
+            <ParamField
+              label="Dauer"
+              value={preset.params.lossMonths ?? 3}
+              onChange={(v) => preset.onSetParam('lossMonths', v)}
+              suffix="Monate"
+            />
+          </>
+        )}
+
+        {preset.id === 'higher-cost' && (
+          <ParamField
+            label="Teurer um"
+            value={preset.params.costPercent ?? 20}
+            onChange={(v) => preset.onSetParam('costPercent', v)}
+            suffix="%"
+          />
+        )}
+
+        {preset.id === 'shock-recovery' && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <ParamField
+                label="Schock"
+                value={preset.params.shock ?? 4500}
+                onChange={(v) => preset.onSetParam('shock', v)}
+                suffix="€"
+              />
+              <ParamField
+                label="Schock-Tag"
+                value={preset.params.shockDay ?? 25}
+                onChange={(v) => preset.onSetParam('shockDay', v)}
+                suffix="Tag"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <ParamField
+                label="Kompensation"
+                value={preset.params.recovery ?? 1800}
+                onChange={(v) => preset.onSetParam('recovery', v)}
+                suffix="€"
+              />
+              <ParamField
+                label="Komp.-Tag"
+                value={preset.params.recoveryDay ?? 70}
+                onChange={(v) => preset.onSetParam('recoveryDay', v)}
+                suffix="Tag"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      <Button size="sm" className="w-full" onClick={handleApply}>
+        Als Annahme eintragen
+      </Button>
+    </Card>
   );
 }
 
 /**
- * Schnell-Annahmen aus typischen Stressfragen. Früher waren das die separaten
- * FinRisk-Szenario-Chips mit eigenem Rechenweg; jetzt schreiben sie unter
- * passenden Namen direkt in die Planungs-Annahmen und wirken auf die EINE Grafik.
+ * Schnell-Annahmen aus typischen Stressfragen: Preset-Buttons, die beim Klick
+ * Parameter-Input zeigen und dann die Annahmen direkt in die Planungs-Tabelle
+ * schreiben. Betroffene Felder leuchten dann in ForecastPlanner auf.
  */
 export default function StressPresetQuickAdd({
   startISO,
@@ -104,108 +274,92 @@ export default function StressPresetQuickAdd({
   overrides,
   onApply,
 }: Props) {
-  const [purchaseAmount, setPurchaseAmount] = useState(3000);
-  const [purchaseInDays, setPurchaseInDays] = useState(60);
-  const [lossMonthly, setLossMonthly] = useState(2000);
-  const [lossMonths, setLossMonths] = useState(3);
-  const [costPercent, setCostPercent] = useState(20);
-  const [shock, setShock] = useState(4500);
-  const [shockDay, setShockDay] = useState(25);
-  const [recovery, setRecovery] = useState(1800);
-  const [recoveryDay, setRecoveryDay] = useState(70);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const apply = (preset: StressPreset) => {
-    if (!accountId) return;
-    const patch = buildStressOverrides(overrides, preset, {
-      startISO,
-      accountId,
-      variableExpenses,
-      makeId: (s) => `stress-${s}-${Date.now()}`,
-    });
-    onApply(patch);
-    setOpenId(null);
+  const [params, setParams] = useState<PresetParams>({
+    purchaseAmount: 3000,
+    purchaseInDays: 60,
+    lossMonthly: 2000,
+    lossMonths: 3,
+    costPercent: 20,
+    shock: 4500,
+    shockDay: 25,
+    recovery: 1800,
+    recoveryDay: 70,
+  });
+
+  const setParam = (key: string, value: number) => {
+    setParams((p) => ({ ...p, [key]: value }));
   };
-  const openFor = (id: string) => (open: boolean) => setOpenId(open ? id : null);
+
+  const presets: PresetConfig[] = [
+    {
+      id: 'purchase',
+      label: 'Anschaffung',
+      icon: ShoppingCart,
+      title: 'Größere Anschaffung als geplanten Posten',
+      disabled: !accountId,
+      params,
+      onSetParam: setParam,
+    },
+    {
+      id: 'income-loss',
+      label: 'Einkommen weg',
+      icon: TrendingDown,
+      title: 'Einkommensausfall als monatliche Abflüsse',
+      disabled: !accountId,
+      params,
+      onSetParam: setParam,
+    },
+    {
+      id: 'higher-cost',
+      label: 'Teurer',
+      icon: Flame,
+      title: 'Höhere Lebenshaltung als skalierte Budgets',
+      disabled: !variableExpenses || variableExpenses.length === 0,
+      params,
+      onSetParam: setParam,
+    },
+    {
+      id: 'shock-recovery',
+      label: 'Schock + Komp.',
+      icon: Wrench,
+      title: 'Negativer Schock plus spätere Kompensation',
+      disabled: !accountId,
+      params,
+      onSetParam: setParam,
+    },
+  ];
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">Stresstest als Annahme</span>
-        <span className="text-xs text-muted-foreground">tippen für Parameter</span>
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-medium">Stresstest als Annahme</h3>
+        <p className="text-xs text-muted-foreground">Szenario anklicken für Parameter</p>
       </div>
-      <div
-        role="group"
-        aria-label="Stresstest"
-        className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1"
-      >
-        <PresetChip
-          label="Anschaffung"
-          icon={ShoppingCart}
-          title="Größere Anschaffung als geplanten Posten eintragen"
-          open={openId === 'purchase'}
-          onOpenChange={openFor('purchase')}
-          disabled={!accountId}
-          onSubmit={() => apply({ kind: 'purchase', amount: purchaseAmount, inDays: purchaseInDays })}
-        >
-          <div className="flex gap-2">
-            <Field label="Betrag" value={purchaseAmount} onChange={setPurchaseAmount} suffix="€" />
-            <Field label="in Tagen" value={purchaseInDays} onChange={setPurchaseInDays} suffix="Tage" />
-          </div>
-        </PresetChip>
 
-        <PresetChip
-          label="Einkommen weg"
-          icon={TrendingDown}
-          title="Einkommensausfall als monatliche Abflüsse eintragen"
-          open={openId === 'income-loss'}
-          onOpenChange={openFor('income-loss')}
-          disabled={!accountId}
-          onSubmit={() => apply({ kind: 'income-loss', monthlyLoss: lossMonthly, months: lossMonths })}
-        >
-          <div className="flex gap-2">
-            <Field label="Ausfall/Monat" value={lossMonthly} onChange={setLossMonthly} suffix="€" />
-            <Field label="Dauer" value={lossMonths} onChange={setLossMonths} suffix="Monate" />
-          </div>
-        </PresetChip>
-
-        <PresetChip
-          label="Teurer"
-          icon={Flame}
-          title="Höhere Lebenshaltung als skalierte Budgets eintragen"
-          open={openId === 'higher-cost'}
-          onOpenChange={openFor('higher-cost')}
-          disabled={!variableExpenses || variableExpenses.length === 0}
-          onSubmit={() => apply({ kind: 'higher-cost', percent: costPercent })}
-        >
-          <Field label="Teurer um" value={costPercent} onChange={setCostPercent} suffix="%" />
-        </PresetChip>
-
-        <PresetChip
-          label="Schock + Komp."
-          icon={Wrench}
-          title="Negativer Schock plus spätere Kompensation als zwei Posten"
-          open={openId === 'shock-recovery'}
-          onOpenChange={openFor('shock-recovery')}
-          disabled={!accountId}
-          onSubmit={() =>
-            apply({
-              kind: 'shock-recovery',
-              shock,
-              shockInDays: shockDay,
-              recovery,
-              recoveryInDays: recoveryDay,
-            })
-          }
-        >
-          <div className="flex flex-wrap gap-2">
-            <Field label="Schock" value={shock} onChange={setShock} suffix="€" />
-            <Field label="Schock-Tag" value={shockDay} onChange={setShockDay} suffix="Tag" />
-            <Field label="Kompensation" value={recovery} onChange={setRecovery} suffix="€" />
-            <Field label="Komp.-Tag" value={recoveryDay} onChange={setRecoveryDay} suffix="Tag" />
-          </div>
-        </PresetChip>
+      <div className="flex flex-wrap gap-2">
+        {presets.map((preset) => (
+          <PresetButton
+            key={preset.id}
+            preset={preset}
+            isOpen={openId === preset.id}
+            onToggle={() => setOpenId(openId === preset.id ? null : preset.id)}
+          />
+        ))}
       </div>
+
+      {openId && (
+        <PresetPanel
+          preset={presets.find((p) => p.id === openId)!}
+          onApply={onApply}
+          onClose={() => setOpenId(null)}
+          accountId={accountId}
+          startISO={startISO}
+          variableExpenses={variableExpenses}
+          overrides={overrides}
+        />
+      )}
     </div>
   );
 }
