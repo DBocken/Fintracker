@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   Area,
@@ -41,6 +41,7 @@ import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
 import { useLumpyRisk } from '@/hooks/useLumpyRisk';
+import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { buildBaseCheckPayload } from '@/lib/finrisk/scenario-questions';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import StressPresetQuickAdd from '@/components/dashboard/StressPresetQuickAdd';
@@ -58,6 +59,11 @@ const eur = new Intl.NumberFormat('de-DE', {
   currency: 'EUR',
   maximumFractionDigits: 0,
 });
+
+const CHART_SERIES_LABELS: Record<string, string> = {
+  operating: 'Plan',
+  median: 'Median (P50)',
+};
 
 function fmtDate(iso: string): string {
   try {
@@ -154,6 +160,15 @@ export default function LiquidityReport() {
   // Sektion, die das gerade gewählte Szenario betrifft (anhaltender Kontrast,
   // unabhängig vom kurzen Puls nach dem Eintragen).
   const [activeScenarioSection, setActiveScenarioSection] = useState<string | null>(null);
+  const [, setThemeUpdate] = useState(0);
+
+  // Re-render chart when theme changes (dark mode toggle)
+  useEffect(() => {
+    const cleanup = subscribeToDarkModeChanges(() => {
+      setThemeUpdate((prev) => prev + 1);
+    });
+    return cleanup;
+  }, []);
 
   // Wrapper for preset application with highlighting
   const handlePresetApply = (patch: Partial<ForecastOverrides>) => {
@@ -256,12 +271,6 @@ export default function LiquidityReport() {
   }
 
   if (!forecast) return null;
-
-  // Tooltip-Beschriftung der Linien-Ansicht.
-  const CHART_SERIES_LABELS: Record<string, string> = {
-    operating: 'Plan',
-    median: 'Median (P50)',
-  };
 
   const { risk: liqRisk, monthly, insights } = forecast;
   const breach = liqRisk.firstBelowSafetyBufferDate;
@@ -374,92 +383,11 @@ export default function LiquidityReport() {
                   </div>
                 )
               ) : (
-                <div className="h-72 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                      <defs>
-                        <linearGradient id="liqFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#1d5c54" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#1d5c54" stopOpacity={0.02} />
-                        </linearGradient>
-                        <linearGradient id="mcBandFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.28} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
-                        minTickGap={32}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis
-                        tickFormatter={(v: number) => eur.format(v)}
-                        width={72}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip
-                        formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
-                        labelFormatter={(l: string) => fmtDate(l)}
-                      />
-                      {hasBand && (
-                        <>
-                          <Area
-                            type="monotone"
-                            dataKey="bandFloor"
-                            name="bandFloor"
-                            stackId="mc"
-                            stroke="none"
-                            fill="transparent"
-                            isAnimationActive={false}
-                            legendType="none"
-                            tooltipType="none"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="bandHeight"
-                            name="bandHeight"
-                            stackId="mc"
-                            stroke="none"
-                            fill="url(#mcBandFill)"
-                            isAnimationActive={false}
-                            legendType="none"
-                            tooltipType="none"
-                          />
-                        </>
-                      )}
-                      <Area
-                        type="monotone"
-                        dataKey="operating"
-                        name="operating"
-                        stroke="#1d5c54"
-                        strokeWidth={2}
-                        fill={hasBand ? 'transparent' : 'url(#liqFill)'}
-                      />
-                      {hasBand && (
-                        <Line
-                          type="monotone"
-                          dataKey="median"
-                          name="median"
-                          stroke="#6366f1"
-                          strokeWidth={1.5}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      )}
-                      {safetyBuffer > 0 && (
-                        <ReferenceLine
-                          y={safetyBuffer}
-                          stroke="#d97706"
-                          strokeDasharray="4 4"
-                          label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11 }}
-                        />
-                      )}
-                      <ReferenceLine y={0} stroke="currentColor" className="stroke-muted-foreground" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
+                <ChartLinesView
+                  chartData={chartData}
+                  hasBand={hasBand}
+                  safetyBuffer={safetyBuffer}
+                />
               )}
               {hasBand && (
                 <p className="mt-2 text-xs text-muted-foreground">
@@ -659,6 +587,125 @@ export default function LiquidityReport() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Lines view of the chart with theme-aware colors.
+ * Uses gradients and line colors that adapt to light/dark mode.
+ */
+function ChartLinesView({
+  chartData,
+  hasBand,
+  safetyBuffer,
+}: {
+  chartData: any[];
+  hasBand: boolean;
+  safetyBuffer: number;
+}) {
+  const colors = getChartColors();
+  const gradientId = `liqFill-${Date.now()}`;
+  const mcBandGradientId = `mcBandFill-${Date.now()}`;
+
+  return (
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillStartOpacity} />
+              <stop offset="95%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillEndOpacity} />
+            </linearGradient>
+            <linearGradient id={mcBandGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandStartOpacity} />
+              <stop offset="95%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandEndOpacity} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
+            minTickGap={32}
+            tick={{ fontSize: 12, fill: colors.axisText }}
+            axisLine={{ stroke: colors.axisStroke }}
+          />
+          <YAxis
+            tickFormatter={(v: number) => eur.format(v)}
+            width={72}
+            tick={{ fontSize: 12, fill: colors.axisText }}
+            axisLine={{ stroke: colors.axisStroke }}
+          />
+          <Tooltip
+            formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
+            labelFormatter={(l: string) => fmtDate(l)}
+            contentStyle={{
+              backgroundColor: 'var(--background)',
+              borderColor: 'var(--border)',
+              color: 'var(--foreground)',
+            }}
+          />
+          {hasBand && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="bandFloor"
+                name="bandFloor"
+                stackId="mc"
+                stroke="none"
+                fill="transparent"
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+              />
+              <Area
+                type="monotone"
+                dataKey="bandHeight"
+                name="bandHeight"
+                stackId="mc"
+                stroke="none"
+                fill={`url(#${mcBandGradientId})`}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+              />
+            </>
+          )}
+          <Area
+            type="monotone"
+            dataKey="operating"
+            name="operating"
+            stroke={colors.operatingStroke}
+            strokeWidth={2}
+            fill={hasBand ? 'transparent' : `url(#${gradientId})`}
+          />
+          {hasBand && (
+            <Line
+              type="monotone"
+              dataKey="median"
+              name="median"
+              stroke={colors.medianStroke}
+              strokeWidth={1.5}
+              dot={false}
+              isAnimationActive={false}
+            />
+          )}
+          {safetyBuffer > 0 && (
+            <ReferenceLine
+              y={safetyBuffer}
+              stroke={colors.bufferLine}
+              strokeDasharray="4 4"
+              label={{ value: 'Puffer', position: 'insideTopRight', fontSize: 11, fill: colors.axisText }}
+            />
+          )}
+          <ReferenceLine
+            y={0}
+            stroke={colors.zeroLine}
+            strokeDasharray="2 2"
+            label={{ value: '0 €', position: 'insideBottomRight', fontSize: 11, fill: colors.axisText, offset: -8 }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 }
