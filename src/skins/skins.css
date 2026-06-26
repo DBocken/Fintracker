@@ -93,50 +93,106 @@
   --ring: 212.7 26.8% 83.9%;
 }
 
-/* Theme: Neon (Light) – helle Basis mit neonigen Akzenten */
+/* =====================================================================
+   Theme: Neon (Stranger Things / 80s)
+   Tiefes Rot-Neon auf (fast) reinem Schwarz, CRT-Scanlines, 80s-Drama.
+   Rot dominiert (wie das ikonische Logo); Cyan nur noch als Chart-Kontrast.
+   ===================================================================== */
 .theme-neon {
-  --background: 0 0% 100%;
-  --foreground: 222 84% 6%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 84% 6%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 84% 6%;
-  --primary: 350 100% 54%;           /* neon red */
-  --primary-foreground: 210 40% 98%;
-  --secondary: 190 100% 42%;         /* vivid cyan */
-  --secondary-foreground: 222 84% 6%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 46%;
-  --accent: 350 100% 54%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 75% 55%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 350 100% 54%;
+  /* Warmes „vergilbtes 80s-Plakat/VHS-Papier" statt klinischem Weiß */
+  --background: 35 32% 90%;
+  --foreground: 350 28% 12%;
+  --card: 38 38% 95%;
+  --card-foreground: 350 28% 12%;
+  --popover: 38 38% 95%;
+  --popover-foreground: 350 28% 12%;
+  --primary: 353 92% 47%;            /* Stranger-Things-Rot, tiefer für Creme-Kontrast */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 33 26% 85%;
+  --secondary-foreground: 350 28% 14%;
+  --muted: 34 24% 86%;
+  --muted-foreground: 30 12% 38%;
+  --accent: 353 92% 47%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 80% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 32 22% 78%;
+  --input: 32 22% 78%;
+  --ring: 353 92% 47%;
+  --radius: 0.25rem;                 /* eckig, 80s-Plakat */
+
+  --brand: 353 92% 47%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 30 100% 48%;            /* Neon-Amber */
+  --premium-foreground: 0 0% 100%;
+  --positive: 150 65% 36%;
+  --warning: 35 100% 46%;
+
+  --sidebar: 34 30% 87%;
+  --sidebar-foreground: 350 28% 16%;
+  --sidebar-muted: 30 12% 40%;
+  --sidebar-accent: 353 80% 86%;
+  --sidebar-accent-foreground: 353 80% 40%;
+  --sidebar-border: 32 22% 76%;
+
+  --chart-income: 150 70% 42%;
+  --chart-expense: 353 90% 58%;
+  --chart-net: 190 90% 45%;
+  --chart-1: 353 90% 58%;
+  --chart-2: 190 90% 45%;
+  --chart-3: 30 100% 55%;
+  --chart-4: 280 70% 60%;
+  --chart-5: 50 100% 55%;
+  --chart-6: 210 90% 55%;
+
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Theme: Neon (Dark) – dunkle Bühne mit neoniger Tiefe */
 .dark.theme-neon {
-  --background: 222 80% 4%;
-  --foreground: 210 40% 96%;
-  --card: 222 80% 6%;
-  --card-foreground: 210 40% 96%;
-  --popover: 222 80% 6%;
-  --popover-foreground: 210 40% 96%;
-  --primary: 350 100% 54%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 190 100% 66%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 222 15% 60%;
-  --muted-foreground: 222 15% 70%;
-  --accent: 350 100% 54%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 222 30% 18%;
-  --input: 222 30% 18%;
-  --ring: 350 100% 54%;
+  --background: 350 25% 3%;           /* fast reines Schwarz, warmer Rot-Hauch */
+  --foreground: 350 20% 92%;
+  --card: 350 25% 5%;
+  --card-foreground: 350 20% 92%;
+  --popover: 350 25% 5%;
+  --popover-foreground: 350 20% 92%;
+  --primary: 353 100% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 350 30% 12%;
+  --secondary-foreground: 350 20% 92%;
+  --muted: 350 20% 12%;
+  --muted-foreground: 350 12% 62%;
+  --accent: 353 100% 55%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 90% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 353 50% 16%;             /* rötliche Kante für den Glow */
+  --input: 350 30% 14%;
+  --ring: 353 100% 55%;
+
+  --brand: 353 100% 55%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 30 100% 55%;
+  --premium-foreground: 350 25% 5%;
+  --positive: 150 65% 50%;
+  --warning: 35 100% 58%;
+
+  --sidebar: 350 30% 2%;
+  --sidebar-foreground: 350 20% 90%;
+  --sidebar-muted: 350 12% 58%;
+  --sidebar-accent: 353 70% 30%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 353 40% 12%;
+
+  --chart-income: 150 65% 52%;
+  --chart-expense: 353 95% 62%;
+  --chart-net: 190 95% 55%;
+  --chart-1: 353 95% 62%;
+  --chart-2: 190 95% 55%;
+  --chart-3: 30 100% 58%;
+  --chart-4: 280 75% 65%;
+  --chart-5: 50 100% 58%;
+  --chart-6: 210 95% 60%;
 }
 
 /* =====================================================================
@@ -338,13 +394,19 @@
   --chart-6: 300 55% 78%;
 }
 
-/* Optionales Neon-Gradient nur im Dark-Mode */
+/* Neon (Stranger Things): roter Bühnen-Glow auf Schwarz mit Vignette */
+.theme-neon body {
+  background-image:
+    radial-gradient(1100px 700px at 50% -5%, hsla(353,90%,50%,.08), transparent 60%),
+    radial-gradient(140% 120% at 50% 45%, transparent 62%, hsla(28,40%,30%,.14) 100%);
+  background-attachment: fixed;
+}
 .dark.theme-neon body {
   background-image:
-    radial-gradient(1200px 800px at 70% 15%, rgba(94,231,255,.09), transparent 60%),
-    radial-gradient(900px 700px at 30% 70%, rgba(255,20,54,.10), transparent 62%),
-    radial-gradient(900px 900px at 40% 15%, rgba(255,122,24,.06), transparent 55%),
-    linear-gradient(180deg, hsl(var(--background)), #04050a);
+    radial-gradient(1200px 800px at 50% -10%, rgba(255,20,46,.18), transparent 60%),
+    radial-gradient(900px 700px at 12% 100%, rgba(255,20,46,.08), transparent 60%),
+    radial-gradient(900px 700px at 88% 100%, rgba(255,20,46,.08), transparent 60%),
+    linear-gradient(180deg, #050101, #000);
   background-attachment: fixed;
 }
 
@@ -374,5 +436,355 @@
   background-image:
     radial-gradient(1000px 700px at 85% 5%, hsla(338,60%,40%,.25), transparent 55%),
     radial-gradient(900px 700px at 10% 95%, hsla(265,50%,40%,.22), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* =====================================================================
+   Theme: Iron Man (Metallic / Tech)
+   Gebürstetes Stahl-Silber, Hot-Rod-Rot-Primär, Gold- & Arc-Reactor-Cyan-
+   Akzente. Eckigere Form (kleiner Radius) für den technischen HUD-Look.
+   ===================================================================== */
+.theme-iron-man {
+  --background: 220 16% 93%;
+  --foreground: 220 28% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 28% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 28% 14%;
+  --primary: 352 80% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 87%;
+  --secondary-foreground: 220 28% 18%;
+  --muted: 220 14% 89%;
+  --muted-foreground: 220 10% 42%;
+  --accent: 43 92% 52%;
+  --accent-foreground: 30 65% 14%;
+  --destructive: 0 78% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 81%;
+  --input: 220 13% 81%;
+  --ring: 352 80% 48%;
+  --radius: 0.5rem;
+
+  --brand: 352 80% 48%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 43 92% 50%;
+  --premium-foreground: 30 65% 12%;
+  --positive: 160 68% 38%;
+  --warning: 35 95% 52%;
+
+  --sidebar: 220 18% 89%;
+  --sidebar-foreground: 220 28% 20%;
+  --sidebar-muted: 220 10% 45%;
+  --sidebar-accent: 352 78% 92%;
+  --sidebar-accent-foreground: 352 72% 40%;
+  --sidebar-border: 220 13% 79%;
+
+  --chart-income: 160 65% 44%;
+  --chart-expense: 352 78% 55%;
+  --chart-net: 43 92% 50%;
+  --chart-1: 352 78% 55%;
+  --chart-2: 43 92% 50%;
+  --chart-3: 190 85% 48%;
+  --chart-4: 28 90% 55%;
+  --chart-5: 220 30% 52%;
+  --chart-6: 280 50% 60%;
+
+  --font-display: 'Orbitron Variable', 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-iron-man {
+  --background: 222 30% 8%;
+  --foreground: 40 28% 90%;
+  --card: 220 24% 12%;
+  --card-foreground: 40 28% 90%;
+  --popover: 220 24% 12%;
+  --popover-foreground: 40 28% 90%;
+  --primary: 352 85% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 18% 18%;
+  --secondary-foreground: 40 28% 90%;
+  --muted: 220 18% 18%;
+  --muted-foreground: 220 12% 62%;
+  --accent: 43 95% 56%;
+  --accent-foreground: 30 65% 10%;
+  --destructive: 0 78% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 22%;
+  --input: 220 18% 22%;
+  --ring: 43 95% 56%;
+
+  --brand: 352 85% 58%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 43 95% 56%;
+  --premium-foreground: 30 65% 10%;
+  --positive: 160 60% 50%;
+  --warning: 35 95% 58%;
+
+  --sidebar: 222 32% 6%;
+  --sidebar-foreground: 40 28% 88%;
+  --sidebar-muted: 220 12% 58%;
+  --sidebar-accent: 352 70% 40%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 220 22% 14%;
+
+  --chart-income: 160 60% 52%;
+  --chart-expense: 352 80% 62%;
+  --chart-net: 43 95% 60%;
+  --chart-1: 352 80% 62%;
+  --chart-2: 43 95% 60%;
+  --chart-3: 190 90% 55%;
+  --chart-4: 28 92% 60%;
+  --chart-5: 220 30% 62%;
+  --chart-6: 280 55% 65%;
+}
+
+/* Iron Man: Gold-/Rot-Glühen, im Dark-Mode mit dezentem Arc-Reactor-Cyan */
+.theme-iron-man body {
+  background-image:
+    radial-gradient(1100px 700px at 85% 0%, hsla(43,90%,60%,.16), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(352,80%,55%,.12), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-iron-man body {
+  background-image:
+    radial-gradient(1100px 700px at 85% 0%, hsla(43,95%,55%,.14), transparent 55%),
+    radial-gradient(900px 700px at 10% 95%, hsla(352,85%,55%,.16), transparent 58%),
+    radial-gradient(700px 700px at 50% 55%, hsla(190,90%,55%,.05), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(222 40% 4%));
+  background-attachment: fixed;
+}
+
+/* =====================================================================
+   Theme: Cyberpunk (Night City)
+   Magenta-Primär, Cyan-Akzent, Gelb-Warnung auf Tiefschwarz-Violett.
+   Eckige Form, harte Neon-Doppelkante & Glitch-Scanlines.
+   ===================================================================== */
+.theme-cyberpunk {
+  --background: 280 30% 96%;
+  --foreground: 285 40% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 285 40% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 285 40% 12%;
+  --primary: 320 90% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 280 30% 92%;
+  --secondary-foreground: 285 40% 16%;
+  --muted: 280 25% 92%;
+  --muted-foreground: 285 12% 45%;
+  --accent: 180 90% 45%;
+  --accent-foreground: 190 80% 12%;
+  --destructive: 350 90% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 285 25% 86%;
+  --input: 285 25% 86%;
+  --ring: 320 90% 52%;
+  --radius: 0.4rem;
+
+  --brand: 320 90% 52%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 50 100% 50%;
+  --premium-foreground: 50 80% 12%;
+  --positive: 160 80% 40%;
+  --warning: 45 100% 50%;
+
+  --sidebar: 285 30% 93%;
+  --sidebar-foreground: 285 40% 18%;
+  --sidebar-muted: 285 12% 48%;
+  --sidebar-accent: 320 85% 90%;
+  --sidebar-accent-foreground: 320 80% 42%;
+  --sidebar-border: 285 25% 84%;
+
+  --chart-income: 160 80% 45%;
+  --chart-expense: 320 85% 58%;
+  --chart-net: 180 85% 48%;
+  --chart-1: 320 85% 58%;
+  --chart-2: 180 85% 48%;
+  --chart-3: 50 100% 55%;
+  --chart-4: 265 80% 60%;
+  --chart-5: 200 90% 55%;
+  --chart-6: 130 75% 50%;
+
+  --font-display: 'Orbitron Variable', 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-cyberpunk {
+  --background: 280 40% 6%;
+  --foreground: 300 30% 92%;
+  --card: 282 35% 10%;
+  --card-foreground: 300 30% 92%;
+  --popover: 282 35% 10%;
+  --popover-foreground: 300 30% 92%;
+  --primary: 320 95% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 282 30% 16%;
+  --secondary-foreground: 300 30% 92%;
+  --muted: 282 30% 16%;
+  --muted-foreground: 300 15% 65%;
+  --accent: 180 95% 55%;
+  --accent-foreground: 190 90% 8%;
+  --destructive: 350 95% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 282 30% 20%;
+  --input: 282 30% 20%;
+  --ring: 320 95% 62%;
+
+  --brand: 320 95% 62%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 50 100% 58%;
+  --premium-foreground: 50 90% 8%;
+  --positive: 160 75% 50%;
+  --warning: 45 100% 58%;
+
+  --sidebar: 280 45% 4%;
+  --sidebar-foreground: 300 30% 90%;
+  --sidebar-muted: 300 15% 60%;
+  --sidebar-accent: 320 70% 40%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 282 35% 12%;
+
+  --chart-income: 160 75% 52%;
+  --chart-expense: 320 90% 66%;
+  --chart-net: 180 90% 58%;
+  --chart-1: 320 90% 66%;
+  --chart-2: 180 90% 58%;
+  --chart-3: 50 100% 60%;
+  --chart-4: 265 85% 68%;
+  --chart-5: 200 95% 62%;
+  --chart-6: 130 80% 56%;
+}
+
+.theme-cyberpunk body {
+  background-image:
+    radial-gradient(1000px 700px at 80% 0%, hsla(320,90%,60%,.12), transparent 55%),
+    radial-gradient(900px 700px at 15% 100%, hsla(180,90%,55%,.10), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-cyberpunk body {
+  background-image:
+    radial-gradient(1000px 700px at 80% 0%, hsla(320,95%,60%,.16), transparent 55%),
+    radial-gradient(900px 700px at 15% 100%, hsla(180,95%,55%,.14), transparent 60%),
+    radial-gradient(700px 600px at 50% 50%, hsla(50,100%,55%,.04), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(280 50% 3%));
+  background-attachment: fixed;
+}
+
+/* =====================================================================
+   Theme: Liquid Holo (Iridescent / Hologramm)
+   Keine feste Akzentfarbe — schillernder Regenbogen mit animierten,
+   irisierenden Karten-Kanten und Oil-Slick-Schimmer. Weiche Form.
+   ===================================================================== */
+.theme-liquid-holo {
+  --background: 250 40% 97%;
+  --foreground: 255 35% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 255 35% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 255 35% 15%;
+  --primary: 280 75% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 250 35% 93%;
+  --secondary-foreground: 255 35% 18%;
+  --muted: 250 30% 93%;
+  --muted-foreground: 255 12% 48%;
+  --accent: 190 80% 60%;
+  --accent-foreground: 200 70% 14%;
+  --destructive: 350 85% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 255 30% 88%;
+  --input: 255 30% 88%;
+  --ring: 280 75% 60%;
+  --radius: 1rem;
+
+  --brand: 280 75% 60%;
+  --brand-foreground: 0 0% 100%;
+  --premium: 320 80% 65%;
+  --premium-foreground: 0 0% 100%;
+  --positive: 160 65% 45%;
+  --warning: 35 90% 55%;
+
+  --sidebar: 250 40% 95%;
+  --sidebar-foreground: 255 35% 20%;
+  --sidebar-muted: 255 12% 50%;
+  --sidebar-accent: 280 70% 90%;
+  --sidebar-accent-foreground: 280 60% 42%;
+  --sidebar-border: 255 30% 86%;
+
+  --chart-income: 160 70% 50%;
+  --chart-expense: 320 80% 62%;
+  --chart-net: 265 75% 64%;
+  --chart-1: 320 80% 65%;
+  --chart-2: 265 75% 66%;
+  --chart-3: 190 80% 58%;
+  --chart-4: 50 90% 60%;
+  --chart-5: 130 65% 56%;
+  --chart-6: 220 85% 66%;
+
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.dark.theme-liquid-holo {
+  --background: 250 30% 7%;
+  --foreground: 250 25% 92%;
+  --card: 252 28% 11%;
+  --card-foreground: 250 25% 92%;
+  --popover: 252 28% 11%;
+  --popover-foreground: 250 25% 92%;
+  --primary: 280 85% 70%;
+  --primary-foreground: 252 30% 8%;
+  --secondary: 252 22% 18%;
+  --secondary-foreground: 250 25% 92%;
+  --muted: 252 22% 18%;
+  --muted-foreground: 250 14% 65%;
+  --accent: 190 85% 62%;
+  --accent-foreground: 200 80% 8%;
+  --destructive: 350 85% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 252 24% 22%;
+  --input: 252 24% 22%;
+  --ring: 280 85% 70%;
+
+  --brand: 280 85% 70%;
+  --brand-foreground: 252 30% 8%;
+  --premium: 320 85% 70%;
+  --premium-foreground: 252 30% 8%;
+  --positive: 160 60% 52%;
+  --warning: 35 90% 60%;
+
+  --sidebar: 250 32% 5%;
+  --sidebar-foreground: 250 25% 90%;
+  --sidebar-muted: 250 14% 60%;
+  --sidebar-accent: 280 60% 40%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 252 28% 12%;
+
+  --chart-income: 160 65% 54%;
+  --chart-expense: 320 85% 68%;
+  --chart-net: 265 80% 70%;
+  --chart-1: 320 85% 70%;
+  --chart-2: 265 80% 72%;
+  --chart-3: 190 85% 62%;
+  --chart-4: 50 95% 64%;
+  --chart-5: 130 70% 60%;
+  --chart-6: 220 90% 70%;
+}
+
+.theme-liquid-holo body {
+  background-image:
+    radial-gradient(900px 700px at 80% 0%, hsla(320,80%,75%,.20), transparent 55%),
+    radial-gradient(800px 700px at 10% 30%, hsla(190,80%,75%,.18), transparent 55%),
+    radial-gradient(900px 800px at 50% 100%, hsla(265,75%,75%,.18), transparent 60%);
+  background-attachment: fixed;
+}
+.dark.theme-liquid-holo body {
+  background-image:
+    radial-gradient(900px 700px at 80% 0%, hsla(320,70%,45%,.22), transparent 55%),
+    radial-gradient(800px 700px at 10% 30%, hsla(190,70%,45%,.18), transparent 55%),
+    radial-gradient(900px 800px at 50% 100%, hsla(265,65%,45%,.20), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(250 35% 4%));
   background-attachment: fixed;
 }

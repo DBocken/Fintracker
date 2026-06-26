@@ -2,93 +2,121 @@
    Wir stylen rein via CSS auf Basis der Theme-Klasse auf <html>, NIEMALS per Inline-Styles.
    Fokus: Neon-Skin Kachel-Design (Stranger-Style) – Schattierung, Reflexe, Neon-Glow */
 
+/* =====================================================================
+   Neon (Stranger Things): tiefes Rot-Neon auf Schwarz, 80s, CRT-Scanlines.
+   Karten = schwarzes Panel mit rotem Glow + leuchtender Top-Linie
+   (Anspielung auf die roten Balken über/unter dem Logo).
+   ===================================================================== */
+
+/* Globales CRT-Overlay (nur Dark): Scanlines + Vignette + dezenter Flicker.
+   pointer-events:none — blockiert keine Klicks; liegt als Textur über allem. */
+.dark.theme-neon body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.35) 0px,
+      rgba(0, 0, 0, 0.35) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(120% 100% at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.55) 100%);
+  opacity: 0.5;
+  animation: crt-flicker 5s infinite;
+}
+@keyframes crt-flicker {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.46; }
+  92% { opacity: 0.5; }
+  93% { opacity: 0.38; }
+  94% { opacity: 0.5; }
+  96% { opacity: 0.42; }
+  97% { opacity: 0.5; }
+}
+
 .theme-neon .ui-card {
   position: relative;
   overflow: hidden;
-  /* Grundfläche: sanftes, dunkles Panel mit subtiler Tiefe */
-  background:
-    radial-gradient(120% 120% at 100% 0%, rgba(12, 19, 29, 0.85), rgba(8, 12, 18, 0.95)),
-    linear-gradient(180deg, rgba(10, 16, 24, 0.98), rgba(8, 12, 18, 0.98));
-  border: 1px solid rgba(148, 163, 184, 0.18); /* slate-300/400 als feine Kante */
-  /* Tiefenwirkung + Neon-Glows (rot/cyan/blau sehr dezent, stacked) */
+  border-radius: 0.25rem;
+  border: 1px solid hsla(353, 90%, 50%, 0.30);
   box-shadow:
-    /* feine Innenkante */
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    /* Außenkante subtil */
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    /* tiefe Schattierung */
-    0 18px 40px rgba(12, 19, 29, 0.35),
-    /* Neon Akzente: cyan/rot/blau sehr schwach, mehrere Ebenen */
-    0 16px 32px rgba(56, 189, 248, 0.06),
-    0 12px 28px rgba(239, 68, 68, 0.06),
-    0 10px 24px rgba(59, 130, 246, 0.05);
-  border-radius: 0.75rem; /* etwas runder als default */
+    0 0 16px hsla(353, 95%, 55%, 0.10),
+    0 10px 28px hsla(353, 40%, 30%, 0.10);
 }
-
 .theme-neon .ui-card::before {
-  /* Top-Reflex: weicher Lichtreflex, erzeugt hochwertige „glossy card“ Anmutung */
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0; right: 0;
-  height: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
-  pointer-events: none;
-}
-
-.theme-neon .ui-card::after {
-  /* innerer Glow-Rahmen (cyan/rot) – sehr dezent, wirkt „elektronisch“ */
+  /* feine rote CRT-Scanlines auf der Karte */
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    hsla(353, 90%, 50%, 0.04) 0px,
+    hsla(353, 90%, 50%, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.6;
+}
+.theme-neon .ui-card::after {
+  /* leuchtende rote Neon-Linie oben */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: hsl(353 100% 55%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 20, 54, 0.12),
-    inset 0 0 60px rgba(56, 189, 248, 0.08);
+    0 0 10px hsla(353, 100%, 55%, 0.9),
+    0 0 20px hsla(353, 100%, 55%, 0.6);
   pointer-events: none;
 }
-
-/* Kachel-Hover (leichtes Erwärmen der Glows, keine harte Animation) */
 .theme-neon .ui-card:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 20px 44px rgba(12, 19, 29, 0.38),
-    0 18px 36px rgba(56, 189, 248, 0.08),
-    0 14px 30px rgba(239, 68, 68, 0.08),
-    0 12px 26px rgba(59, 130, 246, 0.06);
+    0 0 22px hsla(353, 100%, 55%, 0.18),
+    0 12px 30px hsla(353, 40%, 30%, 0.12);
 }
 
-/* Premium-Karten: etwas stärkere Akzente */
-.theme-neon .ui-card.card-premium {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 22px 48px rgba(12, 19, 29, 0.42),
-    0 20px 40px rgba(56, 189, 248, 0.10),
-    0 16px 34px rgba(239, 68, 68, 0.10),
-    0 14px 28px rgba(59, 130, 246, 0.08);
-}
-
-/* Dark-Mode Neon: intensiverer Kontrast, etwas stärkere Glows */
+/* Dark-Mode: schwarzes Panel, intensiver Rot-Glow */
 .dark.theme-neon .ui-card {
   background:
-    radial-gradient(130% 130% at 90% 5%, rgba(9, 14, 22, 0.9), rgba(6, 10, 16, 0.97)),
-    linear-gradient(180deg, rgba(7, 12, 18, 0.98), rgba(5, 9, 14, 0.98));
-  border: 1px solid rgba(148, 163, 184, 0.22);
+    radial-gradient(130% 130% at 50% 0%, hsla(353, 50%, 8%, 0.55), hsl(var(--card))),
+    linear-gradient(180deg, hsla(353, 40%, 6%, 0.5), hsl(var(--card)));
+  border: 1px solid hsla(353, 95%, 50%, 0.40);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 22px 52px rgba(7, 11, 16, 0.42),
-    0 20px 40px rgba(56, 189, 248, 0.10),
-    0 16px 34px rgba(255, 20, 54, 0.12),
-    0 14px 28px rgba(59, 130, 246, 0.10);
+    inset 0 0 24px hsla(353, 90%, 40%, 0.12),
+    0 0 22px hsla(353, 100%, 50%, 0.16),
+    0 16px 40px hsla(353, 90%, 3%, 0.6);
 }
-
 .dark.theme-neon .ui-card::after {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 20, 54, 0.16),
-    inset 0 0 80px rgba(56, 189, 248, 0.12);
+    0 0 12px hsla(353, 100%, 55%, 1),
+    0 0 26px hsla(353, 100%, 55%, 0.7);
+}
+.dark.theme-neon .ui-card:hover {
+  box-shadow:
+    inset 0 0 28px hsla(353, 90%, 40%, 0.16),
+    0 0 30px hsla(353, 100%, 50%, 0.24),
+    0 18px 44px hsla(353, 90%, 3%, 0.65);
+}
+
+/* Premium-Karten: Amber-Neon statt Rot */
+.theme-neon .ui-card.card-premium {
+  border-color: hsla(30, 100%, 55%, 0.45);
+}
+.theme-neon .ui-card.card-premium::after {
+  background: hsl(30 100% 55%);
+  box-shadow:
+    0 0 12px hsla(30, 100%, 55%, 0.9),
+    0 0 24px hsla(30, 100%, 55%, 0.6);
+}
+
+/* Bewegungsempfindliche Nutzer: CRT-Flicker aus (Scanlines bleiben statisch) */
+@media (prefers-reduced-motion: reduce) {
+  .dark.theme-neon body::after { animation: none; }
 }
 
 /* Clean/Legacy Themes: falls gewünscht lassen wir die Standardoptik,
@@ -174,4 +202,216 @@
   box-shadow:
     0 14px 36px hsla(338, 60%, 60%, 0.18),
     0 2px 10px hsla(265, 60%, 60%, 0.12);
+}
+
+/* =====================================================================
+   Iron Man: gebürstetes Metall, glühende Gold→Rot-Kante (Arc-Reactor)
+   ===================================================================== */
+.theme-iron-man .ui-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  background:
+    linear-gradient(180deg, hsla(220, 25%, 100%, 0.9), hsl(var(--card))),
+    linear-gradient(135deg, hsla(43, 60%, 70%, 0.06), transparent 40%);
+  box-shadow:
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.55),
+    0 10px 28px hsla(220, 40%, 30%, 0.12),
+    0 0 18px hsla(43, 90%, 55%, 0.06);
+}
+.theme-iron-man .ui-card::before {
+  /* feines „gebürstetes Metall“-Muster (vertikale Schliffspuren) */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    90deg,
+    hsla(220, 20%, 50%, 0.04) 0px,
+    hsla(220, 20%, 50%, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.6;
+}
+.theme-iron-man .ui-card::after {
+  /* glühende Gold→Rot-Energiekante oben */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsla(43, 95%, 58%, 0.85),
+    hsla(352, 85%, 55%, 0.85),
+    transparent
+  );
+  pointer-events: none;
+}
+.dark.theme-iron-man .ui-card {
+  background:
+    linear-gradient(180deg, hsla(220, 25%, 20%, 0.6), hsl(var(--card))),
+    linear-gradient(135deg, hsla(43, 70%, 50%, 0.05), transparent 45%);
+  box-shadow:
+    inset 0 1px 0 hsla(43, 80%, 70%, 0.10),
+    0 14px 36px hsla(222, 60%, 2%, 0.6),
+    0 0 26px hsla(43, 90%, 55%, 0.08);
+}
+.theme-iron-man .ui-card.card-premium {
+  box-shadow:
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.55),
+    0 14px 36px hsla(220, 40%, 30%, 0.18),
+    0 0 24px hsla(43, 95%, 55%, 0.12);
+}
+.theme-iron-man .ui-card.card-premium::after {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsla(43, 100%, 60%, 1),
+    hsla(352, 90%, 55%, 1),
+    transparent
+  );
+}
+
+/* =====================================================================
+   Cyberpunk: Glitch-Scanlines + harte Magenta/Cyan-Doppelkante
+   ===================================================================== */
+.theme-cyberpunk .ui-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  box-shadow:
+    0 10px 28px hsla(285, 50%, 10%, 0.12),
+    0 0 18px hsla(320, 90%, 55%, 0.06);
+}
+.theme-cyberpunk .ui-card::before {
+  /* feines Scanline-Grid (Cyan) */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    hsla(180, 90%, 55%, 0.05) 0px,
+    hsla(180, 90%, 55%, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.5;
+}
+.theme-cyberpunk .ui-card::after {
+  /* versetzte Magenta→Cyan-Kante oben (Glitch-Anmutung) */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    hsla(320, 95%, 60%, 0.85),
+    transparent 40%,
+    transparent 60%,
+    hsla(180, 95%, 55%, 0.85)
+  );
+  pointer-events: none;
+}
+.dark.theme-cyberpunk .ui-card {
+  box-shadow:
+    inset 0 0 0 1px hsla(320, 90%, 60%, 0.10),
+    0 14px 36px hsla(280, 60%, 2%, 0.6),
+    0 0 26px hsla(320, 90%, 55%, 0.10),
+    0 0 26px hsla(180, 90%, 55%, 0.06);
+}
+.theme-cyberpunk .ui-card.card-premium::after {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    hsla(320, 100%, 62%, 1),
+    hsla(50, 100%, 55%, 0.9) 50%,
+    hsla(180, 100%, 58%, 1)
+  );
+}
+
+/* =====================================================================
+   Liquid Holo: animierte irisierende Conic-Kante + Oil-Slick-Schimmer
+   ===================================================================== */
+@property --holo-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes holo-spin {
+  to { --holo-angle: 360deg; }
+}
+.theme-liquid-holo .ui-card {
+  position: relative;
+  overflow: hidden;
+  /* Gradient-Border-Trick: solider Karten-Fill (padding-box) + rotierender
+     Regenbogen-Conic-Gradient als Rahmen (border-box). */
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+    conic-gradient(
+      from var(--holo-angle),
+      hsl(320 90% 65%),
+      hsl(265 85% 68%),
+      hsl(190 90% 60%),
+      hsl(150 80% 58%),
+      hsl(50 95% 62%),
+      hsl(320 90% 65%)
+    ) border-box;
+  animation: holo-spin 8s linear infinite;
+  box-shadow:
+    0 10px 30px hsla(280, 50%, 40%, 0.15),
+    0 0 22px hsla(320, 80%, 60%, 0.10);
+}
+.theme-liquid-holo .ui-card::before {
+  /* diagonaler „Oil-Slick"-Schimmer */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    hsla(320, 90%, 80%, 0.10) 35%,
+    hsla(190, 90%, 80%, 0.12) 50%,
+    hsla(265, 90%, 80%, 0.10) 65%,
+    transparent 80%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+.theme-liquid-holo .ui-card:hover::before {
+  opacity: 1;
+}
+.dark.theme-liquid-holo .ui-card {
+  background:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+    conic-gradient(
+      from var(--holo-angle),
+      hsl(320 90% 65%),
+      hsl(265 85% 68%),
+      hsl(190 90% 60%),
+      hsl(150 80% 58%),
+      hsl(50 95% 62%),
+      hsl(320 90% 65%)
+    ) border-box;
+  box-shadow:
+    0 14px 40px hsla(250, 60%, 2%, 0.6),
+    0 0 30px hsla(320, 80%, 55%, 0.14);
+}
+.theme-liquid-holo .ui-card.card-premium {
+  border-width: 2px;
+  animation-duration: 5s;
+  box-shadow:
+    0 14px 36px hsla(280, 55%, 40%, 0.22),
+    0 0 28px hsla(320, 85%, 60%, 0.16);
+}
+/* Bewegungsempfindliche Nutzer: Rotation aus, Kante bleibt statisch sichtbar */
+@media (prefers-reduced-motion: reduce) {
+  .theme-liquid-holo .ui-card {
+    animation: none;
+  }
 }

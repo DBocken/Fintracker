@@ -1,4 +1,13 @@
-export type SkinId = 'ruhe' | 'legacy' | 'clean' | 'neon' | 'imperium' | 'sakura';
+export type SkinId =
+  | 'ruhe'
+  | 'legacy'
+  | 'clean'
+  | 'neon'
+  | 'imperium'
+  | 'sakura'
+  | 'iron-man'
+  | 'cyberpunk'
+  | 'liquid-holo';
 
 export type SkinDef = {
   id: SkinId;
@@ -62,6 +71,31 @@ export const SKINS: SkinDef[] = [
     description: 'Anime-Pastell: weiches Rosé mit Lavendel',
     swatch: 'linear-gradient(135deg, hsl(338 80% 75%), hsl(265 70% 80%))',
     font: 'Quicksand',
+  },
+  {
+    id: 'iron-man',
+    name: 'Iron Man',
+    className: 'theme-iron-man',
+    description: 'Gebürstetes Metall, Hot-Rod-Rot & Arc-Reactor-Gold',
+    swatch: 'linear-gradient(135deg, hsl(352 80% 50%), hsl(43 95% 55%))',
+    font: 'Orbitron',
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk',
+    className: 'theme-cyberpunk',
+    description: 'Night City: Magenta/Cyan-Neon mit Glitch-Scanlines',
+    swatch: 'linear-gradient(135deg, hsl(320 90% 58%), hsl(180 95% 55%))',
+    font: 'Orbitron',
+  },
+  {
+    id: 'liquid-holo',
+    name: 'Liquid Holo',
+    className: 'theme-liquid-holo',
+    description: 'Schillernd-irisierend: animierte Hologramm-Kanten',
+    swatch:
+      'conic-gradient(from 0deg, hsl(320 90% 65%), hsl(265 85% 68%), hsl(190 90% 60%), hsl(150 80% 58%), hsl(50 95% 62%), hsl(320 90% 65%))',
+    font: 'Space Grotesk',
   },
 ];
 
