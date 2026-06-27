@@ -43,9 +43,13 @@ export default function BudgetDetailDialog({
   onDelete,
 }: BudgetDetailDialogProps) {
   if (!status) return null;
-  const { budget, spent, remaining, fillPercent, health } = status;
+  const { budget, spent, remaining, fillPercent, health, carryIn, effectiveLimit, carryOut, swept } = status;
   const badge = HEALTH_BADGE[health];
   const pct = Math.round(fillPercent);
+  const limitShown = effectiveLimit ?? budget.limit;
+  const hasCarryIn = carryIn != null && Math.abs(carryIn) >= 0.5;
+  const hasCarryOut = carryOut != null && Math.abs(carryOut) >= 0.5;
+  const hasSwept = swept != null && swept >= 0.5;
 
   return (
     <Dialog open={!!status} onOpenChange={onOpenChange}>
@@ -76,9 +80,25 @@ export default function BudgetDetailDialog({
               <span className="text-muted-foreground">Ausgegeben</span>
               <span className="font-semibold tabular-nums">{eur.format(spent)}</span>
             </div>
+            {hasCarryIn && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {carryIn! >= 0 ? "Angespart aus Vormonat" : "Übertrag aus Vormonat"}
+                </span>
+                <span
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    carryIn! < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+                  )}
+                >
+                  {carryIn! >= 0 ? "+" : "−"}
+                  {eur.format(Math.abs(carryIn!))}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Limit</span>
-              <span className="font-semibold tabular-nums">{eur.format(budget.limit)}</span>
+              <span className="text-muted-foreground">{hasCarryIn ? "Limit (effektiv)" : "Limit"}</span>
+              <span className="font-semibold tabular-nums">{eur.format(limitShown)}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="text-muted-foreground">{remaining >= 0 ? "Noch offen" : "Über Budget"}</span>
@@ -91,6 +111,28 @@ export default function BudgetDetailDialog({
                 {eur.format(Math.abs(remaining))}
               </span>
             </div>
+            {hasSwept && (
+              <div className="flex items-center justify-between border-t pt-2">
+                <span className="text-muted-foreground">Beiseitegelegt</span>
+                <span className="font-semibold tabular-nums text-sky-600 dark:text-sky-400">
+                  {eur.format(swept!)}
+                </span>
+              </div>
+            )}
+            {hasCarryOut && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Übertrag nächster Monat</span>
+                <span
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    carryOut! < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+                  )}
+                >
+                  {carryOut! >= 0 ? "+" : "−"}
+                  {eur.format(Math.abs(carryOut!))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

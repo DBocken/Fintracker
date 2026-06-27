@@ -8,8 +8,30 @@ import {
 import { getCategories, getTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
 import { computeBudgetStatus, monthKeyOf, suggestBudgets } from "@/lib/budget-logic";
+import { computeBudgetStatusWithRollover, resolveRolloverConfig } from "@/lib/budget-rollover";
+import { buildAdaptiveBaseLimit } from "@/lib/budget-adaptive";
 
 const KEY = "budgets" as const;
+
+/** Wie viele Monate die Rollover-Kette zurückrechnet, um den Übertrag aufzubauen. */
+const ROLLOVER_LOOKBACK = 12;
+
+/** Liefert die letzten `n` Monatsschlüssel bis einschließlich `month`, chronologisch. */
+export function lastNMonths(month: string, n: number): string[] {
+  const [yStr, mStr] = month.split("-");
+  let year = Number(yStr);
+  let mon = Number(mStr);
+  const out: string[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(`${year}-${String(mon).padStart(2, "0")}`);
+    mon -= 1;
+    if (mon === 0) {
+      mon = 12;
+      year -= 1;
+    }
+  }
+  return out.reverse();
+}
 
 export async function getBudgets(): Promise<Budget[]> {
   const budgets = await readLocalFinanceList<Budget>(KEY);
@@ -56,9 +78,20 @@ export async function getBudgetOverview(reference: Date = new Date()): Promise<B
     getAllocationMap(),
   ]);
 
-  const statuses = budgets.map((budget) =>
-    computeBudgetStatus(budget, transactions, categories, month, allocationsByTx),
-  );
+  const statuses = budgets.map((budget) => {
+    const usesRollover = resolveRolloverConfig(budget).mode !== "off";
+    // Schneller Pfad für klassische Budgets ohne Übertrag/Adaptiv – Verhalten unverändert.
+    if (!usesRollover && !budget.adaptive) {
+      return computeBudgetStatus(budget, transactions, categories, month, allocationsByTx);
+    }
+    const months = lastNMonths(month, ROLLOVER_LOOKBACK);
+    const baseLimitFor = budget.adaptive
+      ? buildAdaptiveBaseLimit(budget, transactions, categories, undefined, allocationsByTx)
+      : undefined;
+    return computeBudgetStatusWithRollover(budget, transactions, categories, months, allocationsByTx, {
+      baseLimitFor,
+    });
+  });
 
   const budgetedMainIds = new Set(budgets.map((b) => b.category_id));
   const suggestions = suggestBudgets(

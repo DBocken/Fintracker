@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -20,8 +19,21 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import type { Budget, HierarchicalCategory } from "@/types";
+import type { Budget, HierarchicalCategory, RolloverMode, SurplusAction } from "@/types";
 import { DEFAULT_WARN_THRESHOLD } from "@/lib/budget-logic";
+
+const ROLLOVER_LABELS: Record<RolloverMode, string> = {
+  off: "Aus – jeder Monat startet frisch",
+  accumulate: "Ansparen – Rest wandert mit (Limit +x)",
+  overspend: "Überzug – Überschreitung abziehen (Start −x)",
+  both: "Beides – Rest und Überzug übertragen",
+};
+
+const SURPLUS_LABELS: Record<SurplusAction, string> = {
+  carry: "Im Tank ansparen",
+  sweep_savings: "Aufs Tagesgeld legen (Vorschlag)",
+  sweep_invest: "In ETF investieren (Vorschlag)",
+};
 
 interface BudgetFormDialogProps {
   open: boolean;
@@ -46,6 +58,10 @@ export default function BudgetFormDialog({
   const [subIds, setSubIds] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState<number>(0);
   const [warnThreshold, setWarnThreshold] = useState<number>(DEFAULT_WARN_THRESHOLD);
+  const [rolloverMode, setRolloverMode] = useState<RolloverMode>("off");
+  const [cap, setCap] = useState<number>(0);
+  const [surplusAction, setSurplusAction] = useState<SurplusAction>("carry");
+  const [adaptive, setAdaptive] = useState<boolean>(false);
 
   // Formular bei jedem Öffnen aus dem (evtl. zu bearbeitenden) Budget befüllen.
   useEffect(() => {
@@ -55,7 +71,15 @@ export default function BudgetFormDialog({
     setSubIds(new Set(budget?.subcategory_ids ?? []));
     setLimit(budget?.limit ?? 0);
     setWarnThreshold(budget?.warn_threshold ?? DEFAULT_WARN_THRESHOLD);
+    // Migration: altes boolean `rollover:true` entspricht „Ansparen".
+    setRolloverMode(budget?.rolloverConfig?.mode ?? (budget?.rollover ? "accumulate" : "off"));
+    setCap(budget?.rolloverConfig?.cap ?? 0);
+    setSurplusAction(budget?.rolloverConfig?.surplusAction ?? "carry");
+    setAdaptive(budget?.adaptive ?? false);
   }, [open, budget]);
+
+  // „Ansparen"-Optionen (Cap, Überschuss-Verbleib) ergeben nur bei positivem Übertrag Sinn.
+  const showSurplusOptions = rolloverMode === "accumulate" || rolloverMode === "both";
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
@@ -95,6 +119,15 @@ export default function BudgetFormDialog({
       color: selectedCategory?.color,
       icon: selectedCategory?.icon,
       period: "monthly",
+      adaptive,
+      rolloverConfig:
+        rolloverMode === "off"
+          ? undefined
+          : {
+              mode: rolloverMode,
+              cap: showSurplusOptions && cap > 0 ? cap : undefined,
+              surplusAction: showSurplusOptions ? surplusAction : undefined,
+            },
     });
   };
 
@@ -161,7 +194,7 @@ export default function BudgetFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="budget-limit">Monatslimit (€)</Label>
+              <Label htmlFor="budget-limit">{adaptive ? "Basislimit / Fallback (€)" : "Monatslimit (€)"}</Label>
               <Input
                 id="budget-limit"
                 type="number"
@@ -185,19 +218,76 @@ export default function BudgetFormDialog({
             </div>
           </div>
 
-          {/* Premium-Ausblick: Regeln, Rollover & Perioden kommen mit Budget-Premium. */}
-          <div className="rounded-lg border border-dashed bg-muted/30 p-3">
+          {/* Adaptives Limit: speist sich aus echten Ausgaben (Median der letzten Monate). */}
+          <label className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-sm">
+            <Checkbox
+              checked={adaptive}
+              onCheckedChange={(v) => setAdaptive(v === true)}
+              aria-label="Limit automatisch aus echten Daten"
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Limit automatisch aus echten Daten</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Adaptiver Tank: das Limit folgt dem Median deiner letzten Monate (ausreißerfest). Dein
+                Wert oben gilt als Startwert, bis genug Historie da ist.
+              </span>
+            </span>
+          </label>
+
+          {/* Rollover: Übertrag zwischen Monaten (Ansparen / Überzug / beides). */}
+          <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Sparkles className="h-4 w-4 text-brand" />
-              Erweiterte Regeln
-              <Badge variant="outline" className="ml-auto text-[10px]">
-                Premium
-              </Badge>
+              Übertrag in den nächsten Monat
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Eigene Match-Regeln (Stichwort, Empfänger, Betrag), Übertrag ins nächste Monat und
-              wöchentliche/jährliche Perioden folgen mit Budget-Premium.
-            </p>
+            <Select value={rolloverMode} onValueChange={(v) => setRolloverMode(v as RolloverMode)}>
+              <SelectTrigger aria-label="Übertrags-Modus">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ROLLOVER_LABELS) as RolloverMode[]).map((mode) => (
+                  <SelectItem key={mode} value={mode}>
+                    {ROLLOVER_LABELS[mode]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {showSurplusOptions && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <Label htmlFor="budget-cap" className="text-xs">
+                    Max. Übertrag (€, 0 = unbegrenzt)
+                  </Label>
+                  <Input
+                    id="budget-cap"
+                    type="number"
+                    min={0}
+                    value={cap || ""}
+                    onChange={(e) => setCap(Number(e.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="budget-surplus" className="text-xs">
+                    Überschuss am Monatsende
+                  </Label>
+                  <Select value={surplusAction} onValueChange={(v) => setSurplusAction(v as SurplusAction)}>
+                    <SelectTrigger id="budget-surplus" aria-label="Verbleib des Überschusses">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(SURPLUS_LABELS) as SurplusAction[]).map((action) => (
+                        <SelectItem key={action} value={action}>
+                          {SURPLUS_LABELS[action]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

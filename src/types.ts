@@ -259,6 +259,12 @@ export interface Budget {
   rollover?: boolean;
   /** Rollover-Konfiguration (Übertrag, Cap, Sweep). Premium. */
   rolloverConfig?: BudgetRollover;
+  /**
+   * Datengetriebenes Basislimit: statt des fixen `limit` wird je Monat der
+   * Median der jüngsten Ausgaben verwendet („Adaptive Tank"). `limit` dient dann
+   * als Fallback ohne Historie. Premium.
+   */
+  adaptive?: boolean;
   /** Zusätzliche Match-Regeln. Premium; ohne Premium leer. */
   rules?: BudgetRule[];
 
