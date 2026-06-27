@@ -212,8 +212,8 @@ export function BackupManager() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="ui-card">
+      <div className="grid min-w-0 gap-6 md:grid-cols-2">
+        <Card className="ui-card min-w-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5 text-brand" />
@@ -273,11 +273,11 @@ export function BackupManager() {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full text-muted-foreground"
+                  className="h-auto w-full whitespace-normal text-center text-muted-foreground"
                   size="sm"
                   disabled={downloadMutation.isPending || isLoadingInfo}
                 >
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="mr-2 h-4 w-4 shrink-0" />
                   Unverschlüsselt exportieren (Datenumzug)
                 </Button>
               </AlertDialogTrigger>
@@ -306,7 +306,7 @@ export function BackupManager() {
           </CardContent>
         </Card>
 
-        <Card className="ui-card">
+        <Card className="ui-card min-w-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-positive" />

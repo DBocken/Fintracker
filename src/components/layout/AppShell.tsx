@@ -32,7 +32,10 @@ export default function AppShell() {
   const title = getTitle(location.pathname, t);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    // overflow-x-clip: globaler Schutz gegen horizontales Seiten-Scrollen. Clip
+    // (statt hidden) auf nur einer Achse lässt Sticky-/Fixed-Positionierung
+    // (Sidebar, Header, Bottom-Nav) unberührt.
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <CommandPalette />
       <div className="flex min-h-screen">
         <aside className="hidden md:block w-72 h-screen sticky top-0 self-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -41,39 +44,48 @@ export default function AppShell() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-            <div className="flex h-14 items-center gap-2 px-4 sm:px-6">
+            <div className="flex h-14 items-center gap-1 px-3 sm:gap-2 sm:px-4 lg:px-6">
               <MobileNav />
 
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold">{title}</div>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:inline-flex"
-                onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-              >
-                <Search className="mr-2 h-4 w-4" />
-                {t("shell.search")}
-                <span className="ml-2 text-xs text-muted-foreground">⌘K</span>
-              </Button>
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                  onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  {t("shell.search")}
+                  <span className="ml-2 text-xs text-muted-foreground">⌘K</span>
+                </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sm:hidden"
-                aria-label={t("shell.search")}
-                onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="sm:hidden"
+                  aria-label={t("shell.search")}
+                  onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
 
-              <PrivacyIndicator />
-              <LanguageSwitcher />
-              <ThemeToggle />
-              <NotificationsBell />
-              <UserQuickProfile />
+                <PrivacyIndicator />
+
+                {/* Sekundäre Steuerungen erst ab sm sichtbar — auf dem schmalen
+                    Mobil-Header würden Sprache + Theme überlaufen. Beide sind in
+                    den Einstellungen (Darstellung/Sprache) erreichbar. */}
+                <div className="hidden items-center gap-1 sm:flex sm:gap-2">
+                  <LanguageSwitcher />
+                  <ThemeToggle />
+                </div>
+
+                <NotificationsBell />
+                <UserQuickProfile />
+              </div>
             </div>
           </header>
 
