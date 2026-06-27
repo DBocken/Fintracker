@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogClose } from "@/components/ui/dialog";
 import {
   Card,
   CardHeader,
@@ -97,15 +97,16 @@ export default function UserQuickProfile() {
           </CardContent>
 
           <CardFooter className="flex justify-between gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              type="button"
-            >
-              <SettingsIcon className="mr-1 h-3 w-3" />
-              Profil
-            </Button>
+            {/* Schließt den Dialog (DialogClose) und navigiert zu den
+                Einstellungen — vorher war der Button ohne Wirkung. */}
+            <DialogClose asChild>
+              <Button asChild variant="outline" size="sm" className="text-xs">
+                <Link to="/settings">
+                  <SettingsIcon className="mr-1 h-3 w-3" />
+                  Einstellungen
+                </Link>
+              </Button>
+            </DialogClose>
             <LogoutButton className="text-xs text-muted-foreground" />
           </CardFooter>
         </Card>
