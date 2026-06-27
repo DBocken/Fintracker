@@ -32,7 +32,7 @@ export function PaginationControls({
   const endIndex = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className={`flex items-center justify-between px-4 py-3 bg-card border-t border-border ${className}`}>
+    <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 bg-card border-t border-border ${className}`}>
       {/* Info */}
       <div className="flex items-center gap-4 text-sm">
         <span className="text-muted-foreground">
@@ -88,7 +88,7 @@ export function PaginationControls({
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <span className="text-sm font-medium px-3 min-w-[100px] text-center">
+        <span className="whitespace-nowrap px-2 text-center text-sm font-medium sm:min-w-[100px] sm:px-3">
           Seite {currentPage} von {totalPages.toLocaleString('de-DE')}
         </span>
 

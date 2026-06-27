@@ -510,7 +510,7 @@ export default function BankCallbackPage() {
                         <div className="flex flex-col gap-2">
                           <select
                             onChange={(e) => handleLinkAccount(account, e.target.value === 'new' ? undefined : (e.target.value || undefined))}
-                            className="bg-card border border-border text-foreground text-sm rounded px-3 py-2 min-w-[200px]"
+                            className="bg-card border border-border text-foreground text-sm rounded px-3 py-2 w-full max-w-full sm:w-auto sm:min-w-[200px]"
                             defaultValue=""
                           >
                             <option value="" disabled>Konto wählen...</option>
