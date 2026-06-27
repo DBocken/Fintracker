@@ -5,6 +5,7 @@ import {
   trailingMonths,
   buildAdaptiveBaseLimit,
   computeAdaptiveBaseline,
+  computeBudgetDrift,
 } from "@/lib/budget-adaptive";
 import { roundSuggestion } from "@/lib/budget-logic";
 import { computeRolloverLedger } from "@/lib/budget-rollover";
@@ -163,6 +164,32 @@ describe("budget-adaptive", () => {
         });
         expect(out.seasonalFactor).toBe(1);
       });
+    });
+  });
+
+  describe("computeBudgetDrift", () => {
+    it("sollte eine Überschreitung über der Schwelle als 'over' melden", () => {
+      const d = computeBudgetDrift(400, 480); // +20 %
+      expect(d.direction).toBe("over");
+      expect(d.significant).toBe(true);
+      expect(d.suggestedLimit).toBe(roundSuggestion(480));
+    });
+
+    it("sollte deutliches Unterschreiten als 'under' melden", () => {
+      const d = computeBudgetDrift(400, 200); // −50 %
+      expect(d.direction).toBe("under");
+      expect(d.significant).toBe(true);
+    });
+
+    it("sollte kleine Abweichungen als 'ok' (nicht signifikant) werten", () => {
+      const d = computeBudgetDrift(400, 410); // 2,5 %
+      expect(d.direction).toBe("ok");
+      expect(d.significant).toBe(false);
+    });
+
+    it("sollte mit Limit 0 nicht durch Null teilen", () => {
+      expect(computeBudgetDrift(0, 0).ratio).toBe(0);
+      expect(computeBudgetDrift(0, 100).ratio).toBe(Infinity);
     });
   });
 });

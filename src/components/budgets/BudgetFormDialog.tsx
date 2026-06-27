@@ -19,7 +19,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import type { Budget, HierarchicalCategory, RolloverMode, SurplusAction } from "@/types";
+import type { Account, Budget, HierarchicalCategory, RolloverMode, SurplusAction } from "@/types";
 import { DEFAULT_WARN_THRESHOLD } from "@/lib/budget-logic";
 
 const ROLLOVER_LABELS: Record<RolloverMode, string> = {
@@ -41,6 +41,8 @@ interface BudgetFormDialogProps {
   budget: Budget | null;
   /** Hauptkategorien (mit children) zur Auswahl. */
   categories: HierarchicalCategory[];
+  /** Konten für die Sweep-Zielauswahl (Tagesgeld). */
+  accounts?: Account[];
   onSave: (data: Partial<Budget>) => void;
   isLoading?: boolean;
 }
@@ -50,6 +52,7 @@ export default function BudgetFormDialog({
   onOpenChange,
   budget,
   categories,
+  accounts = [],
   onSave,
   isLoading,
 }: BudgetFormDialogProps) {
@@ -61,6 +64,7 @@ export default function BudgetFormDialog({
   const [rolloverMode, setRolloverMode] = useState<RolloverMode>("off");
   const [cap, setCap] = useState<number>(0);
   const [surplusAction, setSurplusAction] = useState<SurplusAction>("carry");
+  const [sweepTargetAccountId, setSweepTargetAccountId] = useState<string>("");
   const [adaptive, setAdaptive] = useState<boolean>(false);
 
   // Formular bei jedem Öffnen aus dem (evtl. zu bearbeitenden) Budget befüllen.
@@ -75,11 +79,14 @@ export default function BudgetFormDialog({
     setRolloverMode(budget?.rolloverConfig?.mode ?? (budget?.rollover ? "accumulate" : "off"));
     setCap(budget?.rolloverConfig?.cap ?? 0);
     setSurplusAction(budget?.rolloverConfig?.surplusAction ?? "carry");
+    setSweepTargetAccountId(budget?.rolloverConfig?.sweepTargetAccountId ?? "");
     setAdaptive(budget?.adaptive ?? false);
   }, [open, budget]);
 
   // „Ansparen"-Optionen (Cap, Überschuss-Verbleib) ergeben nur bei positivem Übertrag Sinn.
   const showSurplusOptions = rolloverMode === "accumulate" || rolloverMode === "both";
+  // Zielkonto nur bei „aufs Tagesgeld" relevant; Konten mit IBAN bevorzugt.
+  const sweepAccounts = accounts.filter((a) => a.iban);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
@@ -127,6 +134,10 @@ export default function BudgetFormDialog({
               mode: rolloverMode,
               cap: showSurplusOptions && cap > 0 ? cap : undefined,
               surplusAction: showSurplusOptions ? surplusAction : undefined,
+              sweepTargetAccountId:
+                showSurplusOptions && surplusAction === "sweep_savings" && sweepTargetAccountId
+                  ? sweepTargetAccountId
+                  : undefined,
             },
     });
   };
@@ -286,6 +297,30 @@ export default function BudgetFormDialog({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            )}
+
+            {showSurplusOptions && surplusAction === "sweep_savings" && (
+              <div className="space-y-1.5 pt-1">
+                <Label htmlFor="budget-sweep-account" className="text-xs">
+                  Tagesgeld-Zielkonto (für GiroCode)
+                </Label>
+                <Select value={sweepTargetAccountId} onValueChange={setSweepTargetAccountId}>
+                  <SelectTrigger id="budget-sweep-account" aria-label="Tagesgeld-Zielkonto">
+                    <SelectValue placeholder={sweepAccounts.length ? "Konto wählen" : "Kein Konto mit IBAN"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sweepAccounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.icon ? `${acc.icon} ` : ""}
+                        {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Wir erzeugen einen scanbaren GiroCode – keine automatische Überweisung.
+                </p>
               </div>
             )}
           </div>

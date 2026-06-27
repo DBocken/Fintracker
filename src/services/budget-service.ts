@@ -9,7 +9,7 @@ import { getCategories, getTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
 import { computeBudgetStatus, monthKeyOf, suggestBudgets } from "@/lib/budget-logic";
 import { computeBudgetStatusWithRollover, resolveRolloverConfig } from "@/lib/budget-rollover";
-import { buildAdaptiveBaseLimit } from "@/lib/budget-adaptive";
+import { buildAdaptiveBaseLimit, computeAdaptiveBaseline, computeBudgetDrift } from "@/lib/budget-adaptive";
 
 const KEY = "budgets" as const;
 
@@ -92,6 +92,18 @@ export async function getBudgetOverview(reference: Date = new Date()): Promise<B
       baseLimitFor,
     });
   });
+
+  // Auto-Retune-Hinweis: realer Median vs. gesetztes Limit (für „Limit anpassen?").
+  for (const status of statuses) {
+    const baseline = computeAdaptiveBaseline(status.budget, transactions, categories, {
+      currentMonth: month,
+      windowMonths: 6,
+      seasonality: false,
+    }, allocationsByTx);
+    if (baseline.monthsOfData >= 2) {
+      status.drift = computeBudgetDrift(status.budget.limit, baseline.median);
+    }
+  }
 
   const budgetedMainIds = new Set(budgets.map((b) => b.category_id));
   const suggestions = suggestBudgets(

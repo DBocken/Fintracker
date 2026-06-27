@@ -1,11 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget, HierarchicalCategory } from "@/types";
+import type { Account, Budget, HierarchicalCategory } from "@/types";
 import BudgetFormDialog from "../BudgetFormDialog";
 
 const CATEGORIES: HierarchicalCategory[] = [
   { id: "wohnen", name: "Wohnen", filters: [], icon: "🏠", children: [] },
+];
+
+const ACCOUNTS: Account[] = [
+  { id: "acc-tg", name: "Tagesgeld", type: "savings", iban: "DE89370400440532013000" } as Account,
 ];
 
 function setup(budget: Budget | null = null) {
@@ -16,6 +20,7 @@ function setup(budget: Budget | null = null) {
       onOpenChange={() => {}}
       budget={budget}
       categories={CATEGORIES}
+      accounts={ACCOUNTS}
       onSave={onSave}
     />,
   );
@@ -48,6 +53,19 @@ describe("BudgetFormDialog – Rollover & Adaptive", () => {
     setup({ id: "b1", name: "Wohnen", category_id: "wohnen", limit: 1000, rollover: true } as Budget);
     // Surplus-Optionen sind nur bei accumulate/both sichtbar → ihr Erscheinen beweist die Migration.
     expect(screen.getByLabelText(/Max\. Übertrag/i)).toBeTruthy();
+  });
+
+  it("sollte das Tagesgeld-Zielkonto vorbelegen, wenn Sweep auf Sparen steht", () => {
+    setup({
+      id: "b1",
+      name: "Wohnen",
+      category_id: "wohnen",
+      limit: 1000,
+      rolloverConfig: { mode: "accumulate", surplusAction: "sweep_savings", sweepTargetAccountId: "acc-tg" },
+    } as Budget);
+    // Das Zielkonto-Feld erscheint und zeigt den hinterlegten Kontonamen.
+    expect(screen.getByLabelText(/Tagesgeld-Zielkonto/i)).toBeTruthy();
+    expect(screen.getByText("Tagesgeld")).toBeTruthy();
   });
 
   it("sollte adaptive=true speichern, wenn die Checkbox gesetzt wird", async () => {

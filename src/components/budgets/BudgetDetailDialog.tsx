@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
 import BudgetTank from "./BudgetTank";
+import SweepCard from "./SweepCard";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -134,6 +135,27 @@ export default function BudgetDetailDialog({
               </div>
             )}
           </div>
+
+          {status.drift?.significant && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className={cn(
+                "w-full rounded-xl border border-dashed p-3 text-left text-xs transition hover:bg-muted/40",
+                status.drift.direction === "over"
+                  ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
+                  : "border-sky-500/40 text-sky-700 dark:text-sky-400",
+              )}
+            >
+              <span className="font-medium">
+                {status.drift.direction === "over" ? "Ausgaben über Limit" : "Limit großzügig"}
+              </span>{" "}
+              · real ⌀ {eur.format(status.drift.median)}/Monat vs. Limit {eur.format(status.drift.limit)}. Auf{" "}
+              {eur.format(status.drift.suggestedLimit)} anpassen?
+            </button>
+          )}
+
+          <SweepCard status={status} />
         </div>
 
         <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">

@@ -9,6 +9,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import type { Budget, BudgetStatus, BudgetSuggestion } from "@/types";
 import { getBudgetOverview, saveBudget, deleteBudget } from "@/services/budget-service";
 import { getHierarchicalCategories } from "@/services/transaction-service";
+import { getAccounts } from "@/services/account-service";
 import BudgetTile from "@/components/budgets/BudgetTile";
 import BudgetDetailDialog from "@/components/budgets/BudgetDetailDialog";
 import BudgetFormDialog from "@/components/budgets/BudgetFormDialog";
@@ -29,6 +30,11 @@ export default function BudgetsPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-hierarchical"],
     queryFn: getHierarchicalCategories,
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: getAccounts,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["budget-overview"] });
@@ -155,6 +161,7 @@ export default function BudgetsPage() {
         onOpenChange={setFormOpen}
         budget={editing}
         categories={categories}
+        accounts={accounts}
         onSave={(data) => saveMutation.mutate(data)}
         isLoading={saveMutation.isPending}
       />

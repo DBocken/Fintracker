@@ -1,4 +1,4 @@
-import type { Budget, Category, Transaction, TransactionAllocation } from "@/types";
+import type { Budget, BudgetDrift, Category, Transaction, TransactionAllocation } from "@/types";
 import { computeBudgetSpent, roundSuggestion } from "@/lib/budget-logic";
 
 /** Median einer Zahlenliste (robust gegen Ausreißer). Leere Liste → 0. */
@@ -188,4 +188,18 @@ export function computeAdaptiveBaseline(
     monthsOfData: data.length,
     learning: data.length < minMonths,
   };
+}
+
+/**
+ * Vergleicht das gesetzte Limit mit dem realen Median und meldet eine Drift, wenn
+ * die Abweichung die Schwelle (Default 15 %) überschreitet. Grundlage für den
+ * „Limit anpassen?"-Hinweis (Auto-Retune).
+ */
+export function computeBudgetDrift(limit: number, med: number, options?: { threshold?: number }): BudgetDrift {
+  const threshold = options?.threshold ?? 0.15;
+  const drift = med - limit;
+  const ratio = limit > 0 ? Math.abs(drift) / limit : med > 0 ? Infinity : 0;
+  const significant = ratio >= threshold;
+  const direction: BudgetDrift["direction"] = !significant ? "ok" : drift > 0 ? "over" : "under";
+  return { median: med, limit, drift, ratio, direction, suggestedLimit: roundSuggestion(med), significant };
 }

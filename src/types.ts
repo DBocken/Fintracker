@@ -272,6 +272,24 @@ export interface Budget {
   updated_at?: string;
 }
 
+/** Abweichung des gesetzten Limits vom realen Median (Auto-Retune-Hinweis). */
+export interface BudgetDrift {
+  /** Realer Median der jüngsten Ausgaben. */
+  median: number;
+  /** Aktuelles (Basis-)Limit. */
+  limit: number;
+  /** Differenz `median − limit` (positiv = Ausgaben über Limit). */
+  drift: number;
+  /** Relative Abweichung |drift|/limit. */
+  ratio: number;
+  /** Richtung der Abweichung relativ zum Limit. */
+  direction: 'over' | 'under' | 'ok';
+  /** Empfohlenes neues Limit (gerundet) bei signifikanter Abweichung. */
+  suggestedLimit: number;
+  /** true, wenn die relative Abweichung die Schwelle überschreitet. */
+  significant: boolean;
+}
+
 /** Ampel-Status eines Budgets relativ zur Warnschwelle/zum Limit. */
 export type BudgetHealth = 'ok' | 'warn' | 'over';
 
@@ -297,6 +315,8 @@ export interface BudgetStatus {
   carryOut?: number;
   /** Per Sweep abgeführter Überschuss. */
   swept?: number;
+  /** Abweichung des Limits vom realen Median (für „Limit anpassen?"-Hinweis). */
+  drift?: BudgetDrift;
 }
 
 /** Vorgeschlagenes Budget für eine Hauptkategorie (noch nicht gespeichert). */
