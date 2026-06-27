@@ -1,5 +1,6 @@
 import PageHeader from '@/components/common/PageHeader';
 import LiquidityReport from '@/components/dashboard/LiquidityReport';
+import WaterfallPanel from '@/components/budgets/WaterfallPanel';
 import { useI18n } from '@/i18n/useI18n';
 
 /**
@@ -14,7 +15,10 @@ export default function LiquidityPage() {
         title={t("other.liquidityTitle")}
         description={t("other.liquidityDesc")}
       />
-      <LiquidityReport />
+      <div className="space-y-6">
+        <WaterfallPanel />
+        <LiquidityReport />
+      </div>
     </div>
   );
 }
