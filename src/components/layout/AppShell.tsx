@@ -75,13 +75,13 @@ export default function AppShell() {
 
                 <PrivacyIndicator />
 
-                {/* Sekundäre Steuerungen erst ab sm sichtbar — auf dem schmalen
-                    Mobil-Header würden Sprache + Theme überlaufen. Beide sind in
-                    den Einstellungen (Darstellung/Sprache) erreichbar. */}
-                <div className="hidden items-center gap-1 sm:flex sm:gap-2">
-                  <LanguageSwitcher />
-                  <ThemeToggle />
-                </div>
+                {/* Sprachwahl als kompaktes Popup — bleibt auch auf Mobil im
+                    Header erreichbar, ohne ihn zu überlaufen. */}
+                <LanguageSwitcher />
+
+                {/* Theme erst ab sm sichtbar (auch in den Einstellungen unter
+                    Darstellung erreichbar), um den Mobil-Header ruhig zu halten. */}
+                <ThemeToggle className="hidden sm:inline-flex" />
 
                 <NotificationsBell />
                 <UserQuickProfile />

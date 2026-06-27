@@ -41,10 +41,12 @@ export default function UserQuickProfile() {
   // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
   if (!user) {
     return (
-      <Button asChild variant="outline" size="sm" aria-label="Anmelden">
+      <Button asChild variant="outline" size="sm" aria-label="Anmelden" title="Anmelden">
         <Link to="/login">
-          <LogIn className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-          Anmelden
+          {/* Auf sehr schmalen Phones (<360px) nur das Icon, damit der Header
+              nicht überläuft; ab xs zusätzlich der Text. */}
+          <LogIn className="h-3.5 w-3.5 xs:mr-1.5" aria-hidden="true" />
+          <span className="hidden xs:inline">Anmelden</span>
         </Link>
       </Button>
     );

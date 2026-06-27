@@ -219,11 +219,11 @@ export function DataExport() {
             </span>
             <span className="font-semibold">{filteredTransactions.length}</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
+          <div className="flex items-start justify-between gap-2 text-sm">
+            <span className="shrink-0 text-muted-foreground">
               Dateiname:
             </span>
-            <span className="font-mono text-xs">{getFileNamePreview()}</span>
+            <span className="min-w-0 break-all text-right font-mono text-xs">{getFileNamePreview()}</span>
           </div>
         </div>
 

@@ -17,6 +17,11 @@ module.exports = {
       },
     },
     extend: {
+      // Kleinster Breakpoint für sehr schmale Geräte (~360px), damit der Header
+      // und kompakte CTAs auch auf kleinen Phones nicht überlaufen.
+      screens: {
+        xs: "360px",
+      },
       fontFamily: {
         sans: "var(--font-sans)",
         display: "var(--font-display)",

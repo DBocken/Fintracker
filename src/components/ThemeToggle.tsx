@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function applyTheme(next: "dark" | "light") {
   const root = document.documentElement;
@@ -12,7 +13,7 @@ function applyTheme(next: "dark" | "light") {
   localStorage.setItem("color-scheme", next);
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function ThemeToggle() {
       variant="outline"
       size="sm"
       onClick={toggle}
-      className="bg-background/50 backdrop-blur-sm"
+      className={cn("bg-background/50 backdrop-blur-sm", className)}
       aria-label="Theme umschalten"
       title={theme === "dark" ? "Zu hell wechseln" : "Zu dunkel wechseln"}
     >
