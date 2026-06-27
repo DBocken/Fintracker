@@ -5,7 +5,7 @@ import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useI18n } from "@/i18n/useI18n";
@@ -51,30 +51,36 @@ export default function MobileNav() {
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <SheetClose key={item.path} asChild>
-                        <NavLink
-                          to={item.path}
-                          className={({ isActive }) =>
-                            cn(
-                              "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                              isActive
-                                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                                : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                            )
-                          }
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate">{t(item.labelKey ?? "", item.label)}</span>
-                            {item.subtitle && (
-                              <span className="truncate text-[11px] text-sidebar-muted">
-                                {t(item.subtitleKey ?? "", item.subtitle)}
-                              </span>
-                            )}
-                          </span>
-                          {item.requiredTier === "premium" && <Badge variant="secondary">{t("shell.premium")}</Badge>}
-                        </NavLink>
-                      </SheetClose>
+                      // Schließen über den kontrollierten `open`-State statt
+                      // <SheetClose asChild>: Radix' Slot kann die *Funktions*-
+                      // className von NavLink nicht mergen und schreibt stattdessen
+                      // den Funktions-Quelltext ins class-Attribut. Dann greift kein
+                      // einziges Utility (auch nicht `flex`) → Icon und Text brachen
+                      // untereinander um. Direktes NavLink rendert die className korrekt.
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                              : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          )
+                        }
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate">{t(item.labelKey ?? "", item.label)}</span>
+                          {item.subtitle && (
+                            <span className="truncate text-[11px] text-sidebar-muted">
+                              {t(item.subtitleKey ?? "", item.subtitle)}
+                            </span>
+                          )}
+                        </span>
+                        {item.requiredTier === "premium" && <Badge variant="secondary">{t("shell.premium")}</Badge>}
+                      </NavLink>
                     );
                   })}
                 </div>

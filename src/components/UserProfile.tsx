@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { User as UserIcon, Settings as SettingsIcon, EyeOff, KeyRound, Sparkles, Check } from "lucide-react";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -253,15 +254,16 @@ export function UserProfile() {
           </CardContent>
 
           <CardFooter className="flex justify-between gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              type="button"
-            >
-              <SettingsIcon className="mr-1 h-3 w-3" />
-              Profil
-            </Button>
+            {/* Schließt den Dialog (DialogClose) und navigiert zu den
+                Einstellungen — vorher war der Button ohne Wirkung. */}
+            <DialogClose asChild>
+              <Button asChild variant="outline" size="sm" className="text-xs">
+                <Link to="/settings">
+                  <SettingsIcon className="mr-1 h-3 w-3" />
+                  Einstellungen
+                </Link>
+              </Button>
+            </DialogClose>
             <LogoutButton className="text-xs text-muted-foreground" />
           </CardFooter>
         </Card>
