@@ -1,8 +1,7 @@
-import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, Info, ArrowRight, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import InteractiveCard from "@/components/common/InteractiveCard";
 import type { CoachRecommendation } from "@/types";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -17,19 +16,12 @@ export default function CoachFeedCard({ card, index, featured }: { card: CoachRe
   const style = STYLES[card.severity];
   const Icon = style.icon;
   const reduce = useReducedMotion();
+  // Karten-Regel: nur mit Follow-up (ctaTo) ist es eine echte, klickbare Karte.
+  // Ohne Aktion bleibt es eine flache Hinweis-Box (kein Schatten → nicht „tap-bar").
+  const interactive = Boolean(card.ctaTo);
 
-  return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={reduce ? { duration: 0 } : { delay: index * 0.05 }}
-      className={cn(
-        "rounded-2xl border bg-card p-4 shadow-sm",
-        style.border,
-        style.bg,
-        featured && "ring-2 ring-primary/30",
-      )}
-    >
+  const inner = (
+    <>
       {featured && (
         <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
           Wichtigste Aktion heute
@@ -41,16 +33,44 @@ export default function CoachFeedCard({ card, index, featured }: { card: CoachRe
           <div className="font-semibold">{card.title}</div>
           <p className="mt-1 text-sm text-muted-foreground">{card.message}</p>
           <p className="mt-2 text-xs text-muted-foreground">{card.reason}</p>
-          {card.ctaLabel && card.ctaTo && (
-            <Button asChild variant="outline" size="sm" className="mt-3">
-              <Link to={card.ctaTo}>
-                {card.ctaLabel}
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
+          {interactive && card.ctaLabel && (
+            <span className="mt-3 inline-flex items-center text-sm font-medium text-primary">
+              {card.ctaLabel}
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </span>
           )}
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduce ? { duration: 0 } : { delay: index * 0.05 }}
+    >
+      {interactive ? (
+        <InteractiveCard
+          to={card.ctaTo!}
+          aria-label={card.ctaLabel ?? card.title}
+          indicator="none"
+          className={cn("flex-col items-stretch", style.border, style.bg, featured && "ring-2 ring-primary/30")}
+        >
+          {inner}
+        </InteractiveCard>
+      ) : (
+        <div
+          className={cn(
+            "rounded-2xl border bg-card p-4",
+            style.border,
+            style.bg,
+            featured && "ring-2 ring-primary/30",
+          )}
+        >
+          {inner}
+        </div>
+      )}
     </motion.div>
   );
 }
