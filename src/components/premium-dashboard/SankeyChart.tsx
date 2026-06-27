@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   const [percentMode, setPercentMode] = useState<boolean>(false);
   const [chartHeight, setChartHeight] = useState<number>(500);
   const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -162,7 +164,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         .filter((sub) => sub.mainId === expandedMainId && sub.amount > 0)
         .sort((a, b) => b.amount - a.amount);
 
-      const MAX_SUBS = 6;
+      const MAX_SUBS = isMobile ? 4 : 6;
       const totalAmount = subsAll.reduce((sum, s) => sum + s.amount, 0);
       const topSubs = subsAll.slice(0, MAX_SUBS);
       const topAmount = topSubs.reduce((sum, s) => sum + s.amount, 0);
@@ -220,14 +222,20 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
     }
 
     return { nodes, links };
-  }, [data, expandedMainId, totalExpenses]);
+  }, [data, expandedMainId, totalExpenses, isMobile]);
 
-  // Berechne optimale Mindestbreite basierend auf Node-Anzahl (mobile horizontal scroll)
+  // Mindestbreite: Ein Sankey wächst in die BREITE mit der Spalten-/Tiefen-Anzahl,
+  // nicht mit der Knotenzahl – viele Kategorien stapeln sich vertikal. Auf Mobil
+  // richten wir die Breite daher an den Spalten aus, damit die Grafik in den
+  // Viewport passt (kein erzwungenes Horizontal-Scrollen). Desktop behält die
+  // großzügigere, knotenbasierte Breite bei.
   const minChartWidth = useMemo(() => {
-    const nodeCount = sankeyData.nodes.length || 1;
-    const avgNodeWidth = 90; // Durchschnittliche Node-Breite in px (mit Padding)
-    return Math.max(nodeCount * avgNodeWidth, 640);
-  }, [sankeyData.nodes.length]);
+    const layer = (t?: string) =>
+      t === "income" ? 0 : t === "account" ? 1 : t === "expense-sub" ? 3 : 2;
+    const columns = new Set(sankeyData.nodes.map((n) => layer(n.type))).size || 2;
+    if (isMobile) return Math.max(columns * 150, 300);
+    return Math.max((sankeyData.nodes.length || 1) * 90, 640);
+  }, [sankeyData.nodes, isMobile]);
 
   if (!hasData) {
     return (
