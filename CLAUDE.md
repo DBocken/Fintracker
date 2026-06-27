@@ -222,6 +222,31 @@ npm run build     # TypeScript muss kompilieren
 
 ---
 
+## Design & Animation (verbindlich)
+
+Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede UI-Arbeit:
+
+1. **Geschwindigkeit als Feature** (Local-First, sofort, offline-fähig)
+2. **Bewegung mit Bedeutung — Lottie ist die Animations-Baseline**
+3. **Ruhe vor Fülle** (eine Hauptaussage pro Screen, werbefrei)
+4. **Unsichtbare Intelligenz, sichtbare Erklärung** (Confidence + Gründe, editierbare Regeln)
+5. **Vertrauen zuerst** (erst ausprobieren, dann Bank verbinden)
+6. **Konsistentes Token-System** (Farbe/Icon/Typo app-weit)
+7. **Accessibility** (`prefers-reduced-motion` überall, auch bei Lottie)
+
+### Animations-Regel
+- **Lottie ist Standard** für expressive Animationen (Celebrations, Empty States, Onboarding,
+  Lade-/Übergangs-Illustrationen). Renderer-Empfehlung: `@lottiefiles/dotlottie-react`
+  (noch nicht installiert – vor erstem Einsatz hinzufügen).
+- **Erlaubte Ausnahmen** (Lottie ungeeignet): Micro-Interactions (Hover/Press/Focus),
+  Layout-/List-Transitions, datengetriebene Animationen (Zahl-Tweens, Charts, der physikalische
+  `BudgetTank`). → Framer Motion / CSS / SVG. **Bewusst nutzen und kurz begründen.**
+- **Bei jeder Animationsarbeit** prüfen: Geht das mit Lottie? Wenn nein → Ausnahme dokumentieren.
+  Ein PostToolUse-Hook (`.claude/hooks/lottie-baseline-check.mjs`) erinnert automatisch, sobald
+  `framer-motion`/`requestAnimationFrame`/`@keyframes`/CSS `animation:` ohne Lottie auftaucht.
+
+---
+
 ## Questions?
 
 Geben Sie Agenten/Entwicklern dieses Dokument als Kontext beim Starten neuer Tasks.
