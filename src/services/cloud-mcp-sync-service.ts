@@ -253,13 +253,22 @@ export function buildMcpAggregateSnapshot(input: SnapshotInput): McpAggregateSna
 const SNAPSHOT_TABLE = 'mcp_aggregate_snapshots';
 const LOOKBACK_MONTHS = 6;
 
-/** Basis-URL des gehosteten POC-MCP-Servers (siehe mcp-poc/). */
-function connectorBaseUrl(): string {
-  const url = import.meta.env.VITE_MCP_POC_URL;
-  if (!url) {
-    throw new Error('VITE_MCP_POC_URL ist nicht gesetzt – MCP-POC-Server-URL fehlt.');
+/**
+ * Fertige Connector-URL inklusive Token. Standard: same-origin Vercel-Function
+ * (`/api/mcp/<token>`) – dann ist keine Konfiguration nötig. Optional kann
+ * `VITE_MCP_POC_URL` auf einen separaten Server (mcp-poc/) zeigen.
+ */
+function buildConnectorUrl(token: string): string {
+  const configured = import.meta.env.VITE_MCP_POC_URL;
+  const base = configured
+    ? String(configured).replace(/\/+$/, '')
+    : typeof window !== 'undefined'
+      ? window.location.origin
+      : '';
+  if (!base) {
+    throw new Error('Connector-URL nicht bestimmbar (kein window, kein VITE_MCP_POC_URL).');
   }
-  return String(url).replace(/\/+$/, '');
+  return `${base}/api/mcp/${token}`;
 }
 
 async function currentUserId(): Promise<string> {
@@ -317,7 +326,7 @@ export async function enableCloudMcpSync(consent: SyncConsent): Promise<EnableRe
     );
   if (error) throw new Error(`Snapshot-Upload fehlgeschlagen: ${error.message}`);
 
-  return { token, connectorUrl: `${connectorBaseUrl()}/mcp/${token}` };
+  return { token, connectorUrl: buildConnectorUrl(token) };
 }
 
 /** Aktualisiert den hochgeladenen Snapshot (Sync muss bereits aktiv sein). */

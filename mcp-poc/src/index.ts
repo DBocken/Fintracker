@@ -172,14 +172,14 @@ app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-app.post('/mcp/:token', handleMcpPost);
-app.post('/mcp', handleMcpPost);
+// Same URL shape as the Vercel function (/api/mcp/<token>) plus a short alias.
+app.post(['/api/mcp/:token', '/mcp/:token', '/mcp'], handleMcpPost);
 
 // Stateless mode has no server->client SSE stream and no session to delete.
 const methodNotAllowed = (_req: Request, res: Response) =>
   res.status(405).json({ error: 'Method not allowed (stateless server, POST only).' });
-app.get(['/mcp', '/mcp/:token'], methodNotAllowed);
-app.delete(['/mcp', '/mcp/:token'], methodNotAllowed);
+app.get(['/api/mcp/:token', '/mcp', '/mcp/:token'], methodNotAllowed);
+app.delete(['/api/mcp/:token', '/mcp', '/mcp/:token'], methodNotAllowed);
 
 app.listen(PORT, () => {
   console.log(`fintracker-mcp-poc listening on :${PORT} (POST /mcp/<token>)`);

@@ -26,10 +26,10 @@ ausgegeben?" per Sprache/Chat aus **Claude** oder **ChatGPT** beantworten lassen
 
 ```
 Claude/ChatGPT (Text-Chat, Eingabe per Diktat)
-        │  MCP über HTTPS (Streamable HTTP), Token im Pfad
+        │  MCP über HTTPS (JSON-RPC), Token im Pfad: /api/mcp/<token>
         ▼
-fintracker-mcp-poc  (gehosteter Node-Server, mcp-poc/)
-        │  liest mit Service-Role-Key, matcht Token-Hash
+Vercel-Function  api/mcp/[token].ts   (gleiche Domain wie die App!)
+        │  liest token-gegatet via RPC get_mcp_snapshot (anon-Key, KEIN Secret)
         ▼
 Supabase: mcp_aggregate_snapshots (1 Aggregat-Snapshot pro Nutzer, RLS)
         ▲
@@ -37,6 +37,11 @@ Supabase: mcp_aggregate_snapshots (1 Aggregat-Snapshot pro Nutzer, RLS)
 Fintracker Web-App (entsperrter Vault)
   └─ src/services/cloud-mcp-sync-service.ts  (die einzige Cloud-Ausnahme)
 ```
+
+Der MCP-Endpunkt ist Teil der App und deployt automatisch mit (kein separater
+Server, kein extra Secret). Read-Zugriff läuft über eine SECURITY-DEFINER-RPC,
+die nur bei passendem Token-Hash etwas zurückgibt — der öffentliche anon-Key
+genügt. (Alternative für rein lokalen Betrieb: `mcp-poc/`.)
 
 ## Was das Gerät verlässt — und was nicht
 
@@ -72,14 +77,24 @@ einzige, ausdrücklich getestete Ausnahme (aggregat-only + Consent-Gate).
 - **Voice ruft keine Tools** (s. o.); Freisprechen bräuchte die OpenAI
   Realtime-API in einer eigenen App.
 
-## Einrichtung (Kurz)
+## Einrichtung — was DU noch tun musst
 
-1. `supabase db push` (Migration `…_add_mcp_aggregate_snapshots.sql`).
-2. `mcp-poc/` deployen oder tunneln (öffentliches HTTPS); siehe `mcp-poc/README.md`.
-3. In der Web-App `VITE_MCP_POC_URL` = öffentliche Server-Basis-URL setzen.
-4. App → **Einstellungen → Sprach-/KI-Zugriff (MCP)** → aktivieren (doppelte
-   Bestätigung) → Connector-URL + Token kopieren.
-5. URL als „No Auth"-MCP-Connector in Claude/ChatGPT eintragen; Frage **diktieren**.
+Vorbereitet ist alles: Der MCP-Endpunkt läuft als Vercel-Function in dieser App
+(`api/mcp/[token].ts`), same-origin, ohne extra Secret. Es bleiben nur:
+
+1. **Einmalig: Migration anwenden** — `supabase db push`, oder das SQL aus
+   `supabase/migrations/20260627120000_add_mcp_aggregate_snapshots.sql` im
+   Supabase-Dashboard → SQL Editor ausführen. (Geht nur mit deinem DB-Zugang.)
+2. **In der App aktivieren** — Einstellungen → **Sprach-/KI-Zugriff (MCP)** →
+   doppelte Bestätigung → Connector-URL kopieren
+   (`https://<deine-app>/api/mcp/<token>`).
+3. **In ChatGPT/Claude eintragen** — Custom-MCP-Connector mit „No Authentication"
+   anlegen, die URL einfügen. Dann Frage **diktieren**.
+
+> ChatGPT-Connector brauchen Developer Mode (Plus/Pro). Voice ruft keine
+> MCP-Tools auf → im **Text-Chat** fragen (Eingabe per Diktat).
+
+Optional statt Vercel-Function: separater Server `mcp-poc/` + `VITE_MCP_POC_URL`.
 
 ## Privatere Alternative (kein Cloud-Abfluss)
 

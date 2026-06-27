@@ -28,3 +28,20 @@ CREATE POLICY "own mcp snapshot" ON mcp_aggregate_snapshots
 -- Schneller Lookup des MCP-Servers per Token-Hash.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_aggregate_snapshots_token_hash
   ON mcp_aggregate_snapshots(token_hash);
+
+-- Token-gegateter Lesezugriff OHNE Service-Role-Key: Die Vercel-Function ruft
+-- diese SECURITY-DEFINER-Funktion mit dem oeffentlichen anon-Key auf. Sie gibt
+-- den Snapshot NUR fuer den passenden Token-Hash zurueck. Wer das Token nicht
+-- kennt (256-Bit-Zufall), kann den Hash nicht erraten – damit ist kein extra
+-- Secret noetig.
+CREATE OR REPLACE FUNCTION public.get_mcp_snapshot(p_token_hash text)
+RETURNS jsonb
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT payload FROM mcp_aggregate_snapshots WHERE token_hash = p_token_hash;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_mcp_snapshot(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.get_mcp_snapshot(text) TO anon, authenticated;
