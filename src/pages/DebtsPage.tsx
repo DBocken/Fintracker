@@ -31,7 +31,7 @@ import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
-import StatTile from "@/components/common/StatTile";
+import { InfoStatStrip } from "@/components/common/InfoGroup";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
 
@@ -300,11 +300,15 @@ export default function DebtsPage() {
         />
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Gesamtschuld" value={eur.format(totalDebt)} />
-            <StatTile label="Mindestraten / Monat" value={eur.format(totalMin)} />
-            <StatTile label="Offene Schulden" value={debts.filter((d) => !d.is_paid_off).length} />
-          </div>
+          {/* Reine Kennzahlen ohne Follow-up → gebündeltes Readout statt Karten
+              (Usability-Audit „Karten sind Aktionen"). */}
+          <InfoStatStrip
+            items={[
+              { label: "Gesamtschuld", value: eur.format(totalDebt) },
+              { label: "Mindestraten / Monat", value: eur.format(totalMin) },
+              { label: "Offene Schulden", value: debts.filter((d) => !d.is_paid_off).length },
+            ]}
+          />
 
           {/* Mobile: kompakte Karten mit Detail-Sheet (Audit C-P1/F) */}
           <div className="space-y-3 lg:hidden">

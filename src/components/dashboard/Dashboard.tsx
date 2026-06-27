@@ -15,6 +15,7 @@ import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
 import { AccountCards } from '../accounts/AccountCards';
 import { TransactionStats } from './TransactionStats';
 import { ExpensesOverTimeCard, SpendingBreakdownCard } from './TransactionCharts';
+import InteractiveCard from '@/components/common/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
 import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -404,19 +405,14 @@ export function Dashboard() {
   return (
     <div {...dyadProps("Dashboard")} className="space-y-6 md:space-y-8">
       {/* Das Dashboard ist Analyse-Support; die Handlung lebt im Coach
-          (Audit C-P1). CTA zurück zum „nächsten Schritt". */}
-      <div className="flex flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          (Audit C-P1). Ganze Karte ist klickbar → Coach (Usability-Audit
+          „Karten sind Aktionen"). */}
+      <InteractiveCard to="/coach" aria-label="Zum nächsten Schritt – zum Coach">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="h-4 w-4 text-brand" />
           Detailansicht für Charts &amp; Transaktionen. Deine nächste Aktion zeigt dir der Coach.
         </div>
-        <Button asChild variant="outline" size="sm" className="shrink-0">
-          <Link to="/coach">
-            Zum nächsten Schritt
-            <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+      </InteractiveCard>
 
       <TransactionStats
         income={stats.income}

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, MoreVertical, Sparkles } from "lucide-react";
 import EmptyState from "@/components/common/EmptyState";
+import { InfoStatStrip } from "@/components/common/InfoGroup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -225,20 +226,14 @@ export function ReceivablesPanel() {
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Gesamtforderung</div>
-                <div className="mt-1 text-2xl font-bold">{eur.format(totalReceivables)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">Offene Forderungen</div>
-                <div className="mt-1 text-2xl font-bold">{openCount}</div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Reine Kennzahlen ohne Follow-up → gebündeltes Readout statt Karten
+              (Usability-Audit „Karten sind Aktionen"). */}
+          <InfoStatStrip
+            items={[
+              { label: "Gesamtforderung", value: eur.format(totalReceivables) },
+              { label: "Offene Forderungen", value: openCount },
+            ]}
+          />
 
           <div className="space-y-2">
             {receivables.map((r) => (
