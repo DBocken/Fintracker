@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
 import BudgetTank from "./BudgetTank";
+import SweepCard from "./SweepCard";
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -43,9 +44,13 @@ export default function BudgetDetailDialog({
   onDelete,
 }: BudgetDetailDialogProps) {
   if (!status) return null;
-  const { budget, spent, remaining, fillPercent, health } = status;
+  const { budget, spent, remaining, fillPercent, health, carryIn, effectiveLimit, carryOut, swept } = status;
   const badge = HEALTH_BADGE[health];
   const pct = Math.round(fillPercent);
+  const limitShown = effectiveLimit ?? budget.limit;
+  const hasCarryIn = carryIn != null && Math.abs(carryIn) >= 0.5;
+  const hasCarryOut = carryOut != null && Math.abs(carryOut) >= 0.5;
+  const hasSwept = swept != null && swept >= 0.5;
 
   return (
     <Dialog open={!!status} onOpenChange={onOpenChange}>
@@ -76,9 +81,25 @@ export default function BudgetDetailDialog({
               <span className="text-muted-foreground">Ausgegeben</span>
               <span className="font-semibold tabular-nums">{eur.format(spent)}</span>
             </div>
+            {hasCarryIn && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  {carryIn! >= 0 ? "Angespart aus Vormonat" : "Übertrag aus Vormonat"}
+                </span>
+                <span
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    carryIn! < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+                  )}
+                >
+                  {carryIn! >= 0 ? "+" : "−"}
+                  {eur.format(Math.abs(carryIn!))}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Limit</span>
-              <span className="font-semibold tabular-nums">{eur.format(budget.limit)}</span>
+              <span className="text-muted-foreground">{hasCarryIn ? "Limit (effektiv)" : "Limit"}</span>
+              <span className="font-semibold tabular-nums">{eur.format(limitShown)}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="text-muted-foreground">{remaining >= 0 ? "Noch offen" : "Über Budget"}</span>
@@ -91,7 +112,50 @@ export default function BudgetDetailDialog({
                 {eur.format(Math.abs(remaining))}
               </span>
             </div>
+            {hasSwept && (
+              <div className="flex items-center justify-between border-t pt-2">
+                <span className="text-muted-foreground">Beiseitegelegt</span>
+                <span className="font-semibold tabular-nums text-sky-600 dark:text-sky-400">
+                  {eur.format(swept!)}
+                </span>
+              </div>
+            )}
+            {hasCarryOut && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Übertrag nächster Monat</span>
+                <span
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    carryOut! < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+                  )}
+                >
+                  {carryOut! >= 0 ? "+" : "−"}
+                  {eur.format(Math.abs(carryOut!))}
+                </span>
+              </div>
+            )}
           </div>
+
+          {status.drift?.significant && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className={cn(
+                "w-full rounded-xl border border-dashed p-3 text-left text-xs transition hover:bg-muted/40",
+                status.drift.direction === "over"
+                  ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
+                  : "border-sky-500/40 text-sky-700 dark:text-sky-400",
+              )}
+            >
+              <span className="font-medium">
+                {status.drift.direction === "over" ? "Ausgaben über Limit" : "Limit großzügig"}
+              </span>{" "}
+              · real ⌀ {eur.format(status.drift.median)}/Monat vs. Limit {eur.format(status.drift.limit)}. Auf{" "}
+              {eur.format(status.drift.suggestedLimit)} anpassen?
+            </button>
+          )}
+
+          <SweepCard status={status} />
         </div>
 
         <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">

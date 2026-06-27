@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -41,6 +42,8 @@ const baseEndAngle = -270;
 
 /** Balkendiagramm: Ausgaben im Zeitverlauf. */
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
+  // Baseline: Balken bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
+  const animate = !useReducedMotion();
   return (
     <Card className="card-premium h-full">
       <CardHeader>
@@ -76,7 +79,7 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
                 }}
                 formatter={(v: number) => [formatCurrencyInt(Math.round(v)), 'Ausgaben']}
               />
-              <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} />
+              <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={animate} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -87,6 +90,9 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
 
 /** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
 export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) {
+  // Baseline: Ringe bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
+  // Daten sind via useMemo stabil → Hover (Dimming) löst keine Re-Animation aus.
+  const animate = !useReducedMotion();
   // Umschalter zwischen Euro und Prozent
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Ausgabenklasse- oder Hauptkategorie-ID sein)
@@ -199,7 +205,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                 paddingAngle={1}
                 startAngle={baseStartAngle}
                 endAngle={baseEndAngle}
-                isAnimationActive={false}
+                isAnimationActive={animate}
               >
                 {sunburst.inner.map((entry) => {
                   const col = colorMap.get(entry.id) || CHART_BRAND;
@@ -241,7 +247,7 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
                     startAngle={angles.startAngle}
                     endAngle={angles.endAngle}
                     paddingAngle={0}
-                    isAnimationActive={false}
+                    isAnimationActive={animate}
                   >
                     {children.map((entry) => {
                       const parentColor = colorMap.get(entry.parentId) || CHART_BRAND;

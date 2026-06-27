@@ -222,6 +222,32 @@ npm run build     # TypeScript muss kompilieren
 
 ---
 
+## Design & Animation (verbindlich)
+
+Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede UI-Arbeit:
+
+1. **Geschwindigkeit als Feature** (Local-First, sofort, offline-fähig)
+2. **Bewegung mit Bedeutung — datengetriebener Aufbau ist die Animations-Baseline**
+3. **Ruhe vor Fülle** (eine Hauptaussage pro Screen, werbefrei)
+4. **Unsichtbare Intelligenz, sichtbare Erklärung** (Confidence + Gründe, editierbare Regeln)
+5. **Vertrauen zuerst** (erst ausprobieren, dann Bank verbinden)
+6. **Konsistentes Token-System** (Farbe/Icon/Typo app-weit)
+7. **Accessibility** (`prefers-reduced-motion` überall)
+
+### Animations-Regel
+- **Baseline = unsere eigene, datengetriebene Implementierung** (SVG / Framer Motion / CSS /
+  `requestAnimationFrame` / Recharts). **Lottie ist NICHT Baseline** – nur eine Option für
+  expressive Set-Pieces (Celebration/Empty-State), die wir künftig prüfen.
+- **Visualisierte Daten poppen nicht auf, sie werden *aufgebaut*** (hochzählen, füllen, wachsen,
+  zeichnen) – je nach Visualisierungstyp unterschiedlich. **Kein `isAnimationActive={false}`** bei
+  Charts, außer mit kurzer Begründung.
+- **Immer daten- & schwellwertbewusst**: Farb-/Statuswechsel an Schwellen (wie `colorForFill`/
+  Budget-Ampel). `prefers-reduced-motion` → Aufbau überspringen, Zielzustand direkt zeigen.
+- Ein PostToolUse-Hook (`.claude/hooks/animation-baseline-check.mjs`) erinnert automatisch, wenn
+  Daten aufpoppen oder ein Chart die Aufbau-Animation/Schwellwerte ignoriert.
+
+---
+
 ## Questions?
 
 Geben Sie Agenten/Entwicklern dieses Dokument als Kontext beim Starten neuer Tasks.

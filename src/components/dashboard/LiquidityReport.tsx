@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
@@ -614,6 +615,8 @@ function ChartLinesView({
   safetyBuffer: number;
 }) {
   const colors = getChartColors();
+  // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
+  const animate = !useReducedMotion();
   const gradientId = `liqFill-${Date.now()}`;
   const mcBandGradientId = `mcBandFill-${Date.now()}`;
 
@@ -663,7 +666,7 @@ function ChartLinesView({
                 stackId="mc"
                 stroke="none"
                 fill="transparent"
-                isAnimationActive={false}
+                isAnimationActive={animate}
                 legendType="none"
                 tooltipType="none"
               />
@@ -674,7 +677,7 @@ function ChartLinesView({
                 stackId="mc"
                 stroke="none"
                 fill={`url(#${mcBandGradientId})`}
-                isAnimationActive={false}
+                isAnimationActive={animate}
                 legendType="none"
                 tooltipType="none"
               />
@@ -687,6 +690,7 @@ function ChartLinesView({
             stroke={colors.operatingStroke}
             strokeWidth={2}
             fill={hasBand ? 'transparent' : `url(#${gradientId})`}
+            isAnimationActive={animate}
           />
           {hasBand && (
             <Line
@@ -696,7 +700,7 @@ function ChartLinesView({
               stroke={colors.medianStroke}
               strokeWidth={1.5}
               dot={false}
-              isAnimationActive={false}
+              isAnimationActive={animate}
             />
           )}
           {safetyBuffer > 0 && (
