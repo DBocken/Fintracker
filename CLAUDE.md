@@ -227,23 +227,24 @@ npm run build     # TypeScript muss kompilieren
 Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede UI-Arbeit:
 
 1. **Geschwindigkeit als Feature** (Local-First, sofort, offline-fähig)
-2. **Bewegung mit Bedeutung — Lottie ist die Animations-Baseline**
+2. **Bewegung mit Bedeutung — datengetriebener Aufbau ist die Animations-Baseline**
 3. **Ruhe vor Fülle** (eine Hauptaussage pro Screen, werbefrei)
 4. **Unsichtbare Intelligenz, sichtbare Erklärung** (Confidence + Gründe, editierbare Regeln)
 5. **Vertrauen zuerst** (erst ausprobieren, dann Bank verbinden)
 6. **Konsistentes Token-System** (Farbe/Icon/Typo app-weit)
-7. **Accessibility** (`prefers-reduced-motion` überall, auch bei Lottie)
+7. **Accessibility** (`prefers-reduced-motion` überall)
 
 ### Animations-Regel
-- **Lottie ist Standard** für expressive Animationen (Celebrations, Empty States, Onboarding,
-  Lade-/Übergangs-Illustrationen). Renderer-Empfehlung: `@lottiefiles/dotlottie-react`
-  (noch nicht installiert – vor erstem Einsatz hinzufügen).
-- **Erlaubte Ausnahmen** (Lottie ungeeignet): Micro-Interactions (Hover/Press/Focus),
-  Layout-/List-Transitions, datengetriebene Animationen (Zahl-Tweens, Charts, der physikalische
-  `BudgetTank`). → Framer Motion / CSS / SVG. **Bewusst nutzen und kurz begründen.**
-- **Bei jeder Animationsarbeit** prüfen: Geht das mit Lottie? Wenn nein → Ausnahme dokumentieren.
-  Ein PostToolUse-Hook (`.claude/hooks/lottie-baseline-check.mjs`) erinnert automatisch, sobald
-  `framer-motion`/`requestAnimationFrame`/`@keyframes`/CSS `animation:` ohne Lottie auftaucht.
+- **Baseline = unsere eigene, datengetriebene Implementierung** (SVG / Framer Motion / CSS /
+  `requestAnimationFrame` / Recharts). **Lottie ist NICHT Baseline** – nur eine Option für
+  expressive Set-Pieces (Celebration/Empty-State), die wir künftig prüfen.
+- **Visualisierte Daten poppen nicht auf, sie werden *aufgebaut*** (hochzählen, füllen, wachsen,
+  zeichnen) – je nach Visualisierungstyp unterschiedlich. **Kein `isAnimationActive={false}`** bei
+  Charts, außer mit kurzer Begründung.
+- **Immer daten- & schwellwertbewusst**: Farb-/Statuswechsel an Schwellen (wie `colorForFill`/
+  Budget-Ampel). `prefers-reduced-motion` → Aufbau überspringen, Zielzustand direkt zeigen.
+- Ein PostToolUse-Hook (`.claude/hooks/animation-baseline-check.mjs`) erinnert automatisch, wenn
+  Daten aufpoppen oder ein Chart die Aufbau-Animation/Schwellwerte ignoriert.
 
 ---
 

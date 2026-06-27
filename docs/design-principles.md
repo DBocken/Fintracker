@@ -13,10 +13,14 @@
 Local-First heißt: Interaktionen fühlen sich **sofort** an, offline-fähig, kein Spinner-Warten.
 Das ist unser struktureller Vorteil gegenüber Cloud-Apps – wir kommunizieren ihn aktiv.
 
-### 2. Bewegung mit Bedeutung — **Lottie ist die Baseline**
-Jede Animation muss *intentional* sein, nicht dekorativ. **Lottie ist unsere Standard-Technik für
-expressive Animationen** (Details unten). Animationen führen den Blick, bestätigen Aktionen und
-machen Daten lebendig – sie lenken nie ab.
+### 2. Bewegung mit Bedeutung — **datengetriebener Aufbau ist die Baseline**
+Jede Animation muss *intentional* sein, nicht dekorativ. **Baseline ist unsere eigene,
+datengetriebene Implementierung** (SVG / Framer Motion / CSS / `requestAnimationFrame` / Recharts).
+Kernregel: **visualisierte Daten poppen nicht auf, sie werden *aufgebaut*** (hochzählen, füllen,
+wachsen, einzeichnen) – die Aufbau-Art hängt vom Visualisierungstyp ab. Animationen sind immer
+**daten- und schwellwertbewusst** (Farb-/Statuswechsel an Schwellen, wie beim `BudgetTank`).
+**Lottie ist NICHT die Baseline**, sondern eine Option für expressive Set-Pieces, die wir künftig
+prüfen (Details unten).
 
 ### 3. Ruhe vor Fülle (Klarheit)
 Jeder Screen hat **eine** klare Hauptaussage. Viel Weißraum, klare Typografie, datenreich aber
@@ -42,42 +46,50 @@ Poster ersetzen). Aussagekräftige `aria-label`, Tap-Ziele groß genug, Kontrast
 
 ---
 
-## Animations-Baseline: Lottie
+## Animations-Baseline: datengetriebener Aufbau
 
-**Lottie ist die Standard-Technik für expressive Animationen.** Verbindlich für:
-- Celebrations / Erfolg (z. B. Ziel erreicht, Budget gehalten)
-- Leere Zustände & Onboarding-Illustrationen
-- Lade-/Fortschritts- und Übergangs-Illustrationen
-- Maskottchen-/Coach-Momente, „Micro-Delight"
+**Grundregel: Visualisierte Daten werden aufgebaut, nicht aufgepoppt.** Sie animieren in ihren
+Zielzustand statt sofort dazustehen – und reflektieren dabei immer **Daten und Schwellwerte**.
 
-### Wo Lottie NICHT die richtige Wahl ist (dokumentierte Ausnahmen)
-Für diese Fälle bleiben **Framer Motion / CSS / SVG** korrekt – Lottie wäre hier schlechter:
-- **Micro-Interactions**: Hover/Press/Focus, Buttons, Ripples
-- **Layout-/List-Transitions**: Ein-/Ausblenden, Reorder, Shared-Layout
-- **Datengetriebene Animationen**: Zahl-Tweens, Charts, der physikalische Budget-Tank
-  (`BudgetTank.tsx` füllt exakt datenabhängig – das kann ein statisches Lottie nicht)
+### Aufbau je Visualisierungstyp (Beispiele)
+| Typ | Aufbau („nicht poppen") |
+|---|---|
+| **Zahlen / KPIs** | Hochzählen (`useAnimatedNumber`) statt Endwert sofort setzen |
+| **Balken / Flächen / Linien** | Recharts-Aufbau-Animation **aktiv lassen** (kein `isAnimationActive={false}`); Linien zeichnen sich, Balken wachsen |
+| **Tank / Gauge / Progress** | Füll-Animation von 0 → Zielwert (`BudgetTank`, rAF) |
+| **Listen / Karten** | Gestaffeltes Einblenden (stagger), nicht alles auf einmal |
 
-Wird eine dieser Techniken bewusst genutzt, **kurz begründen** (Code-Kommentar oder PR-Notiz).
+### Immer daten- & schwellwertbewusst
+- Farbe/Status wechseln **an Schwellen** (z. B. `colorForFill`: blau → bernstein → rot je Füllstand;
+  Budget-Ampel ok/warn/über). Die Animation transportiert den Schwellwert sichtbar mit.
+- Werte sind exakt datengebunden – keine dekorativen Fake-Bewegungen.
 
-### Technische Leitplanken
-- **Renderer (Empfehlung):** `@lottiefiles/dotlottie-react` (kleiner, performanter) – *noch nicht
-  installiert*; vor erstem Einsatz hinzufügen. Alternativ `lottie-react`.
-- **Format:** `.lottie`/dotLottie bevorzugen (kompakter als rohes JSON); Assets unter
-  `src/assets/lottie/`.
-- **Performance:** lazy-laden, nicht im kritischen Render-Pfad; Größe der Animationsdateien im Blick.
-- **Reduced Motion:** zentral über `useReducedMotion` pausieren / Poster zeigen.
+### Reduced Motion
+`prefers-reduced-motion` wird respektiert: Aufbau überspringen und **direkt** den Zielzustand zeigen
+(zentral über `useReducedMotion`). „Direkt gesetzt" bei reduzierter Bewegung ist erlaubt – das ist
+kein verbotenes „Poppen", sondern Barrierefreiheit.
+
+### Lottie — Option für die Zukunft (NICHT Baseline)
+Lottie kann später für **expressive Set-Pieces** sinnvoll sein, die datengetriebenes SVG schlecht
+abbildet: Celebrations, Empty-/Onboarding-Illustrationen, Maskottchen. Es ist aber **kein Standard**
+und nicht verpflichtend. Für *datengetriebene, theme-abhängige, vielfach instanziierte* Grafik (Tank,
+Charts) bleibt unsere eigene Implementierung überlegen (exakter Füllstand, stufenlose Schwellen-Farbe,
+CSS-Theme-Vererbung, geringes Gewicht). Vor einem Lottie-Einsatz: Renderer (`lottie-react` bzw.
+`@lottiefiles/dotlottie-react`) hinzufügen und `prefers-reduced-motion` berücksichtigen.
 
 ### Automatische Prüfung (Baseline-Hook)
 `.claude/settings.json` enthält einen PostToolUse-Hook
-(`.claude/hooks/lottie-baseline-check.mjs`): Nach jeder Bearbeitung einer UI-Datei (`src/**/*.tsx|ts|css`)
-erinnert er, wenn echte Animationsmuster (framer-motion, requestAnimationFrame, @keyframes,
-CSS `animation:`) **ohne** Lottie auftauchen. Tailwind-`transition`-Utilities lösen bewusst **nichts**
-aus. Der Hinweis blockiert nichts – er erzwingt die bewusste Entscheidung gegen die Baseline.
+(`.claude/hooks/animation-baseline-check.mjs`): Nach jeder Bearbeitung einer UI-Datei
+(`src/**/*.tsx|ts`) meldet er, wenn Daten **aufpoppen** (`isAnimationActive={false}`) oder ein Chart
+ergänzt wird, der die Aufbau-Animation/Schwellwerte berücksichtigen sollte. Rein hinweisend – er
+erzwingt die bewusste Entscheidung für den datengetriebenen Aufbau.
 
 ---
 
 ## Konkrete To-dos aus den Prinzipien (Backlog)
-1. Lottie-Renderer einbinden + erste Migration (Celebration/Empty-State/Onboarding).
+1. Aufbau-Animation überall sicherstellen: `isAnimationActive={false}` in `TransactionCharts.tsx` /
+   `LiquidityReport.tsx` prüfen und – wo sinnvoll – auf aktiven Aufbau umstellen (Prinzip 2).
 2. „Zu prüfen"-Inbox für unsichere Transaktionen (Swipe) **mit Erklärung** (Prinzip 4).
 3. Fokussiertes Dashboard: „Dieser Monat"-Karten (Ausgegeben · Trend · Forecast), Prinzip 3.
 4. Command-Palette (⌘K), mobile Haptics, einheitliches Token-System.
+5. Lottie evaluieren (Zukunft): nur für expressive Set-Pieces (Celebration/Empty-State).
