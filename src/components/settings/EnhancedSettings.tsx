@@ -24,6 +24,7 @@ import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
+import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { HouseholdSettings } from './HouseholdSettings';
@@ -298,6 +299,15 @@ export function EnhancedSettings() {
             description="Verschlüsselte Sicherungen deiner lokalen Daten erstellen und wiederherstellen."
           />
           <BackupManager />
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title="Sprach-/KI-Zugriff (MCP) · Proof of Concept"
+            description="Aggregierte Finanzdaten optional in die Cloud freigeben, um sie per Sprache/Chat aus Claude oder ChatGPT abzufragen. Widerspricht bewusst dem Local-only-Prinzip."
+          />
+          <CloudMcpSyncCard />
         </section>
 
         <section className="mb-10">
