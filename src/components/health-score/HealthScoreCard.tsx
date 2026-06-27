@@ -32,7 +32,15 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
       className="rounded-xl border bg-gradient-to-br from-brand/10 to-transparent p-5"
       data-health-score={health.score}
     >
-      <div className="flex items-center gap-4 sm:gap-5">
+      {/* Ganze Kopfzeile klappt die Subscores auf/zu (Usability-Audit „Karten
+          sind Aktionen") – die ganze Fläche ist das Disclosure-Ziel. */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="health-subscores"
+        className="-m-2 flex w-full items-center gap-4 rounded-xl p-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-5"
+      >
         <div className="relative h-20 w-20 shrink-0 sm:h-28 sm:w-28">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
@@ -62,20 +70,16 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
             Finanzieller Gesundheits-Score
           </div>
           <div className={cn("mt-1 text-lg font-semibold sm:text-xl", statusTextClass(bucket))}>{label}</div>
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-sm text-primary hover:underline"
-          >
+          <span className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-sm text-primary">
             Subscores {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          </span>
         </div>
-      </div>
+      </button>
 
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
+            id="health-subscores"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

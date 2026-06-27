@@ -44,6 +44,13 @@ Farb-/Icon-Token (mit Monogramm-Fallback). Keine Insel-Lösungen pro Screen.
 `prefers-reduced-motion` wird überall respektiert – **auch bei Lottie** (pausieren/durch statisches
 Poster ersetzen). Aussagekräftige `aria-label`, Tap-Ziele groß genug, Kontrast ausreichend.
 
+### 8. Karten sind Aktionen, nicht Dekoration
+Aus dem Usability-Test: Nutzer erwarten, dass alles, was wie eine **Karte** aussieht (Rahmen +
+Hintergrund + Schatten/Elevation), als Ganzes **anklickbar** ist – und entweder **navigiert**, ein
+**Popup/Sheet/Dialog** öffnet oder **auf-/zuklappt**. Reine Anzeige-Information **ohne Follow-up**
+gehört **nicht** in eine Karte, sondern wird **gebündelt und ohne Karten-Chrome** klar und präzise
+dargestellt. Details unten.
+
 ---
 
 ## Animations-Baseline: datengetriebener Aufbau
@@ -83,6 +90,40 @@ CSS-Theme-Vererbung, geringes Gewicht). Vor einem Lottie-Einsatz: Renderer (`lot
 (`src/**/*.tsx|ts`) meldet er, wenn Daten **aufpoppen** (`isAnimationActive={false}`) oder ein Chart
 ergänzt wird, der die Aufbau-Animation/Schwellwerte berücksichtigen sollte. Rein hinweisend – er
 erzwingt die bewusste Entscheidung für den datengetriebenen Aufbau.
+
+---
+
+## Karten sind Aktionen: Klickbarkeit (Prinzip 8)
+
+**Grundregel: Karten-Optik = Klick-Versprechen.** Eine Fläche mit Karten-Chrome (Rahmen +
+Hintergrund + Schatten) verspricht eine Aktion. Dieses Versprechen muss eingelöst werden – sonst
+keine Karte.
+
+### Entscheidungsbaum
+1. **Gibt es ein sinnvolles Follow-up?** (Detailseite, Sheet/Dialog, Auf-/Zuklappen)
+   → Ja: **klickbare Karte** – die **ganze Fläche** ist das Klick-Ziel.
+   → Nein: **keine Karte** – Information gebündelt **ohne** Rahmen/Schatten zeigen.
+2. Niemals „nur ein verschachtelter Button in einer ansonsten toten Karte". Entweder die ganze
+   Fläche reagiert, oder es ist keine Karte.
+
+### Bausteine (verbindlich)
+| Fall | Baustein | Garantien |
+|---|---|---|
+| Klickbare Karte (Link/Popup/Akkordion) | `@/components/common/InteractiveCard` | ganze Fläche ist echtes `<a>`/`<Link>`/`<button>`, Fokusring, Hover, Touch-Ziel ≥ 44px, Affordanz-Chevron, `aria-expanded` bei Disclosure |
+| Reines Readout ohne Follow-up | `@/components/common/InfoGroup` / `InfoStatStrip` | kein Rahmen/Schatten → wirkt nicht antippbar; klar gegliederte Werte |
+| Sekundäraktion in klickbarer Karte | Vollflächiger Karten-Button + Aktion mit `pointer-events-auto`/`z-10` darüber (kein Button-im-Button) | gültiges HTML, beide Klickziele erreichbar |
+
+### Affordanz & Accessibility
+- Sichtbarer **Fokusring** (`focus-visible:ring-2`), **Hover**-Feedback, **Chevron** als Hinweis.
+- **Touch-Ziel ≥ 44px**, Tastatur nativ (echtes `<a>`/`<button>`).
+- Bewegung nur `motion-safe` (z. B. Chevron-Shift); `prefers-reduced-motion` neutralisiert global.
+
+### Automatische Prüfung (Karten-Hook)
+`.claude/settings.json` enthält einen PostToolUse-Hook
+(`.claude/hooks/card-clickability-check.mjs`): Nach Bearbeitung einer UI-Datei (`src/**/*.tsx`)
+meldet er, wenn Karten-Chrome ohne Klick-Aktion auftaucht (→ `InteractiveCard` oder de-cardden via
+`InfoGroup`/`InfoStatStrip`) bzw. erinnert, das **ganze** Kartenfeld klickbar zu machen. Rein
+hinweisend – er erzwingt die bewusste Entscheidung.
 
 ---
 

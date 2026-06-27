@@ -9,6 +9,7 @@ import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
 import FoundationLadder from "@/components/coach/FoundationLadder";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import SectionHeader from "@/components/common/SectionHeader";
+import InteractiveCard from "@/components/common/InteractiveCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCoachOverview } from "@/services/coach-service";
@@ -120,15 +121,18 @@ export default function CoachPage() {
         </section>
       )}
 
+      {/* Roadmap-Status & Schuldenkontext: klickbare Karten (Usability-Audit
+          „Karten sind Aktionen") – ganze Fläche navigiert zu Meilensteinen
+          bzw. Schulden/Nettovermögen statt nur Information zu zeigen. */}
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="ds-section">
+        <InteractiveCard to="/milestones" aria-label={t("coach.roadmapStatusAction")}>
           <div className="text-sm text-muted-foreground">{t("coach.roadmapStatus")}</div>
           <div className="mt-2 text-xl font-semibold">{coach?.stage.title}</div>
           <p className="mt-2 text-sm text-muted-foreground">{coach?.stage.description}</p>
           <p className="mt-3 text-sm">{coach?.stage.whyItMatters}</p>
-        </div>
+        </InteractiveCard>
         {coach && coach.debtSummary.totalDebt > 0 ? (
-          <div className="ds-section">
+          <InteractiveCard to="/debts" aria-label={t("coach.debtContextAction")}>
             <div className="text-sm text-muted-foreground">{t("coach.debtContext")}</div>
             <div className="mt-2 text-xl font-semibold">
               {gentleModeEnabled ? "*** " + t("coach.openDebt") : `${coach.debtSummary.totalDebt.toFixed(0)} ` + t("coach.openDebt")}
@@ -137,9 +141,13 @@ export default function CoachPage() {
               {t("coach.minimumPayment")}: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} {t("coach.perMonth")}
             </p>
             <p className="mt-3 text-sm">{t("coach.fasterStrategy")}: {coach.debtSummary.preferredStrategy === "avalanche" ? t("coach.avalanche") : t("coach.snowball")}</p>
-          </div>
+          </InteractiveCard>
         ) : (
-          <div className="rounded-2xl border border-positive/20 bg-positive/5 p-5 shadow-sm">
+          <InteractiveCard
+            to="/net-worth"
+            aria-label={t("coach.viewNetWorth")}
+            className="border-positive/20 bg-positive/5 hover:bg-positive/10"
+          >
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <PartyPopper className="h-4 w-4 text-positive" />
               {t("coach.debtContext")}
@@ -148,13 +156,7 @@ export default function CoachPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               {t("coach.debtFreeDescription")}
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-3">
-              <Link to="/net-worth">
-                {t("coach.viewNetWorth")}
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+          </InteractiveCard>
         )}
       </section>
 

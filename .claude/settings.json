@@ -9,6 +9,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/animation-baseline-check.mjs\"",
             "statusMessage": "Prüfe Animations-Baseline (Daten-Aufbau)…"
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/card-clickability-check.mjs\"",
+            "statusMessage": "Prüfe Karten-Klickbarkeit (Karten sind Aktionen)…"
           }
         ]
       }

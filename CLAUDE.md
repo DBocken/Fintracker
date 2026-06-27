@@ -233,6 +233,19 @@ Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede
 5. **Vertrauen zuerst** (erst ausprobieren, dann Bank verbinden)
 6. **Konsistentes Token-System** (Farbe/Icon/Typo app-weit)
 7. **Accessibility** (`prefers-reduced-motion` überall)
+8. **Karten sind Aktionen** (Karten-Optik ⇒ ganze Fläche klickbar; reine Info ohne Follow-up ohne Karte)
+
+### Karten-Regel (Klickbarkeit)
+- **Karten-Optik = Klick-Versprechen.** Eine Fläche mit Karten-Chrome (Rahmen + Hintergrund +
+  Schatten) muss als **Ganzes** klickbar sein und entweder **navigieren**, ein **Popup/Sheet/Dialog**
+  öffnen oder **auf-/zuklappen**. Kein „toter" Karten-Rahmen mit nur einem verschachtelten Button.
+- **Reine Anzeige-Info ohne Follow-up** gehört **nicht** in eine Karte → gebündelt **ohne**
+  Karten-Chrome (klar/präzise) darstellen.
+- **Bausteine:** klickbar → `@/components/common/InteractiveCard` (Link/Popup/Akkordion, ganze
+  Fläche, Fokusring, Hover, Touch-Ziel ≥ 44px, Chevron); reines Readout →
+  `@/components/common/InfoGroup` / `InfoStatStrip` (kein Rahmen/Schatten).
+- Ein PostToolUse-Hook (`.claude/hooks/card-clickability-check.mjs`) erinnert automatisch, wenn
+  Karten-Chrome ohne Klick-Aktion auftaucht. Vollständig: `docs/design-principles.md` (Prinzip 8).
 
 ### Animations-Regel
 - **Baseline = unsere eigene, datengetriebene Implementierung** (SVG / Framer Motion / CSS /
