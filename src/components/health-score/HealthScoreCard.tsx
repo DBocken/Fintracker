@@ -82,28 +82,31 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
             className="overflow-hidden"
           >
             <div className="mt-4 space-y-3 border-t pt-4">
-              {health.subScores.map((s) => {
-                const subBucket = getStatusBucket(s.score);
-                return (
-                  <div key={s.key}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{s.label}</span>
-                      <span className="tabular-nums text-muted-foreground">{gentleModeEnabled ? '••' : s.score}</span>
-                    </div>
-                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={cn("h-full rounded-full transition-all", statusBgClass(subBucket))}
-                        style={{ width: `${s.score}%` }}
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{s.explanation}</p>
-                  </div>
-                );
-              })}
+              {health.subScores.map((s) => (
+                <SubScoreBar key={s.key} sub={s} gentle={gentleModeEnabled} />
+              ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Unter-Score-Balken: füllt sich datengetrieben auf (count-up), statt aufzupoppen. */
+function SubScoreBar({ sub, gentle }: { sub: FinancialHealth["subScores"][number]; gentle: boolean }) {
+  const shown = useAnimatedNumber(sub.score);
+  const subBucket = getStatusBucket(sub.score);
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">{sub.label}</span>
+        <span className="tabular-nums text-muted-foreground">{gentle ? "••" : Math.round(shown)}</span>
+      </div>
+      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div className={cn("h-full rounded-full", statusBgClass(subBucket))} style={{ width: `${shown}%` }} />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{sub.explanation}</p>
     </div>
   );
 }

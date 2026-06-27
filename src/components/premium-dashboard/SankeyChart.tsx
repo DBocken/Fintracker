@@ -1,4 +1,6 @@
 import { useMemo, useState, useRef } from "react";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [percentMode, setPercentMode] = useState<boolean>(false);
   const [chartHeight, setChartHeight] = useState<number>(500);
+  const reduce = useReducedMotion();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -372,6 +375,15 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
             }}
             className="w-full"
           >
+            {/* Cross-Fade beim Drilldown: Knoten/Links poppen nicht um, sondern
+                blenden sanft (baseline: Aufbau statt Pop). reduced-motion → kein Fade. */}
+            <motion.div
+              key={expandedMainId ?? "root"}
+              initial={reduce ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="h-full w-full"
+            >
             <ResponsiveContainer width="100%" height="100%">
             <Sankey
               data={sankeyData}
@@ -562,6 +574,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               />
             </Sankey>
           </ResponsiveContainer>
+            </motion.div>
           </div>
         </div>
       </CardContent>

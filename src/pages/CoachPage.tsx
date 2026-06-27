@@ -6,6 +6,7 @@ import HealthScoreCard from "@/components/health-score/HealthScoreCard";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
 import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
+import FoundationLadder from "@/components/coach/FoundationLadder";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import SectionHeader from "@/components/common/SectionHeader";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,8 @@ export default function CoachPage() {
           <Skeleton className="h-44 w-full rounded-2xl" />
         )}
       </section>
+
+      <FoundationLadder />
 
       {/* Reichere Illustration + Score: ab lg neben dem Score, mobil darüber.
           Mobil wird die Illustration als kompakte, antippbare Variante gezeigt
