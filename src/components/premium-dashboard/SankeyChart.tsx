@@ -13,6 +13,7 @@ import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import type { SankeyData } from "@/lib/analysis-data";
+import { buildSankeyModel } from "@/lib/sankey-model";
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -45,184 +46,10 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
     [data]
   );
 
-  const sankeyData = useMemo(() => {
-    if (!data || !Array.isArray(data.mainCategories) || data.mainCategories.length === 0) {
-      return { nodes: [], links: [] };
-    }
-    const nodes: {
-      name: string;
-      id: string;
-      type?: string;
-      amount?: number;
-      net?: number;
-      color?: string;
-    }[] = [];
-
-    const links: {
-      source: number;
-      target: number;
-      value: number;
-      label?: string;
-    }[] = [];
-
-    const nodeIndexById: Record<string, number> = {};
-
-    // Konten mit Aktivität (Fallback auf generisches "Konto", falls keine
-    // Konto-Zuordnung in den Daten vorhanden ist).
-    const accountsAll =
-      data.accounts && data.accounts.length > 0
-        ? data.accounts
-        : [
-            {
-              id: "account",
-              name: "Konto",
-              income: data.totalIncome,
-              expenses: totalExpenses,
-              net: data.totalIncome - totalExpenses,
-              color: undefined as string | undefined,
-            },
-          ];
-
-    // Im Fokusmodus nur Konten zeigen, die in dieser Kategorie auch
-    // tatsächlich Ausgaben haben – sonst entstünden verwaiste Knoten.
-    const focusedMain = expandedMainId
-      ? data.mainCategories.find((m) => m.id === expandedMainId)
-      : null;
-    const accountsToShow = focusedMain
-      ? accountsAll.filter((acc) => (focusedMain.byAccount[acc.id] ?? 0) > 0)
-      : accountsAll;
-
-    // Einnahmen-Knoten (nur in Gesamtansicht, und nur wenn Einnahmen vorhanden sind)
-    if (!expandedMainId && data.totalIncome > 0) {
-      nodes.push({
-        name: "Einnahmen",
-        id: "income",
-        type: "income",
-        amount: data.totalIncome,
-      });
-      nodeIndexById["income"] = nodes.length - 1;
-    }
-
-    // Konto-Knoten: einer pro aktivem Konto, mit Netto-Anzeige
-    accountsToShow.forEach((acc) => {
-      const nodeIndex = nodes.length;
-      nodeIndexById[acc.id] = nodeIndex;
-
-      const displayAmount = focusedMain ? focusedMain.byAccount[acc.id] ?? 0 : acc.expenses;
-
-      nodes.push({
-        name: acc.name,
-        id: acc.id,
-        type: "account",
-        amount: displayAmount,
-        net: expandedMainId ? undefined : acc.net,
-        color: acc.color,
-      });
-
-      if (!expandedMainId && data.totalIncome > 0 && acc.income > 0) {
-        links.push({
-          source: nodeIndexById["income"],
-          target: nodeIndex,
-          value: Math.round(acc.income),
-          label: `Einnahmen → ${acc.name}`,
-        });
-      }
-    });
-
-    // Konten → Hauptkategorien (Fokus: nur die expandierte Hauptkategorie anzeigen)
-    const mainsToShow = expandedMainId
-      ? data.mainCategories.filter((m) => m.id === expandedMainId)
-      : data.mainCategories;
-
-    mainsToShow.forEach((main) => {
-      const nodeIndex = nodes.length;
-      nodeIndexById[main.id] = nodeIndex;
-
-      nodes.push({
-        name: main.name,
-        id: main.id,
-        type: "expense-main",
-        amount: main.amount,
-      });
-
-      accountsToShow.forEach((acc) => {
-        const value = Math.round(main.byAccount[acc.id] ?? 0);
-        if (value > 0) {
-          links.push({
-            source: nodeIndexById[acc.id],
-            target: nodeIndex,
-            value,
-            label: `${acc.name} → ${main.name}`,
-          });
-        }
-      });
-    });
-
-    // Ausgewählte Hauptkategorie → Unterkategorien (Top-N + Rest-Bucket für Übersicht)
-    if (expandedMainId) {
-      const subsAll = data.subCategories
-        .filter((sub) => sub.mainId === expandedMainId && sub.amount > 0)
-        .sort((a, b) => b.amount - a.amount);
-
-      const MAX_SUBS = isMobile ? 4 : 6;
-      const totalAmount = subsAll.reduce((sum, s) => sum + s.amount, 0);
-      const topSubs = subsAll.slice(0, MAX_SUBS);
-      const topAmount = topSubs.reduce((sum, s) => sum + s.amount, 0);
-      const restAmount = totalAmount - topAmount;
-
-      const mainIndex = nodeIndexById[expandedMainId];
-      if (mainIndex === undefined) return { nodes, links };
-
-      const mainName =
-        data.mainCategories.find((m) => m.id === expandedMainId)?.name ||
-        "Kategorie";
-
-      topSubs.forEach((sub) => {
-        const subNodeId = sub.id;
-        const subNodeIndex = nodes.length;
-        nodeIndexById[subNodeId] = subNodeIndex;
-
-        nodes.push({
-          name: sub.name,
-          id: subNodeId,
-          type: "expense-sub",
-          amount: sub.amount,
-        });
-
-        const value = Math.round(sub.amount);
-        if (value > 0) {
-          links.push({
-            source: mainIndex,
-            target: subNodeIndex,
-            value,
-            label: `${mainName} → ${sub.name}`,
-          });
-        }
-      });
-
-      if (restAmount > 0.01) {
-        const restId = `__rest_${expandedMainId}`;
-        const restIndex = nodes.length;
-        nodeIndexById[restId] = restIndex;
-
-        nodes.push({
-          name: "Rest",
-          id: restId,
-          type: "expense-sub",
-          amount: restAmount,
-        });
-
-        links.push({
-          source: mainIndex,
-          target: restIndex,
-          value: Math.round(restAmount),
-          label: `${mainName} → Rest`,
-        });
-      }
-    }
-
-    return { nodes, links };
-  }, [data, expandedMainId, totalExpenses, isMobile]);
+  const sankeyData = useMemo(
+    () => buildSankeyModel(data, { isMobile, expandedMainId }),
+    [data, isMobile, expandedMainId],
+  );
 
   // Mindestbreite: Ein Sankey wächst in die BREITE mit der Spalten-/Tiefen-Anzahl,
   // nicht mit der Knotenzahl – viele Kategorien stapeln sich vertikal. Auf Mobil
@@ -369,6 +196,13 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
           </div>
         )}
 
+        {/* Defizit-Hinweis statt eines erfundenen „Übrig"-Knotens (Mobil, Gesamtansicht). */}
+        {isMobile && !expandedMainId && data.totalIncome > 0 && totalExpenses > data.totalIncome && (
+          <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            Ausgaben über Einnahmen in diesem Zeitraum.
+          </div>
+        )}
+
         {/* Chart-Wrapper: horizontal scroll auf Mobile, normal auf Desktop */}
         <div
           ref={scrollContainerRef}
@@ -432,13 +266,16 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                 let fillColor = "hsl(var(--chart-net))";
                 if (payload.type === "income") {
                   fillColor = "hsl(var(--chart-income))"; // Mint für Einnahmen
+                } else if (payload.type === "savings") {
+                  fillColor = "hsl(var(--chart-income))"; // „Übrig" wie Einnahmen (Mint)
                 } else if (payload.type === "account") {
                   // Konten in ihrer eigenen Farbe (aus den Kontoeinstellungen)
                   fillColor = payload.color || "hsl(var(--chart-net))";
                 } else if (payload.type === "expense-main") {
-                  // Jede Hauptkategorie bekommt eigene Farbe aus der Palette
+                  // Jede Hauptkategorie bekommt eigene Farbe aus der Palette; der
+                  // mobile „Weitere"-Bucket (nicht in mainCategories) bleibt neutral.
                   const mainIndex = data.mainCategories.findIndex((m) => m.id === payload.id);
-                  fillColor = chartColorAt(mainIndex, data.mainCategories.length);
+                  fillColor = mainIndex >= 0 ? chartColorAt(mainIndex, data.mainCategories.length) : "hsl(var(--chart-net))";
                 } else if (payload.type === "expense-sub") {
                   // Subcategories: gleiche Farbe wie die übergeordnete Hauptkategorie
                   const subCategory = data.subCategories.find((s) => s.id === payload.id);
