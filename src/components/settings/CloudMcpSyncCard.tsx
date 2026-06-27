@@ -17,10 +17,10 @@ import {
   disableCloudMcpSync,
   enableCloudMcpSync,
   getCloudMcpSyncStatus,
+  getStoredConnectorUrl,
   hasValidConsent,
   MCP_CONFIRM_PHRASE,
   syncCloudMcpAggregates,
-  type EnableResult,
 } from '@/services/cloud-mcp-sync-service';
 
 /**
@@ -40,10 +40,12 @@ export function CloudMcpSyncCard() {
   const [ack, setAck] = useState(false);
   const [phrase, setPhrase] = useState('');
   const [busy, setBusy] = useState(false);
-  const [reveal, setReveal] = useState<EnableResult | null>(null);
+  const [connectorUrl, setConnectorUrl] = useState<string | null>(null);
+  const [tokenOnce, setTokenOnce] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setConnectorUrl(getStoredConnectorUrl());
     getCloudMcpSyncStatus()
       .then((s) => {
         setEnabled(s.enabled);
@@ -65,7 +67,8 @@ export function CloudMcpSyncCard() {
     setBusy(true);
     try {
       const result = await enableCloudMcpSync({ acknowledgedRisk: ack, confirmPhrase: phrase });
-      setReveal(result);
+      setConnectorUrl(result.connectorUrl);
+      setTokenOnce(result.token);
       setEnabled(true);
       setLastSyncedAt(new Date().toISOString());
       resetDialog();
@@ -96,7 +99,8 @@ export function CloudMcpSyncCard() {
       await disableCloudMcpSync();
       setEnabled(false);
       setLastSyncedAt(null);
-      setReveal(null);
+      setConnectorUrl(null);
+      setTokenOnce(null);
       showSuccess('Cloud-Sync deaktiviert – Snapshot gelöscht.');
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Deaktivieren fehlgeschlagen');
@@ -170,19 +174,44 @@ export function CloudMcpSyncCard() {
             </div>
           </div>
 
-          {reveal && (
+          {enabled && connectorUrl && (
             <div className="space-y-3 rounded-xl border border-amber-500/40 bg-background p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="h-4 w-4" />
-                Wird nur EINMAL angezeigt – jetzt kopieren!
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Cloud className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                Das gibst du an Claude weiter:
               </div>
-              <FieldCopy label="Connector-URL" value={reveal.connectorUrl} onCopy={copy} />
-              <FieldCopy label="Zugriffstoken" value={reveal.token} onCopy={copy} />
-              <p className="text-xs text-muted-foreground">
-                Trage die Connector-URL als „No Auth"-MCP-Connector in Claude/ChatGPT ein. Das Token
-                steckt im Pfad (POC-Vereinfachung – produktiv wäre OAuth nötig).
+              <FieldCopy label="Connector-URL" value={connectorUrl} onCopy={copy} />
+
+              <ol className="ml-4 list-decimal space-y-1 text-sm text-muted-foreground">
+                <li>Claude öffnen → <strong>Einstellungen → Connectors</strong>.</li>
+                <li>
+                  <strong>Custom Connector hinzufügen</strong> → obige URL einfügen → Auth
+                  „None“ → verbinden.
+                </li>
+                <li>
+                  Im <strong>Text-Chat</strong> fragen (z. B. „Wie viel habe ich diesen Monat für
+                  Lebensmittel ausgegeben?“). Zum Sprechen die <strong>Diktat-Taste</strong> nutzen.
+                </li>
+              </ol>
+
+              {tokenOnce && (
+                <p className="text-xs text-muted-foreground">
+                  Hinweis: Das Zugriffstoken steckt in der URL. Behandle sie wie ein Passwort. Nach
+                  „Deaktivieren“ wird sie ungültig.
+                </p>
+              )}
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Claudes Voice-Modus ruft (Stand 2026) keine MCP-Tools auf – daher Text-Chat +
+                Diktat. POC: Token-in-URL statt OAuth.
               </p>
             </div>
+          )}
+
+          {enabled && !connectorUrl && (
+            <p className="rounded-xl border border-muted bg-background p-3 text-sm text-muted-foreground">
+              Aktiv, aber die Connector-URL ist auf diesem Gerät nicht hinterlegt (z. B. anderes
+              Gerät). Zum erneuten Anzeigen einmal <strong>Deaktivieren</strong> und neu aktivieren.
+            </p>
           )}
         </div>
       )}

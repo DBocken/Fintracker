@@ -88,11 +88,13 @@ Vorbereitet ist alles: Der MCP-Endpunkt läuft als Vercel-Function in dieser App
 2. **In der App aktivieren** — Einstellungen → **Sprach-/KI-Zugriff (MCP)** →
    doppelte Bestätigung → Connector-URL kopieren
    (`https://<deine-app>/api/mcp/<token>`).
-3. **In ChatGPT/Claude eintragen** — Custom-MCP-Connector mit „No Authentication"
-   anlegen, die URL einfügen. Dann Frage **diktieren**.
+3. **In Claude eintragen** — Claude → Einstellungen → **Connectors** → Custom
+   Connector hinzufügen → die URL einfügen (Auth „None"). Die App zeigt nach der
+   Aktivierung genau diese URL + die Claude-Schritte an. (ChatGPT geht auch:
+   Developer Mode, Plus/Pro.)
 
-> ChatGPT-Connector brauchen Developer Mode (Plus/Pro). Voice ruft keine
-> MCP-Tools auf → im **Text-Chat** fragen (Eingabe per Diktat).
+> Voice ruft (Stand 2026) bei Claude UND ChatGPT keine MCP-Tools auf → im
+> **Text-Chat** fragen, Eingabe per **Diktat**.
 
 Optional statt Vercel-Function: separater Server `mcp-poc/` + `VITE_MCP_POC_URL`.
 

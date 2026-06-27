@@ -258,6 +258,26 @@ const LOOKBACK_MONTHS = 6;
  * (`/api/mcp/<token>`) – dann ist keine Konfiguration nötig. Optional kann
  * `VITE_MCP_POC_URL` auf einen separaten Server (mcp-poc/) zeigen.
  */
+// Das Klartext-Token wird zusätzlich lokal gemerkt, damit die Connector-URL
+// jederzeit (auch nach Reload) erneut angezeigt werden kann. Liegt nur auf
+// diesem Gerät – serverseitig wird weiterhin nur der Hash gespeichert.
+const CONNECTOR_TOKEN_KEY = 'ausgabentracker_mcp_connector_token_v1';
+
+function rememberToken(token: string): void {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(CONNECTOR_TOKEN_KEY, token);
+}
+
+function forgetToken(): void {
+  if (typeof localStorage !== 'undefined') localStorage.removeItem(CONNECTOR_TOKEN_KEY);
+}
+
+/** Connector-URL aus dem lokal gemerkten Token, falls vorhanden (sonst null). */
+export function getStoredConnectorUrl(): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  const token = localStorage.getItem(CONNECTOR_TOKEN_KEY);
+  return token ? buildConnectorUrl(token) : null;
+}
+
 function buildConnectorUrl(token: string): string {
   const configured = import.meta.env.VITE_MCP_POC_URL;
   const base = configured
@@ -326,6 +346,7 @@ export async function enableCloudMcpSync(consent: SyncConsent): Promise<EnableRe
     );
   if (error) throw new Error(`Snapshot-Upload fehlgeschlagen: ${error.message}`);
 
+  rememberToken(token);
   return { token, connectorUrl: buildConnectorUrl(token) };
 }
 
@@ -348,6 +369,7 @@ export async function disableCloudMcpSync(): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from(SNAPSHOT_TABLE).delete().eq('user_id', userId);
   if (error) throw new Error(`Deaktivieren fehlgeschlagen: ${error.message}`);
+  forgetToken();
 }
 
 export interface SyncStatus {
