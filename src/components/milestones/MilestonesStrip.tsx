@@ -54,8 +54,8 @@ export default function MilestonesStrip({
             <div
               key={m.definition.key}
               className={cn(
-                "flex items-center gap-3 rounded-lg border p-3",
-                m.achieved ? "border-positive/40 bg-positive/5" : "border-dashed bg-muted/20"
+                "flex items-center gap-3 rounded-lg p-3",
+                m.achieved ? "bg-positive/5" : "bg-muted/20"
               )}
             >
               <div className="relative text-2xl">
@@ -108,8 +108,8 @@ export default function MilestonesStrip({
             animate={{ opacity: 1, y: 0 }}
             transition={reduce ? { duration: 0 } : { delay: i * 0.04 }}
             className={cn(
-              "rounded-lg border p-3 text-center",
-              m.achieved ? "border-positive/40 bg-positive/5" : "border-dashed bg-muted/20 opacity-70"
+              "rounded-lg p-3 text-center",
+              m.achieved ? "bg-positive/5" : "bg-muted/20 opacity-70"
             )}
           >
             <div className="relative text-2xl">
