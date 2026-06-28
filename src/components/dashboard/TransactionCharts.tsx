@@ -8,6 +8,8 @@ import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
 import { chartRamp, CHART_BRAND } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
 import { buildSunburstBreakdown } from '@/lib/analysis-data';
+import type { SunburstTree } from '@/lib/analysis-data';
+import { SpendingSunburstChart } from './SpendingSunburstChart';
 import { buildTransactionsHref } from './filter-utils';
 import type { AusgabenklasseFilter } from './filter-constants';
 
@@ -245,7 +247,7 @@ function SpendingBreakdownList({
 }
 
 /** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
-export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) {
+export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstData; tree?: SunburstTree }) {
   // Baseline: Ringe bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   // Daten sind via useMemo stabil → Hover (Dimming) löst keine Re-Animation aus.
   const animate = !useReducedMotion();
@@ -264,6 +266,10 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
   const navigateToCategory = (outerId: string) => {
     const mainId = outerId.split('::')[1];
     if (mainId) navigate(buildTransactionsHref({ category: mainId }));
+  };
+  // Navigation per reiner Kategorie-ID (Sunburst-Chart liefert sie direkt).
+  const navigateToCategoryId = (categoryId: string) => {
+    navigate(buildTransactionsHref({ category: categoryId }));
   };
 
   const totalExpenses = sunburst?.total ?? 0;
@@ -346,16 +352,27 @@ export function SpendingBreakdownCard({ sunburst }: { sunburst: SunburstData }) 
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
-        {/* Mobil: antippbare Hierarchie statt Hover-Donut — alle Ebenen lesbar. */}
+        {/* Mobil: grafisches, mehrstufiges Sunburst zum Reinzoomen (Hover greift
+            auf Touch nicht). Fallback auf die antippbare Liste, falls kein Baum. */}
         <div className="md:hidden">
-          <SpendingBreakdownList
-            sunburst={sunburst}
-            colorMap={colorMap}
-            showPercent={showPercent}
-            total={totalExpenses}
-            onNavigateKlasse={navigateToKlasse}
-            onNavigateCategory={navigateToCategory}
-          />
+          {tree ? (
+            <SpendingSunburstChart
+              tree={tree}
+              colorMap={colorMap}
+              showPercent={showPercent}
+              onNavigateKlasse={navigateToKlasse}
+              onNavigateCategory={navigateToCategoryId}
+            />
+          ) : (
+            <SpendingBreakdownList
+              sunburst={sunburst}
+              colorMap={colorMap}
+              showPercent={showPercent}
+              total={totalExpenses}
+              onNavigateKlasse={navigateToKlasse}
+              onNavigateCategory={navigateToCategory}
+            />
+          )}
         </div>
 
         {/* Desktop: Sunburst — zwei konzentrische Pie-Ringe, Radien relativ zur Kartengröße */}

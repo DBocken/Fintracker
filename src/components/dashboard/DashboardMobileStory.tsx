@@ -62,6 +62,7 @@ function LandscapeView() {
 interface Props {
   className?: string;
   sunburst: React.ComponentProps<typeof SpendingBreakdownCard>["sunburst"];
+  sunburstTree?: React.ComponentProps<typeof SpendingBreakdownCard>["tree"];
   series: React.ComponentProps<typeof ExpensesOverTimeCard>["series"];
   sankeyData: React.ComponentProps<typeof SankeyChart>["data"];
   effectiveBalances: React.ComponentProps<typeof AccountCards>["balances"];
@@ -77,6 +78,7 @@ interface Props {
 export default function DashboardMobileStory({
   className,
   sunburst,
+  sunburstTree,
   series,
   sankeyData,
   effectiveBalances,
@@ -143,7 +145,7 @@ export default function DashboardMobileStory({
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="min-h-[60vh] touch-pan-y">
         {current === "verlauf" && <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />}
         {current === "fluss" && <SankeyChart data={sankeyData} enableDrilldown={false} />}
-        {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} />}
+        {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} tree={sunburstTree} />}
         {current === "landschaft" && <LandscapeView />}
         {current === "ausgaben" && <ExpensesOverTimeCard series={series} />}
         {current === "konten" && <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />}

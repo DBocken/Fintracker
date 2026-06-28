@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildSpendingSunburst, buildSunburstBreakdown, resolveAusgabenklasse } from '../analysis-data';
+import { buildSpendingSunburst, buildSunburstBreakdown, buildSunburstTree, resolveAusgabenklasse } from '../analysis-data';
+import type { SunburstNode } from '../analysis-data';
 import type { Transaction, Category } from '@/types';
 
 /**
@@ -314,6 +315,109 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
         const groups = buildSunburstBreakdown(sunburst);
         const values = groups.map((g) => g.value);
         expect(values).toEqual([...values].sort((a, b) => b - a));
+      });
+    });
+  });
+
+  // Mehrstufiger Sunburst-Baum für das grafische, zoombare Diagramm.
+  describe('buildSunburstTree (mehrstufige Hierarchie)', () => {
+    const find = (nodes: SunburstNode[], id: string): SunburstNode | undefined => {
+      for (const n of nodes) {
+        if (n.id === id) return n;
+        const hit = find(n.children, id);
+        if (hit) return hit;
+      }
+      return undefined;
+    };
+
+    const transactions: Transaction[] = [
+      // Essenziell > Wohnen > Strom (Unterkategorie)
+      { id: '1', date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      // Essenziell > Wohnen > Wasser (Unterkategorie)
+      { id: '2', date: '2024-06-01', amount: -30, payee: 'Water', description: 'Wasser', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      // Essenziell > Wohnen direkt (ohne Unterkategorie)
+      { id: '3', date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Miete', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      // Essenziell > Lebensmittel (Hauptkategorie ohne Unterkategorien)
+      { id: '4', date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Einkauf', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      // Diskretionaer > Unterhaltung > Streaming
+      { id: '5', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Abo', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      // Unkategorisiert
+      { id: '6', date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Bar', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+      // Einkommen — darf nicht auftauchen
+      { id: '7', date: '2024-06-05', amount: 3000, payee: 'Employer', description: 'Gehalt', original_text: 'Salary', category_id: 'gehalt', auto_mapped: true, confirmed: true, currency: 'EUR' },
+    ];
+
+    describe('Normal Behavior', () => {
+      it('sollte drei Ebenen aufbauen: Klasse -> Hauptkategorie -> Unterkategorie', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const wohnen = find(tree.children, 'essenziell::wohnen');
+        expect(wohnen?.name).toBe('Wohnen');
+        const strom = find(tree.children, 'essenziell::wohnen::strom');
+        expect(strom?.name).toBe('Strom');
+        expect(strom?.value).toBe(80);
+      });
+
+      it('sollte Eltern-Werte als exakte Summe der Kinder halten (lückenlose Ringe)', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const sumChildren = (n: SunburstNode): void => {
+          if (n.children.length > 0) {
+            const sum = n.children.reduce((s, c) => s + c.value, 0);
+            expect(sum).toBeCloseTo(n.value, 5);
+            n.children.forEach(sumChildren);
+          }
+        };
+        tree.children.forEach(sumChildren);
+      });
+
+      it('sollte für direkt gebuchten Rest einer Hauptkategorie ein synthetisches Kind anlegen', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const wohnen = find(tree.children, 'essenziell::wohnen')!;
+        const direct = find([wohnen], 'essenziell::wohnen::__direct');
+        expect(direct?.value).toBe(100); // Miete ohne Unterkategorie
+        expect(direct?.categoryId).toBe('wohnen'); // navigiert zur Hauptkategorie
+        expect(wohnen.value).toBe(210); // 80 + 30 + 100
+      });
+
+      it('sollte Hauptkategorien ohne Unterkategorien als Blatt belassen', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const lebensmittel = find(tree.children, 'essenziell::lebensmittel')!;
+        expect(lebensmittel.children).toEqual([]);
+        expect(lebensmittel.categoryId).toBe('lebensmittel');
+      });
+
+      it('sollte die Wurzel-Klasse für die Einfärbung an alle Nachkommen durchreichen', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const strom = find(tree.children, 'essenziell::wohnen::strom')!;
+        expect(strom.klasseId).toBe('essenziell');
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('sollte Einkommen und Transfers aus dem Gesamtwert ausnehmen', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        // 80 + 30 + 100 + 50 + 15 + 25
+        expect(tree.total).toBe(300);
+        expect(find(tree.children, 'einkommen')).toBeUndefined();
+      });
+
+      it('sollte unkategorisierte Ausgaben als Blatt auf Klassen-Ebene halten', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const unkat = find(tree.children, 'unkategorisiert')!;
+        expect(unkat.value).toBe(25);
+        expect(unkat.children).toEqual([]);
+        expect(unkat.categoryId).toBeNull();
+      });
+
+      it('sollte einen leeren Baum für leere Eingaben liefern', () => {
+        const tree = buildSunburstTree([], fullCategoryHierarchy);
+        expect(tree.total).toBe(0);
+        expect(tree.children).toEqual([]);
+      });
+
+      it('sollte Geschwister je Ebene absteigend nach Wert sortieren', () => {
+        const tree = buildSunburstTree(transactions, fullCategoryHierarchy);
+        const klasseValues = tree.children.map((c) => c.value);
+        expect(klasseValues).toEqual([...klasseValues].sort((a, b) => b - a));
       });
     });
   });

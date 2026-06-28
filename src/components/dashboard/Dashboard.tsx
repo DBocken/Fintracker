@@ -45,7 +45,7 @@ import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } f
 import { listAvailablePeriods } from './period-utils';
 import AnalysisModePanel from './AnalysisModePanel';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
-import { buildSankeyData, buildSpendingSunburst } from '@/lib/analysis-data';
+import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
 
@@ -371,6 +371,9 @@ export function Dashboard() {
 
     // Sunburst: vorgelagerte Ausgabenklasse (Innenring) -> Hauptkategorie (Außenring)
     const sunburst = buildSpendingSunburst(flowTransactions, cats);
+    // Mehrstufiger Baum (Klasse -> Hauptkat. -> Unterkat.) für das grafische,
+    // zoombare Sunburst auf Mobil.
+    const sunburstTree = buildSunburstTree(flowTransactions, cats);
 
     return {
       income,
@@ -380,6 +383,7 @@ export function Dashboard() {
       count: visibleTransactions.length,
       series,
       sunburst,
+      sunburstTree,
     };
   }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
 
@@ -437,6 +441,7 @@ export function Dashboard() {
       <DashboardMobileStory
         className="lg:hidden"
         sunburst={stats.sunburst}
+        sunburstTree={stats.sunburstTree}
         series={stats.series}
         sankeyData={sankeyData}
         effectiveBalances={effectiveBalances}
@@ -450,7 +455,7 @@ export function Dashboard() {
             <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
           </div>
           <div className="xl:col-span-4">
-            <SpendingBreakdownCard sunburst={stats.sunburst} />
+            <SpendingBreakdownCard sunburst={stats.sunburst} tree={stats.sunburstTree} />
           </div>
           <div className="xl:col-span-7">
             <ExpensesOverTimeCard series={stats.series} />
