@@ -4,7 +4,7 @@ import { de } from 'date-fns/locale';
 import { Info, MousePointerClick } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
-import { computeCellDetail, type CellDetail } from '@/lib/finrisk/cell-details';
+import { computeCellDetail, type CellDetail, type CompositionLine } from '@/lib/finrisk/cell-details';
 import { HEATMAP_PAD as PAD, resolveHeatmapCell, isTap } from './heatmap-geometry';
 import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -330,10 +330,11 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       density,
       assumptions: result.assumptions,
       representativeByCell: result.representativeByCell,
+      compositionSchedule: result.compositionSchedule,
       day: selected.day,
       bin: selected.bin,
     });
-  }, [selected, result.representativeByCell, result.assumptions, density]);
+  }, [selected, result.representativeByCell, result.assumptions, result.compositionSchedule, density]);
 
   if (nDays === 0 || density.total === 0) {
     return (
@@ -556,31 +557,48 @@ function driverSentence(detail: CellDetail): string {
   return 'Dieser Pfad liegt nah am typischen Verlauf – keine einzelne Annahme sticht heraus.';
 }
 
+const GROUP_LABEL: Record<CompositionLine['group'], string> = {
+  income: 'Einnahmen',
+  fixed: 'Fixkosten',
+  variable: 'Variable Ausgaben',
+  event: 'Geplante Posten',
+};
+
+/** Balkenfarbe je Gruppe: streuende (variabel/Einnahmen) farbig, fixe neutral. */
+const GROUP_FILL: Record<CompositionLine['group'], string> = {
+  income: 'bg-emerald-500',
+  fixed: 'bg-slate-400',
+  variable: 'bg-amber-500',
+  event: 'bg-slate-400',
+};
+
+const GROUP_SEQUENCE: CompositionLine['group'][] = ['income', 'fixed', 'variable', 'event'];
+
+/** Signierte €-Anzeige: Zuflüsse mit „+", Abflüsse über das Intl-Minus. */
+function fmtSigned(amount: number): string {
+  return `${amount > 0 ? '+' : ''}${eur.format(amount)}`;
+}
+
 /**
- * Eine Annahme-Zeile: Betrag zählt hoch, Balken baut sich von 0 → Ziel auf
- * (datengetriebene Baseline) mit Median-Markierung. `adverse` färbt ungünstige
- * Abweichungen (mehr Ausgaben bzw. weniger Einnahmen) warnend ein.
+ * Eine Posten-Zeile der Zusammensetzung: Betrag zählt hoch, Balken baut sich von
+ * 0 → Ziel auf (datengetriebene Baseline). Streuende Posten (variable Ausgaben,
+ * perturbierte Einnahmen) zeigen zusätzlich Median-Markierung und ±-Abweichung;
+ * fixe Posten sind neutral, weil sie in jedem Pfad gleich sind.
  */
-function ContribRow({
-  label,
-  amount,
-  median,
-  deltaPct,
-  adverse,
+function CompositionRow({
+  line,
+  scale,
   animate,
 }: {
-  label: string;
-  amount: number;
-  median: number;
-  deltaPct: number;
-  adverse: boolean;
+  line: CompositionLine;
+  scale: number;
   animate: boolean;
 }) {
-  const scale = Math.max(amount, median, 1);
-  const targetPct = Math.min(100, (amount / scale) * 100);
-  const medianPct = Math.min(100, (median / scale) * 100);
+  const magnitude = Math.abs(line.amount);
+  // Mindestbreite, damit kleine Posten neben großen sichtbar bleiben.
+  const targetPct = magnitude > 0 ? Math.max(3, Math.min(100, (magnitude / scale) * 100)) : 0;
   const [width, setWidth] = useState(animate ? 0 : targetPct);
-  const shown = useAnimatedNumber(amount, { enabled: animate });
+  const shown = useAnimatedNumber(line.amount, { enabled: animate });
 
   useEffect(() => {
     if (!animate) {
@@ -591,14 +609,20 @@ function ContribRow({
     return () => cancelAnimationFrame(raf);
   }, [targetPct, animate]);
 
-  const pct = Math.round(deltaPct * 100);
+  const pct = line.deltaPct != null ? Math.round(line.deltaPct * 100) : 0;
+  const showBadge = line.varies && Math.abs(pct) >= 1;
+  // Ungünstig: weniger Einnahmen bzw. mehr Ausgaben als der typische Pfad.
+  const adverse = line.group === 'income' ? pct < 0 : pct > 0;
+  const medianMag = line.median != null ? Math.abs(line.median) : null;
+  const medianPct = medianMag != null ? Math.min(100, (medianMag / scale) * 100) : null;
+
   return (
     <div className="space-y-1">
       <div className="flex items-baseline justify-between gap-2 text-sm">
-        <span className="min-w-0 truncate">{label}</span>
+        <span className="min-w-0 truncate">{line.name}</span>
         <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
-          <span className="font-semibold">{eur.format(shown)}</span>
-          {Math.abs(pct) >= 1 && (
+          <span className="font-semibold">{fmtSigned(shown)}</span>
+          {showBadge && (
             <span
               className={cn(
                 'rounded px-1 text-[10px] font-medium',
@@ -617,22 +641,28 @@ function ContribRow({
         <div
           className={cn(
             'absolute left-0 top-0 h-full rounded-full',
-            adverse ? 'bg-amber-500' : 'bg-emerald-500',
+            GROUP_FILL[line.group],
             animate && 'transition-[width] duration-700 ease-out',
           )}
           style={{ width: `${width}%` }}
         />
-        <span
-          className="absolute -top-0.5 h-3 w-px bg-foreground/60"
-          style={{ left: `${medianPct}%` }}
-          title={`Median ${eur.format(median)}`}
-        />
+        {medianPct != null && (
+          <span
+            className="absolute -top-0.5 h-3 w-px bg-foreground/60"
+            style={{ left: `${medianPct}%` }}
+            title={line.median != null ? `Median ${fmtSigned(line.median)}` : undefined}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-/** Inhalt des Zell-Detail-Dialogs: Treiber-Erklärung + aufgeschlüsselte Annahmen. */
+/**
+ * Inhalt des Zell-Detail-Dialogs: Treiber-Erklärung + vollständige, nach Gruppen
+ * sortierte Zusammensetzung des Saldos (Einnahmen, Fixkosten, variable Ausgaben,
+ * geplante Posten) bis zu diesem Tag.
+ */
 function CellDetailBody({ detail }: { detail: CellDetail }) {
   const animate = !useReducedMotion();
   const rep = detail.representative;
@@ -645,65 +675,36 @@ function CellDetailBody({ detail }: { detail: CellDetail }) {
       </p>
     );
   }
+  if (rep.composition.length === 0) {
+    return <p className="text-sm text-muted-foreground">Für diese Zelle liegen keine Einzelposten vor.</p>;
+  }
 
-  const TOP = 6;
-  const shownCategories = rep.variableByCategory.slice(0, TOP);
-  const restCount = rep.variableByCategory.length - shownCategories.length;
+  const scale = Math.max(1, ...rep.composition.map((c) => Math.abs(c.amount)));
+  const PER_GROUP = 6;
 
   return (
     <div className="space-y-4">
       <p className="text-sm">{driverSentence(detail)}</p>
 
-      <section className="space-y-2.5">
-        <h4 className="text-xs font-medium text-muted-foreground">
-          Variable Ausgaben bis zu diesem Tag (kumuliert) · vs. typischer Pfad
-        </h4>
-        {shownCategories.map((c) => (
-          <ContribRow
-            key={c.category}
-            label={c.category}
-            amount={c.amount}
-            median={c.median}
-            deltaPct={c.deltaPct}
-            adverse={c.amount > c.median}
-            animate={animate}
-          />
-        ))}
-        {restCount > 0 && (
-          <p className="text-[11px] text-muted-foreground">+ {restCount} weitere Kategorien</p>
-        )}
-        <div className="flex items-center justify-between border-t pt-2 text-sm">
-          <span className="font-medium">Summe variable Ausgaben</span>
-          <span className="tabular-nums font-semibold">
-            {eur.format(rep.totalVariable)}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">
-              (typisch {eur.format(rep.totalVariableMedian)})
-            </span>
-          </span>
-        </div>
-      </section>
-
-      {rep.income.length > 0 && (
-        <section className="space-y-2.5">
-          <h4 className="text-xs font-medium text-muted-foreground">Einnahmen · vs. typischer Pfad</h4>
-          {rep.income.map((i) => (
-            <ContribRow
-              key={i.name}
-              label={i.name}
-              amount={i.amount}
-              median={i.median}
-              deltaPct={i.deltaPct}
-              adverse={i.amount < i.median}
-              animate={animate}
-            />
-          ))}
-        </section>
-      )}
+      {GROUP_SEQUENCE.map((group) => {
+        const lines = rep.composition.filter((c) => c.group === group);
+        if (lines.length === 0) return null;
+        const shown = lines.slice(0, PER_GROUP);
+        const rest = lines.length - shown.length;
+        return (
+          <section key={group} className="space-y-2.5">
+            <h4 className="text-xs font-medium text-muted-foreground">{GROUP_LABEL[group]}</h4>
+            {shown.map((line) => (
+              <CompositionRow key={`${group}-${line.name}`} line={line} scale={scale} animate={animate} />
+            ))}
+            {rest > 0 && <p className="text-[11px] text-muted-foreground">+ {rest} weitere</p>}
+          </section>
+        );
+      })}
 
       <p className="text-[11px] text-muted-foreground">
-        Repräsentativer Pfad dieser Zelle. Fixkosten, Transfers und geplante Posten sind in jedem
-        Pfad gleich – die Streuung kommt aus den variablen Ausgaben
-        {rep.income.length > 0 ? ' und Einnahmen' : ''}.
+        Kumuliert bis zu diesem Tag, repräsentativer Pfad. Fixkosten und geplante Posten sind in
+        jedem Pfad gleich – die Streuung (±) kommt aus variablen Ausgaben und Einnahmen.
       </p>
     </div>
   );

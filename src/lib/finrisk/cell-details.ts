@@ -15,6 +15,29 @@
 import { getDaysInMonth, parseISO } from 'date-fns';
 import type { DensityField } from './density';
 import type { TrialAssumptions } from '../forecast-montecarlo-types';
+import type { CompositionItem } from './scenario-payload-types';
+
+/** Anzeigegruppe eines Geldfluss-Postens in der Zell-Zusammensetzung. */
+export type CompositionGroup = 'income' | 'fixed' | 'variable' | 'event';
+
+/**
+ * Eine Zeile der vollständigen Zell-Zusammensetzung: ein benannter Geldfluss,
+ * kumuliert bis zum Tag. `varies` markiert die je Pfad streuenden Posten
+ * (variable Ausgaben, perturbierte Einnahmen), die zusätzlich gegen den Median
+ * verglichen werden.
+ */
+export interface CompositionLine {
+  name: string;
+  group: CompositionGroup;
+  /** Signierter kumulierter Betrag bis zum Tag (EUR): + Zufluss, − Abfluss. */
+  amount: number;
+  /** Streut über die Pfade? Nur dann sind `median`/`deltaPct` gesetzt. */
+  varies: boolean;
+  /** Median des Betrags über alle Pfade (signiert). */
+  median?: number;
+  /** Relative Abweichung der Beträge vom Median (auf Magnitude bezogen). */
+  deltaPct?: number;
+}
 
 /** Beitrag einer variablen Ausgaben-Kategorie zum Saldo der Zelle. */
 export interface CategoryContribution {
@@ -54,6 +77,13 @@ export interface CellRepresentative {
   totalVariableMedian: number;
   /** Größter Einzeltreiber der Abweichung – oder null, wenn keine Kategorien. */
   topDriver: CategoryContribution | null;
+  /**
+   * Vollständige Zusammensetzung des Saldos bis zu diesem Tag – ein Posten je
+   * Einnahme/Fixkosten-Vertrag/variabler Kategorie/geplantem Posten. Gruppiert
+   * (Einnahmen → Fixkosten → variabel → geplant), innerhalb der Gruppe nach
+   * Betrag absteigend. Leer, wenn keine Posten vorliegen.
+   */
+  composition: CompositionLine[];
 }
 
 /** Vollständiges Detail einer angeklickten Heatmap-Zelle. */
@@ -85,9 +115,19 @@ export interface ComputeCellDetailParams {
   assumptions: TrialAssumptions[];
   /** `representativeByCell[tag][bin]` – Trial-Index oder -1. */
   representativeByCell: number[][];
+  /** Benannte deterministische Geldfluss-Posten (Einnahmen/Fixkosten/geplant). */
+  compositionSchedule?: CompositionItem[];
   day: number;
   bin: number;
 }
+
+/** Reihenfolge der Gruppen in der Zusammensetzung. */
+const GROUP_ORDER: Record<CompositionGroup, number> = {
+  income: 0,
+  fixed: 1,
+  variable: 2,
+  event: 3,
+};
 
 /** Median eines Zahlen-Arrays (leeres Array → 0). */
 function median(values: number[]): number {
@@ -126,7 +166,7 @@ function cumulativeToDay(
  * trotzdem gefüllt.
  */
 export function computeCellDetail(params: ComputeCellDetailParams): CellDetail | null {
-  const { density, assumptions, representativeByCell, day, bin } = params;
+  const { density, assumptions, representativeByCell, compositionSchedule, day, bin } = params;
   if (!density || density.total === 0 || density.binSize <= 0) return null;
   const nDays = density.dates.length;
   if (day < 0 || day >= nDays) return null;
@@ -204,6 +244,53 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
   const totalVariable = variableByCategory.reduce((s, c) => s + c.amount, 0);
   const totalVariableMedian = variableByCategory.reduce((s, c) => s + c.median, 0);
 
+  // Vollständige Zusammensetzung: benannte deterministische Posten (Einnahmen/
+  // Fixkosten/geplant) bis zum Tag kumuliert + variable Kategorien aus den
+  // Annahmen. Perturbierte Einnahmen werden mit dem Verhältnis dieses Pfads
+  // skaliert und gegen den Median verglichen.
+  const composition: CompositionLine[] = [];
+  const repIncomeByName = new Map(repAssumptions.income.map((i) => [i.name, i]));
+  for (const item of compositionSchedule ?? []) {
+    let cum = 0;
+    for (const booking of item.bookings) if (booking.day <= day) cum += booking.amount;
+    if (Math.abs(cum) < 0.5) continue; // an diesem Tag noch nicht aufgetreten
+
+    const repInc = item.group === 'income' ? repIncomeByName.get(item.name) : undefined;
+    if (repInc && repInc.planned !== 0) {
+      const ratio = repInc.sampled / repInc.planned;
+      const ratios = assumptions.map((a) => {
+        const match = a.income.find((x) => x.name === item.name);
+        return match && match.planned !== 0 ? match.sampled / match.planned : 1;
+      });
+      const med = cum * median(ratios);
+      const amount = cum * ratio;
+      composition.push({
+        name: item.name,
+        group: 'income',
+        amount,
+        varies: true,
+        median: med,
+        deltaPct: relativeDelta(Math.abs(amount), Math.abs(med)),
+      });
+    } else {
+      composition.push({ name: item.name, group: item.group, amount: cum, varies: false });
+    }
+  }
+  for (const cat of variableByCategory) {
+    if (cat.amount < 0.5) continue;
+    composition.push({
+      name: cat.category,
+      group: 'variable',
+      amount: -cat.amount,
+      varies: true,
+      median: -cat.median,
+      deltaPct: cat.deltaPct,
+    });
+  }
+  composition.sort(
+    (a, b) => GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || Math.abs(b.amount) - Math.abs(a.amount),
+  );
+
   detail.representative = {
     trial,
     value: binCenter,
@@ -212,6 +299,7 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
     totalVariable,
     totalVariableMedian,
     topDriver: variableByCategory[0] ?? null,
+    composition,
   };
   return detail;
 }
