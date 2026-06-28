@@ -458,6 +458,64 @@ export function buildSpendingSunburst(
   };
 }
 
+export interface SunburstBreakdownChild {
+  /** Außenring-ID der Form `${superId}::${mainId}`. */
+  id: string;
+  name: string;
+  value: number;
+  /** Anteil am Eltern-Klassen-Wert (0..1). */
+  share: number;
+}
+export interface SunburstBreakdownGroup {
+  /** Klassen-ID (Innenring). */
+  id: string;
+  name: string;
+  value: number;
+  /** Anteil am Gesamt-Ausgabenwert (0..1). */
+  share: number;
+  children: SunburstBreakdownChild[];
+}
+
+/**
+ * Verflacht die zwei Sunburst-Ringe in eine geordnete Eltern→Kind-Hierarchie
+ * für die mobile, antippbare Aufschlüsselung. Während der Donut die tieferen
+ * Ebenen nur per Hover zeigt (auf Touch unerreichbar), macht diese Struktur
+ * jede Hauptkategorie je Klasse als Text + Anteilsbalken sichtbar.
+ *
+ * Gruppen folgen der Innenring-Reihenfolge (bereits nach Wert sortiert),
+ * Kinder werden je Gruppe absteigend nach Wert sortiert. Anteile sind relativ:
+ * Gruppe zur Gesamtsumme, Kind zum jeweiligen Klassen-Wert.
+ */
+export function buildSunburstBreakdown(sunburst: SpendingSunburst): SunburstBreakdownGroup[] {
+  const childrenByParent = new Map<string, SunburstOuter[]>();
+  for (const o of sunburst.outer ?? []) {
+    const arr = childrenByParent.get(o.parentId) ?? [];
+    arr.push(o);
+    childrenByParent.set(o.parentId, arr);
+  }
+
+  const total = sunburst.total > 0 ? sunburst.total : (sunburst.inner ?? []).reduce((s, it) => s + it.value, 0);
+
+  return (sunburst.inner ?? []).map((klasse) => {
+    const rawChildren = (childrenByParent.get(klasse.id) ?? [])
+      .slice()
+      .sort((a, b) => b.value - a.value);
+    const children: SunburstBreakdownChild[] = rawChildren.map((c) => ({
+      id: c.id,
+      name: c.name,
+      value: c.value,
+      share: klasse.value > 0 ? c.value / klasse.value : 0,
+    }));
+    return {
+      id: klasse.id,
+      name: klasse.name,
+      value: klasse.value,
+      share: total > 0 ? klasse.value / total : 0,
+      children,
+    };
+  });
+}
+
 export interface WeekdayPatternEntry {
   day: string;
   income: number;
