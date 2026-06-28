@@ -432,11 +432,10 @@ export function Dashboard() {
 
       <KpiSection data={{ transactions: visibleTransactions }} />
 
-      {/* Mobile: Finanz-Story mit adressierbaren Ansichten (Audit P1.4) */}
+      {/* Mobile: Finanz-Story mit adressierbaren Ansichten (Audit P1.4).
+          Kontostand/Saldo kommen aus TransactionStats oben – hier nicht doppelt. */}
       <DashboardMobileStory
         className="lg:hidden"
-        currentBalance={stats.currentBalance}
-        periodNet={stats.balance}
         sunburst={stats.sunburst}
         series={stats.series}
         sankeyData={sankeyData}

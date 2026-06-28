@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { Activity, BadgePercent, ArrowLeftRight } from "lucide-react";
+import { BadgePercent, CalendarClock } from "lucide-react";
 import type { Transaction } from "@/types";
 
+// Bewusst nur Kennzahlen, die NICHT bereits in der festen Übersicht
+// (TransactionStats: Kontostand, Einnahmen, Ausgaben, Saldo, Transaktionen)
+// stehen – sonst doppelte Darstellung. KPIs liefern ergänzende Analytik.
 export type KpiId =
-  | "net_cashflow"
   | "savings_rate"
-  | "transactions_count"
   | "average_daily_expenses";
 
 export type KpiComputeInput = {
@@ -32,10 +33,6 @@ const fmtPct1 = new Intl.NumberFormat("de-DE", {
   maximumFractionDigits: 1,
 });
 
-const fmtInt = new Intl.NumberFormat("de-DE", {
-  maximumFractionDigits: 0,
-});
-
 function calcIncomeExpenses(transactions: Transaction[]) {
   let income = 0;
   let expenses = 0;
@@ -49,17 +46,6 @@ function calcIncomeExpenses(transactions: Transaction[]) {
 
 export const KPI_DEFINITIONS: KpiDefinition[] = [
   {
-    id: "net_cashflow",
-    label: "Netto-Cashflow",
-    description: "Einnahmen minus Ausgaben",
-    icon: ArrowLeftRight,
-    compute: ({ transactions }) => {
-      const { income, expenses } = calcIncomeExpenses(transactions);
-      return income - expenses;
-    },
-    format: (v) => fmtEUR0.format(v),
-  },
-  {
     id: "savings_rate",
     label: "Sparquote",
     description: "(Einnahmen - Ausgaben) / Einnahmen",
@@ -72,16 +58,10 @@ export const KPI_DEFINITIONS: KpiDefinition[] = [
     format: (v) => fmtPct1.format(v),
   },
   {
-    id: "transactions_count",
-    label: "Transaktionen",
-    icon: Activity,
-    compute: ({ transactions }) => transactions.length,
-    format: (v) => fmtInt.format(v),
-  },
-  {
     id: "average_daily_expenses",
     label: "Ø Tagesausgaben",
-    description: "Ausgaben / 30 (vorbereitet)",
+    description: "Ausgaben / 30",
+    icon: CalendarClock,
     compute: ({ transactions }) => {
       const { expenses } = calcIncomeExpenses(transactions);
       return expenses / 30;
@@ -91,8 +71,8 @@ export const KPI_DEFINITIONS: KpiDefinition[] = [
 ];
 
 export const DEFAULT_KPI_PREFS = {
-  order: ["net_cashflow", "savings_rate", "transactions_count"] as KpiId[],
-  active: ["net_cashflow", "savings_rate", "transactions_count"] as KpiId[],
+  order: ["savings_rate", "average_daily_expenses"] as KpiId[],
+  active: ["savings_rate", "average_daily_expenses"] as KpiId[],
 };
 
 export const KPI_BY_ID: Record<KpiId, KpiDefinition> = KPI_DEFINITIONS.reduce(

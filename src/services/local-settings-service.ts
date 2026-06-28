@@ -219,8 +219,8 @@ export function buildDefaultLocalSettings(): UserSettings {
     enable_subcategories: true,
     theme: "legacy",
     kpi_prefs: {
-      order: ["net_cashflow", "savings_rate", "transactions_count"],
-      active: ["net_cashflow", "savings_rate", "transactions_count"],
+      order: ["savings_rate", "average_daily_expenses"],
+      active: ["savings_rate", "average_daily_expenses"],
     },
   };
 }
