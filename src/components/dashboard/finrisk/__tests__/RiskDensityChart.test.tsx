@@ -90,10 +90,14 @@ describe('RiskDensityChart', () => {
       expect(screen.getByRole('img').getAttribute('aria-label')).not.toMatch(/Zelle antippen/);
     });
 
-    it('sollte einen Klick ohne gültige Geometrie ohne Absturz verarbeiten', () => {
+    it('sollte ein Tippen (Pointerdown→up) ohne gültige Geometrie ohne Absturz verarbeiten', () => {
       render(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
       const stage = screen.getByRole('img');
-      expect(() => fireEvent.click(stage, { clientX: 120, clientY: 80 })).not.toThrow();
+      expect(() => {
+        fireEvent.pointerDown(stage, { clientX: 120, clientY: 80 });
+        fireEvent.pointerUp(stage, { clientX: 121, clientY: 81 });
+        fireEvent.pointerCancel(stage);
+      }).not.toThrow();
     });
   });
 
