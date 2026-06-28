@@ -72,11 +72,24 @@ export function hasFeatureAccess(userTier: Tier, feature: FeatureKey): boolean {
  * restrictive tier to avoid flashing premium content. Alpha testers can
  * unlock premium locally via an access code (`override`); the override only
  * ever upgrades and never downgrades the base tier.
+ *
+ * `demoActive` schaltet alle Premium-Features frei: Wer die Demo-Beispieldaten
+ * ansieht, soll die Vollversion ausprobieren können (Try-before-buy, Prinzip
+ * „Vertrauen zuerst"). Wie der Override hebt es nur an, nie ab. Kein Schutzwall:
+ * Premium ist (noch) nicht käuflich und über den Alpha-Code ohnehin lokal frei.
  */
-export function deriveTier(status: AuthStatus, override?: Tier | null): Tier {
-  const base: Tier = status === "authenticated" ? "free" : "anonymous";
-  if (override && TIER_RANK[override] > TIER_RANK[base]) return override;
-  return base;
+export function deriveTier(
+  status: AuthStatus,
+  override?: Tier | null,
+  demoActive = false,
+): Tier {
+  let tier: Tier = status === "authenticated" ? "free" : "anonymous";
+  const upgrade = (candidate: Tier | null | undefined) => {
+    if (candidate && TIER_RANK[candidate] > TIER_RANK[tier]) tier = candidate;
+  };
+  if (demoActive) upgrade("premium");
+  upgrade(override);
+  return tier;
 }
 
 /** localStorage key for the locally stored alpha/premium access override. */

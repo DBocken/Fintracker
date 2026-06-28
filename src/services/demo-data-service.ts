@@ -14,6 +14,13 @@ import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-sto
 
 export const DEMO_ID_PREFIX = 'demo-';
 export const DEMO_ACTIVE_KEY = 'ausgabentracker_demo_active_v1';
+/** Fenster-Event, das beim Aktivieren/Entfernen der Demo gefeuert wird (für reaktives Tier). */
+export const DEMO_ACTIVE_EVENT = 'demo-active-change';
+
+/** Signalisiert eine Änderung des Demo-Status an Hooks im selben Tab. */
+function notifyDemoActiveChange(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(DEMO_ACTIVE_EVENT));
+}
 
 export function isDemoRecord(record: { id?: string }): boolean {
   return typeof record.id === 'string' && record.id.startsWith(DEMO_ID_PREFIX);
@@ -212,6 +219,7 @@ export async function loadDemoData(now: Date = new Date()): Promise<DemoDataset>
   ]);
 
   getFlagStorage()?.setItem(DEMO_ACTIVE_KEY, 'true');
+  notifyDemoActiveChange();
   return dataset;
 }
 
@@ -230,4 +238,5 @@ export async function removeDemoData(): Promise<void> {
   ]);
 
   getFlagStorage()?.removeItem(DEMO_ACTIVE_KEY);
+  notifyDemoActiveChange();
 }
