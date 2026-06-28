@@ -20,7 +20,7 @@ import type { MonteCarloConfig } from '../forecast-montecarlo-types';
 import { payloadToScenario } from './scenario-payload-adapter';
 import { calculateStressCapacity } from './stress-capacity';
 import { calculateBreachProbabilities } from './breach';
-import { buildDensityField } from './density';
+import { buildDensityField, type DensityField } from './density';
 import { generateRiskDiagnosis } from './risk-diagnosis';
 import type { LumpyRiskProfile } from './lumpy-risk';
 import type { ScenarioPayload, ScenarioResult } from './scenario-payload-types';
@@ -29,15 +29,51 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** Mischt zwei gleich lange Pfadmengen im Verhältnis `probability`. */
-function mixPaths(
-  baseline: number[][],
-  scenario: number[][],
-  probability: number,
-): number[][] {
+/**
+ * Mischt zwei gleich lange Mengen im Verhältnis `probability`: die ersten
+ * `probability`-Anteil stammen aus `scenario`, der Rest aus `baseline`. Wird
+ * sowohl für Pfade als auch für die parallel gesammelten Annahmen genutzt –
+ * damit bleibt Index i in beiden Mengen derselbe Durchlauf.
+ */
+function mixByProbability<T>(baseline: T[], scenario: T[], probability: number): T[] {
   const p = Math.min(Math.max(probability, 0), 1);
   const affected = Math.round(scenario.length * p);
   return [...scenario.slice(0, affected), ...baseline.slice(affected)];
+}
+
+/**
+ * Bestimmt je Heatmap-Zelle (Tag × Wert-Bin) den repräsentativen Durchlauf –
+ * den Pfad, dessen Tageswert dem Bin-Zentrum am nächsten liegt. Liefert die
+ * Trial-Indizes (`[tag][bin]`, -1 für leere Zellen), sodass die UI ohne die
+ * vollständigen Pfade die Annahmen genau eines Pfads je Zelle zeigen kann. Die
+ * Bin-Zuordnung spiegelt exakt {@link buildDensityField} wider.
+ */
+function buildRepresentativeByCell(paths: number[][], density: DensityField): number[][] {
+  const { bins, binSize, valueMin, dates } = density;
+  const nDays = dates.length;
+  if (!(binSize > 0) || paths.length === 0) {
+    return dates.map(() => new Array<number>(bins).fill(-1));
+  }
+  const result: number[][] = new Array(nDays);
+  for (let d = 0; d < nDays; d++) {
+    const reps = new Array<number>(bins).fill(-1);
+    const bestDist = new Array<number>(bins).fill(Infinity);
+    for (let trial = 0; trial < paths.length; trial++) {
+      const v = paths[trial][d];
+      if (!Number.isFinite(v)) continue;
+      let b = Math.floor((v - valueMin) / binSize);
+      if (b < 0) b = 0;
+      else if (b >= bins) b = bins - 1;
+      const center = valueMin + (b + 0.5) * binSize;
+      const dist = Math.abs(v - center);
+      if (dist < bestDist[b]) {
+        bestDist[b] = dist;
+        reps[b] = trial;
+      }
+    }
+    result[d] = reps;
+  }
+  return result;
 }
 
 /** Median einer Tagesspalte über alle Pfade. */
@@ -87,6 +123,7 @@ export function runScenarioPayload(
   const mc: MonteCarloConfig = {
     ...options.monteCarlo,
     collectPaths: true,
+    collectAssumptions: true,
     occurrenceSampling: options.monteCarlo?.occurrenceSampling ?? true,
   };
   const scenario = payloadToScenario(payload, startISO);
@@ -112,7 +149,14 @@ export function runScenarioPayload(
   const baselinePaths = clipToHorizon(baselineRun.paths ?? []);
   const scenarioPaths = clipToHorizon(scenarioRun.paths ?? []);
   const probability = payload.probability ?? 1;
-  const mixedPaths = mixPaths(baselinePaths, scenarioPaths, probability);
+  const mixedPaths = mixByProbability(baselinePaths, scenarioPaths, probability);
+  // Annahmen sind pro Durchlauf (tagunabhängig) – identisch mischen, damit Index
+  // i in `mixedAssumptions` denselben Pfad wie in `mixedPaths` beschreibt.
+  const mixedAssumptions = mixByProbability(
+    baselineRun.assumptions ?? [],
+    scenarioRun.assumptions ?? [],
+    probability,
+  );
 
   const daily = dailyBand(mixedPaths, dates);
 
@@ -134,6 +178,10 @@ export function runScenarioPayload(
   // Dichtefeld der gemischten Pfade – Grundlage der Heatmap. 0 € und der Puffer
   // bleiben garantiert im Wertefenster, damit die Trennlinien sichtbar sind.
   const density = buildDensityField(mixedPaths, dates, { bins: 48, include: [0, threshold] });
+
+  // Repräsentanten je Zelle aus denselben Pfaden – ermöglicht klickbare
+  // Zell-Details, ohne alle Pfade über die Worker-Grenze zu klonen.
+  const representativeByCell = buildRepresentativeByCell(mixedPaths, density);
 
   const diagnosis = generateRiskDiagnosis({
     baselineEndP50,
@@ -164,5 +212,7 @@ export function runScenarioPayload(
     daily,
     density,
     horizonDays,
+    assumptions: mixedAssumptions,
+    representativeByCell,
   };
 }

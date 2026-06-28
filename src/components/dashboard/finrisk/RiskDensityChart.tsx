@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Info } from 'lucide-react';
+import { Info, MousePointerClick } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
+import { computeCellDetail, type CellDetail } from '@/lib/finrisk/cell-details';
 import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
+import { cn } from '@/lib/utils';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -60,7 +71,16 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [hover, setHover] = useState<HoverState | null>(null);
+  const [selected, setSelected] = useState<{ day: number; bin: number } | null>(null);
   const [, setThemeUpdate] = useState(0);
+
+  // Zell-Details (Klick) sind nur möglich, wenn der Lauf die Annahmen je Pfad
+  // mitgeliefert hat – sonst bleibt die Heatmap rein informativ.
+  const canInspect = !!(
+    result.representativeByCell &&
+    result.assumptions &&
+    result.assumptions.length > 0
+  );
 
   // Re-render when theme changes
   useEffect(() => {
@@ -106,8 +126,13 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       PAD.top + (valueMax > valueMin ? (1 - (value - valueMin) / (valueMax - valueMin)) * plotH : 0);
     const dayAtPx = (px: number) =>
       Math.max(0, Math.min(nDays - 1, Math.floor(((px - PAD.left) / plotW) * nDays)));
-    return { plotW, plotH, xAt, yAt, dayAtPx };
-  }, [size.w, size.h, nDays, valueMin, valueMax]);
+    const binAtPy = (py: number) => {
+      const binPx = plotH / Math.max(1, density.bins);
+      const row = Math.floor((py - PAD.top) / binPx);
+      return Math.max(0, Math.min(density.bins - 1, density.bins - 1 - row));
+    };
+    return { plotW, plotH, xAt, yAt, dayAtPx, binAtPy };
+  }, [size.w, size.h, nDays, valueMin, valueMax, density.bins]);
 
   // Zeichnen mit theme-aware Farben.
   useEffect(() => {
@@ -264,6 +289,33 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     [geom, size.w],
   );
 
+  // Klick/Tap auf eine Zelle öffnet die Annahmen-Details. Bewusst eigener
+  // Handler (nicht der Hover), damit ein Tap gezielt Tag UND Wert-Bin wählt.
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!canInspect) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (px < PAD.left || px > size.w - PAD.right || py < PAD.top || py > size.h - PAD.bottom) {
+        return;
+      }
+      setSelected({ day: geom.dayAtPx(px), bin: geom.binAtPy(py) });
+    },
+    [canInspect, geom, size.w, size.h],
+  );
+
+  const cellDetail = useMemo<CellDetail | null>(() => {
+    if (!selected || !result.representativeByCell || !result.assumptions) return null;
+    return computeCellDetail({
+      density,
+      assumptions: result.assumptions,
+      representativeByCell: result.representativeByCell,
+      day: selected.day,
+      bin: selected.bin,
+    });
+  }, [selected, result.representativeByCell, result.assumptions, density]);
+
   if (nDays === 0 || density.total === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
@@ -311,6 +363,12 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
                 <span className="font-medium text-foreground">multimodale</span> Verteilung.
               </p>
               <p>Gestrichelt: 0 €, Sicherheitspuffer und der kritische Tag des gewählten Niveaus.</p>
+              {canInspect && (
+                <p className="flex items-center gap-1 border-t pt-1.5 text-muted-foreground">
+                  <MousePointerClick className="h-3 w-3 shrink-0" />
+                  Tippe eine Zelle an, um die Annahmen dahinter zu sehen.
+                </p>
+              )}
             </PopoverContent>
           </Popover>
         </div>
@@ -352,15 +410,16 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       {/* DIE Grafik. */}
       <div
         ref={wrapRef}
-        className="relative w-full touch-none select-none"
+        className={cn('relative w-full touch-none select-none', canInspect && 'cursor-pointer')}
         style={{ height: size.h || 300 }}
         onPointerMove={handlePointer}
         onPointerDown={handlePointer}
         onPointerLeave={() => setHover(null)}
+        onClick={handleClick}
         role="img"
         aria-label={`Liquiditäts-Heatmap über ${nDays} Tage. Median-Endsaldo ${eur.format(
           result.scenarioEndP50,
-        )}.`}
+        )}.${canInspect ? ' Zelle antippen für Details der Annahmen.' : ''}`}
       >
         <canvas ref={canvasRef} className="rounded-xl" />
 
@@ -391,9 +450,34 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
                 ))}
               </div>
             )}
+            {canInspect && (
+              <div className="mt-1 flex items-center gap-1 border-t pt-1 text-muted-foreground">
+                <MousePointerClick className="h-3 w-3 shrink-0" />
+                Klicken für Annahmen
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Zell-Details: welche konkreten Annahmen erzeugten diesen Saldo? */}
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-w-md">
+          {cellDetail && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{fmtDay(cellDetail.date)}</DialogTitle>
+                <DialogDescription>
+                  Saldo {eur.format(cellDetail.binLow)} – {eur.format(cellDetail.binHigh)} · ≈ P
+                  {cellDetail.percentile} · {cellDetail.pathsInCell} von {cellDetail.totalPaths}{' '}
+                  Pfaden ({Math.round(cellDetail.share * 100)} %)
+                </DialogDescription>
+              </DialogHeader>
+              <CellDetailBody detail={cellDetail} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Legende: Farbtrennung + Intensität. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
@@ -414,6 +498,177 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-2">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * Klartext-Erklärung, warum dieser Pfad in dieser Zelle landet: der größte
+ * Treiber (Kategorie mit der stärksten Abweichung vom Median) wird benannt.
+ */
+function driverSentence(detail: CellDetail): string {
+  const rep = detail.representative;
+  const driver = rep?.topDriver;
+  const lowBalance = detail.percentile < 50;
+  if (driver && Math.abs(driver.deltaPct) >= 0.05) {
+    const direction = driver.amount > driver.median ? 'mehr' : 'weniger';
+    const pct = Math.round(Math.abs(driver.deltaPct) * 100);
+    return `Dieser Pfad gibt vor allem bei „${driver.category}" ${pct} % ${direction} aus als der typische Pfad – das erklärt den ${
+      lowBalance ? 'niedrigeren' : 'höheren'
+    } Saldo.`;
+  }
+  return 'Dieser Pfad liegt nah am typischen Verlauf – keine einzelne Annahme sticht heraus.';
+}
+
+/**
+ * Eine Annahme-Zeile: Betrag zählt hoch, Balken baut sich von 0 → Ziel auf
+ * (datengetriebene Baseline) mit Median-Markierung. `adverse` färbt ungünstige
+ * Abweichungen (mehr Ausgaben bzw. weniger Einnahmen) warnend ein.
+ */
+function ContribRow({
+  label,
+  amount,
+  median,
+  deltaPct,
+  adverse,
+  animate,
+}: {
+  label: string;
+  amount: number;
+  median: number;
+  deltaPct: number;
+  adverse: boolean;
+  animate: boolean;
+}) {
+  const scale = Math.max(amount, median, 1);
+  const targetPct = Math.min(100, (amount / scale) * 100);
+  const medianPct = Math.min(100, (median / scale) * 100);
+  const [width, setWidth] = useState(animate ? 0 : targetPct);
+  const shown = useAnimatedNumber(amount, { enabled: animate });
+
+  useEffect(() => {
+    if (!animate) {
+      setWidth(targetPct);
+      return;
+    }
+    const raf = requestAnimationFrame(() => setWidth(targetPct));
+    return () => cancelAnimationFrame(raf);
+  }, [targetPct, animate]);
+
+  const pct = Math.round(deltaPct * 100);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2 text-sm">
+        <span className="min-w-0 truncate">{label}</span>
+        <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
+          <span className="font-semibold">{eur.format(shown)}</span>
+          {Math.abs(pct) >= 1 && (
+            <span
+              className={cn(
+                'rounded px-1 text-[10px] font-medium',
+                adverse
+                  ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                  : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+              )}
+            >
+              {pct > 0 ? '+' : ''}
+              {pct} %
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="relative h-2 w-full rounded-full bg-muted">
+        <div
+          className={cn(
+            'absolute left-0 top-0 h-full rounded-full',
+            adverse ? 'bg-amber-500' : 'bg-emerald-500',
+            animate && 'transition-[width] duration-700 ease-out',
+          )}
+          style={{ width: `${width}%` }}
+        />
+        <span
+          className="absolute -top-0.5 h-3 w-px bg-foreground/60"
+          style={{ left: `${medianPct}%` }}
+          title={`Median ${eur.format(median)}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Inhalt des Zell-Detail-Dialogs: Treiber-Erklärung + aufgeschlüsselte Annahmen. */
+function CellDetailBody({ detail }: { detail: CellDetail }) {
+  const animate = !useReducedMotion();
+  const rep = detail.representative;
+  if (!rep) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {detail.pathsInCell === 0
+          ? 'In dieser Zelle liegt kein simulierter Pfad. Wähle eine hellere (wahrscheinlichere) Zelle.'
+          : 'Für diese Auswertung liegen keine Detail-Annahmen vor.'}
+      </p>
+    );
+  }
+
+  const TOP = 6;
+  const shownCategories = rep.variableByCategory.slice(0, TOP);
+  const restCount = rep.variableByCategory.length - shownCategories.length;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm">{driverSentence(detail)}</p>
+
+      <section className="space-y-2.5">
+        <h4 className="text-xs font-medium text-muted-foreground">
+          Variable Ausgaben bis zu diesem Tag (kumuliert) · vs. typischer Pfad
+        </h4>
+        {shownCategories.map((c) => (
+          <ContribRow
+            key={c.category}
+            label={c.category}
+            amount={c.amount}
+            median={c.median}
+            deltaPct={c.deltaPct}
+            adverse={c.amount > c.median}
+            animate={animate}
+          />
+        ))}
+        {restCount > 0 && (
+          <p className="text-[11px] text-muted-foreground">+ {restCount} weitere Kategorien</p>
+        )}
+        <div className="flex items-center justify-between border-t pt-2 text-sm">
+          <span className="font-medium">Summe variable Ausgaben</span>
+          <span className="tabular-nums font-semibold">
+            {eur.format(rep.totalVariable)}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (typisch {eur.format(rep.totalVariableMedian)})
+            </span>
+          </span>
+        </div>
+      </section>
+
+      {rep.income.length > 0 && (
+        <section className="space-y-2.5">
+          <h4 className="text-xs font-medium text-muted-foreground">Einnahmen · vs. typischer Pfad</h4>
+          {rep.income.map((i) => (
+            <ContribRow
+              key={i.name}
+              label={i.name}
+              amount={i.amount}
+              median={i.median}
+              deltaPct={i.deltaPct}
+              adverse={i.amount < i.median}
+              animate={animate}
+            />
+          ))}
+        </section>
+      )}
+
+      <p className="text-[11px] text-muted-foreground">
+        Repräsentativer Pfad dieser Zelle. Fixkosten, Transfers und geplante Posten sind in jedem
+        Pfad gleich – die Streuung kommt aus den variablen Ausgaben
+        {rep.income.length > 0 ? ' und Einnahmen' : ''}.
+      </p>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { buildDensityField } from '@/lib/finrisk/density';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
 
 /** Baut ein minimales, aber vollständiges ScenarioResult für den Render-Test. */
-function makeResult(paths: number[][], dates: string[]): ScenarioResult {
+function makeResult(paths: number[][], dates: string[], withDetails = false): ScenarioResult {
   const density = buildDensityField(paths, dates, { bins: 16, include: [0, 1000] });
   const daily = dates.map((date, d) => {
     const col = paths.map((p) => p[d]).sort((a, b) => a - b);
@@ -31,6 +31,17 @@ function makeResult(paths: number[][], dates: string[]): ScenarioResult {
     daily,
     density,
     horizonDays: dates.length,
+    ...(withDetails
+      ? {
+          assumptions: paths.map(() => ({
+            variableByCategory: [
+              { category: 'Lebensmittel', plannedMonthly: 400, monthly: { '2026-01': 400 } },
+            ],
+            income: [],
+          })),
+          representativeByCell: dates.map(() => new Array<number>(density.bins).fill(0)),
+        }
+      : {}),
   };
 }
 
@@ -67,6 +78,22 @@ describe('RiskDensityChart', () => {
         fireEvent.pointerDown(stage, { clientX: 120, clientY: 40 });
         fireEvent.pointerLeave(stage);
       }).not.toThrow();
+    });
+
+    it('sollte die Zell-Klick-Möglichkeit ankündigen, wenn Annahmen vorliegen', () => {
+      render(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
+      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Zelle antippen/);
+    });
+
+    it('sollte ohne Annahmen keine Klick-Ankündigung zeigen (reine Anzeige)', () => {
+      render(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
+      expect(screen.getByRole('img').getAttribute('aria-label')).not.toMatch(/Zelle antippen/);
+    });
+
+    it('sollte einen Klick ohne gültige Geometrie ohne Absturz verarbeiten', () => {
+      render(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
+      const stage = screen.getByRole('img');
+      expect(() => fireEvent.click(stage, { clientX: 120, clientY: 80 })).not.toThrow();
     });
   });
 

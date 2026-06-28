@@ -40,6 +40,47 @@ export interface MonteCarloConfig {
    * behalten die geglättete Perturbation. Default `false`.
    */
   occurrenceSampling?: boolean;
+  /**
+   * Sammelt je Durchlauf die *gezogenen Annahmen* (variable Ausgaben je Kategorie
+   * und perturbierte Einnahmen) und gibt sie in {@link MonteCarloResult.assumptions}
+   * zurück (aligned mit {@link MonteCarloResult.paths}). Default `false` – nur
+   * aktivieren, wenn die Annahmen sichtbar gemacht werden (z. B. Heatmap-Zell-
+   * Details), da pro Durchlauf eine kompakte Struktur entsteht.
+   */
+  collectAssumptions?: boolean;
+}
+
+/**
+ * Die in EINEM Durchlauf gezogene variable Ausgabe einer Kategorie – der
+ * eigentliche Streu-Treiber des Monte-Carlo (Fixkosten/Transfers sind je
+ * Durchlauf identisch). `monthly` hält die realisierten Monatsbeträge, sodass
+ * sich der kumulierte Wert bis zu einem beliebigen Tag rekonstruieren lässt.
+ */
+export interface CategoryAssumption {
+  category: string;
+  /** Planwert pro Monat (EUR, positiv) – Budget-Override oder Historie. */
+  plannedMonthly: number;
+  /** Realisierte Ausgabe je Monat (yyyy-MM → EUR, positiv) in diesem Durchlauf. */
+  monthly: Record<string, number>;
+}
+
+/** Die in EINEM Durchlauf gezogene Einnahme eines perturbierten Flows. */
+export interface IncomeAssumption {
+  name: string;
+  /** Planbetrag je Vorkommen (EUR, positiv). */
+  planned: number;
+  /** Realisierter Betrag je Vorkommen (EUR, positiv) in diesem Durchlauf. */
+  sampled: number;
+}
+
+/**
+ * Die gezogenen Annahmen EINES Monte-Carlo-Durchlaufs. Macht die Frage „welche
+ * konkreten Werte haben diesen Pfad erzeugt?" beantwortbar, ohne den Engine-Kern
+ * zu verändern.
+ */
+export interface TrialAssumptions {
+  variableByCategory: CategoryAssumption[];
+  income: IncomeAssumption[];
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -88,4 +129,10 @@ export interface MonteCarloResult {
    * aktiviert wurde. Grundlage für Stress-Capacity und tagesgenaue Breach-Kurven.
    */
   paths?: number[][];
+  /**
+   * Die gezogenen Annahmen je Durchlauf (aligned mit {@link paths}). Nur gesetzt,
+   * wenn {@link MonteCarloConfig.collectAssumptions} aktiviert wurde. Macht die
+   * Heatmap-Zellen erklärbar: welche konkreten Werte einen Pfad erzeugt haben.
+   */
+  assumptions?: TrialAssumptions[];
 }
