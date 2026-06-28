@@ -516,6 +516,164 @@ export function buildSunburstBreakdown(sunburst: SpendingSunburst): SunburstBrea
   });
 }
 
+// -----------------------------------------------------------------------------
+// Sunburst-Baum: mehrstufige Hierarchie (Klasse -> Hauptkategorie -> Unterkategorie)
+// für das grafische, zoombare Sunburst-Diagramm.
+// -----------------------------------------------------------------------------
+
+export interface SunburstNode {
+  /** Eindeutiger Pfad-Schlüssel, z. B. `essenziell::wohnen::miete`. */
+  id: string;
+  name: string;
+  /** Ausgaben-Absolutbetrag (Summe der Nachkommen bei inneren Knoten). */
+  value: number;
+  /** Wurzel-Ausgabenklasse — steuert die Einfärbung über alle Ringe. */
+  klasseId: SunburstSuperId;
+  /** Kategorie-ID für die Navigation zu gefilterten Buchungen (null bei Klassen-Knoten). */
+  categoryId: string | null;
+  children: SunburstNode[];
+}
+
+export interface SunburstTree {
+  total: number;
+  children: SunburstNode[];
+}
+
+type SubAgg = { id: string; name: string; value: number };
+type MainAgg = { id: string; name: string; value: number; directValue: number; subs: Map<string, SubAgg> };
+type KlasseAgg = { id: SunburstSuperId; value: number; mains: Map<string, MainAgg>; directValue: number };
+
+/**
+ * Baut den hierarchischen Sunburst-Baum (bis zu drei Ebenen) aus Ausgaben.
+ * Eltern-Werte sind exakt die Summe ihrer Kinder, damit die Ringe lückenlos
+ * füllen: Hauptkategorien mit *zusätzlich* direkt (ohne Unterkategorie)
+ * gebuchten Ausgaben erhalten dafür ein synthetisches „Ohne Unterkategorie"-
+ * Kind. Unkategorisierte Ausgaben bleiben ein Blatt auf Klassen-Ebene.
+ *
+ * `transactions` sollte transfer-bereinigt sein; Einkommens-Korrekturen
+ * (negative Buchungen in Einkommens-Kategorien) werden ausgenommen.
+ */
+export function buildSunburstTree(
+  transactions: Transaction[],
+  categories: Category[],
+  allocationsByTx?: Map<string, TransactionAllocation[]>
+): SunburstTree {
+  const byId = new Map<string, Category>();
+  for (const c of categories) byId.set(c.id, c);
+
+  const klassen = new Map<SunburstSuperId, KlasseAgg>();
+  let total = 0;
+
+  const getKlasse = (id: SunburstSuperId): KlasseAgg => {
+    let ka = klassen.get(id);
+    if (!ka) {
+      ka = { id, value: 0, mains: new Map(), directValue: 0 };
+      klassen.set(id, ka);
+    }
+    return ka;
+  };
+
+  for (const t of transactions) {
+    if (t.is_transfer) continue;
+    if (!(t.amount < 0)) continue;
+
+    for (const c of getCategoryContributions(t, allocationsByTx)) {
+      const klasse = resolveAusgabenklasse(byId, c.assignedId);
+      if (klasse === "einkommen") continue;
+
+      const amount = Math.abs(c.amount);
+      total += amount;
+
+      const superId = toSuperId(klasse, Boolean(c.assignedId));
+      const ka = getKlasse(superId);
+      ka.value += amount;
+
+      // Unkategorisierte Ausgaben bleiben ein Blatt — nichts zum Reinzoomen.
+      if (superId === "unkategorisiert") {
+        ka.directValue += amount;
+        continue;
+      }
+
+      const { mainId, mainName, subId, subName } = resolveHierarchy(byId, c.assignedId);
+      let ma = ka.mains.get(mainId);
+      if (!ma) {
+        ma = { id: mainId, name: mainName, value: 0, directValue: 0, subs: new Map() };
+        ka.mains.set(mainId, ma);
+      }
+      ma.value += amount;
+
+      if (subId && subName) {
+        const sa = ma.subs.get(subId) ?? { id: subId, name: subName, value: 0 };
+        sa.value += amount;
+        ma.subs.set(subId, sa);
+      } else {
+        ma.directValue += amount;
+      }
+    }
+  }
+
+  const bySortValueDesc = <T extends { value: number }>(a: T, b: T) => b.value - a.value;
+
+  const children: SunburstNode[] = [...klassen.values()]
+    .filter((ka) => ka.value > 0)
+    .sort(bySortValueDesc)
+    .map((ka) => {
+      const klasseNode: SunburstNode = {
+        id: ka.id,
+        name: SUNBURST_SUPER_LABEL[ka.id],
+        value: ka.value,
+        klasseId: ka.id,
+        categoryId: null,
+        children: [],
+      };
+
+      klasseNode.children = [...ka.mains.values()]
+        .filter((ma) => ma.value > 0)
+        .sort(bySortValueDesc)
+        .map((ma) => {
+          const mainNode: SunburstNode = {
+            id: `${ka.id}::${ma.id}`,
+            name: ma.name,
+            value: ma.value,
+            klasseId: ka.id,
+            categoryId: ma.id,
+            children: [],
+          };
+
+          if (ma.subs.size > 0) {
+            mainNode.children = [...ma.subs.values()]
+              .filter((sa) => sa.value > 0)
+              .sort(bySortValueDesc)
+              .map((sa) => ({
+                id: `${ka.id}::${ma.id}::${sa.id}`,
+                name: sa.name,
+                value: sa.value,
+                klasseId: ka.id,
+                categoryId: sa.id,
+                children: [],
+              }));
+            // Direkt (ohne Unterkategorie) gebuchter Rest füllt den Ring lückenlos.
+            if (ma.directValue > 0) {
+              mainNode.children.push({
+                id: `${ka.id}::${ma.id}::__direct`,
+                name: "Ohne Unterkategorie",
+                value: ma.directValue,
+                klasseId: ka.id,
+                categoryId: ma.id,
+                children: [],
+              });
+            }
+          }
+
+          return mainNode;
+        });
+
+      return klasseNode;
+    });
+
+  return { total, children };
+}
+
 export interface WeekdayPatternEntry {
   day: string;
   income: number;
