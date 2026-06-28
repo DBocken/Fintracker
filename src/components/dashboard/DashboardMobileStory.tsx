@@ -10,10 +10,7 @@ import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import StatHero from "@/components/common/StatHero";
 import { cn } from "@/lib/utils";
-
-const euro = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
@@ -64,14 +61,11 @@ function LandscapeView() {
 
 interface Props {
   className?: string;
-  currentBalance: number;
-  periodNet: number;
   sunburst: React.ComponentProps<typeof SpendingBreakdownCard>["sunburst"];
   series: React.ComponentProps<typeof ExpensesOverTimeCard>["series"];
   sankeyData: React.ComponentProps<typeof SankeyChart>["data"];
   effectiveBalances: React.ComponentProps<typeof AccountCards>["balances"];
   totalEffectiveBalance: number;
-  topInsight?: string | null;
 }
 
 /**
@@ -82,14 +76,11 @@ interface Props {
  */
 export default function DashboardMobileStory({
   className,
-  currentBalance,
-  periodNet,
   sunburst,
   series,
   sankeyData,
   effectiveBalances,
   totalEffectiveBalance,
-  topInsight,
 }: Props) {
   const [params, setParams] = useSearchParams();
   const requestedView = params.get("view");
@@ -121,27 +112,8 @@ export default function DashboardMobileStory({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Finance Pulse: eine ruhige Hauptaussage – Kontostand groß, Zeitraum-Saldo als Chip. */}
-      <StatHero
-        icon={<Activity className="h-4 w-4" />}
-        label="Aktueller Kontostand"
-        value={euro.format(currentBalance)}
-        tone={currentBalance >= 0 ? "default" : "warning"}
-        caption="Saldo im Zeitraum"
-        badge={
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
-              periodNet >= 0 ? "bg-positive/15 text-positive" : "bg-warning/15 text-warning",
-            )}
-          >
-            {periodNet >= 0 ? "+" : ""}
-            {euro.format(periodNet)}
-          </span>
-        }
-      >
-        {topInsight && <div className="rounded-lg bg-muted/50 p-2.5 text-xs">{topInsight}</div>}
-      </StatHero>
+      {/* Kontostand/Saldo stehen bereits in der festen Übersicht (TransactionStats)
+          – hier keine Wiederholung (Konsolidierung). Direkt die Diagramm-Ansichten. */}
 
       {/* Ansicht-Navigation: vollständig sichtbares Icon-Raster, kein horizontales Scrollen */}
       <div className="grid grid-cols-3 gap-1 min-[400px]:grid-cols-6" role="tablist" aria-label="Diagramm-Ansicht">
