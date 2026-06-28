@@ -25,6 +25,20 @@ describe("deriveTier", () => {
     // premium-Override greift auch ohne Anmeldung nur als Upgrade
     expect(deriveTier("unauthenticated", "premium")).toBe("premium");
   });
+
+  it("schaltet im Demo-Modus Premium frei (Try-before-buy)", () => {
+    // Demo startet anonym -> ohne Demo gesperrt, mit Demo voll.
+    expect(deriveTier("unauthenticated")).toBe("anonymous");
+    expect(deriveTier("unauthenticated", null, true)).toBe("premium");
+    expect(deriveTier("authenticated", null, true)).toBe("premium");
+  });
+
+  it("Demo-Flag hebt nur an und kollidiert nicht mit dem Override", () => {
+    // Ohne Demo bleibt der Basis-Tier; Default-Param ist abwärtskompatibel.
+    expect(deriveTier("authenticated", null, false)).toBe("free");
+    // Demo + Override gleichzeitig -> weiterhin premium (kein Downgrade).
+    expect(deriveTier("unauthenticated", "premium", true)).toBe("premium");
+  });
 });
 
 describe("Tier-Override (localStorage)", () => {
