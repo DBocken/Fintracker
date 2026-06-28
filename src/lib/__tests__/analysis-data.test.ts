@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSpendingSunburst, resolveAusgabenklasse } from '../analysis-data';
+import { buildSpendingSunburst, buildSunburstBreakdown, resolveAusgabenklasse } from '../analysis-data';
 import type { Transaction, Category } from '@/types';
 
 /**
@@ -241,6 +241,80 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
 
       // Only the electricity transaction should be included
       expect(sunburst.total).toBe(100);
+    });
+  });
+
+  // Mobile-Aufschlüsselung: macht die tieferen Sunburst-Ebenen (Hauptkategorien
+  // je Klasse) als geordnete, antippbare Hierarchie sichtbar — auf Touch, wo der
+  // Donut-Hover nicht greift.
+  describe('buildSunburstBreakdown (mobile hierarchy)', () => {
+    const transactions: Transaction[] = [
+      { id: '1', date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Rent', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: '2', date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: '3', date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: '4', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: '5', date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Cash', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+    ];
+
+    describe('Normal Behavior', () => {
+      it('sollte jede Klasse als Gruppe mit ihren Hauptkategorien als Kinder abbilden', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+
+        const essenziell = groups.find((g) => g.id === 'essenziell');
+        // Wohnen (Miete + Strom = 180) und Lebensmittel (50)
+        expect(essenziell?.children.map((c) => c.name)).toEqual(['Wohnen', 'Lebensmittel']);
+        expect(essenziell?.value).toBe(230);
+      });
+
+      it('sollte Kinder absteigend nach Wert sortieren', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+        const essenziell = groups.find((g) => g.id === 'essenziell');
+        const values = essenziell?.children.map((c) => c.value) ?? [];
+        expect(values).toEqual([...values].sort((a, b) => b - a));
+      });
+
+      it('sollte Anteile relativ berechnen (Gruppe zu Gesamt, Kind zur Klasse)', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+        const essenziell = groups.find((g) => g.id === 'essenziell')!;
+        // 230 von 270 Gesamtausgaben
+        expect(essenziell.share).toBeCloseTo(230 / 270, 5);
+        // Wohnen (180) von 230 Klassenwert
+        const wohnen = essenziell.children.find((c) => c.name === 'Wohnen')!;
+        expect(wohnen.share).toBeCloseTo(180 / 230, 5);
+      });
+
+      it('sollte die Außenring-ID `${superId}::${mainId}` als Kind-ID durchreichen (für Navigation)', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+        const wohnen = groups.flatMap((g) => g.children).find((c) => c.name === 'Wohnen')!;
+        expect(wohnen.id).toBe('essenziell::wohnen');
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('sollte eine leere Liste für ein leeres Sunburst liefern', () => {
+        const groups = buildSunburstBreakdown(buildSpendingSunburst([], fullCategoryHierarchy));
+        expect(groups).toEqual([]);
+      });
+
+      it('sollte unkategorisierte Klasse ohne Kinder als Blatt-Gruppe behalten', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+        const unkat = groups.find((g) => g.id === 'unkategorisiert');
+        expect(unkat).toBeDefined();
+        expect(unkat?.children).toEqual([]);
+        expect(unkat?.value).toBe(25);
+      });
+
+      it('sollte Gruppen in Innenring-Reihenfolge (Wert absteigend) ausgeben', () => {
+        const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
+        const groups = buildSunburstBreakdown(sunburst);
+        const values = groups.map((g) => g.value);
+        expect(values).toEqual([...values].sort((a, b) => b - a));
+      });
     });
   });
 });
