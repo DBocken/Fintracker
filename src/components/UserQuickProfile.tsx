@@ -1,18 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Dialog, DialogTrigger, DialogContent, DialogClose } from "@/components/ui/dialog";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { User as UserIcon, LogIn, Settings as SettingsIcon } from "lucide-react";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { User as UserIcon, LogIn } from "lucide-react";
+import ProfileDialogContent from "@/components/ProfileDialogContent";
 
 function getInitials(name: string) {
   return name
@@ -23,6 +15,11 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+/**
+ * Einziger Profil-Einstieg der App (oben rechts im Header). Früher gab es
+ * ein zweites, identisches Profil unten links in der Sidebar — beide wurden
+ * hier zusammengeführt, damit es nur EINEN Ort fürs Profil gibt.
+ */
 export default function UserQuickProfile() {
   const { user } = useAuth();
 
@@ -35,7 +32,6 @@ export default function UserQuickProfile() {
     );
   }, [user]);
 
-  const email = user?.email || "";
   const initials = getInitials(displayName);
 
   // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
@@ -66,50 +62,7 @@ export default function UserQuickProfile() {
       </DialogTrigger>
 
       <DialogContent className="max-w-sm">
-        <Card variant="premium">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
-              {initials || <UserIcon className="h-5 w-5" />}
-            </div>
-            <div>
-              <CardTitle className="text-base">{displayName}</CardTitle>
-              <CardDescription className="text-xs">
-                {email}
-              </CardDescription>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Status</span>
-              <span className="rounded-full bg-positive/10 px-2 py-0.5 text-xs text-positive">
-                Angemeldet
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Nutzer-ID</span>
-              <span className="font-mono text-xs text-muted-foreground">{user?.id || "—"}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Anmeldung über Supabase. Du kannst dich per E‑Mail registrieren oder mit
-              Google anmelden.
-            </p>
-          </CardContent>
-
-          <CardFooter className="flex justify-between gap-2">
-            {/* Schließt den Dialog (DialogClose) und navigiert zu den
-                Einstellungen — vorher war der Button ohne Wirkung. */}
-            <DialogClose asChild>
-              <Button asChild variant="outline" size="sm" className="text-xs">
-                <Link to="/settings">
-                  <SettingsIcon className="mr-1 h-3 w-3" />
-                  Einstellungen
-                </Link>
-              </Button>
-            </DialogClose>
-            <LogoutButton className="text-xs text-muted-foreground" />
-          </CardFooter>
-        </Card>
+        <ProfileDialogContent />
       </DialogContent>
     </Dialog>
   );
