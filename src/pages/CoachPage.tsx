@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BarChart3, ArrowRight, Sparkles, CheckCircle2, PartyPopper } from "lucide-react";
+import { BarChart3, ArrowRight, Sparkles, CheckCircle2, PartyPopper, CalendarClock } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import HealthScoreCard from "@/components/health-score/HealthScoreCard";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import CoachFeedCard from "@/components/coach/CoachFeedCard";
 import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
 import FoundationLadder from "@/components/coach/FoundationLadder";
+import DisposableTankCard from "@/components/coach/DisposableTankCard";
+import UpcomingChargesList from "@/components/coach/UpcomingChargesList";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import SectionHeader from "@/components/common/SectionHeader";
 import InteractiveCard from "@/components/common/InteractiveCard";
@@ -85,6 +87,14 @@ export default function CoachPage() {
         ) : (
           <Skeleton className="h-44 w-full rounded-2xl" />
         )}
+      </section>
+
+      {/* Vor dem nächsten Gehalt: was bleibt frei (Tank, klickbar → Liquidität)
+          und welche Abbuchungen kommen als Nächstes (reines Readout). */}
+      <section className="space-y-4">
+        <SectionHeader icon={<CalendarClock className="h-4 w-4" />} title="Vor dem nächsten Gehalt" />
+        <DisposableTankCard />
+        <UpcomingChargesList />
       </section>
 
       <FoundationLadder />
