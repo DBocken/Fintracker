@@ -3,7 +3,6 @@ import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import UserProfile from "@/components/UserProfile";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useI18n } from "@/i18n/useI18n";
 
@@ -69,10 +68,6 @@ export default function SideNav() {
             </AccordionItem>
           ))}
         </Accordion>
-      </div>
-
-      <div className="border-t border-sidebar-border p-3">
-        <UserProfile />
       </div>
     </div>
   );

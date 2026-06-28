@@ -38,7 +38,10 @@ export default function AppShell() {
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <CommandPalette />
       <div className="flex min-h-screen">
-        <aside className="hidden md:block w-72 h-screen sticky top-0 self-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        {/* h-[100dvh] statt h-screen (100vh): An die *sichtbare* Viewport-Höhe
+            koppeln, damit die ein-/ausblendende Browser-Leiste (Adressleiste/
+            Navigationsleiste) das untere Ende der Seitennavigation nicht verdeckt. */}
+        <aside className="hidden md:block w-72 h-[100dvh] sticky top-0 self-start border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SideNav />
         </aside>
 

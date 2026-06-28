@@ -35,13 +35,21 @@ export default function MobileNav() {
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+        // max-h-[100dvh]: an die *dynamische* Viewport-Höhe binden. `inset-y-0`
+        // spannt das Panel sonst über die Layout-Viewport-Höhe (große Höhe mit
+        // eingeklappten Browser-Leisten); blendet der Browser unten seine Leiste
+        // ein, rutscht das Panel-Ende dahinter. dvh folgt der sichtbaren Höhe.
+        className="max-h-[100dvh] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
       >
         <SheetHeader className="border-b border-sidebar-border px-4 py-3">
           <SheetTitle className="text-sidebar-foreground">{t("shell.navigation")}</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-56px)]">
-          <div className="px-3 py-2">
+        {/* 100dvh statt 100vh: Scrollbereich an die sichtbare Höhe koppeln, damit
+            die untersten Ziele nicht hinter der ein-/ausblendenden Browser-Leiste
+            verschwinden. pb-…safe-area hält den letzten Eintrag über dem
+            Home-Indicator / der Gesten-Leiste frei. */}
+        <ScrollArea className="h-[calc(100dvh-56px)]">
+          <div className="px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {navGroups.map((group) => (
               <div key={group.id} className="py-2">
                 <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wide text-sidebar-muted">
