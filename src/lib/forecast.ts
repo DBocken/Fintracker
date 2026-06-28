@@ -73,13 +73,21 @@ function countsAsAvailable(account: ForecastAccount): boolean {
 
 function resolveConfig(config: ForecastConfig = {}): ResolvedForecastConfig {
   const startDate = config.startDate ?? format(new Date(), ISO);
+  const safetyBuffer = config.safetyBuffer ?? 0;
+  const adaptiveSpending = config.adaptiveSpending
+    ? {
+        threshold: config.adaptiveSpending.threshold ?? safetyBuffer,
+        maxReductionPct: Math.min(1, Math.max(0, config.adaptiveSpending.maxReductionPct ?? 0.5)),
+      }
+    : null;
   return {
     startDate,
     months: Math.max(config.months ?? 6, 6),
-    safetyBuffer: config.safetyBuffer ?? 0,
+    safetyBuffer,
     bufferBasis: config.bufferBasis ?? 'operating',
     useDailyProfile: config.useDailyProfile ?? false,
     overdraftAnnualRate: Math.max(0, config.overdraftAnnualRate ?? 0),
+    adaptiveSpending,
   };
 }
 
@@ -426,13 +434,38 @@ export function calculateDeterministicForecast(
   const daily: ForecastDailyPoint[] = [];
   let prevOperating = sumOperating(balances, accountById);
 
+  // „Gegensteuern bei Knappheit" wirkt nur, wenn die variablen Ausgaben auf einem
+  // operativen Konto liegen (sonst hebt das Zurückhalten den operativen Saldo nicht).
+  const adaptive = resolved.adaptiveSpending;
+  const variableAccount = variableAccountId ? accountById.get(variableAccountId) : undefined;
+  const adaptiveActive = !!adaptive && !!variableAccount && isOperating(variableAccount.kind);
+  const adaptiveThresholdCents = adaptive ? toMinor(adaptive.threshold) : 0;
+
   for (let i = 0; i < totalDays; i++) {
     const d = addDays(start, i);
     const key = format(d, ISO);
     const bucket = buckets.get(key) ?? emptyBucket();
+    // Lokale Kopie: kann durch „Gegensteuern" gedrosselt werden (Reporting + Saldo).
+    let dayVariableCents = bucket.variableExpenses;
 
     for (const [accountId, delta] of Object.entries(bucket.accountDeltas)) {
       balances[accountId] = (balances[accountId] ?? 0) + delta;
+    }
+
+    // Gegensteuern: Droht der operative Saldo unter die Schwelle zu fallen, wird
+    // die diskretionäre Tagesausgabe zurückgehalten – höchstens bis maxReductionPct.
+    // Vor der Zinsbuchung, damit auch der Dispozins geringer ausfällt.
+    if (adaptiveActive && dayVariableCents > 0) {
+      const operatingNow = sumOperating(balances, accountById);
+      if (operatingNow < adaptiveThresholdCents) {
+        const need = adaptiveThresholdCents - operatingNow;
+        const maxReduce = Math.floor(dayVariableCents * adaptive!.maxReductionPct);
+        const reduction = Math.max(0, Math.min(need, maxReduce, dayVariableCents));
+        if (reduction > 0) {
+          balances[variableAccountId!] = (balances[variableAccountId!] ?? 0) + reduction;
+          dayVariableCents -= reduction;
+        }
+      }
     }
 
     // Netto-Zinsen am Monatsende (deterministisch): Gutschrift auf positive
@@ -474,10 +507,10 @@ export function calculateDeterministicForecast(
       netWorth: toMajor(netWorth),
       inflows: toMajor(bucket.inflows),
       fixedExpenses: toMajor(bucket.fixedExpenses),
-      variableExpenses: toMajor(bucket.variableExpenses),
+      variableExpenses: toMajor(dayVariableCents),
       events: toMajor(bucket.events),
       interest: toMajor(interestCents),
-      outflows: toMajor(bucket.fixedExpenses + bucket.variableExpenses),
+      outflows: toMajor(bucket.fixedExpenses + dayVariableCents),
       transfersIn: toMajor(bucket.transfersIn),
       transfersOut: toMajor(bucket.transfersOut),
       dailyDelta: toMajor(operating - prevOperating),

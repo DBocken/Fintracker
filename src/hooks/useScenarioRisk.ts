@@ -15,9 +15,10 @@ export function useScenarioRisk(
   payload: ScenarioPayload | null,
   options: { monteCarlo?: MonteCarloConfig; lumpy?: LumpyRiskProfile } = {},
 ): { result: ScenarioResult | null; isCalculating: boolean } {
-  const { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate } = config;
+  const { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate, adaptiveSpending } = config;
   const payloadKey = payload ? JSON.stringify(payload) : null;
   const mcKey = options.monteCarlo ? JSON.stringify(options.monteCarlo) : null;
+  const adaptiveKey = adaptiveSpending ? JSON.stringify(adaptiveSpending) : null;
 
   const [result, setResult] = useState<ScenarioResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -47,16 +48,16 @@ export function useScenarioRisk(
     };
     worker.postMessage({
       input,
-      config: { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate },
+      config: { months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate, adaptiveSpending },
       payload,
       monteCarlo: options.monteCarlo,
       lumpy: options.lumpy,
     });
 
     return () => worker.terminate();
-    // payloadKey/mcKey serialisieren die relevanten Objekt-Eingaben stabil.
+    // payloadKey/mcKey/adaptiveKey serialisieren die relevanten Objekt-Eingaben stabil.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate, payloadKey, mcKey, options.lumpy]);
+  }, [input, months, safetyBuffer, bufferBasis, startDate, overdraftAnnualRate, adaptiveKey, payloadKey, mcKey, options.lumpy]);
 
   return { result, isCalculating };
 }

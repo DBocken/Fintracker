@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Sparkles } from 'lucide-react';
 import { useLumpyRisk } from '@/hooks/useLumpyRisk';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
 import { buildBaseCheckPayload, type QuestionContext } from '@/lib/finrisk/scenario-questions';
 import type { ForecastInput, BufferBasis } from '@/lib/forecast-types';
 import type { ScenarioPayload } from '@/lib/finrisk/scenario-payload-types';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import RiskSummaryCard from './RiskSummaryCard';
 import ScenarioSelector from './ScenarioSelector';
 import ScenarioResultPanel from './ScenarioResultPanel';
@@ -44,13 +46,24 @@ function maxBreach(
 export default function FinRiskSection({ input, months, safetyBuffer, bufferBasis, startISO }: Props) {
   const { lumpy } = useLumpyRisk();
 
+  // „Was-wäre-wenn: bei Knappheit gegensteuern" – bewusstes Opt-in, keine Prognose.
+  const [discipline, setDiscipline] = useState(false);
+  const [disciplineStrength, setDisciplineStrength] = useState(0.5);
+
   const ctx: QuestionContext = useMemo(
     () => ({ horizonDays: Math.max(months, 6) * 30, thresholdAmount: safetyBuffer }),
     [months, safetyBuffer],
   );
   const config = useMemo(
-    () => ({ months, safetyBuffer, bufferBasis, startDate: startISO, overdraftAnnualRate: OVERDRAFT_RATE }),
-    [months, safetyBuffer, bufferBasis, startISO],
+    () => ({
+      months,
+      safetyBuffer,
+      bufferBasis,
+      startDate: startISO,
+      overdraftAnnualRate: OVERDRAFT_RATE,
+      ...(discipline ? { adaptiveSpending: { maxReductionPct: disciplineStrength } } : {}),
+    }),
+    [months, safetyBuffer, bufferBasis, startISO, discipline, disciplineStrength],
   );
 
   // Basisprüfung läuft automatisch und speist die Kurzdiagnose.
@@ -86,6 +99,46 @@ export default function FinRiskSection({ input, months, safetyBuffer, bufferBasi
         stress90={stress90}
         baseBreachProbability={maxBreach(baseResult?.breachProbabilities, safetyBuffer)}
       />
+
+      {/* Was-wäre-wenn-Schalter: Gegensteuern bei Knappheit. Formular-Container
+          (nicht klickbare Karte) – die ganze Kopfzeile schaltet den Switch. */}
+      <div className="rounded-xl border bg-card p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="finrisk-discipline" className="flex cursor-pointer items-start gap-2">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--brand))]" />
+            <span>
+              <span className="text-sm font-medium">Was, wenn du von Anfang an gegensteuerst?</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Bei Knappheit hältst du diskretionäre Ausgaben zurück – Fixkosten &amp; Verträge
+                bleiben. Bewusstes Was-wäre-wenn, keine Prognose.
+              </span>
+            </span>
+          </label>
+          <Switch
+            id="finrisk-discipline"
+            checked={discipline}
+            onCheckedChange={setDiscipline}
+            aria-label="Bei Knappheit gegensteuern"
+          />
+        </div>
+        {discipline && (
+          <div className="mt-3 flex items-center gap-3 border-t pt-3">
+            <span className="shrink-0 text-xs text-muted-foreground">Wie konsequent</span>
+            <Slider
+              value={[Math.round(disciplineStrength * 100)]}
+              onValueChange={([v]) => setDisciplineStrength((v ?? 50) / 100)}
+              min={10}
+              max={100}
+              step={10}
+              className="max-w-[240px] flex-1"
+              aria-label="Konsequenz des Gegensteuerns"
+            />
+            <span className="w-10 shrink-0 text-right text-xs tabular-nums">
+              {Math.round(disciplineStrength * 100)} %
+            </span>
+          </div>
+        )}
+      </div>
 
       <ScenarioSelector ctx={ctx} onRun={setActivePayload} activeId={activePayload?.scenarioId} />
 

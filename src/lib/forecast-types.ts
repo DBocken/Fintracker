@@ -252,6 +252,25 @@ export interface ForecastInput {
 /** Auf welche Cash-Sicht sich der Sicherheitspuffer bezieht. */
 export type BufferBasis = 'operating' | 'available';
 
+/**
+ * „Bei Knappheit gegensteuern" – ein bewusstes Was-wäre-wenn (kein Forecast).
+ *
+ * Wenn der projizierte operative Saldo unter die Schwelle zu fallen droht, werden
+ * an diesem Tag NUR die diskretionären (variablen) Ausgaben gedrosselt – Fixkosten,
+ * Verträge und geplante Posten bleiben unberührt, weil sie sich nicht spontan
+ * vermeiden lassen. Modelliert disziplinierteres Haushalten und ist bewusst NICHT
+ * erwartungstreu (der Nutzer ändert sein Verhalten absichtlich).
+ */
+export interface AdaptiveSpendingConfig {
+  /** Saldo, den der Nutzer zu halten versucht (EUR). Default: `safetyBuffer`. */
+  threshold?: number;
+  /**
+   * Höchstanteil der diskretionären Tagesausgabe, der gedrosselt werden darf
+   * (0..1). 0 = kein Effekt, 1 = notfalls die ganze variable Tagesausgabe. Default 0.5.
+   */
+  maxReductionPct?: number;
+}
+
 /** Konfiguration des Forecast-Laufs. */
 export interface ForecastConfig {
   /** Startdatum (ISO yyyy-mm-dd). Default: heute. */
@@ -274,6 +293,12 @@ export interface ForecastConfig {
    * statt zinsfrei zu bleiben. Default 0 (abwärtskompatibel).
    */
   overdraftAnnualRate?: number;
+  /**
+   * Optionales „Gegensteuern bei Knappheit" (Was-wäre-wenn). Ist es gesetzt,
+   * drosselt die Engine diskretionäre Ausgaben, um über der Schwelle zu bleiben.
+   * Default `undefined` (aus, abwärtskompatibel).
+   */
+  adaptiveSpending?: AdaptiveSpendingConfig;
 }
 
 /** Aufgelöste Konfiguration (alle Defaults gesetzt). */
@@ -284,6 +309,8 @@ export interface ResolvedForecastConfig {
   bufferBasis: BufferBasis;
   useDailyProfile: boolean;
   overdraftAnnualRate: number;
+  /** Aufgelöstes Gegensteuern – `null`, wenn deaktiviert. */
+  adaptiveSpending: { threshold: number; maxReductionPct: number } | null;
 }
 
 /** Ein tagesgenauer Punkt der Liquiditätsprojektion. */
