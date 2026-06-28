@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildDensityField } from '../density';
 import { computeCellDetail } from '../cell-details';
 import type { TrialAssumptions } from '../../forecast-montecarlo-types';
+import type { CompositionItem } from '../scenario-payload-types';
 
 /**
  * Zell-Details (Heatmap-Klick): aus den gezogenen Annahmen je Pfad ableiten,
@@ -192,6 +193,122 @@ describe('computeCellDetail', () => {
       const detail = computeCellDetail({ density, assumptions: [], representativeByCell, day: 0, bin });
       expect(detail).not.toBeNull();
       expect(detail!.representative).toBeNull();
+    });
+  });
+
+  describe('Vollständige Zusammensetzung (composition)', () => {
+    // 10 Pfade mit eindeutigem Saldo; je Pfad gezogene Shopping- und Gehalts-Werte.
+    function compositionFixture() {
+      const N = 10;
+      const paths = Array.from({ length: N }, (_, i) => DATES.map(() => 5000 - i * 120));
+      const assumptions: TrialAssumptions[] = Array.from({ length: N }, (_, i) => ({
+        variableByCategory: [
+          {
+            category: 'Shopping',
+            plannedMonthly: 300,
+            monthly: { '2026-01': 200 + i * 30, '2026-02': 200 + i * 30, '2026-03': 200 + i * 30 },
+          },
+        ],
+        income: [{ name: 'Gehalt', planned: 2500, sampled: 2400 + i * 20 }],
+      }));
+      const density = buildDensityField(paths, DATES, { bins: 32, include: [0] });
+      const representativeByCell = DATES.map((_, d) => {
+        const reps = new Array<number>(density.bins).fill(-1);
+        const best = new Array<number>(density.bins).fill(Infinity);
+        paths.forEach((p, trial) => {
+          const b = binOf(density, p[d]);
+          const center = density.valueMin + (b + 0.5) * density.binSize;
+          const dist = Math.abs(p[d] - center);
+          if (dist < best[b]) { best[b] = dist; reps[b] = trial; }
+        });
+        return reps;
+      });
+      // Monatliche Buchungen ~ Monatsanfänge (Index 0/31/59), Anschaffung am Tag 40.
+      const compositionSchedule: CompositionItem[] = [
+        { name: 'Gehalt', group: 'income', bookings: [0, 31, 59].map((day) => ({ day, amount: 2500 })) },
+        { name: 'Miete', group: 'fixed', bookings: [0, 31, 59].map((day) => ({ day, amount: -1000 })) },
+        { name: 'Anschaffung', group: 'event', bookings: [{ day: 40, amount: -3000 }] },
+      ];
+      return { paths, assumptions, density, representativeByCell, compositionSchedule };
+    }
+
+    it('sollte benannte Posten aller Gruppen kumuliert bis zum Tag liefern', () => {
+      const f = compositionFixture();
+      const bin = binOf(f.density, f.paths[0][MID_MARCH]); // sparsamster Pfad (Trial 0)
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        compositionSchedule: f.compositionSchedule,
+        day: MID_MARCH,
+        bin,
+      })!;
+      const comp = detail.representative!.composition;
+      const byName = (n: string) => comp.find((c) => c.name === n);
+
+      // Gruppen-Reihenfolge: income → fixed → variable → event.
+      const groups = comp.map((c) => c.group);
+      expect(groups.indexOf('income')).toBeLessThan(groups.indexOf('fixed'));
+      expect(groups.indexOf('fixed')).toBeLessThan(groups.indexOf('variable'));
+      expect(groups.indexOf('variable')).toBeLessThan(groups.indexOf('event'));
+
+      // Gehalt (perturbiert): 3 Buchungen × 2500 × (2400/2500) = 7200.
+      const gehalt = byName('Gehalt')!;
+      expect(gehalt.varies).toBe(true);
+      expect(gehalt.amount).toBeCloseTo(7200, 0);
+      expect(gehalt.median).toBeDefined();
+
+      // Miete (deterministisch): 3 × −1000 = −3000, kein vs-Median.
+      const miete = byName('Miete')!;
+      expect(miete.varies).toBe(false);
+      expect(miete.amount).toBeCloseTo(-3000, 0);
+      expect(miete.median).toBeUndefined();
+
+      // Variable Shopping: negativ, streut.
+      const shopping = byName('Shopping')!;
+      expect(shopping.group).toBe('variable');
+      expect(shopping.amount).toBeLessThan(0);
+      expect(shopping.varies).toBe(true);
+
+      // Anschaffung (Einmalposten am Tag 40 ≤ MID_MARCH): −3000, deterministisch.
+      const ansch = byName('Anschaffung')!;
+      expect(ansch.group).toBe('event');
+      expect(ansch.amount).toBeCloseTo(-3000, 0);
+      expect(ansch.varies).toBe(false);
+    });
+
+    it('sollte noch nicht aufgetretene Posten weglassen', () => {
+      const f = compositionFixture();
+      // Tag 20: 2. Gehalt (Tag 31) und Anschaffung (Tag 40) noch nicht gebucht.
+      const bin = binOf(f.density, f.paths[0][20]);
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        compositionSchedule: f.compositionSchedule,
+        day: 20,
+        bin,
+      })!;
+      const comp = detail.representative!.composition;
+      expect(comp.find((c) => c.name === 'Anschaffung')).toBeUndefined();
+      // Gehalt: nur die erste Buchung (Tag 0) → 1 × 2500 × Verhältnis.
+      const gehalt = comp.find((c) => c.name === 'Gehalt')!;
+      expect(gehalt.amount).toBeLessThan(2600);
+    });
+
+    it('sollte ohne Schedule nur variable Kategorien als Zusammensetzung führen', () => {
+      const f = compositionFixture();
+      const bin = binOf(f.density, f.paths[0][MID_MARCH]);
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        day: MID_MARCH,
+        bin,
+      })!;
+      const comp = detail.representative!.composition;
+      expect(comp.every((c) => c.group === 'variable')).toBe(true);
+      expect(comp.length).toBe(1);
     });
   });
 
