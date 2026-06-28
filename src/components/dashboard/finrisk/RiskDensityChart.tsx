@@ -5,6 +5,7 @@ import { Info, MousePointerClick } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
 import { computeCellDetail, type CellDetail } from '@/lib/finrisk/cell-details';
+import { HEATMAP_PAD as PAD, resolveHeatmapCell, isTap } from './heatmap-geometry';
 import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -41,8 +42,6 @@ function niceTicks(lo: number, hi: number, count = 5): number[] {
   for (let v = start; v <= hi + 1e-6; v += step) out.push(Math.round(v));
   return out;
 }
-
-const PAD = { top: 10, right: 12, bottom: 22, left: 58 };
 
 interface Props {
   result: ScenarioResult;
@@ -126,13 +125,8 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       PAD.top + (valueMax > valueMin ? (1 - (value - valueMin) / (valueMax - valueMin)) * plotH : 0);
     const dayAtPx = (px: number) =>
       Math.max(0, Math.min(nDays - 1, Math.floor(((px - PAD.left) / plotW) * nDays)));
-    const binAtPy = (py: number) => {
-      const binPx = plotH / Math.max(1, density.bins);
-      const row = Math.floor((py - PAD.top) / binPx);
-      return Math.max(0, Math.min(density.bins - 1, density.bins - 1 - row));
-    };
-    return { plotW, plotH, xAt, yAt, dayAtPx, binAtPy };
-  }, [size.w, size.h, nDays, valueMin, valueMax, density.bins]);
+    return { plotW, plotH, xAt, yAt, dayAtPx };
+  }, [size.w, size.h, nDays, valueMin, valueMax]);
 
   // Zeichnen mit theme-aware Farben.
   useEffect(() => {
@@ -289,21 +283,46 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
     [geom, size.w],
   );
 
-  // Klick/Tap auf eine Zelle öffnet die Annahmen-Details. Bewusst eigener
-  // Handler (nicht der Hover), damit ein Tap gezielt Tag UND Wert-Bin wählt.
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // Start-Punkt des aktuellen Zeigers – für die Tap-Erkennung beim Loslassen.
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      pointerStart.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      handlePointer(e); // sofortige Vorschau unter dem Finger
+    },
+    [handlePointer],
+  );
+
+  // Details öffnen sich beim LOSLASSEN, wenn es ein Tap war (kaum Bewegung) –
+  // nicht über `click`, das nach einem Touch-Drag gar nicht feuert. Ein Wischen
+  // entlang der Tage (Vorschau) lässt den Dialog bewusst zu.
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const start = pointerStart.current;
+      pointerStart.current = null;
       if (!canInspect) return;
       const rect = e.currentTarget.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      if (px < PAD.left || px > size.w - PAD.right || py < PAD.top || py > size.h - PAD.bottom) {
-        return;
-      }
-      setSelected({ day: geom.dayAtPx(px), bin: geom.binAtPy(py) });
+      const up = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      if (!isTap(start, up)) return;
+      const cell = resolveHeatmapCell(up.x, up.y, {
+        width: size.w,
+        height: size.h,
+        nDays,
+        bins: density.bins,
+      });
+      if (!cell) return;
+      setHover(null); // Vorschau ausblenden, der Dialog übernimmt
+      setSelected(cell);
     },
-    [canInspect, geom, size.w, size.h],
+    [canInspect, size.w, size.h, nDays, density.bins],
   );
+
+  const handlePointerCancel = useCallback(() => {
+    pointerStart.current = null;
+    setHover(null);
+  }, []);
 
   const cellDetail = useMemo<CellDetail | null>(() => {
     if (!selected || !result.representativeByCell || !result.assumptions) return null;
@@ -413,9 +432,10 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         className={cn('relative w-full touch-none select-none', canInspect && 'cursor-pointer')}
         style={{ height: size.h || 300 }}
         onPointerMove={handlePointer}
-        onPointerDown={handlePointer}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onPointerLeave={() => setHover(null)}
-        onClick={handleClick}
         role="img"
         aria-label={`Liquiditäts-Heatmap über ${nDays} Tage. Median-Endsaldo ${eur.format(
           result.scenarioEndP50,
@@ -453,7 +473,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             {canInspect && (
               <div className="mt-1 flex items-center gap-1 border-t pt-1 text-muted-foreground">
                 <MousePointerClick className="h-3 w-3 shrink-0" />
-                Klicken für Annahmen
+                Tippen für Annahmen
               </div>
             )}
           </div>
@@ -463,7 +483,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       {/* Zell-Details: welche konkreten Annahmen erzeugten diesen Saldo? */}
       <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-md">
-          {cellDetail && (
+          {cellDetail ? (
             <>
               <DialogHeader>
                 <DialogTitle>{fmtDay(cellDetail.date)}</DialogTitle>
@@ -475,6 +495,14 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
               </DialogHeader>
               <CellDetailBody detail={cellDetail} />
             </>
+          ) : (
+            <DialogHeader>
+              <DialogTitle>Keine Details</DialogTitle>
+              <DialogDescription>
+                Für diese Zelle liegen keine Annahmen vor. Tippe eine hellere
+                (wahrscheinlichere) Zelle an.
+              </DialogDescription>
+            </DialogHeader>
           )}
         </DialogContent>
       </Dialog>
@@ -489,6 +517,14 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
           heller = wahrscheinlicher
         </span>
       </div>
+
+      {canInspect && (
+        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <MousePointerClick className="h-3 w-3 shrink-0" />
+          Tippe eine Zelle an, um die Annahmen dahinter zu sehen – welche konkreten Werte diesen
+          Saldo erzeugt haben.
+        </p>
+      )}
     </div>
   );
 }
