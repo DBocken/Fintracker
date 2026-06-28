@@ -20,10 +20,13 @@ import type {
   VariableExpenseBaseline,
 } from './forecast-types';
 import type {
+  CategoryAssumption,
+  IncomeAssumption,
   MonteCarloConfig,
   MonteCarloDistribution,
   MonteCarloResult,
   ResolvedMonteCarloConfig,
+  TrialAssumptions,
 } from './forecast-montecarlo-types';
 
 function round2(value: number): number {
@@ -149,6 +152,11 @@ function buildOccurrenceEvents(
  * Mit `occurrenceSampling` werden Baselines, die ein `occurrenceModel` tragen,
  * stattdessen als spiky Tagesereignisse gezogen (PR 3); alle übrigen behalten
  * die geglättete Perturbation.
+ *
+ * Mit `collectAssumptions` werden die gezogenen Werte (variable Ausgabe je
+ * Kategorie/Monat, perturbierte Einnahmen) zusätzlich als {@link TrialAssumptions}
+ * zurückgegeben. Das LIEST nur bereits gezogene Zufallswerte – die RNG-Sequenz
+ * bleibt identisch, damit Band/Kennzahlen unabhängig vom Flag reproduzierbar sind.
  */
 function perturbInput(
   input: ForecastInput,
@@ -158,20 +166,35 @@ function perturbInput(
   monthKeys: string[],
   startISO: string,
   horizonMonths: number,
-): ForecastInput {
+  collectAssumptions: boolean,
+): { input: ForecastInput; assumptions: TrialAssumptions | null } {
   const useOccurrence = mc.occurrenceSampling === true;
   const variableAccountId = useOccurrence ? pickVariableExpenseAccount(input.accounts) : null;
 
   const variableExpenses: VariableExpenseBaseline[] = [];
   const occurrenceEvents: PlannedForecastEvent[] = [];
+  const variableByCategory: CategoryAssumption[] = [];
 
   for (const b of input.variableExpenses ?? []) {
     // Occurrence-Pfad: Baselines mit Modell werden als Ereignisse gezogen und
     // verlassen die geglättete Baseline.
     if (useOccurrence && b.occurrenceModel && variableAccountId) {
-      occurrenceEvents.push(
-        ...buildOccurrenceEvents(b, variableAccountId, startISO, horizonMonths, normal, rng),
-      );
+      const events = buildOccurrenceEvents(b, variableAccountId, startISO, horizonMonths, normal, rng);
+      occurrenceEvents.push(...events);
+      if (collectAssumptions) {
+        const monthly: Record<string, number> = {};
+        for (const month of monthKeys) monthly[month] = 0;
+        // Ereignisbeträge sind signiert-negativ (Abfluss); je Monat aufaddieren.
+        for (const ev of events) {
+          const monthKey = ev.date.slice(0, 7);
+          monthly[monthKey] = round2((monthly[monthKey] ?? 0) - ev.amount);
+        }
+        variableByCategory.push({
+          category: b.category,
+          plannedMonthly: b.budgetOverride ?? b.monthlyAmount,
+          monthly,
+        });
+      }
       continue;
     }
     const confidenceFloor =
@@ -182,12 +205,18 @@ function perturbInput(
       monthKeys.map((month) => [month, round2(effective * lognormalMultiplier(normal, cv))]),
     );
     variableExpenses.push({ ...b, monthlyAmounts });
+    if (collectAssumptions) {
+      variableByCategory.push({ category: b.category, plannedMonthly: effective, monthly: { ...monthlyAmounts } });
+    }
   }
 
+  const income: IncomeAssumption[] = [];
   const recurringFlows: RecurringFlow[] = (input.recurringFlows ?? []).map((f) => {
     if (f.amount > 0 && mc.incomeVolatility > 0) {
       const mult = lognormalMultiplier(normal, mc.incomeVolatility);
-      return { ...f, amount: round2(f.amount * mult) };
+      const sampled = round2(f.amount * mult);
+      if (collectAssumptions) income.push({ name: f.name, planned: f.amount, sampled });
+      return { ...f, amount: sampled };
     }
     return f;
   });
@@ -196,7 +225,10 @@ function perturbInput(
     ? [...(input.plannedEvents ?? []), ...occurrenceEvents]
     : input.plannedEvents;
 
-  return { ...input, variableExpenses, recurringFlows, plannedEvents };
+  return {
+    input: { ...input, variableExpenses, recurringFlows, plannedEvents },
+    assumptions: collectAssumptions ? { variableByCategory, income } : null,
+  };
 }
 
 /** Linear interpoliertes Perzentil eines aufsteigend sortierten Arrays. */
@@ -255,12 +287,23 @@ export function runMonteCarloForecast(
   let breaches = 0;
   // Pfad-major (paths[trial][tag]) – nur befüllt, wenn collectPaths aktiv ist.
   const paths: number[][] | null = mc.collectPaths ? [] : null;
+  // Gezogene Annahmen je Trial – nur befüllt, wenn collectAssumptions aktiv ist.
+  const collectAssumptions = mc.collectAssumptions === true;
+  const assumptions: TrialAssumptions[] | null = collectAssumptions ? [] : null;
 
   for (let t = 0; t < resolvedMc.trials; t++) {
-    const result = calculateDeterministicForecast(
-      perturbInput(input, normal, rng, resolvedMc, monthKeys, startDate, horizonMonths),
-      config,
+    const perturbed = perturbInput(
+      input,
+      normal,
+      rng,
+      resolvedMc,
+      monthKeys,
+      startDate,
+      horizonMonths,
+      collectAssumptions,
     );
+    if (assumptions && perturbed.assumptions) assumptions.push(perturbed.assumptions);
+    const result = calculateDeterministicForecast(perturbed.input, config);
     if (!dates) {
       dates = result.daily.map((d) => d.date);
       resolvedConfig = result.config;
@@ -296,5 +339,6 @@ export function runMonteCarloForecast(
     lowestBalance: distribution(lowestArr),
     endingNetWorth: distribution(endingNwArr),
     ...(paths ? { paths } : {}),
+    ...(assumptions ? { assumptions } : {}),
   };
 }

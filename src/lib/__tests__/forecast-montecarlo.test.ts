@@ -196,3 +196,96 @@ describe('Trial-Pfade exponieren (collectPaths)', () => {
     expect(withPaths.breachProbability).toBe(without.breachProbability);
   });
 });
+
+describe('Gezogene Annahmen exponieren (collectAssumptions)', () => {
+  describe('Normal Behavior', () => {
+    it('liefert ohne Flag keine Annahmen', () => {
+      const res = runMonteCarloForecast(input(0.4), CONFIG, { trials: 50, seed: 1 });
+      expect(res.assumptions).toBeUndefined();
+    });
+
+    it('liefert je Trial die gezogene variable Ausgabe je Kategorie', () => {
+      const res = runMonteCarloForecast(input(0.4), CONFIG, {
+        trials: 60,
+        seed: 1,
+        collectAssumptions: true,
+      });
+      expect(res.assumptions).toHaveLength(60);
+      const first = res.assumptions![0];
+      const cat = first.variableByCategory.find((c) => c.category === 'Lebensmittel');
+      expect(cat).toBeDefined();
+      expect(cat!.plannedMonthly).toBe(400);
+      // Sechs Monate Horizont -> sechs realisierte Monatsbeträge.
+      expect(Object.keys(cat!.monthly)).toHaveLength(6);
+      for (const amount of Object.values(cat!.monthly)) {
+        expect(amount).toBeGreaterThan(0);
+      }
+    });
+
+    it('streut die gezogenen Beträge über die Trials (echter Treiber)', () => {
+      const res = runMonteCarloForecast(input(0.5), CONFIG, {
+        trials: 100,
+        seed: 1,
+        collectAssumptions: true,
+      });
+      const month = Object.keys(res.assumptions![0].variableByCategory[0].monthly)[0];
+      const sampled = res.assumptions!.map(
+        (a) => a.variableByCategory[0].monthly[month],
+      );
+      const uniqueValues = new Set(sampled.map((v) => Math.round(v)));
+      expect(uniqueValues.size).toBeGreaterThan(1);
+    });
+
+    it('erfasst perturbierte Einnahmen bei incomeVolatility > 0', () => {
+      const res = runMonteCarloForecast(input(0), CONFIG, {
+        trials: 40,
+        seed: 1,
+        incomeVolatility: 0.2,
+        collectAssumptions: true,
+      });
+      const salaryAssumption = res.assumptions![0].income.find((i) => i.name === 'Gehalt');
+      expect(salaryAssumption).toBeDefined();
+      expect(salaryAssumption!.planned).toBe(2500);
+      const sampled = res.assumptions!.map(
+        (a) => a.income.find((i) => i.name === 'Gehalt')!.sampled,
+      );
+      expect(new Set(sampled.map((v) => Math.round(v))).size).toBeGreaterThan(1);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('hält Annahmen und Pfade gleich lang und ausgerichtet', () => {
+      const res = runMonteCarloForecast(input(0.4), CONFIG, {
+        trials: 30,
+        seed: 2,
+        collectPaths: true,
+        collectAssumptions: true,
+      });
+      expect(res.assumptions).toHaveLength(res.paths!.length);
+    });
+
+    it('lässt Einnahmen leer, wenn keine Income-Volatilität gezogen wird', () => {
+      const res = runMonteCarloForecast(input(0.4), CONFIG, {
+        trials: 20,
+        seed: 1,
+        incomeVolatility: 0,
+        collectAssumptions: true,
+      });
+      expect(res.assumptions![0].income).toEqual([]);
+    });
+  });
+
+  describe('Regression Protection', () => {
+    it('[REGRESSION] verändert Band/Kennzahlen nicht (rein additiv)', () => {
+      const without = runMonteCarloForecast(input(0.4), CONFIG, { trials: 80, seed: 5 });
+      const withAssumptions = runMonteCarloForecast(input(0.4), CONFIG, {
+        trials: 80,
+        seed: 5,
+        collectAssumptions: true,
+      });
+      expect(withAssumptions.band).toEqual(without.band);
+      expect(withAssumptions.lowestBalance).toEqual(without.lowestBalance);
+      expect(withAssumptions.breachProbability).toBe(without.breachProbability);
+    });
+  });
+});
