@@ -12,6 +12,7 @@
  * Salden, Forecasts oder Szenario-Ergebnisse an ein Backend gesendet.
  */
 import type { DensityField } from './density';
+import type { TrialAssumptions } from '../forecast-montecarlo-types';
 
 /** Fachlicher Szenario-Typ (Frage, die der Nutzer stellt). */
 export type ScenarioType =
@@ -115,4 +116,18 @@ export interface ScenarioResult {
   density: DensityField;
   /** Effektiv ausgewertetes Fenster in Tagen (= Länge von `daily`/Heatmap). */
   horizonDays: number;
+  /**
+   * Gezogene Annahmen je (gemischtem) Durchlauf – aligned mit den Pfaden hinter
+   * `density`. Macht die Heatmap-Zellen anklickbar erklärbar („welche konkreten
+   * Werte erzeugten diesen Saldo?"). Optional: nur gesetzt, wenn der Lauf die
+   * Annahmen gesammelt hat.
+   */
+  assumptions?: TrialAssumptions[];
+  /**
+   * Repräsentativer Durchlauf je Heatmap-Zelle: `representativeByCell[tag][bin]`
+   * ist der Index in `assumptions` des Pfads, der am nächsten am Bin-Zentrum
+   * liegt (oder -1, wenn die Zelle leer ist). Kompakt statt aller Pfade, damit
+   * das Ergebnis schlank über die Worker-Grenze klont.
+   */
+  representativeByCell?: number[][];
 }
