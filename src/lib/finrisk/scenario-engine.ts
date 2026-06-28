@@ -14,8 +14,9 @@
  */
 import { format } from 'date-fns';
 import { applyScenario } from '../forecast-scenario';
+import { listFlowOccurrences } from '../forecast';
 import { percentile, runMonteCarloForecast } from '../forecast-montecarlo';
-import type { ForecastConfig, ForecastInput } from '../forecast-types';
+import type { ForecastConfig, ForecastInput, RecurringFlow } from '../forecast-types';
 import type { MonteCarloConfig } from '../forecast-montecarlo-types';
 import { payloadToScenario } from './scenario-payload-adapter';
 import { calculateStressCapacity } from './stress-capacity';
@@ -23,7 +24,7 @@ import { calculateBreachProbabilities } from './breach';
 import { buildDensityField, type DensityField } from './density';
 import { generateRiskDiagnosis } from './risk-diagnosis';
 import type { LumpyRiskProfile } from './lumpy-risk';
-import type { ScenarioPayload, ScenarioResult } from './scenario-payload-types';
+import type { CompositionItem, ScenarioPayload, ScenarioResult } from './scenario-payload-types';
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -74,6 +75,62 @@ function buildRepresentativeByCell(paths: number[][], density: DensityField): nu
     result[d] = reps;
   }
   return result;
+}
+
+/**
+ * Baut die benannten, deterministischen Geldfluss-Posten (Einnahmen, Fixkosten-
+ * Verträge, geplante Einmalposten) mit ihren Buchungen im Horizont. Nutzt
+ * dieselbe Fälligkeits-Logik wie die Engine ({@link listFlowOccurrences}), damit
+ * die Zell-Zusammensetzung exakt zum gerechneten Pfad passt. Variable Ausgaben
+ * fehlen bewusst – die streuen je Pfad und kommen aus den Annahmen.
+ */
+function buildCompositionSchedule(input: ForecastInput, dates: string[]): CompositionItem[] {
+  if (dates.length === 0) return [];
+  const dayIndex = new Map<string, number>();
+  dates.forEach((iso, i) => dayIndex.set(iso, i));
+  const startISO = dates[0];
+  const endISO = dates[dates.length - 1];
+  const items: CompositionItem[] = [];
+
+  const addItem = (name: string, group: CompositionItem['group'], isoDates: string[], amount: number) => {
+    const bookings = isoDates
+      .map((iso) => ({ day: dayIndex.get(iso) ?? -1, amount }))
+      .filter((b) => b.day >= 0);
+    if (bookings.length > 0) items.push({ name, group, bookings });
+  };
+
+  for (const flow of input.recurringFlows ?? []) {
+    if (!flow.amount) continue;
+    addItem(
+      flow.name,
+      flow.amount >= 0 ? 'income' : 'fixed',
+      listFlowOccurrences(flow, startISO, endISO),
+      flow.amount,
+    );
+  }
+
+  for (const event of input.plannedEvents ?? []) {
+    if (!event.amount) continue;
+    if (event.cadence) {
+      // Wiederkehrender Posten: wie ein Flow behandeln (Anker = Datum).
+      const pseudo: RecurringFlow = {
+        id: event.id,
+        name: event.name,
+        amount: event.amount,
+        cadence: event.cadence,
+        anchorDate: event.date,
+        intervalDays: event.intervalDays,
+        endDate: event.endDate,
+        accountId: event.accountId,
+      };
+      addItem(event.name, 'event', listFlowOccurrences(pseudo, startISO, endISO), event.amount);
+    } else {
+      const within = event.date >= startISO && event.date <= endISO ? [event.date] : [];
+      addItem(event.name, 'event', within, event.amount);
+    }
+  }
+
+  return items;
 }
 
 /** Median einer Tagesspalte über alle Pfade. */
@@ -127,13 +184,10 @@ export function runScenarioPayload(
     occurrenceSampling: options.monteCarlo?.occurrenceSampling ?? true,
   };
   const scenario = payloadToScenario(payload, startISO);
+  const scenarioInput = applyScenario(input, scenario);
 
   const baselineRun = runMonteCarloForecast(input, effectiveConfig, mc);
-  const scenarioRun = runMonteCarloForecast(
-    applyScenario(input, scenario),
-    effectiveConfig,
-    mc,
-  );
+  const scenarioRun = runMonteCarloForecast(scenarioInput, effectiveConfig, mc);
 
   // Auswertungsfenster auf den gefragten Horizont begrenzen. Der Monte-Carlo-Lauf
   // erzwingt einen 6-Monats-Boden für stabile Bänder; die Risiko-Kennzahlen
@@ -183,6 +237,11 @@ export function runScenarioPayload(
   // Zell-Details, ohne alle Pfade über die Worker-Grenze zu klonen.
   const representativeByCell = buildRepresentativeByCell(mixedPaths, density);
 
+  // Benannte Geldfluss-Posten (Einnahmen/Fixkosten/geplante Posten) für die
+  // vollständige Zell-Zusammensetzung. Basiert auf dem Szenario-Input, damit die
+  // Posten zu den gemischten Pfaden passen (bei Wahrscheinlichkeit 1 exakt).
+  const compositionSchedule = buildCompositionSchedule(scenarioInput, dates);
+
   const diagnosis = generateRiskDiagnosis({
     baselineEndP50,
     scenarioEndP50,
@@ -214,5 +273,6 @@ export function runScenarioPayload(
     horizonDays,
     assumptions: mixedAssumptions,
     representativeByCell,
+    compositionSchedule,
   };
 }

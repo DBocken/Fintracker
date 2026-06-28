@@ -130,4 +130,30 @@ export interface ScenarioResult {
    * das Ergebnis schlank über die Worker-Grenze klont.
    */
   representativeByCell?: number[][];
+  /**
+   * Benannte, deterministische Geldfluss-Posten (Einnahmen, Fixkosten-Verträge,
+   * geplante Posten) mit ihren Buchungen im Horizont. Identisch für alle Pfade –
+   * variable Ausgaben/perturbierte Einnahmen kommen aus {@link assumptions}.
+   * Grundlage für die vollständige Zell-Zusammensetzung (mehrere Balken).
+   */
+  compositionSchedule?: CompositionItem[];
+}
+
+/** Eine Buchung eines Geldfluss-Postens: Tagindex + signierter Betrag (EUR). */
+export interface CompositionBooking {
+  /** Index in der Tagesachse (`density.dates`). */
+  day: number;
+  /** Signierter Betrag: + Zufluss, − Abfluss. */
+  amount: number;
+}
+
+/**
+ * Ein benannter, über alle Pfade identischer Geldfluss-Posten. `group` ordnet
+ * ihn der Anzeige zu; `bookings` sind die (geplanten) Buchungen im Horizont,
+ * woraus sich der bis zu einem Tag kumulierte Beitrag ergibt.
+ */
+export interface CompositionItem {
+  name: string;
+  group: 'income' | 'fixed' | 'event';
+  bookings: CompositionBooking[];
 }
