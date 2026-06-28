@@ -31,7 +31,7 @@ import { HouseholdSettings } from './HouseholdSettings';
 import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import StatTile from '@/components/common/StatTile';
+import { InfoStatStrip } from '@/components/common/InfoGroup';
 
 function SectionHeader({
   icon,
@@ -188,10 +188,13 @@ export function EnhancedSettings() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <StatTile label="Kategorien" value={categories.length} />
-              <StatTile label="Aufbewahrung" value={`${settings?.retention_months || 36} M`} />
-            </div>
+            <InfoStatStrip
+              className="md:min-w-[280px]"
+              items={[
+                { label: "Kategorien", value: categories.length },
+                { label: "Aufbewahrung", value: `${settings?.retention_months || 36} M` },
+              ]}
+            />
           </div>
         </div>
 
