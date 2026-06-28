@@ -146,6 +146,7 @@ export const translations = {
       title: 'Meilensteine',
       description: 'Dein Fortschritt auf dem Weg zu finanzieller Sicherheit – Schritt für Schritt.',
       achieved: 'Erreichte Meilensteine',
+      achievedBadge: 'Erreicht',
       next: 'Als Nächstes',
     },
     netWorth: {
@@ -445,6 +446,7 @@ export const translations = {
       title: 'Milestones',
       description: 'Your progress toward financial security – step by step.',
       achieved: 'Achieved milestones',
+      achievedBadge: 'Achieved',
       next: 'Next',
     },
     netWorth: {

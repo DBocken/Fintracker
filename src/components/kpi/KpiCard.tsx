@@ -1,5 +1,4 @@
 import type { LucideIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { dyadProps } from "@/lib/dyad";
 
@@ -11,23 +10,24 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Kennzahl als karten-loses Readout (Usability-Audit „Karten sind Aktionen"):
+ * Eine KPI hat keine eigene Folgeaktion, daher KEIN Rahmen/Schatten und kein
+ * verschachteltes Icon-Kästchen, das fälschlich klickbar wirkt. Stattdessen ein
+ * ruhig hinterlegter Block mit großer Zahl. Auswahl/Sortierung passiert zentral
+ * über „Dashboard anpassen".
+ */
 export function KpiCard({ label, value, icon: Icon, hint, className }: Props) {
   return (
-    <Card {...dyadProps("KpiCard")} className={cn("p-5 md:p-6", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-medium text-muted-foreground">{label}</div>
-          <div className="mt-2 text-3xl md:text-4xl font-semibold tracking-tight">
-            {value}
-          </div>
-          {hint ? <div className="mt-2 text-xs text-muted-foreground">{hint}</div> : null}
-        </div>
-        {Icon ? (
-          <div className="shrink-0 rounded-md border bg-background p-2 text-muted-foreground">
-            <Icon className="h-4 w-4" />
-          </div>
-        ) : null}
+    <div {...dyadProps("KpiCard")} className={cn("rounded-xl bg-muted/30 p-4 md:p-5", className)}>
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
+        <span className="truncate">{label}</span>
       </div>
-    </Card>
+      <div className="mt-2 text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
+        {value}
+      </div>
+      {hint ? <div className="mt-2 text-xs text-muted-foreground">{hint}</div> : null}
+    </div>
   );
 }

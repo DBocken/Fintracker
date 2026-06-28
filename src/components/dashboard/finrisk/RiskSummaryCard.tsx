@@ -1,5 +1,4 @@
 import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
 
@@ -81,8 +80,10 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
       ? 'wird geprüft …'
       : `${eur.format(stress90.maxAffordableShock)} bei 90 %`;
 
+  // Karten-los (Usability-Audit „Karten sind Aktionen"): reine Diagnose-Anzeige
+  // ohne Rahmen → wirkt nicht antippbar.
   return (
-    <Card className="p-3 sm:p-4">
+    <div className="rounded-xl bg-muted/30 p-3 sm:p-4">
       <div className="flex items-center gap-2 text-sm font-semibold sm:text-base">
         <Activity className="h-4 w-4" /> Risiko-Kurzdiagnose
       </div>
@@ -99,6 +100,6 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
           Lokal berechnet · keine Finanzberatung.
         </p>
       </div>
-    </Card>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Lock } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -34,21 +33,22 @@ export default function MilestonesPage() {
         </div>
       ) : milestones ? (
         <div className="mx-auto max-w-2xl space-y-6">
-          <Card variant="premium">
-            <CardContent className="p-5 sm:p-6">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">{t("milestones.achieved")}</div>
-                  <div className="mt-1 text-3xl font-semibold tabular-nums">
-                    {achievedCount}
-                    <span className="text-lg font-normal text-muted-foreground"> / {total}</span>
-                  </div>
+          {/* Fortschritts-Readout ohne Karte (Usability-Audit „Karten sind
+              Aktionen"): kein Rahmen → wirkt nicht antippbar; die Liste darunter
+              ist die eigentliche Information. */}
+          <div className="overflow-hidden rounded-xl bg-gradient-to-br from-brand/10 via-premium/15 to-transparent p-5 sm:p-6">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="text-sm text-muted-foreground">{t("milestones.achieved")}</div>
+                <div className="mt-1 text-3xl font-semibold tabular-nums">
+                  {achievedCount}
+                  <span className="text-lg font-normal text-muted-foreground"> / {total}</span>
                 </div>
-                <div className="text-2xl font-semibold tabular-nums text-primary">{pct}%</div>
               </div>
-              <Progress value={pct} className="mt-3" />
-            </CardContent>
-          </Card>
+              <div className="text-2xl font-semibold tabular-nums text-primary">{pct}%</div>
+            </div>
+            <Progress value={pct} className="mt-3" />
+          </div>
 
           {/* Fortschrittspfad */}
           <ol className="relative space-y-4 before:absolute before:left-5 before:top-2 before:h-[calc(100%-1rem)] before:w-px before:bg-border">
@@ -70,14 +70,14 @@ export default function MilestonesPage() {
                   </div>
                   <div
                     className={cn(
-                      "flex-1 rounded-lg border p-3",
-                      m.achieved ? "border-positive/40 bg-positive/5" : isNext ? "border-primary/40 bg-primary/5" : "border-dashed"
+                      "flex-1 rounded-lg p-3",
+                      m.achieved ? "bg-positive/5" : isNext ? "bg-primary/5" : ""
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{m.definition.title}</span>
+                      <span className={cn("font-medium", !m.achieved && !isNext && "text-muted-foreground")}>{m.definition.title}</span>
                       {m.achieved ? (
-                        <span className="text-xs font-medium text-positive">{t("milestones.achieved")}</span>
+                        <span className="text-xs font-medium text-positive">{t("milestones.achievedBadge")}</span>
                       ) : isNext ? (
                         <span className="text-xs font-medium text-primary">{t("milestones.next")}</span>
                       ) : (

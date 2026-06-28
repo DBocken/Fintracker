@@ -43,7 +43,7 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
   const { gate } = plan;
 
   return (
-    <div className="w-full space-y-3 rounded-xl border bg-muted/20 p-4 text-sm">
+    <div className="w-full space-y-3 rounded-xl bg-muted/20 p-4 text-sm">
       <div className="flex items-center gap-2 font-medium">
         {gate.safe ? (
           <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />

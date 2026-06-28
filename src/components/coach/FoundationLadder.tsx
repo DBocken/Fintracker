@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Dot, Lock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { getFinanceFoundation } from "@/services/finance-foundation-service";
 import type { FoundationStage } from "@/lib/finance-foundation";
@@ -75,19 +74,19 @@ export default function FoundationLadder() {
   if (isLoading || !data) return null;
   const overall = Math.round(data.overallProgress * 100);
 
+  // Karten-los (Usability-Audit „Karten sind Aktionen"): ein titulierter
+  // Abschnitt mit Fortschritts-Etappen, kein antippbar wirkender Karten-Rahmen.
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
-          Dein Finanz-Fundament
-          <span className="text-xs font-normal text-muted-foreground">{overall}% – 6 Etappen</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="space-y-4">
+      <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold">
+        Dein Finanz-Fundament
+        <span className="text-xs font-normal text-muted-foreground">{overall}% – 6 Etappen</span>
+      </h2>
+      <div className="space-y-4">
         {data.stages.map((stage) => (
           <StageRow key={stage.key} stage={stage} animate={animate} />
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

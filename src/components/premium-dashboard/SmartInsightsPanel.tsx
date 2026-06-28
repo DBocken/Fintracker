@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Lightbulb } from "lucide-react";
 import { dyadProps } from "@/lib/dyad";
 
@@ -41,19 +40,18 @@ export function SmartInsightsPanel({ totalIncome, totalExpenses, topExpense, top
 
   return (
     <div {...dyadProps("SmartInsightsPanel")} className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Karten-loses Readout (Usability-Audit „Karten sind Aktionen"): kein
+          Rahmen/Schatten und kein verschachteltes Icon-Kästchen, das fälschlich
+          klickbar wirkt. */}
       {items.map((it) => (
-        <Card key={it.label} className="p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-muted-foreground">{it.label}</div>
-              <div className="mt-2 text-2xl font-semibold tracking-tight">{it.value}</div>
-              <div className="mt-2 text-xs text-muted-foreground truncate">{it.detail}</div>
-            </div>
-            <div className="shrink-0 rounded-md border bg-background p-2 text-muted-foreground">
-              <it.icon className="h-4 w-4" />
-            </div>
+        <div key={it.label} className="rounded-xl bg-muted/30 p-5 md:p-6">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <it.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{it.label}</span>
           </div>
-        </Card>
+          <div className="mt-2 text-2xl font-semibold tracking-tight">{it.value}</div>
+          <div className="mt-1 truncate text-xs text-muted-foreground">{it.detail}</div>
+        </div>
       ))}
     </div>
   );

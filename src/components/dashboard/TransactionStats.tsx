@@ -1,5 +1,4 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface TransactionStatsProps {
@@ -27,10 +26,11 @@ export function TransactionStats({
 }: TransactionStatsProps) {
   const { enabled: gentleModeEnabled } = useGentleMode();
 
+  // Karten-los (Usability-Audit „Karten sind Aktionen"): reines Kennzahlen-
+  // Readout ohne Rahmen → wirkt nicht antippbar.
   return (
-    <Card className="card-premium">
-      <CardContent className="p-5 md:p-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="overflow-hidden rounded-xl bg-gradient-to-br from-brand/10 via-premium/15 to-transparent p-5 md:p-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Wallet className="h-4 w-4" />
@@ -73,7 +73,6 @@ export function TransactionStats({
             </div>
           </dl>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

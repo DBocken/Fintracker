@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Tone = "default" | "positive" | "warning" | "brand";
@@ -45,22 +44,28 @@ export default function StatHero({
   children,
   className,
 }: StatHeroProps) {
+  // Karten-los (Usability-Audit „Karten sind Aktionen"): kein Rahmen/Schatten,
+  // damit die Hero-Kennzahl nicht fälschlich antippbar wirkt. Der dezente
+  // Premium-Verlauf bleibt als ruhige Hauptaussage erhalten.
   return (
-    <Card variant="premium" className={cn("overflow-hidden", className)}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            {icon}
-            <span className="truncate">{label}</span>
-          </div>
-          {badge && <div className="shrink-0">{badge}</div>}
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl bg-gradient-to-br from-brand/10 via-premium/15 to-transparent p-5",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          {icon}
+          <span className="truncate">{label}</span>
         </div>
-        <div className={cn("mt-1 text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl", toneClass[tone])}>
-          {value}
-        </div>
-        {caption && <div className="mt-1 text-sm text-muted-foreground">{caption}</div>}
-        {children && <div className="mt-4">{children}</div>}
-      </CardContent>
-    </Card>
+        {badge && <div className="shrink-0">{badge}</div>}
+      </div>
+      <div className={cn("mt-1 text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl", toneClass[tone])}>
+        {value}
+      </div>
+      {caption && <div className="mt-1 text-sm text-muted-foreground">{caption}</div>}
+      {children && <div className="mt-4">{children}</div>}
+    </div>
   );
 }
