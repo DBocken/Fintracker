@@ -68,7 +68,12 @@ export function transactionMatchesRules(rules: BudgetRule[] | undefined, tx: Tra
   });
 }
 
-function healthFor(spent: number, limit: number, warnThreshold: number): BudgetHealth {
+/**
+ * Ampel-Regel eines Budgets aus Verbrauch & Limit. Exportiert, damit auch der
+ * virtuelle "Verfügbar bis Gehalt"-Tank exakt dieselbe Schwellen-Logik nutzt
+ * (eine Quelle der Wahrheit für die Ampel statt einer zweiten, driftenden Kopie).
+ */
+export function healthFor(spent: number, limit: number, warnThreshold: number): BudgetHealth {
   if (limit <= 0) return spent > 0 ? "over" : "ok";
   if (spent > limit) return "over";
   if ((spent / limit) * 100 >= warnThreshold) return "warn";
