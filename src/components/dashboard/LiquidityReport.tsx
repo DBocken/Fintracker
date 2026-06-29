@@ -47,6 +47,7 @@ import { buildBaseCheckPayload } from '@/lib/finrisk/scenario-questions';
 import ForecastPlanner from '@/components/dashboard/ForecastPlanner';
 import StressPresetQuickAdd from '@/components/dashboard/StressPresetQuickAdd';
 import RiskDensityChart from '@/components/dashboard/finrisk/RiskDensityChart';
+import AskYourMoney from '@/components/dashboard/finrisk/AskYourMoney';
 import RiskSummaryCard from '@/components/dashboard/finrisk/RiskSummaryCard';
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
@@ -361,6 +362,9 @@ export default function LiquidityReport() {
       <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)_minmax(300px,360px)]">
         {/* SEHEN: Ergebnis (Chart, KPIs) – mobil zuerst, auf Desktop in die Mitte. */}
         <div className="order-1 min-w-0 space-y-4 xl:order-2">
+          {/* Hero: „Frag dein Geld" – inverse Simulation (kann ich mir X leisten?). */}
+          <AskYourMoney input={input ?? null} config={riskConfig} />
+
           {/* Insight nur bei echtem Risiko als Box – „stabil" steht kompakt im Chart-Label. */}
           {insights[0] && insights[0].kind === 'below_buffer' && (
             <Alert variant="destructive">
