@@ -31,9 +31,13 @@ import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
+import { CounselingBridgeCard } from "@/components/debts/CounselingBridgeCard";
+import { SchufaSelfCheckCard } from "@/components/debts/SchufaSelfCheckCard";
 import { InfoStatStrip } from "@/components/common/InfoGroup";
 import type { Debt, Transaction } from "@/types";
 import { getTransactions } from "@/services/transaction-service";
+import { getFinancialHealth } from "@/services/financial-health-service";
+import { assessDebtCounseling } from "@/lib/debt-counseling";
 
 import {
   getDebts,
@@ -88,6 +92,13 @@ export default function DebtsPage() {
   const { data: assignments = [] } = useQuery<DebtTransactionAssignment[]>({
     queryKey: ["debt-transaction-assignments"],
     queryFn: getDebtTransactionAssignments,
+    enabled: debts.length > 0,
+  });
+
+  // Einkommens-/Ausgabenmittel speisen die Überschuldungs-Heuristik (Issue #50).
+  const { data: health } = useQuery({
+    queryKey: ["financial-health"],
+    queryFn: getFinancialHealth,
     enabled: debts.length > 0,
   });
 
@@ -158,6 +169,19 @@ export default function DebtsPage() {
     const extra = parseFloat(extraBudget) || 0;
     return calculatePayoffPlan(debts, totalMin + extra, strategy);
   }, [debts, totalMin, extraBudget, strategy]);
+
+  // Schuldnerberatungs-Empfehlung: schlägt nur an, wenn der Plan auf eine
+  // Überschuldung hindeutet (nie aufgehend, > 6 Jahre, Raten > Spielraum).
+  const counseling = useMemo(() => {
+    const extra = parseFloat(extraBudget) || 0;
+    return assessDebtCounseling({
+      plan: payoffPlan,
+      monthlyRate: totalMin + extra,
+      minPayments: totalMin,
+      monthlyIncome: health?.monthlyIncome ?? 0,
+      monthlyExpenses: health?.monthlyExpenses ?? 0,
+    });
+  }, [payoffPlan, totalMin, extraBudget, health]);
 
   const currentDebtId = selectedDebtId || debts.find((d) => !d.is_paid_off)?.id || debts[0]?.id || "";
   const selectedDebt = debts.find((d) => d.id === currentDebtId) || null;
@@ -607,6 +631,13 @@ export default function DebtsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Überschuldungs-Sicherheitsnetz: aktive Vermittlung zu kostenloser
+              Schuldnerberatung, sobald der Plan kritisch wird (Issue #50). */}
+          <CounselingBridgeCard recommendation={counseling} />
+
+          {/* SCHUFA-Selbstauskunft anstoßen (Issue #49). */}
+          <SchufaSelfCheckCard />
             </div>
           )}
         </TabsContent>
