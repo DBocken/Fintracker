@@ -7,7 +7,6 @@ import type { ForecastInput, BufferBasis } from '@/lib/forecast-types';
 import type { ScenarioPayload } from '@/lib/finrisk/scenario-payload-types';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import AskYourMoney from './AskYourMoney';
 import RiskSummaryCard from './RiskSummaryCard';
 import ScenarioSelector from './ScenarioSelector';
 import ScenarioResultPanel from './ScenarioResultPanel';
@@ -94,9 +93,6 @@ export default function FinRiskSection({ input, months, safetyBuffer, bufferBasi
           Liquidität – und wie teuer darf ein Schock bei 80/90/95 % Sicherheit sein?
         </p>
       </div>
-
-      {/* Hero: „Frag dein Geld" – inverse Simulation (kann ich mir X leisten?). */}
-      <AskYourMoney input={input} config={config} />
 
       <RiskSummaryCard
         lumpy={lumpy}
