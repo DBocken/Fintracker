@@ -1,1 +1,0 @@
-export { EnhancedSettings as Settings } from './EnhancedSettings';
