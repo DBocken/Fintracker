@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Target, Shield, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { Target, Shield, TrendingDown, ChevronDown, ChevronRight, LifeBuoy, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { Prioritaet } from '@/types';
-import { computePriorityCutPlan, type PriorityCutItem } from '@/lib/budget-priority-plan';
+import {
+  computePriorityCutPlan,
+  type PriorityCutItem,
+  type PriorityCutPlan,
+} from '@/lib/budget-priority-plan';
 import { matchContractDomain, classifyContractPriority } from '@/lib/contract-priority';
+import type { BufferShortfall } from '@/lib/liquidity-shortfall';
 
 const PRIORITY_LABEL: Record<Prioritaet, string> = {
   nice: 'Nice-to-have',
@@ -78,10 +83,12 @@ interface Props {
   input: ForecastInput | null;
   /** Priorität je Kategoriename (aus den Kategorie-Attributen). Optional. */
   priorityByCategory?: Map<string, Prioritaet>;
+  /** Liquiditäts-Fehlbetrag aus dem Forecast — treibt den „Liquidität sichern"-Modus. */
+  bufferShortfall?: BufferShortfall;
 }
 
-export default function BudgetOptimizerPanel({ input, priorityByCategory }: Props) {
-  const [mode, setMode] = useState<'goal' | 'contracts'>('goal');
+export default function BudgetOptimizerPanel({ input, priorityByCategory, bufferShortfall }: Props) {
+  const [mode, setMode] = useState<'goal' | 'buffer' | 'contracts'>('goal');
   const [goalAmount, setGoalAmount] = useState(5000);
   const [goalMonths, setGoalMonths] = useState(12);
   const [showAll, setShowAll] = useState(false);
@@ -115,10 +122,13 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
     return [...variable, ...contracts];
   }, [input, priorityByCategory]);
 
-  const monthlyNeeded = goalAmount / Math.max(1, goalMonths);
+  const goalMonthly = goalAmount / Math.max(1, goalMonths);
+  // Zielbetrag des Wasserfalls: im Spar-Modus das Sparziel, im Liquiditäts-Modus
+  // der aus dem Forecast abgeleitete monatliche Fehlbetrag bis zum Tiefpunkt.
+  const targetMonthly = mode === 'buffer' ? bufferShortfall?.monthlyNeeded ?? 0 : goalMonthly;
   const plan = useMemo(
-    () => computePriorityCutPlan(cutItems, monthlyNeeded),
-    [cutItems, monthlyNeeded],
+    () => computePriorityCutPlan(cutItems, targetMonthly),
+    [cutItems, targetMonthly],
   );
   // Volles Sparpotenzial (ohne Ziel) – für die Machbarkeits-Aussage.
   const maxPossible = useMemo(() => computePriorityCutPlan(cutItems, 0).totalCut, [cutItems]);
@@ -129,11 +139,8 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
     .reduce((s, f) => s + Math.abs(f.amount), 0);
   const emergencyTarget = Math.round((totalFixed + totalVariable) * 3);
 
-  const suggestions = plan.suggestions;
   const achievable = plan.targetReached;
   const totalCut = plan.totalCut;
-
-  const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
 
   return (
     <Card>
@@ -155,7 +162,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             variant={mode === 'goal' ? 'default' : 'outline'}
@@ -163,6 +170,18 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
           >
             <Target className="mr-1.5 h-3.5 w-3.5" /> Sparziel
           </Button>
+          {bufferShortfall && (
+            <Button
+              size="sm"
+              variant={mode === 'buffer' ? 'default' : 'outline'}
+              onClick={() => setMode('buffer')}
+            >
+              <LifeBuoy className="mr-1.5 h-3.5 w-3.5" /> Liquidität sichern
+              {bufferShortfall.breaches && (
+                <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden="true" />
+              )}
+            </Button>
+          )}
           <Button
             size="sm"
             variant={mode === 'contracts' ? 'default' : 'outline'}
@@ -204,7 +223,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
 
             {goalAmount > 0 && goalMonths > 0 && (
               <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-                <span className="font-medium">{eur.format(monthlyNeeded)}/Monat</span>
+                <span className="font-medium">{eur.format(goalMonthly)}/Monat</span>
                 <span className="ml-2 text-muted-foreground">
                   nötig ·{' '}
                   {achievable
@@ -221,96 +240,57 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
                 <AlertDescription>
                   Mit deinen variablen Ausgaben lassen sich realistisch ca.{' '}
                   {eur.format(Math.round(maxPossible))}/Mo. einsparen – das Ziel erfordert{' '}
-                  {eur.format(Math.round(monthlyNeeded))}/Mo. Entweder Zeitraum verlängern oder
+                  {eur.format(Math.round(goalMonthly))}/Mo. Entweder Zeitraum verlängern oder
                   Fixkosten (Verträge) prüfen.
                 </AlertDescription>
               </Alert>
             )}
 
-            {suggestions.length > 0 ? (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Wo zuerst sparen? (niedrige Priorität zuerst)
-                </div>
-                <div className="space-y-2">
-                  {visibleSuggestions.map((s) => (
-                    <div key={s.category} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-sm font-medium">{s.category}</span>
-                          <span
-                            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
-                          >
-                            {PRIORITY_LABEL[s.prioritaet]}
-                          </span>
-                          {s.kind === 'contract' && (
-                            <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              Vertrag
-                            </span>
-                          )}
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {eur.format(s.monthlyAmount)}/Mo.
-                          </span>
-                        </div>
-                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-brand/60 transition-all"
-                            style={{ width: `${Math.round((s.newBudget / s.monthlyAmount) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                          −{eur.format(s.suggestedCut)}/Mo.
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {s.kind === 'contract' && s.newBudget === 0
-                            ? 'kündigen'
-                            : `→ ${eur.format(s.newBudget)}`}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {suggestions.length > 5 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setShowAll((v) => !v)}
-                  >
-                    {showAll ? (
-                      <>
-                        <ChevronDown className="mr-1.5 h-3.5 w-3.5" /> Weniger anzeigen
-                      </>
-                    ) : (
-                      <>
-                        <ChevronRight className="mr-1.5 h-3.5 w-3.5" /> Alle {suggestions.length} Kategorien zeigen
-                      </>
-                    )}
-                  </Button>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Zuerst wird Nice-to-have gekürzt, dann Normales – inkl. kündbarer Abos
-                  (Streaming/Fitness); pro Kategorie nur im realistischen Rahmen. Die Priorität
-                  legst du je Kategorie in den Einstellungen fest.
-                </p>
-                {plan.protectedCategories.length > 0 && (
-                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-positive" aria-hidden="true" />
-                    <span>
-                      Essenziell geschützt (nicht gekürzt):{' '}
-                      {plan.protectedCategories.slice(0, 6).join(', ')}
-                      {plan.protectedCategories.length > 6 ? ' …' : ''}
-                    </span>
-                  </p>
-                )}
+            <WaterfallResult
+              plan={plan}
+              showAll={showAll}
+              onToggleShowAll={() => setShowAll((v) => !v)}
+            />
+          </>
+        )}
+
+        {mode === 'buffer' && bufferShortfall && (
+          <>
+            {!bufferShortfall.breaches ? (
+              <div className="flex items-start gap-2 rounded-lg border border-positive/40 bg-positive/5 px-4 py-3 text-sm">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
+                <span>
+                  Dein Liquiditätspuffer hält im gewählten Horizont – aktuell ist kein Eingriff nötig.
+                </span>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Noch keine variablen Ausgaben erkannt. Importiere mehr Transaktionen für
-                Einspar-Vorschläge.
-              </p>
+              <>
+                <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+                  <span className="font-medium">~{eur.format(bufferShortfall.monthlyNeeded)}/Monat</span>
+                  <span className="ml-2 text-muted-foreground">
+                    freimachen, um über dem Puffer zu bleiben (Fehlbetrag{' '}
+                    {eur.format(bufferShortfall.deficit)} bis zum Tiefpunkt in{' '}
+                    {bufferShortfall.monthsUntilTrough}{' '}
+                    {bufferShortfall.monthsUntilTrough === 1 ? 'Monat' : 'Monaten'})
+                  </span>
+                </div>
+                {!achievable && (
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertTitle>Sparen allein reicht nicht ganz</AlertTitle>
+                    <AlertDescription>
+                      Mit Kürzungen lassen sich realistisch ca. {eur.format(Math.round(maxPossible))}/Mo.
+                      freimachen – nötig sind {eur.format(bufferShortfall.monthlyNeeded)}/Mo. Prüfe
+                      zusätzlich Verträge oder ein extra Einkommen.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <WaterfallResult
+                  plan={plan}
+                  showAll={showAll}
+                  onToggleShowAll={() => setShowAll((v) => !v)}
+                />
+              </>
             )}
           </>
         )}
@@ -361,5 +341,102 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Geteilte Ergebnisliste des Spar-Wasserfalls (Spar- und Liquiditäts-Modus):
+ * Posten nach Priorität sortiert (niedrig zuerst), mit „kürzen"/„kündigen"-
+ * Beschriftung und Hinweis auf geschützte essenzielle Kategorien.
+ */
+function WaterfallResult({
+  plan,
+  showAll,
+  onToggleShowAll,
+}: {
+  plan: PriorityCutPlan;
+  showAll: boolean;
+  onToggleShowAll: () => void;
+}) {
+  const suggestions = plan.suggestions;
+  if (suggestions.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Noch keine kürzbaren Posten erkannt. Importiere mehr Transaktionen für Einspar-Vorschläge.
+      </p>
+    );
+  }
+  const visible = showAll ? suggestions : suggestions.slice(0, 5);
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Wo zuerst sparen? (niedrige Priorität zuerst)
+      </div>
+      <div className="space-y-2">
+        {visible.map((s) => (
+          <div key={s.category} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-sm font-medium">{s.category}</span>
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
+                >
+                  {PRIORITY_LABEL[s.prioritaet]}
+                </span>
+                {s.kind === 'contract' && (
+                  <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Vertrag
+                  </span>
+                )}
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {eur.format(s.monthlyAmount)}/Mo.
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-brand/60 transition-all"
+                  style={{ width: `${Math.round((s.newBudget / s.monthlyAmount) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                −{eur.format(s.suggestedCut)}/Mo.
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {s.kind === 'contract' && s.newBudget === 0 ? 'kündigen' : `→ ${eur.format(s.newBudget)}`}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {suggestions.length > 5 && (
+        <Button variant="ghost" size="sm" className="w-full" onClick={onToggleShowAll}>
+          {showAll ? (
+            <>
+              <ChevronDown className="mr-1.5 h-3.5 w-3.5" /> Weniger anzeigen
+            </>
+          ) : (
+            <>
+              <ChevronRight className="mr-1.5 h-3.5 w-3.5" /> Alle {suggestions.length} Posten zeigen
+            </>
+          )}
+        </Button>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Zuerst wird Nice-to-have gekürzt, dann Normales – inkl. kündbarer Abos (Streaming/Fitness);
+        pro Kategorie nur im realistischen Rahmen. Die Priorität legst du je Kategorie in den
+        Einstellungen fest.
+      </p>
+      {plan.protectedCategories.length > 0 && (
+        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+          <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-positive" aria-hidden="true" />
+          <span>
+            Essenziell geschützt (nicht gekürzt): {plan.protectedCategories.slice(0, 6).join(', ')}
+            {plan.protectedCategories.length > 6 ? ' …' : ''}
+          </span>
+        </p>
+      )}
+    </div>
   );
 }
