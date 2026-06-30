@@ -55,6 +55,9 @@ import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import { summarizeOverrides, type OverrideChange } from '@/lib/forecast-overrides-summary';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { BufferBasis } from '@/lib/forecast-types';
+import { useQuery } from '@tanstack/react-query';
+import { getCategories } from '@/services/transaction-service';
+import type { Prioritaet } from '@/types';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -163,6 +166,17 @@ export default function LiquidityReport() {
     safetyBuffer,
     bufferBasis,
   });
+
+  // Kategorie-Prioritäten (vom Nutzer gesetzt) → steuern den Spar-Wasserfall
+  // im BudgetOptimizer: niedrige Priorität wird zuerst gekürzt.
+  const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
+  const priorityByCategory = useMemo(() => {
+    const map = new Map<string, Prioritaet>();
+    for (const c of categories) {
+      if (c.attributes?.prioritaet) map.set(c.name, c.attributes.prioritaet);
+    }
+    return map;
+  }, [categories]);
 
   const [chartView, setChartView] = useState<ChartView>('lines');
   const [trials, setTrials] = useState(500);
@@ -558,7 +572,7 @@ export default function LiquidityReport() {
             <span className="ml-1 text-sm font-normal text-muted-foreground">Budget-Optimierung</span>
           </summary>
           <div className="space-y-6 border-t p-3 sm:p-4">
-            <BudgetOptimizerPanel input={input} />
+            <BudgetOptimizerPanel input={input} priorityByCategory={priorityByCategory} />
           </div>
         </details>
       </FeatureGate>
