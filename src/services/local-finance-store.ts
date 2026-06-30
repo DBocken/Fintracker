@@ -15,7 +15,6 @@ export const LOCAL_FINANCE_KEYS = {
   merchantRules: 'ausgabentracker_merchant_rules_v1',
   contractDecisions: 'ausgabentracker_contract_decisions_v1',
   transactionAllocations: 'ausgabentracker_transaction_allocations_v1',
-  categoryPriorities: 'ausgabentracker_category_priorities_v1',
   budgets: 'ausgabentracker_budgets_v1',
   milestones: 'ausgabentracker_milestones_v1',
   analyticsConsent: 'ausgabentracker_analytics_consent_v1',
