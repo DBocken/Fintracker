@@ -8,7 +8,6 @@ const LOCAL_ONLY_SERVICES = [
   'category-service.ts',
   'merchant-rules-service.ts',
   'user-settings-service.ts',
-  'category-priority-service.ts',
   'milestones-service.ts',
   'analytics-consent-service.ts',
   'analytics-aggregation-service.ts',
