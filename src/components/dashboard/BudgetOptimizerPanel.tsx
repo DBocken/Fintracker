@@ -7,6 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { ForecastInput } from '@/lib/forecast-types';
+import type { Prioritaet } from '@/types';
+import { computePriorityCutPlan, type PriorityCutItem } from '@/lib/budget-priority-plan';
+
+const PRIORITY_LABEL: Record<Prioritaet, string> = {
+  nice: 'Nice-to-have',
+  normal: 'Normal',
+  essential: 'Essenziell',
+};
+
+const PRIORITY_CLASS: Record<Prioritaet, string> = {
+  nice: 'bg-muted text-muted-foreground',
+  normal: 'bg-brand/15 text-brand',
+  essential: 'bg-positive/15 text-positive',
+};
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -75,59 +89,42 @@ function deriveContractHints(input: ForecastInput | null): ContractHint[] {
   return hints.sort((a, b) => b.monthlySavings - a.monthlySavings);
 }
 
-interface BudgetSuggestion {
-  category: string;
-  currentAmount: number;
-  suggestedCut: number;
-  newBudget: number;
-  flexibility: number;
-}
-
-function computeGoalPlan(input: ForecastInput | null, goalAmount: number, goalMonths: number): BudgetSuggestion[] {
-  const variables = (input?.variableExpenses ?? []).filter((e) => e.monthlyAmount > 0);
-  if (!variables.length || goalAmount <= 0 || goalMonths <= 0) return [];
-
-  const monthlyNeeded = goalAmount / goalMonths;
-  const enriched = variables.map((e) => ({
-    ...e,
-    flexibility: e.volatility ?? 0.3,
-    maxCut: Math.round(e.monthlyAmount * (e.volatility ?? 0.3)),
-  }));
-  const totalWeight = enriched.reduce((s, e) => s + e.flexibility, 0) || 1;
-  const maxSavings = enriched.reduce((s, e) => s + e.maxCut, 0);
-  const scale = Math.min(1, monthlyNeeded / Math.max(maxSavings, 1));
-
-  return enriched
-    .map((e) => {
-      const share = (monthlyNeeded * e.flexibility) / totalWeight;
-      const cut = Math.round(Math.min(share * (scale <= 1 ? 1 : scale), e.maxCut));
-      return {
-        category: e.category,
-        currentAmount: e.monthlyAmount,
-        suggestedCut: cut,
-        newBudget: Math.max(0, e.monthlyAmount - cut),
-        flexibility: e.flexibility,
-      };
-    })
-    .filter((s) => s.suggestedCut > 0)
-    .sort((a, b) => b.suggestedCut - a.suggestedCut);
-}
-
 interface Props {
   input: ForecastInput | null;
+  /** Priorität je Kategoriename (aus den Kategorie-Attributen). Optional. */
+  priorityByCategory?: Map<string, Prioritaet>;
 }
 
-export default function BudgetOptimizerPanel({ input }: Props) {
+export default function BudgetOptimizerPanel({ input, priorityByCategory }: Props) {
   const [mode, setMode] = useState<'goal' | 'contracts'>('goal');
   const [goalAmount, setGoalAmount] = useState(5000);
   const [goalMonths, setGoalMonths] = useState(12);
   const [showAll, setShowAll] = useState(false);
 
   const contractHints = useMemo(() => deriveContractHints(input), [input]);
-  const suggestions = useMemo(
-    () => computeGoalPlan(input, goalAmount, goalMonths),
-    [input, goalAmount, goalMonths],
+
+  // Pro Kategorie: realistischer Kürzungsspielraum (Volatilität × Betrag) +
+  // die vom Nutzer gesetzte Priorität. Treibt den Spar-Wasserfall.
+  const cutItems = useMemo<PriorityCutItem[]>(
+    () =>
+      (input?.variableExpenses ?? [])
+        .filter((e) => e.monthlyAmount > 0)
+        .map((e) => ({
+          category: e.category,
+          monthlyAmount: e.monthlyAmount,
+          maxCut: Math.round(e.monthlyAmount * (e.volatility ?? 0.3)),
+          prioritaet: priorityByCategory?.get(e.category) ?? null,
+        })),
+    [input, priorityByCategory],
   );
+
+  const monthlyNeeded = goalAmount / Math.max(1, goalMonths);
+  const plan = useMemo(
+    () => computePriorityCutPlan(cutItems, monthlyNeeded),
+    [cutItems, monthlyNeeded],
+  );
+  // Volles Sparpotenzial (ohne Ziel) – für die Machbarkeits-Aussage.
+  const maxPossible = useMemo(() => computePriorityCutPlan(cutItems, 0).totalCut, [cutItems]);
 
   const totalVariable = (input?.variableExpenses ?? []).reduce((s, e) => s + e.monthlyAmount, 0);
   const totalFixed = (input?.recurringFlows ?? [])
@@ -135,13 +132,9 @@ export default function BudgetOptimizerPanel({ input }: Props) {
     .reduce((s, f) => s + Math.abs(f.amount), 0);
   const emergencyTarget = Math.round((totalFixed + totalVariable) * 3);
 
-  const monthlyNeeded = goalAmount / Math.max(1, goalMonths);
-  const maxPossible = (input?.variableExpenses ?? []).reduce(
-    (s, e) => s + e.monthlyAmount * (e.volatility ?? 0.3),
-    0,
-  );
-  const achievable = monthlyNeeded <= maxPossible;
-  const totalCut = suggestions.reduce((s, s2) => s + s2.suggestedCut, 0);
+  const suggestions = plan.suggestions;
+  const achievable = plan.targetReached;
+  const totalCut = plan.totalCut;
 
   const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
 
@@ -240,22 +233,27 @@ export default function BudgetOptimizerPanel({ input }: Props) {
             {suggestions.length > 0 ? (
               <div className="space-y-2">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Wo kürzen? (nach Sparpotenzial)
+                  Wo zuerst sparen? (niedrige Priorität zuerst)
                 </div>
                 <div className="space-y-2">
                   {visibleSuggestions.map((s) => (
                     <div key={s.category} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="truncate text-sm font-medium">{s.category}</span>
+                          <span
+                            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
+                          >
+                            {PRIORITY_LABEL[s.prioritaet]}
+                          </span>
                           <span className="shrink-0 text-xs text-muted-foreground">
-                            {eur.format(s.currentAmount)}/Mo.
+                            {eur.format(s.monthlyAmount)}/Mo.
                           </span>
                         </div>
                         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div
                             className="h-full rounded-full bg-brand/60 transition-all"
-                            style={{ width: `${Math.round((s.newBudget / s.currentAmount) * 100)}%` }}
+                            style={{ width: `${Math.round((s.newBudget / s.monthlyAmount) * 100)}%` }}
                           />
                         </div>
                       </div>
@@ -287,8 +285,19 @@ export default function BudgetOptimizerPanel({ input }: Props) {
                   </Button>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Kategorien mit hoher historischer Schwankung haben mehr Sparpotenzial.
+                  Zuerst wird Nice-to-have gekürzt, dann Normales; pro Kategorie nur im realistischen
+                  Rahmen. Die Priorität legst du je Kategorie in den Einstellungen fest.
                 </p>
+                {plan.protectedCategories.length > 0 && (
+                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-positive" aria-hidden="true" />
+                    <span>
+                      Essenziell geschützt (nicht gekürzt):{' '}
+                      {plan.protectedCategories.slice(0, 6).join(', ')}
+                      {plan.protectedCategories.length > 6 ? ' …' : ''}
+                    </span>
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
