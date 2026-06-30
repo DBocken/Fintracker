@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { Prioritaet } from '@/types';
 import { computePriorityCutPlan, type PriorityCutItem } from '@/lib/budget-priority-plan';
+import { matchContractDomain, classifyContractPriority } from '@/lib/contract-priority';
 
 const PRIORITY_LABEL: Record<Prioritaet, string> = {
   nice: 'Nice-to-have',
@@ -24,23 +25,7 @@ const PRIORITY_CLASS: Record<Prioritaet, string> = {
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-const CONTRACT_DOMAINS: { domain: string; keywords: string[] }[] = [
-  { domain: 'Streaming', keywords: ['streaming', 'netflix', 'spotify', 'prime', 'disney', 'dazn', 'sky', 'audible', 'youtube', 'wow', 'paramount', 'apple tv', 'crunchyroll', 'deezer'] },
-  { domain: 'Fitness', keywords: ['fitness', 'fitnessstudio', 'gym', 'mcfit', 'urban sports', 'clever fit', 'sportstudio', 'mitgliedschaft'] },
-  { domain: 'Versicherung', keywords: ['versicherung', 'haftpflicht', 'hausrat', 'krankenkasse', 'kfz', 'rechtsschutz', 'lebensversicherung'] },
-  { domain: 'Telekommunikation', keywords: ['mobilfunk', 'internet', 'telekom', 'vodafone', 'o2', 'handy', 'dsl', 'tarif'] },
-  { domain: 'Energie', keywords: ['strom', 'gas', 'energie', 'stadtwerke'] },
-];
-
 const BUNDLE_DOMAINS = new Set(['Streaming', 'Fitness']);
-
-function matchDomain(name: string): string | null {
-  const n = name.toLowerCase();
-  for (const d of CONTRACT_DOMAINS) {
-    if (d.keywords.some((k) => n.includes(k))) return d.domain;
-  }
-  return null;
-}
 
 interface ContractHint {
   domain: string;
@@ -54,7 +39,7 @@ function deriveContractHints(input: ForecastInput | null): ContractHint[] {
   const flows = (input?.recurringFlows ?? []).filter((f) => f.amount < 0);
   const byDomain = new Map<string, typeof flows>();
   for (const f of flows) {
-    const domain = matchDomain(f.name);
+    const domain = matchContractDomain(f.name);
     if (!domain) continue;
     const arr = byDomain.get(domain) ?? [];
     arr.push(f);
@@ -103,20 +88,32 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
 
   const contractHints = useMemo(() => deriveContractHints(input), [input]);
 
-  // Pro Kategorie: realistischer Kürzungsspielraum (Volatilität × Betrag) +
-  // die vom Nutzer gesetzte Priorität. Treibt den Spar-Wasserfall.
-  const cutItems = useMemo<PriorityCutItem[]>(
-    () =>
-      (input?.variableExpenses ?? [])
-        .filter((e) => e.monthlyAmount > 0)
-        .map((e) => ({
-          category: e.category,
-          monthlyAmount: e.monthlyAmount,
-          maxCut: Math.round(e.monthlyAmount * (e.volatility ?? 0.3)),
-          prioritaet: priorityByCategory?.get(e.category) ?? null,
-        })),
-    [input, priorityByCategory],
-  );
+  // Spar-Wasserfall-Posten: variable Ausgaben (anteilig kürzbar, Volatilität ×
+  // Betrag) plus klar kündbare Abos (Streaming/Fitness, voller Betrag kürzbar,
+  // niedrige Priorität → zuerst weg). Komplexe Verträge bleiben außen vor.
+  const cutItems = useMemo<PriorityCutItem[]>(() => {
+    const variable: PriorityCutItem[] = (input?.variableExpenses ?? [])
+      .filter((e) => e.monthlyAmount > 0)
+      .map((e) => ({
+        category: e.category,
+        monthlyAmount: e.monthlyAmount,
+        maxCut: Math.round(e.monthlyAmount * (e.volatility ?? 0.3)),
+        prioritaet: priorityByCategory?.get(e.category) ?? null,
+        kind: 'variable',
+      }));
+
+    const contracts: PriorityCutItem[] = (input?.recurringFlows ?? [])
+      .filter((f) => f.amount < 0)
+      .map((f): PriorityCutItem | null => {
+        const prioritaet = classifyContractPriority(f.name);
+        if (!prioritaet) return null;
+        const monthly = Math.abs(f.amount);
+        return { category: f.name, monthlyAmount: monthly, maxCut: monthly, prioritaet, kind: 'contract' };
+      })
+      .filter((x): x is PriorityCutItem => x !== null);
+
+    return [...variable, ...contracts];
+  }, [input, priorityByCategory]);
 
   const monthlyNeeded = goalAmount / Math.max(1, goalMonths);
   const plan = useMemo(
@@ -246,6 +243,11 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
                           >
                             {PRIORITY_LABEL[s.prioritaet]}
                           </span>
+                          {s.kind === 'contract' && (
+                            <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              Vertrag
+                            </span>
+                          )}
                           <span className="shrink-0 text-xs text-muted-foreground">
                             {eur.format(s.monthlyAmount)}/Mo.
                           </span>
@@ -261,7 +263,11 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
                         <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                           −{eur.format(s.suggestedCut)}/Mo.
                         </div>
-                        <div className="text-xs text-muted-foreground">→ {eur.format(s.newBudget)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {s.kind === 'contract' && s.newBudget === 0
+                            ? 'kündigen'
+                            : `→ ${eur.format(s.newBudget)}`}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -285,8 +291,9 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory }: Prop
                   </Button>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Zuerst wird Nice-to-have gekürzt, dann Normales; pro Kategorie nur im realistischen
-                  Rahmen. Die Priorität legst du je Kategorie in den Einstellungen fest.
+                  Zuerst wird Nice-to-have gekürzt, dann Normales – inkl. kündbarer Abos
+                  (Streaming/Fitness); pro Kategorie nur im realistischen Rahmen. Die Priorität
+                  legst du je Kategorie in den Einstellungen fest.
                 </p>
                 {plan.protectedCategories.length > 0 && (
                   <p className="flex items-start gap-1.5 text-xs text-muted-foreground">

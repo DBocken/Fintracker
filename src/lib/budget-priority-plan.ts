@@ -8,6 +8,9 @@
 
 import type { Prioritaet } from "@/types";
 
+/** Variable Ausgabe (anteilig kürzbar) oder Vertrag (kündbar). */
+export type CutItemKind = "variable" | "contract";
+
 export interface PriorityCutItem {
   category: string;
   /** Aktueller Monatsbetrag (positive Zahl). */
@@ -15,6 +18,8 @@ export interface PriorityCutItem {
   /** Realistisch kürzbarer Höchstbetrag pro Monat (z. B. Volatilität × Betrag). */
   maxCut: number;
   prioritaet?: Prioritaet | null;
+  /** Posten-Art (steuert die Beschriftung „kürzen" vs. „kündigen"). Default „variable". */
+  kind?: CutItemKind;
 }
 
 export interface PriorityCutSuggestion {
@@ -23,6 +28,7 @@ export interface PriorityCutSuggestion {
   suggestedCut: number;
   newBudget: number;
   prioritaet: Prioritaet;
+  kind: CutItemKind;
   /** Summe der Kürzungen bis einschließlich dieser Position. */
   cumulativeCut: number;
 }
@@ -81,6 +87,7 @@ export function computePriorityCutPlan(
       suggestedCut: cut,
       newBudget: Math.max(0, it.monthlyAmount - cut),
       prioritaet: it.prioritaet,
+      kind: it.kind ?? "variable",
       cumulativeCut: cumulative,
     });
   }

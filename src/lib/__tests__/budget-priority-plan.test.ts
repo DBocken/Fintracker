@@ -99,4 +99,24 @@ describe("budget-priority-plan", () => {
       expect(plan.suggestions.map((s) => s.category)).toEqual(["Essen"]);
     });
   });
+
+  describe("Verträge im Wasserfall (kind)", () => {
+    it("sollte einen kündbaren Vertrag (nice) vor variablen Ausgaben kürzen und als 'contract' markieren", () => {
+      const plan = computePriorityCutPlan(
+        [
+          item({ category: "Essen", maxCut: 80, prioritaet: "normal", kind: "variable" }),
+          item({ category: "Netflix", monthlyAmount: 15, maxCut: 15, prioritaet: "nice", kind: "contract" }),
+        ],
+        15,
+      );
+      expect(plan.suggestions[0].category).toBe("Netflix");
+      expect(plan.suggestions[0].kind).toBe("contract");
+      expect(plan.suggestions[0].newBudget).toBe(0); // ganz gekündigt
+    });
+
+    it("sollte ohne kind 'variable' als Default setzen", () => {
+      const plan = computePriorityCutPlan([item({ category: "Essen", maxCut: 20 })], 0);
+      expect(plan.suggestions[0].kind).toBe("variable");
+    });
+  });
 });
