@@ -6,7 +6,7 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'android/**', 'supabase/**', 'mcp-poc/**'],
+    ignores: ['dist/**', 'node_modules/**', 'android/**', 'supabase/**', 'mcp-poc/**', 'trackerverse/**'],
   },
   {
     files: ['**/*.{ts,tsx}'],
