@@ -14,6 +14,61 @@ import {
   decryptJsonWithPassword,
   type EncryptedEnvelopeV1,
 } from './local-crypto';
+import {
+  LOCAL_FINANCE_KEYS,
+  readLocalFinanceList,
+  writeLocalFinanceList,
+  type LocalFinanceKey,
+} from './local-finance-store';
+
+/**
+ * Collections, die bereits typisiert in `data` liegen (Transaktionen/Konten)
+ * bzw. nicht im lokalen Finanz-Store leben (Kategorien/Einstellungen). Sie
+ * werden NICHT zusätzlich generisch gesichert, um Doppelungen zu vermeiden.
+ */
+const TYPED_BACKUP_KEYS = new Set<string>(['transactions', 'accounts']);
+
+function isLocalFinanceKey(key: string): key is LocalFinanceKey {
+  return Object.prototype.hasOwnProperty.call(LOCAL_FINANCE_KEYS, key);
+}
+
+/**
+ * Snapshot ALLER übrigen lokalen Collections (Schulden, Forderungen, Akten,
+ * Budgets, Meilensteine, Zuordnungen …). Früher fehlten diese im Backup —
+ * eine Wiederherstellung verlor sie still. Jetzt vollständig.
+ */
+export async function snapshotLocalCollections(): Promise<Record<string, unknown[]>> {
+  const out: Record<string, unknown[]> = {};
+  for (const key of Object.keys(LOCAL_FINANCE_KEYS) as LocalFinanceKey[]) {
+    if (TYPED_BACKUP_KEYS.has(key)) continue;
+    out[key] = await readLocalFinanceList<unknown>(key);
+  }
+  return out;
+}
+
+/**
+ * Stellt die generischen Collections wieder her — NICHT-destruktiv: es werden
+ * nur LEERE Collections befüllt (Wiederherstellung auf neuem Gerät / nach
+ * Datenverlust). Bestehende Daten werden nie überschrieben oder dupliziert.
+ */
+export async function restoreLocalCollections(
+  collections: Record<string, unknown[]> | undefined,
+): Promise<Record<string, number>> {
+  const results: Record<string, number> = {};
+  if (!collections) return results;
+
+  for (const [key, items] of Object.entries(collections)) {
+    if (!isLocalFinanceKey(key) || TYPED_BACKUP_KEYS.has(key)) continue;
+    if (!Array.isArray(items) || items.length === 0) continue;
+
+    const current = await readLocalFinanceList<unknown>(key);
+    if (current.length > 0) continue; // bestehende Daten unangetastet lassen
+
+    await writeLocalFinanceList(key, items);
+    results[key] = items.length;
+  }
+  return results;
+}
 
 /**
  * Complete backup data structure
@@ -28,6 +83,12 @@ export interface BackupData {
     accounts: Account[];
     settings: UserSettings;
   };
+  /**
+   * Alle übrigen lokalen Collections (Schulden, Forderungen, Akten, Budgets,
+   * Meilensteine, Zuordnungen …), generisch nach Store-Key. Optional für
+   * Abwärtskompatibilität mit Backups vor v1.1.
+   */
+  collections?: Record<string, unknown[]>;
 }
 
 export type EncryptedBackupFileV1 = {
@@ -49,7 +110,7 @@ export function isForeignBackup(backup: Pick<BackupData, 'userId'>, currentUserI
  * Backup service for exporting and importing complete user data
  */
 class BackupService {
-  private readonly BACKUP_VERSION = '1.0.0';
+  private readonly BACKUP_VERSION = '1.1.0';
 
   /**
    * Create a complete backup of all user data
@@ -58,11 +119,12 @@ class BackupService {
     const userId = await requireUserId();
 
     // Fetch all user data
-    const [transactions, categories, accounts, settings] = await Promise.all([
+    const [transactions, categories, accounts, settings, collections] = await Promise.all([
       this.fetchTransactions(userId),
       getCategories(),
       getAccounts(),
       getUserSettings(),
+      snapshotLocalCollections(),
     ]);
 
     return {
@@ -75,6 +137,7 @@ class BackupService {
         accounts: accounts,
         settings,
       },
+      collections,
     };
   }
 
@@ -237,6 +300,7 @@ class BackupService {
       categories: number;
       accounts: number;
       settings: boolean;
+      collections: number;
     };
   }> {
     try {
@@ -258,6 +322,7 @@ class BackupService {
         categories: 0,
         accounts: 0,
         settings: false,
+        collections: 0,
       };
 
       // Restore transactions
@@ -283,6 +348,10 @@ class BackupService {
       if (backupData.data.settings) {
         results.settings = await this.restoreSettings(userId, backupData.data.settings);
       }
+
+      // Übrige Collections nicht-destruktiv wiederherstellen (nur leere füllen).
+      const restoredCollections = await restoreLocalCollections(backupData.collections);
+      results.collections = Object.values(restoredCollections).reduce((sum, n) => sum + n, 0);
 
       return {
         success: true,
