@@ -22,7 +22,7 @@ import {
   Dices,
   LoaderCircle,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -58,6 +58,7 @@ import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { BufferBasis } from '@/lib/forecast-types';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
+import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import type { Prioritaet } from '@/types';
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -178,6 +179,22 @@ export default function LiquidityReport() {
     }
     return map;
   }, [categories]);
+
+  // Liquiditäts-Fehlbetrag: fällt der projizierte Tiefststand unter den Puffer,
+  // wieviel muss monatlich freigemacht werden? Treibt den „Liquidität sichern"-
+  // Modus des BudgetOptimizers (deterministisch aus dem Forecast).
+  const bufferShortfall = useMemo(() => {
+    if (!forecast) return undefined;
+    const days = Math.max(
+      0,
+      differenceInDays(parseISO(forecast.risk.lowestBalanceDate), parseISO(forecast.config.startDate)),
+    );
+    return computeBufferShortfall({
+      lowestBalance: forecast.risk.lowestBalance,
+      safetyBuffer,
+      daysUntilTrough: days,
+    });
+  }, [forecast, safetyBuffer]);
 
   const [chartView, setChartView] = useState<ChartView>('lines');
   const [trials, setTrials] = useState(500);
@@ -592,7 +609,11 @@ export default function LiquidityReport() {
             <span className="ml-1 text-sm font-normal text-muted-foreground">Budget-Optimierung</span>
           </summary>
           <div className="space-y-6 border-t p-3 sm:p-4">
-            <BudgetOptimizerPanel input={input} priorityByCategory={priorityByCategory} />
+            <BudgetOptimizerPanel
+              input={input}
+              priorityByCategory={priorityByCategory}
+              bufferShortfall={bufferShortfall}
+            />
           </div>
         </details>
       </FeatureGate>
