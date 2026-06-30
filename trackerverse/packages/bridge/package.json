@@ -1,0 +1,22 @@
+{
+  "name": "@trackerverse/bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Capability-brokered cross-app data bridge for the Trackerverse (postMessage protocol, scopes, consent, origin allowlist).",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:security": "vitest run --testNamePattern='\\[SECURITY\\]'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.8"
+  }
+}
