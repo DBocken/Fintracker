@@ -9,6 +9,7 @@ import CoachStatusGrid from "@/components/coach/CoachStatusGrid";
 import FoundationLadder from "@/components/coach/FoundationLadder";
 import DisposableTankCard from "@/components/coach/DisposableTankCard";
 import UpcomingChargesList from "@/components/coach/UpcomingChargesList";
+import CategorySuggestionsInbox from "@/components/coach/CategorySuggestionsInbox";
 import MilestonesStrip from "@/components/milestones/MilestonesStrip";
 import SectionHeader from "@/components/common/SectionHeader";
 import InteractiveCard from "@/components/common/InteractiveCard";
@@ -88,6 +89,9 @@ export default function CoachPage() {
           <Skeleton className="h-44 w-full rounded-2xl" />
         )}
       </section>
+
+      {/* Offene Kategorie-Vorschläge bestätigen (bleibt unsichtbar, wenn leer). */}
+      <CategorySuggestionsInbox />
 
       {/* Vor dem nächsten Gehalt: was bleibt frei (Tank, klickbar → Liquidität)
           und welche Abbuchungen kommen als Nächstes (reines Readout). */}
