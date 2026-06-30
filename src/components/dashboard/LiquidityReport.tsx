@@ -49,6 +49,7 @@ import StressPresetQuickAdd from '@/components/dashboard/StressPresetQuickAdd';
 import RiskDensityChart from '@/components/dashboard/finrisk/RiskDensityChart';
 import AskYourMoney from '@/components/dashboard/finrisk/AskYourMoney';
 import RiskSummaryCard from '@/components/dashboard/finrisk/RiskSummaryCard';
+import AdaptiveSpendingToggle from '@/components/dashboard/finrisk/AdaptiveSpendingToggle';
 import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
@@ -167,6 +168,9 @@ export default function LiquidityReport() {
   const [chartView, setChartView] = useState<ChartView>('lines');
   const [trials, setTrials] = useState(500);
   const [incomeUncertain, setIncomeUncertain] = useState(false);
+  // „Bei Knappheit gegensteuern" – bewusstes Was-wäre-wenn (Issue #152), opt-in.
+  const [discipline, setDiscipline] = useState(false);
+  const [disciplineStrength, setDisciplineStrength] = useState(0.5);
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   // Sektion, die das gerade gewählte Szenario betrifft (anhaltender Kontrast,
   // unabhängig vom kurzen Puls nach dem Eintragen).
@@ -201,8 +205,17 @@ export default function LiquidityReport() {
     [months, safetyBuffer],
   );
   const riskConfig = useMemo(
-    () => ({ months, safetyBuffer, bufferBasis, startDate: startISO, overdraftAnnualRate: OVERDRAFT_RATE }),
-    [months, safetyBuffer, bufferBasis, startISO],
+    () => ({
+      months,
+      safetyBuffer,
+      bufferBasis,
+      startDate: startISO,
+      overdraftAnnualRate: OVERDRAFT_RATE,
+      // Gegensteuern wirkt auf das Wahrscheinlichkeitsband, die Heatmap und „Frag
+      // dein Geld" – die Plan-Linie bleibt als ungesteuerte Baseline bestehen.
+      ...(discipline ? { adaptiveSpending: { maxReductionPct: disciplineStrength } } : {}),
+    }),
+    [months, safetyBuffer, bufferBasis, startISO, discipline, disciplineStrength],
   );
   const { lumpy } = useLumpyRisk();
   const { result: risk, isCalculating: isRiskCalculating } = useScenarioRisk(
@@ -537,6 +550,13 @@ export default function LiquidityReport() {
             <ActiveChangesPanel changes={activeChanges} onClear={clearChange} />
 
             <RiskSummaryCard lumpy={lumpy} stress90={stress90} baseBreachProbability={baseBreach} />
+
+            <AdaptiveSpendingToggle
+              enabled={discipline}
+              onEnabledChange={setDiscipline}
+              strength={disciplineStrength}
+              onStrengthChange={setDisciplineStrength}
+            />
 
             <SimulationControls
               trials={trials}
