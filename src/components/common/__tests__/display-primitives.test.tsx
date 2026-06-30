@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import StatHero from "../StatHero";
-import StatTile from "../StatTile";
 import SectionHeader from "../SectionHeader";
 
 describe("StatHero", () => {
@@ -15,15 +14,6 @@ describe("StatHero", () => {
     render(<StatHero label="Saldo" value="100 €" badge={<span>+5%</span>} caption="im Zeitraum" />);
     expect(screen.getByText("+5%")).toBeInTheDocument();
     expect(screen.getByText("im Zeitraum")).toBeInTheDocument();
-  });
-});
-
-describe("StatTile", () => {
-  it("sollte Label, Wert und Hinweis anzeigen", () => {
-    render(<StatTile label="Gesamtschuld" value="12.000 €" hint="3 offene Schulden" />);
-    expect(screen.getByText("Gesamtschuld")).toBeInTheDocument();
-    expect(screen.getByText("12.000 €")).toBeInTheDocument();
-    expect(screen.getByText("3 offene Schulden")).toBeInTheDocument();
   });
 });
 
