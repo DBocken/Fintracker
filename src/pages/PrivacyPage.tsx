@@ -7,6 +7,7 @@ import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvid
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
+import AnalyticsTransparencyPreview from "@/components/privacy/AnalyticsTransparencyPreview";
 import { useI18n } from "@/i18n/useI18n";
 
 /**
@@ -147,6 +148,7 @@ export default function PrivacyPage() {
             <li>{t("privacy.analyticsPoint3")}</li>
             <li>{t("privacy.analyticsPoint4")}</li>
           </ul>
+          <AnalyticsTransparencyPreview />
         </CardContent>
       </Card>
     </div>
