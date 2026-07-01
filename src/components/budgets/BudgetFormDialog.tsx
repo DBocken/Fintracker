@@ -19,8 +19,31 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import type { Account, Budget, HierarchicalCategory, RolloverMode, SurplusAction } from "@/types";
+import { Trash2, Plus } from "lucide-react";
+import type {
+  Account,
+  Budget,
+  BudgetRule,
+  HierarchicalCategory,
+  RolloverMode,
+  SurplusAction,
+} from "@/types";
 import { DEFAULT_WARN_THRESHOLD } from "@/lib/budget-logic";
+import { FeatureGate } from "@/components/FeatureGate";
+
+const RULE_FIELD_LABELS: Record<BudgetRule["field"], string> = {
+  payee: "Empfänger",
+  description: "Verwendungszweck",
+  amount: "Betrag",
+  account: "Konto",
+};
+
+const RULE_OP_LABELS: Record<BudgetRule["op"], string> = {
+  contains: "enthält",
+  equals: "ist gleich",
+  gt: "größer als",
+  lt: "kleiner als",
+};
 
 const ROLLOVER_LABELS: Record<RolloverMode, string> = {
   off: "Aus – jeder Monat startet frisch",
@@ -66,6 +89,7 @@ export default function BudgetFormDialog({
   const [surplusAction, setSurplusAction] = useState<SurplusAction>("carry");
   const [sweepTargetAccountId, setSweepTargetAccountId] = useState<string>("");
   const [adaptive, setAdaptive] = useState<boolean>(false);
+  const [rules, setRules] = useState<BudgetRule[]>([]);
 
   // Formular bei jedem Öffnen aus dem (evtl. zu bearbeitenden) Budget befüllen.
   useEffect(() => {
@@ -81,6 +105,7 @@ export default function BudgetFormDialog({
     setSurplusAction(budget?.rolloverConfig?.surplusAction ?? "carry");
     setSweepTargetAccountId(budget?.rolloverConfig?.sweepTargetAccountId ?? "");
     setAdaptive(budget?.adaptive ?? false);
+    setRules(budget?.rules ?? []);
   }, [open, budget]);
 
   // „Ansparen"-Optionen (Cap, Überschuss-Verbleib) ergeben nur bei positivem Übertrag Sinn.
@@ -127,6 +152,9 @@ export default function BudgetFormDialog({
       icon: selectedCategory?.icon,
       period: "monthly",
       adaptive,
+      rules: rules.filter((r) => r.value.trim().length > 0).length
+        ? rules.filter((r) => r.value.trim().length > 0)
+        : undefined,
       rolloverConfig:
         rolloverMode === "off"
           ? undefined
@@ -229,6 +257,17 @@ export default function BudgetFormDialog({
             </div>
           </div>
 
+          {/* Premium-Budget (#133): adaptives Limit, Regeln & Rollover hinter FeatureGate. */}
+          <FeatureGate
+            feature="budgetPremium"
+            fallback={
+              <div className="flex items-center gap-2 rounded-lg border border-premium/40 bg-premium/5 p-3 text-xs text-muted-foreground">
+                <Sparkles className="h-4 w-4 shrink-0 text-premium" aria-hidden="true" />
+                Adaptives Limit, eigene Match-Regeln und Übertrag zwischen Perioden sind Premium.
+              </div>
+            }
+          >
+          <div className="space-y-4">
           {/* Adaptives Limit: speist sich aus echten Ausgaben (Median der letzten Monate). */}
           <label className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-sm">
             <Checkbox
@@ -324,6 +363,81 @@ export default function BudgetFormDialog({
               </div>
             )}
           </div>
+
+          {/* Match-Regeln (#133): zählt Buchungen zusätzlich zur Kategorie. */}
+          <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+            <div className="text-sm font-medium">Eigene Match-Regeln (optional)</div>
+            <p className="text-xs text-muted-foreground">
+              Ordnet Buchungen zusätzlich zur Kategorie zu, wenn eine Regel passt (z. B. Empfänger enthält „Aldi").
+            </p>
+            {rules.map((rule, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-1.5">
+                <Select
+                  value={rule.field}
+                  onValueChange={(v) =>
+                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, field: v as BudgetRule["field"] } : r)))
+                  }
+                >
+                  <SelectTrigger className="h-8 w-[7.5rem]" aria-label={`Regel ${i + 1} Feld`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(RULE_FIELD_LABELS) as BudgetRule["field"][]).map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {RULE_FIELD_LABELS[f]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={rule.op}
+                  onValueChange={(v) =>
+                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, op: v as BudgetRule["op"] } : r)))
+                  }
+                >
+                  <SelectTrigger className="h-8 w-[6.5rem]" aria-label={`Regel ${i + 1} Operator`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(RULE_OP_LABELS) as BudgetRule["op"][]).map((o) => (
+                      <SelectItem key={o} value={o}>
+                        {RULE_OP_LABELS[o]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="h-8 min-w-0 flex-1"
+                  value={rule.value}
+                  onChange={(e) =>
+                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))
+                  }
+                  placeholder="Wert"
+                  aria-label={`Regel ${i + 1} Wert`}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label={`Regel ${i + 1} entfernen`}
+                  onClick={() => setRules((rs) => rs.filter((_, j) => j !== i))}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setRules((rs) => [...rs, { field: "payee", op: "contains", value: "" }])}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Regel hinzufügen
+            </Button>
+          </div>
+          </div>
+          </FeatureGate>
         </div>
 
         <DialogFooter>

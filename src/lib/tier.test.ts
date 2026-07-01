@@ -85,8 +85,14 @@ describe("Tier-Recut: Free-Kernnutzen", () => {
     expect(hasFeatureAccess("free", "basicForecast")).toBe(true);
   });
 
-  it("hält Advanced-Verträge/-Forecast und Family/Belegzeilen hinter Premium", () => {
-    for (const feature of ["advancedContracts", "advancedForecast", "familyMode", "receiptLineItems"] as const) {
+  it("hält Advanced-Verträge/-Forecast und Family/Belegzeilen/Budget-Premium hinter Premium", () => {
+    for (const feature of [
+      "advancedContracts",
+      "advancedForecast",
+      "familyMode",
+      "receiptLineItems",
+      "budgetPremium",
+    ] as const) {
       expect(hasFeatureAccess("free", feature)).toBe(false);
       expect(hasFeatureAccess("premium", feature)).toBe(true);
     }
