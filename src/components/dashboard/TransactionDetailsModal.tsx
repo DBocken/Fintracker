@@ -21,6 +21,7 @@ import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSe
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
 import { Link } from 'react-router-dom';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
+import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { Users } from 'lucide-react';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
@@ -367,6 +368,16 @@ export function TransactionDetailsModal({
           }
         >
           <TransactionSplitPanel transaction={transaction} categories={categories} />
+        </FeatureGate>
+
+        {/* Haushalts-Split (#108): Ausgabe auf Haushaltsmitglieder aufteilen. */}
+        <FeatureGate feature="familyMode" fallback={null}>
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Users className="h-4 w-4" aria-hidden="true" /> Ausgabe im Haushalt teilen
+            </div>
+            <HouseholdSplitPanel transaction={transaction} />
+          </div>
         </FeatureGate>
       </div>
 
