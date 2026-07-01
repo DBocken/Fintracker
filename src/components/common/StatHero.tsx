@@ -10,7 +10,7 @@ interface StatHeroProps {
   icon?: ReactNode;
   /** Die Hauptkennzahl – als bereits formatierter String oder beliebiger Node. */
   value: ReactNode;
-  /** Farbton der Kennzahl (Beträge: positive/warning nach Schwelle, siehe delta.ts). */
+  /** Farbton der Kennzahl (Beträge: positive/warning nach Schwelle, siehe lib/delta-color.ts). */
   tone?: Tone;
   /** Optionaler Delta-/Status-Chip rechts oben. */
   badge?: ReactNode;

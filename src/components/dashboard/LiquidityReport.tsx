@@ -59,6 +59,7 @@ import type { BufferBasis } from '@/lib/forecast-types';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
+import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -622,16 +623,22 @@ export default function LiquidityReport() {
       <div>
         <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Monatsübersicht</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {monthly.map((m) => (
+          {monthly.map((m, i) => (
             <Card key={m.month} className={m.belowSafetyBuffer ? 'border-warning' : undefined}>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold">{fmtMonth(m.month)}</span>
-                  {m.belowSafetyBuffer && (
-                    <Badge variant="outline" className="border-warning text-warning">
-                      unter Puffer
-                    </Badge>
-                  )}
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {/* Monatsende ggü. Vormonat – schwellwertbewusst (kleine Änderung = neutral). */}
+                    {i > 0 && (
+                      <DeltaBadge current={m.closingBalance} previous={monthly[i - 1].closingBalance} />
+                    )}
+                    {m.belowSafetyBuffer && (
+                      <Badge variant="outline" className="border-warning text-warning">
+                        unter Puffer
+                      </Badge>
+                    )}
+                  </span>
                 </div>
                 <dl className="space-y-1 text-sm">
                   <Row label="Einnahmen" value={eur.format(m.income)} positive />
