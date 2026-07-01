@@ -1,4 +1,4 @@
-import type { Budget, BudgetStatus, BudgetSuggestion } from "@/types";
+import type { Budget, BudgetPeriod, BudgetStatus, BudgetSuggestion } from "@/types";
 import {
   deleteLocalFinanceItem,
   readLocalFinanceList,
@@ -7,7 +7,7 @@ import {
 } from "./local-finance-store";
 import { getCategories, getTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
-import { computeBudgetStatus, monthKeyOf, suggestBudgets } from "@/lib/budget-logic";
+import { computeBudgetStatus, monthKeyOf, periodKeyOf, suggestBudgets } from "@/lib/budget-logic";
 import { computeBudgetStatusWithRollover, resolveRolloverConfig } from "@/lib/budget-rollover";
 import { buildAdaptiveBaseLimit, computeAdaptiveBaseline, computeBudgetDrift } from "@/lib/budget-adaptive";
 
@@ -59,6 +59,23 @@ export function currentMonthKey(reference: Date = new Date()): string {
   return `${reference.getFullYear()}-${String(reference.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** ISO-Datum `YYYY-MM-DD` im lokalen Kalender (für perioden-genaue Schlüssel). */
+function localIsoDate(reference: Date): string {
+  return `${reference.getFullYear()}-${String(reference.getMonth() + 1).padStart(2, "0")}-${String(
+    reference.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+/**
+ * Aktueller Perioden-Schlüssel je nach Budget-Periode: `YYYY` (jährlich),
+ * `YYYY-Www` (wöchentlich) oder `YYYY-MM` (monatlich, Default).
+ */
+export function currentPeriodKey(period: BudgetPeriod = "monthly", reference: Date = new Date()): string {
+  if (period === "yearly") return String(reference.getFullYear());
+  if (period === "weekly") return periodKeyOf(localIsoDate(reference), "weekly");
+  return currentMonthKey(reference);
+}
+
 export interface BudgetOverview {
   statuses: BudgetStatus[];
   suggestions: BudgetSuggestion[];
@@ -79,6 +96,13 @@ export async function getBudgetOverview(reference: Date = new Date()): Promise<B
   ]);
 
   const statuses = budgets.map((budget) => {
+    const period = budget.period ?? "monthly";
+    // Nicht-monatliche Perioden (wöchentlich/jährlich) laufen über den klassischen,
+    // perioden-genauen Pfad. Übertrag & adaptives Limit sind bewusst monatsbasiert
+    // (Median/Kette in Monaten) und bleiben `monthly` vorbehalten.
+    if (period !== "monthly") {
+      return computeBudgetStatus(budget, transactions, categories, currentPeriodKey(period, reference), allocationsByTx);
+    }
     const usesRollover = resolveRolloverConfig(budget).mode !== "off";
     // Schneller Pfad für klassische Budgets ohne Übertrag/Adaptiv – Verhalten unverändert.
     if (!usesRollover && !budget.adaptive) {
@@ -94,7 +118,9 @@ export async function getBudgetOverview(reference: Date = new Date()): Promise<B
   });
 
   // Auto-Retune-Hinweis: realer Median vs. gesetztes Limit (für „Limit anpassen?").
+  // Nur für monatliche Budgets sinnvoll – die Baseline mittelt über Monate.
   for (const status of statuses) {
+    if ((status.budget.period ?? "monthly") !== "monthly") continue;
     const baseline = computeAdaptiveBaseline(status.budget, transactions, categories, {
       currentMonth: month,
       windowMonths: 6,

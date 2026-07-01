@@ -23,6 +23,7 @@ import { Trash2, Plus } from "lucide-react";
 import type {
   Account,
   Budget,
+  BudgetPeriod,
   BudgetRule,
   HierarchicalCategory,
   RolloverMode,
@@ -30,6 +31,19 @@ import type {
 } from "@/types";
 import { DEFAULT_WARN_THRESHOLD } from "@/lib/budget-logic";
 import { FeatureGate } from "@/components/FeatureGate";
+
+const PERIOD_LABELS: Record<BudgetPeriod, string> = {
+  weekly: "Wöchentlich",
+  monthly: "Monatlich",
+  yearly: "Jährlich",
+};
+
+/** Perioden-spezifisches Wort für das Limit-Feld („Monatslimit" usw.). */
+const PERIOD_LIMIT_WORD: Record<BudgetPeriod, string> = {
+  weekly: "Wochenlimit",
+  monthly: "Monatslimit",
+  yearly: "Jahreslimit",
+};
 
 const RULE_FIELD_LABELS: Record<BudgetRule["field"], string> = {
   payee: "Empfänger",
@@ -90,6 +104,7 @@ export default function BudgetFormDialog({
   const [sweepTargetAccountId, setSweepTargetAccountId] = useState<string>("");
   const [adaptive, setAdaptive] = useState<boolean>(false);
   const [rules, setRules] = useState<BudgetRule[]>([]);
+  const [period, setPeriod] = useState<BudgetPeriod>("monthly");
 
   // Formular bei jedem Öffnen aus dem (evtl. zu bearbeitenden) Budget befüllen.
   useEffect(() => {
@@ -106,6 +121,7 @@ export default function BudgetFormDialog({
     setSweepTargetAccountId(budget?.rolloverConfig?.sweepTargetAccountId ?? "");
     setAdaptive(budget?.adaptive ?? false);
     setRules(budget?.rules ?? []);
+    setPeriod(budget?.period ?? "monthly");
   }, [open, budget]);
 
   // „Ansparen"-Optionen (Cap, Überschuss-Verbleib) ergeben nur bei positivem Übertrag Sinn.
@@ -150,13 +166,14 @@ export default function BudgetFormDialog({
       warn_threshold: warnThreshold,
       color: selectedCategory?.color,
       icon: selectedCategory?.icon,
-      period: "monthly",
-      adaptive,
+      period,
+      // Übertrag & adaptives Limit sind monatsbasiert – bei anderen Perioden nicht mitspeichern.
+      adaptive: period === "monthly" ? adaptive : false,
       rules: rules.filter((r) => r.value.trim().length > 0).length
         ? rules.filter((r) => r.value.trim().length > 0)
         : undefined,
       rolloverConfig:
-        rolloverMode === "off"
+        period !== "monthly" || rolloverMode === "off"
           ? undefined
           : {
               mode: rolloverMode,
@@ -233,7 +250,9 @@ export default function BudgetFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="budget-limit">{adaptive ? "Basislimit / Fallback (€)" : "Monatslimit (€)"}</Label>
+              <Label htmlFor="budget-limit">
+                {adaptive ? "Basislimit / Fallback (€)" : `${PERIOD_LIMIT_WORD[period]} (€)`}
+              </Label>
               <Input
                 id="budget-limit"
                 type="number"
@@ -268,6 +287,30 @@ export default function BudgetFormDialog({
             }
           >
           <div className="space-y-4">
+          {/* Abrechnungsperiode (#133): monatlich (Default), wöchentlich oder jährlich. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="budget-period">Abrechnungsperiode</Label>
+            <Select value={period} onValueChange={(v) => setPeriod(v as BudgetPeriod)}>
+              <SelectTrigger id="budget-period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PERIOD_LABELS) as BudgetPeriod[]).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {PERIOD_LABELS[p]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {period !== "monthly" ? (
+            <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+              Übertrag und adaptives Limit sind auf die monatliche Periode ausgelegt und hier deaktiviert.
+              Match-Regeln gelten weiterhin.
+            </div>
+          ) : (
+          <>
           {/* Adaptives Limit: speist sich aus echten Ausgaben (Median der letzten Monate). */}
           <label className="flex items-start gap-2 rounded-lg border bg-muted/20 p-3 text-sm">
             <Checkbox
@@ -363,6 +406,8 @@ export default function BudgetFormDialog({
               </div>
             )}
           </div>
+          </>
+          )}
 
           {/* Match-Regeln (#133): zählt Buchungen zusätzlich zur Kategorie. */}
           <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
