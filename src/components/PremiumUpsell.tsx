@@ -193,6 +193,15 @@ const FEATURE_COPY: Record<
       "Konservativ erkannt – im Zweifel lieber nichts Falsches.",
     ],
   },
+  budgetPremium: {
+    title: "Smarte Budgets mit Regeln & Übertrag",
+    eyebrow: "Premium-Vorschau",
+    benefits: [
+      "Adaptive Limits passen sich deinem tatsächlichen Ausgabeverhalten an.",
+      "Eigene Match-Regeln ordnen Buchungen automatisch dem Budget zu.",
+      "Übertrag: Nicht genutztes Budget wandert in den Folgemonat.",
+    ],
+  },
 };
 
 interface PremiumUpsellProps {

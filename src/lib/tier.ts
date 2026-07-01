@@ -22,7 +22,8 @@ export type FeatureKey =
   | "trading"
   | "splitTransactions"
   | "familyMode"
-  | "receiptLineItems";
+  | "receiptLineItems"
+  | "budgetPremium";
 
 /**
  * Maps each gated feature to the minimum tier required to use it.
@@ -43,6 +44,7 @@ export const FEATURES: Record<FeatureKey, Tier> = {
   splitTransactions: "premium",
   familyMode: "premium",
   receiptLineItems: "premium",
+  budgetPremium: "premium",
 };
 
 // Rank ist bewusst lückenlos und aufsteigend, damit ein künftiges "pro": 3 nur hier
