@@ -5,6 +5,7 @@ import {
   computeBudgetSpent,
   computeBudgetStatus,
   monthKeyOf,
+  periodKeyOf,
   roundSuggestion,
   suggestBudgets,
   transactionMatchesRules,
@@ -49,6 +50,37 @@ describe("budget-logic", () => {
       expect(monthKeyOf("")).toBe("");
       expect(monthKeyOf(undefined)).toBe("");
       expect(monthKeyOf(null)).toBe("");
+    });
+  });
+
+  describe("periodKeyOf (#133 flexible Perioden)", () => {
+    it("sollte ohne Periode wie monthKeyOf einen Monatsschlüssel liefern (abwärtskompatibel)", () => {
+      expect(periodKeyOf("2026-06-15")).toBe("2026-06");
+      expect(periodKeyOf("2026-06-15", "monthly")).toBe(monthKeyOf("2026-06-15"));
+    });
+
+    it("sollte jährlich auf YYYY reduzieren", () => {
+      expect(periodKeyOf("2026-06-15", "yearly")).toBe("2026");
+      expect(periodKeyOf("2026-12-31", "yearly")).toBe("2026");
+    });
+
+    it("sollte wöchentlich einen ISO-Wochenschlüssel liefern (Woche beginnt Montag)", () => {
+      // 2026-06-15 ist ein Montag → Beginn seiner ISO-Woche.
+      expect(periodKeyOf("2026-06-15", "weekly")).toBe(periodKeyOf("2026-06-21", "weekly"));
+      // 2026-06-22 (Folgemontag) liegt in einer anderen Woche.
+      expect(periodKeyOf("2026-06-15", "weekly")).not.toBe(periodKeyOf("2026-06-22", "weekly"));
+    });
+
+    it("[Edge] sollte die ISO-Woche über die Jahresgrenze korrekt zählen", () => {
+      // 2025-12-29 (Mo) und 2026-01-01 (Do) liegen in derselben ISO-Woche 2026-W01.
+      expect(periodKeyOf("2025-12-29", "weekly")).toBe("2026-W01");
+      expect(periodKeyOf("2026-01-01", "weekly")).toBe("2026-W01");
+    });
+
+    it("[Edge] sollte mit leerem/unparsbarem Datum leer zurückgeben", () => {
+      expect(periodKeyOf("", "weekly")).toBe("");
+      expect(periodKeyOf(null, "yearly")).toBe("");
+      expect(periodKeyOf("kein-datum", "weekly")).toBe("");
     });
   });
 
@@ -104,6 +136,39 @@ describe("budget-logic", () => {
       expect(
         computeBudgetSpent(budget({ id: "b", category_id: "wohnen", limit: 1000 }), txs, CATEGORIES, "2026-06"),
       ).toBe(0);
+    });
+
+    describe("flexible Perioden (#133)", () => {
+      it("sollte bei jährlicher Periode alle Monate des Jahres summieren", () => {
+        const txs = [
+          tx({ date: "2026-01-15", amount: -100, category_id: "miete" }),
+          tx({ date: "2026-07-15", amount: -200, category_id: "strom" }),
+          tx({ date: "2025-12-15", amount: -999, category_id: "miete" }), // Vorjahr zählt nicht
+        ];
+        const spent = computeBudgetSpent(
+          budget({ id: "b", category_id: "wohnen", limit: 5000, period: "yearly" }),
+          txs,
+          CATEGORIES,
+          "2026",
+        );
+        expect(spent).toBe(300);
+      });
+
+      it("sollte bei wöchentlicher Periode nur die Ziel-ISO-Woche zählen", () => {
+        const weekKey = periodKeyOf("2026-06-15", "weekly"); // Mo 15.06.
+        const txs = [
+          tx({ date: "2026-06-15", amount: -30, category_id: "miete" }), // Mo, Zielwoche
+          tx({ date: "2026-06-21", amount: -20, category_id: "strom" }), // So, Zielwoche
+          tx({ date: "2026-06-22", amount: -999, category_id: "miete" }), // Folgewoche
+        ];
+        const spent = computeBudgetSpent(
+          budget({ id: "b", category_id: "wohnen", limit: 100, period: "weekly" }),
+          txs,
+          CATEGORIES,
+          weekKey,
+        );
+        expect(spent).toBe(50);
+      });
     });
 
     describe("Edge Cases", () => {

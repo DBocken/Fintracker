@@ -1,6 +1,7 @@
 import type {
   Budget,
   BudgetHealth,
+  BudgetPeriod,
   BudgetRule,
   BudgetStatus,
   BudgetSuggestion,
@@ -17,6 +18,40 @@ export const DEFAULT_WARN_THRESHOLD = 80;
 export function monthKeyOf(dateStr: string | undefined | null): string {
   if (!dateStr) return "";
   // Datumsformat ist normalisiert (ISO `YYYY-MM-DD`); die ersten 7 Zeichen genügen.
+  return dateStr.slice(0, 7);
+}
+
+/**
+ * ISO-8601-Wochenschlüssel `YYYY-Www` (Woche beginnt Montag). Die Woche gehört zum
+ * Jahr ihres Donnerstags – deshalb das Verschieben auf den Donnerstag, bevor die
+ * Wochennummer gezählt wird (klassischer ISO-Trick, korrekt an Jahresgrenzen).
+ */
+function isoWeekKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay() || 7; // Sonntag (0) zählt als 7
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+/**
+ * Perioden-Schlüssel einer Transaktion je nach Budget-Periode:
+ * `monthly` → `YYYY-MM`, `yearly` → `YYYY`, `weekly` → `YYYY-Www` (ISO-Woche).
+ * Ohne Periode gilt `monthly`, sodass die Rückgabe zu {@link monthKeyOf}
+ * identisch bleibt (abwärtskompatibel).
+ */
+export function periodKeyOf(
+  dateStr: string | undefined | null,
+  period: BudgetPeriod = "monthly",
+): string {
+  if (!dateStr) return "";
+  if (period === "yearly") return dateStr.slice(0, 4);
+  if (period === "weekly") {
+    const d = new Date(`${dateStr.slice(0, 10)}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) return "";
+    return isoWeekKey(d);
+  }
   return dateStr.slice(0, 7);
 }
 
@@ -81,23 +116,27 @@ export function healthFor(spent: number, limit: number, warnThreshold: number): 
 }
 
 /**
- * Summiert die Ausgaben eines Budgets in einem konkreten Monat. Übertragsbuchungen
- * werden ignoriert, Aufteilungen (Splits) korrekt anteilig berücksichtigt. Nur
- * negative Beiträge (echte Ausgaben) zählen.
+ * Summiert die Ausgaben eines Budgets in einer konkreten Periode. Der `periodKey`
+ * ist perioden-abhängig (`YYYY-MM` monatlich, `YYYY` jährlich, `YYYY-Www`
+ * wöchentlich) und wird gegen die Periode des Budgets aufgelöst – für `monthly`
+ * (Default) bleibt das Verhalten identisch zur früheren Monats-Summe.
+ * Übertragsbuchungen werden ignoriert, Aufteilungen (Splits) korrekt anteilig
+ * berücksichtigt. Nur negative Beiträge (echte Ausgaben) zählen.
  */
 export function computeBudgetSpent(
   budget: Budget,
   transactions: Transaction[],
   categories: Category[],
-  monthKey: string,
+  periodKey: string,
   allocationsByTx?: Map<string, TransactionAllocation[]>,
 ): number {
   const ids = budgetCategoryIds(budget, categories);
+  const period = budget.period ?? "monthly";
   let spent = 0;
 
   for (const tx of transactions) {
     if (tx.is_transfer) continue;
-    if (monthKeyOf(tx.date) !== monthKey) continue;
+    if (periodKeyOf(tx.date, period) !== periodKey) continue;
     if (!transactionMatchesRules(budget.rules, tx)) continue;
 
     for (const contribution of getCategoryContributions(tx, allocationsByTx)) {
