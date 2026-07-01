@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { connectEtoroAccount } from '@/services/etoro-service';
+import { connectEtoroAccount, ETORO_PREVIEW_NOTICE } from '@/services/etoro-service';
 
 interface EtoroConnectDialogProps {
   open: boolean;
@@ -128,6 +128,11 @@ export default function EtoroConnectDialog({
               User Key von Ihren eToro Konto-Einstellungen
             </p>
           </div>
+
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{ETORO_PREVIEW_NOTICE}</AlertDescription>
+          </Alert>
 
           <Alert>
             <CheckCircle2 className="h-4 w-4" />

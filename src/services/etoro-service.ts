@@ -186,7 +186,19 @@ export async function connectEtoroAccount(
 }
 
 /**
- * Sync existing eToro portfolio with latest data
+ * eToro-Anbindung ist eine VORSCHAU (Issue #107): gelesene Positionen werden
+ * NICHT dauerhaft im lokalen Store persistiert — sie gehen bei einem Reload
+ * verloren. Für dauerhafte Positionen die manuelle Erfassung nutzen.
+ */
+export const ETORO_PREVIEW_NOTICE =
+  'Vorschau: eToro-Positionen werden nur angezeigt, aber nicht dauerhaft gespeichert (gehen bei Reload verloren). Für dauerhafte Positionen nutze „Position hinzufügen".';
+
+/**
+ * Sync existing eToro portfolio with latest data.
+ *
+ * ⚠️ Vorschau (nicht persistent): liest die aktuellen Positionen, schreibt sie
+ * aber bewusst NICHT in den lokalen Store (siehe {@link ETORO_PREVIEW_NOTICE}).
+ * Bis ein sicherer Persistenz-/Merge-Pfad steht, bleibt das eine reine Anzeige.
  */
 export async function syncEtoroPortfolio(portfolioId: string): Promise<void> {
   const portfolio = await getPortfolioById(portfolioId);
