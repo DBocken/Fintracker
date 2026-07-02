@@ -4,6 +4,19 @@ import userEvent from "@testing-library/user-event";
 import type { Account, Budget, HierarchicalCategory } from "@/types";
 import BudgetFormDialog from "../BudgetFormDialog";
 
+// Die Rollover-/Adaptive-Steuerelemente liegen hinter FeatureGate
+// ("budgetPremium"). Ohne Auth-Provider bleibt der Status "loading" und das
+// Gate rendert nichts — also Premium-Tier + authentifizierten Status mocken,
+// damit die Tests das Premium-Verhalten weiterhin prüfen können.
+vi.mock("@/hooks/useTier", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/useTier")>()),
+  useTier: () => "premium" as const,
+}));
+vi.mock("@/components/providers/AuthProvider", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/providers/AuthProvider")>()),
+  useAuth: () => ({ session: null, user: null, status: "authenticated" as const }),
+}));
+
 const CATEGORIES: HierarchicalCategory[] = [
   { id: "wohnen", name: "Wohnen", filters: [], icon: "🏠", children: [] },
 ];
