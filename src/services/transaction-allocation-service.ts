@@ -19,6 +19,7 @@ import type { Transaction, TransactionAllocation } from '@/types';
 
 export type AllocationValidationError =
   | 'sum_mismatch'
+  | 'sign_mismatch'
   | 'orphan_transaction'
   | 'duplicate_id';
 
@@ -58,6 +59,21 @@ export function validateAllocations(
       return { valid: false, ...base, error: 'duplicate_id' };
     }
     ids.add(a.id);
+  }
+
+  // Vorzeichen-Invariante (F-MONEY-5): jede Aufteilung hat dasselbe Vorzeichen
+  // wie die Originalbuchung (0 erlaubt). Sonst könnte der natürliche „Rest“-
+  // Fluss gemischte Vorzeichen erzeugen (z. B. -10 € als 6 € + -16 €), die zwar
+  // die signierte Summe erhalten, in den Analysen aber via Math.abs zu
+  // Kategorieausgaben ÜBER dem Originalbetrag führen (6 + 16 = 22 €).
+  const txSign = Math.sign(expectedMinor);
+  if (txSign !== 0) {
+    for (const a of allocations) {
+      const s = Math.sign(a.amount_minor);
+      if (s !== 0 && s !== txSign) {
+        return { valid: false, ...base, error: 'sign_mismatch' };
+      }
+    }
   }
 
   if (actualMinor !== expectedMinor) {

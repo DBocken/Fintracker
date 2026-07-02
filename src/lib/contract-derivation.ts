@@ -166,6 +166,9 @@ export function computeContracts(
   }
 
   const ibanKeysToMerge = new Set<string>();
+  // Merge-Ziel -> alle Quell-Fingerprints (IBAN-Keys + Merchant-Key), unter
+  // denen eine Nutzerentscheidung gespeichert sein könnte (F-CONTRACT-1).
+  const mergedSources = new Map<string, string[]>();
   for (const [merchant, ibanKeys] of merchantToIbanKeys) {
     if (ibanKeys.length < 2) continue; // Nur mergen wenn mehrere IBANs für einen Merchant
     const dir = ibanKeys[0].split("|")[1];
@@ -182,8 +185,36 @@ export function computeContracts(
     }
 
     groups.set(merchantKey, merged);
+    mergedSources.set(merchantKey, [...ibanKeys, merchantKey]);
   }
   ibanKeysToMerge.forEach((k) => groups.delete(k));
+
+  // Beim Merge mehrerer IBAN-Gruppen wechselt der Gruppen-Schlüssel auf den
+  // Merchant-Fingerprint. Eine unter dem alten IBAN-Fingerprint gespeicherte
+  // Entscheidung (z. B. „Kein Vertrag"/„Beendet") würde sonst verloren gehen und
+  // der Vertrag sich still reaktivieren (Invariante 9). Daher lösen wir die
+  // Entscheidung über ALLE Quell-Fingerprints auf — mit Priorität für
+  // unterdrückende Zustände. rejected/ended/archived/paused schlagen active.
+  const DECISION_PRIORITY: Record<ContractStatus, number> = {
+    rejected: 5,
+    ended: 4,
+    archived: 3,
+    paused: 2,
+    active: 1,
+    candidate: 0,
+  };
+  const resolveDecision = (fingerprint: string): ContractDecision | undefined => {
+    const sources = mergedSources.get(fingerprint);
+    if (!sources) return decisions?.get(fingerprint);
+    let best: ContractDecision | undefined;
+    for (const fp of sources) {
+      const d = decisions?.get(fp);
+      if (d && (!best || DECISION_PRIORITY[d.status] > DECISION_PRIORITY[best.status])) {
+        best = d;
+      }
+    }
+    return best;
+  };
 
   const rows: ContractRow[] = [];
 
@@ -191,7 +222,7 @@ export function computeContracts(
     const firstCatId = list[0]?.category_id || null;
     const cat = firstCatId ? categoryMap.get(firstCatId) : undefined;
     const explicit = !!cat?.attributes?.ist_vertrag;
-    const decision = decisions?.get(fingerprint);
+    const decision = resolveDecision(fingerprint);
 
     // Mindestanzahl: 2 wenn IBAN (starkes Signal: Gehalt, Energieversorger),
     // sonst 3 (Merchant-Name allein ist schwächer).
