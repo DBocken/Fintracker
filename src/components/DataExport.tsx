@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { getTransactions } from '@/services/transaction-service';
+import { sumIncome, sumExpenses } from '@/lib/analysis-data';
 import { transactionStorage } from '@/services/transaction-storage-service';
 import type { Transaction } from '@/types';
 
@@ -99,15 +100,11 @@ export function DataExport() {
     doc.setFont('helvetica', 'normal');
     doc.text('Ausgabentracker Export', 14, 20);
 
-    const totalIncome = transactions
-      .filter(t => t.amount > 0)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpenses = Math.abs(
-      transactions
-        .filter(t => t.amount < 0)
-        .reduce((sum, t) => sum + t.amount, 0)
-    );
+    // Transferbereinigte Summen (Invariante 2) — gleiche Quelle wie das
+    // Dashboard, damit der exportierte Bericht keine internen Überträge als
+    // Einnahmen/Ausgaben ausweist (F-MONEY-3).
+    const totalIncome = sumIncome(transactions);
+    const totalExpenses = sumExpenses(transactions);
 
     const balance = totalIncome - totalExpenses;
 

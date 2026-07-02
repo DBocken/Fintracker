@@ -1,6 +1,28 @@
 import { parseISO, getDay } from "date-fns";
 import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
 
+/**
+ * Transferbereinigte Einnahmen-/Ausgabensummen — eine Quelle der Wahrheit für
+ * Dashboard, Premium-Dashboard und Export. Interne Überträge zwischen eigenen
+ * Konten (`is_transfer`) zählen weder als Einnahme noch als Ausgabe
+ * (Domänen-Invariante 2). Ersetzt komponenten-lokale reduce-Ketten, die
+ * Transfers fälschlich mitzählten (F-MONEY-3).
+ */
+export function sumIncome(transactions: Transaction[]): number {
+  return transactions
+    .filter((t) => !t.is_transfer && t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/** Betrag (positiv) der transferbereinigten Ausgaben. Siehe `sumIncome`. */
+export function sumExpenses(transactions: Transaction[]): number {
+  return Math.abs(
+    transactions
+      .filter((t) => !t.is_transfer && t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0),
+  );
+}
+
 /** Ein Kategorie-Beitrag einer Transaktion (eigene Kategorie oder eine Aufteilung). */
 export interface CategoryContribution {
   /** subcategory_id ?? category_id der Aufteilung bzw. der Transaktion. */
