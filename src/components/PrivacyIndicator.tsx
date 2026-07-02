@@ -11,6 +11,7 @@ import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvid
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
+import { isCloudMcpSyncActive } from "@/services/cloud-mcp-sync-service";
 import { useI18n } from "@/i18n/useI18n";
 
 /**
@@ -32,7 +33,9 @@ export default function PrivacyIndicator() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const status = derivePrivacyStatus(tier, consent?.opted_in ?? false);
+  const status = derivePrivacyStatus(tier, consent?.opted_in ?? false, {
+    mcpSyncActive: isCloudMcpSyncActive(),
+  });
 
   const Icon = enabled ? (unlocked ? ShieldCheck : Lock) : ShieldAlert;
   const iconClass = enabled ? "text-positive" : "text-muted-foreground";

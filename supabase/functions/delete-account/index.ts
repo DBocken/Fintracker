@@ -22,6 +22,8 @@ const GOCARDLESS_BASE_URL = "https://bankaccountdata.gocardless.com/api/v2";
 const DEFAULT_ALLOWED_ORIGIN_SUFFIXES = ["vercel.app"];
 
 // Alle nutzerbezogenen Tabellen. Reihenfolge: Kind- vor Eltern-Tabellen.
+// Nicht existierende Tabellen werden in tableErrors gesammelt (nicht fatal),
+// sodass die Liste gefahrlos vollständig gehalten werden kann (DSGVO-Löschung).
 const USER_SCOPED_TABLES = [
   "portfolio_positions",
   "portfolios",
@@ -30,7 +32,11 @@ const USER_SCOPED_TABLES = [
   "analytics_consent",
   "sync_metadata",
   "user_category_priorities",
+  "user_merchant_rules",
+  "user_contract_decisions",
+  "mcp_aggregate_snapshots",
   "categories",
+  "accounts",
   "bank_connections",
   "milestones",
   "user_settings",

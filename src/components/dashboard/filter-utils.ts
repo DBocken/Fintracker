@@ -1,7 +1,7 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
 import type { Account, Category, Transaction } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
-import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { resolveAusgabenklasse, resolveEssenziell } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-utils';
 import type { ContractDecision } from '@/services/contract-decision-service';
@@ -124,20 +124,22 @@ function matchesCategoryFilter(transaction: Transaction, categoriesById: Map<str
 
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
   if (filter === 'all') return true;
-  if (!transaction.category_id) return false;
+  // Dieselbe zugewiesene Kategorie wie die Charts (subcategory_id ?? category_id)
+  // und Hierarchie-Vererbung, damit ein Drilldown-Klick auf ein Segment eine
+  // Liste liefert, deren Summe zum Segment passt (F-UX-5).
+  const assignedId = transaction.subcategory_id ?? transaction.category_id;
+  if (!assignedId) return false;
 
-  const category = categoriesById.get(transaction.category_id);
-  if (!category) return false;
-
-  const isEssential = category.attributes?.essenziell === true;
+  const isEssential = resolveEssenziell(categoriesById, assignedId) === true;
   return filter === 'ess' ? isEssential : !isEssential;
 }
 
 function matchesAusgabenklasseFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: AusgabenklasseFilter): boolean {
   if (filter === 'all') return true;
-  if (!transaction.category_id) return filter === 'unkategorisiert';
+  const assignedId = transaction.subcategory_id ?? transaction.category_id;
+  if (!assignedId) return filter === 'unkategorisiert';
 
-  const klasse = resolveAusgabenklasse(categoriesById, transaction.category_id);
+  const klasse = resolveAusgabenklasse(categoriesById, assignedId);
   const effectiveKlasse = klasse || 'unkategorisiert';
   return effectiveKlasse === filter;
 }

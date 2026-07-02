@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSpendingSunburst, buildSunburstBreakdown, buildSunburstTree, resolveAusgabenklasse } from '../analysis-data';
+import { buildSpendingSunburst, buildSunburstBreakdown, buildSunburstTree, resolveAusgabenklasse, sumIncome, sumExpenses } from '../analysis-data';
 import type { SunburstNode } from '../analysis-data';
 import type { Transaction, Category } from '@/types';
 
@@ -419,6 +419,34 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
         const klasseValues = tree.children.map((c) => c.value);
         expect(klasseValues).toEqual([...klasseValues].sort((a, b) => b - a));
       });
+    });
+  });
+
+  describe('sumIncome / sumExpenses (transferbereinigt)', () => {
+    const tx = (over: Partial<Transaction>): Transaction =>
+      ({ id: 'x', account_id: 'a', date: '2026-01-01', amount: 0, payee: '', description: '', ...over }) as Transaction;
+
+    it('summiert Einnahmen und Ausgaben ohne interne Überträge (Invariante 2)', () => {
+      const txs = [
+        tx({ id: '1', amount: 2000 }),
+        tx({ id: '2', amount: -500 }),
+        tx({ id: '3', amount: 1000, is_transfer: true }),
+        tx({ id: '4', amount: -1000, is_transfer: true }),
+      ];
+      expect(sumIncome(txs)).toBe(2000);
+      expect(sumExpenses(txs)).toBe(500);
+    });
+
+    it('[REGRESSION] ein Transfer-Paar verändert die Summen nicht', () => {
+      const base = [tx({ id: '1', amount: 2000 }), tx({ id: '2', amount: -500 })];
+      const withTransfer = [...base, tx({ id: '3', amount: 800, is_transfer: true }), tx({ id: '4', amount: -800, is_transfer: true })];
+      expect(sumIncome(withTransfer)).toBe(sumIncome(base));
+      expect(sumExpenses(withTransfer)).toBe(sumExpenses(base));
+    });
+
+    it('liefert 0 für leere Eingaben', () => {
+      expect(sumIncome([])).toBe(0);
+      expect(sumExpenses([])).toBe(0);
     });
   });
 });

@@ -11,6 +11,7 @@ import {
 import { normalizeMerchantName } from './merchant-normalization';
 import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
 import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
+import { parseGermanNumber } from '../lib/money';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -43,12 +44,10 @@ function parseGermanDate(dateStr: string): string {
 }
 
 function parseGermanAmount(amountStr: string | number): number {
-  if (amountStr === null || amountStr === undefined) return 0;
-  const asString = amountStr.toString();
-  const cleanAmount = asString.replace(/\s/g, '').replace(/[^\d,\.-]/g, '');
-  const normalized = cleanAmount.replace(',', '.');
-  const parsed = parseFloat(normalized);
-  return isNaN(parsed) ? 0 : parsed;
+  // Zentraler Parser (money.ts) inkl. korrekter Tausenderpunkt-Behandlung
+  // (F-MONEY-1). Fallback auf 0 bleibt hier vorerst erhalten; die strikte
+  // Ablehnung an der Persistenzgrenze folgt separat (T1.3).
+  return parseGermanNumber(amountStr) ?? 0;
 }
 
 function generateId(): string {
@@ -91,9 +90,14 @@ export function explainCategorization(
 
   // Stufe 1: vom Nutzer gelernte Zuordnungen (höchste Priorität)
   if (learnedRules?.length && normalizedPayee) {
-    const rule = learnedRules.find(
-      (r) => r.merchant_pattern && normalizedPayee.includes(r.merchant_pattern)
-    );
+    // Die SPEZIFISCHSTE passende Regel gewinnt (längstes Pattern), nicht die
+    // zuerst gespeicherte: sonst würde z. B. „aldi" eine Buchung fangen, für die
+    // der Nutzer die genauere Regel „aldi süd tankstelle" angelegt hat.
+    const rule = learnedRules.reduce<MerchantRule | null>((best, r) => {
+      if (!r.merchant_pattern || !normalizedPayee.includes(r.merchant_pattern)) return best;
+      if (!best || r.merchant_pattern.length > best.merchant_pattern.length) return r;
+      return best;
+    }, null);
     if (rule) {
       return {
         categoryId: rule.category_id,
@@ -443,11 +447,20 @@ export async function updateCategory(category: Category): Promise<Category> {
 // Auto-Kategorisierung & intelligente Vorschläge (jetzt auf nutzerlokalen Transaktionen)
 // -----------------------------------------------------------------------------
 
+/** Vorzustand eines Kategorisierungsfeldes, um eine Sammeländerung rückgängig zu machen. */
+export interface CategorizationSnapshotEntry {
+  id: string;
+  category_id: string | null;
+  auto_mapped: boolean;
+}
+
 export async function recategorizeTransactions(): Promise<{
   total: number;
   assigned: number;
   unassigned: number;
   changed: number;
+  /** Vorwerte der geänderten Buchungen — für ein echtes Undo (Invariante 12). */
+  undo: CategorizationSnapshotEntry[];
 }> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
@@ -457,6 +470,7 @@ export async function recategorizeTransactions(): Promise<{
   let unassigned = 0;
   let changed = 0;
   const total = transactions.length;
+  const undo: CategorizationSnapshotEntry[] = [];
 
   for (const t of transactions) {
     const newCat = categorizeTransaction(t, categories, learnedRules);
@@ -467,6 +481,9 @@ export async function recategorizeTransactions(): Promise<{
 
     if (t.id && prevCat !== newCat) {
       changed += 1;
+      // Vorzustand VOR der Änderung sichern, damit handleUndo ihn exakt
+      // wiederherstellen kann (statt einer Attrappe, F-UX-1).
+      undo.push({ id: t.id, category_id: prevCat, auto_mapped: t.auto_mapped ?? false });
       const result = await transactionStorage.updateTransaction(t.id, {
         category_id: newCat,
         auto_mapped: !!newCat,
@@ -475,7 +492,24 @@ export async function recategorizeTransactions(): Promise<{
     }
   }
 
-  return { total, assigned, unassigned, changed };
+  return { total, assigned, unassigned, changed, undo };
+}
+
+/**
+ * Macht eine Sammel-Neukategorisierung rückgängig: setzt die gesicherten
+ * Vorwerte (category_id, auto_mapped) je Buchung zurück. Gibt die Anzahl
+ * wiederhergestellter Buchungen zurück.
+ */
+export async function restoreCategorization(entries: CategorizationSnapshotEntry[]): Promise<number> {
+  let restored = 0;
+  for (const e of entries) {
+    const result = await transactionStorage.updateTransaction(e.id, {
+      category_id: e.category_id,
+      auto_mapped: e.auto_mapped,
+    });
+    if (result.success) restored += 1;
+  }
+  return restored;
 }
 
 /**

@@ -23,9 +23,10 @@ const ALLOWED_REDIRECT_HOSTS = (Deno.env.get("ALLOWED_REDIRECT_HOSTS") || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
-const RATE_LIMIT_BURST = Number(Deno.env.get("RATE_LIMIT_BURST") || 20);
-
-const RATE_LIMIT_PER_MIN = Number(Deno.env.get("RATE_LIMIT_PER_MIN") || 60);
+// Hinweis: In dieser Function ist (noch) KEIN eigenes Rate-Limiting aktiv.
+// Früher standen hier ungenutzte RATE_LIMIT_*-Konstanten, die fälschlich eine
+// Drosselung suggerierten. Ein echtes per-User-Throttling ist in Issue #175
+// erfasst; bis dahin greift nur ein etwaiges Limit auf Gateway-/GoCardless-Ebene.
 
 function normalizeOrigin(value: string): string {
   const raw = value.trim();
@@ -591,10 +592,31 @@ serve(async (req) => {
       }
 
       case "get-balances": {
+        const requisitionIdOrRef = body?.requisition_id as string | undefined;
         const accountId = body?.account_id as string | undefined;
+
+        // Gleiche Ownership-Prüfung wie get-transactions: ohne sie könnte ein
+        // authentifizierter Nutzer über eine fremde account_id fremde Salden
+        // abrufen (Konsistenz-Bug — die Schwester-Action prüfte, diese nicht).
+        if (!requisitionIdOrRef) {
+          const err = new Error("requisition_id required") as any;
+          err.status = 400;
+          throw err;
+        }
+
         if (!accountId) {
           const err = new Error("account_id required") as any;
           err.status = 400;
+          throw err;
+        }
+
+        const requisition = await getRequisition(requisitionIdOrRef, accessToken);
+        await assertRequisitionBoundToUser(supabaseClient, requisition, user.id, requisitionIdOrRef);
+
+        const allowedAccounts = requisition.accounts || [];
+        if (!allowedAccounts.includes(accountId)) {
+          const err = new Error("Forbidden") as any;
+          err.status = 403;
           throw err;
         }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeFinancialHealth, getHealthLabel } from "../financial-health-service";
+import { computeFinancialHealth, getHealthLabel, monthlyAverages } from "../financial-health-service";
 import type { NetWorthBreakdown } from "../net-worth-service";
 import type { Debt, Transaction } from "../../types";
 
@@ -43,6 +43,35 @@ function debt(overrides: Partial<Debt>): Debt {
     ...overrides,
   };
 }
+
+describe("monthlyAverages (geteilte Coach-/Health-Quelle, F-UX-3)", () => {
+  function isoMonthsAgo(months: number): string {
+    const d = new Date();
+    d.setMonth(d.getMonth() - months);
+    return d.toISOString().split("T")[0];
+  }
+
+  it("teilt die Summe durch die Monatszahl statt sie als einen Monat zu behandeln", () => {
+    // Je ein Gehalt in den letzten 3 Monaten → Durchschnitt = ein Gehalt, nicht die Summe.
+    const txs: Transaction[] = [
+      tx({ amount: 3000, date: isoMonthsAgo(0) }),
+      tx({ amount: 3000, date: isoMonthsAgo(1) }),
+      tx({ amount: 3000, date: isoMonthsAgo(2) }),
+    ];
+    const { income } = monthlyAverages(txs, 3);
+    expect(income).toBeCloseTo(3000, 5);
+  });
+
+  it("schließt Transfers aus und ignoriert Buchungen außerhalb des Fensters", () => {
+    const txs: Transaction[] = [
+      tx({ amount: -600, date: isoMonthsAgo(0) }),
+      tx({ amount: -600, date: isoMonthsAgo(1), is_transfer: true }), // Transfer → ignoriert
+      tx({ amount: -600, date: isoMonthsAgo(10) }), // außerhalb 3-Monats-Fenster
+    ];
+    const { expenses } = monthlyAverages(txs, 3);
+    expect(expenses).toBeCloseTo(200, 5); // nur 600 / 3 Monate
+  });
+});
 
 describe("computeFinancialHealth - edge cases", () => {
   it("handles a completely empty profile without NaN or out-of-range scores", () => {

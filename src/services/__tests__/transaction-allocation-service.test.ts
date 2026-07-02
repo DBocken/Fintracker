@@ -75,6 +75,25 @@ describe("[INTEGRITY] validateAllocations", () => {
     ];
     expect(validateAllocations(tx(-12.5), allocs).error).toBe("duplicate_id");
   });
+
+  it("[REGRESSION] lehnt gemischt-signierte Aufteilungen ab (F-MONEY-5)", () => {
+    // Ausgabe -10 €: 6 € (positiv) + -16 € summieren zwar auf -10, führen in den
+    // Analysen (Math.abs) aber zu 6 + 16 = 22 € Kategorieausgaben.
+    const allocs: TransactionAllocation[] = [
+      { id: "a1", transaction_id: "tx-1", amount_minor: 600, category_id: "c1", source: "manual" },
+      { id: "a2", transaction_id: "tx-1", amount_minor: -1600, category_id: "c2", source: "manual" },
+    ];
+    expect(validateAllocations(tx(-10), allocs).error).toBe("sign_mismatch");
+  });
+
+  it("erlaubt gleichsignierte Aufteilungen inkl. Null-Anteil", () => {
+    const allocs: TransactionAllocation[] = [
+      { id: "a1", transaction_id: "tx-1", amount_minor: -600, category_id: "c1", source: "manual" },
+      { id: "a2", transaction_id: "tx-1", amount_minor: -400, category_id: "c2", source: "manual" },
+      { id: "a3", transaction_id: "tx-1", amount_minor: 0, category_id: "c3", source: "manual" },
+    ];
+    expect(validateAllocations(tx(-10), allocs).valid).toBe(true);
+  });
 });
 
 describe("transaction-allocation-service (local)", () => {

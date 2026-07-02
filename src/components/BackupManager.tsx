@@ -320,8 +320,9 @@ export function BackupManager() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Achtung: Beim Wiederherstellen werden vorhandene Daten überschrieben.
-                Erstelle vorher ein Backup.
+                Beim Wiederherstellen werden die Backup-Daten mit deinem
+                aktuellen Bestand zusammengeführt: Fehlende Einträge werden
+                ergänzt, bereits vorhandene (gleiche ID) bleiben unverändert.
               </AlertDescription>
             </Alert>
 
@@ -511,8 +512,9 @@ export function BackupManager() {
             (z. B. Cloud-Speicher, externe Festplatte).
           </p>
           <p>
-            <strong>Wiederherstellung:</strong> Beim Wiederherstellen werden alle
-            Daten durch die Backup-Daten ersetzt.
+            <strong>Wiederherstellung:</strong> Backup-Daten werden mit deinem
+            aktuellen Bestand zusammengeführt (fehlende Einträge ergänzt,
+            vorhandene bleiben erhalten) – ein Restore verdoppelt nichts.
           </p>
           <p>
             <strong>Kompatibilität:</strong> Backups sind mit der gleichen
@@ -528,7 +530,7 @@ export function BackupManager() {
             <AlertDialogDescription>
               Dieses Backup wurde mit einem <strong>anderen Benutzerkonto</strong> erstellt.
               Beim Wiederherstellen werden die Daten deinem aktuellen Konto zugeordnet und
-              vorhandene Daten überschrieben. Nur fortfahren, wenn das beabsichtigt ist.
+              mit deinem Bestand zusammengeführt. Nur fortfahren, wenn das beabsichtigt ist.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

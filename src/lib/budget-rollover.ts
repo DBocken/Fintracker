@@ -113,8 +113,26 @@ export function computeBudgetStatusWithRollover(
   options?: LedgerOptions,
 ): BudgetStatus {
   const ledger = computeRolloverLedger(budget, transactions, categories, months, allocationsByTx, options);
-  const last = ledger[ledger.length - 1];
   const warnThreshold = budget.warn_threshold ?? DEFAULT_WARN_THRESHOLD;
+
+  // Ohne Perioden (leeres `months`) gibt es keinen letzten Ledger-Eintrag —
+  // vorher warf der Zugriff auf `last.effectiveLimit` einen TypeError.
+  const last = ledger[ledger.length - 1];
+  if (!last) {
+    return {
+      budget,
+      spent: 0,
+      remaining: budget.limit,
+      ratio: 0,
+      fillPercent: 0,
+      health: healthFor(0, budget.limit, warnThreshold),
+      carryIn: 0,
+      effectiveLimit: budget.limit,
+      carryOut: 0,
+      swept: 0,
+    };
+  }
+
   const ratio = last.effectiveLimit > 0 ? last.spent / last.effectiveLimit : 0;
 
   return {

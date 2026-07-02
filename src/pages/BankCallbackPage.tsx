@@ -19,8 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { gocardlessService } from '@/services/gocardless-service';
 import { bankConnectionService } from '@/services/bank-connection-service';
 import { updateAccount, getAccounts, createAccount, type Account } from '@/services/account-service';
-import { createTransaction, getCategories, categorizeTransaction, getUserSettings } from '@/services/transaction-service';
-import { getMerchantRules } from '@/services/merchant-rules-service';
+import { syncAccountTransactions } from '@/services/gocardless-sync-service';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface GoCardlessAccount {
@@ -32,18 +31,6 @@ interface GoCardlessAccount {
   product?: string;
   status?: string;
   balances?: Array<{ balanceType: string; balanceAmount: { amount: string; currency: string } }>;
-}
-
-interface ImportedTransaction {
-  transactionId: string;
-  bookingDate: string;
-  transactionAmount: {
-    amount: string;
-    currency: string;
-  };
-  debtorName?: string;
-  creditorName?: string;
-  remittanceInformationUnstructured?: string;
 }
 
 export default function BankCallbackPage() {
@@ -169,11 +156,11 @@ export default function BankCallbackPage() {
 
       setImportingTransactions(prev => new Set(prev).add(gocardlessAccount.id));
 
-      let localAccountId: string;
+      let account: Account;
 
       if (existingAccountId) {
         // Link to existing account
-        await updateAccount({
+        account = await updateAccount({
           id: existingAccountId,
           iban: gocardlessAccount.iban || null,
           gocardless_account_id: gocardlessAccount.id,
@@ -182,11 +169,10 @@ export default function BankCallbackPage() {
           bank_connection_id: bankConnection?.id,
           sync_enabled: true,
         });
-        localAccountId = existingAccountId;
         showSuccess('Konto verknüpft!');
       } else {
         // Create new account
-        const newAccount = await createAccount({
+        account = await createAccount({
           name: gocardlessAccount.name || gocardlessAccount.product || 'Bankkonto',
           type: 'checking',
           currency: gocardlessAccount.currency,
@@ -198,12 +184,13 @@ export default function BankCallbackPage() {
           bank_connection_id: bankConnection?.id,
           sync_enabled: true,
         });
-        localAccountId = newAccount.id;
         showSuccess('Neues Konto erstellt!');
       }
 
-      // Import initial transactions (server enforces requisition/account binding)
-      await importTransactionsForAccount(localAccountId, resolvedRequisitionId, gocardlessAccount.id);
+      // Initialimport über DENSELBEN Pfad wie der spätere manuelle Sync
+      // (Dedupe, Transfer-Reconciliation, opening_balance, last_sync_at). Kein
+      // separater UI-Import mehr → keine Doppelbuchungen bei Reload/Erst-Sync (T1.6).
+      await importInitialTransactions(account);
 
       setLinkedAccounts(prev => new Set(prev).add(gocardlessAccount.id));
     } catch (err: unknown) {
@@ -217,82 +204,21 @@ export default function BankCallbackPage() {
     }
   };
 
-  const importTransactionsForAccount = async (localAccountId: string, resolvedRequisitionId: string, gocardlessAccountId: string) => {
+  const importInitialTransactions = async (account: Account) => {
     try {
-      const today = new Date();
-      const twoYearsAgo = new Date(today.getTime() - 730 * 24 * 60 * 60 * 1000);
+      const result = await syncAccountTransactions(account);
 
-      const dateFrom = twoYearsAgo.toISOString().split('T')[0];
-
-      const dateTo = today.toISOString().split('T')[0];
-
-      const transactions = await gocardlessService.getTransactions(
-        resolvedRequisitionId,
-        gocardlessAccountId,
-        dateFrom,
-        dateTo
-      );
-
-      if (transactions.length === 0) {
-        return;
+      if (result.importedCount > 0) {
+        showSuccess(`${result.importedCount} Transaktionen importiert`);
       }
-
-      // Kategorien und gelernte Regeln einmalig laden, um Buchungen automatisch zuzuordnen
-      const categories = await getCategories();
-      const learnedRules = await getMerchantRules();
-      const userSettings = await getUserSettings();
-
-      // Map GoCardless transactions to app format
-      const mappedTransactions = transactions.map((tx: ImportedTransaction) => {
-        const draft = {
-          date: tx.bookingDate,
-          amount: parseFloat(tx.transactionAmount.amount),
-          payee: tx.debtorName || tx.creditorName || 'Unbekannt',
-          description: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
-          original_text: tx.remittanceInformationUnstructured || `${tx.debtorName || tx.creditorName || 'Transaktion'}`,
-          auto_mapped: false,
-          confirmed: false,
-        };
-        const categoryId = categorizeTransaction(draft as import('../types').Transaction, categories, learnedRules);
-
-        return {
-          account_id: localAccountId, // Link to the local account
-          ...draft,
-          currency: tx.transactionAmount.currency,
-          category_id: categoryId,
-          auto_mapped: !!categoryId,
-          confirmed: !!categoryId && userSettings.auto_confirm_mapping,
-        };
-      });
-
-      let importedCount = 0;
-      let skippedCount = 0;
-
-      for (const tx of mappedTransactions) {
-        try {
-          await createTransaction(tx);
-          importedCount++;
-        } catch (err: unknown) {
-          skippedCount++;
-          console.error('Fehler beim Import der Transaktion:', {
-            message: (err as Error)?.message || 'Unbekannter Fehler',
-            transaction: tx.original_text,
-          });
-        }
-      }
-
-      if (importedCount > 0) {
-        showSuccess(`${importedCount} Transaktionen importiert`);
-      }
-      if (skippedCount > 0) {
-        console.warn(`${skippedCount} Transaktionen konnten nicht importiert werden.`);
+      if (result.errors.length > 0) {
+        console.warn('[bank-callback] Sync mit Fehlern:', result.errors);
       }
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-
     } catch (err: unknown) {
       console.error('Error importing transactions:', err);
       // Don't throw - linking succeeded even if import partially failed

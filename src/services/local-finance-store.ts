@@ -1,31 +1,11 @@
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+// Key-Definitionen leben zentral in local-storage-keys (VE-6), damit die
+// Verschlüsselungs-Migration keine Kollektion übersehen kann. Re-Export hält
+// bestehende Importe (`from './local-finance-store'`) funktionsfähig.
+import { LOCAL_FINANCE_KEYS, type LocalFinanceKey } from './local-storage-keys';
 
-export const LOCAL_FINANCE_KEYS = {
-  transactions: 'ausgabentracker_transactions_v3',
-  accounts: 'ausgabentracker_accounts_v1',
-  debts: 'ausgabentracker_debts_v1',
-  debtAssignments: 'ausgabentracker_debt_assignments_v1',
-  receivables: 'ausgabentracker_receivables_v1',
-  receivableAssignments: 'ausgabentracker_receivable_assignments_v1',
-  claims: 'ausgabentracker_claims_v1',
-  portfolios: 'ausgabentracker_portfolios_v1',
-  portfolioPositions: 'ausgabentracker_portfolio_positions_v1',
-  bankConnections: 'ausgabentracker_bank_connections_v1',
-  schufareminders: 'ausgabentracker_schufareminders_v1',
-  merchantRules: 'ausgabentracker_merchant_rules_v1',
-  contractDecisions: 'ausgabentracker_contract_decisions_v1',
-  transactionAllocations: 'ausgabentracker_transaction_allocations_v1',
-  budgets: 'ausgabentracker_budgets_v1',
-  milestones: 'ausgabentracker_milestones_v1',
-  analyticsConsent: 'ausgabentracker_analytics_consent_v1',
-  automationSuggestions: 'ausgabentracker_automation_suggestions_v1',
-  auditLog: 'ausgabentracker_audit_log_v1',
-  households: 'ausgabentracker_households_v1',
-  householdMembers: 'ausgabentracker_household_members_v1',
-  sharedExpenseSplits: 'ausgabentracker_shared_expense_splits_v1',
-} as const;
-
-export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
+export { LOCAL_FINANCE_KEYS };
+export type { LocalFinanceKey };
 
 /**
  * Schema-Version des lokalen Finanzspeichers. Wird erhöht, sobald bestehende

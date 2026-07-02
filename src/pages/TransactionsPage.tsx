@@ -55,7 +55,8 @@ export default function TransactionsPage() {
     urlFilters.range !== DEFAULT_DASHBOARD_FILTERS.range;
 
   const { data: txs = [], isLoading } = useQuery<Transaction[]>({
-    queryKey: ["transactions"],
+    // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
+    queryKey: ["transactions", 5000],
     queryFn: () => getTransactions(5000),
   });
   const { data: cats = [] } = useQuery<Category[]>({ queryKey: ["categories"], queryFn: getCategories });

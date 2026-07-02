@@ -1,6 +1,28 @@
 import { parseISO, getDay } from "date-fns";
 import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
 
+/**
+ * Transferbereinigte Einnahmen-/Ausgabensummen — eine Quelle der Wahrheit für
+ * Dashboard, Premium-Dashboard und Export. Interne Überträge zwischen eigenen
+ * Konten (`is_transfer`) zählen weder als Einnahme noch als Ausgabe
+ * (Domänen-Invariante 2). Ersetzt komponenten-lokale reduce-Ketten, die
+ * Transfers fälschlich mitzählten (F-MONEY-3).
+ */
+export function sumIncome(transactions: Transaction[]): number {
+  return transactions
+    .filter((t) => !t.is_transfer && t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/** Betrag (positiv) der transferbereinigten Ausgaben. Siehe `sumIncome`. */
+export function sumExpenses(transactions: Transaction[]): number {
+  return Math.abs(
+    transactions
+      .filter((t) => !t.is_transfer && t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0),
+  );
+}
+
 /** Ein Kategorie-Beitrag einer Transaktion (eigene Kategorie oder eine Aufteilung). */
 export interface CategoryContribution {
   /** subcategory_id ?? category_id der Aufteilung bzw. der Transaktion. */
@@ -379,6 +401,30 @@ export function resolveAusgabenklasse(
   const visited = new Set<string>();
   while (current) {
     if (current.attributes?.ausgabenklasse) return current.attributes.ausgabenklasse;
+    if (!current.parent_id || visited.has(current.id)) break;
+    visited.add(current.id);
+    current = byId.get(current.parent_id);
+  }
+  return null;
+}
+
+/**
+ * Löst den Essenziell-Status über die Kategorie-Hierarchie auf (nächster
+ * definierter Wert, Unterkategorie überschreibt Hauptkategorie). Analog zu
+ * resolveAusgabenklasse, damit Filter und Charts dieselbe Einstufung nutzen
+ * (F-UX-5). `null`, wenn nirgends definiert.
+ */
+export function resolveEssenziell(
+  byId: Map<string, Category>,
+  catId: string | null | undefined
+): boolean | null {
+  if (!catId) return null;
+  let current: Category | undefined = byId.get(catId);
+  const visited = new Set<string>();
+  while (current) {
+    if (current.attributes?.essenziell !== undefined) {
+      return current.attributes.essenziell === true;
+    }
     if (!current.parent_id || visited.has(current.id)) break;
     visited.add(current.id);
     current = byId.get(current.parent_id);

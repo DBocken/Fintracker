@@ -14,6 +14,10 @@ import type { Tier } from "@/lib/tier";
  * - Aggregierte Statistik nur nach explizitem Opt-in, verschlüsselt und
  *   mit Suppression (< 5 Events werden unterdrückt,
  *   analytics-aggregation-service → MIN_LOCAL_EVENTS).
+ * - Cloud-MCP (Opt-in, bewusste Ausnahme zum Local-only-Prinzip): Bei aktivem
+ *   Sync verlassen Finanz-Aggregate — Monatssummen sowie Budget- und
+ *   Kategorienamen — das Gerät. Dann dürfen "Kategorien & Budgets" NICHT mehr
+ *   als "verlässt dein Gerät nie" ausgewiesen werden (F-PRIV-1 / F-MCP-2).
  */
 
 export type ServerContactLevel = "none" | "account" | "account_and_analytics";
@@ -28,33 +32,50 @@ export interface PrivacyStatus {
   neverShared: string[];
 }
 
-const NEVER_SHARED = ["Transaktionen", "Schulden", "Briefe & Dokumente", "Kategorien & Budgets"];
+const NEVER_SHARED_BASE = ["Transaktionen", "Schulden", "Briefe & Dokumente"];
+const CATEGORIES_BUDGETS = "Kategorien & Budgets";
+const MCP_AGGREGATES = "Finanz-Aggregate: Monatssummen, Budget- & Kategorienamen (MCP, Opt-in)";
 
-export function derivePrivacyStatus(tier: Tier, analyticsOptIn: boolean): PrivacyStatus {
+export interface PrivacyStatusInput {
+  /** Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist (cloud-mcp-sync-service). */
+  mcpSyncActive?: boolean;
+}
+
+export function derivePrivacyStatus(
+  tier: Tier,
+  analyticsOptIn: boolean,
+  input: PrivacyStatusInput = {},
+): PrivacyStatus {
+  // MCP setzt Login voraus; im Anonym-Modus gibt es keinen aktiven Sync.
+  const mcpSyncActive = tier !== "anonymous" && !!input.mcpSyncActive;
+
+  // Kategorien & Budgets verlassen das Gerät nur, wenn MCP-Sync aktiv ist.
+  const neverShared = mcpSyncActive
+    ? [...NEVER_SHARED_BASE]
+    : [...NEVER_SHARED_BASE, CATEGORIES_BUDGETS];
+
   if (tier === "anonymous") {
     return {
       serverContact: "none",
       serverContactLabel: "Letzter Server-Kontakt: keiner",
       sharedWithServer: [],
-      neverShared: NEVER_SHARED,
+      neverShared,
     };
   }
 
   const shared = ["Anmeldung (Google via Supabase)", "Bank-Anbindung (GoCardless-Requisition)", "Einstellungen"];
+  if (analyticsOptIn) shared.push("Aggregierte Statistik (verschlüsselt, Opt-in)");
+  if (mcpSyncActive) shared.push(MCP_AGGREGATES);
 
-  if (analyticsOptIn) {
-    return {
-      serverContact: "account_and_analytics",
-      serverContactLabel: "Server-Kontakt: Konto, Bank-Anbindung, aggregierte Statistik (Opt-in)",
-      sharedWithServer: [...shared, "Aggregierte Statistik (verschlüsselt, Opt-in)"],
-      neverShared: NEVER_SHARED,
-    };
-  }
+  const serverContact: ServerContactLevel = analyticsOptIn ? "account_and_analytics" : "account";
+  const labelParts = ["Konto", "Bank-Anbindung"];
+  if (analyticsOptIn) labelParts.push("aggregierte Statistik (Opt-in)");
+  if (mcpSyncActive) labelParts.push("Finanz-Aggregate (MCP, Opt-in)");
 
   return {
-    serverContact: "account",
-    serverContactLabel: "Server-Kontakt: nur Konto & Bank-Anbindung",
+    serverContact,
+    serverContactLabel: `Server-Kontakt: ${labelParts.join(", ")}`,
     sharedWithServer: shared,
-    neverShared: NEVER_SHARED,
+    neverShared,
   };
 }

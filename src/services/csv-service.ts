@@ -1,5 +1,6 @@
 import { parse } from 'papaparse';
 import type { Transaction } from '../types';
+import { parseGermanNumber } from '../lib/money';
 
 export const MAX_CSV_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_CSV_ROWS = 50_000;
@@ -151,24 +152,9 @@ function parseGermanDate(dateStr: string): string | null {
   return null;
 }
 
-/** Parse amount with German number format */
+/** Parse amount with German number format (zentraler Parser aus money.ts). */
 function parseGermanAmount(amountStr: string): number | null {
-  if (!amountStr) return null;
-
-  let cleanAmount = amountStr
-    .toString()
-    .replace(/\s/g, '') // Remove spaces
-    .replace(/[^\d,\.-]/g, ''); // Keep only numbers, comma, dot and minus
-
-  // German decimal format uses comma as decimal separator and dot as
-  // thousands separator (e.g. "2.500,00" = 2500.00). If a comma is
-  // present, strip the thousands dots before converting the comma.
-  if (cleanAmount.includes(',')) {
-    cleanAmount = cleanAmount.replace(/\./g, '').replace(',', '.');
-  }
-
-  const parsed = parseFloat(cleanAmount);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseGermanNumber(amountStr);
 }
 
 export async function parseCsv(

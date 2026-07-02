@@ -137,8 +137,10 @@ export default function EtoroConnectDialog({
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              <strong>Security Note:</strong> Ihre API Keys werden verschlüsselt gespeichert und nur für den Zugriff auf Ihr Portfolio verwendet.
-              Wir haben keinen Zugriff auf Ihr eToro-Passwort oder Ihre Transaktionen.
+              <strong>Sicherheitshinweis:</strong> Deine API-Keys werden nur bei aktivierter lokaler
+              Verschlüsselung (AES-GCM) auf diesem Gerät gespeichert und niemals in einen
+              unverschlüsselten Export geschrieben. Sie dienen ausschließlich dem Zugriff auf dein
+              Portfolio. Wir haben keinen Zugriff auf dein eToro-Passwort oder deine Transaktionen.
             </AlertDescription>
           </Alert>
         </div>

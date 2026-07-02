@@ -4,10 +4,10 @@ import {
   getCategories,
   getTransactions,
   getUserSettings,
-  saveCategory,
   saveTransactions,
   updateUserSettings,
 } from './transaction-service';
+import { restoreLocalCategories } from './local-settings-service';
 import { createAccount, getAccounts } from './account-service';
 import {
   encryptJsonWithPassword,
@@ -30,6 +30,37 @@ const TYPED_BACKUP_KEYS = new Set<string>(['transactions', 'accounts']);
 
 function isLocalFinanceKey(key: string): key is LocalFinanceKey {
   return Object.prototype.hasOwnProperty.call(LOCAL_FINANCE_KEYS, key);
+}
+
+/** Broker-Zugangsdaten, die nie im Klartext (unverschlüsseltes Backup) landen dürfen. */
+const PORTFOLIO_SECRET_FIELDS = ['apiKey', 'userKey'];
+
+/**
+ * Gibt eine Kopie der Backup-Daten zurück, in der die Broker-Zugangsdaten
+ * (eToro apiKey/userKey in portfolios.provider_config) entfernt sind. Wird nur
+ * für den UNVERSCHLÜSSELTEN Export genutzt; verschlüsselte Backups behalten sie
+ * (dort sind sie geschützt). Wiederhergestellte Portfolios müssen dann neu
+ * verbunden werden (T1.10 / F-DEBT-1).
+ */
+export function redactPortfolioSecrets(data: BackupData): BackupData {
+  const portfolios = data.collections?.portfolios;
+  if (!Array.isArray(portfolios)) return data;
+
+  const redacted = portfolios.map((p) => {
+    const entry = p as { provider_config?: Record<string, unknown> };
+    if (!entry.provider_config) return p;
+    const cfg = { ...entry.provider_config };
+    let touched = false;
+    for (const field of PORTFOLIO_SECRET_FIELDS) {
+      if (field in cfg) {
+        delete cfg[field];
+        touched = true;
+      }
+    }
+    return touched ? { ...entry, provider_config: cfg } : p;
+  });
+
+  return { ...data, collections: { ...data.collections, portfolios: redacted } };
 }
 
 /**
@@ -157,7 +188,9 @@ class BackupService {
         'Unverschlüsselter Export muss ausdrücklich bestätigt werden. Nutze bevorzugt das verschlüsselte Backup.',
       );
     }
-    const data = backup || await this.createBackup();
+    // Broker-Zugangsdaten (eToro apiKey/userKey) NIE in einen Klartext-Export
+    // schreiben — deutlich sensibler als die übrigen Finanzdaten (T1.10 / F-DEBT-1).
+    const data = redactPortfolioSecrets(backup || await this.createBackup());
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     
@@ -412,7 +445,10 @@ class BackupService {
     transactions: import('../types').Transaction[]
   ): Promise<number> {
     if (transactions.length === 0) return 0;
-    const restored = await saveTransactions(transactions.map((tx) => ({ ...tx, id: undefined })));
+    // Merge per ID (VE-5): Original-IDs behalten, damit der Idempotenz-Guard des
+    // Stores greift — ein Restore auf bestehende Daten verdoppelt keine Buchungen
+    // und wiederhergestellte Buchungen behalten gültige Kategorie-/Konto-Bezüge (T1.4).
+    const restored = await saveTransactions(transactions);
     return restored.length;
   }
 
@@ -420,35 +456,35 @@ class BackupService {
     _userId: string,
     categories: Category[]
   ): Promise<number> {
-    let restored = 0;
-    
-    for (const cat of categories) {
-      try {
-        await saveCategory(cat);
-        restored++;
-      } catch (error) {
-        console.error('[BackupService] Error restoring category:', error);
-      }
+    // Merge per ID (Original-IDs erhalten), damit Transaktionsbezüge intakt bleiben.
+    try {
+      return await restoreLocalCategories(categories);
+    } catch (error) {
+      console.error('[BackupService] Error restoring categories:', error);
+      return 0;
     }
-    
-    return restored;
   }
 
   private async restoreAccounts(
     _userId: string,
     accounts: Account[]
   ): Promise<number> {
+    // Merge per ID: bereits vorhandene Konten überspringen, fehlende mit ihrer
+    // Original-ID anlegen (kein Duplikat, keine ID-Neuvergabe).
+    const existingIds = new Set((await getAccounts()).map((a) => a.id));
     let restored = 0;
-    
+
     for (const acc of accounts) {
+      if (acc.id && existingIds.has(acc.id)) continue;
       try {
-        await createAccount({ ...acc, id: undefined });
+        await createAccount({ ...acc });
+        if (acc.id) existingIds.add(acc.id);
         restored++;
       } catch (error) {
         console.error('[BackupService] Error restoring local account:', error);
       }
     }
-    
+
     return restored;
   }
 

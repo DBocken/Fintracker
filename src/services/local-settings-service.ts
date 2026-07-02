@@ -11,9 +11,10 @@
 import type { Category, UserSettings } from "../types";
 import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
+// Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
+import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 
-export const LOCAL_CATEGORIES_KEY = "ausgabentracker_categories_v1";
-export const LOCAL_SETTINGS_KEY = "ausgabentracker_user_settings_v1";
+export { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY };
 
 /** Pseudo-Identität für lokale Datensätze (Muster wie debt-/account-service). */
 export const LOCAL_USER_ID = "local";
@@ -43,21 +44,16 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Migriere fehlende parent_id-Informationen: Kategorien, die vor der Hierarchie-Umstrukturierung
     // (20260614120000_restructure_categories_hierarchy) gespeichert wurden, haben möglicherweise
     // keine parent_id. Wir füllen diese aus den Default-Kategorien nach.
-    let migrated = stored.map((cat) => {
-      // Wenn parent_id bereits gesetzt (null oder string), nicht verändern
-      if (cat.parent_id !== undefined) return cat;
-      // Sonst: versuche aus Default-Kategorien zu laden
-      const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
-      const resolvedParentId = defaultCat?.parent_id ?? null;
-      return { ...cat, parent_id: resolvedParentId };
-    });
+    const { categories: migrated, changed: parentIdMigrated } = migrateParentIds(stored);
 
     // Bestandsdaten nachrüsten: Kategorien, die vor Einführung der
     // Ausgabenklasse geseedet wurden, haben kein `ausgabenklasse`-Attribut.
     // Ohne dieses Feld zeigt das Sunburst nur "essenziell"/"unkategorisiert".
     // Wir füllen fehlende Werte aus den Default-Kategorien (per ID) nach.
     const { categories: backfilled, changed: backfillChanged } = backfillAusgabenklasse(migrated);
-    const parentIdMigrated = migrated !== stored;
+    // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
+    // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
+    // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
     if (parentIdMigrated || backfillChanged) {
       await writeLocalCategories(backfilled);
     }
@@ -68,6 +64,23 @@ export async function getLocalCategories(): Promise<Category[]> {
   const seeded = DEFAULT_LOCAL_CATEGORIES.map((c) => ({ ...c }));
   await localEncryption.encryptAndStore(LOCAL_CATEGORIES_KEY, seeded);
   return seeded;
+}
+
+/**
+ * Füllt fehlende `parent_id`-Werte (Bestandsdaten vor der Hierarchie-
+ * Umstrukturierung) aus den Default-Kategorien nach. Reine Funktion (testbar):
+ * `changed` ist NUR dann true, wenn tatsächlich eine parent_id ergänzt wurde —
+ * damit die verschlüsselte Liste nicht bei jedem Lesen neu geschrieben wird (F-CAT).
+ */
+export function migrateParentIds(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const result = categories.map((cat) => {
+    if (cat.parent_id !== undefined) return cat;
+    const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
+    changed = true;
+    return { ...cat, parent_id: defaultCat?.parent_id ?? null };
+  });
+  return { categories: result, changed };
 }
 
 /**
@@ -133,6 +146,34 @@ function generateLocalCategoryId(): string {
     return crypto.randomUUID();
   }
   return `local-cat-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+}
+
+/**
+ * Stellt Kategorien aus einem Backup wieder her — Merge per ID (Original-IDs
+ * bleiben erhalten). Anders als `saveLocalCategory` wird KEINE neue ID vergeben
+ * und der Namens-Dedup-Check NICHT angewandt: sonst würden wiederhergestellte
+ * Transaktionen auf nicht existierende Kategorie-IDs zeigen bzw. Default-
+ * Kategorien den Import blockieren (T1.4). Bereits vorhandene IDs werden
+ * übersprungen (idempotent).
+ */
+export async function restoreLocalCategories(incoming: Category[]): Promise<number> {
+  if (incoming.length === 0) return 0;
+  const existing = await getLocalCategories();
+  const knownIds = new Set(existing.map((c) => c.id).filter(Boolean));
+  const added: Category[] = [];
+  for (const cat of incoming) {
+    if (!cat.id || knownIds.has(cat.id)) continue;
+    added.push({
+      ...cat,
+      user_id: cat.user_id ?? LOCAL_USER_ID,
+      filters: cat.filters ?? [],
+      attributes: cat.attributes ?? {},
+      parent_id: cat.parent_id ?? null,
+    });
+    knownIds.add(cat.id);
+  }
+  if (added.length) await writeLocalCategories([...existing, ...added]);
+  return added.length;
 }
 
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {

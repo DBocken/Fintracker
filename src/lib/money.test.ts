@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toMinor, toMajor, sumMinor } from "./money";
+import { toMinor, toMajor, sumMinor, parseGermanNumber, parseEuroInput } from "./money";
 
 describe("money", () => {
   it("konvertiert 2-Dezimal-Euro exakt in Cent", () => {
@@ -27,5 +27,45 @@ describe("money", () => {
   it("summiert Cent-Listen als Integer", () => {
     expect(sumMinor([333, 333, 334])).toBe(1000);
     expect(sumMinor([])).toBe(0);
+  });
+});
+
+describe("parseGermanNumber / parseEuroInput", () => {
+  it("[REGRESSION] liest deutschen Tausenderpunkt korrekt (1.200 = 1200, nicht 1,20)", () => {
+    expect(parseGermanNumber("1.200")).toBe(1200);
+    expect(parseGermanNumber("1.234,56")).toBe(1234.56);
+    expect(parseGermanNumber("1.234.567")).toBe(1234567);
+  });
+
+  it("liest einfache Dezimalformate (Komma und Punkt)", () => {
+    expect(parseGermanNumber("12,34")).toBe(12.34);
+    expect(parseGermanNumber("12.50")).toBe(12.5);
+    expect(parseGermanNumber("0,99")).toBe(0.99);
+    expect(parseGermanNumber("-45,00")).toBe(-45);
+  });
+
+  it("ignoriert Währungssymbole und Leerzeichen", () => {
+    expect(parseGermanNumber(" 1.200,00 € ")).toBe(1200);
+    expect(parseGermanNumber("EUR 12,34")).toBe(12.34);
+  });
+
+  it("gibt null bei ungültiger Eingabe zurück", () => {
+    expect(parseGermanNumber("abc")).toBeNull();
+    expect(parseGermanNumber("")).toBeNull();
+    expect(parseGermanNumber("-")).toBeNull();
+    expect(parseGermanNumber(null)).toBeNull();
+    expect(parseGermanNumber(undefined)).toBeNull();
+    expect(parseGermanNumber(NaN)).toBeNull();
+  });
+
+  it("übernimmt numerische Eingaben unverändert", () => {
+    expect(parseGermanNumber(42.5)).toBe(42.5);
+    expect(parseGermanNumber(-3)).toBe(-3);
+  });
+
+  it("parseEuroInput wirft bei ungültiger Eingabe statt still 0 zu liefern", () => {
+    expect(parseEuroInput("1.200")).toBe(1200);
+    expect(() => parseEuroInput("abc")).toThrow();
+    expect(() => parseEuroInput("")).toThrow();
   });
 });

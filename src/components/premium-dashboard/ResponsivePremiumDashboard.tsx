@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import SegmentedControl from "@/components/common/SegmentedControl";
 import { getTransactions, getCategories } from "../../services/transaction-service";
+import { sumIncome, sumExpenses } from "../../lib/analysis-data";
 import { getAccounts } from "../../services/account-service";
 import { parseISO, startOfMonth, format } from "date-fns";
 import type { Transaction, Category, Account } from "../../types";
@@ -24,7 +25,8 @@ export function ResponsivePremiumDashboard() {
   // Gleiche Query wie das Basis-Dashboard (gleicher queryKey ⇒ gleiches Limit),
   // damit der Cache konsistent bleibt (Issue #40).
   const { data: transactions = [] } = useQuery<Transaction[]>({
-    queryKey: ["transactions"],
+    // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
+    queryKey: ["transactions", 5000],
     queryFn: () => getTransactions(5000),
   });
 
@@ -65,14 +67,16 @@ export function ResponsivePremiumDashboard() {
       scaleFactor = 1 / monthCount;
     }
 
-    const incomeTransactions = flowTransactions.filter((t) => t.amount > 0);
-    const expenseTransactions = flowTransactions.filter((t) => t.amount < 0);
-
-    const totalIncomeRaw = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
-    const totalExpensesRaw = Math.abs(expenseTransactions.reduce((sum, t) => sum + t.amount, 0));
+    // Transferbereinigte Summen (Invariante 2) aus der zentralen Quelle —
+    // interne Überträge dürfen Einnahmen/Ausgaben nicht aufblähen (F-MONEY-3).
+    const totalIncomeRaw = sumIncome(flowTransactions);
+    const totalExpensesRaw = sumExpenses(flowTransactions);
 
     const totalIncome = totalIncomeRaw * scaleFactor;
     const totalExpenses = totalExpensesRaw * scaleFactor;
+
+    // Auch die Kategorien-Aggregation ohne interne Überträge (Invariante 2).
+    const expenseTransactions = flowTransactions.filter((t) => !t.is_transfer && t.amount < 0);
 
     const categoryMap = new Map<string, Category>();
     categories.forEach((c) => {

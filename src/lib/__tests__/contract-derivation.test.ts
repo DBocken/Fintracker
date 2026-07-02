@@ -63,6 +63,30 @@ describe("computeContracts status awareness", () => {
     expect(rows[0].cycleKnown).toBe(true);
   });
 
+  it("[REGRESSION] abgelehnter Vertrag reaktiviert sich nicht bei zweiter IBAN (F-CONTRACT-1)", () => {
+    // Derselbe Händler, zwei verschiedene Gegen-IBANs (z. B. Anbieterwechsel).
+    const ibanA = "DE11 0000 0000 0000 0000 01";
+    const ibanB = "DE22 0000 0000 0000 0000 02";
+    const seriesA = monthlySeries("Netflix", -9.99, 3, 3).map((t, i) => ({
+      ...t, id: `a-${i}`, counterparty_iban: ibanA,
+    }));
+    const seriesB = monthlySeries("Netflix", -9.99, 3, 5).map((t, i) => ({
+      ...t, id: `b-${i}`, counterparty_iban: ibanB,
+    }));
+
+    // Nutzer hat die Familie unter der ERSTEN IBAN als „Kein Vertrag" markiert.
+    const fpA = merchantFingerprint(seriesA[0]);
+    const decisions = new Map<string, ContractDecision>([
+      [fpA, { id: "d1", user_id: "u", fingerprint: fpA, status: "rejected" }],
+    ]);
+
+    const rows = computeContracts([...seriesA, ...seriesB], cats, "Ausgabe", { now: NOW, decisions });
+    const merged = rows.find((r) => r.key.startsWith("merchant:"));
+    expect(merged).toBeDefined();
+    expect(merged!.status).toBe("rejected");
+    expect(isActiveForTotals(merged!)).toBe(false);
+  });
+
   it("erkennt eine aktuelle Gehaltsserie und gewichtet den jüngsten Betrag", () => {
     const dates = [
       "2023-07-31", "2023-08-28", "2023-09-29", "2023-10-29", "2023-11-27", "2023-12-29",

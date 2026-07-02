@@ -94,4 +94,36 @@ describe('[SECURITY] CSV export', () => {
     expect(exported.data).toContain("'=HYPERLINK");
     expect(exported.data).toContain("'@SUM");
   });
+
+  it('[REGRESSION] exportiert negative Beträge als Zahl, nicht als Text-Formel', async () => {
+    const tx = transaction('neg');
+    tx.amount = -12.34;
+    const exported = await transactionStorage.exportToCSV([tx]);
+    expect(exported.success).toBe(true);
+    // Betrag bleibt "-12,34" ohne führendes Apostroph → Excel rechnet damit.
+    expect(exported.data).toContain(';-12,34;');
+    expect(exported.data).not.toContain("'-12,34");
+  });
+
+  it('[SECURITY] neutralisiert Formel-Injection hinter eingebettetem Trennzeichen', async () => {
+    const tx = transaction('embedded');
+    // Ohne RFC-4180-Quoting würde ';' eine zweite, mit '=' beginnende Zelle
+    // erzeugen, die Excel ausführt.
+    tx.payee = 'Shop;=HYPERLINK("http://evil","x")';
+    const exported = await transactionStorage.exportToCSV([tx]);
+    expect(exported.success).toBe(true);
+    // Die gesamte Zelle ist RFC-4180-gequotet (ein Feld); das eingebettete ';'
+    // ist damit kein Trennzeichen und das '=' nicht der Anfang einer neuen Zelle.
+    expect(exported.data).toContain('"Shop;=HYPERLINK(');
+    // Innere Quotes verdoppelt = Beleg für korrektes Quoting des ganzen Feldes.
+    expect(exported.data).toContain('""http://evil""');
+  });
+
+  it('[SECURITY] neutralisiert Tab-präfigierte Formeln', async () => {
+    const tx = transaction('tab');
+    tx.payee = '\t=1+1';
+    const exported = await transactionStorage.exportToCSV([tx]);
+    expect(exported.success).toBe(true);
+    expect(exported.data).toContain("'\t=1+1");
+  });
 });
