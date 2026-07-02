@@ -41,4 +41,24 @@ describe("derivePrivacyStatus (Issue #41)", () => {
       }
     }
   });
+
+  it("[REGRESSION] aktiver MCP-Sync: Kategorien & Budgets NICHT mehr als 'verlässt nie' (F-PRIV-1)", () => {
+    const status = derivePrivacyStatus("premium", false, { mcpSyncActive: true });
+    expect(status.neverShared).not.toContain("Kategorien & Budgets");
+    expect(status.sharedWithServer.join(" ")).toContain("MCP");
+    expect(status.serverContactLabel).toContain("MCP");
+  });
+
+  it("ohne MCP-Sync bleiben Kategorien & Budgets lokal", () => {
+    const status = derivePrivacyStatus("premium", false, { mcpSyncActive: false });
+    expect(status.neverShared).toContain("Kategorien & Budgets");
+    expect(status.sharedWithServer.join(" ")).not.toContain("MCP");
+  });
+
+  it("MCP-Flag im Anonym-Modus ist wirkungslos (Sync setzt Login voraus)", () => {
+    const status = derivePrivacyStatus("anonymous", false, { mcpSyncActive: true });
+    expect(status.serverContact).toBe("none");
+    expect(status.sharedWithServer).toEqual([]);
+    expect(status.neverShared).toContain("Kategorien & Budgets");
+  });
 });

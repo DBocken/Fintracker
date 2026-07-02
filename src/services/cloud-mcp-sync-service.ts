@@ -278,6 +278,16 @@ export function getStoredConnectorUrl(): string | null {
   return token ? buildConnectorUrl(token) : null;
 }
 
+/**
+ * Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist (lokal gemerkter Connector-
+ * Token). Synchron, damit der Privacy-Indikator den realen Zustand ableiten kann:
+ * Bei aktivem Sync verlassen Kategorie-/Budgetnamen und Monatssummen das Gerät.
+ */
+export function isCloudMcpSyncActive(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(CONNECTOR_TOKEN_KEY) !== null;
+}
+
 function buildConnectorUrl(token: string): string {
   const configured = import.meta.env.VITE_MCP_POC_URL;
   const base = configured

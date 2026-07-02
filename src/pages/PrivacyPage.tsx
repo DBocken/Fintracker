@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvider";
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
+import { isCloudMcpSyncActive } from "@/services/cloud-mcp-sync-service";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
 import AnalyticsTransparencyPreview from "@/components/privacy/AnalyticsTransparencyPreview";
 import { useI18n } from "@/i18n/useI18n";
@@ -28,7 +29,9 @@ export default function PrivacyPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const status = derivePrivacyStatus(tier, consent?.opted_in ?? false);
+  const status = derivePrivacyStatus(tier, consent?.opted_in ?? false, {
+    mcpSyncActive: isCloudMcpSyncActive(),
+  });
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
