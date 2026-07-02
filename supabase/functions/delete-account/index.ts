@@ -24,22 +24,22 @@ const DEFAULT_ALLOWED_ORIGIN_SUFFIXES = ["vercel.app"];
 // Alle nutzerbezogenen Tabellen. Reihenfolge: Kind- vor Eltern-Tabellen.
 // Nicht existierende Tabellen werden in tableErrors gesammelt (nicht fatal),
 // sodass die Liste gefahrlos vollständig gehalten werden kann (DSGVO-Löschung).
+// Hinweis: portfolios/portfolio_positions/user_merchant_rules/
+// user_contract_decisions/user_settings wurden mit der Local-first-Umstellung
+// entfernt (Migration 20260702120000) und stehen daher nicht mehr hier.
+// categories bleibt: die WHERE user_id = uid-Löschung entfernt nur die
+// nutzereigenen Overrides, nicht die globale Vorlage (user_id IS NULL).
 const USER_SCOPED_TABLES = [
-  "portfolio_positions",
-  "portfolios",
   "balance_refresh_limits",
   "encrypted_analytics_blobs",
   "analytics_consent",
   "sync_metadata",
   "user_category_priorities",
-  "user_merchant_rules",
-  "user_contract_decisions",
   "mcp_aggregate_snapshots",
   "categories",
   "accounts",
   "bank_connections",
   "milestones",
-  "user_settings",
 ];
 
 function isAllowedOrigin(origin: string | null): boolean {
