@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import BankCallbackPage from "./pages/BankCallbackPage";
 import Login from "./pages/Login";
@@ -6,6 +6,7 @@ import UnlockPage from "./pages/Unlock";
 import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
+import { syncCategoryTemplate } from "@/services/category-template-service";
 import AppShell from "@/components/layout/AppShell";
 import RouteGuard from "@/components/layout/RouteGuard";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -42,6 +43,16 @@ function App() {
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
   const [anonymousStarted, setAnonymousStarted] = useState(() => hasStartedAnonymousMode());
+
+  // Additives Kategorien-/Filterwort-Update (Weg B): nur für eingeloggte Nutzer
+  // (anonym = kein Server-Kontakt) und nur bei entsperrtem Tresor. Fire-and-forget,
+  // versionsgesichert und No-op bei Fehler — die App bleibt ohne dieses Update
+  // vollständig local-first.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (enabled && !unlocked) return;
+    void syncCategoryTemplate().catch(() => {});
+  }, [status, enabled, unlocked]);
 
   if (status === "loading") {
     return <div className="min-h-screen bg-background" />;
