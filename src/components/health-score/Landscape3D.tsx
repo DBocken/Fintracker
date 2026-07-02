@@ -21,8 +21,8 @@ import type { LandscapeScene } from "./landscape-scene";
  * fertiger Zielzustand, keine Ambient-Bewegung).
  */
 
-const CROWN_BY_STAGE = ["#a8a29e", "#a3c96a", "#5fb877", "#37a35c", "#1f7a43"];
-const WATER_BY_STAGE = ["#8fa3b8", "#6fc0e8", "#3aa5dd", "#1e8ecb", "#0f74b0"];
+const CROWN_BY_STAGE = ["#a8a29e", "#a3c96a", "#63c07e", "#43b06b", "#2b9457"];
+const WATER_BY_STAGE = ["#9db2c7", "#7cc9ee", "#4fb2e6", "#2f9bd8", "#1f86c4"];
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const easeOut = (v: number) => 1 - Math.pow(1 - clamp01(v), 3);
@@ -72,10 +72,10 @@ function Mountain({ height, reduce }: { height: number; reduce: boolean }) {
   const peaks = useMemo(
     () =>
       [0, 1, 2].map((i) => ({
-        x: -3.2 + i * 1.6 + rnd(i) * 0.6,
-        z: -6.5 - rnd(i + 3) * 1.5,
-        h: (2.5 + rnd(i + 7) * 2) * (0.5 + height),
-        r: 1.6 + rnd(i + 11) * 0.9,
+        x: -3.4 + i * 2.2 + rnd(i) * 0.6,
+        z: -8 - rnd(i + 3) * 2,
+        h: (3 + rnd(i + 7) * 2.5) * (0.5 + height),
+        r: 1.9 + rnd(i + 11) * 1.1,
       })),
     [height],
   );
@@ -108,8 +108,8 @@ function Tree({ growth, fruitCount, stage, reduce }: { growth: number; fruitCoun
   const group = useRef<THREE.Group>(null);
   const build = useBuildUp(0.7, 1.3, reduce);
   const color = CROWN_BY_STAGE[stage - 1];
-  const height = 0.9 + 1.6 * growth;
-  const crownR = 0.45 + 0.75 * growth;
+  const height = 0.8 + 1.3 * growth;
+  const crownR = 0.4 + 0.6 * growth;
   const fruits = useMemo(
     () =>
       Array.from({ length: fruitCount }, (_, i) => {
@@ -125,7 +125,7 @@ function Tree({ growth, fruitCount, stage, reduce }: { growth: number; fruitCoun
     if (!reduce) group.current.rotation.z = Math.sin(clock.elapsedTime * 0.9) * 0.03 * s;
   });
   return (
-    <group ref={group} position={[2.3, 0, 0.4]} scale={reduce ? 1 : 0.001}>
+    <group ref={group} position={[1.7, 0, -0.9]} scale={reduce ? 1 : 0.001}>
       <mesh position={[0, height / 2, 0]} castShadow>
         <cylinderGeometry args={[0.09, 0.14, height, 7]} />
         <meshStandardMaterial color="#7c4a12" flatShading roughness={0.9} />
@@ -179,7 +179,7 @@ function House({ litWindows, hasSmoke, condition, reduce }: { litWindows: number
     });
   });
   return (
-    <group ref={group} position={[-1.9, 0, 1.1]} rotation-y={0.5} scale={reduce ? 1 : 0.001}>
+    <group ref={group} position={[-1.5, 0, 0.4]} rotation-y={0.5} scale={reduce ? 1 : 0.001}>
       <mesh position={[0, 0.55, 0]} castShadow>
         <boxGeometry args={[1.5, 1.1, 1.2]} />
         <meshStandardMaterial color={wall} flatShading roughness={0.9} />
@@ -226,7 +226,7 @@ function House({ litWindows, hasSmoke, condition, reduce }: { litWindows: number
 function Water({ level, stage, reduce }: { level: number; stage: number; reduce: boolean }) {
   const mesh = useRef<THREE.Mesh>(null);
   const build = useBuildUp(0.9, 1.4, reduce);
-  const geometry = useMemo(() => new THREE.CircleGeometry(2.4, 48, 0, Math.PI * 2).rotateX(-Math.PI / 2), []);
+  const geometry = useMemo(() => new THREE.CircleGeometry(1.8, 48, 0, Math.PI * 2).rotateX(-Math.PI / 2), []);
   useFrame(({ clock }) => {
     if (!mesh.current) return;
     const rise = -0.32 + (0.06 + 0.34 * level) * build.current;
@@ -241,19 +241,22 @@ function Water({ level, stage, reduce }: { level: number; stage: number; reduce:
     }
   });
   return (
-    <group position={[0.4, 0, 3]}>
+    <group position={[0.2, 0, 2.7]}>
       {/* Uferbecken: bei niedrigem Pegel sichtbar trockener Rand. */}
       <mesh position={[0, -0.34, 0]}>
-        <cylinderGeometry args={[2.55, 2.2, 0.1, 48]} />
+        <cylinderGeometry args={[1.95, 1.65, 0.1, 48]} />
         <meshStandardMaterial color="#c9beab" flatShading roughness={1} />
       </mesh>
       <mesh ref={mesh} geometry={geometry} position={[0, -0.3, 0]} receiveShadow>
         <meshStandardMaterial
           color={WATER_BY_STAGE[stage - 1]}
+          // Leichtes Eigenleuchten, damit das Wasser auch bei Gewitterlicht lesbar bleibt.
+          emissive={WATER_BY_STAGE[stage - 1]}
+          emissiveIntensity={0.35}
           transparent
-          opacity={0.92}
-          roughness={0.12}
-          metalness={0.25}
+          opacity={0.9}
+          roughness={0.08}
+          metalness={0.35}
         />
       </mesh>
     </group>
@@ -332,7 +335,7 @@ function Birds({ reduce }: { reduce: boolean }) {
     refs.current.forEach((g, i) => {
       if (!g) return;
       const a = t * 0.25 + i * 2.1;
-      g.position.set(Math.cos(a) * 3.2, 3.6 + i * 0.5 + Math.sin(t + i) * 0.2, -2 + Math.sin(a) * 2.2);
+      g.position.set(Math.cos(a) * 2.6, 4.4 + i * 0.5 + Math.sin(t + i) * 0.2, -5 + Math.sin(a) * 1.8);
       g.rotation.y = -a + Math.PI / 2;
     });
     wings.current.forEach((w, i) => {
@@ -342,7 +345,7 @@ function Birds({ reduce }: { reduce: boolean }) {
   return (
     <>
       {[0, 1].map((i) => (
-        <group key={i} ref={(g) => (refs.current[i] = g)} position={[Math.cos(i * 2.1) * 3.2, 3.6 + i * 0.5, -2]}>
+        <group key={i} ref={(g) => (refs.current[i] = g)} position={[Math.cos(i * 2.1) * 2.6, 4.4 + i * 0.5, -5]}>
           {[0, 1].map((side) => (
             <mesh key={side} ref={(w) => (wings.current[i * 2 + side] = w)} position={[side === 0 ? -0.09 : 0.09, 0, 0]}>
               <boxGeometry args={[0.18, 0.015, 0.05]} />
@@ -360,9 +363,9 @@ function CameraRig({ reduce }: { reduce: boolean }) {
   useFrame(({ camera, clock }) => {
     if (reduce) return;
     const t = clock.elapsedTime;
-    camera.position.x = Math.sin(t * 0.09) * 0.6;
-    camera.position.y = 2.4 + Math.sin(t * 0.2) * 0.12;
-    camera.lookAt(0, 1.1, 0);
+    camera.position.x = Math.sin(t * 0.09) * 0.5;
+    camera.position.y = 3.0 + Math.sin(t * 0.2) * 0.12;
+    camera.lookAt(0, 1.2, 0);
   });
   return null;
 }
@@ -377,7 +380,7 @@ function SceneContents({ scene, reduce }: { scene: LandscapeScene; reduce: boole
   const fogColor = stormy ? "#93a1b1" : "#dceefb";
   return (
     <>
-      <fog attach="fog" args={[fogColor, 10, stormy ? 20 : 30]} />
+      <fog attach="fog" args={[fogColor, 12, stormy ? 26 : 34]} />
       <Sky
         distance={450}
         sunPosition={sunPos}
@@ -386,10 +389,10 @@ function SceneContents({ scene, reduce }: { scene: LandscapeScene; reduce: boole
         mieCoefficient={stormy ? 0.06 : 0.004}
         mieDirectionalG={0.85}
       />
-      <hemisphereLight args={["#cfe8ff", "#5e8f6a", stormy ? 0.35 : 0.55]} />
+      <hemisphereLight args={["#cfe8ff", "#5e8f6a", stormy ? 0.55 : 0.6]} />
       <directionalLight
         position={sunPos}
-        intensity={stormy ? 0.5 : 1.1 + sunniness * 0.9}
+        intensity={stormy ? 0.75 : 1.1 + sunniness * 0.9}
         color={stormy ? "#aeb8c4" : "#ffe0b0"}
         castShadow
         shadow-mapSize={[1024, 1024]}
@@ -430,7 +433,7 @@ export default function Landscape3D({ scene, label, reduce, className }: Landsca
         shadows
         dpr={[1, 2]}
         frameloop={reduce ? "demand" : "always"}
-        camera={{ position: [0, 2.4, 8.5], fov: 42 }}
+        camera={{ position: [0, 3.0, 10], fov: 50 }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         style={{ width: "100%", height: "100%" }}
       >
