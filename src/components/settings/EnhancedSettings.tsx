@@ -11,7 +11,9 @@ import {
   saveCategory,
   updateCategory,
   recategorizeTransactions,
+  restoreCategorization,
   getCategoryPreview,
+  type CategorizationSnapshotEntry,
 } from '../../services/transaction-service';
 import { deleteCategory } from '../../services/category-service';
 import { CategoryManager } from './CategoryManager';
@@ -59,6 +61,7 @@ export function EnhancedSettings() {
   const queryClient = useQueryClient();
   const [editingCategory, setEditingCategory] = useState<HierarchicalCategory | null>(null);
   const [affectedTransactions, setAffectedTransactions] = useState<Transaction[]>([]);
+  const [undoSnapshot, setUndoSnapshot] = useState<CategorizationSnapshotEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bulkStatus, setBulkStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   const [bulkResults, setBulkResults] = useState<{ total: number; assigned: number; unassigned: number } | null>(null);
@@ -117,6 +120,8 @@ export function EnhancedSettings() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
       showSuccess('Transaktionen neu kategorisiert');
+      // Vorwerte der geänderten Buchungen für ein echtes Undo vorhalten (F-UX-1).
+      setUndoSnapshot(summary.undo);
       setBulkResults({
         total: summary.total,
         assigned: summary.assigned,
@@ -128,6 +133,17 @@ export function EnhancedSettings() {
       showError('Fehler bei der Neukategorisierung');
       setBulkStatus('idle');
     },
+  });
+
+  const undoMutation = useMutation({
+    mutationFn: restoreCategorization,
+    onSuccess: (restored) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
+      setUndoSnapshot([]);
+      showSuccess(`${restored} Buchungen zurückgesetzt`);
+    },
+    onError: () => showError('Rückgängig machen fehlgeschlagen'),
   });
 
   const handleCategorySave = (categoryData: Partial<Category> & { name: string }) => {
@@ -166,7 +182,11 @@ export function EnhancedSettings() {
   };
 
   const handleUndo = () => {
-    showSuccess('Letzte Aktion rückgängig gemacht');
+    if (undoSnapshot.length === 0) {
+      showError('Nichts zum Rückgängigmachen');
+      return;
+    }
+    undoMutation.mutate(undoSnapshot);
   };
 
   return (

@@ -442,11 +442,20 @@ export async function updateCategory(category: Category): Promise<Category> {
 // Auto-Kategorisierung & intelligente Vorschläge (jetzt auf nutzerlokalen Transaktionen)
 // -----------------------------------------------------------------------------
 
+/** Vorzustand eines Kategorisierungsfeldes, um eine Sammeländerung rückgängig zu machen. */
+export interface CategorizationSnapshotEntry {
+  id: string;
+  category_id: string | null;
+  auto_mapped: boolean;
+}
+
 export async function recategorizeTransactions(): Promise<{
   total: number;
   assigned: number;
   unassigned: number;
   changed: number;
+  /** Vorwerte der geänderten Buchungen — für ein echtes Undo (Invariante 12). */
+  undo: CategorizationSnapshotEntry[];
 }> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
@@ -456,6 +465,7 @@ export async function recategorizeTransactions(): Promise<{
   let unassigned = 0;
   let changed = 0;
   const total = transactions.length;
+  const undo: CategorizationSnapshotEntry[] = [];
 
   for (const t of transactions) {
     const newCat = categorizeTransaction(t, categories, learnedRules);
@@ -466,6 +476,9 @@ export async function recategorizeTransactions(): Promise<{
 
     if (t.id && prevCat !== newCat) {
       changed += 1;
+      // Vorzustand VOR der Änderung sichern, damit handleUndo ihn exakt
+      // wiederherstellen kann (statt einer Attrappe, F-UX-1).
+      undo.push({ id: t.id, category_id: prevCat, auto_mapped: t.auto_mapped ?? false });
       const result = await transactionStorage.updateTransaction(t.id, {
         category_id: newCat,
         auto_mapped: !!newCat,
@@ -474,7 +487,24 @@ export async function recategorizeTransactions(): Promise<{
     }
   }
 
-  return { total, assigned, unassigned, changed };
+  return { total, assigned, unassigned, changed, undo };
+}
+
+/**
+ * Macht eine Sammel-Neukategorisierung rückgängig: setzt die gesicherten
+ * Vorwerte (category_id, auto_mapped) je Buchung zurück. Gibt die Anzahl
+ * wiederhergestellter Buchungen zurück.
+ */
+export async function restoreCategorization(entries: CategorizationSnapshotEntry[]): Promise<number> {
+  let restored = 0;
+  for (const e of entries) {
+    const result = await transactionStorage.updateTransaction(e.id, {
+      category_id: e.category_id,
+      auto_mapped: e.auto_mapped,
+    });
+    if (result.success) restored += 1;
+  }
+  return restored;
 }
 
 /**
