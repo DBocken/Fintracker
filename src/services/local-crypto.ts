@@ -70,8 +70,16 @@ const CHECK_KEY = 'ausgabentracker_local_encryption_check_v1'
 
 function b64encode(bytes: ArrayBuffer | Uint8Array): string {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+  // Blockweise statt byteweiser String-Konkatenation: Der Ein-Blob-Store
+  // verschlüsselt bei jeder Änderung die komplette Collection; byteweises
+  // `s += fromCharCode(...)` dominierte dabei die Schreiblatenz (~0,9 s bei
+  // 10k, ~6 s bei 50k Buchungen — F-PERF-1). 8-KB-Blöcke bleiben sicher unter
+  // dem Argumentlimit von Function.prototype.apply.
+  const CHUNK = 8192
   let s = ''
-  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i])
+  for (let i = 0; i < u8.length; i += CHUNK) {
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK) as unknown as number[])
+  }
   return btoa(s)
 }
 

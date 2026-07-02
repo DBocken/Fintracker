@@ -54,7 +54,9 @@ export function Dashboard() {
   const qc = useQueryClient();
 
   const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
-    queryKey: ['transactions'],
+    // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
+    // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
+    queryKey: ['transactions', 5000],
     queryFn: () => getTransactions(5000),
   });
 

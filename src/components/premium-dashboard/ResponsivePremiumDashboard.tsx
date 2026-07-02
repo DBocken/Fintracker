@@ -25,7 +25,8 @@ export function ResponsivePremiumDashboard() {
   // Gleiche Query wie das Basis-Dashboard (gleicher queryKey ⇒ gleiches Limit),
   // damit der Cache konsistent bleibt (Issue #40).
   const { data: transactions = [] } = useQuery<Transaction[]>({
-    queryKey: ["transactions"],
+    // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
+    queryKey: ["transactions", 5000],
     queryFn: () => getTransactions(5000),
   });
 

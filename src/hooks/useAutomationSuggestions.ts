@@ -23,7 +23,11 @@ export function useAutomationSuggestions() {
   const qc = useQueryClient();
 
   const { data: transactions = [], isLoading: txLoading } = useQuery({
-    queryKey: ["transactions"],
+    // Limit im Query-Key (F-PERF-3): sonst kollidiert dieser 1000er-Load mit den
+    // 5000er-Loads von Dashboard/Buchungen/Premium unter demselben Key und der
+    // zuerst gemountete Aufrufer bestimmt den Cache → still falsche Summen.
+    // Invalidierungen via Prefix ["transactions"] matchen weiterhin beide.
+    queryKey: ["transactions", 1000],
     queryFn: () => getTransactions(1000),
   });
   const { data: categories = [] } = useQuery({

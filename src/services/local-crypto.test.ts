@@ -48,6 +48,22 @@ describe("localEncryption Roundtrip", () => {
     expect(back).toEqual(payload);
   });
 
+  it("[REGRESSION] Roundtrip über die 8-KB-Base64-Blockgrenze (F-PERF-1)", async () => {
+    await localEncryption.enable("super-geheim-123");
+    // Payload deutlich größer als die 8-KB-Chunkgröße des blockweisen b64encode,
+    // inkl. Nicht-ASCII, um korrektes Kodieren über Blockgrenzen zu prüfen.
+    const large = {
+      items: Array.from({ length: 5000 }, (_, i) => ({
+        id: i,
+        payee: `Händler Ä${i} — Straße`,
+        amount: -i - 0.99,
+      })),
+    };
+    const envelope = await localEncryption.encryptJson(large);
+    const back = await localEncryption.decryptJson<typeof large>(envelope);
+    expect(back).toEqual(large);
+  });
+
   it("lehnt das Entsperren mit falschem Passwort ab", async () => {
     await localEncryption.enable("richtiges-passwort");
     localEncryption.lock();
