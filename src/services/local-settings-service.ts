@@ -11,6 +11,7 @@
 import type { Category, UserSettings } from "../types";
 import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
+import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 
@@ -174,6 +175,46 @@ export async function restoreLocalCategories(incoming: Category[]): Promise<numb
   }
   if (added.length) await writeLocalCategories([...existing, ...added]);
   return added.length;
+}
+
+/** Lokal gemerkte Version des zuletzt angewandten Kategorien-Templates (Weg B). */
+const CATEGORY_TEMPLATE_VERSION_KEY = "ausgabentracker_category_template_version";
+
+export function getAppliedCategoryTemplateVersion(): number {
+  if (typeof localStorage === "undefined") return 0;
+  const raw = localStorage.getItem(CATEGORY_TEMPLATE_VERSION_KEY);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Wendet ein globales Kategorien-Template additiv auf die lokalen Kategorien an
+ * (Weg B): neue Kategorien und Filterwörter werden ergänzt, Nutzer-Overrides
+ * (is_default:false) nie angetastet. Idempotent und versionsgesichert — nur
+ * höhere Versionen greifen, sodass ein erneuter Sync nichts doppelt tut.
+ */
+export async function applyCategoryTemplate(
+  template: CategoryTemplate,
+): Promise<{ applied: boolean; added: number; filtersExtended: number; version: number }> {
+  const appliedVersion = getAppliedCategoryTemplateVersion();
+  if (template.version <= appliedVersion) {
+    return { applied: false, added: 0, filtersExtended: 0, version: appliedVersion };
+  }
+
+  const local = await getLocalCategories();
+  const result = mergeCategoryTemplate(local, template.categories);
+  if (result.changed) {
+    await writeLocalCategories(result.categories);
+  }
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(CATEGORY_TEMPLATE_VERSION_KEY, String(template.version));
+  }
+  return {
+    applied: result.changed,
+    added: result.added.length,
+    filtersExtended: result.filtersExtended.length,
+    version: template.version,
+  };
 }
 
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {

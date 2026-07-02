@@ -103,10 +103,17 @@ export function EnhancedSettings() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => deleteCategory(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['hierarchicalCategories'] });
       queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      showSuccess('Kategorie gelöscht');
+      // Referenzierende Daten wurden mitbereinigt → deren Queries auffrischen.
+      queryClient.invalidateQueries({ queryKey: ['budget-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['merchant-rules'] });
+      const cleanup = [
+        result.deletedBudgets ? `${result.deletedBudgets} Budget(s) entfernt` : '',
+        result.deletedRules ? `${result.deletedRules} Regel(n) entfernt` : '',
+      ].filter(Boolean).join(', ');
+      showSuccess(cleanup ? `Kategorie gelöscht (${cleanup})` : 'Kategorie gelöscht');
     },
     onError: () => showError('Fehler beim Löschen'),
   });
