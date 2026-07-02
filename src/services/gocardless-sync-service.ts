@@ -103,6 +103,26 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
   };
 }
 
+/** Maximale Länge des gespeicherten Verwendungszwecks (original_text/description). */
+const MAX_DESCRIPTION_LENGTH = 200;
+
+/**
+ * Stabiler Dedupe-Schlüssel einer Bankbuchung. Der Text wird IMMER auf dieselbe
+ * Länge gekürzt, mit der er auch gespeichert wird — sonst würde der Vergleich
+ * bei langen Verwendungszwecken (> 200 Zeichen) nie matchen und die Buchung bei
+ * jedem Sync erneut angelegt (F-ARCH-2). Ein Aufrufer baut den Schlüssel aus der
+ * rohen API-Description, der andere aus dem gespeicherten (bereits gekürzten)
+ * original_text — beide müssen identisch sein.
+ */
+export function buildTxIdentifier(
+  accountId: string,
+  date: string,
+  amount: number,
+  text: string,
+): string {
+  return `${accountId}_${date}_${amount}_${(text || '').slice(0, MAX_DESCRIPTION_LENGTH)}`;
+}
+
 /**
  * Verknüpft frisch importierte Buchungen, deren Gegenkonto-IBAN auf ein eigenes
  * Konto zeigt, als interne Überträge. Existiert die Gegenbuchung bereits, wird
@@ -236,7 +256,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     const existingTransactions = await getTransactions(5000);
     const existingDescriptions = new Set(
-      existingTransactions.map(tx => `${tx.account_id || account.id}_${tx.date}_${tx.amount}_${tx.original_text}`)
+      existingTransactions.map(tx =>
+        buildTxIdentifier(tx.account_id || account.id, tx.date, tx.amount, tx.original_text || '')
+      )
     );
 
     const categories = await getCategories();
@@ -275,7 +297,10 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         // IBAN des Gegenübers für die automatische Erkennung interner Überträge.
         const counterpartyIban = tx.debtorAccount?.iban || tx.creditorAccount?.iban || null;
 
-        const txIdentifier = `${account.id}_${date}_${amount}_${description}`;
+        // Dedupe-Identifier aus derselben (gesliceten) Description bilden, die
+        // auch als original_text gespeichert wird (F-ARCH-2, siehe buildTxIdentifier).
+        const normalizedDescription = description.slice(0, MAX_DESCRIPTION_LENGTH);
+        const txIdentifier = buildTxIdentifier(account.id, date, amount, description);
 
         if (existingDescriptions.has(txIdentifier)) {
           result.skippedCount++;
@@ -286,8 +311,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           date: date,
           amount: amount,
           payee: payee.slice(0, 100),
-          description: description.slice(0, 200),
-          original_text: description.slice(0, 200),
+          description: normalizedDescription,
+          original_text: normalizedDescription,
           auto_mapped: false,
           confirmed: false,
         };
@@ -298,8 +323,8 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           date: date,
           amount: amount,
           payee: payee.slice(0, 100),
-          description: description.slice(0, 200),
-          original_text: description.slice(0, 200),
+          description: normalizedDescription,
+          original_text: normalizedDescription,
           currency: tx.transactionAmount.currency || account.currency || 'EUR',
           category_id: categoryId,
           auto_mapped: !!categoryId,

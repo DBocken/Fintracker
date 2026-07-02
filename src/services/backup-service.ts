@@ -4,10 +4,10 @@ import {
   getCategories,
   getTransactions,
   getUserSettings,
-  saveCategory,
   saveTransactions,
   updateUserSettings,
 } from './transaction-service';
+import { restoreLocalCategories } from './local-settings-service';
 import { createAccount, getAccounts } from './account-service';
 import {
   encryptJsonWithPassword,
@@ -412,7 +412,10 @@ class BackupService {
     transactions: import('../types').Transaction[]
   ): Promise<number> {
     if (transactions.length === 0) return 0;
-    const restored = await saveTransactions(transactions.map((tx) => ({ ...tx, id: undefined })));
+    // Merge per ID (VE-5): Original-IDs behalten, damit der Idempotenz-Guard des
+    // Stores greift — ein Restore auf bestehende Daten verdoppelt keine Buchungen
+    // und wiederhergestellte Buchungen behalten gültige Kategorie-/Konto-Bezüge (T1.4).
+    const restored = await saveTransactions(transactions);
     return restored.length;
   }
 
@@ -420,35 +423,35 @@ class BackupService {
     _userId: string,
     categories: Category[]
   ): Promise<number> {
-    let restored = 0;
-    
-    for (const cat of categories) {
-      try {
-        await saveCategory(cat);
-        restored++;
-      } catch (error) {
-        console.error('[BackupService] Error restoring category:', error);
-      }
+    // Merge per ID (Original-IDs erhalten), damit Transaktionsbezüge intakt bleiben.
+    try {
+      return await restoreLocalCategories(categories);
+    } catch (error) {
+      console.error('[BackupService] Error restoring categories:', error);
+      return 0;
     }
-    
-    return restored;
   }
 
   private async restoreAccounts(
     _userId: string,
     accounts: Account[]
   ): Promise<number> {
+    // Merge per ID: bereits vorhandene Konten überspringen, fehlende mit ihrer
+    // Original-ID anlegen (kein Duplikat, keine ID-Neuvergabe).
+    const existingIds = new Set((await getAccounts()).map((a) => a.id));
     let restored = 0;
-    
+
     for (const acc of accounts) {
+      if (acc.id && existingIds.has(acc.id)) continue;
       try {
-        await createAccount({ ...acc, id: undefined });
+        await createAccount({ ...acc });
+        if (acc.id) existingIds.add(acc.id);
         restored++;
       } catch (error) {
         console.error('[BackupService] Error restoring local account:', error);
       }
     }
-    
+
     return restored;
   }
 

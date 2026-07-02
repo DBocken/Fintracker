@@ -136,6 +136,34 @@ function generateLocalCategoryId(): string {
   return `local-cat-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
+/**
+ * Stellt Kategorien aus einem Backup wieder her — Merge per ID (Original-IDs
+ * bleiben erhalten). Anders als `saveLocalCategory` wird KEINE neue ID vergeben
+ * und der Namens-Dedup-Check NICHT angewandt: sonst würden wiederhergestellte
+ * Transaktionen auf nicht existierende Kategorie-IDs zeigen bzw. Default-
+ * Kategorien den Import blockieren (T1.4). Bereits vorhandene IDs werden
+ * übersprungen (idempotent).
+ */
+export async function restoreLocalCategories(incoming: Category[]): Promise<number> {
+  if (incoming.length === 0) return 0;
+  const existing = await getLocalCategories();
+  const knownIds = new Set(existing.map((c) => c.id).filter(Boolean));
+  const added: Category[] = [];
+  for (const cat of incoming) {
+    if (!cat.id || knownIds.has(cat.id)) continue;
+    added.push({
+      ...cat,
+      user_id: cat.user_id ?? LOCAL_USER_ID,
+      filters: cat.filters ?? [],
+      attributes: cat.attributes ?? {},
+      parent_id: cat.parent_id ?? null,
+    });
+    knownIds.add(cat.id);
+  }
+  if (added.length) await writeLocalCategories([...existing, ...added]);
+  return added.length;
+}
+
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {
   const categories = await getLocalCategories();
 
