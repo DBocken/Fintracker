@@ -43,36 +43,38 @@ function mixByProbability<T>(baseline: T[], scenario: T[], probability: number):
 }
 
 /**
- * Bestimmt je Heatmap-Zelle (Tag × Wert-Bin) den repräsentativen Durchlauf –
- * den Pfad, dessen Tageswert dem Bin-Zentrum am nächsten liegt. Liefert die
- * Trial-Indizes (`[tag][bin]`, -1 für leere Zellen), sodass die UI ohne die
- * vollständigen Pfade die Annahmen genau eines Pfads je Zelle zeigen kann. Die
- * Bin-Zuordnung spiegelt exakt {@link buildDensityField} wider.
+ * Sammelt je Heatmap-Zelle (Tag × Wert-Bin) ALLE Durchläufe, deren Tageswert in
+ * die Zelle fällt – sortiert nach Nähe zum Bin-Zentrum, der Repräsentant steht
+ * also vorn. Eine Zelle bündelt oft mehrere „Lösungen" (unterschiedliche
+ * Annahme-Kombinationen mit demselben Saldo); mit den Indizes kann die UI
+ * Zell-Spannen/Durchschnitt zeigen und durch die konkreten Pfade blättern, ohne
+ * die vollständigen Pfade über die Worker-Grenze zu klonen. Die Bin-Zuordnung
+ * spiegelt exakt {@link buildDensityField} wider.
  */
-function buildRepresentativeByCell(paths: number[][], density: DensityField): number[][] {
+function buildTrialsByCell(paths: number[][], density: DensityField): number[][][] {
   const { bins, binSize, valueMin, dates } = density;
   const nDays = dates.length;
   if (!(binSize > 0) || paths.length === 0) {
-    return dates.map(() => new Array<number>(bins).fill(-1));
+    return dates.map(() => Array.from({ length: bins }, () => []));
   }
-  const result: number[][] = new Array(nDays);
+  const result: number[][][] = new Array(nDays);
   for (let d = 0; d < nDays; d++) {
-    const reps = new Array<number>(bins).fill(-1);
-    const bestDist = new Array<number>(bins).fill(Infinity);
+    const cells: number[][] = Array.from({ length: bins }, () => []);
     for (let trial = 0; trial < paths.length; trial++) {
       const v = paths[trial][d];
       if (!Number.isFinite(v)) continue;
       let b = Math.floor((v - valueMin) / binSize);
       if (b < 0) b = 0;
       else if (b >= bins) b = bins - 1;
-      const center = valueMin + (b + 0.5) * binSize;
-      const dist = Math.abs(v - center);
-      if (dist < bestDist[b]) {
-        bestDist[b] = dist;
-        reps[b] = trial;
-      }
+      cells[b].push(trial);
     }
-    result[d] = reps;
+    for (let b = 0; b < bins; b++) {
+      if (cells[b].length < 2) continue;
+      const center = valueMin + (b + 0.5) * binSize;
+      // Stabil: bei Distanz-Gleichstand bleibt der niedrigere Trial-Index vorn.
+      cells[b].sort((s, t) => Math.abs(paths[s][d] - center) - Math.abs(paths[t][d] - center));
+    }
+    result[d] = cells;
   }
   return result;
 }
@@ -233,9 +235,11 @@ export function runScenarioPayload(
   // bleiben garantiert im Wertefenster, damit die Trennlinien sichtbar sind.
   const density = buildDensityField(mixedPaths, dates, { bins: 48, include: [0, threshold] });
 
-  // Repräsentanten je Zelle aus denselben Pfaden – ermöglicht klickbare
-  // Zell-Details, ohne alle Pfade über die Worker-Grenze zu klonen.
-  const representativeByCell = buildRepresentativeByCell(mixedPaths, density);
+  // Alle Durchläufe je Zelle (Repräsentant zuerst) aus denselben Pfaden –
+  // ermöglicht klickbare Zell-Details mit Spannen/Durchschnitt und Blättern,
+  // ohne alle Pfade über die Worker-Grenze zu klonen.
+  const trialsByCell = buildTrialsByCell(mixedPaths, density);
+  const representativeByCell = trialsByCell.map((row) => row.map((cell) => cell[0] ?? -1));
 
   // Benannte Geldfluss-Posten (Einnahmen/Fixkosten/geplante Posten) für die
   // vollständige Zell-Zusammensetzung. Basiert auf dem Szenario-Input, damit die
@@ -273,6 +277,7 @@ export function runScenarioPayload(
     horizonDays,
     assumptions: mixedAssumptions,
     representativeByCell,
+    trialsByCell,
     compositionSchedule,
   };
 }

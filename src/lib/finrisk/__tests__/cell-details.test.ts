@@ -312,6 +312,197 @@ describe('computeCellDetail', () => {
     });
   });
 
+  describe('Zell-Aggregation & Blättern (mehrere Lösungen je Zelle)', () => {
+    /**
+     * Drei Pfade mit fast identischem Saldo (gleiche Zelle), aber deutlich
+     * unterschiedlichen Annahmen – die „mehreren Lösungen" hinter einer Zelle.
+     */
+    function multiFixture() {
+      const paths = [5000, 5010, 5020].map((v) => DATES.map(() => v));
+      const assumptions = [100, 200, 600].map((s) => assume('Lebensmittel', s));
+      const density = buildDensityField(paths, DATES, { bins: 16, include: [0] });
+      const bin = binOf(density, 5000);
+      const emptyRow = () => Array.from({ length: density.bins }, () => [] as number[]);
+      // Wie im Engine: alle Trials der Zelle, Repräsentant (nächster am Zentrum) zuerst.
+      const trialsByCell = DATES.map(() => {
+        const row = emptyRow();
+        row[bin] = [0, 1, 2];
+        return row;
+      });
+      const representativeByCell = DATES.map(() => {
+        const row = new Array<number>(density.bins).fill(-1);
+        row[bin] = 0;
+        return row;
+      });
+      return { assumptions, density, representativeByCell, trialsByCell, bin };
+    }
+
+    // Kumuliert bis 15. März: voller Jan + voller Feb + 15/31 März.
+    const FACTOR = 2 + 15 / 31;
+
+    it('sollte Unter-/Obergrenze und Durchschnitt über die Pfade der Zelle liefern', () => {
+      const f = multiFixture();
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        trialsByCell: f.trialsByCell,
+        day: MID_MARCH,
+        bin: f.bin,
+      })!;
+      const line = detail.representative!.composition.find((c) => c.name === 'Lebensmittel')!;
+      expect(line.cellRange).toBeDefined();
+      // Signiert (Ausgaben negativ): min = teuerster, max = sparsamster Pfad.
+      expect(line.cellRange!.min).toBeCloseTo(-600 * FACTOR, 4);
+      expect(line.cellRange!.max).toBeCloseTo(-100 * FACTOR, 4);
+      expect(line.cellRange!.avg).toBeCloseTo(-300 * FACTOR, 4);
+    });
+
+    it('sollte per pathIndex durch die konkreten Pfade der Zelle blättern', () => {
+      const f = multiFixture();
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        trialsByCell: f.trialsByCell,
+        day: MID_MARCH,
+        bin: f.bin,
+        pathIndex: 2,
+      })!;
+      expect(detail.pathCount).toBe(3);
+      expect(detail.pathIndex).toBe(2);
+      expect(detail.representative!.trial).toBe(2);
+      // Der geblätterte Pfad zeigt SEINE Annahme (600/Monat), nicht die des Repräsentanten.
+      expect(detail.representative!.variableByCategory[0].amount).toBeCloseTo(600 * FACTOR, 4);
+    });
+
+    it('sollte pathIndex außerhalb des Bereichs auf gültige Pfade klemmen', () => {
+      const f = multiFixture();
+      const base = {
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        trialsByCell: f.trialsByCell,
+        day: MID_MARCH,
+        bin: f.bin,
+      };
+      expect(computeCellDetail({ ...base, pathIndex: 99 })!.pathIndex).toBe(2);
+      expect(computeCellDetail({ ...base, pathIndex: -5 })!.pathIndex).toBe(0);
+    });
+
+    it('sollte ohne trialsByCell auf den Repräsentanten zurückfallen (pathCount 1, keine Spannen)', () => {
+      const f = multiFixture();
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        day: MID_MARCH,
+        bin: f.bin,
+      })!;
+      expect(detail.pathCount).toBe(1);
+      expect(detail.pathIndex).toBe(0);
+      expect(detail.representative!.trial).toBe(0);
+      const line = detail.representative!.composition.find((c) => c.name === 'Lebensmittel')!;
+      expect(line.cellRange).toBeUndefined();
+    });
+
+    it('sollte für leere Zellen pathCount 0 und keine Treiber-Verteilung liefern', () => {
+      const f = multiFixture();
+      const emptyBin = binOf(f.density, 1000); // dort liegt kein Pfad
+      const detail = computeCellDetail({
+        density: f.density,
+        assumptions: f.assumptions,
+        representativeByCell: f.representativeByCell,
+        trialsByCell: f.trialsByCell,
+        day: MID_MARCH,
+        bin: emptyBin,
+      })!;
+      expect(detail.pathCount).toBe(0);
+      expect(detail.driverShares).toEqual([]);
+      expect(detail.representative).toBeNull();
+    });
+
+    it('sollte die Haupttreiber-Verteilung über die Pfade der Zelle liefern', () => {
+      // Drei Pfade in einer Zelle; Treiber je Pfad: A, B, B.
+      const mk = (a: number, b: number): TrialAssumptions => ({
+        variableByCategory: [
+          { category: 'A', plannedMonthly: 300, monthly: { '2026-01': a, '2026-02': a, '2026-03': a } },
+          { category: 'B', plannedMonthly: 400, monthly: { '2026-01': b, '2026-02': b, '2026-03': b } },
+        ],
+        income: [],
+      });
+      // A: [900,300,300] → Median 300, Abweichung nur bei Trial 0.
+      // B: [400,800,100] → Median 400, Abweichung bei Trial 1 und 2.
+      const assumptions = [mk(900, 400), mk(300, 800), mk(300, 100)];
+      const paths = [4000, 4010, 4020].map((v) => DATES.map(() => v));
+      const density = buildDensityField(paths, DATES, { bins: 16, include: [0] });
+      const bin = binOf(density, 4000);
+      const trialsByCell = DATES.map(() => {
+        const row = Array.from({ length: density.bins }, () => [] as number[]);
+        row[bin] = [0, 1, 2];
+        return row;
+      });
+      const representativeByCell = DATES.map(() => {
+        const row = new Array<number>(density.bins).fill(-1);
+        row[bin] = 0;
+        return row;
+      });
+      const detail = computeCellDetail({
+        density,
+        assumptions,
+        representativeByCell,
+        trialsByCell,
+        day: MID_MARCH,
+        bin,
+      })!;
+      expect(detail.driverShares).toHaveLength(2);
+      expect(detail.driverShares[0].category).toBe('B');
+      expect(detail.driverShares[0].share).toBeCloseTo(2 / 3, 5);
+      expect(detail.driverShares[1].category).toBe('A');
+      expect(detail.driverShares[1].share).toBeCloseTo(1 / 3, 5);
+    });
+
+    it('sollte Spannen auch für perturbierte Einnahmen aus den Zell-Pfaden ableiten', () => {
+      const paths = [5000, 5010, 5020].map((v) => DATES.map(() => v));
+      const assumptions: TrialAssumptions[] = [2400, 2500, 2600].map((sampled) => ({
+        variableByCategory: [
+          { category: 'Shopping', plannedMonthly: 300, monthly: { '2026-01': 300, '2026-02': 300, '2026-03': 300 } },
+        ],
+        income: [{ name: 'Gehalt', planned: 2500, sampled }],
+      }));
+      const density = buildDensityField(paths, DATES, { bins: 16, include: [0] });
+      const bin = binOf(density, 5000);
+      const trialsByCell = DATES.map(() => {
+        const row = Array.from({ length: density.bins }, () => [] as number[]);
+        row[bin] = [0, 1, 2];
+        return row;
+      });
+      const representativeByCell = DATES.map(() => {
+        const row = new Array<number>(density.bins).fill(-1);
+        row[bin] = 0;
+        return row;
+      });
+      const compositionSchedule: CompositionItem[] = [
+        { name: 'Gehalt', group: 'income', bookings: [0, 31, 59].map((day) => ({ day, amount: 2500 })) },
+      ];
+      const detail = computeCellDetail({
+        density,
+        assumptions,
+        representativeByCell,
+        trialsByCell,
+        compositionSchedule,
+        day: MID_MARCH,
+        bin,
+      })!;
+      const gehalt = detail.representative!.composition.find((c) => c.name === 'Gehalt')!;
+      // 3 Buchungen × 2500 = 7500 kumuliert; Verhältnisse 0,96 / 1,00 / 1,04.
+      expect(gehalt.cellRange).toBeDefined();
+      expect(gehalt.cellRange!.min).toBeCloseTo(7200, 4);
+      expect(gehalt.cellRange!.max).toBeCloseTo(7800, 4);
+      expect(gehalt.cellRange!.avg).toBeCloseTo(7500, 4);
+    });
+  });
+
   describe('Regression Protection', () => {
     it('[REGRESSION] sollte Einnahme-Annahmen relativ zum Median ausweisen', () => {
       const paths = Array.from({ length: 10 }, (_, i) => DATES.map(() => 4000 + i * 100));
