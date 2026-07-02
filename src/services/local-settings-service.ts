@@ -44,21 +44,16 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Migriere fehlende parent_id-Informationen: Kategorien, die vor der Hierarchie-Umstrukturierung
     // (20260614120000_restructure_categories_hierarchy) gespeichert wurden, haben möglicherweise
     // keine parent_id. Wir füllen diese aus den Default-Kategorien nach.
-    let migrated = stored.map((cat) => {
-      // Wenn parent_id bereits gesetzt (null oder string), nicht verändern
-      if (cat.parent_id !== undefined) return cat;
-      // Sonst: versuche aus Default-Kategorien zu laden
-      const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
-      const resolvedParentId = defaultCat?.parent_id ?? null;
-      return { ...cat, parent_id: resolvedParentId };
-    });
+    const { categories: migrated, changed: parentIdMigrated } = migrateParentIds(stored);
 
     // Bestandsdaten nachrüsten: Kategorien, die vor Einführung der
     // Ausgabenklasse geseedet wurden, haben kein `ausgabenklasse`-Attribut.
     // Ohne dieses Feld zeigt das Sunburst nur "essenziell"/"unkategorisiert".
     // Wir füllen fehlende Werte aus den Default-Kategorien (per ID) nach.
     const { categories: backfilled, changed: backfillChanged } = backfillAusgabenklasse(migrated);
-    const parentIdMigrated = migrated !== stored;
+    // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
+    // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
+    // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
     if (parentIdMigrated || backfillChanged) {
       await writeLocalCategories(backfilled);
     }
@@ -69,6 +64,23 @@ export async function getLocalCategories(): Promise<Category[]> {
   const seeded = DEFAULT_LOCAL_CATEGORIES.map((c) => ({ ...c }));
   await localEncryption.encryptAndStore(LOCAL_CATEGORIES_KEY, seeded);
   return seeded;
+}
+
+/**
+ * Füllt fehlende `parent_id`-Werte (Bestandsdaten vor der Hierarchie-
+ * Umstrukturierung) aus den Default-Kategorien nach. Reine Funktion (testbar):
+ * `changed` ist NUR dann true, wenn tatsächlich eine parent_id ergänzt wurde —
+ * damit die verschlüsselte Liste nicht bei jedem Lesen neu geschrieben wird (F-CAT).
+ */
+export function migrateParentIds(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const result = categories.map((cat) => {
+    if (cat.parent_id !== undefined) return cat;
+    const defaultCat = DEFAULT_LOCAL_CATEGORIES.find((d) => d.id === cat.id);
+    changed = true;
+    return { ...cat, parent_id: defaultCat?.parent_id ?? null };
+  });
+  return { categories: result, changed };
 }
 
 /**
