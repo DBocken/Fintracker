@@ -2,6 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Account, Budget, HierarchicalCategory } from "@/types";
+
+// Die Premium-Sektion (adaptives Limit, Rollover, Regeln) liegt hinter einem
+// FeatureGate (#133). Diese Suite prüft die Dialog-Logik unter der Annahme, dass
+// die Sektion sichtbar ist – das Gating selbst ist in tier.gating-matrix.test.ts
+// und FeatureGate.test.tsx abgedeckt. Daher hier FeatureGate → children.
+vi.mock("@/components/FeatureGate", () => ({
+  FeatureGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import BudgetFormDialog from "../BudgetFormDialog";
 
 const CATEGORIES: HierarchicalCategory[] = [
