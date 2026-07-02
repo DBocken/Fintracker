@@ -196,5 +196,15 @@ describe("budget-rollover", () => {
       expect(s.remaining).toBe(-100);
       expect(s.health).toBe("over");
     });
+
+    it("[REGRESSION] wirft nicht bei leerem months-Array, sondern liefert Nullzustand", () => {
+      const b = budget({ id: "b", category_id: "wohnen", limit: 1000 });
+      const s = computeBudgetStatusWithRollover(b, [], CATEGORIES, []);
+      expect(s.spent).toBe(0);
+      expect(s.remaining).toBe(1000);
+      expect(s.effectiveLimit).toBe(1000);
+      expect(s.ratio).toBe(0);
+      expect(s.fillPercent).toBe(0);
+    });
   });
 });

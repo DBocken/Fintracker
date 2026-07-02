@@ -90,9 +90,14 @@ export function explainCategorization(
 
   // Stufe 1: vom Nutzer gelernte Zuordnungen (höchste Priorität)
   if (learnedRules?.length && normalizedPayee) {
-    const rule = learnedRules.find(
-      (r) => r.merchant_pattern && normalizedPayee.includes(r.merchant_pattern)
-    );
+    // Die SPEZIFISCHSTE passende Regel gewinnt (längstes Pattern), nicht die
+    // zuerst gespeicherte: sonst würde z. B. „aldi" eine Buchung fangen, für die
+    // der Nutzer die genauere Regel „aldi süd tankstelle" angelegt hat.
+    const rule = learnedRules.reduce<MerchantRule | null>((best, r) => {
+      if (!r.merchant_pattern || !normalizedPayee.includes(r.merchant_pattern)) return best;
+      if (!best || r.merchant_pattern.length > best.merchant_pattern.length) return r;
+      return best;
+    }, null);
     if (rule) {
       return {
         categoryId: rule.category_id,

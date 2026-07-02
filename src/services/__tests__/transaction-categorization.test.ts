@@ -131,6 +131,19 @@ describe("categorizeTransaction", () => {
     expect(categorizeTransaction(transaction, categories, learnedRules)).toBe("pets");
   });
 
+  it("[REGRESSION] wählt die spezifischste (längste) passende Regel, nicht die zuerst gespeicherte", () => {
+    const transaction = tx({ payee: "ALDI SÜD TANKSTELLE" });
+    const categories: ReturnType<typeof category>[] = [];
+    // Die generische Regel „aldi" ist ZUERST gespeichert; die genauere Regel
+    // „aldi süd tankstelle" muss trotzdem gewinnen.
+    const learnedRules = [
+      { id: "1", user_id: "local", merchant_pattern: "aldi", category_id: "groceries" },
+      { id: "2", user_id: "local", merchant_pattern: "aldi süd tankstelle", category_id: "fuel" },
+    ];
+
+    expect(categorizeTransaction(transaction, categories, learnedRules)).toBe("fuel");
+  });
+
   it("falls back to a regex rule when no category filter matches", () => {
     const transaction = tx({ payee: "Aral Tankstelle Berlin", description: "Tanken" });
     const categories = [category({ id: "mobility", name: "Mobilität", filters: [] })];
