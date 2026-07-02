@@ -48,13 +48,15 @@ describe("FinancialLandscape (generative Illustration)", () => {
       expect(screen.getByRole("img", { name: /Finanzlandschaft|Financial landscape/ })).toBeInTheDocument();
     });
 
-    it("zeichnet für jede Metrik ihr Landschaftselement", () => {
+    it("zeichnet für jede Metrik ihr Landschaftselement (Canvas-Szene)", () => {
       renderLandscape("hero");
-      expect(screen.getByTestId("landscape-sun")).toBeInTheDocument();
-      expect(screen.getByTestId("landscape-mountain")).toBeInTheDocument();
-      expect(screen.getByTestId("landscape-tree")).toBeInTheDocument();
-      expect(screen.getByTestId("landscape-water")).toBeInTheDocument();
-      expect(screen.getByTestId("landscape-house")).toBeInTheDocument();
+      const canvas = screen.getByTestId("dynamic-landscape");
+      expect(canvas.tagName).toBe("CANVAS");
+      expect(canvas).toHaveAttribute("data-has-sun", "true");
+      expect(canvas).toHaveAttribute("data-has-mountain", "true");
+      expect(canvas).toHaveAttribute("data-has-tree", "true");
+      expect(canvas).toHaveAttribute("data-has-water", "true");
+      expect(canvas).toHaveAttribute("data-has-house", "true");
     });
 
     it("öffnet ein Sheet mit Erklärung beim Antippen eines Hotspots", async () => {
@@ -72,17 +74,18 @@ describe("FinancialLandscape (generative Illustration)", () => {
       renderLandscape("hero", undefined);
       expect(screen.getByRole("img", { name: /Finanzlandschaft|Financial landscape/ })).toBeInTheDocument();
       expect(screen.queryAllByRole("button")).toHaveLength(0);
-      expect(screen.queryByTestId("landscape-tree")).not.toBeInTheDocument();
+      expect(screen.getByTestId("dynamic-landscape")).not.toHaveAttribute("data-has-tree");
     });
   });
 
   describe("Regression Protection", () => {
     it("[REGRESSION] lädt keine PNG-Assets mehr (kein Broken-Image bei fehlenden Dateien)", () => {
       // Vorher: background.png + 5 Stufen-PNGs pro Metrik; fehlende Dateien
-      // erzeugten Broken Images mit Emoji-Fallback. Die Szene ist jetzt reines SVG.
+      // erzeugten Broken Images mit Emoji-Fallback. Die Szene wird jetzt
+      // komplett generativ auf ein Canvas gezeichnet.
       const { container } = renderLandscape("hero");
       expect(container.querySelector("img")).toBeNull();
-      expect(container.querySelector("svg[data-testid='dynamic-landscape']")).not.toBeNull();
+      expect(container.querySelector("canvas[data-testid='dynamic-landscape']")).not.toBeNull();
     });
 
     it("[REGRESSION] Wasserstand folgt dem Liquiditäts-Score (datengetriebener Aufbau)", () => {
@@ -95,10 +98,10 @@ describe("FinancialLandscape (generative Illustration)", () => {
         subScores: [{ key: "liquidity", label: "Liquidität", score: 90, explanation: "x" }],
       };
       const a = renderLandscape("hero", low);
-      const lowLevel = Number(screen.getByTestId("landscape-water").getAttribute("data-level"));
+      const lowLevel = Number(screen.getByTestId("dynamic-landscape").getAttribute("data-water-level"));
       a.unmount();
       renderLandscape("hero", highScore);
-      const highLevel = Number(screen.getByTestId("landscape-water").getAttribute("data-level"));
+      const highLevel = Number(screen.getByTestId("dynamic-landscape").getAttribute("data-water-level"));
       expect(highLevel).toBeGreaterThan(lowLevel);
     });
   });
