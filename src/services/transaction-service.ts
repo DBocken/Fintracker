@@ -17,8 +17,13 @@ import { parseGermanNumber } from '../lib/money';
 // Helpers
 // -----------------------------------------------------------------------------
 
-function parseGermanDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString().split('T')[0];
+/**
+ * Parst ein Buchungsdatum in ISO (YYYY-MM-DD) — oder `null`, wenn es nicht
+ * parsebar ist. KEIN stiller Fallback auf „heute": Ein falsches Datum würde
+ * Monats-/Budgetauswertungen unbemerkt verfälschen (Invariante 18, F-MONEY-4).
+ */
+function parseGermanDate(dateStr: string): string | null {
+  if (!dateStr) return null;
   const cleanDate = dateStr.trim();
 
   const germanMatch = cleanDate.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
@@ -38,16 +43,16 @@ function parseGermanDate(dateStr: string): string {
   if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) return cleanDate;
 
   const d = new Date(cleanDate);
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  if (!isNaN(d.getTime())) {
+    // Lokale Datumsteile statt toISOString(): Letzteres verschiebt lokal
+    // geparste Daten in Zeitzonen östlich von UTC um einen Tag zurück.
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
 
-  return new Date().toISOString().split('T')[0];
-}
-
-function parseGermanAmount(amountStr: string | number): number {
-  // Zentraler Parser (money.ts) inkl. korrekter Tausenderpunkt-Behandlung
-  // (F-MONEY-1). Fallback auf 0 bleibt hier vorerst erhalten; die strikte
-  // Ablehnung an der Persistenzgrenze folgt separat (T1.3).
-  return parseGermanNumber(amountStr) ?? 0;
+  return null;
 }
 
 function generateId(): string {
@@ -253,8 +258,18 @@ export async function getTransactions(limit: number = 1000): Promise<Transaction
 
 export async function saveTransactions(transactions: Transaction[]): Promise<Transaction[]> {
   const prepared = transactions.map((t) => {
+    // Strikte Validierung an der fachlichen Grenze (Invariante 18, F-MONEY-4):
+    // Ungültige Beträge/Daten werden abgelehnt statt still als 0 € bzw. „heute"
+    // gespeichert. Die frühere weiche Normalisierung galt für alle Nicht-CSV-
+    // Pfade (Bank, Restore, programmatisch) und erzeugte falsche Geldbeträge.
     const normalizedDate = parseGermanDate(t.date);
-    const normalizedAmount = parseGermanAmount(t.amount);
+    if (!normalizedDate) {
+      throw new Error(`Ungültiges Buchungsdatum "${t.date}" (${t.payee || 'ohne Empfänger'})`);
+    }
+    const normalizedAmount = parseGermanNumber(t.amount);
+    if (normalizedAmount === null) {
+      throw new Error(`Ungültiger Betrag "${t.amount}" (${t.payee || 'ohne Empfänger'}, ${normalizedDate})`);
+    }
 
     return {
       id: t.id && !t.id.toString().startsWith('temp-') ? t.id : generateId(),
