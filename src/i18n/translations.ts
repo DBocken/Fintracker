@@ -302,6 +302,7 @@ export const translations = {
       savingsRate: 'Sparquote',
       liquidity: 'Liquidität',
       contracts: 'Verträge',
+      landscapeAlt: 'Finanzlandschaft',
     },
     utility: {
       profileOpen: 'Profil öffnen',
@@ -602,6 +603,7 @@ export const translations = {
       savingsRate: 'Savings rate',
       liquidity: 'Liquidity',
       contracts: 'Contracts',
+      landscapeAlt: 'Financial landscape',
     },
     utility: {
       profileOpen: 'Open profile',

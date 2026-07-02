@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
@@ -12,59 +12,27 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  getStatusBucket,
-  getStatusStage,
-  statusColorVar,
-  statusLabel,
-} from "@/lib/status-bucket";
+import { getStatusBucket, statusColorVar, statusLabel } from "@/lib/status-bucket";
 import { cn } from "@/lib/utils";
+import DynamicLandscape from "./DynamicLandscape";
+import { buildLandscapeScene, SCENE_HOTSPOTS } from "./landscape-scene";
 
 type MetricMeta = {
-  top: string;
-  left: string;
-  file: string;
   label: string;
-  /** Emoji-Metapher als Fallback, falls die PNG (noch) fehlt — Audit G. */
+  /** Emoji-Metapher für Strip-Kacheln und Sheet-Titel. */
   emoji: string;
 };
 
-// Positionen für das Portrait-9:16-Bild (Hero). Emoji = Fallback-Metapher.
-// Labels werden dynamisch durch useI18n gesetzt
-const METRICS_BASE: Record<string, Omit<MetricMeta, 'label'> & { labelKey: string }> = {
-  emergency_fund: { top: "22%", left: "48%", file: "notgroschen", labelKey: "health.emergencyFund", emoji: "🛡️" },
-  debt:           { top: "35%", left: "5%",  file: "schulden",    labelKey: "health.debt", emoji: "🎒" },
-  savings_rate:   { top: "50%", left: "50%", file: "sparquote",   labelKey: "health.savingsRate", emoji: "🌱" },
-  liquidity:      { top: "60%", left: "1%",  file: "liquiditaet", labelKey: "health.liquidity", emoji: "💧" },
-  contracts:      { top: "70%", left: "38%", file: "vertraege",   labelKey: "health.contracts", emoji: "🗂️" },
+// Emoji = kompakte Metapher (Strip/Sheet). Labels kommen aus useI18n; die
+// Hotspot-Positionen der Hero-Illustration liegen in SCENE_HOTSPOTS beim
+// generativen Szenen-Modell.
+const METRICS_BASE: Record<string, Omit<MetricMeta, "label"> & { labelKey: string }> = {
+  emergency_fund: { labelKey: "health.emergencyFund", emoji: "🛡️" },
+  debt:           { labelKey: "health.debt", emoji: "🎒" },
+  savings_rate:   { labelKey: "health.savingsRate", emoji: "🌱" },
+  liquidity:      { labelKey: "health.liquidity", emoji: "💧" },
+  contracts:      { labelKey: "health.contracts", emoji: "🗂️" },
 };
-
-/** Asset-Indikator mit Emoji-Fallback bei fehlender PNG (kein Broken-Image). */
-function MetricIcon({ file, stage, emoji, size }: { file: string; stage: number; emoji: string; size: number }) {
-  const [broken, setBroken] = useState(false);
-  if (broken) {
-    return (
-      <div
-        style={{ width: size, height: size, fontSize: size * 0.6 }}
-        className="flex items-center justify-center"
-        aria-hidden
-      >
-        {emoji}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={`/assets/illustrations/${file}${stage - 1}.png`}
-      alt=""
-      width={size}
-      height={size}
-      style={{ width: size, height: size, objectFit: "contain" }}
-      onError={() => setBroken(true)}
-      draggable={false}
-    />
-  );
-}
 
 interface FinancialLandscapeProps {
   health?: FinancialHealth;
@@ -120,7 +88,7 @@ export default function FinancialLandscape({ health, variant = "hero", className
   const { enabled: gentleMode } = useGentleMode();
   const reduce = useReducedMotion();
   const isCompact = variant === "hero-compact";
-  const iconSize = isCompact ? 72 : 112;
+  const scene = useMemo(() => buildLandscapeScene(health), [health]);
 
   const METRICS: Record<string, MetricMeta> = useMemo(() => {
     const baseLabels = {
@@ -169,25 +137,24 @@ export default function FinancialLandscape({ health, variant = "hero", className
     );
   }
 
-  // Hero: Portrait-9:16-Illustration mit positionierten, antippbaren Indikatoren.
-  // "hero-compact" rendert dieselbe Illustration mit kleineren Hotspots für mobil.
+  // Hero: komplett generativ gezeichnete Portrait-9:16-Szene (kein Bild-Asset).
+  // Jede Metrik formt ihr Landschaftselement; die Hotspots liegen deckungsgleich
+  // darüber und öffnen das Detail-Sheet. "hero-compact" = kleinere Hotspots.
   return (
     <div
       className={cn("relative w-full overflow-hidden rounded-2xl shadow-lg", className)}
       style={{ paddingBottom: "177%" }}
     >
-      <img
-        src="/assets/illustrations/background.png"
-        alt="Finanzlandschaft"
+      <DynamicLandscape
+        scene={scene}
+        label={t("health.landscapeAlt", "Finanzlandschaft")}
         className="absolute inset-0 h-full w-full"
-        style={{ objectFit: "cover", objectPosition: "center center" }}
-        draggable={false}
       />
 
       {health && health.subScores.map((s, i) => {
         const meta = METRICS[s.key];
-        if (!meta) return null;
-        const stage = getStatusStage(s.score);
+        const hotspot = SCENE_HOTSPOTS[s.key as keyof typeof SCENE_HOTSPOTS];
+        if (!meta || !hotspot) return null;
         const bucket = getStatusBucket(s.score);
         const color = statusColorVar(bucket);
 
@@ -195,7 +162,7 @@ export default function FinancialLandscape({ health, variant = "hero", className
           <motion.div
             key={s.key}
             className="absolute flex flex-col items-center"
-            style={{ top: meta.top, left: meta.left }}
+            style={{ top: hotspot.top, left: hotspot.left }}
             initial={reduce ? false : { scale: 0.6, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={reduce ? { duration: 0 } : { delay: 0.15 * i + 0.2, type: "spring", stiffness: 180 }}
@@ -204,11 +171,10 @@ export default function FinancialLandscape({ health, variant = "hero", className
               <button
                 type="button"
                 aria-label={`${meta.label}: Details ansehen`}
-                className="flex flex-col items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <MetricIcon file={meta.file} stage={stage} emoji={meta.emoji} size={iconSize} />
                 <div
-                  className="mt-0.5 rounded-lg bg-white/90 px-1.5 py-0.5 text-center shadow backdrop-blur-sm"
+                  className="rounded-lg bg-white/90 px-1.5 py-0.5 text-center shadow backdrop-blur-sm"
                   style={{ minWidth: isCompact ? 44 : 52 }}
                 >
                   <div className="text-[8px] font-medium leading-tight text-gray-500">{meta.label}</div>
