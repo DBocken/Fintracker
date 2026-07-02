@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
+import { parseGermanNumber } from "@/lib/money";
 import { getAccounts } from "@/services/account-service";
 import { createTransaction, getCategories } from "@/services/transaction-service";
 import { useI18n } from "@/i18n/useI18n";
@@ -99,7 +100,10 @@ export function TransactionFormDialog({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const numeric = Math.abs(parseFloat(amount.replace(",", ".")) || 0);
+      // Zentraler Parser (money.ts): liest deutschen Tausenderpunkt korrekt,
+      // damit "1.200" nicht als 1,20 € gespeichert wird (F-MONEY-1).
+      const parsed = parseGermanNumber(amount);
+      const numeric = parsed === null ? 0 : Math.abs(parsed);
       if (numeric <= 0) throw new Error(t("forms.amountGreaterThanZero", "Bitte einen Betrag größer 0 angeben."));
       if (!accountId) throw new Error(t("forms.selectAccountRequired", "Bitte ein Konto auswählen."));
       const signed = direction === "expense" ? -numeric : numeric;

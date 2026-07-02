@@ -11,6 +11,7 @@ import {
 import { normalizeMerchantName } from './merchant-normalization';
 import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
 import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
+import { parseGermanNumber } from '../lib/money';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -43,12 +44,10 @@ function parseGermanDate(dateStr: string): string {
 }
 
 function parseGermanAmount(amountStr: string | number): number {
-  if (amountStr === null || amountStr === undefined) return 0;
-  const asString = amountStr.toString();
-  const cleanAmount = asString.replace(/\s/g, '').replace(/[^\d,\.-]/g, '');
-  const normalized = cleanAmount.replace(',', '.');
-  const parsed = parseFloat(normalized);
-  return isNaN(parsed) ? 0 : parsed;
+  // Zentraler Parser (money.ts) inkl. korrekter Tausenderpunkt-Behandlung
+  // (F-MONEY-1). Fallback auf 0 bleibt hier vorerst erhalten; die strikte
+  // Ablehnung an der Persistenzgrenze folgt separat (T1.3).
+  return parseGermanNumber(amountStr) ?? 0;
 }
 
 function generateId(): string {

@@ -16,9 +16,11 @@ import {
   type SharedExpenseShare,
 } from "@/services/household-service";
 import type { Transaction } from "@/types";
+import { parseGermanNumber } from "@/lib/money";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
-const parseAmount = (v: string) => Number.parseFloat((v ?? "").replace(",", ".")) || 0;
+// Zentraler Parser (money.ts): korrekter Tausenderpunkt (F-MONEY-1/-6).
+const parseAmount = (v: string) => parseGermanNumber(v) ?? 0;
 
 /**
  * Haushalts-Split (Issue #108): teilt EINE Ausgabe auf die Mitglieder eines
