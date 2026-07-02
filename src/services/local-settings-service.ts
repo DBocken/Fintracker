@@ -11,9 +11,10 @@
 import type { Category, UserSettings } from "../types";
 import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
+// Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
+import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 
-export const LOCAL_CATEGORIES_KEY = "ausgabentracker_categories_v1";
-export const LOCAL_SETTINGS_KEY = "ausgabentracker_user_settings_v1";
+export { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY };
 
 /** Pseudo-Identität für lokale Datensätze (Muster wie debt-/account-service). */
 export const LOCAL_USER_ID = "local";

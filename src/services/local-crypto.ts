@@ -1,4 +1,5 @@
 import { idbGet, idbSet, idbKeys, requestPersistentStorage } from './idb-kv'
+import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys'
 
 // --- Datenspeicher-Seam (Issue #29) ------------------------------------------
 // Die (verschlüsselten) Bulk-Daten liegen in IndexedDB statt localStorage.
@@ -313,7 +314,17 @@ export const localEncryption = {
 
     const cfg = loadConfig()
     if (!cfg) {
-      return JSON.parse(raw) as T
+      const value = JSON.parse(raw)
+      // Defensiv-Guard (F-CRYPTO-1): Verschlüsselung ist aus, aber es liegt noch
+      // ein Envelope vor (unvollständige disable()-Migration). Diesen NICHT als
+      // Daten interpretieren oder als leere Liste behandeln — sonst würde der
+      // nächste Schreibvorgang die noch verschlüsselten Daten überschreiben.
+      if (isEnvelopeV1(value)) {
+        throw new Error(
+          'Verschlüsselte Daten bei deaktivierter Verschlüsselung gefunden — Migration unvollständig.',
+        )
+      }
+      return value as T
     }
 
     let parsed: unknown
@@ -341,15 +352,11 @@ export const localEncryption = {
 
     const key = this.requireUnlocked()
 
-    const sensitiveKeys = new Set([
-      'ausgabentracker_transactions_v3',
-      'ausgabentracker_accounts_v1',
-      'ausgabentracker_debts_v1',
-      'ausgabentracker_debt_assignments_v1',
-      'ausgabentracker_portfolios_v1',
-      'ausgabentracker_portfolio_positions_v1',
-      'ausgabentracker_bank_connections_v1',
-    ])
+    // Vollständige Registry (VE-6 / F-CRYPTO-1): frühere Handliste kannte nur 7
+    // von ~24 Keys, wodurch disable() Budgets, Splits, Forderungen, Kategorien
+    // u. v. m. als unlesbare Envelopes zurückließ (Datenverlust). Jetzt deckt die
+    // Migration alle registrierten Keys ab.
+    const sensitiveKeys = new Set<string>(ENCRYPTED_STORAGE_KEYS)
 
     const keys = (await idbKeys()).filter(
       (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),

@@ -4,7 +4,12 @@ import {
   localEncryption,
   LocalEncryptionLockedError,
 } from "../local-crypto";
-import { idbGet } from "../idb-kv";
+import { idbGet, idbSet } from "../idb-kv";
+import {
+  LOCAL_FINANCE_KEYS,
+  LOCAL_CATEGORIES_KEY,
+  LOCAL_SETTINGS_KEY,
+} from "../local-storage-keys";
 
 describe("localEncryption", () => {
   beforeEach(() => {
@@ -81,6 +86,68 @@ describe("localEncryption", () => {
 
     const loaded = await localEncryption.loadAndMaybeDecrypt<{ foo: string }>("test_key");
     expect(loaded).toEqual({ foo: "bar" });
+  });
+});
+
+describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
+  const PW = "correct horse battery staple";
+
+  beforeEach(async () => {
+    localStorage.clear();
+    localEncryption.lock();
+  });
+  afterEach(() => {
+    localStorage.clear();
+    localEncryption.lock();
+  });
+
+  // Repräsentative Auswahl inkl. Keys, die die alte 7er-Handliste NICHT kannte
+  // (budgets, transactionAllocations, receivables, claims, merchantRules,
+  // households, Kategorien, Settings) — genau diese gingen bei disable() verloren.
+  const samples: Record<string, unknown> = {
+    [LOCAL_FINANCE_KEYS.transactions]: [{ id: "t1", amount: -12.34 }],
+    [LOCAL_FINANCE_KEYS.budgets]: [{ id: "b1", limit: 100 }],
+    [LOCAL_FINANCE_KEYS.transactionAllocations]: [{ id: "a1", amount_minor: 50 }],
+    [LOCAL_FINANCE_KEYS.receivables]: [{ id: "r1" }],
+    [LOCAL_FINANCE_KEYS.claims]: [{ id: "c1" }],
+    [LOCAL_FINANCE_KEYS.merchantRules]: [{ id: "m1" }],
+    [LOCAL_FINANCE_KEYS.households]: [{ id: "h1" }],
+    [LOCAL_CATEGORIES_KEY]: [{ id: "cat1", name: "Wohnen" }],
+    [LOCAL_SETTINGS_KEY]: { locale: "de" },
+  };
+
+  it("[REGRESSION] disable() entschlüsselt ALLE registrierten Keys zurück (kein Datenverlust)", async () => {
+    await localEncryption.enable(PW);
+
+    for (const [key, value] of Object.entries(samples)) {
+      await localEncryption.encryptAndStore(key, value);
+      const raw = await idbGet(key);
+      expect(JSON.parse(raw!).type).toBe("ausgabentracker.enc"); // liegt als Envelope
+    }
+
+    await localEncryption.disable(PW);
+    expect(localEncryption.isEnabled()).toBe(false);
+
+    for (const [key, value] of Object.entries(samples)) {
+      const raw = await idbGet(key);
+      const parsed = JSON.parse(raw!);
+      expect(parsed.type).not.toBe("ausgabentracker.enc"); // kein Envelope-Rest
+      expect(parsed).toEqual(value); // exakt der Ausgangswert
+    }
+  });
+
+  it("[REGRESSION] wirft beim Lesen, wenn bei deaktivierter Verschlüsselung ein Envelope zurückbleibt", async () => {
+    await localEncryption.enable(PW);
+    const key = LOCAL_FINANCE_KEYS.budgets;
+    await localEncryption.encryptAndStore(key, [{ id: "b1" }]);
+    const envelopeRaw = await idbGet(key);
+
+    // Verschlüsselung ohne Migration deaktivieren (simuliert inkonsistenten Rest).
+    localEncryption.lock();
+    localStorage.clear(); // entfernt Config -> gilt als deaktiviert
+    await idbSet(key, envelopeRaw!); // Envelope bleibt in IDB
+
+    await expect(localEncryption.loadAndMaybeDecrypt(key)).rejects.toThrow(/Migration unvollständig/);
   });
 });
 
