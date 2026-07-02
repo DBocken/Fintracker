@@ -23,7 +23,12 @@ export interface FinancialHealth {
 }
 
 /** Average monthly income/expenses over the last `months` months of transactions. */
-function monthlyAverages(transactions: Transaction[], months = 3) {
+/**
+ * Durchschnittliche monatliche Einnahmen/Ausgaben über die letzten `months`
+ * Monate (transferbereinigt). Eine Quelle der Wahrheit für Health-Score UND
+ * Coach, damit beide dieselben Monatswerte nutzen (F-UX-3).
+ */
+export function monthlyAverages(transactions: Transaction[], months = 3) {
   const now = new Date();
   const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
 

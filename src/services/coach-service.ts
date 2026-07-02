@@ -1,15 +1,7 @@
 import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuidance, RoadmapStage, RoadmapStageKey } from "../types";
 import { getTransactions, getCategories } from "./transaction-service";
 import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from "./debt-service";
-import { getFinancialHealth } from "./financial-health-service";
-
-function sumMonthlyExpenses(transactions: Awaited<ReturnType<typeof getTransactions>>) {
-  return transactions.filter((t) => !t.is_transfer && t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-}
-
-function sumMonthlyIncome(transactions: Awaited<ReturnType<typeof getTransactions>>) {
-  return transactions.filter((t) => !t.is_transfer && t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-}
+import { getFinancialHealth, monthlyAverages } from "./financial-health-service";
 
 function currentStageKey(totalDebt: number, emergencyBufferMonths: number): RoadmapStageKey {
   if (emergencyBufferMonths < 1) return "starter_emergency_fund";
@@ -63,10 +55,14 @@ export async function getCoachOverview(): Promise<CoachOverview> {
 
   const totalDebt = getTotalDebt(debts);
   const minimumMonthlyBurden = getTotalMinPayment(debts);
-  const monthlyIncome = sumMonthlyIncome(transactions);
-  const monthlyExpenses = sumMonthlyExpenses(transactions);
+  // Monatswerte als Durchschnitt der letzten 3 Monate (nicht die All-time-Summe
+  // als „Monat" missdeuten) — dieselbe Quelle wie der Health-Score (F-UX-3).
+  const { income: monthlyIncome, expenses: monthlyExpenses } = monthlyAverages(transactions, 3);
   const disposable = Math.max(0, monthlyIncome - monthlyExpenses - minimumMonthlyBurden);
-  const emergencyBufferMonths = monthlyExpenses > 0 ? disposable / monthlyExpenses : 0;
+  // Der Notgroschen misst die tatsächliche Liquiditätsreserve (Cash), nicht den
+  // monatlichen Cashflow — konsistent mit financial-health-service.
+  const cashReserve = health.netWorth.cash;
+  const emergencyBufferMonths = monthlyExpenses > 0 ? cashReserve / monthlyExpenses : cashReserve > 0 ? 6 : 0;
 
   const stageKey = currentStageKey(totalDebt, emergencyBufferMonths);
   const stage = buildStage(stageKey, totalDebt, emergencyBufferMonths);
