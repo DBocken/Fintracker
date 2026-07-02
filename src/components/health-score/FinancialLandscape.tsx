@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
@@ -16,6 +16,23 @@ import { getStatusBucket, statusColorVar, statusLabel } from "@/lib/status-bucke
 import { cn } from "@/lib/utils";
 import DynamicLandscape from "./DynamicLandscape";
 import { buildLandscapeScene, SCENE_HOTSPOTS } from "./landscape-scene";
+
+// three.js nur bei Bedarf laden (eigener Chunk): die 3D-Szene ist groß und
+// wird nur gebraucht, wenn WebGL verfügbar ist.
+const Landscape3D = lazy(() => import("./Landscape3D"));
+
+/** Einmalige WebGL-Erkennung; ohne WebGL rendert der 2D-Canvas-Fallback. */
+let webglSupport: boolean | null = null;
+function hasWebGL(): boolean {
+  if (webglSupport !== null) return webglSupport;
+  try {
+    const canvas = document.createElement("canvas");
+    webglSupport = !!(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+  } catch {
+    webglSupport = false;
+  }
+  return webglSupport;
+}
 
 type MetricMeta = {
   label: string;
@@ -145,11 +162,30 @@ export default function FinancialLandscape({ health, variant = "hero", className
       className={cn("relative w-full overflow-hidden rounded-2xl shadow-lg", className)}
       style={{ paddingBottom: "177%" }}
     >
-      <DynamicLandscape
-        scene={scene}
-        label={t("health.landscapeAlt", "Finanzlandschaft")}
-        className="absolute inset-0 h-full w-full"
-      />
+      {hasWebGL() ? (
+        <Suspense
+          fallback={
+            <DynamicLandscape
+              scene={scene}
+              label={t("health.landscapeAlt", "Finanzlandschaft")}
+              className="absolute inset-0 h-full w-full"
+            />
+          }
+        >
+          <Landscape3D
+            scene={scene}
+            label={t("health.landscapeAlt", "Finanzlandschaft")}
+            reduce={reduce}
+            className="absolute inset-0 h-full w-full"
+          />
+        </Suspense>
+      ) : (
+        <DynamicLandscape
+          scene={scene}
+          label={t("health.landscapeAlt", "Finanzlandschaft")}
+          className="absolute inset-0 h-full w-full"
+        />
+      )}
 
       {health && health.subScores.map((s, i) => {
         const meta = METRICS[s.key];
