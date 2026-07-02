@@ -131,6 +131,14 @@ export interface ScenarioResult {
    */
   representativeByCell?: number[][];
   /**
+   * Alle Durchläufe je Heatmap-Zelle: `trialsByCell[tag][bin]` sind die Indizes
+   * in `assumptions` aller Pfade der Zelle, sortiert nach Nähe zum Bin-Zentrum
+   * (der Repräsentant steht vorn). Eine Zelle hat oft MEHRERE „Lösungen" –
+   * verschiedene Annahme-Kombinationen mit demselben Saldo. Grundlage für
+   * Zell-Spannen/Durchschnitt und das Blättern durch die konkreten Pfade.
+   */
+  trialsByCell?: number[][][];
+  /**
    * Benannte, deterministische Geldfluss-Posten (Einnahmen, Fixkosten-Verträge,
    * geplante Posten) mit ihren Buchungen im Horizont. Identisch für alle Pfade –
    * variable Ausgaben/perturbierte Einnahmen kommen aus {@link assumptions}.
