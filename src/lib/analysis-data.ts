@@ -408,6 +408,30 @@ export function resolveAusgabenklasse(
   return null;
 }
 
+/**
+ * Löst den Essenziell-Status über die Kategorie-Hierarchie auf (nächster
+ * definierter Wert, Unterkategorie überschreibt Hauptkategorie). Analog zu
+ * resolveAusgabenklasse, damit Filter und Charts dieselbe Einstufung nutzen
+ * (F-UX-5). `null`, wenn nirgends definiert.
+ */
+export function resolveEssenziell(
+  byId: Map<string, Category>,
+  catId: string | null | undefined
+): boolean | null {
+  if (!catId) return null;
+  let current: Category | undefined = byId.get(catId);
+  const visited = new Set<string>();
+  while (current) {
+    if (current.attributes?.essenziell !== undefined) {
+      return current.attributes.essenziell === true;
+    }
+    if (!current.parent_id || visited.has(current.id)) break;
+    visited.add(current.id);
+    current = byId.get(current.parent_id);
+  }
+  return null;
+}
+
 function toSuperId(klasse: Ausgabenklasse | null, hasAssignment: boolean): SunburstSuperId {
   if (!hasAssignment) return "unkategorisiert";
   if (klasse === "essenziell") return "essenziell";

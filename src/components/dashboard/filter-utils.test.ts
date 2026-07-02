@@ -89,6 +89,26 @@ describe("filterTransactions", () => {
     const bySub = filterTransactions(list, cats, accounts, { ...baseFilters, category: "sub" }, NOW);
     expect(bySub.map((t) => t.id)).toEqual(["b"]);
   });
+
+  it("[REGRESSION] Essential-/Klasse-Filter nutzen die Unterkategorie (Sub-Override, F-UX-5)", () => {
+    // Diskretionäre Hauptkategorie mit einer essenziellen Unterkategorie.
+    const cats: Category[] = [
+      { id: "main", name: "Sonstiges", parent_id: null, attributes: { ausgabenklasse: "diskretionaer", essenziell: false } } as Category,
+      { id: "sub", name: "Medikamente", parent_id: "main", attributes: { ausgabenklasse: "essenziell", essenziell: true } } as Category,
+    ];
+    const list = [
+      tx({ id: "sub-ess", date: "2024-06-10", amount: -20, category_id: "main", subcategory_id: "sub" }),
+      tx({ id: "main-only", date: "2024-06-10", amount: -15, category_id: "main" }),
+    ];
+
+    // Essenziell-Filter: nur die Buchung mit essenzieller Unterkategorie.
+    const ess = filterTransactions(list, cats, accounts, { ...baseFilters, essential: "ess" }, NOW);
+    expect(ess.map((t) => t.id)).toEqual(["sub-ess"]);
+
+    // Ausgabenklasse-Filter „essenziell": ebenfalls über die Unterkategorie.
+    const klasse = filterTransactions(list, cats, accounts, { ...baseFilters, ausgabenklasse: "essenziell" }, NOW);
+    expect(klasse.map((t) => t.id)).toEqual(["sub-ess"]);
+  });
 });
 
 describe("buildTransactionsHref", () => {
