@@ -16,7 +16,7 @@
  * `name` muss über die gesamte Taxonomie eindeutig sein.
  */
 
-import type { Ausgabenklasse } from "../types";
+import type { Ausgabenklasse, Category } from "../types";
 
 export type { Ausgabenklasse };
 
@@ -578,6 +578,42 @@ export function resolveKlasse(main: CategoryDef, sub?: SubcategoryDef): Ausgaben
 /** Abgeleitetes `essenziell`-Bool (klasse === 'essenziell'). */
 export function isEssenziell(main: CategoryDef, sub?: SubcategoryDef): boolean {
   return resolveKlasse(main, sub) === "essenziell";
+}
+
+/**
+ * Baut die Standardkategorien aus der Taxonomie: Hauptkategorien
+ * (parent_id = null, keine Filter) und darunter Unterkategorien mit Keywords.
+ * Stabile IDs `local-cat-<slug>`. Eine Quelle der Wahrheit für die gebündelten
+ * Defaults (default-categories.ts) UND das Supabase-Template
+ * (scripts/generate-category-template.mjs) — so bleiben beide deckungsgleich.
+ */
+export function buildDefaultCategories(): Category[] {
+  return CATEGORY_TAXONOMY.flatMap((main) => {
+    const mainId = `local-cat-${main.slug}`;
+    const mainCategory: Category = {
+      id: mainId,
+      user_id: null,
+      name: main.name,
+      color: main.color,
+      icon: main.icon,
+      filters: [],
+      is_default: true,
+      parent_id: null,
+      attributes: { essenziell: main.klasse === "essenziell", ausgabenklasse: main.klasse },
+    };
+    const subCategories: Category[] = main.subcategories.map((sub) => ({
+      id: `local-cat-${sub.slug}`,
+      user_id: null,
+      name: sub.name,
+      color: main.color,
+      icon: main.icon,
+      filters: sub.keywords,
+      is_default: true,
+      parent_id: mainId,
+      attributes: { essenziell: isEssenziell(main, sub), ausgabenklasse: resolveKlasse(main, sub) },
+    }));
+    return [mainCategory, ...subCategories];
+  });
 }
 
 // -----------------------------------------------------------------------------
