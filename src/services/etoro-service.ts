@@ -1,5 +1,6 @@
 import type { Portfolio, PortfolioPosition } from '../types';
 import { createPortfolio, createPosition, getPortfolioById } from './portfolio-service';
+import { localEncryption } from './local-crypto';
 
 // -----------------------------------------------------------------------------
 // eToro API Types
@@ -141,6 +142,17 @@ export async function connectEtoroAccount(
   apiKey: string,
   userKey: string
 ): Promise<Portfolio> {
+  // Broker-Credentials sind deutlich sensibler als die übrigen Finanzdaten
+  // (voller Zugriff aufs Handelskonto). Sie dürfen nur gespeichert werden, wenn
+  // die lokale Verschlüsselung aktiv und entsperrt ist — sonst lägen sie im
+  // Klartext in IndexedDB und in unverschlüsselten Backups (T1.10 / F-DEBT-1).
+  if (!localEncryption.isUnlocked()) {
+    throw new Error(
+      'Bitte richte zuerst die lokale Verschlüsselung ein und entsperre sie. ' +
+        'eToro-Zugangsdaten werden nur verschlüsselt gespeichert.',
+    );
+  }
+
   // Test connection first
   const connected = await testEtoroConnection(apiKey, userKey);
   if (!connected) {

@@ -32,6 +32,37 @@ function isLocalFinanceKey(key: string): key is LocalFinanceKey {
   return Object.prototype.hasOwnProperty.call(LOCAL_FINANCE_KEYS, key);
 }
 
+/** Broker-Zugangsdaten, die nie im Klartext (unverschlüsseltes Backup) landen dürfen. */
+const PORTFOLIO_SECRET_FIELDS = ['apiKey', 'userKey'];
+
+/**
+ * Gibt eine Kopie der Backup-Daten zurück, in der die Broker-Zugangsdaten
+ * (eToro apiKey/userKey in portfolios.provider_config) entfernt sind. Wird nur
+ * für den UNVERSCHLÜSSELTEN Export genutzt; verschlüsselte Backups behalten sie
+ * (dort sind sie geschützt). Wiederhergestellte Portfolios müssen dann neu
+ * verbunden werden (T1.10 / F-DEBT-1).
+ */
+export function redactPortfolioSecrets(data: BackupData): BackupData {
+  const portfolios = data.collections?.portfolios;
+  if (!Array.isArray(portfolios)) return data;
+
+  const redacted = portfolios.map((p) => {
+    const entry = p as { provider_config?: Record<string, unknown> };
+    if (!entry.provider_config) return p;
+    const cfg = { ...entry.provider_config };
+    let touched = false;
+    for (const field of PORTFOLIO_SECRET_FIELDS) {
+      if (field in cfg) {
+        delete cfg[field];
+        touched = true;
+      }
+    }
+    return touched ? { ...entry, provider_config: cfg } : p;
+  });
+
+  return { ...data, collections: { ...data.collections, portfolios: redacted } };
+}
+
 /**
  * Snapshot ALLER übrigen lokalen Collections (Schulden, Forderungen, Akten,
  * Budgets, Meilensteine, Zuordnungen …). Früher fehlten diese im Backup —
@@ -157,7 +188,9 @@ class BackupService {
         'Unverschlüsselter Export muss ausdrücklich bestätigt werden. Nutze bevorzugt das verschlüsselte Backup.',
       );
     }
-    const data = backup || await this.createBackup();
+    // Broker-Zugangsdaten (eToro apiKey/userKey) NIE in einen Klartext-Export
+    // schreiben — deutlich sensibler als die übrigen Finanzdaten (T1.10 / F-DEBT-1).
+    const data = redactPortfolioSecrets(backup || await this.createBackup());
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     
