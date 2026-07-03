@@ -1,4 +1,4 @@
-import type { Account, AccountType } from '../types';
+import type { Account } from '../types';
 import { normalizeIban } from './transfer-service';
 import { getCurrentUserId } from './auth-service';
 import { isDemoRecord } from './demo-data-service';
@@ -10,34 +10,22 @@ import {
 } from './local-finance-store';
 import { evaluateAccountCreation, type AccountCreationCheck } from '../lib/account-limits';
 import type { Tier } from '../lib/tier';
+import {
+  ACCOUNT_TYPE_COLORS,
+  ACCOUNT_TYPE_ICONS,
+} from '../lib/presentation/account-presentation';
 
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  checking: 'Girokonto',
-  credit_card: 'Kreditkarte',
-  savings: 'Tagesgeld/Sparkonto',
-  wallet: 'Wallet (PayPal, Revolut, etc.)',
-  cash: 'Bargeld',
-  other: 'Sonstiges',
-};
-
-export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
-  checking: '🏦',
-  credit_card: '💳',
-  savings: '🐷',
-  wallet: '📱',
-  cash: '💵',
-  other: '💰',
-};
-
-/* Ruhige Petrol-Abstufungen statt Regenbogen (#54) */
-export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
-  checking: '#1d5c54',
-  credit_card: '#5c7a99',
-  savings: '#4a9a8d',
-  wallet: '#a8845c',
-  cash: '#8a9a3c',
-  other: '#7d8a87',
-};
+/**
+ * @deprecated Präsentationsdaten leben jetzt in
+ * `@/lib/presentation/account-presentation`. Neuer Code importiert von dort;
+ * diese Re-Exports halten bestehende Aufrufer während der Migration lauffähig.
+ */
+export {
+  ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_ICONS,
+  ACCOUNT_TYPE_COLORS,
+  formatSyncStatus,
+} from '../lib/presentation/account-presentation';
 
 export { FREE_ACCOUNT_LIMIT } from '../lib/constants';
 
@@ -155,25 +143,6 @@ export async function getGoCardlessAccounts(): Promise<Account[]> {
 export async function getAccountByGoCardlessId(gocardlessAccountId: string): Promise<Account | null> {
   const accounts = await getAccounts();
   return accounts.find((account) => account.gocardless_account_id === gocardlessAccountId) || null;
-}
-
-export function formatSyncStatus(account: Account): string {
-  if (!account.gocardless_account_id) return 'Nicht verbunden';
-  if (!account.sync_enabled) return 'Synchronisation deaktiviert';
-  if (!account.last_sync_at) return 'Noch nie synchronisiert';
-
-  const lastSync = new Date(account.last_sync_at);
-  const now = new Date();
-  const diffMs = now.getTime() - lastSync.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Gerade eben';
-  if (diffMins < 60) return `Vor ${diffMins} Min.`;
-  if (diffHours < 24) return `Vor ${diffHours} Std.`;
-  if (diffDays < 7) return `Vor ${diffDays} Tagen`;
-  return lastSync.toLocaleDateString('de-DE');
 }
 
 export type { Account } from '../types';

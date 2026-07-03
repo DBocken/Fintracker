@@ -13,6 +13,7 @@ import { MotionConfig } from 'framer-motion'
 import ToastProvider from './components/providers/ToastProvider'
 import AuthProvider from './components/providers/AuthProvider'
 import SkinProvider from './components/providers/SkinProvider'
+import LayoutModeProvider from './components/providers/LayoutModeProvider'
 import GentleModeProvider from './components/providers/GentleModeProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { I18nProvider } from '@/i18n/I18nProvider'
@@ -50,11 +51,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <LocalEncryptionProvider>
               <SkinProvider>
-                <GentleModeProvider>
-                  <ToastProvider>
-                    <App />
-                  </ToastProvider>
-                </GentleModeProvider>
+                <LayoutModeProvider>
+                  <GentleModeProvider>
+                    <ToastProvider>
+                      <App />
+                    </ToastProvider>
+                  </GentleModeProvider>
+                </LayoutModeProvider>
               </SkinProvider>
             </LocalEncryptionProvider>
           </AuthProvider>

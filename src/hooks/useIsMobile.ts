@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { MICRO_NARROW_QUERY } from "@/lib/breakpoints";
 
-/** Tailwind `sm`-Breakpoint: darunter gilt die Ansicht als „mobil". */
-const MOBILE_QUERY = "(max-width: 639px)";
+/** Tailwind `sm`-Breakpoint (zentral in `@/lib/breakpoints`): darunter „mobil". */
+const MOBILE_QUERY = MICRO_NARROW_QUERY;
 
 /**
  * true, wenn der Viewport schmaler als der `sm`-Breakpoint ist. SSR-/Test-sicher
