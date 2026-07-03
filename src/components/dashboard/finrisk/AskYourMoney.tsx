@@ -175,7 +175,7 @@ function AffordabilityView({
           kleineren Betrag oder einen späteren Zeitpunkt.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-border/60">
           {ways.map((w, i) => (
             <WayRow key={i} option={w} fmtDate={fmtDate} />
           ))}
@@ -198,7 +198,7 @@ function WayRow({
 }) {
   const { icon, title } = describe(option);
   return (
-    <li className="flex items-start justify-between gap-3 rounded-lg bg-muted/30 p-2.5">
+    <li className="flex items-start justify-between gap-3 py-2.5">
       <span className="flex min-w-0 items-start gap-2">
         <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span>
         <span className="min-w-0">

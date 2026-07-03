@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Tone = "default" | "positive" | "warning" | "brand";
+type Tone = "default" | "positive" | "warning" | "brand" | "critical" | "good";
 
 const toneClass: Record<Tone, string> = {
   default: "text-foreground",
   positive: "text-positive",
   warning: "text-warning",
   brand: "text-brand",
+  critical: "text-destructive",
+  good: "text-positive",
 };
 
 interface InfoGroupProps {

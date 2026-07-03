@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { Kpi, MonthSummary } from '../LiquidityReport';
+import { render, screen, within } from '@testing-library/react';
+import { MonthlyOverviewTable } from '../LiquidityReport';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
-import { TrendingDown } from 'lucide-react';
 
 /** Karten-Chrome = sichtbarer Rahmen (`border`-Breiten-Utility) oder Schatten.
- * Hintergrund-Tönung zum Bündeln zählt NICHT als Karte (Usability-Audit). */
-function hasCardChrome(el: HTMLElement): boolean {
+ * Hintergrund-Tönung/`divide-*` zum Bündeln zählt NICHT als Karte. */
+function hasCardChrome(el: Element): boolean {
   const tokens = el.className.split(/\s+/);
   const hasBorderUtil = tokens.some((c) => /^border(-(x|y|t|r|b|l|s|e))?$/.test(c));
   const hasShadow = tokens.some((c) => /^shadow(-|$)/.test(c));
@@ -30,42 +29,42 @@ const month = (over: Partial<ForecastMonthlySummary> = {}): ForecastMonthlySumma
   ...over,
 });
 
-describe('Liquidityreport Prinzip 8 (Karten sind Aktionen)', () => {
-  describe('Kpi (Kennzahl-Readout)', () => {
-    it('sollte Label, Wert und Hinweis anzeigen', () => {
-      render(<Kpi icon={<TrendingDown />} label="Tiefststand" value="1.802 €" hint="31.7." />);
-      expect(screen.getByText('Tiefststand')).toBeInTheDocument();
-      expect(screen.getByText('1.802 €')).toBeInTheDocument();
-      expect(screen.getByText('31.7.')).toBeInTheDocument();
-    });
-
-    it('[REGRESSION] sollte ohne Karten-Chrome und nicht klickbar rendern', () => {
-      const { container } = render(<Kpi icon={<TrendingDown />} label="A" value="1 €" />);
-      expect(hasCardChrome(container.firstElementChild as HTMLElement)).toBe(false);
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
-      expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    });
+describe('MonthlyOverviewTable (kompakte Monatsübersicht, Prinzip 8)', () => {
+  it('sollte eine Zeile je Monat mit den Kennzahlen als Tabelle rendern', () => {
+    render(
+      <MonthlyOverviewTable
+        months={[month(), month({ month: '2026-08', closingBalance: 2830 })]}
+      />,
+    );
+    // Genau eine Tabelle, ein Header + zwei Datenzeilen.
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(3);
+    expect(screen.getByText('Juli 2026')).toBeInTheDocument();
+    expect(screen.getByText('Aug. 2026')).toBeInTheDocument();
+    // Spaltenköpfe vorhanden.
+    expect(screen.getByRole('columnheader', { name: 'Monatsende' })).toBeInTheDocument();
   });
 
-  describe('MonthSummary (Monatsübersicht-Readout)', () => {
-    it('sollte Monat und Kennzahlen anzeigen', () => {
-      render(<MonthSummary m={month()} />);
-      expect(screen.getByText('Juli 2026')).toBeInTheDocument();
-      expect(screen.getByText('Einnahmen')).toBeInTheDocument();
-      expect(screen.getByText('Monatsende')).toBeInTheDocument();
-    });
+  it('[REGRESSION] sollte EIN gebündelter Block ohne Karten-Chrome sein (kein Kachel-Raster)', () => {
+    const { container } = render(<MonthlyOverviewTable months={[month()]} />);
+    expect(hasCardChrome(container.firstElementChild as HTMLElement)).toBe(false);
+    // Keine klickbare Affordanz – reines Readout.
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
 
-    it('[REGRESSION] sollte ohne Karten-Chrome und nicht klickbar rendern', () => {
-      const { container } = render(<MonthSummary m={month()} previousClosingBalance={1000} />);
-      expect(hasCardChrome(container.firstElementChild as HTMLElement)).toBe(false);
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
-      expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    });
+  it('[REGRESSION] sollte "unter Puffer" ohne Rahmen (Tönung + Badge) signalisieren', () => {
+    render(<MonthlyOverviewTable months={[month({ belowSafetyBuffer: true })]} />);
+    expect(screen.getByText('unter Puffer')).toBeInTheDocument();
+  });
 
-    it('[REGRESSION] sollte "unter Puffer" ohne Rahmen (nur Tönung/Badge) signalisieren', () => {
-      const { container } = render(<MonthSummary m={month({ belowSafetyBuffer: true })} />);
-      expect(hasCardChrome(container.firstElementChild as HTMLElement)).toBe(false);
-      expect(screen.getByText('unter Puffer')).toBeInTheDocument();
-    });
+  it('sollte optionale Spalten (Sparen/Transfer, Zinsen) nur bei Bedarf zeigen', () => {
+    const { rerender } = render(<MonthlyOverviewTable months={[month()]} />);
+    expect(screen.queryByRole('columnheader', { name: 'Sparen/Transfer' })).not.toBeInTheDocument();
+    rerender(<MonthlyOverviewTable months={[month({ transfersOut: 200, interest: 5 })]} />);
+    expect(screen.getByRole('columnheader', { name: 'Sparen/Transfer' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Zinsen' })).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('+5 €')).toBeInTheDocument();
   });
 });

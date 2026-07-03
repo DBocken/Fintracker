@@ -12,9 +12,6 @@ import {
 } from 'recharts';
 import {
   AlertTriangle,
-  ShieldCheck,
-  TrendingDown,
-  CalendarClock,
   Lightbulb,
   X,
   LineChart,
@@ -25,7 +22,7 @@ import {
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup, InfoStatStrip } from '@/components/common/InfoGroup';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -106,44 +103,6 @@ function maxBreach(breach: Record<string, number[]> | undefined, threshold: numb
   const series = breach[String(threshold)];
   if (!series || series.length === 0) return 0;
   return Math.max(...series);
-}
-
-/**
- * Eine kompakte KPI als karten-loses Readout (Prinzip 8 „Karten sind Aktionen"):
- * Eine Kennzahl hat keine Folgeaktion → KEIN Rahmen/Schatten, nur ein ruhig
- * hinterlegter Block. Die tone-Farbe transportiert weiter den Schwellwert.
- */
-export function Kpi({
-  icon,
-  label,
-  value,
-  tone = 'default',
-  hint,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tone?: 'default' | 'warning' | 'critical' | 'good';
-  hint?: string;
-}) {
-  const toneClass =
-    tone === 'critical'
-      ? 'text-destructive'
-      : tone === 'warning'
-        ? 'text-warning'
-        : tone === 'good'
-          ? 'text-emerald-600 dark:text-emerald-400'
-          : '';
-  return (
-    <div className="rounded-xl bg-muted/30 p-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="shrink-0">{icon}</span>
-        <span className="truncate">{label}</span>
-      </div>
-      <div className={`mt-1 text-xl font-bold ${toneClass}`}>{value}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-    </div>
-  );
 }
 
 const HORIZON_OPTIONS = [6, 12, 24, 36];
@@ -463,35 +422,34 @@ export default function LiquidityReport() {
             </CardContent>
           </Card>
 
-          {/* KPIs */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <Kpi
-              icon={<TrendingDown className="h-4 w-4" />}
-              label="Tiefststand"
-              value={eur.format(liqRisk.lowestBalance)}
-              tone={lowestTone}
-              hint={fmtDate(liqRisk.lowestBalanceDate)}
-            />
-            <Kpi
-              icon={<CalendarClock className="h-4 w-4" />}
-              label="Erster Pufferbruch"
-              value={breach ? fmtDate(breach) : 'keiner'}
-              tone={breach ? 'warning' : 'good'}
-              hint={breach ? `${liqRisk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont'}
-            />
-            <Kpi
-              icon={<ShieldCheck className="h-4 w-4" />}
-              label="Min. Giro"
-              value={eur.format(liqRisk.minimumOperatingCash)}
-              hint="operativ verfügbar"
-            />
-            <Kpi
-              icon={<ShieldCheck className="h-4 w-4" />}
-              label="Min. verfügbar"
-              value={eur.format(liqRisk.minimumAvailableCash)}
-              hint="inkl. Reserve"
-            />
-          </div>
+          {/* KPIs – gebündeltes Readout in EINEM Block (kein Kachel-Raster),
+              schwellwertbewusst gefärbt (Prinzip 8 + 2). */}
+          <InfoStatStrip
+            items={[
+              {
+                label: 'Tiefststand',
+                value: eur.format(liqRisk.lowestBalance),
+                hint: fmtDate(liqRisk.lowestBalanceDate),
+                tone: lowestTone,
+              },
+              {
+                label: 'Erster Pufferbruch',
+                value: breach ? fmtDate(breach) : 'keiner',
+                hint: breach ? `${liqRisk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont',
+                tone: breach ? 'warning' : 'good',
+              },
+              {
+                label: 'Min. Giro',
+                value: eur.format(liqRisk.minimumOperatingCash),
+                hint: 'operativ verfügbar',
+              },
+              {
+                label: 'Min. verfügbar',
+                value: eur.format(liqRisk.minimumAvailableCash),
+                hint: 'inkl. Reserve',
+              },
+            ]}
+          />
 
           {/* Risikotreiber & Empfehlung */}
           {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
@@ -622,15 +580,7 @@ export default function LiquidityReport() {
       {/* Monatskarten */}
       <div>
         <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Monatsübersicht</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {monthly.map((m, i) => (
-            <MonthSummary
-              key={m.month}
-              m={m}
-              previousClosingBalance={i > 0 ? monthly[i - 1].closingBalance : undefined}
-            />
-          ))}
-        </div>
+        <MonthlyOverviewTable months={monthly} />
       </div>
     </div>
   );
@@ -782,86 +732,82 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
 }
 
 /**
- * Monats-Kennzahlen als karten-loses Readout (Prinzip 8 „Karten sind Aktionen"):
- * kein Follow-up hinter dem Monat → kein Rahmen/Schatten, nur ein ruhig
- * hinterlegter Block. „Unter Puffer" wird schwellwertbewusst durch eine dezente
- * Tönung + Badge signalisiert statt durch einen Karten-Rahmen.
+ * Monatsübersicht als kompakte Tabelle (Prinzip 8 „Karten sind Aktionen" +
+ * „kompakter statt Kachel-Raster"): ein einziger, ruhig hinterlegter Block mit
+ * einer Zeile pro Monat und dünnen Trennlinien statt einer Karte je Monat. Auf
+ * schmalen Screens horizontal scrollbar. „Unter Puffer" wird schwellwertbewusst
+ * über eine dezente Zeilentönung + Badge signalisiert (kein Karten-Rahmen).
  */
-export function MonthSummary({
-  m,
-  previousClosingBalance,
-}: {
-  m: ForecastMonthlySummary;
-  previousClosingBalance?: number;
-}) {
-  return (
-    <div
-      className={cn(
-        'space-y-2 rounded-xl p-4',
-        m.belowSafetyBuffer ? 'bg-warning/10' : 'bg-muted/30',
-      )}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold">{fmtMonth(m.month)}</span>
-        <span className="flex shrink-0 items-center gap-1.5">
-          {/* Monatsende ggü. Vormonat – schwellwertbewusst (kleine Änderung = neutral). */}
-          {previousClosingBalance !== undefined && (
-            <DeltaBadge current={m.closingBalance} previous={previousClosingBalance} />
-          )}
-          {m.belowSafetyBuffer && (
-            <Badge variant="outline" className="border-warning text-warning">
-              unter Puffer
-            </Badge>
-          )}
-        </span>
-      </div>
-      <dl className="space-y-1 text-sm">
-        <Row label="Einnahmen" value={eur.format(m.income)} positive />
-        <Row label="Fixkosten" value={`−${eur.format(m.fixedExpenses)}`} />
-        <Row label="Variabel" value={`−${eur.format(m.variableExpenses)}`} />
-        {m.transfersOut > 0 && (
-          <Row label="Sparen/Transfer" value={`−${eur.format(m.transfersOut)}`} />
-        )}
-        {m.interest > 0 && <Row label="Zinsen" value={`+${eur.format(m.interest)}`} positive />}
-        <div className="my-1 border-t border-border/60" />
-        <Row label="Monatsende" value={eur.format(m.closingBalance)} bold />
-        <Row
-          label="Monatstief"
-          value={`${eur.format(m.lowestBalance)} · ${format(parseISO(m.lowestBalanceDate), 'd.M.', { locale: de })}`}
-          muted
-        />
-      </dl>
-    </div>
-  );
-}
+export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummary[] }) {
+  const hasTransfers = months.some((m) => m.transfersOut > 0);
+  const hasInterest = months.some((m) => m.interest > 0);
+  const shortDate = (iso: string) => {
+    try {
+      return format(parseISO(iso), 'd.M.', { locale: de });
+    } catch {
+      return iso;
+    }
+  };
 
-function Row({
-  label,
-  value,
-  positive,
-  bold,
-  muted,
-}: {
-  label: string;
-  value: string;
-  positive?: boolean;
-  bold?: boolean;
-  muted?: boolean;
-}) {
   return (
-    <div className="flex items-center justify-between">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd
-        className={[
-          positive ? 'text-emerald-600 dark:text-emerald-400' : '',
-          bold ? 'font-semibold' : '',
-          muted ? 'text-xs text-muted-foreground' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        {value}
-      </dd>
+    <div className="overflow-x-auto rounded-xl bg-muted/30">
+      <table className="w-full min-w-[34rem] text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground [&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
+            <th className="text-left">Monat</th>
+            <th className="text-right">Einnahmen</th>
+            <th className="text-right">Fixkosten</th>
+            <th className="text-right">Variabel</th>
+            {hasTransfers && <th className="text-right">Sparen/Transfer</th>}
+            {hasInterest && <th className="text-right">Zinsen</th>}
+            <th className="text-right">Monatsende</th>
+            <th className="text-right">Monatstief</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60 [&>tr>td]:px-3 [&>tr>td]:py-2">
+          {months.map((m, i) => (
+            <tr key={m.month} className={cn('tabular-nums', m.belowSafetyBuffer && 'bg-warning/10')}>
+              <td>
+                <span className="flex items-center gap-1.5 font-medium">
+                  {fmtMonth(m.month)}
+                  {m.belowSafetyBuffer && (
+                    <Badge variant="outline" className="border-warning text-warning">
+                      unter Puffer
+                    </Badge>
+                  )}
+                </span>
+              </td>
+              <td className="text-right text-emerald-600 dark:text-emerald-400">
+                {eur.format(m.income)}
+              </td>
+              <td className="text-right">−{eur.format(m.fixedExpenses)}</td>
+              <td className="text-right">−{eur.format(m.variableExpenses)}</td>
+              {hasTransfers && (
+                <td className="text-right">
+                  {m.transfersOut > 0 ? `−${eur.format(m.transfersOut)}` : '—'}
+                </td>
+              )}
+              {hasInterest && (
+                <td className="text-right text-emerald-600 dark:text-emerald-400">
+                  {m.interest > 0 ? `+${eur.format(m.interest)}` : '—'}
+                </td>
+              )}
+              <td className="text-right">
+                <span className="flex items-center justify-end gap-1.5">
+                  {/* Monatsende ggü. Vormonat – schwellwertbewusst (kleine Änderung = neutral). */}
+                  {i > 0 && (
+                    <DeltaBadge current={m.closingBalance} previous={months[i - 1].closingBalance} />
+                  )}
+                  <span className="font-semibold">{eur.format(m.closingBalance)}</span>
+                </span>
+              </td>
+              <td className="text-right text-xs text-muted-foreground">
+                {eur.format(m.lowestBalance)} · {shortDate(m.lowestBalanceDate)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

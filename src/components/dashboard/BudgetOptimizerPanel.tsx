@@ -303,8 +303,9 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                 Preise – sie lassen sich nur kündigen, wechseln oder bündeln.
               </p>
             ) : (
-              contractHints.map((hint, i) => (
-                <div key={i} className="rounded-xl bg-muted/30 p-4">
+              <div className="divide-y divide-border/60">
+                {contractHints.map((hint, i) => (
+                <div key={i} className="py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-medium">{hint.title}</div>
@@ -322,7 +323,8 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                     </div>
                   </div>
                 </div>
-              ))
+                ))}
+              </div>
             )}
 
             {emergencyTarget > 0 && (
@@ -372,9 +374,9 @@ function WaterfallResult({
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Wo zuerst sparen? (niedrige Priorität zuerst)
       </div>
-      <div className="space-y-2">
+      <div className="divide-y divide-border/60">
         {visible.map((s) => (
-          <div key={s.category} className="flex items-center gap-3 rounded-lg bg-muted/30 px-3 py-2.5">
+          <div key={s.category} className="flex items-center gap-3 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium">{s.category}</span>
