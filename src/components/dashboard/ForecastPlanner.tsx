@@ -212,7 +212,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
               {overrides.transfers.map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                <div key={t.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/30 p-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
                       {t.name || `${accountName(t.fromAccountId)} → ${accountName(t.toAccountId)}`}
@@ -262,7 +262,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
               {overrides.plannedEvents.map((ev) => (
-                <div key={ev.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                <div key={ev.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/30 p-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{ev.name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -316,7 +316,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
               {overrides.sinkingFunds.map((f) => (
-                <div key={f.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                <div key={f.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/30 p-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{f.name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -539,7 +539,7 @@ function FundForm({
   );
 }
 
-function BudgetOverrideForm({
+export function BudgetOverrideForm({
   variableExpenses,
   overrides,
   onChange,
@@ -561,7 +561,7 @@ function BudgetOverrideForm({
   return (
     <div className="space-y-3">
       {variableExpenses.map((expense) => (
-        <div key={expense.category} className="rounded-md border p-3">
+        <div key={expense.category} className="rounded-lg bg-muted/30 p-3">
           <div className="mb-2 flex items-center justify-between">
             <Label className="text-sm font-medium">{expense.category}</Label>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -728,7 +728,7 @@ function RecurringFlowOverrideForm({
         return (
           <div
             key={flow.id}
-            className={`rounded-md border p-3 transition-opacity ${isDisabled ? 'opacity-50' : ''}`}
+            className={`rounded-lg bg-muted/30 p-3 transition-opacity ${isDisabled ? 'opacity-50' : ''}`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
