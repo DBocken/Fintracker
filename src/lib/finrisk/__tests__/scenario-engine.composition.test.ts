@@ -94,4 +94,52 @@ describe('Szenario-Engine – vollständige Zell-Zusammensetzung', () => {
     // Fixkosten/Posten sind in jedem Pfad gleich.
     expect(comp.find((c) => c.name === 'Miete')!.varies).toBe(false);
   });
+
+  it('liefert trialsByCell aligned mit Dichtefeld und Repräsentanten', () => {
+    const result = runScenarioPayload(input(), CONFIG, payload, { monteCarlo: MC });
+    expect(result.trialsByCell).toBeDefined();
+
+    for (const day of [0, Math.floor(result.horizonDays / 2), result.horizonDays - 1]) {
+      const cells = result.trialsByCell![day];
+      const counts = result.density.counts[day];
+      let total = 0;
+      cells.forEach((list, b) => {
+        // Zellbelegung passt exakt zum Dichtefeld …
+        expect(list.length).toBe(counts[b] ?? 0);
+        // … und der Repräsentant (nächster am Bin-Zentrum) steht vorn.
+        expect(list[0] ?? -1).toBe(result.representativeByCell![day][b]);
+        total += list.length;
+      });
+      // Jeder Pfad liegt an jedem Tag in genau einer Zelle.
+      expect(total).toBe(result.density.total);
+    }
+  });
+
+  it('macht Zell-Details mit Spannen und Blättern über trialsByCell möglich', () => {
+    const result = runScenarioPayload(input(), CONFIG, payload, { monteCarlo: MC });
+    const day = result.horizonDays - 1;
+    // Vollste Zelle: dort liegen sicher mehrere Pfade.
+    const counts = result.density.counts[day];
+    const bin = counts.indexOf(Math.max(...counts));
+    expect(counts[bin]).toBeGreaterThan(1);
+
+    const detail = computeCellDetail({
+      density: result.density,
+      assumptions: result.assumptions!,
+      representativeByCell: result.representativeByCell!,
+      trialsByCell: result.trialsByCell!,
+      compositionSchedule: result.compositionSchedule,
+      day,
+      bin,
+      pathIndex: 1,
+    })!;
+    expect(detail.pathCount).toBe(counts[bin]);
+    expect(detail.pathIndex).toBe(1);
+    expect(detail.representative!.trial).toBe(result.trialsByCell![day][bin][1]);
+    // Streuende Posten tragen die Zell-Spanne (Shopping streut immer).
+    const shopping = detail.representative!.composition.find((c) => c.name === 'Shopping')!;
+    expect(shopping.cellRange).toBeDefined();
+    expect(shopping.cellRange!.min).toBeLessThanOrEqual(shopping.cellRange!.avg);
+    expect(shopping.cellRange!.avg).toBeLessThanOrEqual(shopping.cellRange!.max);
+  });
 });

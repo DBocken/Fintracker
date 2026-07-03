@@ -4,11 +4,17 @@
  * Beantwortet die Frage hinter einem Heatmap-Klick: „Welche konkreten Werte
  * haben einen Saldo in DIESER Zelle (Tag × Wert-Bin) erzeugt?" Statt nur P10/P50/
  * P90 zu zeigen, greift dieses Modul auf die je Durchlauf gezogenen Annahmen
- * ({@link TrialAssumptions}) zu, wählt den repräsentativen Pfad der Zelle
- * (vom Engine vorberechnet in `representativeByCell`) und schlüsselt dessen bis
- * zum Tag kumulierte variable Ausgaben je Kategorie auf – jeweils relativ zum
- * Median aller Pfade, denn die Abweichung vom Median ist der eigentliche Treiber,
- * der einen Pfad in eine hohe oder niedrige Zelle bringt.
+ * ({@link TrialAssumptions}) zu und schlüsselt einen konkreten Pfad der Zelle
+ * bis zum Tag auf – jeweils relativ zum Median aller Pfade, denn die Abweichung
+ * vom Median ist der eigentliche Treiber, der einen Pfad in eine hohe oder
+ * niedrige Zelle bringt.
+ *
+ * Eine Zelle bündelt dabei oft MEHRERE „Lösungen": verschiedene Annahme-
+ * Kombinationen, die denselben Saldo erzeugen. Liegen die Zell-Pfade vor
+ * (`trialsByCell`, vom Engine vorberechnet), liefert das Detail zusätzlich je
+ * streuendem Posten Unter-/Obergrenze und Durchschnitt über die Pfade der
+ * Zelle, die Verteilung der Haupttreiber – und erlaubt per `pathIndex` das
+ * Blättern durch die konkreten Pfade (Index 0 = Repräsentant am Bin-Zentrum).
  *
  * Reine Logik ohne IO – unabhängig testbar.
  */
@@ -19,6 +25,23 @@ import type { CompositionItem } from './scenario-payload-types';
 
 /** Anzeigegruppe eines Geldfluss-Postens in der Zell-Zusammensetzung. */
 export type CompositionGroup = 'income' | 'fixed' | 'variable' | 'event';
+
+/**
+ * Spanne einer Größe über die Pfade EINER Zelle (signiert, `min ≤ max`).
+ * Bei Ausgaben ist `min` also der teuerste, `max` der sparsamste Pfad.
+ */
+export interface CellRange {
+  min: number;
+  max: number;
+  avg: number;
+}
+
+/** Anteil einer Kategorie als Haupttreiber unter den Pfaden einer Zelle. */
+export interface DriverShare {
+  category: string;
+  /** Anteil der Zell-Pfade mit dieser Kategorie als größtem Treiber (0..1). */
+  share: number;
+}
 
 /**
  * Eine Zeile der vollständigen Zell-Zusammensetzung: ein benannter Geldfluss,
@@ -37,6 +60,12 @@ export interface CompositionLine {
   median?: number;
   /** Relative Abweichung der Beträge vom Median (auf Magnitude bezogen). */
   deltaPct?: number;
+  /**
+   * Spanne/Durchschnitt über die Pfade DIESER Zelle (signiert). Nur gesetzt bei
+   * streuenden Posten, wenn die Zell-Pfade bekannt sind und mehr als ein Pfad
+   * in der Zelle liegt.
+   */
+  cellRange?: CellRange;
 }
 
 /** Beitrag einer variablen Ausgaben-Kategorie zum Saldo der Zelle. */
@@ -48,6 +77,8 @@ export interface CategoryContribution {
   median: number;
   /** Relative Abweichung (amount − median) / median; 0 bei median ≈ 0. */
   deltaPct: number;
+  /** Spanne/Durchschnitt über die Pfade DIESER Zelle (EUR, positiv). */
+  cellRange?: CellRange;
 }
 
 /** Beitrag eines perturbierten Einnahme-Flows. */
@@ -105,7 +136,20 @@ export interface CellDetail {
   totalPaths: number;
   /** Anteil der Pfade in dieser Zelle (0..1). */
   share: number;
-  /** Repräsentativer Pfad – null bei leerer Zelle oder fehlenden Annahmen. */
+  /**
+   * Anzahl der blätterbaren Pfade der Zelle: alle Zell-Pfade, wenn
+   * `trialsByCell` vorliegt, sonst höchstens der Repräsentant (0 oder 1).
+   */
+  pathCount: number;
+  /** Tatsächlich gezeigter Pfad (0-basiert, auf `pathCount` geklemmt). */
+  pathIndex: number;
+  /**
+   * Verteilung der Haupttreiber über die Pfade der Zelle, absteigend nach
+   * Anteil – macht sichtbar, dass EINE Zelle mehrere Erklärungen haben kann.
+   * Leer, wenn keine Pfade/Kategorien vorliegen.
+   */
+  driverShares: DriverShare[];
+  /** Gezeigter Pfad – null bei leerer Zelle oder fehlenden Annahmen. */
   representative: CellRepresentative | null;
 }
 
@@ -115,10 +159,17 @@ export interface ComputeCellDetailParams {
   assumptions: TrialAssumptions[];
   /** `representativeByCell[tag][bin]` – Trial-Index oder -1. */
   representativeByCell: number[][];
+  /**
+   * Alle Trial-Indizes je Zelle (Repräsentant zuerst). Optional: ohne sie ist
+   * nur der Repräsentant bekannt – keine Zell-Spannen, kein Blättern.
+   */
+  trialsByCell?: number[][][];
   /** Benannte deterministische Geldfluss-Posten (Einnahmen/Fixkosten/geplant). */
   compositionSchedule?: CompositionItem[];
   day: number;
   bin: number;
+  /** Gewünschter Pfad der Zelle (0 = Repräsentant); wird geklemmt. */
+  pathIndex?: number;
 }
 
 /** Reihenfolge der Gruppen in der Zusammensetzung. */
@@ -139,6 +190,19 @@ function median(values: number[]): number {
 
 function relativeDelta(amount: number, ref: number): number {
   return Math.abs(ref) < 1e-9 ? 0 : (amount - ref) / ref;
+}
+
+/** Min/Max/Durchschnitt eines nicht-leeren Zahlen-Arrays. */
+function rangeOf(values: number[]): CellRange {
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+  }
+  return { min, max, avg: sum / values.length };
 }
 
 /**
@@ -166,7 +230,8 @@ function cumulativeToDay(
  * trotzdem gefüllt.
  */
 export function computeCellDetail(params: ComputeCellDetailParams): CellDetail | null {
-  const { density, assumptions, representativeByCell, compositionSchedule, day, bin } = params;
+  const { density, assumptions, representativeByCell, trialsByCell, compositionSchedule, day, bin, pathIndex } =
+    params;
   if (!density || density.total === 0 || density.binSize <= 0) return null;
   const nDays = density.dates.length;
   if (day < 0 || day >= nDays) return null;
@@ -197,12 +262,32 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
     pathsInCell: within,
     totalPaths: density.total,
     share: density.total > 0 ? within / density.total : 0,
+    pathCount: 0,
+    pathIndex: 0,
+    driverShares: [],
     representative: null,
   };
 
-  const trial = representativeByCell?.[day]?.[bin] ?? -1;
+  // Pfade der Zelle: alle Trials (Repräsentant zuerst) – oder nur der
+  // Repräsentant als Fallback, wenn keine trialsByCell vorliegen.
+  const repTrial = representativeByCell?.[day]?.[bin] ?? -1;
+  const rawCellTrials = trialsByCell?.[day]?.[bin];
+  const hasCellTrials = !!rawCellTrials && rawCellTrials.length > 0;
+  const cellTrials = (hasCellTrials ? rawCellTrials : repTrial >= 0 ? [repTrial] : []).filter(
+    (t) => t >= 0 && t < (assumptions?.length ?? 0),
+  );
+  detail.pathCount = cellTrials.length;
+  if (cellTrials.length > 0) {
+    detail.pathIndex = Math.max(0, Math.min(cellTrials.length - 1, pathIndex ?? 0));
+  }
+
+  const trial = cellTrials[detail.pathIndex] ?? -1;
   const repAssumptions = trial >= 0 ? assumptions?.[trial] : undefined;
   if (!repAssumptions) return detail;
+
+  // Zell-Spannen nur, wenn die Zell-Pfade wirklich bekannt sind und mehrere
+  // „Lösungen" in der Zelle liegen – sonst wäre die Spanne ein Punkt.
+  const aggregateTrials = hasCellTrials && cellTrials.length > 1 ? cellTrials : null;
 
   // Tagesgewichte (1 / Monatstage) bis einschließlich `day` – Monatslänge cachen.
   const daysInMonthCache = new Map<string, number>();
@@ -220,18 +305,51 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
     dayWeights[t] = dim > 0 ? 1 / dim : 0;
   }
 
-  const variableByCategory: CategoryContribution[] = repAssumptions.variableByCategory.map((cat) => {
-    const amount = cumulativeToDay(cat.monthly, dayMonths, dayWeights);
+  // Kumulierte Ausgaben je Kategorie über ALLE Pfade – Grundlage für Median,
+  // Zell-Spannen und die Treiber-Verteilung.
+  const categoryTotals = repAssumptions.variableByCategory.map((cat) => {
     const acrossTrials = assumptions.map((a) => {
       const match = a.variableByCategory.find((c) => c.category === cat.category);
       return match ? cumulativeToDay(match.monthly, dayMonths, dayWeights) : 0;
     });
-    const med = median(acrossTrials);
-    return { category: cat.category, amount, median: med, deltaPct: relativeDelta(amount, med) };
+    return { category: cat.category, acrossTrials, median: median(acrossTrials) };
+  });
+
+  const variableByCategory: CategoryContribution[] = categoryTotals.map((cat) => {
+    const amount = cat.acrossTrials[trial];
+    return {
+      category: cat.category,
+      amount,
+      median: cat.median,
+      deltaPct: relativeDelta(amount, cat.median),
+      cellRange: aggregateTrials ? rangeOf(aggregateTrials.map((t) => cat.acrossTrials[t])) : undefined,
+    };
   });
   variableByCategory.sort(
     (a, b) => Math.abs(b.amount - b.median) - Math.abs(a.amount - a.median),
   );
+
+  // Haupttreiber je Zell-Pfad: die Kategorie mit der größten absoluten
+  // Abweichung vom Median. Die Verteilung zeigt, dass eine Zelle mehrere
+  // Erklärungen bündeln kann („62 % Lebensmittel, 24 % Freizeit …").
+  if (categoryTotals.length > 0 && cellTrials.length > 0) {
+    const counts = new Map<string, number>();
+    for (const t of cellTrials) {
+      let bestCategory = '';
+      let bestDeviation = -Infinity;
+      for (const cat of categoryTotals) {
+        const deviation = Math.abs(cat.acrossTrials[t] - cat.median);
+        if (deviation > bestDeviation) {
+          bestDeviation = deviation;
+          bestCategory = cat.category;
+        }
+      }
+      counts.set(bestCategory, (counts.get(bestCategory) ?? 0) + 1);
+    }
+    detail.driverShares = [...counts.entries()]
+      .map(([category, n]) => ({ category, share: n / cellTrials.length }))
+      .sort((a, b) => b.share - a.share);
+  }
 
   const income: IncomeContribution[] = repAssumptions.income.map((inc) => {
     const acrossTrials = assumptions
@@ -271,13 +389,16 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
         varies: true,
         median: med,
         deltaPct: relativeDelta(Math.abs(amount), Math.abs(med)),
+        cellRange: aggregateTrials ? rangeOf(aggregateTrials.map((t) => cum * ratios[t])) : undefined,
       });
     } else {
       composition.push({ name: item.name, group: item.group, amount: cum, varies: false });
     }
   }
   for (const cat of variableByCategory) {
-    if (cat.amount < 0.5) continue;
+    // Posten behalten, wenn IRGENDEIN Zell-Pfad ihn nutzt – sonst würden
+    // Zeilen beim Blättern zwischen den Pfaden auf- und wieder abtauchen.
+    if (cat.amount < 0.5 && (cat.cellRange?.max ?? 0) < 0.5) continue;
     composition.push({
       name: cat.category,
       group: 'variable',
@@ -285,6 +406,10 @@ export function computeCellDetail(params: ComputeCellDetailParams): CellDetail |
       varies: true,
       median: -cat.median,
       deltaPct: cat.deltaPct,
+      // Signiert gespiegelt: teuerster Pfad wird zur Untergrenze.
+      cellRange: cat.cellRange
+        ? { min: -cat.cellRange.max, max: -cat.cellRange.min, avg: -cat.cellRange.avg }
+        : undefined,
     });
   }
   composition.sort(
