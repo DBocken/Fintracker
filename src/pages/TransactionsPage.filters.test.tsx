@@ -61,6 +61,17 @@ describe("TransactionsPage – Filter steuern alle Anzeigen", () => {
       expect(screen.getByText(/von 3/)).toBeTruthy();
     });
 
+    it("[REGRESSION] sollte die Filter-Bedienelemente sichtbar auf der Seite rendern", () => {
+      renderPage();
+      // Die Filter liegen direkt sichtbar auf der Seite (nicht hinter einem Button).
+      expect(screen.getByRole("combobox", { name: /Konto filtern/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Kategorie filtern/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Vertragsstatus filtern/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Essenziell-Status filtern/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Ausgabenklasse filtern/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Zeitraum filtern/i })).toBeTruthy();
+    });
+
     it("[REGRESSION] sollte beim Tippen in die Suche Liste UND Kennzahlen anpassen", () => {
       renderPage();
       fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Rewe" } });

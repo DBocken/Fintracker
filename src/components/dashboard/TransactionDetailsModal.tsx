@@ -72,7 +72,7 @@ export function TransactionDetailsModal({
     // Breiter, horizontaler Dialog: Stammdaten links (1/3), Bearbeitung rechts (2/3).
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Transaktionsdetails</DialogTitle>
           </DialogHeader>

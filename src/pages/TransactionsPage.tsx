@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { TransactionDayList } from "@/components/dashboard/TransactionDayList";
 import { TransactionStats } from "@/components/dashboard/TransactionStats";
 import { TransactionFilters } from "@/components/dashboard/TransactionFilters";
@@ -59,7 +57,6 @@ export default function TransactionsPage() {
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => decodeDashboardFilters(searchParams));
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -255,40 +252,20 @@ export default function TransactionsPage() {
         <FinanceEmptyState />
       ) : (
         <div className="space-y-5">
-          {/* Filter-Leiste – steuert Kennzahlen + Liste (wie auf dem Dashboard). */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-[12rem] flex-1">
+          {/* Filter – immer sichtbar; steuern Kennzahlen + Liste. */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <input
                 type="search"
                 aria-label={t("transactions.search")}
                 placeholder={t("transactions.search")}
                 value={filters.search}
                 onChange={(e) => patchFilters({ search: e.target.value })}
-                className="h-11 w-full rounded-full border border-input bg-background/50 px-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-11 w-full rounded-full border border-input bg-background/50 pl-10 pr-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="relative h-11"
-              onClick={() => setFilterDialogOpen(true)}
-            >
-              <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
-              Filter
-              {activeFilterCount > 0 && (
-                <Badge variant="default" className="ml-2 h-5 min-w-5 justify-center px-1.5">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-
-          <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-            <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Filter</DialogTitle>
-              </DialogHeader>
+            <div className="flex flex-wrap items-center gap-2">
               <TransactionFilters
                 filterCat={filters.category}
                 setFilterCat={(v) => patchFilters({ category: v })}
@@ -313,15 +290,15 @@ export default function TransactionsPage() {
                 filterAusgabenklasse={filters.ausgabenklasse}
                 setFilterAusgabenklasse={(v: AusgabenklasseFilter) => patchFilters({ ausgabenklasse: v })}
                 showSearch={false}
-                stacked
               />
-              <DialogFooter>
-                <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
-                  Filter zurücksetzen
+              {activeFilterCount > 0 && (
+                <Button type="button" variant="ghost" size="sm" className="h-9 gap-1" onClick={resetFilters}>
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  Zurücksetzen
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              )}
+            </div>
+          </div>
 
           <TransactionStats
             income={stats.income}
