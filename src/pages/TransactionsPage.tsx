@@ -332,7 +332,6 @@ export default function TransactionsPage() {
             currentBalance={formatBalance(scopedCurrentBalance)}
           />
 
-          {/* Volle Breite; auf dem Desktop fließen die Tage horizontal in Spalten. */}
           {visible.length === 0 ? emptyList : (
             <TransactionDayList
               transactions={visible}
@@ -342,7 +341,6 @@ export default function TransactionsPage() {
               endingBalance={endingBalance}
               showRunningBalance={!hasContentFilter}
               selectedId={detailsTransaction?.id}
-              multiColumn
             />
           )}
         </div>

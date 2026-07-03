@@ -51,7 +51,7 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null;
 
-  const panel = (
+  const panel = (layout: 'stacked' | 'split') => (
     <TransactionDetailsPanel
       transaction={transaction}
       categories={categories}
@@ -64,17 +64,19 @@ export function TransactionDetailsModal({
       isLoading={isLoading}
       onClose={() => onOpenChange(false)}
       closeLabel="Abbrechen"
+      layout={layout}
     />
   );
 
   if (isDesktop) {
+    // Breiter, horizontaler Dialog: Stammdaten links (1/3), Bearbeitung rechts (2/3).
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Transaktionsdetails</DialogTitle>
           </DialogHeader>
-          {panel}
+          {panel('split')}
         </DialogContent>
       </Dialog>
     );
@@ -86,7 +88,7 @@ export function TransactionDetailsModal({
         <SheetHeader className="mb-2">
           <SheetTitle className="text-left">Transaktionsdetails</SheetTitle>
         </SheetHeader>
-        {panel}
+        {panel('stacked')}
       </SheetContent>
     </Sheet>
   );

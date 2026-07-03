@@ -17,6 +17,7 @@ import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
 import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPanel';
@@ -58,6 +59,12 @@ export interface TransactionDetailsPanelProps {
   onClose: () => void;
   /** Beschriftung des sekundären Buttons (Dialog: „Abbrechen", Inline: „Schließen"). */
   closeLabel?: string;
+  /**
+   * `split` legt die Stammdaten (1/3) links und die Bearbeitung (2/3) rechts
+   * nebeneinander (breiter Desktop-Dialog); `stacked` (Default) stapelt alles
+   * vertikal (Mobil/Sheet).
+   */
+  layout?: 'stacked' | 'split';
 }
 
 const currencyFormatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
@@ -80,6 +87,7 @@ export function TransactionDetailsPanel({
   isLoading = false,
   onClose,
   closeLabel = 'Abbrechen',
+  layout = 'stacked',
 }: TransactionDetailsPanelProps) {
   const { t } = useI18n();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
@@ -186,8 +194,12 @@ export function TransactionDetailsPanel({
     }
   };
 
+  const isSplit = layout === 'split';
   return (
-    <div className="space-y-4 py-2">
+    <div className="py-2">
+      <div className={isSplit ? 'grid gap-6 md:grid-cols-3' : 'space-y-4'}>
+        {/* Stammdaten (read-only) – im Split-Layout die linke Spalte (1/3) */}
+        <div className={cn('space-y-4', isSplit && 'md:col-span-1')}>
       {/* Stammdaten (read-only) */}
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -227,9 +239,12 @@ export function TransactionDetailsPanel({
           </div>
         )}
       </div>
+        </div>
 
+        {/* Bearbeitung – im Split-Layout die rechte Spalte (2/3) */}
+        <div className={cn('space-y-4', isSplit && 'md:col-span-2')}>
       {/* Kategorisierung */}
-      <div className="space-y-2 border-t pt-4">
+      <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">Kategorisierung</h3>
 
         {categorySuggestion && !suggestionDismissed && (
@@ -439,9 +454,11 @@ export function TransactionDetailsPanel({
           )}
         </div>
       )}
+        </div>
+      </div>
 
-      {/* Speichern / Schließen */}
-      <div className="flex justify-end gap-2 border-t pt-4">
+      {/* Speichern / Schließen – volle Breite unter beiden Spalten */}
+      <div className="mt-4 flex justify-end gap-2 border-t pt-4">
         <Button variant="outline" onClick={onClose} disabled={isLoading}>
           {closeLabel}
         </Button>
