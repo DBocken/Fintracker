@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { getAccounts } from '../../services/account-service';
 import type { Account, Category } from '../../types';
 import {
@@ -42,6 +44,11 @@ interface TransactionFiltersProps {
   filterAusgabenklasse: AusgabenklasseFilter;
   setFilterAusgabenklasse: (v: AusgabenklasseFilter) => void;
   showSearch?: boolean;
+  /**
+   * `true` rendert die Filter als aufgeräumtes, beschriftetes 2-Spalten-Raster
+   * (für Dialoge). `false` (Default) ist die kompakte Toolbar-Leiste.
+   */
+  stacked?: boolean;
 }
 
 export function TransactionFilters({
@@ -68,147 +75,182 @@ export function TransactionFilters({
   filterAusgabenklasse,
   setFilterAusgabenklasse,
   showSearch = true,
+  stacked = false,
 }: TransactionFiltersProps) {
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
+  // Im Stacked-Modus füllen die Trigger die Spalte; in der Toolbar feste Breiten.
+  const triggerClass = (barWidth: string) =>
+    cn(stacked ? 'w-full' : barWidth, 'bg-background/50 backdrop-blur-sm');
+
+  /** Beschriftetes Feld – nur im Stacked-Modus mit sichtbarem Label. */
+  const Field = ({ label, children }: { label: string; children: ReactNode }) =>
+    stacked ? (
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+        {children}
+      </div>
+    ) : (
+      <>{children}</>
+    );
+
   return (
-    <div className="flex gap-2 items-center flex-wrap">
-      <Select value={filterAccount} onValueChange={setFilterAccount}>
-        <SelectTrigger aria-label="Konto filtern" className="w-48 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Alle Konten" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Alle Konten</SelectItem>
-          <SelectItem value="budget-pool">Budget-Pool</SelectItem>
-          {accounts.map((account: Account) => (
-            <SelectItem key={account.id} value={account.id}>
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: account.color }}
-                  aria-hidden="true"
-                />
-                <span aria-hidden="true">{account.icon}</span>
-                <span>{account.name}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={filterCat} onValueChange={setFilterCat}>
-        <SelectTrigger aria-label="Kategorie filtern" className="w-48 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Alle Kategorien" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Alle Kategorien</SelectItem>
-          {categories.map((category) => (
-            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={filterContract} onValueChange={setFilterContract}>
-        <SelectTrigger aria-label="Vertragsstatus filtern" className="w-40 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Verträge" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Alle</SelectItem>
-          <SelectItem value="vertrag">Nur Verträge</SelectItem>
-          <SelectItem value="kein_vertrag">Ohne Verträge</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select value={filterEssential} onValueChange={setFilterEssential}>
-        <SelectTrigger aria-label="Essenziell-Status filtern" className="w-44 bg-background/50 backdrop-blur-sm">
-          <SelectValue placeholder="Essenziell" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Alle</SelectItem>
-          <SelectItem value="ess">Nur essenziell</SelectItem>
-          <SelectItem value="nicht">Nicht essenziell</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <AusgabenklasseFilterComponent
-        value={filterAusgabenklasse}
-        onChange={setFilterAusgabenklasse}
-        categories={categories}
-      />
-
-      {showSearch && (
-        <div className="relative">
-          <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
-          <Input
-            id="transaction-search"
-            type="search"
-            placeholder="Suche..."
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            className="w-48 bg-background/50 backdrop-blur-sm"
-          />
-        </div>
-      )}
-
-      <Select value={range} onValueChange={setRange}>
-        <SelectTrigger aria-label="Zeitraum filtern" className="w-40 bg-background/50 backdrop-blur-sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {DASHBOARD_RANGE_OPTIONS.map((label) => (
-            <SelectItem key={label} value={label}>{label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {PERIOD_RANGES.has(range) && (
-        <Select value={customPeriod} onValueChange={setCustomPeriod}>
-          <SelectTrigger
-            aria-label="Periode auswählen"
-            className="w-40 bg-background/50 backdrop-blur-sm"
-          >
-            <SelectValue placeholder="Periode wählen…" />
+    <div className={cn(stacked ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'flex flex-wrap items-center gap-2')}>
+      <Field label="Konto">
+        <Select value={filterAccount} onValueChange={setFilterAccount}>
+          <SelectTrigger aria-label="Konto filtern" className={triggerClass('w-48')}>
+            <SelectValue placeholder="Alle Konten" />
           </SelectTrigger>
           <SelectContent>
-            {periodOptions.length === 0 ? (
-              <SelectItem value="__none" disabled>Keine Daten</SelectItem>
-            ) : (
-              periodOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))
-            )}
+            <SelectItem value="all">Alle Konten</SelectItem>
+            <SelectItem value="budget-pool">Budget-Pool</SelectItem>
+            {accounts.map((account: Account) => (
+              <SelectItem key={account.id} value={account.id}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: account.color }}
+                    aria-hidden="true"
+                  />
+                  <span aria-hidden="true">{account.icon}</span>
+                  <span>{account.name}</span>
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+      </Field>
+
+      <Field label="Kategorie">
+        <Select value={filterCat} onValueChange={setFilterCat}>
+          <SelectTrigger aria-label="Kategorie filtern" className={triggerClass('w-48')}>
+            <SelectValue placeholder="Alle Kategorien" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle Kategorien</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field label="Verträge">
+        <Select value={filterContract} onValueChange={setFilterContract}>
+          <SelectTrigger aria-label="Vertragsstatus filtern" className={triggerClass('w-40')}>
+            <SelectValue placeholder="Verträge" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle</SelectItem>
+            <SelectItem value="vertrag">Nur Verträge</SelectItem>
+            <SelectItem value="kein_vertrag">Ohne Verträge</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field label="Essenziell">
+        <Select value={filterEssential} onValueChange={setFilterEssential}>
+          <SelectTrigger aria-label="Essenziell-Status filtern" className={triggerClass('w-44')}>
+            <SelectValue placeholder="Essenziell" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle</SelectItem>
+            <SelectItem value="ess">Nur essenziell</SelectItem>
+            <SelectItem value="nicht">Nicht essenziell</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field label="Ausgabenklasse">
+        <AusgabenklasseFilterComponent
+          value={filterAusgabenklasse}
+          onChange={setFilterAusgabenklasse}
+          categories={categories}
+          className={stacked ? 'w-full' : undefined}
+        />
+      </Field>
+
+      <Field label="Zeitraum">
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger aria-label="Zeitraum filtern" className={triggerClass('w-40')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DASHBOARD_RANGE_OPTIONS.map((label) => (
+              <SelectItem key={label} value={label}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      {PERIOD_RANGES.has(range) && (
+        <Field label="Periode">
+          <Select value={customPeriod} onValueChange={setCustomPeriod}>
+            <SelectTrigger aria-label="Periode auswählen" className={triggerClass('w-40')}>
+              <SelectValue placeholder="Periode wählen…" />
+            </SelectTrigger>
+            <SelectContent>
+              {periodOptions.length === 0 ? (
+                <SelectItem value="__none" disabled>Keine Daten</SelectItem>
+              ) : (
+                periodOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </Field>
       )}
 
       {range === 'Benutzerdefiniert' && (
         <>
-          <div className="flex items-center gap-2">
-            <Label id="custom-days-label" className="text-sm">Tage: {customDays}</Label>
-            <Slider
-              aria-labelledby="custom-days-label"
-              value={[customDays]}
-              onValueChange={([value]: number[]) => setCustomDays(value)}
-              min={1}
-              max={365}
-              className="w-32"
+          <Field label={`Tage: ${customDays}`}>
+            <div className="flex items-center gap-2">
+              {!stacked && <Label id="custom-days-label" className="text-sm">Tage: {customDays}</Label>}
+              <Slider
+                aria-label={stacked ? `Tage: ${customDays}` : undefined}
+                aria-labelledby={stacked ? undefined : 'custom-days-label'}
+                value={[customDays]}
+                onValueChange={([value]: number[]) => setCustomDays(value)}
+                min={1}
+                max={365}
+                className={stacked ? 'w-full' : 'w-32'}
+              />
+            </div>
+          </Field>
+
+          <Field label="Granularität">
+            <Select value={customGran} onValueChange={setCustomGran}>
+              <SelectTrigger aria-label="Diagramm-Granularität auswählen" className={triggerClass('w-28')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Täglich</SelectItem>
+                <SelectItem value="weekly">Wöchentlich</SelectItem>
+                <SelectItem value="monthly">Monatlich</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </>
+      )}
+
+      {showSearch && (
+        <Field label="Suche">
+          <div className="relative">
+            <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+            <Input
+              id="transaction-search"
+              type="search"
+              placeholder="Suche..."
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className={triggerClass('w-48')}
             />
           </div>
-
-          <Select value={customGran} onValueChange={setCustomGran}>
-            <SelectTrigger aria-label="Diagramm-Granularität auswählen" className="w-28 bg-background/50 backdrop-blur-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="daily">Täglich</SelectItem>
-              <SelectItem value="weekly">Wöchentlich</SelectItem>
-              <SelectItem value="monthly">Monatlich</SelectItem>
-            </SelectContent>
-          </Select>
-        </>
+        </Field>
       )}
     </div>
   );

@@ -18,6 +18,8 @@ interface TransactionDayListProps {
   endingBalance: number;
   /** `false` blendet die Kontostand-Kopfzeile aus (z. B. bei aktivem Kategorie-Filter). */
   showRunningBalance?: boolean;
+  /** Aktuell im Detail-Panel geöffnete Buchung – wird in der Liste hervorgehoben. */
+  selectedId?: string | null;
   now?: Date;
 }
 
@@ -51,6 +53,7 @@ export function TransactionDayList({
   onOpenDetails,
   endingBalance,
   showRunningBalance = true,
+  selectedId,
   now,
 }: TransactionDayListProps) {
   const { enabled: gentleModeEnabled } = useGentleMode();
@@ -97,6 +100,7 @@ export function TransactionDayList({
               {group.items.map((transaction) => {
                 const rowId = transaction.id || '';
                 const hidden = hiddenTransactions.has(rowId);
+                const isSelected = !!rowId && rowId === selectedId;
                 const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
                 const payee = transaction.payee || transaction.description || '–';
 
@@ -105,7 +109,14 @@ export function TransactionDayList({
                 const account = transaction.account_id ? accountsById.get(transaction.account_id) : undefined;
 
                 return (
-                  <li key={rowId} className={hidden ? 'py-1 opacity-50' : 'py-1'}>
+                  <li
+                    key={rowId}
+                    className={cn(
+                      'rounded-lg px-1 py-1',
+                      hidden && 'opacity-50',
+                      isSelected && 'bg-muted/60 ring-1 ring-brand/40',
+                    )}
+                  >
                     <ListRow
                       icon={
                         avatarEmoji ?? (

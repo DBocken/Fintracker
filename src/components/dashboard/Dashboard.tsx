@@ -433,6 +433,7 @@ export function Dashboard() {
               filterAusgabenklasse={filterAusgabenklasse}
               setFilterAusgabenklasse={setFilterAusgabenklasse}
               showSearch={false}
+              stacked
             />
           </div>
           <DialogFooter>

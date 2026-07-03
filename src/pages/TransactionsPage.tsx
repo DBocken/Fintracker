@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { TransactionDayList } from "@/components/dashboard/TransactionDayList";
 import { TransactionStats } from "@/components/dashboard/TransactionStats";
 import { TransactionFilters } from "@/components/dashboard/TransactionFilters";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
+import { TransactionDetailsPanel } from "@/components/dashboard/TransactionDetailsPanel";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useI18n } from "@/i18n/useI18n";
@@ -43,22 +44,38 @@ import { useTransactionDetailEditing } from "@/hooks/useTransactionDetailEditing
 import { usePersistedSet } from "@/hooks/usePersistedSet";
 import type { Transaction, Category, Account } from "@/types";
 
+/** true ab dem `lg`-Breakpoint (Master-Detail-Layout). SSR-/Test-sicher. */
+function useIsWideDesktop(): boolean {
+  const query = "(min-width: 1024px)";
+  const [wide, setWide] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+    return window.matchMedia(query).matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(query);
+    const onChange = () => setWide(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 /**
- * Eigene Buchungsseite (Audit P1.2): Transaktionen sind eine eigene Hauptseite.
- * Die Filter (Konto/Kategorie/Vertrag/Essenziell/Ausgabenklasse/Zeitraum/Suche)
- * leben hier interaktiv – wie auf dem Dashboard – und steuern die ganze Seite
- * (Kennzahlen + Liste). Der Zustand wird aus der URL vorbelegt (Deep-Link vom
- * Dashboard) und bei jeder Änderung wieder in die URL gespiegelt, damit
- * Aktualisieren/Teilen die Ansicht erhält. Die Liste folgt dem Tages-Schema:
- * pro Tag Kontostand + Tagessaldo, darunter kompakte Zeilen.
+ * Eigene Buchungsseite (Audit P1.2). Die Filter leben hier interaktiv – wie auf
+ * dem Dashboard – und steuern die ganze Seite (Kennzahlen + Liste). Der Zustand
+ * wird aus der URL vorbelegt (Deep-Link vom Dashboard) und bei jeder Änderung
+ * zurückgespiegelt. Layout: auf großen Screens Master-Detail (Liste links,
+ * Detail rechts inline statt als Overlay – füllt den sonst leeren Raum), auf
+ * kleinen Screens die Liste plus Bottom-Sheet fürs Detail.
  */
 export default function TransactionsPage() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isWide = useIsWideDesktop();
 
-  // Filterzustand aus der URL initialisieren (einmalig); danach ist er lokal
-  // interaktiv und wird zurück in die URL geschrieben.
   const [filters, setFilters] = useState<DashboardFilterState>(() => decodeDashboardFilters(searchParams));
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -67,16 +84,19 @@ export default function TransactionsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [hidden, toggleHidden] = usePersistedSet("transactions_hidden");
 
-  // Filteränderungen in die URL spiegeln (replace, damit der Zurück-Button nicht
-  // pro Tastendruck einen History-Eintrag bekommt).
+  // Filteränderungen in die URL spiegeln (replace, kein History-Spam pro Tastendruck).
   useEffect(() => {
     setSearchParams(encodeDashboardFilters(filters), { replace: true });
   }, [filters, setSearchParams]);
 
   const patchFilters = (patch: Partial<DashboardFilterState>) => setFilters((prev) => ({ ...prev, ...patch }));
 
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    setDetailsTransaction(null);
+  };
+
   const { data: txs = [], isLoading } = useQuery<Transaction[]>({
-    // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
     queryKey: ["transactions", 5000],
     queryFn: () => getTransactions(5000),
   });
@@ -87,9 +107,7 @@ export default function TransactionsPage() {
     queryFn: getContractDecisionMap,
   });
 
-  const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(txs, () =>
-    setDetailsOpen(false),
-  );
+  const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(txs, closeDetails);
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
@@ -117,7 +135,6 @@ export default function TransactionsPage() {
     return map;
   }, [txs, accounts]);
 
-  // Aktueller Saldo im gewählten Konto-Scope (Alle/Budget-Pool/einzelnes Konto).
   const scopedCurrentBalance = useMemo(() => {
     if (filters.account === "all") {
       return accounts.reduce((sum, a) => sum + (effectiveBalanceById[a.id] ?? 0), 0);
@@ -137,10 +154,9 @@ export default function TransactionsPage() {
 
   const visible = useMemo(() => filtered.filter((tx) => !hidden.has(tx.id || "")), [filtered, hidden]);
 
-  // Inhalts-Filter (Kategorie/Vertrag/Essenziell/Ausgabenklasse/Suche) verändern,
-  // WELCHE Buchungen erscheinen, nicht die echte Kontobewegung. Der rückwärts
-  // abgeleitete Kontostand wäre dann irreführend → Kopfzeile nur bei reinen
-  // Konto-/Zeitraum-Filtern zeigen.
+  // Inhalts-Filter verändern, WELCHE Buchungen erscheinen, nicht die echte
+  // Kontobewegung. Der rückwärts abgeleitete Kontostand wäre dann irreführend →
+  // Kopfzeile nur bei reinen Konto-/Zeitraum-Filtern zeigen.
   const hasContentFilter =
     filters.category !== DEFAULT_DASHBOARD_FILTERS.category ||
     filters.contract !== DEFAULT_DASHBOARD_FILTERS.contract ||
@@ -148,10 +164,8 @@ export default function TransactionsPage() {
     filters.ausgabenklasse !== DEFAULT_DASHBOARD_FILTERS.ausgabenklasse ||
     filters.search.trim() !== "";
 
-  // Bei aktivem Zeitraum-Filter kann der jüngste sichtbare Tag in der
-  // Vergangenheit liegen; dann ist der Anker nicht der heutige Saldo, sondern
-  // der Saldo am Ende des sichtbaren Fensters (heutiger Saldo minus alle
-  // konto-bezogenen Buchungen NACH dem jüngsten sichtbaren Tag).
+  // Anker am Ende des sichtbaren Fensters: heutiger Saldo minus alle konto-
+  // bezogenen Buchungen NACH dem jüngsten sichtbaren Tag (relevant bei Zeitfilter).
   const endingBalance = useMemo(() => {
     const newestVisibleDate = visible[0]?.date;
     if (!newestVisibleDate) return scopedCurrentBalance;
@@ -221,11 +235,26 @@ export default function TransactionsPage() {
 
   const openDetails = (tx: Transaction) => {
     setDetailsTransaction(tx);
-    setDetailsOpen(true);
+    // Auf großen Screens erscheint das Detail inline; sonst als Overlay/Sheet.
+    setDetailsOpen(!isWide);
   };
 
+  const emptyList = (
+    <div className="space-y-4 py-8 text-center text-muted-foreground">
+      <div>
+        <div className="font-medium text-foreground">Keine Buchungen gefunden</div>
+        <div className="text-sm">Passe Filter oder Suchbegriff an.</div>
+      </div>
+      {activeFilterCount > 0 && (
+        <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
+          Filter zurücksetzen
+        </Button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-6xl">
       <PageHeader
         title={t("transactions.title")}
         description={t("transactions.description")}
@@ -248,17 +277,23 @@ export default function TransactionsPage() {
         <div className="space-y-5">
           {/* Filter-Leiste – steuert Kennzahlen + Liste (wie auf dem Dashboard). */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[12rem]">
+            <div className="relative min-w-[12rem] flex-1">
               <input
                 type="search"
                 aria-label={t("transactions.search")}
                 placeholder={t("transactions.search")}
                 value={filters.search}
                 onChange={(e) => patchFilters({ search: e.target.value })}
-                className="h-11 w-full rounded-full border border-input bg-background/50 pl-4 pr-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-11 w-full rounded-full border border-input bg-background/50 px-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <Button type="button" variant="outline" size="sm" className="relative h-11" onClick={() => setFilterDialogOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="relative h-11"
+              onClick={() => setFilterDialogOpen(true)}
+            >
               <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
               Filter
               {activeFilterCount > 0 && (
@@ -270,37 +305,36 @@ export default function TransactionsPage() {
           </div>
 
           <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-            <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md">
+            <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Filter</DialogTitle>
               </DialogHeader>
-              <div className="flex flex-col gap-3">
-                <TransactionFilters
-                  filterCat={filters.category}
-                  setFilterCat={(v) => patchFilters({ category: v })}
-                  filterAccount={filters.account}
-                  setFilterAccount={(v) => patchFilters({ account: v })}
-                  searchInput={filters.search}
-                  setSearchInput={(v) => patchFilters({ search: v })}
-                  range={filters.range}
-                  setRange={handleSetRange}
-                  customDays={filters.customDays}
-                  setCustomDays={(v) => patchFilters({ customDays: v })}
-                  customGran={customGran}
-                  setCustomGran={setCustomGran}
-                  customPeriod={filters.customPeriod ?? ""}
-                  setCustomPeriod={(v) => patchFilters({ customPeriod: v })}
-                  periodOptions={periodOptions}
-                  categories={cats}
-                  filterContract={filters.contract}
-                  setFilterContract={(v: ContractFilter) => patchFilters({ contract: v })}
-                  filterEssential={filters.essential}
-                  setFilterEssential={(v: EssentialFilter) => patchFilters({ essential: v })}
-                  filterAusgabenklasse={filters.ausgabenklasse}
-                  setFilterAusgabenklasse={(v: AusgabenklasseFilter) => patchFilters({ ausgabenklasse: v })}
-                  showSearch={false}
-                />
-              </div>
+              <TransactionFilters
+                filterCat={filters.category}
+                setFilterCat={(v) => patchFilters({ category: v })}
+                filterAccount={filters.account}
+                setFilterAccount={(v) => patchFilters({ account: v })}
+                searchInput={filters.search}
+                setSearchInput={(v) => patchFilters({ search: v })}
+                range={filters.range}
+                setRange={handleSetRange}
+                customDays={filters.customDays}
+                setCustomDays={(v) => patchFilters({ customDays: v })}
+                customGran={customGran}
+                setCustomGran={setCustomGran}
+                customPeriod={filters.customPeriod ?? ""}
+                setCustomPeriod={(v) => patchFilters({ customPeriod: v })}
+                periodOptions={periodOptions}
+                categories={cats}
+                filterContract={filters.contract}
+                setFilterContract={(v: ContractFilter) => patchFilters({ contract: v })}
+                filterEssential={filters.essential}
+                setFilterEssential={(v: EssentialFilter) => patchFilters({ essential: v })}
+                filterAusgabenklasse={filters.ausgabenklasse}
+                setFilterAusgabenklasse={(v: AusgabenklasseFilter) => patchFilters({ ausgabenklasse: v })}
+                showSearch={false}
+                stacked
+              />
               <DialogFooter>
                 <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
                   Filter zurücksetzen
@@ -318,34 +352,72 @@ export default function TransactionsPage() {
             currentBalance={formatBalance(scopedCurrentBalance)}
           />
 
-          {visible.length === 0 ? (
-            <div className="space-y-4 py-8 text-center text-muted-foreground">
-              <div>
-                <div className="font-medium text-foreground">Keine Buchungen gefunden</div>
-                <div className="text-sm">Passe Filter oder Suchbegriff an.</div>
-              </div>
-              {activeFilterCount > 0 && (
-                <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
-                  Filter zurücksetzen
-                </Button>
+          {/* Desktop: Master-Detail (Liste links, Detail rechts). Mobil: nur Liste. */}
+          <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
+            <div className="lg:col-span-7 xl:col-span-8">
+              {visible.length === 0 ? emptyList : (
+                <TransactionDayList
+                  transactions={visible}
+                  categories={cats}
+                  hiddenTransactions={hidden}
+                  onOpenDetails={openDetails}
+                  endingBalance={endingBalance}
+                  showRunningBalance={!hasContentFilter}
+                  selectedId={detailsTransaction?.id}
+                />
               )}
             </div>
-          ) : (
-            <TransactionDayList
-              transactions={visible}
-              categories={cats}
-              hiddenTransactions={hidden}
-              onOpenDetails={openDetails}
-              endingBalance={endingBalance}
-              showRunningBalance={!hasContentFilter}
-            />
-          )}
+
+            <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
+              <div className="lg:sticky lg:top-4">
+                {detailsTransaction ? (
+                  <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold">Transaktionsdetails</h2>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Details schließen"
+                        onClick={closeDetails}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
+                      <TransactionDetailsPanel
+                        transaction={detailsTransaction}
+                        categories={cats}
+                        accounts={accounts}
+                        allTransactions={txs}
+                        onSave={(id, patch, options) =>
+                          detailsTransaction && saveDetails(detailsTransaction, id, patch, options)
+                        }
+                        onToggleVisibility={toggleHidden}
+                        onDelete={(id) => deleteMut.mutate(id)}
+                        isHidden={detailsTransaction.id ? hidden.has(detailsTransaction.id) : false}
+                        isLoading={detailsSaving}
+                        onClose={closeDetails}
+                        closeLabel="Schließen"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    Wähle eine Buchung, um Details zu sehen und zu bearbeiten.
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
         </div>
       )}
 
+      {/* Overlay/Sheet nur unterhalb von lg (auf großen Screens ist das Detail inline). */}
       <TransactionDetailsModal
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
+        open={detailsOpen && !isWide}
+        onOpenChange={(open) => (open ? setDetailsOpen(true) : closeDetails())}
         transaction={detailsTransaction}
         categories={cats}
         accounts={accounts}
