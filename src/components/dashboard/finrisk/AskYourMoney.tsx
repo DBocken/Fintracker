@@ -147,7 +147,7 @@ function AffordabilityView({
 
   if (result.affordableAsIs) {
     return (
-      <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
+      <div className="mt-4 rounded-lg bg-emerald-500/10 p-3">
         <div className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
           <Check className="h-4 w-4 shrink-0" />
           Ja – {eur.format(baseAmount)} sind mit {pct(result.baseSuccess)} Sicherheit drin.
@@ -175,7 +175,7 @@ function AffordabilityView({
           kleineren Betrag oder einen späteren Zeitpunkt.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-border/60">
           {ways.map((w, i) => (
             <WayRow key={i} option={w} fmtDate={fmtDate} />
           ))}
@@ -198,7 +198,7 @@ function WayRow({
 }) {
   const { icon, title } = describe(option);
   return (
-    <li className="flex items-start justify-between gap-3 rounded-lg border bg-background p-2.5">
+    <li className="flex items-start justify-between gap-3 py-2.5">
       <span className="flex min-w-0 items-start gap-2">
         <span className="mt-0.5 shrink-0 text-muted-foreground">{icon}</span>
         <span className="min-w-0">

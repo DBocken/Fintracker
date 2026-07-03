@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off, Edit2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -211,36 +211,54 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
-              {overrides.transfers.map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      {t.name || `${accountName(t.fromAccountId)} → ${accountName(t.toAccountId)}`}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {t.date
-                        ? `${t.date}`
-                        : `${t.cadence} ${t.anchorDate ? `(ab ${t.anchorDate})` : ''}`}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{eur.format(t.amount)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      aria-label="Transfer entfernen"
-                      onClick={() =>
-                        onChange({
-                          transfers: overrides.transfers.filter((x) => x.id !== t.id),
-                        })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {overrides.transfers.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
+                        <th className="text-left">Transfer</th>
+                        <th className="text-left">Zeitpunkt</th>
+                        <th className="text-right">Betrag</th>
+                        <th className="w-8" aria-label="Aktion" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
+                      {overrides.transfers.map((t) => (
+                        <tr key={t.id}>
+                          <td className="pr-2">
+                            <span className="block truncate font-medium">
+                              {t.name || `${accountName(t.fromAccountId)} → ${accountName(t.toAccountId)}`}
+                            </span>
+                          </td>
+                          <td className="pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                            {t.date
+                              ? t.date
+                              : `${CADENCE_LABELS[t.cadence ?? ''] ?? t.cadence}${t.anchorDate ? ` ab ${t.anchorDate}` : ''}`}
+                          </td>
+                          <td className="text-right font-semibold tabular-nums whitespace-nowrap">
+                            {eur.format(t.amount)}
+                          </td>
+                          <td className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Transfer entfernen"
+                              onClick={() =>
+                                onChange({
+                                  transfers: overrides.transfers.filter((x) => x.id !== t.id),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              )}
               <TransferForm
                 accounts={accounts}
                 onAdd={(t) => onChange({ transfers: [...overrides.transfers, t] })}
@@ -261,40 +279,56 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
-              {overrides.plannedEvents.map((ev) => (
-                <div key={ev.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{ev.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {ev.cadence
-                        ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
-                        : ev.date}{' '}
-                      · {accountName(ev.accountId)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm font-semibold ${ev.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
-                    >
-                      {ev.amount >= 0 ? '+' : '−'}
-                      {eur.format(Math.abs(ev.amount))}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      aria-label="Posten entfernen"
-                      onClick={() =>
-                        onChange({
-                          plannedEvents: overrides.plannedEvents.filter((e) => e.id !== ev.id),
-                        })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {overrides.plannedEvents.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
+                        <th className="text-left">Posten</th>
+                        <th className="text-left">Wann · Konto</th>
+                        <th className="text-right">Betrag</th>
+                        <th className="w-8" aria-label="Aktion" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
+                      {overrides.plannedEvents.map((ev) => (
+                        <tr key={ev.id}>
+                          <td className="pr-2">
+                            <span className="block truncate font-medium">{ev.name}</span>
+                          </td>
+                          <td className="pr-2 text-xs text-muted-foreground">
+                            {ev.cadence
+                              ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
+                              : ev.date}{' '}
+                            · {accountName(ev.accountId)}
+                          </td>
+                          <td
+                            className={`text-right font-semibold tabular-nums whitespace-nowrap ${ev.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+                          >
+                            {ev.amount >= 0 ? '+' : '−'}
+                            {eur.format(Math.abs(ev.amount))}
+                          </td>
+                          <td className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Posten entfernen"
+                              onClick={() =>
+                                onChange({
+                                  plannedEvents: overrides.plannedEvents.filter((e) => e.id !== ev.id),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              )}
               <EventForm
                 accounts={accounts}
                 onAdd={(ev) => onChange({ plannedEvents: [...overrides.plannedEvents, ev] })}
@@ -315,30 +349,54 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
-              {overrides.sinkingFunds.map((f) => (
-                <div key={f.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{f.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {eur.format(f.targetAmount)} bis {f.dueDate} ·{' '}
-                      {eur.format(calculateRequiredContribution(f, today()))}/Monat
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label="Rücklage entfernen"
-                    onClick={() =>
-                      onChange({
-                        sinkingFunds: overrides.sinkingFunds.filter((x) => x.id !== f.id),
-                      })
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              {overrides.sinkingFunds.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
+                        <th className="text-left">Rücklage</th>
+                        <th className="text-right">Ziel</th>
+                        <th className="text-right">fällig</th>
+                        <th className="text-right">/Monat</th>
+                        <th className="w-8" aria-label="Aktion" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
+                      {overrides.sinkingFunds.map((f) => (
+                        <tr key={f.id}>
+                          <td className="pr-2">
+                            <span className="block truncate font-medium">{f.name}</span>
+                          </td>
+                          <td className="text-right tabular-nums whitespace-nowrap">
+                            {eur.format(f.targetAmount)}
+                          </td>
+                          <td className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                            {f.dueDate}
+                          </td>
+                          <td className="text-right font-semibold tabular-nums whitespace-nowrap">
+                            {eur.format(calculateRequiredContribution(f, today()))}
+                          </td>
+                          <td className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label="Rücklage entfernen"
+                              onClick={() =>
+                                onChange({
+                                  sinkingFunds: overrides.sinkingFunds.filter((x) => x.id !== f.id),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              )}
               <FundForm
                 accounts={accounts}
                 onAdd={(f) => onChange({ sinkingFunds: [...overrides.sinkingFunds, f] })}
@@ -404,7 +462,8 @@ function EventForm({
   const valid = name.trim() && amount && Number(amount) > 0 && accountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neuer Posten</div>
       <Input placeholder="Name (z. B. Urlaub)" value={name} onChange={(e) => setName(e.target.value)} />
       <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
         <SelectTrigger className="h-9">
@@ -437,7 +496,7 @@ function EventForm({
         <>
           <label className="col-span-2 flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">Ab wann · wie oft</span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
                 <SelectTrigger className="h-9">
@@ -505,7 +564,8 @@ function FundForm({
   const valid = name.trim() && target && Number(target) > 0 && dueDate && accountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neue Rücklage</div>
       <Input placeholder="Name (z. B. Kfz-Steuer)" value={name} onChange={(e) => setName(e.target.value)} />
       <Input
         type="number"
@@ -539,7 +599,7 @@ function FundForm({
   );
 }
 
-function BudgetOverrideForm({
+export function BudgetOverrideForm({
   variableExpenses,
   overrides,
   onChange,
@@ -558,44 +618,40 @@ function BudgetOverrideForm({
     return 'text-orange-600 dark:text-orange-400';
   };
 
+  // Kompakte Zeilen mit Trennlinien statt einer Box je Kategorie: Name +
+  // Baseline links, Eingabefeld rechts – eine Zeile pro Budget.
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-border/60">
       {variableExpenses.map((expense) => (
-        <div key={expense.category} className="rounded-md border p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <Label className="text-sm font-medium">{expense.category}</Label>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Baseline: {eur.format(expense.monthlyAmount)}</span>
+        <div key={expense.category} className="flex items-center gap-3 py-2">
+          <div className="min-w-0 flex-1">
+            <Label className="block truncate text-sm font-medium">{expense.category}</Label>
+            <div className="text-xs text-muted-foreground">
+              Baseline {eur.format(expense.monthlyAmount)}
               {expense.confidence != null && (
-                <span className={`font-semibold ${getConfidenceBadge(expense.confidence)}`}>
+                <span className={`ml-1.5 font-semibold ${getConfidenceBadge(expense.confidence)}`}>
                   {Math.round(expense.confidence * 100)}%
                 </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              placeholder={String(expense.monthlyAmount)}
-              value={overrides.categoryBudgets[expense.category] ?? ''}
-              onChange={(e) => {
-                const next = { ...overrides.categoryBudgets };
-                const v = e.target.value;
-                if (v === '') delete next[expense.category];
-                else next[expense.category] = Number(v);
-                onChange({ categoryBudgets: next });
-              }}
-              className="h-9 flex-1"
-            />
-            {overrides.categoryBudgets[expense.category] != null && (
-              <span className="text-sm font-semibold whitespace-nowrap">
-                {eur.format(overrides.categoryBudgets[expense.category])}
-              </span>
-            )}
-          </div>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0"
+            aria-label={`Budget für ${expense.category}`}
+            placeholder={String(expense.monthlyAmount)}
+            value={overrides.categoryBudgets[expense.category] ?? ''}
+            onChange={(e) => {
+              const next = { ...overrides.categoryBudgets };
+              const v = e.target.value;
+              if (v === '') delete next[expense.category];
+              else next[expense.category] = Number(v);
+              onChange({ categoryBudgets: next });
+            }}
+            className="h-9 w-28 shrink-0 text-right tabular-nums"
+          />
         </div>
       ))}
     </div>
@@ -621,7 +677,8 @@ function TransferForm({
     fromAccountId && toAccountId && amount && Number(amount) > 0 && fromAccountId !== toAccountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neuer Transfer</div>
       <div className="col-span-2">
         <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
           <SelectTrigger className="h-9">
@@ -701,7 +758,7 @@ const CADENCE_LABELS: Record<string, string> = {
   custom: 'Individuell',
 };
 
-function RecurringFlowOverrideForm({
+export function RecurringFlowOverrideForm({
   recurringFlows,
   overrides,
   onChange,
@@ -714,131 +771,152 @@ function RecurringFlowOverrideForm({
   const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
 
   return (
-    <div className="space-y-2">
-      {recurringFlows.map((flow) => {
-        const override = overrides.recurringFlowOverrides[flow.id];
-        // flow.disabled = auto-deaktiviert durch Vertragsstatus (ended/stale)
-        // override?.enabled === false = nutzerseitig abgehakt
-        const isAutoDisabled = flow.disabled === true;
-        const isUserDisabled = override?.enabled === false;
-        const isDisabled = isAutoDisabled || isUserDisabled;
-        const displayAmount = override?.amount ?? flow.amount;
-        const isIncome = displayAmount > 0;
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
+            <th className="w-6" aria-label="Aktiv" />
+            <th className="text-left">Zahlung</th>
+            <th className="text-left">Turnus</th>
+            <th className="text-right">Betrag</th>
+            <th className="w-8" aria-label="Aktion" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
+          {recurringFlows.map((flow) => {
+            const override = overrides.recurringFlowOverrides[flow.id];
+            // flow.disabled = auto-deaktiviert durch Vertragsstatus (ended/stale)
+            // override?.enabled === false = nutzerseitig abgehakt
+            const isAutoDisabled = flow.disabled === true;
+            const isUserDisabled = override?.enabled === false;
+            const isDisabled = isAutoDisabled || isUserDisabled;
+            const displayAmount = override?.amount ?? flow.amount;
+            const isIncome = displayAmount > 0;
+            const isOpen = expandedFlow === flow.id && !isAutoDisabled;
 
-        return (
-          <div
-            key={flow.id}
-            className={`rounded-md border p-3 transition-opacity ${isDisabled ? 'opacity-50' : ''}`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!isDisabled}
-                    disabled={isAutoDisabled}
-                    title={isAutoDisabled ? 'Vertrag ist beendet oder veraltet – Status in Verträge ändern' : undefined}
-                    onChange={(e) => {
-                      if (isAutoDisabled) return;
-                      const next = { ...overrides.recurringFlowOverrides };
-                      if (!e.target.checked) {
-                        next[flow.id] = { ...override, enabled: false };
-                      } else {
-                        const updated = { ...override };
-                        delete updated.enabled;
-                        if (Object.keys(updated).length > 0) {
-                          next[flow.id] = updated;
+            return (
+              <Fragment key={flow.id}>
+                <tr className={isDisabled ? 'opacity-50' : undefined}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!isDisabled}
+                      disabled={isAutoDisabled}
+                      title={isAutoDisabled ? 'Vertrag ist beendet oder veraltet – Status in Verträge ändern' : undefined}
+                      onChange={(e) => {
+                        if (isAutoDisabled) return;
+                        const next = { ...overrides.recurringFlowOverrides };
+                        if (!e.target.checked) {
+                          next[flow.id] = { ...override, enabled: false };
                         } else {
-                          delete next[flow.id];
+                          const updated = { ...override };
+                          delete updated.enabled;
+                          if (Object.keys(updated).length > 0) {
+                            next[flow.id] = updated;
+                          } else {
+                            delete next[flow.id];
+                          }
                         }
-                      }
-                      onChange({ recurringFlowOverrides: next });
-                    }}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm font-medium">{flow.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                        onChange({ recurringFlowOverrides: next });
+                      }}
+                      className="h-4 w-4 align-middle"
+                    />
+                  </td>
+                  <td className="pr-2">
+                    <span className="block truncate font-medium">{flow.name}</span>
+                    {(flow.category || isAutoDisabled) && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {isAutoDisabled ? 'beendet' : flow.category}
+                      </span>
+                    )}
+                  </td>
+                  <td className="pr-2 text-xs text-muted-foreground whitespace-nowrap">
                     {CADENCE_LABELS[flow.cadence] ?? flow.cadence}
-                  </span>
-                  {isAutoDisabled && (
-                    <span className="text-xs text-muted-foreground italic">beendet</span>
-                  )}
-                </div>
-                <div className={`text-xs mt-1 ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                  {isIncome ? '+' : ''}{eur.format(displayAmount)}
-                  {flow.category && <span className="ml-1 text-muted-foreground">· {flow.category}</span>}
-                </div>
-              </div>
-
-              {!isAutoDisabled && (
-                <button
-                  onClick={() => setExpandedFlow(expandedFlow === flow.id ? null : flow.id)}
-                  className="p-1.5 hover:bg-muted rounded transition-colors"
-                  aria-label="Bearbeiten"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {expandedFlow === flow.id && !isAutoDisabled && (
-              <div className="mt-3 space-y-2 border-t pt-3">
-                <div>
-                  <Label className="text-xs">Betrag</Label>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    placeholder={String(flow.amount)}
-                    value={override?.amount ?? ''}
-                    onChange={(e) => {
-                      const next = { ...overrides.recurringFlowOverrides };
-                      const v = e.target.value;
-                      if (v === '') {
-                        const updated = { ...override };
-                        delete updated.amount;
-                        if (Object.keys(updated).length > 0) {
-                          next[flow.id] = updated;
-                        } else {
-                          delete next[flow.id];
-                        }
-                      } else {
-                        next[flow.id] = { ...override, amount: Number(v) };
-                      }
-                      onChange({ recurringFlowOverrides: next });
-                    }}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">End-Datum (optional)</Label>
-                  <Input
-                    type="date"
-                    value={override?.endDate ?? ''}
-                    onChange={(e) => {
-                      const next = { ...overrides.recurringFlowOverrides };
-                      const v = e.target.value;
-                      if (v === '') {
-                        const updated = { ...override };
-                        delete updated.endDate;
-                        if (Object.keys(updated).length > 0) {
-                          next[flow.id] = updated;
-                        } else {
-                          delete next[flow.id];
-                        }
-                      } else {
-                        next[flow.id] = { ...override, endDate: v };
-                      }
-                      onChange({ recurringFlowOverrides: next });
-                    }}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  </td>
+                  <td
+                    className={`text-right font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+                  >
+                    {isIncome ? '+' : ''}
+                    {eur.format(displayAmount)}
+                  </td>
+                  <td className="text-right">
+                    {!isAutoDisabled && (
+                      <button
+                        onClick={() => setExpandedFlow(isOpen ? null : flow.id)}
+                        className="rounded p-1.5 transition-colors hover:bg-muted"
+                        aria-label="Bearbeiten"
+                        aria-expanded={isOpen}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr>
+                    <td />
+                    <td colSpan={4} className="pb-3">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div>
+                          <Label className="text-xs">Betrag</Label>
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            placeholder={String(flow.amount)}
+                            value={override?.amount ?? ''}
+                            onChange={(e) => {
+                              const next = { ...overrides.recurringFlowOverrides };
+                              const v = e.target.value;
+                              if (v === '') {
+                                const updated = { ...override };
+                                delete updated.amount;
+                                if (Object.keys(updated).length > 0) {
+                                  next[flow.id] = updated;
+                                } else {
+                                  delete next[flow.id];
+                                }
+                              } else {
+                                next[flow.id] = { ...override, amount: Number(v) };
+                              }
+                              onChange({ recurringFlowOverrides: next });
+                            }}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">End-Datum (optional)</Label>
+                          <Input
+                            type="date"
+                            value={override?.endDate ?? ''}
+                            onChange={(e) => {
+                              const next = { ...overrides.recurringFlowOverrides };
+                              const v = e.target.value;
+                              if (v === '') {
+                                const updated = { ...override };
+                                delete updated.endDate;
+                                if (Object.keys(updated).length > 0) {
+                                  next[flow.id] = updated;
+                                } else {
+                                  delete next[flow.id];
+                                }
+                              } else {
+                                next[flow.id] = { ...override, endDate: v };
+                              }
+                              onChange({ recurringFlowOverrides: next });
+                            }}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

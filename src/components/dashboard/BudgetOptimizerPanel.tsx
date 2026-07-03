@@ -222,7 +222,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             </div>
 
             {goalAmount > 0 && goalMonths > 0 && (
-              <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+              <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
                 <span className="font-medium">{eur.format(goalMonthly)}/Monat</span>
                 <span className="ml-2 text-muted-foreground">
                   nötig ·{' '}
@@ -257,7 +257,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
         {mode === 'buffer' && bufferShortfall && (
           <>
             {!bufferShortfall.breaches ? (
-              <div className="flex items-start gap-2 rounded-lg border border-positive/40 bg-positive/5 px-4 py-3 text-sm">
+              <div className="flex items-start gap-2 rounded-lg bg-positive/10 px-4 py-3 text-sm">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
                 <span>
                   Dein Liquiditätspuffer hält im gewählten Horizont – aktuell ist kein Eingriff nötig.
@@ -265,7 +265,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               </div>
             ) : (
               <>
-                <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+                <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
                   <span className="font-medium">~{eur.format(bufferShortfall.monthlyNeeded)}/Monat</span>
                   <span className="ml-2 text-muted-foreground">
                     freimachen, um über dem Puffer zu bleiben (Fehlbetrag{' '}
@@ -303,8 +303,9 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                 Preise – sie lassen sich nur kündigen, wechseln oder bündeln.
               </p>
             ) : (
-              contractHints.map((hint, i) => (
-                <div key={i} className="rounded-xl border p-4">
+              <div className="divide-y divide-border/60">
+                {contractHints.map((hint, i) => (
+                <div key={i} className="py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-medium">{hint.title}</div>
@@ -322,11 +323,12 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                     </div>
                   </div>
                 </div>
-              ))
+                ))}
+              </div>
             )}
 
             {emergencyTarget > 0 && (
-              <div className="rounded-xl border border-dashed p-4">
+              <div className="rounded-xl bg-muted/30 p-4">
                 <div className="flex items-center gap-2 font-medium">
                   <Shield className="h-4 w-4 text-brand" />
                   Notrücklage
@@ -372,9 +374,9 @@ function WaterfallResult({
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Wo zuerst sparen? (niedrige Priorität zuerst)
       </div>
-      <div className="space-y-2">
+      <div className="divide-y divide-border/60">
         {visible.map((s) => (
-          <div key={s.category} className="flex items-center gap-3 rounded-lg border px-3 py-2.5">
+          <div key={s.category} className="flex items-center gap-3 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium">{s.category}</span>
