@@ -254,7 +254,7 @@ export default function TransactionsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="w-full">
       <PageHeader
         title={t("transactions.title")}
         description={t("transactions.description")}
