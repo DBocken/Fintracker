@@ -86,7 +86,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Dashboard", labelKey: "nav.items.dashboard", path: "/dashboard", icon: BarChart3 },
       { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
       {
-        label: "Analyse",
+        label: "Trends & Berichte",
         labelKey: "nav.items.premium",
         path: "/premium",
         icon: Zap,
@@ -114,7 +114,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Konten", labelKey: "nav.items.accounts", path: "/accounts", icon: CreditCard },
       { label: "CSV Upload", labelKey: "nav.items.csv", path: "/csv", icon: Upload },
       { label: "Daten Export", labelKey: "nav.items.export", path: "/export", icon: Download },
-      { label: "Verträge", labelKey: "nav.items.contracts", path: "/contracts", icon: Wallet },
+      { label: "Abos & Verträge", labelKey: "nav.items.contracts", path: "/contracts", icon: Wallet },
     ],
   },
   {

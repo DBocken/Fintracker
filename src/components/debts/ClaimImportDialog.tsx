@@ -107,7 +107,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[640px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Forderungsbriefe scannen</DialogTitle>
           <DialogDescription>

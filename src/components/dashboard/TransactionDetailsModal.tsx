@@ -519,7 +519,7 @@ export function TransactionDetailsModal({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Transaktionsdetails</DialogTitle>
           </DialogHeader>
@@ -532,7 +532,7 @@ export function TransactionDetailsModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-lg">
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-lg">
         <SheetHeader className="mb-2">
           <SheetTitle className="text-left">Transaktionsdetails</SheetTitle>
         </SheetHeader>
