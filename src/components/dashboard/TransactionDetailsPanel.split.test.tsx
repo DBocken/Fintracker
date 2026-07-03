@@ -48,21 +48,19 @@ function renderPanel(layout: "stacked" | "split") {
   );
 }
 
-describe("TransactionDetailsPanel – Split-Layout (horizontal 1/3 · 2/3)", () => {
-  it("[REGRESSION] sollte im Split-Layout ein 3-Spalten-Raster (1/3 · 2/3) anlegen", () => {
+describe("TransactionDetailsPanel – Split-Layout (horizontal, 2 Spalten)", () => {
+  it("[REGRESSION] sollte im Split-Layout zwei ausbalancierte Spalten (Masonry) anlegen", () => {
     const { container } = renderPanel("split");
-    // Stammdaten (links) und Bearbeitung (rechts) liegen im horizontalen Raster.
-    expect(container.querySelector(".md\\:grid-cols-3")).toBeTruthy();
-    expect(container.querySelector(".md\\:col-span-1")).toBeTruthy();
-    expect(container.querySelector(".md\\:col-span-2")).toBeTruthy();
+    // Abschnitte fließen in zwei Spalten und füllen den Platz beidseitig.
+    expect(container.querySelector(".md\\:columns-2")).toBeTruthy();
     // Beide Bereiche sind vorhanden.
     expect(screen.getByText("Datum")).toBeTruthy();
     expect(screen.getByText("Kategorisierung")).toBeTruthy();
   });
 
-  it("sollte im Stacked-Layout kein horizontales Raster verwenden", () => {
+  it("sollte im Stacked-Layout kein Mehrspalten-Layout verwenden", () => {
     const { container } = renderPanel("stacked");
-    expect(container.querySelector(".md\\:grid-cols-3")).toBeNull();
+    expect(container.querySelector(".md\\:columns-2")).toBeNull();
     expect(screen.getByText("Kategorisierung")).toBeTruthy();
   });
 });

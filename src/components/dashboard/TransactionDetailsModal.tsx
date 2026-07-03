@@ -72,7 +72,7 @@ export function TransactionDetailsModal({
     // Breiter, horizontaler Dialog: Stammdaten links (1/3), Bearbeitung rechts (2/3).
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Transaktionsdetails</DialogTitle>
           </DialogHeader>
@@ -84,7 +84,7 @@ export function TransactionDetailsModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-lg">
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto scrollbar-subtle rounded-t-lg">
         <SheetHeader className="mb-2">
           <SheetTitle className="text-left">Transaktionsdetails</SheetTitle>
         </SheetHeader>

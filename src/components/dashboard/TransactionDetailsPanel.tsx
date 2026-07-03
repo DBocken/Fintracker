@@ -195,11 +195,18 @@ export function TransactionDetailsPanel({
   };
 
   const isSplit = layout === 'split';
+  // Split-Layout: die Abschnitte fließen in zwei ausbalancierte Spalten (Masonry
+  // über CSS-Columns). So bleibt keine Spalte halbleer, die Gesamthöhe halbiert
+  // sich und der Dialog passt meist ohne Scrollbalken. Stacked (Mobil): eine Spalte.
   return (
     <div className="py-2">
-      <div className={isSplit ? 'grid gap-6 md:grid-cols-3' : 'space-y-4'}>
-        {/* Stammdaten (read-only) – im Split-Layout die linke Spalte (1/3) */}
-        <div className={cn('space-y-4', isSplit && 'md:col-span-1')}>
+      <div
+        className={
+          isSplit
+            ? 'gap-x-8 md:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid'
+            : 'space-y-4'
+        }
+      >
       {/* Stammdaten (read-only) */}
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -239,10 +246,7 @@ export function TransactionDetailsPanel({
           </div>
         )}
       </div>
-        </div>
 
-        {/* Bearbeitung – im Split-Layout die rechte Spalte (2/3) */}
-        <div className={cn('space-y-4', isSplit && 'md:col-span-2')}>
       {/* Kategorisierung */}
       <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">Kategorisierung</h3>
@@ -316,7 +320,7 @@ export function TransactionDetailsPanel({
       )}
 
       {/* Aufteilung (Premium) */}
-      <div className="border-t pt-4">
+      <div className={cn('pt-4', !isSplit && 'border-t')}>
         <FeatureGate
           feature="splitTransactions"
           fallback={
@@ -347,7 +351,7 @@ export function TransactionDetailsPanel({
       </div>
 
       {/* Vertrag */}
-      <div className="space-y-3 border-t pt-4">
+      <div className={cn('space-y-3 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">Vertrag</h3>
 
         {contractHint && (
@@ -396,7 +400,7 @@ export function TransactionDetailsPanel({
       </div>
 
       {/* Interner Übertrag */}
-      <div className="space-y-2 border-t pt-4">
+      <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">Interner Übertrag</h3>
         <div className="flex items-start gap-2">
           <Checkbox
@@ -420,7 +424,7 @@ export function TransactionDetailsPanel({
 
       {/* Aktionen: Sichtbarkeit & Löschen */}
       {(onToggleVisibility || onDelete) && (
-        <div className="flex gap-2 border-t pt-4">
+        <div className={cn('flex gap-2 pt-4', !isSplit && 'border-t')}>
           {onToggleVisibility && (
             <Button
               type="button"
@@ -454,7 +458,6 @@ export function TransactionDetailsPanel({
           )}
         </div>
       )}
-        </div>
       </div>
 
       {/* Speichern / Schließen – volle Breite unter beiden Spalten */}
