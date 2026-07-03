@@ -404,7 +404,7 @@ export function Dashboard() {
       </div>
 
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-        <DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-md">
+        <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Filter</DialogTitle>
           </DialogHeader>

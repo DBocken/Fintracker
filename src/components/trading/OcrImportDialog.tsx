@@ -212,7 +212,7 @@ export default function OcrImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Positionen aus Bild importieren</DialogTitle>
           <DialogDescription>
