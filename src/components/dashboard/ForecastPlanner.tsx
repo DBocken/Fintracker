@@ -462,7 +462,7 @@ function EventForm({
   const valid = name.trim() && amount && Number(amount) > 0 && accountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2">
       <Input placeholder="Name (z. B. Urlaub)" value={name} onChange={(e) => setName(e.target.value)} />
       <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
         <SelectTrigger className="h-9">
@@ -563,7 +563,7 @@ function FundForm({
   const valid = name.trim() && target && Number(target) > 0 && dueDate && accountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2">
       <Input placeholder="Name (z. B. Kfz-Steuer)" value={name} onChange={(e) => setName(e.target.value)} />
       <Input
         type="number"
@@ -675,7 +675,7 @@ function TransferForm({
     fromAccountId && toAccountId && amount && Number(amount) > 0 && fromAccountId !== toAccountId;
 
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-2">
+    <div className="grid grid-cols-2 gap-2">
       <div className="col-span-2">
         <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
           <SelectTrigger className="h-9">
