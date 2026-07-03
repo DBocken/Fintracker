@@ -10,6 +10,7 @@ import { TransactionDayList } from "@/components/dashboard/TransactionDayList";
 import { TransactionStats } from "@/components/dashboard/TransactionStats";
 import { TransactionFilters } from "@/components/dashboard/TransactionFilters";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
+import { TransactionDetailsPanel } from "@/components/dashboard/TransactionDetailsPanel";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useI18n } from "@/i18n/useI18n";
@@ -41,19 +42,37 @@ import { useTransactionDetailEditing } from "@/hooks/useTransactionDetailEditing
 import { usePersistedSet } from "@/hooks/usePersistedSet";
 import type { Transaction, Category, Account } from "@/types";
 
+/** true ab dem `lg`-Breakpoint (Master-Detail). SSR-/Test-sicher. */
+function useIsWideDesktop(): boolean {
+  const query = "(min-width: 1024px)";
+  const [wide, setWide] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+    return window.matchMedia(query).matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(query);
+    const onChange = () => setWide(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 /**
  * Eigene Buchungsseite (Audit P1.2). Die Filter leben hier interaktiv – wie auf
  * dem Dashboard – und steuern die ganze Seite (Kennzahlen + Liste). Der Zustand
  * wird aus der URL vorbelegt (Deep-Link vom Dashboard) und bei jeder Änderung
- * zurückgespiegelt. Layout: volle Breite; die Tages-Gruppen fließen auf dem
- * Desktop horizontal in mehrere Spalten (statt einer langen Mobil-Kolumne). Das
- * Detail öffnet als Dialog (Desktop) bzw. Bottom-Sheet (Mobil) – kein zweiter,
- * verschachtelter Scrollbalken mehr.
+ * zurückgespiegelt. Layout: Master-Detail auf großen Screens – links Filter +
+ * Kennzahlen + Tagesliste, rechts das Detail als angedocktes Panel (horizontal
+ * 1/3 · 2/3), nicht als Overlay. Auf kleinen Screens Liste + Bottom-Sheet.
  */
 export default function TransactionsPage() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isWide = useIsWideDesktop();
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => decodeDashboardFilters(searchParams));
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -213,7 +232,8 @@ export default function TransactionsPage() {
 
   const openDetails = (tx: Transaction) => {
     setDetailsTransaction(tx);
-    setDetailsOpen(true);
+    // Desktop: inline im rechten Panel; sonst als Bottom-Sheet/Overlay.
+    setDetailsOpen(!isWide);
   };
 
   const emptyList = (
@@ -251,7 +271,9 @@ export default function TransactionsPage() {
       ) : txs.length === 0 ? (
         <FinanceEmptyState />
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+          {/* Linke Spalte: Filter + Kennzahlen + Tagesliste. */}
+          <div className="space-y-5 lg:min-w-0">
           {/* Filter – immer sichtbar; steuern Kennzahlen + Liste. */}
           <div className="space-y-3">
             <div className="relative">
@@ -320,12 +342,58 @@ export default function TransactionsPage() {
               selectedId={detailsTransaction?.id}
             />
           )}
+          </div>
+
+          {/* Rechte Spalte (Desktop): angedocktes Detail-Panel, horizontal 1/3 · 2/3. */}
+          <aside className="hidden lg:block lg:min-w-0">
+            <div className="lg:sticky lg:top-4">
+              {detailsTransaction ? (
+                <div>
+                  <div className="mb-3 flex items-center justify-between border-b pb-3">
+                    <h2 className="text-base font-semibold">Transaktionsdetails</h2>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label="Details schließen"
+                      onClick={closeDetails}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto">
+                    <TransactionDetailsPanel
+                      transaction={detailsTransaction}
+                      categories={cats}
+                      accounts={accounts}
+                      allTransactions={txs}
+                      onSave={(id, patch, options) =>
+                        detailsTransaction && saveDetails(detailsTransaction, id, patch, options)
+                      }
+                      onToggleVisibility={toggleHidden}
+                      onDelete={(id) => deleteMut.mutate(id)}
+                      isHidden={detailsTransaction.id ? hidden.has(detailsTransaction.id) : false}
+                      isLoading={detailsSaving}
+                      onClose={closeDetails}
+                      closeLabel="Schließen"
+                      layout="split"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+                  Wähle links eine Buchung, um Details zu sehen und zu bearbeiten.
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       )}
 
-      {/* Detail als Dialog (Desktop) bzw. Bottom-Sheet (Mobil). */}
+      {/* Overlay/Sheet nur unterhalb von lg (auf großen Screens ist das Detail inline). */}
       <TransactionDetailsModal
-        open={detailsOpen}
+        open={detailsOpen && !isWide}
         onOpenChange={(open) => (open ? setDetailsOpen(true) : closeDetails())}
         transaction={detailsTransaction}
         categories={cats}
