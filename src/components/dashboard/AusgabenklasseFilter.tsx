@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { getAusgabenklasseColor } from '@/lib/ausgabenklasse-colors';
+import { cn } from '@/lib/utils';
 import type { Category } from '@/types';
 import type { AusgabenklasseFilter } from './filter-constants';
 
@@ -16,12 +17,14 @@ interface AusgabenklasseFilterProps {
   value: AusgabenklasseFilter;
   onChange: (value: AusgabenklasseFilter) => void;
   categories: Category[];
+  className?: string;
 }
 
 export function AusgabenklasseFilterComponent({
   value,
   onChange,
   categories,
+  className,
 }: AusgabenklasseFilterProps) {
   // Kategorien nach Ausgabenklasse gruppieren
   const kategoriesByKlasse = useMemo(() => {
@@ -38,7 +41,7 @@ export function AusgabenklasseFilterComponent({
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as AusgabenklasseFilter)}>
-      <SelectTrigger aria-label="Ausgabenklasse filtern" className="w-48 bg-background/50 backdrop-blur-sm">
+      <SelectTrigger aria-label="Ausgabenklasse filtern" className={cn(className ?? 'w-48', 'bg-background/50 backdrop-blur-sm')}>
         <SelectValue placeholder="Alle Klassen" />
       </SelectTrigger>
       <SelectContent>
