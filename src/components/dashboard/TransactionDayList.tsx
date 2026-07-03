@@ -20,6 +20,12 @@ interface TransactionDayListProps {
   showRunningBalance?: boolean;
   /** Aktuell im Detail-Panel geöffnete Buchung – wird in der Liste hervorgehoben. */
   selectedId?: string | null;
+  /**
+   * `true` fließen die Tages-Gruppen auf breiten Screens in mehrere Spalten
+   * (Masonry über CSS-Columns) statt einer einzelnen langen Kolumne – nutzt die
+   * Desktop-Breite und verkürzt die vertikale Scroll-Länge.
+   */
+  multiColumn?: boolean;
   now?: Date;
 }
 
@@ -54,6 +60,7 @@ export function TransactionDayList({
   endingBalance,
   showRunningBalance = true,
   selectedId,
+  multiColumn = false,
   now,
 }: TransactionDayListProps) {
   const { enabled: gentleModeEnabled } = useGentleMode();
@@ -69,14 +76,14 @@ export function TransactionDayList({
   );
 
   return (
-    <div className="space-y-6">
+    <div className={multiColumn ? 'gap-x-8 md:columns-2 xl:columns-3' : 'space-y-6'}>
       {groups.map((group) => {
         const heading = formatDayHeading(group.key, now);
         const balanceLabel = gentleModeEnabled ? '***' : currencyFormatter.format(group.runningBalance);
         const deltaLabel = gentleModeEnabled ? '' : deltaFormatter.format(group.delta);
 
         return (
-          <section key={group.key} className="space-y-1">
+          <section key={group.key} className={cn('space-y-1', multiColumn && 'mb-6 break-inside-avoid')}>
             <div className="flex items-baseline justify-between gap-3 px-1 pb-1">
               <h3 className="text-sm font-medium text-muted-foreground">{heading}</h3>
               {showRunningBalance && (

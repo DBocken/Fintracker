@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, SlidersHorizontal, X } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { toast } from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { TransactionDayList } from "@/components/dashboard/TransactionDayList";
 import { TransactionStats } from "@/components/dashboard/TransactionStats";
 import { TransactionFilters } from "@/components/dashboard/TransactionFilters";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
-import { TransactionDetailsPanel } from "@/components/dashboard/TransactionDetailsPanel";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useI18n } from "@/i18n/useI18n";
@@ -44,37 +43,19 @@ import { useTransactionDetailEditing } from "@/hooks/useTransactionDetailEditing
 import { usePersistedSet } from "@/hooks/usePersistedSet";
 import type { Transaction, Category, Account } from "@/types";
 
-/** true ab dem `lg`-Breakpoint (Master-Detail-Layout). SSR-/Test-sicher. */
-function useIsWideDesktop(): boolean {
-  const query = "(min-width: 1024px)";
-  const [wide, setWide] = useState(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-    return window.matchMedia(query).matches;
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mql = window.matchMedia(query);
-    const onChange = () => setWide(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-  return wide;
-}
-
 /**
  * Eigene Buchungsseite (Audit P1.2). Die Filter leben hier interaktiv – wie auf
  * dem Dashboard – und steuern die ganze Seite (Kennzahlen + Liste). Der Zustand
  * wird aus der URL vorbelegt (Deep-Link vom Dashboard) und bei jeder Änderung
- * zurückgespiegelt. Layout: auf großen Screens Master-Detail (Liste links,
- * Detail rechts inline statt als Overlay – füllt den sonst leeren Raum), auf
- * kleinen Screens die Liste plus Bottom-Sheet fürs Detail.
+ * zurückgespiegelt. Layout: volle Breite; die Tages-Gruppen fließen auf dem
+ * Desktop horizontal in mehrere Spalten (statt einer langen Mobil-Kolumne). Das
+ * Detail öffnet als Dialog (Desktop) bzw. Bottom-Sheet (Mobil) – kein zweiter,
+ * verschachtelter Scrollbalken mehr.
  */
 export default function TransactionsPage() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const isWide = useIsWideDesktop();
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => decodeDashboardFilters(searchParams));
   const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -235,8 +216,7 @@ export default function TransactionsPage() {
 
   const openDetails = (tx: Transaction) => {
     setDetailsTransaction(tx);
-    // Auf großen Screens erscheint das Detail inline; sonst als Overlay/Sheet.
-    setDetailsOpen(!isWide);
+    setDetailsOpen(true);
   };
 
   const emptyList = (
@@ -352,71 +332,25 @@ export default function TransactionsPage() {
             currentBalance={formatBalance(scopedCurrentBalance)}
           />
 
-          {/* Desktop: Master-Detail (Liste links, Detail rechts). Mobil: nur Liste. */}
-          <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
-            <div className="lg:col-span-7 xl:col-span-8">
-              {visible.length === 0 ? emptyList : (
-                <TransactionDayList
-                  transactions={visible}
-                  categories={cats}
-                  hiddenTransactions={hidden}
-                  onOpenDetails={openDetails}
-                  endingBalance={endingBalance}
-                  showRunningBalance={!hasContentFilter}
-                  selectedId={detailsTransaction?.id}
-                />
-              )}
-            </div>
-
-            <aside className="hidden lg:col-span-5 lg:block xl:col-span-4">
-              <div className="lg:sticky lg:top-4">
-                {detailsTransaction ? (
-                  <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-semibold">Transaktionsdetails</h2>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        aria-label="Details schließen"
-                        onClick={closeDetails}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
-                      <TransactionDetailsPanel
-                        transaction={detailsTransaction}
-                        categories={cats}
-                        accounts={accounts}
-                        allTransactions={txs}
-                        onSave={(id, patch, options) =>
-                          detailsTransaction && saveDetails(detailsTransaction, id, patch, options)
-                        }
-                        onToggleVisibility={toggleHidden}
-                        onDelete={(id) => deleteMut.mutate(id)}
-                        isHidden={detailsTransaction.id ? hidden.has(detailsTransaction.id) : false}
-                        isLoading={detailsSaving}
-                        onClose={closeDetails}
-                        closeLabel="Schließen"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    Wähle eine Buchung, um Details zu sehen und zu bearbeiten.
-                  </div>
-                )}
-              </div>
-            </aside>
-          </div>
+          {/* Volle Breite; auf dem Desktop fließen die Tage horizontal in Spalten. */}
+          {visible.length === 0 ? emptyList : (
+            <TransactionDayList
+              transactions={visible}
+              categories={cats}
+              hiddenTransactions={hidden}
+              onOpenDetails={openDetails}
+              endingBalance={endingBalance}
+              showRunningBalance={!hasContentFilter}
+              selectedId={detailsTransaction?.id}
+              multiColumn
+            />
+          )}
         </div>
       )}
 
-      {/* Overlay/Sheet nur unterhalb von lg (auf großen Screens ist das Detail inline). */}
+      {/* Detail als Dialog (Desktop) bzw. Bottom-Sheet (Mobil). */}
       <TransactionDetailsModal
-        open={detailsOpen && !isWide}
+        open={detailsOpen}
         onOpenChange={(open) => (open ? setDetailsOpen(true) : closeDetails())}
         transaction={detailsTransaction}
         categories={cats}

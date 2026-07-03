@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { Account, Category, Transaction } from "@/types";
 
 const CATS: Category[] = [{ id: "food", name: "Lebensmittel", parent_id: null } as Category];
@@ -30,79 +30,31 @@ vi.mock("@/hooks/usePersistedSet", () => ({ usePersistedSet: () => [new Set(), v
 vi.mock("@/hooks/useTransactionDetailEditing", () => ({
   useTransactionDetailEditing: () => ({ save: vi.fn(), isPending: false }),
 }));
-// Leichtgewichtige Stubs, damit die Master-Detail-Verdrahtung ohne die schweren
-// Detail-Abhängigkeiten testbar bleibt.
+// Leichtgewichtiger Stub, damit die Verdrahtung ohne die schweren Detail-
+// Abhängigkeiten testbar bleibt.
 vi.mock("@/components/dashboard/TransactionDetailsModal", () => ({
-  TransactionDetailsModal: ({ open }: { open: boolean }) => (open ? <div data-testid="overlay-modal" /> : null),
-}));
-vi.mock("@/components/dashboard/TransactionDetailsPanel", () => ({
-  TransactionDetailsPanel: ({ transaction }: { transaction: { payee: string } }) => (
-    <div data-testid="inline-panel">Inline: {transaction.payee}</div>
-  ),
+  TransactionDetailsModal: ({ open }: { open: boolean }) => (open ? <div data-testid="details-modal" /> : null),
 }));
 
 import TransactionsPage from "./TransactionsPage";
 
-function mockMatchMedia(matches: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    configurable: true,
-    value: (query: string) => ({
-      matches,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }),
-  });
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={["/transactions"]}>
+      <TransactionsPage />
+    </MemoryRouter>,
+  );
 }
 
-afterEach(() => {
-  // matchMedia zwischen den Tests zurücksetzen.
-  // @ts-expect-error – Test-Cleanup.
-  delete window.matchMedia;
-});
-
-describe("TransactionsPage – Master-Detail (Desktop)", () => {
-  describe("Wide-Desktop (lg+)", () => {
-    beforeEach(() => mockMatchMedia(true));
-
-    it("sollte zunächst einen Platzhalter statt Overlay zeigen", () => {
-      render(
-        <MemoryRouter initialEntries={["/transactions"]}>
-          <TransactionsPage />
-        </MemoryRouter>,
-      );
-      expect(screen.getByText(/Wähle eine Buchung/)).toBeTruthy();
-      expect(screen.queryByTestId("overlay-modal")).toBeNull();
-    });
-
-    it("[REGRESSION] sollte Details inline (nicht als Overlay) öffnen", () => {
-      render(
-        <MemoryRouter initialEntries={["/transactions"]}>
-          <TransactionsPage />
-        </MemoryRouter>,
-      );
-      fireEvent.click(screen.getByRole("button", { name: /Lieferando/i }));
-      expect(screen.getByTestId("inline-panel")).toBeTruthy();
-      expect(screen.getByText(/Inline: Lieferando/)).toBeTruthy();
-      expect(screen.queryByTestId("overlay-modal")).toBeNull();
-    });
+describe("TransactionsPage – Detail öffnen", () => {
+  it("sollte anfangs kein Detail-Dialog zeigen", () => {
+    renderPage();
+    expect(screen.queryByTestId("details-modal")).toBeNull();
   });
 
-  describe("Schmaler Screen (< lg)", () => {
-    beforeEach(() => mockMatchMedia(false));
-
-    it("[REGRESSION] sollte Details als Overlay öffnen (kein Inline-Panel)", () => {
-      render(
-        <MemoryRouter initialEntries={["/transactions"]}>
-          <TransactionsPage />
-        </MemoryRouter>,
-      );
-      fireEvent.click(screen.getByRole("button", { name: /Lieferando/i }));
-      expect(screen.getByTestId("overlay-modal")).toBeTruthy();
-    });
+  it("[REGRESSION] sollte beim Klick auf eine Zeile den Detail-Dialog öffnen", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Lieferando/i }));
+    expect(screen.getByTestId("details-modal")).toBeTruthy();
   });
 });
