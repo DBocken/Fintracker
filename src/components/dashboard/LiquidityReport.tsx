@@ -25,6 +25,7 @@ import {
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -55,7 +56,8 @@ import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import { summarizeOverrides, type OverrideChange } from '@/lib/forecast-overrides-summary';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
-import type { BufferBasis } from '@/lib/forecast-types';
+import type { BufferBasis, ForecastMonthlySummary } from '@/lib/forecast-types';
+import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
@@ -106,8 +108,12 @@ function maxBreach(breach: Record<string, number[]> | undefined, threshold: numb
   return Math.max(...series);
 }
 
-/** Eine kompakte KPI-Kachel. */
-function Kpi({
+/**
+ * Eine kompakte KPI als karten-loses Readout (Prinzip 8 „Karten sind Aktionen"):
+ * Eine Kennzahl hat keine Folgeaktion → KEIN Rahmen/Schatten, nur ein ruhig
+ * hinterlegter Block. Die tone-Farbe transportiert weiter den Schwellwert.
+ */
+export function Kpi({
   icon,
   label,
   value,
@@ -129,14 +135,14 @@ function Kpi({
           ? 'text-emerald-600 dark:text-emerald-400'
           : '';
   return (
-    <Card className="p-3">
+    <div className="rounded-xl bg-muted/30 p-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span className="shrink-0">{icon}</span>
         <span className="truncate">{label}</span>
       </div>
       <div className={`mt-1 text-xl font-bold ${toneClass}`}>{value}</div>
       {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-    </Card>
+    </div>
   );
 }
 
@@ -489,50 +495,44 @@ export default function LiquidityReport() {
 
           {/* Risikotreiber & Empfehlung */}
           {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {analysis.drivers.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Risikotreiber</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-3 text-xs text-muted-foreground">
-                      Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
-                      {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
-                    </p>
-                    <ul className="space-y-2">
-                      {analysis.drivers.map((d, i) => (
-                        <li key={`${d.name}-${i}`} className="flex items-center justify-between gap-2">
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-sm">{d.name}</span>
-                            {d.occurrences && d.occurrences > 1 && (
-                              <Badge variant="outline" className="shrink-0 text-[10px]">
-                                {d.occurrences}×
-                              </Badge>
-                            )}
-                          </span>
-                          <span className="shrink-0 text-sm font-semibold tabular-nums">
-                            −{eur.format(d.amount)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                <InfoGroup title="Risikotreiber">
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
+                    {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
+                  </p>
+                  <ul className="space-y-2">
+                    {analysis.drivers.map((d, i) => (
+                      <li key={`${d.name}-${i}`} className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm">{d.name}</span>
+                          {d.occurrences && d.occurrences > 1 && (
+                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                              {d.occurrences}×
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          −{eur.format(d.amount)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </InfoGroup>
               )}
 
               {analysis.recommendation && (
-                <Card className="border-emerald-600/40">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <InfoGroup
+                  title={
+                    <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <Lightbulb className="h-4 w-4" />
                       Empfehlung
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{analysis.recommendation.message}</p>
-                  </CardContent>
-                </Card>
+                    </span>
+                  }
+                >
+                  <p className="text-sm">{analysis.recommendation.message}</p>
+                </InfoGroup>
               )}
             </div>
           )}
@@ -624,42 +624,11 @@ export default function LiquidityReport() {
         <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Monatsübersicht</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {monthly.map((m, i) => (
-            <Card key={m.month} className={m.belowSafetyBuffer ? 'border-warning' : undefined}>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">{fmtMonth(m.month)}</span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    {/* Monatsende ggü. Vormonat – schwellwertbewusst (kleine Änderung = neutral). */}
-                    {i > 0 && (
-                      <DeltaBadge current={m.closingBalance} previous={monthly[i - 1].closingBalance} />
-                    )}
-                    {m.belowSafetyBuffer && (
-                      <Badge variant="outline" className="border-warning text-warning">
-                        unter Puffer
-                      </Badge>
-                    )}
-                  </span>
-                </div>
-                <dl className="space-y-1 text-sm">
-                  <Row label="Einnahmen" value={eur.format(m.income)} positive />
-                  <Row label="Fixkosten" value={`−${eur.format(m.fixedExpenses)}`} />
-                  <Row label="Variabel" value={`−${eur.format(m.variableExpenses)}`} />
-                  {m.transfersOut > 0 && (
-                    <Row label="Sparen/Transfer" value={`−${eur.format(m.transfersOut)}`} />
-                  )}
-                  {m.interest > 0 && (
-                    <Row label="Zinsen" value={`+${eur.format(m.interest)}`} positive />
-                  )}
-                  <div className="my-1 border-t" />
-                  <Row label="Monatsende" value={eur.format(m.closingBalance)} bold />
-                  <Row
-                    label="Monatstief"
-                    value={`${eur.format(m.lowestBalance)} · ${format(parseISO(m.lowestBalanceDate), 'd.M.', { locale: de })}`}
-                    muted
-                  />
-                </dl>
-              </div>
-            </Card>
+            <MonthSummary
+              key={m.month}
+              m={m}
+              previousClosingBalance={i > 0 ? monthly[i - 1].closingBalance : undefined}
+            />
           ))}
         </div>
       </div>
@@ -808,6 +777,60 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
     <div role="group" aria-label="Ansicht" className="inline-flex overflow-hidden rounded-lg border">
       {opt('lines', 'Linien', LineChart)}
       {opt('heatmap', 'Heatmap', Grid3x3)}
+    </div>
+  );
+}
+
+/**
+ * Monats-Kennzahlen als karten-loses Readout (Prinzip 8 „Karten sind Aktionen"):
+ * kein Follow-up hinter dem Monat → kein Rahmen/Schatten, nur ein ruhig
+ * hinterlegter Block. „Unter Puffer" wird schwellwertbewusst durch eine dezente
+ * Tönung + Badge signalisiert statt durch einen Karten-Rahmen.
+ */
+export function MonthSummary({
+  m,
+  previousClosingBalance,
+}: {
+  m: ForecastMonthlySummary;
+  previousClosingBalance?: number;
+}) {
+  return (
+    <div
+      className={cn(
+        'space-y-2 rounded-xl p-4',
+        m.belowSafetyBuffer ? 'bg-warning/10' : 'bg-muted/30',
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold">{fmtMonth(m.month)}</span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          {/* Monatsende ggü. Vormonat – schwellwertbewusst (kleine Änderung = neutral). */}
+          {previousClosingBalance !== undefined && (
+            <DeltaBadge current={m.closingBalance} previous={previousClosingBalance} />
+          )}
+          {m.belowSafetyBuffer && (
+            <Badge variant="outline" className="border-warning text-warning">
+              unter Puffer
+            </Badge>
+          )}
+        </span>
+      </div>
+      <dl className="space-y-1 text-sm">
+        <Row label="Einnahmen" value={eur.format(m.income)} positive />
+        <Row label="Fixkosten" value={`−${eur.format(m.fixedExpenses)}`} />
+        <Row label="Variabel" value={`−${eur.format(m.variableExpenses)}`} />
+        {m.transfersOut > 0 && (
+          <Row label="Sparen/Transfer" value={`−${eur.format(m.transfersOut)}`} />
+        )}
+        {m.interest > 0 && <Row label="Zinsen" value={`+${eur.format(m.interest)}`} positive />}
+        <div className="my-1 border-t border-border/60" />
+        <Row label="Monatsende" value={eur.format(m.closingBalance)} bold />
+        <Row
+          label="Monatstief"
+          value={`${eur.format(m.lowestBalance)} · ${format(parseISO(m.lowestBalanceDate), 'd.M.', { locale: de })}`}
+          muted
+        />
+      </dl>
     </div>
   );
 }
