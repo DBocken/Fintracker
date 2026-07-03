@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -17,7 +16,6 @@ import { TransactionStats } from './TransactionStats';
 import { ExpensesOverTimeCard, SpendingBreakdownCard } from './TransactionCharts';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
-import { BulkActions } from './BulkActions';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
@@ -48,6 +46,11 @@ import { getContractDecisionMap, type ContractDecision } from '@/services/contra
 import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
+
+// Die Buchungen-Vorschau auf dem Dashboard ist reine Vorschau ohne Sammelbearbeitung
+// (die lebt vollständig auf /transactions) – Auswahl bleibt hier bewusst inert.
+const EMPTY_SELECTION = new Set<string>();
+const noop = () => {};
 
 export function Dashboard() {
   const { t } = useI18n();
@@ -110,8 +113,6 @@ export function Dashboard() {
     return accounts.reduce((sum, a) => sum + (effectiveBalances[a.id]?.amount ?? 0), 0);
   }, [accounts, effectiveBalances]);
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkCat, setBulkCat] = useState<string>('');
   const [_filterCat, _setFilterCat] = useState<string>(DEFAULT_DASHBOARD_FILTERS.category);
   const [_filterAccount, _setFilterAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
   const [filterContract, setFilterContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
@@ -135,8 +136,6 @@ export function Dashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       toast.success(t('dashboard.categoriesUpdated'));
-      setSelected(new Set());
-      setBulkCat('');
     },
     onError: (error) => {
       toast.error(`${t('dashboard.updateError')}${error.message}`);
@@ -153,40 +152,11 @@ export function Dashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       toast.success(t('dashboard.transactionDeleted'));
-      setSelected(new Set());
     },
     onError: (error) => {
       toast.error(`${t('dashboard.deleteError')}${error.message}`);
     },
   });
-
-  const bulkDeleteMutation = useMutation<void, Error, string[]>({
-    mutationFn: async (ids: string[]) => {
-      for (const id of ids) {
-        await deleteTransaction(id);
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success(t('dashboard.transactionsDeleted', `${selected.size} Transaktionen gelöscht`));
-      setSelected(new Set());
-    },
-    onError: (error) => {
-      toast.error(`${t('dashboard.deleteError')}${error.message}`);
-    },
-  });
-
-  const handleSelect = useCallback((id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
 
   const handleUpdateCategory = useCallback((transactionId: string, categoryId: string) => {
     if (!transactionId) return;
@@ -214,17 +184,9 @@ export function Dashboard() {
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {
       deleteMutation.mutate(transactionToDelete);
-    } else if (selected.size > 0) {
-      bulkDeleteMutation.mutate(Array.from(selected));
     }
     setDeleteDialogOpen(false);
-  }, [transactionToDelete, selected, deleteMutation, bulkDeleteMutation]);
-
-  const handleApplyBulk = useCallback(() => {
-    if (bulkCat && selected.size > 0) {
-      mutation.mutate(Array.from(selected).map(id => ({ id, category_id: bulkCat })));
-    }
-  }, [bulkCat, selected, mutation]);
+  }, [transactionToDelete, deleteMutation]);
 
   const handleSort = useCallback((key: keyof Transaction) => {
     setSortConfig(prev => {
@@ -299,10 +261,6 @@ export function Dashboard() {
   }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, customPeriod, contractDecisions]);
 
   const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
-
-  const handleSelectAll = useCallback((checked: boolean) => {
-    setSelected(checked ? new Set(visibleTransactions.map(t => t.id || '').filter(Boolean)) : new Set());
-  }, [visibleTransactions]);
 
   const sortedTransactions = useMemo(() => {
     if (!sortConfig) return visibleTransactions;
@@ -420,6 +378,71 @@ export function Dashboard() {
         </div>
       </InteractiveCard>
 
+      {/* Zeitraum/Filter steuern die ganze Seite (Kennzahlen, Charts, Vorschau) –
+          deshalb hier oben, statt versteckt in der Buchungen-Vorschau. */}
+      <div className="flex gap-2 items-center flex-wrap">
+        <div className="relative">
+          <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+          <Input
+            id="transaction-search"
+            type="search"
+            placeholder={t("dashboard.search")}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            className="w-48 bg-background/50 backdrop-blur-sm"
+          />
+        </div>
+        <Button type="button" variant="outline" size="sm" className="relative" onClick={() => setFilterDialogOpen(true)}>
+          <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
+          Filter
+          {activeFilterCount > 0 && (
+            <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 justify-center">
+              {activeFilterCount}
+            </Badge>
+          )}
+        </Button>
+      </div>
+
+      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filter</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <TransactionFilters
+              filterCat={_filterCat}
+              setFilterCat={_setFilterCat}
+              filterAccount={_filterAccount}
+              setFilterAccount={_setFilterAccount}
+              searchInput={searchInput}
+              setSearchInput={setSearchInput}
+              range={range}
+              setRange={handleSetRange}
+              customDays={customDays}
+              setCustomDays={setCustomDays}
+              customGran={customGran}
+              setCustomGran={setCustomGran}
+              customPeriod={customPeriod}
+              setCustomPeriod={setCustomPeriod}
+              periodOptions={periodOptions}
+              categories={cats}
+              filterContract={filterContract}
+              setFilterContract={setFilterContract}
+              filterEssential={filterEssential}
+              setFilterEssential={setFilterEssential}
+              filterAusgabenklasse={filterAusgabenklasse}
+              setFilterAusgabenklasse={setFilterAusgabenklasse}
+              showSearch={false}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+              Filter zurücksetzen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <TransactionStats
         income={stats.income}
         expenses={stats.expenses}
@@ -483,91 +506,13 @@ export function Dashboard() {
           <CardTitle>Letzte Buchungen</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <BulkActions
-            selectedCount={selected.size}
-            bulkCategory={bulkCat}
-            onBulkCategoryChange={setBulkCat}
-            onApplyBulk={handleApplyBulk}
-            onClearSelection={() => setSelected(new Set())}
-            onBulkDelete={handleDeleteConfirmed}
-            categories={cats}
-          />
-          
-          <div className="flex gap-2 items-center flex-wrap">
-            <Checkbox
-              aria-label={t("dashboard.allTransactions")}
-              checked={visibleTransactions.length > 0 && visibleTransactions.every(t => selected.has(t.id || ''))}
-              onCheckedChange={handleSelectAll}
-            />
-            <div className="relative">
-              <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
-              <Input
-                id="transaction-search"
-                type="search"
-                placeholder={t("dashboard.search")}
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                className="w-48 bg-background/50 backdrop-blur-sm"
-              />
-            </div>
-            <Button type="button" variant="outline" size="sm" className="relative" onClick={() => setFilterDialogOpen(true)}>
-              <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
-              Filter
-              {activeFilterCount > 0 && (
-                <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 justify-center">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-
-          <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-            <DialogContent className="flex max-h-[85vh] flex-col overflow-y-auto sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Filter</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-3">
-                <TransactionFilters
-                  filterCat={_filterCat}
-                  setFilterCat={_setFilterCat}
-                  filterAccount={_filterAccount}
-                  setFilterAccount={_setFilterAccount}
-                  searchInput={searchInput}
-                  setSearchInput={setSearchInput}
-                  range={range}
-                  setRange={handleSetRange}
-                  customDays={customDays}
-                  setCustomDays={setCustomDays}
-                  customGran={customGran}
-                  setCustomGran={setCustomGran}
-                  customPeriod={customPeriod}
-                  setCustomPeriod={setCustomPeriod}
-                  periodOptions={periodOptions}
-                  categories={cats}
-                  filterContract={filterContract}
-                  setFilterContract={setFilterContract}
-                  filterEssential={filterEssential}
-                  setFilterEssential={setFilterEssential}
-                  filterAusgabenklasse={filterAusgabenklasse}
-                  setFilterAusgabenklasse={setFilterAusgabenklasse}
-                  showSearch={false}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-                  Filter zurücksetzen
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
           <TransactionTable
             transactions={previewTransactions}
             categories={cats}
-            selected={selected}
+            selected={EMPTY_SELECTION}
             hiddenTransactions={hiddenTransactions}
             sortConfig={sortConfig}
-            onSelect={handleSelect}
+            onSelect={noop}
             onToggleVisibility={handleToggleVisibility}
             onUpdateCategory={handleUpdateCategory}
             onDelete={handleDelete}
@@ -579,9 +524,9 @@ export function Dashboard() {
             <TransactionListMobile
               transactions={previewTransactions}
               categories={cats}
-              selected={selected}
+              selected={EMPTY_SELECTION}
               hiddenTransactions={hiddenTransactions}
-              onSelect={handleSelect}
+              onSelect={noop}
               onOpenDetails={handleOpenDetails}
             />
           </div>
@@ -643,7 +588,7 @@ export function Dashboard() {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirmed}
         transactionId={transactionToDelete}
-        selectedCount={selected.size}
+        selectedCount={0}
       />
 
       <TransactionDetailsModal
