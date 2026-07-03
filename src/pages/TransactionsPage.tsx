@@ -362,7 +362,7 @@ export default function TransactionsPage() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto">
+                  <div className="scrollbar-subtle lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto">
                     <TransactionDetailsPanel
                       transaction={detailsTransaction}
                       categories={cats}
