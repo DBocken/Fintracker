@@ -6,7 +6,7 @@ import { I18nProvider } from '@/i18n/I18nProvider';
 
 function renderSwitcher() {
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale="de">
       <LanguageSwitcher />
     </I18nProvider>,
   );
@@ -35,7 +35,7 @@ describe('LanguageSwitcher', () => {
     it('sollte die Sprache wechseln, wenn ein Eintrag gewählt wird', async () => {
       const user = userEvent.setup();
       renderSwitcher();
-      const trigger = () => screen.getByRole('button', { name: /sprache wählen/i });
+      const trigger = () => screen.getByRole('button', { name: /sprache wählen|choose language/i });
 
       // Explizit beide Richtungen wählen — unabhängig von der Standardsprache:
       // der Trigger-Titel spiegelt die jeweils aktive Sprache.

@@ -275,7 +275,7 @@ export default function OcrImportDialog({
                 <div className="relative">
                   <img
                     src={previewUrl}
-                    alt="Uploaded preview"
+                    alt={t('trading.ocrImportDialog.previewLabel')}
                     className="w-full h-48 object-contain rounded-lg border bg-muted"
                   />
                   <Button

@@ -350,13 +350,13 @@ export default function TransactionsPage() {
               {detailsTransaction ? (
                 <div>
                   <div className="mb-3 flex items-center justify-between border-b pb-3">
-                    <h2 className="text-base font-semibold">Transaktionsdetails</h2>
+                    <h2 className="text-base font-semibold">{t('dashboard.transactionDetailsTitle')}</h2>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      aria-label="Details schließen"
+                      aria-label={t('dashboard.closeDetailsAriaLabel')}
                       onClick={closeDetails}
                     >
                       <X className="h-4 w-4" />
