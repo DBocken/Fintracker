@@ -1,6 +1,7 @@
 import type { Portfolio, PortfolioPosition } from '../types';
 import { createPortfolio, createPosition, getPortfolioById } from './portfolio-service';
 import { localEncryption } from './local-crypto';
+import { t } from '../i18n/serviceT';
 
 // -----------------------------------------------------------------------------
 // eToro API Types
@@ -147,23 +148,20 @@ export async function connectEtoroAccount(
   // die lokale Verschlüsselung aktiv und entsperrt ist — sonst lägen sie im
   // Klartext in IndexedDB und in unverschlüsselten Backups (T1.10 / F-DEBT-1).
   if (!localEncryption.isUnlocked()) {
-    throw new Error(
-      'Bitte richte zuerst die lokale Verschlüsselung ein und entsperre sie. ' +
-        'eToro-Zugangsdaten werden nur verschlüsselt gespeichert.',
-    );
+    throw new Error(t('etoroService.encryptionRequired'));
   }
 
   // Test connection first
   const connected = await testEtoroConnection(apiKey, userKey);
   if (!connected) {
-    throw new Error('Could not connect to eToro. Please check your credentials.');
+    throw new Error(t('etoroService.connectionFailed'));
   }
 
   // Fetch portfolio from eToro
   const etoroPositions = await fetchEtoroPortfolio(apiKey, userKey);
 
   if (!etoroPositions || etoroPositions.length === 0) {
-    throw new Error('No positions found in eToro portfolio.');
+    throw new Error(t('etoroService.noPositionsFound'));
   }
 
   // Create a new eToro portfolio
@@ -202,8 +200,9 @@ export async function connectEtoroAccount(
  * NICHT dauerhaft im lokalen Store persistiert — sie gehen bei einem Reload
  * verloren. Für dauerhafte Positionen die manuelle Erfassung nutzen.
  */
-export const ETORO_PREVIEW_NOTICE =
-  'Vorschau: eToro-Positionen werden nur angezeigt, aber nicht dauerhaft gespeichert (gehen bei Reload verloren). Für dauerhafte Positionen nutze „Position hinzufügen".';
+export function getEtoroPreviewNotice(): string {
+  return t('etoroService.previewNotice');
+}
 
 /**
  * Sync existing eToro portfolio with latest data.

@@ -24,11 +24,11 @@ import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPan
 import { FeatureGate } from '@/components/FeatureGate';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
-  RHYTHMUS_OPTIONS,
+  getRhythmusOptions,
   ausgabenklasseLabel,
   buildContractHint,
   buildDetailCategorySuggestion,
-  CONFIDENCE_LEVEL_LABEL,
+  getConfidenceLevelLabel,
   currentCategoryValue,
   diffTransactionDraft,
   draftFromTransaction,
@@ -258,7 +258,7 @@ export function TransactionDetailsPanel({
               <div className="flex-1">
                 <p className="text-sm font-medium">Vorschlag: {categorySuggestion.categoryLabel}</p>
                 <p className="text-xs text-muted-foreground">
-                  {CONFIDENCE_LEVEL_LABEL[categorySuggestion.confidenceLevel]}
+                  {getConfidenceLevelLabel()[categorySuggestion.confidenceLevel]}
                   {categorySuggestion.reasons[0] ? ` · ${categorySuggestion.reasons[0]}` : ''}
                 </p>
               </div>
@@ -390,7 +390,7 @@ export function TransactionDetailsPanel({
                 <SelectValue placeholder={t('dashboard.selectCycle')} />
               </SelectTrigger>
               <SelectContent>
-                {RHYTHMUS_OPTIONS.map((option) => (
+                {getRhythmusOptions().map((option) => (
                   <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                 ))}
               </SelectContent>

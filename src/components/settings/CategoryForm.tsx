@@ -29,26 +29,26 @@ interface CategoryFormProps {
   onReset: () => void;
 }
 
-const colorOptions = [
-  { value: '#1d5c54', label: 'Petrol dunkel' },
-  { value: '#2e7d72', label: 'Petrol' },
-  { value: '#4a9a8d', label: 'Petrol hell' },
-  { value: '#7bb8ac', label: 'Petrol blass' },
-  { value: '#5c7a99', label: 'Schieferblau' },
-  { value: '#8a7d5a', label: 'Olive' },
-  { value: '#a8845c', label: 'Sand' },
-  { value: '#7d6b8a', label: 'Pflaume' },
+const colorOptionsData = [
+  { value: '#1d5c54', labelKey: 'categoryForm.colorPetrolDark' },
+  { value: '#2e7d72', labelKey: 'categoryForm.colorPetrol' },
+  { value: '#4a9a8d', labelKey: 'categoryForm.colorPetrolLight' },
+  { value: '#7bb8ac', labelKey: 'categoryForm.colorPetrolFaint' },
+  { value: '#5c7a99', labelKey: 'categoryForm.colorSlateBlue' },
+  { value: '#8a7d5a', labelKey: 'categoryForm.colorOlive' },
+  { value: '#a8845c', labelKey: 'categoryForm.colorSand' },
+  { value: '#7d6b8a', labelKey: 'categoryForm.colorPlum' },
 ];
 
 const iconOptions = ['🛒', '🍽️', '🚗', '🛍️', '🔧', '🎬', '💊', '🏠', '📚', '📋', '💰', '✈️', '📱', '💡', '🥛', '🥖', '🥩', '🏨'];
 
-const checkboxFields: Array<{ key: keyof CategoryAttributes; label: string }> = [
-  { key: 'ist_vertrag', label: 'Ist Vertrag' },
-  { key: 'fixkosten', label: 'Fixkosten' },
-  { key: 'essenziell', label: 'Essenziell' },
-  { key: 'steuerrelevant', label: 'Steuerrelevant' },
-  { key: 'sichtbar', label: 'Sichtbar' },
-  { key: 'archiviert', label: 'Archiviert' },
+const checkboxFieldsData: Array<{ key: keyof CategoryAttributes; labelKey: string }> = [
+  { key: 'ist_vertrag', labelKey: 'categoryForm.propertyIsContract' },
+  { key: 'fixkosten', labelKey: 'categoryForm.propertyFixedCosts' },
+  { key: 'essenziell', labelKey: 'categoryForm.propertyEssential' },
+  { key: 'steuerrelevant', labelKey: 'categoryForm.propertyTaxRelevant' },
+  { key: 'sichtbar', labelKey: 'categoryForm.propertyVisible' },
+  { key: 'archiviert', labelKey: 'categoryForm.propertyArchived' },
 ];
 
 export function CategoryForm({
@@ -71,6 +71,18 @@ export function CategoryForm({
   const { t } = useI18n();
   const [newFilterInput, setNewFilterInput] = React.useState('');
   const [newTagInput, setNewTagInput] = React.useState('');
+
+  // Dynamic color options with translations
+  const colorOptions = colorOptionsData.map(opt => ({
+    value: opt.value,
+    label: t(opt.labelKey as any),
+  }));
+
+  // Dynamic checkbox fields with translations
+  const checkboxFields = checkboxFieldsData.map(field => ({
+    key: field.key,
+    labelKey: field.labelKey,
+  }));
 
   const handleAddFilter = () => {
     if (newFilterInput.trim() && !filters.includes(newFilterInput.trim().toLowerCase())) {
@@ -228,7 +240,7 @@ export function CategoryForm({
                           checked={isCheckboxChecked(field.key)}
                           onCheckedChange={(value) => onAttributesChange({ [field.key]: Boolean(value) })}
                         />
-                        <Label htmlFor={id}>{field.label}</Label>
+                        <Label htmlFor={id}>{t(field.labelKey as any)}</Label>
                       </div>
                     );
                   })}
@@ -339,7 +351,7 @@ export function CategoryForm({
 
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Budget &amp; Sortierung
+                  {t('categoryForm.budgetAndSorting')}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
             <div>

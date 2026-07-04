@@ -19,6 +19,8 @@ const tplCat = (over: Partial<Category> & { id: string }): Category => ({
 describe("[INTEGRITY] applyCategoryTemplate (Weg B, versionsgesichert)", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Re-set locale after clear() since getLocalCategories uses serviceT
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
     localEncryption.lock();
   });
 

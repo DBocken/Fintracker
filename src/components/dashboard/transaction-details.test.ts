@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import type { Category, Transaction } from '@/types';
 import {
   ausgabenklasseLabel,
@@ -8,6 +8,15 @@ import {
   resolveCategorySelection,
   type TransactionDetailDraft,
 } from './transaction-details';
+
+// Set up locale for serviceT.ts before each test
+beforeEach(() => {
+  window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+});
+
+afterEach(() => {
+  window.localStorage.removeItem('ausgabentracker_locale_v1');
+});
 
 function tx(partial: Partial<Transaction>): Transaction {
   return {

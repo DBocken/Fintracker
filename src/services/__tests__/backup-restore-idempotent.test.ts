@@ -12,6 +12,8 @@ import { saveTransactions, getTransactions } from "../transaction-service";
 describe("[INTEGRITY] Backup-Restore ist idempotent (T1.4)", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Re-set locale after clear() since getLocalCategories uses serviceT
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
     localEncryption.lock();
   });
 

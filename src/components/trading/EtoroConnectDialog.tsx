@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { connectEtoroAccount, ETORO_PREVIEW_NOTICE } from '@/services/etoro-service';
+import { connectEtoroAccount, getEtoroPreviewNotice } from '@/services/etoro-service';
 
 interface EtoroConnectDialogProps {
   open: boolean;
@@ -132,7 +132,7 @@ export default function EtoroConnectDialog({
 
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-xs">{ETORO_PREVIEW_NOTICE}</AlertDescription>
+            <AlertDescription className="text-xs">{getEtoroPreviewNotice()}</AlertDescription>
           </Alert>
 
           <Alert>

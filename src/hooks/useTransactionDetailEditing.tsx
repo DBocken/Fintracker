@@ -5,6 +5,7 @@ import type { Transaction } from '@/types';
 import { updateTransaction } from '@/services/transaction-service';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { upsertContractDecision } from '@/services/contract-decision-service';
+import { useI18n } from '@/i18n/useI18n';
 
 /**
  * Gemeinsame Logik für das Speichern aus dem Transaktions-Detail-Sheet:
@@ -14,15 +15,16 @@ import { upsertContractDecision } from '@/services/contract-decision-service';
  */
 export function useTransactionDetailEditing(allTransactions: Transaction[], onSaved?: () => void) {
   const qc = useQueryClient();
+  const { t } = useI18n();
 
   const restoreMutation = useMutation<void, Error, Array<{ id: string } & Partial<Transaction>>>({
     mutationFn: (snapshots) => updateTransaction(snapshots).then(() => undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
-      toast.success('Änderung rückgängig gemacht');
+      toast.success(t('transactionDetailEditing.undoSuccess'));
     },
-    onError: (error) => toast.error(`Rückgängig fehlgeschlagen: ${error.message}`),
+    onError: (error) => toast.error(t('transactionDetailEditing.undoFailed').replace('{error}', error.message)),
   });
 
   const detailsMutation = useMutation<
@@ -61,20 +63,22 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
       qc.invalidateQueries({ queryKey: ['transactions'] });
       qc.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       qc.invalidateQueries({ queryKey: ['contract-decisions'] });
-      const msg = count > 1 ? `${count} Buchungen aktualisiert` : 'Transaktion aktualisiert';
+      const msg = count > 1
+        ? t('transactionDetailEditing.multipleUpdated').replace('{count}', String(count))
+        : t('transactionDetailEditing.singleUpdated');
       toast.success(
-        (t) => (
+        (toastId) => (
           <span className="flex items-center gap-3">
             {msg}
             <button
               type="button"
               className="font-semibold underline"
               onClick={() => {
-                toast.dismiss(t.id);
+                toast.dismiss(toastId.id);
                 restoreMutation.mutate(snapshot);
               }}
             >
-              Rückgängig
+              {t('transactionDetailEditing.undoButton')}
             </button>
           </span>
         ),
@@ -83,7 +87,7 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
       onSaved?.();
     },
     onError: (error) => {
-      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+      toast.error(t('transactionDetailEditing.updateError').replace('{error}', error.message));
     },
   });
 

@@ -1,5 +1,6 @@
 import type { Ausgabenklasse, Category, Rhythmus, Transaction } from '@/types';
 import type { CategorizationResult } from '@/services/transaction-service';
+import { t } from '@/i18n/serviceT';
 
 /**
  * Reine, testbare Logik für das Transaktions-Detail-Modal. Bewusst frei von
@@ -7,31 +8,38 @@ import type { CategorizationResult } from '@/services/transaction-service';
  * getestet werden können (das Projekt testet Logik, nicht das DOM).
  */
 
-export const AUSGABENKLASSE_LABEL: Record<Ausgabenklasse, string> = {
-  essenziell: 'Essenziell',
-  diskretionaer: 'Nicht-Essenziell',
-  sparen: 'Sparen',
-  einkommen: 'Einkommen',
-};
+export function getAusgabenklasseLabel(): Record<Ausgabenklasse, string> {
+  return {
+    essenziell: t('transactionDetails.ausgabenklasseEssenziell'),
+    diskretionaer: t('transactionDetails.ausgabenklasseDiskretionaer'),
+    sparen: t('transactionDetails.ausgabenklasseSparen'),
+    einkommen: t('transactionDetails.ausgabenklasseEinkommen'),
+  };
+}
 
-export const RHYTHMUS_LABEL: Record<Rhythmus, string> = {
-  weekly: 'Wöchentlich',
-  monthly: 'Monatlich',
-  quarterly: 'Vierteljährlich',
-  yearly: 'Jährlich',
-};
+export function getRhythmusLabel(): Record<Rhythmus, string> {
+  return {
+    weekly: t('transactionDetails.rhythmusWeekly'),
+    monthly: t('transactionDetails.rhythmusMonthly'),
+    quarterly: t('transactionDetails.rhythmusQuarterly'),
+    yearly: t('transactionDetails.rhythmusYearly'),
+  };
+}
 
-export const RHYTHMUS_OPTIONS: { value: Rhythmus; label: string }[] = [
-  { value: 'weekly', label: RHYTHMUS_LABEL.weekly },
-  { value: 'monthly', label: RHYTHMUS_LABEL.monthly },
-  { value: 'quarterly', label: RHYTHMUS_LABEL.quarterly },
-  { value: 'yearly', label: RHYTHMUS_LABEL.yearly },
-];
+export function getRhythmusOptions(): { value: Rhythmus; label: string }[] {
+  const labels = getRhythmusLabel();
+  return [
+    { value: 'weekly', label: labels.weekly },
+    { value: 'monthly', label: labels.monthly },
+    { value: 'quarterly', label: labels.quarterly },
+    { value: 'yearly', label: labels.yearly },
+  ];
+}
 
 /** Übersetzt eine (ggf. null) Ausgabenklasse in ein Anzeige-Label. */
 export function ausgabenklasseLabel(klasse: Ausgabenklasse | null | undefined): string {
-  if (!klasse) return 'Unkategorisiert';
-  return AUSGABENKLASSE_LABEL[klasse];
+  if (!klasse) return t('transactionDetails.uncategorized');
+  return getAusgabenklasseLabel()[klasse];
 }
 
 export interface CategorySelection {
@@ -85,11 +93,13 @@ export interface TransactionDetailDraft {
  */
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
-export const CONFIDENCE_LEVEL_LABEL: Record<ConfidenceLevel, string> = {
-  high: 'Hohe Sicherheit',
-  medium: 'Mittlere Sicherheit',
-  low: 'Niedrige Sicherheit',
-};
+export function getConfidenceLevelLabel(): Record<ConfidenceLevel, string> {
+  return {
+    high: t('transactionDetails.confidenceLevelHigh'),
+    medium: t('transactionDetails.confidenceLevelMedium'),
+    low: t('transactionDetails.confidenceLevelLow'),
+  };
+}
 
 export function confidenceLevel(confidence: number): ConfidenceLevel {
   if (confidence >= 0.85) return 'high';
@@ -126,7 +136,7 @@ export function buildDetailCategorySuggestion(
   const category = categoriesById.get(result.categoryId);
   return {
     categoryId: result.categoryId,
-    categoryLabel: category?.name ?? 'Vorgeschlagene Kategorie',
+    categoryLabel: category?.name ?? t('transactionDetails.suggestedCategory'),
     reasons: result.reasons,
     confidenceLevel: confidenceLevel(result.confidence),
   };
@@ -176,9 +186,10 @@ export function buildContractHint(
 
   if (months.size < minOccurrences) return null;
 
-  const payeeLabel = tx.payee || 'diesem Empfänger';
+  const payeeLabel = tx.payee || t('transactionDetails.unknownPayee');
+  const reasonTemplate = t('transactionDetails.contractHintTemplate');
   return {
-    reason: `${months.size} ähnliche Buchungen bei „${payeeLabel}“ über mehrere Monate erkannt.`,
+    reason: reasonTemplate.replace('{count}', String(months.size)).replace('{payee}', payeeLabel),
     occurrences: months.size,
   };
 }
