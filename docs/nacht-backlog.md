@@ -37,7 +37,7 @@ und liefert einen Draft-PR. Referenzen: Issue #175 (Audit-Nacharbeiten), Epic #2
 - Test-first: RTL-Tests `getByRole('button', { name: /nächste Seite/i })` u. ä.
 - Akzeptanz: neue Tests + Suite/Lint/Build grün. Umfang S, Risiko niedrig.
 
-### N2 — Löschbestätigung auf der Buchungsseite (F-UX-2) · Status: in-arbeit (Nacht-Batch 2026-07-04)
+### N2 — Löschbestätigung auf der Buchungsseite (F-UX-2) · Status: erledigt ([PR #184](https://github.com/DBocken/Fintracker/pull/184))
 
 - Ist: `src/pages/TransactionsPage.tsx:375,404` löscht ohne Dialog;
   `src/components/dashboard/TransactionDetailsPanel.tsx:444-457` ebenso. Zielmuster existiert:
