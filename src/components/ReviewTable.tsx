@@ -387,6 +387,8 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label="Erste Seite"
+                title="Erste Seite"
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -396,6 +398,8 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label="Vorherige Seite"
+                title="Vorherige Seite"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -408,6 +412,8 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label="Nächste Seite"
+                title="Nächste Seite"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -417,6 +423,8 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label="Letzte Seite"
+                title="Letzte Seite"
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
