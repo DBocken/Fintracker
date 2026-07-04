@@ -29,7 +29,7 @@ und liefert einen Draft-PR. Referenzen: Issue #175 (Audit-Nacharbeiten), Epic #2
 
 ## Endliche Aufgaben (zuerst, in dieser Reihenfolge)
 
-### N1 — A11y: Pagination & Icon-Buttons ohne zugängliche Namen · Status: in-arbeit (Nacht-Batch 2026-07-04)
+### N1 — A11y: Pagination & Icon-Buttons ohne zugängliche Namen · Status: erledigt ([PR #187](https://github.com/DBocken/Fintracker/pull/187))
 
 - Ist: `src/components/ReviewTable.tsx:384-423` — 4 Icon-only-Pagination-Buttons ohne
   aria-label/title; `src/components/settings/CategoryTree.tsx:93,105,118` und
