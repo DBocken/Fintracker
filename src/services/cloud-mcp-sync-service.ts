@@ -22,6 +22,7 @@ import { getCategories, getTransactions } from './transaction-service';
 import { currentMonthKey, getBudgetOverview, lastNMonths } from './budget-service';
 import { getWaterfallPlan } from './waterfall-service';
 import { getUserSettings } from './user-settings-service';
+import { t } from '@/i18n/serviceT';
 
 export const MCP_SNAPSHOT_SCHEMA_VERSION = 1 as const;
 
@@ -111,10 +112,10 @@ function normalizePhrase(value: string): string {
  */
 export function assertSyncConsent(consent: SyncConsent): void {
   if (!consent.acknowledgedRisk) {
-    throw new Error('Sync abgebrochen: Risiko wurde nicht bestätigt (Stufe 1).');
+    throw new Error(t('mcpService.syncRiskNotAcknowledged'));
   }
   if (normalizePhrase(consent.confirmPhrase) !== MCP_CONFIRM_PHRASE) {
-    throw new Error('Sync abgebrochen: Bestätigungsphrase stimmt nicht (Stufe 2).');
+    throw new Error(t('mcpService.syncPhraseIncorrect'));
   }
 }
 
@@ -142,7 +143,7 @@ function spendingForMonth(
     if (!(tx.date || '').startsWith(month)) continue;
 
     const id = tx.category_id ?? 'uncategorized';
-    const name = id === 'uncategorized' ? 'Unkategorisiert' : categoryNameById.get(id) ?? 'Unbekannt';
+    const name = id === 'uncategorized' ? 'Unkategorisiert' : categoryNameById.get(id) ?? t('common.unknown');
     const entry = byCategory.get(id) ?? { name, amount: 0 };
     entry.amount += Math.abs(Number(tx.amount) || 0);
     byCategory.set(id, entry);
@@ -189,12 +190,17 @@ function detectUnusual(monthly: McpMonthlySpending[]): McpUnusualExpense[] {
     for (const p of points) {
       // Schwelle: > 50 % über Median UND mind. 50 € absoluter Mehraufwand.
       if (p.amount > med * 1.5 && p.amount - med >= 50) {
+        const percent = Math.round(((p.amount - med) / med) * 100);
+        const median_val = round2(med);
+        const reason = t('mcpService.unusualExpenseReason')
+          .replace('{percent}', String(percent))
+          .replace('{median}', String(median_val));
         unusual.push({
           month: p.month,
           category: name,
           amount: p.amount,
-          median: round2(med),
-          reason: `${Math.round(((p.amount - med) / med) * 100)} % über dem üblichen Median (${round2(med)}) dieser Kategorie`,
+          median: median_val,
+          reason,
         });
       }
     }
@@ -296,7 +302,7 @@ function buildConnectorUrl(token: string): string {
       ? window.location.origin
       : '';
   if (!base) {
-    throw new Error('Connector-URL nicht bestimmbar (kein window, kein VITE_MCP_POC_URL).');
+    throw new Error(t('mcpService.connectorUrlError'));
   }
   return `${base}/api/mcp/${token}`;
 }
@@ -304,7 +310,7 @@ function buildConnectorUrl(token: string): string {
 async function currentUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
-    throw new Error('Nicht eingeloggt: Für den Cloud-Sync ist ein Konto nötig.');
+    throw new Error(t('mcpService.notLoggedIn'));
   }
   return data.user.id;
 }
@@ -354,7 +360,7 @@ export async function enableCloudMcpSync(consent: SyncConsent): Promise<EnableRe
       { user_id: userId, token_hash, payload, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' },
     );
-  if (error) throw new Error(`Snapshot-Upload fehlgeschlagen: ${error.message}`);
+  if (error) throw new Error(t('mcpService.snapshotUploadFailed').replace('{error}', error.message));
 
   rememberToken(token);
   return { token, connectorUrl: buildConnectorUrl(token) };
@@ -369,8 +375,8 @@ export async function syncCloudMcpAggregates(): Promise<{ updatedAt: string }> {
     .from(SNAPSHOT_TABLE)
     .update({ payload, updated_at: updatedAt }, { count: 'exact' })
     .eq('user_id', userId);
-  if (error) throw new Error(`Sync fehlgeschlagen: ${error.message}`);
-  if (!count) throw new Error('Cloud-Sync ist nicht aktiviert.');
+  if (error) throw new Error(t('mcpService.syncFailed').replace('{error}', error.message));
+  if (!count) throw new Error(t('mcpService.syncNotEnabled'));
   return { updatedAt };
 }
 
@@ -378,7 +384,7 @@ export async function syncCloudMcpAggregates(): Promise<{ updatedAt: string }> {
 export async function disableCloudMcpSync(): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from(SNAPSHOT_TABLE).delete().eq('user_id', userId);
-  if (error) throw new Error(`Deaktivieren fehlgeschlagen: ${error.message}`);
+  if (error) throw new Error(t('mcpService.disableFailed').replace('{error}', error.message));
   forgetToken();
 }
 
@@ -394,7 +400,7 @@ export async function getCloudMcpSyncStatus(): Promise<SyncStatus> {
     .select('updated_at')
     .eq('user_id', userId)
     .maybeSingle();
-  if (error) throw new Error(`Status konnte nicht geladen werden: ${error.message}`);
+  if (error) throw new Error(t('mcpService.statusLoadFailed').replace('{error}', error.message));
   return { enabled: Boolean(data), lastSyncedAt: data?.updated_at ?? null };
 }
 

@@ -11,6 +11,7 @@
  */
 import { differenceInCalendarMonths, parseISO } from 'date-fns';
 import { listFlowOccurrences } from './forecast';
+import { t } from '@/i18n/serviceT';
 import type { ForecastInput, ForecastResult, RecurringFlow } from './forecast-types';
 
 /** Ein einzelner Treiber des Liquiditätsrückgangs. */
@@ -121,7 +122,7 @@ export function analyzeRisk(input: ForecastInput, result: ForecastResult): RiskA
   // 3) Variable Ausgaben im Fenster (aggregiert).
   const variableTotal = round2(windowPoints.reduce((sum, p) => sum + p.variableExpenses, 0));
   if (variableTotal > 0) {
-    drivers.push({ name: 'Variable Ausgaben', amount: variableTotal, kind: 'variable' });
+    drivers.push({ name: t('forecastService.variableExpenses'), amount: variableTotal, kind: 'variable' });
   }
 
   drivers.sort((a, b) => b.amount - a.amount);
@@ -155,10 +156,10 @@ function buildRecommendation(
     return {
       kind: 'transfer_from_reserve',
       amount: round2(transfer),
-      message:
-        `Ein Rücktransfer von ${round2(transfer)} € von deiner Reserve (z. B. Tagesgeld) ` +
-        `auf dein Giro würde den Tiefststand am ${risk.lowestBalanceDate} über den ` +
-        `Sicherheitspuffer (${config.safetyBuffer} €) heben.`,
+      message: t('forecastService.transferFromReserve')
+        .replace('{amount}', String(round2(transfer)))
+        .replace('{date}', risk.lowestBalanceDate)
+        .replace('{buffer}', String(config.safetyBuffer)),
     };
   }
 
@@ -173,10 +174,10 @@ function buildRecommendation(
     return {
       kind: 'build_sinking_fund',
       amount: monthly,
-      message:
-        `„${bigFlow.name}“ (${bigFlow.amount} €) treibt das Risiko. Lege ab jetzt ` +
-        `monatlich ~${monthly} € zurück, um die Zahlung abzufedern, statt sie in einem ` +
-        `Monat zu stemmen.`,
+      message: t('forecastService.buildSinkingFund')
+        .replace('{name}', bigFlow.name)
+        .replace('{amount}', String(bigFlow.amount))
+        .replace('{monthly}', String(monthly)),
     };
   }
 
@@ -185,9 +186,8 @@ function buildRecommendation(
     return {
       kind: 'reduce_variable',
       amount: round2(shortfall),
-      message:
-        `Variable Ausgaben sind dein größter Treiber. Ein Budget, das sie um ` +
-        `${round2(shortfall)} € senkt, würde den Pufferbruch vermeiden.`,
+      message: t('forecastService.reduceVariableExpenses')
+        .replace('{amount}', String(round2(shortfall))),
     };
   }
 
@@ -195,9 +195,8 @@ function buildRecommendation(
   return {
     kind: 'increase_buffer',
     amount: round2(shortfall),
-    message:
-      `Dir fehlen am Tiefpunkt ${round2(shortfall)} € zum Sicherheitspuffer. ` +
-      `Erhöhe deinen Giro-Bestand frühzeitig oder verschiebe größere Ausgaben.`,
+    message: t('forecastService.increaseBuffer')
+      .replace('{amount}', String(round2(shortfall))),
   };
 }
 
