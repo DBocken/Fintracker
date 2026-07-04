@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, ScanLine } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import { showError } from "@/utils/toast";
 import { ocrImages } from "@/services/letter-ocr-service";
 import { parseReceipt } from "@/services/receipt-parser-service";
@@ -18,6 +19,7 @@ interface ReceiptScanDialogProps {
 }
 
 export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }: ReceiptScanDialogProps) {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -57,13 +59,13 @@ export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }
         amount: parsed.total?.value,
         date: parsed.date?.value,
         payee: merchant,
-        description: "Barbeleg (gescannt)",
+        description: t("receipt.prefillDescription"),
         categoryId,
       });
       onOpenChange(false);
       setFormOpen(true);
     } catch (e) {
-      showError("Beleg konnte nicht gelesen werden: " + (e as Error).message);
+      showError(t("receipt.scanErrorPrefix") + (e as Error).message);
     } finally {
       setProcessing(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -75,10 +77,9 @@ export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Beleg scannen</DialogTitle>
+            <DialogTitle>{t("receipt.scanTitle")}</DialogTitle>
             <DialogDescription>
-              Fotografiere eine bar bezahlte Rechnung. Wir lesen Betrag, Datum und Händler aus –
-              direkt auf deinem Gerät, ohne Upload. Anschließend kannst du alles prüfen und korrigieren.
+              {t("receipt.scanDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -95,14 +96,14 @@ export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }
             {processing ? (
               <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                Beleg wird gelesen …
+                {t("receipt.processingMessage")}
               </div>
             ) : (
               <>
                 <ScanLine className="h-10 w-10 text-muted-foreground" />
                 <Button onClick={() => fileInputRef.current?.click()}>
                   <Camera className="mr-1.5 h-4 w-4" />
-                  Beleg fotografieren / auswählen
+                  {t("receipt.selectButton")}
                 </Button>
               </>
             )}
@@ -115,7 +116,7 @@ export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }
         onOpenChange={setFormOpen}
         prefill={prefill}
         defaultAccountId={cashAccountId}
-        title="Barausgabe vom Beleg"
+        title={t("transactions.receiptTitle")}
         onSaved={onSaved}
       />
     </>

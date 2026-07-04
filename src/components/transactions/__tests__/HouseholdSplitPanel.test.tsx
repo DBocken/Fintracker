@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { HouseholdSplitPanel } from "../HouseholdSplitPanel";
 import type { Transaction } from "@/types";
 
@@ -27,12 +28,16 @@ const tx = { id: "t1", amount: -10, date: "2026-01-01" } as Transaction;
 
 function renderPanel() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // Set locale to German for tests
+  localStorage.setItem('ausgabentracker_locale_v1', 'de');
   return render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <HouseholdSplitPanel transaction={tx} />
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <I18nProvider>
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <HouseholdSplitPanel transaction={tx} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </I18nProvider>,
   );
 }
 

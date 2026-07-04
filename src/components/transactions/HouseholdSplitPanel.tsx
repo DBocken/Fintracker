@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useI18n } from "@/i18n/useI18n";
 import { showSuccess, showError } from "@/utils/toast";
 import {
   getHouseholds,
@@ -29,6 +30,7 @@ const parseAmount = (v: string) => parseGermanNumber(v) ?? 0;
  * Mitglied (Default gleichmäßig) → speichern/entfernen.
  */
 export function HouseholdSplitPanel({ transaction }: { transaction: Transaction }) {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const txId = transaction.id ?? "";
   const total = Math.abs(transaction.amount);
@@ -81,7 +83,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["shared-split", txId] });
-      showSuccess("Aufteilung gespeichert");
+      showSuccess(t("household.saveSplitSuccess"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -92,14 +94,15 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
       qc.invalidateQueries({ queryKey: ["shared-split", txId] });
       setHouseholdId("");
       setAmounts({});
-      showSuccess("Aufteilung entfernt");
+      showSuccess(t("household.removeSplitSuccess"));
     },
   });
 
   if (households.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        Lege zuerst einen Haushalt in den{" "}
+        {t("household.noHouseholdMessage")}
+        {" "}
         <Link to="/settings" className="underline underline-offset-2">
           Einstellungen
         </Link>{" "}
@@ -111,10 +114,10 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-xs text-muted-foreground">Haushalt</span>
+        <span className="mb-1 block text-xs text-muted-foreground">{t("household.householdLabel")}</span>
         <Select value={householdId} onValueChange={setHouseholdId}>
           <SelectTrigger className="h-9">
-            <SelectValue placeholder="Haushalt wählen" />
+            <SelectValue placeholder={t("household.selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {households.map((h) => (
@@ -128,7 +131,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
 
       {householdId && members.length === 0 && (
         <p className="text-xs text-muted-foreground">
-          Dieser Haushalt hat noch keine Mitglieder – lege sie in den Einstellungen an.
+          {t("household.noMembersMessage")}
         </p>
       )}
 
@@ -143,14 +146,14 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
                   className="h-8 w-24 text-right tabular-nums"
                   value={amounts[m.id] ?? ""}
                   onChange={(e) => setAmounts((a) => ({ ...a, [m.id]: e.target.value }))}
-                  aria-label={`Anteil ${m.name}`}
+                  aria-label={`${t("household.shareLabel")} ${m.name}`}
                 />
               </li>
             ))}
           </ul>
 
           <div className={`flex justify-between text-xs ${balanced ? "text-muted-foreground" : "text-warning"}`}>
-            <span>Summe der Anteile</span>
+            <span>{t("household.sumLabel")}</span>
             <span className="tabular-nums">
               {eur.format(sum)} / {eur.format(total)}
             </span>
@@ -158,7 +161,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
 
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => saveMutation.mutate()} disabled={!balanced || saveMutation.isPending}>
-              Aufteilung speichern
+              {t("household.saveSplitButton")}
             </Button>
             <Button
               size="sm"
@@ -171,7 +174,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
                 )
               }
             >
-              Gleich aufteilen
+              {t("household.equalSplitButton")}
             </Button>
             {existing && (
               <Button
@@ -179,7 +182,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
                 variant="ghost"
                 onClick={() => removeMutation.mutate()}
                 disabled={removeMutation.isPending}
-                aria-label="Aufteilung entfernen"
+                aria-label={t("household.removeSplitButton")}
               >
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>

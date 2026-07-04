@@ -104,14 +104,14 @@ export function TransactionFormDialog({
       // damit "1.200" nicht als 1,20 € gespeichert wird (F-MONEY-1).
       const parsed = parseGermanNumber(amount);
       const numeric = parsed === null ? 0 : Math.abs(parsed);
-      if (numeric <= 0) throw new Error(t("forms.amountGreaterThanZero", "Bitte einen Betrag größer 0 angeben."));
-      if (!accountId) throw new Error(t("forms.selectAccountRequired", "Bitte ein Konto auswählen."));
+      if (numeric <= 0) throw new Error(t("forms.amountGreaterThanZero"));
+      if (!accountId) throw new Error(t("forms.selectAccountRequired"));
       const signed = direction === "expense" ? -numeric : numeric;
       return createTransaction({
         account_id: accountId,
         date,
         amount: signed,
-        payee: payee.trim() || (direction === "expense" ? "Barausgabe" : "Geldeingang"),
+        payee: payee.trim() || (direction === "expense" ? t("transactions.cashExpense") : t("transactions.moneyIncome")),
         description: description.trim(),
         category_id: categoryId === NO_CATEGORY ? null : categoryId,
         confirmed: true,
@@ -123,7 +123,7 @@ export function TransactionFormDialog({
       queryClient.invalidateQueries({ queryKey: ["financial-health"] });
       queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      showSuccess(t("dashboard.updateSuccess", "Buchung gespeichert"));
+      showSuccess(t("forms.addTransaction"));
       onOpenChange(false);
       onSaved?.();
     },
@@ -134,22 +134,22 @@ export function TransactionFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{title ?? t("forms.addTransaction", "Buchung hinzufügen")}</DialogTitle>
+          <DialogTitle>{title ?? t("forms.addTransaction")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <Tabs value={direction} onValueChange={(v) => setDirection(v as "expense" | "income")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="expense">Ausgabe</TabsTrigger>
-              <TabsTrigger value="income">Einnahme</TabsTrigger>
+              <TabsTrigger value="expense">{t("forms.expenseLabel")}</TabsTrigger>
+              <TabsTrigger value="income">{t("forms.incomeLabel")}</TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="space-y-1.5">
-            <Label>Konto</Label>
+            <Label>{t("forms.accountLabel")}</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger>
-                <SelectValue placeholder={t("forms.selectAccountPlaceholder", "Konto auswählen")} />
+                <SelectValue placeholder={t("forms.selectAccountPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((acc) => (
@@ -163,7 +163,7 @@ export function TransactionFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="tx-amount">Betrag (€)</Label>
+              <Label htmlFor="tx-amount">{t("forms.amountLabel")}</Label>
               <Input
                 id="tx-amount"
                 type="number"
@@ -174,7 +174,7 @@ export function TransactionFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="tx-date">Datum</Label>
+              <Label htmlFor="tx-date">{t("forms.dateLabel")}</Label>
               <Input
                 id="tx-date"
                 type="date"
@@ -185,33 +185,33 @@ export function TransactionFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="tx-payee">Empfänger / Händler</Label>
+            <Label htmlFor="tx-payee">{t("forms.payeeLabel")}</Label>
             <Input
               id="tx-payee"
               value={payee}
               onChange={(e) => setPayee(e.target.value)}
-              placeholder="z. B. Friseur Schmidt"
+              placeholder={t("forms.payeeExample")}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="tx-desc">Verwendungszweck (optional)</Label>
+            <Label htmlFor="tx-desc">{t("forms.descriptionLabel")}</Label>
             <Input
               id="tx-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="z. B. Haarschnitt"
+              placeholder={t("forms.descriptionExample")}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Kategorie (optional)</Label>
+            <Label>{t("forms.categoryLabel")}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder={t("forms.selectCategoryPlaceholder", "Kategorie auswählen")} />
+                <SelectValue placeholder={t("forms.selectCategoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_CATEGORY}>— Keine —</SelectItem>
+                <SelectItem value={NO_CATEGORY}>{t("forms.noCategoryOption")}</SelectItem>
                 {sortedCategories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.icon ? `${c.icon} ` : ""}
@@ -225,10 +225,10 @@ export function TransactionFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t("forms.cancelButton")}
           </Button>
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            Speichern
+            {t("forms.saveButton")}
           </Button>
         </DialogFooter>
       </DialogContent>

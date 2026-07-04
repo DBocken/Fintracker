@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import { updateTransaction } from "@/services/transaction-service";
 import { upsertContractDecision } from "@/services/contract-decision-service";
 import { showSuccess, showError } from "@/utils/toast";
@@ -23,6 +24,7 @@ interface ContractSuggestionsBannerProps {
  * Vorschlag dauerhaft. In beiden Fällen ist er danach aus der Liste raus.
  */
 export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     const set = new Set<string>();
@@ -78,10 +80,9 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
   return (
     <Card className="mb-4 border-brand/40">
       <CardHeader>
-        <CardTitle className="text-base">Mögliche Verträge</CardTitle>
+        <CardTitle className="text-base">{t("contracts.suggestionsTitle")}</CardTitle>
         <CardDescription>
-          {suggestions.length} wiederkehrende Zahlung{suggestions.length === 1 ? "" : "en"} erkannt.
-          Bestätige sie als Vertrag oder lehne den Vorschlag ab – danach verschwindet er aus dieser Liste.
+          {t("contracts.suggestionsDescription").replace('{count}', String(suggestions.length)).replace('{plural}', suggestions.length === 1 ? '' : 'en')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -106,7 +107,7 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
                   onClick={() => confirmMutation.mutate(row)}
                   disabled={confirmMutation.isPending}
                 >
-                  <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Bestätigen
+                  <Check className="mr-1 h-4 w-4" aria-hidden="true" /> {t("contracts.confirmButton")}
                 </Button>
                 <Button
                   size="sm"
@@ -114,7 +115,7 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
                   onClick={() => dismissMutation.mutate(row)}
                   disabled={dismissMutation.isPending}
                 >
-                  <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
+                  <X className="mr-1 h-4 w-4" aria-hidden="true" /> {t("contracts.dismissButton")}
                 </Button>
               </div>
             </li>

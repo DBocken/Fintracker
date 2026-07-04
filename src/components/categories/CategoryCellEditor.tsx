@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
+import { useI18n } from '@/i18n/useI18n';
 import type { Category } from '@/types';
 
 interface CategoryCellEditorProps {
@@ -13,6 +14,7 @@ interface CategoryCellEditorProps {
 }
 
 export function CategoryCellEditor({ categories, value, onChange, disabled, className }: CategoryCellEditorProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
 
@@ -41,19 +43,19 @@ export function CategoryCellEditor({ categories, value, onChange, disabled, clas
         {current ? (
           <span className="truncate">{current.icon ? `${current.icon} ` : ''}{current.name}</span>
         ) : (
-          <span className="text-muted-foreground">Kategorie wählen</span>
+          <span className="text-muted-foreground">{t('categories.selectLabel')}</span>
         )}
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Kategorie zuweisen</DialogTitle>
+          <DialogTitle>{t('categories.dialogTitle')}</DialogTitle>
         </DialogHeader>
         <CategoryTwoStepSelect categories={categories} value={draft} onChange={setDraft} />
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline">Abbrechen</Button>
+            <Button type="button" variant="outline">{t('forms.cancelButton')}</Button>
           </DialogClose>
-          <Button type="button" onClick={handleApply}>Übernehmen</Button>
+          <Button type="button" onClick={handleApply}>{t('common.save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
