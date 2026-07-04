@@ -2,6 +2,7 @@ import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuida
 import { getTransactions, getCategories } from "./transaction-service";
 import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from "./debt-service";
 import { getFinancialHealth, monthlyAverages } from "./financial-health-service";
+import { t } from "../i18n/serviceT";
 
 function currentStageKey(totalDebt: number, emergencyBufferMonths: number): RoadmapStageKey {
   if (emergencyBufferMonths < 1) return "starter_emergency_fund";
@@ -14,31 +15,31 @@ function buildStage(key: RoadmapStageKey, totalDebt: number, emergencyBufferMont
   const config: Record<RoadmapStageKey, Omit<RoadmapStage, "progress" | "status">> = {
     starter_emergency_fund: {
       key,
-      title: "Erster Notgroschen",
+      title: t("coachService.stages.starterEmergencyFund.title"),
       order: 1,
-      description: "Ein erstes Polster für kleine Überraschungen.",
-      whyItMatters: "Damit unerwartete Ausgaben nicht sofort neue Schulden auslösen.",
+      description: t("coachService.stages.starterEmergencyFund.description"),
+      whyItMatters: t("coachService.stages.starterEmergencyFund.whyItMatters"),
     },
     consumer_debt_elimination: {
       key,
-      title: "Konsumschulden abbauen",
+      title: t("coachService.stages.consumerDebtElimination.title"),
       order: 2,
-      description: "Raten, Karten und BNPL systematisch abbauen.",
-      whyItMatters: "Jede getilgte Schuld schafft monatlich mehr Spielraum.",
+      description: t("coachService.stages.consumerDebtElimination.description"),
+      whyItMatters: t("coachService.stages.consumerDebtElimination.whyItMatters"),
     },
     full_emergency_fund: {
       key,
-      title: "Voller Notfallpuffer",
+      title: t("coachService.stages.fullEmergencyFund.title"),
       order: 3,
-      description: "Ein belastbarer Notgroschen für echte Sicherheit.",
-      whyItMatters: "Mehr Puffer bedeutet weniger Stress und mehr Stabilität.",
+      description: t("coachService.stages.fullEmergencyFund.description"),
+      whyItMatters: t("coachService.stages.fullEmergencyFund.whyItMatters"),
     },
     personal_goals: {
       key,
-      title: "Persönliche Ziele",
+      title: t("coachService.stages.personalGoals.title"),
       order: 4,
-      description: "Jetzt werden Lebensziele planbar finanziert.",
-      whyItMatters: "Mit Sicherheit im Rücken lassen sich Ziele entspannter erreichen.",
+      description: t("coachService.stages.personalGoals.description"),
+      whyItMatters: t("coachService.stages.personalGoals.whyItMatters"),
     },
   };
   const progress = key === "starter_emergency_fund" ? Math.min(1, emergencyBufferMonths / 1) : key === "consumer_debt_elimination" ? Math.min(1, totalDebt > 0 ? 0.5 : 1) : key === "full_emergency_fund" ? Math.min(1, emergencyBufferMonths / 3) : 0.4;
@@ -74,11 +75,11 @@ export async function getCoachOverview(): Promise<CoachOverview> {
   if (stageKey === "starter_emergency_fund") {
     recommendations.push({
       id: "build-starter-fund",
-      title: "Baue zuerst einen kleinen Notgroschen auf",
-      message: "Ziel zuerst: 1 Monatsausgabe als Sicherheitsnetz.",
-      reason: "Das schützt vor neuen Schulden bei kleinen Überraschungen.",
+      title: t("coachService.recommendations.buildStarterFundTitle"),
+      message: t("coachService.recommendations.buildStarterFundMessage"),
+      reason: t("coachService.recommendations.buildStarterFundReason"),
       severity: "warning",
-      ctaLabel: "Zum Dashboard",
+      ctaLabel: t("coachService.recommendations.ctaDashboard"),
       ctaTo: "/dashboard",
     });
   } else if (stageKey === "consumer_debt_elimination") {
@@ -89,43 +90,43 @@ export async function getCoachOverview(): Promise<CoachOverview> {
     if (existential) {
       recommendations.push({
         id: "secure-essentials-first",
-        title: "Wohnung & Grundversorgung zuerst sichern",
-        message: `„${existential.name}“ ist existenzsichernd — dieser Rückstand steht in deinem Plan ganz oben, unabhängig vom Zinssatz.`,
-        reason: "Miete, Energie und Unterhalt sichern Wohnung und Grundversorgung — das geht vor Zinsoptimierung.",
+        title: t("coachService.recommendations.secureEssentialsTitle"),
+        message: t("coachService.recommendations.secureEssentialsMessage").replace("{name}", existential.name),
+        reason: t("coachService.recommendations.secureEssentialsReason"),
         severity: "warning",
-        ctaLabel: "Schulden ansehen",
+        ctaLabel: t("coachService.recommendations.ctaDebts"),
         ctaTo: "/debts",
       });
     }
     recommendations.push({
       id: "pay-down-debt",
-      title: "Schulden jetzt priorisieren",
+      title: t("coachService.recommendations.payDownDebtTitle"),
       message: snowball.insufficientBudget
-        ? "Aktuell reicht dein Budget nicht einmal für alle Mindestraten."
-        : `Am schnellsten wirst du mit der ${avalanche.totalMonths <= snowball.totalMonths ? "Avalanche" : "Snowball"}-Strategie schuldenfrei.`,
-      reason: "Schulden reduzieren sofort deine monatliche Belastung und erhöhen künftigen Spielraum.",
+        ? t("coachService.recommendations.payDownDebtInsufficientBudget")
+        : t("coachService.recommendations.payDownDebtMessage").replace("{strategy}", avalanche.totalMonths <= snowball.totalMonths ? "Avalanche" : "Snowball"),
+      reason: t("coachService.recommendations.payDownDebtReason"),
       severity: "warning",
-      ctaLabel: "Schulden ansehen",
+      ctaLabel: t("coachService.recommendations.ctaDebts"),
       ctaTo: "/debts",
     });
   } else if (stageKey === "full_emergency_fund") {
     recommendations.push({
       id: "grow-buffer",
-      title: "Jetzt den vollen Notgroschen aufbauen",
-      message: "Halte mehrere Monatsausgaben liquide, bevor du größere Ziele finanzierst.",
-      reason: "Das senkt dein Risiko und stabilisiert deinen Cashflow.",
+      title: t("coachService.recommendations.growBufferTitle"),
+      message: t("coachService.recommendations.growBufferMessage"),
+      reason: t("coachService.recommendations.growBufferReason"),
       severity: "info",
-      ctaLabel: "Simulation öffnen",
+      ctaLabel: t("coachService.recommendations.ctaSimulation"),
       ctaTo: "/simulation",
     });
   } else {
     recommendations.push({
       id: "fund-goals",
-      title: "Deine Ziele sind jetzt dran",
-      message: "Stabile Basis vorhanden – richte freie Mittel auf persönliche Ziele aus.",
-      reason: "Mit sauberer Basis werden Ziele planbar statt stressig.",
+      title: t("coachService.recommendations.fundGoalsTitle"),
+      message: t("coachService.recommendations.fundGoalsMessage"),
+      reason: t("coachService.recommendations.fundGoalsReason"),
       severity: "success",
-      ctaLabel: "Ziele planen",
+      ctaLabel: t("coachService.recommendations.ctaGoals"),
       ctaTo: "/net-worth",
     });
   }
@@ -149,22 +150,22 @@ export async function getCoachOverview(): Promise<CoachOverview> {
       currentSpend: spend,
       savingsOpportunity: Math.max(0, spend - recommendedMax),
       reason: contract
-        ? "Vertrag mit festem Preis – nur durch Kündigung oder Wechsel beeinflussbar"
-        : protectedNames.some((name) => category.name.toLowerCase().includes(name)) ? "Wichtig und geschützt" : status === "cut" ? "Niedrige Priorität im aktuellen Budget" : "Kann leicht reduziert werden",
+        ? t("coachService.categoryGuidance.contractReason")
+        : protectedNames.some((name) => category.name.toLowerCase().includes(name)) ? t("coachService.categoryGuidance.importantReason") : status === "cut" ? t("coachService.categoryGuidance.lowPriorityReason") : t("coachService.categoryGuidance.reducibleReason"),
     };
   });
 
   const insights: BehaviorInsight[] = [
     {
       id: "spending-pattern",
-      title: "Ausgabenmuster im Blick",
-      message: health.savingsRate < 0.1 ? "Deine Sparquote ist noch niedrig – kleine Kürzungen wirken hier besonders stark." : "Deine Sparquote ist solide und gibt dir Spielraum für Ziele.",
+      title: t("coachService.insights.spendingPatternTitle"),
+      message: health.savingsRate < 0.1 ? t("coachService.insights.spendingPatternLow") : t("coachService.insights.spendingPatternGood"),
       severity: health.savingsRate < 0.1 ? "warning" : "success",
     },
     {
       id: "debt-burden",
-      title: "Schulden belasten deinen Monatsplan",
-      message: totalDebt > 0 ? `Mindestraten von ${minimumMonthlyBurden.toFixed(0)} € blockieren monatlich freien Cashflow.` : "Aktuell drückt keine Schuldenlast auf deinen Plan.",
+      title: t("coachService.insights.debtBurdenTitle"),
+      message: totalDebt > 0 ? t("coachService.insights.debtBurdenActive").replace("{amount}", minimumMonthlyBurden.toFixed(0)) : t("coachService.insights.debtBurdenNone"),
       severity: totalDebt > 0 ? "warning" : "success",
     },
   ];

@@ -14,13 +14,16 @@ import {
   upsertLocalFinanceItem,
   writeLocalFinanceList,
 } from "./local-finance-store";
+import { t } from "../i18n/serviceT";
 
-export const RECEIVABLE_TYPE_LABELS: Record<ReceivableType, string> = {
-  private_loan: "Privat verliehen",
-  shared_expense: "Geteilte Ausgabe",
-  deposit: "Kaution / Pfand",
-  other: "Sonstige Forderung",
-};
+export function getReceivableTypeLabels(): Record<ReceivableType, string> {
+  return {
+    private_loan: t("debtService.receivableTypePrivateLoan"),
+    shared_expense: t("debtService.receivableTypeSharedExpense"),
+    deposit: t("debtService.receivableTypeDeposit"),
+    other: t("debtService.receivableTypeOther"),
+  };
+}
 
 export const RECEIVABLE_TYPE_ICONS: Record<ReceivableType, string> = {
   private_loan: "🤝",

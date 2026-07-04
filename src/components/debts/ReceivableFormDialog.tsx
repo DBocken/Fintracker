@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Receivable, ReceivableType } from "@/types";
-import { RECEIVABLE_TYPE_LABELS } from "@/services/receivable-service";
+import { getReceivableTypeLabels } from "@/services/receivable-service";
 import { useI18n } from "@/i18n/useI18n";
 
 interface ReceivableFormDialogProps {
@@ -41,6 +41,7 @@ export function ReceivableFormDialog({
   isLoading,
 }: ReceivableFormDialogProps) {
   const { t } = useI18n();
+  const receivableTypeLabels = getReceivableTypeLabels();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function ReceivableFormDialog({
 
   const handleSubmit = () => {
     onSave({
-      name: form.name.trim() || "Neue Forderung",
+      name: form.name.trim() || t('debtService.defaultReceivableName'),
       debtor: form.debtor.trim() || null,
       type: form.type,
       amount: parseFloat(form.amount) || 0,
@@ -112,9 +113,9 @@ export function ReceivableFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(RECEIVABLE_TYPE_LABELS) as ReceivableType[]).map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {RECEIVABLE_TYPE_LABELS[t]}
+                {(Object.keys(receivableTypeLabels) as ReceivableType[]).map((receivableType) => (
+                  <SelectItem key={receivableType} value={receivableType}>
+                    {receivableTypeLabels[receivableType]}
                   </SelectItem>
                 ))}
               </SelectContent>

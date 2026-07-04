@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/select";
 import type { Debt, DebtPriority, DebtType } from "@/types";
 import {
-  DEBT_PRIORITY_LABELS,
-  DEBT_TYPE_LABELS,
-  EXISTENTIAL_PRIORITY_EXPLANATION,
+  getDebtPriorityLabels,
+  getDebtTypeLabels,
+  getExistentialPriorityExplanation,
   suggestDebtPriority,
 } from "@/services/debt-service";
 import { useI18n } from "@/i18n/useI18n";
@@ -42,6 +42,8 @@ const emptyForm = {
 
 export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: DebtFormDialogProps) {
   const { t } = useI18n();
+  const debtTypeLabels = getDebtTypeLabels();
+  const debtPriorityLabels = getDebtPriorityLabels();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
   const handleSubmit = () => {
     onSave({
-      name: form.name.trim() || "Neue Schuld",
+      name: form.name.trim() || t('debtService.defaultDebtName'),
       type: form.type,
       balance: parseFloat(form.balance) || 0,
       interest_rate: parseFloat(form.interest_rate) || 0,
@@ -117,9 +119,9 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(DEBT_TYPE_LABELS) as DebtType[]).map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {DEBT_TYPE_LABELS[t]}
+                {(Object.keys(debtTypeLabels) as DebtType[]).map((debtType) => (
+                  <SelectItem key={debtType} value={debtType}>
+                    {debtTypeLabels[debtType]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -186,15 +188,15 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(DEBT_PRIORITY_LABELS) as DebtPriority[]).map((p) => (
+                {(Object.keys(debtPriorityLabels) as DebtPriority[]).map((p) => (
                   <SelectItem key={p} value={p}>
                     {p === "existenzsichernd" ? "🏠 " : ""}
-                    {DEBT_PRIORITY_LABELS[p]}
+                    {debtPriorityLabels[p]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">{EXISTENTIAL_PRIORITY_EXPLANATION}</p>
+            <p className="text-xs text-muted-foreground">{getExistentialPriorityExplanation()}</p>
           </div>
 
           <div className="space-y-1.5">

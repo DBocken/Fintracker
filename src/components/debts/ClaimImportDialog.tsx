@@ -22,7 +22,7 @@ import {
 } from "@/services/letter-import-service";
 import { confirmClaim, type Claim } from "@/services/claim-service";
 import { LETTER_DOC_TYPE_LABELS } from "@/services/letter-parser-service";
-import { SCAN_GUIDANCE, type OcrProgress } from "@/services/letter-ocr-service";
+import { getScanGuidance, type OcrProgress } from "@/services/letter-ocr-service";
 import { useI18n } from "@/i18n/useI18n";
 
 interface ClaimImportDialogProps {
@@ -34,6 +34,7 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" 
 
 export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDialogProps) {
   const { t } = useI18n();
+  const scanGuidance = getScanGuidance();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"upload" | "processing" | "review">("upload");
   const [progress, setProgress] = useState<OcrProgress | null>(null);
@@ -73,13 +74,13 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
       setStep("review");
 
       if (grouping.letters.length === 0) {
-        showError("Keine Briefe erkannt. Bitte Scan-Qualität prüfen.");
+        showError(t('debts.claimImport.noLettersDetected'));
       } else {
         showSuccess(grouping.summary);
       }
     } catch (error) {
       console.error("[ClaimImportDialog] OCR-Import fehlgeschlagen:", error);
-      showError("OCR-Verarbeitung fehlgeschlagen. Bitte erneut versuchen.");
+      showError(t('debts.claimImport.ocrFailed'));
       setStep("upload");
     }
   }, []);
@@ -140,9 +141,9 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
             </div>
             <Alert>
               <AlertDescription className="space-y-1 text-xs text-muted-foreground">
-                <span className="block">{SCAN_GUIDANCE.recommendation}</span>
-                <span className="block">{SCAN_GUIDANCE.homeAlternative}</span>
-                <span className="block">{SCAN_GUIDANCE.privacy}</span>
+                <span className="block">{scanGuidance.recommendation}</span>
+                <span className="block">{scanGuidance.homeAlternative}</span>
+                <span className="block">{scanGuidance.privacy}</span>
               </AlertDescription>
             </Alert>
           </div>

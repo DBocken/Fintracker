@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Debt, Transaction } from "@/types";
 import {
-  DEBT_TYPE_LABELS,
+  getDebtTypeLabels,
   DEBT_TYPE_ICONS,
   type DebtTransactionAssignment,
 } from "@/services/debt-service";
@@ -45,6 +45,7 @@ export function DebtDetailSheet({
   assignBusy: boolean;
 }) {
   const { t } = useI18n();
+  const debtTypeLabels = getDebtTypeLabels();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -57,7 +58,7 @@ export function DebtDetailSheet({
                 {debt.name}
               </SheetTitle>
               <SheetDescription>
-                {DEBT_TYPE_LABELS[debt.type]} · {debt.interest_rate}% · Rate {eur.format(debt.min_payment)}
+                {debtTypeLabels[debt.type]} · {debt.interest_rate}% · {t('debts.debtCard.rateLabel')} {eur.format(debt.min_payment)}
               </SheetDescription>
             </SheetHeader>
 

@@ -40,8 +40,8 @@ export function resolveSwipeTarget(
 
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
 function LandscapeView() {
-  const { t } = useI18n();
-  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
+  const { t, locale } = useI18n();
+  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
   if (isLoading) {
     return <div className="h-40 animate-pulse rounded-xl bg-muted" aria-busy />;
   }

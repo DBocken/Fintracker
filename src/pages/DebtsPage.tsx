@@ -52,16 +52,17 @@ import {
   unassignDebtTransaction,
   type DebtTransactionAssignment,
   type PayoffStrategy,
-  DEBT_TYPE_LABELS,
+  getDebtTypeLabels,
   DEBT_TYPE_ICONS,
-  EXISTENTIAL_PRIORITY_EXPLANATION,
+  getExistentialPriorityExplanation,
 } from "@/services/debt-service";
 import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export default function DebtsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const debtTypeLabels = getDebtTypeLabels();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -97,7 +98,7 @@ export default function DebtsPage() {
 
   // Einkommens-/Ausgabenmittel speisen die Überschuldungs-Heuristik (Issue #50).
   const { data: health } = useQuery({
-    queryKey: ["financial-health"],
+    queryKey: ["financial-health", locale],
     queryFn: getFinancialHealth,
     enabled: debts.length > 0,
   });
@@ -215,13 +216,13 @@ export default function DebtsPage() {
     if (sum <= 0) return [];
     const byKey: Record<string, number> = {};
     for (const d of active) {
-      const key = d.is_bnpl ? d.provider || "Ratenkauf" : DEBT_TYPE_LABELS[d.type];
+      const key = d.is_bnpl ? d.provider || debtTypeLabels.installment : debtTypeLabels[d.type];
       byKey[key] = (byKey[key] || 0) + d.balance;
     }
     return Object.entries(byKey)
       .map(([label, amount]) => ({ label, amount, pct: Math.round((amount / sum) * 100) }))
       .sort((a, b) => b.amount - a.amount);
-  }, [debts]);
+  }, [debts, debtTypeLabels]);
 
   const handleSave = (data: Partial<Debt>) => {
     if (editing?.id) updateMutation.mutate({ ...data, id: editing.id });
@@ -280,7 +281,7 @@ export default function DebtsPage() {
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <ScanLine className="mr-1.5 h-4 w-4" />
-              Briefe scannen
+              {t('debts.debtsPage.scanLetters')}
             </Button>
             <Button
               onClick={() => {
@@ -308,8 +309,8 @@ export default function DebtsPage() {
       ) : debts.length === 0 ? (
         <EmptyState
           emoji="💸"
-          title="Noch keine Schulden erfasst"
-          description="Erfasse Kreditkarten, Klarna, Ratenkäufe & Co., damit dein Coach dir beim Abbau helfen kann."
+          title={t('debts.debtsPage.emptyTitle')}
+          description={t('debts.debtsPage.emptyDescription')}
           action={
             <Button
               onClick={() => {
@@ -318,7 +319,7 @@ export default function DebtsPage() {
               }}
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Erste Schuld hinzufügen
+              {t('debts.debtsPage.addFirstDebt')}
             </Button>
           }
         />
@@ -328,9 +329,9 @@ export default function DebtsPage() {
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: "Gesamtschuld", value: eur.format(totalDebt) },
-              { label: "Mindestraten / Monat", value: eur.format(totalMin) },
-              { label: "Offene Schulden", value: debts.filter((d) => !d.is_paid_off).length },
+              { label: t('debts.debtsPage.totalDebtStat'), value: eur.format(totalDebt) },
+              { label: t('debts.debtsPage.minPaymentsStat'), value: eur.format(totalMin) },
+              { label: t('debts.debtsPage.openDebtsStat'), value: debts.filter((d) => !d.is_paid_off).length },
             ]}
           />
 
@@ -357,19 +358,19 @@ export default function DebtsPage() {
                         <Badge
                           variant="secondary"
                           className="shrink-0 bg-brand/15 text-brand"
-                          title={EXISTENTIAL_PRIORITY_EXPLANATION}
+                          title={getExistentialPriorityExplanation()}
                         >
-                          🏠 Existenzsichernd
+                          🏠 {t('debtService.priorityExistential')}
                         </Badge>
                       )}
-                      {d.is_bnpl && <Badge variant="secondary" className="shrink-0">Ratenkauf</Badge>}
+                      {d.is_bnpl && <Badge variant="secondary" className="shrink-0">{debtTypeLabels.installment}</Badge>}
                       {d.is_paid_off && (
-                        <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>
+                        <Badge className="shrink-0 bg-positive/20 text-positive">{t('debts.debtCard.paid')}</Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {DEBT_TYPE_LABELS[d.type]} · {d.interest_rate}% · Rate {eur.format(d.min_payment)}
-                      {d.due_day ? ` · fällig am ${d.due_day}.` : ""}
+                      {debtTypeLabels[d.type]} · {d.interest_rate}% · {t('debts.debtCard.rateLabel')} {eur.format(d.min_payment)}
+                      {d.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(d.due_day))}` : ""}
                     </div>
                   </div>
                 </div>
@@ -380,28 +381,28 @@ export default function DebtsPage() {
                       variant={d.is_paid_off ? "secondary" : "outline"}
                       size="sm"
                       onClick={() => togglePaidOff(d)}
-                      title={d.is_paid_off ? "Als offen markieren" : "Als bezahlt markieren"}
+                      title={d.is_paid_off ? t('debts.debtsPage.markOpen') : t('debts.debtsPage.markPaidTitle')}
                     >
                       <CheckCircle2 className={d.is_paid_off ? "mr-1.5 h-4 w-4 text-positive" : "mr-1.5 h-4 w-4"} />
-                      {d.is_paid_off ? "Rückgängig" : "Bezahlt markieren"}
+                      {d.is_paid_off ? t('debts.debtCard.markUndone') : t('debts.debtCard.markPaid')}
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Weitere Aktionen">
+                        <Button variant="ghost" size="icon" aria-label={t('debts.debtsPage.moreActions')}>
                           <MoreVertical className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(d)}>
-                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Bearbeiten
+                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> {t('debts.debtsPage.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            if (confirm(`Schuld „${d.name}“ löschen?`)) deleteMutation.mutate(d.id);
+                            if (confirm(t('debts.debtsPage.deleteConfirm').replace('{name}', d.name))) deleteMutation.mutate(d.id);
                           }}
                           className="text-warning focus:text-warning"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> {t('debts.debtsPage.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -415,7 +416,7 @@ export default function DebtsPage() {
           {causes.length > 0 && (
             <Card>
               <CardContent className="p-4">
-                <div className="mb-3 text-sm font-semibold">Woher kommen deine Schulden?</div>
+                <div className="mb-3 text-sm font-semibold">{t('debts.debtsPage.causesTitle')}</div>
                 <div className="space-y-2">
                   {causes.map((c) => (
                     <div key={c.label}>
@@ -439,13 +440,13 @@ export default function DebtsPage() {
           {debts.length > 0 && (
             <Card className="hidden lg:block">
               <CardContent className="p-4">
-                <div className="mb-3 text-sm font-semibold">Zahlungen dieser Schuld zuordnen</div>
+                <div className="mb-3 text-sm font-semibold">{t('debts.debtsPage.assignPaymentsTitle')}</div>
                 <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
                   <div className="space-y-2">
-                    <Label>Schuld</Label>
+                    <Label>{t('debts.debtsPage.debtLabel')}</Label>
                     <Select value={currentDebtId} onValueChange={setSelectedDebtId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Schuld auswählen" />
+                        <SelectValue placeholder={t('debts.debtsPage.selectDebtPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {debts.map((debt) => (
@@ -458,25 +459,25 @@ export default function DebtsPage() {
                     {selectedDebt && (
                       <div className="rounded-lg bg-muted/50 p-3 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Aktuelle Restschuld</span>
+                          <span className="text-muted-foreground">{t('debts.debtsPage.currentBalance')}</span>
                           <span className="font-medium">{eur.format(selectedDebt.balance)}</span>
                         </div>
                         <div className="mt-1 flex justify-between">
-                          <span className="text-muted-foreground">Zugewiesene Tilgungen</span>
+                          <span className="text-muted-foreground">{t('debts.debtsPage.assignedPayments')}</span>
                           <span className="font-medium">{eur.format(totalAssignedToSelectedDebt)}</span>
                         </div>
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Ordne wiederkehrende Lastschriften (z.B. Kreditkartenrate) einer Schuld zu — wir verfolgen damit automatisch deinen Tilgungsfortschritt.
+                      {t('debts.debtsPage.assignHint')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Zahlungen</Label>
+                    <Label>{t('debts.debtsPage.paymentsLabel')}</Label>
                     {debitTransactions.length === 0 ? (
                       <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-                        Keine Zahlungen gefunden.
+                        {t('debts.debtsPage.noPaymentsFound')}
                       </div>
                     ) : (
                       <div className="max-h-80 space-y-2 overflow-auto rounded-lg border p-2">
@@ -503,7 +504,7 @@ export default function DebtsPage() {
                                 </span>
                                 <span className="block text-xs text-muted-foreground">
                                   {new Date(transaction.date).toLocaleDateString("de-DE")} · {transaction.description || transaction.original_text}
-                                  {assigned && !assignedHere && assignedDebt ? ` · bereits bei ${assignedDebt.name}` : ""}
+                                  {assigned && !assignedHere && assignedDebt ? t('debts.debtsPage.alreadyAssignedTo').replace('{name}', assignedDebt.name) : ""}
                                 </span>
                               </span>
                               <span className="shrink-0 font-semibold">{eur.format(Math.abs(transaction.amount))}</span>
@@ -514,7 +515,7 @@ export default function DebtsPage() {
                     )}
                     {assignedToSelectedDebt.length > 0 && (
                       <div className="text-xs text-muted-foreground">
-                        {assignedToSelectedDebt.length} Zahlung{assignedToSelectedDebt.length === 1 ? "" : "en"} dieser Schuld zugewiesen.
+                        {t(assignedToSelectedDebt.length === 1 ? 'debts.debtsPage.assignedCountSingular' : 'debts.debtsPage.assignedCountPlural').replace('{count}', String(assignedToSelectedDebt.length))}
                       </div>
                     )}
                   </div>
@@ -530,27 +531,27 @@ export default function DebtsPage() {
               <CardContent className="p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                   <TrendingDown className="h-4 w-4" />
-                  Schuldenabbauplan
+                  {t('debts.debtsPage.payoffPlanTitle')}
                 </div>
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Strategie (gilt für alle Schulden)</Label>
+                    <Label>{t('debts.debtsPage.strategyLabel')}</Label>
                     <Tabs value={strategy} onValueChange={(v) => setStrategy(v as PayoffStrategy)}>
                       <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="avalanche">Zinsen sparen</TabsTrigger>
-                        <TabsTrigger value="snowball">Schnelle Erfolge</TabsTrigger>
+                        <TabsTrigger value="avalanche">{t('debts.debtsPage.strategyAvalanche')}</TabsTrigger>
+                        <TabsTrigger value="snowball">{t('debts.debtsPage.strategySnowball')}</TabsTrigger>
                       </TabsList>
                       <TabsContent value="avalanche" className="mt-2 text-xs text-muted-foreground">
-                        Höchster Zins zuerst – spart am meisten Zinsen.
+                        {t('debts.debtsPage.strategyAvalancheDesc')}
                       </TabsContent>
                       <TabsContent value="snowball" className="mt-2 text-xs text-muted-foreground">
-                        Kleinste Schuld zuerst – schnelle Erfolgserlebnisse.
+                        {t('debts.debtsPage.strategySnowballDesc')}
                       </TabsContent>
                     </Tabs>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="extra">Extra-Budget / Monat (€)</Label>
+                    <Label htmlFor="extra">{t('debts.debtsPage.extraBudgetLabel')}</Label>
                     <Input
                       id="extra"
                       type="number"
@@ -560,31 +561,31 @@ export default function DebtsPage() {
                       placeholder="0"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Zusätzlich zu den Mindestraten ({eur.format(totalMin)}).
+                      {t('debts.debtsPage.extraBudgetHint').replace('{amount}', eur.format(totalMin))}
                     </p>
                   </div>
                 </div>
 
                 {payoffPlan.insufficientBudget ? (
                   <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
-                    Das Budget reicht nicht für die Mindestraten. Erhöhe das Extra-Budget oder prüfe deine Ausgaben.
+                    {t('debts.debtsPage.insufficientBudget')}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Schuldenfrei in </span>
-                        <span className="font-semibold">{payoffPlan.totalMonths} Monaten</span>
+                        <span className="text-muted-foreground">{t('debts.debtsPage.debtFreeIn')}</span>
+                        <span className="font-semibold">{payoffPlan.totalMonths} {t('debts.debtsPage.months')}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Zinsen gesamt </span>
+                        <span className="text-muted-foreground">{t('debts.debtsPage.totalInterest')}</span>
                         <span className="font-semibold">{eur.format(payoffPlan.totalInterestPaid)}</span>
                       </div>
                     </div>
                     <div className="grid gap-4 lg:grid-cols-2">
                       <div>
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Prioritätsreihenfolge ({strategy === "avalanche" ? "Zinsen sparen" : "Schnelle Erfolge"})
+                          {t('debts.debtsPage.priorityOrder').replace('{strategy}', strategy === "avalanche" ? t('debts.debtsPage.strategyAvalanche') : t('debts.debtsPage.strategySnowball'))}
                         </div>
                         <ol className="space-y-1.5">
                           {payoffPlan.steps.map((s) => (
@@ -604,14 +605,14 @@ export default function DebtsPage() {
                         </ol>
                         {payoffPlan.steps.some((s) => s.priority === "existenzsichernd") && (
                           <p className="mt-2 text-xs text-muted-foreground">
-                            🏠 {EXISTENTIAL_PRIORITY_EXPLANATION}
+                            🏠 {getExistentialPriorityExplanation()}
                           </p>
                         )}
                       </div>
 
                       <div>
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Voraussichtliche Tilgung
+                          {t('debts.debtsPage.expectedPayoff')}
                         </div>
                         <ol className="space-y-1.5">
                           {[...payoffPlan.steps]
@@ -619,7 +620,7 @@ export default function DebtsPage() {
                             .map((s) => (
                               <li key={s.debtId} className="flex items-center gap-3 text-sm">
                                 <span className="flex-1 truncate">{s.name}</span>
-                                <span className="text-muted-foreground">Monat {s.monthsToPayoff}</span>
+                                <span className="text-muted-foreground">{t('debts.debtsPage.month').replace('{n}', String(s.monthsToPayoff))}</span>
                               </li>
                             ))}
                         </ol>

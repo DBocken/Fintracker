@@ -70,8 +70,8 @@ function StageRow({ stage, animate }: { stage: FoundationStage; animate: boolean
  */
 export default function FoundationLadder() {
   const animate = !useReducedMotion();
-  const { t } = useI18n();
-  const { data, isLoading } = useQuery({ queryKey: ["finance-foundation"], queryFn: () => getFinanceFoundation() });
+  const { t, locale } = useI18n();
+  const { data, isLoading } = useQuery({ queryKey: ["finance-foundation", locale], queryFn: () => getFinanceFoundation() });
 
   if (isLoading || !data) return null;
   const overall = Math.round(data.overallProgress * 100);

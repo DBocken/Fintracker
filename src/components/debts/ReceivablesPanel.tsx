@@ -35,7 +35,7 @@ import {
   assignTransactionToReceivable,
   unassignReceivableTransaction,
   suggestReceivableRepayments,
-  RECEIVABLE_TYPE_LABELS,
+  getReceivableTypeLabels,
   RECEIVABLE_TYPE_ICONS,
   type ReceivableTransactionAssignment,
 } from "@/services/receivable-service";
@@ -45,6 +45,7 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR",
 
 export function ReceivablesPanel() {
   const { t } = useI18n();
+  const receivableTypeLabels = getReceivableTypeLabels();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Receivable> | null>(null);
@@ -79,7 +80,7 @@ export function ReceivablesPanel() {
     mutationFn: createReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung hinzugefügt");
+      showSuccess(t("debtService.receivableAdded"));
       setDialogOpen(false);
     },
     onError: (e: Error) => showError(e.message),
@@ -89,7 +90,7 @@ export function ReceivablesPanel() {
     mutationFn: updateReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung aktualisiert");
+      showSuccess(t("debtService.receivableUpdated"));
       setDialogOpen(false);
       setEditing(null);
     },
@@ -100,7 +101,7 @@ export function ReceivablesPanel() {
     mutationFn: deleteReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung gelöscht");
+      showSuccess(t("debtService.receivableDeleted"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -109,7 +110,7 @@ export function ReceivablesPanel() {
     mutationFn: assignTransactionToReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Rückzahlung zugewiesen");
+      showSuccess(t("debtService.repaymentAssigned"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -118,7 +119,7 @@ export function ReceivablesPanel() {
     mutationFn: unassignReceivableTransaction,
     onSuccess: () => {
       invalidate();
-      showSuccess("Zuweisung entfernt");
+      showSuccess(t("debtService.assignmentRemoved"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -254,7 +255,7 @@ export function ReceivablesPanel() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {RECEIVABLE_TYPE_LABELS[r.type]}
+                      {receivableTypeLabels[r.type]}
                       {r.debtor ? ` · ${r.debtor}` : ""}
                       {r.due_date ? ` · fällig bis ${new Date(r.due_date).toLocaleDateString("de-DE")}` : ""}
                     </div>
@@ -274,7 +275,7 @@ export function ReceivablesPanel() {
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Weitere Aktionen">
+                        <Button variant="ghost" size="icon" aria-label={t("debtService.moreActions")}>
                           <MoreVertical className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </DropdownMenuTrigger>

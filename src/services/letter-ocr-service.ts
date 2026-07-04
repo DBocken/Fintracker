@@ -9,6 +9,8 @@
 // Die Pool-/Fortschritts-/Abbruch-Logik ist pur und mit injizierten
 // Fakes testbar; pdf.js und tesseract.js werden lazy geladen.
 
+import { t } from "../i18n/serviceT";
+
 export interface OcrPageResult {
   /** 1-basierte Seitennummer im Stapel. */
   page: number;
@@ -268,13 +270,11 @@ export async function ocrImages(
  * Anleitungstexte für das UI (Copyshop-Hinweis + Zuhause-Alternative).
  * Zentral gepflegt, damit Desktop/Mobile dieselben Formulierungen nutzen.
  */
-export const SCAN_GUIDANCE = {
-  recommendation:
-    "Tipp: Verarbeite große Stapel am besten am Desktop — dort ist die Erkennung deutlich schneller.",
-  copyshop:
-    "Im Copyshop: Scanne auf deinen eigenen USB-Stick, nicht per E-Mail. Lösche die Datei danach am Copyshop-Gerät.",
-  homeAlternative:
-    "Zuhause geht es auch ohne Scanner: Fotografiere jeden Brief einzeln mit der Kamera — wir verarbeiten die Fotos genauso.",
-  privacy:
-    "Alles passiert auf deinem Gerät. Deine Briefe werden nirgendwohin hochgeladen.",
-} as const;
+export function getScanGuidance() {
+  return {
+    recommendation: t("debts.scanGuidance.recommendation"),
+    copyshop: t("debts.scanGuidance.copyshop"),
+    homeAlternative: t("debts.scanGuidance.homeAlternative"),
+    privacy: t("debts.scanGuidance.privacy"),
+  };
+}

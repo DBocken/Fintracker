@@ -77,6 +77,9 @@ describe("ClaimImportDialog", () => {
     vi.mocked(importLettersFromPdf).mockReset();
     vi.mocked(importLettersFromImages).mockReset();
     vi.mocked(confirmClaim).mockReset();
+    // getScanGuidance() liest die Sprache direkt aus localStorage (Nicht-React-Code,
+    // siehe src/i18n/serviceT.ts) — unabhängig vom initialLocale-Prop des Providers.
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
   });
 
   it("zeigt den Upload-Schritt mit Hinweistexten", () => {
