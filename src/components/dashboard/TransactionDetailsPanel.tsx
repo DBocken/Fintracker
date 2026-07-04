@@ -152,7 +152,7 @@ export function TransactionDetailsPanel({
       const pattern = normalizeMerchantName(transaction.payee);
       if (pattern) {
         void upsertMerchantRule(pattern, categorySuggestion.categoryId).then(() =>
-          showSuccess('Händlerregel gespeichert'),
+          showSuccess(t('transactionDetails.merchantRuleSaved')),
         );
       }
     }
@@ -181,7 +181,7 @@ export function TransactionDetailsPanel({
           entityType: 'transaction',
           entityId: transaction.id,
           action: patch.is_transfer ? 'mark_transfer' : 'unmark_transfer',
-          title: patch.is_transfer ? 'Als internen Übertrag markiert' : 'Transfer-Markierung entfernt',
+          title: patch.is_transfer ? t('transactionDetails.markedAsTransfer') : t('transactionDetails.unmarkedAsTransfer'),
           redactedBefore: redactForAudit(transaction, ['is_transfer', 'transfer_pair_id']),
           redactedAfter: { is_transfer: patch.is_transfer ?? false },
           reversible: true,

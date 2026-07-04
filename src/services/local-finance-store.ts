@@ -1,3 +1,4 @@
+import { t } from '../i18n/serviceT';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
 // Key-Definitionen leben zentral in local-storage-keys (VE-6), damit die
 // Verschlüsselungs-Migration keine Kollektion übersehen kann. Re-Export hält
@@ -18,7 +19,7 @@ export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_vers
 
 function assertClientStorage() {
   if (typeof window === 'undefined') {
-    throw new Error('Lokale Finanzdaten können nur im Client verarbeitet werden.');
+    throw new Error(t('localFinanceStore.clientOnly', 'Lokale Finanzdaten können nur im Client verarbeitet werden.'));
   }
 }
 
@@ -73,7 +74,7 @@ export async function updateLocalFinanceItem<T extends { id?: string }>(
 ): Promise<T> {
   const items = await readLocalFinanceList<T>(key);
   const index = items.findIndex((entry) => entry.id === id);
-  if (index < 0) throw new Error('Datensatz nicht gefunden');
+  if (index < 0) throw new Error(t('localFinanceStore.recordNotFound', 'Datensatz nicht gefunden'));
 
   const updated = {
     ...items[index],

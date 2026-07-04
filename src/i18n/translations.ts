@@ -1594,6 +1594,9 @@ export const translations = {
       suggestedCategory: 'Vorgeschlagene Kategorie',
       unknownPayee: 'diesem Empfänger',
       contractHintTemplate: '{count} ähnliche Buchungen bei „{payee}" über mehrere Monate erkannt.',
+      merchantRuleSaved: 'Händlerregel gespeichert',
+      markedAsTransfer: 'Als internen Übertrag markiert',
+      unmarkedAsTransfer: 'Transfer-Markierung entfernt',
     },
     contracts: {
       monthly: 'Monatlich',
@@ -2897,6 +2900,15 @@ export const translations = {
       lettersDetected: '{count} Brief{plural} erkannt',
       lettersTotalDetected: '{count} Brief{plural} gesamt',
       pageReviewMessage: 'Seite {pageNum1} und {pageNum2}: Gehören diese zusammen oder nicht? {reasons}',
+      docTypeLabels: {
+        rechnung: 'Rechnung',
+        zahlungserinnerung: 'Zahlungserinnerung',
+        mahnung_1: '1. Mahnung',
+        mahnung_2_plus: '2.+ Mahnung',
+        inkasso: 'Inkasso-Schreiben',
+        mahnbescheid: 'Gerichtlicher Mahnbescheid',
+        unbekannt: 'Unbekanntes Dokument',
+      },
     },
     forecastService: {
       variableExpenses: 'Variable Ausgaben',
@@ -2912,6 +2924,24 @@ export const translations = {
       onlyIncomesAllowed: 'Nur Geldeingänge können einer Forderung als Rückzahlung zugewiesen werden.',
       alreadyAssigned: 'Dieser Geldeingang ist bereits einer Forderung zugewiesen.',
       assignmentNotFound: 'Zuweisung nicht gefunden',
+    },
+    localFinanceStore: {
+      clientOnly: 'Lokale Finanzdaten können nur im Client verarbeitet werden.',
+      recordNotFound: 'Datensatz nicht gefunden',
+    },
+    merchantRulesService: {
+      ruleUpdatedTitle: 'Händlerregel aktualisiert: {pattern}',
+      ruleCreatedTitle: 'Händlerregel angelegt: {pattern}',
+      ruleDeletedWithPatternTitle: 'Händlerregel gelöscht: {pattern}',
+      ruleDeletedTitle: 'Händlerregel gelöscht',
+    },
+    receiptParserService: {
+      textTooLarge: 'Belegtext ist zu groß.',
+      tooManyLines: 'Beleg enthält zu viele Zeilen.',
+    },
+    transactionAllocationService: {
+      invariantErrorTitle: 'Ungültige Transaktionsaufteilung: {error} (Δ {delta} Cent)',
+      missingTransactionId: 'Transaktion ohne ID kann nicht aufgeteilt werden.',
     },
     csvService: {
       fileTooLarge: 'CSV-Datei ist zu groß (maximal 10 MB).',
@@ -4528,6 +4558,9 @@ export const translations = {
       suggestedCategory: 'Suggested category',
       unknownPayee: 'this recipient',
       contractHintTemplate: '{count} similar transactions from "{payee}" over several months detected.',
+      merchantRuleSaved: 'Merchant rule saved',
+      markedAsTransfer: 'Marked as internal transfer',
+      unmarkedAsTransfer: 'Transfer marking removed',
     },
     contracts: {
       monthly: 'Monthly',
@@ -5831,6 +5864,15 @@ export const translations = {
       lettersDetected: '{count} letter{plural} detected',
       lettersTotalDetected: '{count} letter{plural} total',
       pageReviewMessage: 'Pages {pageNum1} and {pageNum2}: Do they belong together or not? {reasons}',
+      docTypeLabels: {
+        rechnung: 'Invoice',
+        zahlungserinnerung: 'Payment reminder',
+        mahnung_1: '1st reminder',
+        mahnung_2_plus: '2nd+ reminder',
+        inkasso: 'Collection notice',
+        mahnbescheid: 'Court payment order',
+        unbekannt: 'Unknown document',
+      },
     },
     forecastService: {
       variableExpenses: 'Variable expenses',
@@ -5846,6 +5888,24 @@ export const translations = {
       onlyIncomesAllowed: 'Only incoming payments can be assigned as repayment for a receivable.',
       alreadyAssigned: 'This incoming payment is already assigned to a receivable.',
       assignmentNotFound: 'Assignment not found',
+    },
+    localFinanceStore: {
+      clientOnly: 'Local financial data can only be processed on the client.',
+      recordNotFound: 'Record not found',
+    },
+    merchantRulesService: {
+      ruleUpdatedTitle: 'Merchant rule updated: {pattern}',
+      ruleCreatedTitle: 'Merchant rule created: {pattern}',
+      ruleDeletedWithPatternTitle: 'Merchant rule deleted: {pattern}',
+      ruleDeletedTitle: 'Merchant rule deleted',
+    },
+    receiptParserService: {
+      textTooLarge: 'Receipt text is too large.',
+      tooManyLines: 'Receipt contains too many lines.',
+    },
+    transactionAllocationService: {
+      invariantErrorTitle: 'Invalid transaction split: {error} (Δ {delta} cents)',
+      missingTransactionId: 'A transaction without an ID cannot be split.',
     },
     csvService: {
       fileTooLarge: 'CSV file is too large (maximum 10 MB).',

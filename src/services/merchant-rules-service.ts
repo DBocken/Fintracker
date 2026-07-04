@@ -1,3 +1,4 @@
+import { t } from '../i18n/serviceT';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 import { safeAudit, redactForAudit } from './audit-log-service';
 
@@ -48,7 +49,9 @@ export async function upsertMerchantRule(merchantPattern: string, categoryId: st
     entityType: 'merchant_rule',
     entityId: saved?.id ?? pattern,
     action: existing ? 'update' : 'create',
-    title: existing ? `Händlerregel aktualisiert: ${pattern}` : `Händlerregel angelegt: ${pattern}`,
+    title: existing
+      ? t('merchantRulesService.ruleUpdatedTitle', 'Händlerregel aktualisiert: {pattern}').replace('{pattern}', pattern)
+      : t('merchantRulesService.ruleCreatedTitle', 'Händlerregel angelegt: {pattern}').replace('{pattern}', pattern),
     redactedBefore: redactForAudit(before, ['merchant_pattern', 'category_id']),
     redactedAfter: redactForAudit(saved, ['merchant_pattern', 'category_id']),
     reversible: true,
@@ -66,7 +69,9 @@ export async function deleteMerchantRule(id: string): Promise<void> {
     entityType: 'merchant_rule',
     entityId: id,
     action: 'delete',
-    title: removed ? `Händlerregel gelöscht: ${removed.merchant_pattern}` : 'Händlerregel gelöscht',
+    title: removed
+      ? t('merchantRulesService.ruleDeletedWithPatternTitle', 'Händlerregel gelöscht: {pattern}').replace('{pattern}', removed.merchant_pattern)
+      : t('merchantRulesService.ruleDeletedTitle', 'Händlerregel gelöscht'),
     redactedBefore: redactForAudit(removed, ['merchant_pattern', 'category_id']),
     redactedAfter: null,
     reversible: true,
