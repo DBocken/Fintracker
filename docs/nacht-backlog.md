@@ -46,7 +46,7 @@ und liefert einen Draft-PR. Referenzen: Issue #175 (Audit-Nacharbeiten), Epic #2
   Bestätigung ruft ihn genau 1×.
 - Akzeptanz: neuer Test rot→grün, Suite/Lint/Build grün. Umfang S, Risiko niedrig.
 
-### N3 — Testlücken Geld-Logik schließen · Status: in-arbeit (Nacht-Batch 2026-07-04)
+### N3 — Testlücken Geld-Logik schließen · Status: erledigt ([PR #185](https://github.com/DBocken/Fintracker/pull/185))
 
 - Services ohne Tests (verifiziert): `coach-service.ts` (Stage-Logik, Notgroschen-Edge
   `expenses===0→6`), `live-balance-service.ts` (`pickPreferredBankBalance`, pure),
