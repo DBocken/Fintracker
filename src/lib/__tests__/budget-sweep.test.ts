@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   evaluateSweepGate,
   minBalanceWithinHorizon,
@@ -6,6 +6,13 @@ import {
 } from "@/lib/budget-sweep";
 
 describe("budget-sweep", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
   describe("evaluateSweepGate", () => {
     it("sollte den vollen Betrag freigeben, wenn Spielraum reicht", () => {
       const r = evaluateSweepGate({ desiredAmount: 100, projectedMinBalance: 1500, safetyBuffer: 1000 });

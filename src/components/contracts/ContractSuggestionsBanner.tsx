@@ -57,12 +57,12 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
       await upsertContractDecision(row.fingerprint, { status: "active", cycle_override: cycle });
     },
     onSuccess: (_data, row) => {
-      showSuccess(`„${row.payee}" als Vertrag bestätigt`);
+      showSuccess(t("contracts.confirmationToast").replace('{payee}', row.payee));
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
     },
-    onError: () => showError("Fehler beim Bestätigen des Vertrags"),
+    onError: () => showError(t("contracts.confirmError")),
   });
 
   const dismissMutation = useMutation({
@@ -72,7 +72,7 @@ export function ContractSuggestionsBanner({ rows }: ContractSuggestionsBannerPro
       setDismissed((prev) => new Set(prev).add(row.key));
       queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
     },
-    onError: () => showError("Fehler beim Ablehnen"),
+    onError: () => showError(t("contracts.dismissError")),
   });
 
   if (suggestions.length === 0) return null;

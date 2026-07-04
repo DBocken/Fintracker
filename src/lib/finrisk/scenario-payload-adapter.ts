@@ -24,6 +24,7 @@
 import { addDays, format, parseISO } from 'date-fns';
 import type { ForecastScenario, ScenarioModifier } from '../forecast-scenario-types';
 import type { ScenarioEvent, ScenarioPayload } from './scenario-payload-types';
+import { t } from '../../i18n/serviceT';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -47,7 +48,7 @@ function eventToModifiers(event: ScenarioEvent, startISO: string, index: number)
           type: 'oneTime',
           amount: -Math.abs(event.amount),
           date: dayFrom(startISO, event.dayIndex ?? 0),
-          label: event.description ?? 'Anschaffung',
+          label: event.description ?? t('scenario.acquisition'),
         },
       ];
 
@@ -58,7 +59,7 @@ function eventToModifiers(event: ScenarioEvent, startISO: string, index: number)
           type: 'oneTime',
           amount: Math.abs(event.amount),
           date: dayFrom(startISO, event.dayIndex ?? 0),
-          label: event.description ?? 'Zusätzliche Einnahme',
+          label: event.description ?? t('scenario.additionalIncome'),
         },
       ];
 
@@ -68,7 +69,7 @@ function eventToModifiers(event: ScenarioEvent, startISO: string, index: number)
           id: baseId,
           type: 'variable',
           percentChange: round2((event.amount - 1) * 100),
-          label: event.description ?? 'Höhere Alltagskosten',
+          label: event.description ?? t('scenario.higherCosts'),
         },
       ];
 
@@ -85,7 +86,7 @@ function eventToModifiers(event: ScenarioEvent, startISO: string, index: number)
           type: 'oneTime',
           amount: -dailyAmount,
           date: dayFrom(startISO, day),
-          label: event.description ?? 'Einkommensausfall',
+          label: event.description ?? t('scenario.incomeReduction'),
         });
       }
       return mods;
@@ -111,7 +112,7 @@ export function payloadToScenario(payload: ScenarioPayload, startISO: string): F
       id: 'baseline-multiplier',
       type: 'variable',
       percentChange: round2((payload.baselineMultiplier - 1) * 100),
-      label: 'Höhere Alltagskosten',
+      label: t('scenario.higherCosts'),
     });
   }
 

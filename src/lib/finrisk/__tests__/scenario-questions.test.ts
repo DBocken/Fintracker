@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   buildBaseCheckPayload,
   buildHigherCostPayload,
@@ -11,6 +11,13 @@ import {
 const CTX: QuestionContext = { horizonDays: 180, thresholdAmount: 1000 };
 
 describe('Szenario-Frage-Builder', () => {
+  beforeEach(() => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
   it('base_check liefert ein eingriffsfreies Payload', () => {
     const p = buildBaseCheckPayload(CTX);
     expect(p.scenarioType).toBe('base_check');

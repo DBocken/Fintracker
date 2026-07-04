@@ -395,6 +395,22 @@ export const translations = {
       reserveAccount: 'Reservekonto',
       fromAccount: 'Von Konto',
       toAccount: 'Zu Konto',
+      coachPreview: 'Detailansicht für Charts & Transaktionen. Deine nächste Aktion zeigt dir der Coach.',
+      transactionsSearch: 'Transaktionen suchen',
+      filter: 'Filter',
+      resetFilters: 'Filter zurücksetzen',
+      cashflowTitle: 'Cashflow im Überblick',
+      cashflowDescription: 'Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.',
+      recentTransactions: 'Letzte Buchungen',
+      showAllTransactions: 'Alle {count} Buchungen anzeigen',
+      showAllTransactionsAlt: 'Alle Buchungen anzeigen',
+      noTransactionsFiltered: 'Keine Transaktionen gefunden',
+      noTransactionsFilteredTip: 'Prüfe Filter, Suchbegriff oder lade die Daten neu, falls der Cache veraltet ist.',
+      noTransactionsEmpty: 'Keine Transaktionen vorhanden',
+      noTransactionsEmptyTip: 'Importiere eine CSV-Datei, verbinde eine Bank oder lade nach einem Sync erneut.',
+      importCsv: 'CSV importieren',
+      connectBank: 'Bank verbinden',
+      reload: 'Erneut laden',
     },
     liquidityReport: {
       forecastError: 'Forecast konnte nicht berechnet werden',
@@ -906,6 +922,9 @@ export const translations = {
         description: 'Vermögen weiter aufbauen und gezielt geben.',
         whyItMatters: 'Finanzielle Freiheit schafft Spielraum für das, was dir wichtig ist.',
       },
+    },
+    commandPalette: {
+      quickActionsHeading: 'Quick Actions',
     },
     coachService: {
       stages: {
@@ -1623,6 +1642,9 @@ export const translations = {
       tableStable: 'Stabil',
       tableChanged: 'geändert',
       premiumFeatureHint: 'Der Verlauf von Verträgen und Einnahmen über die Zeit ist Teil der Premium-Vertragsanalyse. Die aktuelle Vertragsliste kannst du frei nutzen.',
+      confirmationToast: '„{payee}" als Vertrag bestätigt',
+      confirmError: 'Fehler beim Bestätigen des Vertrags',
+      dismissError: 'Fehler beim Ablehnen',
     },
     receipt: {
       scanTitle: 'Beleg scannen',
@@ -2433,6 +2455,12 @@ export const translations = {
       priorityNormal: 'Normal',
       priorityEssential: 'Essenziell',
     },
+    budgetSweep: {
+      insufficientLiquidity: 'Liquidität zu knapp – erst den Puffer sichern.',
+      noAvailableAmount: 'Kein sicher verfügbarer Betrag.',
+      partialSweepAvailable: 'Nur {amount} € sicher abführbar – der Rest hält deinen Puffer.',
+      sweepSuccess: 'Überschuss kann sicher angelegt werden.',
+    },
     transactionStats: {
       accountBalance: 'Kontostand',
       income: 'Einnahmen',
@@ -2850,6 +2878,13 @@ export const translations = {
       overdraftDescriptionPlural: 'Wir haben {count} Buchungen mit Überziehungs-/Dispozinsen gefunden.',
       overdraftDefaultPayee: 'Dispokredit',
     },
+    scenario: {
+      purchase: 'Größere Anschaffung',
+      incomeReduction: 'Einkommensausfall',
+      acquisition: 'Anschaffung',
+      additionalIncome: 'Zusätzliche Einnahme',
+      higherCosts: 'Höhere Alltagskosten',
+    },
     snapshotSyncService: {
       encryptionRequiredForCreate: 'Bitte lokale Verschlüsselung aktivieren und entsperren, bevor ein Snapshot erstellt wird.',
       encryptionRequiredForImport: 'Bitte lokale Verschlüsselung entsperren, bevor ein Snapshot importiert wird.',
@@ -3244,6 +3279,22 @@ export const translations = {
       reserveAccount: 'Reserve account',
       fromAccount: 'From account',
       toAccount: 'To account',
+      coachPreview: 'Detailed view for charts & transactions. Your next step is shown by the coach.',
+      transactionsSearch: 'Search transactions',
+      filter: 'Filter',
+      resetFilters: 'Reset filters',
+      cashflowTitle: 'Cashflow overview',
+      cashflowDescription: 'Your money flow at main category level. Find detailed analysis in the analysis section.',
+      recentTransactions: 'Recent transactions',
+      showAllTransactions: 'Show all {count} transactions',
+      showAllTransactionsAlt: 'Show all transactions',
+      noTransactionsFiltered: 'No transactions found',
+      noTransactionsFilteredTip: 'Check filters, search terms, or reload data if cache is stale.',
+      noTransactionsEmpty: 'No transactions available',
+      noTransactionsEmptyTip: 'Import a CSV from your bank, connect a bank account, or reload after syncing.',
+      importCsv: 'Import CSV',
+      connectBank: 'Connect bank',
+      reload: 'Reload',
     },
     liquidityReport: {
       forecastError: 'Forecast could not be calculated',
@@ -3755,6 +3806,9 @@ export const translations = {
         description: 'Keep building wealth and give purposefully.',
         whyItMatters: 'Financial freedom creates room for what matters to you.',
       },
+    },
+    commandPalette: {
+      quickActionsHeading: 'Quick Actions',
     },
     coachService: {
       stages: {
@@ -4472,6 +4526,9 @@ export const translations = {
       tableStable: 'Stable',
       tableChanged: 'changed',
       premiumFeatureHint: 'Contract and income history over time is part of premium contract analysis. The current contract list is free to use.',
+      confirmationToast: '"{payee}" confirmed as contract',
+      confirmError: 'Error confirming contract',
+      dismissError: 'Error rejecting',
     },
     receipt: {
       scanTitle: 'Scan receipt',
@@ -5282,6 +5339,12 @@ export const translations = {
       priorityNormal: 'Normal',
       priorityEssential: 'Essential',
     },
+    budgetSweep: {
+      insufficientLiquidity: 'Insufficient liquidity – secure your buffer first.',
+      noAvailableAmount: 'No securely available amount.',
+      partialSweepAvailable: 'Only {amount} € can be safely transferred – the rest maintains your buffer.',
+      sweepSuccess: 'Surplus can be safely invested.',
+    },
     transactionStats: {
       accountBalance: 'Account balance',
       income: 'Income',
@@ -5698,6 +5761,13 @@ export const translations = {
       overdraftDescriptionSingular: 'We found 1 transaction with overdraft/interest charges.',
       overdraftDescriptionPlural: 'We found {count} transactions with overdraft/interest charges.',
       overdraftDefaultPayee: 'Overdraft',
+    },
+    scenario: {
+      purchase: 'Major purchase',
+      incomeReduction: 'Income loss',
+      acquisition: 'Acquisition',
+      additionalIncome: 'Additional income',
+      higherCosts: 'Higher everyday costs',
     },
     snapshotSyncService: {
       encryptionRequiredForCreate: 'Please enable and unlock local encryption before creating a snapshot.',
