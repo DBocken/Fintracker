@@ -2,6 +2,7 @@ import type { DebtPriority, DebtType, Transaction } from "../types";
 import { getTransactions } from "./transaction-service";
 import { normalizeMerchantName } from "./merchant-normalization";
 import { BNPL_PROVIDERS, getDebts, suggestDebtPriority } from "./debt-service";
+import { t } from "../i18n/serviceT";
 
 export type DebtSuggestionKind = "dunning" | "bnpl_recurring" | "overdraft_fee";
 
@@ -51,6 +52,10 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
   dunningGroups.forEach((group, normalized) => {
     const payee = group[0].payee || group[0].description || "Unbekannt";
     if (isExistingDebt(payee, existingNames)) return;
+    const key = group.length === 1 ? 'debtDetectionService.dunningDescriptionSingular' : 'debtDetectionService.dunningDescriptionPlural';
+    const description = t(key, '{count} {payee}')
+      .replace('{count}', String(group.length))
+      .replace('{payee}', payee);
     suggestions.push({
       key: `dunning:${normalized}`,
       kind: "dunning",
@@ -59,7 +64,7 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
       totalAmount: Math.round(group.reduce((s, t) => s + Math.abs(t.amount), 0) * 100) / 100,
       suggestedType: "other",
       suggestedPriority: suggestDebtPriority(payee),
-      description: `Wir haben ${group.length} Buchung${group.length === 1 ? "" : "en"} mit Hinweis auf Mahnung/Inkasso bei "${payee}" gefunden.`,
+      description,
     });
   });
 
@@ -79,6 +84,9 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
     if (group.length < 3) return;
     const payee = group[0].payee || provider;
     if (isExistingDebt(payee, existingNames) || isExistingDebt(provider, existingNames)) return;
+    const description = t('debtDetectionService.bnplDescription', '{count} {payee}')
+      .replace('{count}', String(group.length))
+      .replace('{payee}', payee);
     suggestions.push({
       key: `bnpl:${provider}`,
       kind: "bnpl_recurring",
@@ -87,7 +95,7 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
       totalAmount: Math.round(group.reduce((s, t) => s + Math.abs(t.amount), 0) * 100) / 100,
       suggestedType: "bnpl",
       suggestedPriority: suggestDebtPriority(payee),
-      description: `Wir haben ${group.length} wiederkehrende Abbuchungen von "${payee}" (Buy Now, Pay Later) gefunden.`,
+      description,
     });
   });
 
@@ -102,8 +110,11 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
     overdraftGroups.set(normalized, arr);
   });
   overdraftGroups.forEach((group, normalized) => {
-    const payee = group[0].payee || "Dispokredit";
+    const payee = group[0].payee || t('debtDetectionService.overdraftDefaultPayee');
     if (isExistingDebt(payee, existingNames)) return;
+    const key = group.length === 1 ? 'debtDetectionService.overdraftDescriptionSingular' : 'debtDetectionService.overdraftDescriptionPlural';
+    const description = t(key, '{count}')
+      .replace('{count}', String(group.length));
     suggestions.push({
       key: `overdraft:${normalized}`,
       kind: "overdraft_fee",
@@ -112,7 +123,7 @@ export async function detectPotentialDebts(): Promise<DebtSuggestion[]> {
       totalAmount: Math.round(group.reduce((s, t) => s + Math.abs(t.amount), 0) * 100) / 100,
       suggestedType: "overdraft",
       suggestedPriority: suggestDebtPriority(payee),
-      description: `Wir haben ${group.length} Buchung${group.length === 1 ? "" : "en"} mit Überziehungs-/Dispozinsen gefunden.`,
+      description,
     });
   });
 

@@ -2,6 +2,7 @@ import { localEncryption, type EncryptedEnvelopeV1 } from './local-crypto';
 import { LOCAL_FINANCE_KEYS } from './local-finance-store';
 import { idbGet, idbSet } from './idb-kv';
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from './local-settings-service';
+import { t } from '../i18n/serviceT';
 
 const DEVICE_ID_KEY = 'ausgabentracker_device_id_v1';
 const SYNC_PATHS_KEY = 'ausgabentracker_sync_paths_v1';
@@ -81,7 +82,7 @@ export function saveSyncPath(label: string, pathHint: string): SyncPathConfig[] 
   const paths = getSyncPaths();
   const entry: SyncPathConfig = {
     id: crypto.randomUUID(),
-    label: label.trim() || 'Sync-Pfad',
+    label: label.trim() || t('snapshotSyncService.defaultSyncPathLabel'),
     pathHint: pathHint.trim(),
     createdAt: new Date().toISOString(),
   };
@@ -98,7 +99,7 @@ export function removeSyncPath(id: string): SyncPathConfig[] {
 
 export async function createEncryptedSnapshot(): Promise<EncryptedSnapshotFileV1> {
   if (!localEncryption.isEnabled() || !localEncryption.isUnlocked()) {
-    throw new Error('Bitte lokale Verschlüsselung aktivieren und entsperren, bevor ein Snapshot erstellt wird.');
+    throw new Error(t('snapshotSyncService.encryptionRequiredForCreate'));
   }
 
   const version = Number(localStorage.getItem(SNAPSHOT_VERSION_KEY) || '0') + 1;
@@ -157,13 +158,13 @@ export async function exportEncryptedSnapshot(storageLabel?: string, storagePath
 
 export async function importEncryptedSnapshot(file: File): Promise<EncryptedSnapshotFileV1> {
   if (!localEncryption.isEnabled() || !localEncryption.isUnlocked()) {
-    throw new Error('Bitte lokale Verschlüsselung entsperren, bevor ein Snapshot importiert wird.');
+    throw new Error(t('snapshotSyncService.encryptionRequiredForImport'));
   }
 
   const raw = await file.text();
   const parsed = JSON.parse(raw) as EncryptedSnapshotFileV1;
   if (parsed?.type !== 'ausgabentracker.snapshot.enc' || parsed?.v !== 1 || !parsed.segments?.['finance-data']) {
-    throw new Error('Ungültiges Snapshot-Format');
+    throw new Error(t('snapshotSyncService.invalidSnapshotFormat'));
   }
 
   const financeData = await localEncryption.decryptJson<Record<string, string | null>>(parsed.segments['finance-data']);

@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { detectBank, createDefaultMapping, parseCsv, BANK_TEMPLATES } from "./csv-service";
+
+beforeEach(() => {
+  localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function csvFile(content: string): File {
   return new File([content], "test.csv", { type: "text/csv" });

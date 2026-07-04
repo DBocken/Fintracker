@@ -1,6 +1,7 @@
 import { parse } from 'papaparse';
 import type { Transaction } from '../types';
 import { parseGermanNumber } from '../lib/money';
+import { t } from '../i18n/serviceT';
 
 export const MAX_CSV_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_CSV_ROWS = 50_000;
@@ -162,23 +163,23 @@ export async function parseCsv(
   mapping: CsvMapping,
   delimiter: string = ';'
 ): Promise<Transaction[]> {
-  if (file.size > MAX_CSV_FILE_BYTES) throw new Error('CSV-Datei ist zu groß (maximal 10 MB).');
+  if (file.size > MAX_CSV_FILE_BYTES) throw new Error(t('csvService.fileTooLarge'));
   const text = await file.text();
   const result = parse<Record<string, string>>(text, {
     header: true,
     delimiter,
     skipEmptyLines: true,
   });
-  if (result.errors.length > 0) throw new Error(`CSV-Datei ist beschädigt: ${result.errors[0].message}`);
-  if (result.data.length > MAX_CSV_ROWS) throw new Error(`CSV-Datei enthält mehr als ${MAX_CSV_ROWS} Buchungen.`);
-  
+  if (result.errors.length > 0) throw new Error(t('csvService.corruptedFormat', '{error}').replace('{error}', result.errors[0].message));
+  if (result.data.length > MAX_CSV_ROWS) throw new Error(t('csvService.tooManyRows', '{maxRows}').replace('{maxRows}', String(MAX_CSV_ROWS)));
+
   return Promise.all(result.data.map(async (row: Record<string, string>, index: number) => {
     const rawIban = mapping.ibanColumn ? (row[mapping.ibanColumn] || '').trim() : '';
     const counterpartyIban = rawIban.replace(/\s+/g, '').toUpperCase() || null;
     const date = parseGermanDate(row[mapping.dateColumn] || '');
     const amount = parseGermanAmount(row[mapping.amountColumn] || '');
-    if (!date) throw new Error(`Ungültiges Buchungsdatum in CSV-Zeile ${index + 2}.`);
-    if (amount === null) throw new Error(`Ungültiger Betrag in CSV-Zeile ${index + 2}.`);
+    if (!date) throw new Error(t('csvService.invalidDate', '{rowNumber}').replace('{rowNumber}', String(index + 2)));
+    if (amount === null) throw new Error(t('csvService.invalidAmount', '{rowNumber}').replace('{rowNumber}', String(index + 2)));
     const payee = row[mapping.payeeColumn] || '';
     const description = row[mapping.descriptionColumn] || '';
     const currency = row[mapping.currencyColumn!] || 'EUR';

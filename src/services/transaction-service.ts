@@ -108,7 +108,7 @@ export function explainCategorization(
       return {
         categoryId: rule.category_id,
         confidence: 0.95,
-        reasons: [`Gelernte Händlerregel für „${rule.merchant_pattern}“`],
+        reasons: [t('transactionService.learnedMerchantRule', '{merchant}').replace('{merchant}', rule.merchant_pattern)],
         source: 'merchant_rule',
       };
     }
@@ -142,7 +142,7 @@ export function explainCategorization(
     return {
       categoryId: bestMatch.id,
       confidence: bestSpecificity >= 2 ? 0.85 : 0.7,
-      reasons: bestMatchedFilters.map((filter) => `Beschreibung enthält Filter „${filter}“`),
+      reasons: bestMatchedFilters.map((filter) => t('transactionService.matchedFilter', '{filter}').replace('{filter}', filter)),
       source: 'category_filter',
     };
   }
@@ -156,7 +156,7 @@ export function explainCategorization(
         return {
           categoryId: fallbackCategory.id,
           confidence: 0.55,
-          reasons: [`Fallback-Regel für „${rule.category}“ erkannt`],
+          reasons: [t('transactionService.fallbackRule', '{category}').replace('{category}', rule.category)],
           source: 'regex_fallback',
         };
       }
@@ -293,7 +293,7 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
   });
 
   const result = await transactionStorage.saveTransactions(prepared as Transaction[]);
-  if (!result.success) throw new Error(result.error || 'Lokales Speichern fehlgeschlagen');
+  if (!result.success) throw new Error(result.error || t('transactionService.saveFailed'));
   return result.data || [];
 }
 

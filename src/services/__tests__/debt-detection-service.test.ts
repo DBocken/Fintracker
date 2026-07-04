@@ -1,5 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { Transaction, Debt } from "../../types";
+
+beforeEach(() => {
+  localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 const mockTransactions: Transaction[] = [];
 const mockDebts: Debt[] = [];
