@@ -11,6 +11,7 @@ import { TransactionStats } from "@/components/dashboard/TransactionStats";
 import { TransactionFilters } from "@/components/dashboard/TransactionFilters";
 import { TransactionDetailsModal } from "@/components/dashboard/TransactionDetailsModal";
 import { TransactionDetailsPanel } from "@/components/dashboard/TransactionDetailsPanel";
+import { DeleteConfirmationDialog } from "@/components/dashboard/DeleteConfirmationDialog";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useI18n } from "@/i18n/useI18n";
@@ -79,6 +80,8 @@ export default function TransactionsPage() {
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hidden, toggleHidden] = usePersistedSet("transactions_hidden");
 
   // Filteränderungen in die URL spiegeln (replace, kein History-Spam pro Tastendruck).
@@ -113,6 +116,19 @@ export default function TransactionsPage() {
       toast.success(t("dashboard.transactionDeleted"));
     },
   });
+
+  // Löschen ist destruktiv & nicht rückgängig machbar → erst bestätigen lassen
+  // (gleicher Dialog wie auf dem Dashboard), nicht direkt löschen.
+  const requestDelete = (id: string) => {
+    setTransactionToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (transactionToDelete) deleteMut.mutate(transactionToDelete);
+    setDeleteDialogOpen(false);
+    setTransactionToDelete(null);
+  };
 
   // Effektiver Saldo je Konto (Live-Saldo der Bank oder Eröffnungssaldo + lokale
   // Buchungen) – Anker für den rückwärts abgeleiteten Tages-Kontostand.
@@ -372,7 +388,7 @@ export default function TransactionsPage() {
                         detailsTransaction && saveDetails(detailsTransaction, id, patch, options)
                       }
                       onToggleVisibility={toggleHidden}
-                      onDelete={(id) => deleteMut.mutate(id)}
+                      onDelete={requestDelete}
                       isHidden={detailsTransaction.id ? hidden.has(detailsTransaction.id) : false}
                       isLoading={detailsSaving}
                       onClose={closeDetails}
@@ -401,9 +417,17 @@ export default function TransactionsPage() {
         allTransactions={txs}
         onSave={(id, patch, options) => detailsTransaction && saveDetails(detailsTransaction, id, patch, options)}
         onToggleVisibility={toggleHidden}
-        onDelete={(id) => deleteMut.mutate(id)}
+        onDelete={requestDelete}
         isHidden={detailsTransaction?.id ? hidden.has(detailsTransaction.id) : false}
         isLoading={detailsSaving}
+      />
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        transactionId={transactionToDelete}
+        selectedCount={0}
       />
 
       <TransactionFormDialog
