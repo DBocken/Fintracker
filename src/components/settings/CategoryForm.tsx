@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +68,7 @@ export function CategoryForm({
   onSave,
   onReset,
 }: CategoryFormProps) {
+  const { t } = useI18n();
   const [newFilterInput, setNewFilterInput] = React.useState('');
   const [newTagInput, setNewTagInput] = React.useState('');
 
@@ -100,32 +102,32 @@ export function CategoryForm({
     <Card className="border-0 shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl">
-          {editingCategory ? 'Kategorie bearbeiten' : parentId ? 'Unterkategorie erstellen' : 'Neue Kategorie'}
+          {editingCategory ? t('categoryForm.editTitle') : parentId ? t('categoryForm.subcategoryTitle') : t('categoryForm.newCategoryTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {parentId && (
           <div className="p-3 bg-brand/15 rounded-lg">
-            <p className="text-sm font-medium">Wird als Unterkategorie angelegt</p>
+            <p className="text-sm font-medium">{t('categoryForm.subcategoryInfo')}</p>
             <p className="text-xs text-muted-foreground">
-              Diese Kategorie wird einer bestehenden Hauptkategorie untergeordnet.
+              {t('categoryForm.subcategoryDescription')}
             </p>
           </div>
         )}
 
         <div>
-          <Label htmlFor="cat-name">Name</Label>
+          <Label htmlFor="cat-name">{t('categoryForm.nameLabel')}</Label>
           <Input
             id="cat-name"
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
-            placeholder={parentId ? 'z.B. Milchprodukte' : 'z.B. Lebensmittel'}
+            placeholder={parentId ? t('categoryForm.subcategoryNamePlaceholder') : t('categoryForm.namePlaceholder')}
           />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <fieldset>
-            <legend className="text-sm font-medium">Farbe</legend>
+            <legend className="text-sm font-medium">{t('categoryForm.colorLabel')}</legend>
             <div className="grid grid-cols-5 gap-1 mt-1">
               {colorOptions.map((option) => (
                 <button
@@ -144,7 +146,7 @@ export function CategoryForm({
           </fieldset>
 
           <fieldset>
-            <legend className="text-sm font-medium">Icon</legend>
+            <legend className="text-sm font-medium">{t('categoryForm.iconLabel')}</legend>
             <div className="grid grid-cols-4 gap-1 mt-1">
               {iconOptions.map((option, index) => (
                 <button
@@ -164,29 +166,28 @@ export function CategoryForm({
         </div>
 
         <div>
-          <Label htmlFor="filter-input">Filter hinzufügen</Label>
+          <Label htmlFor="filter-input">{t('categoryForm.addFilterLabel')}</Label>
           <div className="flex gap-2">
             <Input
               id="filter-input"
               value={newFilterInput}
               onChange={(event) => setNewFilterInput(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleAddFilter()}
-              placeholder={parentId ? 'z.B. milch, joghurt, käse' : 'z.B. lebensmittel, supermarkt'}
+              placeholder={parentId ? t('categoryForm.filterPlaceholderSubcategory') : t('categoryForm.filterPlaceholder')}
             />
-            <Button type="button" onClick={handleAddFilter} size="sm" aria-label="Filter hinzufügen">
+            <Button type="button" onClick={handleAddFilter} size="sm" aria-label={t('categoryForm.addFilterLabel')}>
               <Plus className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Stichwörter, die automatisch im Empfänger und Verwendungszweck gesucht werden.
-            Passt ein Stichwort, wird die Transaktion dieser Kategorie zugeordnet.
-            Beispiel: <span className="font-medium">„rewe", „edeka"</span> → Lebensmittel.
+            {t('categoryForm.filterDescription')}
+            {t('categoryForm.filterDescriptionExample', '{example} → Lebensmittel.').replace('{example}', '„rewe", „edeka"')}
           </p>
         </div>
 
         {filters.length > 0 && (
           <div>
-            <Label>Aktive Filter</Label>
+            <Label>{t('categoryForm.activeFiltersLabel')}</Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {filters.map((filter, index) => (
                 <Badge key={`${filter}-${index}`} variant="secondary" className="gap-1">
@@ -207,16 +208,15 @@ export function CategoryForm({
 
         <Accordion type="single" collapsible className="rounded-lg border px-3">
           <AccordionItem value="advanced" className="border-b-0">
-            <AccordionTrigger>Erweiterte Eigenschaften (optional)</AccordionTrigger>
+            <AccordionTrigger>{t('categoryForm.advancedPropertiesLabel')}</AccordionTrigger>
             <AccordionContent className="space-y-5">
               <p className="text-xs text-muted-foreground">
-                Optionale Angaben für Verträge, Budgets und Auswertungen. Für eine einfache
-                Kategorie nicht nötig.
+                {t('categoryForm.advancedDescription')}
               </p>
 
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Eigenschaften
+                  {t('categoryForm.propertiesLabel')}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {checkboxFields.map((field) => {
@@ -237,11 +237,11 @@ export function CategoryForm({
 
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Vertrag &amp; Wiederkehr
+                  {t('categoryForm.contractAndRecurrenceLabel')}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="category-rhythmus">Rhythmus</Label>
+              <Label htmlFor="category-rhythmus">{t('categoryForm.rhythmusLabel')}</Label>
               <Select value={attributes.rhythmus || ''} onValueChange={(value: Rhythmus) => onAttributesChange({ rhythmus: value })}>
                 <SelectTrigger id="category-rhythmus" className="w-full">
                   <SelectValue placeholder="–" />
@@ -255,7 +255,7 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label htmlFor="category-prioritaet">Priorität</Label>
+              <Label htmlFor="category-prioritaet">{t('categoryForm.prioritaetLabel')}</Label>
               <Select value={attributes.prioritaet || ''} onValueChange={(value: Prioritaet) => onAttributesChange({ prioritaet: value })}>
                 <SelectTrigger id="category-prioritaet" className="w-full">
                   <SelectValue placeholder="–" />
@@ -268,7 +268,7 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label htmlFor="category-zahlungsweg">Zahlungsweg</Label>
+              <Label htmlFor="category-zahlungsweg">{t('categoryForm.zahlungswegLabel')}</Label>
               <Select value={attributes.zahlungsweg || ''} onValueChange={(value: Zahlungsweg) => onAttributesChange({ zahlungsweg: value })}>
                 <SelectTrigger id="category-zahlungsweg" className="w-full">
                   <SelectValue placeholder="–" />
@@ -282,19 +282,19 @@ export function CategoryForm({
               </Select>
             </div>
             <div>
-              <Label htmlFor="category-merchant-alias">Händler-Alias</Label>
+              <Label htmlFor="category-merchant-alias">{t('categoryForm.merchantAliasLabel')}</Label>
               <Input
                 id="category-merchant-alias"
                 value={attributes.merchant_alias || ''}
                 onChange={(event) => onAttributesChange({ merchant_alias: event.target.value || null })}
-                placeholder="z.B. Telekom"
+                placeholder={t('categoryForm.merchantAliasPlaceholder')}
               />
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="category-faelligkeitstag">Fälligkeitstag (1–31)</Label>
+              <Label htmlFor="category-faelligkeitstag">{t('categoryForm.dueDateLabel')}</Label>
               <Input
                 id="category-faelligkeitstag"
                 type="number"
@@ -302,11 +302,11 @@ export function CategoryForm({
                 max={31}
                 value={attributes.faelligkeitstag ?? ''}
                 onChange={(event) => onAttributesChange({ faelligkeitstag: event.target.value ? Number(event.target.value) : null })}
-                placeholder="z.B. 15"
+                placeholder={t('categoryForm.dueDatePlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="category-next-due-date">Nächstes Fälligkeitsdatum</Label>
+              <Label htmlFor="category-next-due-date">{t('categoryForm.nextDueDateLabel')}</Label>
               <Input
                 id="category-next-due-date"
                 type="date"
@@ -315,18 +315,18 @@ export function CategoryForm({
               />
             </div>
             <div>
-              <Label htmlFor="category-kuendigungsfrist">Kündigungsfrist (Tage)</Label>
+              <Label htmlFor="category-kuendigungsfrist">{t('categoryForm.cancellationPeriodLabel')}</Label>
               <Input
                 id="category-kuendigungsfrist"
                 type="number"
                 min={0}
                 value={attributes.kuendigungsfrist_tage ?? ''}
                 onChange={(event) => onAttributesChange({ kuendigungsfrist_tage: event.target.value ? Number(event.target.value) : null })}
-                placeholder="z.B. 90"
+                placeholder={t('categoryForm.cancellationPeriodPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="category-vertragsende">Vertragsende</Label>
+              <Label htmlFor="category-vertragsende">{t('categoryForm.contractEndLabel')}</Label>
               <Input
                 id="category-vertragsende"
                 type="date"
@@ -343,18 +343,18 @@ export function CategoryForm({
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="category-budget-monat">Monatsbudget (€)</Label>
+              <Label htmlFor="category-budget-monat">{t('categoryForm.budgetLabel')}</Label>
               <Input
                 id="category-budget-monat"
                 type="number"
                 min={0}
                 value={attributes.budget_monat ?? ''}
                 onChange={(event) => onAttributesChange({ budget_monat: event.target.value ? Number(event.target.value) : null })}
-                placeholder="z.B. 100"
+                placeholder={t('categoryForm.budgetPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="category-warnschwelle">Warnschwelle (%)</Label>
+              <Label htmlFor="category-warnschwelle">{t('categoryForm.warningThresholdLabel')}</Label>
               <Input
                 id="category-warnschwelle"
                 type="number"
@@ -362,17 +362,17 @@ export function CategoryForm({
                 max={100}
                 value={attributes.warnschwelle_prozent ?? ''}
                 onChange={(event) => onAttributesChange({ warnschwelle_prozent: event.target.value ? Number(event.target.value) : null })}
-                placeholder="z.B. 80"
+                placeholder={t('categoryForm.warningThresholdPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="category-sort-index">Sortierreihenfolge</Label>
+              <Label htmlFor="category-sort-index">{t('categoryForm.sortOrderLabel')}</Label>
               <Input
                 id="category-sort-index"
                 type="number"
                 value={attributes.sort_index ?? ''}
                 onChange={(event) => onAttributesChange({ sort_index: event.target.value ? Number(event.target.value) : null })}
-                placeholder="z.B. 1"
+                placeholder={t('categoryForm.sortOrderPlaceholder')}
               />
             </div>
                 </div>
@@ -380,10 +380,9 @@ export function CategoryForm({
 
               <div className="space-y-2">
                 <div>
-                  <Label htmlFor="category-tag-input">Tags</Label>
+                  <Label htmlFor="category-tag-input">{t('categoryForm.tagsLabel')}</Label>
                   <p className="text-xs text-muted-foreground mb-1">
-                    Freie Schlagwörter zum Gruppieren — anders als Filter lösen sie keine
-                    automatische Zuordnung aus.
+                    {t('categoryForm.tagsDescription')}
                   </p>
             <div className="flex gap-2">
               <Input
@@ -391,9 +390,9 @@ export function CategoryForm({
                 value={newTagInput}
                 onChange={(event) => setNewTagInput(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && handleAddTag()}
-                placeholder="Tag hinzufügen"
+                placeholder={t('categoryForm.tagPlaceholder')}
               />
-              <Button type="button" onClick={handleAddTag} size="sm" aria-label="Tag hinzufügen">
+              <Button type="button" onClick={handleAddTag} size="sm" aria-label={t('categoryForm.tagsLabel')}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
@@ -422,10 +421,10 @@ export function CategoryForm({
 
         <div className="flex gap-2">
           <Button type="button" onClick={onSave} className="flex-1">
-            {editingCategory ? 'Aktualisieren' : 'Erstellen'}
+            {editingCategory ? t('categoryForm.updateButton') : t('categoryForm.createButton')}
           </Button>
           {(editingCategory || parentId) && (
-            <Button type="button" onClick={onReset} variant="outline" aria-label="Formular zurücksetzen">
+            <Button type="button" onClick={onReset} variant="outline" aria-label={t('categoryForm.resetButton')}>
               <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}

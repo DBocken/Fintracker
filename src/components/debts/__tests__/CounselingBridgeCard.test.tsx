@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { CounselingBridgeCard } from "../CounselingBridgeCard";
 import {
-  COUNSELING_SERVICES,
-  COMMERCIAL_REGULATOR_WARNING,
+  getCounselingServices,
+  getCommercialRegulatorWarning,
   type CounselingRecommendation,
 } from "@/services/debt-guardrails-service";
 
@@ -12,12 +12,22 @@ function renderWithI18n(component: React.ReactElement) {
   return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
 }
 
-const recommended: CounselingRecommendation = {
-  recommended: true,
-  reason: "Dein Plan dauert länger als 6 Jahre.",
-  services: COUNSELING_SERVICES,
-  warning: COMMERCIAL_REGULATOR_WARNING,
-};
+let recommended: CounselingRecommendation;
+
+beforeEach(() => {
+  // Set locale for serviceT
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+  recommended = {
+    recommended: true,
+    reason: "Dein Plan dauert länger als 6 Jahre.",
+    services: getCounselingServices(),
+    warning: getCommercialRegulatorWarning(),
+  };
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 describe("CounselingBridgeCard", () => {
   describe("Normal Behavior", () => {
@@ -25,13 +35,14 @@ describe("CounselingBridgeCard", () => {
       renderWithI18n(<CounselingBridgeCard recommendation={recommended} />);
 
       expect(screen.getByText("Dein Plan dauert länger als 6 Jahre.")).toBeInTheDocument();
-      for (const s of COUNSELING_SERVICES) {
+      const services = getCounselingServices();
+      for (const s of services) {
         const link = screen.getByRole("link", { name: new RegExp(s.name) });
         expect(link).toHaveAttribute("href", s.url);
         expect(link).toHaveAttribute("target", "_blank");
         expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
       }
-      expect(screen.getByText(COMMERCIAL_REGULATOR_WARNING)).toBeInTheDocument();
+      expect(screen.getByText(getCommercialRegulatorWarning())).toBeInTheDocument();
     });
   });
 
@@ -42,8 +53,8 @@ describe("CounselingBridgeCard", () => {
           recommendation={{
             recommended: false,
             reason: null,
-            services: COUNSELING_SERVICES,
-            warning: COMMERCIAL_REGULATOR_WARNING,
+            services: getCounselingServices(),
+            warning: getCommercialRegulatorWarning(),
           }}
         />,
       );

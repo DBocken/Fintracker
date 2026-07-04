@@ -1,3 +1,4 @@
+import { t } from '../i18n/serviceT';
 import type { Portfolio, PortfolioPosition, PortfolioSummary } from '../types';
 import { getCurrentUserId } from './auth-service';
 import {
@@ -39,7 +40,7 @@ export async function createPortfolio(portfolioData: Partial<Portfolio>): Promis
   return upsertLocalFinanceItem<Portfolio>('portfolios', {
     id: portfolioData.id || crypto.randomUUID(),
     user_id: await localUserId(),
-    name: portfolioData.name || 'Neues Portfolio',
+    name: portfolioData.name || t('portfolio.newPortfolioName'),
     type: portfolioData.type || 'manual',
     provider_config: portfolioData.provider_config || {},
     currency: portfolioData.currency || 'EUR',
@@ -172,7 +173,7 @@ export async function initializeDemoPortfolio(): Promise<Portfolio> {
   if (existing.length > 0) return existing[0];
 
   const demoPortfolio = await createPortfolio({
-    name: 'Demo Portfolio',
+    name: t('portfolio.demoPortfolioName'),
     type: 'demo',
     currency: 'EUR',
     is_active: true,

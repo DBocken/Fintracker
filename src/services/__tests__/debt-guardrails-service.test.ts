@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { Transaction } from "../../types";
 import {
   claimGuidance,
-  COUNSELING_SERVICES,
+  getCounselingServices,
   counselingRecommendation,
   ibanChangeWarning,
   inkassoRegisterHint,
@@ -13,6 +13,15 @@ import { applyLetterToClaim, claimFromLetter, type Claim } from "../claim-servic
 import { girocodeForClaim } from "../girocode-service";
 import { parseLetter } from "../letter-parser-service";
 import { LETTER_CORPUS } from "./letter-parser-corpus";
+
+beforeEach(() => {
+  // Set locale for serviceT
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function corpusText(name: string): string {
   return LETTER_CORPUS.find((l) => l.name === name)!.text;
@@ -40,7 +49,7 @@ describe("Mahnbescheid-Eskalation", () => {
     expect(guidance.allowPaymentAction).toBe(false);
     expect(guidance.message).toContain("14-Tage-Frist");
     expect(guidance.message).toContain("Schuldnerberatung");
-    expect(guidance.counseling).toEqual(COUNSELING_SERVICES);
+    expect(guidance.counseling).toEqual(getCounselingServices());
   });
 
   it("Mahnbescheid-Pfad zeigt nie einen GiroCode", () => {
@@ -64,7 +73,7 @@ describe("Mahnbescheid-Eskalation", () => {
 
 describe("Schuldnerberatungs-Brücke", () => {
   it("verweist nur auf anerkannte, kostenlose Stellen mit funktionierenden Links", () => {
-    for (const service of COUNSELING_SERVICES) {
+    for (const service of getCounselingServices()) {
       expect(service.url).toMatch(/^https:\/\/www\.(caritas|diakonie|verbraucherzentrale)\.de/);
       expect(service.note.toLowerCase()).toContain("kostenlos");
     }

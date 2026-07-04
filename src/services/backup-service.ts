@@ -1,4 +1,5 @@
 import { requireUserId } from './auth-service';
+import { t } from '../i18n/serviceT';
 import type { Category, Account, UserSettings } from '../types';
 import {
   getCategories,
@@ -184,9 +185,7 @@ class BackupService {
     options?: { acknowledgeUnencrypted?: boolean },
   ): Promise<void> {
     if (!options?.acknowledgeUnencrypted) {
-      throw new Error(
-        'Unverschlüsselter Export muss ausdrücklich bestätigt werden. Nutze bevorzugt das verschlüsselte Backup.',
-      );
+      throw new Error(t('backup.service.unencryptedExportWarning'));
     }
     // Broker-Zugangsdaten (eToro apiKey/userKey) NIE in einen Klartext-Export
     // schreiben — deutlich sensibler als die übrigen Finanzdaten (T1.10 / F-DEBT-1).
@@ -255,17 +254,17 @@ class BackupService {
           
           // Validate backup structure
           if (!this.validateBackup(data)) {
-            throw new Error('Ungültiges Backup-Format');
+            throw new Error(t('backup.service.invalidFormat'));
           }
-          
+
           resolve(data);
         } catch (error) {
-          reject(new Error('Fehler beim Lesen der Backup-Datei'));
+          reject(new Error(t('backup.service.readError')));
         }
       };
-      
+
       reader.onerror = () => {
-        reject(new Error('Fehler beim Lesen der Datei'));
+        reject(new Error(t('backup.service.fileReadError')));
       };
       
       reader.readAsText(file);
@@ -284,11 +283,11 @@ class BackupService {
     try {
       parsed = JSON.parse(raw) as Record<string, unknown>
     } catch {
-      throw new Error('Ungültiges verschlüsseltes Backup (kein JSON)')
+      throw new Error(t('backup.service.invalidEncryptedJson'))
     }
 
     if (parsed?.type !== 'ausgabentracker.backup.enc' || parsed?.v !== 1 || !parsed?.payload) {
-      throw new Error('Ungültiges verschlüsseltes Backup-Format')
+      throw new Error(t('backup.service.invalidEncryptedFormat'))
     }
 
     // Standalone-Entschlüsselung — verändert die lokale
@@ -341,7 +340,7 @@ class BackupService {
 
       // Validate version compatibility
       if (!this.isVersionCompatible(backupData.version)) {
-        throw new Error(`Backup-Version ${backupData.version} ist nicht kompatibel`);
+        throw new Error(t('backup.service.versionIncompatible', 'Backup-Version {version} ist nicht kompatibel').replace('{version}', backupData.version));
       }
 
       // Check if backup belongs to current user.
@@ -388,14 +387,14 @@ class BackupService {
 
       return {
         success: true,
-        message: belongsToCurrentUser 
-          ? 'Backup erfolgreich wiederhergestellt' 
-          : 'Backup erfolgreich wiederhergestellt (aus anderem Benutzerkonto)',
+        message: belongsToCurrentUser
+          ? t('backup.service.restoreSuccess')
+          : t('backup.service.restoreSuccessForeign'),
         details: results,
       };
     } catch (error) {
       throw new Error(
-        `Wiederherstellung fehlgeschlagen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`
+        t('backup.service.restoreFailed', 'Wiederherstellung fehlgeschlagen: {error}').replace('{error}', error instanceof Error ? error.message : 'Unbekannter Fehler')
       );
     }
   }

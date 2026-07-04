@@ -134,7 +134,7 @@ export function BackupManager() {
         restoreMutation.mutate({ backupData });
       }
     } catch (error) {
-      showError(error instanceof Error ? error.message : t('backup.readError'));
+      showError(error instanceof Error ? error.message : t('backup.service.readError'));
     }
   };
 
