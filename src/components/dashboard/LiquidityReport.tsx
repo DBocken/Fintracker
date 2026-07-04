@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/i18n/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
@@ -123,6 +124,7 @@ type ChartView = 'lines' | 'heatmap';
  * eintragen. Keine zweite, davon getrennte Szenario-Eingabe mehr.
  */
 export default function LiquidityReport() {
+  const { t } = useI18n();
   const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
   const { months, safetyBuffer, bufferBasis } = overrides;
   const setMonths = (m: number) => updateConfig({ months: m });
@@ -285,8 +287,8 @@ export default function LiquidityReport() {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Forecast konnte nicht berechnet werden</AlertTitle>
-        <AlertDescription>{error?.message ?? 'Unbekannter Fehler.'}</AlertDescription>
+        <AlertTitle>{t("liquidityReport.forecastError")}</AlertTitle>
+        <AlertDescription>{error?.message ?? t("liquidityReport.unknownError")}</AlertDescription>
       </Alert>
     );
   }
@@ -301,9 +303,9 @@ export default function LiquidityReport() {
   // Kompakter Status fürs Chart-Label (statt einer großen Box bei „alles ok").
   const status: { label: string; tone: 'good' | 'warning' | 'critical' } = breach
     ? liqRisk.lowestBalance < 0
-      ? { label: 'Risiko', tone: 'critical' }
-      : { label: 'Knapp', tone: 'warning' }
-    : { label: 'Stabil', tone: 'good' };
+      ? { label: t("liquidityReport.riskStatus"), tone: 'critical' }
+      : { label: t("liquidityReport.tightStatus"), tone: 'warning' }
+    : { label: t("liquidityReport.stableStatus"), tone: 'good' };
   const statusClass =
     status.tone === 'critical'
       ? 'border-destructive/40 text-destructive'
@@ -322,7 +324,7 @@ export default function LiquidityReport() {
       {/* Steuerung: mobil ein ruhiges Stapel-Raster, ab sm dreispaltig. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Horizont</span>
+          <span className="text-muted-foreground">{t("liquidityReport.horizonLabel")}</span>
           <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
             <SelectTrigger className="h-10 w-full">
               <SelectValue />
@@ -330,7 +332,7 @@ export default function LiquidityReport() {
             <SelectContent>
               {HORIZON_OPTIONS.map((m) => (
                 <SelectItem key={m} value={String(m)}>
-                  {m} Monate
+                  {t("liquidityReport.monthsValue").replace("{months}", String(m))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -338,7 +340,7 @@ export default function LiquidityReport() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Sicherheitspuffer</span>
+          <span className="text-muted-foreground">{t("liquidityReport.bufferLabel")}</span>
           <Select value={String(safetyBuffer)} onValueChange={(v) => setSafetyBuffer(Number(v))}>
             <SelectTrigger className="h-10 w-full">
               <SelectValue />
@@ -354,14 +356,14 @@ export default function LiquidityReport() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Basis</span>
+          <span className="text-muted-foreground">{t("liquidityReport.basisLabel")}</span>
           <Select value={bufferBasis} onValueChange={(v) => setBufferBasis(v as BufferBasis)}>
             <SelectTrigger className="h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="operating">Giro (operativ)</SelectItem>
-              <SelectItem value="available">Verfügbar (inkl. Reserve)</SelectItem>
+              <SelectItem value="operating">{t("liquidityReport.operatingBasis")}</SelectItem>
+              <SelectItem value="available">{t("liquidityReport.availableBasis")}</SelectItem>
             </SelectContent>
           </Select>
         </label>
@@ -389,7 +391,7 @@ export default function LiquidityReport() {
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                  Liquiditätsverlauf ({bufferBasis === 'available' ? 'verfügbar' : 'Giro'})
+                  {t("liquidityReport.liquidityChart").replace("{basis}", bufferBasis === 'available' ? t("liquidityReport.availableBasis") : t("liquidityReport.operatingBasis"))}
                   <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}>
                     {status.label}
                   </span>
@@ -403,7 +405,7 @@ export default function LiquidityReport() {
                   <RiskDensityChart result={risk!} safetyBuffer={safetyBuffer} />
                 ) : (
                   <div className="flex h-72 items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-                    {isRiskCalculating ? 'Wahrscheinlichkeiten werden simuliert …' : 'Noch keine Simulation.'}
+                    {isRiskCalculating ? t("liquidityReport.probabilitiesCalculating") : t("liquidityReport.noSimulation")}
                   </div>
                 )
               ) : (
@@ -416,7 +418,7 @@ export default function LiquidityReport() {
               {hasBand && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   Wahrscheinlichkeitsband P10–P90 aus {risk!.horizonDays} Tagen ·{' '}
-                  {chartView === 'lines' ? 'als Heatmap umschaltbar' : 'als Linien umschaltbar'}.
+                  {chartView === 'lines' ? t("liquidityReport.asHeatmap") : t("liquidityReport.asLines")}.
                 </p>
               )}
             </CardContent>
@@ -427,26 +429,26 @@ export default function LiquidityReport() {
           <InfoStatStrip
             items={[
               {
-                label: 'Tiefststand',
+                label: t("liquidityReport.lowestBalanceLabel"),
                 value: eur.format(liqRisk.lowestBalance),
                 hint: fmtDate(liqRisk.lowestBalanceDate),
                 tone: lowestTone,
               },
               {
-                label: 'Erster Pufferbruch',
-                value: breach ? fmtDate(breach) : 'keiner',
-                hint: breach ? `${liqRisk.daysBelowSafetyBuffer} Tage unter Puffer` : 'im Horizont',
+                label: t("liquidityReport.firstBreachLabel"),
+                value: breach ? fmtDate(breach) : t("liquidityReport.noBreachLabel"),
+                hint: breach ? t("liquidityReport.daysUnderBuffer").replace("{days}", String(liqRisk.daysBelowSafetyBuffer)) : t("liquidityReport.horizonOkay"),
                 tone: breach ? 'warning' : 'good',
               },
               {
-                label: 'Min. Giro',
+                label: t("liquidityReport.minOperatingLabel"),
                 value: eur.format(liqRisk.minimumOperatingCash),
-                hint: 'operativ verfügbar',
+                hint: t("liquidityReport.operatingAvailable"),
               },
               {
-                label: 'Min. verfügbar',
+                label: t("liquidityReport.minAvailableLabel"),
                 value: eur.format(liqRisk.minimumAvailableCash),
-                hint: 'inkl. Reserve',
+                hint: t("liquidityReport.includingReserve"),
               },
             ]}
           />
@@ -455,10 +457,9 @@ export default function LiquidityReport() {
           {analysis && breach && (analysis.drivers.length > 0 || analysis.recommendation) && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {analysis.drivers.length > 0 && (
-                <InfoGroup title="Risikotreiber">
+                <InfoGroup title={t("liquidityReport.riskDrivers")}>
                   <p className="mb-3 text-xs text-muted-foreground">
-                    Vom Hoch am {fmtDate(analysis.drawdownStart)} bis zum Tief am{' '}
-                    {fmtDate(analysis.troughDate)} belasten diese Posten am stärksten:
+                    {t("liquidityReport.riskDriversDescription").replace("{highDate}", fmtDate(analysis.drawdownStart)).replace("{lowDate}", fmtDate(analysis.troughDate))}
                   </p>
                   <ul className="space-y-2">
                     {analysis.drivers.map((d, i) => (
@@ -485,7 +486,7 @@ export default function LiquidityReport() {
                   title={
                     <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                       <Lightbulb className="h-4 w-4" />
-                      Empfehlung
+                      {t("liquidityReport.recommendation")}
                     </span>
                   }
                 >
@@ -505,11 +506,10 @@ export default function LiquidityReport() {
           >
             <div>
               <h2 id="planning-tools-heading" className="text-lg font-semibold">
-                Annahmen eintragen
+                {t("liquidityReport.assumptionsHeading")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Beende Verträge zum Stichtag, plane neue Posten oder spiele einen Stresstest durch –
-                die Grafik zeigt die Wirkung sofort.
+                {t("liquidityReport.assumptionsDescription")}
               </p>
             </div>
 
@@ -564,8 +564,8 @@ export default function LiquidityReport() {
       <FeatureGate feature="simulation" fallback={null}>
         <details className="group rounded-xl border bg-card">
           <summary className="cursor-pointer list-none px-4 py-3 font-medium">
-            Erweiterte Analysen{' '}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">Budget-Optimierung</span>
+            {t("liquidityReport.advancedAnalysis")}{' '}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">{t("liquidityReport.budgetOptimization")}</span>
           </summary>
           <div className="space-y-6 border-t p-3 sm:p-4">
             <BudgetOptimizerPanel
@@ -579,7 +579,7 @@ export default function LiquidityReport() {
 
       {/* Monatskarten */}
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Monatsübersicht</h3>
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">{t("liquidityReport.monthlyOverview")}</h3>
         <MonthlyOverviewTable months={monthly} />
       </div>
     </div>
@@ -710,6 +710,7 @@ function ChartLinesView({
 
 /** Segmentierter Umschalter zwischen Linien- und Heatmap-Ansicht. */
 function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: ChartView) => void }) {
+  const { t } = useI18n();
   const opt = (v: ChartView, label: string, Icon: typeof LineChart) => (
     <button
       type="button"
@@ -724,9 +725,9 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
     </button>
   );
   return (
-    <div role="group" aria-label="Ansicht" className="inline-flex overflow-hidden rounded-lg border">
-      {opt('lines', 'Linien', LineChart)}
-      {opt('heatmap', 'Heatmap', Grid3x3)}
+    <div role="group" aria-label={t("liquidityReport.viewToggleLabel")} className="inline-flex overflow-hidden rounded-lg border">
+      {opt('lines', t("liquidityReport.linesView"), LineChart)}
+      {opt('heatmap', t("liquidityReport.heatmapView"), Grid3x3)}
     </div>
   );
 }
@@ -739,6 +740,7 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
  * über eine dezente Zeilentönung + Badge signalisiert (kein Karten-Rahmen).
  */
 export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummary[] }) {
+  const { t } = useI18n();
   const hasTransfers = months.some((m) => m.transfersOut > 0);
   const hasInterest = months.some((m) => m.interest > 0);
   const shortDate = (iso: string) => {
@@ -754,14 +756,14 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
       <table className="w-full min-w-[34rem] text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground [&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
-            <th className="text-left">Monat</th>
-            <th className="text-right">Einnahmen</th>
-            <th className="text-right">Fixkosten</th>
-            <th className="text-right">Variabel</th>
-            {hasTransfers && <th className="text-right">Sparen/Transfer</th>}
-            {hasInterest && <th className="text-right">Zinsen</th>}
-            <th className="text-right">Monatsende</th>
-            <th className="text-right">Monatstief</th>
+            <th className="text-left">{t("liquidityReport.monthLabel")}</th>
+            <th className="text-right">{t("liquidityReport.incomeLabel")}</th>
+            <th className="text-right">{t("liquidityReport.fixedExpensesLabel")}</th>
+            <th className="text-right">{t("liquidityReport.variableLabel")}</th>
+            {hasTransfers && <th className="text-right">{t("liquidityReport.savingsTransferLabel")}</th>}
+            {hasInterest && <th className="text-right">{t("liquidityReport.interestLabel")}</th>}
+            <th className="text-right">{t("liquidityReport.monthEndLabel")}</th>
+            <th className="text-right">{t("liquidityReport.monthLowLabel")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/60 [&>tr>td]:px-3 [&>tr>td]:py-2">
@@ -772,7 +774,7 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
                   {fmtMonth(m.month)}
                   {m.belowSafetyBuffer && (
                     <Badge variant="outline" className="border-warning text-warning">
-                      unter Puffer
+                      {t("liquidityReport.belowBufferLabel")}
                     </Badge>
                   )}
                 </span>
@@ -831,17 +833,18 @@ function SimulationControls({
   isCalculating: boolean;
   contextLabel: string;
 }) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Dices className="h-4 w-4" /> Wahrscheinlichkeits-Simulation
+          <Dices className="h-4 w-4" /> {t("liquidityReport.probabilitySimulation")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Durchläufe</span>
+            <span className="text-muted-foreground">{t("liquidityReport.trialsLabel")}</span>
             <Select value={String(trials)} onValueChange={(v) => onTrials(Number(v))}>
               <SelectTrigger className="h-9 w-24">
                 <SelectValue />
@@ -859,18 +862,18 @@ function SimulationControls({
             <Switch
               checked={incomeUncertain}
               onCheckedChange={onIncomeUncertain}
-              aria-label="Einnahmen pauschal mit acht Prozent Streuung berechnen"
+              aria-label={t("liquidityReport.incomeUncertaintyAriaLabel")}
             />
-            <span className="text-muted-foreground">Einnahmen mit 8 % Streuung</span>
+            <span className="text-muted-foreground">{t("liquidityReport.incomeUncertaintyLabel")}</span>
           </label>
         </div>
         <p className="text-xs text-muted-foreground">
-          Berechnet für: <span className="font-medium text-foreground">{contextLabel}</span>
+          {t("liquidityReport.calculatedFor")}: <span className="font-medium text-foreground">{contextLabel}</span>
         </p>
         {isCalculating && (
           <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground" role="status">
             <LoaderCircle className="h-4 w-4 animate-spin" />
-            Wahrscheinlichkeitsspanne wird berechnet …
+            {t("liquidityReport.calculatingProbability")}
           </div>
         )}
       </CardContent>
@@ -890,11 +893,12 @@ function ActiveChangesPanel({
   changes: OverrideChange[];
   onClear: (c: OverrideChange) => void;
 }) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between gap-2 text-base">
-          Aktive Annahmen
+          {t("liquidityReport.activeAssumptions")}
           {changes.length > 0 && (
             <Badge variant="outline" className="font-normal">
               {changes.length}
@@ -905,8 +909,7 @@ function ActiveChangesPanel({
       <CardContent>
         {changes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Noch keine Änderungen. Trage links Annahmen ein – sie erscheinen hier und du kannst sie
-            jederzeit einzeln zurücknehmen.
+            {t("liquidityReport.noActiveChanges")}
           </p>
         ) : (
           <ul className="flex flex-wrap gap-2">
@@ -918,7 +921,7 @@ function ActiveChangesPanel({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 rounded-full"
-                    aria-label={`Annahme entfernen: ${c.label}`}
+                    aria-label={t("liquidityReport.removeAssumption").replace("{label}", c.label)}
                     onClick={() => onClear(c)}
                   >
                     <X className="h-3 w-3" />

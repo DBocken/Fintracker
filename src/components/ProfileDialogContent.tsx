@@ -54,16 +54,16 @@ export function ProfileDialogContent() {
     if (unlocked) {
       window.dispatchEvent(new Event(TIER_OVERRIDE_EVENT));
       setAccessCode("");
-      showSuccess("Premiumzugang freigeschaltet");
+      showSuccess(t("profile.successPremiumUnlocked"));
     } else {
-      showError(t("auth.invalidCode", "Code ungültig"));
+      showError(t("auth.invalidCode"));
     }
   };
 
   const handleRemoveAccess = () => {
     clearTierOverride();
     window.dispatchEvent(new Event(TIER_OVERRIDE_EVENT));
-    showSuccess("Zugang entfernt");
+    showSuccess(t("profile.successAccessRemoved"));
   };
 
   const { data: settings } = useQuery({
@@ -80,16 +80,16 @@ export function ProfileDialogContent() {
       applySkinClass(nextSkin);
       localStorage.setItem("skin", nextSkin);
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      showSuccess("Theme gespeichert");
+      showSuccess(t("profile.themeSaved"));
     },
-    onError: () => showError("Fehler beim Speichern des Themes"),
+    onError: () => showError(t("profile.themeError")),
   });
 
   const displayName =
     (user?.user_metadata?.full_name as string) ||
     (user?.user_metadata?.name as string) ||
     user?.email ||
-    "Unbekannter Nutzer";
+    t("profile.unknownUser");
   const email = user?.email || "";
 
   const initials = displayName
@@ -117,26 +117,26 @@ export function ProfileDialogContent() {
 
       <CardContent className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Status</span>
+          <span className="text-xs text-muted-foreground">{t("profile.statusLabel")}</span>
           <span className="rounded-full bg-positive/10 px-2 py-0.5 text-xs text-positive">
-            Angemeldet
+            {t("profile.loggedInStatus")}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Nutzer-ID</span>
+          <span className="text-xs text-muted-foreground">{t("profile.userId")}</span>
           <span className="text-xs font-mono text-muted-foreground">
             {user?.id || "—"}
           </span>
         </div>
 
         <div className="pt-2">
-          <div className="mb-1 text-xs text-muted-foreground">Theme wählen</div>
+          <div className="mb-1 text-xs text-muted-foreground">{t("profile.selectSkinLabel")}</div>
           <Select
             value={skin}
             onValueChange={(v) => updateSkinMutation.mutate(v as SkinId)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("utility.selectSkin", "Skin wählen")} />
+              <SelectValue placeholder={t("profile.selectSkinLabel")} />
             </SelectTrigger>
             <SelectContent>
               {SKINS.map(s => (
@@ -147,14 +147,14 @@ export function ProfileDialogContent() {
             </SelectContent>
           </Select>
           <div className="mt-1 text-[11px] text-muted-foreground">
-            Hinweis: Helles/Dunkles Erscheinungsbild schaltest du über den Schalter oben um.
+            {t("profile.hintsLight")}
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <EyeOff className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Sanfter Modus</span>
+            <span className="text-xs text-muted-foreground">{t("profile.gentleModeLabel")}</span>
           </div>
           <Switch
             checked={gentleModeEnabled}
@@ -162,19 +162,19 @@ export function ProfileDialogContent() {
           />
         </div>
         <div className="text-[11px] text-muted-foreground">
-          Versteckt Beträge und zeigt Fortschritt statt Salden.
+          {t("profile.gentleModeHint")}
         </div>
 
         <div className="rounded-lg border bg-muted/30 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <KeyRound className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium">Beta- & Premiumzugang</span>
+              <span className="text-xs font-medium">{t("profile.betaPremiumAccess")}</span>
             </div>
             {isPremium && (
               <span className="inline-flex items-center gap-1 rounded-full bg-premium/10 px-2 py-0.5 text-[11px] text-premium">
                 <Sparkles className="h-3 w-3" />
-                Alpha
+                {t("profile.alphaLabel")}
               </span>
             )}
           </div>
@@ -183,13 +183,13 @@ export function ProfileDialogContent() {
             <div className="mt-2 space-y-2">
               <ul className="space-y-1 text-[11px] text-muted-foreground">
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3 w-3 text-positive" /> Erweiterte Analysen
+                  <Check className="h-3 w-3 text-positive" /> {t("profile.advancedAnalytics")}
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3 w-3 text-positive" /> Monate vergleichen
+                  <Check className="h-3 w-3 text-positive" /> {t("profile.compareMonths")}
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <Check className="h-3 w-3 text-positive" /> Simulation & Trading
+                  <Check className="h-3 w-3 text-positive" /> {t("profile.simulationTrading")}
                 </li>
               </ul>
               <button
@@ -197,19 +197,19 @@ export function ProfileDialogContent() {
                 onClick={handleRemoveAccess}
                 className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
               >
-                Zugang entfernen
+                {t("profile.removeAccessButton")}
               </button>
             </div>
           ) : (
             <div className="mt-2 space-y-2">
               <p className="text-[11px] text-muted-foreground">
-                Du hast einen Alpha-Code? Gib ihn ein, um Premiumfunktionen freizuschalten.
+                {t("profile.alphaCodePrompt")}
               </p>
               <div className="flex gap-2">
                 <Input
                   type="password"
                   autoComplete="off"
-                  placeholder="Zugangscode"
+                  placeholder={t("profile.accessCodePlaceholder")}
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
                   onKeyDown={(e) => {
@@ -224,7 +224,7 @@ export function ProfileDialogContent() {
                   disabled={!accessCode.trim()}
                   onClick={handleUnlock}
                 >
-                  Freischalten
+                  {t("profile.unlockButton")}
                 </Button>
               </div>
             </div>
@@ -232,8 +232,7 @@ export function ProfileDialogContent() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Deine Anmeldung wird über Supabase verwaltet. Du kannst dich per
-          E‑Mail registrieren oder mit Google anmelden.
+          {t("profile.supabaseInfo")}
         </p>
       </CardContent>
 
@@ -244,7 +243,7 @@ export function ProfileDialogContent() {
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link to="/settings">
               <SettingsIcon className="mr-1 h-3 w-3" />
-              Einstellungen
+              {t("profile.settingsButton")}
             </Link>
           </Button>
         </DialogClose>

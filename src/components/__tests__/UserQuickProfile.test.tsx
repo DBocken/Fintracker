@@ -25,7 +25,7 @@ function renderProfile() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
+      <I18nProvider initialLocale="de">
         <MemoryRouter>
           <UserQuickProfile />
         </MemoryRouter>
@@ -57,7 +57,7 @@ describe("UserQuickProfile (zusammengeführtes Profil)", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /Profil öffnen|Open profile/i }));
 
-      expect(await screen.findByText(/Theme wählen|Choose theme/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Theme wählen|Select theme/i)).toBeInTheDocument();
       expect(screen.getByText(/Sanfter Modus|Gentle mode/i)).toBeInTheDocument();
       expect(screen.getByText(/Beta- & Premiumzugang|Beta & Premium access/i)).toBeInTheDocument();
       // Abmelden bleibt erhalten (Label je nach Locale „Abmelden"/„Logout").
