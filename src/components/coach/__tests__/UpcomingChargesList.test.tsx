@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import type { RecurringFlow } from "@/lib/forecast-types";
 
 const h = vi.hoisted(() => ({
@@ -23,9 +24,11 @@ const NOW = new Date("2026-06-01T12:00:00");
 
 function renderList() {
   return render(
-    <MemoryRouter>
-      <UpcomingChargesList now={NOW} horizonDays={30} />
-    </MemoryRouter>,
+    <I18nProvider>
+      <MemoryRouter>
+        <UpcomingChargesList now={NOW} horizonDays={30} />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 
@@ -43,7 +46,9 @@ describe("UpcomingChargesList (Feature 1: Anstehende Abbuchungen)", () => {
     };
     renderList();
 
-    expect(screen.getByText("Anstehende Abbuchungen")).toBeInTheDocument();
+    // i18n: Check for either German or English based on resolved locale
+    const titleElement = screen.queryByText("Anstehende Abbuchungen") || screen.queryByText("Upcoming charges");
+    expect(titleElement).toBeInTheDocument();
     expect(screen.getByText("Miete")).toBeInTheDocument();
     // Einnahmen sind keine Abbuchungen → dürfen NICHT in der Liste stehen.
     expect(screen.queryByText("Gehalt")).toBeNull();
@@ -65,6 +70,9 @@ describe("UpcomingChargesList (Feature 1: Anstehende Abbuchungen)", () => {
   it("sollte einen leeren Zustand zeigen, wenn keine Abbuchungen anstehen", () => {
     h.forecast = { isLoading: false, input: { accounts: [], recurringFlows: [] } };
     renderList();
-    expect(screen.getByText(/Keine Abbuchungen in den nächsten 30 Tagen/)).toBeInTheDocument();
+    // i18n: Check for either German or English message
+    const emptyMessage = screen.queryByText(/Keine Abbuchungen in den nächsten 30 Tagen/) ||
+                        screen.queryByText(/No charges detected in the next 30 days/);
+    expect(emptyMessage).toBeInTheDocument();
   });
 });

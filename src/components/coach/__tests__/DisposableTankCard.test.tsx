@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import type { ForecastAccount, RecurringFlow } from "@/lib/forecast-types";
 
 const h = vi.hoisted(() => ({
@@ -26,9 +27,11 @@ const NOW = new Date("2026-06-01T12:00:00");
 
 function renderCard() {
   return render(
-    <MemoryRouter>
-      <DisposableTankCard now={NOW} />
-    </MemoryRouter>,
+    <I18nProvider>
+      <MemoryRouter>
+        <DisposableTankCard now={NOW} />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 
@@ -46,7 +49,10 @@ describe("DisposableTankCard (Feature 2: Verfügbar bis Gehalt)", () => {
     };
     renderCard();
 
-    expect(screen.getByText("Verfügbar bis Gehalt")).toBeInTheDocument();
+    // i18n: Check for either German or English message
+    const titleMessage = screen.queryByText("Verfügbar bis Gehalt") ||
+                        screen.queryByText("Available until payday");
+    expect(titleMessage).toBeInTheDocument();
     // 1000 € Giro − 600 € Miete = 400 € (Sparen zählt nicht).
     expect(screen.getByText(/400,00/)).toBeInTheDocument();
     // Karten-Regel: die ganze Fläche navigiert zur Liquiditäts-Detailansicht.
@@ -65,7 +71,10 @@ describe("DisposableTankCard (Feature 2: Verfügbar bis Gehalt)", () => {
       },
     };
     renderCard();
-    expect(screen.getByText(/Fixkosten übersteigen dein Guthaben/)).toBeInTheDocument();
+    // i18n: Check for either German or English message
+    const warningMessage = screen.queryByText(/Fixkosten übersteigen dein Guthaben/) ||
+                          screen.queryByText(/Fixed costs exceed your balance/);
+    expect(warningMessage).toBeInTheDocument();
   });
 
   it("sollte einen Hinweis zeigen, wenn kein regelmäßiger Geldeingang erkannt ist", () => {
@@ -77,6 +86,9 @@ describe("DisposableTankCard (Feature 2: Verfügbar bis Gehalt)", () => {
       },
     };
     renderCard();
-    expect(screen.getByText(/Noch kein regelmäßiger Geldeingang erkannt/)).toBeInTheDocument();
+    // i18n: Check for either German or English message
+    const noIncomeMessage = screen.queryByText(/Noch kein regelmäßiger Geldeingang erkannt/) ||
+                           screen.queryByText(/No recurring income detected/);
+    expect(noIncomeMessage).toBeInTheDocument();
   });
 });
