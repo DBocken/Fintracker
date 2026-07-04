@@ -7,6 +7,8 @@
 // - Neues Aktenzeichen / neue Rechnungsnummer
 // - Seitennummerierung („Seite 1 von 2") als Gegenindiz
 
+import { t } from '@/i18n/serviceT';
+
 export interface PageText {
   pageNumber: number;
   text: string;
@@ -53,7 +55,7 @@ function detectLetterStart(
 
   if (!prevText) {
     score = 1;
-    reasons.push("Erste Seite");
+    reasons.push(t("letterService.firstPage"));
     return { confidence: score, reasons };
   }
 
@@ -62,7 +64,7 @@ function detectLetterStart(
   const isHeadline = /\b([A-Z]{2,}[\w\s\-]{5,}|GmbH|AG|SE|KG)\b/.test(lines);
   if (isHeadline && !prevText.slice(0, 500).includes(lines.substring(0, 30))) {
     score += 0.3;
-    reasons.push("Neuer Absender/Briefkopf erkannt");
+    reasons.push(t("letterService.newSenderDetected"));
   }
 
   // Adressfenster: „Sehr geehrte" + Name/Straße → häufig nach Briefkopf
@@ -71,7 +73,7 @@ function detectLetterStart(
     !prevText.includes("Sehr geehrte")
   ) {
     score += 0.25;
-    reasons.push("Neues Adressfenster erkannt");
+    reasons.push(t("letterService.newAddressWindowDetected"));
   }
 
   // Datum-Muster: Neue Datumszeile deutet auf neuen Brief (aber nicht zu oft)
@@ -83,7 +85,7 @@ function detectLetterStart(
     dates[0] !== prevDates[prevDates.length - 1]
   ) {
     score += 0.15;
-    reasons.push("Neues Datum erkannt");
+    reasons.push(t("letterService.newDateDetected"));
   }
 
   // Aktenzeichen/Rechnungsnummer: Neue Nummer = neuer Brief
@@ -99,7 +101,7 @@ function detectLetterStart(
   while ((match = refPattern.exec(textClone)) !== null) {
     if (!prevRefs.has(match[1].toUpperCase())) {
       score += 0.2;
-      reasons.push(`Neues Aktenzeichen/Nummer: ${match[1]}`);
+      reasons.push(t("letterService.newReferenceDetected").replace("{reference}", match[1]));
       break;
     }
   }
@@ -151,19 +153,20 @@ export function splitLettersFromPages(pages: PageText[]): LetterSplitResult {
 
     if (isNewLetter) {
       // Brief endet, neuer beginnt
+      const plural = splits.length > 1 ? "e" : "";
       splits.push({
         letterIndex: splits.length,
         startPage: currentLetterStart + 1,
         endPage: i,
         pages: pages.slice(currentLetterStart, i),
         confidence: currentLetterConfidence,
-        reason: `${splits.length} Brief${splits.length > 1 ? "e" : ""} erkannt`,
+        reason: t("letterService.lettersDetected").replace("{count}", String(splits.length)).replace("{plural}", plural),
       });
 
       if (finalConfidence === "uncertain") {
         reviewNeeded.push({
           between: [i, i + 1],
-          message: `Seite ${i} und ${i + 1}: Gehören diese zusammen oder nicht? ${reasons.join(" | ")}`,
+          message: t("letterService.pageReviewMessage").replace("{pageNum1}", String(i)).replace("{pageNum2}", String(i + 1)).replace("{reasons}", reasons.join(" | ")),
         });
       }
 
@@ -174,13 +177,14 @@ export function splitLettersFromPages(pages: PageText[]): LetterSplitResult {
 
   // Letzter Brief
   if (currentLetterStart < pages.length) {
+    const plural = splits.length > 1 ? "e" : "";
     splits.push({
       letterIndex: splits.length,
       startPage: currentLetterStart + 1,
       endPage: pages.length,
       pages: pages.slice(currentLetterStart),
       confidence: currentLetterConfidence,
-      reason: `${splits.length} Brief${splits.length > 1 ? "e" : ""} gesamt`,
+      reason: t("letterService.lettersTotalDetected").replace("{count}", String(splits.length)).replace("{plural}", plural),
     });
   }
 

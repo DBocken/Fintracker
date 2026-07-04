@@ -19,7 +19,7 @@ const LOCALES = [
  * Mobil-Header, ohne ihn zu überlaufen.
  */
 export function LanguageSwitcher() {
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const active = LOCALES.find((l) => l.value === locale) ?? LOCALES[0];
 
   return (
@@ -28,7 +28,7 @@ export function LanguageSwitcher() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Sprache wählen"
+          aria-label={t('languageSwitcher.ariaLabel')}
           title={active.label}
           className="bg-background/50 backdrop-blur-sm"
         >
@@ -41,7 +41,7 @@ export function LanguageSwitcher() {
             key={l.value}
             onClick={() => setLocale(l.value)}
             className="gap-2"
-            aria-label={`${l.label} wählen`}
+            aria-label={t('languageSwitcher.selectLocaleAriaLabel').replace('{label}', l.label)}
           >
             <span aria-hidden="true">{l.flag}</span>
             <span className="flex-1">{l.label}</span>

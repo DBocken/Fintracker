@@ -14,6 +14,7 @@ import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
 import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
+import { t } from "../i18n/serviceT";
 
 export { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY };
 
@@ -22,7 +23,7 @@ export const LOCAL_USER_ID = "local";
 
 function assertClient() {
   if (typeof window === "undefined") {
-    throw new Error("Lokale Daten können nur im Client verarbeitet werden.");
+    throw new Error(t("localSettingsService.clientOnly"));
   }
 }
 
@@ -220,9 +221,9 @@ export async function applyCategoryTemplate(
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {
   const categories = await getLocalCategories();
 
-  const name = category.name || "Kategorie";
+  const name = category.name || t("localSettingsService.defaultCategoryName");
   if (categories.some((c) => c.name === name)) {
-    throw new Error("Eine Kategorie mit diesem Namen existiert bereits");
+    throw new Error(t("localSettingsService.categoryNameExists"));
   }
 
   const next: Category = {
@@ -258,12 +259,12 @@ export async function updateLocalCategory(category: Category): Promise<Category>
   }
 
   if (!existing) {
-    throw new Error("Kategorie nicht gefunden");
+    throw new Error(t("localSettingsService.categoryNotFound"));
   }
 
   const duplicate = categories.some((c) => c.id !== category.id && c.name === category.name);
   if (duplicate) {
-    throw new Error("Eine Kategorie mit diesem Namen existiert bereits");
+    throw new Error(t("localSettingsService.categoryNameExists"));
   }
 
   const updated: Category = {

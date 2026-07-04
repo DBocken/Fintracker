@@ -1,4 +1,5 @@
 import { supabase } from "../integrations/supabase/client";
+import { t } from "../i18n/serviceT";
 
 /**
  * Liefert die aktuelle Supabase-User-ID oder null, wenn nicht angemeldet.
@@ -15,7 +16,7 @@ export async function getCurrentUserId(): Promise<string | null> {
 export async function requireUserId(): Promise<string> {
   const uid = await getCurrentUserId();
   if (!uid) {
-    throw new Error("Nicht angemeldet. Bitte zuerst einloggen.");
+    throw new Error(t("authService.notSignedIn", "Nicht angemeldet. Bitte zuerst einloggen."));
   }
   return uid;
 }

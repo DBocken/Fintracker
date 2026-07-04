@@ -156,10 +156,10 @@ export default function NetWorthPage() {
         <div className="mx-auto max-w-2xl space-y-4">
           {/* Hauptzahl + kompakte Zusammensetzung */}
           <StatHero
-            label="Nettovermögen"
+            label={t("netWorth.netWorth")}
             value={eur.format(data.netWorth)}
             tone={data.netWorth >= 0 ? "positive" : "warning"}
-            caption="Liquidität + Investitionen + Forderungen − Schulden"
+            caption={t("netWorth.composition")}
           >
             <CompositionBar data={data} />
           </StatHero>
@@ -168,14 +168,12 @@ export default function NetWorthPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <NetWorthRow
               icon={<Wallet className="h-4 w-4" />}
-              label="Liquidität"
+              label={t("netWorth.liquidity")}
               value={eur.format(data.cash)}
-              description="Summe der Salden aller Konten."
+              description={t("netWorth.liquidityDesc")}
             >
               <p className="text-muted-foreground">
-                Wenn ein Konto mit der Bank verbunden ist, wird der zuletzt abgerufene Bank-Saldo verwendet –
-                auch ohne synchronisierte Transaktionen. Ohne Bankanbindung wird der Saldo aus den lokal
-                erfassten Transaktionen berechnet.
+                {t("netWorth.liquidityDetailedDescription")}
               </p>
               {data.accountSources.length > 0 ? (
                 <ul className="space-y-2">
@@ -185,43 +183,42 @@ export default function NetWorthPage() {
                       title={acc.name}
                       subtitle={
                         acc.source === "live"
-                          ? `Live-Saldo von der Bank${acc.lastSyncAt ? ` · ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}`
-                          : "Berechnet aus Eröffnungssaldo + lokalen Transaktionen"
+                          ? `${t("netWorth.liveSyncAt")}${acc.lastSyncAt ? ` · ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}`
+                          : t("netWorth.calculatedFrom")
                       }
                       value={eur.format(acc.balance)}
                       badge={
                         <Badge variant={acc.source === "live" ? "default" : "secondary"}>
-                          {acc.source === "live" ? "Bank-Saldo" : "Lokal"}
+                          {acc.source === "live" ? t("netWorth.liveBadge") : t("netWorth.localBadge")}
                         </Badge>
                       }
                     />
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground">Keine Konten hinterlegt.</p>
+                <p className="text-muted-foreground">{t("netWorth.noAccounts")}</p>
               )}
               {hasLive && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Abweichungen zur Banking-App entstehen meist durch noch nicht abgerufene oder vorgemerkte
-                    Buchungen.
+                    {t("netWorth.discrepancyWarning")}
                   </AlertDescription>
                 </Alert>
               )}
               <Link to="/accounts" className="inline-flex items-center text-primary underline-offset-2 hover:underline">
-                Konten verwalten
+                {t("netWorth.manageAccounts")}
               </Link>
             </NetWorthRow>
 
             <NetWorthRow
               icon={<LineChart className="h-4 w-4" />}
-              label="Investitionen"
+              label={t("netWorth.investments")}
               value={eur.format(data.investments)}
-              description="Aktueller Marktwert aller Portfolio-Positionen."
+              description={t("netWorth.portfolioDesc")}
             >
               <p className="text-muted-foreground">
-                Summe des aktuellen Marktwerts aller Positionen je Portfolio (Stückzahl × letzter bekannter Kurs).
+                {t("netWorth.portfolioDetailedDescription")}
               </p>
               {data.portfolioSources.length > 0 ? (
                 <ul className="space-y-2">
@@ -229,27 +226,27 @@ export default function NetWorthPage() {
                     <SourceRow
                       key={p.id}
                       title={p.name}
-                      subtitle={`${p.positionsCount} ${p.positionsCount === 1 ? "Position" : "Positionen"}`}
+                      subtitle={`${p.positionsCount} ${p.positionsCount === 1 ? t("netWorth.positions") : t("netWorth.multiPositions")}`}
                       value={eur.format(p.value)}
                     />
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground">Keine Portfolios hinterlegt.</p>
+                <p className="text-muted-foreground">{t("netWorth.noPortfolios")}</p>
               )}
               <Link to="/trading" className="inline-flex items-center text-primary underline-offset-2 hover:underline">
-                Depot verwalten
+                {t("netWorth.managePortfolio")}
               </Link>
             </NetWorthRow>
 
             <NetWorthRow
               icon={<HandCoins className="h-4 w-4" />}
-              label="Forderungen"
+              label={t("netWorth.receivables")}
               value={eur.format(data.receivables)}
-              description="Verliehenes Geld, das dir noch zurückgezahlt wird."
+              description={t("netWorth.receivablesDesc")}
             >
               <p className="text-muted-foreground">
-                Geld, das du verliehen hast und das dir noch zurückgezahlt wird – zählt als Vermögen.
+                {t("netWorth.receivablesDetailedDescription")}
               </p>
               {data.receivableSources.length > 0 ? (
                 <ul className="space-y-2">
@@ -258,18 +255,18 @@ export default function NetWorthPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground">Keine offenen Forderungen hinterlegt.</p>
+                <p className="text-muted-foreground">{t("netWorth.noReceivables")}</p>
               )}
             </NetWorthRow>
 
             <NetWorthRow
               icon={<CreditCard className="h-4 w-4" />}
-              label="Schulden"
+              label={t("netWorth.debts")}
               value={`−${eur.format(data.debts)}`}
               negative
-              description="Offene Salden aller nicht abbezahlten Schulden."
+              description={t("netWorth.debtsDesc")}
             >
-              <p className="text-muted-foreground">Summe der offenen Salden aller nicht abbezahlten Schulden.</p>
+              <p className="text-muted-foreground">{t("netWorth.debtsDesc")}</p>
               {data.debtSources.length > 0 ? (
                 <ul className="space-y-2">
                   {data.debtSources.map((d) => (
@@ -277,7 +274,7 @@ export default function NetWorthPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground">Keine offenen Schulden hinterlegt.</p>
+                <p className="text-muted-foreground">{t("netWorth.noDebts")}</p>
               )}
             </NetWorthRow>
           </div>

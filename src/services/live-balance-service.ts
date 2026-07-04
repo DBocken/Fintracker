@@ -1,5 +1,6 @@
 import { gocardlessService } from './gocardless-service'
 import { bankConnectionService } from './bank-connection-service'
+import { t } from '../i18n/serviceT'
 import type { Account } from '@/types'
 
 export type LiveBalance = {
@@ -144,7 +145,7 @@ export async function refreshBalances(
   if (sessionError || !session) {
     return {
       success: false,
-      message: "Nicht angemeldet.",
+      message: t("liveBalance.notAuthenticated"),
       error: "unauthenticated",
     };
   }
@@ -167,7 +168,7 @@ export async function refreshBalances(
     if (res.status === 409 && data.error === "automatic_already_done") {
       return {
         success: true,
-        message: "Automatische Aktualisierung für heute bereits erfolgt.",
+        message: t("liveBalance.automaticAlreadyDone"),
         mode: "automatic",
         error: "automatic_already_done",
       };
@@ -177,7 +178,7 @@ export async function refreshBalances(
 
       return {
         success: false,
-        message: data.message || "Manuelle Aktualisierungslimit erreicht.",
+        message: data.message || t("liveBalance.rateLimitExceeded"),
         error: "rate_limit_exceeded",
         remaining_today: data.remaining_today ?? 0,
         mode,
@@ -187,7 +188,7 @@ export async function refreshBalances(
     if (!res.ok) {
       return {
         success: false,
-        message: data.message || "Aktualisierung fehlgeschlagen.",
+        message: data.message || t("liveBalance.refreshFailed"),
         error: data.error || "unknown",
         mode,
       };
@@ -195,7 +196,7 @@ export async function refreshBalances(
 
     return {
       success: true,
-      message: data.message || "Kontostände aktualisiert.",
+      message: data.message || t("liveBalance.refreshSuccess"),
       remaining_today: data.remaining_today,
       mode: data.mode || mode,
     };
@@ -203,7 +204,7 @@ export async function refreshBalances(
     console.error("Error calling refresh-balances function:", err);
     return {
       success: false,
-      message: "Verbindungsfehler.",
+      message: t("liveBalance.networkError"),
       error: "network_error",
       mode,
     };

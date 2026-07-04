@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import { bankConnectionService, type CreateBankConnectionParams } from './bank-connection-service'
+import { t } from '@/i18n/serviceT'
 
 export interface Institution {
   id: string
@@ -70,7 +71,7 @@ function parseError(error: unknown): GoCardlessError {
   const edge = parseEdgeBody(error)
   const messageFromEdge = edge?.error || edge?.message
 
-  const err = new Error((messageFromEdge as string | undefined) || (e.message as string | undefined) || 'Unknown error') as GoCardlessError
+  const err = new Error((messageFromEdge as string | undefined) || (e.message as string | undefined) || t('gocardlessService.unknownError', 'Unknown error')) as GoCardlessError
 
   if (edge?.details) {
     err.details = edge.details as string
@@ -102,7 +103,7 @@ export class GoCardlessService {
 
   async getInstitutions(country: string = 'DE'): Promise<Institution[]> {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
+    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -119,7 +120,7 @@ export class GoCardlessService {
 
   async createRequisition(institutionId: string, redirectUrl: string): Promise<Requisition> {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
+    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -137,7 +138,7 @@ export class GoCardlessService {
 
   async getTransactions(requisitionId: string, accountId: string, dateFrom: string, dateTo: string): Promise<Transaction[]> {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
+    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -157,7 +158,7 @@ export class GoCardlessService {
 
   async getAccounts(requisitionId: string): Promise<{ requisition: Requisition; accounts: (Record<string, unknown> & { balances?: GoCardlessBalance[] })[] }> {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
+    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -179,7 +180,7 @@ export class GoCardlessService {
     institutionBic?: string
   ): Promise<Requisition> {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
+    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
 
     const requisition = await this.createRequisition(institutionId, redirectUrl)
 
@@ -200,7 +201,7 @@ export class GoCardlessService {
     const connection = await bankConnectionService.getBankConnectionById(bankConnectionId)
 
     if (!connection) {
-      throw new Error('Bankverbindung nicht gefunden')
+      throw new Error(t('gocardlessService.bankConnectionNotFound', 'Bankverbindung nicht gefunden'))
     }
 
     const requisition = await this.createRequisition(connection.institution_id, redirectUrl)

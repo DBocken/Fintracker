@@ -29,6 +29,7 @@ describe("isForeignBackup", () => {
 describe("verschlüsseltes Backup Roundtrip (Issue #30)", () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
   });
 

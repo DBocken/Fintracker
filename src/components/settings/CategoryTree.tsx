@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, ChevronDown, Plus, Edit3, Trash2 } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { HierarchicalCategory } from '../../types';
 
 interface CategoryTreeProps {
@@ -34,6 +35,7 @@ export function CategoryTree({
   onDelete,
   onAddSubcategory,
 }: CategoryTreeProps) {
+  const { t } = useI18n();
   const renderCategoryTree = (categories: HierarchicalCategory[]) => {
     return categories.map((category, index) => {
       const level = getCategoryLevel(category);
@@ -62,7 +64,7 @@ export function CategoryTree({
                     onToggleExpand(category.id);
                   }}
                   className="rounded p-1 hover:bg-accent"
-                  aria-label={isExpanded ? "Einklappen" : "Ausklappen"}
+                  aria-label={isExpanded ? t('categoryTree.collapse') : t('categoryTree.expand')}
                 >
                   {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
@@ -73,10 +75,10 @@ export function CategoryTree({
               <span className="text-lg">{category.icon}</span>
               <span className="truncate font-medium">{category.name}</span>
               {/* Höchstens zwei Statussymbole, dezent. */}
-              {isVertrag && <Badge variant="secondary" className="text-[10px]">Vertrag</Badge>}
-              {isEssential && <Badge variant="secondary" className="text-[10px]">Essenziell</Badge>}
+              {isVertrag && <Badge variant="secondary" className="text-[10px]">{t('categoryTree.contractBadge')}</Badge>}
+              {isEssential && <Badge variant="secondary" className="text-[10px]">{t('categoryTree.essentialBadge')}</Badge>}
               {filterCount > 0 && (
-                <span className="shrink-0 text-xs text-muted-foreground">{filterCount} Regeln</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{t('categoryTree.rulesCount').replace('{count}', String(filterCount))}</span>
               )}
             </div>
 
@@ -90,7 +92,7 @@ export function CategoryTree({
                   onAddSubcategory(category.id);
                 }}
                 className="h-9 w-9 p-0"
-                title="Unterkategorie erstellen"
+                title={t('categoryTree.addSubcategoryTitle')}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -102,7 +104,7 @@ export function CategoryTree({
                   onEdit(category);
                 }}
                 className="h-9 w-9 p-0"
-                title="Bearbeiten"
+                title={t('categoryTree.editTitle')}
               >
                 <Edit3 className="h-4 w-4" />
               </Button>
@@ -115,7 +117,7 @@ export function CategoryTree({
                     onDelete(category);
                   }}
                   className="h-9 w-9 p-0"
-                  title="Löschen"
+                  title={t('categoryTree.deleteTitle')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -132,7 +134,7 @@ export function CategoryTree({
   return (
     <div className="max-h-[28rem] divide-y divide-border/60 overflow-y-auto">
       {categories.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">Keine Kategorien gefunden.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">{t('categoryTree.emptyState')}</p>
       ) : (
         renderCategoryTree(categories)
       )}

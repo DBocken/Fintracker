@@ -14,6 +14,8 @@ import { upsertMerchantRule, getMerchantRules } from "../merchant-rules-service"
 describe("[INTEGRITY] deleteCategory bereinigt Referenzen (F-CAT-DELETE)", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Re-set locale after clear() since saveLocalCategory uses serviceT
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
     localEncryption.lock();
   });
 

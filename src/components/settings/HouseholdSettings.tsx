@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, UserPlus, Plus } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   getHouseholds,
   getHouseholdMembers,
@@ -19,6 +20,7 @@ import {
  * nächster Schritt. Alles strikt lokal.
  */
 export function HouseholdSettings() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [householdName, setHouseholdName] = useState('');
   const [memberName, setMemberName] = useState('');
@@ -64,9 +66,9 @@ export function HouseholdSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Haushalt</CardTitle>
+        <CardTitle className="text-base">{t('householdSettings.title')}</CardTitle>
         <CardDescription>
-          Lege einen Haushalt an und verwalte Mitglieder für geteilte Ausgaben. Alles bleibt lokal auf deinem Gerät.
+          {t('householdSettings.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -81,10 +83,10 @@ export function HouseholdSettings() {
             <Input
               value={householdName}
               onChange={(e) => setHouseholdName(e.target.value)}
-              placeholder="Name des Haushalts (z. B. „Zuhause“)"
+              placeholder={t('householdSettings.householdNamePlaceholder')}
             />
             <Button type="submit" disabled={!householdName.trim() || createHousehold.isPending}>
-              <Plus className="mr-1 h-4 w-4" /> Anlegen
+              <Plus className="mr-1 h-4 w-4" /> {t('householdSettings.createButton')}
             </Button>
           </form>
         ) : (
@@ -97,7 +99,7 @@ export function HouseholdSettings() {
                 className="text-warning hover:text-warning"
                 onClick={() => removeHousehold.mutate(household.id)}
               >
-                <Trash2 className="mr-1 h-4 w-4" /> Haushalt löschen
+                <Trash2 className="mr-1 h-4 w-4" /> {t('householdSettings.deleteHouseholdButton')}
               </Button>
             </div>
 
@@ -116,7 +118,7 @@ export function HouseholdSettings() {
                 </li>
               ))}
               {members.length === 0 && (
-                <li className="text-sm text-muted-foreground">Noch keine Mitglieder.</li>
+                <li className="text-sm text-muted-foreground">{t('householdSettings.noMembersMessage')}</li>
               )}
             </ul>
 
@@ -130,10 +132,10 @@ export function HouseholdSettings() {
               <Input
                 value={memberName}
                 onChange={(e) => setMemberName(e.target.value)}
-                placeholder="Mitglied hinzufügen"
+                placeholder={t('householdSettings.memberNamePlaceholder')}
               />
               <Button type="submit" disabled={!memberName.trim() || addMember.isPending}>
-                <UserPlus className="mr-1 h-4 w-4" /> Hinzufügen
+                <UserPlus className="mr-1 h-4 w-4" /> {t('householdSettings.addMemberButton')}
               </Button>
             </form>
           </>

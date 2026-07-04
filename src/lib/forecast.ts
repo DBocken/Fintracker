@@ -27,6 +27,7 @@ import {
 } from 'date-fns';
 import { toMajor, toMinor } from './money';
 import { distributeMonthlyByProfile } from './forecast-profile';
+import { t } from '@/i18n/serviceT';
 import type {
   ForecastAccount,
   ForecastAccountKind,
@@ -698,11 +699,11 @@ function buildInsights(risk: LiquidityRisk, config: ResolvedForecastConfig): For
         kind: 'below_buffer',
         severity: risk.lowestBalance < 0 ? 'critical' : 'warning',
         date: risk.firstBelowSafetyBufferDate,
-        message:
-          `Liquidität fällt am ${risk.firstBelowSafetyBufferDate} unter den ` +
-          `Sicherheitspuffer (${config.safetyBuffer}). Tiefststand ${round2(
-            risk.lowestBalance,
-          )} am ${risk.lowestBalanceDate}.`,
+        message: t('forecastRisk.belowBuffer', 'Liquidität fällt am {date} unter den Sicherheitspuffer ({buffer}). Tiefststand {lowestBalance} am {lowestBalanceDate}.')
+          .replace('{date}', String(risk.firstBelowSafetyBufferDate))
+          .replace('{buffer}', String(config.safetyBuffer))
+          .replace('{lowestBalance}', String(round2(risk.lowestBalance)))
+          .replace('{lowestBalanceDate}', String(risk.lowestBalanceDate)),
       },
     ];
   }
@@ -710,10 +711,10 @@ function buildInsights(risk: LiquidityRisk, config: ResolvedForecastConfig): For
     {
       kind: 'ok',
       severity: 'info',
-      message:
-        `Liquidität bleibt über den gesamten Horizont über dem Sicherheitspuffer ` +
-        `(${config.safetyBuffer}). Tiefststand ${round2(risk.lowestBalance)} am ` +
-        `${risk.lowestBalanceDate}.`,
+      message: t('forecastRisk.ok', 'Liquidität bleibt über den gesamten Horizont über dem Sicherheitspuffer ({buffer}). Tiefststand {lowestBalance} am {lowestBalanceDate}.')
+        .replace('{buffer}', String(config.safetyBuffer))
+        .replace('{lowestBalance}', String(round2(risk.lowestBalance)))
+        .replace('{lowestBalanceDate}', String(risk.lowestBalanceDate)),
     },
   ];
 }

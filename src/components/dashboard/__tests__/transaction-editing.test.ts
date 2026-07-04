@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   draftFromTransaction,
   diffTransactionDraft,
@@ -9,6 +9,15 @@ import {
 } from '../transaction-details';
 import type { CategorizationResult } from '@/services/transaction-service';
 import type { Category, Transaction, Rhythmus } from '@/types';
+
+// Set up locale for serviceT.ts before each test
+beforeEach(() => {
+  window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+});
+
+afterEach(() => {
+  window.localStorage.removeItem('ausgabentracker_locale_v1');
+});
 
 /**
  * Test suite for transaction editing functionality

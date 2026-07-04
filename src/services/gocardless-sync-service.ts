@@ -8,6 +8,7 @@ import { planInternalTransfers, type AccountIbanRef } from './transfer-service';
 import type { Transaction } from '../types';
 import { showSuccess, showError } from '@/utils/toast';
 import { QueryClient } from '@tanstack/react-query';
+import { t } from '@/i18n/serviceT';
 
 export interface SyncResult {
   accountId: string;
@@ -79,7 +80,7 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
     return {
       valid: false,
       expired: false,
-      message: 'Die Bankverbindung konnte nicht gefunden werden.',
+      message: t('syncService.bankConnectionNotFound'),
     };
   }
 
@@ -91,7 +92,7 @@ export async function getAccountConsentStatus(account: Account): Promise<Consent
       expired: true,
       expiresAt: consent.expiresAt,
       daysRemaining: consent.daysRemaining,
-      message: 'Dein Bankzugriff ist abgelaufen. Beim nächsten Aktualisieren wird die Consent-Abfrage erneut gestartet.',
+      message: t('syncService.consentExpired'),
     };
   }
 
@@ -155,13 +156,14 @@ export async function reconcileInternalTransfers(
     // Spiegelbuchung auf dem nicht-live-Konto anlegen (entgegengesetztes Vorzeichen).
     const sourceAccount = plan.source.account_id ? accountsById.get(plan.source.account_id) : null;
     const counterAccount = accountsById.get(plan.counterAccountId);
+    const internalTransferLabel = t('dashboard.removeTransfer');
     const mirror = await createTransaction({
       account_id: plan.counterAccountId,
       date: plan.source.date,
       amount: -plan.source.amount,
-      payee: sourceAccount?.name || plan.source.payee || 'Interner Übertrag',
-      description: `Interner Übertrag (${sourceAccount?.name || 'eigenes Konto'})`,
-      original_text: plan.source.original_text || plan.source.description || 'Interner Übertrag',
+      payee: sourceAccount?.name || plan.source.payee || internalTransferLabel,
+      description: `${internalTransferLabel} (${sourceAccount?.name || t('transactionService.unknownPayee')})`,
+      original_text: plan.source.original_text || plan.source.description || internalTransferLabel,
       currency: plan.source.currency || counterAccount?.currency || 'EUR',
       counterparty_iban: sourceAccount?.iban ?? null,
       auto_mapped: false,
@@ -206,18 +208,18 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
   };
 
   if (!account.gocardless_account_id) {
-    result.errors.push('Keine GoCardless Account ID vorhanden');
+    result.errors.push(t('syncService.noGoCardlessAccountId'));
     return result;
   }
 
   if (!account.gocardless_requisition_id) {
-    result.errors.push('Keine GoCardless Requisition ID vorhanden');
+    result.errors.push(t('syncService.noGoCardlessRequisitionId'));
     return result;
   }
 
   const consentStatus = await getAccountConsentStatus(account);
   if (!consentStatus.valid) {
-    result.errors.push(consentStatus.message || 'Consent ungültig');
+    result.errors.push(consentStatus.message || t('syncService.consentInvalid'));
     return result;
   }
 
@@ -289,7 +291,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
       try {
         const amount = parseFloat(tx.transactionAmount.amount);
         const date = tx.bookingDate;
-        const payee = tx.debtorName || tx.creditorName || 'Unbekannt';
+        const payee = tx.debtorName || tx.creditorName || t('transactionService.unknownPayee');
         const description = tx.remittanceInformationUnstructured ||
           (tx.remittanceInformationStructuredArray?.join(' ')) ||
           tx.additionalInformation ||
@@ -336,7 +338,7 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         result.importedCount++;
       } catch (error: unknown) {
         console.error('[gocardless-sync] Failed to import transaction:', { message: (error as Error).message });
-        result.errors.push(`Transaktion konnte nicht importiert werden: ${(error as Error).message}`);
+        result.errors.push(t('syncService.importTransactionFailed', '{error}').replace('{error}', (error as Error).message));
       }
     }
 
@@ -396,7 +398,7 @@ export async function syncAllAccounts(): Promise<SyncResult[]> {
     const syncableAccounts = accounts.filter(acc => acc.gocardless_account_id && acc.sync_enabled);
 
     if (syncableAccounts.length === 0) {
-      showError('Keine synchronisierbaren Konten gefunden');
+      showError(t('syncService.noSyncableAccounts'));
       return [];
     }
 
@@ -413,15 +415,15 @@ export async function syncAllAccounts(): Promise<SyncResult[]> {
     invalidateTransactionConsumers();
 
     if (totalImported > 0) {
-      showSuccess(`${totalImported} Transaktionen synchronisiert`);
+      showSuccess(t('syncService.syncSuccess', '{count}').replace('{count}', String(totalImported)));
     }
     if (totalErrors > 0) {
-      showError(`${totalErrors} Fehler bei der Synchronisation`);
+      showError(t('syncService.syncError', '{count}').replace('{count}', String(totalErrors)));
     }
 
     return results;
   } catch (error: unknown) {
-    showError(`Synchronisation fehlgeschlagen: ${(error as Error).message}`);
+    showError(t('syncService.syncFailed', '{error}').replace('{error}', (error as Error).message));
     throw error;
   }
 }
@@ -446,9 +448,9 @@ export function canSyncAccount(account: Account): { canSync: boolean; nextSyncIn
 
   if (hoursSinceSync < minHoursBetweenSyncs) {
     const hoursRemaining = Math.ceil(minHoursBetweenSyncs - hoursSinceSync);
-    return { 
-      canSync: false, 
-      nextSyncIn: `${hoursRemaining} Std.` 
+    return {
+      canSync: false,
+      nextSyncIn: t('syncService.syncHoursRemaining', '{hours}').replace('{hours}', String(hoursRemaining))
     };
   }
 

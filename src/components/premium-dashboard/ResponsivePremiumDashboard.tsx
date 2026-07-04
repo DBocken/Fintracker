@@ -190,7 +190,7 @@ export function ResponsivePremiumDashboard() {
     topExpenseCategories: [],
   };
 
-  const topExpense = fd.topExpenseCategories[0] ?? { name: "Keine Ausgaben", amount: 0 };
+  const topExpense = fd.topExpenseCategories[0] ?? { name: t("premium.dashboard.noExpensesLabel"), amount: 0 };
 
   return (
     <div {...dyadProps("ResponsivePremiumDashboard")} className="space-y-8 sm:space-y-12">

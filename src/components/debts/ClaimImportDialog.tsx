@@ -21,7 +21,7 @@ import {
   type LetterImportResult,
 } from "@/services/letter-import-service";
 import { confirmClaim, type Claim } from "@/services/claim-service";
-import { LETTER_DOC_TYPE_LABELS } from "@/services/letter-parser-service";
+import { getLetterDocTypeLabels } from "@/services/letter-parser-service";
 import { getScanGuidance, type OcrProgress } from "@/services/letter-ocr-service";
 import { useI18n } from "@/i18n/useI18n";
 
@@ -219,7 +219,7 @@ function ClaimReviewRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-medium">
             <span className="truncate">{claim.creditor}</span>
-            {latest && <Badge variant="secondary">{LETTER_DOC_TYPE_LABELS[latest.doc_type]}</Badge>}
+            {latest && <Badge variant="secondary">{getLetterDocTypeLabels()[latest.doc_type]}</Badge>}
           </div>
           <div className="text-xs text-muted-foreground">{eur.format(claim.current_amount)}</div>
         </div>

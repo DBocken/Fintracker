@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createDefaultMapping, detectBank, parseCsv, BANK_TEMPLATES } from "../csv-service";
+
+beforeEach(() => {
+  localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 const SPARKASSE_HEADERS = [
   "Auftragskonto",

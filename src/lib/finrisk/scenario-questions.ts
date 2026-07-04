@@ -6,6 +6,7 @@
  * Freitext-Magie im Rechenkern, wie in der Integration-Checklist gefordert).
  */
 import type { ScenarioPayload } from './scenario-payload-types';
+import { t } from '../../i18n/serviceT';
 
 const AVG_DAYS_PER_MONTH = 30.44;
 
@@ -43,7 +44,7 @@ export function buildLargePurchasePayload(
         amount: Math.abs(amount),
         dayIndex: Math.max(0, Math.round(inDays)),
         layer: 'lumpy_layer',
-        description: 'Größere Anschaffung',
+        description: t('scenario.purchase'),
       },
     ],
   };
@@ -68,7 +69,7 @@ export function buildIncomeLossPayload(
         startDayIndex: 0,
         endDayIndex: Math.min(windowDays - 1, ctx.horizonDays - 1),
         layer: 'income_layer',
-        description: 'Einkommensausfall',
+        description: t('scenario.incomeReduction'),
       },
     ],
   };
@@ -104,14 +105,14 @@ export function buildShockRecoveryPayload(
         amount: Math.abs(shock),
         dayIndex: Math.max(0, Math.round(shockInDays)),
         layer: 'stress_layer',
-        description: 'Negativer Schock',
+        description: t('scenarioQuestions.negativeShock', 'Negativer Schock'),
       },
       {
         eventType: 'income',
         amount: Math.abs(recovery),
         dayIndex: Math.max(0, Math.round(recoveryInDays)),
         layer: 'recovery_layer',
-        description: 'Spätere Kompensation',
+        description: t('scenarioQuestions.laterCompensation', 'Spätere Kompensation'),
       },
     ],
   };

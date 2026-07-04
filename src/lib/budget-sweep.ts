@@ -4,6 +4,8 @@
  * Prognose-Gate. Die eigentliche Forecast-/IBAN-Beschaffung passiert im Service.
  */
 
+import { t } from '../i18n/serviceT';
+
 export interface SweepGateInput {
   /** Gewünschter Sweep-Betrag (z. B. angesparter Überschuss). */
   desiredAmount: number;
@@ -30,20 +32,20 @@ export interface SweepGateResult {
 export function evaluateSweepGate(input: SweepGateInput): SweepGateResult {
   const headroom = input.projectedMinBalance - input.safetyBuffer;
   if (!(headroom > 0)) {
-    return { safe: false, safeAmount: 0, reason: "Liquidität zu knapp – erst den Puffer sichern." };
+    return { safe: false, safeAmount: 0, reason: t('budgetSweep.insufficientLiquidity') };
   }
   const safeAmount = Math.floor(Math.min(input.desiredAmount, headroom));
   if (safeAmount <= 0) {
-    return { safe: false, safeAmount: 0, reason: "Kein sicher verfügbarer Betrag." };
+    return { safe: false, safeAmount: 0, reason: t('budgetSweep.noAvailableAmount') };
   }
   if (safeAmount < input.desiredAmount) {
     return {
       safe: true,
       safeAmount,
-      reason: `Nur ${safeAmount} € sicher abführbar – der Rest hält deinen Puffer.`,
+      reason: t('budgetSweep.partialSweepAvailable').replace('{amount}', String(safeAmount)),
     };
   }
-  return { safe: true, safeAmount, reason: "Überschuss kann sicher angelegt werden." };
+  return { safe: true, safeAmount, reason: t('budgetSweep.sweepSuccess') };
 }
 
 export interface BalancePoint {

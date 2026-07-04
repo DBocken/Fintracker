@@ -1,5 +1,6 @@
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 import { safeAudit, redactForAudit } from './audit-log-service';
+import { t } from '@/i18n/serviceT';
 import type { Rhythmus } from '@/types';
 
 /**
@@ -16,14 +17,16 @@ export type ContractStatus =
   | 'paused'
   | 'archived';
 
-export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
-  candidate: 'Kandidat',
-  active: 'Aktiv',
-  ended: 'Beendet',
-  rejected: 'Kein Vertrag',
-  paused: 'Pausiert',
-  archived: 'Archiviert',
-};
+export function getContractStatusLabels(): Record<ContractStatus, string> {
+  return {
+    candidate: t('contracts.statusLabels.candidate'),
+    active: t('contracts.statusLabels.active'),
+    ended: t('contracts.statusLabels.ended'),
+    rejected: t('contracts.statusLabels.rejected'),
+    paused: t('contracts.statusLabels.paused'),
+    archived: t('contracts.statusLabels.archived'),
+  };
+}
 
 export interface ContractDecision {
   id: string;
@@ -118,7 +121,7 @@ export async function deleteContractDecision(fingerprint: string): Promise<void>
     entityType: 'contract',
     entityId: removed?.id ?? fp,
     action: 'delete',
-    title: 'Vertragsentscheidung gelöscht',
+    title: t('contractDecisionServiceLib.decisionDeletedTitle', 'Vertragsentscheidung gelöscht'),
     redactedBefore: redactForAudit(removed, ['fingerprint', 'status', 'cycle_override']),
     redactedAfter: null,
     reversible: true,

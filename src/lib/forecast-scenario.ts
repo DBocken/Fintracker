@@ -10,6 +10,7 @@
  * Transformationen, keine Sonderpfade im Simulationsschritt.
  */
 import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { t } from '@/i18n/serviceT';
 import { calculateDeterministicForecast } from './forecast';
 import type {
   ForecastAccount,
@@ -231,7 +232,7 @@ export function applyScenario(
         if (!accountId || mod.amount == null || !mod.date) break;
         const event: PlannedForecastEvent = {
           id: `scn-${mod.id}`,
-          name: mod.label ?? 'Szenario-Posten',
+          name: mod.label ?? t('forecastScenario.scenarioItemDefault'),
           amount: mod.amount,
           date: mod.date,
           accountId,
@@ -245,7 +246,7 @@ export function applyScenario(
         if (!accountId || mod.amount == null || !mod.cadence || !mod.anchorDate) break;
         recurringFlows.push({
           id: `scn-${mod.id}`,
-          name: mod.label ?? 'Szenario-Verpflichtung',
+          name: mod.label ?? t('forecastScenario.scenarioObligationDefault'),
           amount: mod.amount,
           cadence: mod.cadence,
           anchorDate: mod.anchorDate,
@@ -344,74 +345,74 @@ export function buildPresetScenarios(startISO: string): ForecastScenario[] {
   return [
     {
       id: 'preset-job-loss',
-      name: 'Jobverlust',
-      description: 'Das Haupteinkommen entfällt ab in 3 Monaten – andere Einnahmen bleiben.',
+      name: t('forecastScenario.presetJobLossName'),
+      description: t('forecastScenario.presetJobLossDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: in90 },
       ],
     },
     {
       id: 'preset-raise',
-      name: 'Gehaltserhöhung +5 %',
-      description: 'Das Haupteinkommen steigt dauerhaft um 5 %.',
+      name: t('forecastScenario.presetRaiseName'),
+      description: t('forecastScenario.presetRaiseDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 1.05 },
       ],
     },
     {
       id: 'preset-job-change',
-      name: 'Jobwechsel',
-      description: 'Das alte Haupteinkommen endet, ein neues startet nach einer kurzen Pause.',
+      name: t('forecastScenario.presetJobChangeName'),
+      description: t('forecastScenario.presetJobChangeDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0, fromDate: in30 },
-        { id: 'm2', type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: in60, label: 'Neues Gehalt' },
+        { id: 'm2', type: 'recurring', amount: 3200, cadence: 'monthly', anchorDate: in60, label: t('forecastScenario.newSalary') },
       ],
     },
     {
       id: 'preset-car-breakdown',
-      name: 'Auto kaputt',
-      description: 'Unerwartete Reparatur – Versicherung erstattet verzögert einen Teil.',
+      name: t('forecastScenario.presetCarBreakdownName'),
+      description: t('forecastScenario.presetCarBreakdownDesc'),
       modifiers: [
-        { id: 'm1', type: 'oneTime', amount: -2000, date: in30, label: 'Reparaturkosten' },
-        { id: 'm2', type: 'oneTime', amount: 800, date: in120, label: 'Versicherungserstattung' },
+        { id: 'm1', type: 'oneTime', amount: -2000, date: in30, label: t('forecastScenario.repairCosts') },
+        { id: 'm2', type: 'oneTime', amount: 800, date: in120, label: t('forecastScenario.insuranceReimbursement') },
       ],
     },
     {
       id: 'preset-sick-leave',
-      name: 'Krankenausfall',
-      description: 'Nach 6 Wochen Krankenstand: Krankengeld statt Gehalt (ca. 70 %).',
+      name: t('forecastScenario.presetSickLeaveName'),
+      description: t('forecastScenario.presetSickLeaveDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.7, fromDate: in42 },
       ],
     },
     {
       id: 'preset-big-purchase',
-      name: 'Große Anschaffung',
-      description: 'Einmalige Ausgabe von 3.000 € in 3 Monaten.',
+      name: t('forecastScenario.presetBigPurchaseName'),
+      description: t('forecastScenario.presetBigPurchaseDesc'),
       modifiers: [
-        { id: 'm1', type: 'oneTime', amount: -3000, date: in90, label: 'Große Anschaffung' },
+        { id: 'm1', type: 'oneTime', amount: -3000, date: in90, label: t('forecastScenario.majorPurchase') },
       ],
     },
     {
       id: 'preset-rent-increase',
-      name: 'Mieterhöhung',
-      description: 'Der größte Fixkosten-Eintrag (meist die Miete) steigt um 15 %.',
+      name: t('forecastScenario.presetRentIncreaseName'),
+      description: t('forecastScenario.presetRentIncreaseDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestExpense' }, factor: 1.15, fromDate: in30 },
       ],
     },
     {
       id: 'preset-parental-leave',
-      name: 'Elternzeit',
-      description: 'Elterngeld ersetzt nur ~65 % des letzten Nettogehalts – das Haupteinkommen sinkt bis zur Rückkehr.',
+      name: t('forecastScenario.presetParentalLeaveName'),
+      description: t('forecastScenario.presetParentalLeaveDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'largestIncome' }, factor: 0.65, fromDate: in30 },
       ],
     },
     {
       id: 'preset-alimony-loss',
-      name: 'Unterhalt fällt weg',
-      description: 'Die erkannte Unterhaltszahlung bleibt aus – nur dieser Eintrag entfällt.',
+      name: t('forecastScenario.presetAlimonyStopped'),
+      description: t('forecastScenario.presetAlimonyStoppedDesc'),
       modifiers: [
         { id: 'm1', type: 'flow', flowSelector: { kind: 'keyword', keyword: 'unterhalt', direction: 'income' }, factor: 0, fromDate: in14 },
       ],

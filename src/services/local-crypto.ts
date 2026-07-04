@@ -1,5 +1,6 @@
 import { idbGet, idbSet, idbKeys, requestPersistentStorage } from './idb-kv'
 import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys'
+import { t } from '../i18n/serviceT'
 
 // --- Datenspeicher-Seam (Issue #29) ------------------------------------------
 // Die (verschlüsselten) Bulk-Daten liegen in IndexedDB statt localStorage.
@@ -107,8 +108,8 @@ function isEnvelopeV1(value: unknown): value is EncryptedEnvelopeV1 {
 
 export class LocalEncryptionLockedError extends Error {
   name = 'LocalEncryptionLockedError'
-  constructor(message: string = 'Lokale Verschlüsselung ist aktiv – bitte zuerst entsperren.') {
-    super(message)
+  constructor(message: string = '') {
+    super(message || t('crypto.lockedError'))
   }
 }
 
@@ -244,24 +245,24 @@ export const localEncryption = {
 
     const rawCheck = localStorage.getItem(CHECK_KEY)
     if (!rawCheck) {
-      throw new Error('Verschlüsselungs-Check fehlt – bitte Verschlüsselung neu aktivieren.')
+      throw new Error(t('crypto.checkMissingError'))
     }
 
     let envelope: unknown
     try {
       envelope = JSON.parse(rawCheck)
     } catch {
-      throw new Error('Verschlüsselungs-Check beschädigt – bitte Verschlüsselung neu aktivieren.')
+      throw new Error(t('crypto.checkCorruptedError'))
     }
 
     if (!isEnvelopeV1(envelope)) {
-      throw new Error('Verschlüsselungs-Check ungültig – bitte Verschlüsselung neu aktivieren.')
+      throw new Error(t('crypto.checkInvalidError'))
     }
 
     try {
       await decryptString(envelope, key)
     } catch {
-      throw new Error('Falsches Passwort')
+      throw new Error(t('crypto.wrongPasswordError'))
     }
 
     this._key = key
@@ -282,7 +283,7 @@ export const localEncryption = {
 
   requireUnlocked(): CryptoKey {
     const cfg = loadConfig()
-    if (!cfg) throw new Error('Lokale Verschlüsselung ist nicht aktiv.')
+    if (!cfg) throw new Error(t('crypto.notEnabledError'))
     if (!this._key) throw new LocalEncryptionLockedError()
     return this._key
   },
@@ -294,7 +295,7 @@ export const localEncryption = {
 
   async encryptJson(value: unknown): Promise<EncryptedEnvelopeV1> {
     const cfg = loadConfig()
-    if (!cfg) throw new Error('Lokale Verschlüsselung ist nicht aktiv.')
+    if (!cfg) throw new Error(t('crypto.notEnabledError'))
     const key = this.requireUnlocked()
     return encryptString(JSON.stringify(value), key, cfg)
   },
@@ -328,9 +329,7 @@ export const localEncryption = {
       // Daten interpretieren oder als leere Liste behandeln — sonst würde der
       // nächste Schreibvorgang die noch verschlüsselten Daten überschreiben.
       if (isEnvelopeV1(value)) {
-        throw new Error(
-          'Verschlüsselte Daten bei deaktivierter Verschlüsselung gefunden — Migration unvollständig.',
-        )
+        throw new Error(t('crypto.migrateError'))
       }
       return value as T
     }
@@ -420,14 +419,14 @@ function freshStandaloneConfig(): LocalEncryptionConfigV1 {
 }
 
 export async function encryptJsonWithPassword(value: unknown, password: string): Promise<EncryptedEnvelopeV1> {
-  if (!password) throw new Error('Passwort darf nicht leer sein.')
+  if (!password) throw new Error(t('crypto.emptyPasswordError'))
   const cfg = freshStandaloneConfig()
   const key = await deriveKeyFromPassword(password, cfg)
   return encryptString(JSON.stringify(value), key, cfg)
 }
 
 export async function decryptJsonWithPassword<T>(envelope: EncryptedEnvelopeV1, password: string): Promise<T> {
-  if (!isEnvelopeV1(envelope)) throw new Error('Ungültige verschlüsselte Datei.')
+  if (!isEnvelopeV1(envelope)) throw new Error(t('crypto.invalidFileError'))
   const cfg: LocalEncryptionConfigV1 = {
     v: 1,
     enabled: true,
@@ -439,7 +438,7 @@ export async function decryptJsonWithPassword<T>(envelope: EncryptedEnvelopeV1, 
   try {
     plaintext = await decryptString(envelope, key)
   } catch {
-    throw new Error('Falsches Passwort')
+    throw new Error(t('crypto.wrongPasswordError'))
   }
   return JSON.parse(plaintext) as T
 }

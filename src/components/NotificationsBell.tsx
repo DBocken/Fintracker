@@ -23,30 +23,6 @@ type NotificationItem = {
 
 const STORAGE_KEY = "notifications.read.v1";
 
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "v1.2.0",
-    title: "Version 1.2.0 veröffentlicht",
-    body:
-      "Neue Premium-Analyse mit wöchentlichem Muster, Heatmap und Sankey-Flow. Vielen Dank fürs Feedback!",
-    date: "2025-12-01T09:00:00.000Z",
-  },
-  {
-    id: "contracts-dashboard",
-    title: "Neues Feature: Verträge-Dashboard",
-    body:
-      "Verträge zentral verwalten, Laufzeiten sehen und Optimierungspotenziale entdecken.",
-    date: "2025-11-20T12:00:00.000Z",
-  },
-  {
-    id: "csv-updates",
-    title: "CSV-Upload verbessert",
-    body:
-      "Schnellerer Import, bessere Erkennung von Spalten und direkter Review-Flow.",
-    date: "2025-11-05T08:30:00.000Z",
-  },
-];
-
 function getStoredRead(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -76,11 +52,32 @@ export default function NotificationsBell() {
   }, [readIds]);
 
   const notifications = useMemo(
-    () =>
-      [...DEFAULT_NOTIFICATIONS].sort(
+    () => {
+      const defaultNotifications: NotificationItem[] = [
+        {
+          id: "v1.2.0",
+          title: t('notificationsBell.items.v1_2_0.title'),
+          body: t('notificationsBell.items.v1_2_0.body'),
+          date: "2025-12-01T09:00:00.000Z",
+        },
+        {
+          id: "contracts-dashboard",
+          title: t('notificationsBell.items.contractsDashboard.title'),
+          body: t('notificationsBell.items.contractsDashboard.body'),
+          date: "2025-11-20T12:00:00.000Z",
+        },
+        {
+          id: "csv-updates",
+          title: t('notificationsBell.items.csvUpdates.title'),
+          body: t('notificationsBell.items.csvUpdates.body'),
+          date: "2025-11-05T08:30:00.000Z",
+        },
+      ];
+      return [...defaultNotifications].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      ),
-    []
+      );
+    },
+    [t]
   );
 
   const unreadCount = useMemo(

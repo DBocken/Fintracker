@@ -1,10 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import {
   assessDebtCounseling,
   estimateAvailableIncome,
   payoffPlanToPlanMonths,
 } from "@/lib/debt-counseling";
 import { OVERINDEBTEDNESS_PLAN_MONTHS } from "@/services/debt-guardrails-service";
+
+beforeEach(() => {
+  // Set locale for serviceT
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 describe("debt-counseling Brücke", () => {
   describe("payoffPlanToPlanMonths", () => {

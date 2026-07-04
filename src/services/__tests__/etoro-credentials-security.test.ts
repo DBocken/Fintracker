@@ -12,6 +12,8 @@ import type { BackupData } from "../backup-service";
 describe("[SECURITY] eToro-Credentials (T1.10)", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Re-set locale after clear() since serviceT reads from localStorage
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
     localEncryption.lock();
   });
 

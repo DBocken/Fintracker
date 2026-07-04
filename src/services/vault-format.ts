@@ -3,6 +3,7 @@ import {
   decryptJsonWithPassword,
   type EncryptedEnvelopeV1,
 } from './local-crypto';
+import { t } from '../i18n/serviceT';
 
 /**
  * Vault-Dateiformat + Merge-Logik (Issue #36, Epic #22).
@@ -147,7 +148,7 @@ export async function createVaultFile(
   deviceId: string,
   now: Date = new Date(),
 ): Promise<VaultFileV1> {
-  if (!password) throw new Error('Vault-Dateien sind immer verschlüsselt — Passwort fehlt.');
+  if (!password) throw new Error(t('vaultFormatService.passwordRequired'));
 
   return {
     type: VAULT_FILE_TYPE,
@@ -171,20 +172,21 @@ export function parseVaultFile(raw: string): VaultFileV1 {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('Die Vault-Datei ist beschädigt (kein gültiges JSON).');
+    throw new Error(t('vaultFormatService.invalidJson'));
   }
 
   const file = parsed as Partial<VaultFileV1> | null;
   if (!file || typeof file !== 'object' || file.type !== VAULT_FILE_TYPE) {
-    throw new Error('Das ist keine fintracker.vault-Datei.');
+    throw new Error(t('vaultFormatService.invalidFileType'));
   }
   if (file.formatVersion !== VAULT_FORMAT_VERSION) {
     throw new Error(
-      `Vault-Format ${String(file.formatVersion)} wird von dieser App-Version nicht unterstützt.`,
+      t('vaultFormatService.unsupportedVersion', '{version}')
+        .replace('{version}', String(file.formatVersion)),
     );
   }
   if (!file.payload || (file.payload as { type?: string }).type !== 'ausgabentracker.enc') {
-    throw new Error('Die Vault-Datei ist beschädigt (verschlüsselter Inhalt fehlt).');
+    throw new Error(t('vaultFormatService.missingPayload'));
   }
 
   return file as VaultFileV1;

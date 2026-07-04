@@ -1,6 +1,8 @@
 // Brief-Inbox: Extraktions-Parser für deutsche Mahnungen/Rechnungen (Issue #45, Epic #24).
 // Arbeitet rein auf OCR-Text — komplett lokal, keine Netzwerk-Zugriffe.
 
+import { t } from "../i18n/serviceT";
+
 // -----------------------------------------------------------------------------
 // Typen
 // -----------------------------------------------------------------------------
@@ -14,15 +16,17 @@ export type LetterDocType =
   | "mahnbescheid"
   | "unbekannt";
 
-export const LETTER_DOC_TYPE_LABELS: Record<LetterDocType, string> = {
-  rechnung: "Rechnung",
-  zahlungserinnerung: "Zahlungserinnerung",
-  mahnung_1: "1. Mahnung",
-  mahnung_2_plus: "2.+ Mahnung",
-  inkasso: "Inkasso-Schreiben",
-  mahnbescheid: "Gerichtlicher Mahnbescheid",
-  unbekannt: "Unbekanntes Dokument",
-};
+export function getLetterDocTypeLabels(): Record<LetterDocType, string> {
+  return {
+    rechnung: t("letterService.docTypeLabels.rechnung", "Rechnung"),
+    zahlungserinnerung: t("letterService.docTypeLabels.zahlungserinnerung", "Zahlungserinnerung"),
+    mahnung_1: t("letterService.docTypeLabels.mahnung_1", "1. Mahnung"),
+    mahnung_2_plus: t("letterService.docTypeLabels.mahnung_2_plus", "2.+ Mahnung"),
+    inkasso: t("letterService.docTypeLabels.inkasso", "Inkasso-Schreiben"),
+    mahnbescheid: t("letterService.docTypeLabels.mahnbescheid", "Gerichtlicher Mahnbescheid"),
+    unbekannt: t("letterService.docTypeLabels.unbekannt", "Unbekanntes Dokument"),
+  };
+}
 
 /** Jedes extrahierte Feld trägt einen Confidence-Wert (0..1). */
 export interface ExtractedField<T = string> {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { generateRiskDiagnosis } from '../risk-diagnosis';
 import type { StressCapacityLevel } from '../scenario-payload-types';
 
@@ -13,6 +13,16 @@ function capacity(value: number, conf = 0.9): StressCapacityLevel {
 }
 
 describe('generateRiskDiagnosis', () => {
+  beforeEach(() => {
+    // Set locale to German for tests (serviceT reads from localStorage)
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  afterEach(() => {
+    // Clean up
+    window.localStorage.removeItem('ausgabentracker_locale_v1');
+  });
+
   describe('Normal Behavior', () => {
     it('sollte den Nicht-Beratungs-Disclaimer enthalten', () => {
       const diag = generateRiskDiagnosis({

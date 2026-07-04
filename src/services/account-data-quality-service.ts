@@ -1,4 +1,5 @@
 import type { Account } from "@/types";
+import { t } from "@/i18n/serviceT";
 
 /**
  * Datenqualitäts-Service pro Konto.
@@ -48,13 +49,15 @@ export interface AccountDataQuality {
 const STALE_WARNING_DAYS = 7;
 const STALE_CRITICAL_DAYS = 30;
 
-const STATUS_LABELS: Record<AccountDataQualityStatus, string> = {
-  good: "Sehr gut",
-  warning: "Eingeschränkt",
-  critical: "Kritisch",
-  manual: "Manuell",
-  unknown: "Unbekannt",
-};
+function getStatusLabels(): Record<AccountDataQualityStatus, string> {
+  return {
+    good: t("accountDataQuality.statusGood", "Sehr gut"),
+    warning: t("accountDataQuality.statusWarning", "Eingeschränkt"),
+    critical: t("accountDataQuality.statusCritical", "Kritisch"),
+    manual: t("accountDataQuality.statusManual", "Manuell"),
+    unknown: t("accountDataQuality.statusUnknown", "Unbekannt"),
+  };
+}
 
 /** Volle Tage zwischen zwei Zeitpunkten (>= 0, nie negativ). */
 function daysSince(iso: string, now: Date): number {
@@ -83,7 +86,7 @@ export function deriveAccountDataQuality(
     issues.push({
       code: "manual_account",
       severity: "info",
-      message: "Manuell gepflegt – Prognose hängt von deinen Eingaben ab.",
+      message: t("accountDataQuality.manualAccountMessage", "Manuell gepflegt – Prognose hängt von deinen Eingaben ab."),
     });
 
     if (account.opening_balance == null) {
@@ -91,18 +94,19 @@ export function deriveAccountDataQuality(
         code: "missing_opening_balance",
         severity: "info",
         message:
-          "Kein Startsaldo hinterlegt – Saldo basiert nur auf erfassten Transaktionen.",
-        ctaLabel: "Startsaldo ergänzen",
+          t("accountDataQuality.noOpeningBalanceMessage", "Kein Startsaldo hinterlegt – Saldo basiert nur auf erfassten Transaktionen."),
+        ctaLabel: t("accountDataQuality.addOpeningBalanceLabel", "Startsaldo ergänzen"),
       });
     }
 
+    const statusLabels = getStatusLabels();
     return {
       accountId: account.id,
       status: "manual",
       score: 65,
-      label: STATUS_LABELS.manual,
+      label: statusLabels.manual,
       description:
-        "Manuell gepflegtes Konto. Die Datenqualität hängt von deinen Eingaben ab.",
+        t("accountDataQuality.manualAccountDescription", "Manuell gepflegtes Konto. Die Datenqualität hängt von deinen Eingaben ab."),
       lastSyncAt,
       issues,
     };
@@ -116,16 +120,17 @@ export function deriveAccountDataQuality(
       code: "sync_disabled",
       severity: "warning",
       message:
-        "Automatische Synchronisierung ist deaktiviert – neue Buchungen fehlen evtl.",
-      ctaLabel: "Synchronisierung aktivieren",
+        t("accountDataQuality.syncDisabledMessage", "Automatische Synchronisierung ist deaktiviert – neue Buchungen fehlen evtl."),
+      ctaLabel: t("accountDataQuality.enableSyncLabel", "Synchronisierung aktivieren"),
     });
+    const statusLabels = getStatusLabels();
     return {
       accountId: account.id,
       status: "warning",
       score: 50,
-      label: STATUS_LABELS.warning,
+      label: statusLabels.warning,
       description:
-        "Die automatische Synchronisierung ist deaktiviert. Die Daten können veraltet sein.",
+        t("accountDataQuality.syncDisabledDescription", "Die automatische Synchronisierung ist deaktiviert. Die Daten können veraltet sein."),
       lastSyncAt,
       issues,
     };
@@ -136,16 +141,17 @@ export function deriveAccountDataQuality(
     issues.push({
       code: "never_synced",
       severity: "critical",
-      message: "Konto wurde noch nie synchronisiert.",
-      ctaLabel: "Jetzt synchronisieren",
+      message: t("accountDataQuality.neverSyncedMessage", "Konto wurde noch nie synchronisiert."),
+      ctaLabel: t("accountDataQuality.syncNowLabel", "Jetzt synchronisieren"),
     });
+    const statusLabels = getStatusLabels();
     return {
       accountId: account.id,
       status: "critical",
       score: 20,
-      label: STATUS_LABELS.critical,
+      label: statusLabels.critical,
       description:
-        "Dieses Konto wurde noch nie synchronisiert. Es liegen keine aktuellen Daten vor.",
+        t("accountDataQuality.neverSyncedDescription", "Dieses Konto wurde noch nie synchronisiert. Es liegen keine aktuellen Daten vor."),
       lastSyncAt,
       issues,
     };
@@ -158,15 +164,16 @@ export function deriveAccountDataQuality(
     issues.push({
       code: "sync_stale",
       severity: "critical",
-      message: `Letzter Sync vor ${ageDays} Tagen – Prognose kann unvollständig sein.`,
-      ctaLabel: "Jetzt synchronisieren",
+      message: t("accountDataQuality.syncStaleCriticalMessage", "Letzter Sync vor {days} Tagen – Prognose kann unvollständig sein.").replace('{days}', String(ageDays)),
+      ctaLabel: t("accountDataQuality.syncNowLabel", "Jetzt synchronisieren"),
     });
+    const statusLabels = getStatusLabels();
     return {
       accountId: account.id,
       status: "critical",
       score: 30,
-      label: STATUS_LABELS.critical,
-      description: `Der letzte erfolgreiche Sync war vor ${ageDays} Tagen. Die Daten sind veraltet.`,
+      label: statusLabels.critical,
+      description: t("accountDataQuality.syncStaleCriticalDescription", "Der letzte erfolgreiche Sync war vor {days} Tagen. Die Daten sind veraltet.").replace('{days}', String(ageDays)),
       lastSyncAt,
       issues,
     };
@@ -177,27 +184,29 @@ export function deriveAccountDataQuality(
     issues.push({
       code: "sync_stale",
       severity: "warning",
-      message: `Letzter Sync vor ${ageDays} Tagen – Prognose kann unvollständig sein.`,
-      ctaLabel: "Jetzt synchronisieren",
+      message: t("accountDataQuality.syncStaleWarningMessage", "Letzter Sync vor {days} Tagen – Prognose kann unvollständig sein.").replace('{days}', String(ageDays)),
+      ctaLabel: t("accountDataQuality.syncNowLabel", "Jetzt synchronisieren"),
     });
+    const statusLabels = getStatusLabels();
     return {
       accountId: account.id,
       status: "warning",
       score: 60,
-      label: STATUS_LABELS.warning,
-      description: `Der letzte Sync war vor ${ageDays} Tagen. Neuere Buchungen könnten fehlen.`,
+      label: statusLabels.warning,
+      description: t("accountDataQuality.syncStaleWarningDescription", "Der letzte Sync war vor {days} Tagen. Neuere Buchungen könnten fehlen.").replace('{days}', String(ageDays)),
       lastSyncAt,
       issues,
     };
   }
 
   // Frisch synchronisiert
+  const statusLabels = getStatusLabels();
   return {
     accountId: account.id,
     status: "good",
     score: 95,
-    label: STATUS_LABELS.good,
-    description: "Konto ist aktuell synchronisiert.",
+    label: statusLabels.good,
+    description: t("accountDataQuality.syncFreshDescription", "Konto ist aktuell synchronisiert."),
     lastSyncAt,
     issues,
   };

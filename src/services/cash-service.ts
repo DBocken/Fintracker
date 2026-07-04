@@ -1,5 +1,6 @@
 import type { Account, Transaction } from "../types";
 import { createTransaction, markTransferPair } from "./transaction-service";
+import { t } from "../i18n/serviceT";
 
 /**
  * Stichwörter, die auf eine Bargeldabhebung am Automaten / Schalter hindeuten.
@@ -41,16 +42,16 @@ export async function moveWithdrawalToCash(params: {
   cashAccountId: string;
 }): Promise<Transaction> {
   const { giroTransaction, cashAccountId } = params;
-  if (!giroTransaction.id) throw new Error("Buchung ohne ID kann nicht übernommen werden.");
+  if (!giroTransaction.id) throw new Error(t('cashService.missingTransactionId', 'Buchung ohne ID kann nicht übernommen werden.'));
   const amount = Math.abs(Number(giroTransaction.amount) || 0);
-  if (amount <= 0) throw new Error("Betrag der Abhebung ist 0.");
+  if (amount <= 0) throw new Error(t('cashService.zeroWithdrawalAmount', 'Betrag der Abhebung ist 0.'));
 
   const cashCredit = await createTransaction({
     account_id: cashAccountId,
     date: giroTransaction.date,
     amount,
-    payee: "Bargeldabhebung",
-    description: "Abhebung aufs Bargeld-Konto",
+    payee: t('cashService.withdrawalPayee', 'Bargeldabhebung'),
+    description: t('cashService.withdrawalToAccountDesc', 'Abhebung aufs Bargeld-Konto'),
     is_transfer: true,
   });
 
@@ -71,17 +72,17 @@ export async function recordCashWithdrawal(params: {
   note?: string;
 }): Promise<{ debit: Transaction; credit: Transaction }> {
   const amount = Math.abs(Number(params.amount) || 0);
-  if (amount <= 0) throw new Error("Bitte einen Betrag größer 0 angeben.");
+  if (amount <= 0) throw new Error(t('cashService.invalidAmount', 'Bitte einen Betrag größer 0 angeben.'));
   if (params.sourceAccountId === params.cashAccountId) {
-    throw new Error("Quell- und Bargeld-Konto müssen unterschiedlich sein.");
+    throw new Error(t('cashService.sameAccountError', 'Quell- und Bargeld-Konto müssen unterschiedlich sein.'));
   }
 
   const debit = await createTransaction({
     account_id: params.sourceAccountId,
     date: params.date,
     amount: -amount,
-    payee: "Bargeldabhebung",
-    description: params.note || "Geld abgehoben",
+    payee: t('cashService.withdrawalPayee', 'Bargeldabhebung'),
+    description: params.note || t('cashService.moneyWithdrawn', 'Geld abgehoben'),
     is_transfer: true,
   });
 
@@ -89,8 +90,8 @@ export async function recordCashWithdrawal(params: {
     account_id: params.cashAccountId,
     date: params.date,
     amount,
-    payee: "Bargeldabhebung",
-    description: params.note || "Geld abgehoben",
+    payee: t('cashService.withdrawalPayee', 'Bargeldabhebung'),
+    description: params.note || t('cashService.moneyWithdrawn', 'Geld abgehoben'),
     is_transfer: true,
   });
 

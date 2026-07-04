@@ -1,3 +1,4 @@
+import { t } from '../i18n/serviceT';
 import type { Portfolio, PortfolioPosition, PortfolioSummary } from '../types';
 import { getCurrentUserId } from './auth-service';
 import {
@@ -39,7 +40,7 @@ export async function createPortfolio(portfolioData: Partial<Portfolio>): Promis
   return upsertLocalFinanceItem<Portfolio>('portfolios', {
     id: portfolioData.id || crypto.randomUUID(),
     user_id: await localUserId(),
-    name: portfolioData.name || 'Neues Portfolio',
+    name: portfolioData.name || t('portfolio.newPortfolioName'),
     type: portfolioData.type || 'manual',
     provider_config: portfolioData.provider_config || {},
     currency: portfolioData.currency || 'EUR',
@@ -55,7 +56,7 @@ export async function updatePortfolio(id: string, updates: Partial<Portfolio>): 
 
 export async function setActivePortfolio(id: string): Promise<void> {
   const portfolios = await getPortfolios();
-  if (!portfolios.some((portfolio) => portfolio.id === id)) throw new Error('Portfolio not found');
+  if (!portfolios.some((portfolio) => portfolio.id === id)) throw new Error(t('portfolio.notFound'));
   await writeLocalFinanceList('portfolios', portfolios.map((portfolio) => ({
     ...portfolio,
     is_active: portfolio.id === id,
@@ -76,7 +77,7 @@ export async function deletePortfolio(id: string): Promise<void> {
 
 export async function getPositions(portfolioId: string): Promise<PortfolioPosition[]> {
   const portfolio = await getPortfolioById(portfolioId);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const positions = await readLocalFinanceList<PortfolioPosition>('portfolioPositions');
   return positions
@@ -91,7 +92,7 @@ export async function getPositionById(id: string): Promise<PortfolioPosition | n
 
 export async function createPosition(position: Partial<PortfolioPosition>): Promise<PortfolioPosition> {
   const portfolio = await getPortfolioById(position.portfolio_id!);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const now = new Date().toISOString();
   return upsertLocalFinanceItem<PortfolioPosition>('portfolioPositions', {
@@ -142,7 +143,7 @@ export async function batchUpdatePrices(updates: Array<{ id: string; price: numb
 
 export async function getPortfolioSummary(portfolioId: string): Promise<PortfolioSummary> {
   const portfolio = await getPortfolioById(portfolioId);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const positions = await getPositions(portfolioId);
   let total_value = 0;
@@ -172,7 +173,7 @@ export async function initializeDemoPortfolio(): Promise<Portfolio> {
   if (existing.length > 0) return existing[0];
 
   const demoPortfolio = await createPortfolio({
-    name: 'Demo Portfolio',
+    name: t('portfolio.demoPortfolioName'),
     type: 'demo',
     currency: 'EUR',
     is_active: true,

@@ -1,3 +1,4 @@
+import { t } from '../i18n/serviceT';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 import { toMinor, sumMinor } from '@/lib/money';
 import type { Transaction, TransactionAllocation } from '@/types';
@@ -84,7 +85,11 @@ export function validateAllocations(
 
 export class AllocationInvariantError extends Error {
   constructor(public readonly result: AllocationValidationResult) {
-    super(`Ungültige Transaktionsaufteilung: ${result.error} (Δ ${result.deltaMinor} Cent)`);
+    super(
+      t('transactionAllocationService.invariantErrorTitle', 'Ungültige Transaktionsaufteilung: {error} (Δ {delta} Cent)')
+        .replace('{error}', String(result.error))
+        .replace('{delta}', String(result.deltaMinor)),
+    );
     this.name = 'AllocationInvariantError';
   }
 }
@@ -128,7 +133,7 @@ export async function setAllocations(
   transaction: Pick<Transaction, 'id' | 'amount'>,
   inputs: AllocationInput[],
 ): Promise<TransactionAllocation[]> {
-  if (!transaction.id) throw new Error('Transaktion ohne ID kann nicht aufgeteilt werden.');
+  if (!transaction.id) throw new Error(t('transactionAllocationService.missingTransactionId', 'Transaktion ohne ID kann nicht aufgeteilt werden.'));
   const now = new Date().toISOString();
   const txId = transaction.id;
 

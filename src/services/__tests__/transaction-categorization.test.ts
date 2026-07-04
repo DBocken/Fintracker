@@ -1,6 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { categorizeTransaction } from "../transaction-service";
 import type { Category, Transaction } from "../../types";
+
+beforeEach(() => {
+  localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {

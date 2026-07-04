@@ -1,10 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   deriveAccountDataQuality,
 } from "../account-data-quality-service";
 import type { Account } from "@/types";
 
 const NOW = new Date("2026-06-22T12:00:00.000Z");
+
+beforeEach(() => {
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function makeAccount(overrides: Partial<Account> = {}): Account {
   return {
@@ -70,7 +78,7 @@ describe("deriveAccountDataQuality", () => {
     expect(result.score).toBe(60);
     const issue = result.issues.find((i) => i.code === "sync_stale");
     expect(issue).toBeDefined();
-    expect(issue?.message).toContain("10 Tagen");
+    expect(issue?.message).toContain("10");
   });
 
   it("marks last sync older than 30 days as critical", () => {

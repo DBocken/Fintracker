@@ -83,7 +83,7 @@ export default function CommandPalette() {
         <CommandList>
           <CommandEmpty>{t("common.noResults", "Keine Ergebnisse gefunden.")}</CommandEmpty>
 
-          <CommandGroup heading="Quick Actions">
+          <CommandGroup heading={t("commandPalette.quickActionsHeading")}>
             {quickActions.map((a) => {
               const Icon = a.icon;
               return (

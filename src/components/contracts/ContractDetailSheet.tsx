@@ -7,7 +7,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
 import {
   upsertContractDecision,
-  CONTRACT_STATUS_LABELS,
+  getContractStatusLabels,
   type ContractStatus,
 } from "@/services/contract-decision-service";
 import type { ContractRow } from "./contract-types";
@@ -60,7 +60,7 @@ export function ContractDetailSheet({
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
                 {row.payee}
-                <Badge variant="outline">{CONTRACT_STATUS_LABELS[row.status]}</Badge>
+                <Badge variant="outline">{getContractStatusLabels()[row.status]}</Badge>
               </SheetTitle>
               <SheetDescription>
                 {row.categoryName} · {row.cycle}

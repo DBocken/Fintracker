@@ -271,19 +271,19 @@ export async function assignTransactionToDebt(params: {
 }): Promise<DebtTransactionAssignment> {
   const debts = await getDebts();
   const debt = debts.find((entry) => entry.id === params.debtId);
-  if (!debt) throw new Error("Schuld nicht gefunden");
+  if (!debt) throw new Error(t("debtService.debtNotFound"));
 
   const transaction = (await getTransactions(10000)).find((entry) => entry.id === params.transactionId);
-  if (!transaction) throw new Error("Transaktion nicht gefunden");
+  if (!transaction) throw new Error(t("debtService.transactionNotFound"));
 
   const amount = Math.abs(Number(transaction.amount) || 0);
   if (amount <= 0 || Number(transaction.amount) >= 0) {
-    throw new Error("Nur Abbuchungen können einer Schuld als Tilgung zugewiesen werden.");
+    throw new Error(t("debtService.onlyDebitsAllowed"));
   }
 
   const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
   if (assignments.some((assignment) => assignment.transaction_id === params.transactionId)) {
-    throw new Error("Diese Abbuchung ist bereits einer Schuld zugewiesen.");
+    throw new Error(t("debtService.alreadyAssigned"));
   }
 
   const assignment: DebtTransactionAssignment = {
@@ -305,7 +305,7 @@ export async function assignTransactionToDebt(params: {
 export async function unassignDebtTransaction(assignmentId: string): Promise<void> {
   const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
   const assignment = assignments.find((entry) => entry.id === assignmentId);
-  if (!assignment) throw new Error("Zuweisung nicht gefunden");
+  if (!assignment) throw new Error(t("debtService.assignmentNotFound"));
 
   await writeLocalFinanceList("debtAssignments", assignments.filter((entry) => entry.id !== assignmentId));
 

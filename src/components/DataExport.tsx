@@ -55,7 +55,7 @@ export function DataExport() {
       if (format === 'csv') {
         const result = await transactionStorage.exportToCSV(filteredTransactions);
         if (!result.success || !result.data) {
-          throw new Error(result.error || 'Export failed');
+          throw new Error(result.error || t('dataExport.genericExportFailed'));
         }
         return { format, csv: result.data, count: filteredTransactions.length };
       } else {

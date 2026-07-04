@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import type { Category, Transaction } from '@/types';
 import type { BudgetStatus } from '@/types';
 import type { WaterfallPlan } from '../waterfall-service';
@@ -44,6 +44,14 @@ function baseInput(overrides: Partial<SnapshotInput> = {}): SnapshotInput {
 }
 
 describe('cloud-mcp-sync-service', () => {
+  beforeEach(() => {
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem('ausgabentracker_locale_v1');
+  });
+
   describe('Normal Behavior – buildMcpAggregateSnapshot', () => {
     it('sollte Ausgaben pro Kategorie und Monat summieren', () => {
       const snap = buildMcpAggregateSnapshot(

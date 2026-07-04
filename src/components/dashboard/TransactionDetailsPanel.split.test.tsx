@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import type { Category, Transaction } from "@/types";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: [] }) }));
-vi.mock("@/i18n/useI18n", () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: "de" }) }));
 vi.mock("@/components/categories/CategoryTwoStepSelect", () => ({
   CategoryTwoStepSelect: () => <div data-testid="cat-select" />,
 }));
@@ -34,17 +34,19 @@ const TX: Transaction = {
 
 function renderPanel(layout: "stacked" | "split") {
   return render(
-    <MemoryRouter>
-      <TransactionDetailsPanel
-        transaction={TX}
-        categories={CATS}
-        accounts={[]}
-        allTransactions={[TX]}
-        onSave={vi.fn()}
-        onClose={vi.fn()}
-        layout={layout}
-      />
-    </MemoryRouter>,
+    <I18nProvider initialLocale="de">
+      <MemoryRouter>
+        <TransactionDetailsPanel
+          transaction={TX}
+          categories={CATS}
+          accounts={[]}
+          allTransactions={[TX]}
+          onSave={vi.fn()}
+          onClose={vi.fn()}
+          layout={layout}
+        />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 

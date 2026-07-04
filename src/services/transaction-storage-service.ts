@@ -1,6 +1,7 @@
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { t } from '@/i18n/serviceT';
 
 /**
  * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
@@ -96,7 +97,7 @@ class TransactionStorageService {
       console.error('[TransactionStorage] Error getting transactions:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -111,7 +112,7 @@ class TransactionStorageService {
       console.error('[TransactionStorage] Error saving transactions:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -126,7 +127,7 @@ class TransactionStorageService {
       console.error('[TransactionStorage] Error updating transaction:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -146,7 +147,7 @@ class TransactionStorageService {
       console.error('[TransactionStorage] Error deleting transaction:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -156,7 +157,7 @@ class TransactionStorageService {
    */
   async sync(): Promise<StorageResult<{ uploaded: number; downloaded: number }>> {
     if (this.syncInProgress) {
-      return { success: false, error: 'Sync already in progress' };
+      return { success: false, error: t('transactionStorage.syncInProgress') };
     }
 
     try {
@@ -165,13 +166,13 @@ class TransactionStorageService {
       return {
         success: true,
         data: { uploaded: 0, downloaded: 0 },
-        error: 'Cloud-Klartextsync wurde deaktiviert. Bitte verschlüsselte Snapshots verwenden.',
+        error: t('transactionStorage.cloudSyncDisabled'),
       };
     } catch (error) {
       console.error('[TransactionStorage] Sync error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     } finally {
       this.syncInProgress = false;
@@ -186,7 +187,7 @@ class TransactionStorageService {
       const txs = transactions || await this.getAllTransactions();
 
       if (!txs || txs.length === 0) {
-        return { success: false, error: 'No transactions to export' };
+        return { success: false, error: t('transactionStorage.noTransactionsExport') };
       }
 
       const escapeCsvCell = (value: unknown) => {
@@ -220,7 +221,7 @@ class TransactionStorageService {
       console.error('[TransactionStorage] Export error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorageServiceLib.unknownError', 'Unknown error'),
       };
     }
   }
@@ -253,7 +254,7 @@ class TransactionStorageService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -270,7 +271,7 @@ class TransactionStorageService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
       };
     }
   }
@@ -306,7 +307,7 @@ class TransactionStorageService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to read local storage',
+        error: error instanceof Error ? error.message : t('transactionStorage.failedToReadLocalStorage'),
       };
     }
   }
@@ -337,25 +338,25 @@ class TransactionStorageService {
   private async updateLocalTransaction(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
     const existing = await this.getLocalTransactions();
     if (!existing.data) {
-      return { success: false, error: 'No transactions found' };
+      return { success: false, error: t('transactionStorage.noTransactionsFound') };
     }
-    
-    const updated = existing.data.map(tx => 
+
+    const updated = existing.data.map(tx =>
       tx.id === id ? { ...tx, ...updates } : tx
     );
-    
+
     await this.setLocalTransactions(updated);
-    
+
     const updatedTx = updated.find(tx => tx.id === id);
-    return updatedTx 
+    return updatedTx
       ? { success: true, data: updatedTx }
-      : { success: false, error: 'Transaction not found' };
+      : { success: false, error: t('transactionStorage.transactionNotFound') };
   }
 
   private async deleteLocalTransaction(id: string): Promise<StorageResult<void>> {
     const existing = await this.getLocalTransactions();
     if (!existing.data) {
-      return { success: false, error: 'No transactions found' };
+      return { success: false, error: t('transactionStorage.noTransactionsFound') };
     }
     
     const filtered = existing.data.filter(tx => tx.id !== id);

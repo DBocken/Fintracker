@@ -40,7 +40,7 @@ describe("parseReceipt", () => {
   });
 
   it("[SECURITY] rejects oversized OCR input before expensive parsing", () => {
-    expect(() => parseReceipt("A".repeat(MAX_RECEIPT_TEXT_LENGTH + 1))).toThrow(/zu groß/);
+    expect(() => parseReceipt("A".repeat(MAX_RECEIPT_TEXT_LENGTH + 1))).toThrow(/zu groß|too large/);
   });
 
   it("[INTEGRITY] rejects impossible calendar dates", () => {

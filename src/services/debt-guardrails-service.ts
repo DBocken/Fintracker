@@ -5,6 +5,7 @@
 // Die App informiert, strukturiert und motiviert — sie berät nicht rechtlich.
 // Alle Texte hier sind gegen die Regeln in docs/RDG_TEXTREGELN.md geprüft.
 
+import { t } from "../i18n/serviceT";
 import type { Transaction } from "../types";
 import { creditorKey, similarReference, type Claim } from "./claim-service";
 
@@ -18,26 +19,29 @@ export interface CounselingService {
   note: string;
 }
 
-export const COUNSELING_SERVICES: CounselingService[] = [
-  {
-    name: "Caritas Schuldnerberatung",
-    url: "https://www.caritas.de/onlineberatung/schuldnerberatung",
-    note: "Kostenlos, auch online und anonym.",
-  },
-  {
-    name: "Diakonie Schuldnerberatung",
-    url: "https://www.diakonie.de/schuldnerberatung",
-    note: "Kostenlos, bundesweit.",
-  },
-  {
-    name: "Verbraucherzentrale",
-    url: "https://www.verbraucherzentrale.de/beratung",
-    note: "Schuldner- und Insolvenzberatung, je nach Bundesland kostenlos.",
-  },
-];
+export function getCounselingServices(): CounselingService[] {
+  return [
+    {
+      name: t('debts.guardrails.counselingCaritasName'),
+      url: 'https://www.caritas.de/onlineberatung/schuldnerberatung',
+      note: t('debts.guardrails.counselingCaritasNote'),
+    },
+    {
+      name: t('debts.guardrails.counselingDiakoniaName'),
+      url: 'https://www.diakonie.de/schuldnerberatung',
+      note: t('debts.guardrails.counselingDiakoniaNote'),
+    },
+    {
+      name: t('debts.guardrails.counselingVerbraucherzentraleName'),
+      url: 'https://www.verbraucherzentrale.de/beratung',
+      note: t('debts.guardrails.counselingVerbraucherzentraleNote'),
+    },
+  ];
+}
 
-export const COMMERCIAL_REGULATOR_WARNING =
-  "Vorsicht bei kommerziellen „Schuldenregulierern“: Sie verlangen Gebühren für etwas, das anerkannte Beratungsstellen kostenlos leisten. Die Stellen oben sind kostenlos.";
+export function getCommercialRegulatorWarning(): string {
+  return t('debts.guardrails.commercialRegulatorWarning');
+}
 
 // -----------------------------------------------------------------------------
 // 1. Mahnbescheid-Eskalation
@@ -66,15 +70,14 @@ export function claimGuidance(claim: Claim): ClaimGuidance {
     return {
       kind: "mahnbescheid",
       allowPaymentAction: false,
-      message:
-        "Das ist ein gerichtlicher Mahnbescheid mit 14-Tage-Frist. Hier hilft dir eine Schuldnerberatung sofort und kostenlos.",
-      counseling: COUNSELING_SERVICES,
+      message: t('debts.guardrails.mahnbescheidMessage'),
+      counseling: getCounselingServices(),
     };
   }
   return {
     kind: "normal",
     allowPaymentAction: claim.status === "bestaetigt",
-    message: "Eingeordnet in deinen Plan.",
+    message: t('debts.guardrails.normalClaimMessage'),
     counseling: null,
   };
 }
@@ -107,20 +110,18 @@ export function counselingRecommendation(
 ): CounselingRecommendation {
   let reason: string | null = null;
   if (input.planMonths === null) {
-    reason =
-      "Mit den aktuellen Raten geht dein Plan nicht auf. Das ist lösbar — aber nicht allein mit einer App.";
+    reason = t('debts.guardrails.overindebtednessNoSolution');
   } else if (input.planMonths > OVERINDEBTEDNESS_PLAN_MONTHS) {
-    reason = `Dein Plan dauert länger als ${OVERINDEBTEDNESS_PLAN_MONTHS / 12} Jahre. Eine Schuldnerberatung kennt Wege, die schneller zum Ziel führen können.`;
+    reason = t('debts.guardrails.overindebtednessPlanTooLong', 'Dein Plan dauert länger als {years} Jahre. Eine Schuldnerberatung kennt Wege, die schneller zum Ziel führen können.').replace('{years}', String(OVERINDEBTEDNESS_PLAN_MONTHS / 12));
   } else if (input.monthlyRate > input.availableIncome) {
-    reason =
-      "Die geplanten Raten liegen über dem, was dir monatlich bleibt. Eine Schuldnerberatung hilft kostenlos, das neu zu ordnen.";
+    reason = t('debts.guardrails.overindebtednessHighRate');
   }
 
   return {
     recommended: reason !== null,
     reason,
-    services: COUNSELING_SERVICES,
-    warning: COMMERCIAL_REGULATOR_WARNING,
+    services: getCounselingServices(),
+    warning: getCommercialRegulatorWarning(),
   };
 }
 
@@ -137,9 +138,11 @@ export const RDG_REGISTER_URL = "https://www.rechtsdienstleistungsregister.de";
 export function inkassoRegisterHint(claim: Claim): string | null {
   const isInkasso =
     claim.original_creditor != null ||
-    claim.timeline.some((e) => e.doc_type === "inkasso");
+    claim.timeline.some((e) => e.doc_type === 'inkasso');
   if (!isInkasso) return null;
-  return `Inkassounternehmen müssen im Rechtsdienstleistungsregister eingetragen sein. Du kannst „${claim.creditor}“ dort kostenlos nachschlagen: ${RDG_REGISTER_URL}`;
+  return t('debts.guardrails.inkassoHint', 'Inkassounternehmen muessen im Rechtsdienstleistungsregister eingetragen sein. Du kannst \”{creditor}\” dort kostenlos nachschlagen: {url}')
+    .replace('{creditor}', claim.creditor)
+    .replace('{url}', RDG_REGISTER_URL);
 }
 
 /**
@@ -155,7 +158,8 @@ export function ibanChangeWarning(claim: Claim): string | null {
     const explainedByInkasso =
       curr.doc_type === "inkasso" && prev.doc_type !== "inkasso";
     if (!explainedByInkasso) {
-      return `Achtung: Die Empfänger-IBAN in dieser Akte hat sich geändert (${prev.iban} → ${curr.iban}), ohne dass ein Inkasso-Übergang erkennbar ist. Das kann ein Fehler sein — oder ein Betrugsversuch. Zahle erst, wenn du den Wechsel geklärt hast.`;
+      const msg = t('debts.guardrails.ibanWarning', 'Achtung: Die Empfaenger-IBAN in dieser Akte hat sich geaendert ({oldIban} -> {newIban}), ohne dass ein Inkasso-Uebergang erkennbar ist. Das kann ein Fehler sein - oder ein Betrugsversuch. Zahle erst, wenn du den Wechsel geklaert hast.');
+      return msg.replace('{oldIban}', prev.iban ?? '').replace('{newIban}', curr.iban ?? '');
     }
   }
   return null;
@@ -215,7 +219,7 @@ export function matchPaymentsToClaims(
         transactionId: tx.id,
         duplicate,
         warning: duplicate
-          ? `Mögliche Doppelzahlung: Auf die Forderung von ${claim.creditor} wurde bereits gezahlt. Prüfe die Umsätze, bevor du erneut überweist — zu viel Gezahltes kannst du zurückfordern.`
+          ? t('debts.guardrails.duplicatePaymentWarning', 'Mögliche Doppelzahlung: Auf die Forderung von {creditor} wurde bereits gezahlt. Prüfe die Umsätze, bevor du erneut überweist — zu viel Gezahltes kannst du zurückfordern.').replace('{creditor}', claim.creditor)
           : null,
       });
       if (!duplicate) paidClaimIds.add(claim.id);

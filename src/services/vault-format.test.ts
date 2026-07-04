@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, afterEach, describe, it, expect } from "vitest";
 import {
   createVaultFile,
   serializeVaultFile,
@@ -13,6 +13,14 @@ import {
 } from "./vault-format";
 
 const PASSWORD = "korrekt-pferd-batterie-klammer";
+
+beforeEach(() => {
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function payloadWith(partial: Partial<VaultPayload>): VaultPayload {
   return { ...emptyVaultPayload(), ...partial };

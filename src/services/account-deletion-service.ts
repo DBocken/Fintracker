@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { clearAllLocalData } from './local-data-reset';
+import { t } from '@/i18n/serviceT';
 
 /**
  * DSGVO-Löschung (Issue #31).
@@ -24,7 +25,7 @@ export async function deleteAccount(options?: { alsoLocal?: boolean }): Promise<
   });
 
   if (error) {
-    throw new Error(error.message || 'Konto konnte nicht gelöscht werden.');
+    throw new Error(error.message || t('accountDeletionService.deletionFailed', 'Konto konnte nicht gelöscht werden.'));
   }
 
   if (options?.alsoLocal) {

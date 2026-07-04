@@ -8,6 +8,8 @@
  * z. B. 12.505 deterministisch zu 1251 wird statt zu 1250.
  */
 
+import { t } from "@/i18n/serviceT";
+
 /** Float-Euro -> Integer-Cent. Vorzeichen bleibt erhalten. */
 export function toMinor(amount: number): number {
   // Math.round behandelt die übliche Float-Drift bei 2-Dezimal-Euro-Beträgen
@@ -65,6 +67,6 @@ export function parseGermanNumber(input: string | number | null | undefined): nu
  */
 export function parseEuroInput(input: string | number | null | undefined): number {
   const n = parseGermanNumber(input);
-  if (n === null) throw new Error("Ungültiger Betrag");
+  if (n === null) throw new Error(t("moneyLib.invalidAmount", "Ungültiger Betrag"));
   return n;
 }

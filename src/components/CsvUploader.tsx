@@ -21,7 +21,7 @@ import {
 } from '../services/csv-service'
 import type { Transaction } from '../types'
 import { applyAutoCategorization } from '../services/transaction-service'
-import { getAccounts, getOrCreateDefaultAccount, ACCOUNT_TYPE_LABELS } from '../services/account-service'
+import { getAccounts, getOrCreateDefaultAccount, getAccountTypeLabels } from '../services/account-service'
 import { useI18n } from '@/i18n/useI18n'
 
 interface CsvUploaderProps {
@@ -33,6 +33,7 @@ const LAST_ACCOUNT_KEY = 'ausgabentracker_last_import_account';
 
 export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
   const { t } = useI18n();
+  const accountTypeLabels = getAccountTypeLabels();
   const [rawHeaderLine, setRawHeaderLine] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [delimiter, setDelimiter] = useState<string>(';')
@@ -161,10 +162,10 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
-            CSV hochladen
+            {t("csv.title")}
           </CardTitle>
           <CardDescription>
-            Importiere Transaktionen aus deiner Bank-CSV
+            {t("csv.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,13 +173,13 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
             {/* Account Selection - Required */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Zielkonto <span className="text-warning">*</span>
+                {t("csv.targetAccount")} <span className="text-warning">*</span>
               </label>
               {accounts.length === 0 && !accountsLoading ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Bitte erstelle zuerst ein Konto in den Einstellungen.
+                    {t("csv.createAccountFirst")}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -189,7 +190,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                     disabled={accountsLoading}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder={accountsLoading ? t("csv.loadingAccounts", "Lade Konten...") : t("forms.selectAccountPlaceholder", "Konto auswählen")} />
+                      <SelectValue placeholder={accountsLoading ? t("csv.loadingAccounts") : t("forms.selectAccountPlaceholder", "Konto auswählen")} />
                     </SelectTrigger>
                     <SelectContent>
                       {accounts.map((account) => (
@@ -202,7 +203,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                             <span>{account.icon}</span>
                             <span>{account.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">
-                              ({ACCOUNT_TYPE_LABELS[account.type]})
+                              ({accountTypeLabels[account.type]})
                             </span>
                           </div>
                         </SelectItem>
@@ -210,46 +211,46 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Alle importierten Transaktionen werden diesem Konto zugeordnet
+                    {t("csv.allTransactionsToAccount")}
                   </p>
                 </>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Kontotyp</label>
+              <label className="block text-sm font-medium mb-2">{t("csv.accountType")}</label>
               <Select value={accountType} onValueChange={(val: 'bank' | 'credit') => setAccountType(val)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank">Bankkonto (Giro)</SelectItem>
-                  <SelectItem value="credit">Kreditkarte</SelectItem>
+                  <SelectItem value="bank">{t("csv.bankAccount")}</SelectItem>
+                  <SelectItem value="credit">{t("csv.creditCard")}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {accountType === 'credit' 
-                  ? 'Ausgaben werden automatisch negiert' 
-                  : 'Standard Bankkonto'}
+                {accountType === 'credit'
+                  ? t("csv.creditNegated")
+                  : t("csv.standardBank")}
               </p>
             </div>
 
             <div
               {...getRootProps()}
               className={`border-dashed border-2 p-8 text-center cursor-pointer rounded-lg transition-colors ${
-                !selectedAccountId 
-                  ? 'border-border bg-muted cursor-not-allowed opacity-50' 
+                !selectedAccountId
+                  ? 'border-border bg-muted cursor-not-allowed opacity-50'
                   : 'border-border hover:border-primary hover:bg-primary/5'
               }`}
               style={{ pointerEvents: selectedAccountId ? 'auto' : 'none' }}
             >
               <input {...getInputProps()} disabled={!selectedAccountId} />
               {!selectedAccountId ? (
-                <p className="text-muted-foreground">Bitte zuerst ein Konto auswählen</p>
+                <p className="text-muted-foreground">{t("csv.selectAccountFirst")}</p>
               ) : isDragActive ? (
-                <p>Loslassen zum Hochladen...</p>
+                <p>{t("csv.releaseToUpload")}</p>
               ) : (
-                <p>Ziehe eine CSV-Datei hierher oder klicke, um sie auszuwählen</p>
+                <p>{t("csv.dragOrClick")}</p>
               )}
             </div>
           </div>
@@ -264,47 +265,47 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
   return (
     <Card className="ui-card">
       <CardHeader>
-        <CardTitle>Spalten zuordnen</CardTitle>
+        <CardTitle>{t("csv.mapColumns")}</CardTitle>
         {selectedAccount && (
           <CardDescription className="flex items-center gap-2">
             <span
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: selectedAccount.color }}
             />
-            Import für: <strong>{selectedAccount.icon} {selectedAccount.name}</strong>
+            {t("csv.importFor")} <strong>{selectedAccount.icon} {selectedAccount.name}</strong>
           </CardDescription>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Kontotyp</label>
+          <label className="block text-sm font-medium mb-2">{t("csv.accountType")}</label>
           <Select value={accountType} onValueChange={(val: 'bank' | 'credit') => setAccountType(val)}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="bank">Bankkonto (Giro)</SelectItem>
-              <SelectItem value="credit">Kreditkarte</SelectItem>
+              <SelectItem value="bank">{t("csv.bankAccount")}</SelectItem>
+              <SelectItem value="credit">{t("csv.creditCard")}</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">
-            {accountType === 'credit' 
-              ? 'Ausgaben werden automatisch negiert' 
-              : 'Standard Bankkonto'}
+            {accountType === 'credit'
+              ? t("csv.creditNegated")
+              : t("csv.standardBank")}
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Trennzeichen</label>
+          <label className="block text-sm font-medium mb-1">{t("csv.delimiter")}</label>
           <Select value={delimiter} onValueChange={setDelimiter}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value=",">Komma (,)</SelectItem>
-              <SelectItem value=";">Semikolon (;)</SelectItem>
-              <SelectItem value="\t">Tabulator (\t)</SelectItem>
-              <SelectItem value="|">Pipe (|)</SelectItem>
+              <SelectItem value=",">{t("csv.comma")}</SelectItem>
+              <SelectItem value=";">{t("csv.semicolon")}</SelectItem>
+              <SelectItem value="\t">{t("csv.tab")}</SelectItem>
+              <SelectItem value="|">{t("csv.pipe")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -323,13 +324,13 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
           <div key={key}>
             <label className="block text-sm font-medium mb-1">
               {{
-                dateColumn: 'Datum',
-                amountColumn: 'Betrag',
-                payeeColumn: 'Empfänger',
-                descriptionColumn: 'Verwendungszweck',
-                currencyColumn: 'Währung',
-                categoryColumn: 'Kategorie',
-                ibanColumn: 'Gegenkonto-IBAN (optional)',
+                dateColumn: t("csv.dateColumn"),
+                amountColumn: t("csv.amountColumn"),
+                payeeColumn: t("csv.payeeColumn"),
+                descriptionColumn: t("csv.descriptionColumn"),
+                currencyColumn: t("csv.currencyColumn"),
+                categoryColumn: t("csv.categoryColumn"),
+                ibanColumn: t("csv.ibanColumn"),
               }[key]}
             </label>
             <Select
@@ -339,11 +340,11 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("csv.selectColumn", "Spalte wählen")} />
+                <SelectValue placeholder={t("csv.selectColumn")} />
               </SelectTrigger>
               <SelectContent>
                 {(['currencyColumn', 'categoryColumn', 'ibanColumn'] as ReadonlyArray<string>).includes(key) && (
-                  <SelectItem value="__none__">— keine —</SelectItem>
+                  <SelectItem value="__none__">{t("csv.noneOption")}</SelectItem>
                 )}
                 {headers.map((h) => (
                   <SelectItem key={h} value={h}>
@@ -365,7 +366,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               !selectedAccountId
             }
           >
-            Importieren
+            {t("csv.importButton")}
           </Button>
         </div>
       </CardContent>

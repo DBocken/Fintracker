@@ -1,10 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { payloadToScenario } from '../scenario-payload-adapter';
 import type { ScenarioPayload } from '../scenario-payload-types';
 
 const START = '2026-01-01';
 
 describe('payloadToScenario', () => {
+  beforeEach(() => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
   describe('Normal Behavior', () => {
     it('sollte large_purchase in einen negativen oneTime-Posten am richtigen Tag übersetzen', () => {
       const payload: ScenarioPayload = {

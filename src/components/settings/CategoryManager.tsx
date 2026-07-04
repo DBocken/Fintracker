@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Folder, Tag, Sparkles } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import { CategoryForm } from './CategoryForm';
 import { CategoryTree } from './CategoryTree';
 import type { HierarchicalCategory, CategoryAttributes, Category } from '../../types';
@@ -19,6 +20,7 @@ interface CategoryManagerProps {
 }
 
 export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, onCategorySave, onApplySuggestion }: CategoryManagerProps) {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('manage');
   const [selectedCategory, setSelectedCategory] = useState<HierarchicalCategory | null>(null);
@@ -49,15 +51,15 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
   return (
     <div className="space-y-6">
       <Card className="border border-border bg-card shadow-sm">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-2xl"><Folder className="h-6 w-6 text-primary" />Kategorieverwaltung</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-2xl"><Folder className="h-6 w-6 text-primary" />{t('categoryManager.title')}</CardTitle></CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manage">Verwalten</TabsTrigger>
-              <TabsTrigger value="create">Erstellen</TabsTrigger>
+              <TabsTrigger value="manage">{t('categoryManager.manageTab')}</TabsTrigger>
+              <TabsTrigger value="create">{t('categoryManager.createTab')}</TabsTrigger>
             </TabsList>
             <TabsContent value="manage" className="space-y-4">
-              <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder="Kategorien oder Filter suchen..." value={searchQuery} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} className="pl-10" /></div>
+              <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder={t('categoryManager.searchPlaceholder')} value={searchQuery} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} className="pl-10" /></div>
               <CategoryTree categories={filteredCategories} expandedCategories={expandedCategories} onToggleExpand={(id) => setExpandedCategories((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; })} onEdit={handleEditCategoryClick} onDelete={onCategoryDelete} onAddSubcategory={(parentId) => { setSelectedCategory(null); setFormName(''); setFormColor('#2e7d72'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(parentId); setActiveTab('create'); }} />
             </TabsContent>
             <TabsContent value="create" className="space-y-4">
@@ -66,7 +68,7 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
           </Tabs>
         </CardContent>
       </Card>
-      <Card className="border border-border bg-card shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-5 w-5" />Intelligente Vorschläge</CardTitle></CardHeader><CardContent><div className="space-y-3 rounded-xl border border-border bg-muted/30 p-3"><div className="flex items-center gap-2 mb-2"><Tag className="h-4 w-4 text-primary" /><span className="text-sm font-medium">{suggestion ? 'Neue Regel gefunden' : 'Noch keine Vorschläge'}</span></div>{suggestion ? <><p className="text-sm text-muted-foreground">{suggestion.affectedCount} Transaktionen könnten zur Kategorie "{suggestion.category.name}" passen.</p><Button size="sm" className="mt-2" onClick={onApplySuggestion} disabled={suggestion.affectedCount === 0}>Regel anwenden</Button></> : <p className="text-sm text-muted-foreground">Lade neue Transaktionen oder füge Filter hinzu, um Vorschläge zu erhalten.</p>}</div></CardContent></Card>
+      <Card className="border border-border bg-card shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-5 w-5" />{t('categoryManager.suggestionsTitle')}</CardTitle></CardHeader><CardContent><div className="space-y-3 rounded-xl border border-border bg-muted/30 p-3"><div className="flex items-center gap-2 mb-2"><Tag className="h-4 w-4 text-primary" /><span className="text-sm font-medium">{suggestion ? t('categoryManager.ruleFoundTitle') : t('categoryManager.noSuggestionsTitle')}</span></div>{suggestion ? <><p className="text-sm text-muted-foreground">{t('categoryManager.suggestionsDescription').replace('{count}', String(suggestion.affectedCount)).replace('{category}', suggestion.category.name)}</p><Button size="sm" className="mt-2" onClick={onApplySuggestion} disabled={suggestion.affectedCount === 0}>{t('categoryManager.applySuggestionButton')}</Button></> : <p className="text-sm text-muted-foreground">{t('categoryManager.suggestionsEmptyHint')}</p>}</div></CardContent></Card>
     </div>
   );
 }

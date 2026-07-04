@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { buildStressOverrides, type StressPreset } from '@/lib/forecast-stress-presets';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { VariableExpenseBaseline } from '@/lib/forecast-types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface Props {
   startISO: string;
@@ -126,6 +127,7 @@ function PresetPanel({
   variableExpenses?: VariableExpenseBaseline[];
   overrides: ForecastOverrides;
 }) {
+  const { t } = useI18n();
   const handleApply = () => {
     if (!accountId) return;
 
@@ -186,14 +188,13 @@ function PresetPanel({
           type="button"
           onClick={onClose}
           className="rounded p-1 hover:bg-muted"
-          aria-label="Schließen"
+          aria-label={t('stressPresetQuickAdd.closeButtonAriaLabel')}
         >
           <X className="h-4 w-4" />
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Vorlage – die Werte werden unten in den hervorgehobenen Feldern eingetragen und bleiben
-        dort frei änderbar.
+        {t('stressPresetQuickAdd.templateDescription')}
       </p>
 
       {/* Dynamisch Parameter basierend auf Preset-Typ */}
@@ -201,16 +202,16 @@ function PresetPanel({
         {preset.id === 'purchase' && (
           <>
             <ParamField
-              label="Betrag"
+              label={t('stressPresetQuickAdd.amountLabel')}
               value={preset.params.purchaseAmount ?? 3000}
               onChange={(v) => preset.onSetParam('purchaseAmount', v)}
               suffix="€"
             />
             <ParamField
-              label="In Tagen"
+              label={t('stressPresetQuickAdd.inDaysLabel')}
               value={preset.params.purchaseInDays ?? 60}
               onChange={(v) => preset.onSetParam('purchaseInDays', v)}
-              suffix="Tage"
+              suffix={t('stressPresetQuickAdd.daysUnit')}
             />
           </>
         )}
@@ -218,23 +219,23 @@ function PresetPanel({
         {preset.id === 'income-loss' && (
           <>
             <ParamField
-              label="Ausfall/Monat"
+              label={t('stressPresetQuickAdd.lossMonthlyLabel')}
               value={preset.params.lossMonthly ?? 2000}
               onChange={(v) => preset.onSetParam('lossMonthly', v)}
               suffix="€"
             />
             <ParamField
-              label="Dauer"
+              label={t('stressPresetQuickAdd.durationLabel')}
               value={preset.params.lossMonths ?? 3}
               onChange={(v) => preset.onSetParam('lossMonths', v)}
-              suffix="Monate"
+              suffix={t('stressPresetQuickAdd.monthsUnit')}
             />
           </>
         )}
 
         {preset.id === 'higher-cost' && (
           <ParamField
-            label="Teurer um"
+            label={t('stressPresetQuickAdd.expensiveByLabel')}
             value={preset.params.costPercent ?? 20}
             onChange={(v) => preset.onSetParam('costPercent', v)}
             suffix="%"
@@ -245,30 +246,30 @@ function PresetPanel({
           <>
             <div className="grid grid-cols-2 gap-2">
               <ParamField
-                label="Schock"
+                label={t('stressPresetQuickAdd.shockLabel')}
                 value={preset.params.shock ?? 4500}
                 onChange={(v) => preset.onSetParam('shock', v)}
                 suffix="€"
               />
               <ParamField
-                label="Schock-Tag"
+                label={t('stressPresetQuickAdd.shockDayLabel')}
                 value={preset.params.shockDay ?? 25}
                 onChange={(v) => preset.onSetParam('shockDay', v)}
-                suffix="Tag"
+                suffix={t('stressPresetQuickAdd.dayUnit')}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <ParamField
-                label="Kompensation"
+                label={t('stressPresetQuickAdd.compensationLabel')}
                 value={preset.params.recovery ?? 1800}
                 onChange={(v) => preset.onSetParam('recovery', v)}
                 suffix="€"
               />
               <ParamField
-                label="Komp.-Tag"
+                label={t('stressPresetQuickAdd.compDayLabel')}
                 value={preset.params.recoveryDay ?? 70}
                 onChange={(v) => preset.onSetParam('recoveryDay', v)}
-                suffix="Tag"
+                suffix={t('stressPresetQuickAdd.dayUnit')}
               />
             </div>
           </>
@@ -276,7 +277,7 @@ function PresetPanel({
       </div>
 
       <Button size="sm" className="w-full" onClick={handleApply}>
-        Als Annahme eintragen
+        {t('stressPresetQuickAdd.applyButtonText')}
       </Button>
     </Card>
   );
@@ -295,6 +296,7 @@ export default function StressPresetQuickAdd({
   onApply,
   onActiveScenarioChange,
 }: Props) {
+  const { t } = useI18n();
   const [openId, setOpenId] = useState<string | null>(null);
 
   // Auswahl wechseln und dem Editor melden, welche Sektion hervorzuheben ist.
@@ -322,36 +324,36 @@ export default function StressPresetQuickAdd({
   const presets: PresetConfig[] = [
     {
       id: 'purchase',
-      label: 'Anschaffung',
+      label: t('stressPresetQuickAdd.purchasePresetLabel'),
       icon: ShoppingCart,
-      title: 'Größere Anschaffung als geplanten Posten',
+      title: t('stressPresetQuickAdd.purchasePresetTitle'),
       disabled: !accountId,
       params,
       onSetParam: setParam,
     },
     {
       id: 'income-loss',
-      label: 'Einkommen weg',
+      label: t('stressPresetQuickAdd.incomeLossPresetLabel'),
       icon: TrendingDown,
-      title: 'Einkommensausfall als monatliche Abflüsse',
+      title: t('stressPresetQuickAdd.incomeLossPresetTitle'),
       disabled: !accountId,
       params,
       onSetParam: setParam,
     },
     {
       id: 'higher-cost',
-      label: 'Teurer',
+      label: t('stressPresetQuickAdd.higherCostPresetLabel'),
       icon: Flame,
-      title: 'Höhere Lebenshaltung als skalierte Budgets',
+      title: t('stressPresetQuickAdd.higherCostPresetTitle'),
       disabled: !variableExpenses || variableExpenses.length === 0,
       params,
       onSetParam: setParam,
     },
     {
       id: 'shock-recovery',
-      label: 'Schock + Komp.',
+      label: t('stressPresetQuickAdd.shockRecoveryPresetLabel'),
       icon: Wrench,
-      title: 'Negativer Schock plus spätere Kompensation',
+      title: t('stressPresetQuickAdd.shockRecoveryPresetTitle'),
       disabled: !accountId,
       params,
       onSetParam: setParam,
@@ -363,10 +365,9 @@ export default function StressPresetQuickAdd({
     // Editor darunter nicht weg.
     <div className="relative space-y-3">
       <div>
-        <h3 className="text-sm font-medium">Stresstest-Vorlagen</h3>
+        <h3 className="text-sm font-medium">{t('stressPresetQuickAdd.heading')}</h3>
         <p className="text-xs text-muted-foreground">
-          Optionale Hilfe – setzt die passenden Felder unten. Du kannst alles auch direkt im
-          Editor eintragen.
+          {t('stressPresetQuickAdd.helpText')}
         </p>
       </div>
 

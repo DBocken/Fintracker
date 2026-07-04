@@ -46,7 +46,7 @@ export async function createReceivable(receivable: Partial<Receivable>): Promise
   return upsertLocalFinanceItem<Receivable>("receivables", {
     id: receivable.id || crypto.randomUUID(),
     user_id: await localUserId(),
-    name: receivable.name || "Neue Forderung",
+    name: receivable.name || t("receivableService.newReceivableDefaultName"),
     debtor: receivable.debtor ?? null,
     type: receivable.type || "private_loan",
     amount: receivable.amount ?? 0,
@@ -97,19 +97,19 @@ export async function assignTransactionToReceivable(params: {
 }): Promise<ReceivableTransactionAssignment> {
   const receivables = await getReceivables();
   const receivable = receivables.find((entry) => entry.id === params.receivableId);
-  if (!receivable) throw new Error("Forderung nicht gefunden");
+  if (!receivable) throw new Error(t("receivableService.receivableNotFound"));
 
   const transaction = (await getTransactions(10000)).find((entry) => entry.id === params.transactionId);
-  if (!transaction) throw new Error("Transaktion nicht gefunden");
+  if (!transaction) throw new Error(t("receivableService.transactionNotFound"));
 
   const amount = Number(transaction.amount) || 0;
   if (amount <= 0) {
-    throw new Error("Nur Geldeingänge können einer Forderung als Rückzahlung zugewiesen werden.");
+    throw new Error(t("receivableService.onlyIncomesAllowed"));
   }
 
   const assignments = await readLocalFinanceList<ReceivableTransactionAssignment>("receivableAssignments");
   if (assignments.some((assignment) => assignment.transaction_id === params.transactionId)) {
-    throw new Error("Dieser Geldeingang ist bereits einer Forderung zugewiesen.");
+    throw new Error(t("receivableService.alreadyAssigned"));
   }
 
   const assignment: ReceivableTransactionAssignment = {
@@ -131,7 +131,7 @@ export async function assignTransactionToReceivable(params: {
 export async function unassignReceivableTransaction(assignmentId: string): Promise<void> {
   const assignments = await readLocalFinanceList<ReceivableTransactionAssignment>("receivableAssignments");
   const assignment = assignments.find((entry) => entry.id === assignmentId);
-  if (!assignment) throw new Error("Zuweisung nicht gefunden");
+  if (!assignment) throw new Error(t("receivableService.assignmentNotFound"));
 
   await writeLocalFinanceList(
     "receivableAssignments",

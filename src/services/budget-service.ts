@@ -1,4 +1,5 @@
 import type { Budget, BudgetPeriod, BudgetStatus, BudgetSuggestion } from "@/types";
+import { t } from "@/i18n/serviceT";
 import {
   deleteLocalFinanceItem,
   readLocalFinanceList,
@@ -39,9 +40,9 @@ export async function getBudgets(): Promise<Budget[]> {
 }
 
 export async function saveBudget(budget: Partial<Budget>): Promise<Budget> {
-  if (!budget.category_id) throw new Error("Budget braucht eine Kategorie");
+  if (!budget.category_id) throw new Error(t('budgets.service.noCategoryError'));
   if (!Number.isFinite(budget.limit) || (budget.limit ?? 0) <= 0) {
-    throw new Error("Budget braucht ein Limit größer 0");
+    throw new Error(t('budgets.service.noLimitError'));
   }
   return upsertLocalFinanceItem<Budget>(KEY, budget as Budget);
 }

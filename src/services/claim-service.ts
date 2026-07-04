@@ -13,6 +13,7 @@ import {
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
 } from "./local-finance-store";
+import { t } from "../i18n/serviceT";
 
 // -----------------------------------------------------------------------------
 // Datenmodell
@@ -149,7 +150,7 @@ export function matchLetter(letter: ParsedLetter, claims: Claim[]): LetterMatch 
         claimId: claim.id,
         level: "sicher",
         requiresConfirmation: false,
-        message: "Gleicher Gläubiger, gleiches Aktenzeichen — derselbe Vorgang.",
+        message: t('claims.matchSure'),
       };
     }
   }
@@ -166,7 +167,7 @@ export function matchLetter(letter: ParsedLetter, claims: Claim[]): LetterMatch 
           claimId: claim.id,
           level: "stark",
           requiresConfirmation: false,
-          message: "Gleiches Empfängerkonto und gleicher Verwendungszweck.",
+          message: t('claims.matchStrong'),
         };
       }
     }
@@ -191,9 +192,7 @@ export function matchLetter(letter: ParsedLetter, claims: Claim[]): LetterMatch 
           claimId: claim.id,
           level: "inkasso_uebergabe",
           requiresConfirmation: !refMatch,
-          message: `Das ist keine neue Schuld — das ist deine Rechnung von ${
-            claim.original_creditor ?? claim.creditor
-          }, jetzt beim Inkasso. Eine Forderung, nicht zwei.`,
+          message: t('claims.matchInkassoTemplate').replace(/{creditor}/g, claim.original_creditor ?? claim.creditor),
         };
       }
     }
@@ -215,8 +214,7 @@ export function matchLetter(letter: ParsedLetter, claims: Claim[]): LetterMatch 
           claimId: claim.id,
           level: "wahrscheinlich",
           requiresConfirmation: true,
-          message:
-            "Gleicher Gläubiger und der Betrag passt zur bisherigen Forderung plus Mahngebühren. Bitte kurz prüfen.",
+          message: t('claims.matchLikely'),
         };
       }
     }
@@ -273,7 +271,7 @@ export function claimFromLetter(letter: ParsedLetter, userId = "local"): Claim {
   return {
     id: crypto.randomUUID(),
     user_id: userId,
-    creditor: letter.creditor?.value ?? "Unbekannter Absender",
+    creditor: letter.creditor?.value ?? t("claimServiceLib.unknownCreditor", "Unbekannter Absender"),
     original_creditor: isInkasso ? letter.originalCreditor?.value ?? null : null,
     current_amount: amount,
     hauptforderung: letter.amounts.hauptforderung?.value ?? null,
@@ -366,15 +364,26 @@ export function groupLettersIntoClaims(
 
   const newClaimCount = claims.length - existingClaims.length;
   const mergedCount = claims.filter((c) => c.timeline.length > 1).length;
+  let summary: string;
+  if (letters.length > claims.length || mergedCount > 0) {
+    if (claims.length === 1) {
+      summary = t('claims.groupingMergedSingle').replace(/{letterCount}/g, String(letters.length));
+    } else {
+      summary = t('claims.groupingMergedMulti')
+        .replace(/{letterCount}/g, String(letters.length))
+        .replace(/{claimCount}/g, String(claims.length));
+    }
+  } else {
+    summary = newClaimCount === 1
+      ? t('claims.groupingSingle')
+      : t('claims.groupingMulti').replace(/{claimCount}/g, String(newClaimCount));
+  }
   return {
     claims,
     letterCount: letters.length,
     claimCount: claims.length,
     needsReview,
-    summary:
-      letters.length > claims.length || mergedCount > 0
-        ? `Aus deinen ${letters.length} Briefen ${claims.length === 1 ? "wurde 1 Forderung" : `wurden ${claims.length} Forderungen`}. Nicht ${letters.length}.`
-        : `${newClaimCount} Forderung${newClaimCount === 1 ? "" : "en"} erfasst.`,
+    summary,
   };
 }
 
@@ -382,7 +391,7 @@ export function groupLettersIntoClaims(
 // Gebühren-Eskalation & Schutzfunktionen
 // -----------------------------------------------------------------------------
 
-/** „Aus 49 € wurden 87 €. Jeder Monat früher spart Gebühren." */
+/** Fee escalation message with formatted amounts */
 export function feeEscalation(claim: Claim): { first: number; current: number; message: string } | null {
   const amounts = claim.timeline
     .map((e) => e.gesamtbetrag)
@@ -395,14 +404,16 @@ export function feeEscalation(claim: Claim): { first: number; current: number; m
   return {
     first,
     current,
-    message: `Aus ${fmt(first)} € wurden ${fmt(current)} €. Jeder Monat früher spart Gebühren.`,
+    message: t('claims.feeEscalationTemplate')
+      .replace(/{first}/g, fmt(first))
+      .replace(/{current}/g, fmt(current)),
   };
 }
 
-/** Doppelzahlungs-Schutz: bezahlte Akte warnt bei erneuter Zahlungsvorbereitung. */
+/** Double payment protection: paid claim warns on re-payment. */
 export function doublePaymentWarning(claim: Claim): string | null {
   if (claim.status !== "bezahlt") return null;
-  return `Diese Forderung von ${claim.creditor} ist bereits als bezahlt markiert. Eine zweite Zahlung wäre eine Doppelzahlung.`;
+  return t('claims.doublePaymentWarningTemplate').replace(/{creditor}/g, claim.creditor);
 }
 
 // -----------------------------------------------------------------------------
@@ -438,7 +449,7 @@ export async function importLetters(letters: ParsedLetter[]): Promise<GroupingRe
 export async function confirmClaim(claimId: string): Promise<Claim> {
   const claims = await readLocalFinanceList<Claim>("claims");
   const claim = claims.find((c) => c.id === claimId);
-  if (!claim) throw new Error("Forderungsakte nicht gefunden");
+  if (!claim) throw new Error(t('claims.claimNotFound'));
   if (claim.debt_id) {
     return updateLocalFinanceItem<Claim>("claims", claimId, { status: "bestaetigt" });
   }

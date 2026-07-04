@@ -5,6 +5,8 @@
 //   (Null-Saldo) → Überschuss.
 // Reine, datengetriebene Logik (die realen Eingaben liefert der Service).
 
+import { t } from "@/i18n/serviceT";
+
 export type SavingsMode = "percent" | "amount";
 
 export interface WaterfallInput {
@@ -79,12 +81,19 @@ export function computeWaterfall(input: WaterfallInput): WaterfallResult {
     });
   };
 
-  take("savings", "Sparen zuerst", resolveSavingsAmount(income, input.savings));
-  take("essentials", "Fixkosten", input.essentials);
-  take("discretionary", "Variable Töpfe", input.discretionaryRequested);
+  take("savings", t("budgetWaterfall.savingsFirst", "Sparen zuerst"), resolveSavingsAmount(income, input.savings));
+  take("essentials", t("budgetWaterfall.essentials", "Fixkosten"), input.essentials);
+  take("discretionary", t("budgetWaterfall.discretionary", "Variable Töpfe"), input.discretionaryRequested);
 
   const surplus = available;
-  steps.push({ key: "surplus", label: "Überschuss", requested: 0, allocated: surplus, funded: true, shortfall: 0 });
+  steps.push({
+    key: "surplus",
+    label: t("budgetWaterfall.surplus", "Überschuss"),
+    requested: 0,
+    allocated: surplus,
+    funded: true,
+    shortfall: 0,
+  });
 
   const savingsAllocated = steps[0].allocated;
   const essentialsShortfall = steps[1].shortfall;
