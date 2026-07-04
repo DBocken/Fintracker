@@ -1,6 +1,7 @@
 import type { Transaction } from "@/types";
 import { normalizeMerchantName } from "@/services/merchant-normalization";
 import { normalizeIban } from "@/services/transfer-service";
+import { t } from "@/i18n/serviceT";
 
 /**
  * Händler-Fingerprint & Transaktionsfamilien.
@@ -54,9 +55,9 @@ export function merchantFingerprint(tx: Transaction): string {
 export function fingerprintReasonLabel(reason: FingerprintReason): string {
   switch (reason) {
     case "iban":
-      return "Gleiche Bankverbindung (IBAN) und Richtung";
+      return t("merchantFingerprintService.sameIbanAndDirection", "Gleiche Bankverbindung (IBAN) und Richtung");
     case "merchant":
-      return "Gleicher Händlername und Richtung";
+      return t("merchantFingerprintService.sameMerchantAndDirection", "Gleicher Händlername und Richtung");
   }
 }
 

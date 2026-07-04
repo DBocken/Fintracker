@@ -13,6 +13,7 @@
  * verhalten (`applyEventToPaths` betrifft einen Anteil der Pfade).
  */
 import { format } from 'date-fns';
+import { t } from '@/i18n/serviceT';
 import { applyScenario } from '../forecast-scenario';
 import { listFlowOccurrences } from '../forecast';
 import { percentile, runMonteCarloForecast } from '../forecast-montecarlo';
@@ -256,10 +257,10 @@ export function runScenarioPayload(
 
   const warnings: string[] = [];
   if (mixedPaths.length < 200) {
-    warnings.push('Wenige Monte-Carlo-Durchläufe – Bänder können instabil sein.');
+    warnings.push(t('scenarioEngine.fewMonteCarloRuns', 'Wenige Monte-Carlo-Durchläufe – Bänder können instabil sein.'));
   }
   if (threshold === 0) {
-    warnings.push('Kein Mindestpuffer gesetzt – Stress-Tragfähigkeit gegen 0 € berechnet.');
+    warnings.push(t('scenarioEngine.noMinimumBuffer', 'Kein Mindestpuffer gesetzt – Stress-Tragfähigkeit gegen 0 € berechnet.'));
   }
 
   return {

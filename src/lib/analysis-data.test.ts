@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
 import {
   buildSankeyData,
@@ -8,6 +8,14 @@ import {
   resolveAusgabenklasse,
 } from "./analysis-data";
 import type { Account, Category, Transaction } from "@/types";
+
+beforeEach(() => {
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 function tx(partial: Partial<Transaction>): Transaction {
   return {

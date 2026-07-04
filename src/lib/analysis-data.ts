@@ -1,5 +1,6 @@
 import { parseISO, getDay } from "date-fns";
 import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
+import { t as translate } from "@/i18n/serviceT";
 
 /**
  * Transferbereinigte Einnahmen-/Ausgabensummen — eine Quelle der Wahrheit für
@@ -106,9 +107,13 @@ export interface SankeyDataByKlasse {
 }
 
 const UNCATEGORIZED_ID = "__uncategorized_main";
-const UNCATEGORIZED_NAME = "Unkategorisiert";
 const UNASSIGNED_ACCOUNT_ID = "__unassigned_account";
-const UNASSIGNED_ACCOUNT_NAME = "Sonstiges Konto";
+function uncategorizedName(): string {
+  return translate("analysisDataService.uncategorized", "Unkategorisiert");
+}
+function unassignedAccountName(): string {
+  return translate("analysisDataService.unassignedAccount", "Sonstiges Konto");
+}
 
 type ResolvedHierarchy = {
   mainId: string;
@@ -119,11 +124,11 @@ type ResolvedHierarchy = {
 
 function resolveHierarchy(byId: Map<string, Category>, catId: string | null | undefined): ResolvedHierarchy {
   if (!catId) {
-    return { mainId: UNCATEGORIZED_ID, mainName: UNCATEGORIZED_NAME, subId: null, subName: null };
+    return { mainId: UNCATEGORIZED_ID, mainName: uncategorizedName(), subId: null, subName: null };
   }
   const cat = byId.get(catId);
   if (!cat) {
-    return { mainId: UNCATEGORIZED_ID, mainName: UNCATEGORIZED_NAME, subId: null, subName: null };
+    return { mainId: UNCATEGORIZED_ID, mainName: uncategorizedName(), subId: null, subName: null };
   }
 
   // Bis zur Wurzel laufen (Zyklus-Schutz über visited-Set).
@@ -223,7 +228,7 @@ export function buildSankeyData(
       const account = accountById.get(id);
       return {
         id,
-        name: account?.name ?? UNASSIGNED_ACCOUNT_NAME,
+        name: account?.name ?? unassignedAccountName(),
         income: totals.income,
         expenses: totals.expenses,
         net: totals.income - totals.expenses,
@@ -335,7 +340,7 @@ export function buildSankeyDataByKlasse(
       const account = accountById.get(id);
       return {
         id,
-        name: account?.name ?? UNASSIGNED_ACCOUNT_NAME,
+        name: account?.name ?? unassignedAccountName(),
         income: totals.income,
         expenses: totals.expenses,
         net: totals.income - totals.expenses,
@@ -702,7 +707,7 @@ export function buildSunburstTree(
             if (ma.directValue > 0) {
               mainNode.children.push({
                 id: `${ka.id}::${ma.id}::__direct`,
-                name: "Ohne Unterkategorie",
+                name: translate("analysisDataService.withoutSubcategory", "Ohne Unterkategorie"),
                 value: ma.directValue,
                 klasseId: ka.id,
                 categoryId: ma.id,

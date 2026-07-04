@@ -105,14 +105,14 @@ export function buildShockRecoveryPayload(
         amount: Math.abs(shock),
         dayIndex: Math.max(0, Math.round(shockInDays)),
         layer: 'stress_layer',
-        description: 'Negativer Schock',
+        description: t('scenarioQuestions.negativeShock', 'Negativer Schock'),
       },
       {
         eventType: 'income',
         amount: Math.abs(recovery),
         dayIndex: Math.max(0, Math.round(recoveryInDays)),
         layer: 'recovery_layer',
-        description: 'Spätere Kompensation',
+        description: t('scenarioQuestions.laterCompensation', 'Spätere Kompensation'),
       },
     ],
   };

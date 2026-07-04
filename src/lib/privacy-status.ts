@@ -1,4 +1,5 @@
 import type { Tier } from "@/lib/tier";
+import { t } from "@/i18n/serviceT";
 
 /**
  * Privacy-Status für den Header-Indikator (#41).
@@ -32,9 +33,19 @@ export interface PrivacyStatus {
   neverShared: string[];
 }
 
-const NEVER_SHARED_BASE = ["Transaktionen", "Schulden", "Briefe & Dokumente"];
-const CATEGORIES_BUDGETS = "Kategorien & Budgets";
-const MCP_AGGREGATES = "Finanz-Aggregate: Monatssummen, Budget- & Kategorienamen (MCP, Opt-in)";
+function neverSharedBase(): string[] {
+  return [
+    t("privacy.status.neverSharedTransactions", "Transaktionen"),
+    t("privacy.status.neverSharedDebts", "Schulden"),
+    t("privacy.status.neverSharedLetters", "Briefe & Dokumente"),
+  ];
+}
+function categoriesBudgetsLabel(): string {
+  return t("privacy.status.categoriesAndBudgets", "Kategorien & Budgets");
+}
+function mcpAggregatesLabel(): string {
+  return t("privacy.status.mcpAggregates", "Finanz-Aggregate: Monatssummen, Budget- & Kategorienamen (MCP, Opt-in)");
+}
 
 export interface PrivacyStatusInput {
   /** Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist (cloud-mcp-sync-service). */
@@ -51,30 +62,37 @@ export function derivePrivacyStatus(
 
   // Kategorien & Budgets verlassen das Gerät nur, wenn MCP-Sync aktiv ist.
   const neverShared = mcpSyncActive
-    ? [...NEVER_SHARED_BASE]
-    : [...NEVER_SHARED_BASE, CATEGORIES_BUDGETS];
+    ? [...neverSharedBase()]
+    : [...neverSharedBase(), categoriesBudgetsLabel()];
 
   if (tier === "anonymous") {
     return {
       serverContact: "none",
-      serverContactLabel: "Letzter Server-Kontakt: keiner",
+      serverContactLabel: t("privacy.status.serverContactNone", "Letzter Server-Kontakt: keiner"),
       sharedWithServer: [],
       neverShared,
     };
   }
 
-  const shared = ["Anmeldung (Google via Supabase)", "Bank-Anbindung (GoCardless-Requisition)", "Einstellungen"];
-  if (analyticsOptIn) shared.push("Aggregierte Statistik (verschlüsselt, Opt-in)");
-  if (mcpSyncActive) shared.push(MCP_AGGREGATES);
+  const shared = [
+    t("privacy.status.sharedLogin", "Anmeldung (Google via Supabase)"),
+    t("privacy.status.sharedBankConnection", "Bank-Anbindung (GoCardless-Requisition)"),
+    t("privacy.status.sharedSettings", "Einstellungen"),
+  ];
+  if (analyticsOptIn) shared.push(t("privacy.status.sharedAnalytics", "Aggregierte Statistik (verschlüsselt, Opt-in)"));
+  if (mcpSyncActive) shared.push(mcpAggregatesLabel());
 
   const serverContact: ServerContactLevel = analyticsOptIn ? "account_and_analytics" : "account";
-  const labelParts = ["Konto", "Bank-Anbindung"];
-  if (analyticsOptIn) labelParts.push("aggregierte Statistik (Opt-in)");
-  if (mcpSyncActive) labelParts.push("Finanz-Aggregate (MCP, Opt-in)");
+  const labelParts = [
+    t("privacy.status.labelPartAccount", "Konto"),
+    t("privacy.status.labelPartBankConnection", "Bank-Anbindung"),
+  ];
+  if (analyticsOptIn) labelParts.push(t("privacy.status.labelPartAnalytics", "aggregierte Statistik (Opt-in)"));
+  if (mcpSyncActive) labelParts.push(t("privacy.status.labelPartMcp", "Finanz-Aggregate (MCP, Opt-in)"));
 
   return {
     serverContact,
-    serverContactLabel: `Server-Kontakt: ${labelParts.join(", ")}`,
+    serverContactLabel: `${t("privacy.status.serverContactLabelPrefix", "Server-Kontakt: ")}${labelParts.join(", ")}`,
     sharedWithServer: shared,
     neverShared,
   };

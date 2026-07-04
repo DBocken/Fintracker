@@ -54,6 +54,20 @@ export const translations = {
       markAllReadButton: 'Alle Nachrichten als gelesen markiert',
       markReadButton: 'Als gelesen markieren',
       markUnreadButton: 'Als ungelesen markieren',
+      items: {
+        v1_2_0: {
+          title: 'Version 1.2.0 veröffentlicht',
+          body: 'Neue Premium-Analyse mit wöchentlichem Muster, Heatmap und Sankey-Flow. Vielen Dank fürs Feedback!',
+        },
+        contractsDashboard: {
+          title: 'Neues Feature: Verträge-Dashboard',
+          body: 'Verträge zentral verwalten, Laufzeiten sehen und Optimierungspotenziale entdecken.',
+        },
+        csvUpdates: {
+          title: 'CSV-Upload verbessert',
+          body: 'Schnellerer Import, bessere Erkennung von Spalten und direkter Review-Flow.',
+        },
+      },
     },
     kpi: {
       sectionTitle: 'Kennzahlen',
@@ -1093,6 +1107,23 @@ export const translations = {
       latestSyncNone: 'noch keine vorhanden',
       strictBoundaryTitle: 'Strikte lokale Datengrenze',
       strictBoundaryDesc: 'Transaktionen, Verträge, Kategorien, Simulationen und Analysewerte bleiben auf diesem Gerät. Supabase wird nicht als Speicher für Finanz- oder Nutzungsdaten verwendet.',
+      },
+      status: {
+        neverSharedTransactions: 'Transaktionen',
+        neverSharedDebts: 'Schulden',
+        neverSharedLetters: 'Briefe & Dokumente',
+        categoriesAndBudgets: 'Kategorien & Budgets',
+        mcpAggregates: 'Finanz-Aggregate: Monatssummen, Budget- & Kategorienamen (MCP, Opt-in)',
+        serverContactNone: 'Letzter Server-Kontakt: keiner',
+        sharedLogin: 'Anmeldung (Google via Supabase)',
+        sharedBankConnection: 'Bank-Anbindung (GoCardless-Requisition)',
+        sharedSettings: 'Einstellungen',
+        sharedAnalytics: 'Aggregierte Statistik (verschlüsselt, Opt-in)',
+        serverContactLabelPrefix: 'Server-Kontakt: ',
+        labelPartAccount: 'Konto',
+        labelPartBankConnection: 'Bank-Anbindung',
+        labelPartAnalytics: 'aggregierte Statistik (Opt-in)',
+        labelPartMcp: 'Finanz-Aggregate (MCP, Opt-in)',
       },
     },
     trading: {
@@ -2929,6 +2960,37 @@ export const translations = {
       clientOnly: 'Lokale Finanzdaten können nur im Client verarbeitet werden.',
       recordNotFound: 'Datensatz nicht gefunden',
     },
+    forecastRisk: {
+      belowBuffer: 'Liquidität fällt am {date} unter den Sicherheitspuffer ({buffer}). Tiefststand {lowestBalance} am {lowestBalanceDate}.',
+      ok: 'Liquidität bleibt über den gesamten Horizont über dem Sicherheitspuffer ({buffer}). Tiefststand {lowestBalance} am {lowestBalanceDate}.',
+    },
+    budgetWaterfall: {
+      savingsFirst: 'Sparen zuerst',
+      essentials: 'Fixkosten',
+      discretionary: 'Variable Töpfe',
+      surplus: 'Überschuss',
+    },
+    scenarioEngine: {
+      fewMonteCarloRuns: 'Wenige Monte-Carlo-Durchläufe – Bänder können instabil sein.',
+      noMinimumBuffer: 'Kein Mindestpuffer gesetzt – Stress-Tragfähigkeit gegen 0 € berechnet.',
+    },
+    scenarioQuestions: {
+      negativeShock: 'Negativer Schock',
+      laterCompensation: 'Spätere Kompensation',
+    },
+    merchantFingerprintService: {
+      sameIbanAndDirection: 'Gleiche Bankverbindung (IBAN) und Richtung',
+      sameMerchantAndDirection: 'Gleicher Händlername und Richtung',
+    },
+    accountLimitsService: {
+      anonymousLimitMessage: 'Mehrere Konten gibt es mit dem kostenlosen Login. Deine Daten bleiben trotzdem auf deinem Gerät — der Login schaltet nur zusätzliche Konten und die Bankanbindung frei.',
+      limitReachedMessage: 'Du hast das Maximum von {limit} Konten erreicht. Mehr Konten kommen mit Premium.',
+    },
+    analysisDataService: {
+      uncategorized: 'Unkategorisiert',
+      unassignedAccount: 'Sonstiges Konto',
+      withoutSubcategory: 'Ohne Unterkategorie',
+    },
     merchantRulesService: {
       ruleUpdatedTitle: 'Händlerregel aktualisiert: {pattern}',
       ruleCreatedTitle: 'Händlerregel angelegt: {pattern}',
@@ -3018,6 +3080,20 @@ export const translations = {
       markAllReadButton: 'All messages marked as read',
       markReadButton: 'Mark as read',
       markUnreadButton: 'Mark as unread',
+      items: {
+        v1_2_0: {
+          title: 'Version 1.2.0 released',
+          body: 'New premium analytics with weekly patterns, heatmap, and Sankey flow. Thanks for the feedback!',
+        },
+        contractsDashboard: {
+          title: 'New feature: Contracts dashboard',
+          body: 'Manage contracts centrally, see terms, and discover optimization potential.',
+        },
+        csvUpdates: {
+          title: 'CSV upload improved',
+          body: 'Faster import, better column detection, and a direct review flow.',
+        },
+      },
     },
     kpi: {
       sectionTitle: 'Key Figures',
@@ -4057,6 +4133,23 @@ export const translations = {
       latestSyncNone: 'none yet',
       strictBoundaryTitle: 'Strict local data boundary',
       strictBoundaryDesc: 'Transactions, contracts, categories, simulations, and analysis values stay on this device. Supabase is not used as storage for financial or usage data.',
+      },
+      status: {
+        neverSharedTransactions: 'Transactions',
+        neverSharedDebts: 'Debts',
+        neverSharedLetters: 'Letters & documents',
+        categoriesAndBudgets: 'Categories & budgets',
+        mcpAggregates: 'Financial aggregates: monthly totals, budget & category names (MCP, opt-in)',
+        serverContactNone: 'Last server contact: none',
+        sharedLogin: 'Sign-in (Google via Supabase)',
+        sharedBankConnection: 'Bank connection (GoCardless requisition)',
+        sharedSettings: 'Settings',
+        sharedAnalytics: 'Aggregated statistics (encrypted, opt-in)',
+        serverContactLabelPrefix: 'Server contact: ',
+        labelPartAccount: 'Account',
+        labelPartBankConnection: 'Bank connection',
+        labelPartAnalytics: 'aggregated statistics (opt-in)',
+        labelPartMcp: 'financial aggregates (MCP, opt-in)',
       },
     },
     trading: {
@@ -5892,6 +5985,37 @@ export const translations = {
     localFinanceStore: {
       clientOnly: 'Local financial data can only be processed on the client.',
       recordNotFound: 'Record not found',
+    },
+    forecastRisk: {
+      belowBuffer: 'Liquidity falls below the safety buffer ({buffer}) on {date}. Lowest point {lowestBalance} on {lowestBalanceDate}.',
+      ok: 'Liquidity stays above the safety buffer ({buffer}) throughout the entire horizon. Lowest point {lowestBalance} on {lowestBalanceDate}.',
+    },
+    budgetWaterfall: {
+      savingsFirst: 'Savings first',
+      essentials: 'Fixed costs',
+      discretionary: 'Variable pots',
+      surplus: 'Surplus',
+    },
+    scenarioEngine: {
+      fewMonteCarloRuns: 'Few Monte Carlo runs – bands may be unstable.',
+      noMinimumBuffer: 'No minimum buffer set – stress capacity calculated against €0.',
+    },
+    scenarioQuestions: {
+      negativeShock: 'Negative shock',
+      laterCompensation: 'Later compensation',
+    },
+    merchantFingerprintService: {
+      sameIbanAndDirection: 'Same bank connection (IBAN) and direction',
+      sameMerchantAndDirection: 'Same merchant name and direction',
+    },
+    accountLimitsService: {
+      anonymousLimitMessage: 'Multiple accounts are available with the free login. Your data still stays on your device — the login only unlocks additional accounts and bank connections.',
+      limitReachedMessage: 'You have reached the maximum of {limit} accounts. More accounts come with Premium.',
+    },
+    analysisDataService: {
+      uncategorized: 'Uncategorized',
+      unassignedAccount: 'Other account',
+      withoutSubcategory: 'Without subcategory',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Merchant rule updated: {pattern}',

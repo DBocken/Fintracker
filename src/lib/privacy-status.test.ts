@@ -1,6 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
 import { derivePrivacyStatus } from "./privacy-status";
+
+beforeEach(() => {
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
+
+afterEach(() => {
+  window.localStorage.removeItem("ausgabentracker_locale_v1");
+});
 
 describe("derivePrivacyStatus (Issue #41)", () => {
   it("anonymer Modus: keinerlei Server-Kontakt, nichts wird geteilt", () => {

@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { accountLimitForTier, evaluateAccountCreation } from '../account-limits';
 import { ANONYMOUS_ACCOUNT_LIMIT, FREE_ACCOUNT_LIMIT } from '../constants';
+
+beforeEach(() => {
+  window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+});
+
+afterEach(() => {
+  window.localStorage.removeItem('ausgabentracker_locale_v1');
+});
 
 describe('accountLimitForTier', () => {
   it('gibt 1 für anonymous zurück', () => {

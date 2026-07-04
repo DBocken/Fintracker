@@ -1,5 +1,6 @@
 import { ANONYMOUS_ACCOUNT_LIMIT, FREE_ACCOUNT_LIMIT } from "@/lib/constants";
 import type { Tier } from "@/lib/tier";
+import { t } from "@/i18n/serviceT";
 
 /**
  * Konto-Limits pro Tier (Issue #59), zentral und pur — geprüft in der
@@ -37,8 +38,14 @@ export function evaluateAccountCreation(tier: Tier, currentCount: number): Accou
 
   const message =
     tier === "anonymous"
-      ? "Mehrere Konten gibt es mit dem kostenlosen Login. Deine Daten bleiben trotzdem auf deinem Gerät — der Login schaltet nur zusätzliche Konten und die Bankanbindung frei."
-      : `Du hast das Maximum von ${limit} Konten erreicht. Mehr Konten kommen mit Premium.`;
+      ? t(
+          "accountLimitsService.anonymousLimitMessage",
+          "Mehrere Konten gibt es mit dem kostenlosen Login. Deine Daten bleiben trotzdem auf deinem Gerät — der Login schaltet nur zusätzliche Konten und die Bankanbindung frei.",
+        )
+      : t("accountLimitsService.limitReachedMessage", "Du hast das Maximum von {limit} Konten erreicht. Mehr Konten kommen mit Premium.").replace(
+          "{limit}",
+          String(limit),
+        );
 
   return { allowed: false, limit, current: currentCount, message };
 }
