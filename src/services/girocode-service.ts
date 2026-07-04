@@ -8,6 +8,7 @@
 
 import { isValidIban } from "./letter-parser-service";
 import { doublePaymentWarning, type Claim } from "./claim-service";
+import { t } from "../i18n/serviceT";
 
 // -----------------------------------------------------------------------------
 // EPC069-12-Payload (Service Tag BCD, Version 002, SCT)
@@ -48,18 +49,18 @@ export function formatEpcAmount(amount: number): string {
 export function buildEpcPayload(data: EpcPaymentData): string {
   const iban = data.iban.replace(/\s+/g, "").toUpperCase();
   if (!isValidIban(iban)) {
-    throw new Error(`Ungültige IBAN: ${data.iban}`);
+    throw new Error(t('girocodeService.invalidIban', 'Ungültige IBAN: {iban}').replace('{iban}', data.iban));
   }
 
   const name = sanitizeLine(data.name, EPC_MAX_NAME_LENGTH);
   if (!name) {
-    throw new Error("Empfängername fehlt.");
+    throw new Error(t('girocodeService.recipientNameMissing', 'Empfängername fehlt.'));
   }
 
   const cents = Math.round(data.amount * 100);
   const amount = cents / 100;
   if (!Number.isFinite(amount) || amount < EPC_MIN_AMOUNT || amount > EPC_MAX_AMOUNT) {
-    throw new Error(`Betrag außerhalb des erlaubten Bereichs: ${data.amount}`);
+    throw new Error(t('girocodeService.amountOutOfRange', 'Betrag außerhalb des erlaubten Bereichs: {amount}').replace('{amount}', String(data.amount)));
   }
 
   const remittance = sanitizeLine(data.remittance ?? "", EPC_MAX_REMITTANCE_LENGTH);
@@ -116,22 +117,22 @@ function formatEuro(amount: number): string {
 export function girocodeForClaim(claim: Claim, amount?: number): GirocodeResult {
   if (claim.status === "offen") {
     throw new Error(
-      "Diese Forderung ist noch nicht bestätigt. Bitte prüfe erst, ob sie berechtigt ist — dann bereiten wir die Überweisung vor.",
+      t('girocodeService.unconfirmedClaim', 'Diese Forderung ist noch nicht bestätigt. Bitte prüfe erst, ob sie berechtigt ist — dann bereiten wir die Überweisung vor.'),
     );
   }
   if (claim.status === "eskaliert") {
     // Mahnbescheid-Pfad zeigt nie einen GiroCode (Guardrail #50).
     throw new Error(
-      "Für einen gerichtlichen Mahnbescheid bereiten wir keine Zahlung vor. Hier hilft dir eine Schuldnerberatung sofort und kostenlos.",
+      t('girocodeService.escalatedClaim', 'Für einen gerichtlichen Mahnbescheid bereiten wir keine Zahlung vor. Hier hilft dir eine Schuldnerberatung sofort und kostenlos.'),
     );
   }
   if (!claim.iban) {
-    throw new Error("Für diese Akte ist keine gültige Empfänger-IBAN bekannt.");
+    throw new Error(t('girocodeService.missingIban', 'Für diese Akte ist keine gültige Empfänger-IBAN bekannt.'));
   }
 
   const payAmount = amount ?? claim.current_amount;
   if (payAmount > claim.current_amount) {
-    throw new Error("Der Betrag liegt über dem offenen Restbetrag der Akte.");
+    throw new Error(t('girocodeService.amountExceedsRemaining', 'Der Betrag liegt über dem offenen Restbetrag der Akte.'));
   }
 
   const remittance =
@@ -153,7 +154,7 @@ export function girocodeForClaim(claim: Claim, amount?: number): GirocodeResult 
     },
     warning: doublePaymentWarning(claim),
     remainingAfterPayment: Math.max(0, Math.round((claim.current_amount - payAmount) * 100) / 100),
-    microAction: `Überweise ${formatEuro(payAmount)} € an ${claim.creditor} — mehr musst du heute nicht tun.`,
+    microAction: t('girocodeService.microAction', 'Überweise {amount} € an {name} — mehr musst du heute nicht tun.').replace('{amount}', formatEuro(payAmount)).replace('{name}', claim.creditor),
   };
 }
 

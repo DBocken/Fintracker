@@ -15,7 +15,7 @@ import {
   updateAccount,
   deleteAccount,
   canCreateAccount,
-  ACCOUNT_TYPE_LABELS,
+  getAccountTypeLabels,
   formatSyncStatus
 } from '../../services/account-service';
 import { AccountFormDialog } from './AccountFormDialog';
@@ -45,6 +45,7 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
 
 export function AccountManager() {
   const { t } = useI18n();
+  const accountTypeLabels = getAccountTypeLabels();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -392,7 +393,7 @@ export function AccountManager() {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>
-                            {ACCOUNT_TYPE_LABELS[account.type]}
+                            {accountTypeLabels[account.type]}
                             {account.description && ` • ${account.description}`}
                           </div>
                           {account.gocardless_account_id && (

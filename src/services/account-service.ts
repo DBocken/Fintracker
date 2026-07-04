@@ -10,15 +10,18 @@ import {
 } from './local-finance-store';
 import { evaluateAccountCreation, type AccountCreationCheck } from '../lib/account-limits';
 import type { Tier } from '../lib/tier';
+import { t } from '../i18n/serviceT';
 
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  checking: 'Girokonto',
-  credit_card: 'Kreditkarte',
-  savings: 'Tagesgeld/Sparkonto',
-  wallet: 'Wallet (PayPal, Revolut, etc.)',
-  cash: 'Bargeld',
-  other: 'Sonstiges',
-};
+export function getAccountTypeLabels(): Record<AccountType, string> {
+  return {
+    checking: t('accountService.accountTypeLabelChecking', 'Girokonto'),
+    credit_card: t('accountService.accountTypeLabelCreditCard', 'Kreditkarte'),
+    savings: t('accountService.accountTypeLabelSavings', 'Tagesgeld/Sparkonto'),
+    wallet: t('accountService.accountTypeLabelWallet', 'Wallet (PayPal, Revolut, etc.)'),
+    cash: t('accountService.accountTypeLabelCash', 'Bargeld'),
+    other: t('accountService.accountTypeLabelOther', 'Sonstiges'),
+  };
+}
 
 export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
   checking: '🏦',
@@ -80,7 +83,7 @@ export async function getAccountById(id: string): Promise<Account | null> {
 export async function createAccount(account: Partial<Account>): Promise<Account> {
   const check = await checkAccountCreation();
   if (!check.allowed) {
-    throw new Error(check.message || `Konto-Limit von ${check.limit} erreicht.`);
+    throw new Error(check.message || t('accountService.accountLimitExceeded', 'Konto-Limit von {limit} erreicht.').replace('{limit}', String(check.limit)));
   }
 
   const existingAccounts = await getAccounts();
@@ -89,7 +92,7 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
   return upsertLocalFinanceItem<Account>('accounts', {
     id: account.id || crypto.randomUUID(),
     user_id: await localUserId(),
-    name: account.name || 'Neues Konto',
+    name: account.name || t('accountService.newAccountDefaultName', 'Neues Konto'),
     type,
     currency: account.currency || 'EUR',
     description: account.description || '',
@@ -131,9 +134,9 @@ export async function getOrCreateDefaultAccount(): Promise<Account> {
   if (accounts.length > 0) return accounts[0];
 
   return createAccount({
-    name: 'Girokonto',
+    name: t('accountService.defaultCheckingAccountName', 'Girokonto'),
     type: 'checking',
-    description: 'Mein Hauptkonto',
+    description: t('accountService.defaultCheckingAccountDesc', 'Mein Hauptkonto'),
     is_budget_pool_member: true,
   });
 }
@@ -158,9 +161,9 @@ export async function getAccountByGoCardlessId(gocardlessAccountId: string): Pro
 }
 
 export function formatSyncStatus(account: Account): string {
-  if (!account.gocardless_account_id) return 'Nicht verbunden';
-  if (!account.sync_enabled) return 'Synchronisation deaktiviert';
-  if (!account.last_sync_at) return 'Noch nie synchronisiert';
+  if (!account.gocardless_account_id) return t('accountService.syncStatusNotConnected', 'Nicht verbunden');
+  if (!account.sync_enabled) return t('accountService.syncStatusDisabled', 'Synchronisation deaktiviert');
+  if (!account.last_sync_at) return t('accountService.syncStatusNeverSynced', 'Noch nie synchronisiert');
 
   const lastSync = new Date(account.last_sync_at);
   const now = new Date();
@@ -169,10 +172,10 @@ export function formatSyncStatus(account: Account): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Gerade eben';
-  if (diffMins < 60) return `Vor ${diffMins} Min.`;
-  if (diffHours < 24) return `Vor ${diffHours} Std.`;
-  if (diffDays < 7) return `Vor ${diffDays} Tagen`;
+  if (diffMins < 1) return t('accountService.syncStatusJustNow', 'Gerade eben');
+  if (diffMins < 60) return t('accountService.syncStatusMinutesAgo', 'Vor {diffMins} Min.').replace('{diffMins}', String(diffMins));
+  if (diffHours < 24) return t('accountService.syncStatusHoursAgo', 'Vor {diffHours} Std.').replace('{diffHours}', String(diffHours));
+  if (diffDays < 7) return t('accountService.syncStatusDaysAgo', 'Vor {diffDays} Tagen').replace('{diffDays}', String(diffDays));
   return lastSync.toLocaleDateString('de-DE');
 }
 

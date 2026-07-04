@@ -21,7 +21,7 @@ import {
 } from '../services/csv-service'
 import type { Transaction } from '../types'
 import { applyAutoCategorization } from '../services/transaction-service'
-import { getAccounts, getOrCreateDefaultAccount, ACCOUNT_TYPE_LABELS } from '../services/account-service'
+import { getAccounts, getOrCreateDefaultAccount, getAccountTypeLabels } from '../services/account-service'
 import { useI18n } from '@/i18n/useI18n'
 
 interface CsvUploaderProps {
@@ -33,6 +33,7 @@ const LAST_ACCOUNT_KEY = 'ausgabentracker_last_import_account';
 
 export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
   const { t } = useI18n();
+  const accountTypeLabels = getAccountTypeLabels();
   const [rawHeaderLine, setRawHeaderLine] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [delimiter, setDelimiter] = useState<string>(';')
@@ -202,7 +203,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                             <span>{account.icon}</span>
                             <span>{account.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">
-                              ({ACCOUNT_TYPE_LABELS[account.type]})
+                              ({accountTypeLabels[account.type]})
                             </span>
                           </div>
                         </SelectItem>

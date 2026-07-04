@@ -20,7 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account, AccountType } from '../../types';
 import {
-  ACCOUNT_TYPE_LABELS,
+  getAccountTypeLabels,
   ACCOUNT_TYPE_ICONS,
   ACCOUNT_TYPE_COLORS
 } from '../../services/account-service';
@@ -45,6 +45,7 @@ export function AccountFormDialog({
   isLoading,
 }: AccountFormDialogProps) {
   const { t } = useI18n();
+  const accountTypeLabels = getAccountTypeLabels();
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [currency, setCurrency] = useState('EUR');
@@ -177,9 +178,9 @@ export function AccountFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ACCOUNT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {ACCOUNT_TYPE_ICONS[t]} {ACCOUNT_TYPE_LABELS[t]}
+                {ACCOUNT_TYPES.map((accountType) => (
+                  <SelectItem key={accountType} value={accountType}>
+                    {ACCOUNT_TYPE_ICONS[accountType]} {accountTypeLabels[accountType]}
                   </SelectItem>
                 ))}
               </SelectContent>
