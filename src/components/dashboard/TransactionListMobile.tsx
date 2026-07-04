@@ -7,6 +7,7 @@ import { de } from 'date-fns/locale';
 import type { Category, Transaction } from '../../types';
 import { getAccounts } from '../../services/account-service';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useI18n } from '@/i18n/useI18n';
 import ListRow from '@/components/common/ListRow';
 
 interface TransactionListMobileProps {
@@ -43,6 +44,7 @@ export function TransactionListMobile({
   onSelect,
   onOpenDetails,
 }: TransactionListMobileProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   // Konten werden vorgeladen, damit das Detail-Modal sie ohne Flackern anzeigt.
   useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
@@ -86,7 +88,7 @@ export function TransactionListMobile({
 
               // Blattkategorie (Unterkategorie bevorzugt) für Icon + Name auflösen.
               const leaf = categoriesById.get(transaction.subcategory_id || transaction.category_id || '');
-              const categoryName = leaf?.name ?? 'Unkategorisiert';
+              const categoryName = leaf?.name ?? t('dashboard.uncategorized', 'Unkategorisiert');
               const avatarEmoji = leaf?.icon || null;
 
               return (
@@ -94,7 +96,7 @@ export function TransactionListMobile({
                   <ListRow
                     leading={
                       <Checkbox
-                        aria-label={`Transaktion ${payee} auswählen`}
+                        aria-label={`${t('dashboard.selectTransaction', 'Transaktion auswählen')}: ${payee}`}
                         checked={selected.has(rowId)}
                         disabled={!rowId}
                         onCheckedChange={() => onSelect(rowId)}
@@ -109,7 +111,7 @@ export function TransactionListMobile({
                     title={payee}
                     titleSuffix={
                       transaction.is_contract ? (
-                        <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                        <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t('dashboard.contract', 'Vertrag')} />
                       ) : undefined
                     }
                     subtitle={categoryName}

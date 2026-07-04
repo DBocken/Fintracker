@@ -5,6 +5,7 @@ import { TransactionListMobile } from './TransactionListMobile';
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
+vi.mock('@/i18n/useI18n', () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: 'de' }) }));
 
 const transaction: Transaction = {
   id: 'tx-1',
@@ -49,7 +50,7 @@ describe('[MOBILE] transaction row interaction', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /Transaktion REWE auswählen/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Transaktion auswählen: REWE/i }));
     expect(onSelect).toHaveBeenCalledWith('tx-1');
     expect(onOpenDetails).not.toHaveBeenCalled();
   });

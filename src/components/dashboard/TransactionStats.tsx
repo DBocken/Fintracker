@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TransactionStatsProps {
   income: number;
@@ -24,6 +25,7 @@ export function TransactionStats({
   totalTransactions,
   currentBalance,
 }: TransactionStatsProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
 
   // Karten-los (Usability-Audit „Karten sind Aktionen"): reines Kennzahlen-
@@ -34,7 +36,7 @@ export function TransactionStats({
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Wallet className="h-4 w-4" />
-              Kontostand
+              {t('dashboard.balanceTitle', 'Kontostand')}
             </div>
             <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
               {gentleModeEnabled ? '***' : currentBalance}
@@ -45,19 +47,19 @@ export function TransactionStats({
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowUpRight className="h-3.5 w-3.5 text-positive" />
-                Einnahmen
+                {t('dashboard.income', 'Einnahmen')}
               </dt>
               <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(income)}</dd>
             </div>
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowDownRight className="h-3.5 w-3.5" />
-                Ausgaben
+                {t('dashboard.expenses', 'Ausgaben')}
               </dt>
               <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(expenses)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Saldo</dt>
+              <dt className="text-xs text-muted-foreground">{t('dashboard.balance', 'Saldo')}</dt>
               <dd
                 className={`mt-1 text-lg font-semibold ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
               >
@@ -65,10 +67,10 @@ export function TransactionStats({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Transaktionen</dt>
+              <dt className="text-xs text-muted-foreground">{t('dashboard.transactions', 'Transaktionen')}</dt>
               <dd className="mt-1 text-lg font-semibold">
                 {count}
-                <span className="text-sm font-normal text-muted-foreground"> von {totalTransactions}</span>
+                <span className="text-sm font-normal text-muted-foreground"> {t('dashboard.of', 'von')} {totalTransactions}</span>
               </dd>
             </div>
           </dl>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useI18n } from '@/i18n/useI18n';
 import { TransactionDetailsPanel } from './TransactionDetailsPanel';
 import type { Transaction, Category, Account } from '@/types';
 
@@ -40,6 +41,7 @@ export function TransactionDetailsModal({
   isHidden = false,
   isLoading = false,
 }: TransactionDetailsModalProps) {
+  const { t } = useI18n();
   const [isDesktop, setIsDesktop] = useState(true);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export function TransactionDetailsModal({
       isHidden={isHidden}
       isLoading={isLoading}
       onClose={() => onOpenChange(false)}
-      closeLabel="Abbrechen"
+      closeLabel={t('common.cancel', 'Abbrechen')}
       layout={layout}
     />
   );
@@ -74,7 +76,7 @@ export function TransactionDetailsModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Transaktionsdetails</DialogTitle>
+            <DialogTitle>{t('dashboard.transactionDetails', 'Transaktionsdetails')}</DialogTitle>
           </DialogHeader>
           {panel('split')}
         </DialogContent>
@@ -86,7 +88,7 @@ export function TransactionDetailsModal({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto scrollbar-subtle rounded-t-lg">
         <SheetHeader className="mb-2">
-          <SheetTitle className="text-left">Transaktionsdetails</SheetTitle>
+          <SheetTitle className="text-left">{t('dashboard.transactionDetails', 'Transaktionsdetails')}</SheetTitle>
         </SheetHeader>
         {panel('stacked')}
       </SheetContent>
