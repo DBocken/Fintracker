@@ -64,10 +64,12 @@ function CompositionRow({
   line,
   scale,
   animate,
+  t,
 }: {
   line: CompositionLine;
   scale: number;
   animate: boolean;
+  t: (key: string) => string;
 }) {
   const magnitude = Math.abs(line.amount);
   // Mindestbreite, damit kleine Posten neben großen sichtbar bleiben.
@@ -157,7 +159,7 @@ function CompositionRow({
       {range && (
         <div className="flex items-baseline justify-between gap-2 text-[10px] tabular-nums text-muted-foreground">
           <span>
-            Spanne {fmtSigned(range.min)} … {fmtSigned(range.max)}
+            {t('finrisk.cellDetailComposition.rangeLabel')} {fmtSigned(range.min)} … {fmtSigned(range.max)}
           </span>
           <span>Ø {fmtSigned(range.avg)}</span>
         </div>
@@ -217,7 +219,7 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
         <div className="flex items-center justify-between gap-2 rounded-md bg-muted/60 px-1 py-0.5">
           <button
             type="button"
-            aria-label="Vorheriger Pfad"
+            aria-label={t('finrisk.cellDetailPaging.previousPath')}
             className={PAGER_BUTTON}
             disabled={detail.pathIndex === 0}
             onClick={() => onSelectPath(detail.pathIndex - 1)}
@@ -226,11 +228,11 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
           </button>
           <span className="text-xs tabular-nums text-muted-foreground">
             Pfad {detail.pathIndex + 1} von {detail.pathCount} {t('finrisk.inThisCell')}
-            {detail.pathIndex === 0 ? ' · repräsentativ' : ''}
+            {detail.pathIndex === 0 ? ' · ' + t('finrisk.cellDetailPaging.representative') : ''}
           </span>
           <button
             type="button"
-            aria-label="Nächster Pfad"
+            aria-label={t('finrisk.cellDetailPaging.nextPath')}
             className={PAGER_BUTTON}
             disabled={detail.pathIndex >= detail.pathCount - 1}
             onClick={() => onSelectPath(detail.pathIndex + 1)}
@@ -259,7 +261,7 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
           <section key={group} className="space-y-2.5">
             <h4 className="text-xs font-medium text-muted-foreground">{GROUP_LABEL[group]}</h4>
             {shown.map((line) => (
-              <CompositionRow key={`${group}-${line.name}`} line={line} scale={scale} animate={animate} />
+              <CompositionRow key={`${group}-${line.name}`} line={line} scale={scale} animate={animate} t={t} />
             ))}
             {rest > 0 && <p className="text-[11px] text-muted-foreground">+ {rest} weitere</p>}
           </section>

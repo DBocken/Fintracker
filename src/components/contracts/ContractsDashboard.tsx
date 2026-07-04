@@ -11,7 +11,7 @@ import { getTransactions, getCategories } from "@/services/transaction-service";
 import { applyDetectedContracts } from "@/services/contract-detection-service";
 import {
   getContractDecisionMap,
-  CONTRACT_STATUS_LABELS,
+  getContractStatusLabels,
   type ContractDecision,
 } from "@/services/contract-decision-service";
 import { useI18n } from "@/i18n/useI18n";
@@ -372,7 +372,7 @@ export function ContractsDashboard() {
                           icon={<Repeat className="h-4 w-4 text-muted-foreground" aria-hidden />}
                           title={row.payee}
                           titleSuffix={
-                            <Badge variant="outline" className="shrink-0">{CONTRACT_STATUS_LABELS[row.status]}</Badge>
+                            <Badge variant="outline" className="shrink-0">{getContractStatusLabels()[row.status]}</Badge>
                           }
                           subtitle={`${row.type} · ${row.cycleKnown ? row.cycle : "—"} · ${row.categoryName}`}
                           value={euro(row.amountLast)}
@@ -398,7 +398,7 @@ export function ContractsDashboard() {
                             <TableCell>{euro(row.amountLast)}</TableCell>
                             <TableCell>{format(parseISO(row.lastDateISO), "dd.MM.yyyy")}</TableCell>
                             <TableCell>—</TableCell>
-                            <TableCell><Badge variant="outline">{CONTRACT_STATUS_LABELS[row.status]}</Badge></TableCell>
+                            <TableCell><Badge variant="outline">{getContractStatusLabels()[row.status]}</Badge></TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

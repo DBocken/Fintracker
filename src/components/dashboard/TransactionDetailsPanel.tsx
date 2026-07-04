@@ -249,7 +249,7 @@ export function TransactionDetailsPanel({
 
       {/* Kategorisierung */}
       <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
-        <h3 className="text-sm font-semibold text-muted-foreground">Kategorisierung</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground">{t('dashboard.transactionDetailsPanel.categorization')}</h3>
 
         {categorySuggestion && !suggestionDismissed && (
           <div className="space-y-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
@@ -352,15 +352,15 @@ export function TransactionDetailsPanel({
 
       {/* Vertrag */}
       <div className={cn('space-y-3 pt-4', !isSplit && 'border-t')}>
-        <h3 className="text-sm font-semibold text-muted-foreground">Vertrag</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground">{t('dashboard.transactionDetailsPanel.contractSection')}</h3>
 
         {contractHint && (
           <div className="flex items-start gap-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Wirkt wie ein Vertrag</p>
+              <p className="text-sm font-medium">{t('dashboard.transactionDetailsPanel.contractActsLike')}</p>
               <p className="text-xs text-muted-foreground">
-                {contractHint.reason} Markiere die Buchung unten, falls das zutrifft.
+                {contractHint.reason} {t('dashboard.transactionDetailsPanel.contractActsLikeHint')}
               </p>
             </div>
           </div>
@@ -374,7 +374,7 @@ export function TransactionDetailsPanel({
             onCheckedChange={(checked) => setDraft((d) => (d ? { ...d, is_contract: checked === true } : d))}
           />
           <Label htmlFor="is-contract" className="cursor-pointer text-sm font-normal">
-            Dies ist ein Vertrag/Abonnement
+            {t('dashboard.transactionDetailsPanel.isContractLabel')}
           </Label>
         </div>
 
@@ -401,7 +401,7 @@ export function TransactionDetailsPanel({
 
       {/* Interner Übertrag */}
       <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
-        <h3 className="text-sm font-semibold text-muted-foreground">Interner Übertrag</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground">{t('dashboard.transactionDetailsPanel.internalTransfer')}</h3>
         <div className="flex items-start gap-2">
           <Checkbox
             id="is-transfer"

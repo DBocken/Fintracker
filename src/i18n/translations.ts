@@ -411,6 +411,14 @@ export const translations = {
       importCsv: 'CSV importieren',
       connectBank: 'Bank verbinden',
       reload: 'Erneut laden',
+      transactionDetailsPanel: {
+        categorization: 'Kategorisierung',
+        internalTransfer: 'Interner Übertrag',
+        contractSection: 'Vertrag',
+        contractActsLike: 'Wirkt wie ein Vertrag',
+        contractActsLikeHint: 'Markiere die Buchung unten, falls das zutrifft.',
+        isContractLabel: 'Dies ist ein Vertrag/Abonnement',
+      },
     },
     liquidityReport: {
       forecastError: 'Forecast konnte nicht berechnet werden',
@@ -1645,6 +1653,14 @@ export const translations = {
       confirmationToast: '„{payee}" als Vertrag bestätigt',
       confirmError: 'Fehler beim Bestätigen des Vertrags',
       dismissError: 'Fehler beim Ablehnen',
+      statusLabels: {
+        candidate: 'Kandidat',
+        active: 'Aktiv',
+        ended: 'Beendet',
+        rejected: 'Kein Vertrag',
+        paused: 'Pausiert',
+        archived: 'Archiviert',
+      },
     },
     receipt: {
       scanTitle: 'Beleg scannen',
@@ -1666,6 +1682,28 @@ export const translations = {
       equalSplitButton: 'Gleich aufteilen',
       removeSplitButton: 'Aufteilung entfernen',
       removeSplitSuccess: 'Aufteilung entfernt',
+    },
+    categoryManager: {
+      title: 'Kategorieverwaltung',
+      manageTab: 'Verwalten',
+      createTab: 'Erstellen',
+      searchPlaceholder: 'Kategorien oder Filter suchen...',
+      suggestionsTitle: 'Intelligente Vorschläge',
+      ruleFoundTitle: 'Neue Regel gefunden',
+      noSuggestionsTitle: 'Noch keine Vorschläge',
+      suggestionsDescription: '{count} Transaktionen könnten zur Kategorie "{category}" passen.',
+      applySuggestionButton: 'Regel anwenden',
+      suggestionsEmptyHint: 'Lade neue Transaktionen oder füge Filter hinzu, um Vorschläge zu erhalten.',
+    },
+    householdSettings: {
+      title: 'Haushalt',
+      description: 'Lege einen Haushalt an und verwalte Mitglieder für geteilte Ausgaben. Alles bleibt lokal auf deinem Gerät.',
+      householdNamePlaceholder: 'Name des Haushalts (z. B. „Zuhause")',
+      createButton: 'Anlegen',
+      deleteHouseholdButton: 'Haushalt löschen',
+      noMembersMessage: 'Noch keine Mitglieder.',
+      memberNamePlaceholder: 'Mitglied hinzufügen',
+      addMemberButton: 'Hinzufügen',
     },
     transactionSplit: {
       title: 'Buchung aufteilen',
@@ -2036,6 +2074,10 @@ export const translations = {
         euro: 'Euro',
         detailsOpen: 'Details öffnen.',
       },
+      service: {
+        noCategoryError: 'Budget braucht eine Kategorie',
+        noLimitError: 'Budget braucht ein Limit größer 0',
+      },
     },
     unlock: {
       title: 'App entsperren',
@@ -2178,6 +2220,14 @@ export const translations = {
       diagnosisMinor: 'Das gewählte Szenario verändert deinen Puffer nur begrenzt.',
       diagnosisStressCapacity: 'Bei {confidenceLevel} % Sicherheitsniveau ist ein zusätzlicher Stressfall bis ca. {amount} € tragbar.',
       diagnosisDisclaimer: 'Diese Analyse ist eine lokale Liquiditäts- und Szenariosimulation, keine Finanzberatung.',
+      cellDetailPaging: {
+        previousPath: 'Vorheriger Pfad',
+        nextPath: 'Nächster Pfad',
+        representative: 'repräsentativ',
+      },
+      cellDetailComposition: {
+        rangeLabel: 'Spanne',
+      },
     },
     spending: {
       total: 'Gesamt',
@@ -3295,6 +3345,14 @@ export const translations = {
       importCsv: 'Import CSV',
       connectBank: 'Connect bank',
       reload: 'Reload',
+      transactionDetailsPanel: {
+        categorization: 'Categorization',
+        internalTransfer: 'Internal Transfer',
+        contractSection: 'Contract',
+        contractActsLike: 'Appears to be a contract',
+        contractActsLikeHint: 'Mark this transaction below if applicable.',
+        isContractLabel: 'This is a contract/subscription',
+      },
     },
     liquidityReport: {
       forecastError: 'Forecast could not be calculated',
@@ -4529,6 +4587,14 @@ export const translations = {
       confirmationToast: '"{payee}" confirmed as contract',
       confirmError: 'Error confirming contract',
       dismissError: 'Error rejecting',
+      statusLabels: {
+        candidate: 'Candidate',
+        active: 'Active',
+        ended: 'Ended',
+        rejected: 'Not a contract',
+        paused: 'Paused',
+        archived: 'Archived',
+      },
     },
     receipt: {
       scanTitle: 'Scan receipt',
@@ -4550,6 +4616,28 @@ export const translations = {
       equalSplitButton: 'Split equally',
       removeSplitButton: 'Remove split',
       removeSplitSuccess: 'Split removed',
+    },
+    categoryManager: {
+      title: 'Category Management',
+      manageTab: 'Manage',
+      createTab: 'Create',
+      searchPlaceholder: 'Search categories or filters...',
+      suggestionsTitle: 'Smart Suggestions',
+      ruleFoundTitle: 'New rule found',
+      noSuggestionsTitle: 'No suggestions yet',
+      suggestionsDescription: '{count} transactions could match category "{category}".',
+      applySuggestionButton: 'Apply rule',
+      suggestionsEmptyHint: 'Import new transactions or add filters to get suggestions.',
+    },
+    householdSettings: {
+      title: 'Household',
+      description: 'Create a household and manage members for shared expenses. Everything stays local on your device.',
+      householdNamePlaceholder: 'Household name (e.g. "Home")',
+      createButton: 'Create',
+      deleteHouseholdButton: 'Delete household',
+      noMembersMessage: 'No members yet.',
+      memberNamePlaceholder: 'Add member',
+      addMemberButton: 'Add',
     },
     transactionSplit: {
       title: 'Split transaction',
@@ -4920,6 +5008,10 @@ export const translations = {
         euro: 'Euro',
         detailsOpen: 'Open details.',
       },
+      service: {
+        noCategoryError: 'Budget needs a category',
+        noLimitError: 'Budget needs a limit greater than 0',
+      },
     },
     unlock: {
       title: 'Unlock app',
@@ -5062,6 +5154,14 @@ export const translations = {
       diagnosisMinor: 'The chosen scenario will have only limited impact on your buffer.',
       diagnosisStressCapacity: 'At {confidenceLevel}% confidence level, an additional stress event up to approx. {amount} € is manageable.',
       diagnosisDisclaimer: 'This analysis is a local liquidity and scenario simulation, not financial advice.',
+      cellDetailPaging: {
+        previousPath: 'Previous path',
+        nextPath: 'Next path',
+        representative: 'representative',
+      },
+      cellDetailComposition: {
+        rangeLabel: 'Range',
+      },
     },
     spending: {
       total: 'Total',
