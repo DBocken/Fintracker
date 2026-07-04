@@ -1946,6 +1946,7 @@ export const translations = {
         restoreSuccess: 'Backup erfolgreich wiederhergestellt',
         restoreSuccessForeign: 'Backup erfolgreich wiederhergestellt (aus anderem Benutzerkonto)',
         restoreFailed: 'Wiederherstellung fehlgeschlagen: {error}',
+        unknownError: 'Unbekannter Fehler',
       },
     },
     bankCallback: {
@@ -2837,6 +2838,27 @@ export const translations = {
     gocardlessService: {
       notAuthenticated: 'Nicht authentifiziert',
       bankConnectionNotFound: 'Bankverbindung nicht gefunden',
+    },
+    moneyLib: {
+      invalidAmount: 'Ungültiger Betrag',
+    },
+    accountDeletionService: {
+      deletionFailed: 'Konto konnte nicht gelöscht werden.',
+    },
+    authService: {
+      notSignedIn: 'Nicht angemeldet. Bitte zuerst einloggen.',
+    },
+    automationSuggestionServiceLib: {
+      defaultCategoryDescription: 'Automatisch erkannter Kategorievorschlag',
+    },
+    claimServiceLib: {
+      unknownCreditor: 'Unbekannter Absender',
+    },
+    contractDecisionServiceLib: {
+      decisionDeletedTitle: 'Vertragsentscheidung gelöscht',
+    },
+    transactionStorageServiceLib: {
+      unknownError: 'Unbekannter Fehler',
     },
     accountService: {
       accountTypeLabelChecking: 'Girokonto',
@@ -4990,6 +5012,7 @@ export const translations = {
         restoreSuccess: 'Backup restored successfully',
         restoreSuccessForeign: 'Backup restored successfully (from different user account)',
         restoreFailed: 'Restore failed: {error}',
+        unknownError: 'Unknown error',
       },
     },
     bankCallback: {
@@ -5881,6 +5904,27 @@ export const translations = {
     gocardlessService: {
       notAuthenticated: 'Not authenticated',
       bankConnectionNotFound: 'Bank connection not found',
+    },
+    moneyLib: {
+      invalidAmount: 'Invalid amount',
+    },
+    accountDeletionService: {
+      deletionFailed: 'Account could not be deleted.',
+    },
+    authService: {
+      notSignedIn: 'Not signed in. Please sign in first.',
+    },
+    automationSuggestionServiceLib: {
+      defaultCategoryDescription: 'Automatically detected category suggestion',
+    },
+    claimServiceLib: {
+      unknownCreditor: 'Unknown sender',
+    },
+    contractDecisionServiceLib: {
+      decisionDeletedTitle: 'Contract decision deleted',
+    },
+    transactionStorageServiceLib: {
+      unknownError: 'Unknown error',
     },
     accountService: {
       accountTypeLabelChecking: 'Checking account',

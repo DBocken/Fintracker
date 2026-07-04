@@ -295,7 +295,7 @@ export const localEncryption = {
 
   async encryptJson(value: unknown): Promise<EncryptedEnvelopeV1> {
     const cfg = loadConfig()
-    if (!cfg) throw new Error('Lokale Verschlüsselung ist nicht aktiv.')
+    if (!cfg) throw new Error(t('crypto.notEnabledError'))
     const key = this.requireUnlocked()
     return encryptString(JSON.stringify(value), key, cfg)
   },

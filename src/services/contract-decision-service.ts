@@ -121,7 +121,7 @@ export async function deleteContractDecision(fingerprint: string): Promise<void>
     entityType: 'contract',
     entityId: removed?.id ?? fp,
     action: 'delete',
-    title: 'Vertragsentscheidung gelöscht',
+    title: t('contractDecisionServiceLib.decisionDeletedTitle', 'Vertragsentscheidung gelöscht'),
     redactedBefore: redactForAudit(removed, ['fingerprint', 'status', 'cycle_override']),
     redactedAfter: null,
     reversible: true,

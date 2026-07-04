@@ -271,7 +271,7 @@ export function claimFromLetter(letter: ParsedLetter, userId = "local"): Claim {
   return {
     id: crypto.randomUUID(),
     user_id: userId,
-    creditor: letter.creditor?.value ?? "Unbekannter Absender",
+    creditor: letter.creditor?.value ?? t("claimServiceLib.unknownCreditor", "Unbekannter Absender"),
     original_creditor: isInkasso ? letter.originalCreditor?.value ?? null : null,
     current_amount: amount,
     hauptforderung: letter.amounts.hauptforderung?.value ?? null,

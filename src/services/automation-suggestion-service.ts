@@ -6,6 +6,7 @@ import {
 } from './local-finance-store';
 import type { Transaction } from '@/types';
 import type { CategorizationResult } from './transaction-service';
+import { t } from '@/i18n/serviceT';
 
 /**
  * Generisches Modell für automatische Vorschläge („Automatisch, aber nie
@@ -102,7 +103,7 @@ export function buildCategorySuggestion(
     entityType: 'transaction',
     entityId: transaction.id ?? '',
     title: `Kategorie-Vorschlag für ${transaction.payee || 'Buchung'}`,
-    description: reasons[0] ?? 'Automatisch erkannter Kategorievorschlag',
+    description: reasons[0] ?? t('automationSuggestionServiceLib.defaultCategoryDescription', 'Automatisch erkannter Kategorievorschlag'),
     confidence,
     reasons,
     proposedChange: { category_id: categoryId },

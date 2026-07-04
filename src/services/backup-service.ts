@@ -394,7 +394,7 @@ class BackupService {
       };
     } catch (error) {
       throw new Error(
-        t('backup.service.restoreFailed', 'Wiederherstellung fehlgeschlagen: {error}').replace('{error}', error instanceof Error ? error.message : 'Unbekannter Fehler')
+        t('backup.service.restoreFailed', 'Wiederherstellung fehlgeschlagen: {error}').replace('{error}', error instanceof Error ? error.message : t('backup.service.unknownError', 'Unbekannter Fehler'))
       );
     }
   }
