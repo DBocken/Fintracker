@@ -1,5 +1,6 @@
 import { HeartHandshake, ExternalLink } from "lucide-react";
 import type { CounselingRecommendation } from "@/services/debt-guardrails-service";
+import { useI18n } from "@/i18n/useI18n";
 
 /**
  * Schuldnerberatungs-Brücke (Issue #50, Epic #24): erscheint NUR, wenn der
@@ -16,6 +17,7 @@ export function CounselingBridgeCard({
 }: {
   recommendation: CounselingRecommendation;
 }) {
+  const { t } = useI18n();
   if (!recommendation.recommended) return null;
 
   return (
@@ -28,7 +30,7 @@ export function CounselingBridgeCard({
         <div className="min-w-0 space-y-3">
           <div>
             <h3 id="counseling-bridge-heading" className="text-sm font-semibold">
-              Hol dir kostenlose Unterstützung
+              {t('debts.counselingCard.supportTitle')}
             </h3>
             {recommendation.reason && (
               <p className="mt-1 text-sm text-muted-foreground">{recommendation.reason}</p>

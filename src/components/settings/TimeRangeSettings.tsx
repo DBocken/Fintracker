@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Clock } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TimeRangeSettingsProps {
   retentionMonths: number;
@@ -8,10 +9,12 @@ interface TimeRangeSettingsProps {
 }
 
 export function TimeRangeSettings({ retentionMonths, onRetentionChange }: TimeRangeSettingsProps) {
+  const { t } = useI18n();
+
   const getRetentionLabel = (months: number) => {
-    if (months < 12) return `${months} Monate`;
-    if (months === 12) return '1 Jahr';
-    return `${months / 12} Jahre`;
+    if (months < 12) return t('settings.timeRange.months').replace('{months}', String(months));
+    if (months === 12) return t('settings.timeRange.year');
+    return t('settings.timeRange.years').replace('{years}', String(months / 12));
   };
 
   return (
@@ -19,7 +22,7 @@ export function TimeRangeSettings({ retentionMonths, onRetentionChange }: TimeRa
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Aufbewahrungsdauer
+          {t('settings.timeRange.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>

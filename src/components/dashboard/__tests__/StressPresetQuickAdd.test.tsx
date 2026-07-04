@@ -1,7 +1,20 @@
 import { describe, it, expect, vi as vitest } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import StressPresetQuickAdd from '../StressPresetQuickAdd';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+
+// Helper: I18nProvider Wrapper
+function renderWithI18n(
+  component: React.ReactElement,
+  locale: 'de' | 'en' = 'de'
+) {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      {component}
+    </I18nProvider>
+  );
+}
 
 describe('StressPresetQuickAdd', () => {
   const mockOverrides: ForecastOverrides = {
@@ -24,7 +37,7 @@ describe('StressPresetQuickAdd', () => {
 
   describe('Normal Behavior', () => {
     it('sollte Preset-Buttons mit Default-Werten anzeigen', () => {
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -46,7 +59,7 @@ describe('StressPresetQuickAdd', () => {
     });
 
     it('sollte Parameter-Input zeigen wenn Preset geklickt wird', () => {
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -70,7 +83,7 @@ describe('StressPresetQuickAdd', () => {
 
     it('sollte onApply mit Preset-Daten aufrufen wenn Apply geklickt wird', async () => {
       const onApply = vitest.fn();
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -101,7 +114,7 @@ describe('StressPresetQuickAdd', () => {
     });
 
     it('sollte "Teurer"-Preset bei fehlenden Variable-Expenses deaktivieren', () => {
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -117,7 +130,7 @@ describe('StressPresetQuickAdd', () => {
 
     it('sollte beim Wählen eines Szenarios die Ziel-Sektion melden', () => {
       const onActiveScenarioChange = vitest.fn();
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -146,7 +159,7 @@ describe('StressPresetQuickAdd', () => {
 
     it('sollte null melden wenn das Szenario geschlossen wird', () => {
       const onActiveScenarioChange = vitest.fn();
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -167,7 +180,7 @@ describe('StressPresetQuickAdd', () => {
     });
 
     it('sollte alle Presets bei fehlender accountId deaktivieren', () => {
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId={null}
@@ -186,7 +199,7 @@ describe('StressPresetQuickAdd', () => {
   describe('Edge Cases', () => {
     it('sollte mit negativen Werten umgehen', () => {
       const onApply = vitest.fn();
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"
@@ -203,7 +216,7 @@ describe('StressPresetQuickAdd', () => {
 
     it('sollte Standard-Parameter-Werte verwenden wenn nicht angepasst', () => {
       const onApply = vitest.fn();
-      const { container } = render(
+      const { container } = renderWithI18n(
         <StressPresetQuickAdd
           startISO="2026-06-26"
           accountId="acc1"

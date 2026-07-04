@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import type { Transaction } from '../../types';
+import { useI18n } from '@/i18n/useI18n';
 
 interface HeatmapCalendarProps {
   transactions: Transaction[];
@@ -12,6 +13,7 @@ interface HeatmapCalendarProps {
 type Aggregator = 'expenses' | 'income' | 'net' | 'count';
 
 export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
+  const { t } = useI18n();
   const [daysRange, setDaysRange] = useState<number>(30);
   const [aggregator, setAggregator] = useState<Aggregator>('expenses');
 
@@ -112,17 +114,18 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
     const key = date.toISOString().split('T')[0];
     const value = activityMap.get(key) || 0;
     const dateStr = date.toLocaleDateString('de-DE');
+    const amount = Math.round(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
     if (aggregator === 'count') {
-      return `${dateStr}: ${value} Transaktionen`;
+      return t("premium.heatmap.tooltipCount").replace('{date}', dateStr).replace('{count}', String(value));
     }
     if (aggregator === 'income') {
-      return `${dateStr}: ${Math.round(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })} Einnahmen`;
+      return t("premium.heatmap.tooltipIncome").replace('{date}', dateStr).replace('{amount}', amount);
     }
     if (aggregator === 'expenses') {
-      return `${dateStr}: ${Math.round(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })} Ausgaben`;
+      return t("premium.heatmap.tooltipExpenses").replace('{date}', dateStr).replace('{amount}', amount);
     }
     // net
-    return `${dateStr}: ${Math.round(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })} Netto`;
+    return t("premium.heatmap.tooltipNet").replace('{date}', dateStr).replace('{amount}', amount);
   };
 
   return (
@@ -130,36 +133,36 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
       <CardHeader>
         <CardTitle className="text-foreground flex items-center gap-2">
           <Calendar className="h-5 w-5 text-brand" />
-          Aktivitätskalender
+          {t("premium.heatmap.title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Steuerung */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <div className="text-sm text-foreground">Zeitraum</div>
+            <div className="text-sm text-foreground">{t("premium.heatmap.timeRange")}</div>
             <Select value={String(daysRange)} onValueChange={(v) => setDaysRange(Number(v))}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30">Letzte 30 Tage</SelectItem>
-                <SelectItem value="60">Letzte 60 Tage</SelectItem>
-                <SelectItem value="90">Letzte 90 Tage</SelectItem>
+                <SelectItem value="30">{t("premium.heatmap.last30Days")}</SelectItem>
+                <SelectItem value="60">{t("premium.heatmap.last60Days")}</SelectItem>
+                <SelectItem value="90">{t("premium.heatmap.last90Days")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-sm text-foreground">Aggregation</div>
+            <div className="text-sm text-foreground">{t("premium.heatmap.aggregation")}</div>
             <Select value={aggregator} onValueChange={(v: Aggregator) => setAggregator(v)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="expenses">Ausgaben</SelectItem>
-                <SelectItem value="income">Einnahmen</SelectItem>
-                <SelectItem value="net">Netto</SelectItem>
-                <SelectItem value="count">Anzahl</SelectItem>
+                <SelectItem value="expenses">{t("premium.heatmap.expenses")}</SelectItem>
+                <SelectItem value="income">{t("premium.heatmap.income")}</SelectItem>
+                <SelectItem value="net">{t("premium.heatmap.net")}</SelectItem>
+                <SelectItem value="count">{t("premium.heatmap.count")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -167,7 +170,15 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
 
         {/* Wochentage */}
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(day => (
+          {[
+            t("premium.heatmap.dayMonday"),
+            t("premium.heatmap.dayTuesday"),
+            t("premium.heatmap.dayWednesday"),
+            t("premium.heatmap.dayThursday"),
+            t("premium.heatmap.dayFriday"),
+            t("premium.heatmap.daySaturday"),
+            t("premium.heatmap.daySunday"),
+          ].map(day => (
             <div key={day} className="text-xs text-muted-foreground text-center">
               {day}
             </div>

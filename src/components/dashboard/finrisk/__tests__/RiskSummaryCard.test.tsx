@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import RiskSummaryCard from '../RiskSummaryCard';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
+
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      {component}
+    </I18nProvider>
+  );
+}
 
 function lumpy(level: LumpyRiskProfile['lumpyRiskLevel'], count = 5): LumpyRiskProfile {
   return {
@@ -29,7 +38,7 @@ function cap(value: number): StressCapacityLevel {
 
 describe('RiskSummaryCard', () => {
   it('zeigt eine tragfähige Alltagslage und die Stress-Tragfähigkeit bei 90 %', () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <RiskSummaryCard lumpy={lumpy('low')} stress90={cap(2000)} baseBreachProbability={0} />,
     );
     expect(screen.getByText('tragfähig')).toBeInTheDocument();
@@ -39,14 +48,14 @@ describe('RiskSummaryCard', () => {
   });
 
   it('markiert hohes Lumpy-Risiko kritisch (rote Ampel)', () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <RiskSummaryCard lumpy={lumpy('high')} stress90={cap(2000)} baseBreachProbability={0} />,
     );
     expect(container.querySelector('.bg-destructive')).toBeTruthy();
   });
 
   it('zeigt einen Pufferbruch-Anteil, wenn die Basisprüfung bricht', () => {
-    render(<RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />);
+    renderWithI18n(<RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />);
     expect(screen.getByText(/40 % Pufferbruch/)).toBeInTheDocument();
   });
 });

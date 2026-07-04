@@ -14,11 +14,13 @@ import { showSuccess, showError } from '@/utils/toast';
 import { getTransactions } from '@/services/transaction-service';
 import { sumIncome, sumExpenses } from '@/lib/analysis-data';
 import { transactionStorage } from '@/services/transaction-storage-service';
+import { useI18n } from '@/i18n/useI18n';
 import type { Transaction } from '@/types';
 
 type ExportFormat = 'csv' | 'pdf';
 
 export function DataExport() {
+  const { t } = useI18n();
   const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | '30d' | '90d' | '1y'>('all');
 
@@ -66,10 +68,10 @@ export function DataExport() {
       } else if (result.format === 'pdf') {
         downloadPDF(filteredTransactions);
       }
-      showSuccess(`Erfolgreich ${result.count} Transaktionen exportiert`);
+      showSuccess(t('dataExport.exportSuccess').replace('{count}', String(result.count)));
     },
     onError: (error: Error) => {
-      showError(`Export fehlgeschlagen: ${error.message}`);
+      showError(t('dataExport.exportError').replace('{error}', error.message));
     },
   });
 
@@ -98,7 +100,7 @@ export function DataExport() {
 
     doc.setFontSize(18);
     doc.setFont('helvetica', 'normal');
-    doc.text('Ausgabentracker Export', 14, 20);
+    doc.text(t('dataExport.pdfExportTitle'), 14, 20);
 
     // Transferbereinigte Summen (Invariante 2) — gleiche Quelle wie das
     // Dashboard, damit der exportierte Bericht keine internen Überträge als
@@ -109,23 +111,23 @@ export function DataExport() {
     const balance = totalIncome - totalExpenses;
 
     doc.setFontSize(10);
-    doc.text(`Exportiert am: ${date}`, 14, 28);
-    doc.text(`Gesamteinnahmen: €${totalIncome.toFixed(2)}`, 14, 42);
-    doc.text(`Gesamtausgaben: €${totalExpenses.toFixed(2)}`, 14, 48);
-    doc.text(`Saldo: €${balance.toFixed(2)}`, 14, 54);
+    doc.text(t('dataExport.pdfExportedAt').replace('{date}', date), 14, 28);
+    doc.text(t('dataExport.pdfTotalIncome').replace('{amount}', totalIncome.toFixed(2)), 14, 42);
+    doc.text(t('dataExport.pdfTotalExpenses').replace('{amount}', totalExpenses.toFixed(2)), 14, 48);
+    doc.text(t('dataExport.pdfBalance').replace('{amount}', balance.toFixed(2)), 14, 54);
 
     const tableData = transactions
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .map(t => [
-        t.date,
-        t.payee,
-        t.description.substring(0, 50),
-        t.amount.toFixed(2) + ' €',
-        t.category_id || 'Unkategorisiert',
+      .map(tx => [
+        tx.date,
+        tx.payee,
+        tx.description.substring(0, 50),
+        tx.amount.toFixed(2) + ' €',
+        tx.category_id || t('dataExport.uncategorized'),
       ]);
 
     autoTable(doc, {
-      head: [['Datum', 'Empfänger', 'Beschreibung', 'Betrag', 'Kategorie']],
+      head: [[t('dataExport.pdfTableHeader.0'), t('dataExport.pdfTableHeader.1'), t('dataExport.pdfTableHeader.2'), t('dataExport.pdfTableHeader.3'), t('dataExport.pdfTableHeader.4')]],
       body: tableData,
       startY: 64,
       styles: {
@@ -155,15 +157,15 @@ export function DataExport() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Download className="h-5 w-5 text-brand" />
-          Daten Export
+          {t('dataExport.title')}
         </CardTitle>
         <CardDescription>
-          Exportiere deine Transaktionen als CSV oder PDF für externe Analyse oder Backup
+          {t('dataExport.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Zeitraum</label>
+          <label className="block text-sm font-medium mb-2">{t('dataExport.timeRange')}</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {(['all', '30d', '90d', '1y'] as const).map((range) => (
               <Button
@@ -173,16 +175,16 @@ export function DataExport() {
                 onClick={() => setSelectedDateRange(range)}
                 className="w-full"
               >
-                {range === 'all' ? 'Alle Daten' :
-                 range === '30d' ? '30 Tage' :
-                 range === '90d' ? '90 Tage' : '1 Jahr'}
+                {range === 'all' ? t('dataExport.allData') :
+                 range === '30d' ? t('dataExport.days30') :
+                 range === '90d' ? t('dataExport.days90') : t('dataExport.year1')}
               </Button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Exportformat</label>
+          <label className="block text-sm font-medium mb-2">{t('dataExport.format')}</label>
           <div className="grid grid-cols-2 gap-4">
             <Button
               variant={exportFormat === 'csv' ? 'default' : 'outline'}
@@ -191,8 +193,8 @@ export function DataExport() {
             >
               <FileText className="h-6 w-6" />
               <div className="text-left">
-                <div className="font-semibold">CSV</div>
-                <div className="text-xs text-muted-foreground">Kompatibel mit Excel</div>
+                <div className="font-semibold">{t('dataExport.csvTitle')}</div>
+                <div className="text-xs text-muted-foreground">{t('dataExport.csvDesc')}</div>
               </div>
             </Button>
             <Button
@@ -202,8 +204,8 @@ export function DataExport() {
             >
               <Database className="h-6 w-6" />
               <div className="text-left">
-                <div className="font-semibold">PDF</div>
-                <div className="text-xs text-muted-foreground">Formatierter Bericht</div>
+                <div className="font-semibold">{t('dataExport.pdfTitle')}</div>
+                <div className="text-xs text-muted-foreground">{t('dataExport.pdfDesc')}</div>
               </div>
             </Button>
           </div>
@@ -212,13 +214,13 @@ export function DataExport() {
         <div className="p-4 rounded-lg bg-muted space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              Anzahl Transaktionen:
+              {t('dataExport.transactionCount')}
             </span>
             <span className="font-semibold">{filteredTransactions.length}</span>
           </div>
           <div className="flex items-start justify-between gap-2 text-sm">
             <span className="shrink-0 text-muted-foreground">
-              Dateiname:
+              {t('dataExport.fileName')}
             </span>
             <span className="min-w-0 break-all text-right font-mono text-xs">{getFileNamePreview()}</span>
           </div>
@@ -227,8 +229,7 @@ export function DataExport() {
         <Alert className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            Der Export enthält alle Transaktionen mit ihren Kategorien und Beschreibungen. 
-            CSV-Dateien können in Excel, Numbers oder anderen Tabellenkalkulationen geöffnet werden.
+            {t('dataExport.alertText')}
           </AlertDescription>
         </Alert>
 
@@ -241,12 +242,12 @@ export function DataExport() {
           {exportMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Exportiere...
+              {t('dataExport.exporting')}
             </>
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              {filteredTransactions.length} Transaktionen exportieren
+              {t('dataExport.exportButton').replace('{count}', String(filteredTransactions.length))}
             </>
           )}
         </Button>
@@ -255,8 +256,7 @@ export function DataExport() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Keine Transaktionen zum Exportieren verfügbar. 
-              Importiere zuerst Daten oder wähle einen anderen Zeitraum.
+              {t('dataExport.noTransactions')}
             </AlertDescription>
           </Alert>
         )}

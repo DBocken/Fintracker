@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Lock, TrendingUp, TrendingDown, CalendarRange, Sparkles } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import type { Category, Transaction } from "@/types";
 import { computeTypicalMonth, computeTrend, computeMonthComparison, listMonths } from "@/lib/analysis-modes";
 import { getDashboardDateRange } from "./filter-utils";
@@ -13,12 +14,6 @@ const monthLabel = (key: string) =>
   new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date(`${key}-01T00:00:00`));
 
 type AnalysisMode = "zeitraum" | "typical" | "trend" | "compare";
-
-const MODES: { key: AnalysisMode; label: string }[] = [
-  { key: "zeitraum", label: "Zeitraum" },
-  { key: "typical", label: "Typischer Monat" },
-  { key: "trend", label: "Tendenz" },
-];
 
 interface Props {
   /** Vollständige (nicht zeitraum-gefilterte) Buchungen für Durchschnitt/Vergleich. */
@@ -35,8 +30,15 @@ interface Props {
  * sichtbar gesperrt (Premium); Berechnung via lib/analysis-modes.
  */
 export default function AnalysisModePanel({ allTransactions, categories, range, customDays }: Props) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<AnalysisMode>("zeitraum");
   const canCompare = useFeatureAccess("premiumAnalytics");
+
+  const MODES: { key: AnalysisMode; label: string }[] = [
+    { key: "zeitraum", label: t("analysisModePanel.timeRange") },
+    { key: "typical", label: t("analysisModePanel.typicalMonth") },
+    { key: "trend", label: t("analysisModePanel.trend") },
+  ];
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, c.name]));
@@ -65,7 +67,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-1 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           <CalendarRange className="h-4 w-4" />
-          Analysemodus
+          {t("analysisModePanel.analysisMode")}
         </div>
         {MODES.map((m) => (
           <button
@@ -92,43 +94,42 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
             )}
           >
             <Sparkles className="h-3 w-3" />
-            Monate vergleichen
+            {t("analysisModePanel.compareMonths")}
           </button>
         ) : (
           <button
             type="button"
             disabled
-            title="Premium-Funktion – für Alpha-Tester freigeschaltet"
+            title={t("analysisModePanel.premiumFeature")}
             className="inline-flex min-h-[36px] cursor-not-allowed items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground opacity-70"
           >
             <Lock className="h-3 w-3" />
-            Monate vergleichen
+            {t("analysisModePanel.compareMonths")}
           </button>
         )}
       </div>
 
       {mode === "zeitraum" && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Kennzahlen und Diagramme folgen dem gewählten Zeitraum-Filter. Wechsle auf „Typischer Monat" für
-          gemittelte Werte oder „Tendenz" für den Vergleich mit dem Vorzeitraum.
+          {t("analysisModePanel.timeRangeDesc")}
         </p>
       )}
 
       {mode === "typical" && (
         <div className="mt-3">
           {typical.monthsCounted === 0 ? (
-            <p className="text-sm text-muted-foreground">Noch keine Monatsdaten für einen Durchschnitt.</p>
+            <p className="text-sm text-muted-foreground">{t("analysisModePanel.noMonthData")}</p>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <Stat label="Ø Einnahmen" value={eur.format(typical.income)} className="text-positive" />
-                <Stat label="Ø Ausgaben" value={eur.format(typical.expenses)} className="text-warning" />
-                <Stat label="Ø Saldo" value={eur.format(typical.net)} className={typical.net >= 0 ? "text-positive" : "text-warning"} />
+                <Stat label={t("analysisModePanel.avgIncome")} value={eur.format(typical.income)} className="text-positive" />
+                <Stat label={t("analysisModePanel.avgExpenses")} value={eur.format(typical.expenses)} className="text-warning" />
+                <Stat label={t("analysisModePanel.avgBalance")} value={eur.format(typical.net)} className={typical.net >= 0 ? "text-positive" : "text-warning"} />
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {typical.partial
-                  ? "Nur der laufende, unvollständige Monat liegt vor – Werte sind vorläufig."
-                  : `Durchschnitt über ${typical.monthsCounted} abgeschlossene ${typical.monthsCounted === 1 ? "Monat" : "Monate"} (laufender Monat ausgeschlossen).`}
+                  ? t("analysisModePanel.partialMonth")
+                  : t("analysisModePanel.averageOver").replace("{months}", String(typical.monthsCounted)).replace("{plural}", typical.monthsCounted === 1 ? "Monat" : "Monate") + ` (${t("analysisModePanel.currentMonthExcluded")}).`}
               </p>
             </>
           )}
@@ -139,7 +140,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
         <div className="mt-3">
           {!trend ? (
             <p className="text-sm text-muted-foreground">
-              Wähle einen konkreten Zeitraum (nicht „Gesamt"), um ihn mit dem Vorzeitraum zu vergleichen.
+              {t("analysisModePanel.selectTimeRange")}
             </p>
           ) : (
             <>
@@ -150,13 +151,13 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
                   <TrendingDown className="h-5 w-5 text-positive" />
                 )}
                 <div className="text-sm">
-                  Ausgaben{" "}
+                  {t("analysisModePanel.expenses")}{" "}
                   <span className="font-semibold">
                     {trend.expensesChangePct == null
                       ? eur.format(trend.current.expenses)
                       : `${trend.expensesChangePct > 0 ? "+" : ""}${trend.expensesChangePct.toFixed(0)} %`}
                   </span>{" "}
-                  ggü. Vorzeitraum ({eur.format(trend.previous.expenses)} → {eur.format(trend.current.expenses)})
+                  {t("analysisModePanel.vsLastPeriod").replace("{previous}", eur.format(trend.previous.expenses)).replace("{current}", eur.format(trend.current.expenses))}
                 </div>
               </div>
               {trend.topCauses.length > 0 && (
@@ -181,21 +182,21 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
         <div className="mt-3">
           {months.length < 2 ? (
             <p className="text-sm text-muted-foreground">
-              Für einen Vergleich werden Buchungen aus mindestens zwei Monaten benötigt.
+              {t("analysisModePanel.needTwoMonths")}
             </p>
           ) : (
             <>
               <div className="flex flex-wrap items-end gap-3">
                 <MonthPicker
                   id="month-a"
-                  label="Monat A"
+                  label={t("analysisModePanel.monthA")}
                   value={effA}
                   onChange={setMonthA}
                   availableMonths={months}
                 />
                 <MonthPicker
                   id="month-b"
-                  label="Monat B"
+                  label={t("analysisModePanel.monthB")}
                   value={effB}
                   onChange={setMonthB}
                   availableMonths={months}
@@ -210,23 +211,23 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
                         <th className="py-1 text-left font-medium"> </th>
                         <th className="py-1 text-right font-medium">{monthLabel(effA)}</th>
                         <th className="py-1 text-right font-medium">{monthLabel(effB)}</th>
-                        <th className="py-1 text-right font-medium">Δ</th>
+                        <th className="py-1 text-right font-medium">{t("analysisModePanel.change")}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <CompareRow label="Einnahmen" a={comparison.a.income} b={comparison.b.income} delta={comparison.delta.income} positiveGood />
-                      <CompareRow label="Ausgaben" a={comparison.a.expenses} b={comparison.b.expenses} delta={comparison.delta.expenses} />
-                      <CompareRow label="Saldo" a={comparison.a.net} b={comparison.b.net} delta={comparison.delta.net} positiveGood />
+                      <CompareRow label={t("analysisModePanel.income")} a={comparison.a.income} b={comparison.b.income} delta={comparison.delta.income} positiveGood />
+                      <CompareRow label={t("analysisModePanel.expenses")} a={comparison.a.expenses} b={comparison.b.expenses} delta={comparison.delta.expenses} />
+                      <CompareRow label={t("analysisModePanel.balance")} a={comparison.a.net} b={comparison.b.net} delta={comparison.delta.net} positiveGood />
                     </tbody>
                   </table>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Ausgaben{" "}
+                    {t("analysisModePanel.expenses")}{" "}
                     <span className="font-semibold">
                       {comparison.expensesChangePct == null
                         ? "—"
                         : `${comparison.expensesChangePct > 0 ? "+" : ""}${comparison.expensesChangePct.toFixed(0)} %`}
                     </span>{" "}
-                    von {monthLabel(effA)} zu {monthLabel(effB)}.
+                    {t("analysisModePanel.from")} {monthLabel(effA)} {t("analysisModePanel.to")} {monthLabel(effB)}.
                   </p>
                 </div>
               )}

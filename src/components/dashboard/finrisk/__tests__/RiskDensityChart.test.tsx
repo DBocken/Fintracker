@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import RiskDensityChart from '../RiskDensityChart';
 import { buildDensityField } from '@/lib/finrisk/density';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
+
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      {component}
+    </I18nProvider>
+  );
+}
 
 /** Baut ein minimales, aber vollständiges ScenarioResult für den Render-Test. */
 function makeResult(paths: number[][], dates: string[], withDetails = false): ScenarioResult {
@@ -55,14 +64,14 @@ describe('RiskDensityChart', () => {
 
   describe('Normal Behavior', () => {
     it('sollte die Heatmap mit Aria-Label und Legende rendern', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
       expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Liquiditäts-Heatmap/);
       expect(screen.getByText('gesund')).toBeInTheDocument();
       expect(screen.getByText(/heller = wahrscheinlicher/)).toBeInTheDocument();
     });
 
     it('sollte ein Sicherheitsniveau auswählbar machen', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
       const btn95 = screen.getByRole('button', { name: '95 %' });
       fireEvent.click(btn95);
       expect(btn95).toHaveAttribute('aria-pressed', 'true');
@@ -71,7 +80,7 @@ describe('RiskDensityChart', () => {
     });
 
     it('sollte Pointer-Interaktion ohne Absturz verarbeiten', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
       const stage = screen.getByRole('img');
       expect(() => {
         fireEvent.pointerMove(stage, { clientX: 120, clientY: 40 });
@@ -81,17 +90,17 @@ describe('RiskDensityChart', () => {
     });
 
     it('sollte die Zell-Klick-Möglichkeit ankündigen, wenn Annahmen vorliegen', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
-      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Zelle antippen/);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
+      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Tippe eine Zelle an/);
     });
 
     it('sollte ohne Annahmen keine Klick-Ankündigung zeigen (reine Anzeige)', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
       expect(screen.getByRole('img').getAttribute('aria-label')).not.toMatch(/Zelle antippen/);
     });
 
     it('sollte ein Tippen (Pointerdown→up) ohne gültige Geometrie ohne Absturz verarbeiten', () => {
-      render(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates, true)} safetyBuffer={1000} />);
       const stage = screen.getByRole('img');
       expect(() => {
         fireEvent.pointerDown(stage, { clientX: 120, clientY: 80 });
@@ -104,7 +113,7 @@ describe('RiskDensityChart', () => {
   describe('Edge Cases', () => {
     it('sollte bei leerem Dichtefeld einen Platzhalter zeigen', () => {
       const empty = makeResult([], []);
-      render(<RiskDensityChart result={empty} safetyBuffer={1000} />);
+      renderWithI18n(<RiskDensityChart result={empty} safetyBuffer={1000} />);
       expect(screen.getByText(/Noch keine Pfade/)).toBeInTheDocument();
     });
   });

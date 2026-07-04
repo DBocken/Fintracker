@@ -1,6 +1,7 @@
 import { Plus, Wand2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 import type { BudgetSuggestion } from "@/types";
 
 const eur = new Intl.NumberFormat("de-DE", {
@@ -20,6 +21,7 @@ interface SuggestedBudgetsProps {
  * letzten Monate). Ein Klick legt das Budget mit dem vorgeschlagenen Limit an.
  */
 export default function SuggestedBudgets({ suggestions, onAdd, isLoading }: SuggestedBudgetsProps) {
+  const { t } = useI18n();
   if (suggestions.length === 0) return null;
 
   return (
@@ -27,10 +29,10 @@ export default function SuggestedBudgets({ suggestions, onAdd, isLoading }: Sugg
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Wand2 className="h-4 w-4 text-brand" />
-          Vorgeschlagene Budgets
+          {t('budgets.suggestedBudgets.title')}
         </CardTitle>
         <CardDescription>
-          Auf Basis deiner Ausgaben der letzten Monate. Tippe an, um ein Budget zu übernehmen.
+          {t('budgets.suggestedBudgets.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
@@ -48,7 +50,7 @@ export default function SuggestedBudgets({ suggestions, onAdd, isLoading }: Sugg
               {s.icon ? `${s.icon} ` : ""}
               {s.name}
             </span>
-            <span className="ml-1.5 text-muted-foreground">{eur.format(s.limit)}/Mo.</span>
+            <span className="ml-1.5 text-muted-foreground">{eur.format(s.limit)}{t('budgets.suggestedBudgets.perMonth')}</span>
           </Button>
         ))}
       </CardContent>

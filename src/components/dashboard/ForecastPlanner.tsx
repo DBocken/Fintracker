@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Accordion,
   AccordionContent,
@@ -51,6 +52,7 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
  * Forecast-Overrides. Unterstützt Highlighting nach Stresstest-Preset-Anwendung.
  */
 export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete, activeSection }: Props) {
+  const { t } = useI18n();
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
@@ -108,13 +110,13 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="interest">
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <Percent className="h-4 w-4" /> Tagesgeld-Zinsen
+                <Percent className="h-4 w-4" /> {t('forecast.interestRates')}
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 px-2">
               {interestAccounts.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Keine Tagesgeld-/Giro-Konten gefunden.
+                  {t('forecast.noInterestAccounts')}
                 </p>
               )}
               {interestAccounts.map((a) => (
@@ -137,7 +139,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                         onChange({ accountInterest: next });
                       }}
                     />
-                    <span className="text-sm text-muted-foreground">% p.a.</span>
+                    <span className="text-sm text-muted-foreground">{t('forecast.pctPerAnnum')}</span>
                   </div>
                 </div>
               ))}
@@ -148,7 +150,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="budgets" className={sectionClass('budgets')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <Target className="h-4 w-4" /> Variable Budgets
+                <Target className="h-4 w-4" /> {t('forecast.variableBudgets')}
                 {Object.keys(overrides.categoryBudgets).length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({Object.keys(overrides.categoryBudgets).length})
@@ -159,7 +161,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
             <AccordionContent className="space-y-3 px-2">
               {!input || !input.variableExpenses || input.variableExpenses.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Keine variablen Ausgaben gefunden.
+                  {t('forecast.noVariableExpenses')}
                 </p>
               ) : (
                 <BudgetOverrideForm
@@ -175,7 +177,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="recurring">
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <Link2Off className="h-4 w-4" /> Wiederkehrende Zahlungen
+                <Link2Off className="h-4 w-4" /> {t('forecast.recurringPayments')}
                 {input && (input.allRecurringFlows ?? input.recurringFlows) && (input.allRecurringFlows ?? input.recurringFlows)!.length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({(input.allRecurringFlows ?? input.recurringFlows)!.length})
@@ -186,7 +188,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
             <AccordionContent className="space-y-3 px-2">
               {!input || !(input.allRecurringFlows ?? input.recurringFlows)?.length ? (
                 <p className="text-sm text-muted-foreground">
-                  Keine wiederkehrenden Zahlungen gefunden.
+                  {t('forecast.noRecurringPayments')}
                 </p>
               ) : (
                 <RecurringFlowOverrideForm
@@ -202,7 +204,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="transfers">
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4" /> Transfers
+                <ArrowRightLeft className="h-4 w-4" /> {t('forecast.transfers')}
                 {overrides.transfers.length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({overrides.transfers.length})
@@ -216,37 +218,37 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
-                        <th className="text-left">Transfer</th>
-                        <th className="text-left">Zeitpunkt</th>
-                        <th className="text-right">Betrag</th>
-                        <th className="w-8" aria-label="Aktion" />
+                        <th className="text-left">{t('forecast.transfer')}</th>
+                        <th className="text-left">{t('forecast.when')}</th>
+                        <th className="text-right">{t('forecast.amount')}</th>
+                        <th className="w-8" aria-label={t('forecast.action')} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
-                      {overrides.transfers.map((t) => (
-                        <tr key={t.id}>
+                      {overrides.transfers.map((transfer) => (
+                        <tr key={transfer.id}>
                           <td className="pr-2">
                             <span className="block truncate font-medium">
-                              {t.name || `${accountName(t.fromAccountId)} → ${accountName(t.toAccountId)}`}
+                              {transfer.name || `${accountName(transfer.fromAccountId)} → ${accountName(transfer.toAccountId)}`}
                             </span>
                           </td>
                           <td className="pr-2 text-xs text-muted-foreground whitespace-nowrap">
-                            {t.date
-                              ? t.date
-                              : `${CADENCE_LABELS[t.cadence ?? ''] ?? t.cadence}${t.anchorDate ? ` ab ${t.anchorDate}` : ''}`}
+                            {transfer.date
+                              ? transfer.date
+                              : `${getCadenceLabel(t, transfer.cadence ?? '')}${transfer.anchorDate ? ` ab ${transfer.anchorDate}` : ''}`}
                           </td>
                           <td className="text-right font-semibold tabular-nums whitespace-nowrap">
-                            {eur.format(t.amount)}
+                            {eur.format(transfer.amount)}
                           </td>
                           <td className="text-right">
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              aria-label="Transfer entfernen"
+                              aria-label={t('forecast.removeTransfer')}
                               onClick={() =>
                                 onChange({
-                                  transfers: overrides.transfers.filter((x) => x.id !== t.id),
+                                  transfers: overrides.transfers.filter((x) => x.id !== transfer.id),
                                 })
                               }
                             >
@@ -270,7 +272,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="events" className={sectionClass('events')}>
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <CalendarPlus className="h-4 w-4" /> Geplante Posten
+                <CalendarPlus className="h-4 w-4" /> {t('forecast.plannedItems')}
                 {overrides.plannedEvents.length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({overrides.plannedEvents.length})
@@ -284,10 +286,10 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
-                        <th className="text-left">Posten</th>
-                        <th className="text-left">Wann · Konto</th>
-                        <th className="text-right">Betrag</th>
-                        <th className="w-8" aria-label="Aktion" />
+                        <th className="text-left">{t('forecast.item')}</th>
+                        <th className="text-left">{t('forecast.whenAndAccount')}</th>
+                        <th className="text-right">{t('forecast.amount')}</th>
+                        <th className="w-8" aria-label={t('forecast.action')} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
@@ -298,7 +300,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                           </td>
                           <td className="pr-2 text-xs text-muted-foreground">
                             {ev.cadence
-                              ? `${CADENCE_LABELS[ev.cadence] ?? ev.cadence} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
+                              ? `${getCadenceLabel(t, ev.cadence)} ab ${ev.date}${ev.endDate ? ` bis ${ev.endDate}` : ''}`
                               : ev.date}{' '}
                             · {accountName(ev.accountId)}
                           </td>
@@ -313,7 +315,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              aria-label="Posten entfernen"
+                              aria-label={t('forecast.removeItem')}
                               onClick={() =>
                                 onChange({
                                   plannedEvents: overrides.plannedEvents.filter((e) => e.id !== ev.id),
@@ -340,7 +342,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
           <AccordionItem value="funds">
             <AccordionTrigger className="px-2 text-sm">
               <span className="flex items-center gap-2">
-                <PiggyBank className="h-4 w-4" /> Rücklagen
+                <PiggyBank className="h-4 w-4" /> {t('forecast.reserves')}
                 {overrides.sinkingFunds.length > 0 && (
                   <span className="text-xs text-muted-foreground">
                     ({overrides.sinkingFunds.length})
@@ -354,11 +356,11 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
-                        <th className="text-left">Rücklage</th>
-                        <th className="text-right">Ziel</th>
-                        <th className="text-right">fällig</th>
-                        <th className="text-right">/Monat</th>
-                        <th className="w-8" aria-label="Aktion" />
+                        <th className="text-left">{t('forecast.reserve')}</th>
+                        <th className="text-right">{t('forecast.goal')}</th>
+                        <th className="text-right">{t('forecast.due')}</th>
+                        <th className="text-right">{t('forecast.perMonth')}</th>
+                        <th className="w-8" aria-label={t('forecast.action')} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
@@ -381,7 +383,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              aria-label="Rücklage entfernen"
+                              aria-label={t('forecast.removeReserve')}
                               onClick={() =>
                                 onChange({
                                   sinkingFunds: overrides.sinkingFunds.filter((x) => x.id !== f.id),
@@ -448,6 +450,7 @@ function EventForm({
   accounts: AccountLite[];
   onAdd: (ev: PlannedForecastEvent) => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [date, setDate] = useState(today());
   const [amount, setAmount] = useState('');
@@ -463,22 +466,22 @@ function EventForm({
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
-      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neuer Posten</div>
-      <Input placeholder="Name (z. B. Urlaub)" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newItem')}</div>
+      <Input placeholder={t('forecast.itemName')} value={name} onChange={(e) => setName(e.target.value)} />
       <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
         <SelectTrigger className="h-9">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="onetime">Einmalig</SelectItem>
-          <SelectItem value="recurring">Wiederkehrend</SelectItem>
+          <SelectItem value="onetime">{t('forecast.oneTime')}</SelectItem>
+          <SelectItem value="recurring">{t('forecast.recurring')}</SelectItem>
         </SelectContent>
       </Select>
       <Input
         type="number"
         inputMode="decimal"
         min="0"
-        placeholder="Betrag"
+        placeholder={t('forecast.amount')}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
       />
@@ -487,15 +490,15 @@ function EventForm({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="out">Ausgabe</SelectItem>
-          <SelectItem value="in">Einnahme</SelectItem>
+          <SelectItem value="out">{t('forecast.expense')}</SelectItem>
+          <SelectItem value="in">{t('forecast.income')}</SelectItem>
         </SelectContent>
       </Select>
 
       {isRecurring ? (
         <>
           <label className="col-span-2 flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Ab wann · wie oft</span>
+            <span className="text-xs text-muted-foreground">{t('forecast.whenAndFrequency')}</span>
             <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
@@ -503,18 +506,18 @@ function EventForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="weekly">Wöchentlich</SelectItem>
-                  <SelectItem value="biweekly">Alle 2 Wochen</SelectItem>
-                  <SelectItem value="monthly">Monatlich</SelectItem>
-                  <SelectItem value="quarterly">Vierteljährlich</SelectItem>
-                  <SelectItem value="semiannual">Halbjährlich</SelectItem>
-                  <SelectItem value="annual">Jährlich</SelectItem>
+                  <SelectItem value="weekly">{t('forecast.weekly')}</SelectItem>
+                  <SelectItem value="biweekly">{t('forecast.biweekly')}</SelectItem>
+                  <SelectItem value="monthly">{t('forecast.monthly')}</SelectItem>
+                  <SelectItem value="quarterly">{t('forecast.quarterly')}</SelectItem>
+                  <SelectItem value="semiannual">{t('forecast.semiannual')}</SelectItem>
+                  <SelectItem value="annual">{t('forecast.annual')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </label>
           <label className="col-span-2 flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Bis (optional)</span>
+            <span className="text-xs text-muted-foreground">{t('forecast.until')}</span>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </label>
         </>
@@ -523,7 +526,7 @@ function EventForm({
       )}
 
       <div className="col-span-2">
-        <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder="Konto wählen" />
+        <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder={t('forecast.selectAccount')} />
       </div>
       <Button
         className="col-span-2"
@@ -543,7 +546,7 @@ function EventForm({
           setEndDate('');
         }}
       >
-        <Plus className="mr-1 h-4 w-4" /> Posten hinzufügen
+        <Plus className="mr-1 h-4 w-4" /> {t('forecast.addItem')}
       </Button>
     </div>
   );
@@ -556,6 +559,7 @@ function FundForm({
   accounts: AccountLite[];
   onAdd: (f: SinkingFund) => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -565,18 +569,18 @@ function FundForm({
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
-      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neue Rücklage</div>
-      <Input placeholder="Name (z. B. Kfz-Steuer)" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newReserve')}</div>
+      <Input placeholder={t('forecast.reserveName')} value={name} onChange={(e) => setName(e.target.value)} />
       <Input
         type="number"
         inputMode="decimal"
         min="0"
-        placeholder="Zielbetrag"
+        placeholder={t('forecast.targetAmount')}
         value={target}
         onChange={(e) => setTarget(e.target.value)}
       />
       <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-      <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder="Reservekonto" />
+      <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder={t('forecast.reserveAccount')} />
       <Button
         className="col-span-2"
         disabled={!valid}
@@ -593,7 +597,7 @@ function FundForm({
           setDueDate('');
         }}
       >
-        <Plus className="mr-1 h-4 w-4" /> Rücklage anlegen
+        <Plus className="mr-1 h-4 w-4" /> {t('forecast.createReserve')}
       </Button>
     </div>
   );
@@ -608,6 +612,7 @@ export function BudgetOverrideForm({
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
 }) {
+  const { t } = useI18n();
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
   const getConfidenceBadge = (confidence?: number) => {
@@ -627,7 +632,7 @@ export function BudgetOverrideForm({
           <div className="min-w-0 flex-1">
             <Label className="block truncate text-sm font-medium">{expense.category}</Label>
             <div className="text-xs text-muted-foreground">
-              Baseline {eur.format(expense.monthlyAmount)}
+              {t('forecast.baseline')} {eur.format(expense.monthlyAmount)}
               {expense.confidence != null && (
                 <span className={`ml-1.5 font-semibold ${getConfidenceBadge(expense.confidence)}`}>
                   {Math.round(expense.confidence * 100)}%
@@ -640,7 +645,7 @@ export function BudgetOverrideForm({
             inputMode="decimal"
             step="0.01"
             min="0"
-            aria-label={`Budget für ${expense.category}`}
+            aria-label={t('forecast.budgetFor').replace('{category}', expense.category)}
             placeholder={String(expense.monthlyAmount)}
             value={overrides.categoryBudgets[expense.category] ?? ''}
             onChange={(e) => {
@@ -665,6 +670,7 @@ function TransferForm({
   accounts: AccountLite[];
   onAdd: (t: ForecastTransfer) => void;
 }) {
+  const { t } = useI18n();
   const [fromAccountId, setFromAccountId] = useState('');
   const [toAccountId, setToAccountId] = useState('');
   const [amount, setAmount] = useState('');
@@ -678,27 +684,27 @@ function TransferForm({
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
-      <div className="col-span-2 text-xs font-medium text-muted-foreground">Neuer Transfer</div>
+      <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newTransfer')}</div>
       <div className="col-span-2">
         <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
           <SelectTrigger className="h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="onetime">Einmalig</SelectItem>
-            <SelectItem value="recurring">Wiederkehrend</SelectItem>
+            <SelectItem value="onetime">{t('forecast.oneTime')}</SelectItem>
+            <SelectItem value="recurring">{t('forecast.recurring')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <AccountSelect accounts={accounts} value={fromAccountId} onValueChange={setFromAccountId} placeholder="Von Konto" />
-      <AccountSelect accounts={accounts} value={toAccountId} onValueChange={setToAccountId} placeholder="Zu Konto" />
+      <AccountSelect accounts={accounts} value={fromAccountId} onValueChange={setFromAccountId} placeholder={t('forecast.fromAccount')} />
+      <AccountSelect accounts={accounts} value={toAccountId} onValueChange={setToAccountId} placeholder={t('forecast.toAccount')} />
 
       <Input
         type="number"
         inputMode="decimal"
         min="0"
-        placeholder="Betrag"
+        placeholder={t('forecast.amount')}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
       />
@@ -710,12 +716,12 @@ function TransferForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="weekly">Wöchentlich</SelectItem>
-              <SelectItem value="biweekly">Alle 2 Wochen</SelectItem>
-              <SelectItem value="monthly">Monatlich</SelectItem>
-              <SelectItem value="quarterly">Vierteljährlich</SelectItem>
-              <SelectItem value="semiannual">Halbjährlich</SelectItem>
-              <SelectItem value="annual">Jährlich</SelectItem>
+              <SelectItem value="weekly">{t('forecast.weekly')}</SelectItem>
+              <SelectItem value="biweekly">{t('forecast.biweekly')}</SelectItem>
+              <SelectItem value="monthly">{t('forecast.monthly')}</SelectItem>
+              <SelectItem value="quarterly">{t('forecast.quarterly')}</SelectItem>
+              <SelectItem value="semiannual">{t('forecast.semiannual')}</SelectItem>
+              <SelectItem value="annual">{t('forecast.annual')}</SelectItem>
             </SelectContent>
           </Select>
           <Input type="date" value={anchorDate} onChange={(e) => setAnchorDate(e.target.value)} />
@@ -742,21 +748,24 @@ function TransferForm({
           setAnchorDate(today());
         }}
       >
-        <Plus className="mr-1 h-4 w-4" /> Transfer hinzufügen
+        <Plus className="mr-1 h-4 w-4" /> {t('forecast.addTransfer')}
       </Button>
     </div>
   );
 }
 
-const CADENCE_LABELS: Record<string, string> = {
-  weekly: 'Wöchentlich',
-  biweekly: '2-wöchentlich',
-  monthly: 'Monatlich',
-  quarterly: 'Vierteljährlich',
-  semiannual: 'Halbjährlich',
-  annual: 'Jährlich',
-  custom: 'Individuell',
-};
+function getCadenceLabel(t: (key: string) => string, cadence: string): string {
+  const labels: Record<string, string> = {
+    weekly: t('forecast.weekly'),
+    biweekly: t('forecast.biweekly'),
+    monthly: t('forecast.monthly'),
+    quarterly: t('forecast.quarterly'),
+    semiannual: t('forecast.semiannual'),
+    annual: t('forecast.annual'),
+    custom: 'Custom',
+  };
+  return labels[cadence] ?? cadence;
+}
 
 export function RecurringFlowOverrideForm({
   recurringFlows,
@@ -767,6 +776,7 @@ export function RecurringFlowOverrideForm({
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
 }) {
+  const { t } = useI18n();
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
   const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
 
@@ -775,11 +785,11 @@ export function RecurringFlowOverrideForm({
       <table className="w-full text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground [&>th]:pb-1.5 [&>th]:font-medium">
-            <th className="w-6" aria-label="Aktiv" />
-            <th className="text-left">Zahlung</th>
-            <th className="text-left">Turnus</th>
-            <th className="text-right">Betrag</th>
-            <th className="w-8" aria-label="Aktion" />
+            <th className="w-6" aria-label={t('forecast.active')} />
+            <th className="text-left">{t('forecast.payment')}</th>
+            <th className="text-left">{t('forecast.cycle')}</th>
+            <th className="text-right">{t('forecast.amount')}</th>
+            <th className="w-8" aria-label={t('forecast.action')} />
           </tr>
         </thead>
         <tbody className="divide-y divide-border/60 [&>tr>td]:py-2">
@@ -802,7 +812,7 @@ export function RecurringFlowOverrideForm({
                       type="checkbox"
                       checked={!isDisabled}
                       disabled={isAutoDisabled}
-                      title={isAutoDisabled ? 'Vertrag ist beendet oder veraltet – Status in Verträge ändern' : undefined}
+                      title={isAutoDisabled ? t('forecast.contractEndedOrStale') : undefined}
                       onChange={(e) => {
                         if (isAutoDisabled) return;
                         const next = { ...overrides.recurringFlowOverrides };
@@ -826,12 +836,12 @@ export function RecurringFlowOverrideForm({
                     <span className="block truncate font-medium">{flow.name}</span>
                     {(flow.category || isAutoDisabled) && (
                       <span className="block truncate text-xs text-muted-foreground">
-                        {isAutoDisabled ? 'beendet' : flow.category}
+                        {isAutoDisabled ? t('forecast.ended') : flow.category}
                       </span>
                     )}
                   </td>
                   <td className="pr-2 text-xs text-muted-foreground whitespace-nowrap">
-                    {CADENCE_LABELS[flow.cadence] ?? flow.cadence}
+                    {getCadenceLabel(t, flow.cadence)}
                   </td>
                   <td
                     className={`text-right font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
@@ -858,7 +868,7 @@ export function RecurringFlowOverrideForm({
                     <td colSpan={4} className="pb-3">
                       <div className="grid gap-2 sm:grid-cols-2">
                         <div>
-                          <Label className="text-xs">Betrag</Label>
+                          <Label className="text-xs">{t('forecast.amount')}</Label>
                           <Input
                             type="number"
                             inputMode="decimal"
@@ -885,7 +895,7 @@ export function RecurringFlowOverrideForm({
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">End-Datum (optional)</Label>
+                          <Label className="text-xs">{t('forecast.endDateOptional')}</Label>
                           <Input
                             type="date"
                             value={override?.endDate ?? ''}

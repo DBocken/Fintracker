@@ -44,8 +44,8 @@ export function lookupTranslation(locale: Locale, key: string): string | undefin
   return typeof node === 'string' ? node : undefined;
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => resolveInitialLocale());
+export function I18nProvider({ children, initialLocale }: { children: ReactNode; initialLocale?: Locale }) {
+  const [locale, setLocaleState] = useState<Locale>(() => initialLocale ?? resolveInitialLocale());
 
   useEffect(() => {
     if (typeof document !== 'undefined') {

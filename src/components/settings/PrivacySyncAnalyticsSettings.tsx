@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showError, showSuccess } from '@/utils/toast';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
+import { useI18n } from '@/i18n/useI18n';
 import { getLocalFinanceStorageStatus } from '@/services/local-finance-store';
 import {
   exportEncryptedSnapshot,
@@ -40,9 +41,10 @@ function StatusBadge({ ok, children }: { ok: boolean; children: ReactNode }) {
 }
 
 export function PrivacySyncAnalyticsSettings() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const encryption = useLocalEncryption();
-  const [pathLabel, setPathLabel] = useState('Meine Sync-Datei');
+  const [pathLabel, setPathLabel] = useState(t('privacy.privacySync.labelField'));
   const [pathHint, setPathHint] = useState('');
   const [pathsVersion, setPathsVersion] = useState(0);
   const [storageStatus, setStorageStatus] = useState({
@@ -95,7 +97,7 @@ export function PrivacySyncAnalyticsSettings() {
     mutationFn: () => exportEncryptedSnapshot(selectedPath?.label, selectedPath?.pathHint),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sync-metadata-latest'] });
-      showSuccess('Sync-Datei heruntergeladen');
+      showSuccess(t('privacy.privacySync.downloadSuccess'));
     },
     onError: (error: Error) => showError(error.message),
   });
@@ -108,21 +110,21 @@ export function PrivacySyncAnalyticsSettings() {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      showSuccess(`Sync-Datei v${snapshot.snapshot_version} importiert`);
+      showSuccess(t('privacy.privacySync.importSuccess').replace('{version}', String(snapshot.snapshot_version)));
     },
     onError: (error: Error) => showError(error.message),
   });
 
   const addPath = () => {
     if (!pathHint.trim()) {
-      showError('Bitte einen Speicherort-Hinweis eintragen');
+      showError(t('privacy.privacySync.errorHintEmpty'));
       return;
     }
 
     saveSyncPath(pathLabel, pathHint);
     setPathHint('');
     setPathsVersion((v) => v + 1);
-    showSuccess('Speicherort-Hinweis gespeichert');
+    showSuccess(t('privacy.privacySync.successHintSaved'));
   };
 
   return (
@@ -130,10 +132,10 @@ export function PrivacySyncAnalyticsSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           <FolderSync className="h-5 w-5 text-positive" />
-          Sync-Datei & Datenschutz
+          {t('privacy.privacySync.title')}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Deine Sync-Datei ist der verschlüsselte lokale Datenstand für alles, was nicht in Supabase gespeichert wird.
+          {t('privacy.privacySync.description')}
         </CardDescription>
       </CardHeader>
 
@@ -142,60 +144,58 @@ export function PrivacySyncAnalyticsSettings() {
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileLock2 className="h-4 w-4 text-positive" />
-              Lokale Finanzdaten
+              {t('privacy.privacySync.localDataTitle')}
             </div>
             <StatusBadge ok={storageStatus.encrypted}>
-              {storageStatus.encrypted ? 'verschlüsselt' : 'noch nicht verschlüsselt'}
+              {storageStatus.encrypted ? t('privacy.privacySync.statusEncrypted') : t('privacy.privacySync.statusNotEncrypted')}
             </StatusBadge>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <Database className="h-4 w-4 text-brand" />
-              Supabase
+              {t('privacy.privacySync.supabaseTitle')}
             </div>
-            <StatusBadge ok>nur Metadaten</StatusBadge>
+            <StatusBadge ok>{t('privacy.privacySync.supabaseStatus')}</StatusBadge>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <HardDrive className="h-4 w-4 text-brand" />
-              Lokaler Speicher (IndexedDB)
+              {t('privacy.privacySync.storageTitle')}
             </div>
             <StatusBadge ok={storagePersisted === true}>
               {storagePersisted === null
-                ? 'wird geprüft …'
+                ? t('privacy.privacySync.storageChecking')
                 : storagePersisted
-                  ? 'dauerhaft gesichert'
-                  : 'nicht dauerhaft'}
+                  ? t('privacy.privacySync.storagePersisted')
+                  : t('privacy.privacySync.storageNotPersisted')}
             </StatusBadge>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <FileKey2 className="h-4 w-4 text-premium" />
-              Sync-Datei
+              {t('privacy.privacySync.syncFileTitle')}
             </div>
             <StatusBadge ok={!!encryption.enabled}>
-              {encryption.enabled ? 'bereit' : 'wartet auf Passphrase'}
+              {encryption.enabled ? t('privacy.privacySync.syncFileReady') : t('privacy.privacySync.syncFileWaiting')}
             </StatusBadge>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
               <BarChart3 className="h-4 w-4 text-warning" />
-              Cloud-Finanzdaten
+              {t('privacy.privacySync.cloudDataTitle')}
             </div>
-            <StatusBadge ok>keine</StatusBadge>
+            <StatusBadge ok>{t('privacy.privacySync.cloudDataStatus')}</StatusBadge>
           </div>
         </div>
 
         <Alert className="border-positive/20 bg-positive/10">
           <Sparkles className="h-4 w-4 text-positive" />
           <AlertDescription className="text-sm text-positive">
-            <strong>Gedanke für künftig:</strong> Die Sync-Datei soll automatisch im Hintergrund gepflegt werden, damit
-            der Nutzer davon möglichst wenig mitbekommt. Aktuell ist der Export noch manuell sichtbar, die Oberfläche
-            ist jetzt aber bereits auf dieses Modell ausgerichtet.
+            <strong>Gedanke für künftig:</strong> {t('privacy.privacySync.futureNote')}
           </AlertDescription>
         </Alert>
 
@@ -203,8 +203,7 @@ export function PrivacySyncAnalyticsSettings() {
           <Alert className="border-warning bg-warning/30">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Aktiviere zuerst die lokale Verschlüsselung mit deiner Passphrase. Diese Passphrase schützt später auch
-              deine Sync-Datei.
+              {t('privacy.privacySync.encryptionWarning')}
             </AlertDescription>
           </Alert>
         )}
@@ -213,8 +212,7 @@ export function PrivacySyncAnalyticsSettings() {
           <Alert className="border-warning bg-warning/30">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Es wurden lokale Klartextdaten erkannt. Nach dem Entsperren werden diese automatisch in den geschützten
-              lokalen Speicher übernommen.
+              {t('privacy.privacySync.plaintextWarning')}
             </AlertDescription>
           </Alert>
         )}
@@ -222,28 +220,26 @@ export function PrivacySyncAnalyticsSettings() {
         <div className="rounded-2xl border border-border bg-card p-4">
           <h3 className="mb-2 flex items-center gap-2 font-semibold text-foreground">
             <FolderSync className="h-4 w-4 text-positive" />
-            Speicherort der Sync-Datei
+            {t('privacy.privacySync.syncPathInfo')}
           </h3>
           <p className="text-sm leading-6 text-muted-foreground">
-            Im Moment wird die Sync-Datei beim Export als Download-Datei auf dein Gerät gespeichert. In der Praxis liegt
-            sie also zuerst meist im Download-Ordner deines Browsers. Danach kannst du sie an deinen gewünschten Ort
-            verschieben, zum Beispiel iCloud Drive, Dropbox oder einen lokalen Ordner.
+            {t('privacy.privacySync.syncPathInfo')}
           </p>
         </div>
 
         <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
           <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <ShieldCheck className="h-4 w-4 text-positive" />
-            Sync-Datei verwalten
+            {t('privacy.privacySync.manageTitle')}
           </h3>
 
           <p className="text-sm text-muted-foreground">
-            Diese Datei ersetzt das klassische Backup. Sie enthält deinen verschlüsselten lokalen Datenstand.
+            {t('privacy.privacySync.manageDescription')}
           </p>
 
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <Label className="text-foreground">Bezeichnung</Label>
+              <Label className="text-foreground">{t('privacy.privacySync.labelField')}</Label>
               <Input
                 value={pathLabel}
                 onChange={(e) => setPathLabel(e.target.value)}
@@ -252,11 +248,11 @@ export function PrivacySyncAnalyticsSettings() {
             </div>
 
             <div className="md:col-span-2">
-              <Label className="text-foreground">Speicherort-Hinweis</Label>
+              <Label className="text-foreground">{t('privacy.privacySync.hintField')}</Label>
               <Input
                 value={pathHint}
                 onChange={(e) => setPathHint(e.target.value)}
-                placeholder="z. B. iCloud Drive/Ausgabentracker"
+                placeholder={t('privacy.privacySync.hintPlaceholder')}
                 className="border-border bg-card text-foreground"
               />
             </div>
@@ -264,7 +260,7 @@ export function PrivacySyncAnalyticsSettings() {
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={addPath} className="border-border bg-card text-foreground hover:bg-accent">
-              Speicherort merken
+              {t('privacy.privacySync.rememberButton')}
             </Button>
 
             <Button
@@ -273,11 +269,11 @@ export function PrivacySyncAnalyticsSettings() {
               className="bg-positive text-white hover:bg-positive"
             >
               <FileLock2 className="mr-2 h-4 w-4" />
-              Sync-Datei herunterladen
+              {t('privacy.privacySync.downloadButton')}
             </Button>
 
             <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent">
-              Sync-Datei importieren
+              {t('privacy.privacySync.importButton')}
               <Input
                 type="file"
                 accept="application/json,.json"
@@ -316,21 +312,20 @@ export function PrivacySyncAnalyticsSettings() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Letzte bekannte Sync-Metadaten:{' '}
+            {t('privacy.privacySync.latestSyncLabel')}
             {latestSyncQuery.data
               ? `${latestSyncQuery.data.snapshot_id} · ${new Date(latestSyncQuery.data.created_at).toLocaleString('de-DE')}`
-              : 'noch keine vorhanden'}
+              : t('privacy.privacySync.latestSyncNone')}
           </p>
         </div>
 
         <div className="space-y-2 rounded-2xl border border-positive/20 bg-positive/10 p-4">
           <h3 className="flex items-center gap-2 font-semibold text-foreground">
             <ShieldCheck className="h-4 w-4 text-positive" />
-            Strikte lokale Datengrenze
+            {t('privacy.privacySync.strictBoundaryTitle')}
           </h3>
           <p className="text-sm text-muted-foreground">
-            Transaktionen, Verträge, Kategorien, Simulationen und Analysewerte bleiben auf diesem Gerät.
-            Supabase wird nicht als Speicher für Finanz- oder Nutzungsdaten verwendet.
+            {t('privacy.privacySync.strictBoundaryDesc')}
           </p>
         </div>
       </CardContent>

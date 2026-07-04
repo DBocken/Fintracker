@@ -18,6 +18,7 @@ import {
   EXISTENTIAL_PRIORITY_EXPLANATION,
   suggestDebtPriority,
 } from "@/services/debt-service";
+import { useI18n } from "@/i18n/useI18n";
 
 interface DebtFormDialogProps {
   open: boolean;
@@ -40,6 +41,7 @@ const emptyForm = {
 };
 
 export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: DebtFormDialogProps) {
+  const { t } = useI18n();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -78,12 +80,12 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{debt?.id ? "Schuld bearbeiten" : "Neue Schuld"}</DialogTitle>
+          <DialogTitle>{debt?.id ? t('debts.debtForm.editTitle') : t('debts.debtForm.newTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="debt-name">Bezeichnung</Label>
+            <Label htmlFor="debt-name">{t('debts.debtForm.nameLabel')}</Label>
             <Input
               id="debt-name"
               value={form.name}
@@ -99,12 +101,12 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
                       : f.priority,
                 }));
               }}
-              placeholder="z. B. Visa Kreditkarte"
+              placeholder={t('debts.debtForm.namePlaceholder')}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Art</Label>
+            <Label>{t('debts.debtForm.typeLabel')}</Label>
             <Select
               value={form.type}
               onValueChange={(v) =>
@@ -126,7 +128,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="debt-balance">Restschuld (€)</Label>
+              <Label htmlFor="debt-balance">{t('debts.debtForm.balanceLabel')}</Label>
               <Input
                 id="debt-balance"
                 type="number"
@@ -137,7 +139,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="debt-rate">Zins (% p.a.)</Label>
+              <Label htmlFor="debt-rate">{t('debts.debtForm.interestLabel')}</Label>
               <Input
                 id="debt-rate"
                 type="number"
@@ -151,7 +153,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="debt-min">Mindestrate (€)</Label>
+              <Label htmlFor="debt-min">{t('debts.debtForm.minPaymentLabel')}</Label>
               <Input
                 id="debt-min"
                 type="number"
@@ -162,20 +164,20 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="debt-due">Fällig am (Tag)</Label>
+              <Label htmlFor="debt-due">{t('debts.debtForm.dueLabel')}</Label>
               <Input
                 id="debt-due"
                 type="number"
                 inputMode="numeric"
                 value={form.due_day}
                 onChange={(e) => setForm((f) => ({ ...f, due_day: e.target.value }))}
-                placeholder="z. B. 15"
+                placeholder={t('debts.debtForm.duePlaceholder')}
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Priorität</Label>
+            <Label>{t('debts.debtForm.priorityLabel')}</Label>
             <Select
               value={form.priority}
               onValueChange={(v) => setForm((f) => ({ ...f, priority: v as DebtPriority }))}
@@ -196,19 +198,19 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="debt-provider">Anbieter (optional)</Label>
+            <Label htmlFor="debt-provider">{t('debts.debtForm.providerLabel')}</Label>
             <Input
               id="debt-provider"
               value={form.provider}
               onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value }))}
-              placeholder="z. B. Klarna, PayPal"
+              placeholder={t('debts.debtForm.providerPlaceholder')}
             />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <Label htmlFor="debt-bnpl">Ratenkauf (Jetzt kaufen, später zahlen)</Label>
-              <p className="text-xs text-muted-foreground">Klarna, PayPal Später, RatePay …</p>
+              <Label htmlFor="debt-bnpl">{t('debts.debtForm.bnplLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('debts.debtForm.bnplHint')}</p>
             </div>
             <Switch
               id="debt-bnpl"
@@ -220,10 +222,10 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {debt?.id ? "Speichern" : "Hinzufügen"}
+            {debt?.id ? t('common.save') : t('debts.debtForm.addButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

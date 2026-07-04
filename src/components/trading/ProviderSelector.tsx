@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export default function ProviderSelector({
   currentProvider,
   onProviderChange,
 }: ProviderSelectorProps) {
+  const { t } = useI18n();
   const [favoriteProvider, setFavoriteProvider] = useState<'yahoo' | 'stooq'>('yahoo');
 
   const saveFavoriteMutation = useMutation({
@@ -31,10 +33,10 @@ export default function ProviderSelector({
       return provider;
     },
     onSuccess: (provider) => {
-      toast.success(`${provider.toUpperCase()} als Favorit gespeichert`);
+      toast.success(t('trading.providerSelector.messages.saveFavoriteSuccess').replace('{provider}', provider.toUpperCase()));
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Speichern des Favoriten: ${error.message}`);
+      toast.error(t('trading.providerSelector.messages.saveFavoriteError').replace('{error}', error.message));
     },
   });
 
@@ -46,14 +48,14 @@ export default function ProviderSelector({
   const providers = [
     {
       id: 'yahoo' as const,
-      name: 'Yahoo Finance',
-      description: 'Server-seitig (CORS-sicher)',
+      name: t('trading.providerSelector.yahooName'),
+      description: t('trading.providerSelector.yahooDesc'),
       isFavorite: favoriteProvider === 'yahoo',
     },
     {
       id: 'stooq' as const,
-      name: 'Stooq',
-      description: 'Kostenloser CSV-Feed (Fallback)',
+      name: t('trading.providerSelector.stooqName'),
+      description: t('trading.providerSelector.stooqDesc'),
       isFavorite: favoriteProvider === 'stooq',
     },
   ];
@@ -64,8 +66,8 @@ export default function ProviderSelector({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
-          <span className="mr-2">Kurs-Provider:</span>
-          <span className="mr-1">{currentProviderInfo?.name || 'Yahoo Finance'}</span>
+          <span className="mr-2">{t('trading.providerSelector.label')}</span>
+          <span className="mr-1">{currentProviderInfo?.name || t('trading.providerSelector.yahooName')}</span>
           {currentProviderInfo?.isFavorite && (
             <Star className="h-4 w-4 fill-warning text-warning" />
           )}
@@ -73,7 +75,7 @@ export default function ProviderSelector({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Provider auswählen</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('trading.providerSelector.selectLabel')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {providers.map((provider) => (
           <DropdownMenuItem
@@ -92,13 +94,13 @@ export default function ProviderSelector({
             </div>
             {currentProvider === provider.id && (
               <Badge variant="secondary" className="ml-2">
-                Aktiv
+                {t('trading.providerSelector.activeBadge')}
               </Badge>
             )}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Favorit setzen</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('trading.providerSelector.setFavoriteLabel')}</DropdownMenuLabel>
         {providers.map((provider) => (
           <DropdownMenuItem
             key={`fav-${provider.id}`}
@@ -108,12 +110,12 @@ export default function ProviderSelector({
             {provider.isFavorite ? (
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Star className="h-4 w-4 fill-warning text-warning" />
-                {provider.name} (Favorit)
+                {t('trading.providerSelector.favoriteLabel').replace('{name}', provider.name)}
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <Star className="h-4 w-4" />
-                {provider.name} als Favorit
+                {t('trading.providerSelector.setFavoriteButton').replace('{name}', provider.name)}
               </span>
             )}
             {saveFavoriteMutation.isPending && !provider.isFavorite && (

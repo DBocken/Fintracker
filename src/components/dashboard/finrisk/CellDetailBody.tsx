@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CellDetail, CompositionLine } from '@/lib/finrisk/cell-details';
+import { useI18n } from '@/i18n/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { cn } from '@/lib/utils';
@@ -11,26 +12,27 @@ const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR',
  * Klartext-Erklärung, warum dieser Pfad in dieser Zelle landet: der größte
  * Treiber (Kategorie mit der stärksten Abweichung vom Median) wird benannt.
  */
-function driverSentence(detail: CellDetail): string {
+function driverSentence(detail: CellDetail, t: (key: string) => string): string {
   const rep = detail.representative;
   const driver = rep?.topDriver;
   const lowBalance = detail.percentile < 50;
   if (driver && Math.abs(driver.deltaPct) >= 0.05) {
-    const direction = driver.amount > driver.median ? 'mehr' : 'weniger';
+    const direction = driver.amount > driver.median ? t('finrisk.driverSentenceMore') : t('finrisk.driverSenteneceLess');
     const pct = Math.round(Math.abs(driver.deltaPct) * 100);
-    return `Dieser Pfad gibt vor allem bei „${driver.category}" ${pct} % ${direction} aus als der typische Pfad – das erklärt den ${
-      lowBalance ? 'niedrigeren' : 'höheren'
-    } Saldo.`;
+    const outcome = lowBalance ? t('finrisk.driverSentenceOutcomeLow') : t('finrisk.driverSentenceOutcomeHigh');
+    return `${t('finrisk.driverSentence').replace('{category}', driver.category).replace('{pct}', String(pct)).replace('{direction}', direction).replace('{outcome}', outcome)}`;
   }
-  return 'Dieser Pfad liegt nah am typischen Verlauf – keine einzelne Annahme sticht heraus.';
+  return t('finrisk.driverSentenceNoDriver');
 }
 
-const GROUP_LABEL: Record<CompositionLine['group'], string> = {
-  income: 'Einnahmen',
-  fixed: 'Fixkosten',
-  variable: 'Variable Ausgaben',
-  event: 'Geplante Posten',
-};
+function getGroupLabel(t: (key: string) => string): Record<CompositionLine['group'], string> {
+  return {
+    income: t('finrisk.income'),
+    fixed: t('finrisk.fixedCosts'),
+    variable: t('finrisk.variableExpenses'),
+    event: t('finrisk.plannedItems'),
+  };
+}
 
 /** Balkenfarbe je Gruppe: streuende (variabel/Einnahmen) farbig, fixe neutral. */
 const GROUP_FILL: Record<CompositionLine['group'], string> = {
@@ -178,20 +180,23 @@ interface CellDetailBodyProps {
  * des Saldos (Einnahmen, Fixkosten, variable Ausgaben, geplante Posten).
  */
 export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
+  const { t } = useI18n();
   const animate = !useReducedMotion();
   const rep = detail.representative;
   if (!rep) {
     return (
       <p className="text-sm text-muted-foreground">
         {detail.pathsInCell === 0
-          ? 'In dieser Zelle liegt kein simulierter Pfad. Wähle eine hellere (wahrscheinlichere) Zelle.'
-          : 'Für diese Auswertung liegen keine Detail-Annahmen vor.'}
+          ? t('finrisk.noPathInCell')
+          : t('finrisk.noDetailsInCell')}
       </p>
     );
   }
   if (rep.composition.length === 0) {
-    return <p className="text-sm text-muted-foreground">Für diese Zelle liegen keine Einzelposten vor.</p>;
+    return <p className="text-sm text-muted-foreground">{t('finrisk.noLineItems')}</p>;
   }
+
+  const GROUP_LABEL = getGroupLabel(t);
 
   // Skala inkl. Zell-Spannen, damit das Band nie über den Balkenbereich hinausläuft.
   const scale = Math.max(
@@ -220,7 +225,7 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-xs tabular-nums text-muted-foreground">
-            Pfad {detail.pathIndex + 1} von {detail.pathCount} in dieser Zelle
+            Pfad {detail.pathIndex + 1} von {detail.pathCount} {t('finrisk.inThisCell')}
             {detail.pathIndex === 0 ? ' · repräsentativ' : ''}
           </span>
           <button
@@ -236,10 +241,10 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
       )}
 
       <div className="space-y-1">
-        <p className="text-sm">{driverSentence(detail)}</p>
+        <p className="text-sm">{driverSentence(detail, t)}</p>
         {detail.pathsInCell > 1 && shares.length > 1 && (
           <p className="text-xs text-muted-foreground">
-            Haupttreiber in dieser Zelle:{' '}
+            {t('finrisk.mainCauses')}{' '}
             {shares.map((s) => `${s.category} (${Math.round(s.share * 100)} %)`).join(', ')}
           </p>
         )}
@@ -262,12 +267,11 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
       })}
 
       <p className="text-[11px] text-muted-foreground">
-        Kumuliert bis zu diesem Tag.{' '}
+        {t('finrisk.cumulatedUntilDay')}{' '}
         {hasRanges
-          ? 'Band und Ø fassen alle Pfade dieser Zelle zusammen – derselbe Saldo kann durch unterschiedliche Annahmen entstehen. '
+          ? t('finrisk.rangeAndAverage') + ' '
           : ''}
-        Fixkosten und geplante Posten sind in jedem Pfad gleich – die Streuung (±) kommt aus variablen
-        Ausgaben und Einnahmen.
+        {t('finrisk.fixedAndPlanned')}
       </p>
     </div>
   );

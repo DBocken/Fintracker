@@ -296,7 +296,7 @@ export function ContractsDashboard() {
                   <Tooltip formatter={(value: number) => euro(value)} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
-                  <Area type="monotone" dataKey="income" name={t("other.importTitle", "Einnahmen")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="income" name={t("contracts.chartIncomeLabel")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
                   <Area type="monotone" dataKey="expenses" name={t("contracts.contractsLabel", "Verträge")} stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
                   <Area type="monotone" dataKey="net" name={t("contracts.incomesMinusContracts", "Einnahmen − Verträge (Saldo)")} stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
                 </AreaChart>

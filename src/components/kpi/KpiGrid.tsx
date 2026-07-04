@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { KPI_BY_ID, KPI_DEFINITIONS, type KpiComputeInput, type KpiId } from "@/components/kpi/kpis";
 import { KpiCard } from "@/components/kpi/KpiCard";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function KpiGrid({ data, order, active }: Props) {
+  const { t } = useI18n();
   const isDesktop = useIsDesktop();
 
   const orderedActive = useMemo(() => {
@@ -88,7 +90,7 @@ export function KpiGrid({ data, order, active }: Props) {
         })}
       </div>
       {visible.length > 1 && (
-        <div className="flex justify-center gap-1.5" role="tablist" aria-label="Kennzahlen">
+        <div className="flex justify-center gap-1.5" role="tablist" aria-label={t('kpi.kpisLabel')}>
           {visible.map((id, i) => (
             <span
               key={id}

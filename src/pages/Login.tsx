@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
+import { useI18n } from "@/i18n/useI18n";
 import { startAnonymousMode } from "@/lib/anonymous-mode";
 import { loadDemoData } from "@/services/demo-data-service";
 import { getRedirectOrigin } from "@/lib/app-origin";
@@ -18,6 +19,7 @@ type LoginProps = {
 };
 
 function Login({ onStartAnonymous }: LoginProps) {
+  const { t } = useI18n();
   const isInIframe = typeof window !== "undefined" && window.top !== window.self;
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const [showLogin, setShowLogin] = useState(false);
@@ -89,30 +91,30 @@ function Login({ onStartAnonymous }: LoginProps) {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white">
             <Wallet className="h-5 w-5" />
           </div>
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">Finanz-Copilot</div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">{t("shell.copilot")}</div>
         </div>
 
         {/* Nutzenversprechen statt generischer Begrüßung (Issue #28/#39) */}
         <h1 className="mb-5 text-2xl font-bold leading-tight">
-          Dein Geld heute verstehen – ohne Tabellenstress.
+          {t("login.headline")}
         </h1>
 
         {/* Privacy-Claim — das Kernversprechen, above the fold (Issue #28) */}
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-positive/30 bg-positive/10 p-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-positive dark:text-positive" aria-hidden="true" />
           <p className="text-sm text-positive dark:text-positive">
-            <span className="font-medium">Deine Daten verlassen dein Gerät nie.</span>{" "}
-            Keine Cloud-Datenbank mit deinen Finanzen — keine Anmeldung nötig.
+            <span className="font-medium">{t("login.privacyTitle")}</span>{" "}
+            {t("login.privacyDescription")}
           </p>
         </div>
 
         {/* Primärer Weg: kostenlos & lokal starten */}
         <Button className="w-full" size="lg" onClick={handleStartAnonymous}>
-          Kostenlos starten
+          {t("login.startFreeButton")}
           <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
         </Button>
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Deine Daten bleiben auf deinem Gerät, bis du Sync aktivierst.
+          {t("login.startFreeHint")}
         </p>
 
         {/* Sekundärer Weg: Google verbinden (Bankanbindung & Sync) */}
@@ -123,7 +125,7 @@ function Login({ onStartAnonymous }: LoginProps) {
             size="lg"
             onClick={() => setShowLogin(true)}
           >
-            Mit Google verbinden
+            {t("login.connectGoogle")}
           </Button>
         )}
 
@@ -135,7 +137,7 @@ function Login({ onStartAnonymous }: LoginProps) {
           onClick={handleStartDemo}
           disabled={demoLoading}
         >
-          {demoLoading ? "Beispieldaten werden geladen…" : "Demo ansehen"}
+          {demoLoading ? t("login.demoButtonLoading") : t("login.demoButton")}
         </Button>
 
         {/* Kurze Tier-Erklärung */}
@@ -143,23 +145,22 @@ function Login({ onStartAnonymous }: LoginProps) {
           <li className="flex items-start gap-2">
             <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
-              <span className="font-medium text-foreground">Ohne Anmeldung:</span>{" "}
-              CSV-Import, Analysen, Coach und Schulden-Planung — komplett lokal.
+              <span className="font-medium text-foreground">{t("login.tierNoLogin")}</span>{" "}
+              {t("login.tierNoLoginDesc")}
             </span>
           </li>
           <li className="flex items-start gap-2">
             <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
-              <span className="font-medium text-foreground">Mit Google-Login:</span>{" "}
-              Bankanbindung und Profil — nötig, weil deine Bank uns kennen muss, nicht weil
-              wir dich kennen wollen.
+              <span className="font-medium text-foreground">{t("login.tierWithLogin")}</span>{" "}
+              {t("login.tierWithLoginDesc")}
             </span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
-              <span className="font-medium text-foreground">Premium:</span>{" "}
-              Tiefere Analysen und Simulationen — folgt später.
+              <span className="font-medium text-foreground">{t("login.tierPremium")}</span>{" "}
+              {t("login.tierPremiumDesc")}
             </span>
           </li>
         </ul>
@@ -202,7 +203,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                   className="bg-brand text-white hover:bg-brand"
                   onClick={signInWithGoogleDirect}
                 >
-                  Google Login (Mobile)
+                  {t("login.googleLoginMobile")}
                 </Button>
               </div>
             )}
@@ -210,8 +211,7 @@ function Login({ onStartAnonymous }: LoginProps) {
             {isInIframe && (
               <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 p-3 text-warning dark:text-warning">
                 <div className="text-xs">
-                  Hinweis: Google verhindert Anmeldungen im eingebetteten Vorschaufenster (Iframe). Öffne die
-                  Anmeldung im neuen Tab oder führe den Google‑Login direkt aus.
+                  {t("login.iframeWarning")}
                 </div>
                 <div className="mt-3 flex gap-2">
                   <Button
@@ -220,7 +220,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                     className="border-warning/50 text-warning hover:bg-warning/10 dark:text-warning"
                     onClick={openInNewTab}
                   >
-                    Im neuen Tab öffnen
+                    {t("login.openInNewTab")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -228,7 +228,7 @@ function Login({ onStartAnonymous }: LoginProps) {
                     className="bg-brand text-white hover:bg-brand"
                     onClick={signInWithGoogleDirect}
                   >
-                    Google Login (direkt)
+                    {t("login.googleLoginDirect")}
                   </Button>
                 </div>
               </div>
@@ -242,7 +242,7 @@ function Login({ onStartAnonymous }: LoginProps) {
             to="/privacy"
             className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            Wie wir mit deinen Daten umgehen
+            {t("privacy.title")}
           </Link>
         </div>
       </Card>

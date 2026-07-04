@@ -13,6 +13,7 @@ import {
   DEBT_TYPE_ICONS,
   type DebtTransactionAssignment,
 } from "@/services/debt-service";
+import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -43,6 +44,8 @@ export function DebtDetailSheet({
   onToggleAssignment: (debtId: string, transaction: Transaction, checked: boolean) => void;
   assignBusy: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-2xl">
@@ -59,13 +62,13 @@ export function DebtDetailSheet({
             </SheetHeader>
 
             <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
-              <span className="text-muted-foreground">Aktuelle Restschuld</span>
+              <span className="text-muted-foreground">{t('debts.detailSheet.currentBalance')}</span>
               <span className="font-semibold">{eur.format(debt.balance)}</span>
             </div>
 
             <div className="mt-3 flex gap-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(debt)}>
-                <Pencil className="mr-1.5 h-4 w-4" /> Bearbeiten
+                <Pencil className="mr-1.5 h-4 w-4" /> {t('debts.detailSheet.edit')}
               </Button>
               <Button
                 variant="outline"
@@ -73,17 +76,17 @@ export function DebtDetailSheet({
                 className="flex-1 text-warning hover:text-warning"
                 onClick={() => onDelete(debt)}
               >
-                <Trash2 className="mr-1.5 h-4 w-4" /> Löschen
+                <Trash2 className="mr-1.5 h-4 w-4" /> {t('debts.detailSheet.delete')}
               </Button>
             </div>
 
             <div className="mt-5">
-              <div className="mb-2 text-sm font-semibold">Zahlungen dieser Schuld zuordnen</div>
+              <div className="mb-2 text-sm font-semibold">{t('debts.detailSheet.assignPayments')}</div>
               <p className="mb-2 text-xs text-muted-foreground">
-                Ordne wiederkehrende Lastschriften zu — so verfolgen wir deinen Tilgungsfortschritt automatisch.
+                {t('debts.detailSheet.assignPaymentsHint')}
               </p>
               {debitTransactions.length === 0 ? (
-                <div className="rounded-lg border p-3 text-sm text-muted-foreground">Keine Zahlungen gefunden.</div>
+                <div className="rounded-lg border p-3 text-sm text-muted-foreground">{t('debts.detailSheet.noPayments')}</div>
               ) : (
                 <div className="max-h-72 space-y-2 overflow-auto rounded-lg border p-2">
                   {debitTransactions.map((transaction) => {

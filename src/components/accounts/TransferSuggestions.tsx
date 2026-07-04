@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { showError, showSuccess } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 import { getAccounts } from '../../services/account-service';
 import { getTransactions, markTransferPair, unmarkTransfer } from '../../services/transaction-service';
 import { findTransferCandidates, type TransferCandidate } from '../../services/transfer-service';
@@ -14,6 +15,7 @@ const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' 
 const dateFmt = new Intl.DateTimeFormat('de-DE');
 
 export function TransferSuggestions() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: accounts = [] } = useQuery({
@@ -28,7 +30,7 @@ export function TransferSuggestions() {
 
   const accountName = (id: string | null | undefined) => {
     const acc = accounts.find((a) => a.id === id);
-    return acc ? `${acc.icon} ${acc.name}` : 'Unbekanntes Konto';
+    return acc ? `${acc.icon} ${acc.name}` : t('accounts.transferSuggestions.unknownAccount');
   };
 
   const candidates = useMemo(() => findTransferCandidates(transactions), [transactions]);
@@ -56,7 +58,7 @@ export function TransferSuggestions() {
       markTransferPair(candidate.outgoing.id!, candidate.incoming.id!),
     onSuccess: () => {
       invalidate();
-      showSuccess('Als interner Transfer markiert');
+      showSuccess(t('accounts.transferSuggestions.markSuccess'));
     },
     onError: (err: Error) => showError(err.message),
   });
@@ -65,7 +67,7 @@ export function TransferSuggestions() {
     mutationFn: (transaction: Transaction) => unmarkTransfer(transaction),
     onSuccess: () => {
       invalidate();
-      showSuccess('Transfer-Verknüpfung entfernt');
+      showSuccess(t('accounts.transferSuggestions.unlinkSuccess'));
     },
     onError: (err: Error) => showError(err.message),
   });
@@ -79,18 +81,16 @@ export function TransferSuggestions() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ArrowLeftRight className="h-5 w-5" />
-          Interne Transfers
+          {t('accounts.transferSuggestions.title')}
         </CardTitle>
         <CardDescription>
-          Buchungen, die nur Geld zwischen deinen eigenen Konten verschieben. Als Transfer
-          markierte Paare bleiben auf den Konten sichtbar, zählen aber nicht als Einnahme/Ausgabe
-          in Auswertungen und Budgets.
+          {t('accounts.transferSuggestions.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {candidates.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium">Vorschläge</p>
+            <p className="text-sm font-medium">{t('accounts.transferSuggestions.suggestionsTitle')}</p>
             {candidates.map((c) => (
               <div
                 key={`${c.outgoing.id}-${c.incoming.id}`}
@@ -102,7 +102,7 @@ export function TransferSuggestions() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {accountName(c.outgoing.account_id)} → {accountName(c.incoming.account_id)}
-                    {c.daysApart > 0 && ` · ${c.daysApart} Tag(e) Versatz`}
+                    {c.daysApart > 0 && ` · ${t('accounts.transferSuggestions.daysApart').replace('{days}', c.daysApart.toString())}`}
                   </div>
                 </div>
                 <Button
@@ -112,7 +112,7 @@ export function TransferSuggestions() {
                   disabled={markMutation.isPending}
                 >
                   <Link2 className="h-4 w-4 mr-2" />
-                  Als Transfer markieren
+                  {t('accounts.transferSuggestions.markAsTransfer')}
                 </Button>
               </div>
             ))}
@@ -121,7 +121,7 @@ export function TransferSuggestions() {
 
         {linkedPairs.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium">Verknüpfte Transfers</p>
+            <p className="text-sm font-medium">{t('accounts.transferSuggestions.linkedTransfers')}</p>
             {linkedPairs.map((pair) => (
               <div
                 key={pair[0].id}
@@ -130,12 +130,12 @@ export function TransferSuggestions() {
                 <div>
                   <div className="flex items-center gap-2">
                     {dateFmt.format(new Date(pair[0].date))} · {eur.format(Math.abs(pair[0].amount))}
-                    <Badge variant="secondary">Transfer</Badge>
+                    <Badge variant="secondary">{t('accounts.transferSuggestions.transferBadge')}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {pair.length === 2
                       ? `${accountName(pair[0].account_id)} ↔ ${accountName(pair[1].account_id)}`
-                      : `${accountName(pair[0].account_id)} (Gegenbuchung nicht gefunden)`}
+                      : `${accountName(pair[0].account_id)} ${t('accounts.transferSuggestions.counterPartNotFound')}`}
                   </div>
                 </div>
                 <Button
@@ -146,7 +146,7 @@ export function TransferSuggestions() {
                   className="text-warning hover:text-warning"
                 >
                   <Unlink className="h-4 w-4 mr-2" />
-                  Trennen
+                  {t('accounts.transferSuggestions.unlink')}
                 </Button>
               </div>
             ))}

@@ -10,6 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 
 interface InfoButtonProps {
@@ -19,7 +20,7 @@ interface InfoButtonProps {
   children: ReactNode;
   /** Optionaler Kurz-Untertitel direkt unter dem Titel. */
   description?: string;
-  /** Barrierefreies Label des Buttons. */
+  /** Barrierefreies Label des Buttons. Falls nicht gesetzt, wird die i18n-Translation verwendet. */
   label?: string;
   className?: string;
 }
@@ -33,13 +34,15 @@ export default function InfoButton({
   title,
   children,
   description,
-  label = "Mehr erfahren",
+  label,
   className,
 }: InfoButtonProps) {
+  const { t } = useI18n();
+  const finalLabel = label ?? t("infoButton.learnMore");
   return (
     <Sheet>
       <SheetTrigger
-        aria-label={label}
+        aria-label={finalLabel}
         className={cn(
           "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className,

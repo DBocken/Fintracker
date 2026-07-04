@@ -1,4 +1,5 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useI18n } from '@/i18n/useI18n';
 
 interface DeleteConfirmationDialogProps {
   isOpen: boolean;
@@ -8,29 +9,33 @@ interface DeleteConfirmationDialogProps {
   onConfirm: () => void;
 }
 
-export function DeleteConfirmationDialog({ 
-  isOpen, 
-  onOpenChange, 
-  transactionId, 
-  selectedCount, 
-  onConfirm 
+export function DeleteConfirmationDialog({
+  isOpen,
+  onOpenChange,
+  transactionId,
+  selectedCount,
+  onConfirm
 }: DeleteConfirmationDialogProps) {
+  const { t } = useI18n();
+
+  const message = transactionId
+    ? t('dashboard.deleteOneConfirmMsg').replace('{id}', transactionId)
+    : t('dashboard.deleteMultipleConfirmMsg').replace('{count}', String(selectedCount));
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="card-premium">
         <AlertDialogHeader>
-          <AlertDialogTitle>Löschen bestätigen</AlertDialogTitle>
+          <AlertDialogTitle>{t('dashboard.deleteConfirmTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {transactionId 
-              ? `Möchtest du diese Transaktion wirklich löschen? (ID: ${transactionId})`
-              : `Möchtest du ${selectedCount} Transaktionen wirklich löschen?`}
-            Diese Aktion kann nicht rückgängig gemacht werden.
+            {message}
+            {'\n'}{t('dashboard.cannotUndo')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-warning hover:bg-warning">
-            Löschen
+            {t('dashboard.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

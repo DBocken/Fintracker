@@ -15,10 +15,12 @@ import { WeeklyPatternCharts } from "./WeeklyPatternCharts";
 import { KpiSection } from "@/components/kpi/KpiSection";
 import { dyadProps } from "@/lib/dyad";
 import { buildSankeyData, buildWeekdayPattern } from "@/lib/analysis-data";
+import { useI18n } from "@/i18n/useI18n";
 
 type FlowMode = "live" | "month" | "average";
 
 export function ResponsivePremiumDashboard() {
+  const { t } = useI18n();
   const [flowMode, setFlowMode] = useState<FlowMode>("live");
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
@@ -197,8 +199,8 @@ export function ResponsivePremiumDashboard() {
       <section {...dyadProps("PremiumTimelineSection")} className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-sm font-semibold">Zeitverlauf</div>
-            <div className="text-xs text-muted-foreground">Ein Chart pro Bereich, Details über Filter.</div>
+            <div className="text-sm font-semibold">{t("premium.dashboard.flowSection")}</div>
+            <div className="text-xs text-muted-foreground">{t("premium.dashboard.flowSectionDesc")}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl
@@ -208,9 +210,9 @@ export function ResponsivePremiumDashboard() {
               value={flowMode}
               onValueChange={(v) => setFlowMode(v as FlowMode)}
               options={[
-                { value: "live", label: "Alle Daten" },
-                { value: "month", label: "Monat" },
-                { value: "average", label: "Durchschnitt" },
+                { value: "live", label: t("premium.dashboard.allData") },
+                { value: "month", label: t("premium.dashboard.month") },
+                { value: "average", label: t("premium.dashboard.average") },
               ]}
             />
             {flowMode === "month" && (
@@ -229,9 +231,9 @@ export function ResponsivePremiumDashboard() {
 
       <section {...dyadProps("PremiumSankeySection")} className="space-y-4">
         <div>
-          <div className="text-sm font-semibold">Wohin fließt mein Geld?</div>
+          <div className="text-sm font-semibold">{t("premium.dashboard.sankey")}</div>
           <div className="text-xs text-muted-foreground">
-            Klicke auf eine Hauptkategorie, um in die Unterkategorien einzutauchen.
+            {t("premium.dashboard.sankeyDesc")}
           </div>
         </div>
         <SankeyChart data={sankeyData} enableDrilldown />
@@ -239,29 +241,29 @@ export function ResponsivePremiumDashboard() {
 
       <section {...dyadProps("PremiumWeekdaySection")} className="space-y-4">
         <div>
-          <div className="text-sm font-semibold">Wann fließt mein Geld?</div>
-          <div className="text-xs text-muted-foreground">Einnahmen und Ausgaben nach Wochentag.</div>
+          <div className="text-sm font-semibold">{t("premium.dashboard.weekly")}</div>
+          <div className="text-xs text-muted-foreground">{t("premium.dashboard.weeklyDesc")}</div>
         </div>
         <WeeklyPatternCharts weeklyData={weekdayPattern} />
       </section>
 
       <section {...dyadProps("PremiumInsightsSection")} className="space-y-4">
         <div>
-          <div className="text-sm font-semibold">Insights</div>
-          <div className="text-xs text-muted-foreground">Kurze Hinweise basierend auf deinen Daten.</div>
+          <div className="text-sm font-semibold">{t("premium.dashboard.insights")}</div>
+          <div className="text-xs text-muted-foreground">{t("premium.dashboard.insightsDesc")}</div>
         </div>
         <SmartInsightsPanel
           totalIncome={fd.totalIncome}
           totalExpenses={fd.totalExpenses}
           topExpense={topExpense}
-          topIncome={{ name: "Einnahmen", amount: fd.totalIncome }}
+          topIncome={{ name: t("premium.dashboard.topIncomeLabel"), amount: fd.totalIncome }}
         />
       </section>
 
       <section {...dyadProps("PremiumCalendarSection")} className="space-y-4">
         <div>
-          <div className="text-sm font-semibold">Aktivitätskalender</div>
-          <div className="text-xs text-muted-foreground">Optionaler Überblick über Buchungen.</div>
+          <div className="text-sm font-semibold">{t("premium.dashboard.calendar")}</div>
+          <div className="text-xs text-muted-foreground">{t("premium.dashboard.calendarDesc")}</div>
         </div>
         <HeatmapCalendar transactions={flowTransactions} />
       </section>

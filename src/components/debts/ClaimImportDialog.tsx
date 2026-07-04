@@ -23,6 +23,7 @@ import {
 import { confirmClaim, type Claim } from "@/services/claim-service";
 import { LETTER_DOC_TYPE_LABELS } from "@/services/letter-parser-service";
 import { SCAN_GUIDANCE, type OcrProgress } from "@/services/letter-ocr-service";
+import { useI18n } from "@/i18n/useI18n";
 
 interface ClaimImportDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface ClaimImportDialogProps {
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 
 export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDialogProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"upload" | "processing" | "review">("upload");
   const [progress, setProgress] = useState<OcrProgress | null>(null);
@@ -109,10 +111,9 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[640px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Forderungsbriefe scannen</DialogTitle>
+          <DialogTitle>{t('debts.claimImport.title')}</DialogTitle>
           <DialogDescription>
-            Lade eingescannte Mahnungen, Rechnungen oder Inkasso-Schreiben als PDF oder Fotos hoch.
-            Wir erkennen automatisch Gläubiger, Beträge und Fristen.
+            {t('debts.claimImport.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -127,12 +128,12 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
               <input {...getInputProps()} />
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               {isDragActive ? (
-                <p className="text-lg font-medium">Dateien hier ablegen …</p>
+                <p className="text-lg font-medium">{t('debts.claimImport.dragHere')}</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-lg font-medium">PDF oder Fotos hierher ziehen oder auswählen</p>
+                  <p className="text-lg font-medium">{t('debts.claimImport.selectFiles')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Einzugsscanner-PDF (mehrere Briefe) oder ein Foto pro Brief
+                    {t('debts.claimImport.selectFilesHint')}
                   </p>
                 </div>
               )}
@@ -150,7 +151,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
         {step === "processing" && (
           <div className="py-8 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg font-medium">Briefe werden gelesen …</p>
+            <p className="text-lg font-medium">{t('debts.claimImport.processing')}</p>
             {progress && (
               <div className="w-full space-y-1">
                 <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
@@ -169,7 +170,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
             {result.claims.length === 0 ? (
               <Alert>
                 <AlertDescription>
-                  Keine Forderungen erkannt. Bitte versuche es mit einem schärferen Scan.
+                  {t('debts.claimImport.noClaims')}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -178,6 +179,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
                   <ClaimReviewRow
                     key={claim.id}
                     claim={claim}
+                    t={t}
                     onConfirm={() => confirmMutation.mutate(claim.id)}
                     isConfirming={confirmMutation.isPending && confirmMutation.variables === claim.id}
                   />
@@ -189,7 +191,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClose} disabled={step === "processing"}>
-            {step === "review" ? "Fertig" : "Abbrechen"}
+            {step === "review" ? t('debts.claimImport.done') : t('common.cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -199,10 +201,12 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
 
 function ClaimReviewRow({
   claim,
+  t,
   onConfirm,
   isConfirming,
 }: {
   claim: Claim;
+  t: (key: string) => string;
   onConfirm: () => void;
   isConfirming: boolean;
 }) {
@@ -221,11 +225,11 @@ function ClaimReviewRow({
       </div>
       {claim.debt_id ? (
         <Badge className="shrink-0 bg-positive/20 text-positive">
-          <CheckCircle2 className="mr-1 h-3 w-3" /> Übernommen
+          <CheckCircle2 className="mr-1 h-3 w-3" /> {t('debts.claimImport.adopted')}
         </Badge>
       ) : (
         <Button size="sm" onClick={onConfirm} disabled={isConfirming}>
-          {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Als Schuld übernehmen"}
+          {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : t('debts.claimImport.adoptButton')}
         </Button>
       )}
     </div>

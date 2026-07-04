@@ -4,6 +4,7 @@ import { getAccounts } from '@/services/account-service'
 import type { Account } from '@/types'
 import { RefreshCw } from 'lucide-react'
 import { useGentleMode } from '@/components/providers/GentleModeProvider'
+import { useI18n } from '@/i18n/useI18n'
 
 interface AccountCardsProps {
   balances: Record<string, { amount: number; source: 'bank' | 'local'; balanceType?: string }>
@@ -11,6 +12,7 @@ interface AccountCardsProps {
 }
 
 export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   const { data: accounts = [], isLoading, error } = useQuery<Account[]>({
     queryKey: ['accounts'],
@@ -39,10 +41,10 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
     <Card className="flex h-full flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle>Konten</CardTitle>
+          <CardTitle>{t('accounts.cards.title')}</CardTitle>
           {accounts.length > 0 && (
             <div className="text-right">
-              <div className="text-xs text-muted-foreground">Gesamtsaldo</div>
+              <div className="text-xs text-muted-foreground">{t('accounts.cards.totalBalance')}</div>
               <div className="text-lg font-semibold tabular-nums">
                 {formatBalance(totalBalance)}
               </div>
@@ -53,14 +55,14 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
       <CardContent className="flex-1">
         {error && (
           <div className="text-destructive text-sm mb-4">
-            Fehler beim Laden der Konten
+            {t('accounts.cards.errorLoading')}
           </div>
         )}
 
         {accounts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <p>Noch keine Konten vorhanden.</p>
-            <p className="text-sm mt-2">Verbinde dein Bankkonto automatisch – sicher und in 2 Minuten – oder erstelle manuell ein Konto.</p>
+            <p>{t('accounts.cards.emptyTitle')}</p>
+            <p className="text-sm mt-2">{t('accounts.cards.emptyDesc')}</p>
           </div>
         ) : (
           <ul className="divide-y">
@@ -77,9 +79,9 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
                       {hasBankConnection && (
                         <span
                           className="shrink-0 rounded-full bg-positive/15 px-2 py-0.5 text-[10px] font-medium text-positive"
-                          title="Automatisch synchronisiert"
+                          title={t('accounts.cards.connectedTitle')}
                         >
-                          Verbunden
+                          {t('accounts.cards.connected')}
                         </span>
                       )}
                     </div>
@@ -87,8 +89,8 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
                       {account.type}
                       {' · '}
                       {b.source === 'bank'
-                        ? `Bank (${b.balanceType || 'closingBooked'})`
-                        : 'Lokal (Summe Transaktionen)'}
+                        ? t('accounts.cards.bankSync').replace('{type}', b.balanceType || 'closingBooked')
+                        : t('accounts.cards.localSync')}
                       {account.description ? ` · ${account.description}` : ''}
                     </div>
                   </div>

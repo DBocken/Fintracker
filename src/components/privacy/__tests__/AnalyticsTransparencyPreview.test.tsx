@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { translations } from "@/i18n/translations";
 import AnalyticsTransparencyPreview from "../AnalyticsTransparencyPreview";
 import type { AnalyticsPackageV1 } from "@/services/analytics-aggregation-service";
 
@@ -35,31 +37,76 @@ vi.mock("@/services/analytics-aggregation-service", () => ({
   buildAnalyticsPackage: vi.fn(async () => pkg),
 }));
 
-function renderWithClient() {
+function renderWithI18n(component: any, locale: "de" | "en" = "de") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}>
-      <AnalyticsTransparencyPreview />
-    </QueryClientProvider>,
+    <I18nProvider initialLocale={locale}>
+      <QueryClientProvider client={client}>
+        {component}
+      </QueryClientProvider>
+    </I18nProvider>,
   );
 }
 
 describe("AnalyticsTransparencyPreview", () => {
   it("sollte zuerst nur den 'nichts verlässt dein Gerät'-Hinweis + Button zeigen", () => {
-    renderWithClient();
+    renderWithI18n(<AnalyticsTransparencyPreview />, "de");
     expect(screen.getByText(/Upload\s+ist deaktiviert/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Zeig mir, was geteilt würde/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: translations.de.analytics.showPreview })).toBeInTheDocument();
     // Vor dem Klick keine Aggregat-Zahlen.
-    expect(screen.queryByText(/aggregierte Datensätze/)).not.toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(translations.de.analytics.aggregatedRecords))).not.toBeInTheDocument();
   });
 
   it("sollte nach dem Aufdecken Aggregat-Übersicht, Schutzmaßnahmen und Datensatz zeigen", async () => {
-    renderWithClient();
-    fireEvent.click(screen.getByRole("button", { name: /Zeig mir, was geteilt würde/ }));
+    renderWithI18n(<AnalyticsTransparencyPreview />, "de");
+    fireEvent.click(screen.getByRole("button", { name: translations.de.analytics.showPreview }));
 
-    expect(await screen.findByText(/aggregierte Datensätze/)).toBeInTheDocument();
+    expect(await screen.findByText(new RegExp(translations.de.analytics.aggregatedRecords))).toBeInTheDocument();
     expect(screen.getByText(/k-Anonymität: min\. 5 Events/)).toBeInTheDocument();
     expect(screen.getByText("Lebensmittel")).toBeInTheDocument();
     expect(screen.getByText("2026-01")).toBeInTheDocument();
+  });
+
+  it("should show preview button in English", () => {
+    renderWithI18n(<AnalyticsTransparencyPreview />, "en");
+    expect(screen.getByRole("button", { name: translations.en.analytics.showPreview })).toBeInTheDocument();
+  });
+
+  it("[REGRESSION] should have all analytics i18n keys in both languages", () => {
+    const requiredKeys = [
+      "analytics.showPreview",
+      "analytics.aggregating",
+      "analytics.aggregatedRecords",
+      "analytics.suppressed",
+      "analytics.noRawData",
+      "analytics.directIdentiersRemoved",
+      "analytics.exactTextRemoved",
+      "analytics.kAnonymity",
+      "analytics.noGroupsWithEnoughRecords",
+      "analytics.groupColumn",
+      "analytics.monthColumn",
+      "analytics.avgPerMonthColumn",
+      "analytics.transactionsColumn",
+      "analytics.nothingLabel",
+      "analytics.maximalLabel",
+    ];
+
+    requiredKeys.forEach((key) => {
+      const path = key.split(".");
+      let deValue: any = translations.de;
+      let enValue: any = translations.en;
+
+      path.forEach((p) => {
+        const deHas = deValue && typeof deValue === "object" && p in deValue;
+        const enHas = enValue && typeof enValue === "object" && p in enValue;
+        expect(deHas).toBe(true);
+        expect(enHas).toBe(true);
+        deValue = deValue[p];
+        enValue = enValue[p];
+      });
+
+      expect(typeof deValue).toBe("string");
+      expect(typeof enValue).toBe("string");
+    });
   });
 });

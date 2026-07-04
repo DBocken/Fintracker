@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSchufareminder } from "@/hooks/useSchufareminder";
 import { SCHUFA_EXPLANATION, SCHUFA_REQUEST_URL } from "@/services/schufa-service";
+import { useI18n } from "@/i18n/useI18n";
 
 function formatArrival(iso: string): string {
   try {
@@ -21,6 +22,7 @@ function formatArrival(iso: string): string {
  * RDG: informiert über ein Recht, gibt keine Rechtsberatung.
  */
 export function SchufaSelfCheckCard() {
+  const { t } = useI18n();
   const { reminder, isWaiting, isDue, request, markScanned, isRequesting, isMarking } =
     useSchufareminder();
 
@@ -46,14 +48,10 @@ export function SchufaSelfCheckCard() {
                 <div className="flex items-center gap-2 text-sm">
                   <Inbox className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
                   {isDue ? (
-                    <span>Deine Auskunft müsste inzwischen da sein. Schon im Briefkasten?</span>
+                    <span>{t('debts.schufaCard.readySoon')}</span>
                   ) : (
                     <span>
-                      Angefordert. Wir erinnern dich ca. am{" "}
-                      <span className="font-medium">
-                        {reminder ? formatArrival(reminder.expected_arrival) : ""}
-                      </span>
-                      .
+                      {t('debts.schufaCard.requested').replace('{date}', reminder ? formatArrival(reminder.expected_arrival) : "")}
                     </span>
                   )}
                 </div>
@@ -68,7 +66,7 @@ export function SchufaSelfCheckCard() {
                   ) : (
                     <Check className="mr-1.5 h-4 w-4" aria-hidden="true" />
                   )}
-                  Auskunft ist da
+                  {t('debts.schufaCard.markReceived')}
                 </Button>
               </div>
             ) : (

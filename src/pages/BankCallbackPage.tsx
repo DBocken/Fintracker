@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 
 import {
   Loader2,
@@ -36,6 +37,7 @@ interface GoCardlessAccount {
 export default function BankCallbackPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'linking' | 'pending'>('loading');
@@ -87,7 +89,7 @@ export default function BankCallbackPage() {
     }
 
     if (!lookupKey) {
-      setError('Keine Requisition-ID gefunden. Bitte versuche die Verbindung erneut.');
+      setError(t('bankCallback.noRequisitionId'));
       setStatus('error');
       return;
     }
@@ -137,11 +139,11 @@ export default function BankCallbackPage() {
 
       // After polling, still no accounts
       setRequisitionInfo(lastRequisition);
-      setError('Keine Konten gefunden. Möglicherweise wurde der Zugriff nicht autorisiert oder die Bank liefert keine Konten.');
+      setError(t('bankCallback.noAccountsFound'));
       setStatus('error');
     } catch (err: unknown) {
       console.error('Error fetching accounts:', err);
-      setError(`Fehler beim Abrufen der Konten: ${(err as Error).message}`);
+      setError(t('bankCallback.fetchError').replace('{error}', (err as Error).message));
       setStatus('error');
     }
   };
@@ -169,11 +171,11 @@ export default function BankCallbackPage() {
           bank_connection_id: bankConnection?.id,
           sync_enabled: true,
         });
-        showSuccess('Konto verknüpft!');
+        showSuccess(t('bankCallback.accountLinked'));
       } else {
         // Create new account
         account = await createAccount({
-          name: gocardlessAccount.name || gocardlessAccount.product || 'Bankkonto',
+          name: gocardlessAccount.name || gocardlessAccount.product || t('bankCallback.account'),
           type: 'checking',
           currency: gocardlessAccount.currency,
           iban: gocardlessAccount.iban || null,
@@ -184,7 +186,7 @@ export default function BankCallbackPage() {
           bank_connection_id: bankConnection?.id,
           sync_enabled: true,
         });
-        showSuccess('Neues Konto erstellt!');
+        showSuccess(t('bankCallback.accountCreated'));
       }
 
       // Initialimport über DENSELBEN Pfad wie der spätere manuelle Sync
@@ -209,7 +211,7 @@ export default function BankCallbackPage() {
       const result = await syncAccountTransactions(account);
 
       if (result.importedCount > 0) {
-        showSuccess(`${result.importedCount} Transaktionen importiert`);
+        showSuccess(t('bankCallback.transactionsImported').replace('{count}', String(result.importedCount)));
       }
       if (result.errors.length > 0) {
         console.warn('[bank-callback] Sync mit Fehlern:', result.errors);
@@ -237,10 +239,10 @@ export default function BankCallbackPage() {
   };
 
   const accountTypeLabel = (account: GoCardlessAccount) => {
-    if (account.product?.toLowerCase().includes('credit')) return 'Kreditkarte';
-    if (account.product?.toLowerCase().includes('giro')) return 'Girokonto';
-    if (account.product?.toLowerCase().includes('spark')) return 'Sparkonto';
-    return 'Konto';
+    if (account.product?.toLowerCase().includes('credit')) return t('bankCallback.creditCard');
+    if (account.product?.toLowerCase().includes('giro')) return t('bankCallback.checkingAccount');
+    if (account.product?.toLowerCase().includes('spark')) return t('bankCallback.savingsAccount');
+    return t('bankCallback.account');
   };
 
   const formatBalance = (account: GoCardlessAccount) => {
@@ -275,16 +277,16 @@ export default function BankCallbackPage() {
             <div className="absolute inset-0 bg-positive/20 blur-3xl rounded-full" />
             <Loader2 className="h-16 w-16 animate-spin text-positive relative z-10 mx-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mt-6">Konten werden abgerufen...</h1>
-          <p className="text-muted-foreground mt-2">Bitte warte einen Moment, während wir deine Konten laden.</p>
+          <h1 className="text-2xl font-bold text-foreground mt-6">{t('bankCallback.loadingHeading')}</h1>
+          <p className="text-muted-foreground mt-2">{t('bankCallback.loadingDescription')}</p>
           {pollingAttempts > 0 && (
-            <p className="text-xs text-muted-foreground mt-2">Wartezeit: {pollingAttempts * 2} Sekunden</p>
+            <p className="text-xs text-muted-foreground mt-2">{t('bankCallback.waitingTime').replace('{seconds}', String(pollingAttempts * 2))}</p>
           )}
           {requisitionInfo && requisitionInfo.link && (
             <div className="mt-4">
               <Button onClick={handleOpenAuthLink} className="bg-positive">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Authentifizierungsseite erneut öffnen
+                {t('bankCallback.openAuthLink')}
               </Button>
             </div>
           )}
@@ -308,9 +310,9 @@ export default function BankCallbackPage() {
                   <AlertCircle className="h-8 w-8 text-warning" />
                 </div>
                 <div>
-                  <CardTitle className="text-foreground">Verbindung fehlgeschlagen</CardTitle>
+                  <CardTitle className="text-foreground">{t('bankCallback.failureHeading')}</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                    Die Bankverbindung konnte nicht hergestellt werden.
+                    {t('bankCallback.failureDescription')}
                   </CardDescription>
                 </div>
               </div>
@@ -336,18 +338,18 @@ export default function BankCallbackPage() {
               )}
 
               <div className="flex gap-3">
-                <Button 
-                  onClick={() => navigate('/')} 
+                <Button
+                  onClick={() => navigate('/')}
                   className="flex-1 bg-muted hover:bg-accent"
                 >
-                  Zurück zur App
+                  {t('bankCallback.backToApp')}
                 </Button>
-                <Button 
+                <Button
                   onClick={() => window.location.reload()}
                   className="flex-1 bg-gradient-to-r from-positive to-positive hover:from-positive hover:to-positive"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Erneut versuchen
+                  {t('bankCallback.retryButton')}
                 </Button>
               </div>
             </CardContent>
@@ -371,10 +373,13 @@ export default function BankCallbackPage() {
                 <Building2 className="h-8 w-8 text-positive" />
               </div>
               <div>
-                <CardTitle className="text-foreground">Bankkonten gefunden</CardTitle>
+                <CardTitle className="text-foreground">{t('bankCallback.successHeading')}</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Wir haben {accounts.length} {accounts.length === 1 ? 'Konto' : 'Konten'} gefunden. 
-                  Verknüpfe sie mit bestehenden Konten oder erstelle neue.
+                  {t('bankCallback.successDescription')
+                    .replace('{count}', String(accounts.length))
+                    .replace('{countLabel}', accounts.length === 1 ? t('bankCallback.accountSingular') : t('bankCallback.accountPlural'))
+                    .replace('{action}', accounts.length === 1 ? t('bankCallback.linkActionSingular') : t('bankCallback.linkActionPlural'))
+                  }
                 </CardDescription>
               </div>
             </div>
@@ -410,7 +415,7 @@ export default function BankCallbackPage() {
                           {isLinked && (
                             <Badge className="bg-positive/20 text-positive text-xs">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Verknüpft
+                              {t('bankCallback.linked')}
                             </Badge>
                           )}
                         </div>
@@ -425,9 +430,9 @@ export default function BankCallbackPage() {
                           {account.iban && (
                             <p>IBAN: {account.iban}</p>
                           )}
-                          <p>Währung: {account.currency}</p>
+                          <p>{t('bankCallback.currency').replace('{currency}', account.currency)}</p>
                           {account.ownerName && (
-                            <p>Inhaber: {account.ownerName}</p>
+                            <p>{t('bankCallback.owner').replace('{name}', account.ownerName)}</p>
                           )}
                         </div>
                       </div>
@@ -439,9 +444,9 @@ export default function BankCallbackPage() {
                             className="bg-card border border-border text-foreground text-sm rounded px-3 py-2 w-full max-w-full sm:w-auto sm:min-w-[200px]"
                             defaultValue=""
                           >
-                            <option value="" disabled>Konto wählen...</option>
-                            <option value="new">➕ Neues Konto erstellen</option>
-                            <optgroup label="Bestehende Konten">
+                            <option value="" disabled>{t('bankCallback.selectAccount')}</option>
+                            <option value="new">{t('bankCallback.createNew')}</option>
+                            <optgroup label={t('bankCallback.existingAccounts')}>
                               {existingAccounts.map(acc => (
                                 <option key={acc.id} value={acc.id}>
                                   {acc.icon} {acc.name}
@@ -455,7 +460,7 @@ export default function BankCallbackPage() {
                       {isImporting && (
                         <div className="flex items-center gap-2 text-positive">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm">Importiere...</span>
+                          <span className="text-sm">{t('bankCallback.importing')}</span>
                         </div>
                       )}
                     </div>
@@ -473,7 +478,7 @@ export default function BankCallbackPage() {
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <CheckCircle2 className="h-6 w-6 text-positive" />
                   <span className="text-positive font-medium">
-                    Alle Konten erfolgreich verknüpft!
+                    {t('bankCallback.allLinked')}
                   </span>
                 </div>
                 <Button
@@ -481,7 +486,7 @@ export default function BankCallbackPage() {
                   className="bg-gradient-to-r from-positive to-positive hover:from-positive hover:to-positive text-white px-8"
                 >
                   <Wallet className="h-4 w-4 mr-2" />
-                  Zurück zum Ausgabentracker
+                  {t('bankCallback.finishButton')}
                 </Button>
               </motion.div>
             )}

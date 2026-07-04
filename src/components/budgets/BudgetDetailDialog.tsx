@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
 import BudgetTank from "./BudgetTank";
@@ -19,12 +20,6 @@ const eur = new Intl.NumberFormat("de-DE", {
   currency: "EUR",
   maximumFractionDigits: 0,
 });
-
-const HEALTH_BADGE: Record<BudgetStatus["health"], { label: string; className: string }> = {
-  ok: { label: "Im Plan", className: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
-  warn: { label: "Knapp", className: "border-amber-500/40 text-amber-600 dark:text-amber-400" },
-  over: { label: "Überzogen", className: "border-red-500/40 text-red-600 dark:text-red-400" },
-};
 
 interface BudgetDetailDialogProps {
   status: BudgetStatus | null;
@@ -43,9 +38,17 @@ export default function BudgetDetailDialog({
   onEdit,
   onDelete,
 }: BudgetDetailDialogProps) {
+  const { t } = useI18n();
   if (!status) return null;
   const { budget, spent, remaining, fillPercent, health, carryIn, effectiveLimit, carryOut, swept } = status;
-  const badge = HEALTH_BADGE[health];
+
+  const healthBadges = {
+    ok: { label: t('budgets.detailDialog.healthOk'), className: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
+    warn: { label: t('budgets.detailDialog.healthWarn'), className: "border-amber-500/40 text-amber-600 dark:text-amber-400" },
+    over: { label: t('budgets.detailDialog.healthOver'), className: "border-red-500/40 text-red-600 dark:text-red-400" },
+  };
+
+  const badge = healthBadges[health];
   const pct = Math.round(fillPercent);
   const limitShown = effectiveLimit ?? budget.limit;
   const hasCarryIn = carryIn != null && Math.abs(carryIn) >= 0.5;
@@ -60,7 +63,7 @@ export default function BudgetDetailDialog({
             <span aria-hidden>{budget.icon || "💧"}</span>
             {budget.name}
           </DialogTitle>
-          <DialogDescription>Monatsbudget · Stand für diesen Monat</DialogDescription>
+          <DialogDescription>{t('budgets.detailDialog.subtitle')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2">
@@ -78,13 +81,13 @@ export default function BudgetDetailDialog({
 
           <div className="w-full space-y-2 rounded-xl border bg-muted/20 p-4 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Ausgegeben</span>
+              <span className="text-muted-foreground">{t('budgets.detailDialog.spent')}</span>
               <span className="font-semibold tabular-nums">{eur.format(spent)}</span>
             </div>
             {hasCarryIn && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {carryIn! >= 0 ? "Angespart aus Vormonat" : "Übertrag aus Vormonat"}
+                  {carryIn! >= 0 ? t('budgets.detailDialog.carriedInPositive') : t('budgets.detailDialog.carriedInNegative')}
                 </span>
                 <span
                   className={cn(
@@ -98,11 +101,11 @@ export default function BudgetDetailDialog({
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{hasCarryIn ? "Limit (effektiv)" : "Limit"}</span>
+              <span className="text-muted-foreground">{hasCarryIn ? t('budgets.detailDialog.limitEffective') : t('budgets.detailDialog.limitLabel')}</span>
               <span className="font-semibold tabular-nums">{eur.format(limitShown)}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-2">
-              <span className="text-muted-foreground">{remaining >= 0 ? "Noch offen" : "Über Budget"}</span>
+              <span className="text-muted-foreground">{remaining >= 0 ? t('budgets.detailDialog.remaining') : t('budgets.detailDialog.overBudget')}</span>
               <span
                 className={cn(
                   "font-semibold tabular-nums",
@@ -114,7 +117,7 @@ export default function BudgetDetailDialog({
             </div>
             {hasSwept && (
               <div className="flex items-center justify-between border-t pt-2">
-                <span className="text-muted-foreground">Beiseitegelegt</span>
+                <span className="text-muted-foreground">{t('budgets.detailDialog.swept')}</span>
                 <span className="font-semibold tabular-nums text-sky-600 dark:text-sky-400">
                   {eur.format(swept!)}
                 </span>
@@ -122,7 +125,7 @@ export default function BudgetDetailDialog({
             )}
             {hasCarryOut && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Übertrag nächster Monat</span>
+                <span className="text-muted-foreground">{t('budgets.detailDialog.carryOut')}</span>
                 <span
                   className={cn(
                     "font-semibold tabular-nums",
@@ -148,10 +151,12 @@ export default function BudgetDetailDialog({
               )}
             >
               <span className="font-medium">
-                {status.drift.direction === "over" ? "Ausgaben über Limit" : "Limit großzügig"}
+                {status.drift.direction === "over" ? t('budgets.detailDialog.driftOver') : t('budgets.detailDialog.driftUnder')}
               </span>{" "}
-              · real ⌀ {eur.format(status.drift.median)}/Monat vs. Limit {eur.format(status.drift.limit)}. Auf{" "}
-              {eur.format(status.drift.suggestedLimit)} anpassen?
+              · {t('budgets.detailDialog.driftMedian')
+                .replace('{median}', eur.format(status.drift.median))
+                .replace('{limit}', eur.format(status.drift.limit))
+                .replace('{suggested}', eur.format(status.drift.suggestedLimit))}
             </button>
           )}
 
@@ -160,10 +165,10 @@ export default function BudgetDetailDialog({
 
         <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">
           <Button variant="outline" size="sm" onClick={onDelete} className="text-red-600 dark:text-red-400">
-            <Trash2 className="mr-1.5 h-4 w-4" /> Löschen
+            <Trash2 className="mr-1.5 h-4 w-4" /> {t('budgets.detailDialog.deleteButton')}
           </Button>
           <Button size="sm" onClick={onEdit}>
-            <Pencil className="mr-1.5 h-4 w-4" /> Bearbeiten
+            <Pencil className="mr-1.5 h-4 w-4" /> {t('budgets.detailDialog.editButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

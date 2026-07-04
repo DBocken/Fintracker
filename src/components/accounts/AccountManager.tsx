@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { showSuccess, showError } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 import type { Account, AccountType } from '../../types';
 import {
   getAccounts,
@@ -43,7 +44,7 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
 
 
 export function AccountManager() {
-
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -93,7 +94,7 @@ export function AccountManager() {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-limit'] });
-      showSuccess('Konto erstellt');
+      showSuccess(t('accounts.manager.createSuccess'));
       setIsDialogOpen(false);
       await reconcileTransfersAfterIbanChange();
     },
@@ -106,7 +107,7 @@ export function AccountManager() {
     mutationFn: updateAccount,
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      showSuccess('Konto aktualisiert');
+      showSuccess(t('accounts.manager.updateSuccess'));
       setIsDialogOpen(false);
       setEditingAccount(null);
       await reconcileTransfersAfterIbanChange();
@@ -121,7 +122,7 @@ export function AccountManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-limit'] });
-      showSuccess('Konto gelöscht');
+      showSuccess(t('accounts.manager.deleteSuccess'));
     },
     onError: (error: Error) => {
       showError(error.message);

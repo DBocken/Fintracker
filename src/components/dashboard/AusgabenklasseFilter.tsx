@@ -1,17 +1,10 @@
 import { useMemo } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { getAusgabenklasseColor } from '@/lib/ausgabenklasse-colors';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types';
 import type { AusgabenklasseFilter } from './filter-constants';
-
-const AUSGABENKLASSE_LABELS = {
-  essenziell: 'Essenziell',
-  diskretionaer: 'Nicht-Essenziell',
-  sparen: 'Sparen',
-  einkommen: 'Einkommen',
-  unkategorisiert: 'Unkategorisiert',
-};
 
 interface AusgabenklasseFilterProps {
   value: AusgabenklasseFilter;
@@ -26,6 +19,16 @@ export function AusgabenklasseFilterComponent({
   categories,
   className,
 }: AusgabenklasseFilterProps) {
+  const { t } = useI18n();
+
+  const AUSGABENKLASSE_LABELS = {
+    essenziell: t('ausgabenklasse.essential', 'Essenziell'),
+    diskretionaer: t('ausgabenklasse.discretionary', 'Nicht-Essenziell'),
+    sparen: t('ausgabenklasse.savings', 'Sparen'),
+    einkommen: t('ausgabenklasse.income', 'Einkommen'),
+    unkategorisiert: t('ausgabenklasse.uncategorized', 'Unkategorisiert'),
+  };
+
   // Kategorien nach Ausgabenklasse gruppieren
   const kategoriesByKlasse = useMemo(() => {
     const map = new Map<string, Category[]>();
@@ -41,11 +44,11 @@ export function AusgabenklasseFilterComponent({
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as AusgabenklasseFilter)}>
-      <SelectTrigger aria-label="Ausgabenklasse filtern" className={cn(className ?? 'w-48', 'bg-background/50 backdrop-blur-sm')}>
-        <SelectValue placeholder="Alle Klassen" />
+      <SelectTrigger aria-label={t('ausgabenklasse.filterLabel', 'Ausgabenklasse filtern')} className={cn(className ?? 'w-48', 'bg-background/50 backdrop-blur-sm')}>
+        <SelectValue placeholder={t('ausgabenklasse.allClasses', 'Alle Klassen')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">Alle Klassen</SelectItem>
+        <SelectItem value="all">{t('ausgabenklasse.allClasses', 'Alle Klassen')}</SelectItem>
 
         {Object.entries(AUSGABENKLASSE_LABELS).map(([klasse, label]) => (
           <SelectItem key={klasse} value={klasse}>

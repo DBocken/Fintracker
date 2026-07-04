@@ -14,6 +14,7 @@ import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
+import { useI18n } from "@/i18n/useI18n";
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -26,6 +27,7 @@ interface SankeyChartProps {
 }
 
 export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) {
+  const { t } = useI18n();
   // Wenn keine Hauptkategorien vorhanden sind, macht das Diagramm keinen Sinn.
   // Die Prüfung muss nach den Hooks erfolgen (Rules of Hooks).
   const hasData = !!data && Array.isArray(data.mainCategories) && data.mainCategories.length > 0;
@@ -69,9 +71,9 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         <div className="text-center">
           <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Keine Daten für Flussdiagramm verfügbar</p>
+          <p>{t("premium.sankey.noData")}</p>
           <p className="text-sm mt-2">
-            Importiere Transaktionen, um die Visualisierung zu sehen
+            {t("premium.sankey.noDataDesc")}
           </p>
         </div>
       </div>
@@ -138,16 +140,16 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Network className="h-5 w-5" />
-          Geldfluss-Visualisierung
+          {t("premium.sankey.title")}
         </CardTitle>
         <CardDescription>
           {enableDrilldown
-            ? "Zeigt den Fluss von Einnahmen (grün, links) über deine Konten (mit Netto-Anzeige) zu Ausgabenkategorien (je Kategorie eine Farbe). Klicke auf eine Kategorie, um die Unterkategorien einzublenden."
-            : "Zeigt den Fluss von Einnahmen (grün, links) über deine Konten (mit Netto-Anzeige) zu deinen Hauptkategorien (je Kategorie eine Farbe)."}
+            ? t("premium.sankey.descriptionWithDrill")
+            : t("premium.sankey.descriptionNoDrill")}
         </CardDescription>
         {enableDrilldown && (
           <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-            💡 <strong>Tipp:</strong> Klicke auf eine Ausgabenkategorie, um in die Unterkategorien zu wechseln. Beim Hover über einen Fluss siehst du den genauen Betrag.
+            💡 <strong>Tipp:</strong> {t("premium.sankey.tipDrill")}
           </div>
         )}
       </CardHeader>
@@ -157,17 +159,17 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
           <div className="flex items-center gap-3 justify-between">
             <div className="flex items-center gap-2">
               <Switch checked={percentMode} onCheckedChange={(v) => setPercentMode(Boolean(v))} />
-              <span className="text-sm text-muted-foreground">Prozentwerte</span>
+              <span className="text-sm text-muted-foreground">{t("premium.sankey.percentMode")}</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={handleExportPNG}>Export PNG</Button>
-              <Button size="sm" variant="outline" onClick={handleExportJPEG}>Export JPEG</Button>
-              <Button size="sm" variant="outline" onClick={handleExportPDF}>Export PDF</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPNG}>{t("premium.sankey.exportPNG")}</Button>
+              <Button size="sm" variant="outline" onClick={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPDF}>{t("premium.sankey.exportPDF")}</Button>
             </div>
           </div>
           {/* Höhen-Slider: auf Mobile kompakt, auf SM+ in Reihe mit Export */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">Höhe:</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("premium.sankey.heightLabel")}</span>
             <Slider
               value={[chartHeight]}
               min={300}
@@ -178,9 +180,9 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
             />
             <span className="text-xs text-muted-foreground w-12 text-right">{chartHeight}px</span>
             <div className="hidden sm:flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={handleExportPNG}>Export PNG</Button>
-              <Button size="sm" variant="outline" onClick={handleExportJPEG}>Export JPEG</Button>
-              <Button size="sm" variant="outline" onClick={handleExportPDF}>Export PDF</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPNG}>{t("premium.sankey.exportPNG")}</Button>
+              <Button size="sm" variant="outline" onClick={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</Button>
+              <Button size="sm" variant="outline" onClick={handleExportPDF}>{t("premium.sankey.exportPDF")}</Button>
             </div>
           </div>
         </div>
@@ -188,10 +190,10 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         {expandedMainId && (
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm text-muted-foreground">
-              Fokus: {data.mainCategories.find((m) => m.id === expandedMainId)?.name || "Kategorie"}
+              {t("premium.sankey.focus").replace('{name}', data.mainCategories.find((m) => m.id === expandedMainId)?.name || "Kategorie")}
             </div>
             <Button size="sm" variant="outline" onClick={() => setExpandedMainId(null)}>
-              Gesamtansicht
+              {t("premium.sankey.overallView")}
             </Button>
           </div>
         )}
@@ -199,7 +201,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         {/* Defizit-Hinweis statt eines erfundenen „Übrig"-Knotens (Mobil, Gesamtansicht). */}
         {isMobile && !expandedMainId && data.totalIncome > 0 && totalExpenses > data.totalIncome && (
           <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Ausgaben über Einnahmen in diesem Zeitraum.
+            {t("premium.sankey.deficitWarning")}
           </div>
         )}
 

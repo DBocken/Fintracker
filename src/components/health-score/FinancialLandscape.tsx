@@ -178,7 +178,7 @@ export default function FinancialLandscape({ health, variant = "hero", className
     >
       <img
         src="/assets/illustrations/background.png"
-        alt="Finanzlandschaft"
+        alt={t("financialLandscape.backgroundAlt")}
         className="absolute inset-0 h-full w-full"
         style={{ objectFit: "cover", objectPosition: "center center" }}
         draggable={false}

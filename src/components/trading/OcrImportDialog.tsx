@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import type { PortfolioPosition, OcrResult } from '@/types';
 import { createPosition } from '@/services/portfolio-service';
 import {
@@ -56,6 +57,7 @@ export default function OcrImportDialog({
   onOpenChange,
   portfolioId,
 }: OcrImportDialogProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<'upload' | 'processing' | 'review'>('upload');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -78,50 +80,50 @@ export default function OcrImportDialog({
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
-    
+
     // Check file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Bitte laden Sie ein Bild hoch');
+      toast.error(t('trading.ocrImportDialog.messages.imageRequired'));
       return;
     }
 
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('Bild darf maximal 10MB groß sein');
+      toast.error(t('trading.ocrImportDialog.messages.fileTooLarge'));
       return;
     }
 
     // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    
+
     // Start OCR processing
     setStep('processing');
-    
+
     try {
       const result = await extractPositionsFromImage(file);
       setOcrResult(result);
-      
+
       // Convert to editable positions
       const positions = result.positions.map(ocrPos => ({
         ...ocrResultToEditablePosition(ocrPos),
         name: ocrPos.symbol.value, // Default name to symbol
       }));
-      
+
       setEditablePositions(positions);
       setStep('review');
-      
+
       if (positions.length === 0) {
-        toast(`Keine Positionen im Bild erkannt`);
+        toast(t('trading.ocrImportDialog.messages.positionsDetected').replace('{count}', '0'));
       } else {
-        toast.success(`${positions.length} Position(en) erkannt`);
+        toast.success(t('trading.ocrImportDialog.messages.positionsDetected').replace('{count}', String(positions.length)));
       }
     } catch (error) {
       console.error('[OcrImportDialog] OCR failed:', error);
-      toast.error('OCR-Extraktion fehlgeschlagen');
+      toast.error(t('trading.ocrImportDialog.messages.ocrFailed'));
       setStep('upload');
     }
-  }, []);
+  }, [t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -158,7 +160,7 @@ export default function OcrImportDialog({
     for (const pos of editablePositions) {
       // Validation
       if (!pos.symbol.trim()) {
-        toast.error('Bitte geben Sie ein Symbol ein');
+        toast.error(t('trading.ocrImportDialog.messages.symbolRequired'));
         return;
       }
 
@@ -182,11 +184,11 @@ export default function OcrImportDialog({
     }
 
     if (successCount > 0) {
-      toast.success(`${successCount} Position(en) erfolgreich hinzugefügt`);
+      toast.success(t('trading.ocrImportDialog.messages.successAdd').replace('{count}', String(successCount)));
     }
-    
+
     if (errorCount > 0) {
-      toast.error(`${errorCount} Position(en) konnte(n) nicht hinzugefügt werden`);
+      toast.error(t('trading.ocrImportDialog.messages.errorAdd').replace('{count}', String(errorCount)));
     }
 
     handleClose();
@@ -202,11 +204,11 @@ export default function OcrImportDialog({
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 80) {
-      return <Badge className="bg-positive">Hoch ({confidence}%)</Badge>;
+      return <Badge className="bg-positive">{t('trading.ocrImportDialog.confidenceHigh').replace('{confidence}%', `${confidence}%`)}</Badge>;
     } else if (confidence >= 60) {
-      return <Badge className="bg-warning">Mittel ({confidence}%)</Badge>;
+      return <Badge className="bg-warning">{t('trading.ocrImportDialog.confidenceMedium').replace('{confidence}%', `${confidence}%`)}</Badge>;
     } else {
-      return <Badge className="bg-warning">Niedrig ({confidence}%)</Badge>;
+      return <Badge className="bg-warning">{t('trading.ocrImportDialog.confidenceLow').replace('{confidence}%', `${confidence}%`)}</Badge>;
     }
   };
 
@@ -214,10 +216,9 @@ export default function OcrImportDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Positionen aus Bild importieren</DialogTitle>
+          <DialogTitle>{t('trading.ocrImportDialog.title')}</DialogTitle>
           <DialogDescription>
-            Laden Sie ein Screenshot oder Foto Ihrer Positionen hoch.
-            Die OCR-Erkennung extrahiert automatisch die Daten.
+            {t('trading.ocrImportDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -238,14 +239,14 @@ export default function OcrImportDialog({
               <input {...getInputProps()} />
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               {isDragActive ? (
-                <p className="text-lg font-medium">Lassen Sie das Bild los...</p>
+                <p className="text-lg font-medium">{t('trading.ocrImportDialog.uploadDragActive')}</p>
               ) : (
                 <div className="space-y-2">
                   <p className="text-lg font-medium">
-                    Bild hierher ziehen oder zum Auswählen klicken
+                    {t('trading.ocrImportDialog.uploadDragInactive')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Unterstützte Formate: PNG, JPG, GIF, BMP, WebP (max 10MB)
+                    {t('trading.ocrImportDialog.uploadFormats')}
                   </p>
                 </div>
               )}
@@ -257,9 +258,9 @@ export default function OcrImportDialog({
         {step === 'processing' && (
           <div className="py-8 flex flex-col items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg font-medium">Bild wird analysiert...</p>
+            <p className="text-lg font-medium">{t('trading.ocrImportDialog.processingMessage')}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Dies kann einige Sekunden dauern
+              {t('trading.ocrImportDialog.processingTime')}
             </p>
           </div>
         )}
@@ -270,7 +271,7 @@ export default function OcrImportDialog({
             {/* Preview Image */}
             {previewUrl && (
               <div className="space-y-2">
-                <Label>Upload-Preview</Label>
+                <Label>{t('trading.ocrImportDialog.previewLabel')}</Label>
                 <div className="relative">
                   <img
                     src={previewUrl}
@@ -298,10 +299,11 @@ export default function OcrImportDialog({
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Gesamt-Confidence: {ocrResult.overallConfidence}% -{' '}
-                  {ocrResult.overallConfidence >= 70
-                    ? 'Gute Erkennung'
-                    : 'Bitte überprüfen Sie die extrahierten Daten'}
+                  {t('trading.ocrImportDialog.confidenceLabel')
+                    .replace('{confidence}%', `${ocrResult.overallConfidence}%`)
+                    .replace('{message}', ocrResult.overallConfidence >= 70
+                      ? t('trading.ocrImportDialog.confidenceGood')
+                      : t('trading.ocrImportDialog.confidenceBad'))}
                 </AlertDescription>
               </Alert>
             )}
@@ -309,13 +311,13 @@ export default function OcrImportDialog({
             {/* Editable Positions */}
             {editablePositions.length > 0 ? (
               <div className="space-y-4">
-                <Label>Erkannte Positionen ({editablePositions.length})</Label>
+                <Label>{t('trading.ocrImportDialog.detectedPositions').replace('{count}', String(editablePositions.length))}</Label>
                 {editablePositions.map((position, index) => (
                   <div key={index} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileImage className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Position {index + 1}</span>
+                        <span className="font-medium">{t('trading.ocrImportDialog.positionLabel').replace('{index}', String(index + 1))}</span>
                         {ocrResult?.positions[index] && (
                           getConfidenceBadge(ocrResult.positions[index].symbol.confidence)
                         )}
@@ -332,29 +334,29 @@ export default function OcrImportDialog({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor={`symbol-${index}`} className="text-xs">
-                          Symbol *
+                          {t('trading.ocrImportDialog.symbolLabel')}
                         </Label>
                         <Input
                           id={`symbol-${index}`}
                           value={position.symbol}
                           onChange={(e) => updatePosition(index, 'symbol', e.target.value.toUpperCase())}
-                          placeholder="AAPL"
+                          placeholder={t('trading.ocrImportDialog.symbolPlaceholder')}
                         />
                       </div>
                       <div>
                         <Label htmlFor={`name-${index}`} className="text-xs">
-                          Name
+                          {t('trading.ocrImportDialog.nameLabel')}
                         </Label>
                         <Input
                           id={`name-${index}`}
                           value={position.name || ''}
                           onChange={(e) => updatePosition(index, 'name', e.target.value)}
-                          placeholder="Apple Inc."
+                          placeholder={t('trading.ocrImportDialog.namePlaceholder')}
                         />
                       </div>
                       <div>
                         <Label htmlFor={`quantity-${index}`} className="text-xs">
-                          Menge *
+                          {t('trading.ocrImportDialog.quantityLabel')}
                         </Label>
                         <Input
                           id={`quantity-${index}`}
@@ -362,12 +364,12 @@ export default function OcrImportDialog({
                           step="any"
                           value={position.quantity || ''}
                           onChange={(e) => updatePosition(index, 'quantity', e.target.value)}
-                          placeholder="10"
+                          placeholder={t('trading.ocrImportDialog.quantityPlaceholder')}
                         />
                       </div>
                       <div>
                         <Label htmlFor={`price-${index}`} className="text-xs">
-                          Einstiegspreis *
+                          {t('trading.ocrImportDialog.priceLabel')}
                         </Label>
                         <Input
                           id={`price-${index}`}
@@ -375,12 +377,12 @@ export default function OcrImportDialog({
                           step="any"
                           value={position.entryPrice || ''}
                           onChange={(e) => updatePosition(index, 'entryPrice', e.target.value)}
-                          placeholder="178.50"
+                          placeholder={t('trading.ocrImportDialog.pricePlaceholder')}
                         />
                       </div>
                       <div className="col-span-2">
                         <Label htmlFor={`currency-${index}`} className="text-xs">
-                          Währung *
+                          {t('trading.ocrImportDialog.currencyLabel')}
                         </Label>
                         <Select
                           value={position.currency || 'EUR'}
@@ -390,10 +392,10 @@ export default function OcrImportDialog({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="EUR">EUR</SelectItem>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="GBP">GBP</SelectItem>
-                            <SelectItem value="BTC">BTC</SelectItem>
+                            <SelectItem value="EUR">{t('trading.ocrImportDialog.currencyEur')}</SelectItem>
+                            <SelectItem value="USD">{t('trading.ocrImportDialog.currencyUsd')}</SelectItem>
+                            <SelectItem value="GBP">{t('trading.ocrImportDialog.currencyGbp')}</SelectItem>
+                            <SelectItem value="BTC">{t('trading.ocrImportDialog.currencyBtc')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -405,8 +407,7 @@ export default function OcrImportDialog({
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Keine Positionen erkannt. Bitte versuchen Sie es mit einem anderen Bild oder
-                  fügen Sie die Positionen manuell hinzu.
+                  {t('trading.ocrImportDialog.noPositionsDetected')}
                 </AlertDescription>
               </Alert>
             )}
@@ -420,7 +421,7 @@ export default function OcrImportDialog({
             onClick={handleClose}
             disabled={createMutation.isPending}
           >
-            {step === 'upload' ? 'Abbrechen' : 'Zurück'}
+            {step === 'upload' ? t('trading.ocrImportDialog.cancelButton') : t('trading.ocrImportDialog.backButton')}
           </Button>
           {step === 'review' && editablePositions.length > 0 && (
             <Button
@@ -430,12 +431,12 @@ export default function OcrImportDialog({
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Speichern...
+                  {t('trading.ocrImportDialog.savingButton')}
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
-                  {editablePositions.length} Position(en) speichern
+                  {t('trading.ocrImportDialog.saveButton').replace('{count}', String(editablePositions.length))}
                 </>
               )}
             </Button>

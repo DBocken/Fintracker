@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { CounselingBridgeCard } from "../CounselingBridgeCard";
 import {
   COUNSELING_SERVICES,
   COMMERCIAL_REGULATOR_WARNING,
   type CounselingRecommendation,
 } from "@/services/debt-guardrails-service";
+
+function renderWithI18n(component: React.ReactElement) {
+  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+}
 
 const recommended: CounselingRecommendation = {
   recommended: true,
@@ -17,7 +22,7 @@ const recommended: CounselingRecommendation = {
 describe("CounselingBridgeCard", () => {
   describe("Normal Behavior", () => {
     it("sollte Grund, kostenlose Stellen (mit Links) und Warnung anzeigen", () => {
-      render(<CounselingBridgeCard recommendation={recommended} />);
+      renderWithI18n(<CounselingBridgeCard recommendation={recommended} />);
 
       expect(screen.getByText("Dein Plan dauert länger als 6 Jahre.")).toBeInTheDocument();
       for (const s of COUNSELING_SERVICES) {
@@ -32,7 +37,7 @@ describe("CounselingBridgeCard", () => {
 
   describe("Edge Cases", () => {
     it("sollte nichts rendern, wenn keine Empfehlung vorliegt", () => {
-      const { container } = render(
+      const { container } = renderWithI18n(
         <CounselingBridgeCard
           recommendation={{
             recommended: false,

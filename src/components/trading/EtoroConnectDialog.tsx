@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ export default function EtoroConnectDialog({
   onOpenChange,
   onSuccess,
 }: EtoroConnectDialogProps) {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [userKey, setUserKey] = useState('');
@@ -34,7 +36,7 @@ export default function EtoroConnectDialog({
   const connectionMutation = useMutation({
     mutationFn: async () => {
       if (!username.trim() || !apiKey.trim() || !userKey.trim()) {
-        throw new Error('Bitte geben Sie Benutzername, API Key und User Key ein.');
+        throw new Error(t('trading.etoroConnectDialog.messages.credentialsRequired'));
       }
       return await connectEtoroAccount(username.trim(), apiKey.trim(), userKey.trim());
     },
@@ -47,13 +49,13 @@ export default function EtoroConnectDialog({
       onSuccess?.();
     },
     onError: (err: Error) => {
-      setError(err.message || 'Verbindung fehlgeschlagen');
+      setError(err.message || t('trading.etoroConnectDialog.messages.connectionError'));
     },
   });
 
   const handleTestConnection = async () => {
     if (!username.trim() || !apiKey.trim() || !userKey.trim()) {
-      setError('Bitte geben Sie Benutzername, API Key und User Key ein.');
+      setError(t('trading.etoroConnectDialog.messages.credentialsRequired'));
       return;
     }
 
@@ -73,10 +75,9 @@ export default function EtoroConnectDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>eToro-Konto verbinden</DialogTitle>
+          <DialogTitle>{t('trading.etoroConnectDialog.title')}</DialogTitle>
           <DialogDescription>
-            Verbinden Sie Ihr eToro-Konto, um Ihr Portfolio automatisch zu importieren.
-            Sie benötigen API Key und User Key aus Ihrem eToro Developer-Konto.
+            {t('trading.etoroConnectDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -89,10 +90,10 @@ export default function EtoroConnectDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="username">eToro Benutzername</Label>
+            <Label htmlFor="username">{t('trading.etoroConnectDialog.usernameLabel')}</Label>
             <Input
               id="username"
-              placeholder="Ihr eToro Benutzername"
+              placeholder={t('trading.etoroConnectDialog.usernamePlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={connectionMutation.isPending}
@@ -100,32 +101,32 @@ export default function EtoroConnectDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="apiKey">API Key</Label>
+            <Label htmlFor="apiKey">{t('trading.etoroConnectDialog.apiKeyLabel')}</Label>
             <Input
               id="apiKey"
               type="password"
-              placeholder="Ihr eToro API Key"
+              placeholder={t('trading.etoroConnectDialog.apiKeyPlaceholder')}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               disabled={connectionMutation.isPending}
             />
             <p className="text-xs text-muted-foreground">
-              API Key vom eToro Developer Portal (api-portal.etoro.com)
+              {t('trading.etoroConnectDialog.apiKeyHint')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="userKey">User Key</Label>
+            <Label htmlFor="userKey">{t('trading.etoroConnectDialog.userKeyLabel')}</Label>
             <Input
               id="userKey"
               type="password"
-              placeholder="Ihr eToro User Key"
+              placeholder={t('trading.etoroConnectDialog.userKeyPlaceholder')}
               value={userKey}
               onChange={(e) => setUserKey(e.target.value)}
               disabled={connectionMutation.isPending}
             />
             <p className="text-xs text-muted-foreground">
-              User Key von Ihren eToro Konto-Einstellungen
+              {t('trading.etoroConnectDialog.userKeyHint')}
             </p>
           </div>
 
@@ -137,10 +138,7 @@ export default function EtoroConnectDialog({
           <Alert>
             <CheckCircle2 className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              <strong>Sicherheitshinweis:</strong> Deine API-Keys werden nur bei aktivierter lokaler
-              Verschlüsselung (AES-GCM) auf diesem Gerät gespeichert und niemals in einen
-              unverschlüsselten Export geschrieben. Sie dienen ausschließlich dem Zugriff auf dein
-              Portfolio. Wir haben keinen Zugriff auf dein eToro-Passwort oder deine Transaktionen.
+              <strong>{t('trading.etoroConnectDialog.securityTitle')}</strong> {t('trading.etoroConnectDialog.securityDesc')}
             </AlertDescription>
           </Alert>
         </div>
@@ -151,7 +149,7 @@ export default function EtoroConnectDialog({
             onClick={handleClose}
             disabled={connectionMutation.isPending}
           >
-            Abbrechen
+            {t('trading.etoroConnectDialog.cancelButton')}
           </Button>
           <Button
             onClick={handleTestConnection}
@@ -160,10 +158,10 @@ export default function EtoroConnectDialog({
             {connectionMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Verbinde...
+                {t('trading.etoroConnectDialog.connectingButton')}
               </>
             ) : (
-              'Verbinden & Importieren'
+              t('trading.etoroConnectDialog.connectButton')
             )}
           </Button>
         </DialogFooter>

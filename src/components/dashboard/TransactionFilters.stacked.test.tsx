@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { TransactionFilters } from "./TransactionFilters";
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: [] }) }));
@@ -8,6 +9,7 @@ const noop = () => {};
 
 function renderFilters(stacked: boolean) {
   return render(
+    <I18nProvider initialLocale="de">
     <TransactionFilters
       filterCat="all"
       setFilterCat={noop}
@@ -33,7 +35,8 @@ function renderFilters(stacked: boolean) {
       setFilterAusgabenklasse={noop}
       showSearch={false}
       stacked={stacked}
-    />,
+    />
+    </I18nProvider>,
   );
 }
 
