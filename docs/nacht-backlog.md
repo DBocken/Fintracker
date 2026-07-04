@@ -95,7 +95,8 @@ Milestones, NetWorth, Privacy, Transactions). Pro Nacht **eine Scheibe**:
 
 | # | Scheibe | Status |
 |---|---|---|
-| C1 | Dashboard-Komponenten-Reste | in-arbeit (Nacht-Batch 2026-07-04) |
+| C1 | Dashboard-Kernkomponenten (Filter, Stats, Table, BulkActions, Mobile-Liste, DayList, DetailsModal, DataQualityNotice, Dashboard-Rest) | erledigt ([PR #186](https://github.com/DBocken/Fintracker/pull/186)) |
+| C1b | Verbleibende Dashboard-Strings: `AnalysisModePanel.tsx`, `BudgetOptimizerPanel.tsx`, `ForecastPlanner.tsx`, `LiquidityReport.tsx`, `SpendingSunburstChart.tsx`, `StressPresetQuickAdd.tsx`, `TransactionCharts.tsx`, `DashboardMobileStory.tsx`, `finrisk/`-Unterordner, `formatDayHeading` in `transaction-day-groups.ts` (pure Util — braucht Locale-Parameter statt Hook) | offen |
 | C2 | AccountsPage + AccountManager | offen |
 | C3 | CsvPage + ReviewTable | offen |
 | C4 | ContractsPage | offen |
