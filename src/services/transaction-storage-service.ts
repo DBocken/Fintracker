@@ -1,6 +1,7 @@
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { t } from '@/i18n/serviceT';
 
 /**
  * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
@@ -165,7 +166,7 @@ class TransactionStorageService {
       return {
         success: true,
         data: { uploaded: 0, downloaded: 0 },
-        error: 'Cloud-Klartextsync wurde deaktiviert. Bitte verschlüsselte Snapshots verwenden.',
+        error: t('transactionStorage.cloudSyncDisabled'),
       };
     } catch (error) {
       console.error('[TransactionStorage] Sync error:', error);
@@ -186,7 +187,7 @@ class TransactionStorageService {
       const txs = transactions || await this.getAllTransactions();
 
       if (!txs || txs.length === 0) {
-        return { success: false, error: 'No transactions to export' };
+        return { success: false, error: t('transactionStorage.noTransactionsExport') };
       }
 
       const escapeCsvCell = (value: unknown) => {

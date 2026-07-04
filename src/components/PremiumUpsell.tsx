@@ -90,120 +90,24 @@ function PreviewMock({ feature }: { feature: FeatureKey }) {
   }
 }
 
-const FEATURE_COPY: Record<
-  FeatureKey,
-  { title: string; eyebrow: string; benefits: string[] }
-> = {
-  bankSync: {
-    title: "Konten automatisch synchronisieren",
-    eyebrow: "Anmeldung nötig",
+/**
+ * Helper to fetch feature copy from translations.
+ * Dynamically builds the copy object using the t() function.
+ */
+function getFeatureCopy(
+  t: (key: string) => string,
+  feature: FeatureKey
+): { title: string; eyebrow: string; benefits: string[] } {
+  return {
+    title: t(`upsell.features.${feature}.title`),
+    eyebrow: t(`upsell.features.${feature}.eyebrow`),
     benefits: [
-      "Umsätze landen automatisch im Tracker – kein CSV-Export mehr nötig.",
-      "Deine Daten bleiben lokal auf deinem Gerät; die Bank muss nur dich kennen.",
-      "Verbindung jederzeit mit einem Klick trennbar.",
+      t(`upsell.features.${feature}.benefit1`),
+      t(`upsell.features.${feature}.benefit2`),
+      t(`upsell.features.${feature}.benefit3`),
     ],
-  },
-  premiumAnalytics: {
-    title: "Tiefenanalyse deiner Finanzen",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Geldflüsse als Sankey-Diagramm – sieh sofort, wohin dein Geld geht.",
-      "Heatmap & Wochenmuster decken teure Gewohnheiten auf.",
-      "Smart Insights heben deine größten Hebel automatisch hervor.",
-    ],
-  },
-  simulation: {
-    title: "Finanzielle Zukunft durchspielen",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Spiele Sparpläne und größere Anschaffungen vorab durch.",
-      "Sieh, wie sich Entscheidungen auf deinen Notgroschen auswirken.",
-      "Erreiche deine Meilensteine planbar statt zufällig.",
-    ],
-  },
-  trading: {
-    title: "Depot & Trading im Blick",
-    eyebrow: "Premium-Vorschau (Beta)",
-    benefits: [
-      "Behalte Wertentwicklung und Allokation an einem Ort.",
-      "Verbinde Investitionen mit deiner Gesamtfinanzlage.",
-      "Experimentelle Beta – ohne Anlageempfehlung.",
-    ],
-  },
-  splitTransactions: {
-    title: "Buchungen auf mehrere Kategorien aufteilen",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Teile eine Buchung cent-genau auf mehrere Kategorien auf.",
-      "Großeinkäufe sauber trennen – Lebensmittel, Drogerie, Haushalt.",
-      "Deine Auswertungen werden dadurch deutlich präziser.",
-    ],
-  },
-  // Free-Kernnutzen: erscheint nur, falls einmal anonym (Login-Story).
-  basicContracts: {
-    title: "Verträge & Fixkosten erkennen",
-    eyebrow: "Anmeldung nötig",
-    benefits: [
-      "Wiederkehrende Kosten und Einnahmen werden automatisch erkannt.",
-      "Status setzen, ablehnen oder beenden – du behältst die Kontrolle.",
-      "Kostenlos mit Login, deine Daten bleiben lokal.",
-    ],
-  },
-  basicForecast: {
-    title: "Monatsprognose",
-    eyebrow: "Anmeldung nötig",
-    benefits: [
-      "Sieh, wie sich dein Kontostand über den Monat entwickelt.",
-      "Erkenne früh, wann es eng werden könnte.",
-      "Kostenlos mit Login, deine Daten bleiben lokal.",
-    ],
-  },
-  advancedContracts: {
-    title: "Vertrags-Tiefenanalyse",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Historische Entwicklung von Verträgen und Einnahmen über die Zeit.",
-      "Optimierungs- und Kündigungshinweise für teure Verträge.",
-      "Tiefe Insights statt nur einer Liste.",
-    ],
-  },
-  advancedForecast: {
-    title: "Erweiterte Prognose",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Szenarien und Was-wäre-wenn-Analysen durchspielen.",
-      "Monte-Carlo-Bandbreiten statt nur einer Linie.",
-      "Plane größere Entscheidungen mit Sicherheitspuffer.",
-    ],
-  },
-  familyMode: {
-    title: "Haushalts- & Paarmodus",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Gemeinsame Ausgaben fair aufteilen und ausgleichen.",
-      "Behalte private und geteilte Kosten getrennt im Blick.",
-      "Alles lokal – ohne deine Daten zu teilen.",
-    ],
-  },
-  receiptLineItems: {
-    title: "Belege bis auf Produktebene",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Einzelne Produkte vom Kassenbon erfassen.",
-      "Auswertungen bis auf Artikelebene.",
-      "Konservativ erkannt – im Zweifel lieber nichts Falsches.",
-    ],
-  },
-  budgetPremium: {
-    title: "Smarte Budgets mit Regeln & Übertrag",
-    eyebrow: "Premium-Vorschau",
-    benefits: [
-      "Adaptive Limits passen sich deinem tatsächlichen Ausgabeverhalten an.",
-      "Eigene Match-Regeln ordnen Buchungen automatisch dem Budget zu.",
-      "Übertrag: Nicht genutztes Budget wandert in den Folgemonat.",
-    ],
-  },
-};
+  };
+}
 
 interface PremiumUpsellProps {
   feature: FeatureKey;
@@ -215,7 +119,7 @@ interface PremiumUpsellProps {
  */
 export function PremiumUpsell({ feature }: PremiumUpsellProps) {
   const { t } = useI18n();
-  const copy = FEATURE_COPY[feature];
+  const copy = getFeatureCopy(t, feature);
   const needsLogin = FEATURES[feature] === "free";
 
   return (

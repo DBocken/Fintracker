@@ -138,14 +138,14 @@ export function AccountManager() {
       if (data.success) {
         showSuccess(data.message);
       } else if (data.error === 'rate_limit_exceeded') {
-        showError(data.message || 'Tageslimit für Aktualisierungen erreicht.');
+        showError(data.message || t('accounts.manager.syncNotPossibleMessage').replace('{nextSyncIn}', t('accounts.manager.dailyLimitReached')));
       } else if (data.error === 'automatic_already_done') {
       } else {
-        showError(data.message || 'Aktualisierung fehlgeschlagen.');
+        showError(data.message || t('accounts.manager.syncFailedMessage').replace('{error}', t('accounts.manager.updateFailedGeneric')));
       }
     },
     onError: (error: unknown) => {
-      showError((error as Error).message || 'Fehler bei der Aktualisierung.');
+      showError((error as Error).message || t('accounts.manager.syncFailedMessage').replace('{error}', t('accounts.manager.updateErrorGeneric')));
     },
   });
 
@@ -160,7 +160,7 @@ export function AccountManager() {
   };
 
   const handleDelete = (account: Account) => {
-    if (confirm(`Möchtest du das Konto "${account.name}" wirklich löschen?`)) {
+    if (confirm(t('accounts.manager.confirmDeleteMessage').replace('{name}', account.name))) {
       deleteMutation.mutate(account.id);
     }
   };
@@ -175,7 +175,7 @@ export function AccountManager() {
 
   const startReconnectFlow = async (account: Account) => {
     if (!account.bank_connection_id) {
-      showError('Für dieses Konto fehlt die Bankverbindung. Bitte verbinde die Bank erneut.');
+      showError(t('accounts.manager.bankConnectionMissingError'));
       return;
     }
 
@@ -183,7 +183,7 @@ export function AccountManager() {
     const requisition = await gocardlessService.reconnectBankConnection(account.bank_connection_id, redirectUrl);
 
     sessionStorage.setItem('gocardless_requisition_id', requisition.id);
-    showSuccess('Die Bankfreigabe wird jetzt erneut angefragt.');
+    showSuccess(t('accounts.manager.reconnectRequestedMessage'));
     window.location.href = requisition.link || requisition.redirect;
   };
 
@@ -206,7 +206,7 @@ export function AccountManager() {
 
     const syncCheck = canSyncAccount(account);
     if (!syncCheck.canSync) {
-      showError(`Synchronisation noch nicht möglich. ${syncCheck.nextSyncIn || 'Bitte warte etwas.'}`);
+      showError(t('accounts.manager.syncNotPossibleMessage').replace('{nextSyncIn}', syncCheck.nextSyncIn || t('accounts.manager.syncNotPossibleDefault')));
       return;
     }
 
@@ -214,12 +214,12 @@ export function AccountManager() {
     try {
       const result = await syncAccountTransactions(account);
       if (result.importedCount > 0) {
-        showSuccess(`${result.importedCount} neue Transaktionen von ${account.name} importiert`);
+        showSuccess(t('accounts.manager.syncSuccessMessage').replace('{count}', String(result.importedCount)).replace('{name}', account.name));
       } else if (result.errors.length === 0) {
-        showSuccess('Konto ist auf dem neuesten Stand');
+        showSuccess(t('accounts.manager.syncUpToDateMessage'));
       }
       if (result.errors.length > 0) {
-        showError(`${result.errors.length} Fehler beim Import`);
+        showError(t('accounts.manager.syncErrorsMessage').replace('{count}', String(result.errors.length)));
       }
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
@@ -228,10 +228,10 @@ export function AccountManager() {
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['live-balances'] });
       queryClient.invalidateQueries({ queryKey: ['net-worth'] });
-      showSuccess(`Synchronisation abgeschlossen: ${result.importedCount} importiert, ${result.skippedCount} übersprungen`);
+      showSuccess(t('accounts.manager.syncCompleteMessage').replace('{importedCount}', String(result.importedCount)).replace('{skippedCount}', String(result.skippedCount)));
 
     } catch (err: unknown) {
-      showError(`Synchronisation fehlgeschlagen: ${(err as Error).message}`);
+      showError(t('accounts.manager.syncFailedMessage').replace('{error}', (err as Error).message));
     } finally {
       setSyncingAccounts(prev => {
         const next = new Set(prev);
@@ -242,7 +242,7 @@ export function AccountManager() {
   };
 
   const handleDisconnect = async (account: Account) => {
-    if (!confirm(`Möchtest du die GoCardless-Verbindung für "${account.name}" trennen? Die Transaktionen bleiben erhalten.`)) {
+    if (!confirm(t('accounts.manager.disconnectConfirmMessage').replace('{name}', account.name))) {
       return;
     }
 
@@ -250,23 +250,23 @@ export function AccountManager() {
       await disconnectGoCardlessAccount(account.id);
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
-      showSuccess('Bankverbindung getrennt');
+      showSuccess(t('accounts.manager.disconnectSuccessMessage'));
     } catch (err: unknown) {
-      showError(`Fehler beim Trennen: ${(err as Error).message}`);
+      showError(t('accounts.manager.disconnectErrorMessage').replace('{error}', (err as Error).message));
     }
   };
 
   const handleConnectionSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
-    showSuccess('Bankverbindung erfolgreich!');
+    showSuccess(t('accounts.manager.connectionSuccessMessage'));
   };
 
   if (isLoading) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground animate-pulse">Lade Konten...</p>
+          <p className="text-muted-foreground animate-pulse">{t('accounts.manager.loadingText')}</p>
         </CardContent>
       </Card>
     );
@@ -284,10 +284,10 @@ export function AccountManager() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
-                Konten verwalten
+                {t('accounts.manager.title')}
               </CardTitle>
               <CardDescription>
-                Verwalte deine Bank-, Kreditkarten- und Sparkonten
+                {t('accounts.manager.description')}
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -298,7 +298,7 @@ export function AccountManager() {
                 disabled={refreshBalancesMutation.isPending}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshBalancesMutation.isPending ? 'animate-spin' : ''}`} />
-                Alle aktualisieren
+                {t('accounts.manager.refreshAllButton')}
               </Button>
               <Button
                 size="sm"
@@ -306,7 +306,7 @@ export function AccountManager() {
                 disabled={!limitInfo?.allowed}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Neues Konto
+                {t('accounts.manager.newAccountButton')}
               </Button>
             </div>
           </div>
@@ -316,7 +316,9 @@ export function AccountManager() {
             <Alert>
               <ShieldAlert className="h-4 w-4" />
               <AlertDescription>
-                Bei {expiredConsentAccounts.length} Konto{expiredConsentAccounts.length > 1 ? 'en' : ''} ist die Bankverbindung abgelaufen. Tippe auf „Aktualisieren", um sie zu erneuern.
+                {t('accounts.manager.expiredConsentAlert')
+                  .replace('{count}', String(expiredConsentAccounts.length))
+                  .replace('{plural}', expiredConsentAccounts.length > 1 ? 'en' : '')}
               </AlertDescription>
             </Alert>
           )}
@@ -326,23 +328,23 @@ export function AccountManager() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 {limitInfo.limit === 1
-                  ? "Mehrere Konten gibt es mit dem kostenlosen Login. Deine Daten bleiben trotzdem auf deinem Gerät — der Login schaltet nur zusätzliche Konten und die Bankanbindung frei."
-                  : `Du hast das Limit von ${limitInfo.limit} Konten erreicht. Upgrade auf Premium für unbegrenzte Konten.`}
+                  ? t('accounts.manager.limitReachedLimitOne')
+                  : t('accounts.manager.limitReachedMultiple').replace('{limit}', String(limitInfo.limit))}
               </AlertDescription>
             </Alert>
           )}
 
           {limitInfo && limitInfo.allowed && (
             <div className="text-sm text-muted-foreground">
-              {limitInfo.current} von {limitInfo.limit} Konten verwendet
+              {t('accounts.manager.accountsUsed').replace('{current}', String(limitInfo.current)).replace('{limit}', String(limitInfo.limit))}
             </div>
           )}
 
           {accounts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Noch keine Konten angelegt</p>
-              <p className="text-sm">Erstelle dein erstes Konto, um Transaktionen zuzuordnen</p>
+              <p>{t('accounts.manager.emptyTitle')}</p>
+              <p className="text-sm">{t('accounts.manager.emptyDescription')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -369,22 +371,22 @@ export function AccountManager() {
                           <span>{account.icon}</span>
                           <span className="truncate">{account.name}</span>
                           {account.is_budget_pool_member && (
-                            <Badge variant="outline" className="text-xs shrink-0">Budget-Pool</Badge>
+                            <Badge variant="outline" className="text-xs shrink-0">{t('accounts.manager.budgetPoolBadge')}</Badge>
                           )}
                           {account.gocardless_account_id && (
                             <Badge className="bg-positive/15 text-positive dark:text-positive text-xs shrink-0 flex items-center gap-1">
                               <Link2 className="h-3 w-3" />
-                              Verbunden
+                              {t('accounts.manager.connectedBadge')}
                             </Badge>
                           )}
                           {consentExpired && (
                             <Badge variant="destructive" className="text-xs shrink-0">
-                              Verbindung abgelaufen
+                              {t('accounts.manager.connectionExpiredBadge')}
                             </Badge>
                           )}
                           {consentExpiresSoon && (
                             <Badge variant="outline" className="text-xs shrink-0 border-warning/40 text-warning dark:text-warning">
-                              Verbindung läuft bald ab
+                              {t('accounts.manager.connectionExpiresSoonBadge')}
                             </Badge>
                           )}
                         </div>
@@ -401,7 +403,7 @@ export function AccountManager() {
                               </span>
                               {consentStatus?.expiresAt && (
                                 <span>
-                                  Verbindung gültig bis {new Date(consentStatus.expiresAt).toLocaleDateString('de-DE')}
+                                  {t('accounts.manager.connectionValidUntil').replace('{date}', new Date(consentStatus.expiresAt).toLocaleDateString('de-DE'))}
                                 </span>
                               )}
                             </div>
@@ -420,8 +422,8 @@ export function AccountManager() {
                           onClick={() => handleSync(account)}
                           disabled={syncingAccounts.has(account.id) || !canSyncAccount(account).canSync}
                           className="h-9 w-9 text-positive hover:bg-positive/10 hover:text-positive dark:text-positive dark:hover:text-positive"
-                          title="Transaktionen synchronisieren"
-                          aria-label="Transaktionen synchronisieren"
+                          title={t('accounts.manager.syncButton')}
+                          aria-label={t('accounts.manager.syncButton')}
                         >
                           {syncingAccounts.has(account.id) ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -436,8 +438,8 @@ export function AccountManager() {
                         size="icon"
                         className="h-9 w-9"
                         onClick={() => handleEdit(account)}
-                        aria-label="Konto bearbeiten"
-                        title="Konto bearbeiten"
+                        aria-label={t('accounts.manager.editButton')}
+                        title={t('accounts.manager.editButton')}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -448,8 +450,8 @@ export function AccountManager() {
                           size="icon"
                           onClick={() => handleDisconnect(account)}
                           className="h-9 w-9 text-warning hover:text-warning"
-                          title="Bankverbindung trennen"
-                          aria-label="Bankverbindung trennen"
+                          title={t('accounts.manager.disconnectButton')}
+                          aria-label={t('accounts.manager.disconnectButton')}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
@@ -459,8 +461,8 @@ export function AccountManager() {
                           size="icon"
                           onClick={() => handleDelete(account)}
                           className="h-9 w-9 text-warning hover:text-warning"
-                          title="Konto löschen"
-                          aria-label="Konto löschen"
+                          title={t('accounts.manager.deleteButton')}
+                          aria-label={t('accounts.manager.deleteButton')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -476,9 +478,7 @@ export function AccountManager() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                <strong>Hinweis:</strong> Aus Sicherheitsgründen können Banken nur bis zu 4x täglich pro Konto
-                abgefragt werden. Verlauf ist bis 90 Tage zurück verfügbar; danach muss die Bankverbindung
-                erneuert werden.
+                <strong>Hinweis:</strong> {t('accounts.manager.bankSyncNote')}
               </AlertDescription>
             </Alert>
           )}

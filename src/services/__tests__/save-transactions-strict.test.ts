@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { Transaction } from "../../types";
 import { localEncryption } from "../local-crypto";
 import { saveTransactions, getTransactions } from "../transaction-service";
@@ -12,7 +12,12 @@ import { saveTransactions, getTransactions } from "../transaction-service";
 describe("[INTEGRITY] saveTransactions strikte Validierung (F-MONEY-4)", () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem("ausgabentracker_locale_v1");
   });
 
   const base = {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette, Languages, Home } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 import type { HierarchicalCategory, Transaction, Category } from '../../types';
 import {
   getUserSettings,
@@ -58,6 +59,7 @@ function SectionHeader({
 }
 
 export function EnhancedSettings() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [editingCategory, setEditingCategory] = useState<HierarchicalCategory | null>(null);
   const [affectedTransactions, setAffectedTransactions] = useState<Transaction[]>([]);
@@ -80,9 +82,9 @@ export function EnhancedSettings() {
     mutationFn: updateUserSettings,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      showSuccess('Einstellungen gespeichert');
+      showSuccess(t('settings.settingsSaved', 'Einstellungen gespeichert'));
     },
-    onError: () => showError('Fehler beim Speichern'),
+    onError: () => showError(t('settings.saveFailed', 'Fehler beim Speichern')),
   });
 
   const saveCategoryMutation = useMutation({
@@ -95,10 +97,10 @@ export function EnhancedSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hierarchicalCategories'] });
       queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      showSuccess('Kategorie gespeichert');
+      showSuccess(t('settings.categorySaved', 'Kategorie gespeichert'));
       setEditingCategory(null);
     },
-    onError: () => showError('Fehler beim Speichern'),
+    onError: () => showError(t('settings.saveFailed', 'Fehler beim Speichern')),
   });
 
   const deleteCategoryMutation = useMutation({
@@ -113,9 +115,9 @@ export function EnhancedSettings() {
         result.deletedBudgets ? `${result.deletedBudgets} Budget(s) entfernt` : '',
         result.deletedRules ? `${result.deletedRules} Regel(n) entfernt` : '',
       ].filter(Boolean).join(', ');
-      showSuccess(cleanup ? `Kategorie gelöscht (${cleanup})` : 'Kategorie gelöscht');
+      showSuccess(cleanup ? t('settings.categoryDeletedWithCleanup', 'Kategorie gelöscht ({cleanup})').replace('{cleanup}', cleanup) : t('settings.categoryDeleted', 'Kategorie gelöscht'));
     },
-    onError: () => showError('Fehler beim Löschen'),
+    onError: () => showError(t('settings.deleteFailed', 'Fehler beim Löschen')),
   });
 
   const recategorizeMutation = useMutation({
@@ -126,7 +128,7 @@ export function EnhancedSettings() {
     onSuccess: (summary) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      showSuccess('Transaktionen neu kategorisiert');
+      showSuccess(t('settings.recategorizationSuccess', 'Transaktionen neu kategorisiert'));
       // Vorwerte der geänderten Buchungen für ein echtes Undo vorhalten (F-UX-1).
       setUndoSnapshot(summary.undo);
       setBulkResults({
@@ -137,7 +139,7 @@ export function EnhancedSettings() {
       setBulkStatus('completed');
     },
     onError: () => {
-      showError('Fehler bei der Neukategorisierung');
+      showError(t('settings.recategorizationError', 'Fehler bei der Neukategorisierung'));
       setBulkStatus('idle');
     },
   });
@@ -148,9 +150,9 @@ export function EnhancedSettings() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
       setUndoSnapshot([]);
-      showSuccess(`${restored} Buchungen zurückgesetzt`);
+      showSuccess(t('settings.undoRestored', '{count} Buchungen zurückgesetzt').replace('{count}', String(restored)));
     },
-    onError: () => showError('Rückgängig machen fehlgeschlagen'),
+    onError: () => showError(t('settings.undoFailed', 'Rückgängig machen fehlgeschlagen')),
   });
 
   const handleCategorySave = (categoryData: Partial<Category> & { name: string }) => {
@@ -169,7 +171,7 @@ export function EnhancedSettings() {
 
   const handlePreview = async () => {
     if (!editingCategory?.id) {
-      showError('Bitte zuerst eine Kategorie auswählen');
+      showError(t('settings.selectCategoryFirst', 'Bitte zuerst eine Kategorie auswählen'));
       return;
     }
 
@@ -178,7 +180,7 @@ export function EnhancedSettings() {
       const transactions = await getCategoryPreview(editingCategory.id);
       setAffectedTransactions(transactions);
     } catch {
-      showError('Fehler beim Laden der Vorschau');
+      showError(t('settings.previewLoadError', 'Fehler beim Laden der Vorschau'));
     } finally {
       setIsProcessing(false);
     }
@@ -190,7 +192,7 @@ export function EnhancedSettings() {
 
   const handleUndo = () => {
     if (undoSnapshot.length === 0) {
-      showError('Nichts zum Rückgängigmachen');
+      showError(t('settings.nothingToUndo', 'Nichts zum Rückgängigmachen'));
       return;
     }
     undoMutation.mutate(undoSnapshot);
@@ -204,14 +206,14 @@ export function EnhancedSettings() {
             <div className="max-w-3xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-positive/20 bg-positive/10 px-3 py-1 text-xs font-medium text-positive">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Datenschutzorientierte Einstellungen
+                {t('settings.privacyFocusedBadge', 'Datenschutzorientierte Einstellungen')}
               </div>
               <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
                 <SettingsIcon className="h-8 w-8 text-primary md:h-9 md:w-9" />
-                Einstellungen
+                {t('settings.pageTitle', 'Einstellungen')}
               </h1>
               <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
-                Verwalte Kategorien, Automatisierung und lokale Datensicherheit in einer klaren, ruhigen Oberfläche.
+                {t('settings.pageDescription', 'Verwalte Kategorien, Automatisierung und lokale Datensicherheit in einer klaren, ruhigen Oberfläche.')}
               </p>
             </div>
 
@@ -228,8 +230,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<Tags className="h-5 w-5" />}
-            title="Kategorien"
-            description="Bearbeite Regeln, prüfe Auswirkungen und optimiere deine automatische Zuordnung."
+            title={t('settings.categoriesTitle', 'Kategorien')}
+            description={t('settings.categoriesDescription', 'Bearbeite Regeln, prüfe Auswirkungen und optimiere deine automatische Zuordnung.')}
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <CategoryManager
@@ -253,8 +255,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<Palette className="h-5 w-5" />}
-            title="Erscheinungsbild"
-            description="Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche."
+            title={t('settings.appearanceTitle', 'Erscheinungsbild')}
+            description={t('settings.appearanceDescription', 'Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche.')}
           />
           <AppearanceSettings />
         </section>
@@ -262,8 +264,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<Languages className="h-5 w-5" />}
-            title="Sprache"
-            description="Wähle die Sprache der App (Deutsch/Englisch)."
+            title={t('settings.languageSettingsTitle', 'Sprache')}
+            description={t('settings.languageSettingsDescription', 'Wähle die Sprache der App (Deutsch/Englisch).')}
           />
           <LanguageSettings />
         </section>
@@ -272,8 +274,8 @@ export function EnhancedSettings() {
           <section className="mb-10">
             <SectionHeader
               icon={<Home className="h-5 w-5" />}
-              title="Haushalt"
-              description="Haushalt und Mitglieder für geteilte Ausgaben – lokal auf deinem Gerät."
+              title={t('settings.householdTitle', 'Haushalt')}
+              description={t('settings.householdDescription', 'Haushalt und Mitglieder für geteilte Ausgaben – lokal auf deinem Gerät.')}
             />
             <HouseholdSettings />
           </section>
@@ -282,8 +284,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<Wand2 className="h-5 w-5" />}
-            title="Automatisierung"
-            description="Lege fest, wie lange Daten sichtbar bleiben und wie automatisch kategorisiert wird."
+            title={t('settings.automationTitle', 'Automatisierung')}
+            description={t('settings.automationDescription', 'Lege fest, wie lange Daten sichtbar bleiben und wie automatisch kategorisiert wird.')}
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <TimeRangeSettings
@@ -307,8 +309,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<ShieldCheck className="h-5 w-5" />}
-            title="Lokale Sicherheit & Sync-Datei"
-            description="Deine Daten werden verschlüsselt lokal gespeichert. Hier kannst du eine Sicherungskopie erstellen oder wiederherstellen."
+            title={t('settings.securityTitle', 'Lokale Sicherheit & Sync-Datei')}
+            description={t('settings.securityDescription', 'Deine Daten werden verschlüsselt lokal gespeichert. Hier kannst du eine Sicherungskopie erstellen oder wiederherstellen.')}
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <LocalEncryptionSettings />
@@ -318,15 +320,15 @@ export function EnhancedSettings() {
             to="/privacy"
             className="mt-4 inline-block text-sm font-medium text-positive underline-offset-2 hover:underline"
           >
-            Wie wir mit deinen Daten umgehen →
+            {t('settings.privacyLink', 'Wie wir mit deinen Daten umgehen →')}
           </Link>
         </section>
 
         <section className="mb-10" id="backups">
           <SectionHeader
             icon={<HardDrive className="h-5 w-5" />}
-            title="Backups"
-            description="Verschlüsselte Sicherungen deiner lokalen Daten erstellen und wiederherstellen."
+            title={t('settings.backupsTitle', 'Backups')}
+            description={t('settings.backupsDescription', 'Verschlüsselte Sicherungen deiner lokalen Daten erstellen und wiederherstellen.')}
           />
           <BackupManager />
         </section>
@@ -334,8 +336,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<ShieldCheck className="h-5 w-5" />}
-            title="Sprach-/KI-Zugriff (MCP) · Proof of Concept"
-            description="Aggregierte Finanzdaten optional in die Cloud freigeben, um sie per Sprache/Chat aus Claude oder ChatGPT abzufragen. Widerspricht bewusst dem Local-only-Prinzip."
+            title={t('settings.mcpTitle', 'Sprach-/KI-Zugriff (MCP) · Proof of Concept')}
+            description={t('settings.mcpDescription', 'Aggregierte Finanzdaten optional in die Cloud freigeben, um sie per Sprache/Chat aus Claude oder ChatGPT abzufragen. Widerspricht bewusst dem Local-only-Prinzip.')}
           />
           <CloudMcpSyncCard />
         </section>
@@ -343,8 +345,8 @@ export function EnhancedSettings() {
         <section className="mb-10">
           <SectionHeader
             icon={<FlaskConical className="h-5 w-5" />}
-            title="Beta-Funktionen"
-            description="Experimentelle Bereiche, die noch nicht zum Kern gehören. Standardmäßig aus."
+            title={t('settings.betaFeaturesTitle', 'Beta-Funktionen')}
+            description={t('settings.betaFeaturesDescription', 'Experimentelle Bereiche, die noch nicht zum Kern gehören. Standardmäßig aus.')}
           />
           <BetaFeaturesSettings />
         </section>
@@ -355,12 +357,12 @@ export function EnhancedSettings() {
               <AccordionTrigger className="gap-2 text-sm font-medium text-muted-foreground hover:no-underline hover:text-foreground">
                 <span className="flex items-center gap-2">
                   <SettingsIcon className="h-4 w-4" />
-                  Technischer Status
+                  {t('settings.technicalStatusTitle', 'Technischer Status')}
                 </span>
               </AccordionTrigger>
               <AccordionContent>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung.
+                  {t('settings.technicalStatusDescription', 'Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung.')}
                 </p>
                 <PerformanceDashboard />
               </AccordionContent>
@@ -371,8 +373,8 @@ export function EnhancedSettings() {
         <section>
           <SectionHeader
             icon={<Trash2 className="h-5 w-5" />}
-            title="Daten & Konto löschen"
-            description="Lokale Daten oder dein gesamtes Konto endgültig entfernen (DSGVO Art. 17)."
+            title={t('settings.dangerZoneTitle', 'Daten & Konto löschen')}
+            description={t('settings.dangerZoneDescription', 'Lokale Daten oder dein gesamtes Konto endgültig entfernen (DSGVO Art. 17).')}
           />
           <DangerZoneSettings />
         </section>

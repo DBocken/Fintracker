@@ -12,6 +12,7 @@ import { normalizeMerchantName } from './merchant-normalization';
 import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
 import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
 import { parseGermanNumber } from '../lib/money';
+import { t } from '@/i18n/serviceT';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -252,42 +253,42 @@ export async function getTransactionsPaginated(
  */
 export async function getTransactions(limit: number = 1000): Promise<Transaction[]> {
   const result = await transactionStorage.getTransactions(limit, 0);
-  if (!result.success) throw new Error(result.error || 'Lokale Transaktionen konnten nicht geladen werden');
+  if (!result.success) throw new Error(result.error || t('transactionService.loadError'));
   return (result.data || []).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
 export async function saveTransactions(transactions: Transaction[]): Promise<Transaction[]> {
-  const prepared = transactions.map((t) => {
+  const prepared = transactions.map((tx) => {
     // Strikte Validierung an der fachlichen Grenze (Invariante 18, F-MONEY-4):
     // Ungültige Beträge/Daten werden abgelehnt statt still als 0 € bzw. „heute"
     // gespeichert. Die frühere weiche Normalisierung galt für alle Nicht-CSV-
     // Pfade (Bank, Restore, programmatisch) und erzeugte falsche Geldbeträge.
-    const normalizedDate = parseGermanDate(t.date);
+    const normalizedDate = parseGermanDate(tx.date);
     if (!normalizedDate) {
-      throw new Error(`Ungültiges Buchungsdatum "${t.date}" (${t.payee || 'ohne Empfänger'})`);
+      throw new Error(t('transactionService.invalidDate', '{date}').replace('{date}', String(tx.date)).replace('{payee}', tx.payee || 'ohne Empfänger'));
     }
-    const normalizedAmount = parseGermanNumber(t.amount);
+    const normalizedAmount = parseGermanNumber(tx.amount);
     if (normalizedAmount === null) {
-      throw new Error(`Ungültiger Betrag "${t.amount}" (${t.payee || 'ohne Empfänger'}, ${normalizedDate})`);
+      throw new Error(t('transactionService.invalidAmount', '{amount}').replace('{amount}', String(tx.amount)).replace('{payee}', tx.payee || 'ohne Empfänger').replace('{date}', normalizedDate || ''));
     }
 
     return {
-      id: t.id && !t.id.toString().startsWith('temp-') ? t.id : generateId(),
-      account_id: t.account_id ?? null,
+      id: tx.id && !tx.id.toString().startsWith('temp-') ? tx.id : generateId(),
+      account_id: tx.account_id ?? null,
       date: normalizedDate,
       amount: normalizedAmount,
-      payee: t.payee || 'Unbekannt',
-      description: t.description || '',
-      original_text: t.original_text || t.description || '',
-      currency: t.currency || 'EUR',
-      category_id: t.category_id ?? null,
-      subcategory_id: t.subcategory_id ?? null,
-      auto_mapped: t.auto_mapped ?? false,
-      confirmed: t.confirmed ?? false,
-      is_transfer: t.is_transfer ?? false,
-      transfer_pair_id: t.transfer_pair_id ?? null,
-      counterparty_iban: t.counterparty_iban ?? null,
-      csvCategoryName: (t as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvCategoryName ?? (t as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvcategoryname ?? undefined,
+      payee: tx.payee || t('transactionService.unknownPayee'),
+      description: tx.description || '',
+      original_text: tx.original_text || tx.description || '',
+      currency: tx.currency || 'EUR',
+      category_id: tx.category_id ?? null,
+      subcategory_id: tx.subcategory_id ?? null,
+      auto_mapped: tx.auto_mapped ?? false,
+      confirmed: tx.confirmed ?? false,
+      is_transfer: tx.is_transfer ?? false,
+      transfer_pair_id: tx.transfer_pair_id ?? null,
+      counterparty_iban: tx.counterparty_iban ?? null,
+      csvCategoryName: (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvCategoryName ?? (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvcategoryname ?? undefined,
     };
   });
 
@@ -312,13 +313,13 @@ export async function markTransferPair(idA: string, idB: string): Promise<void> 
     is_transfer: true,
     transfer_pair_id: idB,
   });
-  if (!resultA.success) throw new Error(resultA.error || 'Markieren fehlgeschlagen');
+  if (!resultA.success) throw new Error(resultA.error || t('transactionService.updateFailed'));
 
   const resultB = await transactionStorage.updateTransaction(idB, {
     is_transfer: true,
     transfer_pair_id: idA,
   });
-  if (!resultB.success) throw new Error(resultB.error || 'Markieren fehlgeschlagen');
+  if (!resultB.success) throw new Error(resultB.error || t('transactionService.updateFailed'));
 }
 
 /** Hebt die Transfer-Markierung einer Transaktion (und ihrer Gegenbuchung) wieder auf. */
@@ -327,7 +328,7 @@ export async function unmarkTransfer(transaction: Transaction): Promise<void> {
     is_transfer: false,
     transfer_pair_id: null,
   });
-  if (!result.success) throw new Error(result.error || 'Entfernen fehlgeschlagen');
+  if (!result.success) throw new Error(result.error || t('transactionService.removeFailed'));
 
   if (transaction.transfer_pair_id) {
     await transactionStorage.updateTransaction(transaction.transfer_pair_id, {
@@ -377,7 +378,7 @@ export async function updateTransaction(
     }
 
     const result = await transactionStorage.updateTransaction(u.id, patch);
-    if (!result.success || !result.data) throw new Error(result.error || 'Update fehlgeschlagen');
+    if (!result.success || !result.data) throw new Error(result.error || t('transactionService.updateFailed'));
     updated.push(result.data);
 
     if (u.category_id) {
@@ -393,7 +394,7 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   const result = await transactionStorage.deleteTransaction(id);
-  if (!result.success) throw new Error(result.error || 'Löschen fehlgeschlagen');
+  if (!result.success) throw new Error(result.error || t('transactionService.removeFailed'));
 }
 
 export async function remapCategoryInLocalTransactions(
@@ -406,7 +407,7 @@ export async function remapCategoryInLocalTransactions(
   for (const tx of transactions) {
     if (tx.id && tx.category_id === oldCategoryId) {
       const result = await transactionStorage.updateTransaction(tx.id, { category_id: newCategoryId || null });
-      if (!result.success) throw new Error(result.error || 'Kategorie konnte nicht neu zugeordnet werden');
+      if (!result.success) throw new Error(result.error || t('transactionService.remapFailed'));
       changed += 1;
     }
   }
@@ -487,23 +488,23 @@ export async function recategorizeTransactions(): Promise<{
   const total = transactions.length;
   const undo: CategorizationSnapshotEntry[] = [];
 
-  for (const t of transactions) {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
-    const prevCat = t.category_id || null;
+  for (const tx of transactions) {
+    const newCat = categorizeTransaction(tx, categories, learnedRules);
+    const prevCat = tx.category_id || null;
 
     if (newCat) assigned += 1;
     else unassigned += 1;
 
-    if (t.id && prevCat !== newCat) {
+    if (tx.id && prevCat !== newCat) {
       changed += 1;
       // Vorzustand VOR der Änderung sichern, damit handleUndo ihn exakt
       // wiederherstellen kann (statt einer Attrappe, F-UX-1).
-      undo.push({ id: t.id, category_id: prevCat, auto_mapped: t.auto_mapped ?? false });
-      const result = await transactionStorage.updateTransaction(t.id, {
+      undo.push({ id: tx.id, category_id: prevCat, auto_mapped: tx.auto_mapped ?? false });
+      const result = await transactionStorage.updateTransaction(tx.id, {
         category_id: newCat,
         auto_mapped: !!newCat,
       });
-      if (!result.success) throw new Error(result.error || 'Neukategorisierung fehlgeschlagen');
+      if (!result.success) throw new Error(result.error || t('transactionService.recategorizationFailed'));
     }
   }
 
