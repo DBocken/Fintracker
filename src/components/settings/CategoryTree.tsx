@@ -90,6 +90,7 @@ export function CategoryTree({
                   onAddSubcategory(category.id);
                 }}
                 className="h-9 w-9 p-0"
+                aria-label="Unterkategorie erstellen"
                 title="Unterkategorie erstellen"
               >
                 <Plus className="h-4 w-4" />
@@ -102,6 +103,7 @@ export function CategoryTree({
                   onEdit(category);
                 }}
                 className="h-9 w-9 p-0"
+                aria-label="Bearbeiten"
                 title="Bearbeiten"
               >
                 <Edit3 className="h-4 w-4" />
@@ -115,6 +117,7 @@ export function CategoryTree({
                     onDelete(category);
                   }}
                   className="h-9 w-9 p-0"
+                  aria-label="Löschen"
                   title="Löschen"
                 >
                   <Trash2 className="h-4 w-4" />
