@@ -56,7 +56,7 @@ export async function updatePortfolio(id: string, updates: Partial<Portfolio>): 
 
 export async function setActivePortfolio(id: string): Promise<void> {
   const portfolios = await getPortfolios();
-  if (!portfolios.some((portfolio) => portfolio.id === id)) throw new Error('Portfolio not found');
+  if (!portfolios.some((portfolio) => portfolio.id === id)) throw new Error(t('portfolio.notFound'));
   await writeLocalFinanceList('portfolios', portfolios.map((portfolio) => ({
     ...portfolio,
     is_active: portfolio.id === id,
@@ -77,7 +77,7 @@ export async function deletePortfolio(id: string): Promise<void> {
 
 export async function getPositions(portfolioId: string): Promise<PortfolioPosition[]> {
   const portfolio = await getPortfolioById(portfolioId);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const positions = await readLocalFinanceList<PortfolioPosition>('portfolioPositions');
   return positions
@@ -92,7 +92,7 @@ export async function getPositionById(id: string): Promise<PortfolioPosition | n
 
 export async function createPosition(position: Partial<PortfolioPosition>): Promise<PortfolioPosition> {
   const portfolio = await getPortfolioById(position.portfolio_id!);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const now = new Date().toISOString();
   return upsertLocalFinanceItem<PortfolioPosition>('portfolioPositions', {
@@ -143,7 +143,7 @@ export async function batchUpdatePrices(updates: Array<{ id: string; price: numb
 
 export async function getPortfolioSummary(portfolioId: string): Promise<PortfolioSummary> {
   const portfolio = await getPortfolioById(portfolioId);
-  if (!portfolio) throw new Error('Portfolio not found');
+  if (!portfolio) throw new Error(t('portfolio.notFound'));
 
   const positions = await getPositions(portfolioId);
   let total_value = 0;

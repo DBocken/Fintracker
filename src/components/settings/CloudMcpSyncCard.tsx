@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { showError, showSuccess } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 import {
   disableCloudMcpSync,
   enableCloudMcpSync,
@@ -31,6 +32,7 @@ import {
  * das Gerät – niemals Rohtransaktionen.
  */
 export function CloudMcpSyncCard() {
+  const { t } = useI18n();
   const { status } = useAuth();
   const isAuthenticated = status === 'authenticated';
 
@@ -72,9 +74,9 @@ export function CloudMcpSyncCard() {
       setEnabled(true);
       setLastSyncedAt(new Date().toISOString());
       resetDialog();
-      showSuccess('Cloud-Sync aktiviert – Aggregate hochgeladen.');
+      showSuccess(t('settings.cloudMcpSync.successEnabledMessage'));
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Aktivieren fehlgeschlagen');
+      showError(error instanceof Error ? error.message : t('settings.cloudMcpSync.errorMessage').replace('{error}', t('settings.cloudMcpSync.enableButton')));
     } finally {
       setBusy(false);
     }
@@ -85,9 +87,9 @@ export function CloudMcpSyncCard() {
     try {
       const { updatedAt } = await syncCloudMcpAggregates();
       setLastSyncedAt(updatedAt);
-      showSuccess('Aggregate aktualisiert.');
+      showSuccess(t('settings.cloudMcpSync.successSyncMessage'));
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Sync fehlgeschlagen');
+      showError(error instanceof Error ? error.message : t('settings.cloudMcpSync.errorMessage').replace('{error}', t('settings.cloudMcpSync.synchronizeButton')));
     } finally {
       setBusy(false);
     }
@@ -101,9 +103,9 @@ export function CloudMcpSyncCard() {
       setLastSyncedAt(null);
       setConnectorUrl(null);
       setTokenOnce(null);
-      showSuccess('Cloud-Sync deaktiviert – Snapshot gelöscht.');
+      showSuccess(t('settings.cloudMcpSync.successDisabledMessage'));
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Deaktivieren fehlgeschlagen');
+      showError(error instanceof Error ? error.message : t('settings.cloudMcpSync.errorMessage').replace('{error}', t('settings.cloudMcpSync.disableButton')));
     } finally {
       setBusy(false);
     }
@@ -112,28 +114,27 @@ export function CloudMcpSyncCard() {
   function copy(value: string, label: string) {
     navigator.clipboard
       .writeText(value)
-      .then(() => showSuccess(`${label} kopiert`))
-      .catch(() => showError('Kopieren fehlgeschlagen'));
+      .then(() => showSuccess(t('settings.cloudMcpSync.successCopied').replace('{label}', label)))
+      .catch(() => showError(t('settings.cloudMcpSync.copyFailed')));
   }
 
   return (
     <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
       <div className="mb-1 flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
         <ShieldAlert className="h-4 w-4" />
-        Sprach-/KI-Zugriff (MCP) · Proof of Concept
+        {t('settings.cloudMcpSync.title')}
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Lädt <strong>nur Aggregate</strong> (Monatsausgaben, Budget-Status, Cashflow, Ausreißer) in
-        die Cloud, damit du sie per Sprache/Chat aus Claude oder ChatGPT abfragen kannst.{' '}
+        {t('settings.cloudMcpSync.description')}{' '}
         <strong className="text-amber-600 dark:text-amber-400">
-          Das widerspricht dem Local-only-Prinzip dieser App.
+          {t('settings.cloudMcpSync.localOnlyWarning')}
         </strong>{' '}
-        Rohtransaktionen, IBANs und Texte verlassen dein Gerät <strong>nicht</strong>.
+        {t('settings.cloudMcpSync.rawDataStay')}
       </p>
 
       {!isAuthenticated && (
         <p className="text-sm text-muted-foreground">
-          Für den Cloud-Sync ist ein Login nötig.
+          {t('settings.cloudMcpSync.loginRequired')}
         </p>
       )}
 
@@ -141,12 +142,12 @@ export function CloudMcpSyncCard() {
         <div className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              Status:{' '}
+              {t('settings.cloudMcpSync.status')}{' '}
               <span className={enabled ? 'font-medium text-emerald-600' : 'font-medium text-foreground'}>
-                {enabled ? 'aktiv' : 'inaktiv'}
+                {enabled ? t('settings.cloudMcpSync.active') : t('settings.cloudMcpSync.inactive')}
               </span>
               {lastSyncedAt && (
-                <> · zuletzt: {new Date(lastSyncedAt).toLocaleString('de-DE')}</>
+                <> · {t('settings.cloudMcpSync.lastSynced')} {new Date(lastSyncedAt).toLocaleString('de-DE')}</>
               )}
             </div>
             <div className="flex shrink-0 gap-2">
@@ -154,11 +155,11 @@ export function CloudMcpSyncCard() {
                 <>
                   <Button variant="outline" onClick={handleSync} disabled={busy}>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Synchronisieren
+                    {t('settings.cloudMcpSync.synchronizeButton')}
                   </Button>
                   <Button variant="destructive" onClick={handleDisable} disabled={busy}>
                     <CloudOff className="mr-2 h-4 w-4" />
-                    Deaktivieren
+                    {t('settings.cloudMcpSync.disableButton')}
                   </Button>
                 </>
               ) : (
@@ -168,7 +169,7 @@ export function CloudMcpSyncCard() {
                   disabled={busy}
                 >
                   <Cloud className="mr-2 h-4 w-4" />
-                  Cloud-Sync aktivieren …
+                  {t('settings.cloudMcpSync.enableButton')}
                 </Button>
               )}
             </div>
@@ -178,39 +179,30 @@ export function CloudMcpSyncCard() {
             <div className="space-y-3 rounded-xl border border-amber-500/40 bg-background p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Cloud className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                Das gibst du an Claude weiter:
+                {t('settings.cloudMcpSync.connectorInstructions')}
               </div>
-              <FieldCopy label="Connector-URL" value={connectorUrl} onCopy={copy} />
+              <FieldCopy label={t('settings.cloudMcpSync.connectorLabel')} value={connectorUrl} onCopy={copy} t={t} />
 
               <ol className="ml-4 list-decimal space-y-1 text-sm text-muted-foreground">
-                <li>Claude öffnen → <strong>Einstellungen → Connectors</strong>.</li>
-                <li>
-                  <strong>Custom Connector hinzufügen</strong> → obige URL einfügen → Auth
-                  „None“ → verbinden.
-                </li>
-                <li>
-                  Im <strong>Text-Chat</strong> fragen (z. B. „Wie viel habe ich diesen Monat für
-                  Lebensmittel ausgegeben?“). Zum Sprechen die <strong>Diktat-Taste</strong> nutzen.
-                </li>
+                <li>{t('settings.cloudMcpSync.step1')}</li>
+                <li>{t('settings.cloudMcpSync.step2')}</li>
+                <li>{t('settings.cloudMcpSync.step3')}</li>
               </ol>
 
               {tokenOnce && (
                 <p className="text-xs text-muted-foreground">
-                  Hinweis: Das Zugriffstoken steckt in der URL. Behandle sie wie ein Passwort. Nach
-                  „Deaktivieren“ wird sie ungültig.
+                  {t('settings.cloudMcpSync.tokenWarning')}
                 </p>
               )}
               <p className="text-xs text-amber-600 dark:text-amber-400">
-                Claudes Voice-Modus ruft (Stand 2026) keine MCP-Tools auf – daher Text-Chat +
-                Diktat. POC: Token-in-URL statt OAuth.
+                {t('settings.cloudMcpSync.voiceModeNote')}
               </p>
             </div>
           )}
 
           {enabled && !connectorUrl && (
             <p className="rounded-xl border border-muted bg-background p-3 text-sm text-muted-foreground">
-              Aktiv, aber die Connector-URL ist auf diesem Gerät nicht hinterlegt (z. B. anderes
-              Gerät). Zum erneuten Anzeigen einmal <strong>Deaktivieren</strong> und neu aktivieren.
+              {t('settings.cloudMcpSync.connectorUrlWarning')}
             </p>
           )}
         </div>
@@ -222,21 +214,18 @@ export function CloudMcpSyncCard() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Finanz-Aggregate aus dem Gerät freigeben?
+              {t('settings.cloudMcpSync.confirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-left">
                 <p className="font-medium text-destructive">
-                  Dies hebt die Local-only-Garantie dieser App bewusst auf.
+                  {t('settings.cloudMcpSync.confirmWarning')}
                 </p>
                 <p>
-                  Aggregierte Finanzdaten (Monatssummen je Kategorie, Budget-Status, Cashflow,
-                  Ausreißer) werden zu Supabase hochgeladen und beim Abfragen zusätzlich an den
-                  KI-Anbieter (Anthropic/OpenAI) übertragen. Rohtransaktionen, IBANs und Freitexte
-                  bleiben lokal.
+                  {t('settings.cloudMcpSync.confirmAggregateDetails')}
                 </p>
                 <p className="text-xs">
-                  Dies ist ein Proof of Concept ohne produktive OAuth-Absicherung.
+                  {t('settings.cloudMcpSync.confirmProofOfConcept')}
                 </p>
               </div>
             </AlertDialogDescription>
@@ -250,14 +239,13 @@ export function CloudMcpSyncCard() {
               onChange={(e) => setAck(e.target.checked)}
             />
             <span>
-              Ich verstehe, dass meine Finanz-Aggregate das Gerät verlassen und an Cloud-Dienste
-              gehen.
+              {t('settings.cloudMcpSync.confirmCheckbox')}
             </span>
           </label>
 
           <div className="space-y-2">
             <Label htmlFor="mcp-confirm">
-              Tippe zur Bestätigung:{' '}
+              {t('settings.cloudMcpSync.confirmLabel')}{' '}
               <span className="font-mono font-semibold">{MCP_CONFIRM_PHRASE}</span>
             </Label>
             <Input
@@ -265,20 +253,20 @@ export function CloudMcpSyncCard() {
               value={phrase}
               onChange={(e) => setPhrase(e.target.value)}
               autoComplete="off"
-              aria-label={`Bestätigung – tippe ${MCP_CONFIRM_PHRASE}`}
+              aria-label={t('settings.cloudMcpSync.confirmPhraseAriaLabel').replace('{phrase}', MCP_CONFIRM_PHRASE)}
             />
           </div>
 
           <AlertDialogFooter>
             <Button variant="outline" onClick={resetDialog} disabled={busy}>
-              Abbrechen
+              {t('settings.cloudMcpSync.cancelButton')}
             </Button>
             <Button
               className="bg-amber-600 text-white hover:bg-amber-700"
               onClick={handleEnable}
               disabled={!consentOk || busy}
             >
-              Endgültig freigeben
+              {t('settings.cloudMcpSync.confirmButton')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -291,17 +279,19 @@ function FieldCopy({
   label,
   value,
   onCopy,
+  t,
 }: {
   label: string;
   value: string;
   onCopy: (value: string, label: string) => void;
+  t: (key: string, fallback?: string) => string;
 }) {
   return (
     <div>
       <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>
       <div className="flex items-center gap-2">
         <code className="flex-1 overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs">{value}</code>
-        <Button variant="outline" size="icon" onClick={() => onCopy(value, label)} aria-label={`${label} kopieren`}>
+        <Button variant="outline" size="icon" onClick={() => onCopy(value, label)} aria-label={t('settings.cloudMcpSync.copyFieldAriaLabel').replace('{label}', label)}>
           <Copy className="h-4 w-4" />
         </Button>
       </div>

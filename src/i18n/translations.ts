@@ -322,6 +322,8 @@ export const translations = {
         successCopied: '{label} kopiert',
         errorMessage: '{error}',
         copyFailed: 'Kopieren fehlgeschlagen',
+        confirmPhraseAriaLabel: 'Bestätigung – tippe {phrase}',
+        copyFieldAriaLabel: '{label} kopieren',
       },
     },
     dashboard: {
@@ -720,6 +722,7 @@ export const translations = {
     portfolio: {
       newPortfolioName: 'Neues Portfolio',
       demoPortfolioName: 'Demo Portfolio',
+      notFound: 'Portfolio nicht gefunden',
     },
     other: {
       liquidityTitle: 'Liquidität',
@@ -3084,6 +3087,8 @@ export const translations = {
         successCopied: '{label} copied',
         errorMessage: '{error}',
         copyFailed: 'Copy failed',
+        confirmPhraseAriaLabel: 'Confirmation – type {phrase}',
+        copyFieldAriaLabel: 'Copy {label}',
       },
     },
     dashboard: {
@@ -3482,6 +3487,7 @@ export const translations = {
     portfolio: {
       newPortfolioName: 'New Portfolio',
       demoPortfolioName: 'Demo Portfolio',
+      notFound: 'Portfolio not found',
     },
     other: {
       liquidityTitle: 'Liquidity',
