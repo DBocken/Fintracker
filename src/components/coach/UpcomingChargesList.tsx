@@ -8,15 +8,10 @@ import ListRow from "@/components/common/ListRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useI18n } from "@/i18n/useI18n";
+import { formatCoachDaysUntil, pluralTransactions } from "@/i18n/format";
 
 const ISO = "yyyy-MM-dd";
-
-/** „heute" / „morgen" / „in N Tagen". */
-function whenLabel(daysUntil: number): string {
-  if (daysUntil <= 0) return "heute";
-  if (daysUntil === 1) return "morgen";
-  return `in ${daysUntil} Tagen`;
-}
 
 interface Props {
   /** Bezugszeitpunkt (Default jetzt) – injizierbar für deterministische Tests. */
@@ -35,6 +30,7 @@ interface Props {
 export default function UpcomingChargesList({ now = new Date(), horizonDays = 30 }: Props) {
   const { input, isLoading } = useForecast();
   const { enabled: gentle } = useGentleMode();
+  const { t } = useI18n();
   const fromISO = format(now, ISO);
 
   const charges = useMemo(() => {
@@ -47,12 +43,11 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
   if (charges.length === 0) {
     return (
       <InfoGroup
-        title="Anstehende Abbuchungen"
-        description={`Keine Abbuchungen in den nächsten ${horizonDays} Tagen erkannt.`}
+        title={t('coach.upcomingCharges')}
+        description={t('coach.noUpcomingCharges').replace('{days}', String(horizonDays))}
       >
         <p className="text-sm text-muted-foreground">
-          Sobald wiederkehrende Verträge erkannt sind, siehst du hier, was als Nächstes
-          von deinem Konto abgeht.
+          {t('coach.recurringContractsDetectionInfo')}
         </p>
       </InfoGroup>
     );
@@ -62,10 +57,11 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
 
   return (
     <InfoGroup
-      title="Anstehende Abbuchungen"
-      description={`Nächste ${horizonDays} Tage · ${charges.length} ${
-        charges.length === 1 ? "Buchung" : "Buchungen"
-      } · ${gentle ? "•••" : formatCurrency(total)} gesamt`}
+      title={t('coach.upcomingCharges')}
+      description={`Nächste ${horizonDays} Tage · ${charges.length} ${pluralTransactions(
+        charges.length,
+        t,
+      )} · ${gentle ? "•••" : formatCurrency(total)} gesamt`}
     >
       <div className="divide-y divide-border/60">
         {charges.map((c) => (
@@ -73,7 +69,7 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
             key={`${c.flowId}-${c.dateISO}`}
             icon="💳"
             title={c.name}
-            subtitle={`${whenLabel(c.daysUntil)} · ${format(parseISO(c.dateISO), "EEE, dd.MM.", {
+            subtitle={`${formatCoachDaysUntil(c.daysUntil, t)} · ${format(parseISO(c.dateISO), "EEE, dd.MM.", {
               locale: de,
             })}`}
             value={gentle ? "•••" : formatCurrency(c.amount)}

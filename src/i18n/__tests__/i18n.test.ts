@@ -32,3 +32,41 @@ describe('resolveInitialLocale', () => {
     expect(['de', 'en']).toContain(resolveInitialLocale());
   });
 });
+
+describe('i18n Coverage - Full App Translation', () => {
+  it('[REGRESSION] sollte alle Coach-Texte in beiden Sprachen haben', () => {
+    const coachKeys = [
+      'coach.topActionToday',
+      'coach.nextPayday',
+      'coach.whenToday',
+      'coach.whenTomorrow',
+      'coach.whenInDays',
+      'coach.upcomingCharges',
+      'coach.noUpcomingCharges',
+    ];
+
+    coachKeys.forEach(key => {
+      expect(lookupTranslation('de', key)).toBeDefined();
+      expect(lookupTranslation('en', key)).toBeDefined();
+    });
+  });
+
+  it('[REGRESSION] sollte Accessibility-Labels in beiden Sprachen haben', () => {
+    const a11yKeys = [
+      'a11y.languageSelect',
+      'a11y.profileOpen',
+      'a11y.login',
+      'a11y.logout',
+    ];
+
+    a11yKeys.forEach(key => {
+      expect(lookupTranslation('de', key)).toBeDefined();
+      expect(lookupTranslation('en', key)).toBeDefined();
+    });
+  });
+
+  it('sollte Helper-Funktionen für dynamische Strings unterstützen', () => {
+    expect(lookupTranslation('de', 'common.pluralTransaction')).toBeDefined();
+    expect(lookupTranslation('de', 'common.singularTransaction')).toBeDefined();
+  });
+});
