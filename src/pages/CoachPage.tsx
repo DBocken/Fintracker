@@ -96,7 +96,7 @@ export default function CoachPage() {
       {/* Vor dem nächsten Gehalt: was bleibt frei (Tank, klickbar → Liquidität)
           und welche Abbuchungen kommen als Nächstes (reines Readout). */}
       <section className="space-y-4">
-        <SectionHeader icon={<CalendarClock className="h-4 w-4" />} title="Vor dem nächsten Gehalt" />
+        <SectionHeader icon={<CalendarClock className="h-4 w-4" />} title={t("coach.nextPayday")} />
         <DisposableTankCard />
         <UpcomingChargesList />
       </section>
