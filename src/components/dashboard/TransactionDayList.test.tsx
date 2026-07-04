@@ -5,6 +5,7 @@ import { TransactionDayList } from './TransactionDayList';
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
+vi.mock('@/i18n/useI18n', () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: 'de' }) }));
 
 function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
   return {

@@ -169,7 +169,7 @@ export function TransactionTable({
               </TableCell>
               <TableCell className="truncate max-w-xs">{transaction.payee || '-'}</TableCell>
               <TableCell className={transaction.amount < 0 ? 'text-warning' : 'text-positive'}>
-                <span className="sr-only">{transaction.amount < 0 ? 'Ausgabe' : 'Einnahme'}: </span>
+                <span className="sr-only">{transaction.amount < 0 ? t('dashboard.expenseSr', 'Ausgabe') : t('dashboard.incomeSr', 'Einnahme')}: </span>
                 {amountLabel}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { TransactionFilters } from "./TransactionFilters";
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: [] }) }));
+vi.mock("@/i18n/useI18n", () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: "de" }) }));
 
 const noop = () => {};
 

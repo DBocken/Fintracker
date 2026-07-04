@@ -371,10 +371,10 @@ export function Dashboard() {
       {/* Das Dashboard ist Analyse-Support; die Handlung lebt im Coach
           (Audit C-P1). Ganze Karte ist klickbar → Coach (Usability-Audit
           „Karten sind Aktionen"). */}
-      <InteractiveCard to="/coach" aria-label="Zum nächsten Schritt – zum Coach">
+      <InteractiveCard to="/coach" aria-label={t('dashboard.coachCardAria')}>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Sparkles className="h-4 w-4 text-brand" />
-          Detailansicht für Charts &amp; Transaktionen. Deine nächste Aktion zeigt dir der Coach.
+          {t('dashboard.coachCardText')}
         </div>
       </InteractiveCard>
 
@@ -382,7 +382,7 @@ export function Dashboard() {
           deshalb hier oben, statt versteckt in der Buchungen-Vorschau. */}
       <div className="flex gap-2 items-center flex-wrap">
         <div className="relative">
-          <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+          <Label htmlFor="transaction-search" className="sr-only">{t('dashboard.searchTransactions')}</Label>
           <Input
             id="transaction-search"
             type="search"
@@ -394,7 +394,7 @@ export function Dashboard() {
         </div>
         <Button type="button" variant="outline" size="sm" className="relative" onClick={() => setFilterDialogOpen(true)}>
           <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
-          Filter
+          {t('dashboard.filter')}
           {activeFilterCount > 0 && (
             <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 justify-center">
               {activeFilterCount}
@@ -406,7 +406,7 @@ export function Dashboard() {
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
         <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Filter</DialogTitle>
+            <DialogTitle>{t('dashboard.filter')}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <TransactionFilters
@@ -438,7 +438,7 @@ export function Dashboard() {
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-              Filter zurücksetzen
+              {t('dashboard.resetFilters')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -493,9 +493,9 @@ export function Dashboard() {
 
         <section className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold">Cashflow im Überblick</h2>
+            <h2 className="text-sm font-semibold">{t('dashboard.cashflowTitle')}</h2>
             <p className="text-xs text-muted-foreground">
-              Dein Geldfluss auf Hauptkategorien-Ebene. Den Drilldown in Unterkategorien findest du im Analyse-Bereich.
+              {t('dashboard.cashflowDescription')}
             </p>
           </div>
           <SankeyChart data={sankeyData} enableDrilldown={false} />
@@ -504,7 +504,7 @@ export function Dashboard() {
 
       <Card className="card-premium">
         <CardHeader>
-          <CardTitle>Letzte Buchungen</CardTitle>
+          <CardTitle>{t('dashboard.recentTransactions')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TransactionTable
@@ -536,8 +536,8 @@ export function Dashboard() {
             <Button asChild variant="outline" className="w-full justify-center">
               <Link to={transactionsLink}>
                 {sortedTransactions.length > previewTransactions.length
-                  ? `Alle ${sortedTransactions.length} Buchungen anzeigen`
-                  : 'Alle Buchungen anzeigen'}
+                  ? `${t('dashboard.showAllPrefix')} ${sortedTransactions.length} ${t('dashboard.showAllSuffix')}`
+                  : t('dashboard.showAllTransactions')}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
@@ -546,17 +546,17 @@ export function Dashboard() {
           {sortedTransactions.length === 0 && txs.length > 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <div>
-                <div className="font-medium text-foreground">Keine Transaktionen gefunden</div>
+                <div className="font-medium text-foreground">{t('dashboard.noTransactionsFound')}</div>
                 <div className="text-sm">
-                  Prüfe Filter, Suchbegriff oder lade die Daten neu, falls der Cache veraltet ist.
+                  {t('dashboard.noTransactionsFoundHint')}
                 </div>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-                  Filter zurücksetzen
+                  {t('dashboard.resetFilters')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
-                  Erneut laden
+                  {t('dashboard.reload')}
                 </Button>
               </div>
             </div>
@@ -564,18 +564,18 @@ export function Dashboard() {
           {txs.length === 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <div>
-                <div className="font-medium text-foreground">Keine Transaktionen vorhanden</div>
-                <div className="text-sm">Importiere eine CSV-Datei, verbinde eine Bank oder lade nach einem Sync erneut.</div>
+                <div className="font-medium text-foreground">{t('dashboard.noTransactionsYet')}</div>
+                <div className="text-sm">{t('dashboard.noTransactionsYetHint')}</div>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button asChild size="sm">
-                  <Link to="/csv">CSV importieren</Link>
+                  <Link to="/csv">{t('dashboard.importCsv')}</Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link to="/accounts">Bank verbinden</Link>
+                  <Link to="/accounts">{t('dashboard.connectBank')}</Link>
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
-                  Erneut laden
+                  {t('dashboard.reload')}
                 </Button>
               </div>
             </div>

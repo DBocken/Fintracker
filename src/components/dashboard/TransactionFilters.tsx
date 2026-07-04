@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { getAccounts } from '../../services/account-service';
 import type { Account, Category } from '../../types';
 import {
@@ -18,6 +19,21 @@ import {
 } from './filter-constants';
 import type { PeriodOption } from './period-utils';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
+
+// Die Options-WERTE bleiben deutsche Literale (State/URL-Encoding, siehe
+// filter-constants.ts) – übersetzt wird nur das angezeigte Label.
+const RANGE_LABEL_KEYS: Record<DashboardRange, string> = {
+  'Gesamt': 'dashboard.ranges.total',
+  'Jahr': 'dashboard.ranges.year',
+  'Quartal': 'dashboard.ranges.quarter',
+  'Monat': 'dashboard.ranges.month',
+  '7 Tage': 'dashboard.ranges.days7',
+  '30 Tage': 'dashboard.ranges.days30',
+  '90 Tage': 'dashboard.ranges.days90',
+  '6 Monate': 'dashboard.ranges.months6',
+  '1 Jahr': 'dashboard.ranges.year1',
+  'Benutzerdefiniert': 'dashboard.ranges.custom',
+};
 
 interface TransactionFiltersProps {
   filterCat: string;
@@ -77,6 +93,7 @@ export function TransactionFilters({
   showSearch = true,
   stacked = false,
 }: TransactionFiltersProps) {
+  const { t } = useI18n();
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
@@ -99,14 +116,14 @@ export function TransactionFilters({
 
   return (
     <div className={cn(stacked ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'flex flex-wrap items-center gap-2')}>
-      <Field label="Konto">
+      <Field label={t('dashboard.account', 'Konto')}>
         <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger aria-label="Konto filtern" className={triggerClass('w-48')}>
-            <SelectValue placeholder="Alle Konten" />
+          <SelectTrigger aria-label={t('dashboard.filterAccountAria', 'Konto filtern')} className={triggerClass('w-48')}>
+            <SelectValue placeholder={t('dashboard.allAccounts', 'Alle Konten')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle Konten</SelectItem>
-            <SelectItem value="budget-pool">Budget-Pool</SelectItem>
+            <SelectItem value="all">{t('dashboard.allAccounts', 'Alle Konten')}</SelectItem>
+            <SelectItem value="budget-pool">{t('dashboard.budgetPool', 'Budget-Pool')}</SelectItem>
             {accounts.map((account: Account) => (
               <SelectItem key={account.id} value={account.id}>
                 <div className="flex items-center gap-2">
@@ -124,13 +141,13 @@ export function TransactionFilters({
         </Select>
       </Field>
 
-      <Field label="Kategorie">
+      <Field label={t('dashboard.category', 'Kategorie')}>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger aria-label="Kategorie filtern" className={triggerClass('w-48')}>
-            <SelectValue placeholder="Alle Kategorien" />
+          <SelectTrigger aria-label={t('dashboard.filterCategoryAria', 'Kategorie filtern')} className={triggerClass('w-48')}>
+            <SelectValue placeholder={t('dashboard.allCategories', 'Alle Kategorien')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle Kategorien</SelectItem>
+            <SelectItem value="all">{t('dashboard.allCategories', 'Alle Kategorien')}</SelectItem>
             {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
             ))}
@@ -138,33 +155,33 @@ export function TransactionFilters({
         </Select>
       </Field>
 
-      <Field label="Verträge">
+      <Field label={t('dashboard.contracts', 'Verträge')}>
         <Select value={filterContract} onValueChange={setFilterContract}>
-          <SelectTrigger aria-label="Vertragsstatus filtern" className={triggerClass('w-40')}>
-            <SelectValue placeholder="Verträge" />
+          <SelectTrigger aria-label={t('dashboard.filterContractAria', 'Vertragsstatus filtern')} className={triggerClass('w-40')}>
+            <SelectValue placeholder={t('dashboard.contracts', 'Verträge')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle</SelectItem>
-            <SelectItem value="vertrag">Nur Verträge</SelectItem>
-            <SelectItem value="kein_vertrag">Ohne Verträge</SelectItem>
+            <SelectItem value="all">{t('dashboard.all', 'Alle')}</SelectItem>
+            <SelectItem value="vertrag">{t('dashboard.contractsOnly', 'Nur Verträge')}</SelectItem>
+            <SelectItem value="kein_vertrag">{t('dashboard.withoutContracts', 'Ohne Verträge')}</SelectItem>
           </SelectContent>
         </Select>
       </Field>
 
-      <Field label="Essenziell">
+      <Field label={t('dashboard.essential', 'Essenziell')}>
         <Select value={filterEssential} onValueChange={setFilterEssential}>
-          <SelectTrigger aria-label="Essenziell-Status filtern" className={triggerClass('w-44')}>
-            <SelectValue placeholder="Essenziell" />
+          <SelectTrigger aria-label={t('dashboard.filterEssentialAria', 'Essenziell-Status filtern')} className={triggerClass('w-44')}>
+            <SelectValue placeholder={t('dashboard.essential', 'Essenziell')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alle</SelectItem>
-            <SelectItem value="ess">Nur essenziell</SelectItem>
-            <SelectItem value="nicht">Nicht essenziell</SelectItem>
+            <SelectItem value="all">{t('dashboard.all', 'Alle')}</SelectItem>
+            <SelectItem value="ess">{t('dashboard.essentialOnly', 'Nur essenziell')}</SelectItem>
+            <SelectItem value="nicht">{t('dashboard.notEssential', 'Nicht essenziell')}</SelectItem>
           </SelectContent>
         </Select>
       </Field>
 
-      <Field label="Ausgabenklasse">
+      <Field label={t('dashboard.expenseClass', 'Ausgabenklasse')}>
         <AusgabenklasseFilterComponent
           value={filterAusgabenklasse}
           onChange={setFilterAusgabenklasse}
@@ -173,28 +190,28 @@ export function TransactionFilters({
         />
       </Field>
 
-      <Field label="Zeitraum">
+      <Field label={t('dashboard.timeRange', 'Zeitraum')}>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger aria-label="Zeitraum filtern" className={triggerClass('w-40')}>
+          <SelectTrigger aria-label={t('dashboard.filterRangeAria', 'Zeitraum filtern')} className={triggerClass('w-40')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DASHBOARD_RANGE_OPTIONS.map((label) => (
-              <SelectItem key={label} value={label}>{label}</SelectItem>
+            {DASHBOARD_RANGE_OPTIONS.map((value) => (
+              <SelectItem key={value} value={value}>{t(RANGE_LABEL_KEYS[value], value)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </Field>
 
       {PERIOD_RANGES.has(range) && (
-        <Field label="Periode">
+        <Field label={t('dashboard.period', 'Periode')}>
           <Select value={customPeriod} onValueChange={setCustomPeriod}>
-            <SelectTrigger aria-label="Periode auswählen" className={triggerClass('w-40')}>
-              <SelectValue placeholder="Periode wählen…" />
+            <SelectTrigger aria-label={t('dashboard.selectPeriodAria', 'Periode auswählen')} className={triggerClass('w-40')}>
+              <SelectValue placeholder={t('dashboard.selectPeriodPlaceholder', 'Periode wählen…')} />
             </SelectTrigger>
             <SelectContent>
               {periodOptions.length === 0 ? (
-                <SelectItem value="__none" disabled>Keine Daten</SelectItem>
+                <SelectItem value="__none" disabled>{t('dashboard.noData', 'Keine Daten')}</SelectItem>
               ) : (
                 periodOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
@@ -207,11 +224,11 @@ export function TransactionFilters({
 
       {range === 'Benutzerdefiniert' && (
         <>
-          <Field label={`Tage: ${customDays}`}>
+          <Field label={`${t('dashboard.days', 'Tage')}: ${customDays}`}>
             <div className="flex items-center gap-2">
-              {!stacked && <Label id="custom-days-label" className="text-sm">Tage: {customDays}</Label>}
+              {!stacked && <Label id="custom-days-label" className="text-sm">{t('dashboard.days', 'Tage')}: {customDays}</Label>}
               <Slider
-                aria-label={stacked ? `Tage: ${customDays}` : undefined}
+                aria-label={stacked ? `${t('dashboard.days', 'Tage')}: ${customDays}` : undefined}
                 aria-labelledby={stacked ? undefined : 'custom-days-label'}
                 value={[customDays]}
                 onValueChange={([value]: number[]) => setCustomDays(value)}
@@ -222,15 +239,15 @@ export function TransactionFilters({
             </div>
           </Field>
 
-          <Field label="Granularität">
+          <Field label={t('dashboard.granularity', 'Granularität')}>
             <Select value={customGran} onValueChange={setCustomGran}>
-              <SelectTrigger aria-label="Diagramm-Granularität auswählen" className={triggerClass('w-28')}>
+              <SelectTrigger aria-label={t('dashboard.granularityAria', 'Diagramm-Granularität auswählen')} className={triggerClass('w-28')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Täglich</SelectItem>
-                <SelectItem value="weekly">Wöchentlich</SelectItem>
-                <SelectItem value="monthly">Monatlich</SelectItem>
+                <SelectItem value="daily">{t('dashboard.daily', 'Täglich')}</SelectItem>
+                <SelectItem value="weekly">{t('dashboard.weekly', 'Wöchentlich')}</SelectItem>
+                <SelectItem value="monthly">{t('dashboard.monthly', 'Monatlich')}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -238,13 +255,13 @@ export function TransactionFilters({
       )}
 
       {showSearch && (
-        <Field label="Suche">
+        <Field label={t('dashboard.searchLabel', 'Suche')}>
           <div className="relative">
-            <Label htmlFor="transaction-search" className="sr-only">Transaktionen suchen</Label>
+            <Label htmlFor="transaction-search" className="sr-only">{t('dashboard.searchTransactions', 'Transaktionen suchen')}</Label>
             <Input
               id="transaction-search"
               type="search"
-              placeholder="Suche..."
+              placeholder={t('dashboard.search', 'Suche...')}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               className={triggerClass('w-48')}
