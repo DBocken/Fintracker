@@ -14,8 +14,7 @@ import {
 import { useAuth } from '@/components/providers/AuthProvider';
 import { deleteAccount, deleteLocalData } from '@/services/account-deletion-service';
 import { showError, showSuccess } from '@/utils/toast';
-
-const CONFIRM_WORD = 'löschen';
+import { useI18n } from '@/i18n/useI18n';
 
 type DeleteKind = 'local' | 'account' | null;
 
@@ -25,6 +24,7 @@ type DeleteKind = 'local' | 'account' | null;
  * Beide Aktionen erfordern eine zweistufige Bestätigung (Tippen von „löschen").
  */
 export function DangerZoneSettings() {
+  const { t } = useI18n();
   const { status } = useAuth();
   const isAuthenticated = status === 'authenticated';
 
@@ -33,8 +33,9 @@ export function DangerZoneSettings() {
   const [alsoLocal, setAlsoLocal] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const confirmWord = t('dangerZoneSettings.confirmWord');
   const open = kind !== null;
-  const confirmed = confirmText.trim().toLowerCase() === CONFIRM_WORD;
+  const confirmed = confirmText.trim().toLowerCase() === confirmWord;
 
   function close() {
     setKind(null);
@@ -47,17 +48,17 @@ export function DangerZoneSettings() {
     try {
       if (kind === 'local') {
         await deleteLocalData();
-        showSuccess('Lokale Daten gelöscht');
+        showSuccess(t('dangerZoneSettings.localDataDeletedSuccess'));
         close();
         setTimeout(() => window.location.reload(), 800);
       } else {
         await deleteAccount({ alsoLocal });
-        showSuccess('Konto und Daten gelöscht');
+        showSuccess(t('dangerZoneSettings.accountDeletedSuccess'));
         close();
         setTimeout(() => window.location.reload(), 800);
       }
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Löschen fehlgeschlagen');
+      showError(error instanceof Error ? error.message : t('dangerZoneSettings.deleteFailed'));
     } finally {
       setBusy(false);
     }
@@ -67,36 +68,34 @@ export function DangerZoneSettings() {
     <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5">
       <div className="mb-3 flex items-center gap-2 text-sm font-medium text-destructive">
         <AlertTriangle className="h-4 w-4" />
-        Gefahrenzone
+        {t('dangerZoneSettings.dangerZoneHeading')}
       </div>
 
       <div className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-sm font-medium text-foreground">Lokale Daten löschen</div>
+            <div className="text-sm font-medium text-foreground">{t('dangerZoneSettings.localDataDeleteTitle')}</div>
             <p className="text-sm text-muted-foreground">
-              Entfernt alle auf diesem Gerät gespeicherten Daten (Transaktionen, Konten,
-              Schulden, Einstellungen). Cloud-Daten bleiben erhalten.
+              {t('dangerZoneSettings.localDataDeleteDescription')}
             </p>
           </div>
           <Button variant="outline" className="shrink-0" onClick={() => setKind('local')}>
             <Trash2 className="mr-2 h-4 w-4" />
-            Lokale Daten löschen
+            {t('dangerZoneSettings.localDataDeleteButton')}
           </Button>
         </div>
 
         {isAuthenticated && (
           <div className="flex flex-col gap-2 border-t border-destructive/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-medium text-foreground">Konto löschen</div>
+              <div className="text-sm font-medium text-foreground">{t('dangerZoneSettings.accountDeleteTitle')}</div>
               <p className="text-sm text-muted-foreground">
-                Löscht dein Konto endgültig: serverseitige Daten, Bankverbindungen
-                (GoCardless) und den Zugang. Dieser Schritt kann nicht rückgängig gemacht werden.
+                {t('dangerZoneSettings.accountDeleteDescription')}
               </p>
             </div>
             <Button variant="destructive" className="shrink-0" onClick={() => setKind('account')}>
               <Trash2 className="mr-2 h-4 w-4" />
-              Konto löschen
+              {t('dangerZoneSettings.accountDeleteButton')}
             </Button>
           </div>
         )}
@@ -106,12 +105,12 @@ export function DangerZoneSettings() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {kind === 'account' ? 'Konto endgültig löschen?' : 'Lokale Daten löschen?'}
+              {kind === 'account' ? t('dangerZoneSettings.accountDeleteDialogTitle') : t('dangerZoneSettings.localDeleteDialogTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {kind === 'account'
-                ? 'Alle serverseitigen Daten, Bankverbindungen und dein Zugang werden dauerhaft entfernt. Dieser Schritt ist endgültig.'
-                : 'Alle lokal gespeicherten Daten auf diesem Gerät werden entfernt. Dieser Schritt ist endgültig.'}
+                ? t('dangerZoneSettings.accountDeleteDialogDescription')
+                : t('dangerZoneSettings.localDeleteDialogDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -122,33 +121,33 @@ export function DangerZoneSettings() {
                 checked={alsoLocal}
                 onChange={(e) => setAlsoLocal(e.target.checked)}
               />
-              Auch die lokalen Daten auf diesem Gerät löschen
+              {t('dangerZoneSettings.alsoDeleteLocalCheckbox')}
             </label>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="delete-confirm">
-              Tippe <span className="font-mono font-semibold">{CONFIRM_WORD}</span> zur Bestätigung
+              {t('dangerZoneSettings.confirmLabel').replace('{word}', confirmWord)}
             </Label>
             <Input
               id="delete-confirm"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               autoComplete="off"
-              aria-label={`Bestätigung – tippe ${CONFIRM_WORD}`}
+              aria-label={t('dangerZoneSettings.confirmAriaLabel').replace('{word}', confirmWord)}
             />
           </div>
 
           <AlertDialogFooter>
             <Button variant="outline" onClick={close} disabled={busy}>
-              Abbrechen
+              {t('dangerZoneSettings.cancelButton')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirm}
               disabled={!confirmed || busy}
             >
-              {busy ? 'Wird gelöscht…' : 'Endgültig löschen'}
+              {busy ? t('dangerZoneSettings.confirmButtonBusy') : t('dangerZoneSettings.confirmButton')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

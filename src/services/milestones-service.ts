@@ -2,6 +2,7 @@ import type { Milestone } from "../types";
 import { getFinancialHealth } from "./financial-health-service";
 import { getDebts } from "./debt-service";
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { t } from "@/i18n/serviceT";
 
 export interface MilestoneDefinition {
   key: string;
@@ -21,43 +22,45 @@ interface MilestoneContext {
   paidOffDebtCount: number;
 }
 
-export const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
-  {
-    key: "emergency_fund_1m",
-    title: "Erster Notgroschen",
-    description: "Du hast Rücklagen für einen vollen Monat aufgebaut.",
-    icon: "🌱",
-    isAchieved: (c) => c.monthlyExpenses > 0 && c.cash >= c.monthlyExpenses,
-  },
-  {
-    key: "emergency_fund_3m",
-    title: "Notgroschen erreicht",
-    description: "Drei Monatsausgaben liegen sicher als Rücklage bereit.",
-    icon: "🛡️",
-    isAchieved: (c) => c.monthlyExpenses > 0 && c.cash >= c.monthlyExpenses * 3,
-  },
-  {
-    key: "first_debt_paid",
-    title: "Erste Schuld abbezahlt",
-    description: "Du hast eine deiner Schulden vollständig getilgt.",
-    icon: "✂️",
-    isAchieved: (c) => c.paidOffDebtCount >= 1,
-  },
-  {
-    key: "net_worth_10k",
-    title: "10.000 € Vermögen",
-    description: "Dein Nettovermögen hat die 10.000-€-Marke geknackt.",
-    icon: "💎",
-    isAchieved: (c) => c.netWorth >= 10000,
-  },
-  {
-    key: "debt_free",
-    title: "Schuldenfrei!",
-    description: "Du hast alle deine Schulden zurückgezahlt. Riesiger Meilenstein!",
-    icon: "🎉",
-    isAchieved: (c) => c.debtCount > 0 && c.totalDebt <= 0,
-  },
-];
+export function getMilestoneDefinitions(): MilestoneDefinition[] {
+  return [
+    {
+      key: "emergency_fund_1m",
+      title: t('milestones.emergencyFund1mTitle'),
+      description: t('milestones.emergencyFund1mDescription'),
+      icon: "🌱",
+      isAchieved: (c) => c.monthlyExpenses > 0 && c.cash >= c.monthlyExpenses,
+    },
+    {
+      key: "emergency_fund_3m",
+      title: t('milestones.emergencyFund3mTitle'),
+      description: t('milestones.emergencyFund3mDescription'),
+      icon: "🛡️",
+      isAchieved: (c) => c.monthlyExpenses > 0 && c.cash >= c.monthlyExpenses * 3,
+    },
+    {
+      key: "first_debt_paid",
+      title: t('milestones.firstDebtPaidTitle'),
+      description: t('milestones.firstDebtPaidDescription'),
+      icon: "✂️",
+      isAchieved: (c) => c.paidOffDebtCount >= 1,
+    },
+    {
+      key: "net_worth_10k",
+      title: t('milestones.netWorth10kTitle'),
+      description: t('milestones.netWorth10kDescription'),
+      icon: "💎",
+      isAchieved: (c) => c.netWorth >= 10000,
+    },
+    {
+      key: "debt_free",
+      title: t('milestones.debtFreeTitle'),
+      description: t('milestones.debtFreeDescription'),
+      icon: "🎉",
+      isAchieved: (c) => c.debtCount > 0 && c.totalDebt <= 0,
+    },
+  ];
+}
 
 export async function getAchievedMilestones(): Promise<Milestone[]> {
   return readLocalFinanceList<Milestone>('milestones');
@@ -106,7 +109,7 @@ export async function evaluateMilestones(): Promise<MilestoneStatus[]> {
   const achievedMap = new Map(achieved.map((m) => [m.milestone_key, m]));
   const result: MilestoneStatus[] = [];
 
-  for (const def of MILESTONE_DEFINITIONS) {
+  for (const def of getMilestoneDefinitions()) {
     const previously = achievedMap.get(def.key);
     const nowAchieved = def.isAchieved(ctx);
     let justAchieved = false;
