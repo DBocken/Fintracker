@@ -71,7 +71,7 @@ function parseError(error: unknown): GoCardlessError {
   const edge = parseEdgeBody(error)
   const messageFromEdge = edge?.error || edge?.message
 
-  const err = new Error((messageFromEdge as string | undefined) || (e.message as string | undefined) || 'Unknown error') as GoCardlessError
+  const err = new Error((messageFromEdge as string | undefined) || (e.message as string | undefined) || t('gocardlessService.unknownError', 'Unknown error')) as GoCardlessError
 
   if (edge?.details) {
     err.details = edge.details as string

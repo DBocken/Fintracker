@@ -2838,6 +2838,7 @@ export const translations = {
     gocardlessService: {
       notAuthenticated: 'Nicht authentifiziert',
       bankConnectionNotFound: 'Bankverbindung nicht gefunden',
+      unknownError: 'Unbekannter Fehler',
     },
     moneyLib: {
       invalidAmount: 'Ungültiger Betrag',
@@ -5904,6 +5905,7 @@ export const translations = {
     gocardlessService: {
       notAuthenticated: 'Not authenticated',
       bankConnectionNotFound: 'Bank connection not found',
+      unknownError: 'Unknown error',
     },
     moneyLib: {
       invalidAmount: 'Invalid amount',
