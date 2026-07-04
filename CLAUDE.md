@@ -222,6 +222,141 @@ npm run build     # TypeScript muss kompilieren
 
 ---
 
+## Internationalisierung (i18n) — Verbindliches Standard
+
+**REGEL:** Jeder sichtbare Text muss über i18n laufen. Keine hardcodierten Strings für UI-Text.
+
+### i18n Compliance Checklist
+
+**Für jede neue Komponente/Feature:**
+
+```typescript
+// ❌ NICHT ERLAUBT (hardcodierter String):
+export default function MyComponent() {
+  return <h1>Meine Überschrift</h1>
+}
+
+// ✅ ERFORDERLICH (i18n):
+export default function MyComponent() {
+  const { t } = useI18n();
+  return <h1>{t('myFeature.title')}</h1>
+}
+```
+
+### Test-Template für i18n-Compliance
+
+**Jeder Component-Test MUSS i18n überprüfen:**
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import { I18nProvider } from "@/i18n/I18nProvider";
+
+// Helper: Alle Tests mit I18nProvider wrappen
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      {component}
+    </I18nProvider>
+  );
+}
+
+describe('MyComponent', () => {
+  // Pattern 1: Deutsch überprüfen
+  it('sollte deutsche Texte korrekt rendern', () => {
+    renderWithI18n(<MyComponent />, 'de');
+    expect(screen.getByText(/Meine Überschrift/)).toBeInTheDocument();
+  });
+
+  // Pattern 2: Englisch überprüfen (i18n Vollständigkeit)
+  it('sollte englische Texte korrekt rendern', () => {
+    renderWithI18n(<MyComponent />, 'en');
+    expect(screen.getByText(/My Heading|Meine Überschrift/)).toBeInTheDocument();
+  });
+
+  // Pattern 3: [REGRESSION] i18n-Keys existieren
+  it('[REGRESSION] sollte alle i18n-Keys in beiden Sprachen haben', () => {
+    const keys = ['myFeature.title'];
+    const { de, en } = translations;
+    keys.forEach(key => {
+      const path = key.split('.');
+      let deValue = de as any;
+      let enValue = en as any;
+      path.forEach(p => {
+        expect(deValue[p]).toBeDefined();
+        expect(enValue[p]).toBeDefined();
+        deValue = deValue[p];
+        enValue = enValue[p];
+      });
+    });
+  });
+});
+```
+
+### Workflow: Neue Strings hinzufügen
+
+**Schritt 1: Translations hinzufügen** (`src/i18n/translations.ts`)
+```typescript
+export const translations = {
+  de: {
+    myFeature: {
+      title: 'Meine Überschrift',
+      description: 'Eine Beschreibung'
+    }
+  },
+  en: {
+    myFeature: {
+      title: 'My Heading',
+      description: 'A description'
+    }
+  }
+}
+```
+
+**Schritt 2: Komponente schreiben**
+```typescript
+export default function MyComponent() {
+  const { t } = useI18n();
+  return (
+    <div>
+      <h1>{t('myFeature.title')}</h1>
+      <p>{t('myFeature.description')}</p>
+    </div>
+  );
+}
+```
+
+**Schritt 3: Tests schreiben (TDD!)**
+```typescript
+it('sollte deutsche Texte rendern', () => {
+  renderWithI18n(<MyComponent />, 'de');
+  expect(screen.getByText('Meine Überschrift')).toBeInTheDocument();
+});
+
+it('sollte englische Texte rendern', () => {
+  renderWithI18n(<MyComponent />, 'en');
+  expect(screen.getByText('My Heading')).toBeInTheDocument();
+});
+```
+
+### Anti-Patterns & Häufige Fehler
+
+| ❌ FALSCH | ✅ RICHTIG |
+|---|---|
+| `<h1>Willkommen</h1>` | `<h1>{t('page.welcome')}</h1>` |
+| `"Keine Daten" + status` | `t('page.noData').replace('{status}', status)` |
+| Test nur auf Deutsch | Test auf DE + EN (Bilingual!) |
+| String in Komponente hardcodiert | String in `translations.ts` zentral |
+| Nur `t()` ohne I18nProvider wrapping | `renderWithI18n()` helper verwenden |
+
+### Pre-Commit Hook (automatische Überprüfung)
+
+Wird überprüft durch `.claude/hooks/i18n-compliance.mjs`:
+- ❌ Blockiert: Neue hardcodierte deutsche/englische Strings in JSX
+- ❌ Blockiert: Neue Keys ohne beide Sprachen in `translations.ts`
+- ✅ Erlaubt: Keys aus `lib/constants`, `lib/utils`, Kommentare
+
+---
+
 ## Design & Animation (verbindlich)
 
 Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede UI-Arbeit:
