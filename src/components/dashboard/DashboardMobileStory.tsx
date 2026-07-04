@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Activity, Waypoints, PieChart, Mountain, Wallet, CreditCard, HeartPulse, Trophy, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useI18n } from "@/i18n/useI18n";
 import { AdvancedBalanceChart } from "@/components/AdvancedBalanceChart";
 import { SpendingBreakdownCard, ExpensesOverTimeCard } from "./TransactionCharts";
 import { AccountCards } from "@/components/accounts/AccountCards";
@@ -39,7 +40,8 @@ export function resolveSwipeTarget(
 
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
 function LandscapeView() {
-  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
+  const { t, locale } = useI18n();
+  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
   if (isLoading) {
     return <div className="h-40 animate-pulse rounded-xl bg-muted" aria-busy />;
   }
@@ -47,7 +49,7 @@ function LandscapeView() {
     return (
       <Card>
         <CardContent className="p-4 text-sm text-muted-foreground">
-          Noch keine Finanzgesundheit berechnet. Erfasse Konten und Buchungen, um deine Landschaft zu sehen.
+          {t("mobileDashboard.noHealthCalculated")}
         </CardContent>
       </Card>
     );
@@ -84,6 +86,7 @@ export default function DashboardMobileStory({
   effectiveBalances,
   totalEffectiveBalance,
 }: Props) {
+  const { t } = useI18n();
   const [params, setParams] = useSearchParams();
   const requestedView = params.get("view");
   const current: StoryView = isStoryView(requestedView) ? requestedView : "verlauf";
@@ -118,7 +121,7 @@ export default function DashboardMobileStory({
           – hier keine Wiederholung (Konsolidierung). Direkt die Diagramm-Ansichten. */}
 
       {/* Ansicht-Navigation: vollständig sichtbares Icon-Raster, kein horizontales Scrollen */}
-      <div className="grid grid-cols-3 gap-1 min-[400px]:grid-cols-6" role="tablist" aria-label="Diagramm-Ansicht">
+      <div className="grid grid-cols-3 gap-1 min-[400px]:grid-cols-6" role="tablist" aria-label={t("mobileDashboard.diagramView")}>
         {VIEWS.map((v) => {
           const Icon = v.icon;
           const active = v.key === current;
@@ -164,10 +167,10 @@ export default function DashboardMobileStory({
       {/* Sprünge zu eigenständigen Seiten */}
       <div className="flex flex-wrap gap-2">
         <Link to="/coach" className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs text-muted-foreground">
-          <HeartPulse className="h-3.5 w-3.5" /> Finanzgesundheit <ArrowRight className="h-3 w-3" />
+          <HeartPulse className="h-3.5 w-3.5" /> {t("mobileDashboard.financialHealth")} <ArrowRight className="h-3 w-3" />
         </Link>
         <Link to="/milestones" className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs text-muted-foreground">
-          <Trophy className="h-3.5 w-3.5" /> Meilensteine <ArrowRight className="h-3 w-3" />
+          <Trophy className="h-3.5 w-3.5" /> {t("mobileDashboard.milestones")} <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     </div>

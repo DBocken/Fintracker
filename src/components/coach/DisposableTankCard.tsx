@@ -9,17 +9,13 @@ import { InfoGroup } from "@/components/common/InfoGroup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useI18n } from "@/i18n/useI18n";
+import { formatCoachDaysUntil } from "@/i18n/format";
 
 const ISO = "yyyy-MM-dd";
 
 /** Sichtfenster für den nächsten Geldeingang: gut zwei Monate, falls gerade erst gezahlt wurde. */
 const INCOME_LOOKAHEAD_DAYS = 62;
-
-function daysLabel(days: number): string {
-  if (days <= 0) return "heute";
-  if (days === 1) return "morgen";
-  return `in ${days} Tagen`;
-}
 
 interface Props {
   /** Bezugszeitpunkt (Default jetzt) – injizierbar für deterministische Tests. */
@@ -37,6 +33,7 @@ interface Props {
 export default function DisposableTankCard({ now = new Date() }: Props) {
   const { input, isLoading } = useForecast();
   const { enabled: gentle } = useGentleMode();
+  const { t } = useI18n();
   const fromISO = format(now, ISO);
 
   const data = useMemo(() => {
@@ -60,9 +57,9 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
   // bestimmen → ruhiger Hinweis statt einer leeren Karte (Karten-Regel).
   if (!data) {
     return (
-      <InfoGroup title="Verfügbar bis Gehalt" description="Noch kein regelmäßiger Geldeingang erkannt.">
+      <InfoGroup title={t('coach.availableUntilPayday')} description={t('coach.noRecurringIncomeDetected')}>
         <p className="text-sm text-muted-foreground">
-          Sobald wir dein Gehalt erkennen, zeigen wir hier, wie viel bis zum nächsten Eingang frei bleibt.
+          {t('coach.incomeDetectionInfo')}
         </p>
       </InfoGroup>
     );
@@ -74,7 +71,7 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
   return (
     <InteractiveCard
       to="/liquidity"
-      aria-label={`Verfügbar bis Gehalt: ${gentle ? "verborgen" : formatCurrency(data.disposable)}. Liquidität öffnen.`}
+      aria-label={`${t('coach.availableUntilPayday')}: ${gentle ? "verborgen" : formatCurrency(data.disposable)}. ${t('coach.openLiquidity')}.`}
     >
       <div className="flex items-center gap-4">
         <BudgetTank
@@ -85,7 +82,7 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
           warnThreshold={data.warnThreshold}
         />
         <div className="min-w-0 flex-1">
-          <div className="text-sm text-muted-foreground">Verfügbar bis Gehalt</div>
+          <div className="text-sm text-muted-foreground">{t('coach.availableUntilPayday')}</div>
           <div
             className={cn(
               "text-2xl font-semibold tabular-nums",
@@ -95,11 +92,11 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
             {money(data.disposable)}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {daysLabel(data.daysUntilPayday)} bis zum Eingang · {money(data.obligations)} fix gehen noch ab
+            {formatCoachDaysUntil(data.daysUntilPayday, t)} · {money(data.obligations)} {t('coach.fixedCostsRemaining')}
           </p>
           {over && (
             <p className="mt-1 text-xs text-warning">
-              Achtung: Die Fixkosten übersteigen dein Guthaben vor dem Gehalt.
+              {t('coach.fixedCostsNotice')}
             </p>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import {
   deltaTone,
   deltaToneClass,
@@ -32,6 +33,7 @@ export default function DeltaBadge({
   options,
   className,
 }: DeltaBadgeProps) {
+  const { t } = useI18n();
   const tone = deltaTone(current, previous, options);
   const rel = relativeDelta(current, previous);
   const diff = current - previous;
@@ -43,7 +45,7 @@ export default function DeltaBadge({
     const fmt = formatAbsolute ?? ((d: number) => `${d > 0 ? "+" : ""}${Math.round(d)}`);
     text = fmt(diff);
   } else if (!Number.isFinite(rel)) {
-    text = "neu";
+    text = t("deltaBadge.new");
   } else {
     const pct = Math.round(rel * 100);
     text = `${pct > 0 ? "+" : ""}${pct} %`;

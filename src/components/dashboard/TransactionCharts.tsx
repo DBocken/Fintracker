@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -47,12 +48,13 @@ const baseEndAngle = -270;
 
 /** Balkendiagramm: Ausgaben im Zeitverlauf. */
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
+  const { t } = useI18n();
   // Baseline: Balken bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   const animate = !useReducedMotion();
   return (
     <Card className="card-premium h-full">
       <CardHeader>
-        <CardTitle>Wie ändern sich meine Ausgaben?</CardTitle>
+        <CardTitle>{t("expensesOverTime.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-44 md:h-64">
@@ -82,7 +84,7 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 'var(--radius)',
                 }}
-                formatter={(v: number) => [formatCurrencyInt(Math.round(v)), 'Ausgaben']}
+                formatter={(v: number) => [formatCurrencyInt(Math.round(v)), t("expensesOverTime.expensesLabel")]}
               />
               <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={animate} />
             </BarChart>
@@ -163,10 +165,12 @@ function SpendingBreakdownList({
     });
   };
 
+  const { t } = useI18n();
+
   if (groups.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Noch keine Ausgaben erfasst.
+        {t("spendingBreakdown.noExpenses")}
       </p>
     );
   }
@@ -185,8 +189,8 @@ function SpendingBreakdownList({
               aria-expanded={hasChildren ? isOpen : undefined}
               aria-label={
                 hasChildren
-                  ? `${group.name} ${isOpen ? 'zuklappen' : 'aufklappen'}`
-                  : `${group.name}: Buchungen ansehen`
+                  ? `${group.name} ${isOpen ? t("spendingBreakdown.toggleClose") : t("spendingBreakdown.toggleOpen")}`
+                  : `${group.name}: ${t("spendingBreakdown.viewTransactions")}`
               }
               className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -219,7 +223,7 @@ function SpendingBreakdownList({
                     <button
                       type="button"
                       onClick={() => onNavigateCategory(child.id)}
-                      aria-label={`${child.name}: Buchungen ansehen`}
+                      aria-label={`${child.name}: ${t("spendingBreakdown.viewTransactions")}`}
                       className="flex min-h-[44px] w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <span className="flex-1 min-w-0">
@@ -248,6 +252,7 @@ function SpendingBreakdownList({
 
 /** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
 export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstData; tree?: SunburstTree }) {
+  const { t } = useI18n();
   // Baseline: Ringe bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   // Daten sind via useMemo stabil → Hover (Dimming) löst keine Re-Animation aus.
   const animate = !useReducedMotion();
@@ -345,10 +350,10 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
   return (
     <Card className="card-premium flex h-full flex-col">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle>Wohin fließt mein Geld?</CardTitle>
+        <CardTitle>{t("spendingBreakdown.title")}</CardTitle>
         <div className="flex shrink-0 items-center gap-2">
           <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
-          <span className="text-sm text-muted-foreground">Prozent</span>
+          <span className="text-sm text-muted-foreground">{t("spendingBreakdown.percent")}</span>
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-3">
@@ -471,7 +476,7 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
                 onMouseEnter={() => setHoveredKey(item.id)}
                 onMouseLeave={() => setHoveredKey(null)}
                 onClick={() => navigateToKlasse(item.id)}
-                aria-label={`${item.name}: Buchungen ansehen`}
+                aria-label={`${item.name}: ${t("spendingBreakdown.viewTransactions")}`}
                 className={`flex items-center gap-1.5 rounded px-2 py-1 transition-colors ${
                   isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'
                 }`}

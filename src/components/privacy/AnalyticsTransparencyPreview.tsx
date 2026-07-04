@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ServerOff, LoaderCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 import { buildAnalyticsPackage } from "@/services/analytics-aggregation-service";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -24,6 +25,7 @@ const GROUP_LABELS: Record<string, string> = {
  * (der Upload ist im analytics-aggregation-service bewusst deaktiviert).
  */
 export default function AnalyticsTransparencyPreview() {
+  const { t } = useI18n();
   const [revealed, setRevealed] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["analytics-preview"],
@@ -37,36 +39,35 @@ export default function AnalyticsTransparencyPreview() {
       <div className="flex items-start gap-2 rounded-lg border border-positive/30 bg-positive/5 p-3 text-xs">
         <ServerOff className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
         <span>
-          Aktuell verlässt <span className="font-medium">nichts</span> davon dein Gerät – der Upload
+          Aktuell verlässt <span className="font-medium">{t("analytics.nothingLabel")}</span> davon dein Gerät – der Upload
           ist deaktiviert. Die Vorschau wird nur lokal erzeugt und zeigt, was eine anonyme Statistik
-          <span className="font-medium"> maximal</span> enthielte.
+          <span className="font-medium"> {t("analytics.maximalLabel")}</span> enthielte.
         </span>
       </div>
 
       {!revealed ? (
         <Button variant="outline" size="sm" onClick={() => setRevealed(true)}>
           <Eye className="mr-1.5 h-4 w-4" aria-hidden="true" />
-          Zeig mir, was geteilt würde
+          {t("analytics.showPreview")}
         </Button>
       ) : isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-          Aggregiere lokal …
+          {t("analytics.aggregating")}
         </div>
       ) : data ? (
         <div className="space-y-3">
           <p className="text-sm">
-            <span className="font-medium">{data.records.length}</span> aggregierte Datensätze ·{" "}
-            <span className="font-medium">{data.suppressed_records}</span> unterdrückt (weniger als{" "}
-            {data.protections.minimum_local_events} Buchungen).
+            <span className="font-medium">{data.records.length}</span> {t("analytics.aggregatedRecords")} ·{" "}
+            <span className="font-medium">{data.suppressed_records}</span> {t("analytics.suppressed").replace("{count}", String(data.protections.minimum_local_events))}
           </p>
 
           <ul className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
             {[
-              "Keine Rohdaten / einzelnen Buchungen",
-              "Direkte Identifikatoren entfernt",
-              "Exakte Verwendungszweck-Texte entfernt",
-              `k-Anonymität: min. ${data.protections.minimum_local_events} Events je Gruppe`,
+              t("analytics.noRawData"),
+              t("analytics.directIdentiersRemoved"),
+              t("analytics.exactTextRemoved"),
+              t("analytics.kAnonymity").replace("{count}", String(data.protections.minimum_local_events)),
             ].map((p) => (
               <li key={p} className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 shrink-0 text-positive" aria-hidden="true" />
@@ -77,17 +78,17 @@ export default function AnalyticsTransparencyPreview() {
 
           {data.records.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Noch keine Gruppe mit genügend Buchungen – es gäbe (noch) nichts zu aggregieren.
+              {t("analytics.noGroupsWithEnoughRecords")}
             </p>
           ) : (
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full text-xs">
                 <thead className="bg-muted/50 text-muted-foreground">
                   <tr>
-                    <th className="px-2 py-1.5 text-left font-medium">Gruppe</th>
-                    <th className="px-2 py-1.5 text-left font-medium">Monat</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Ø/Monat</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Buchungen</th>
+                    <th className="px-2 py-1.5 text-left font-medium">{t("analytics.groupColumn")}</th>
+                    <th className="px-2 py-1.5 text-left font-medium">{t("analytics.monthColumn")}</th>
+                    <th className="px-2 py-1.5 text-right font-medium">{t("analytics.avgPerMonthColumn")}</th>
+                    <th className="px-2 py-1.5 text-right font-medium">{t("analytics.transactionsColumn")}</th>
                   </tr>
                 </thead>
                 <tbody>

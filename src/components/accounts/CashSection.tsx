@@ -4,6 +4,7 @@ import { Banknote, Camera, Minus, Plus, ArrowRightLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
+import { useI18n } from "@/i18n/useI18n";
 import { getAccounts, createAccount } from "@/services/account-service";
 import { getTransactions } from "@/services/transaction-service";
 import { getNetWorthBreakdown } from "@/services/net-worth-service";
@@ -16,6 +17,7 @@ import type { Account, Transaction } from "@/types";
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
 
 export function CashSection() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -52,7 +54,7 @@ export function CashSection() {
     mutationFn: () => createAccount({ name: "Bargeld", type: "cash", is_budget_pool_member: false }),
     onSuccess: () => {
       invalidate();
-      showSuccess("Bargeld-Konto angelegt");
+      showSuccess(t('accounts.cashSection.cashAccountCreated'));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -62,7 +64,7 @@ export function CashSection() {
       moveWithdrawalToCash({ giroTransaction, cashAccountId: cashAccount!.id }),
     onSuccess: () => {
       invalidate();
-      showSuccess("Abhebung ins Bargeld-Konto übernommen");
+      showSuccess(t('accounts.cashSection.atmAccepted'));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -74,33 +76,33 @@ export function CashSection() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Banknote className="h-5 w-5" />
-              Bargeld
+              {t('accounts.cashSection.title')}
             </CardTitle>
             <CardDescription>
               {cashAccount
-                ? `Aktueller Bargeld-Bestand: ${eur.format(cashBalance)}`
-                : "Lege ein Bargeld-Konto an, um Abhebungen und Barausgaben zu tracken."}
+                ? t('accounts.cashSection.currentBalance').replace('{amount}', eur.format(cashBalance))
+                : t('accounts.cashSection.emptyDesc')}
             </CardDescription>
           </div>
           {cashAccount ? (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => setScanOpen(true)}>
                 <Camera className="mr-1.5 h-4 w-4" />
-                Beleg scannen
+                {t('accounts.cashSection.scanReceipt')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setWithdrawOpen(true)}>
                 <ArrowRightLeft className="mr-1.5 h-4 w-4" />
-                Abheben
+                {t('accounts.cashSection.withdraw')}
               </Button>
               <Button size="sm" onClick={() => setExpenseOpen(true)}>
                 <Minus className="mr-1.5 h-4 w-4" />
-                Barausgabe
+                {t('accounts.cashSection.addExpense')}
               </Button>
             </div>
           ) : (
             <Button onClick={() => createCashMutation.mutate()} disabled={createCashMutation.isPending}>
               <Plus className="mr-1.5 h-4 w-4" />
-              Bargeld-Konto anlegen
+              {t('accounts.cashSection.createCashAccount')}
             </Button>
           )}
         </div>
@@ -110,31 +112,32 @@ export function CashSection() {
         <CardContent>
           <div className="rounded-lg border border-dashed p-3">
             <div className="mb-2 text-sm font-medium">
-              {atmSuggestions.length} mögliche Abhebung{atmSuggestions.length === 1 ? "" : "en"} erkannt
+              {t('accounts.cashSection.atmSuggestionsTitle')
+                .replace('{count}', atmSuggestions.length.toString())
+                .replace('{plural}', atmSuggestions.length === 1 ? '' : 'en')}
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
-              Diese Abbuchungen sehen nach Bargeldabhebungen aus. Übernimm sie ins Bargeld-Konto,
-              damit dein Bestand stimmt.
+              {t('accounts.cashSection.atmSuggestionsDesc')}
             </p>
             <div className="space-y-2">
-              {atmSuggestions.slice(0, 5).map((t) => (
+              {atmSuggestions.slice(0, 5).map((suggestion) => (
                 <div
-                  key={t.id}
+                  key={suggestion.id}
                   className="flex items-center justify-between gap-2 rounded-md bg-muted/40 p-2 text-sm"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-medium">{t.payee || t.description}</span>
+                    <span className="block truncate font-medium">{suggestion.payee || suggestion.description}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {new Date(t.date).toLocaleDateString("de-DE")} · {eur.format(Math.abs(t.amount))}
+                      {new Date(suggestion.date).toLocaleDateString("de-DE")} · {eur.format(Math.abs(suggestion.amount))}
                     </span>
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => moveToCashMutation.mutate(t)}
+                    onClick={() => moveToCashMutation.mutate(suggestion)}
                     disabled={moveToCashMutation.isPending}
                   >
-                    Übernehmen
+                    {t('accounts.cashSection.atmAccept')}
                   </Button>
                 </div>
               ))}
@@ -150,7 +153,7 @@ export function CashSection() {
             onOpenChange={setExpenseOpen}
             defaultAccountId={cashAccount.id}
             prefill={{ accountId: cashAccount.id, direction: "expense" }}
-            title="Barausgabe erfassen"
+            title={t('accounts.cashSection.recordExpenseTitle')}
           />
           <CashWithdrawalDialog
             open={withdrawOpen}

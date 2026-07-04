@@ -1,6 +1,7 @@
 import type { Debt, DebtPriority, DebtType } from "../types";
 import { getCurrentUserId } from "./auth-service";
 import { getTransactions } from "./transaction-service";
+import { t } from "../i18n/serviceT";
 import {
   deleteLocalFinanceItem,
   readLocalFinanceList,
@@ -9,17 +10,20 @@ import {
   writeLocalFinanceList,
 } from "./local-finance-store";
 
-export const DEBT_TYPE_LABELS: Record<DebtType, string> = {
-  credit_card: "Kreditkarte",
-  bnpl: "Buy Now, Pay Later",
-  installment: "Ratenkauf",
-  overdraft: "Dispo",
-  private_loan: "Privatdarlehen",
-  car_loan: "Autokredit",
-  student_loan: "Studienkredit",
-  mortgage: "Immobilienkredit",
-  other: "Sonstige Schuld",
-};
+/** Übersetzte Anzeige-Labels je Schuldenart — als Funktion, damit sie die aktuelle Sprache widerspiegeln. */
+export function getDebtTypeLabels(): Record<DebtType, string> {
+  return {
+    credit_card: t("debtService.typeCreditCard"),
+    bnpl: t("debtService.typeBnpl"),
+    installment: t("debtService.typeInstallment"),
+    overdraft: t("debtService.typeOverdraft"),
+    private_loan: t("debtService.typePrivateLoan"),
+    car_loan: t("debtService.typeCarLoan"),
+    student_loan: t("debtService.typeStudentLoan"),
+    mortgage: t("debtService.typeMortgage"),
+    other: t("debtService.typeOther"),
+  };
+}
 
 export const DEBT_TYPE_ICONS: Record<DebtType, string> = {
   credit_card: "💳",
@@ -33,17 +37,21 @@ export const DEBT_TYPE_ICONS: Record<DebtType, string> = {
   other: "💸",
 };
 
-export const DEBT_PRIORITY_LABELS: Record<DebtPriority, string> = {
-  existenzsichernd: "Existenzsichernd",
-  normal: "Normal",
-};
+/** Übersetzte Prioritäts-Labels — als Funktion, damit sie die aktuelle Sprache widerspiegeln. */
+export function getDebtPriorityLabels(): Record<DebtPriority, string> {
+  return {
+    existenzsichernd: t("debtService.priorityExistential"),
+    normal: t("debtService.priorityNormal"),
+  };
+}
 
 /**
  * Warum existenzsichernde Rückstände immer zuerst kommen — Standard-Wissen
  * der Schuldnerberatung, als Erklärtext fürs UI (#51).
  */
-export const EXISTENTIAL_PRIORITY_EXPLANATION =
-  "Miete, Energie und Unterhalt sichern deine Wohnung und Grundversorgung. Rückstände dort haben schneller harte Folgen (Kündigung, Stromsperre) als teure Konsumschulden — deshalb stehen sie im Plan immer oben, unabhängig vom Zinssatz.";
+export function getExistentialPriorityExplanation(): string {
+  return t("debtService.existentialPriorityExplanation");
+}
 
 /** Gläubiger-Muster, die auf existenzsichernde Schulden hindeuten. */
 const EXISTENTIAL_CREDITOR_RE =
@@ -83,7 +91,7 @@ export async function createDebt(debt: Partial<Debt>): Promise<Debt> {
   return upsertLocalFinanceItem<Debt>("debts", {
     id: debt.id || crypto.randomUUID(),
     user_id: await localUserId(),
-    name: debt.name || "Neue Schuld",
+    name: debt.name || t("debtService.defaultDebtName"),
     type: debt.type || "other",
     balance: debt.balance ?? 0,
     original_amount: debt.original_amount ?? debt.balance ?? 0,

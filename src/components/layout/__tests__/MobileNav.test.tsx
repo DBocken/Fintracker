@@ -2,11 +2,12 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { translations } from "@/i18n/translations";
 import MobileNav from "@/components/layout/MobileNav";
 
-function renderMobileNav() {
+function renderMobileNav(locale: "de" | "en" = "de") {
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       <MemoryRouter>
         <MobileNav />
       </MemoryRouter>
@@ -46,6 +47,33 @@ describe("MobileNav", () => {
         expect(link.querySelector("svg")).not.toBeNull(); // Icon
         expect(link.textContent?.trim().length ?? 0).toBeGreaterThan(0); // Text
       }
+    });
+  });
+
+  describe("i18n Compliance", () => {
+    it("sollte deutsche Navigation-Texte rendern", () => {
+      renderMobileNav("de");
+      fireEvent.click(screen.getAllByRole("button")[0]);
+      // Navigation-Header sollte auf Deutsch sichtbar sein
+      expect(screen.getByText(translations.de.shell.navigation)).toBeInTheDocument();
+    });
+
+    it("sollte englische Navigation-Texte rendern", () => {
+      renderMobileNav("en");
+      fireEvent.click(screen.getAllByRole("button")[0]);
+      // Navigation-Header sollte auf Englisch sichtbar sein
+      expect(screen.getByText(translations.en.shell.navigation)).toBeInTheDocument();
+    });
+
+    it("[REGRESSION] sollte alle shell-Keys in beiden Sprachen haben", () => {
+      const requiredKeys = ["navigation", "openNavigation", "premium"];
+
+      requiredKeys.forEach((key) => {
+        const deKey = key as keyof typeof translations.de.shell;
+        const enKey = key as keyof typeof translations.en.shell;
+        expect(translations.de.shell[deKey]).toBeDefined();
+        expect(translations.en.shell[enKey]).toBeDefined();
+      });
     });
   });
 });

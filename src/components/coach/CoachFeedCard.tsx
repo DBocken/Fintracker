@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import InteractiveCard from "@/components/common/InteractiveCard";
 import type { CoachRecommendation } from "@/types";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useI18n } from "@/i18n/useI18n";
 
 const STYLES = {
   danger: { border: "border-warning/20", bg: "bg-warning/5", icon: ShieldAlert, iconColor: "text-warning" },
@@ -16,6 +17,7 @@ export default function CoachFeedCard({ card, index, featured }: { card: CoachRe
   const style = STYLES[card.severity];
   const Icon = style.icon;
   const reduce = useReducedMotion();
+  const { t } = useI18n();
   // Karten-Regel: nur mit Follow-up (ctaTo) ist es eine echte, klickbare Karte.
   // Ohne Aktion bleibt es eine flache Hinweis-Box (kein Schatten → nicht „tap-bar").
   const interactive = Boolean(card.ctaTo);
@@ -24,7 +26,7 @@ export default function CoachFeedCard({ card, index, featured }: { card: CoachRe
     <>
       {featured && (
         <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-          Wichtigste Aktion heute
+          {t('coach.topActionToday')}
         </div>
       )}
       <div className="flex gap-3">

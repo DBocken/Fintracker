@@ -9,6 +9,7 @@ import {
   readLocalFinanceList,
   upsertLocalFinanceItem,
 } from "./local-finance-store";
+import { t } from "../i18n/serviceT";
 
 export interface SchufareminderState {
   id: string;
@@ -26,19 +27,20 @@ export interface SchufareminderState {
  * DSGVO-Artikel 15 Erklärtext: Kostenlose Datenkopie, keine Score-Auswirkung.
  * Kurz, prägnant, RDG-konform (Information statt Beratung).
  */
-export const SCHUFA_EXPLANATION = {
-  headline: "Deine Daten bei der SCHUFA",
-  text: "Du hast das Recht auf eine kostenlose Kopie deiner bei der SCHUFA gespeicherten Daten — das ist in der Datenschutzgrundverordnung (DSGVO, Artikel 15) verankert.",
-  benefits: [
-    "✓ Kostenlos",
-    "✓ Beeinträchtigt deinen Score nicht",
-    "✓ Zeigt dir, was die SCHUFA über dich speichert",
-    "✓ Offenbart manchmal Fehler",
-  ],
-  warning:
-    'Achtung: Vorsicht vor bezahlten "SCHUFA-Lösungen" im Internet — die machen das gleiche wie die kostenlose Auskunft!',
-  cta: "Kostenlose Auskunft anfordern",
-};
+export function getSchufaExplanation() {
+  return {
+    headline: t("debts.schufaCard.headline"),
+    text: t("debts.schufaCard.explanationText"),
+    benefits: [
+      t("debts.schufaCard.benefitFree"),
+      t("debts.schufaCard.benefitNoScoreImpact"),
+      t("debts.schufaCard.benefitShowsData"),
+      t("debts.schufaCard.benefitRevealsErrors"),
+    ],
+    warning: t("debts.schufaCard.warning"),
+    cta: t("debts.schufaCard.cta"),
+  };
+}
 
 /**
  * Link zur offiziellen Bestellseite der SCHUFA.

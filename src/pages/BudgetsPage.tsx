@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, PiggyBank } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import BudgetFormDialog from "@/components/budgets/BudgetFormDialog";
 import SuggestedBudgets from "@/components/budgets/SuggestedBudgets";
 
 export default function BudgetsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Budget | null>(null);
@@ -45,9 +47,9 @@ export default function BudgetsPage() {
       invalidate();
       setFormOpen(false);
       setEditing(null);
-      showSuccess("Budget gespeichert");
+      showSuccess(t("budgets.saved"));
     },
-    onError: (e) => showError(e instanceof Error ? e.message : "Speichern fehlgeschlagen"),
+    onError: (e) => showError(e instanceof Error ? e.message : t("budgets.saveFailed")),
   });
 
   const deleteMutation = useMutation({
@@ -55,9 +57,9 @@ export default function BudgetsPage() {
     onSuccess: () => {
       invalidate();
       setDetailId(null);
-      showSuccess("Budget gelöscht");
+      showSuccess(t("budgets.deleted"));
     },
-    onError: (e) => showError(e instanceof Error ? e.message : "Löschen fehlgeschlagen"),
+    onError: (e) => showError(e instanceof Error ? e.message : t("budgets.deleteFailed")),
   });
 
   const handleAddSuggestion = (s: BudgetSuggestion) => {
@@ -73,7 +75,8 @@ export default function BudgetsPage() {
   };
 
   const handleDelete = (budget: Budget) => {
-    if (typeof window !== "undefined" && !window.confirm(`Budget „${budget.name}" wirklich löschen?`)) return;
+    const confirmMsg = t("budgets.confirmDelete").replace("{name}", budget.name);
+    if (typeof window !== "undefined" && !window.confirm(confirmMsg)) return;
     if (budget.id) deleteMutation.mutate(budget.id);
   };
 
@@ -89,11 +92,11 @@ export default function BudgetsPage() {
   return (
     <div>
       <PageHeader
-        title="Budgets"
-        description="Behalte deine Ausgaben im Griff – jedes Budget ist ein Tank, der sich mit dem Monat füllt. Tippe einen Tank an für Details."
+        title={t("nav.items.budgets")}
+        description={t("budgets.description")}
         actions={
           <Button onClick={openNew}>
-            <Plus className="mr-1.5 h-4 w-4" /> Budget hinzufügen
+            <Plus className="mr-1.5 h-4 w-4" /> {t("budgets.addButton")}
           </Button>
         }
       />
@@ -129,13 +132,13 @@ export default function BudgetsPage() {
               <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
                 <PiggyBank className="h-10 w-10 text-muted-foreground" />
                 <div>
-                  <div className="font-medium">Noch keine Budgets</div>
+                  <div className="font-medium">{t("budgets.emptyTitle")}</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Übernimm einen Vorschlag oben oder lege ein eigenes Budget an.
+                    {t("budgets.emptyDescription")}
                   </p>
                 </div>
                 <Button onClick={openNew} variant="outline">
-                  <Plus className="mr-1.5 h-4 w-4" /> Erstes Budget anlegen
+                  <Plus className="mr-1.5 h-4 w-4" /> {t("budgets.createFirstButton")}
                 </Button>
               </CardContent>
             </Card>

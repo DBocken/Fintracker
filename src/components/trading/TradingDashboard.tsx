@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import type { Portfolio, PortfolioPosition } from '@/types';
 import {
   getActivePortfolio,
@@ -48,6 +49,7 @@ import {
 } from 'recharts';
 
 export default function TradingDashboard() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [activePortfolio, setActivePortfolio] = useState<Portfolio | null>(null);
   const [isEtoroDialogOpen, setIsEtoroDialogOpen] = useState(false);
@@ -154,16 +156,16 @@ export default function TradingDashboard() {
       setLastUpdate(new Date());
       
       if (usingMockData) {
-        toast(`Kurse aktualisiert (${quotes.length} Positionen) - Simulierte Daten (APIs blockiert)`, {
+        toast(t('trading.dashboard.messages.pricesUpdatedMock').replace('{count}', String(quotes.length)), {
           duration: 5000,
         });
       } else {
-        toast.success(`Kurse aktualisiert (${quotes.length} Positionen)`);
+        toast.success(t('trading.dashboard.messages.pricesUpdated').replace('{count}', String(quotes.length)));
       }
     },
     onError: (error: Error) => {
       console.error('[TradingDashboard] Error refreshing quotes:', error);
-      toast.error(`Fehler beim Aktualisieren der Kurse: ${error.message}`);
+      toast.error(t('trading.dashboard.messages.pricesUpdateError').replace('{error}', error.message));
     },
   });
 
@@ -187,10 +189,10 @@ export default function TradingDashboard() {
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
         queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
-        toast.success('Position gelöscht');
+        toast.success(t('common.deleteSuccess'));
       })
       .catch((error: Error) => {
-        toast.error(`Fehler beim Löschen: ${error.message}`);
+        toast.error(t('common.deleteError').replace(': ', ': ' + error.message));
       });
   };
 
@@ -260,13 +262,12 @@ export default function TradingDashboard() {
       <Alert className="border-primary/50 bg-primary/5">
         <Shield className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          <strong>🔒 Privatsphäre-Modus aktiv:</strong> Ihre Portfolio-Daten werden ausschließlich lokal
-          gespeichert. Ihr Backend hat keinen Zugriff auf Ihre Finanzdaten.
+          <strong>🔒 {t('trading.dashboard.privacyModeTitle')}</strong> {t('trading.dashboard.privacyModeDesc')}
           {positions && positions.length > 0 && (
             <>
               <br />
               <span className="text-xs text-muted-foreground">
-                💡 Preise können über den Bleistift-Icon manuell bearbeitet werden
+                💡 {t('trading.dashboard.pricesManualEditHint')}
               </span>
             </>
           )}
@@ -276,9 +277,9 @@ export default function TradingDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Trading Portfolio</h1>
+          <h1 className="text-3xl font-bold">{t('trading.dashboard.title')}</h1>
           <p className="text-muted-foreground">
-            Verwalten Sie Ihre Investitionen und verfolgen Sie die Performance
+            {t('trading.dashboard.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -293,7 +294,7 @@ export default function TradingDashboard() {
             disabled={refreshQuotesMutation.isPending || !positions || positions.length === 0}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshQuotesMutation.isPending ? 'animate-spin' : ''}`} />
-            Kurse aktualisieren
+            {t('trading.dashboard.refreshPrices')}
           </Button>
           <Button
             size="sm"
@@ -303,7 +304,7 @@ export default function TradingDashboard() {
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Position hinzufügen
+            {t('trading.dashboard.addPosition')}
           </Button>
           <Button
             variant="outline"
@@ -311,23 +312,23 @@ export default function TradingDashboard() {
             onClick={() => setIsOcrImportDialogOpen(true)}
           >
             <Upload className="h-4 w-4 mr-2" />
-            Bild importieren
+            {t('trading.dashboard.importImage')}
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => toast('CSV-Import wird in Kürze verfügbar sein')}
-            title="In Kürze verfügbar"
+            onClick={() => toast(t('trading.dashboard.csvComingSoon'))}
+            title={t('trading.dashboard.csvComingSoon')}
           >
             <FileText className="h-4 w-4 mr-2" />
-            CSV Importieren
+            {t('trading.dashboard.importCsv')}
           </Button>
           <Button
             size="sm"
             onClick={() => setIsEtoroDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            eToro verbinden
+            {t('trading.dashboard.connectEtoro')}
           </Button>
         </div>
       </div>
@@ -337,8 +338,10 @@ export default function TradingDashboard() {
         <Alert>
           <Activity className="h-4 w-4" />
           <AlertDescription>
-            Zuletzt aktualisiert: {lastUpdate.toLocaleTimeString('de-DE')} •
-            Datenquelle: <Badge variant="outline" className="ml-1">{quoteProvider.toUpperCase()}</Badge>
+            {t('trading.dashboard.lastUpdated')
+              .replace('{time}', lastUpdate.toLocaleTimeString('de-DE'))
+              .replace('{provider}', quoteProvider.toUpperCase())}
+            <Badge variant="outline" className="ml-1">{quoteProvider.toUpperCase()}</Badge>
           </AlertDescription>
         </Alert>
       )}
@@ -348,7 +351,7 @@ export default function TradingDashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gesamtwert</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('trading.dashboard.summary.totalValue')}</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -356,14 +359,14 @@ export default function TradingDashboard() {
                 {formatCurrency(summary.total_value, summary.currency)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {summary.positions_count} Positionen
+                {t('trading.dashboard.summary.positionsCount').replace('{count}', String(summary.positions_count))}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Investiert</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('trading.dashboard.summary.invested')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -375,7 +378,7 @@ export default function TradingDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gewinn/Verlust</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('trading.dashboard.summary.gainLoss')}</CardTitle>
               {summary.unrealized_gain_loss >= 0 ? (
                 <ArrowUpRight className="h-4 w-4 text-positive dark:text-positive" />
               ) : (
@@ -400,7 +403,7 @@ export default function TradingDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rendite</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('trading.dashboard.summary.return')}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -413,7 +416,7 @@ export default function TradingDashboard() {
                 {summary.unrealized_gain_loss_percent.toFixed(2)}%
               </div>
               <p className="text-xs text-muted-foreground">
-                Aktuell unrealisiert
+                {t('trading.dashboard.summary.unrealizedReturn')}
               </p>
             </CardContent>
           </Card>
@@ -423,9 +426,9 @@ export default function TradingDashboard() {
       {/* Main Content */}
       <Tabs defaultValue="positions" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="positions">Positionen</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="portfolios">Portfolios verwalten</TabsTrigger>
+          <TabsTrigger value="positions">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
+          <TabsTrigger value="performance">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
+          <TabsTrigger value="portfolios">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="positions" className="space-y-4">
@@ -446,7 +449,7 @@ export default function TradingDashboard() {
         <TabsContent value="performance" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Portfolio-Verlauf</CardTitle>
+              <CardTitle>{t('trading.dashboard.performanceChart.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -457,7 +460,7 @@ export default function TradingDashboard() {
                   <Tooltip
                     formatter={(value: number) => [
                       formatCurrency(value, 'EUR'),
-                      'Wert'
+                      t('trading.dashboard.performanceChart.valueLabel')
                     ]}
                   />
                   <Line
@@ -470,7 +473,7 @@ export default function TradingDashboard() {
                 </LineChart>
               </ResponsiveContainer>
               <p className="text-xs text-muted-foreground mt-4 text-center">
-                * Simulierter Verlauf basierend auf aktuellen Portfoliodaten
+                {t('trading.dashboard.performanceChart.disclaimer')}
               </p>
             </CardContent>
           </Card>

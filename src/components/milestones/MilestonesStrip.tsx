@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type { MilestoneStatus } from "@/services/milestones-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import CelebrationBurst from "@/components/common/CelebrationBurst";
@@ -19,6 +20,7 @@ export default function MilestonesStrip({
   milestones: MilestoneStatus[];
   variant?: "full" | "compact";
 }) {
+  const { t } = useI18n();
   const justAchieved = milestones.filter((m) => m.justAchieved);
   const reduce = useReducedMotion();
 
@@ -37,7 +39,7 @@ export default function MilestonesStrip({
           >
             <div className="flex items-center gap-2 text-sm font-semibold text-positive">
             <CelebrationBurst size={26} />
-            Meilenstein erreicht!
+            {t("milestones.justAchieved")}
           </div>
             <div className="mt-1 flex flex-wrap gap-2">
               {justAchieved.map((m) => (
@@ -64,7 +66,7 @@ export default function MilestonesStrip({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase text-muted-foreground">
-                  {m.achieved ? "Zuletzt erreicht" : "Nächstes Ziel"}
+                  {m.achieved ? t("health.lastAchieved") : t("health.nextGoal")}
                 </div>
                 <div className="truncate text-sm font-medium">{m.definition.title}</div>
                 {!m.achieved && (
@@ -88,7 +90,7 @@ export default function MilestonesStrip({
         >
           <div className="flex items-center gap-2 text-sm font-semibold text-positive">
             <CelebrationBurst size={26} />
-            Meilenstein erreicht!
+            {t("milestones.justAchieved")}
           </div>
           <div className="mt-1 flex flex-wrap gap-2">
             {justAchieved.map((m) => (

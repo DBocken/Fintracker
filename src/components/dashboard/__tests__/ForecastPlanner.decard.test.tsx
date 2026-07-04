@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import { BudgetOverrideForm } from '../ForecastPlanner';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 
@@ -17,14 +18,16 @@ const overrides = { categoryBudgets: {} } as unknown as ForecastOverrides;
 describe('ForecastPlanner Prinzip 8 (Karten sind Aktionen)', () => {
   it('[REGRESSION] Budget-Zeilen sollen keinen Karten-Rahmen tragen (kein Rahmen um ein einzelnes Feld)', () => {
     const { container } = render(
-      <BudgetOverrideForm
-        variableExpenses={[
-          { category: 'Wohnen', monthlyAmount: 1071.08, confidence: 0.75 },
-          { category: 'Lebensmittel', monthlyAmount: 158.06, confidence: 0.75 },
-        ]}
-        overrides={overrides}
-        onChange={() => {}}
-      />,
+      <I18nProvider>
+        <BudgetOverrideForm
+          variableExpenses={[
+            { category: 'Wohnen', monthlyAmount: 1071.08, confidence: 0.75 },
+            { category: 'Lebensmittel', monthlyAmount: 158.06, confidence: 0.75 },
+          ]}
+          overrides={overrides}
+          onChange={() => {}}
+        />
+      </I18nProvider>,
     );
     // Jede Budget-Zeile (direktes Kind der Liste) darf kein Karten-Chrome haben.
     const rows = Array.from(container.querySelectorAll(':scope > div > div'));
@@ -36,11 +39,13 @@ describe('ForecastPlanner Prinzip 8 (Karten sind Aktionen)', () => {
 
   it('sollte die Kategorien und ihre Eingabefelder weiterhin rendern', () => {
     const { getByText, getAllByRole } = render(
-      <BudgetOverrideForm
-        variableExpenses={[{ category: 'Wohnen', monthlyAmount: 1071.08 }]}
-        overrides={overrides}
-        onChange={() => {}}
-      />,
+      <I18nProvider>
+        <BudgetOverrideForm
+          variableExpenses={[{ category: 'Wohnen', monthlyAmount: 1071.08 }]}
+          overrides={overrides}
+          onChange={() => {}}
+        />
+      </I18nProvider>,
     );
     expect(getByText('Wohnen')).toBeInTheDocument();
     expect(getAllByRole('spinbutton').length).toBe(1);

@@ -8,9 +8,9 @@ import { evaluateMilestones } from "@/services/milestones-service";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function MilestonesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { data: milestones, isLoading } = useQuery({
-    queryKey: ["milestones"],
+    queryKey: ["milestones", locale],
     queryFn: evaluateMilestones,
   });
 

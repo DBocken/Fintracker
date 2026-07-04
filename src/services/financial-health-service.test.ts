@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import { getHealthLabel } from "./financial-health-service";
 
 describe("getHealthLabel", () => {
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
+
   it("ordnet Scores den richtigen Stufen und Tönen zu", () => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
     expect(getHealthLabel(95)).toEqual({ label: "Sehr gesund", tone: "good" });
     expect(getHealthLabel(80)).toEqual({ label: "Sehr gesund", tone: "good" });
     expect(getHealthLabel(60)).toEqual({ label: "Gesund", tone: "ok" });

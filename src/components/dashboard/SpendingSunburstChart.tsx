@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronUp } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
+import { useI18n } from '@/i18n/useI18n';
 import { CHART_BRAND } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
 import type { SunburstNode, SunburstTree } from '@/lib/analysis-data';
@@ -109,12 +110,13 @@ export function SpendingSunburstChart({
   onNavigateCategory,
   onNavigateKlasse,
 }: Props) {
+  const { t } = useI18n();
   const reduce = useReducedMotion();
 
   // Virtuelle Wurzel: ihre Kinder sind die Klassen (Innenring).
   const root = useMemo<SunburstNode>(
-    () => ({ id: '__root', name: 'Gesamt', value: tree.total, klasseId: 'unkategorisiert', categoryId: null, children: tree.children }),
-    [tree],
+    () => ({ id: '__root', name: t('spending.total'), value: tree.total, klasseId: 'unkategorisiert', categoryId: null, children: tree.children }),
+    [tree, t],
   );
 
   // Index für Zoom-zurück (Kind-ID -> Eltern-Knoten).
@@ -192,7 +194,7 @@ export function SpendingSunburstChart({
 
   if (tree.total <= 0 || tree.children.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-muted-foreground">Noch keine Ausgaben erfasst.</p>
+      <p className="py-10 text-center text-sm text-muted-foreground">{t('spending.noExpenses')}</p>
     );
   }
 
@@ -215,7 +217,7 @@ export function SpendingSunburstChart({
                 className={cn(interactive && 'cursor-pointer outline-none focus-visible:opacity-100')}
                 role="button"
                 tabIndex={0}
-                aria-label={`${seg.node.name}: ${valueFor(seg.node)}${seg.node.children.length > 0 ? ' — zum Reinzoomen tippen' : ''}`}
+                aria-label={`${seg.node.name}: ${valueFor(seg.node)}${seg.node.children.length > 0 ? ' — ' + t('spending.zoomInHint') : ''}`}
                 onClick={() => handleSegmentClick(seg.node)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -233,7 +235,7 @@ export function SpendingSunburstChart({
           type="button"
           onClick={zoomOut}
           disabled={isRoot}
-          aria-label={isRoot ? 'Gesamtausgaben' : `Zurück zu ${parentOf.get(focus.id)?.name ?? 'Gesamt'}`}
+          aria-label={isRoot ? t('spending.totalExpenses') : t('spending.backTo').replace('{name}', parentOf.get(focus.id)?.name ?? t('spending.total'))}
           className={cn(
             'absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             !isRoot && 'cursor-pointer',
@@ -243,13 +245,13 @@ export function SpendingSunburstChart({
           {!isRoot && <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />}
           <span className="px-1 text-[11px] font-semibold leading-tight tabular-nums">{centerValueLabel}</span>
           <span className="max-w-full truncate px-1 text-[9px] leading-tight text-muted-foreground">
-            {isRoot ? 'Gesamt' : focus.name}
+            {isRoot ? t('spending.total') : focus.name}
           </span>
         </button>
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        {isRoot ? 'Tippe ein Segment zum Reinzoomen' : 'Tippe die Mitte für zurück'}
+        {isRoot ? t('spending.tapSegmentZoom') : t('spending.tapCenterBack')}
       </p>
     </div>
   );

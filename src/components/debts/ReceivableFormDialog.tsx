@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Receivable, ReceivableType } from "@/types";
-import { RECEIVABLE_TYPE_LABELS } from "@/services/receivable-service";
+import { getReceivableTypeLabels } from "@/services/receivable-service";
+import { useI18n } from "@/i18n/useI18n";
 
 interface ReceivableFormDialogProps {
   open: boolean;
@@ -39,6 +40,8 @@ export function ReceivableFormDialog({
   onSave,
   isLoading,
 }: ReceivableFormDialogProps) {
+  const { t } = useI18n();
+  const receivableTypeLabels = getReceivableTypeLabels();
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export function ReceivableFormDialog({
 
   const handleSubmit = () => {
     onSave({
-      name: form.name.trim() || "Neue Forderung",
+      name: form.name.trim() || t('debtService.defaultReceivableName'),
       debtor: form.debtor.trim() || null,
       type: form.type,
       amount: parseFloat(form.amount) || 0,
@@ -73,35 +76,35 @@ export function ReceivableFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{receivable?.id ? "Forderung bearbeiten" : "Neue Forderung"}</DialogTitle>
+          <DialogTitle>{receivable?.id ? t('debts.receivableForm.editTitle') : t('debts.receivableForm.newTitle')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="rec-name">Bezeichnung</Label>
+            <Label htmlFor="rec-name">{t('debts.receivableForm.nameLabel')}</Label>
             <Input
               id="rec-name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="z. B. Konzertticket für Max"
+              placeholder={t('debts.receivableForm.namePlaceholder')}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rec-debtor">Schuldner (wer schuldet dir?)</Label>
+            <Label htmlFor="rec-debtor">{t('debts.receivableForm.debtorLabel')}</Label>
             <Input
               id="rec-debtor"
               value={form.debtor}
               onChange={(e) => setForm((f) => ({ ...f, debtor: e.target.value }))}
-              placeholder="z. B. Max Mustermann"
+              placeholder={t('debts.receivableForm.debtorPlaceholder')}
             />
             <p className="text-xs text-muted-foreground">
-              Hilft uns, eingehende Rückzahlungen automatisch dieser Forderung zuzuordnen.
+              {t('debts.receivableForm.debtorHint')}
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Art</Label>
+            <Label>{t('debts.receivableForm.typeLabel')}</Label>
             <Select
               value={form.type}
               onValueChange={(v) => setForm((f) => ({ ...f, type: v as ReceivableType }))}
@@ -110,9 +113,9 @@ export function ReceivableFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(RECEIVABLE_TYPE_LABELS) as ReceivableType[]).map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {RECEIVABLE_TYPE_LABELS[t]}
+                {(Object.keys(receivableTypeLabels) as ReceivableType[]).map((receivableType) => (
+                  <SelectItem key={receivableType} value={receivableType}>
+                    {receivableTypeLabels[receivableType]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -121,7 +124,7 @@ export function ReceivableFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="rec-amount">Offener Betrag (€)</Label>
+              <Label htmlFor="rec-amount">{t('debts.receivableForm.amountLabel')}</Label>
               <Input
                 id="rec-amount"
                 type="number"
@@ -132,7 +135,7 @@ export function ReceivableFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="rec-due">Fällig bis (optional)</Label>
+              <Label htmlFor="rec-due">{t('debts.receivableForm.dueLabel')}</Label>
               <Input
                 id="rec-due"
                 type="date"
@@ -143,19 +146,19 @@ export function ReceivableFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rec-notes">Notiz (optional)</Label>
+            <Label htmlFor="rec-notes">{t('debts.receivableForm.notesLabel')}</Label>
             <Input
               id="rec-notes"
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder="z. B. Rückzahlung in Raten vereinbart"
+              placeholder={t('debts.receivableForm.notesPlaceholder')}
             />
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <Label htmlFor="rec-cash">Bar verliehen</Label>
-              <p className="text-xs text-muted-foreground">Ohne Bankbeleg, in bar übergeben.</p>
+              <Label htmlFor="rec-cash">{t('debts.receivableForm.cashLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('debts.receivableForm.cashHint')}</p>
             </div>
             <Switch
               id="rec-cash"
@@ -167,10 +170,10 @@ export function ReceivableFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {receivable?.id ? "Speichern" : "Hinzufügen"}
+            {receivable?.id ? t('common.save') : t('debts.receivableForm.addButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

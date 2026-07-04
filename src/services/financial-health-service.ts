@@ -2,6 +2,7 @@ import type { Transaction, Debt } from "../types";
 import { getTransactions } from "./transaction-service";
 import { getDebts, getTotalMinPayment } from "./debt-service";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "./net-worth-service";
+import { t } from "../i18n/serviceT";
 
 export interface SubScore {
   key: string;
@@ -89,12 +90,12 @@ export function computeFinancialHealth(
   const emergencyScore = clamp((monthsCovered / 6) * 100);
   subScores.push({
     key: "emergency_fund",
-    label: "Notgroschen",
+    label: t("financialHealthService.emergencyFundLabel"),
     score: emergencyScore,
     explanation:
       expenses > 0
-        ? `Deine liquiden Mittel decken ${monthsCovered.toFixed(1)} Monatsausgaben (Ziel: 6).`
-        : "Noch nicht genug Daten für eine Bewertung.",
+        ? t("financialHealthService.emergencyFundExplanationCovered").replace("{months}", monthsCovered.toFixed(1))
+        : t("financialHealthService.notEnoughData"),
   });
 
   // 2. Debt: ratio of debt to annual income (lower is better)
@@ -103,21 +104,21 @@ export function computeFinancialHealth(
   const debtScore = netWorth.debts <= 0 ? 100 : clamp(100 - debtRatio * 100);
   subScores.push({
     key: "debt",
-    label: "Schulden",
+    label: t("financialHealthService.debtLabel"),
     score: debtScore,
     explanation:
       netWorth.debts <= 0
-        ? "Du bist schuldenfrei. Stark!"
-        : `Deine Schulden betragen ${(debtRatio * 100).toFixed(0)} % deines Jahreseinkommens.`,
+        ? t("financialHealthService.debtFree")
+        : t("financialHealthService.debtRatio").replace("{percent}", (debtRatio * 100).toFixed(0)),
   });
 
   // 3. Savings rate
   const savingsScore = clamp((savingsRate / 0.2) * 100);
   subScores.push({
     key: "savings_rate",
-    label: "Sparquote",
+    label: t("financialHealthService.savingsRateLabel"),
     score: savingsScore,
-    explanation: `Deine Sparquote liegt bei ${(savingsRate * 100).toFixed(0)} % (Ziel: 20 %).`,
+    explanation: t("financialHealthService.savingsRateExplanation").replace("{percent}", (savingsRate * 100).toFixed(0)),
   });
 
   // 4. Liquidity: can income cover expenses + min debt payments?
@@ -127,12 +128,12 @@ export function computeFinancialHealth(
   const liquidityScore = clamp(((liquidityRatio - 1) / 0.5) * 100 + (liquidityRatio >= 1 ? 50 : 0));
   subScores.push({
     key: "liquidity",
-    label: "Liquidität",
+    label: t("financialHealthService.liquidityLabel"),
     score: liquidityScore,
     explanation:
       obligations > 0
-        ? `Dein Einkommen deckt deine Verpflichtungen zu ${(liquidityRatio * 100).toFixed(0)} %.`
-        : "Noch nicht genug Daten für eine Bewertung.",
+        ? t("financialHealthService.liquidityExplanation").replace("{percent}", (liquidityRatio * 100).toFixed(0))
+        : t("financialHealthService.notEnoughData"),
   });
 
   // 5. Contracts / fixed costs share (lower share is healthier)
@@ -141,12 +142,12 @@ export function computeFinancialHealth(
   const contractsScore = clamp(100 - fixedPressure * 200);
   subScores.push({
     key: "contracts",
-    label: "Verträge & Fixkosten",
+    label: t("financialHealthService.contractsLabel"),
     score: contractsScore,
     explanation:
       minPayments > 0
-        ? `Feste Schuldenraten binden ${(fixedPressure * 100).toFixed(0)} % deines Einkommens.`
-        : "Keine festen Schuldenraten erkannt.",
+        ? t("financialHealthService.contractsExplanation").replace("{percent}", (fixedPressure * 100).toFixed(0))
+        : t("financialHealthService.noFixedDebtRates"),
   });
 
   const overall = clamp(
@@ -164,10 +165,10 @@ export function computeFinancialHealth(
 }
 
 export function getHealthLabel(score: number): { label: string; tone: "good" | "ok" | "warn" | "bad" } {
-  if (score >= 80) return { label: "Sehr gesund", tone: "good" };
-  if (score >= 60) return { label: "Gesund", tone: "ok" };
-  if (score >= 40) return { label: "Achtsam sein", tone: "warn" };
-  return { label: "Handlungsbedarf", tone: "bad" };
+  if (score >= 80) return { label: t("financialHealthService.healthVeryGood"), tone: "good" };
+  if (score >= 60) return { label: t("financialHealthService.healthGood"), tone: "ok" };
+  if (score >= 40) return { label: t("financialHealthService.healthMindful"), tone: "warn" };
+  return { label: t("financialHealthService.healthActionNeeded"), tone: "bad" };
 }
 
 export type { Debt };

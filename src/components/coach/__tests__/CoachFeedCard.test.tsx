@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import CoachFeedCard from "../CoachFeedCard";
 import type { CoachRecommendation } from "@/types";
 
@@ -17,9 +18,11 @@ function makeCard(overrides: Partial<CoachRecommendation> = {}): CoachRecommenda
 
 function renderCard(card: CoachRecommendation, featured = false) {
   return render(
-    <MemoryRouter>
-      <CoachFeedCard card={card} index={0} featured={featured} />
-    </MemoryRouter>,
+    <I18nProvider>
+      <MemoryRouter>
+        <CoachFeedCard card={card} index={0} featured={featured} />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 

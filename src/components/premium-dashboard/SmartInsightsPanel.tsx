@@ -1,5 +1,6 @@
 import { TrendingDown, TrendingUp, Lightbulb } from "lucide-react";
 import { dyadProps } from "@/lib/dyad";
+import { useI18n } from "@/i18n/useI18n";
 
 interface SmartInsightsPanelProps {
   totalIncome: number;
@@ -15,26 +16,27 @@ const fmtEUR0 = new Intl.NumberFormat("de-DE", {
 });
 
 export function SmartInsightsPanel({ totalIncome, totalExpenses, topExpense, topIncome }: SmartInsightsPanelProps) {
+  const { t } = useI18n();
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
   const items = [
     {
       icon: TrendingDown,
-      label: "Größte Ausgabe",
+      label: t("premium.smartInsights.topExpense"),
       value: fmtEUR0.format(topExpense?.amount || 0),
-      detail: topExpense?.name || "Keine Daten",
+      detail: topExpense?.name || t("premium.smartInsights.noData"),
     },
     {
       icon: TrendingUp,
-      label: "Höchste Einnahme",
+      label: t("premium.smartInsights.topIncome"),
       value: fmtEUR0.format(topIncome?.amount || 0),
-      detail: topIncome?.name || "Keine Daten",
+      detail: topIncome?.name || t("premium.smartInsights.noData"),
     },
     {
       icon: Lightbulb,
-      label: "Sparquote",
+      label: t("premium.smartInsights.savingsRate"),
       value: `${savingsRate.toFixed(1)}%`,
-      detail: savingsRate >= 0 ? "Positiv" : "Negativ",
+      detail: savingsRate >= 0 ? t("premium.smartInsights.positive") : t("premium.smartInsights.negative"),
     },
   ];
 

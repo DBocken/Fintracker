@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { User as UserIcon, LogIn } from "lucide-react";
 import ProfileDialogContent from "@/components/ProfileDialogContent";
+import { useI18n } from "@/i18n/useI18n";
 
 function getInitials(name: string) {
   return name
@@ -22,27 +23,28 @@ function getInitials(name: string) {
  */
 export default function UserQuickProfile() {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   const displayName = useMemo(() => {
     return (
       (user?.user_metadata?.full_name as string) ||
       (user?.user_metadata?.name as string) ||
       user?.email ||
-      "Unbekannter Nutzer"
+      t('userProfile.unknownUser')
     );
-  }, [user]);
+  }, [user, t]);
 
   const initials = getInitials(displayName);
 
   // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
   if (!user) {
     return (
-      <Button asChild variant="outline" size="sm" aria-label="Anmelden" title="Anmelden">
+      <Button asChild variant="outline" size="sm" aria-label={t('userProfile.login')} title={t('userProfile.login')}>
         <Link to="/login">
           {/* Auf sehr schmalen Phones (<360px) nur das Icon, damit der Header
               nicht überläuft; ab xs zusätzlich der Text. */}
           <LogIn className="h-3.5 w-3.5 xs:mr-1.5" aria-hidden="true" />
-          <span className="hidden xs:inline">Anmelden</span>
+          <span className="hidden xs:inline">{t('userProfile.login')}</span>
         </Link>
       </Button>
     );
@@ -53,7 +55,7 @@ export default function UserQuickProfile() {
       <DialogTrigger asChild>
         <button
           className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white transition-opacity hover:opacity-90"
-          aria-label="Profil öffnen"
+          aria-label={t('userProfile.openProfile')}
           title={displayName}
         >
           {initials || <UserIcon className="h-4 w-4" />}

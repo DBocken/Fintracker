@@ -7,6 +7,7 @@ import { parseISO, startOfMonth, format } from 'date-fns';
 import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
 import { chartRamp, CHART_NET } from '@/lib/chart-colors';
+import { useI18n } from '@/i18n/useI18n';
 
 interface TimelineChartProps {
   data: Array<{
@@ -20,6 +21,7 @@ interface TimelineChartProps {
 }
 
 export function TimelineChart({ data, flowTransactions, categories }: TimelineChartProps) {
+  const { t } = useI18n();
   // Hilfsmap für Kategorien
   const categoryMap = useMemo(() => {
     const m = new Map<string, Category>();
@@ -30,11 +32,11 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
   // Höchsten Vorfahren als Hauptkategorie bestimmen
   const resolveMainCategory = useCallback((catId: string | null): { mainId: string; mainName: string } => {
     if (!catId) {
-      return { mainId: '__uncategorized_main', mainName: 'Unkategorisiert' };
+      return { mainId: '__uncategorized_main', mainName: t("premium.timeline.uncategorized") };
     }
     let current = categoryMap.get(catId) || null;
     if (!current) {
-      return { mainId: '__uncategorized_main', mainName: 'Unkategorisiert' };
+      return { mainId: '__uncategorized_main', mainName: t("premium.timeline.uncategorized") };
     }
     let main = current;
     const visited = new Set<string>();
@@ -47,7 +49,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
       current = parent;
     }
     return { mainId: main.id, mainName: main.name };
-  }, [categoryMap]);
+  }, [categoryMap, t]);
 
   // Monatsbezogene Ausgaben pro Hauptkategorie berechnen
   const monthlyCategoryExpenses = useMemo(() => {
@@ -137,7 +139,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
   return (
     <Card {...dyadProps("TimelineChart")}>
       <CardHeader>
-        <CardTitle>Wie entwickelt sich mein Geld im Zeitverlauf?</CardTitle>
+        <CardTitle>{t("premium.timeline.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Steuerung */}
@@ -145,7 +147,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch checked={showIncome} onCheckedChange={(v) => setShowIncome(Boolean(v))} />
-              <span className="text-sm text-muted-foreground">Einnahmen anzeigen</span>
+              <span className="text-sm text-muted-foreground">{t("premium.timeline.showIncome")}</span>
             </div>
           </div>
           {/* Kategorien-Auswahl */}
@@ -176,23 +178,23 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="formattedDate" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={64} tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
-            <Tooltip 
+            <Tooltip
               formatter={(value: number, name: string) => [
                 value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
                 name
               ]}
-              labelFormatter={(label) => `Monat: ${label}`}
+              labelFormatter={(label) => t("premium.timeline.monthTooltip").replace('{label}', String(label))}
             />
             <Legend />
 
             {/* Einnahmen (optional) */}
             {showIncome && (
-              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name={t("premium.timeline.incomeLabel")} />
             )}
 
             {/* Ausgaben: ein Brand-Balken oder gestapelte Kategorien (Monochrom-Rampe) + Rest */}
             {!hasSelection ? (
-              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name={t("premium.timeline.expensesLabel")} />
             ) : (
               <>
                 {Array.from(selectedCats).map((name) => (
@@ -204,7 +206,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
                     name={name}
                   />
                 ))}
-                <Bar dataKey="Rest" stackId="expenses" fill="hsl(var(--muted-foreground))" name="Rest" />
+                <Bar dataKey="Rest" stackId="expenses" fill="hsl(var(--muted-foreground))" name={t("premium.timeline.restLabel")} />
               </>
             )}
 
@@ -217,7 +219,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
               fill="url(#fillTimelineNet)"
               dot={false}
               activeDot={{ r: 5, stroke: CHART_NET, strokeWidth: 2 }}
-              name="Netto-Bilanz"
+              name={t("premium.timeline.netBalanceLabel")}
             />
           </ComposedChart>
         </ResponsiveContainer>

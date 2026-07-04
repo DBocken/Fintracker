@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type { FinancialHealth } from "@/services/financial-health-service";
 import { getHealthLabel } from "@/services/financial-health-service";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/status-bucket";
 
 export default function HealthScoreCard({ health }: { health: FinancialHealth }) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   const [open, setOpen] = useState(false);
   const { label } = getHealthLabel(health.score);
@@ -67,11 +69,11 @@ export default function HealthScoreCard({ health }: { health: FinancialHealth })
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Heart className="h-4 w-4" />
-            Finanzieller Gesundheits-Score
+            {t("health.financialHealthScore")}
           </div>
           <div className={cn("mt-1 text-lg font-semibold sm:text-xl", statusTextClass(bucket))}>{label}</div>
           <span className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-sm text-primary">
-            Subscores {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {t("health.subscores")} {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </span>
         </div>
       </button>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import type { PortfolioPosition } from '@/types';
 import { createPosition, updatePosition } from '@/services/portfolio-service';
 import {
@@ -35,6 +36,7 @@ export default function AddPositionDialog({
   portfolioId,
   editPosition,
 }: AddPositionDialogProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [symbol, setSymbol] = useState('');
   const [name, setName] = useState('');
@@ -75,11 +77,11 @@ export default function AddPositionDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio-positions', portfolioId] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-summary', portfolioId] });
-      toast.success('Position erfolgreich hinzugefügt');
+      toast.success(t('trading.addPositionDialog.messages.success'));
       handleClose();
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Hinzufügen: ${error.message}`);
+      toast.error(t('trading.addPositionDialog.messages.errorAdd').replace('{error}', error.message));
     },
   });
 
@@ -90,11 +92,11 @@ export default function AddPositionDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio-positions', portfolioId] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-summary', portfolioId] });
-      toast.success('Position erfolgreich aktualisiert');
+      toast.success(t('trading.addPositionDialog.messages.updateSuccess'));
       handleClose();
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Aktualisieren: ${error.message}`);
+      toast.error(t('trading.addPositionDialog.messages.errorUpdate').replace('{error}', error.message));
     },
   });
 
@@ -103,26 +105,26 @@ export default function AddPositionDialog({
 
     // Validation
     if (!symbol.trim()) {
-      toast.error('Bitte geben Sie ein Symbol ein');
+      toast.error(t('trading.addPositionDialog.messages.symbolRequired'));
       return;
     }
 
     // Validate symbol format (A-Z, 0-9, dot, hyphen)
     const symbolRegex = /^[A-Z0-9.-]+$/;
     if (!symbolRegex.test(symbol.trim().toUpperCase())) {
-      toast.error('Ungültiges Symbol-Format');
+      toast.error(t('trading.addPositionDialog.messages.invalidSymbol'));
       return;
     }
 
     const quantityNum = parseFloat(quantity);
     if (isNaN(quantityNum) || quantityNum <= 0) {
-      toast.error('Bitte geben Sie eine gültige Menge ein');
+      toast.error(t('trading.addPositionDialog.messages.quantityInvalid'));
       return;
     }
 
     const entryPriceNum = parseFloat(entryPrice);
     if (isNaN(entryPriceNum) || entryPriceNum < 0) {
-      toast.error('Bitte geben Sie einen gültigen Einstiegspreis ein');
+      toast.error(t('trading.addPositionDialog.messages.priceInvalid'));
       return;
     }
 
@@ -172,23 +174,23 @@ export default function AddPositionDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Position bearbeiten' : 'Position hinzufügen'}
+            {isEditing ? t('trading.addPositionDialog.titleEdit') : t('trading.addPositionDialog.titleNew')}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Bearbeiten Sie die Details für Ihre Position.'
-              : 'Geben Sie die Details für Ihre neue Position ein.'}
+              ? t('trading.addPositionDialog.descEdit')
+              : t('trading.addPositionDialog.descNew')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="symbol" className="text-right">
-                Symbol *
+                {t('trading.addPositionDialog.symbolLabel')}
               </Label>
               <Input
                 id="symbol"
-                placeholder="z.B. AAPL, SAP, VOW3, BTC"
+                placeholder={t('trading.addPositionDialog.symbolPlaceholder')}
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                 className="col-span-3"
@@ -198,11 +200,11 @@ export default function AddPositionDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Name
+                {t('trading.addPositionDialog.nameLabel')}
               </Label>
               <Input
                 id="name"
-                placeholder="z.B. Apple Inc."
+                placeholder={t('trading.addPositionDialog.namePlaceholder')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="col-span-3"
@@ -212,14 +214,14 @@ export default function AddPositionDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="quantity" className="text-right">
-                Menge *
+                {t('trading.addPositionDialog.quantityLabel')}
               </Label>
               <Input
                 id="quantity"
                 type="number"
                 step="any"
                 min="0"
-                placeholder="z.B. 10"
+                placeholder={t('trading.addPositionDialog.quantityPlaceholder')}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="col-span-3"
@@ -229,14 +231,14 @@ export default function AddPositionDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="entryPrice" className="text-right">
-                Einstiegspreis *
+                {t('trading.addPositionDialog.entryPriceLabel')}
               </Label>
               <Input
                 id="entryPrice"
                 type="number"
                 step="any"
                 min="0"
-                placeholder="z.B. 178.50"
+                placeholder={t('trading.addPositionDialog.entryPricePlaceholder')}
                 value={entryPrice}
                 onChange={(e) => setEntryPrice(e.target.value)}
                 className="col-span-3"
@@ -246,7 +248,7 @@ export default function AddPositionDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="currency" className="text-right">
-                Währung *
+                {t('trading.addPositionDialog.currencyLabel')}
               </Label>
               <Select
                 value={currency}
@@ -257,22 +259,22 @@ export default function AddPositionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                  <SelectItem value="USD">USD (US-Dollar)</SelectItem>
-                  <SelectItem value="GBP">GBP (Britisches Pfund)</SelectItem>
-                  <SelectItem value="CHF">CHF (Schweizer Franken)</SelectItem>
-                  <SelectItem value="BTC">BTC (Bitcoin)</SelectItem>
+                  <SelectItem value="EUR">{t('trading.addPositionDialog.currencyEur')}</SelectItem>
+                  <SelectItem value="USD">{t('trading.addPositionDialog.currencyUsd')}</SelectItem>
+                  <SelectItem value="GBP">{t('trading.addPositionDialog.currencyGbp')}</SelectItem>
+                  <SelectItem value="CHF">{t('trading.addPositionDialog.currencyChf')}</SelectItem>
+                  <SelectItem value="BTC">{t('trading.addPositionDialog.currencyBtc')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="exchange" className="text-right">
-                Börse
+                {t('trading.addPositionDialog.exchangeLabel')}
               </Label>
               <Input
                 id="exchange"
-                placeholder="z.B. NASDAQ, XETRA"
+                placeholder={t('trading.addPositionDialog.exchangePlaceholder')}
                 value={exchange}
                 onChange={(e) => setExchange(e.target.value)}
                 className="col-span-3"
@@ -282,7 +284,7 @@ export default function AddPositionDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="buyDate" className="text-right">
-                Kaufdatum
+                {t('trading.addPositionDialog.buyDateLabel')}
               </Label>
               <Input
                 id="buyDate"
@@ -302,17 +304,17 @@ export default function AddPositionDialog({
               onClick={handleClose}
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              Abbrechen
+              {t('trading.addPositionDialog.cancelButton')}
             </Button>
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
             >
               {(createMutation.isPending || updateMutation.isPending)
-                ? 'Speichern...'
+                ? t('trading.addPositionDialog.savingButton')
                 : isEditing
-                ? 'Aktualisieren'
-                : 'Speichern'}
+                ? t('trading.addPositionDialog.updateButton')
+                : t('trading.addPositionDialog.saveButton')}
             </Button>
           </DialogFooter>
         </form>

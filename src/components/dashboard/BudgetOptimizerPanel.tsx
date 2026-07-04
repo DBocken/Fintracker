@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useI18n } from '@/i18n/useI18n';
 import type { ForecastInput } from '@/lib/forecast-types';
 import type { Prioritaet } from '@/types';
 import {
@@ -16,10 +17,14 @@ import {
 import { matchContractDomain, classifyContractPriority } from '@/lib/contract-priority';
 import type { BufferShortfall } from '@/lib/liquidity-shortfall';
 
-const PRIORITY_LABEL: Record<Prioritaet, string> = {
-  nice: 'Nice-to-have',
-  normal: 'Normal',
-  essential: 'Essenziell',
+// Note: PRIORITY_LABEL moved to i18n, but keeping fallback for backward compatibility
+const getPriorityLabel = (t: any, priority: Prioritaet): string => {
+  const labels: Record<Prioritaet, string> = {
+    nice: t("budgetOptimizer.priorityNiceToHave"),
+    normal: t("budgetOptimizer.priorityNormal"),
+    essential: t("budgetOptimizer.priorityEssential"),
+  };
+  return labels[priority];
 };
 
 const PRIORITY_CLASS: Record<Prioritaet, string> = {
@@ -88,6 +93,7 @@ interface Props {
 }
 
 export default function BudgetOptimizerPanel({ input, priorityByCategory, bufferShortfall }: Props) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<'goal' | 'buffer' | 'contracts'>('goal');
   const [goalAmount, setGoalAmount] = useState(5000);
   const [goalMonths, setGoalMonths] = useState(12);
@@ -149,15 +155,15 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-4 w-4 text-brand" />
-              Budget optimieren
+              {t("budgetOptimizer.title")}
             </CardTitle>
             <CardDescription className="mt-1">
-              Wie du schneller sparst oder Luft im Budget findest.
+              {t("budgetOptimizer.subtitle")}
             </CardDescription>
           </div>
           {emergencyTarget > 0 && (
             <Badge variant="outline" className="shrink-0 text-xs">
-              Notrücklage: {eur.format(emergencyTarget)}
+              {t("budgetOptimizer.emergencyReserve")} {eur.format(emergencyTarget)}
             </Badge>
           )}
         </div>
@@ -360,6 +366,7 @@ function WaterfallResult({
   showAll: boolean;
   onToggleShowAll: () => void;
 }) {
+  const { t } = useI18n();
   const suggestions = plan.suggestions;
   if (suggestions.length === 0) {
     return (
@@ -383,7 +390,7 @@ function WaterfallResult({
                 <span
                   className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_CLASS[s.prioritaet]}`}
                 >
-                  {PRIORITY_LABEL[s.prioritaet]}
+                  {getPriorityLabel(t, s.prioritaet)}
                 </span>
                 {s.kind === 'contract' && (
                   <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

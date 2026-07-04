@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Repeat } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { Account, Category, Transaction } from '@/types';
 import { getAccounts } from '../../services/account-service';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
@@ -56,6 +57,7 @@ export function TransactionDayList({
   selectedId,
   now,
 }: TransactionDayListProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   // Konten für den Farb-Punkt je Zeile und ein flackerfreies Detail-Modal.
   const { data: accounts = [] } = useQuery<Account[]>({ queryKey: ['accounts'], queryFn: getAccounts });
@@ -138,7 +140,7 @@ export function TransactionDayList({
                       }
                       titleSuffix={
                         transaction.is_contract ? (
-                          <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Vertrag" />
+                          <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t('dashboard.contract')} />
                         ) : undefined
                       }
                       value={amountLabel}

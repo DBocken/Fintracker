@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
+import { useI18n } from "@/i18n/useI18n";
 import {
   upsertContractDecision,
   CONTRACT_STATUS_LABELS,
@@ -15,13 +16,15 @@ function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 }
 
-const STATUS_ACTIONS: { status: ContractStatus; label: string; hint: string }[] = [
-  { status: "active", label: "Als Vertrag bestätigen", hint: "Fließt in die aktuellen Fixkosten ein." },
-  { status: "ended", label: "Vertrag beendet", hint: "Wird aus aktuellen Summen entfernt." },
-  { status: "rejected", label: "Kein Vertrag", hint: "Dauerhaft ausschließen." },
-  { status: "paused", label: "Pausiert", hint: "Vorübergehend nicht zählen." },
-  { status: "candidate", label: "Wieder prüfen", hint: "Erneut als Kandidat behandeln." },
-];
+function getStatusActions(t: (key: string) => string): { status: ContractStatus; label: string; hint: string }[] {
+  return [
+    { status: "active", label: t("contracts.statusConfirmActive"), hint: t("contracts.statusConfirmActiveHint") },
+    { status: "ended", label: t("contracts.statusEnded"), hint: t("contracts.statusEndedHint") },
+    { status: "rejected", label: t("contracts.statusRejected"), hint: t("contracts.statusRejectedHint") },
+    { status: "paused", label: t("contracts.statusPaused"), hint: t("contracts.statusPausedHint") },
+    { status: "candidate", label: t("contracts.statusCandidate"), hint: t("contracts.statusCandidateHint") },
+  ];
+}
 
 export function ContractDetailSheet({
   row,
@@ -32,6 +35,7 @@ export function ContractDetailSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const decisionMutation = useMutation({
@@ -41,11 +45,11 @@ export function ContractDetailSheet({
         ended_at: status === "ended" ? new Date().toISOString().split("T")[0] : null,
       }),
     onSuccess: () => {
-      showSuccess("Vertragsstatus aktualisiert");
+      showSuccess(t("contracts.statusUpdateSuccess"));
       queryClient.invalidateQueries({ queryKey: ["contract-decisions"] });
       onOpenChange(false);
     },
-    onError: () => showError("Status konnte nicht gespeichert werden"),
+    onError: () => showError(t("contracts.statusUpdateError")),
   });
 
   return (
@@ -65,40 +69,40 @@ export function ContractDetailSheet({
 
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Typischer Betrag</span>
+                <span className="text-muted-foreground">{t("contracts.typicalAmount")}</span>
                 <span className="font-medium">{euro(row.amountTypical)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Letzter Betrag</span>
+                <span className="text-muted-foreground">{t("contracts.lastAmount")}</span>
                 <span className="font-medium">{euro(row.amountLast)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Erste Buchung</span>
+                <span className="text-muted-foreground">{t("contracts.firstDate")}</span>
                 <span>{format(parseISO(row.firstDateISO), "dd.MM.yyyy")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Letzte Buchung</span>
+                <span className="text-muted-foreground">{t("contracts.lastDate")}</span>
                 <span>{format(parseISO(row.lastDateISO), "dd.MM.yyyy")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Nächste Fälligkeit</span>
+                <span className="text-muted-foreground">{t("contracts.nextDue")}</span>
                 <span>{row.nextDateISO ? format(parseISO(row.nextDateISO), "dd.MM.yyyy") : "—"}</span>
               </div>
               {row.stale && (
                 <p className="rounded-md bg-warning/15 p-2 text-xs text-warning">
-                  Letzte Buchung liegt lange zurück – evtl. bereits beendet.
+                  {t("contracts.staleWarning")}
                 </p>
               )}
               {!row.cycleKnown && (
                 <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
-                  Zyklus unklar – nicht in der Jahreshochrechnung enthalten.
+                  {t("contracts.unknownCycleInfo")}
                 </p>
               )}
             </div>
 
             <div className="mt-6 space-y-2">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Status setzen</p>
-              {STATUS_ACTIONS.map((action) => (
+              <p className="text-xs font-semibold uppercase text-muted-foreground">{t("contracts.setStatus")}</p>
+              {getStatusActions(t).map((action) => (
                 <Button
                   key={action.status}
                   variant={row.status === action.status ? "default" : "outline"}

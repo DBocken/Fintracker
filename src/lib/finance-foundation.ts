@@ -5,6 +5,8 @@
 // Etappe und den Fortschritt. Sequentiell – die erste nicht abgeschlossene
 // Etappe ist „aktiv".
 
+import { t } from "../i18n/serviceT";
+
 export type FoundationStageKey =
   | "starthilfe"
   | "teure_schulden"
@@ -51,44 +53,46 @@ export const BUFFER_MONTHS_TARGET = 3;
 export const SAVINGS_TARGET = 0.15;
 const EPS = 1e-9;
 
-const STAGE_META: Record<FoundationStageKey, { order: number; title: string; description: string; whyItMatters: string }> = {
-  starthilfe: {
-    order: 1,
-    title: "Starthilfe",
-    description: `Ein erster Sofort-Puffer (Ziel: ${STARTER_TARGET} €).`,
-    whyItMatters: "Kleine Überraschungen lösen so keine neuen Schulden aus.",
-  },
-  teure_schulden: {
-    order: 2,
-    title: "Teure Schulden raus",
-    description: "Konsumschulden (Raten, Karten, BNPL) systematisch tilgen.",
-    whyItMatters: "Jede getilgte Schuld schafft dauerhaft mehr monatlichen Spielraum.",
-  },
-  sicherheitspolster: {
-    order: 3,
-    title: "Sicherheitspolster",
-    description: `${BUFFER_MONTHS_TARGET}–6 Monatsausgaben als Notgroschen aufbauen.`,
-    whyItMatters: "Ein echter Puffer macht dich unabhängig von kurzfristigen Schocks.",
-  },
-  zukunft_besparen: {
-    order: 4,
-    title: "Zukunft besparen",
-    description: `Feste Sparquote (Ziel: ${Math.round(SAVINGS_TARGET * 100)} %) – Altersvorsorge/ETF.`,
-    whyItMatters: "Regelmäßiges Investieren nutzt den Zinseszins über die Jahre.",
-  },
-  grosse_ziele: {
-    order: 5,
-    title: "Große Ziele",
-    description: "Eigenheim, Bildung, Familie als Rücklagen-Töpfe planen.",
-    whyItMatters: "Mit stabiler Basis werden große Vorhaben planbar statt stressig.",
-  },
-  frei_grosszuegig: {
-    order: 6,
-    title: "Frei & großzügig",
-    description: "Vermögen weiter aufbauen und gezielt geben.",
-    whyItMatters: "Finanzielle Freiheit schafft Spielraum für das, was dir wichtig ist.",
-  },
-};
+function buildStageMeta(): Record<FoundationStageKey, { order: number; title: string; description: string; whyItMatters: string }> {
+  return {
+    starthilfe: {
+      order: 1,
+      title: t("financeFoundation.starthilfe.title"),
+      description: t("financeFoundation.starthilfe.description").replace("{target}", String(STARTER_TARGET)),
+      whyItMatters: t("financeFoundation.starthilfe.whyItMatters"),
+    },
+    teure_schulden: {
+      order: 2,
+      title: t("financeFoundation.teureSchulden.title"),
+      description: t("financeFoundation.teureSchulden.description"),
+      whyItMatters: t("financeFoundation.teureSchulden.whyItMatters"),
+    },
+    sicherheitspolster: {
+      order: 3,
+      title: t("financeFoundation.sicherheitspolster.title"),
+      description: t("financeFoundation.sicherheitspolster.description").replace("{months}", String(BUFFER_MONTHS_TARGET)),
+      whyItMatters: t("financeFoundation.sicherheitspolster.whyItMatters"),
+    },
+    zukunft_besparen: {
+      order: 4,
+      title: t("financeFoundation.zukunftBesparen.title"),
+      description: t("financeFoundation.zukunftBesparen.description").replace("{percent}", String(Math.round(SAVINGS_TARGET * 100))),
+      whyItMatters: t("financeFoundation.zukunftBesparen.whyItMatters"),
+    },
+    grosse_ziele: {
+      order: 5,
+      title: t("financeFoundation.grosseZiele.title"),
+      description: t("financeFoundation.grosseZiele.description"),
+      whyItMatters: t("financeFoundation.grosseZiele.whyItMatters"),
+    },
+    frei_grosszuegig: {
+      order: 6,
+      title: t("financeFoundation.freiGrosszuegig.title"),
+      description: t("financeFoundation.freiGrosszuegig.description"),
+      whyItMatters: t("financeFoundation.freiGrosszuegig.whyItMatters"),
+    },
+  };
+}
 
 const ORDER: FoundationStageKey[] = [
   "starthilfe",
@@ -128,12 +132,13 @@ function stageProgress(key: FoundationStageKey, input: FoundationInput): number 
  * „gesperrt".
  */
 export function computeFinanceFoundation(input: FoundationInput): FoundationResult {
+  const stageMeta = buildStageMeta();
   const progresses = ORDER.map((key) => ({ key, progress: stageProgress(key, input) }));
   const firstOpen = progresses.find((p) => p.progress < 1 - EPS);
   const currentKey = firstOpen ? firstOpen.key : ORDER[ORDER.length - 1];
 
   const stages: FoundationStage[] = progresses.map(({ key, progress }) => ({
-    ...STAGE_META[key],
+    ...stageMeta[key],
     key,
     progress,
     status: progress >= 1 - EPS ? "completed" : key === currentKey ? "active" : "locked",

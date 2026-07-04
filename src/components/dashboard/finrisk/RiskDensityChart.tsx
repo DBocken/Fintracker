@@ -5,6 +5,7 @@ import { Info, MousePointerClick } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
 import { computeCellDetail, type CellDetail } from '@/lib/finrisk/cell-details';
+import { useI18n } from '@/i18n/useI18n';
 import { CellDetailBody } from './CellDetailBody';
 import { HEATMAP_PAD as PAD, resolveHeatmapCell, isTap } from './heatmap-geometry';
 import { getChartColors, subscribeToDarkModeChanges } from '@/lib/chart-theme';
@@ -64,6 +65,7 @@ interface HoverState {
  * mit Tagesdetails inkl. der Verteilungs-Moden.
  */
 export default function RiskDensityChart({ result, safetyBuffer }: Props) {
+  const { t } = useI18n();
   const { density, daily, breachProbabilities, stressCapacity } = result;
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -352,7 +354,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
   if (nDays === 0 || density.total === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
-        Noch keine Pfade – Szenario wählen oder Daten ergänzen.
+        {t('finrisk.noPaths')}
       </div>
     );
   }
@@ -372,34 +374,35 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       {/* Kopfzeile: Titel + „Wie lese ich das?"-Popover + Sicherheitsniveau-Auswahl. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium">Liquiditäts-Wahrscheinlichkeit über die Zeit</span>
+          <span className="text-sm font-medium">{t('finrisk.liquidityProbability')}</span>
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
-                aria-label="Wie lese ich die Grafik?"
+                aria-label={t('finrisk.howToReadTitle')}
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 <Info className="h-3.5 w-3.5" />
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-72 space-y-1.5 p-3 text-xs">
-              <div className="font-medium">Wie lese ich die Grafik?</div>
+              <div className="font-medium">{t('finrisk.howToReadTitle')}</div>
               <p>
-                <span className="font-medium text-foreground">Farbe</span> = Wertregion (Defizit /
-                unter Puffer / gesund), <span className="font-medium text-foreground">Helligkeit</span>{' '}
-                = Wahrscheinlichkeit.
+                <span className="font-medium text-foreground">{t('finrisk.howToReadColor')}</span> = {t('finrisk.howToReadValue')}, <span className="font-medium text-foreground">{t('finrisk.howToReadBrightness')}</span>{' '}
+                = {t('finrisk.howToReadProbability')}.
               </p>
               <p>
-                Die <span className="font-medium text-foreground">weiße Linie</span> ist der Median
-                (P50). Mehrere helle Rücken zeigen eine{' '}
-                <span className="font-medium text-foreground">multimodale</span> Verteilung.
+                {t('finrisk.howToReadDashed')}
               </p>
-              <p>Gestrichelt: 0 €, Sicherheitspuffer und der kritische Tag des gewählten Niveaus.</p>
+              <p>
+                {t('finrisk.howToReadMedian')}{' '}
+                <span className="font-medium text-foreground">{t('finrisk.howToReadWhiteLine')}</span> {t('finrisk.howToReadMedian')}{' '}
+                <span className="font-medium text-foreground">{t('finrisk.howToReadMultimodal')}</span> {t('finrisk.howToReadDistribution')}
+              </p>
               {canInspect && (
                 <p className="flex items-center gap-1 border-t pt-1.5 text-muted-foreground">
                   <MousePointerClick className="h-3 w-3 shrink-0" />
-                  Tippe eine Zelle an, um die Annahmen dahinter zu sehen.
+                  {t('finrisk.tapToSeeAssumptions')}
                 </p>
               )}
             </PopoverContent>
@@ -407,7 +410,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         </div>
         <div
           role="group"
-          aria-label="Sicherheitsniveau"
+          aria-label={t('finrisk.safetyLevel')}
           className="inline-flex overflow-hidden rounded-lg border text-xs"
         >
           {confidenceLevels.map((c) => (
@@ -430,11 +433,11 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
 
       {selectedStress && (
         <p className="text-xs text-muted-foreground">
-          Bei <span className="font-medium text-foreground">{Math.round(confidence * 100)} %</span>{' '}
-          Sicherheit trägt deine Liquidität einen zusätzlichen Schock bis{' '}
+          {t('finrisk.withConfidence')} <span className="font-medium text-foreground">{Math.round(confidence * 100)} %</span>{' '}
+          {t('finrisk.liquiditySafety')}{' '}
           <span className="font-medium text-foreground">{eur.format(selectedStress.maxAffordableShock)}</span>
           {criticalDay >= 0 && criticalDay < nDays && (
-            <> – am knappsten am <span className="font-medium text-foreground">{fmtDay(density.dates[criticalDay])}</span></>
+            <> – {t('finrisk.tightestOn')} <span className="font-medium text-foreground">{fmtDay(density.dates[criticalDay])}</span></>
           )}
           .
         </p>
@@ -453,7 +456,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         role="img"
         aria-label={`Liquiditäts-Heatmap über ${nDays} Tage. Median-Endsaldo ${eur.format(
           result.scenarioEndP50,
-        )}.${canInspect ? ' Zelle antippen für Details der Annahmen.' : ''}`}
+        )}.${canInspect ? ' ' + t('finrisk.tapToSeeAssumptions') : ''}`}
       >
         <canvas ref={canvasRef} className="rounded-xl" />
 
@@ -511,10 +514,9 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             </>
           ) : (
             <DialogHeader>
-              <DialogTitle>Keine Details</DialogTitle>
+              <DialogTitle>{t('finrisk.noDetails')}</DialogTitle>
               <DialogDescription>
-                Für diese Zelle liegen keine Annahmen vor. Tippe eine hellere
-                (wahrscheinlichere) Zelle an.
+                {t('finrisk.noAssumptions')}
               </DialogDescription>
             </DialogHeader>
           )}
@@ -528,15 +530,14 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         <LegendSwatch region="healthy" label="gesund" />
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2.5 w-10 rounded-sm" style={{ background: 'linear-gradient(90deg, rgba(148,163,184,0.15), rgb(148,163,184))' }} />
-          heller = wahrscheinlicher
+          {t('finrisk.lighterIsProbable')}
         </span>
       </div>
 
       {canInspect && (
         <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <MousePointerClick className="h-3 w-3 shrink-0" />
-          Tippe eine Zelle an, um die Annahmen dahinter zu sehen – welche konkreten Werte diesen
-          Saldo erzeugt haben.
+          {t('finrisk.tapToSeeAssumptions')}
         </p>
       )}
     </div>

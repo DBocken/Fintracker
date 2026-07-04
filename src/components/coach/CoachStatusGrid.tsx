@@ -10,6 +10,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 import type { FinancialHealth } from "@/services/financial-health-service";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -90,6 +91,7 @@ export default function CoachStatusGrid({
   health: FinancialHealth;
   gentle: boolean;
 }) {
+  const { t } = useI18n();
   const mask = (v: string) => (gentle ? "***" : v);
   const explanationFor = (key: string) => health.subScores.find((s) => s.key === key)?.explanation ?? "";
 
@@ -102,38 +104,40 @@ export default function CoachStatusGrid({
     <div className="grid grid-cols-2 gap-3">
       <StatusTile
         icon={<Wallet className="h-3.5 w-3.5" />}
-        label="Liquidität"
+        label={t('coach.statusGridLiquidityLabel')}
         value={mask(`${monthsCovered.toFixed(1)} Mon.`)}
         tone={monthsCovered >= 3 ? "good" : "warn"}
         explanation={explanationFor("emergency_fund")}
-        ctaLabel="Nettovermögen ansehen"
+        ctaLabel={t('coach.statusGridLiquidityAction')}
         ctaTo="/net-worth"
       />
       <StatusTile
         icon={<PiggyBank className="h-3.5 w-3.5" />}
-        label="Sparquote"
+        label={t('coach.statusGridSavingsLabel')}
         value={mask(`${savingsPct} %`)}
         tone={savingsPct >= 20 ? "good" : savingsPct >= 0 ? "neutral" : "warn"}
         explanation={explanationFor("savings_rate")}
-        ctaLabel="Ausgaben ansehen"
+        ctaLabel={t('coach.statusGridSavingsAction')}
         ctaTo="/dashboard"
       />
       <StatusTile
         icon={<CreditCard className="h-3.5 w-3.5" />}
-        label="Schulden"
+        label={t('coach.statusGridDebtsLabel')}
         value={mask(eur.format(health.netWorth.debts))}
         tone={health.netWorth.debts <= 0 ? "good" : "warn"}
         explanation={explanationFor("debt")}
-        ctaLabel="Schulden verwalten"
+        ctaLabel={t('coach.statusGridDebtsAction')}
         ctaTo="/debts"
       />
       <StatusTile
         icon={<TrendingUp className="h-3.5 w-3.5" />}
-        label="Monatssaldo"
+        label={t('coach.statusGridBalanceLabel')}
         value={mask(eur.format(monthlyNet))}
         tone={monthlyNet > 0 ? "good" : monthlyNet === 0 ? "neutral" : "warn"}
-        explanation={`Im Schnitt der letzten 3 Monate: ${gentle ? "***" : eur.format(health.monthlyIncome)} Einnahmen, ${gentle ? "***" : eur.format(health.monthlyExpenses)} Ausgaben.`}
-        ctaLabel="Details im Dashboard"
+        explanation={t('coach.statusGridBalanceInfo')
+          .replace('{income}', gentle ? "***" : eur.format(health.monthlyIncome))
+          .replace('{expenses}', gentle ? "***" : eur.format(health.monthlyExpenses))}
+        ctaLabel={t('coach.statusGridBalanceAction')}
         ctaTo="/dashboard"
       />
     </div>

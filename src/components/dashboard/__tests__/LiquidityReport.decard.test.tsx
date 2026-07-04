@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import { MonthlyOverviewTable } from '../LiquidityReport';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
+
+function renderWithI18n(component: React.ReactElement) {
+  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+}
 
 /** Karten-Chrome = sichtbarer Rahmen (`border`-Breiten-Utility) oder Schatten.
  * Hintergrund-Tönung/`divide-*` zum Bündeln zählt NICHT als Karte. */
@@ -31,7 +36,7 @@ const month = (over: Partial<ForecastMonthlySummary> = {}): ForecastMonthlySumma
 
 describe('MonthlyOverviewTable (kompakte Monatsübersicht, Prinzip 8)', () => {
   it('sollte eine Zeile je Monat mit den Kennzahlen als Tabelle rendern', () => {
-    render(
+    renderWithI18n(
       <MonthlyOverviewTable
         months={[month(), month({ month: '2026-08', closingBalance: 2830 })]}
       />,
@@ -46,7 +51,7 @@ describe('MonthlyOverviewTable (kompakte Monatsübersicht, Prinzip 8)', () => {
   });
 
   it('[REGRESSION] sollte EIN gebündelter Block ohne Karten-Chrome sein (kein Kachel-Raster)', () => {
-    const { container } = render(<MonthlyOverviewTable months={[month()]} />);
+    const { container } = renderWithI18n(<MonthlyOverviewTable months={[month()]} />);
     expect(hasCardChrome(container.firstElementChild as HTMLElement)).toBe(false);
     // Keine klickbare Affordanz – reines Readout.
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -54,14 +59,18 @@ describe('MonthlyOverviewTable (kompakte Monatsübersicht, Prinzip 8)', () => {
   });
 
   it('[REGRESSION] sollte "unter Puffer" ohne Rahmen (Tönung + Badge) signalisieren', () => {
-    render(<MonthlyOverviewTable months={[month({ belowSafetyBuffer: true })]} />);
+    renderWithI18n(<MonthlyOverviewTable months={[month({ belowSafetyBuffer: true })]} />);
     expect(screen.getByText('unter Puffer')).toBeInTheDocument();
   });
 
   it('sollte optionale Spalten (Sparen/Transfer, Zinsen) nur bei Bedarf zeigen', () => {
-    const { rerender } = render(<MonthlyOverviewTable months={[month()]} />);
+    const { rerender } = renderWithI18n(<MonthlyOverviewTable months={[month()]} />);
     expect(screen.queryByRole('columnheader', { name: 'Sparen/Transfer' })).not.toBeInTheDocument();
-    rerender(<MonthlyOverviewTable months={[month({ transfersOut: 200, interest: 5 })]} />);
+    rerender(
+      <I18nProvider initialLocale="de">
+        <MonthlyOverviewTable months={[month({ transfersOut: 200, interest: 5 })]} />
+      </I18nProvider>,
+    );
     expect(screen.getByRole('columnheader', { name: 'Sparen/Transfer' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Zinsen' })).toBeInTheDocument();
     const table = screen.getByRole('table');

@@ -1,4 +1,5 @@
 import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
 
@@ -41,6 +42,8 @@ interface Props {
  * Stress-Tragfähigkeit als Ampel – die drei Kernaussagen der Risikoanalyse.
  */
 export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability }: Props) {
+  const { t } = useI18n();
+
   const alltagTone: Tone =
     baseBreachProbability == null
       ? 'good'
@@ -51,10 +54,10 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
           : 'good';
   const alltagValue =
     baseBreachProbability == null
-      ? 'wird geprüft …'
+      ? t('finrisk.checking')
       : baseBreachProbability === 0
-        ? 'tragfähig'
-        : `${Math.round(baseBreachProbability * 100)} % Pufferbruch`;
+        ? t('finrisk.sustainable')
+        : t('finrisk.bufferBreach').replace('{pct}', String(Math.round(baseBreachProbability * 100)));
 
   const lumpyTone: Tone =
     lumpy == null || lumpy.lumpyRiskLevel === 'low'
@@ -64,8 +67,8 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
         : 'critical';
   const lumpyValue =
     lumpy == null || lumpy.lumpyCount === 0
-      ? 'kein nennenswertes'
-      : `${lumpy.lumpyRateAnnual.toFixed(1)}×/Jahr · P90 ${eur.format(lumpy.lumpySeverityP90)}`;
+      ? t('finrisk.noLumpyRisk')
+      : t('finrisk.lumpyRiskLevel').replace('{frequency}', lumpy.lumpyRateAnnual.toFixed(1)).replace('{amount}', eur.format(lumpy.lumpySeverityP90));
 
   const stressTone: Tone =
     stress90 == null
@@ -77,27 +80,27 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
           : 'good';
   const stressValue =
     stress90 == null
-      ? 'wird geprüft …'
-      : `${eur.format(stress90.maxAffordableShock)} bei 90 %`;
+      ? t('finrisk.checking')
+      : `${eur.format(stress90.maxAffordableShock)} ${t('finrisk.atConfidence').replace('{confidence}', '90')}`;
 
   // Karten-los (Usability-Audit „Karten sind Aktionen"): reine Diagnose-Anzeige
   // ohne Rahmen → wirkt nicht antippbar.
   return (
     <div className="rounded-xl bg-muted/30 p-3 sm:p-4">
       <div className="flex items-center gap-2 text-sm font-semibold sm:text-base">
-        <Activity className="h-4 w-4" /> Risiko-Kurzdiagnose
+        <Activity className="h-4 w-4" /> {t('finrisk.riskDiagnosis')}
       </div>
       <div className="mt-1 divide-y">
-        <Row tone={alltagTone} label="Alltag tragfähig" value={alltagValue} />
-        <Row tone={lumpyTone} label="Lumpy-Risiko (seltene Großausgaben)" value={lumpyValue} />
-        <Row tone={stressTone} label="Stress-Tragfähigkeit" value={stressValue} />
+        <Row tone={alltagTone} label={t('finrisk.dailyAffordable')} value={alltagValue} />
+        <Row tone={lumpyTone} label={t('finrisk.lumpyRisk')} value={lumpyValue} />
+        <Row tone={stressTone} label={t('finrisk.stressCapacity')} value={stressValue} />
         <p className="flex items-center gap-1.5 pt-2 text-xs text-muted-foreground">
           {stressTone === 'critical' ? (
             <AlertTriangle className="h-3.5 w-3.5" />
           ) : (
             <ShieldCheck className="h-3.5 w-3.5" />
           )}
-          Lokal berechnet · keine Finanzberatung.
+          {t('finrisk.localCalculated')}
         </p>
       </div>
     </div>

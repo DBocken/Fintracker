@@ -12,6 +12,7 @@ import {
   Alert,
   AlertDescription
 } from '@/components/ui/alert';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,7 @@ import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
 
 export function BackupManager() {
+  const { t } = useI18n();
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [encryptedBackupPassword, setEncryptedBackupPassword] = useState('');
@@ -69,10 +71,10 @@ export function BackupManager() {
       await backupService.downloadBackup(undefined, { acknowledgeUnencrypted: true });
     },
     onSuccess: () => {
-      showSuccess('Unverschlüsseltes Backup heruntergeladen');
+      showSuccess(t('backup.unencryptedDownloadSuccess'));
     },
     onError: (error: Error) => {
-      showError(`Download fehlgeschlagen: ${error.message}`);
+      showError(`${t('backup.downloadError')} ${error.message}`);
     },
   });
 
@@ -82,10 +84,10 @@ export function BackupManager() {
     },
     onSuccess: () => {
       setEncryptedBackupPassword('');
-      showSuccess('Verschlüsseltes Backup heruntergeladen');
+      showSuccess(t('backup.downloadSuccess'));
     },
     onError: (error: Error) => {
-      showError(`Download fehlgeschlagen: ${error.message}`);
+      showError(`${t('backup.downloadError')} ${error.message}`);
     },
   });
 
@@ -109,7 +111,7 @@ export function BackupManager() {
         setForeignPending(variables.backupData);
         return;
       }
-      showError(error instanceof Error ? error.message : 'Wiederherstellung fehlgeschlagen');
+      showError(error instanceof Error ? error.message : t('backup.restoreError'));
     },
   });
 
@@ -132,7 +134,7 @@ export function BackupManager() {
         restoreMutation.mutate({ backupData });
       }
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Fehler beim Lesen der Backup-Datei');
+      showError(error instanceof Error ? error.message : t('backup.readError'));
     }
   };
 
@@ -150,10 +152,10 @@ export function BackupManager() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Database className="h-6 w-6 text-premium" />
-            Backup & Wiederherstellung
+            {t('backup.title')}
           </h2>
           <p className="text-muted-foreground mt-1">
-            Sichere deine Daten mit Backups
+            {t('backup.description')}
           </p>
         </div>
       </div>
@@ -162,7 +164,7 @@ export function BackupManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Aktueller Datenbestand
+            {t('backup.currentData')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -175,7 +177,7 @@ export function BackupManager() {
               <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
-                  <span className="text-sm">Transaktionen</span>
+                  <span className="text-sm">{t('backup.transactions')}</span>
                 </div>
                 <p className="text-2xl font-bold">{backupInfo.transactionCount}</p>
               </div>
@@ -183,7 +185,7 @@ export function BackupManager() {
               <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
-                  <span className="text-sm">Kategorien</span>
+                  <span className="text-sm">{t('backup.categories')}</span>
                 </div>
                 <p className="text-2xl font-bold">{backupInfo.categoryCount}</p>
               </div>
@@ -191,7 +193,7 @@ export function BackupManager() {
               <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <HardDrive className="h-4 w-4" />
-                  <span className="text-sm">Konten</span>
+                  <span className="text-sm">{t('backup.accounts')}</span>
                 </div>
                 <p className="text-2xl font-bold">{backupInfo.accountCount}</p>
               </div>
@@ -199,14 +201,14 @@ export function BackupManager() {
               <div className="p-4 rounded-lg bg-card space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <HardDrive className="h-4 w-4" />
-                  <span className="text-sm">Geschätzte Größe</span>
+                  <span className="text-sm">{t('backup.estimatedSize')}</span>
                 </div>
                 <p className="text-2xl font-bold">{formatFileSize(backupInfo.estimatedSize)}</p>
               </div>
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              Keine Daten verfügbar
+              {t('backup.noData')}
             </p>
           )}
         </CardContent>
@@ -217,19 +219,17 @@ export function BackupManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5 text-brand" />
-              Backup erstellen
+              {t('backup.createBackup')}
             </CardTitle>
             <CardDescription>
-              Lade alle deine Daten als JSON-Datei herunter
+              {t('backup.createDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Das Backup enthält Transaktionen, Kategorien, Konten und Einstellungen.
-                Empfohlen ist das <strong>verschlüsselte</strong> Backup – es schützt deine
-                Daten auch außerhalb der App.
+                {t('backup.backupInfo')}
               </AlertDescription>
             </Alert>
 
@@ -237,10 +237,10 @@ export function BackupManager() {
             <div className="rounded-lg border border-positive/40 bg-positive/5 p-3 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Lock className="h-4 w-4 text-positive" />
-                Verschlüsseltes Backup (.enc.json) – empfohlen
+                {t('backup.encryptedBackup')}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="enc-backup-pw">Passwort</Label>
+                <Label htmlFor="enc-backup-pw">{t('backup.password')}</Label>
                 <Input
                   id="enc-backup-pw"
                   type="password"
@@ -257,12 +257,12 @@ export function BackupManager() {
                 {downloadEncryptedMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Erstelle…
+                    {t('backup.creating')}
                   </>
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    Verschlüsseltes Backup herunterladen
+                    {t('backup.downloadEncrypted')}
                   </>
                 )}
               </Button>
@@ -278,27 +278,25 @@ export function BackupManager() {
                   disabled={downloadMutation.isPending || isLoadingInfo}
                 >
                   <Download className="mr-2 h-4 w-4 shrink-0" />
-                  Unverschlüsselt exportieren (Datenumzug)
+                  {t('backup.unencryptedExport')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Unverschlüsseltes Backup?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('backup.unencryptedWarningTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Diese Datei enthält deinen <strong>gesamten Finanzdatensatz im Klartext</strong>.
-                    Jede Person mit Zugriff auf die Datei kann sie lesen. Nutze das nur für einen
-                    bewussten Datenumzug und lösche die Datei danach.
+                    {t('backup.unencryptedWarning')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={(e) => {
                       e.preventDefault();
                       downloadMutation.mutate();
                     }}
                   >
-                    Trotzdem unverschlüsselt exportieren
+                    {t('backup.unencryptedExportAction')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -310,19 +308,17 @@ export function BackupManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-positive" />
-              Backup wiederherstellen
+              {t('backup.restoreBackup')}
             </CardTitle>
             <CardDescription>
-              Lade ein Backup von einer Datei (.json oder .enc.json)
+              {t('backup.restoreDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Beim Wiederherstellen werden die Backup-Daten mit deinem
-                aktuellen Bestand zusammengeführt: Fehlende Einträge werden
-                ergänzt, bereits vorhandene (gleiche ID) bleiben unverändert.
+                {t('backup.restoreInfo')}
               </AlertDescription>
             </Alert>
 
@@ -336,7 +332,7 @@ export function BackupManager() {
                   setBackupFile(null);
                 }}
               >
-                .json
+                {t('backup.jsonFormat')}
               </Button>
               <Button
                 type="button"
@@ -347,7 +343,7 @@ export function BackupManager() {
                   setBackupFile(null);
                 }}
               >
-                .enc.json
+                {t('backup.encFormat')}
               </Button>
             </div>
 
@@ -355,12 +351,12 @@ export function BackupManager() {
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" size="lg">
                   <Upload className="mr-2 h-4 w-4" />
-                  Backup hochladen
+                  {t('backup.uploadBackup')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Backup wiederherstellen</DialogTitle>
+                  <DialogTitle>{t('backup.restoreDialogTitle')}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <input
@@ -384,14 +380,14 @@ export function BackupManager() {
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Datei auswählen
+                        {t('backup.selectFile')}
                       </>
                     )}
                   </Button>
 
                   {restoreMode === 'enc' && (
                     <div className="space-y-2">
-                      <Label htmlFor="enc-restore-pw">Passwort</Label>
+                      <Label htmlFor="enc-restore-pw">{t('backup.password')}</Label>
                       <Input
                         id="enc-restore-pw"
                         type="password"
@@ -408,7 +404,7 @@ export function BackupManager() {
                         <AlertDescription className="text-sm">
                           Datei: {backupFile.name}
                           <br />
-                          Größe: {formatFileSize(backupFile.size)}
+                          {t('backup.fileSize').replace('{size}', formatFileSize(backupFile.size))}
                         </AlertDescription>
                       </Alert>
 
@@ -423,7 +419,7 @@ export function BackupManager() {
                           className="flex-1"
                           disabled={restoreMutation.isPending}
                         >
-                          Abbrechen
+                          {t('common.cancel')}
                         </Button>
                         <Button
                           onClick={handleRestore}
@@ -433,10 +429,10 @@ export function BackupManager() {
                           {restoreMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Wiederherstellen...
+                              {t('backup.restoring')}
                             </>
                           ) : (
-                            'Wiederherstellen'
+                            t('backup.restoreButton')
                           )}
                         </Button>
                       </div>
@@ -454,7 +450,7 @@ export function BackupManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-positive">
               <CheckCircle2 className="h-5 w-5" />
-              Wiederherstellung erfolgreich
+              {t('backup.restoreSuccess')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -466,30 +462,30 @@ export function BackupManager() {
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.transactions}
                 </p>
-                <p className="text-xs text-muted-foreground">Transaktionen</p>
+                <p className="text-xs text-muted-foreground">{t('backup.transactions')}</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.categories}
                 </p>
-                <p className="text-xs text-muted-foreground">Kategorien</p>
+                <p className="text-xs text-muted-foreground">{t('backup.categories')}</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.accounts}
                 </p>
-                <p className="text-xs text-muted-foreground">Konten</p>
+                <p className="text-xs text-muted-foreground">{t('backup.accounts')}</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold">
                   {restoreMutation.data.details.settings ? '✓' : '✗'}
                 </p>
-                <p className="text-xs text-muted-foreground">Einstellungen</p>
+                <p className="text-xs text-muted-foreground">{t('backup.settings')}</p>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Die Seite wird automatisch neu geladen...
+              {t('backup.restoreLoading')}
             </p>
           </CardContent>
         </Card>
@@ -499,26 +495,21 @@ export function BackupManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Info className="h-5 w-5" />
-            Über Backups
+            {t('backup.aboutBackups')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            <strong>Regelmäßige Backups:</strong> Erstelle wöchentlich ein Backup,
-            um Datenverlust zu vermeiden.
+            {t('backup.regularBackups')}
           </p>
           <p>
-            <strong>Speicherort:</strong> Speichere Backups an einem sicheren Ort
-            (z. B. Cloud-Speicher, externe Festplatte).
+            {t('backup.storageLocation')}
           </p>
           <p>
-            <strong>Wiederherstellung:</strong> Backup-Daten werden mit deinem
-            aktuellen Bestand zusammengeführt (fehlende Einträge ergänzt,
-            vorhandene bleiben erhalten) – ein Restore verdoppelt nichts.
+            {t('backup.restoration')}
           </p>
           <p>
-            <strong>Kompatibilität:</strong> Backups sind mit der gleichen
-            App-Version kompatibel. Updates könnten neue Felder hinzufügen.
+            {t('backup.compatibility')}
           </p>
         </CardContent>
       </Card>
@@ -526,15 +517,13 @@ export function BackupManager() {
       <AlertDialog open={!!foreignPending} onOpenChange={(open) => !open && setForeignPending(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Backup aus anderem Konto</AlertDialogTitle>
+            <AlertDialogTitle>{t('backup.foreignBackupTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Dieses Backup wurde mit einem <strong>anderen Benutzerkonto</strong> erstellt.
-              Beim Wiederherstellen werden die Daten deinem aktuellen Konto zugeordnet und
-              mit deinem Bestand zusammengeführt. Nur fortfahren, wenn das beabsichtigt ist.
+              {t('backup.foreignBackupWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -543,7 +532,7 @@ export function BackupManager() {
                 }
               }}
             >
-              Trotzdem wiederherstellen
+              {t('backup.foreignBackupAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

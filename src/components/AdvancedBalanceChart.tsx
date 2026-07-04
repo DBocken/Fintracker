@@ -13,6 +13,7 @@ import { de } from 'date-fns/locale';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { useI18n } from '@/i18n/useI18n';
 import type { Transaction } from '../types';
 import { getTransactions } from '../services/transaction-service';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
@@ -24,6 +25,7 @@ interface AdvancedBalanceChartProps {
 }
 
 export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalanceChartProps) {
+  const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
@@ -119,7 +121,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
     return (
       <Card className="card-premium">
         <CardContent className="py-8 text-center">
-          <div className="animate-pulse">Lade Kontoverlauf...</div>
+          <div className="animate-pulse">{t('balanceChart.loading')}</div>
         </CardContent>
       </Card>
     );
@@ -131,12 +133,12 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Wie entwickelt sich mein Kontostand?
+            {t('balanceChart.title')}
           </CardTitle>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch checked={axisFromZero} onCheckedChange={(v) => setAxisFromZero(Boolean(v))} />
-              <span className="text-sm text-muted-foreground">Ab 0</span>
+              <span className="text-sm text-muted-foreground">{t('balanceChart.zeroAxisLabel')}</span>
             </div>
             <Button
               variant="outline"
@@ -148,23 +150,23 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
               className="btn-secondary-premium"
             >
               <Settings className="h-4 w-4 mr-1" />
-              Startwert
+              {t('balanceChart.startingBalance')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4 text-sm text-muted-foreground">
-            Endsaldo (Kontostand):{' '}
+            {t('balanceChart.endBalance')}{' '}
             <span className="font-semibold text-foreground">
               {gentleModeEnabled ? '***' : formatCurrency(endBalanceFromAccounts)}
             </span>
-            {' • '}Startsaldo:{' '}
+            {' • '}{t('balanceChart.startingBalanceLabel')}{' '}
             <span className="font-semibold text-foreground">
               {gentleModeEnabled ? '***' : formatCurrency(effectiveStartingBalance)}
             </span>
             {chartData.length > 0 && (
               <>
-                {' • '}Aktueller Saldo:{' '}
+                {' • '}{t('balanceChart.currentBalance')}{' '}
                 <span className="font-semibold text-foreground">
                   {gentleModeEnabled ? '***' : formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0)}
                 </span>
@@ -216,16 +218,16 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 }}
                 formatter={(value: number, name: string) => [
                   gentleModeEnabled ? '***' : `${value.toFixed(2)}€`,
-                  name === 'income' ? 'Einnahmen' :
-                  name === 'expenses' ? 'Ausgaben' : 'Saldo'
+                  name === 'income' ? t('balanceChart.income') :
+                  name === 'expenses' ? t('balanceChart.expenses') : t('balanceChart.balance')
                 ]}
-                labelFormatter={(label) => `Datum: ${label}`}
+                labelFormatter={(label) => t('balanceChart.dateLabel').replace('{label}', label)}
               />
               <Legend
                 wrapperStyle={{ paddingTop: '20px' }}
                 formatter={(value) =>
-                  value === 'income' ? 'Einnahmen' :
-                    value === 'expenses' ? 'Ausgaben' : 'Saldo'
+                  value === 'income' ? t('balanceChart.income') :
+                    value === 'expenses' ? t('balanceChart.expenses') : t('balanceChart.balance')
                 }
               />
 
@@ -270,8 +272,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
           {chartData.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Keine Transaktionen vorhanden</p>
-              <p className="text-sm mt-2">Importiere deine Bank-CSV um den Kontoverlauf zu sehen</p>
+              <p>{t('balanceChart.noTransactions')}</p>
+              <p className="text-sm mt-2">{t('balanceChart.noTransactionsHint')}</p>
             </div>
           )}
         </CardContent>
@@ -280,18 +282,18 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="card-premium">
           <DialogHeader>
-            <DialogTitle>Startsaldo einstellen</DialogTitle>
+            <DialogTitle>{t('balanceChart.dialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="startingBalance">Startsaldo (€)</Label>
+              <Label htmlFor="startingBalance">{t('balanceChart.startingBalanceInput')}</Label>
               <Input
                 id="startingBalance"
                 type="number"
                 step="0.01"
                 value={tempBalance}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTempBalance(e.target.value)}
-                placeholder="0.00"
+                placeholder={t('balanceChart.placeholder')}
               />
             </div>
 
@@ -301,25 +303,25 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
                 variant="outline"
                 className="w-full btn-secondary-premium"
               >
-                Aus Kontostand berechnen ({gentleModeEnabled ? '***' : formatCurrency(autoStartingBalance)})
+                {t('balanceChart.calculateFromBalance').replace('{amount}', gentleModeEnabled ? '***' : formatCurrency(autoStartingBalance))}
               </Button>
             </div>
 
             <div className="text-xs text-muted-foreground">
-              <p>• <strong>Aus Kontostand berechnen:</strong> Nutzt den aktuellen Kontostand als Endwert und rechnet den Startwert zurück</p>
-              <p>• <strong>Manuell:</strong> Gib einen beliebigen Startwert ein</p>
+              <p>• <strong>{t('balanceChart.calculateFromBalance')}:</strong> {t('balanceChart.calculateHint')}</p>
+              <p>• <strong>Manuell:</strong> {t('balanceChart.manualEntry')}</p>
             </div>
 
             <div className="flex gap-2">
               <Button onClick={handleApplyStartingBalance} className="flex-1 btn-premium">
-                Anwenden
+                {t('balanceChart.apply')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowSettings(false)}
                 className="flex-1"
               >
-                Abbrechen
+                {t('common.cancel')}
               </Button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/i18n/useI18n";
 import type {
   AccountDataQuality,
   AccountDataQualityStatus,
@@ -26,6 +27,7 @@ export function AccountDataQualityBadge({
   quality,
   maxIssues = 2,
 }: AccountDataQualityBadgeProps) {
+  const { t } = useI18n();
   const visibleIssues = quality.issues.slice(0, maxIssues);
 
   return (
@@ -36,7 +38,7 @@ export function AccountDataQualityBadge({
           className={`text-xs shrink-0 ${STATUS_BADGE_CLASS[quality.status]}`}
           title={quality.description}
         >
-          Datenqualität: {quality.label}
+          {t('accounts.dataQualityBadge.labelPrefix')}{quality.label}
         </Badge>
         <span className="text-xs text-muted-foreground tabular-nums">
           {quality.score}%

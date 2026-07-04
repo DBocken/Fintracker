@@ -35,14 +35,17 @@ import {
   assignTransactionToReceivable,
   unassignReceivableTransaction,
   suggestReceivableRepayments,
-  RECEIVABLE_TYPE_LABELS,
+  getReceivableTypeLabels,
   RECEIVABLE_TYPE_ICONS,
   type ReceivableTransactionAssignment,
 } from "@/services/receivable-service";
+import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export function ReceivablesPanel() {
+  const { t } = useI18n();
+  const receivableTypeLabels = getReceivableTypeLabels();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Receivable> | null>(null);
@@ -77,7 +80,7 @@ export function ReceivablesPanel() {
     mutationFn: createReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung hinzugefügt");
+      showSuccess(t("debtService.receivableAdded"));
       setDialogOpen(false);
     },
     onError: (e: Error) => showError(e.message),
@@ -87,7 +90,7 @@ export function ReceivablesPanel() {
     mutationFn: updateReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung aktualisiert");
+      showSuccess(t("debtService.receivableUpdated"));
       setDialogOpen(false);
       setEditing(null);
     },
@@ -98,7 +101,7 @@ export function ReceivablesPanel() {
     mutationFn: deleteReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Forderung gelöscht");
+      showSuccess(t("debtService.receivableDeleted"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -107,7 +110,7 @@ export function ReceivablesPanel() {
     mutationFn: assignTransactionToReceivable,
     onSuccess: () => {
       invalidate();
-      showSuccess("Rückzahlung zugewiesen");
+      showSuccess(t("debtService.repaymentAssigned"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -116,7 +119,7 @@ export function ReceivablesPanel() {
     mutationFn: unassignReceivableTransaction,
     onSuccess: () => {
       invalidate();
-      showSuccess("Zuweisung entfernt");
+      showSuccess(t("debtService.assignmentRemoved"));
     },
     onError: (e: Error) => showError(e.message),
   });
@@ -198,7 +201,7 @@ export function ReceivablesPanel() {
           }}
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          Forderung hinzufügen
+          {t('debts.receivablesPanel.addReceivable')}
         </Button>
       </div>
 
@@ -210,8 +213,8 @@ export function ReceivablesPanel() {
       ) : receivables.length === 0 ? (
         <EmptyState
           emoji="🤝"
-          title="Noch keine Forderungen erfasst"
-          description="Erfasse verliehenes Geld, damit du den Überblick behältst und Rückzahlungen verbuchen kannst."
+          title={t('debts.receivablesPanel.emptyTitle')}
+          description={t('debts.receivablesPanel.emptyDescription')}
           action={
             <Button
               onClick={() => {
@@ -220,18 +223,18 @@ export function ReceivablesPanel() {
               }}
             >
               <Plus className="mr-1.5 h-4 w-4" />
-              Erste Forderung hinzufügen
+              {t('debts.receivablesPanel.firstButton')}
             </Button>
           }
         />
       ) : (
         <>
-          {/* Reine Kennzahlen ohne Follow-up → gebündeltes Readout statt Karten
+          {/* Reine Kennzahlen ohne Follow-up -> gebündeltes Readout statt Karten
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: "Gesamtforderung", value: eur.format(totalReceivables) },
-              { label: "Offene Forderungen", value: openCount },
+              { label: t('debts.receivablesPanel.totalLabel'), value: eur.format(totalReceivables) },
+              { label: t('debts.receivablesPanel.openLabel'), value: openCount },
             ]}
           />
 
@@ -246,13 +249,13 @@ export function ReceivablesPanel() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 font-medium">
                       <span className="truncate">{r.name}</span>
-                      {r.is_cash && <Badge variant="secondary" className="shrink-0">Bar</Badge>}
+                      {r.is_cash && <Badge variant="secondary" className="shrink-0">{t('debts.receivablesPanel.cash')}</Badge>}
                       {r.is_settled && (
-                        <Badge className="shrink-0 bg-positive/20 text-positive">Beglichen</Badge>
+                        <Badge className="shrink-0 bg-positive/20 text-positive">{t('debts.receivablesPanel.settled')}</Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {RECEIVABLE_TYPE_LABELS[r.type]}
+                      {receivableTypeLabels[r.type]}
                       {r.debtor ? ` · ${r.debtor}` : ""}
                       {r.due_date ? ` · fällig bis ${new Date(r.due_date).toLocaleDateString("de-DE")}` : ""}
                     </div>
@@ -265,14 +268,14 @@ export function ReceivablesPanel() {
                       variant={r.is_settled ? "secondary" : "outline"}
                       size="sm"
                       onClick={() => toggleSettled(r)}
-                      title={r.is_settled ? "Als offen markieren" : "Als beglichen markieren"}
+                      title={r.is_settled ? t('debts.receivablesPanel.markUnsettled') : t('debts.receivablesPanel.markSettled')}
                     >
                       <CheckCircle2 className={r.is_settled ? "mr-1.5 h-4 w-4 text-positive" : "mr-1.5 h-4 w-4"} />
-                      {r.is_settled ? "Rückgängig" : "Beglichen"}
+                      {r.is_settled ? t('debts.receivablesPanel.unsettled') : t('debts.receivablesPanel.settled')}
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Weitere Aktionen">
+                        <Button variant="ghost" size="icon" aria-label={t("debtService.moreActions")}>
                           <MoreVertical className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -283,15 +286,15 @@ export function ReceivablesPanel() {
                             setDialogOpen(true);
                           }}
                         >
-                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> Bearbeiten
+                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> {t('debts.receivablesPanel.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            if (confirm(`Forderung „${r.name}“ löschen?`)) deleteMutation.mutate(r.id);
+                            if (confirm(`Forderung „${r.name}" löschen?`)) deleteMutation.mutate(r.id);
                           }}
                           className="text-warning focus:text-warning"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> {t('debts.receivablesPanel.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -304,13 +307,13 @@ export function ReceivablesPanel() {
           {/* Rückzahlungen zuordnen */}
           <Card>
             <CardContent className="p-4">
-              <div className="mb-3 text-sm font-semibold">Rückzahlungen dieser Forderung zuordnen</div>
+              <div className="mb-3 text-sm font-semibold">{t('debts.receivablesPanel.assignPaymentsTitle')}</div>
               <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
                 <div className="space-y-2">
-                  <Label>Forderung</Label>
+                  <Label>{t('debts.receivablesPanel.receivableLabel')}</Label>
                   <Select value={currentReceivableId} onValueChange={setSelectedReceivableId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Forderung auswählen" />
+                      <SelectValue placeholder={t('debts.receivablesPanel.selectPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {receivables.map((r) => (
@@ -323,26 +326,25 @@ export function ReceivablesPanel() {
                   {selectedReceivable && (
                     <div className="rounded-lg bg-muted/50 p-3 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Offener Betrag</span>
+                        <span className="text-muted-foreground">{t('debts.receivablesPanel.openAmountLabel')}</span>
                         <span className="font-medium">{eur.format(selectedReceivable.amount)}</span>
                       </div>
                       <div className="mt-1 flex justify-between">
-                        <span className="text-muted-foreground">Zugewiesene Rückzahlungen</span>
+                        <span className="text-muted-foreground">{t('debts.receivablesPanel.assignedLabel')}</span>
                         <span className="font-medium">{eur.format(totalAssignedToSelected)}</span>
                       </div>
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Wir schlagen passende Geldeingänge automatisch vor – auch kleine Teilrückzahlungen.
-                    Mit jeder Zuweisung sinkt der offene Betrag.
+                    {t('debts.receivablesPanel.suggestionsHint')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Geldeingänge</Label>
+                  <Label>{t('debts.receivablesPanel.incomingLabel')}</Label>
                   {incomingTransactions.length === 0 ? (
                     <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-                      Keine Geldeingänge gefunden.
+                      {t('debts.receivablesPanel.noIncoming')}
                     </div>
                   ) : (
                     <div className="max-h-80 space-y-2 overflow-auto rounded-lg border p-2">
@@ -383,7 +385,7 @@ export function ReceivablesPanel() {
                                 {new Date(transaction.date).toLocaleDateString("de-DE")} ·{" "}
                                 {transaction.description || transaction.original_text}
                                 {assigned && !assignedHere && assignedReceivable
-                                  ? ` · bereits bei ${assignedReceivable.name}`
+                                  ? ` · ${t('debts.receivablesPanel.alreadyAssigned').replace('{name}', assignedReceivable.name)}`
                                   : ""}
                               </span>
                             </span>
@@ -397,8 +399,9 @@ export function ReceivablesPanel() {
                   )}
                   {assignedToSelected.length > 0 && (
                     <div className="text-xs text-muted-foreground">
-                      {assignedToSelected.length} Rückzahlung{assignedToSelected.length === 1 ? "" : "en"} dieser
-                      Forderung zugewiesen.
+                      {t('debts.receivablesPanel.repaymentsSummary')
+                        .replace('{count}', String(assignedToSelected.length))
+                        .replace('{plural}', assignedToSelected.length === 1 ? '' : 'en')}
                     </div>
                   )}
                 </div>

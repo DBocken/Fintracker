@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import type { Transaction } from '@/types';
 import { TransactionListMobile } from './TransactionListMobile';
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
+
+function renderWithI18n(component: React.ReactElement) {
+  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+}
 
 const transaction: Transaction = {
   id: 'tx-1',
@@ -20,7 +25,7 @@ const transaction: Transaction = {
 describe('[MOBILE] transaction row interaction', () => {
   it('öffnet Details über die vollständige Inhaltszeile', () => {
     const onOpenDetails = vi.fn();
-    render(
+    renderWithI18n(
       <TransactionListMobile
         transactions={[transaction]}
         categories={[]}
@@ -38,7 +43,7 @@ describe('[MOBILE] transaction row interaction', () => {
   it('trennt Auswahl und Öffnen, damit ein Checkbox-Tap keine Details öffnet', () => {
     const onOpenDetails = vi.fn();
     const onSelect = vi.fn();
-    render(
+    renderWithI18n(
       <TransactionListMobile
         transactions={[transaction]}
         categories={[]}

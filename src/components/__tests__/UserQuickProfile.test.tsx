@@ -41,9 +41,9 @@ describe("UserQuickProfile (zusammengeführtes Profil)", () => {
       // auf Mobil gab es so keinen Weg vom Profil in die Einstellungen.
       renderProfile();
 
-      fireEvent.click(screen.getByRole("button", { name: /Profil öffnen/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Profil öffnen|Open profile/i }));
 
-      const link = await screen.findByRole("link", { name: /Einstellungen/i });
+      const link = await screen.findByRole("link", { name: /Einstellungen|Settings/i });
       expect(link).toHaveAttribute("href", "/settings");
     });
   });
@@ -55,11 +55,11 @@ describe("UserQuickProfile (zusammengeführtes Profil)", () => {
       // sie über den einzigen Profil-Einstieg (oben rechts) erreichbar sein.
       renderProfile();
 
-      fireEvent.click(screen.getByRole("button", { name: /Profil öffnen/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Profil öffnen|Open profile/i }));
 
-      expect(await screen.findByText(/Theme wählen/i)).toBeInTheDocument();
-      expect(screen.getByText(/Sanfter Modus/i)).toBeInTheDocument();
-      expect(screen.getByText(/Beta- & Premiumzugang/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Theme wählen|Choose theme/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sanfter Modus|Gentle mode/i)).toBeInTheDocument();
+      expect(screen.getByText(/Beta- & Premiumzugang|Beta & Premium access/i)).toBeInTheDocument();
       // Abmelden bleibt erhalten (Label je nach Locale „Abmelden"/„Logout").
       expect(screen.getByRole("button", { name: /Abmelden|Logout/i })).toBeInTheDocument();
     });

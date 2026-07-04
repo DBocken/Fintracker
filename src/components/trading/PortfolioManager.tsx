@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '@/i18n/useI18n';
 import type { Portfolio } from '@/types';
 import {
   getPortfolios,
@@ -43,6 +44,7 @@ export default function PortfolioManager({
   activePortfolioId,
   onPortfolioChange,
 }: PortfolioManagerProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPortfolioName, setNewPortfolioName] = useState('');
@@ -57,10 +59,10 @@ export default function PortfolioManager({
     mutationFn: deletePortfolio,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-      toast.success('Portfolio gelöscht');
+      toast.success(t('trading.portfolioManager.messages.deleteSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Löschen: ${error.message}`);
+      toast.error(t('trading.portfolioManager.messages.errorDelete').replace('{error}', error.message));
     },
   });
 
@@ -68,10 +70,10 @@ export default function PortfolioManager({
     mutationFn: setActivePortfolio,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-      toast.success('Portfolio aktiviert');
+      toast.success(t('trading.portfolioManager.messages.activateSuccess'));
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Aktivieren: ${error.message}`);
+      toast.error(t('trading.portfolioManager.messages.errorActivate').replace('{error}', error.message));
     },
   });
 
@@ -81,17 +83,17 @@ export default function PortfolioManager({
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
       setIsCreateDialogOpen(false);
       setNewPortfolioName('');
-      toast.success('Portfolio erstellt');
+      toast.success(t('trading.portfolioManager.messages.success'));
       onPortfolioChange?.(portfolio);
     },
     onError: (error: Error) => {
-      toast.error(`Fehler beim Erstellen: ${error.message}`);
+      toast.error(t('trading.portfolioManager.messages.errorCreate').replace('{error}', error.message));
     },
   });
 
   const handleCreatePortfolio = () => {
     if (!newPortfolioName.trim()) {
-      toast.error('Bitte geben Sie einen Namen ein');
+      toast.error(t('trading.portfolioManager.messages.nameRequired'));
       return;
     }
     createMutation.mutate({
@@ -114,12 +116,12 @@ export default function PortfolioManager({
   const getPortfolioTypeLabel = (type: string) => {
     switch (type) {
       case 'etoro':
-        return 'eToro';
+        return t('trading.portfolioManager.typeEtoroLabel');
       case 'demo':
-        return 'Demo';
+        return t('trading.portfolioManager.typeDemoLabel');
       case 'manual':
       default:
-        return 'Manuell';
+        return t('trading.portfolioManager.typeManualLabel');
     }
   };
 
@@ -138,7 +140,7 @@ export default function PortfolioManager({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-sm text-muted-foreground">Laden...</div>
+        <div className="text-sm text-muted-foreground">{t('trading.portfolioManager.loadingMessage')}</div>
       </div>
     );
   }
@@ -147,40 +149,40 @@ export default function PortfolioManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Portfolios</h3>
+          <h3 className="text-lg font-semibold">{t('trading.portfolioManager.title')}</h3>
           <p className="text-sm text-muted-foreground">
-            Verwalten Sie Ihre Portfolios
+            {t('trading.portfolioManager.subtitle')}
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Neues Portfolio
+              {t('trading.portfolioManager.newPortfolioButton')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Neues Portfolio erstellen</DialogTitle>
+              <DialogTitle>{t('trading.portfolioManager.createDialogTitle')}</DialogTitle>
               <DialogDescription>
-                Erstellen Sie ein neues Portfolio für Ihre Investitionen.
+                {t('trading.portfolioManager.createDialogDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="portfolio-name">Name</Label>
+                <Label htmlFor="portfolio-name">{t('trading.portfolioManager.nameLabel')}</Label>
                 <Input
                   id="portfolio-name"
-                  placeholder="Mein Portfolio"
+                  placeholder={t('trading.portfolioManager.namePlaceholder')}
                   value={newPortfolioName}
                   onChange={(e) => setNewPortfolioName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="portfolio-currency">Währung</Label>
+                <Label htmlFor="portfolio-currency">{t('trading.portfolioManager.currencyLabel')}</Label>
                 <Input
                   id="portfolio-currency"
-                  placeholder="EUR"
+                  placeholder={t('trading.portfolioManager.currencyPlaceholder')}
                   value={newPortfolioCurrency}
                   onChange={(e) => setNewPortfolioCurrency(e.target.value.toUpperCase())}
                   maxLength={3}
@@ -192,10 +194,10 @@ export default function PortfolioManager({
                 variant="outline"
                 onClick={() => setIsCreateDialogOpen(false)}
               >
-                Abbrechen
+                {t('trading.portfolioManager.cancelButton')}
               </Button>
               <Button onClick={handleCreatePortfolio}>
-                Erstellen
+                {t('trading.portfolioManager.createButton')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -224,12 +226,12 @@ export default function PortfolioManager({
                     {portfolio.id === activePortfolioId && (
                       <Badge variant="default" className="gap-1">
                         <CheckCircle2 className="h-3 w-3" />
-                        Aktiv
+                        {t('trading.portfolioManager.activeBadge')}
                       </Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {portfolio.currency} • Erstellt am {new Date(portfolio.created_at!).toLocaleDateString('de-DE')}
+                    {portfolio.currency} • {t('trading.portfolioManager.createdAt').replace('{date}', new Date(portfolio.created_at!).toLocaleDateString('de-DE'))}
                   </p>
                 </div>
               </div>
@@ -242,7 +244,7 @@ export default function PortfolioManager({
                     onClick={() => handleSetActive(portfolio)}
                     disabled={setActiveMutation.isPending}
                   >
-                    Aktivieren
+                    {t('trading.portfolioManager.activateButton')}
                   </Button>
                 )}
                 <AlertDialog>
@@ -257,17 +259,15 @@ export default function PortfolioManager({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Portfolio löschen?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('trading.portfolioManager.deleteConfirmTitle')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Möchten Sie das Portfolio "{portfolio.name}" wirklich löschen?
-                        Alle Positionen in diesem Portfolio werden ebenfalls gelöscht.
-                        Diese Aktion kann nicht rückgängig gemacht werden.
+                        {t('trading.portfolioManager.deleteConfirmDesc').replace('{name}', portfolio.name)}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                      <AlertDialogCancel>{t('trading.portfolioManager.cancelButton')}</AlertDialogCancel>
                       <AlertDialogAction onClick={() => handleDelete(portfolio.id)}>
-                        Löschen
+                        {t('trading.portfolioManager.deleteButton')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -278,8 +278,8 @@ export default function PortfolioManager({
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Wallet className="mx-auto h-12 w-12 mb-2 opacity-50" />
-            <p>Keine Portfolios vorhanden</p>
-            <p className="text-sm">Erstellen Sie Ihr erstes Portfolio</p>
+            <p>{t('trading.portfolioManager.emptyState')}</p>
+            <p className="text-sm">{t('trading.portfolioManager.emptyStateHint')}</p>
           </div>
         )}
       </div>

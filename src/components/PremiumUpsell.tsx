@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import LockedPreview from "@/components/premium/LockedPreview";
 import { FEATURES, type FeatureKey } from "@/lib/tier";
+import { useI18n } from "@/i18n/useI18n";
 
 /**
  * Statische, geblurrte Mini-Mocks je Feature. Bewusst rein dekorativ
@@ -213,6 +214,7 @@ interface PremiumUpsellProps {
  * benötigten Tiers automatisch Login- vs. Premium-Story und CTA.
  */
 export function PremiumUpsell({ feature }: PremiumUpsellProps) {
+  const { t } = useI18n();
   const copy = FEATURE_COPY[feature];
   const needsLogin = FEATURES[feature] === "free";
 
@@ -224,10 +226,10 @@ export function PremiumUpsell({ feature }: PremiumUpsellProps) {
       preview={<PreviewMock feature={feature} />}
       cta={
         needsLogin
-          ? { label: "Mit Google anmelden", to: "/login", icon: "login" }
-          : { label: "Mehr über Premium", to: "/settings", icon: "premium" }
+          ? { label: t('upsell.loginCta'), to: "/login", icon: "login" }
+          : { label: t('upsell.premiumCta'), to: "/settings", icon: "premium" }
       }
-      note="Es entstehen für dich keine Kosten und es werden keine Daten ohne deine Zustimmung übertragen."
+      note={t('upsell.note')}
     />
   );
 }

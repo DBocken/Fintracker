@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { useI18n } from '@/i18n/useI18n';
 
 interface WeeklyPatternChartsProps {
   weeklyData: Array<{
@@ -10,11 +11,12 @@ interface WeeklyPatternChartsProps {
 }
 
 export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Wann kommt mein Geld? (Wöchentliches Muster)</CardTitle>
+          <CardTitle>{t("premium.weekly.incomeTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -22,12 +24,12 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
               <YAxis tickFormatter={(value) => `${value.toFixed(0)}€`} />
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number) => [value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }), '']}
-                labelFormatter={(label) => `Wochentag: ${label}`}
+                labelFormatter={(label) => t("premium.weekly.weekdayLabel").replace('{label}', String(label))}
               />
-              <Legend formatter={() => 'Einnahmen'} />
-              <Bar dataKey="income" fill="hsl(var(--positive))" name="Einnahmen" />
+              <Legend formatter={() => t("premium.weekly.incomeLabel")} />
+              <Bar dataKey="income" fill="hsl(var(--positive))" name={t("premium.weekly.incomeLabel")} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -35,7 +37,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Wann gebe ich aus? (Wöchentliches Muster)</CardTitle>
+          <CardTitle>{t("premium.weekly.expensesTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -43,12 +45,12 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
               <YAxis tickFormatter={(value) => `${value.toFixed(0)}€`} />
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number) => [value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }), '']}
-                labelFormatter={(label) => `Wochentag: ${label}`}
+                labelFormatter={(label) => t("premium.weekly.weekdayLabel").replace('{label}', String(label))}
               />
-              <Legend formatter={() => 'Ausgaben'} />
-              <Bar dataKey="expenses" fill="hsl(var(--brand))" name="Ausgaben" />
+              <Legend formatter={() => t("premium.weekly.expensesLabel")} />
+              <Bar dataKey="expenses" fill="hsl(var(--brand))" name={t("premium.weekly.expensesLabel")} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

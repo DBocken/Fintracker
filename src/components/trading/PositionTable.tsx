@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import type { PortfolioPosition } from '@/types';
 import {
   Table,
@@ -40,6 +41,7 @@ export default function PositionTable({
   onDelete,
   currency = 'EUR',
 }: PositionTableProps) {
+  const { t } = useI18n();
   const [sortField, setSortField] = useState<SortField>('gain_loss');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -98,9 +100,9 @@ export default function PositionTable({
     return (
       <div className="flex items-center justify-center py-12 text-center">
         <div className="space-y-2">
-          <p className="text-lg font-medium">Keine Positionen vorhanden</p>
+          <p className="text-lg font-medium">{t('trading.positionTable.empty')}</p>
           <p className="text-sm text-muted-foreground">
-            Fügen Sie Ihre erste Position hinzu, um Ihr Portfolio aufzubauen.
+            {t('trading.positionTable.emptyHint')}
           </p>
         </div>
       </div>
@@ -114,38 +116,38 @@ export default function PositionTable({
           <TableRow>
             <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('symbol')}>
               <div className="flex items-center">
-                Symbol
+                {t('trading.positionTable.headerSymbol')}
                 {getSortIcon('symbol')}
               </div>
             </TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead>{t('trading.positionTable.headerName')}</TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('quantity')}>
               <div className="flex items-center justify-end">
-                Menge
+                {t('trading.positionTable.headerQuantity')}
                 {getSortIcon('quantity')}
               </div>
             </TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('entry_price')}>
               <div className="flex items-center justify-end">
-                Einstiegspreis
+                {t('trading.positionTable.headerEntryPrice')}
                 {getSortIcon('entry_price')}
               </div>
             </TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('current_price')}>
               <div className="flex items-center justify-end">
-                Aktueller Kurs
+                {t('trading.positionTable.headerCurrentPrice')}
                 {getSortIcon('current_price')}
               </div>
             </TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('gain_loss')}>
               <div className="flex items-center justify-end">
-                Gewinn/Verlust
+                {t('trading.positionTable.headerGainLoss')}
                 {getSortIcon('gain_loss')}
               </div>
             </TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('gain_loss_percent')}>
               <div className="flex items-center justify-end">
-                %
+                {t('trading.positionTable.headerPercent')}
                 {getSortIcon('gain_loss_percent')}
               </div>
             </TableHead>
@@ -223,16 +225,15 @@ export default function PositionTable({
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Position löschen?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('trading.positionTable.deleteConfirmTitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Möchten Sie die Position {position.symbol} wirklich löschen?
-                              Diese Aktion kann nicht rückgängig gemacht werden.
+                              {t('trading.positionTable.deleteConfirmDesc').replace('{symbol}', position.symbol)}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                            <AlertDialogCancel>{t('trading.positionTable.cancelButton')}</AlertDialogCancel>
                             <AlertDialogAction onClick={() => onDelete(position.id)}>
-                              Löschen
+                              {t('trading.positionTable.deleteButton')}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

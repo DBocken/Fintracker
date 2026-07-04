@@ -1,8 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { DebtCard } from "../DebtCard";
 import type { Debt } from "@/types";
+
+function renderWithI18n(component: React.ReactElement) {
+  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+}
 
 function makeDebt(overrides: Partial<Debt> = {}): Debt {
   return {
@@ -26,7 +31,7 @@ describe("DebtCard", () => {
       // Die ganze Karte ist klickbar: ein Button über die gesamte Fläche
       // (aria-label „Details zu …") öffnet die Detailansicht.
       const onOpenDetails = vi.fn();
-      render(
+      renderWithI18n(
         <DebtCard debt={makeDebt()} onTogglePaid={() => {}} onOpenDetails={onOpenDetails} />,
       );
       await userEvent.click(screen.getByRole("button", { name: "Details zu Visa-Karte" }));
@@ -36,7 +41,7 @@ describe("DebtCard", () => {
     it("[REGRESSION] sollte die Sekundaeraktion 'Bezahlt markieren' ohne Details-Oeffnen ausloesen", async () => {
       const onOpenDetails = vi.fn();
       const onTogglePaid = vi.fn();
-      render(
+      renderWithI18n(
         <DebtCard debt={makeDebt()} onTogglePaid={onTogglePaid} onOpenDetails={onOpenDetails} />,
       );
       await userEvent.click(screen.getByRole("button", { name: /bezahlt markieren/i }));

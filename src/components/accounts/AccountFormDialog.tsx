@@ -17,11 +17,12 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useI18n } from '@/i18n/useI18n';
 import type { Account, AccountType } from '../../types';
-import { 
-  ACCOUNT_TYPE_LABELS, 
-  ACCOUNT_TYPE_ICONS, 
-  ACCOUNT_TYPE_COLORS 
+import {
+  ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_ICONS,
+  ACCOUNT_TYPE_COLORS
 } from '../../services/account-service';
 
 interface AccountFormDialogProps {
@@ -43,6 +44,7 @@ export function AccountFormDialog({
   onSave,
   isLoading,
 }: AccountFormDialogProps) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [currency, setCurrency] = useState('EUR');
@@ -152,24 +154,24 @@ export function AccountFormDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {account ? 'Konto bearbeiten' : 'Neues Konto erstellen'}
+            {account ? t('accounts.formDialog.titleEdit') : t('accounts.formDialog.titleNew')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t('accounts.formDialog.nameLabel')}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="z.B. Sparkasse Girokonto"
+              placeholder={t('accounts.formDialog.namePlaceholder')}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Kontotyp</Label>
+            <Label htmlFor="type">{t('accounts.formDialog.typeLabel')}</Label>
             <Select value={type} onValueChange={(val) => setType(val as AccountType)}>
               <SelectTrigger>
                 <SelectValue />
@@ -186,22 +188,22 @@ export function AccountFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currency">Währung</Label>
+              <Label htmlFor="currency">{t('accounts.formDialog.currencyLabel')}</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="CHF">CHF</SelectItem>
+                  <SelectItem value="EUR">{t('accounts.formDialog.currencyEur')}</SelectItem>
+                  <SelectItem value="USD">{t('accounts.formDialog.currencyUsd')}</SelectItem>
+                  <SelectItem value="GBP">{t('accounts.formDialog.currencyGbp')}</SelectItem>
+                  <SelectItem value="CHF">{t('accounts.formDialog.currencyCHF')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="color">Farbe</Label>
+              <Label htmlFor="color">{t('accounts.formDialog.colorLabel')}</Label>
               <div className="flex gap-2">
                 <Input
                   id="color"
@@ -213,7 +215,7 @@ export function AccountFormDialog({
                 <Input
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  placeholder="🏦"
+                  placeholder={t('accounts.formDialog.iconPlaceholder')}
                   className="w-16 text-center"
                   maxLength={2}
                 />
@@ -222,44 +224,42 @@ export function AccountFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="iban">IBAN (optional)</Label>
+            <Label htmlFor="iban">{t('accounts.formDialog.ibanLabel')}</Label>
             <Input
               id="iban"
               value={iban}
               onChange={(e) => setIban(e.target.value)}
-              placeholder="z.B. DE89 3704 0044 0532 0130 00"
+              placeholder={t('accounts.formDialog.ibanPlaceholder')}
             />
             <p className="text-xs text-muted-foreground">
-              Wird zum automatischen Erkennen interner Überträge zwischen deinen Konten
-              genutzt – z.B. damit eine Umbuchung vom Tagesgeld aufs Girokonto erkannt
-              und auf dem nicht synchronisierten Konto mitgebucht wird.
+              {t('accounts.formDialog.ibanHint')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Beschreibung (optional)</Label>
+            <Label htmlFor="description">{t('accounts.formDialog.descriptionLabel')}</Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="z.B. Hauptkonto für Gehalt"
+              placeholder={t('accounts.formDialog.descriptionPlaceholder')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="openingBalance">Startsaldo (optional)</Label>
+              <Label htmlFor="openingBalance">{t('accounts.formDialog.openingBalanceLabel')}</Label>
               <Input
                 id="openingBalance"
                 type="number"
                 step="0.01"
                 value={openingBalance}
                 onChange={(e) => setOpeningBalance(e.target.value)}
-                placeholder="z.B. 1234.56"
+                placeholder={t('accounts.formDialog.openingBalancePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="openingBalanceDate">Saldo-Stichtag</Label>
+              <Label htmlFor="openingBalanceDate">{t('accounts.formDialog.balanceDateLabel')}</Label>
               <Input
                 id="openingBalanceDate"
                 type="date"
@@ -270,14 +270,12 @@ export function AccountFormDialog({
             </div>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            Saldo vor der ersten importierten/erfassten Transaktion. Wird zur Summe
-            der Transaktionen addiert, damit der berechnete Saldo dem echten
-            Kontostand entspricht.
+            {t('accounts.formDialog.balanceHint')}
           </p>
 
           {account && (
             <div className="space-y-2">
-              <Label htmlFor="manualBalance">Aktueller Kontostand (manuelle Korrektur)</Label>
+              <Label htmlFor="manualBalance">{t('accounts.formDialog.manualBalanceLabel')}</Label>
               <Input
                 id="manualBalance"
                 type="number"
@@ -286,24 +284,23 @@ export function AccountFormDialog({
                 onChange={(e) => setManualBalance(e.target.value)}
                 placeholder={
                   account.live_balance_amount != null
-                    ? `Aktuell: ${account.live_balance_amount}`
-                    : 'z.B. 1234.56'
+                    ? t('accounts.formDialog.manualBalanceCurrentPrefix') + account.live_balance_amount
+                    : t('accounts.formDialog.manualBalancePlaceholder')
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Überschreibt den berechneten/synchronisierten Saldo direkt – z.B. um nach
-                einem CSV-Import den echten Kontostand laut Kontoauszug einzutragen.
-                {account.gocardless_account_id && ' Wird beim nächsten Bank-Sync wieder überschrieben.'}
-                {' '}Feld leeren, um die Korrektur zu entfernen.
+                {t('accounts.formDialog.manualBalanceHint')}
+                {account.gocardless_account_id && t('accounts.formDialog.manualBalanceHintWithSync')}
+                {t('accounts.formDialog.manualBalanceClearHint')}
               </p>
             </div>
           )}
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Budget-Pool Mitglied</Label>
+              <Label>{t('accounts.formDialog.budgetPoolLabel')}</Label>
               <p className="text-xs text-muted-foreground">
-                Im gemeinsamen Budget berücksichtigen
+                {t('accounts.formDialog.budgetPoolHint')}
               </p>
             </div>
             <Switch
@@ -315,12 +312,12 @@ export function AccountFormDialog({
           {type === 'credit_card' && (
             <div className="space-y-4 pt-4 border-t">
               <p className="text-sm font-medium text-muted-foreground">
-                Kreditkarten-Einstellungen
+                {t('accounts.formDialog.creditCardSettings')}
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="statementCloseDay">Abrechnungstag</Label>
+                  <Label htmlFor="statementCloseDay">{t('accounts.formDialog.statementCloseLabel')}</Label>
                   <Input
                     id="statementCloseDay"
                     type="number"
@@ -328,12 +325,12 @@ export function AccountFormDialog({
                     max={31}
                     value={statementCloseDay || ''}
                     onChange={(e) => setStatementCloseDay(e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder="z.B. 15"
+                    placeholder={t('accounts.formDialog.statementClosePlaceholder')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dueDay">Fälligkeitstag</Label>
+                  <Label htmlFor="dueDay">{t('accounts.formDialog.dueDayLabel')}</Label>
                   <Input
                     id="dueDay"
                     type="number"
@@ -341,22 +338,22 @@ export function AccountFormDialog({
                     max={31}
                     value={dueDay || ''}
                     onChange={(e) => setDueDay(e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder="z.B. 1"
+                    placeholder={t('accounts.formDialog.dueDayPlaceholder')}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="autopayAccount">Ausgleichskonto</Label>
+                <Label htmlFor="autopayAccount">{t('accounts.formDialog.autopayAccountLabel')}</Label>
                 <Select
                   value={autopayAccountId || ''}
                   onValueChange={(val) => setAutopayAccountId(val === '__none__' ? null : val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Konto für automatischen Ausgleich" />
+                    <SelectValue placeholder={t('accounts.formDialog.autopayAccountPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Keins</SelectItem>
+                    <SelectItem value="__none__">{t('accounts.formDialog.autopayAccountNone')}</SelectItem>
                     {otherAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.icon} {a.name}
@@ -374,10 +371,10 @@ export function AccountFormDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Abbrechen
+              {t('accounts.formDialog.cancelButton')}
             </Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
-              {isLoading ? 'Speichern...' : 'Speichern'}
+              {isLoading ? t('accounts.formDialog.saveButtonLoading') : t('accounts.formDialog.saveButton')}
             </Button>
           </DialogFooter>
         </form>

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Account, Budget, HierarchicalCategory } from "@/types";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 // Die Premium-Sektion (adaptives Limit, Rollover, Regeln) liegt hinter einem
 // FeatureGate (#133). Diese Suite prüft die Dialog-Logik unter der Annahme, dass
@@ -14,6 +15,18 @@ vi.mock("@/components/FeatureGate", () => ({
 
 import BudgetFormDialog from "../BudgetFormDialog";
 
+// Helper: I18nProvider Wrapper
+function renderWithI18n(
+  component: React.ReactElement,
+  locale: "de" | "en" = "de"
+) {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      {component}
+    </I18nProvider>
+  );
+}
+
 const CATEGORIES: HierarchicalCategory[] = [
   { id: "wohnen", name: "Wohnen", filters: [], icon: "🏠", children: [] },
 ];
@@ -24,7 +37,7 @@ const ACCOUNTS: Account[] = [
 
 function setup(budget: Budget | null = null) {
   const onSave = vi.fn();
-  render(
+  renderWithI18n(
     <BudgetFormDialog
       open
       onOpenChange={() => {}}

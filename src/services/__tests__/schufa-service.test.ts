@@ -1,24 +1,39 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   isReminderDue,
-  SCHUFA_EXPLANATION,
+  getSchufaExplanation,
   SCHUFA_REQUEST_URL,
 } from "../schufa-service";
 
 describe("SCHUFA-Mut-Helfer", () => {
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
+
+  it("[REGRESSION] liefert die Erklärung auf Englisch, wenn locale=en", () => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "en");
+    const explanation = getSchufaExplanation();
+    expect(explanation.headline).toBe("Your data at SCHUFA");
+    expect(explanation.warning).toContain("Caution");
+  });
+
   it("erklärt die DSGVO-Auskunft RDG-konform", () => {
-    expect(SCHUFA_EXPLANATION.headline).toBeTruthy();
-    expect(SCHUFA_EXPLANATION.text).toContain("kostenlos");
-    expect(SCHUFA_EXPLANATION.text).toContain("DSGVO");
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+    const explanation = getSchufaExplanation();
+    expect(explanation.headline).toBeTruthy();
+    expect(explanation.text).toContain("kostenlos");
+    expect(explanation.text).toContain("DSGVO");
     // Keine Bewertung/Interpretation einzelner Einträge (RDG-Grenze)
-    expect(SCHUFA_EXPLANATION.text).not.toContain("schlecht");
-    expect(SCHUFA_EXPLANATION.text).not.toContain("musst");
+    expect(explanation.text).not.toContain("schlecht");
+    expect(explanation.text).not.toContain("musst");
   });
 
   it("warnt vor bezahlten SCHUFA-Produkten", () => {
-    expect(SCHUFA_EXPLANATION.warning).toContain("Vorsicht");
-    expect(SCHUFA_EXPLANATION.warning).toContain("bezahlten");
-    expect(SCHUFA_EXPLANATION.warning).toContain("kostenlos");
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+    const explanation = getSchufaExplanation();
+    expect(explanation.warning).toContain("Vorsicht");
+    expect(explanation.warning).toContain("bezahlten");
+    expect(explanation.warning).toContain("kostenlos");
   });
 
   it("nutzt nur die offizielle SCHUFA-URL", () => {

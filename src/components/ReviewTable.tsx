@@ -27,6 +27,7 @@ import { getHierarchicalCategories, getTransactions, saveTransactions } from '..
 import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
+import { useI18n } from '@/i18n/useI18n';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -37,6 +38,7 @@ interface ReviewTableProps {
 const DUPLICATE_AMOUNT_TOLERANCE = 0.005;
 
 export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
+  const { t } = useI18n();
   const [rows, setRows] = useState<Transaction[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
@@ -226,7 +228,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     return (
       <Card className="ui-card">
         <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground">Keine Transaktionen zum Review vorhanden</p>
+          <p className="text-muted-foreground">{t('reviewTable.noTransactions')}</p>
         </CardContent>
       </Card>
     );
@@ -235,7 +237,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   return (
     <Card className="ui-card">
       <CardHeader>
-        <CardTitle>Transaktionen prüfen</CardTitle>
+        <CardTitle>{t('reviewTable.title')}</CardTitle>
         {importAccount && (
           <CardDescription className="flex items-center gap-2">
             <span
@@ -250,10 +252,10 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
         {selectedRows.size > 0 && (
           <div className="flex gap-2 mb-4 p-4 bg-brand/15 rounded">
             <Tag className="h-4 w-4" />
-            <span>{selectedRows.size} ausgewählt</span>
+            <span>{t('reviewTable.selected').replace('{count}', selectedRows.size.toString())}</span>
             <Select value={bulkCategory} onValueChange={setBulkCategory}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Kategorie wählen" />
+                <SelectValue placeholder={t('reviewTable.categoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {flatCategories.map(c => (
@@ -264,10 +266,10 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
               </SelectContent>
             </Select>
             <Button onClick={handleBulkAssign} disabled={!bulkCategory}>
-              <Check className="h-4 w-4" /> Zuweisen
+              <Check className="h-4 w-4" /> {t('reviewTable.assignButton')}
             </Button>
             <Button variant="outline" onClick={() => setSelectedRows(new Set())}>
-              <X className="h-4 w-4" /> Abwählen
+              <X className="h-4 w-4" /> {t('reviewTable.deselectButton')}
             </Button>
           </div>
         )}
@@ -282,13 +284,13 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Datum</TableHead>
-                <TableHead>Beschreibung</TableHead>
-                <TableHead>Empfänger</TableHead>
-                <TableHead>Betrag</TableHead>
-                <TableHead>Auto-Kategorie</TableHead>
-                <TableHead>Zuweisen</TableHead>
-                <TableHead>Duplikat?</TableHead>
+                <TableHead>{t('reviewTable.dateHeader')}</TableHead>
+                <TableHead>{t('reviewTable.descriptionHeader')}</TableHead>
+                <TableHead>{t('reviewTable.payeeHeader')}</TableHead>
+                <TableHead>{t('reviewTable.amountHeader')}</TableHead>
+                <TableHead>{t('reviewTable.autoCategoryHeader')}</TableHead>
+                <TableHead>{t('reviewTable.assignHeader')}</TableHead>
+                <TableHead>{t('reviewTable.duplicateHeader')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -310,10 +312,10 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                       {isValidDate ? format(date!, 'dd.MM.yyyy', { locale: de }) : '-'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
-                      {row.description || row.original_text || '-'}
+                      {row.description || row.original_text || t('reviewTable.emptyCell')}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
-                      {row.payee || '-'}
+                      {row.payee || t('reviewTable.emptyCell')}
                     </TableCell>
                     <TableCell className={row.amount < 0 ? 'text-warning' : 'text-positive'}>
                       {Math.abs(row.amount).toFixed(2)}€
@@ -324,7 +326,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                           {(autoCategory.icon || '')} {autoCategory.name}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">{t('reviewTable.emptyCell')}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -354,18 +356,18 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                       {duplicateIds.has(row.id || '') ? (
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="border-warning text-warning">
-                            Mögliches Duplikat
+                            {t('reviewTable.possibleDuplicate')}
                           </Badge>
                           <label className="flex items-center gap-1 text-xs whitespace-nowrap cursor-pointer">
                             <Checkbox
                               checked={!excludedIds.has(row.id || '')}
                               onCheckedChange={() => toggleExcluded(row.id || '')}
                             />
-                            trotzdem importieren
+                            {t('reviewTable.importAnywayLabel')}
                           </label>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">{t('reviewTable.emptyCell')}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -378,7 +380,11 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between gap-2 mt-4">
             <span className="text-sm text-muted-foreground">
-              Zeige {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, rows.length)} von {rows.length}
+              {t('reviewTable.pagination')
+                .replace('{start}', String((currentPage - 1) * PAGE_SIZE + 1))
+                .replace('{end}', String(Math.min(currentPage * PAGE_SIZE, rows.length)))
+                .replace('{total}', String(rows.length))
+              }
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -427,7 +433,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
         <div className="flex items-center justify-end gap-3 mt-4">
           {excludedIds.size > 0 && (
             <p className="text-xs text-muted-foreground">
-              {excludedIds.size} als Duplikat erkannt und vom Import ausgeschlossen
+              {t('reviewTable.duplicateWarning').replace('{count}', String(excludedIds.size))}
             </p>
           )}
           <Button
@@ -436,8 +442,8 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
             className="btn-premium"
           >
             {saveMut.isPending
-              ? 'Speichern...'
-              : `Importiere ${rows.length - excludedIds.size} Transaktionen`}
+              ? t('reviewTable.savingButton')
+              : t('reviewTable.importButton').replace('{count}', String(rows.length - excludedIds.size))}
           </Button>
         </div>
       </CardContent>

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import { SpendingBreakdownCard } from '../TransactionCharts';
 
 // Recharts' ResponsiveContainer (Desktop-Donut) braucht ResizeObserver, den
@@ -12,6 +13,20 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 });
+
+// Helper: I18nProvider Wrapper
+function renderWithI18n(
+  component: React.ReactElement,
+  locale: 'de' | 'en' = 'de'
+) {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      <MemoryRouter>
+        {component}
+      </MemoryRouter>
+    </I18nProvider>
+  );
+}
 
 /**
  * Regression-Schutz für die mobile Sunburst-Aufschlüsselung: Auf Touch greift
@@ -33,11 +48,7 @@ const sunburst = {
 };
 
 function renderCard() {
-  return render(
-    <MemoryRouter>
-      <SpendingBreakdownCard sunburst={sunburst} />
-    </MemoryRouter>,
-  );
+  return renderWithI18n(<SpendingBreakdownCard sunburst={sunburst} />);
 }
 
 /** Die mobile Liste (md:hidden); die Desktop-Legende ist strukturell dieselbe Klasse, daher gezielt über die Liste suchen. */
@@ -87,11 +98,7 @@ describe('SpendingBreakdownCard – mobile Aufschlüsselung', () => {
 
   describe('Edge Cases', () => {
     it('sollte einen Hinweis statt einer leeren Liste zeigen, wenn keine Ausgaben vorliegen', () => {
-      render(
-        <MemoryRouter>
-          <SpendingBreakdownCard sunburst={{ total: 0, inner: [], outer: [] }} />
-        </MemoryRouter>,
-      );
+      renderWithI18n(<SpendingBreakdownCard sunburst={{ total: 0, inner: [], outer: [] }} />);
       expect(screen.getByText(/Noch keine Ausgaben erfasst/i)).toBeInTheDocument();
     });
   });

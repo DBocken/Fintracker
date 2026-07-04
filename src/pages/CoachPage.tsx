@@ -26,11 +26,11 @@ import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function CoachPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview"], queryFn: getCoachOverview });
-  const { data: health } = useQuery({ queryKey: ["financial-health"], queryFn: getFinancialHealth });
-  const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones"], queryFn: evaluateMilestones });
+  const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview", locale], queryFn: getCoachOverview });
+  const { data: health } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
+  const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones", locale], queryFn: evaluateMilestones });
 
   // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
   // klare nächste Aktion statt leerer Karten. Eigener queryKey, damit der
@@ -96,7 +96,7 @@ export default function CoachPage() {
       {/* Vor dem nächsten Gehalt: was bleibt frei (Tank, klickbar → Liquidität)
           und welche Abbuchungen kommen als Nächstes (reines Readout). */}
       <section className="space-y-4">
-        <SectionHeader icon={<CalendarClock className="h-4 w-4" />} title="Vor dem nächsten Gehalt" />
+        <SectionHeader icon={<CalendarClock className="h-4 w-4" />} title={t("coach.nextPayday")} />
         <DisposableTankCard />
         <UpcomingChargesList />
       </section>

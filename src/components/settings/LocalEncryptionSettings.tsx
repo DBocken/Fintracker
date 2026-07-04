@@ -9,9 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { showError, showSuccess } from '@/utils/toast';
 import { estimatePasswordStrength } from '@/services/local-crypto';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
+import { useI18n } from '@/i18n/useI18n';
 
 export function LocalEncryptionSettings() {
   const { enabled, unlocked, enable, unlock, lock, disable } = useLocalEncryption();
+  const { t } = useI18n();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -21,7 +23,7 @@ export function LocalEncryptionSettings() {
   const handleEnable = async () => {
     if (!password) return;
     if (password !== confirm) {
-      showError('Passphrasen stimmen nicht überein');
+      showError(t('privacy.localEncryption.errorMismatch'));
       return;
     }
 
@@ -30,9 +32,9 @@ export function LocalEncryptionSettings() {
       await enable(password);
       setPassword('');
       setConfirm('');
-      showSuccess('Lokale Verschlüsselung aktiviert');
+      showSuccess(t('privacy.localEncryption.successEnabled'));
     } catch (e: unknown) {
-      showError((e as Error)?.message || 'Aktivierung fehlgeschlagen');
+      showError((e as Error)?.message || t('privacy.localEncryption.errorEnable'));
     } finally {
       setBusy(false);
     }
@@ -44,9 +46,9 @@ export function LocalEncryptionSettings() {
     try {
       await unlock(password);
       setPassword('');
-      showSuccess('Sync-Datei entsperrt');
+      showSuccess(t('privacy.localEncryption.successUnlocked'));
     } catch (e: unknown) {
-      showError((e as Error)?.message || 'Entsperren fehlgeschlagen');
+      showError((e as Error)?.message || t('privacy.localEncryption.errorUnlock'));
     } finally {
       setBusy(false);
     }
@@ -59,9 +61,9 @@ export function LocalEncryptionSettings() {
       await disable(password);
       setPassword('');
       setConfirm('');
-      showSuccess('Lokale Verschlüsselung deaktiviert');
+      showSuccess(t('privacy.localEncryption.successDisabled'));
     } catch (e: unknown) {
-      showError((e as Error)?.message || 'Deaktivierung fehlgeschlagen');
+      showError((e as Error)?.message || t('privacy.localEncryption.errorDisable'));
     } finally {
       setBusy(false);
     }
@@ -72,26 +74,25 @@ export function LocalEncryptionSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Shield className="h-5 w-5 text-positive" />
-          Passphrase & lokale Verschlüsselung
+          {t('privacy.localEncryption.title')}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Diese Passphrase schützt deine lokalen Finanzdaten und die zukünftige Sync-Datei.
+          {t('privacy.localEncryption.description')}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <Alert className="border-warning bg-warning/30">
           <AlertDescription className="text-sm text-warning">
-            Wichtig: Wenn du die Passphrase vergisst, können die lokal verschlüsselten Daten nicht wiederhergestellt
-            werden.
+            {t('privacy.localEncryption.warning')}
           </AlertDescription>
         </Alert>
 
         <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
           <div className="text-sm text-foreground">
-            Status:{' '}
+            {t('privacy.localEncryption.statusLabel')}
             <span className={enabled ? 'text-positive' : 'text-muted-foreground'}>
-              {enabled ? (unlocked ? 'aktiv und entsperrt' : 'aktiv und gesperrt') : 'noch nicht eingerichtet'}
+              {enabled ? (unlocked ? t('privacy.localEncryption.statusActive') : t('privacy.localEncryption.statusLocked')) : t('privacy.localEncryption.statusInactive')}
             </span>
           </div>
 
@@ -103,7 +104,7 @@ export function LocalEncryptionSettings() {
               className="border-border bg-card text-foreground hover:bg-accent"
             >
               <Lock className="mr-2 h-4 w-4" />
-              Sperren
+              {t('privacy.localEncryption.lockButton')}
             </Button>
           ) : null}
         </div>
@@ -111,12 +112,12 @@ export function LocalEncryptionSettings() {
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
             <FileKey2 className="h-4 w-4 text-positive" />
-            Passphrase verwalten
+            {t('privacy.localEncryption.manageSection')}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="enc-password" className="text-foreground">
-              Passphrase
+              {t('privacy.localEncryption.passphraseLabel')}
             </Label>
             <Input
               id="enc-password"
@@ -130,7 +131,7 @@ export function LocalEncryptionSettings() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="enc-confirm" className="text-foreground">
-                    Passphrase bestätigen
+                    {t('privacy.localEncryption.confirmLabel')}
                   </Label>
                   <Input
                     id="enc-confirm"
@@ -143,7 +144,7 @@ export function LocalEncryptionSettings() {
 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Stärke</span>
+                    <span>{t('privacy.localEncryption.strengthLabel')}</span>
                     <span>{strength.label}</span>
                   </div>
                   <Progress value={strength.score} />
@@ -160,7 +161,7 @@ export function LocalEncryptionSettings() {
             disabled={busy || !password || password !== confirm}
           >
             <KeyRound className="mr-2 h-4 w-4" />
-            Passphrase einrichten
+            {t('privacy.localEncryption.setupButton')}
           </Button>
         ) : unlocked ? (
           <Button
@@ -170,7 +171,7 @@ export function LocalEncryptionSettings() {
             disabled={busy || !password}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Verschlüsselung deaktivieren
+            {t('privacy.localEncryption.disableButton')}
           </Button>
         ) : (
           <Button
@@ -179,7 +180,7 @@ export function LocalEncryptionSettings() {
             disabled={busy || !password}
           >
             <Unlock className="mr-2 h-4 w-4" />
-            Mit Passphrase entsperren
+            {t('privacy.localEncryption.unlockButton')}
           </Button>
         )}
       </CardContent>

@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Debt } from "@/types";
 import {
-  DEBT_TYPE_LABELS,
+  getDebtTypeLabels,
   DEBT_TYPE_ICONS,
-  EXISTENTIAL_PRIORITY_EXPLANATION,
+  getExistentialPriorityExplanation,
 } from "@/services/debt-service";
+import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -24,6 +25,8 @@ export function DebtCard({
   onTogglePaid: (d: Debt) => void;
   onOpenDetails: (d: Debt) => void;
 }) {
+  const { t } = useI18n();
+  const debtTypeLabels = getDebtTypeLabels();
   const original = debt.original_amount ?? 0;
   const paid = original > 0 ? Math.max(0, original - debt.balance) : 0;
   const pct = original > 0 ? Math.min(100, Math.round((paid / original) * 100)) : debt.is_paid_off ? 100 : 0;
@@ -36,7 +39,7 @@ export function DebtCard({
       <button
         type="button"
         className="absolute inset-0 z-0 cursor-pointer rounded-xl focus-visible:outline-none"
-        aria-label={`Details zu ${debt.name}`}
+        aria-label={t('debts.debtCard.detailsAriaLabel').replace('{name}', debt.name)}
         onClick={() => onOpenDetails(debt)}
       />
 
@@ -47,21 +50,21 @@ export function DebtCard({
             <div className="flex items-center gap-2">
               <span className="truncate font-medium">{debt.name}</span>
               {debt.priority === "existenzsichernd" && (
-                <Badge variant="secondary" className="shrink-0 bg-brand/15 text-brand" title={EXISTENTIAL_PRIORITY_EXPLANATION}>
+                <Badge variant="secondary" className="shrink-0 bg-brand/15 text-brand" title={getExistentialPriorityExplanation()}>
                   🏠
                 </Badge>
               )}
-              {debt.is_paid_off && <Badge className="shrink-0 bg-positive/20 text-positive">Bezahlt</Badge>}
+              {debt.is_paid_off && <Badge className="shrink-0 bg-positive/20 text-positive">{t('debts.debtCard.paid')}</Badge>}
             </div>
             <div className="mt-0.5 truncate text-xs text-muted-foreground">
-              {DEBT_TYPE_LABELS[debt.type]} · Rate {eur.format(debt.min_payment)}
-              {debt.due_day ? ` · fällig am ${debt.due_day}.` : ""}
+              {debtTypeLabels[debt.type]} · {t('debts.debtCard.rateLabel')} {eur.format(debt.min_payment)}
+              {debt.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(debt.due_day))}` : ""}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1 text-right">
             <div>
               <div className="text-lg font-bold">{eur.format(debt.balance)}</div>
-              <div className="text-[11px] text-muted-foreground">Restschuld</div>
+              <div className="text-[11px] text-muted-foreground">{t('debts.debtCard.balance')}</div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5" aria-hidden />
           </div>
@@ -71,7 +74,7 @@ export function DebtCard({
         {original > 0 && (
           <div className="mt-3">
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>Getilgt</span>
+              <span>{t('debts.debtCard.progress')}</span>
               <span>{pct}%</span>
             </div>
             <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -90,7 +93,7 @@ export function DebtCard({
           onClick={() => onTogglePaid(debt)}
         >
           <CheckCircle2 className="mr-1.5 h-4 w-4" />
-          {debt.is_paid_off ? "Rückgängig" : "Bezahlt markieren"}
+          {debt.is_paid_off ? t('debts.debtCard.markUndone') : t('debts.debtCard.markPaid')}
         </Button>
       </div>
     </div>

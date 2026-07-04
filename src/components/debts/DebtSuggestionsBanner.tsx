@@ -4,6 +4,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { detectPotentialDebts, type DebtSuggestion } from "@/services/debt-detection-service";
 import type { Debt } from "@/types";
+import { useI18n } from "@/i18n/useI18n";
 
 const DISMISS_PREFIX = "debt-suggestion-dismissed:";
 
@@ -12,6 +13,7 @@ interface DebtSuggestionsBannerProps {
 }
 
 export function DebtSuggestionsBanner({ onAdopt }: DebtSuggestionsBannerProps) {
+  const { t } = useI18n();
   const { data: allSuggestions = [] } = useQuery<DebtSuggestion[]>({
     queryKey: ["debt-suggestions"],
     queryFn: detectPotentialDebts,
@@ -52,11 +54,10 @@ export function DebtSuggestionsBanner({ onAdopt }: DebtSuggestionsBannerProps) {
   return (
     <div className="mb-4">
       <Alert>
-        <AlertTitle>Potenzielle Schulden erkannt</AlertTitle>
+        <AlertTitle>{t('debts.suggestionsBanner.title')}</AlertTitle>
         <AlertDescription>
           <p className="mb-2">
-            Wir haben {suggestions.length} Muster in deinen Transaktionen gefunden, die auf offene
-            Schulden hindeuten könnten.
+            {t('debts.suggestionsBanner.message').replace('{count}', String(suggestions.length))}
           </p>
           <ul className="space-y-2">
             {suggestions.map((s) => (
@@ -64,10 +65,10 @@ export function DebtSuggestionsBanner({ onAdopt }: DebtSuggestionsBannerProps) {
                 <span className="text-sm">{s.description}</span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="default" onClick={() => handleAdopt(s)}>
-                    Als Schuld anlegen
+                    {t('debts.suggestionsBanner.adopt')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleDismiss(s.key)}>
-                    Ignorieren
+                    {t('debts.suggestionsBanner.dismiss')}
                   </Button>
                 </div>
               </li>

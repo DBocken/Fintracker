@@ -4,7 +4,8 @@ import { ShieldCheck, ExternalLink, Inbox, Check, LoaderCircle } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSchufareminder } from "@/hooks/useSchufareminder";
-import { SCHUFA_EXPLANATION, SCHUFA_REQUEST_URL } from "@/services/schufa-service";
+import { getSchufaExplanation, SCHUFA_REQUEST_URL } from "@/services/schufa-service";
+import { useI18n } from "@/i18n/useI18n";
 
 function formatArrival(iso: string): string {
   try {
@@ -21,8 +22,10 @@ function formatArrival(iso: string): string {
  * RDG: informiert über ein Recht, gibt keine Rechtsberatung.
  */
 export function SchufaSelfCheckCard() {
+  const { t } = useI18n();
   const { reminder, isWaiting, isDue, request, markScanned, isRequesting, isMarking } =
     useSchufareminder();
+  const explanation = getSchufaExplanation();
 
   return (
     <Card>
@@ -31,12 +34,12 @@ export function SchufaSelfCheckCard() {
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
           <div className="min-w-0 flex-1 space-y-3">
             <div>
-              <h3 className="text-sm font-semibold">{SCHUFA_EXPLANATION.headline}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{SCHUFA_EXPLANATION.text}</p>
+              <h3 className="text-sm font-semibold">{explanation.headline}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{explanation.text}</p>
             </div>
 
             <ul className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-              {SCHUFA_EXPLANATION.benefits.map((b) => (
+              {explanation.benefits.map((b) => (
                 <li key={b}>{b}</li>
               ))}
             </ul>
@@ -46,14 +49,10 @@ export function SchufaSelfCheckCard() {
                 <div className="flex items-center gap-2 text-sm">
                   <Inbox className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
                   {isDue ? (
-                    <span>Deine Auskunft müsste inzwischen da sein. Schon im Briefkasten?</span>
+                    <span>{t('debts.schufaCard.readySoon')}</span>
                   ) : (
                     <span>
-                      Angefordert. Wir erinnern dich ca. am{" "}
-                      <span className="font-medium">
-                        {reminder ? formatArrival(reminder.expected_arrival) : ""}
-                      </span>
-                      .
+                      {t('debts.schufaCard.requested').replace('{date}', reminder ? formatArrival(reminder.expected_arrival) : "")}
                     </span>
                   )}
                 </div>
@@ -68,7 +67,7 @@ export function SchufaSelfCheckCard() {
                   ) : (
                     <Check className="mr-1.5 h-4 w-4" aria-hidden="true" />
                   )}
-                  Auskunft ist da
+                  {t('debts.schufaCard.markReceived')}
                 </Button>
               </div>
             ) : (
@@ -84,12 +83,12 @@ export function SchufaSelfCheckCard() {
                   ) : (
                     <ExternalLink className="mr-1.5 h-4 w-4" aria-hidden="true" />
                   )}
-                  {SCHUFA_EXPLANATION.cta}
+                  {explanation.cta}
                 </a>
               </Button>
             )}
 
-            <p className="text-[11px] text-muted-foreground">{SCHUFA_EXPLANATION.warning}</p>
+            <p className="text-[11px] text-muted-foreground">{explanation.warning}</p>
           </div>
         </div>
       </CardContent>

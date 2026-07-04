@@ -4,6 +4,7 @@ import { AlertTriangle, Waves } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
+import { useI18n } from "@/i18n/useI18n";
 import { getWaterfallPlan } from "@/services/waterfall-service";
 import type { WaterfallStep, WaterfallStepKey } from "@/lib/budget-waterfall";
 import { cn } from "@/lib/utils";
@@ -17,15 +18,8 @@ const STEP_FILL: Record<WaterfallStepKey, string> = {
   surplus: "bg-emerald-500",
 };
 
-const STEP_HINT: Record<WaterfallStepKey, string> = {
-  savings: "Pay-yourself-first",
-  essentials: "existenzsichernd",
-  discretionary: "Null-Saldo",
-  surplus: "frei für Sparen/Investieren",
-};
-
 /** Eine Wasserfall-Stufe: Betrag zählt hoch, Balken baut sich auf (baseline-konform). */
-function StepRow({ step, income, animate }: { step: WaterfallStep; income: number; animate: boolean }) {
+function StepRow({ step, income, animate, stepHints }: { step: WaterfallStep; income: number; animate: boolean; stepHints: Record<WaterfallStepKey, string> }) {
   const targetPct = income > 0 ? Math.min(100, (step.allocated / income) * 100) : 0;
   const [width, setWidth] = useState(animate ? 0 : targetPct);
   const shownAmount = useAnimatedNumber(step.allocated, { enabled: animate });
@@ -45,7 +39,7 @@ function StepRow({ step, income, animate }: { step: WaterfallStep; income: numbe
       <div className="flex items-baseline justify-between gap-2 text-sm">
         <span className="font-medium">
           {step.label}
-          <span className="ml-2 text-xs font-normal text-muted-foreground">{STEP_HINT[step.key]}</span>
+          <span className="ml-2 text-xs font-normal text-muted-foreground">{stepHints[step.key]}</span>
         </span>
         <span className="tabular-nums font-semibold">{eur.format(shownAmount)}</span>
       </div>
@@ -71,6 +65,7 @@ function StepRow({ step, income, animate }: { step: WaterfallStep; income: numbe
  * Aufbau-Animation; bei prefers-reduced-motion direkt im Zielzustand.
  */
 export default function WaterfallPanel() {
+  const { t } = useI18n();
   const animate = !useReducedMotion();
   const { data: plan, isLoading } = useQuery({ queryKey: ["waterfall-plan"], queryFn: () => getWaterfallPlan() });
 
@@ -80,24 +75,30 @@ export default function WaterfallPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> Liquiditäts-Wasserfall
+            <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> {t('budgets.waterfall.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Noch kein regelmäßiges Einkommen erkannt. Sobald Einnahmen kategorisiert sind, zeigen wir hier deine
-          Mittelverteilung.
+          {t('budgets.waterfall.noIncome')}
         </CardContent>
       </Card>
     );
   }
 
+  const stepHints = {
+    savings: t('budgets.waterfall.stepHints.savings'),
+    essentials: t('budgets.waterfall.stepHints.essentials'),
+    discretionary: t('budgets.waterfall.stepHints.discretionary'),
+    surplus: t('budgets.waterfall.stepHints.surplus'),
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
-          <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> Liquiditäts-Wasserfall
+          <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> {t('budgets.waterfall.title')}
           <span className="text-xs font-normal text-muted-foreground">
-            Einkommen {eur.format(plan.income)} · Sparquote {Math.round(plan.savingsRate * 100)}%
+            {t('budgets.waterfall.income')} {eur.format(plan.income)} · {t('budgets.waterfall.savingsRate')} {Math.round(plan.savingsRate * 100)}%
           </span>
         </CardTitle>
       </CardHeader>
@@ -106,21 +107,20 @@ export default function WaterfallPanel() {
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Sparquote zu hoch: Nach dem Sparen bleiben die Fixkosten unterdeckt. Reduziere die Sparquote oder
-              senke Fixkosten.
+              {t('budgets.waterfall.highSavingsRateWarning')}
             </span>
           </div>
         )}
 
         <div className="space-y-3">
           {plan.steps.map((step) => (
-            <StepRow key={step.key} step={step} income={plan.income} animate={animate} />
+            <StepRow key={step.key} step={step} income={plan.income} animate={animate} stepHints={stepHints} />
           ))}
         </div>
 
         {plan.monthsAnalyzed < 3 && (
           <p className="text-xs text-muted-foreground">
-            Basis: erst {plan.monthsAnalyzed} Monat(e) Daten – die Schätzung wird mit der Zeit genauer.
+            {t('budgets.waterfall.insufficientData').replace('{months}', String(plan.monthsAnalyzed))}
           </p>
         )}
       </CardContent>

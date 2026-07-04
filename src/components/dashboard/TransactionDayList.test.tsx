@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import type { Transaction } from '@/types';
 import { TransactionDayList } from './TransactionDayList';
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
+
+function renderWithI18n(component: React.ReactElement) {
+  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+}
 
 function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
   return {
@@ -22,7 +27,7 @@ const NOW = new Date('2026-07-03T12:00:00');
 describe('TransactionDayList', () => {
   describe('Normal Behavior', () => {
     it('sollte Tage gruppieren und den Kontostand je Tag als Kopfzeile zeigen', () => {
-      render(
+      renderWithI18n(
         <TransactionDayList
           transactions={[
             tx({ id: 'a', date: '2026-07-03', amount: -23.4, payee: 'Lieferando' }),
@@ -45,7 +50,7 @@ describe('TransactionDayList', () => {
     });
 
     it('sollte den Tagessaldo mit Vorzeichen anzeigen', () => {
-      render(
+      renderWithI18n(
         <TransactionDayList
           transactions={[tx({ id: 'g', date: '2026-06-30', amount: 2180, payee: 'Gehalt' })]}
           categories={[]}
@@ -61,7 +66,7 @@ describe('TransactionDayList', () => {
     it('sollte Details über die Zeile öffnen', () => {
       const onOpenDetails = vi.fn();
       const row = tx({ id: 'x', date: '2026-07-03', amount: -9, payee: 'Apotheke' });
-      render(
+      renderWithI18n(
         <TransactionDayList
           transactions={[row]}
           categories={[]}
@@ -78,7 +83,7 @@ describe('TransactionDayList', () => {
 
   describe('Edge Cases', () => {
     it('sollte die Kontostand-Kopfzeile ausblenden können', () => {
-      render(
+      renderWithI18n(
         <TransactionDayList
           transactions={[tx({ id: 'a', date: '2026-07-03', amount: -10, payee: 'X' })]}
           categories={[]}

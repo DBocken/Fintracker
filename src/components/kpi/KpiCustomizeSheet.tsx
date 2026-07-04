@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +61,7 @@ function SortableRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   return (
@@ -77,7 +79,7 @@ function SortableRow({
           className="-ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
           {...attributes}
           {...listeners}
-          aria-label="Reihenfolge ändern"
+          aria-label={t('kpi.reorderLabel')}
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -94,7 +96,7 @@ function SortableRow({
           variant="ghost"
           size="icon"
           onClick={onMoveUp}
-          aria-label="Nach oben"
+          aria-label={t('kpi.moveUpLabel')}
         >
           <ArrowUp className="h-4 w-4" />
         </Button>
@@ -103,7 +105,7 @@ function SortableRow({
           variant="ghost"
           size="icon"
           onClick={onMoveDown}
-          aria-label="Nach unten"
+          aria-label={t('kpi.moveDownLabel')}
         >
           <ArrowDown className="h-4 w-4" />
         </Button>
@@ -125,6 +127,7 @@ export function KpiCustomizeSheet({
   onSave: (next: KpiPrefs) => void;
   onReset: () => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<KpiPrefs>(() => normalizePrefs(value));
 
   useEffect(() => {
@@ -187,28 +190,28 @@ export function KpiCustomizeSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent {...dyadProps("KpiCustomizeSheet")} className="w-full sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Dashboard anpassen</SheetTitle>
+          <SheetTitle>{t('kpi.sheetTitle')}</SheetTitle>
         </SheetHeader>
 
         <div className="mt-4">
           <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-            Desktop zeigt maximal <span className="font-medium">3</span> KPIs, Mobile maximal <span className="font-medium">1</span>.
+            {t('kpi.infoText').replace('{desktopCount}', '3').replace('{mobileCount}', '1')}
             {activeCount > 3 ? (
-              <span className="ml-1">Du hast aktuell {activeCount} aktiv – die Anzeige wird gekürzt (Reihenfolge zählt).</span>
+              <span className="ml-1">{t('kpi.overActiveWarning').replace('{activeCount}', String(activeCount))}</span>
             ) : null}
           </div>
         </div>
 
         <Tabs defaultValue="active" className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="active">Aktiv</TabsTrigger>
-            <TabsTrigger value="all">Alle</TabsTrigger>
+            <TabsTrigger value="active">{t('kpi.activeTab')}</TabsTrigger>
+            <TabsTrigger value="all">{t('kpi.allTab')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="mt-4">
             <Card className="p-3">
               {activeOrder.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">Keine KPIs aktiv.</div>
+                <div className="py-8 text-center text-sm text-muted-foreground">{t('kpi.noActiveKpis')}</div>
               ) : (
                 <DndContext
                   sensors={sensors}
@@ -276,10 +279,10 @@ export function KpiCustomizeSheet({
               onOpenChange(false);
             }}
           >
-            Zurücksetzen
+            {t('kpi.resetButton')}
           </Button>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -288,7 +291,7 @@ export function KpiCustomizeSheet({
               onOpenChange(false);
             }}
           >
-            Speichern
+            {t('common.save')}
           </Button>
         </SheetFooter>
       </SheetContent>

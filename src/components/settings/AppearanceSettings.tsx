@@ -7,8 +7,10 @@ import { SKINS, normalizeSkinId, type SkinId } from '@/skins/skins';
 import { applySkinClass } from '@/skins/skins';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { showError, showSuccess } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 
 export function AppearanceSettings() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: settings } = useQuery({
@@ -24,17 +26,17 @@ export function AppearanceSettings() {
       applySkinClass(nextSkin);
       localStorage.setItem('skin', nextSkin);
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      showSuccess('Theme gespeichert');
+      showSuccess(t('settings.appearance.themeSavedSuccess'));
     },
-    onError: () => showError('Fehler beim Speichern des Themes'),
+    onError: () => showError(t('settings.appearance.themeSaveError')),
   });
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Theme</CardTitle>
-          <CardDescription>Wähle den Look der gesamten Oberfläche.</CardDescription>
+          <CardTitle className="text-xl">{t('settings.appearance.title')}</CardTitle>
+          <CardDescription>{t('settings.appearance.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -62,7 +64,7 @@ export function AppearanceSettings() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{option.name}</span>
-                      {locked && <Badge variant="secondary" className="text-[10px]">bald</Badge>}
+                      {locked && <Badge variant="secondary" className="text-[10px]">{t('settings.appearance.comingSoonBadge')}</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground">{option.description}</div>
                   </div>
@@ -76,12 +78,12 @@ export function AppearanceSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Heller / Dunkler Modus</CardTitle>
-          <CardDescription>Wechsle unabhängig vom Theme zwischen heller und dunkler Darstellung.</CardDescription>
+          <CardTitle className="text-xl">{t('settings.appearance.darkModeTitle')}</CardTitle>
+          <CardDescription>{t('settings.appearance.darkModeDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">Darstellung umschalten</span>
+            <span className="text-sm text-muted-foreground">{t('settings.appearance.darkModeToggleLabel')}</span>
             <ThemeToggle />
           </div>
         </CardContent>

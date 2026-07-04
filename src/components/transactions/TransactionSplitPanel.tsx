@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useI18n } from '@/i18n/useI18n';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { showError, showSuccess } from '@/utils/toast';
 import { toMinor, toMajor, sumMinor } from '@/lib/money';
@@ -36,6 +37,7 @@ function newRow(): SplitRow {
 }
 
 export function TransactionSplitPanel({ transaction, categories }: TransactionSplitPanelProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const totalMinor = toMinor(transaction.amount);
 
@@ -104,18 +106,18 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       await setAllocations({ id: txId, amount: transaction.amount }, inputs);
     },
     onSuccess: () => {
-      showSuccess('Aufteilung gespeichert');
+      showSuccess(t("transactionSplit.saveSplitSuccess"));
       queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      showError(err instanceof Error ? err.message : t("transactionSplit.saveSplitError"));
     },
   });
 
   const clearMutation = useMutation({
     mutationFn: () => clearAllocations(txId),
     onSuccess: () => {
-      showSuccess('Aufteilung entfernt');
+      showSuccess(t("transactionSplit.saveSplitSuccess"));
       setRows([newRow(), newRow()]);
       setInitialized(false);
       queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
@@ -147,8 +149,8 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <SplitSquareHorizontal className="h-4 w-4" />
-          Buchung aufteilen
-          {isSaved && <Badge variant="secondary" className="text-xs">gespeichert</Badge>}
+          {t("transactionSplit.title")}
+          {isSaved && <Badge variant="secondary" className="text-xs">{t("transactionSplit.saved")}</Badge>}
         </div>
         {isSaved && (
           <Button
@@ -158,16 +160,16 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
             onClick={() => clearMutation.mutate()}
             disabled={clearMutation.isPending}
           >
-            Aufteilung entfernen
+            {t("transactionSplit.removeButton")}
           </Button>
         )}
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Gesamtbetrag: <span className="font-mono font-semibold">{toMajor(Math.abs(totalMinor)).toFixed(2)} €</span>
+        {t("transactionSplit.totalLabel")} <span className="font-mono font-semibold">{toMajor(Math.abs(totalMinor)).toFixed(2)} €</span>
         {!isBalanced && (
           <span className={`ml-2 ${remainingMinor !== 0 ? 'text-warning' : ''}`}>
-            · noch {toMajor(Math.abs(remainingMinor)).toFixed(2)} € {remainingMinor > 0 ? 'offen' : 'zu viel'}
+            · {t("transactionSplit.remaining").replace('{amount}', toMajor(Math.abs(remainingMinor)).toFixed(2)).replace('{status}', remainingMinor > 0 ? t("transactionSplit.remainingOpen") : t("transactionSplit.remainingOverpaid"))}
           </span>
         )}
       </div>
@@ -193,7 +195,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
                   type="button"
                   onClick={() => distributeRemaining(row.key)}
                   className="text-xs text-brand hover:underline"
-                  title="Rest hier eintragen"
+                  title={t("transactionSplit.fillRemainingTitle")}
                 >
                   ={toMajor(Math.abs(remainingMinor)).toFixed(2)}
                 </button>
@@ -203,7 +205,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
                 onClick={() => removeRow(row.key)}
                 disabled={rows.length <= 2}
                 className="ml-auto text-muted-foreground hover:text-destructive disabled:opacity-30"
-                aria-label="Zeile entfernen"
+                aria-label={t("transactionSplit.removeRowLabel")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -219,12 +221,12 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
                   subcategoryId: isTop ? null : val,
                 });
               }}
-              placeholder="Kategorie wählen…"
+              placeholder={t("transactionSplit.categoryPlaceholder")}
               className="h-8 text-sm"
             />
             <Input
               type="text"
-              placeholder="Notiz (optional)"
+              placeholder={t("transactionSplit.notesPlaceholder")}
               value={row.label}
               onChange={(e) => updateRow(row.key, { label: e.target.value })}
               className="h-7 text-xs"
@@ -240,15 +242,15 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
         onClick={addRow}
       >
         <Plus className="mr-1 h-3.5 w-3.5" />
-        Zeile hinzufügen
+        {t("transactionSplit.addRowButton")}
       </Button>
 
       {!isBalanced && allocatedMinor !== 0 && (
         <Alert variant="destructive" className="py-2 text-xs">
           <AlertDescription>
             {remainingMinor > 0
-              ? `Noch ${toMajor(remainingMinor).toFixed(2)} € nicht zugewiesen.`
-              : `${toMajor(Math.abs(remainingMinor)).toFixed(2)} € zu viel zugewiesen.`}
+              ? t("transactionSplit.remainingNotAssigned").replace('{amount}', toMajor(remainingMinor).toFixed(2))
+              : t("transactionSplit.remainingOverassigned").replace('{amount}', toMajor(Math.abs(remainingMinor)).toFixed(2))}
           </AlertDescription>
         </Alert>
       )}
@@ -259,7 +261,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
         disabled={!isBalanced || saveMutation.isPending || !validation.valid}
         onClick={() => saveMutation.mutate()}
       >
-        {saveMutation.isPending ? 'Speichern…' : 'Aufteilung speichern'}
+        {saveMutation.isPending ? t("transactionSplit.saveButtonPending") : t("transactionSplit.saveButton")}
       </Button>
     </div>
   );

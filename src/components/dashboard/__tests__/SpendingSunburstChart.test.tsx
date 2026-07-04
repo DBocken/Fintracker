@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { I18nProvider } from '@/i18n/I18nProvider';
+import { translations } from '@/i18n/translations';
 import { SpendingSunburstChart } from '../SpendingSunburstChart';
 import type { SunburstTree } from '@/lib/analysis-data';
 
@@ -54,10 +56,21 @@ const colorMap = new Map<string, string>([
   ['unkategorisiert', '#cccccc'],
 ]);
 
+function renderWithI18n(
+  component: React.ReactElement,
+  _locale: 'de' | 'en' = 'de'
+) {
+  return render(
+    <I18nProvider>
+      {component}
+    </I18nProvider>
+  );
+}
+
 function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunburstChart>> = {}) {
   const onNavigateCategory = vi.fn();
   const onNavigateKlasse = vi.fn();
-  const utils = render(
+  const utils = renderWithI18n(
     <SpendingSunburstChart
       tree={tree}
       colorMap={colorMap}
@@ -65,7 +78,7 @@ function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunb
       onNavigateCategory={onNavigateCategory}
       onNavigateKlasse={onNavigateKlasse}
       {...overrides}
-    />,
+    />
   );
   return { ...utils, onNavigateCategory, onNavigateKlasse };
 }
@@ -81,7 +94,7 @@ describe('SpendingSunburstChart (grafisches, mehrstufiges Sunburst)', () => {
     it('sollte den Gesamtwert in der Mitte zeigen', () => {
       renderChart();
       expect(screen.getByText('300 €')).toBeInTheDocument();
-      expect(screen.getByText('Gesamt')).toBeInTheDocument();
+      expect(screen.getByText(/Gesamt|Total/)).toBeInTheDocument();
     });
 
     it('sollte in ein Segment mit Kindern reinzoomen (Mitte zeigt dann dessen Wert)', () => {
@@ -102,7 +115,7 @@ describe('SpendingSunburstChart (grafisches, mehrstufiges Sunburst)', () => {
       const { container } = renderChart();
       fireEvent.click(container.querySelector('path[aria-label^="Essenziell:"]')!);
       expect(screen.getByText('260 €')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /Zurück zu Gesamt/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Zurück|Back/ }));
       expect(screen.getByText('300 €')).toBeInTheDocument();
     });
   });
@@ -110,13 +123,37 @@ describe('SpendingSunburstChart (grafisches, mehrstufiges Sunburst)', () => {
   describe('Edge Cases', () => {
     it('sollte einen Hinweis statt eines leeren Diagramms zeigen, wenn keine Ausgaben vorliegen', () => {
       renderChart({ tree: { total: 0, children: [] } });
-      expect(screen.getByText(/Noch keine Ausgaben erfasst/i)).toBeInTheDocument();
+      expect(screen.getByText(/Noch keine Ausgaben|No expenses/i)).toBeInTheDocument();
     });
 
     it('sollte Prozent statt Euro anzeigen, wenn showPercent aktiv ist', () => {
       renderChart({ showPercent: true });
       // 300 von 300 → 100 %
       expect(screen.getByText('100%')).toBeInTheDocument();
+    });
+  });
+
+  describe('[REGRESSION] i18n compliance', () => {
+    it('sollte alle i18n-Keys in beiden Sprachen haben', () => {
+      const requiredKeys = ['spending.total', 'spending.noExpenses'];
+
+      const { de, en } = translations;
+
+      requiredKeys.forEach((key) => {
+        const path = key.split('.');
+        let deValue: any = de;
+        let enValue: any = en;
+
+        path.forEach((p) => {
+          expect(deValue[p], `Missing DE translation: ${key}`).toBeDefined();
+          expect(enValue[p], `Missing EN translation: ${key}`).toBeDefined();
+          deValue = deValue[p];
+          enValue = enValue[p];
+        });
+
+        expect(typeof deValue).toBe('string');
+        expect(typeof enValue).toBe('string');
+      });
     });
   });
 });

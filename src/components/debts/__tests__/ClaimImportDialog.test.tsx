@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import ClaimImportDialog from "../ClaimImportDialog";
 import type { LetterImportResult } from "@/services/letter-import-service";
 import type { Claim } from "@/services/claim-service";
@@ -57,9 +58,11 @@ function renderDialog(open = true) {
   const queryClient = new QueryClient();
   const onOpenChange = vi.fn();
   render(
-    <QueryClientProvider client={queryClient}>
-      <ClaimImportDialog open={open} onOpenChange={onOpenChange} />
-    </QueryClientProvider>,
+    <I18nProvider initialLocale="de">
+      <QueryClientProvider client={queryClient}>
+        <ClaimImportDialog open={open} onOpenChange={onOpenChange} />
+      </QueryClientProvider>
+    </I18nProvider>,
   );
   return { onOpenChange, queryClient };
 }
@@ -74,6 +77,9 @@ describe("ClaimImportDialog", () => {
     vi.mocked(importLettersFromPdf).mockReset();
     vi.mocked(importLettersFromImages).mockReset();
     vi.mocked(confirmClaim).mockReset();
+    // getScanGuidance() liest die Sprache direkt aus localStorage (Nicht-React-Code,
+    // siehe src/i18n/serviceT.ts) — unabhängig vom initialLocale-Prop des Providers.
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
   });
 
   it("zeigt den Upload-Schritt mit Hinweistexten", () => {

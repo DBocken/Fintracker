@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, HierarchicalCategory } from '../../types';
 
 interface CategoryPreviewProps {
@@ -23,6 +24,7 @@ export function CategoryPreview({
   onUndo,
   isProcessing,
 }: CategoryPreviewProps) {
+  const { t } = useI18n();
   const [showPreview, setShowPreview] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export function CategoryPreview({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-foreground">
           <Eye className="h-5 w-5 text-positive" />
-          Vorschau & Zuweisung
+          {t('settings.categoryPreview.title')}
         </CardTitle>
       </CardHeader>
 
@@ -41,7 +43,7 @@ export function CategoryPreview({
               <span className="text-3xl">{category.icon}</span>
               <div>
                 <h3 className="text-base font-semibold text-foreground">{category.name}</h3>
-                <p className="text-sm text-muted-foreground">{category.filters.length} Filter aktiv</p>
+                <p className="text-sm text-muted-foreground">{t('settings.categoryPreview.filtersActive').replace('{count}', String(category.filters.length))}</p>
               </div>
             </div>
           </div>
@@ -57,7 +59,7 @@ export function CategoryPreview({
             className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Eye className="mr-2 h-4 w-4" />
-            Vorschau
+            {t('settings.categoryPreview.previewButton')}
           </Button>
 
           <Button
@@ -66,7 +68,7 @@ export function CategoryPreview({
             className="bg-positive text-white hover:bg-positive"
           >
             <Play className="mr-2 h-4 w-4" />
-            {isProcessing ? 'Anwenden...' : 'Anwenden'}
+            {isProcessing ? t('settings.categoryPreview.applyingLabel') : t('settings.categoryPreview.applyButton')}
           </Button>
         </div>
 
@@ -75,7 +77,7 @@ export function CategoryPreview({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base text-foreground">
                 <CheckCircle className="h-4 w-4 text-positive" />
-                Betroffene Transaktionen
+                {t('settings.categoryPreview.affectedTransactionsTitle')}
               </CardTitle>
             </CardHeader>
 
@@ -102,13 +104,13 @@ export function CategoryPreview({
 
                   {affectedTransactions.length > 10 && (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      ... und {affectedTransactions.length - 10} weitere
+                      {t('settings.categoryPreview.moreItemsLabel').replace('{count}', String(affectedTransactions.length - 10))}
                     </p>
                   )}
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Keine Transaktionen würden durch diese Kategorie-Regeln verändert.
+                  {t('settings.categoryPreview.noTransactionsMessage')}
                 </p>
               )}
             </CardContent>
@@ -121,7 +123,7 @@ export function CategoryPreview({
           className="w-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <Undo2 className="mr-2 h-4 w-4" />
-          Letzte Aktion rückgängig
+          {t('settings.categoryPreview.undoButton')}
         </Button>
       </CardContent>
     </Card>

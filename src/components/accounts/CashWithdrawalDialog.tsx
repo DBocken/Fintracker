@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
+import { useI18n } from "@/i18n/useI18n";
 import { getAccounts } from "@/services/account-service";
 import { recordCashWithdrawal } from "@/services/cash-service";
 import type { Account } from "@/types";
@@ -27,6 +28,7 @@ function today(): string {
 }
 
 export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: CashWithdrawalDialogProps) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [sourceAccountId, setSourceAccountId] = useState("");
   const [amount, setAmount] = useState("");
@@ -61,7 +63,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
       queryClient.invalidateQueries({ queryKey: ["net-worth"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
-      showSuccess("Abhebung erfasst");
+      showSuccess(t('accounts.cashWithdrawal.withdrawSuccess'));
       onOpenChange(false);
     },
     onError: (e: Error) => showError(e.message),
@@ -71,20 +73,19 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Bargeld abheben</DialogTitle>
+          <DialogTitle>{t('accounts.cashWithdrawal.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Bucht den Betrag vom Quellkonto ab und aufs Bargeld-Konto gut – als interner Übertrag,
-            der nicht als Ausgabe zählt.
+            {t('accounts.cashWithdrawal.description')}
           </p>
 
           <div className="space-y-1.5">
-            <Label>Von Konto</Label>
+            <Label>{t('accounts.cashWithdrawal.fromAccount')}</Label>
             <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
               <SelectTrigger>
-                <SelectValue placeholder="Konto auswählen" />
+                <SelectValue placeholder={t('accounts.cashWithdrawal.fromAccountPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {sourceAccounts.map((acc) => (
@@ -98,18 +99,18 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="wd-amount">Betrag (€)</Label>
+              <Label htmlFor="wd-amount">{t('accounts.cashWithdrawal.amountLabel')}</Label>
               <Input
                 id="wd-amount"
                 type="number"
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="0,00"
+                placeholder={t('accounts.cashWithdrawal.amountPlaceholder')}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="wd-date">Datum</Label>
+              <Label htmlFor="wd-date">{t('accounts.cashWithdrawal.dateLabel')}</Label>
               <Input id="wd-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
@@ -117,10 +118,10 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {t('accounts.cashWithdrawal.cancelButton')}
           </Button>
           <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !sourceAccountId}>
-            Abheben
+            {t('accounts.cashWithdrawal.withdrawButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

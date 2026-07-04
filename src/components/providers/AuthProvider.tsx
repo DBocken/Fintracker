@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { localEncryption } from "@/services/local-crypto";
+import { useI18n } from "@/i18n/useI18n";
 
 type AuthContextValue = {
   session: Session | null;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const queryClient = useQueryClient();
+  const { t } = useI18n();
 
   const clearCaches = useCallback(() => {
     queryClient.clear();
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (!mounted) return;
       if (error) {
-        showError("Anmeldung konnte nicht geprüft werden");
+        showError(t('auth.sessionCheckError'));
         setStatus("unauthenticated");
         return;
       }
@@ -53,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Bei Nutzerwechsel oder Anmeldung: Cache leeren
         if (prevUserId !== nextUserId) clearCaches();
         setStatus("authenticated");
-        showSuccess("Erfolgreich angemeldet");
+        showSuccess(t('auth.loginSuccess'));
       } else if (event === "SIGNED_OUT") {
         clearCaches();
         localEncryption.lock();
@@ -69,6 +71,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       data.subscription.unsubscribe();
       mounted = false;
     };
+    // t bewusst nicht in Deps: würde den Auth-Listener bei jedem Sprachwechsel neu abonnieren.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, queryClient, clearCaches]);
 
   return (

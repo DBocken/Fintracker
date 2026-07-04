@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess } from "@/utils/toast";
+import { useI18n } from "@/i18n/useI18n";
 
 type NotificationItem = {
   id: string;
@@ -62,6 +63,7 @@ function setStoredRead(ids: string[]) {
 }
 
 export default function NotificationsBell() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
 
@@ -88,7 +90,7 @@ export default function NotificationsBell() {
 
   const markAllRead = () => {
     setReadIds(notifications.map((n) => n.id));
-    showSuccess("Alle Nachrichten als gelesen markiert");
+    showSuccess(t('notificationsBell.markAllReadButton'));
   };
 
   const toggleRead = (id: string) => {
@@ -103,13 +105,13 @@ export default function NotificationsBell() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Benachrichtigungen"
+          aria-label={t('notificationsBell.ariaLabel')}
           className="relative"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span
-              aria-label={`${unreadCount} ungelesen`}
+              aria-label={t('notificationsBell.unreadCount').replace('{count}', String(unreadCount))}
               className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-warning ring-2 ring-background"
             />
           )}
@@ -117,17 +119,17 @@ export default function NotificationsBell() {
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nachrichten</DialogTitle>
+          <DialogTitle>{t('notificationsBell.dialogTitle')}</DialogTitle>
           <DialogDescription>
-            Updates zu Features und Versionsänderungen
+            {t('notificationsBell.dialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs text-muted-foreground">
             {unreadCount > 0
-              ? `${unreadCount} ungelesen`
-              : "Keine ungelesenen Nachrichten"}
+              ? t('notificationsBell.unreadCount').replace('{count}', String(unreadCount))
+              : t('notificationsBell.noUnread')}
           </div>
           {unreadCount > 0 && (
             <Button
@@ -137,7 +139,7 @@ export default function NotificationsBell() {
               className="text-xs"
             >
               <Check className="mr-1.5 h-3.5 w-3.5" />
-              Alle als gelesen
+              {t('notificationsBell.markAllReadButton')}
             </Button>
           )}
         </div>
@@ -158,7 +160,7 @@ export default function NotificationsBell() {
                       </h4>
                       {unread && (
                         <Badge variant="destructive" className="h-5">
-                          Neu
+                          {t('notificationsBell.newBadge')}
                         </Badge>
                       )}
                     </div>
@@ -175,7 +177,7 @@ export default function NotificationsBell() {
                       onClick={() => toggleRead(n.id)}
                     >
                       <Check className="mr-1.5 h-3.5 w-3.5" />
-                      {unread ? "Als gelesen markieren" : "Als ungelesen markieren"}
+                      {unread ? t('notificationsBell.markReadButton') : t('notificationsBell.markUnreadButton')}
                     </Button>
                   </div>
                 </li>

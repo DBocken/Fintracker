@@ -60,9 +60,9 @@ export function ContractsDashboard() {
     mutationFn: applyDetectedContracts,
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["transactions", "contracts"] });
-      showSuccess(count > 0 ? `${count} Buchungen als Verträge erkannt` : "Keine neuen Verträge gefunden");
+      showSuccess(count > 0 ? t("contracts.rescanSuccess", "{count} Buchungen als Verträge erkannt").replace('{count}', String(count)) : t("contracts.rescanNoNewContracts", "Keine neuen Verträge gefunden"));
     },
-    onError: () => showError("Neueinlesen fehlgeschlagen"),
+    onError: () => showError(t("contracts.rescanError", "Neueinlesen fehlgeschlagen")),
   });
 
   // Auto-Scan einmal pro Seitenaufruf, sobald Transaktionen geladen sind.
@@ -184,22 +184,22 @@ export function ContractsDashboard() {
   const renderRow = (row: ContractRow) => (
     <TableRow key={row.key} onClick={() => openDetail(row)} className="cursor-pointer hover:bg-muted/50">
       <TableCell>
-        {row.type === "Einnahme" ? <Badge variant="secondary">Einnahme</Badge> : <Badge variant="outline">Ausgabe</Badge>}
+        {row.type === "Einnahme" ? <Badge variant="secondary">{t("contracts.statusConfirmActive", "Einnahme")}</Badge> : <Badge variant="outline">{t("forms.expenseLabel", "Ausgabe")}</Badge>}
       </TableCell>
       <TableCell className="font-medium">{row.payee}</TableCell>
       <TableCell>{row.categoryName}</TableCell>
-      <TableCell>{row.cycleKnown ? row.cycle : "Zyklus unklar"}</TableCell>
+      <TableCell>{row.cycleKnown ? row.cycle : t("contracts.tableUnknownCycle", "Zyklus unklar")}</TableCell>
       <TableCell>{euro(row.amountTypical)}</TableCell>
       <TableCell>{euro(row.amountLast)}</TableCell>
       <TableCell>{format(parseISO(row.lastDateISO), "dd.MM.yyyy")}</TableCell>
       <TableCell>{row.nextDateISO ? format(parseISO(row.nextDateISO), "dd.MM.yyyy") : "—"}</TableCell>
       <TableCell>
         {row.stale ? (
-          <Badge variant="outline" className="text-warning">evtl. beendet</Badge>
+          <Badge variant="outline" className="text-warning">{t("contracts.tablePossiblyStopped", "evtl. beendet")}</Badge>
         ) : row.changed ? (
           <Badge variant="secondary">+{row.changeAmount.toLocaleString("de-DE", { maximumFractionDigits: 0 })}€ seit {row.changeSinceLabel}</Badge>
         ) : (
-          <Badge variant="outline">Stabil</Badge>
+          <Badge variant="outline">{t("contracts.tableStable", "Stabil")}</Badge>
         )}
       </TableCell>
     </TableRow>
@@ -214,12 +214,12 @@ export function ContractsDashboard() {
         title={row.payee}
         titleSuffix={
           row.stale ? (
-            <Badge variant="outline" className="shrink-0 text-warning">evtl. beendet</Badge>
+            <Badge variant="outline" className="shrink-0 text-warning">{t("contracts.tablePossiblyStopped", "evtl. beendet")}</Badge>
           ) : row.changed ? (
-            <Badge variant="secondary" className="shrink-0">geändert</Badge>
+            <Badge variant="secondary" className="shrink-0">{t("contracts.tableChanged", "geändert")}</Badge>
           ) : null
         }
-        subtitle={`${row.type} · ${row.cycleKnown ? row.cycle : "Zyklus unklar"} · ${row.categoryName}`}
+        subtitle={`${row.type} · ${row.cycleKnown ? row.cycle : t("contracts.tableUnknownCycle", "Zyklus unklar")} · ${row.categoryName}`}
         value={euro(row.amountLast)}
         valueTone={row.type === "Einnahme" ? "positive" : "default"}
         valueHint={row.nextDateISO ? `fällig ${format(parseISO(row.nextDateISO), "dd.MM.yyyy")}` : undefined}
@@ -232,13 +232,13 @@ export function ContractsDashboard() {
     <TableHeader>
       <TableRow>
         <TableHead>Art</TableHead>
-        <TableHead>Vertrag</TableHead>
-        <TableHead>Kategorie</TableHead>
+        <TableHead>{t("contracts.tableName", "Vertrag")}</TableHead>
+        <TableHead>{t("dashboard.category", "Kategorie")}</TableHead>
         <TableHead>Zyklus</TableHead>
-        <TableHead>Typischer Betrag</TableHead>
-        <TableHead>Letzter Betrag</TableHead>
-        <TableHead>Letzte Fälligkeit</TableHead>
-        <TableHead>Nächste Fälligkeit</TableHead>
+        <TableHead>{t("contracts.typicalAmount", "Typischer Betrag")}</TableHead>
+        <TableHead>{t("contracts.lastAmount", "Letzter Betrag")}</TableHead>
+        <TableHead>{t("contracts.lastDate", "Letzte Fälligkeit")}</TableHead>
+        <TableHead>{t("contracts.nextDue", "Nächste Fälligkeit")}</TableHead>
         <TableHead>Status</TableHead>
       </TableRow>
     </TableHeader>
@@ -248,10 +248,9 @@ export function ContractsDashboard() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Welche laufenden Kosten und Einnahmen habe ich?</CardTitle>
+          <CardTitle>{t("contracts.mainTitle", "Welche laufenden Kosten und Einnahmen habe ich?")}</CardTitle>
           <CardDescription>
-            Wiederkehrende Ausgaben und Einnahmen als Verträge erkannt. Nur bestätigte und aktuelle
-            Verträge fließen in die Summen ein – beendete oder abgelehnte werden ausgeschlossen.
+            {t("contracts.mainDescription", "Wiederkehrende Ausgaben und Einnahmen als Verträge erkannt. Nur bestätigte und aktuelle Verträge fließen in die Summen ein – beendete oder abgelehnte werden ausgeschlossen.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -274,8 +273,7 @@ export function ContractsDashboard() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Nur aktive Verträge mit bekanntem Zyklus zählen. Verträge mit unklarem Zyklus oder lange
-              ohne Buchung werden nicht hochgerechnet, damit alte Verträge die Fixkosten nicht verfälschen.
+              {t("contracts.onlyActiveContracts", "Nur aktive Verträge mit bekanntem Zyklus zählen. Verträge mit unklarem Zyklus oder lange ohne Buchung werden nicht hochgerechnet, damit alte Verträge die Fixkosten nicht verfälschen.")}
             </p>
           </div>
 
@@ -285,8 +283,7 @@ export function ContractsDashboard() {
             feature="advancedContracts"
             fallback={
               <div className="mb-4 rounded-lg border border-dashed bg-muted/40 p-4 text-center text-sm text-muted-foreground">
-                Der Verlauf von Verträgen und Einnahmen über die Zeit ist Teil der
-                Premium-Vertragsanalyse. Die aktuelle Vertragsliste kannst du frei nutzen.
+                {t("contracts.premiumFeatureHint", "Der Verlauf von Verträgen und Einnahmen über die Zeit ist Teil der Premium-Vertragsanalyse. Die aktuelle Vertragsliste kannst du frei nutzen.")}
               </div>
             }
           >
@@ -299,7 +296,7 @@ export function ContractsDashboard() {
                   <Tooltip formatter={(value: number) => euro(value)} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
-                  <Area type="monotone" dataKey="income" name={t("other.importTitle", "Einnahmen")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="income" name={t("contracts.chartIncomeLabel")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
                   <Area type="monotone" dataKey="expenses" name={t("contracts.contractsLabel", "Verträge")} stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
                   <Area type="monotone" dataKey="net" name={t("contracts.incomesMinusContracts", "Einnahmen − Verträge (Saldo)")} stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
                 </AreaChart>
@@ -311,7 +308,7 @@ export function ContractsDashboard() {
 
           {/* Aktive Verträge */}
           <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
-            <h3 className="text-sm font-semibold text-muted-foreground">Aktive Verträge ({activeRows.length})</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">{t("contracts.tableHeader", "Aktive Verträge ({count})").replace('{count}', String(activeRows.length))}</h3>
             <div className="flex items-center gap-3 flex-wrap">
               <Button
                 variant="outline"
@@ -319,11 +316,11 @@ export function ContractsDashboard() {
                 disabled={rescanMutation.isPending}
                 onClick={() => rescanMutation.mutate()}
               >
-                {rescanMutation.isPending ? "Einlesen…" : "Verträge neu einlesen"}
+                {rescanMutation.isPending ? t("contracts.rescanInProgress", "Einlesen…") : t("contracts.rescanButton", "Verträge neu einlesen")}
               </Button>
               <div className="flex items-center gap-2">
                 <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
-                <span className="text-sm text-muted-foreground">Nur Veränderungen zeigen</span>
+                <span className="text-sm text-muted-foreground">{t("contracts.changeFilterLabel", "Nur Veränderungen zeigen")}</span>
               </div>
             </div>
           </div>
@@ -333,7 +330,7 @@ export function ContractsDashboard() {
             {visibleActive.map(renderMobileRow)}
             {visibleActive.length === 0 && (
               <li className="py-6 text-center text-sm text-muted-foreground">
-                Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.
+                {t("contracts.emptyStateMessage", "Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.")}
               </li>
             )}
           </ul>
@@ -347,7 +344,7 @@ export function ContractsDashboard() {
                 {visibleActive.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground">
-                      Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.
+                      {t("contracts.emptyStateMessage", "Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.")}
                     </TableCell>
                   </TableRow>
                 )}

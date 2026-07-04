@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Lock, Trash2 } from 'lucide-react'
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider'
+import { useI18n } from '@/i18n/useI18n'
 import { clearAllLocalData } from '@/services/local-data-reset'
 
 const RESET_CONFIRM_WORD = 'löschen'
 
 export default function UnlockPage() {
+  const { t } = useI18n()
   const { enabled, unlocked, unlock, refresh } = useLocalEncryption()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +54,7 @@ export default function UnlockPage() {
       await unlock(password)
       navigate(nextPath, { replace: true })
     } catch (e: unknown) {
-      setError((e as Error)?.message || 'Entsperren fehlgeschlagen')
+      setError((e as Error)?.message || t('common.error'))
     } finally {
       setBusy(false)
     }
@@ -79,7 +81,7 @@ export default function UnlockPage() {
       refresh()
       navigate('/', { replace: true })
     } catch (e: unknown) {
-      setError((e as Error)?.message || 'Zurücksetzen fehlgeschlagen')
+      setError((e as Error)?.message || t('common.error'))
     } finally {
       setResetBusy(false)
     }
@@ -93,10 +95,10 @@ export default function UnlockPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Lock className="h-5 w-5" />
-            App entsperren
+            {t('unlock.title')}
           </CardTitle>
           <CardDescription>
-            Lokale Verschlüsselung ist aktiv. Bitte Passwort eingeben, um auf lokale Finanzdaten zuzugreifen.
+            {t('unlock.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,7 +109,7 @@ export default function UnlockPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="unlock-password">Passwort</Label>
+            <Label htmlFor="unlock-password">{t('unlock.passwordLabel')}</Label>
             <Input
               id="unlock-password"
               type="password"
@@ -120,17 +122,16 @@ export default function UnlockPage() {
           </div>
 
           <Button className="w-full" onClick={handleUnlock} disabled={!password || busy}>
-            {busy ? 'Entsperren…' : 'Entsperren'}
+            {busy ? t('unlock.unlockButtonLoading') : t('unlock.unlockButton')}
           </Button>
 
           <p className="text-xs text-muted-foreground">
-            Hinweis: Das Passwort wird nicht gespeichert. Nach einem Refresh musst du erneut entsperren.
+            {t('unlock.passwordHint')}
           </p>
 
           <div className="border-t border-border pt-4">
             <p className="mb-2 text-xs text-muted-foreground">
-              Passwort vergessen? Verschlüsselte Daten lassen sich ohne Passwort nicht
-              wiederherstellen. Du kannst die lokale Instanz löschen und blank neu starten.
+              {t('unlock.forgotPasswordHint')}
             </p>
             <Button
               variant="outline"
@@ -139,7 +140,7 @@ export default function UnlockPage() {
               disabled={busy}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Lokale Instanz löschen
+              {t('unlock.resetButton')}
             </Button>
           </div>
         </CardContent>
@@ -148,38 +149,37 @@ export default function UnlockPage() {
       <AlertDialog open={resetOpen} onOpenChange={(next) => !next && closeReset()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Lokale Instanz löschen?</AlertDialogTitle>
+            <AlertDialogTitle>{t('unlock.resetTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Alle auf diesem Gerät gespeicherten Daten (Transaktionen, Konten, Schulden,
-              Einstellungen) und die lokale Verschlüsselung werden entfernt. Dieser Schritt ist
-              endgültig und kann nicht rückgängig gemacht werden.
+              {t('unlock.resetDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="space-y-2">
             <Label htmlFor="reset-confirm">
-              Tippe <span className="font-mono font-semibold">{RESET_CONFIRM_WORD}</span> zur
-              Bestätigung
+              {t('unlock.resetConfirmLabel').split('{word}')[0]}
+              <span className="font-mono font-semibold">{RESET_CONFIRM_WORD}</span>
+              {t('unlock.resetConfirmLabel').split('{word}')[1]}
             </Label>
             <Input
               id="reset-confirm"
               value={resetConfirm}
               onChange={(e) => setResetConfirm(e.target.value)}
               autoComplete="off"
-              aria-label={`Bestätigung – tippe ${RESET_CONFIRM_WORD}`}
+              aria-label={t('unlock.resetConfirmAriaLabel').replace('{word}', RESET_CONFIRM_WORD)}
             />
           </div>
 
           <AlertDialogFooter>
             <Button variant="outline" onClick={closeReset} disabled={resetBusy}>
-              Abbrechen
+              {t('unlock.resetCancelButton')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleReset}
               disabled={!resetConfirmed || resetBusy}
             >
-              {resetBusy ? 'Wird gelöscht…' : 'Endgültig löschen'}
+              {resetBusy ? t('unlock.resetConfirmButtonLoading') : t('unlock.resetConfirmButton')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

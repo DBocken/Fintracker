@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { computeFinancialHealth, getHealthLabel, monthlyAverages } from "../financial-health-service";
 import type { NetWorthBreakdown } from "../net-worth-service";
 import type { Debt, Transaction } from "../../types";
@@ -250,7 +250,12 @@ describe("computeFinancialHealth - overall weighting", () => {
 });
 
 describe("getHealthLabel", () => {
-  it("maps score ranges to the correct label/tone", () => {
+  afterEach(() => {
+    window.localStorage.removeItem("ausgabentracker_locale_v1");
+  });
+
+  it("maps score ranges to the correct label/tone (Deutsch)", () => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "de");
     expect(getHealthLabel(90)).toEqual({ label: "Sehr gesund", tone: "good" });
     expect(getHealthLabel(80)).toEqual({ label: "Sehr gesund", tone: "good" });
     expect(getHealthLabel(79)).toEqual({ label: "Gesund", tone: "ok" });
@@ -259,5 +264,13 @@ describe("getHealthLabel", () => {
     expect(getHealthLabel(40)).toEqual({ label: "Achtsam sein", tone: "warn" });
     expect(getHealthLabel(39)).toEqual({ label: "Handlungsbedarf", tone: "bad" });
     expect(getHealthLabel(0)).toEqual({ label: "Handlungsbedarf", tone: "bad" });
+  });
+
+  it("[REGRESSION] maps score ranges to the correct label/tone (English)", () => {
+    window.localStorage.setItem("ausgabentracker_locale_v1", "en");
+    expect(getHealthLabel(90)).toEqual({ label: "Very healthy", tone: "good" });
+    expect(getHealthLabel(79)).toEqual({ label: "Healthy", tone: "ok" });
+    expect(getHealthLabel(59)).toEqual({ label: "Stay mindful", tone: "warn" });
+    expect(getHealthLabel(39)).toEqual({ label: "Action needed", tone: "bad" });
   });
 });

@@ -12,8 +12,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { performanceMonitor, getMemoryUsage, formatDuration } from '@/lib/performance';
 import { transactionStorage } from '@/services/transaction-storage-service';
 import { showSuccess } from '@/utils/toast';
+import { useI18n } from '@/i18n/useI18n';
 
 export function PerformanceDashboard() {
+  const { t } = useI18n();
   const [metrics, setMetrics] = useState<import('@/lib/performance').PerformanceMetric[]>([]);
   const [memoryInfo, setMemoryInfo] = useState<{ usedJSHeapSize?: number; totalJSHeapSize?: number; jsHeapSizeLimit?: number } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,7 +69,7 @@ export function PerformanceDashboard() {
   const clearMetrics = () => {
     performanceMonitor.clear();
     setMetrics([]);
-    showSuccess('Performance-Metriken gelöscht');
+    showSuccess(t('performanceDashboard.metricsCleared'));
   };
 
   const downloadMetrics = () => {
@@ -87,7 +89,7 @@ export function PerformanceDashboard() {
     link.click();
     URL.revokeObjectURL(url);
 
-    showSuccess('Performance-Metriken heruntergeladen');
+    showSuccess(t('performanceDashboard.metricsDownloaded'));
   };
 
   return (
@@ -96,10 +98,10 @@ export function PerformanceDashboard() {
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Activity className="h-6 w-6 text-positive" />
-            Technischer Status
+            {t('performanceDashboard.title')}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ergänzende Informationen zur lokalen Speicherung und App-Leistung.
+            {t('performanceDashboard.subtitle')}
           </p>
         </div>
 
@@ -110,7 +112,7 @@ export function PerformanceDashboard() {
             onClick={() => setAutoRefresh(!autoRefresh)}
             className="border-border bg-card text-foreground hover:bg-accent"
           >
-            {autoRefresh ? 'Auto-Refresh an' : 'Auto-Refresh aus'}
+            {autoRefresh ? t('performanceDashboard.autoRefreshOn') : t('performanceDashboard.autoRefreshOff')}
           </Button>
           <Button
             variant="outline"
@@ -118,7 +120,7 @@ export function PerformanceDashboard() {
             onClick={refreshMetrics}
             className="border-border bg-card text-foreground hover:bg-accent"
           >
-            Aktualisieren
+            {t('performanceDashboard.refreshButton')}
           </Button>
           <Button
             variant="outline"
@@ -127,7 +129,7 @@ export function PerformanceDashboard() {
             className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Download className="mr-2 h-4 w-4" />
-            Exportieren
+            {t('performanceDashboard.exportButton')}
           </Button>
           <Button
             variant="outline"
@@ -136,7 +138,7 @@ export function PerformanceDashboard() {
             className="border-border bg-card text-foreground hover:bg-accent"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Löschen
+            {t('performanceDashboard.deleteButton')}
           </Button>
         </div>
       </div>
@@ -145,35 +147,35 @@ export function PerformanceDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Database className="h-5 w-5 text-premium" />
-            Lokaler Speicherstatus
+            {t('performanceDashboard.storageStatusTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {storageStats ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Lokale Transaktionen</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.localTransactions')}</p>
                 <p className="text-2xl font-bold text-foreground">{storageStats.data.local.count.toLocaleString('de-DE')}</p>
                 <p className="text-xs text-muted-foreground">{(storageStats.data.local.size / 1024).toFixed(2)} KB</p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Externe Klartext-Speicherung</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.externalPlaintext')}</p>
                 <p className="text-2xl font-bold text-foreground">0</p>
-                <p className="text-xs text-muted-foreground">sensible Daten liegen lokal</p>
+                <p className="text-xs text-muted-foreground">{t('performanceDashboard.sensitiveDataLocal')}</p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Letzte Sync-Aktion</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.lastSyncAction')}</p>
                 <p className="text-lg font-semibold text-foreground">
                   {storageStats.data.lastSync
                     ? new Date(storageStats.data.lastSync).toLocaleTimeString('de-DE')
-                    : 'noch keine'}
+                    : t('performanceDashboard.neverSynced')}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="py-4 text-center text-muted-foreground">Keine Speicher-Informationen verfügbar</p>
+            <p className="py-4 text-center text-muted-foreground">{t('performanceDashboard.noStorageInfo')}</p>
           )}
         </CardContent>
       </Card>
@@ -183,27 +185,27 @@ export function PerformanceDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Monitor className="h-5 w-5 text-brand" />
-              Speicherverbrauch
+              {t('performanceDashboard.memoryUsageTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Genutzt</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.used')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {((memoryInfo.usedJSHeapSize ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Gesamt</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.total')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {((memoryInfo.totalJSHeapSize ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
 
               <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm text-muted-foreground">Limit</p>
+                <p className="text-sm text-muted-foreground">{t('performanceDashboard.limit')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {((memoryInfo.jsHeapSizeLimit ?? 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
@@ -220,7 +222,7 @@ export function PerformanceDashboard() {
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {(((memoryInfo.usedJSHeapSize ?? 0) / (memoryInfo.jsHeapSizeLimit ?? 1)) * 100).toFixed(1)}% genutzt
+                {t('performanceDashboard.percentUsed').replace('{percent}', (((memoryInfo.usedJSHeapSize ?? 0) / (memoryInfo.jsHeapSizeLimit ?? 1)) * 100).toFixed(1))}
               </p>
             </div>
           </CardContent>
@@ -231,7 +233,7 @@ export function PerformanceDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Zap className="h-5 w-5 text-warning" />
-            Operations-Leistung
+            {t('performanceDashboard.operationsPerformanceTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -239,7 +241,7 @@ export function PerformanceDashboard() {
             <Alert className="mb-4 border-warning/30 bg-warning/10">
               <Zap className="h-4 w-4 text-warning" />
               <AlertDescription className="text-warning">
-                {slowOperations.length} Operation(en) brauchen mehr als 100ms.
+                {t('performanceDashboard.slowOperationsWarning').replace('{count}', String(slowOperations.length))}
               </AlertDescription>
             </Alert>
           )}
@@ -258,14 +260,14 @@ export function PerformanceDashboard() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium text-foreground">{metric.name}</p>
-                      <p className="text-xs text-muted-foreground">{metric.count} Aufrufe</p>
+                      <p className="text-xs text-muted-foreground">{t('performanceDashboard.calls').replace('{count}', String(metric.count))}</p>
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-bold ${metric.avgDuration > 100 ? 'text-warning' : 'text-positive'}`}>
                         {formatDuration(metric.avgDuration)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Ø {formatDuration(metric.minDuration)} - {formatDuration(metric.maxDuration)}
+                        {t('performanceDashboard.minMaxDuration').replace('{min}', formatDuration(metric.minDuration)).replace('{max}', formatDuration(metric.maxDuration))}
                       </p>
                     </div>
                   </div>
@@ -274,7 +276,7 @@ export function PerformanceDashboard() {
             </div>
           ) : (
             <p className="py-8 text-center text-muted-foreground">
-              Keine Performance-Daten verfügbar. Führe einige Aktionen aus, um Metriken zu sammeln.
+              {t('performanceDashboard.noPerformanceData')}
             </p>
           )}
         </CardContent>
@@ -284,7 +286,7 @@ export function PerformanceDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Clock className="h-5 w-5 text-brand" />
-            Letzte Operationen
+            {t('performanceDashboard.recentOperationsTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -305,7 +307,7 @@ export function PerformanceDashboard() {
               ))}
             </div>
           ) : (
-            <p className="py-4 text-center text-muted-foreground">Keine Operationen aufgezeichnet</p>
+            <p className="py-4 text-center text-muted-foreground">{t('performanceDashboard.noOperations')}</p>
           )}
         </CardContent>
       </Card>

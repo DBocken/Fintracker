@@ -1,3 +1,4 @@
+import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
 import BudgetTank from "./BudgetTank";
@@ -18,6 +19,7 @@ interface BudgetTileProps {
  * Bewusst textarm, damit viele Budgets auf eine Seite passen.
  */
 export default function BudgetTile({ status, onClick }: BudgetTileProps) {
+  const { t } = useI18n();
   const { budget, fillPercent, health, spent, carryIn, effectiveLimit } = status;
   const pct = Math.round(fillPercent);
   const limitShown = Math.round(effectiveLimit ?? budget.limit);
@@ -28,9 +30,9 @@ export default function BudgetTile({ status, onClick }: BudgetTileProps) {
       type="button"
       onClick={onClick}
       title={budget.name}
-      aria-label={`${budget.name}: ${pct}% ausgeschöpft, ${Math.round(spent)} von ${limitShown} Euro${
-        hasCarry ? `, Übertrag ${carryIn! >= 0 ? "+" : "−"}${Math.abs(Math.round(carryIn!))} Euro` : ""
-      }. Details öffnen.`}
+      aria-label={`${budget.name}: ${pct}% ausgeschöpft, ${Math.round(spent)} von ${limitShown} ${t('budgets.tile.euro')}${
+        hasCarry ? `, Übertrag ${carryIn! >= 0 ? "+" : "−"}${Math.abs(Math.round(carryIn!))} ${t('budgets.tile.euro')}` : ""
+      }. ${t('budgets.tile.detailsOpen')}`}
       className={cn(
         "group relative flex flex-col items-center gap-1 rounded-2xl border bg-card p-2 transition",
         "hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-md focus-visible:outline-none",
