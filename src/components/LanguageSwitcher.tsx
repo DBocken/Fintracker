@@ -11,6 +11,7 @@ import {
 const LOCALES = [
   { value: 'de', flag: '🇩🇪', label: 'Deutsch' },
   { value: 'en', flag: '🇬🇧', label: 'English' },
+  { value: 'tlh', flag: '⚔️', label: 'tlhIngan Hol' },
 ] as const;
 
 /**

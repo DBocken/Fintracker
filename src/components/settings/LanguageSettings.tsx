@@ -30,6 +30,7 @@ export function LanguageSettings() {
           <SelectContent>
             <SelectItem value="de">{t('settings.languageGerman')}</SelectItem>
             <SelectItem value="en">{t('settings.languageEnglish')}</SelectItem>
+            <SelectItem value="tlh">{t('settings.languageKlingon')}</SelectItem>
           </SelectContent>
         </Select>
       </CardContent>

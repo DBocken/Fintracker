@@ -265,7 +265,7 @@ export function EnhancedSettings() {
           <SectionHeader
             icon={<Languages className="h-5 w-5" />}
             title={t('settings.languageSettingsTitle', 'Sprache')}
-            description={t('settings.languageSettingsDescription', 'Wähle die Sprache der App (Deutsch/Englisch).')}
+            description={t('settings.languageSettingsDescription', 'Wähle die Sprache der App (Deutsch/Englisch/Klingonisch).')}
           />
           <LanguageSettings />
         </section>
