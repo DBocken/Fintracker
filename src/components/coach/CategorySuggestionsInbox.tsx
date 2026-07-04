@@ -2,6 +2,7 @@ import { Sparkles, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 import { useAutomationSuggestions } from "@/hooks/useAutomationSuggestions";
 import {
   suggestionConfidenceLevel,
@@ -21,6 +22,7 @@ const LEVEL_CLASS: Record<SuggestionConfidenceLevel, string> = {
  * offen ist (Ruhe vor Fülle). Aktions-/Formular-Container.
  */
 export default function CategorySuggestionsInbox() {
+  const { t } = useI18n();
   const { suggestions, accept, reject, isBusy, categoryNameById } = useAutomationSuggestions();
 
   if (suggestions.length === 0) return null;
@@ -30,20 +32,20 @@ export default function CategorySuggestionsInbox() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-4 w-4 text-brand" aria-hidden="true" />
-          Vorschläge zur Bestätigung
+          {t('coach.suggestionsTitle')}
           <Badge variant="outline" className="font-normal">
             {suggestions.length}
           </Badge>
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Automatisch erkannt – du entscheidest. Nichts wird ohne dich geändert.
+          {t('coach.suggestionsDescription')}
         </p>
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">
           {suggestions.map((s) => {
             const categoryId = (s.proposedChange as { category_id?: string }).category_id;
-            const categoryName = (categoryId && categoryNameById.get(categoryId)) || "Kategorie";
+            const categoryName = (categoryId && categoryNameById.get(categoryId)) || t('coach.categoryLabel');
             const level = suggestionConfidenceLevel(s.confidence);
             return (
               <li
@@ -53,10 +55,10 @@ export default function CategorySuggestionsInbox() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{s.title}</p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    Vorschlag:
+                    {t('coach.suggestionLabel')}
                     <span className="font-medium text-foreground">{categoryName}</span>
                     <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${LEVEL_CLASS[level]}`}>
-                      {level} Sicherheit
+                      {level} {t('coach.confidenceSuffix')}
                     </span>
                   </p>
                   {s.reasons[0] && (
@@ -66,14 +68,14 @@ export default function CategorySuggestionsInbox() {
                 <div className="flex shrink-0 items-center gap-1.5">
                   <Button size="sm" onClick={() => accept(s)} disabled={isBusy}>
                     <Check className="mr-1 h-4 w-4" aria-hidden="true" />
-                    Übernehmen
+                    {t('coach.acceptSuggestion')}
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => reject(s)}
                     disabled={isBusy}
-                    aria-label={`Vorschlag ablehnen: ${s.title}`}
+                    aria-label={`${t('coach.rejectSuggestion')} ${s.title}`}
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
                   </Button>

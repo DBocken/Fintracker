@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Dot, Lock } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useI18n } from "@/i18n/useI18n";
 import { getFinanceFoundation } from "@/services/finance-foundation-service";
 import type { FoundationStage } from "@/lib/finance-foundation";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ function StageRow({ stage, animate }: { stage: FoundationStage; animate: boolean
  */
 export default function FoundationLadder() {
   const animate = !useReducedMotion();
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: ["finance-foundation"], queryFn: () => getFinanceFoundation() });
 
   if (isLoading || !data) return null;
@@ -79,8 +81,8 @@ export default function FoundationLadder() {
   return (
     <section className="space-y-4">
       <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold">
-        Dein Finanz-Fundament
-        <span className="text-xs font-normal text-muted-foreground">{overall}% – 6 Etappen</span>
+        {t('coach.foundationTitle')}
+        <span className="text-xs font-normal text-muted-foreground">{overall}% – {t('coach.foundationStages')}</span>
       </h2>
       <div className="space-y-4">
         {data.stages.map((stage) => (
