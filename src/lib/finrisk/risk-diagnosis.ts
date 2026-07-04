@@ -3,14 +3,12 @@
  *
  * Erzeugt aus den Modellresultaten eine klare, nicht-moralisierende Aussage –
  * keine reine P10/P50/P90-Wiedergabe. Folgt den Wording-Leitplanken aus
- * `PRODUCT_LOGIC.md` §3: keine Finanzberatung, keine absolute „maximal“-Aussage
+ * `PRODUCT_LOGIC.md` §3: keine Finanzberatung, keine absolute „maximal”-Aussage
  * (immer mit Sicherheitsniveau), keine Sicherheits-Versprechen.
  */
 import type { StressCapacityLevel } from './scenario-payload-types';
 import type { LumpyRiskProfile } from './lumpy-risk';
-
-const DISCLAIMER =
-  'Diese Analyse ist eine lokale Liquiditäts- und Szenariosimulation, keine Finanzberatung.';
+import { t } from '../../i18n/serviceT';
 
 export interface RiskDiagnosisInput {
   /** Median-Endstand der Basis-Projektion. */
@@ -58,42 +56,38 @@ export function generateRiskDiagnosis(input: RiskDiagnosisInput): RiskDiagnosis 
   // Wer ohnehin auf ein Minus zusteuert, darf nicht zuerst „kommst du hin" lesen.
   const threshold = input.threshold ?? input.stressCapacity[0]?.thresholdAmount ?? 0;
   if (input.baselineEndP50 < 0) {
-    parts.push(
-      'Achtung: Schon ohne zusätzliches Szenario rutscht deine Liquidität im betrachteten Zeitraum voraussichtlich ins Minus.',
-    );
+    parts.push(t('finrisk.diagnosisWarning1'));
   } else if (threshold > 0 && input.baselineEndP50 < threshold) {
-    parts.push(
-      'Schon ohne zusätzliches Szenario bleibt deine Liquidität voraussichtlich unter deinem Sicherheitspuffer.',
-    );
+    parts.push(t('finrisk.diagnosisWarning2'));
   } else {
-    parts.push('Mit deinen normalen Alltagsausgaben kommst du voraussichtlich hin.');
+    parts.push(t('finrisk.diagnosisBasicOk'));
   }
 
   if (input.lumpy && input.lumpy.lumpyCount > 0) {
     if (input.lumpy.lumpyRiskLevel === 'high') {
-      parts.push(
-        'Dein relevantes Risiko liegt klar in seltenen größeren Ausgaben – diese fallen bei dir spürbar ins Gewicht.',
-      );
+      parts.push(t('finrisk.diagnosisLumpyHigh'));
     } else {
-      parts.push('Dein relevantes Risiko liegt weniger im Alltag als in seltenen größeren Ausgaben.');
+      parts.push(t('finrisk.diagnosisLumpyMod'));
     }
   }
 
-  if (delta < -1000) parts.push('Das gewählte Szenario belastet deine Liquidität sichtbar.');
-  else if (delta < -250) parts.push('Das gewählte Szenario reduziert deinen Puffer moderat.');
-  else if (delta > 250) parts.push('Das gewählte Szenario entlastet deinen Puffer.');
-  else parts.push('Das gewählte Szenario verändert deinen Puffer nur begrenzt.');
+  if (delta < -1000) parts.push(t('finrisk.diagnosisMajor'));
+  else if (delta < -250) parts.push(t('finrisk.diagnosisModerate'));
+  else if (delta > 250) parts.push(t('finrisk.diagnosisRelief'));
+  else parts.push(t('finrisk.diagnosisMinor'));
 
   const cap = pickCapacity(input.stressCapacity);
   if (cap) {
+    const confidencePercent = (cap.confidenceLevel * 100).toFixed(0);
+    const amount = Math.round(cap.maxAffordableShock);
     parts.push(
-      `Bei ${(cap.confidenceLevel * 100).toFixed(0)} % Sicherheitsniveau ist ein zusätzlicher Stressfall bis ca. ${Math.round(
-        cap.maxAffordableShock,
-      )} € tragbar.`,
+      t('finrisk.diagnosisStressCapacity')
+        .replace(/{confidenceLevel}/g, confidencePercent)
+        .replace(/{amount}/g, String(amount)),
     );
   }
 
-  parts.push(DISCLAIMER);
+  parts.push(t('finrisk.diagnosisDisclaimer'));
 
   return {
     summary: parts.join(' '),

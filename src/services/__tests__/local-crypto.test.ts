@@ -14,6 +14,7 @@ import {
 describe("localEncryption", () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
   });
 
@@ -94,6 +95,7 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
   });
   afterEach(() => {
@@ -145,6 +147,7 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
     // Verschlüsselung ohne Migration deaktivieren (simuliert inkonsistenten Rest).
     localEncryption.lock();
     localStorage.clear(); // entfernt Config -> gilt als deaktiviert
+    localStorage.setItem("ausgabentracker_locale_v1", "de"); // Locale ist keine Verschlüsselungs-Config, bleibt erhalten
     await idbSet(key, envelopeRaw!); // Envelope bleibt in IDB
 
     await expect(localEncryption.loadAndMaybeDecrypt(key)).rejects.toThrow(/Migration unvollständig/);

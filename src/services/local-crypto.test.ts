@@ -35,6 +35,7 @@ describe("estimatePasswordStrength", () => {
 describe("localEncryption Roundtrip", () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
   });
 

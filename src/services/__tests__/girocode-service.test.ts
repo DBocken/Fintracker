@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   applyPaymentToClaim,
   buildEpcPayload,
@@ -11,6 +11,10 @@ import { parseLetter } from "../letter-parser-service";
 import { LETTER_CORPUS } from "./letter-parser-corpus";
 
 const VALID_IBAN = "DE89370400440532013000";
+
+beforeEach(() => {
+  window.localStorage.setItem("ausgabentracker_locale_v1", "de");
+});
 
 function confirmedClaim(overrides: Partial<Claim> = {}): Claim {
   const text = LETTER_CORPUS.find((l) => l.name === "Versandhandel: Rechnung")!.text;

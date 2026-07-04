@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { parseLetter } from "../letter-parser-service";
 import {
   applyLetterToClaim,
@@ -27,6 +27,15 @@ const NORDWIND_CHAIN = [
   "Inkasso: Erstschreiben mit Gläubiger-Zeile",
   "Inkasso: Folgeschreiben mit erhöhten Gebühren",
 ].map(corpusText);
+
+// Set German locale for all tests (serviceT reads from localStorage)
+beforeEach(() => {
+  window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+});
+
+afterEach(() => {
+  window.localStorage.removeItem('ausgabentracker_locale_v1');
+});
 
 describe("creditorKey / similarReference", () => {
   it("normalisiert Rechtsformen und Satzzeichen", () => {
@@ -116,7 +125,7 @@ describe("Inkasso-Übergabe: Aktenführung", () => {
   });
 });
 
-describe("Stapel-Gruppierung („23 Briefe → 7 Forderungen“)", () => {
+describe('Stapel-Gruppierung ("23 Briefe → 7 Forderungen")', () => {
   it("führt die komplette Nordwind-Kette zu EINER Akte zusammen", () => {
     const result = groupLettersIntoClaims(NORDWIND_CHAIN.map(parseLetter));
     expect(result.letterCount).toBe(6);

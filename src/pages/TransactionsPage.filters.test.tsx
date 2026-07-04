@@ -31,7 +31,15 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/i18n/useI18n", () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: "de" }) }));
+vi.mock("@/i18n/useI18n", async () => {
+  const { translations } = await vi.importActual<typeof import("@/i18n/translations")>("@/i18n/translations");
+  const lookup = (key: string): string | undefined =>
+    key.split(".").reduce<unknown>((node, segment) => {
+      if (node && typeof node === "object" && segment in node) return (node as Record<string, unknown>)[segment];
+      return undefined;
+    }, translations.de) as string | undefined;
+  return { useI18n: () => ({ t: (k: string, f?: string) => lookup(k) ?? f ?? k, locale: "de" }) };
+});
 vi.mock("@/components/providers/GentleModeProvider", () => ({ useGentleMode: () => ({ enabled: false }) }));
 vi.mock("@/hooks/usePersistedSet", () => ({ usePersistedSet: () => [new Set(), vi.fn()] }));
 vi.mock("@/hooks/useTransactionDetailEditing", () => ({

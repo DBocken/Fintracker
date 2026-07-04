@@ -8,6 +8,7 @@ const PASSWORD = 'korrekt-pferd-batterie-klammer-2026';
 beforeEach(async () => {
   localEncryption.lock();
   localStorage.clear();
+  localStorage.setItem('ausgabentracker_locale_v1', 'de');
   await idbRemove(STORAGE_KEY);
 });
 
