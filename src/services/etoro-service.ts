@@ -230,7 +230,10 @@ export function mergeEtoroPositions(
         updates: {
           quantity: Math.abs(position.units),
           entry_price: position.openRate,
-          name: meta?.name || match.name,
+          // Auch Symbol heilen: ein früherer Sync ohne Instrument-Auflösung
+          // hat Platzhalter (ETORO-<id>) hinterlassen.
+          symbol: meta?.symbol || match.symbol,
+          name: meta?.name || meta?.symbol || match.name,
           metadata: { ...match.metadata, ...etoroMetadata(position) },
         },
       });

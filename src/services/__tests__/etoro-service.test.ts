@@ -97,6 +97,17 @@ describe('mergeEtoroPositions', () => {
       const result = mergeEtoroPositions([localEtoroPosition()], [], instrumentMeta);
       expect(result.toDeleteIds).toEqual(['local-1']);
     });
+
+    it('[REGRESSION] sollte Fallback-Symbole (ETORO-<id>) beim Re-Sync durch aufgelöste Symbole ersetzen', () => {
+      // Erster Sync ohne erreichbaren Instrument-Lookup legt Platzhalter an;
+      // sobald die Auflösung wieder funktioniert, muss ein erneuter Sync
+      // Symbol UND Name heilen — sonst bleiben die Platzhalter für immer.
+      const placeholder = localEtoroPosition({ symbol: 'ETORO-1001', name: 'ETORO-1001' });
+      const result = mergeEtoroPositions([placeholder], [etoroPosition()], instrumentMeta);
+      expect(result.toUpdate).toHaveLength(1);
+      expect(result.toUpdate[0].updates.symbol).toBe('AAPL');
+      expect(result.toUpdate[0].updates.name).toBe('Apple Inc.');
+    });
   });
 
   describe('Edge Cases', () => {
