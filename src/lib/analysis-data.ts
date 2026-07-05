@@ -115,14 +115,20 @@ function unassignedAccountName(): string {
   return translate("analysisDataService.unassignedAccount", "Sonstiges Konto");
 }
 
-type ResolvedHierarchy = {
+export type ResolvedHierarchy = {
   mainId: string;
   mainName: string;
   subId: string | null;
   subName: string | null;
 };
 
-function resolveHierarchy(byId: Map<string, Category>, catId: string | null | undefined): ResolvedHierarchy {
+/**
+ * Löst Haupt-/Unterkategorie-Namen für eine (Unter-)Kategorie-ID auf (bis zur
+ * Wurzel der parent_id-Kette). Exportiert, damit income-streams.ts dieselbe
+ * Hierarchie-Auflösung wie die Sankey-/Sunburst-Aggregation nutzt, statt sie
+ * zu duplizieren.
+ */
+export function resolveHierarchy(byId: Map<string, Category>, catId: string | null | undefined): ResolvedHierarchy {
   if (!catId) {
     return { mainId: UNCATEGORIZED_ID, mainName: uncategorizedName(), subId: null, subName: null };
   }

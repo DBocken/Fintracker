@@ -510,8 +510,8 @@ describe('Income Breakdown & Over Time', () => {
     it('teilt eine aufgeteilte Buchung (Splits) korrekt auf zwei Einkommens-Subs auf', () => {
       const allocationsByTx = new Map<string, TransactionAllocation[]>([
         ['1', [
-          { id: 'a1', transaction_id: '1', category_id: 'anstellung', subcategory_id: 'gehalt', amount_minor: 150000 },
-          { id: 'a2', transaction_id: '1', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf', amount_minor: 50000 },
+          { id: 'a1', transaction_id: '1', category_id: 'anstellung', subcategory_id: 'gehalt', amount_minor: 150000, source: 'manual' },
+          { id: 'a2', transaction_id: '1', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf', amount_minor: 50000, source: 'manual' },
         ]],
       ]);
       const txs: Transaction[] = [itx({ id: '1', amount: 2000 })];
