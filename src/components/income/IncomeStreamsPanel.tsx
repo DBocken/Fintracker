@@ -1,0 +1,81 @@
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { subMonths } from 'date-fns';
+import { useI18n } from '@/i18n/useI18n';
+import SegmentedControl from '@/components/common/SegmentedControl';
+import FinanceEmptyState from '@/components/common/FinanceEmptyState';
+import EmptyState from '@/components/common/EmptyState';
+import { getTransactions, getCategories } from '@/services/transaction-service';
+import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/analysis-data';
+import { deriveIncomeStreams } from '@/lib/income-streams';
+import type { Transaction, Category } from '@/types';
+import IncomeKpiStrip from './IncomeKpiStrip';
+import IncomeBreakdownCard from './IncomeBreakdownCard';
+import IncomeOverTimeCard from './IncomeOverTimeCard';
+import IncomeStreamList from './IncomeStreamList';
+
+type PeriodMode = '12m' | 'all';
+const WINDOW_MONTHS = 12;
+
+export default function IncomeStreamsPanel() {
+  const { t } = useI18n();
+  const [period, setPeriod] = useState<PeriodMode>('12m');
+
+  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
+    queryKey: ['transactions', 5000],
+    queryFn: () => getTransactions(5000),
+  });
+
+  const { data: cats = [] } = useQuery<Category[], Error>({
+    queryKey: ['categories'],
+    queryFn: () => getCategories(),
+  });
+
+  const periodTxs = useMemo(() => {
+    if (period === 'all') return txs;
+    const cutoff = subMonths(new Date(), WINDOW_MONTHS);
+    return txs.filter((t) => new Date(t.date) >= cutoff);
+  }, [txs, period]);
+
+  const breakdown = useMemo(() => buildIncomeBreakdown(periodTxs, cats), [periodTxs, cats]);
+  const overTime = useMemo(() => buildIncomeOverTime(periodTxs, cats), [periodTxs, cats]);
+  // Ströme brauchen Historie für die Kadenz-Erkennung — immer auf dem 12-Monats-
+  // Fenster berechnen, unabhängig von der gewählten Ansicht für Breakdown/Verlauf.
+  const streams = useMemo(() => deriveIncomeStreams(txs, cats, { windowMonths: WINDOW_MONTHS }), [txs, cats]);
+
+  if (!txsLoading && txs.length === 0) {
+    return <FinanceEmptyState />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="max-w-xs">
+        <SegmentedControl
+          options={[
+            { value: '12m', label: t('income.period12Months') },
+            { value: 'all', label: t('income.periodAll') },
+          ]}
+          value={period}
+          onValueChange={setPeriod}
+          aria-label={t('income.periodSelectorLabel')}
+        />
+      </div>
+
+      {breakdown.total === 0 ? (
+        <EmptyState emoji="💶" title={t('income.emptyTitle')} description={t('income.emptyDesc')} />
+      ) : (
+        <>
+          <IncomeKpiStrip streams={streams} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <IncomeBreakdownCard breakdown={breakdown} />
+            <IncomeOverTimeCard points={overTime} />
+          </div>
+          <div>
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">{t('income.streamsTitle')}</h2>
+            <IncomeStreamList streams={streams.streams} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

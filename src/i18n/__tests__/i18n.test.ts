@@ -69,4 +69,42 @@ describe('i18n Coverage - Full App Translation', () => {
     expect(lookupTranslation('de', 'common.pluralTransaction')).toBeDefined();
     expect(lookupTranslation('de', 'common.singularTransaction')).toBeDefined();
   });
+
+  it('[REGRESSION] sollte alle Einkommens-Texte ("Woher kommt mein Geld?") in beiden Sprachen haben', () => {
+    const incomeKeys = [
+      'income.title',
+      'income.subtitle',
+      'income.kpiTotal',
+      'income.kpiStreams',
+      'income.kpiLargestShare',
+      'income.diversificationConcentrated',
+      'income.diversificationModerate',
+      'income.diversificationDiversified',
+      'income.cadenceRegular',
+      'income.cadenceIrregular',
+      'income.trendUp',
+      'income.trendDown',
+      'income.trendFlat',
+      'income.breakdownTitle',
+      'income.overTimeTitle',
+      'income.streamsTitle',
+      'income.emptyTitle',
+      'income.emptyDesc',
+      'income.noIncome',
+      'income.monthlyAvg',
+      'income.lastReceived',
+      'income.showAll',
+      'income.period12Months',
+      'income.periodAll',
+      'income.periodSelectorLabel',
+      'nav.items.income',
+      'nav.subtitles.income',
+      'analysisDataService.otherInflows',
+    ];
+
+    incomeKeys.forEach((key) => {
+      expect(lookupTranslation('de', key)).toBeDefined();
+      expect(lookupTranslation('en', key)).toBeDefined();
+    });
+  });
 });
