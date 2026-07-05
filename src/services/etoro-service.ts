@@ -10,6 +10,7 @@ import {
 } from './portfolio-service';
 import { localEncryption } from './local-crypto';
 import { t } from '../i18n/serviceT';
+import { EtoroInstrumentsResponseSchema } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
 // eToro API Types (echtes Schema — camelCase, siehe api-portal.etoro.com
@@ -130,24 +131,29 @@ export async function fetchEtoroInstrumentMeta(
     return meta;
   }
 
-  // Live eToro API (v1.291.0) liefert { instrumentDisplayDatas: [...] } — ältere
-  // Annahmen (bare Array / { instruments }) bleiben als Fallback für Kompatibilität.
-  const list: Array<Record<string, unknown>> = Array.isArray(data)
-    ? (data as Array<Record<string, unknown>>)
-    : Array.isArray((data as { instrumentDisplayDatas?: unknown[] })?.instrumentDisplayDatas)
-      ? ((data as { instrumentDisplayDatas: Array<Record<string, unknown>> }).instrumentDisplayDatas)
-      : Array.isArray((data as { instruments?: unknown[] })?.instruments)
-        ? ((data as { instruments: Array<Record<string, unknown>> }).instruments)
-        : [];
+  // Nacktes Array (Legacy-Testfixture / manche Proxy-Varianten) auf die reale
+  // API-Hülle { instrumentDisplayDatas } normalisieren, bevor gegen das Schema
+  // aus etoro-api-schemas.ts geprüft wird — das Schema ist die einzige
+  // Quelle der Wahrheit für die Feldnamen, kein Duck-Typing mehr.
+  const normalized = Array.isArray(data) ? { instrumentDisplayDatas: data } : data;
+  const parsed = EtoroInstrumentsResponseSchema.safeParse(normalized);
 
-  for (const entry of list) {
-    // Real eToro API field names: instrumentID, symbolFull, instrumentDisplayName
-    const id = entry.instrumentID ?? entry.instrumentId;
-    const symbol = entry.symbolFull ?? entry.internalSymbolFull ?? entry.symbol;
-    const name = entry.instrumentDisplayName ?? entry.displayname ?? entry.displayName;
-    if (typeof id === 'number' && typeof symbol === 'string') {
-      meta.set(id, { symbol: symbol.toUpperCase(), name: typeof name === 'string' ? name : undefined });
-    }
+  if (!parsed.success) {
+    // Laut scheitern statt still eine leere Map zu liefern: eine unerwartete
+    // API-Antwort soll auffallen (Server-Log), nicht nur zu Platzhalter-Symbolen
+    // führen, die wie ein erfolgreicher Sync aussehen (siehe Issue #195).
+    console.error('[etoro-service] Unerwartetes Antwort-Schema bei Instrument-Auflösung — Positionen bekommen Platzhalter-Symbole.', {
+      issues: parsed.error.issues,
+      received: data,
+    });
+    return meta;
+  }
+
+  for (const entry of parsed.data.instrumentDisplayDatas) {
+    meta.set(entry.instrumentID, {
+      symbol: entry.symbolFull.toUpperCase(),
+      name: entry.instrumentDisplayName,
+    });
   }
 
   return meta;

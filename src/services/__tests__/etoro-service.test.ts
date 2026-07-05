@@ -19,6 +19,7 @@ import {
 } from '../etoro-service';
 import { createPortfolio, createPosition, getPositions } from '../portfolio-service';
 import { translations } from '../../i18n/translations';
+import { EtoroInstrumentDisplayDataSchema } from '../etoro-api-schemas';
 
 const invokeMock = vi.mocked(supabase.functions.invoke);
 
@@ -38,13 +39,17 @@ function etoroPosition(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Validiert gegen etoro-api-schemas.ts (aus der Live-API-Spec abgeleitet):
+// ein Tippfehler oder ein erfundenes Feld hier lässt den Test sofort mit
+// einer ZodError fehlschlagen, statt still ein falsches Mock zu bestehen
+// (siehe Issue #195 — genau dieser Fehler blieb sonst unentdeckt).
 function instrumentMetaResponse(overrides: Record<string, unknown> = {}) {
-  return {
+  return EtoroInstrumentDisplayDataSchema.parse({
     instrumentID: 1001,
     symbolFull: 'AAPL',
     instrumentDisplayName: 'Apple Inc.',
     ...overrides,
-  };
+  });
 }
 
 function localEtoroPosition(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition {
