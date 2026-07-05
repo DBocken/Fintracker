@@ -40,9 +40,9 @@ function etoroPosition(overrides: Record<string, unknown> = {}) {
 
 function instrumentMetaResponse(overrides: Record<string, unknown> = {}) {
   return {
-    instrumentId: 1001,
-    internalSymbolFull: 'AAPL',
-    displayname: 'Apple Inc.',
+    instrumentID: 1001,
+    symbolFull: 'AAPL',
+    instrumentDisplayName: 'Apple Inc.',
     ...overrides,
   };
 }
@@ -96,6 +96,17 @@ describe('mergeEtoroPositions', () => {
     it('sollte lokale eToro-Positionen entfernen die bei eToro nicht mehr offen sind', () => {
       const result = mergeEtoroPositions([localEtoroPosition()], [], instrumentMeta);
       expect(result.toDeleteIds).toEqual(['local-1']);
+    });
+
+    it('[REGRESSION] sollte Fallback-Symbole (ETORO-<id>) beim Re-Sync durch aufgelöste Symbole ersetzen', () => {
+      // Erster Sync ohne erreichbaren Instrument-Lookup legt Platzhalter an;
+      // sobald die Auflösung wieder funktioniert, muss ein erneuter Sync
+      // Symbol UND Name heilen — sonst bleiben die Platzhalter für immer.
+      const placeholder = localEtoroPosition({ symbol: 'ETORO-1001', name: 'ETORO-1001' });
+      const result = mergeEtoroPositions([placeholder], [etoroPosition()], instrumentMeta);
+      expect(result.toUpdate).toHaveLength(1);
+      expect(result.toUpdate[0].updates.symbol).toBe('AAPL');
+      expect(result.toUpdate[0].updates.name).toBe('Apple Inc.');
     });
   });
 
@@ -156,7 +167,7 @@ describe('fetchEtoroInstrumentMeta', () => {
 
   it('sollte Symbol/Name je instrumentID über den Proxy auflösen', async () => {
     invokeMock.mockResolvedValue({
-      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' })],
+      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
       error: null,
     } as never);
 
@@ -245,8 +256,8 @@ describe('syncEtoroPortfolio', () => {
       if (opts.body.endpoint === 'instruments') {
         return {
           data: [
-            instrumentMetaResponse({ instrumentId: 1001, internalSymbolFull: 'AAPL', displayname: 'Apple Inc.' }),
-            instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' }),
+            instrumentMetaResponse({ instrumentID: 1001, symbolFull: 'AAPL', instrumentDisplayName: 'Apple Inc.' }),
+            instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' }),
           ],
           error: null,
         };
@@ -279,7 +290,7 @@ describe('syncEtoroPortfolio', () => {
         };
       }
       return {
-        data: [instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' })],
+        data: [instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
         error: null,
       };
     }) as any);

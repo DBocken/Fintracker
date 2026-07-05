@@ -137,9 +137,10 @@ export async function fetchEtoroInstrumentMeta(
       : [];
 
   for (const entry of list) {
-    const id = entry.instrumentId ?? entry.instrumentID ?? entry.InstrumentID;
-    const symbol = entry.internalSymbolFull ?? entry.symbol ?? entry.Symbol;
-    const name = entry.displayname ?? entry.displayName ?? entry.name;
+    // Real eToro API field names: instrumentID, symbolFull, instrumentDisplayName
+    const id = entry.instrumentID ?? entry.instrumentId;
+    const symbol = entry.symbolFull ?? entry.internalSymbolFull ?? entry.symbol;
+    const name = entry.instrumentDisplayName ?? entry.displayname ?? entry.displayName;
     if (typeof id === 'number' && typeof symbol === 'string') {
       meta.set(id, { symbol: symbol.toUpperCase(), name: typeof name === 'string' ? name : undefined });
     }
@@ -230,7 +231,10 @@ export function mergeEtoroPositions(
         updates: {
           quantity: Math.abs(position.units),
           entry_price: position.openRate,
-          name: meta?.name || match.name,
+          // Auch Symbol heilen: ein früherer Sync ohne Instrument-Auflösung
+          // hat Platzhalter (ETORO-<id>) hinterlassen.
+          symbol: meta?.symbol || match.symbol,
+          name: meta?.name || meta?.symbol || match.name,
           metadata: { ...match.metadata, ...etoroMetadata(position) },
         },
       });

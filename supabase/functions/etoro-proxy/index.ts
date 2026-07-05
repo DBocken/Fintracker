@@ -111,7 +111,7 @@ serve(async (req) => {
       return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
     }
 
-    const url = `${ETORO_BASE}/market-data/instruments?instrumentIds=${ids.join(",")}&fields=instrumentId,internalSymbolFull,displayname`;
+    const url = `${ETORO_BASE}/market-data/instruments?instrumentIds=${ids.join(",")}`;
     try {
       const resp = await fetch(url, {
         method: "GET",
