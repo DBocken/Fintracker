@@ -130,11 +130,15 @@ export async function fetchEtoroInstrumentMeta(
     return meta;
   }
 
+  // Live eToro API (v1.291.0) liefert { instrumentDisplayDatas: [...] } — ältere
+  // Annahmen (bare Array / { instruments }) bleiben als Fallback für Kompatibilität.
   const list: Array<Record<string, unknown>> = Array.isArray(data)
     ? (data as Array<Record<string, unknown>>)
-    : Array.isArray((data as { instruments?: unknown[] })?.instruments)
-      ? ((data as { instruments: Array<Record<string, unknown>> }).instruments)
-      : [];
+    : Array.isArray((data as { instrumentDisplayDatas?: unknown[] })?.instrumentDisplayDatas)
+      ? ((data as { instrumentDisplayDatas: Array<Record<string, unknown>> }).instrumentDisplayDatas)
+      : Array.isArray((data as { instruments?: unknown[] })?.instruments)
+        ? ((data as { instruments: Array<Record<string, unknown>> }).instruments)
+        : [];
 
   for (const entry of list) {
     // Real eToro API field names: instrumentID, symbolFull, instrumentDisplayName

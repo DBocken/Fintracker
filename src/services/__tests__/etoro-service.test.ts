@@ -165,9 +165,17 @@ describe('fetchEtoroInstrumentMeta', () => {
     invokeMock.mockReset();
   });
 
-  it('sollte Symbol/Name je instrumentID über den Proxy auflösen', async () => {
+  it('[REGRESSION] sollte Symbol/Name aus der echten API-Hülle { instrumentDisplayDatas } auflösen', async () => {
+    // Live eToro API (v1.291.0) wickelt die Ergebnisse in instrumentDisplayDatas ein —
+    // kein nacktes Array. Ohne diese Hülle bleibt die Map leer (Regression: Placeholder
+    // heilen nie, obwohl der Proxy korrekt antwortet).
     invokeMock.mockResolvedValue({
-      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
+      data: {
+        instrumentDisplayDatas: [
+          instrumentMetaResponse(),
+          instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' }),
+        ],
+      },
       error: null,
     } as never);
 
@@ -176,6 +184,18 @@ describe('fetchEtoroInstrumentMeta', () => {
     expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
       body: { endpoint: 'instruments', apiKey: 'api-key', userKey: 'user-key', instrumentIds: [1001, 1002] },
     });
+    expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.' });
+    expect(meta.get(1002)).toEqual({ symbol: 'MSFT', name: 'Microsoft' });
+  });
+
+  it('sollte auch ein nacktes Array als Antwort akzeptieren (Kompatibilität)', async () => {
+    invokeMock.mockResolvedValue({
+      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
+      error: null,
+    } as never);
+
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001, 1002]);
+
     expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.' });
     expect(meta.get(1002)).toEqual({ symbol: 'MSFT', name: 'Microsoft' });
   });
