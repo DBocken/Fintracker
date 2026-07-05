@@ -39,3 +39,23 @@ export const EtoroInstrumentsResponseSchema = z.object({
 });
 
 export type EtoroInstrumentsResponse = z.infer<typeof EtoroInstrumentsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/market-data/instruments/rates (abgefragt 2026-07-05).
+// Liefert Live-Kurse je instrumentID — kollisionsfrei, im Gegensatz zu
+// Yahoo-Tickern (siehe quote-service.ts isEtoroPosition).
+// -----------------------------------------------------------------------------
+
+export const EtoroRateSchema = z.object({
+  instrumentID: z.number(),
+  ask: z.number().optional(),
+  bid: z.number().optional(),
+  lastExecution: z.number().optional(),
+  date: z.string().optional(),
+});
+
+export const EtoroLiveRatesResponseSchema = z.object({
+  rates: z.array(EtoroRateSchema),
+});
+
+export type EtoroLiveRatesResponse = z.infer<typeof EtoroLiveRatesResponseSchema>;

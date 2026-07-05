@@ -10,7 +10,7 @@ import {
 } from './portfolio-service';
 import { localEncryption } from './local-crypto';
 import { t } from '../i18n/serviceT';
-import { EtoroInstrumentsResponseSchema } from './etoro-api-schemas';
+import { EtoroInstrumentsResponseSchema, EtoroLiveRatesResponseSchema } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
 // eToro API Types (echtes Schema — camelCase, siehe api-portal.etoro.com
@@ -159,6 +159,59 @@ export async function fetchEtoroInstrumentMeta(
   return meta;
 }
 
+/**
+ * Wählt den aktuellen Kurs aus einer eToro-Rate: bid zuerst (konservative
+ * Bewertung — was eine Long-Position beim Verkauf tatsächlich erzielt),
+ * dann lastExecution, dann ask als letzter Fallback.
+ */
+export function etoroCurrentPrice(rate: { bid?: number; lastExecution?: number; ask?: number }): number | undefined {
+  if (typeof rate.bid === 'number' && rate.bid > 0) return rate.bid;
+  if (typeof rate.lastExecution === 'number' && rate.lastExecution > 0) return rate.lastExecution;
+  if (typeof rate.ask === 'number' && rate.ask > 0) return rate.ask;
+  return undefined;
+}
+
+/**
+ * Holt Live-Kurse je instrumentID (/market-data/instruments/rates) —
+ * kollisionsfrei im Gegensatz zu Yahoo-Tickern (siehe quote-service.ts
+ * isEtoroPosition: DASH/A/XRP bedeuten dort etwas anderes).
+ *
+ * Schlägt die Abfrage fehl, wird eine leere Map zurückgegeben statt zu
+ * werfen: der Sync bleibt möglich, Positionen behalten dann ihren
+ * bisherigen last_price statt abzustürzen.
+ */
+export async function fetchEtoroRates(
+  apiKey: string,
+  userKey: string,
+  instrumentIds: number[],
+): Promise<Map<number, number>> {
+  const uniqueIds = [...new Set(instrumentIds)];
+  const prices = new Map<number, number>();
+  if (uniqueIds.length === 0) return prices;
+
+  const { data, error } = await callEtoroProxy(apiKey, userKey, { endpoint: 'rates', instrumentIds: uniqueIds });
+  if (error) {
+    console.error('[etoro-service] Kursabfrage fehlgeschlagen:', error.message);
+    return prices;
+  }
+
+  const parsed = EtoroLiveRatesResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    console.error('[etoro-service] Unerwartetes Antwort-Schema bei Kursabfrage.', {
+      issues: parsed.error.issues,
+      received: data,
+    });
+    return prices;
+  }
+
+  for (const rate of parsed.data.rates) {
+    const price = etoroCurrentPrice(rate);
+    if (price !== undefined) prices.set(rate.instrumentID, price);
+  }
+
+  return prices;
+}
+
 // -----------------------------------------------------------------------------
 // Mapping & Merge
 // -----------------------------------------------------------------------------
@@ -172,6 +225,9 @@ function etoroMetadata(etoroPosition: EtoroPosition): Record<string, unknown> {
     open_date: etoroPosition.openDateTime,
     stop_loss_rate: etoroPosition.stopLossRate,
     take_profit_rate: etoroPosition.takeProfitRate,
+    // Tatsächlich eingesetztes Kapital (nicht Menge × Kurs — das wäre bei
+    // Hebel die Exposure). Speist getPortfolioSummary/positionCostBasis.
+    invested_amount: etoroPosition.amount,
   };
 }
 
@@ -179,6 +235,7 @@ function etoroPositionToPortfolioPosition(
   etoroPosition: EtoroPosition,
   portfolioId: string,
   meta: EtoroInstrumentMeta | undefined,
+  currentPrice: number | undefined,
 ): Partial<PortfolioPosition> {
   // Ohne aufgelöste Metadaten (Instrument-Lookup fehlgeschlagen) lieber ein
   // erkennbares Platzhalter-Symbol als einen Absturz auf undefined.toUpperCase().
@@ -193,6 +250,8 @@ function etoroPositionToPortfolioPosition(
     entry_price: etoroPosition.openRate,
     currency: 'USD', // eToro führt Konten in USD
     exchange: 'ETORO',
+    last_price: currentPrice,
+    last_price_at: currentPrice !== undefined ? new Date().toISOString() : undefined,
     metadata: etoroMetadata(etoroPosition),
   };
 }
@@ -216,6 +275,7 @@ export function mergeEtoroPositions(
   existing: PortfolioPosition[],
   incoming: EtoroPosition[],
   instrumentMeta: Map<number, EtoroInstrumentMeta>,
+  rates: Map<number, number>,
 ): EtoroMergePlan {
   const existingByEtoroId = new Map<string, PortfolioPosition>();
   for (const position of existing) {
@@ -236,6 +296,12 @@ export function mergeEtoroPositions(
       toCreate.push(position);
     } else {
       const meta = instrumentMeta.get(position.instrumentID);
+      // Live-Kurs von eToro, falls verfügbar — sonst wird ein evtl.
+      // vergifteter last_price verworfen (Yahoo hatte eToro-Positionen über
+      // Symbol-Kollisionen falsche Kurse zugewiesen, z.B. DASH→DoorDash).
+      // Ohne echten Kurs ist der Einstiegspreis ehrlicher als ein fremder
+      // Ticker oder ein veralteter Wert.
+      const price = rates.get(position.instrumentID);
       toUpdate.push({
         id: match.id,
         updates: {
@@ -245,12 +311,8 @@ export function mergeEtoroPositions(
           // hat Platzhalter (ETORO-<id>) hinterlassen.
           symbol: meta?.symbol || match.symbol,
           name: meta?.name || meta?.symbol || match.name,
-          // Gespeicherte Kurse verwerfen: Yahoo hatte eToro-Positionen über
-          // Symbol-Kollisionen falsche Kurse zugewiesen (DASH→DoorDash).
-          // Bis ein echter eToro-Kurs vorliegt, ist der Einstiegspreis
-          // ehrlicher als ein fremder Ticker.
-          last_price: undefined,
-          last_price_at: undefined,
+          last_price: price,
+          last_price_at: price !== undefined ? new Date().toISOString() : undefined,
           metadata: { ...match.metadata, ...etoroMetadata(position) },
         },
       });
@@ -292,11 +354,9 @@ export async function connectEtoroAccount(
     throw new Error(t('etoroService.connectionFailed'));
   }
 
-  const instrumentMeta = await fetchEtoroInstrumentMeta(
-    apiKey,
-    userKey,
-    etoroPositions.map((p) => p.instrumentID),
-  );
+  const instrumentIds = etoroPositions.map((p) => p.instrumentID);
+  const instrumentMeta = await fetchEtoroInstrumentMeta(apiKey, userKey, instrumentIds);
+  const rates = await fetchEtoroRates(apiKey, userKey, instrumentIds);
 
   const portfolio = await createPortfolio({
     name: `eToro - ${username}`,
@@ -314,7 +374,12 @@ export async function connectEtoroAccount(
   for (const etoroPosition of etoroPositions) {
     try {
       await createPosition(
-        etoroPositionToPortfolioPosition(etoroPosition, portfolio.id, instrumentMeta.get(etoroPosition.instrumentID)),
+        etoroPositionToPortfolioPosition(
+          etoroPosition,
+          portfolio.id,
+          instrumentMeta.get(etoroPosition.instrumentID),
+          rates.get(etoroPosition.instrumentID),
+        ),
       );
     } catch (error) {
       console.error(
@@ -353,14 +418,21 @@ export async function syncEtoroPortfolio(portfolioId: string): Promise<EtoroSync
   }
 
   const incoming = await fetchEtoroPortfolio(apiKey, userKey);
-  const instrumentMeta = await fetchEtoroInstrumentMeta(apiKey, userKey, incoming.map((p) => p.instrumentID));
+  const instrumentIds = incoming.map((p) => p.instrumentID);
+  const instrumentMeta = await fetchEtoroInstrumentMeta(apiKey, userKey, instrumentIds);
+  const rates = await fetchEtoroRates(apiKey, userKey, instrumentIds);
   const existing = await getPositions(portfolioId);
 
-  const { toCreate, toUpdate, toDeleteIds } = mergeEtoroPositions(existing, incoming, instrumentMeta);
+  const { toCreate, toUpdate, toDeleteIds } = mergeEtoroPositions(existing, incoming, instrumentMeta, rates);
 
   for (const etoroPosition of toCreate) {
     await createPosition(
-      etoroPositionToPortfolioPosition(etoroPosition, portfolioId, instrumentMeta.get(etoroPosition.instrumentID)),
+      etoroPositionToPortfolioPosition(
+        etoroPosition,
+        portfolioId,
+        instrumentMeta.get(etoroPosition.instrumentID),
+        rates.get(etoroPosition.instrumentID),
+      ),
     );
   }
   for (const update of toUpdate) {

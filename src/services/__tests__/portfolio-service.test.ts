@@ -6,6 +6,7 @@ import {
   updatePosition,
   deletePosition,
   updatePositionPrice,
+  getPortfolioSummary,
 } from "../portfolio-service";
 
 async function seedPortfolio() {
@@ -51,5 +52,44 @@ describe("portfolio-service: manuelle Positionen (#107)", () => {
 
   it("[Edge] sollte Position ohne existierendes Portfolio ablehnen", async () => {
     await expect(createPosition({ portfolio_id: "does-not-exist", symbol: "X" })).rejects.toThrow();
+  });
+});
+
+describe("getPortfolioSummary — Investiert bei Hebel-Positionen", () => {
+  it("sollte ohne invested_amount weiterhin Menge × Einstiegskurs verwenden", async () => {
+    const p = await seedPortfolio();
+    await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 10, entry_price: 150 });
+    const summary = await getPortfolioSummary(p.id);
+    expect(summary.total_cost).toBe(1500);
+  });
+
+  it("[REGRESSION] sollte bei Hebel-Positionen invested_amount statt Exposure verwenden", async () => {
+    // eToro liefert bei Hebel z.B. units=0.049485, openRate=2020.78 (Exposure
+    // ~100$ bei Hebel 1, aber bei Hebel 5 wäre Menge×Kurs 5x zu hoch). amount
+    // trägt das tatsächlich investierte Kapital — das muss "Investiert" zeigen.
+    const p = await seedPortfolio();
+    await createPosition({
+      portfolio_id: p.id,
+      symbol: "BTC",
+      quantity: 0.049485,
+      entry_price: 2020.7784,
+      metadata: { invested_amount: 100 },
+    });
+    const summary = await getPortfolioSummary(p.id);
+    expect(summary.total_cost).toBe(100);
+  });
+
+  it("sollte invested_amount und Exposure-basierte Positionen im selben Portfolio korrekt mischen", async () => {
+    const p = await seedPortfolio();
+    await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 10, entry_price: 150 }); // 1500
+    await createPosition({
+      portfolio_id: p.id,
+      symbol: "BTC",
+      quantity: 0.049485,
+      entry_price: 2020.7784,
+      metadata: { invested_amount: 100 },
+    }); // 100
+    const summary = await getPortfolioSummary(p.id);
+    expect(summary.total_cost).toBe(1600);
   });
 });
