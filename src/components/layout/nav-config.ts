@@ -16,8 +16,6 @@ import {
   Activity,
   Gauge,
 } from "lucide-react";
-import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
-
 import type { Tier, FeatureKey } from "@/lib/tier";
 
 export type NavItem = {
@@ -28,8 +26,6 @@ export type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   /** Mindest-Tier für dieses Ziel (Issue #27). Ohne Angabe: anonym nutzbar. */
   requiredTier?: Tier;
-  /** Nur sichtbar, wenn dieses lokale Feature-Flag aktiv ist (z. B. Trading-Beta). */
-  betaFlag?: FeatureFlag;
   /** Kurzer Teaser-Untertitel (nur im Nav-Sheet/Sidebar, nicht Bottom-Nav). */
   subtitle?: string;
   /** i18n-Key für den Untertitel; `subtitle` dient als Fallback (DE). */
@@ -99,9 +95,7 @@ export const NAV_GROUPS: NavGroup[] = [
         labelKey: "nav.items.trading",
         path: "/trading",
         icon: LineChart,
-        requiredTier: "premium",
-        betaFlag: "trading_beta",
-        subtitle: "Depot im Blick (Beta)",
+        subtitle: "Depot im Blick",
         subtitleKey: "nav.subtitles.trading",
       },
     ],
@@ -136,19 +130,16 @@ export const NAV_GROUPS: NavGroup[] = [
 export const ROUTE_GUARDS: Record<string, FeatureKey> = {
   "/premium": "premiumAnalytics",
   "/simulation": "simulation",
-  "/trading": "trading",
   "/contracts": "bankSync",
 };
 
 /**
- * Liefert die Nav-Gruppen, gefiltert nach aktiven lokalen Feature-Flags.
- * Gruppen ohne sichtbare Einträge fallen weg.
+ * Liefert die sichtbaren Nav-Gruppen. Früher wurden hier Beta-Ziele per
+ * lokalem Feature-Flag gefiltert; seit Trading regulär sichtbar ist, gibt es
+ * keine Flags mehr — die Funktion bleibt als zentrale Nav-Quelle bestehen.
  */
 export function getVisibleNavGroups(): NavGroup[] {
-  return NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !item.betaFlag || isFeatureEnabled(item.betaFlag)),
-  })).filter((group) => group.items.length > 0);
+  return NAV_GROUPS;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, FlaskConical, Trash2, HardDrive, Palette, Languages, Home } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, Trash2, HardDrive, Palette, Languages, Home } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
 import type { HierarchicalCategory, Transaction, Category } from '../../types';
@@ -25,7 +25,6 @@ import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
-import { BetaFeaturesSettings } from './BetaFeaturesSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
@@ -340,15 +339,6 @@ export function EnhancedSettings() {
             description={t('settings.mcpDescription', 'Aggregierte Finanzdaten optional in die Cloud freigeben, um sie per Sprache/Chat aus Claude oder ChatGPT abzufragen. Widerspricht bewusst dem Local-only-Prinzip.')}
           />
           <CloudMcpSyncCard />
-        </section>
-
-        <section className="mb-10">
-          <SectionHeader
-            icon={<FlaskConical className="h-5 w-5" />}
-            title={t('settings.betaFeaturesTitle', 'Beta-Funktionen')}
-            description={t('settings.betaFeaturesDescription', 'Experimentelle Bereiche, die noch nicht zum Kern gehören. Standardmäßig aus.')}
-          />
-          <BetaFeaturesSettings />
         </section>
 
         <section className="mb-10">

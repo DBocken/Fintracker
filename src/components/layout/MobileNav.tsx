@@ -7,15 +7,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useI18n } from "@/i18n/useI18n";
 
 /** Event, mit dem z. B. der „Mehr"-Tab der Bottom-Nav dieses Sheet öffnet (Issue #42). */
 export const OPEN_NAV_SHEET_EVENT = "open-nav-sheet";
 
 export default function MobileNav() {
-  // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
-  useFeatureFlag("trading_beta");
   const { t } = useI18n();
   const navGroups = getVisibleNavGroups();
   const [open, setOpen] = useState(false);

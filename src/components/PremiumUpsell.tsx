@@ -3,7 +3,6 @@
 import {
   BarChart3,
   TrendingUp,
-  LineChart as LineChartIcon,
   CreditCard,
   SplitSquareHorizontal,
 } from "lucide-react";
@@ -41,20 +40,6 @@ function PreviewMock({ feature }: { feature: FeatureKey }) {
               <div key={i} className="flex-1 rounded-t bg-brand/40" style={{ height: `${h}%` }} />
             ))}
           </div>
-        </div>
-      );
-    case "trading":
-      return (
-        <div className="space-y-3">
-          <LineChartIcon className="h-5 w-5 text-brand" />
-          <svg viewBox="0 0 100 50" className="h-24 w-full">
-            <polyline
-              points="0,40 15,30 30,35 45,20 60,25 75,10 100,15"
-              fill="none"
-              stroke="hsl(var(--brand))"
-              strokeWidth="2"
-            />
-          </svg>
         </div>
       );
     case "splitTransactions":

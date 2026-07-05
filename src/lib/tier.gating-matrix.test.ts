@@ -20,7 +20,6 @@ const EXPECTED: Record<FeatureKey, Record<Tier, boolean>> = {
   advancedForecast: { anonymous: false, free: false, premium: true },
   premiumAnalytics: { anonymous: false, free: false, premium: true },
   simulation: { anonymous: false, free: false, premium: true },
-  trading: { anonymous: false, free: false, premium: true },
   splitTransactions: { anonymous: false, free: false, premium: true },
   familyMode: { anonymous: false, free: false, premium: true },
   receiptLineItems: { anonymous: false, free: false, premium: true },

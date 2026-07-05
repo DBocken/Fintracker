@@ -42,11 +42,12 @@ describe("hasFeatureAccess", () => {
     }
   });
 
-  it("includes premiumAnalytics, simulation, trading and splitTransactions as premium-gated features", () => {
+  it("includes premiumAnalytics, simulation and splitTransactions as premium-gated features", () => {
+    // Trading ist bewusst NICHT mehr premium-gegatet (Nutzer-Entscheid Juli 2026).
     expect(FEATURES.premiumAnalytics).toBe("premium");
     expect(FEATURES.simulation).toBe("premium");
-    expect(FEATURES.trading).toBe("premium");
     expect(FEATURES.splitTransactions).toBe("premium");
+    expect("trading" in FEATURES).toBe(false);
   });
 });
 
