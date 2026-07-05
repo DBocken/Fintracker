@@ -3,6 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import type { PortfolioPosition } from '@/types';
 import { createPosition, updatePosition } from '@/services/portfolio-service';
+import { fetchQuote, normalizeSymbol } from '@/services/quote-service';
+import { getPreferredMarketProvider } from '@/services/user-settings-service';
+import { formatCurrency } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
+import { Loader2, Search } from 'lucide-react';
 
 interface AddPositionDialogProps {
   open: boolean;
@@ -45,6 +49,13 @@ export default function AddPositionDialog({
   const [currency, setCurrency] = useState('EUR');
   const [exchange, setExchange] = useState('');
   const [buyDate, setBuyDate] = useState('');
+  const [quoteCheck, setQuoteCheck] = useState<
+    | { status: 'idle' }
+    | { status: 'checking' }
+    | { status: 'found'; price: number; currency?: string }
+    | { status: 'not-found' }
+    | { status: 'error'; message: string }
+  >({ status: 'idle' });
 
   const isEditing = !!editPosition;
 
@@ -68,7 +79,26 @@ export default function AddPositionDialog({
       setExchange('');
       setBuyDate('');
     }
+    setQuoteCheck({ status: 'idle' });
   }, [editPosition, open]);
+
+  const handleTestQuote = async () => {
+    const trimmedSymbol = symbol.trim();
+    if (!trimmedSymbol) return;
+
+    setQuoteCheck({ status: 'checking' });
+    try {
+      const provider = await getPreferredMarketProvider();
+      const quote = await fetchQuote(normalizeSymbol(trimmedSymbol, exchange), provider);
+      if (quote) {
+        setQuoteCheck({ status: 'found', price: quote.price, currency: quote.currency });
+      } else {
+        setQuoteCheck({ status: 'not-found' });
+      }
+    } catch (error) {
+      setQuoteCheck({ status: 'error', message: (error as Error).message });
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (position: Partial<PortfolioPosition>) => {
@@ -192,7 +222,10 @@ export default function AddPositionDialog({
                 id="symbol"
                 placeholder={t('trading.addPositionDialog.symbolPlaceholder')}
                 value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setSymbol(e.target.value.toUpperCase());
+                  setQuoteCheck({ status: 'idle' });
+                }}
                 className="col-span-3"
                 disabled={createMutation.isPending || updateMutation.isPending}
               />
@@ -276,10 +309,49 @@ export default function AddPositionDialog({
                 id="exchange"
                 placeholder={t('trading.addPositionDialog.exchangePlaceholder')}
                 value={exchange}
-                onChange={(e) => setExchange(e.target.value)}
+                onChange={(e) => {
+                  setExchange(e.target.value);
+                  setQuoteCheck({ status: 'idle' });
+                }}
                 className="col-span-3"
                 disabled={createMutation.isPending || updateMutation.isPending}
               />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div />
+              <div className="col-span-3 space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestQuote}
+                  disabled={!symbol.trim() || quoteCheck.status === 'checking'}
+                >
+                  {quoteCheck.status === 'checking' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4 mr-2" />
+                  )}
+                  {t('trading.addPositionDialog.testQuoteButton')}
+                </Button>
+                {quoteCheck.status === 'found' && (
+                  <p className="text-sm text-positive dark:text-positive">
+                    {t('trading.addPositionDialog.messages.quoteFound')
+                      .replace('{price}', formatCurrency(quoteCheck.price, quoteCheck.currency || currency))}
+                  </p>
+                )}
+                {quoteCheck.status === 'not-found' && (
+                  <p className="text-sm text-warning dark:text-warning">
+                    {t('trading.addPositionDialog.messages.quoteNotFound')}
+                  </p>
+                )}
+                {quoteCheck.status === 'error' && (
+                  <p className="text-sm text-warning dark:text-warning">
+                    {t('trading.addPositionDialog.messages.quoteCheckError').replace('{error}', quoteCheck.message)}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

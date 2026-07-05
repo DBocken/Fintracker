@@ -86,7 +86,7 @@ serve(async (req) => {
     return new Response("Invalid token", { status: 401, headers });
   }
 
-  let body: { endpoint?: string; apiKey?: string; userKey?: string } | null = null;
+  let body: { endpoint?: string; apiKey?: string; userKey?: string; instrumentIds?: unknown } | null = null;
   try {
     body = await req.json();
   } catch {
@@ -99,6 +99,44 @@ serve(async (req) => {
 
   if (!apiKey || !userKey) {
     return jsonResponse(headers, 400, { error: "missing_credentials" });
+  }
+
+  // Instrument-Metadaten (Symbol/Name) sind ein eigener, dynamisch parametrisierter
+  // Endpoint — die Portfolio-Antwort selbst liefert nur instrumentID.
+  if (endpoint === "instruments") {
+    const ids = Array.isArray(body?.instrumentIds)
+      ? body.instrumentIds.filter((id): id is number => typeof id === "number" && Number.isFinite(id)).slice(0, 200)
+      : [];
+    if (ids.length === 0) {
+      return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
+    }
+
+    const url = `${ETORO_BASE}/market-data/instruments?instrumentIds=${ids.join(",")}&fields=instrumentId,internalSymbolFull,displayname`;
+    try {
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+          "x-user-key": userKey,
+          "x-request-id": crypto.randomUUID(),
+          "Accept": "application/json",
+        },
+      });
+      if (!resp.ok) {
+        const text = (await resp.text().catch(() => "")).slice(0, 300);
+        console.error(`[etoro-proxy] eToro instruments -> ${resp.status}`);
+        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
+          error: "etoro_request_failed",
+          upstream_status: resp.status,
+          details: text,
+        });
+      }
+      const data = await resp.json();
+      return jsonResponse(headers, 200, data);
+    } catch (e) {
+      console.error("[etoro-proxy] Fetch failed for instruments", String(e));
+      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+    }
   }
 
   const paths = ENDPOINT_PATHS[endpoint];

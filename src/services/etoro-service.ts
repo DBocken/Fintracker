@@ -12,28 +12,28 @@ import { localEncryption } from './local-crypto';
 import { t } from '../i18n/serviceT';
 
 // -----------------------------------------------------------------------------
-// eToro API Types
+// eToro API Types (echtes Schema — camelCase, siehe api-portal.etoro.com
+// "Retrieve comprehensive portfolio information..."). Die Portfolio-Antwort
+// enthält NUR instrumentID, kein Symbol/Name — das muss separat über
+// /market-data/instruments aufgelöst werden (fetchEtoroInstrumentMeta).
 // -----------------------------------------------------------------------------
 
 export interface EtoroPosition {
-  PositionID: string | number;
-  InstrumentID: string | number;
-  InstrumentSymbol: string;
-  InstrumentDisplayName: string;
-  IsBuy: boolean;
-  Amount: number;
-  Leverage: number;
-  OpenRate: number;
-  StopLossRate?: number;
-  TakeProfitRate?: number;
-  Units: number;
-  Closed?: boolean;
-  CloseRate?: number;
-  CloseDate?: string;
-  OpenDate: string;
-  IsTournament: boolean;
-  CopyTradingParentID?: string;
-  Profit?: number;
+  positionID: string | number;
+  instrumentID: number;
+  isBuy: boolean;
+  units: number;
+  openRate: number;
+  leverage?: number;
+  amount?: number;
+  openDateTime?: string;
+  takeProfitRate?: number;
+  stopLossRate?: number;
+}
+
+export interface EtoroInstrumentMeta {
+  symbol: string;
+  name?: string;
 }
 
 export interface EtoroSyncResult {
@@ -53,20 +53,29 @@ export interface EtoroSyncResult {
 async function callEtoroProxy(
   apiKey: string,
   userKey: string,
-  endpoint: 'portfolio' | 'demo-portfolio' = 'portfolio',
-): Promise<Record<string, unknown>> {
+  extra: Record<string, unknown>,
+): Promise<{ data: unknown; error: { message?: string } | null }> {
   const { data, error } = await supabase.functions.invoke('etoro-proxy', {
-    body: { endpoint, apiKey, userKey },
+    body: { apiKey, userKey, ...extra },
   });
+  return { data, error };
+}
+
+async function callEtoroProxyOrThrow(
+  apiKey: string,
+  userKey: string,
+  extra: Record<string, unknown>,
+): Promise<unknown> {
+  const { data, error } = await callEtoroProxy(apiKey, userKey, extra);
 
   if (error) {
     throw new Error(t('etoroService.proxyError').replace('{error}', error.message || String(error)));
   }
-  if (data && typeof data === 'object' && 'error' in data && data.error) {
-    throw new Error(t('etoroService.proxyError').replace('{error}', String(data.error)));
+  if (data && typeof data === 'object' && 'error' in (data as Record<string, unknown>) && (data as Record<string, unknown>).error) {
+    throw new Error(t('etoroService.proxyError').replace('{error}', String((data as Record<string, unknown>).error)));
   }
 
-  return (data || {}) as Record<string, unknown>;
+  return data ?? {};
 }
 
 /**
@@ -74,7 +83,7 @@ async function callEtoroProxy(
  */
 export async function testEtoroConnection(apiKey: string, userKey: string): Promise<boolean> {
   try {
-    await callEtoroProxy(apiKey, userKey);
+    await callEtoroProxyOrThrow(apiKey, userKey, { endpoint: 'portfolio' });
     return true;
   } catch (error) {
     console.error('[etoro-service] Connection test failed:', error);
@@ -89,14 +98,54 @@ export async function fetchEtoroPortfolio(
   apiKey: string,
   userKey: string,
 ): Promise<EtoroPosition[]> {
-  const data = await callEtoroProxy(apiKey, userKey);
+  const data = await callEtoroProxyOrThrow(apiKey, userKey, { endpoint: 'portfolio' });
 
-  const clientPortfolio = data.clientPortfolio as { positions?: EtoroPosition[] } | undefined;
+  const clientPortfolio = (data as { clientPortfolio?: { positions?: EtoroPosition[] } }).clientPortfolio;
   if (clientPortfolio?.positions) return clientPortfolio.positions;
   if (Array.isArray((data as { positions?: EtoroPosition[] }).positions)) {
     return (data as { positions: EtoroPosition[] }).positions;
   }
   return [];
+}
+
+/**
+ * Löst instrumentID → Symbol/Name über den Proxy auf (/market-data/instruments).
+ *
+ * Schlägt die Auflösung fehl, wird eine leere Map zurückgegeben statt zu werfen:
+ * der Sync selbst bleibt möglich, Positionen bekommen dann einen Fallback-Namen
+ * (siehe etoroPositionToPortfolioPosition) statt komplett abzubrechen.
+ */
+export async function fetchEtoroInstrumentMeta(
+  apiKey: string,
+  userKey: string,
+  instrumentIds: number[],
+): Promise<Map<number, EtoroInstrumentMeta>> {
+  const uniqueIds = [...new Set(instrumentIds)];
+  const meta = new Map<number, EtoroInstrumentMeta>();
+  if (uniqueIds.length === 0) return meta;
+
+  const { data, error } = await callEtoroProxy(apiKey, userKey, { endpoint: 'instruments', instrumentIds: uniqueIds });
+  if (error) {
+    console.error('[etoro-service] Instrument-Auflösung fehlgeschlagen:', error.message);
+    return meta;
+  }
+
+  const list: Array<Record<string, unknown>> = Array.isArray(data)
+    ? (data as Array<Record<string, unknown>>)
+    : Array.isArray((data as { instruments?: unknown[] })?.instruments)
+      ? ((data as { instruments: Array<Record<string, unknown>> }).instruments)
+      : [];
+
+  for (const entry of list) {
+    const id = entry.instrumentId ?? entry.instrumentID ?? entry.InstrumentID;
+    const symbol = entry.internalSymbolFull ?? entry.symbol ?? entry.Symbol;
+    const name = entry.displayname ?? entry.displayName ?? entry.name;
+    if (typeof id === 'number' && typeof symbol === 'string') {
+      meta.set(id, { symbol: symbol.toUpperCase(), name: typeof name === 'string' ? name : undefined });
+    }
+  }
+
+  return meta;
 }
 
 // -----------------------------------------------------------------------------
@@ -105,29 +154,32 @@ export async function fetchEtoroPortfolio(
 
 function etoroMetadata(etoroPosition: EtoroPosition): Record<string, unknown> {
   return {
-    etoro_position_id: String(etoroPosition.PositionID),
-    etoro_instrument_id: etoroPosition.InstrumentID,
-    is_buy: etoroPosition.IsBuy,
-    leverage: etoroPosition.Leverage,
-    open_date: etoroPosition.OpenDate,
-    stop_loss_rate: etoroPosition.StopLossRate,
-    take_profit_rate: etoroPosition.TakeProfitRate,
-    copy_trading_parent_id: etoroPosition.CopyTradingParentID,
-    profit: etoroPosition.Profit,
+    etoro_position_id: String(etoroPosition.positionID),
+    etoro_instrument_id: etoroPosition.instrumentID,
+    is_buy: etoroPosition.isBuy,
+    leverage: etoroPosition.leverage,
+    open_date: etoroPosition.openDateTime,
+    stop_loss_rate: etoroPosition.stopLossRate,
+    take_profit_rate: etoroPosition.takeProfitRate,
   };
 }
 
 function etoroPositionToPortfolioPosition(
   etoroPosition: EtoroPosition,
   portfolioId: string,
+  meta: EtoroInstrumentMeta | undefined,
 ): Partial<PortfolioPosition> {
+  // Ohne aufgelöste Metadaten (Instrument-Lookup fehlgeschlagen) lieber ein
+  // erkennbares Platzhalter-Symbol als einen Absturz auf undefined.toUpperCase().
+  const symbol = meta?.symbol || `ETORO-${etoroPosition.instrumentID}`;
+
   return {
     portfolio_id: portfolioId,
-    symbol: etoroPosition.InstrumentSymbol.toUpperCase(),
-    name: etoroPosition.InstrumentDisplayName || etoroPosition.InstrumentSymbol,
+    symbol,
+    name: meta?.name || symbol,
     // Short-Positionen liefern negative Units — wir führen Bestände als Stückzahl
-    quantity: Math.abs(etoroPosition.Units),
-    entry_price: etoroPosition.OpenRate,
+    quantity: Math.abs(etoroPosition.units),
+    entry_price: etoroPosition.openRate,
     currency: 'USD', // eToro führt Konten in USD
     exchange: 'ETORO',
     metadata: etoroMetadata(etoroPosition),
@@ -145,14 +197,15 @@ export interface EtoroMergePlan {
  *
  * Abgleich ausschließlich über metadata.etoro_position_id: manuell erfasste
  * Positionen (ohne diese ID) werden nie angefasst — der Sync darf nur Daten
- * verwalten, die er selbst importiert hat.
+ * verwalten, die er selbst importiert hat. Die Portfolio-Antwort von eToro
+ * enthält ausschließlich aktuell offene Positionen — alles, was lokal als
+ * eToro-Position markiert ist, aber hier fehlt, wurde geschlossen.
  */
 export function mergeEtoroPositions(
   existing: PortfolioPosition[],
   incoming: EtoroPosition[],
+  instrumentMeta: Map<number, EtoroInstrumentMeta>,
 ): EtoroMergePlan {
-  const open = incoming.filter((position) => !position.Closed);
-
   const existingByEtoroId = new Map<string, PortfolioPosition>();
   for (const position of existing) {
     const etoroId = position.metadata?.etoro_position_id;
@@ -163,20 +216,21 @@ export function mergeEtoroPositions(
   const toCreate: EtoroPosition[] = [];
   const toUpdate: EtoroMergePlan['toUpdate'] = [];
 
-  for (const position of open) {
-    const etoroId = String(position.PositionID);
+  for (const position of incoming) {
+    const etoroId = String(position.positionID);
     seen.add(etoroId);
 
     const match = existingByEtoroId.get(etoroId);
     if (!match) {
       toCreate.push(position);
     } else {
+      const meta = instrumentMeta.get(position.instrumentID);
       toUpdate.push({
         id: match.id,
         updates: {
-          quantity: Math.abs(position.Units),
-          entry_price: position.OpenRate,
-          name: position.InstrumentDisplayName || match.name,
+          quantity: Math.abs(position.units),
+          entry_price: position.openRate,
+          name: meta?.name || match.name,
           metadata: { ...match.metadata, ...etoroMetadata(position) },
         },
       });
@@ -218,6 +272,12 @@ export async function connectEtoroAccount(
     throw new Error(t('etoroService.connectionFailed'));
   }
 
+  const instrumentMeta = await fetchEtoroInstrumentMeta(
+    apiKey,
+    userKey,
+    etoroPositions.map((p) => p.instrumentID),
+  );
+
   const portfolio = await createPortfolio({
     name: `eToro - ${username}`,
     type: 'etoro',
@@ -231,12 +291,14 @@ export async function connectEtoroAccount(
     is_active: true,
   });
 
-  for (const etoroPosition of etoroPositions.filter((position) => !position.Closed)) {
+  for (const etoroPosition of etoroPositions) {
     try {
-      await createPosition(etoroPositionToPortfolioPosition(etoroPosition, portfolio.id));
+      await createPosition(
+        etoroPositionToPortfolioPosition(etoroPosition, portfolio.id, instrumentMeta.get(etoroPosition.instrumentID)),
+      );
     } catch (error) {
       console.error(
-        `[etoro-service] Failed to import position ${etoroPosition.InstrumentSymbol}:`,
+        `[etoro-service] Failed to import position ${etoroPosition.instrumentID}:`,
         error,
       );
       // Continue with other positions even if one fails
@@ -271,12 +333,15 @@ export async function syncEtoroPortfolio(portfolioId: string): Promise<EtoroSync
   }
 
   const incoming = await fetchEtoroPortfolio(apiKey, userKey);
+  const instrumentMeta = await fetchEtoroInstrumentMeta(apiKey, userKey, incoming.map((p) => p.instrumentID));
   const existing = await getPositions(portfolioId);
 
-  const { toCreate, toUpdate, toDeleteIds } = mergeEtoroPositions(existing, incoming);
+  const { toCreate, toUpdate, toDeleteIds } = mergeEtoroPositions(existing, incoming, instrumentMeta);
 
   for (const etoroPosition of toCreate) {
-    await createPosition(etoroPositionToPortfolioPosition(etoroPosition, portfolioId));
+    await createPosition(
+      etoroPositionToPortfolioPosition(etoroPosition, portfolioId, instrumentMeta.get(etoroPosition.instrumentID)),
+    );
   }
   for (const update of toUpdate) {
     await updatePosition(update.id, update.updates);
