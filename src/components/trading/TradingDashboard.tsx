@@ -10,7 +10,7 @@ import {
   batchUpdatePrices,
   deletePosition,
 } from '@/services/portfolio-service';
-import { fetchQuotesCached } from '@/services/quote-service';
+import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates } from '@/services/quote-service';
 import { syncEtoroPortfolio } from '@/services/etoro-service';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,52 +116,36 @@ export default function TradingDashboard() {
     mutationFn: async () => {
       if (!positions || positions.length === 0) return;
 
-      const symbols = positions.map(p => p.symbol);
-      console.log('[TradingDashboard] Fetching quotes for symbols:', symbols);
-      
+      // Börsennormalisierte Symbole anfragen (XETRA → .DE usw.) — nur so
+      // liefern Yahoo/Stooq für europäische Papiere überhaupt Kurse.
+      const symbols = positions.map(p => normalizeSymbol(p.symbol, p.exchange));
       const quotes = await fetchQuotesCached(symbols, quoteProvider);
-      
-      console.log('[TradingDashboard] Received quotes:', quotes.length);
-      console.log('[TradingDashboard] Quotes:', quotes);
-      
+
       // Check if mock data was used
       const usingMockData = quotes.some(q => q.name?.includes('Mock'));
-      
-      const updates = quotes
-        .map(quote => {
-          const position = positions.find(p => p.symbol === quote.symbol);
-          if (position) {
-            console.log(`[TradingDashboard] Match: ${quote.symbol} -> position ${position.id}`);
-            return {
-              id: position.id,
-              price: quote.price,
-            };
-          }
-          console.log(`[TradingDashboard] No match for symbol: ${quote.symbol}`);
-          return null;
-        })
-        .filter((u): u is { id: string; price: number } => u !== null);
 
-      console.log('[TradingDashboard] Updates to apply:', updates.length);
+      const updates = mapQuotesToPriceUpdates(positions, quotes);
       await batchUpdatePrices(updates);
-      
-      return { quotes, usingMockData };
+
+      return { quotes, updates, usingMockData };
     },
     onSuccess: (result) => {
       if (!result) return;
-      
-      const { quotes, usingMockData } = result;
-      
+
+      const { updates, usingMockData } = result;
+
       queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
       setLastUpdate(new Date());
-      
+
       if (usingMockData) {
-        toast(t('trading.dashboard.messages.pricesUpdatedMock').replace('{count}', String(quotes.length)), {
+        toast(t('trading.dashboard.messages.pricesUpdatedMock').replace('{count}', String(updates.length)), {
           duration: 5000,
         });
+      } else if (updates.length === 0) {
+        toast(t('trading.dashboard.messages.noQuotesFound'), { duration: 5000 });
       } else {
-        toast.success(t('trading.dashboard.messages.pricesUpdated').replace('{count}', String(quotes.length)));
+        toast.success(t('trading.dashboard.messages.pricesUpdated').replace('{count}', String(updates.length)));
       }
     },
     onError: (error: Error) => {

@@ -66,54 +66,61 @@ function normalizeSymbols(input: unknown): string[] {
     .slice(0, 100);
 }
 
-async function fetchYahooQuotes(symbols: string[]): Promise<QuoteData[]> {
-  if (symbols.length === 0) return [];
+// Die alte v7/finance/quote-API verlangt seit 2023 Cookie+Crumb und antwortet
+// server-seitig mit 401 — daher pro Symbol die weiterhin offene v8-Chart-API.
+async function fetchYahooChartQuote(symbol: string): Promise<QuoteData | null> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
 
-  const url = new URL("https://query1.finance.yahoo.com/v7/finance/quote");
-  url.searchParams.set("symbols", symbols.join(","));
-  url.searchParams.set("lang", "en-US");
-  url.searchParams.set("region", "US");
-
-  log("Fetching Yahoo quotes", { symbolsCount: symbols.length });
-
-  const resp = await fetch(url.toString(), {
+  const resp = await fetch(url, {
     headers: {
       "Accept": "application/json",
-      "User-Agent": "Mozilla/5.0 (compatible; Dyad/1.0)",
+      "User-Agent": "Mozilla/5.0 (compatible; Fintracker/1.0)",
     },
   });
 
   if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`Yahoo error ${resp.status}: ${text.slice(0, 300)}`);
+    logError(`Yahoo chart ${symbol} -> ${resp.status}`);
+    return null;
   }
 
   const json = await resp.json();
-  const results: any[] = json?.quoteResponse?.result ?? [];
+  const meta = json?.chart?.result?.[0]?.meta;
+  const price = meta?.regularMarketPrice;
+  if (typeof price !== "number") return null;
 
-  const quotes: QuoteData[] = [];
-  for (const r of results) {
-    const price = r?.regularMarketPrice;
-    const symbol = r?.symbol;
-    if (typeof symbol !== "string" || typeof price !== "number") continue;
+  const prevClose = typeof meta?.chartPreviousClose === "number"
+    ? meta.chartPreviousClose
+    : typeof meta?.previousClose === "number"
+      ? meta.previousClose
+      : undefined;
 
-    const prevClose = r?.regularMarketPreviousClose;
-    const change = typeof r?.regularMarketChange === "number" ? r.regularMarketChange : undefined;
-    const changePercent = typeof r?.regularMarketChangePercent === "number" ? r.regularMarketChangePercent : undefined;
+  return {
+    symbol: symbol.toUpperCase(),
+    name: typeof meta?.longName === "string" ? meta.longName : typeof meta?.shortName === "string" ? meta.shortName : undefined,
+    price,
+    change: prevClose !== undefined ? price - prevClose : undefined,
+    change_percent: prevClose ? ((price - prevClose) / prevClose) * 100 : undefined,
+    currency: typeof meta?.currency === "string" ? meta.currency : undefined,
+    exchange: typeof meta?.fullExchangeName === "string" ? meta.fullExchangeName : typeof meta?.exchangeName === "string" ? meta.exchangeName : undefined,
+    timestamp: typeof meta?.regularMarketTime === "number" ? meta.regularMarketTime * 1000 : undefined,
+    provider: "yahoo",
+  };
+}
 
-    quotes.push({
-      symbol: symbol.toUpperCase(),
-      name: typeof r?.longName === "string" ? r.longName : typeof r?.shortName === "string" ? r.shortName : undefined,
-      price,
-      change: change ?? (typeof prevClose === "number" ? price - prevClose : undefined),
-      change_percent: changePercent,
-      currency: typeof r?.currency === "string" ? r.currency : undefined,
-      exchange: typeof r?.fullExchangeName === "string" ? r.fullExchangeName : typeof r?.exchange === "string" ? r.exchange : undefined,
-      timestamp: typeof r?.regularMarketTime === "number" ? r.regularMarketTime * 1000 : undefined,
-      provider: "yahoo",
-    });
+async function fetchYahooQuotes(symbols: string[]): Promise<QuoteData[]> {
+  if (symbols.length === 0) return [];
+
+  log("Fetching Yahoo quotes", { symbolsCount: symbols.length });
+
+  const results = await Promise.all(symbols.map((symbol) => fetchYahooChartQuote(symbol).catch((e) => {
+    logError(`Yahoo chart ${symbol} failed`, { error: String(e) });
+    return null;
+  })));
+
+  const quotes = results.filter((q): q is QuoteData => q !== null);
+  if (quotes.length === 0) {
+    throw new Error("Yahoo returned no quotes");
   }
-
   return quotes;
 }
 
