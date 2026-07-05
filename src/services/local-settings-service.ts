@@ -53,13 +53,18 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Ohne dieses Feld zeigt das Sunburst nur "essenziell"/"unkategorisiert".
     // Wir füllen fehlende Werte aus den Default-Kategorien (per ID) nach.
     const { categories: backfilled, changed: backfillChanged } = backfillAusgabenklasse(migrated);
+
+    // Migriere die einzelne "Einkommen"-Hauptkategorie auf mehrere
+    // Einkommens-Hauptkategorien (Anstellung, Verkäufe, Kapitalerträge, …).
+    const { categories: incomeMigrated, changed: incomeChanged } = migrateIncomeTaxonomy(backfilled);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged) {
-      await writeLocalCategories(backfilled);
+    if (parentIdMigrated || backfillChanged || incomeChanged) {
+      await writeLocalCategories(incomeMigrated);
     }
-    return backfilled;
+    return incomeMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -134,6 +139,124 @@ export function backfillAusgabenklasse(categories: Category[]): { categories: Ca
     };
   });
 
+  return { categories: result, changed };
+}
+
+/**
+ * Migriert die frühere einzelne "Einkommen"-Hauptkategorie (mit den 4
+ * Unterkategorien Gehalt, Rente & Soziales, Erstattungen, Zinserträge) auf die
+ * neue Mehr-Kategorien-Einkommensstruktur (Anstellung, Nebenerwerb & Selbstständigkeit,
+ * Online & Creator, Verkäufe, Kapitalerträge, Staat & Soziales, Erstattungen,
+ * Sonstige Einnahmen).
+ *
+ * Alle betroffenen IDs bleiben stabil (local-cat-einkommen/-gehalt/-erstattungen/
+ * -zinsertraege/-rentesoziales) — Transaktionen referenzieren Kategorie-IDs direkt,
+ * daher ist KEINE Transaktions-Migration nötig. Nutzereigene Unterkategorien unter
+ * `local-cat-einkommen` werden bewusst nicht verschoben (landen unter "Sonstige
+ * Einnahmen"). Vom Nutzer überschriebene Kategorien (`is_default === false`)
+ * behalten Name/Filter, nur das strukturelle Reparenting wird nachgezogen.
+ *
+ * Reine Funktion (testbar): `changed` ist NUR dann true, wenn tatsächlich etwas
+ * geändert wurde — sonst würde die verschlüsselte Liste bei jedem Lesen neu
+ * geschrieben (F-CAT).
+ */
+// Keywords, die von Gehalt/Rente & Soziales in eigene neue (Unter-)Kategorien
+// umgezogen sind. Wir ENTFERNEN nur diese spezifischen, umgezogenen Einträge —
+// wir ersetzen NICHT die gesamte `filters`-Liste. Sonst würden später additiv
+// ergänzte Keywords (z. B. per Kategorien-Template oder Nutzeraktion) bei jedem
+// erneuten Lesen wieder verworfen, weil sie von der reinen Default-Liste abweichen.
+const GEHALT_KEYWORDS_MOVED = ["honorar", "umsatzerlös", "umsatzerloes", "auszahlung gewinn"];
+const RENTESOZIALES_KEYWORDS_MOVED = [
+  "kindergeld", "familienkasse", "bafög", "bafoeg", "elterngeld",
+  "arbeitslosengeld", "agentur für arbeit", "agentur fuer arbeit",
+  "jobcenter leistung", "wohngeld", "krankengeld",
+];
+
+export function migrateIncomeTaxonomy(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+
+  // 1. Fehlende Einkommens-Defaults anhängen (neue Hauptkategorien + Unterkategorien).
+  const missingIncomeDefaults = DEFAULT_LOCAL_CATEGORIES.filter(
+    (c) => c.attributes?.ausgabenklasse === "einkommen" && !existingIds.has(c.id)
+  );
+  if (missingIncomeDefaults.length > 0) {
+    changed = true;
+  }
+
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  const migrated = categories.map((cat) => {
+    // 2. local-cat-einkommen: alte Bezeichnung "Einkommen" → "Sonstige Einnahmen".
+    if (cat.id === "local-cat-einkommen" && cat.name === "Einkommen") {
+      const fallback = defaultsById.get("local-cat-einkommen");
+      changed = true;
+      return {
+        ...cat,
+        name: fallback?.name ?? "Sonstige Einnahmen",
+        icon: fallback?.icon ?? cat.icon,
+        color: fallback?.color ?? cat.color,
+      };
+    }
+
+    // 3. local-cat-gehalt: reparent unter Anstellung; umgezogene Keywords entfernen.
+    if (cat.id === "local-cat-gehalt") {
+      let next = cat;
+      if (next.parent_id === "local-cat-einkommen") {
+        changed = true;
+        next = { ...next, parent_id: "local-cat-anstellung" };
+      }
+      if (next.is_default !== false) {
+        const filtered = next.filters.filter((f) => !GEHALT_KEYWORDS_MOVED.includes(f));
+        if (filtered.length !== next.filters.length) {
+          changed = true;
+          next = { ...next, filters: filtered };
+        }
+      }
+      return next;
+    }
+
+    // 4. local-cat-rentesoziales: reparent unter Staat & Soziales; umbenennen + umgezogene Keywords entfernen.
+    if (cat.id === "local-cat-rentesoziales") {
+      let next = cat;
+      if (next.parent_id === "local-cat-einkommen") {
+        changed = true;
+        next = { ...next, parent_id: "local-cat-staatsoziales" };
+      }
+      if (next.name === "Rente & Soziales") {
+        changed = true;
+        next = { ...next, name: "Rente & Pension" };
+      }
+      if (next.is_default !== false) {
+        const filtered = next.filters.filter((f) => !RENTESOZIALES_KEYWORDS_MOVED.includes(f));
+        if (filtered.length !== next.filters.length) {
+          changed = true;
+          next = { ...next, filters: filtered };
+        }
+      }
+      return next;
+    }
+
+    // 5. local-cat-erstattungen: Beförderung zur Hauptkategorie. Hauptkategorien
+    // tragen strukturell nie Filter (Invariante) — das gilt unabhängig von
+    // is_default, da eine Hauptkategorie mit Filtern die Sunburst-/Kategorisierungs-
+    // Annahmen verletzen würde.
+    if (cat.id === "local-cat-erstattungen" && cat.parent_id === "local-cat-einkommen") {
+      changed = true;
+      return { ...cat, parent_id: null, filters: [] };
+    }
+
+    // 6. local-cat-zinsertraege: reparent unter Kapitalerträge.
+    if (cat.id === "local-cat-zinsertraege" && cat.parent_id === "local-cat-einkommen") {
+      changed = true;
+      return { ...cat, parent_id: "local-cat-kapitalertraege" };
+    }
+
+    // 7. Alles andere (inkl. Nutzer-Unterkategorien unter local-cat-einkommen) unangetastet.
+    return cat;
+  });
+
+  const result = [...migrated, ...missingIncomeDefaults.map((c) => ({ ...c }))];
   return { categories: result, changed };
 }
 

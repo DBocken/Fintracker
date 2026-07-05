@@ -40,9 +40,9 @@ export interface CategoryDef {
 
 export const CATEGORY_TAXONOMY: CategoryDef[] = [
   {
-    slug: "einkommen",
-    name: "Einkommen",
-    icon: "💶",
+    slug: "anstellung",
+    name: "Anstellung",
+    icon: "💼",
     color: "#2e7d72",
     klasse: "einkommen",
     subcategories: [
@@ -51,31 +51,198 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         name: "Gehalt",
         keywords: [
           "gehalt", "lohn", "bezüge", "bezuege", "gehaltszahlung", "lohnzahlung",
-          "honorar", "umsatzerlös", "umsatzerloes", "trinkgeld", "auszahlung gewinn",
+          "entgeltabrechnung", "besoldung", "trinkgeld",
         ],
       },
       {
-        slug: "rentesoziales",
-        name: "Rente & Soziales",
+        slug: "minijob",
+        name: "Minijob",
         keywords: [
-          "rente", "deutsche rentenversicherung", "betriebsrente", "pension",
-          "kindergeld", "familienkasse", "bafög", "bafoeg", "elterngeld",
-          "arbeitslosengeld", "agentur für arbeit", "agentur fuer arbeit",
-          "jobcenter leistung", "wohngeld", "krankengeld",
+          "minijob", "aushilfe", "geringfügige beschäftigung", "geringfuegige beschaeftigung",
         ],
       },
       {
-        slug: "erstattungen",
-        name: "Erstattungen",
+        slug: "bonuspraemie",
+        name: "Bonus & Prämie",
         keywords: [
-          "erstattung", "rückerstattung", "rueckerstattung", "steuererstattung",
-          "finanzamt erstattung",
+          "bonuszahlung", "prämie", "praemie", "weihnachtsgeld", "urlaubsgeld",
+          "sonderzahlung", "tantieme", "gewinnbeteiligung",
         ],
       },
+    ],
+  },
+  {
+    slug: "nebenerwerb",
+    name: "Nebenerwerb & Selbstständigkeit",
+    icon: "🧾",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "freelance",
+        name: "Freelance & Honorare",
+        keywords: [
+          "honorar", "honorarnote", "freelance", "freelancer", "freiberuflich",
+          "werkvertrag", "upwork", "fiverr",
+        ],
+      },
+      {
+        slug: "selbststaendigkeit",
+        name: "Selbstständigkeit & Gewerbe",
+        keywords: [
+          "umsatzerlös", "umsatzerloes", "auszahlung gewinn", "gewerbeeinnahme",
+          "kundenzahlung",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "onlinecreator",
+    name: "Online & Creator",
+    icon: "🎥",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "creatorplattformen",
+        name: "Creator-Plattformen",
+        keywords: [
+          "adsense", "google adsense", "youtube auszahlung", "twitch payout",
+          "twitch auszahlung", "patreon payout", "patreon auszahlung", "steady",
+          "ko-fi",
+        ],
+      },
+      {
+        slug: "affiliatewerbung",
+        name: "Affiliate & Werbung",
+        keywords: ["affiliate", "awin", "partnerprogramm", "provision", "werbeeinnahmen"],
+      },
+    ],
+  },
+  {
+    slug: "verkaeufe",
+    name: "Verkäufe",
+    icon: "🏷️",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "onlineverkauf",
+        name: "Online-Verkäufe",
+        keywords: [
+          "ebay auszahlung", "auszahlung ebay", "ebay commerce", "kleinanzeigen verkauf",
+          "onlinepaymentplatform", "vinted auszahlung", "momox", "rebuy",
+          "paypal auszahlung",
+        ],
+      },
+      {
+        slug: "flohmarkt",
+        name: "Flohmarkt & Privatverkauf",
+        keywords: ["flohmarkt", "privatverkauf", "verkauf privat"],
+      },
+    ],
+  },
+  {
+    slug: "kapitalertraege",
+    name: "Kapitalerträge",
+    icon: "📈",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
       {
         slug: "zinsertraege",
         name: "Zinserträge",
         keywords: ["zinsen", "tagesgeldzinsen", "zinsgutschrift"],
+      },
+      {
+        slug: "dividenden",
+        name: "Dividenden",
+        keywords: [
+          "dividende", "dividendengutschrift", "ausschüttung", "ausschuettung",
+          "ertragsgutschrift", "kapitalertrag",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "staatsoziales",
+    name: "Staat & Soziales",
+    icon: "🏛️",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "rentesoziales",
+        name: "Rente & Pension",
+        keywords: [
+          "rente", "deutsche rentenversicherung", "betriebsrente", "pension",
+          "pensionskasse",
+        ],
+      },
+      {
+        slug: "familienleistungen",
+        name: "Familienleistungen",
+        keywords: [
+          "kindergeld", "familienkasse", "elterngeld", "elterngeldstelle",
+          "unterhaltsvorschuss",
+        ],
+      },
+      {
+        slug: "sozialleistungen",
+        name: "Sozialleistungen",
+        keywords: [
+          "arbeitslosengeld", "bürgergeld", "buergergeld", "agentur für arbeit",
+          "agentur fuer arbeit", "jobcenter leistung", "wohngeld", "krankengeld",
+          "bafög", "bafoeg",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "erstattungen",
+    name: "Erstattungen",
+    icon: "↩️",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "steuererstattung",
+        name: "Steuererstattung",
+        keywords: [
+          "steuererstattung", "finanzamt erstattung", "einkommensteuererstattung",
+        ],
+      },
+      {
+        slug: "versicherungserstattung",
+        name: "Versicherungserstattung",
+        keywords: [
+          "beitragsrückerstattung", "beitragsrueckerstattung", "schadenerstattung",
+          "versicherung erstattung",
+        ],
+      },
+      {
+        slug: "rueckzahlungen",
+        name: "Rückzahlungen",
+        keywords: [
+          "erstattung", "rückerstattung", "rueckerstattung", "rückzahlung",
+          "rueckzahlung",
+        ],
+      },
+    ],
+  },
+  {
+    // slug bleibt "einkommen" für stabile Legacy-ID local-cat-einkommen (frühere
+    // einzige Einkommens-Hauptkategorie, jetzt Auffangkategorie für Sonstiges).
+    slug: "einkommen",
+    name: "Sonstige Einnahmen",
+    icon: "💶",
+    color: "#2e7d72",
+    klasse: "einkommen",
+    subcategories: [
+      {
+        slug: "geschenkeeinnahmen",
+        name: "Geldgeschenke",
+        keywords: ["geldgeschenk", "schenkung", "taschengeld"],
       },
     ],
   },
@@ -652,5 +819,6 @@ export const REGEX_FALLBACK_RULES: RegexFallbackRule[] = [
   { category: "Abos & Streaming", pattern: /\babo(nnement)?\b|monatsbeitrag/i },
   { category: "Gesundheit", pattern: /apotheke|arzt(praxis)?|krankenkasse/i },
   { category: "Lebensmittel", pattern: /supermarkt|lebensmittel|getränkemarkt|getraenkemarkt/i },
-  { category: "Einkommen", pattern: /gehalt|lohn|rente\b/i },
+  { category: "Anstellung", pattern: /gehalt|lohn/i },
+  { category: "Staat & Soziales", pattern: /\brente\b|kindergeld|elterngeld|buergergeld|bürgergeld/i },
 ];

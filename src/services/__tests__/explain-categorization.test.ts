@@ -79,4 +79,55 @@ describe('explainCategorization', () => {
     expect(result.confidence).toBe(0);
     expect(result.reasons).toHaveLength(0);
   });
+
+  describe('Richtungsbewusste Einkommens-Kategorisierung', () => {
+    const verkaeufeCategory = category({
+      id: 'verkaeufe',
+      name: 'Verkäufe',
+      filters: ['momox', 'vinted auszahlung'],
+      attributes: { ausgabenklasse: 'einkommen' },
+    });
+
+    it('ordnet eine negative eBay-Buchung NICHT einer Einkommens-Kategorie zu', () => {
+      const result = explainCategorization(
+        tx({ amount: -25, payee: 'momox fashion' }),
+        [verkaeufeCategory],
+      );
+      expect(result.categoryId).not.toBe('verkaeufe');
+      expect(result.source).toBe('none');
+    });
+
+    it('ordnet eine positive Auszahlung der Verkäufe-Kategorie zu', () => {
+      const result = explainCategorization(
+        tx({ amount: 40, description: 'vinted auszahlung' }),
+        [verkaeufeCategory],
+      );
+      expect(result.categoryId).toBe('verkaeufe');
+      expect(result.source).toBe('category_filter');
+    });
+
+    it('[REGRESSION] positive Erstattung darf weiter eine Ausgaben-Kategorie treffen', () => {
+      const versicherung = category({
+        id: 'versicherung',
+        name: 'Versicherungen',
+        filters: ['versicherung'],
+        attributes: { ausgabenklasse: 'essenziell' },
+      });
+      const result = explainCategorization(
+        tx({ amount: 15, description: 'Beitragsrückerstattung Versicherung' }),
+        [versicherung],
+      );
+      expect(result.categoryId).toBe('versicherung');
+    });
+
+    it('Merchant-Regeln (Stufe 1) bleiben richtungs-unabhängig', () => {
+      const result = explainCategorization(
+        tx({ amount: -25, payee: 'momox fashion' }),
+        [verkaeufeCategory],
+        [{ id: 'r1', user_id: 'local', merchant_pattern: 'momox', category_id: 'verkaeufe' }],
+      );
+      expect(result.source).toBe('merchant_rule');
+      expect(result.categoryId).toBe('verkaeufe');
+    });
+  });
 });

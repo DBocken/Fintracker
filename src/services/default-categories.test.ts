@@ -51,10 +51,44 @@ describe("DEFAULT_LOCAL_CATEGORIES", () => {
 
   it("enthält die Kern-Kategorien für deutsche Haushalte", () => {
     const names = DEFAULT_LOCAL_CATEGORIES.map((c) => c.name);
-    expect(names).toContain("Einkommen");
+    expect(names).toContain("Sonstige Einnahmen");
+    expect(names).toContain("Anstellung");
     expect(names).toContain("Wohnen");
     expect(names).toContain("Lebensmittel");
     expect(names).toContain("Sonstiges");
+  });
+
+  it("hat mehrere Einkommens-Hauptkategorien mit ausgabenklasse einkommen", () => {
+    const incomeMains = mains.filter((c) => c.attributes?.ausgabenklasse === "einkommen");
+    expect(incomeMains.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("enthält die neuen Einkommens-Kategorien", () => {
+    const names = DEFAULT_LOCAL_CATEGORIES.map((c) => c.name);
+    expect(names).toContain("Anstellung");
+    expect(names).toContain("Nebenerwerb & Selbstständigkeit");
+    expect(names).toContain("Online & Creator");
+    expect(names).toContain("Verkäufe");
+    expect(names).toContain("Kapitalerträge");
+    expect(names).toContain("Staat & Soziales");
+    expect(names).toContain("Erstattungen");
+    expect(names).toContain("Sonstige Einnahmen");
+  });
+
+  it("[REGRESSION] behält die Legacy-IDs local-cat-einkommen/gehalt/erstattungen/zinsertraege/rentesoziales", () => {
+    const ids = new Set(DEFAULT_LOCAL_CATEGORIES.map((c) => c.id));
+    expect(ids.has("local-cat-einkommen")).toBe(true);
+    expect(ids.has("local-cat-gehalt")).toBe(true);
+    expect(ids.has("local-cat-erstattungen")).toBe(true);
+    expect(ids.has("local-cat-zinsertraege")).toBe(true);
+    expect(ids.has("local-cat-rentesoziales")).toBe(true);
+
+    const byId = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+    expect(byId.get("local-cat-einkommen")?.parent_id).toBeNull();
+    expect(byId.get("local-cat-erstattungen")?.parent_id).toBeNull();
+    expect(byId.get("local-cat-gehalt")?.parent_id).toBe("local-cat-anstellung");
+    expect(byId.get("local-cat-zinsertraege")?.parent_id).toBe("local-cat-kapitalertraege");
+    expect(byId.get("local-cat-rentesoziales")?.parent_id).toBe("local-cat-staatsoziales");
   });
 
   it("bietet feinere Unterkategorien je Hauptkategorie", () => {

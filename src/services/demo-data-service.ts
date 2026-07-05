@@ -53,7 +53,7 @@ function vary(base: number, monthIndex: number, slot: number): number {
 }
 
 const MONTHLY_TEMPLATE: MonthlyTemplate[] = [
-  { day: 1, amount: 2650, payee: 'Muster GmbH', description: 'Gehalt', categoryId: 'local-cat-einkommen' },
+  { day: 1, amount: 2650, payee: 'Muster GmbH', description: 'Gehalt', categoryId: 'local-cat-gehalt' },
   { day: 1, amount: -980, payee: 'Wohnbau Süd', description: 'Miete Musterstraße 12', categoryId: 'local-cat-wohnen' },
   { day: 3, amount: -89, payee: 'Stadtwerke', description: 'Abschlag Strom & Gas', categoryId: 'local-cat-wohnen' },
   { day: 4, amount: -44.95, payee: 'Telekom', description: 'Mobilfunk & Internet', categoryId: 'local-cat-abos' },
