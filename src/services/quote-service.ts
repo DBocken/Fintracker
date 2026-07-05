@@ -27,10 +27,24 @@ export function normalizeSymbol(symbol: string, exchange?: string): string {
   return upperSymbol;
 }
 
+// eToro-Positionen tragen dieses Exchange-Kennzeichen (siehe etoro-service).
+export const ETORO_EXCHANGE = 'ETORO';
+
+/**
+ * eToro-Symbole kollidieren mit US-Tickern (DASH = Krypto Dash bei eToro,
+ * DoorDash bei Yahoo; A = VAULTA vs. Agilent). Solche Positionen dürfen
+ * deshalb nie über Symbol-Matching Kurse von Yahoo/Stooq erhalten — ihre
+ * Kurse kommen ausschließlich über die eToro-instrumentID.
+ */
+export function isEtoroPosition(position: { exchange?: string }): boolean {
+  return position.exchange?.toUpperCase() === ETORO_EXCHANGE;
+}
+
 /**
  * Ordnet gelieferte Kurse den Positionen zu — über das börsennormalisierte
  * Symbol (XETRA → .DE usw.), nicht das rohe. Nur so finden europäische Kurse
- * ihre Position; ungültige Preise werden verworfen.
+ * ihre Position; ungültige Preise werden verworfen. eToro-Positionen sind
+ * vom Symbol-Matching ausgeschlossen (Symbol-Kollisionen, s. isEtoroPosition).
  */
 export function mapQuotesToPriceUpdates(
   positions: Array<{ id: string; symbol: string; exchange?: string }>,
@@ -45,6 +59,7 @@ export function mapQuotesToPriceUpdates(
 
   const updates: Array<{ id: string; price: number }> = [];
   for (const position of positions) {
+    if (isEtoroPosition(position)) continue;
     const key = normalizeSymbol(position.symbol, position.exchange);
     const price = priceBySymbol.get(key);
     if (price !== undefined) updates.push({ id: position.id, price });

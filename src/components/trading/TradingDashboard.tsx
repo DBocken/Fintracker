@@ -10,7 +10,7 @@ import {
   batchUpdatePrices,
   deletePosition,
 } from '@/services/portfolio-service';
-import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates } from '@/services/quote-service';
+import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates, isEtoroPosition } from '@/services/quote-service';
 import { syncEtoroPortfolio } from '@/services/etoro-service';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,8 +118,12 @@ export default function TradingDashboard() {
 
       // Börsennormalisierte Symbole anfragen (XETRA → .DE usw.) — nur so
       // liefern Yahoo/Stooq für europäische Papiere überhaupt Kurse.
-      const symbols = positions.map(p => normalizeSymbol(p.symbol, p.exchange));
-      const quotes = await fetchQuotesCached(symbols, quoteProvider);
+      // eToro-Positionen ausgenommen: deren Symbole kollidieren mit
+      // US-Tickern (DASH = DoorDash statt Krypto Dash) und werden über
+      // die eToro-instrumentID bepreist, nicht über Yahoo.
+      const quotablePositions = positions.filter(p => !isEtoroPosition(p));
+      const symbols = quotablePositions.map(p => normalizeSymbol(p.symbol, p.exchange));
+      const quotes = symbols.length > 0 ? await fetchQuotesCached(symbols, quoteProvider) : [];
 
       // Check if mock data was used
       const usingMockData = quotes.some(q => q.name?.includes('Mock'));
