@@ -13,6 +13,7 @@ import { localEncryption } from '../local-crypto';
 import {
   mergeEtoroPositions,
   fetchEtoroPortfolio,
+  fetchEtoroInstrumentMeta,
   syncEtoroPortfolio,
   connectEtoroAccount,
 } from '../etoro-service';
@@ -21,19 +22,27 @@ import { translations } from '../../i18n/translations';
 
 const invokeMock = vi.mocked(supabase.functions.invoke);
 
+// Echtes eToro-API-Schema (camelCase, nur instrumentID — kein Symbol/Name
+// in der Portfolio-Antwort selbst, siehe api-portal.etoro.com Referenz).
 function etoroPosition(overrides: Record<string, unknown> = {}) {
   return {
-    PositionID: 'pos-1',
-    InstrumentID: '1001',
-    InstrumentSymbol: 'aapl',
-    InstrumentDisplayName: 'Apple Inc.',
-    IsBuy: true,
-    Amount: 1000,
-    Leverage: 1,
-    OpenRate: 150,
-    Units: 6.5,
-    OpenDate: '2026-01-01T00:00:00Z',
-    IsTournament: false,
+    positionID: 2150896073,
+    instrumentID: 1001,
+    isBuy: true,
+    units: 6.5,
+    openRate: 150,
+    leverage: 1,
+    amount: 975,
+    openDateTime: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+function instrumentMetaResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    instrumentId: 1001,
+    internalSymbolFull: 'AAPL',
+    displayname: 'Apple Inc.',
     ...overrides,
   };
 }
@@ -48,26 +57,33 @@ function localEtoroPosition(overrides: Partial<PortfolioPosition> = {}): Portfol
     entry_price: 150,
     currency: 'USD',
     exchange: 'ETORO',
-    metadata: { etoro_position_id: 'pos-1' },
+    metadata: { etoro_position_id: '2150896073', etoro_instrument_id: 1001 },
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
   } as PortfolioPosition;
 }
 
+const instrumentMeta = new Map([[1001, { symbol: 'AAPL', name: 'Apple Inc.' }]]);
+
 describe('mergeEtoroPositions', () => {
   describe('Normal Behavior', () => {
-    it('sollte alle offenen Positionen anlegen wenn lokal nichts existiert', () => {
-      const result = mergeEtoroPositions([], [etoroPosition(), etoroPosition({ PositionID: 'pos-2' })]);
+    it('sollte alle Positionen anlegen wenn lokal nichts existiert', () => {
+      const result = mergeEtoroPositions(
+        [],
+        [etoroPosition(), etoroPosition({ positionID: 2150896074, instrumentID: 1002 })],
+        instrumentMeta,
+      );
       expect(result.toCreate).toHaveLength(2);
       expect(result.toUpdate).toHaveLength(0);
       expect(result.toDeleteIds).toHaveLength(0);
     });
 
-    it('sollte bestehende Positionen anhand der etoro_position_id aktualisieren', () => {
+    it('sollte bestehende Positionen anhand der positionID aktualisieren', () => {
       const result = mergeEtoroPositions(
         [localEtoroPosition()],
-        [etoroPosition({ Units: 10, OpenRate: 155 })],
+        [etoroPosition({ units: 10, openRate: 155 })],
+        instrumentMeta,
       );
       expect(result.toCreate).toHaveLength(0);
       expect(result.toDeleteIds).toHaveLength(0);
@@ -78,7 +94,7 @@ describe('mergeEtoroPositions', () => {
     });
 
     it('sollte lokale eToro-Positionen entfernen die bei eToro nicht mehr offen sind', () => {
-      const result = mergeEtoroPositions([localEtoroPosition()], []);
+      const result = mergeEtoroPositions([localEtoroPosition()], [], instrumentMeta);
       expect(result.toDeleteIds).toEqual(['local-1']);
     });
   });
@@ -86,31 +102,22 @@ describe('mergeEtoroPositions', () => {
   describe('Edge Cases', () => {
     it('sollte manuell erfasste Positionen (ohne etoro_position_id) niemals löschen', () => {
       const manual = localEtoroPosition({ id: 'manual-1', metadata: {} });
-      const result = mergeEtoroPositions([manual], []);
+      const result = mergeEtoroPositions([manual], [], instrumentMeta);
       expect(result.toDeleteIds).toHaveLength(0);
     });
 
-    it('sollte geschlossene eToro-Positionen ignorieren (nicht anlegen, lokal entfernen)', () => {
-      const result = mergeEtoroPositions(
-        [localEtoroPosition()],
-        [etoroPosition({ Closed: true })],
-      );
-      expect(result.toCreate).toHaveLength(0);
-      expect(result.toDeleteIds).toEqual(['local-1']);
-    });
-
     it('sollte mit leeren Arrays auf beiden Seiten umgehen', () => {
-      const result = mergeEtoroPositions([], []);
+      const result = mergeEtoroPositions([], [], instrumentMeta);
       expect(result.toCreate).toHaveLength(0);
       expect(result.toUpdate).toHaveLength(0);
       expect(result.toDeleteIds).toHaveLength(0);
     });
 
     it('sollte Short-Positionen mit positiver Stückzahl übernehmen', () => {
-      const result = mergeEtoroPositions([], [etoroPosition({ IsBuy: false, Units: -3 })]);
-      expect(result.toCreate).toHaveLength(1);
-      const merged = mergeEtoroPositions([localEtoroPosition()], [etoroPosition({ Units: -3 })]);
-      expect(merged.toUpdate[0].updates.quantity).toBe(3);
+      const created = mergeEtoroPositions([], [etoroPosition({ isBuy: false, units: -3 })], instrumentMeta);
+      expect(created.toCreate).toHaveLength(1);
+      const updated = mergeEtoroPositions([localEtoroPosition()], [etoroPosition({ units: -3 })], instrumentMeta);
+      expect(updated.toUpdate[0].updates.quantity).toBe(3);
     });
   });
 });
@@ -120,7 +127,7 @@ describe('fetchEtoroPortfolio (Edge-Proxy)', () => {
     invokeMock.mockReset();
   });
 
-  it('sollte Positionen über die etoro-proxy Edge Function laden (kein Direkt-Call)', async () => {
+  it('sollte Positionen über die etoro-proxy Edge Function laden (kein Direkt-Call, echtes Schema)', async () => {
     invokeMock.mockResolvedValue({
       data: { clientPortfolio: { positions: [etoroPosition()] } },
       error: null,
@@ -132,12 +139,46 @@ describe('fetchEtoroPortfolio (Edge-Proxy)', () => {
       body: { endpoint: 'portfolio', apiKey: 'api-key', userKey: 'user-key' },
     });
     expect(positions).toHaveLength(1);
-    expect(positions[0].PositionID).toBe('pos-1');
+    expect(positions[0].positionID).toBe(2150896073);
+    expect(positions[0].instrumentID).toBe(1001);
   });
 
   it('sollte einen Fehler werfen wenn der Proxy einen Fehler liefert', async () => {
     invokeMock.mockResolvedValue({ data: null, error: { message: 'boom' } } as never);
     await expect(fetchEtoroPortfolio('api-key', 'user-key')).rejects.toThrow();
+  });
+});
+
+describe('fetchEtoroInstrumentMeta', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+  });
+
+  it('sollte Symbol/Name je instrumentID über den Proxy auflösen', async () => {
+    invokeMock.mockResolvedValue({
+      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' })],
+      error: null,
+    } as never);
+
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001, 1002]);
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'instruments', apiKey: 'api-key', userKey: 'user-key', instrumentIds: [1001, 1002] },
+    });
+    expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.' });
+    expect(meta.get(1002)).toEqual({ symbol: 'MSFT', name: 'Microsoft' });
+  });
+
+  it('sollte mit leerer ID-Liste keinen Aufruf machen und eine leere Map liefern', async () => {
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', []);
+    expect(meta.size).toBe(0);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('[REGRESSION] sollte bei Proxy-Fehler eine leere Map liefern statt zu werfen (Sync bricht nicht ab)', async () => {
+    invokeMock.mockResolvedValue({ data: null, error: { message: 'boom' } } as never);
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001]);
+    expect(meta.size).toBe(0);
   });
 });
 
@@ -147,7 +188,6 @@ describe('syncEtoroPortfolio', () => {
     window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
     localEncryption.lock();
     invokeMock.mockReset();
-    // Lokalen Store leeren (IndexedDB-Reste aus vorherigen Tests)
     const { clearLocalKvStore } = await import('../idb-kv');
     await clearLocalKvStore();
   });
@@ -162,7 +202,7 @@ describe('syncEtoroPortfolio', () => {
     await expect(syncEtoroPortfolio(portfolio.id)).rejects.toThrow();
   });
 
-  it('[REGRESSION] Issue #107: persistiert Positionen dauerhaft im lokalen Store (anlegen/aktualisieren/entfernen)', async () => {
+  it('[REGRESSION] Issue #107/#192: persistiert Positionen mit echtem eToro-Schema (anlegen/aktualisieren/entfernen, Symbol via Instrument-Lookup)', async () => {
     await localEncryption.enable('test-passwort-123');
 
     const portfolio = await createPortfolio({
@@ -172,13 +212,12 @@ describe('syncEtoroPortfolio', () => {
       currency: 'USD',
     });
 
-    // Ausgangslage: eine bestehende eToro-Position + eine manuelle Position
     await createPosition({
       portfolio_id: portfolio.id,
       symbol: 'AAPL',
       quantity: 5,
       entry_price: 150,
-      metadata: { etoro_position_id: 'pos-1' },
+      metadata: { etoro_position_id: '2150896073', etoro_instrument_id: 1001 },
     });
     await createPosition({
       portfolio_id: portfolio.id,
@@ -188,52 +227,93 @@ describe('syncEtoroPortfolio', () => {
       metadata: {},
     });
 
-    // eToro liefert: pos-1 mit neuer Stückzahl, pos-2 neu; eine alte Position fehlt nicht
-    invokeMock.mockResolvedValue({
-      data: {
-        clientPortfolio: {
-          positions: [
-            etoroPosition({ PositionID: 'pos-1', Units: 8, OpenRate: 152 }),
-            etoroPosition({ PositionID: 'pos-2', InstrumentSymbol: 'MSFT', InstrumentDisplayName: 'Microsoft' }),
+    // 1. Aufruf: Portfolio-Positionen (camelCase, kein Symbol enthalten)
+    invokeMock.mockImplementation((async (_fn: string, opts: { body: { endpoint: string } }) => {
+      if (opts.body.endpoint === 'portfolio') {
+        return {
+          data: {
+            clientPortfolio: {
+              positions: [
+                etoroPosition({ positionID: 2150896073, instrumentID: 1001, units: 8, openRate: 152 }),
+                etoroPosition({ positionID: 2150896099, instrumentID: 1002 }),
+              ],
+            },
+          },
+          error: null,
+        };
+      }
+      if (opts.body.endpoint === 'instruments') {
+        return {
+          data: [
+            instrumentMetaResponse({ instrumentId: 1001, internalSymbolFull: 'AAPL', displayname: 'Apple Inc.' }),
+            instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' }),
           ],
-        },
-      },
-      error: null,
-    } as never);
+          error: null,
+        };
+      }
+      throw new Error('unexpected endpoint');
+    }) as any);
 
     const result = await syncEtoroPortfolio(portfolio.id);
-
     expect(result).toEqual({ created: 1, updated: 1, removed: 0 });
 
     const positions = await getPositions(portfolio.id);
     expect(positions).toHaveLength(3);
 
-    const aapl = positions.find((p) => p.metadata?.etoro_position_id === 'pos-1');
+    const aapl = positions.find((p) => p.metadata?.etoro_position_id === '2150896073');
     expect(aapl?.quantity).toBe(8);
     expect(aapl?.entry_price).toBe(152);
 
-    const msft = positions.find((p) => p.metadata?.etoro_position_id === 'pos-2');
+    const msft = positions.find((p) => p.metadata?.etoro_position_id === '2150896099');
     expect(msft?.symbol).toBe('MSFT');
+    expect(msft?.name).toBe('Microsoft');
 
-    // Manuelle Position bleibt unangetastet
     expect(positions.some((p) => p.symbol === 'MANUAL')).toBe(true);
 
-    // Zweiter Sync: pos-1 wurde bei eToro geschlossen → lokal entfernen
-    invokeMock.mockResolvedValue({
-      data: {
-        clientPortfolio: {
-          positions: [etoroPosition({ PositionID: 'pos-2', InstrumentSymbol: 'MSFT' })],
-        },
-      },
-      error: null,
-    } as never);
+    // 2. Sync: pos 2150896073 ist bei eToro nicht mehr offen → lokal entfernen
+    invokeMock.mockImplementation((async (_fn: string, opts: { body: { endpoint: string } }) => {
+      if (opts.body.endpoint === 'portfolio') {
+        return {
+          data: { clientPortfolio: { positions: [etoroPosition({ positionID: 2150896099, instrumentID: 1002 })] } },
+          error: null,
+        };
+      }
+      return {
+        data: [instrumentMetaResponse({ instrumentId: 1002, internalSymbolFull: 'MSFT', displayname: 'Microsoft' })],
+        error: null,
+      };
+    }) as any);
 
     const second = await syncEtoroPortfolio(portfolio.id);
     expect(second.removed).toBe(1);
 
     const after = await getPositions(portfolio.id);
-    expect(after.some((p) => p.metadata?.etoro_position_id === 'pos-1')).toBe(false);
+    expect(after.some((p) => p.metadata?.etoro_position_id === '2150896073')).toBe(false);
     expect(after.some((p) => p.symbol === 'MANUAL')).toBe(true);
+  });
+
+  it('[REGRESSION] sollte bei fehlgeschlagener Instrument-Auflösung einen Fallback-Symbolnamen nutzen statt abzustürzen', async () => {
+    await localEncryption.enable('test-passwort-123');
+    const portfolio = await createPortfolio({
+      name: 'eToro - nutzer',
+      type: 'etoro',
+      provider_config: { username: 'nutzer', apiKey: 'k1', userKey: 'k2' },
+      currency: 'USD',
+    });
+
+    invokeMock.mockImplementation((async (_fn: string, opts: { body: { endpoint: string } }) => {
+      if (opts.body.endpoint === 'portfolio') {
+        return { data: { clientPortfolio: { positions: [etoroPosition()] } }, error: null };
+      }
+      // Instrument-Lookup schlägt fehl — darf den Sync nicht crashen lassen.
+      return { data: null, error: { message: 'instruments down' } };
+    }) as any);
+
+    const result = await syncEtoroPortfolio(portfolio.id);
+    expect(result.created).toBe(1);
+
+    const positions = await getPositions(portfolio.id);
+    expect(positions[0].symbol).toBe('ETORO-1001');
   });
 });
 
@@ -247,12 +327,14 @@ describe('connectEtoroAccount', () => {
     await clearLocalKvStore();
   });
 
-  it('sollte Portfolio samt Positionen über den Proxy anlegen', async () => {
+  it('sollte Portfolio samt aufgelösten Positionen über den Proxy anlegen', async () => {
     await localEncryption.enable('test-passwort-123');
-    invokeMock.mockResolvedValue({
-      data: { clientPortfolio: { positions: [etoroPosition()] } },
-      error: null,
-    } as never);
+    invokeMock.mockImplementation((async (_fn: string, opts: { body: { endpoint: string } }) => {
+      if (opts.body.endpoint === 'portfolio') {
+        return { data: { clientPortfolio: { positions: [etoroPosition()] } }, error: null };
+      }
+      return { data: [instrumentMetaResponse()], error: null };
+    }) as any);
 
     const portfolio = await connectEtoroAccount('nutzer', 'k1', 'k2');
     expect(portfolio.type).toBe('etoro');
@@ -260,6 +342,7 @@ describe('connectEtoroAccount', () => {
     const positions = await getPositions(portfolio.id);
     expect(positions).toHaveLength(1);
     expect(positions[0].symbol).toBe('AAPL');
+    expect(positions[0].name).toBe('Apple Inc.');
   });
 });
 
