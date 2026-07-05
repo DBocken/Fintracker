@@ -27,6 +27,31 @@ export function normalizeSymbol(symbol: string, exchange?: string): string {
   return upperSymbol;
 }
 
+/**
+ * Ordnet gelieferte Kurse den Positionen zu — über das börsennormalisierte
+ * Symbol (XETRA → .DE usw.), nicht das rohe. Nur so finden europäische Kurse
+ * ihre Position; ungültige Preise werden verworfen.
+ */
+export function mapQuotesToPriceUpdates(
+  positions: Array<{ id: string; symbol: string; exchange?: string }>,
+  quotes: Array<Pick<QuoteData, 'symbol' | 'price'>>,
+): Array<{ id: string; price: number }> {
+  const priceBySymbol = new Map<string, number>();
+  for (const quote of quotes) {
+    if (typeof quote.price === 'number' && Number.isFinite(quote.price) && quote.price > 0) {
+      priceBySymbol.set(quote.symbol.toUpperCase().trim(), quote.price);
+    }
+  }
+
+  const updates: Array<{ id: string; price: number }> = [];
+  for (const position of positions) {
+    const key = normalizeSymbol(position.symbol, position.exchange);
+    const price = priceBySymbol.get(key);
+    if (price !== undefined) updates.push({ id: position.id, price });
+  }
+  return updates;
+}
+
 // -----------------------------------------------------------------------------
 // Public API (now backed by server-side Edge Function)
 // -----------------------------------------------------------------------------
