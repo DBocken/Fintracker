@@ -245,6 +245,12 @@ export function mergeEtoroPositions(
           // hat Platzhalter (ETORO-<id>) hinterlassen.
           symbol: meta?.symbol || match.symbol,
           name: meta?.name || meta?.symbol || match.name,
+          // Gespeicherte Kurse verwerfen: Yahoo hatte eToro-Positionen über
+          // Symbol-Kollisionen falsche Kurse zugewiesen (DASH→DoorDash).
+          // Bis ein echter eToro-Kurs vorliegt, ist der Einstiegspreis
+          // ehrlicher als ein fremder Ticker.
+          last_price: undefined,
+          last_price_at: undefined,
           metadata: { ...match.metadata, ...etoroMetadata(position) },
         },
       });

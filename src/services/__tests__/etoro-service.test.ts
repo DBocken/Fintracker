@@ -103,6 +103,18 @@ describe('mergeEtoroPositions', () => {
       expect(result.toDeleteIds).toEqual(['local-1']);
     });
 
+    it('[REGRESSION] sollte einen vergifteten last_price beim Re-Sync zurücksetzen (Yahoo-Symbol-Kollision)', () => {
+      // Yahoo hatte eToro-Positionen falsche Kurse zugewiesen (DASH→DoorDash
+      // 192$ statt 35$). Der Sync muss den gespeicherten last_price
+      // verwerfen, damit die Anzeige auf den Einstiegspreis zurückfällt,
+      // bis ein echter eToro-Kurs vorliegt.
+      const poisoned = localEtoroPosition({ last_price: 192.01, last_price_at: '2026-07-05T15:00:00Z' } as Partial<PortfolioPosition>);
+      const result = mergeEtoroPositions([poisoned], [etoroPosition()], instrumentMeta);
+      expect(result.toUpdate).toHaveLength(1);
+      expect(result.toUpdate[0].updates).toHaveProperty('last_price', undefined);
+      expect(result.toUpdate[0].updates).toHaveProperty('last_price_at', undefined);
+    });
+
     it('[REGRESSION] sollte Fallback-Symbole (ETORO-<id>) beim Re-Sync durch aufgelöste Symbole ersetzen', () => {
       // Erster Sync ohne erreichbaren Instrument-Lookup legt Platzhalter an;
       // sobald die Auflösung wieder funktioniert, muss ein erneuter Sync

@@ -66,4 +66,33 @@ describe('mapQuotesToPriceUpdates', () => {
       expect(updates).toEqual([]);
     });
   });
+
+  describe('Regression Protection', () => {
+    it('[REGRESSION] sollte ETORO-Positionen niemals Yahoo-Kurse zuordnen (Symbol-Kollision)', () => {
+      // eToro-Symbole kollidieren mit US-Tickern: DASH (Krypto) = DoorDash,
+      // A (VAULTA) = Agilent, XRP = ETF-Produkt. Ein Yahoo-Kurs für "DASH"
+      // hatte der eToro-Krypto-Position 192$ statt 35$ zugewiesen —
+      // das Portfolio zeigte +239% Schein-Gewinn.
+      const etoroPositions = [
+        { id: 'e1', symbol: 'DASH', exchange: 'ETORO' },
+        { id: 'e2', symbol: 'A', exchange: 'ETORO' },
+      ];
+      const updates = mapQuotesToPriceUpdates(etoroPositions, [
+        quote('DASH', 192.01),
+        quote('A', 130.69),
+      ]);
+      expect(updates).toEqual([]);
+    });
+
+    it('[REGRESSION] sollte Nicht-eToro-Positionen mit gleichem Symbol weiterhin bedienen', () => {
+      // Die Sperre gilt nur für die eToro-Position selbst — eine manuell
+      // erfasste DoorDash-Aktie (DASH, NYSE) bekommt ihren Kurs weiterhin.
+      const mixed = [
+        { id: 'etoro-dash', symbol: 'DASH', exchange: 'ETORO' },
+        { id: 'manual-dash', symbol: 'DASH', exchange: 'NYSE' },
+      ];
+      const updates = mapQuotesToPriceUpdates(mixed, [quote('DASH', 192.01)]);
+      expect(updates).toEqual([{ id: 'manual-dash', price: 192.01 }]);
+    });
+  });
 });
