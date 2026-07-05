@@ -11,6 +11,7 @@ import {
   deletePosition,
 } from '@/services/portfolio-service';
 import { fetchQuotesCached } from '@/services/quote-service';
+import { syncEtoroPortfolio } from '@/services/etoro-service';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -169,6 +170,24 @@ export default function TradingDashboard() {
     },
   });
 
+  // eToro-Portfolio mit dem Live-Stand abgleichen (persistiert lokal)
+  const etoroSyncMutation = useMutation({
+    mutationFn: () => syncEtoroPortfolio(activePortfolio!.id),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
+      toast.success(
+        t('trading.dashboard.messages.etoroSyncSuccess')
+          .replace('{created}', String(result.created))
+          .replace('{updated}', String(result.updated))
+          .replace('{removed}', String(result.removed))
+      );
+    },
+    onError: (error: Error) => {
+      toast.error(t('trading.dashboard.messages.etoroSyncError').replace('{error}', error.message));
+    },
+  });
+
   // Auto-refresh quotes every 60 seconds
   useEffect(() => {
     if (!positions || positions.length === 0) return;
@@ -323,6 +342,17 @@ export default function TradingDashboard() {
             <FileText className="h-4 w-4 mr-2" />
             {t('trading.dashboard.importCsv')}
           </Button>
+          {activePortfolio?.type === 'etoro' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => etoroSyncMutation.mutate()}
+              disabled={etoroSyncMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${etoroSyncMutation.isPending ? 'animate-spin' : ''}`} />
+              {t('trading.dashboard.syncEtoro')}
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => setIsEtoroDialogOpen(true)}
