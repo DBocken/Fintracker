@@ -19,6 +19,7 @@ import {
 } from '../etoro-service';
 import { createPortfolio, createPosition, getPositions } from '../portfolio-service';
 import { translations } from '../../i18n/translations';
+import { EtoroInstrumentDisplayDataSchema } from '../etoro-api-schemas';
 
 const invokeMock = vi.mocked(supabase.functions.invoke);
 
@@ -38,13 +39,17 @@ function etoroPosition(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Validiert gegen etoro-api-schemas.ts (aus der Live-API-Spec abgeleitet):
+// ein Tippfehler oder ein erfundenes Feld hier lässt den Test sofort mit
+// einer ZodError fehlschlagen, statt still ein falsches Mock zu bestehen
+// (siehe Issue #195 — genau dieser Fehler blieb sonst unentdeckt).
 function instrumentMetaResponse(overrides: Record<string, unknown> = {}) {
-  return {
+  return EtoroInstrumentDisplayDataSchema.parse({
     instrumentID: 1001,
     symbolFull: 'AAPL',
     instrumentDisplayName: 'Apple Inc.',
     ...overrides,
-  };
+  });
 }
 
 function localEtoroPosition(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition {
@@ -165,9 +170,17 @@ describe('fetchEtoroInstrumentMeta', () => {
     invokeMock.mockReset();
   });
 
-  it('sollte Symbol/Name je instrumentID über den Proxy auflösen', async () => {
+  it('[REGRESSION] sollte Symbol/Name aus der echten API-Hülle { instrumentDisplayDatas } auflösen', async () => {
+    // Live eToro API (v1.291.0) wickelt die Ergebnisse in instrumentDisplayDatas ein —
+    // kein nacktes Array. Ohne diese Hülle bleibt die Map leer (Regression: Placeholder
+    // heilen nie, obwohl der Proxy korrekt antwortet).
     invokeMock.mockResolvedValue({
-      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
+      data: {
+        instrumentDisplayDatas: [
+          instrumentMetaResponse(),
+          instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' }),
+        ],
+      },
       error: null,
     } as never);
 
@@ -176,6 +189,18 @@ describe('fetchEtoroInstrumentMeta', () => {
     expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
       body: { endpoint: 'instruments', apiKey: 'api-key', userKey: 'user-key', instrumentIds: [1001, 1002] },
     });
+    expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.' });
+    expect(meta.get(1002)).toEqual({ symbol: 'MSFT', name: 'Microsoft' });
+  });
+
+  it('sollte auch ein nacktes Array als Antwort akzeptieren (Kompatibilität)', async () => {
+    invokeMock.mockResolvedValue({
+      data: [instrumentMetaResponse(), instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
+      error: null,
+    } as never);
+
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001, 1002]);
+
     expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.' });
     expect(meta.get(1002)).toEqual({ symbol: 'MSFT', name: 'Microsoft' });
   });
