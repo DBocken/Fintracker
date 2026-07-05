@@ -9,7 +9,6 @@ import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
 import { syncCategoryTemplate } from "@/services/category-template-service";
 import AppShell from "@/components/layout/AppShell";
 import RouteGuard from "@/components/layout/RouteGuard";
-import { isFeatureEnabled } from "@/lib/feature-flags";
 
 // Route-Level Code-Splitting: schwere Seiten (Charts, PDF-Export, Trading) werden
 // erst beim Aufruf geladen, damit das initiale Bundle kleiner bleibt.
@@ -121,16 +120,7 @@ function App() {
                 path="/simulation"
                 element={<RouteGuard path="/simulation"><SimulationPage /></RouteGuard>}
               />
-              <Route
-                path="/trading"
-                element={
-                  isFeatureEnabled("trading_beta") ? (
-                    <RouteGuard path="/trading"><TradingPage /></RouteGuard>
-                  ) : (
-                    <Navigate to="/coach" replace />
-                  )
-                }
-              />
+              <Route path="/trading" element={<TradingPage />} />
               <Route
                 path="/contracts"
                 element={<RouteGuard path="/contracts"><ContractsPage /></RouteGuard>}

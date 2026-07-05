@@ -3,12 +3,9 @@ import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function SideNav() {
-  // Re-render, wenn das Trading-Beta-Flag umgeschaltet wird.
-  useFeatureFlag("trading_beta");
   const { t } = useI18n();
   const navGroups = getVisibleNavGroups();
   return (

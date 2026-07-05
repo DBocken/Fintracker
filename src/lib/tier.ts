@@ -19,7 +19,6 @@ export type FeatureKey =
   | "advancedForecast"
   | "premiumAnalytics"
   | "simulation"
-  | "trading"
   | "splitTransactions"
   | "familyMode"
   | "receiptLineItems"
@@ -40,7 +39,6 @@ export const FEATURES: Record<FeatureKey, Tier> = {
   advancedForecast: "premium",
   premiumAnalytics: "premium",
   simulation: "premium",
-  trading: "premium",
   splitTransactions: "premium",
   familyMode: "premium",
   receiptLineItems: "premium",

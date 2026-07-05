@@ -63,16 +63,19 @@ describe("getVisibleNavGroups", () => {
     localStorage.clear();
   });
 
-  it("blendet Beta-Ziele ohne aktives Flag aus", () => {
-    const items = getVisibleNavGroups().flatMap((g) => g.items);
-    expect(items.map((i) => i.path)).not.toContain("/trading");
+  it("[REGRESSION] zeigt Trading ohne Beta-Flag und ohne Premium-Gate (Nutzer-Entscheid)", () => {
+    // Trading war zuvor doppelt versteckt (trading_beta-Flag + Premium-Tier)
+    // und leitete Nutzer verwirrend zum Coach um. Jetzt normal sichtbar.
+    const trading = getVisibleNavGroups()
+      .flatMap((g) => g.items)
+      .find((i) => i.path === "/trading");
+    expect(trading).toBeDefined();
+    expect(trading?.requiredTier).not.toBe("premium");
   });
 
-  it("lässt alle Nicht-Beta-Ziele sichtbar", () => {
+  it("lässt alle Nav-Ziele sichtbar", () => {
     const visiblePaths = getVisibleNavGroups().flatMap((g) => g.items).map((i) => i.path);
-    const nonBetaPaths = NAV_GROUPS.flatMap((g) => g.items)
-      .filter((i) => !i.betaFlag)
-      .map((i) => i.path);
-    expect(visiblePaths).toEqual(nonBetaPaths);
+    const allPaths = NAV_GROUPS.flatMap((g) => g.items).map((i) => i.path);
+    expect(visiblePaths).toEqual(allPaths);
   });
 });
