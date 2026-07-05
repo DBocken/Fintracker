@@ -139,6 +139,45 @@ serve(async (req) => {
     }
   }
 
+  // Live-Kurse je instrumentID — kollisionsfrei im Gegensatz zu Yahoo-Tickern
+  // (eToro-Symbole wie DASH/A/XRP kollidieren dort mit fremden Assets).
+  // Spec-Limit: max. 100 IDs pro Aufruf (siehe getMarketDataInstrumentsRates).
+  if (endpoint === "rates") {
+    const ids = Array.isArray(body?.instrumentIds)
+      ? body.instrumentIds.filter((id): id is number => typeof id === "number" && Number.isFinite(id)).slice(0, 100)
+      : [];
+    if (ids.length === 0) {
+      return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
+    }
+
+    const url = `${ETORO_BASE}/market-data/instruments/rates?instrumentIds=${ids.join(",")}`;
+    try {
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+          "x-user-key": userKey,
+          "x-request-id": crypto.randomUUID(),
+          "Accept": "application/json",
+        },
+      });
+      if (!resp.ok) {
+        const text = (await resp.text().catch(() => "")).slice(0, 300);
+        console.error(`[etoro-proxy] eToro rates -> ${resp.status}`);
+        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
+          error: "etoro_request_failed",
+          upstream_status: resp.status,
+          details: text,
+        });
+      }
+      const data = await resp.json();
+      return jsonResponse(headers, 200, data);
+    } catch (e) {
+      console.error("[etoro-proxy] Fetch failed for rates", String(e));
+      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+    }
+  }
+
   const paths = ENDPOINT_PATHS[endpoint];
   if (!paths) {
     return jsonResponse(headers, 400, { error: "unsupported_endpoint" });

@@ -14,6 +14,8 @@ import {
   mergeEtoroPositions,
   fetchEtoroPortfolio,
   fetchEtoroInstrumentMeta,
+  fetchEtoroRates,
+  etoroCurrentPrice,
   syncEtoroPortfolio,
   connectEtoroAccount,
 } from '../etoro-service';
@@ -70,6 +72,7 @@ function localEtoroPosition(overrides: Partial<PortfolioPosition> = {}): Portfol
 }
 
 const instrumentMeta = new Map([[1001, { symbol: 'AAPL', name: 'Apple Inc.' }]]);
+const noRates = new Map<number, number>();
 
 describe('mergeEtoroPositions', () => {
   describe('Normal Behavior', () => {
@@ -78,6 +81,7 @@ describe('mergeEtoroPositions', () => {
         [],
         [etoroPosition(), etoroPosition({ positionID: 2150896074, instrumentID: 1002 })],
         instrumentMeta,
+        noRates,
       );
       expect(result.toCreate).toHaveLength(2);
       expect(result.toUpdate).toHaveLength(0);
@@ -89,6 +93,7 @@ describe('mergeEtoroPositions', () => {
         [localEtoroPosition()],
         [etoroPosition({ units: 10, openRate: 155 })],
         instrumentMeta,
+        noRates,
       );
       expect(result.toCreate).toHaveLength(0);
       expect(result.toDeleteIds).toHaveLength(0);
@@ -99,20 +104,29 @@ describe('mergeEtoroPositions', () => {
     });
 
     it('sollte lokale eToro-Positionen entfernen die bei eToro nicht mehr offen sind', () => {
-      const result = mergeEtoroPositions([localEtoroPosition()], [], instrumentMeta);
+      const result = mergeEtoroPositions([localEtoroPosition()], [], instrumentMeta, noRates);
       expect(result.toDeleteIds).toEqual(['local-1']);
     });
 
-    it('[REGRESSION] sollte einen vergifteten last_price beim Re-Sync zurücksetzen (Yahoo-Symbol-Kollision)', () => {
+    it('[REGRESSION] sollte einen vergifteten last_price ohne echten eToro-Kurs zurücksetzen (Yahoo-Symbol-Kollision)', () => {
       // Yahoo hatte eToro-Positionen falsche Kurse zugewiesen (DASH→DoorDash
-      // 192$ statt 35$). Der Sync muss den gespeicherten last_price
-      // verwerfen, damit die Anzeige auf den Einstiegspreis zurückfällt,
-      // bis ein echter eToro-Kurs vorliegt.
+      // 192$ statt 35$). Ohne verfügbaren eToro-Kurs muss der Sync den
+      // gespeicherten last_price verwerfen, damit die Anzeige auf den
+      // Einstiegspreis zurückfällt statt einen fremden Ticker zu zeigen.
       const poisoned = localEtoroPosition({ last_price: 192.01, last_price_at: '2026-07-05T15:00:00Z' } as Partial<PortfolioPosition>);
-      const result = mergeEtoroPositions([poisoned], [etoroPosition()], instrumentMeta);
+      const result = mergeEtoroPositions([poisoned], [etoroPosition()], instrumentMeta, noRates);
       expect(result.toUpdate).toHaveLength(1);
       expect(result.toUpdate[0].updates).toHaveProperty('last_price', undefined);
       expect(result.toUpdate[0].updates).toHaveProperty('last_price_at', undefined);
+    });
+
+    it('sollte einen echten eToro-Kurs als last_price übernehmen wenn verfügbar', () => {
+      const existingPos = localEtoroPosition({ last_price: 192.01 } as Partial<PortfolioPosition>);
+      const rates = new Map([[1001, 34.3]]);
+      const result = mergeEtoroPositions([existingPos], [etoroPosition()], instrumentMeta, rates);
+      expect(result.toUpdate).toHaveLength(1);
+      expect(result.toUpdate[0].updates.last_price).toBe(34.3);
+      expect(typeof result.toUpdate[0].updates.last_price_at).toBe('string');
     });
 
     it('[REGRESSION] sollte Fallback-Symbole (ETORO-<id>) beim Re-Sync durch aufgelöste Symbole ersetzen', () => {
@@ -120,7 +134,7 @@ describe('mergeEtoroPositions', () => {
       // sobald die Auflösung wieder funktioniert, muss ein erneuter Sync
       // Symbol UND Name heilen — sonst bleiben die Platzhalter für immer.
       const placeholder = localEtoroPosition({ symbol: 'ETORO-1001', name: 'ETORO-1001' });
-      const result = mergeEtoroPositions([placeholder], [etoroPosition()], instrumentMeta);
+      const result = mergeEtoroPositions([placeholder], [etoroPosition()], instrumentMeta, noRates);
       expect(result.toUpdate).toHaveLength(1);
       expect(result.toUpdate[0].updates.symbol).toBe('AAPL');
       expect(result.toUpdate[0].updates.name).toBe('Apple Inc.');
@@ -130,21 +144,21 @@ describe('mergeEtoroPositions', () => {
   describe('Edge Cases', () => {
     it('sollte manuell erfasste Positionen (ohne etoro_position_id) niemals löschen', () => {
       const manual = localEtoroPosition({ id: 'manual-1', metadata: {} });
-      const result = mergeEtoroPositions([manual], [], instrumentMeta);
+      const result = mergeEtoroPositions([manual], [], instrumentMeta, noRates);
       expect(result.toDeleteIds).toHaveLength(0);
     });
 
     it('sollte mit leeren Arrays auf beiden Seiten umgehen', () => {
-      const result = mergeEtoroPositions([], [], instrumentMeta);
+      const result = mergeEtoroPositions([], [], instrumentMeta, noRates);
       expect(result.toCreate).toHaveLength(0);
       expect(result.toUpdate).toHaveLength(0);
       expect(result.toDeleteIds).toHaveLength(0);
     });
 
     it('sollte Short-Positionen mit positiver Stückzahl übernehmen', () => {
-      const created = mergeEtoroPositions([], [etoroPosition({ isBuy: false, units: -3 })], instrumentMeta);
+      const created = mergeEtoroPositions([], [etoroPosition({ isBuy: false, units: -3 })], instrumentMeta, noRates);
       expect(created.toCreate).toHaveLength(1);
-      const updated = mergeEtoroPositions([localEtoroPosition()], [etoroPosition({ units: -3 })], instrumentMeta);
+      const updated = mergeEtoroPositions([localEtoroPosition()], [etoroPosition({ units: -3 })], instrumentMeta, noRates);
       expect(updated.toUpdate[0].updates.quantity).toBe(3);
     });
   });
@@ -230,6 +244,72 @@ describe('fetchEtoroInstrumentMeta', () => {
   });
 });
 
+describe('etoroCurrentPrice', () => {
+  describe('Normal Behavior', () => {
+    it('sollte bid bevorzugen (konservative Bewertung)', () => {
+      expect(etoroCurrentPrice({ bid: 100, ask: 101, lastExecution: 100.5 })).toBe(100);
+    });
+
+    it('sollte auf lastExecution zurückfallen wenn bid fehlt', () => {
+      expect(etoroCurrentPrice({ ask: 101, lastExecution: 100.5 })).toBe(100.5);
+    });
+
+    it('sollte zuletzt auf ask zurückfallen', () => {
+      expect(etoroCurrentPrice({ ask: 101 })).toBe(101);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('sollte undefined liefern wenn kein Feld vorhanden ist', () => {
+      expect(etoroCurrentPrice({})).toBeUndefined();
+    });
+
+    it('sollte 0 oder negative Werte als ungültig behandeln und weiterfallen', () => {
+      expect(etoroCurrentPrice({ bid: 0, lastExecution: 50 })).toBe(50);
+      expect(etoroCurrentPrice({ bid: -5, ask: 20 })).toBe(20);
+    });
+  });
+});
+
+describe('fetchEtoroRates (Live-Kurse via instrumentID)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+  });
+
+  it('[REGRESSION] sollte Kurse aus der echten API-Hülle { rates: [...] } auflösen', async () => {
+    // Live-Spec (getMarketDataInstrumentsRates, v1.291.0): { rates: [{ instrumentID, bid, ask, lastExecution, ... }] }
+    invokeMock.mockResolvedValue({
+      data: { rates: [{ instrumentID: 1001, bid: 34.3, ask: 34.5, lastExecution: 34.4, date: '2026-07-05T15:00:00Z' }] },
+      error: null,
+    } as never);
+
+    const prices = await fetchEtoroRates('api-key', 'user-key', [1001]);
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'rates', apiKey: 'api-key', userKey: 'user-key', instrumentIds: [1001] },
+    });
+    expect(prices.get(1001)).toBe(34.3);
+  });
+
+  it('sollte mit leerer ID-Liste keinen Aufruf machen und eine leere Map liefern', async () => {
+    const prices = await fetchEtoroRates('api-key', 'user-key', []);
+    expect(prices.size).toBe(0);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('[REGRESSION] sollte bei Proxy-Fehler eine leere Map liefern statt zu werfen (Sync bricht nicht ab)', async () => {
+    invokeMock.mockResolvedValue({ data: null, error: { message: 'boom' } } as never);
+    const prices = await fetchEtoroRates('api-key', 'user-key', [1001]);
+    expect(prices.size).toBe(0);
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema eine leere Map liefern statt zu werfen', async () => {
+    invokeMock.mockResolvedValue({ data: { prices: [] }, error: null } as never);
+    const prices = await fetchEtoroRates('api-key', 'user-key', [1001]);
+    expect(prices.size).toBe(0);
+  });
+});
+
 describe('syncEtoroPortfolio', () => {
   beforeEach(async () => {
     localStorage.clear();
@@ -299,6 +379,12 @@ describe('syncEtoroPortfolio', () => {
           error: null,
         };
       }
+      if (opts.body.endpoint === 'rates') {
+        return {
+          data: { rates: [{ instrumentID: 1001, bid: 160 }, { instrumentID: 1002, bid: 34.3 }] },
+          error: null,
+        };
+      }
       throw new Error('unexpected endpoint');
     }) as any);
 
@@ -311,10 +397,14 @@ describe('syncEtoroPortfolio', () => {
     const aapl = positions.find((p) => p.metadata?.etoro_position_id === '2150896073');
     expect(aapl?.quantity).toBe(8);
     expect(aapl?.entry_price).toBe(152);
+    // Echter eToro-Kurs (nicht Yahoo) + tatsächlich investiertes Kapital (amount)
+    expect(aapl?.last_price).toBe(160);
+    expect(aapl?.metadata?.invested_amount).toBe(975);
 
     const msft = positions.find((p) => p.metadata?.etoro_position_id === '2150896099');
     expect(msft?.symbol).toBe('MSFT');
     expect(msft?.name).toBe('Microsoft');
+    expect(msft?.last_price).toBe(34.3);
 
     expect(positions.some((p) => p.symbol === 'MANUAL')).toBe(true);
 
@@ -325,6 +415,9 @@ describe('syncEtoroPortfolio', () => {
           data: { clientPortfolio: { positions: [etoroPosition({ positionID: 2150896099, instrumentID: 1002 })] } },
           error: null,
         };
+      }
+      if (opts.body.endpoint === 'rates') {
+        return { data: { rates: [{ instrumentID: 1002, bid: 35 }] }, error: null };
       }
       return {
         data: [instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
@@ -381,6 +474,9 @@ describe('connectEtoroAccount', () => {
       if (opts.body.endpoint === 'portfolio') {
         return { data: { clientPortfolio: { positions: [etoroPosition()] } }, error: null };
       }
+      if (opts.body.endpoint === 'rates') {
+        return { data: { rates: [{ instrumentID: 1001, bid: 160 }] }, error: null };
+      }
       return { data: [instrumentMetaResponse()], error: null };
     }) as any);
 
@@ -391,6 +487,8 @@ describe('connectEtoroAccount', () => {
     expect(positions).toHaveLength(1);
     expect(positions[0].symbol).toBe('AAPL');
     expect(positions[0].name).toBe('Apple Inc.');
+    expect(positions[0].last_price).toBe(160);
+    expect(positions[0].metadata?.invested_amount).toBe(975);
   });
 });
 

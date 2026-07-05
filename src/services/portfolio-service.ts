@@ -141,6 +141,20 @@ export async function batchUpdatePrices(updates: Array<{ id: string; price: numb
   }
 }
 
+/**
+ * Investiertes Kapital einer Position. eToro-Positionen speichern das
+ * tatsächlich eingesetzte Kapital (`invested_amount`, aus dem `amount`-Feld
+ * der Portfolio-API) — bei Hebel ist Menge × Einstiegskurs die Exposure,
+ * nicht das eingesetzte Kapital, und würde "Investiert" künstlich aufblähen.
+ */
+function positionCostBasis(position: PortfolioPosition): number {
+  const investedAmount = position.metadata?.invested_amount;
+  if (typeof investedAmount === 'number' && Number.isFinite(investedAmount)) {
+    return investedAmount;
+  }
+  return position.quantity * position.entry_price;
+}
+
 export async function getPortfolioSummary(portfolioId: string): Promise<PortfolioSummary> {
   const portfolio = await getPortfolioById(portfolioId);
   if (!portfolio) throw new Error(t('portfolio.notFound'));
@@ -152,7 +166,7 @@ export async function getPortfolioSummary(portfolioId: string): Promise<Portfoli
   for (const position of positions) {
     const currentPrice = position.last_price || position.entry_price;
     total_value += position.quantity * currentPrice;
-    total_cost += position.quantity * position.entry_price;
+    total_cost += positionCostBasis(position);
   }
 
   const unrealized_gain_loss = total_value - total_cost;
