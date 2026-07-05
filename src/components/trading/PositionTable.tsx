@@ -24,6 +24,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowUp, ArrowDown, Trash2, Edit } from 'lucide-react';
 import { formatNumber, formatCurrency } from '@/lib/utils';
+import {
+  calculateGainLoss,
+  calculateGainLossPercent,
+  calculateAnnualizedReturnPercent,
+  getBuyDate,
+} from './position-metrics';
 
 interface PositionTableProps {
   positions: PortfolioPosition[];
@@ -32,7 +38,15 @@ interface PositionTableProps {
   currency?: string;
 }
 
-type SortField = 'symbol' | 'quantity' | 'entry_price' | 'current_price' | 'gain_loss' | 'gain_loss_percent';
+type SortField =
+  | 'symbol'
+  | 'quantity'
+  | 'buy_date'
+  | 'entry_price'
+  | 'current_price'
+  | 'gain_loss'
+  | 'gain_loss_percent'
+  | 'annualized_percent';
 type SortDirection = 'asc' | 'desc';
 
 export default function PositionTable({
@@ -41,7 +55,7 @@ export default function PositionTable({
   onDelete,
   currency = 'EUR',
 }: PositionTableProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [sortField, setSortField] = useState<SortField>('gain_loss');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -54,7 +68,17 @@ export default function PositionTable({
       
       case 'quantity':
         return multiplier * (a.quantity - b.quantity);
-      
+
+      case 'buy_date': {
+        // Positionen ohne Datum ans Ende, unabhängig von der Sortierrichtung
+        const dateA = getBuyDate(a)?.getTime();
+        const dateB = getBuyDate(b)?.getTime();
+        if (dateA == null && dateB == null) return 0;
+        if (dateA == null) return 1;
+        if (dateB == null) return -1;
+        return multiplier * (dateA - dateB);
+      }
+
       case 'entry_price':
         return multiplier * (a.entry_price - b.entry_price);
       
@@ -72,7 +96,17 @@ export default function PositionTable({
         const gainB = calculateGainLossPercent(b);
         return multiplier * (gainA - gainB);
       }
-      
+
+      case 'annualized_percent': {
+        // Nicht berechenbare Werte (null) ans Ende, unabhängig von der Richtung
+        const annA = calculateAnnualizedReturnPercent(a);
+        const annB = calculateAnnualizedReturnPercent(b);
+        if (annA == null && annB == null) return 0;
+        if (annA == null) return 1;
+        if (annB == null) return -1;
+        return multiplier * (annA - annB);
+      }
+
       default:
         return 0;
     }
@@ -121,6 +155,12 @@ export default function PositionTable({
               </div>
             </TableHead>
             <TableHead>{t('trading.positionTable.headerName')}</TableHead>
+            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('buy_date')}>
+              <div className="flex items-center justify-end">
+                {t('trading.positionTable.headerBuyDate')}
+                {getSortIcon('buy_date')}
+              </div>
+            </TableHead>
             <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('quantity')}>
               <div className="flex items-center justify-end">
                 {t('trading.positionTable.headerQuantity')}
@@ -151,6 +191,12 @@ export default function PositionTable({
                 {getSortIcon('gain_loss_percent')}
               </div>
             </TableHead>
+            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('annualized_percent')}>
+              <div className="flex items-center justify-end">
+                {t('trading.positionTable.headerAnnualized')}
+                {getSortIcon('annualized_percent')}
+              </div>
+            </TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
@@ -159,6 +205,8 @@ export default function PositionTable({
             const currentPrice = position.last_price || position.entry_price;
             const gainLoss = calculateGainLoss(position);
             const gainLossPercent = calculateGainLossPercent(position);
+            const annualizedPercent = calculateAnnualizedReturnPercent(position);
+            const buyDate = getBuyDate(position);
             const isPositive = gainLoss >= 0;
 
             return (
@@ -175,6 +223,9 @@ export default function PositionTable({
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {position.name || '-'}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {buyDate ? buyDate.toLocaleDateString(locale) : '—'}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatNumber(position.quantity)}
@@ -204,6 +255,16 @@ export default function PositionTable({
                     {isPositive ? '+' : ''}
                     {gainLossPercent.toFixed(2)}%
                   </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  {annualizedPercent != null ? (
+                    <span className={annualizedPercent >= 0 ? 'text-positive dark:text-positive' : 'text-warning dark:text-warning'}>
+                      {annualizedPercent >= 0 ? '+' : ''}
+                      {annualizedPercent.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1 justify-end">
@@ -248,19 +309,4 @@ export default function PositionTable({
       </Table>
     </div>
   );
-}
-
-// -----------------------------------------------------------------------------
-// Helper Functions
-// -----------------------------------------------------------------------------
-
-function calculateGainLoss(position: PortfolioPosition): number {
-  const currentPrice = position.last_price || position.entry_price;
-  return (currentPrice - position.entry_price) * position.quantity;
-}
-
-function calculateGainLossPercent(position: PortfolioPosition): number {
-  const currentPrice = position.last_price || position.entry_price;
-  if (position.entry_price === 0) return 0;
-  return ((currentPrice - position.entry_price) / position.entry_price) * 100;
 }
