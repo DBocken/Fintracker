@@ -311,3 +311,22 @@ export const EtoroCashAccountTransactionsResponseSchema = z.object({
 
 export type EtoroCashAccountTransaction = z.infer<typeof EtoroCashAccountTransactionSchema>;
 export type EtoroCashAccountTransactionsResponse = z.infer<typeof EtoroCashAccountTransactionsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/market-data/stocks-industries (Spec abgefragt 2026-07-06,
+// v1.291.0). Branchen-Namen je stocksIndustryId (siehe
+// EtoroInstrumentDisplayDataSchema.stocksIndustryId oben) — Grundlage der
+// Sektor-Exposure im Analyse-Tab.
+// -----------------------------------------------------------------------------
+
+export const EtoroStocksIndustrySchema = z.object({
+  industryID: z.number(),
+  industryName: z.string().optional(),
+});
+
+export const EtoroStocksIndustriesResponseSchema = z.object({
+  stocksIndustries: z.array(EtoroStocksIndustrySchema).optional(),
+});
+
+export type EtoroStocksIndustry = z.infer<typeof EtoroStocksIndustrySchema>;
+export type EtoroStocksIndustriesResponse = z.infer<typeof EtoroStocksIndustriesResponseSchema>;

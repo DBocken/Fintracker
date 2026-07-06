@@ -20,7 +20,7 @@ import {
   fetchEtoroBalancesHistoryForPortfolio,
   fetchEtoroCashTransactionsForPortfolio,
 } from '@/services/etoro-account-service';
-import { getEtoroCredentials, fetchEtoroInstrumentMeta } from '@/services/etoro-service';
+import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustries } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { selectCashAccountId, selectPerformanceSeries } from '@/services/etoro-performance';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
@@ -28,6 +28,7 @@ import EtoroOverviewTab from './EtoroOverviewTab';
 import EtoroMirrorsTab from './EtoroMirrorsTab';
 import EtoroHistoryTab from './EtoroHistoryTab';
 import EtoroPerformanceTab from './EtoroPerformanceTab';
+import EtoroAnalysisTab from './EtoroAnalysisTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -154,7 +155,7 @@ export default function TradingDashboard() {
       !!activePortfolio?.id &&
       isEtoro &&
       unlocked &&
-      (effectiveTab === 'overview' || effectiveTab === 'mirrors'),
+      (effectiveTab === 'overview' || effectiveTab === 'mirrors' || effectiveTab === 'analysis'),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
@@ -307,6 +308,71 @@ export default function TradingDashboard() {
   });
 
   const performanceSeries = useMemo(() => selectPerformanceSeries(etoroBalancesHistory), [etoroBalancesHistory]);
+
+  // Instrument-Metadaten für ALLE Instrument-Aggregate (Analyse-Tab) — anders
+  // als mirrorInstrumentMeta/tradeHistoryInstrumentMeta wird hier zusätzlich
+  // stocksIndustryId benötigt (Grundlage der Sektor-Exposure).
+  const analysisInstrumentIds = useMemo(
+    () => (etoroAggregate?.instrumentAggregates ?? []).map((inst) => inst.instrumentId),
+    [etoroAggregate],
+  );
+
+  const { data: analysisInstrumentMeta } = useQuery({
+    queryKey: ['etoro-analysis-instruments', activePortfolio?.id],
+    queryFn: async () => {
+      try {
+        const { apiKey, userKey } = getEtoroCredentials(activePortfolio);
+        return await fetchEtoroInstrumentMeta(apiKey, userKey, analysisInstrumentIds);
+      } catch (err) {
+        console.error('[TradingDashboard] Analyse-Instrument-Auflösung fehlgeschlagen:', err);
+        return new Map();
+      }
+    },
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      effectiveTab === 'analysis' &&
+      analysisInstrumentIds.length > 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const analysisInstrumentIndustryMap = useMemo(() => {
+    const map = new Map<number, number | undefined>();
+    analysisInstrumentMeta?.forEach((meta, instrumentId) => map.set(instrumentId, meta.stocksIndustryId));
+    return map;
+  }, [analysisInstrumentMeta]);
+
+  const analysisIndustryIds = useMemo(
+    () => [...new Set([...analysisInstrumentIndustryMap.values()].filter((id): id is number => id != null))],
+    [analysisInstrumentIndustryMap],
+  );
+
+  // Branchennamen je stocksIndustryId — eigene Query, da erst nach der
+  // Instrument-Auflösung bekannt, welche Branchen überhaupt vorkommen.
+  const { data: analysisIndustryNameMap } = useQuery({
+    queryKey: ['etoro-stocks-industries', activePortfolio?.id, analysisIndustryIds],
+    queryFn: async () => {
+      try {
+        const { apiKey, userKey } = getEtoroCredentials(activePortfolio);
+        return await fetchEtoroStocksIndustries(apiKey, userKey, analysisIndustryIds);
+      } catch (err) {
+        console.error('[TradingDashboard] Branchen-Auflösung fehlgeschlagen:', err);
+        return new Map();
+      }
+    },
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      effectiveTab === 'analysis' &&
+      analysisIndustryIds.length > 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   // Σ aktueller Wert der lokal gespeicherten eToro-Positionen (USD) für den
   // Abgleich im Übersicht-Tab.
@@ -670,6 +736,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="history" className="shrink-0">{t('trading.etoro.tabs.history')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="analysis" className="shrink-0">{t('trading.etoro.tabs.analysis')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -729,6 +798,21 @@ export default function TradingDashboard() {
                 },
               }}
               instrumentMeta={tradeHistoryInstrumentMeta}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="analysis" className="space-y-4">
+            <EtoroAnalysisTab
+              isLocked={!unlocked}
+              isLoading={isLoadingAggregate}
+              error={aggregateError as Error | null}
+              onRetry={() => refetchAggregate()}
+              aggregate={etoroAggregate}
+              instrumentIndustryMap={analysisInstrumentIndustryMap}
+              industryNameMap={analysisIndustryNameMap ?? new Map()}
+              instrumentMeta={analysisInstrumentMeta}
             />
           </TabsContent>
         )}

@@ -8,6 +8,7 @@ import {
   EtoroBalancesResponseSchema,
   EtoroHistoricalBalancesResponseSchema,
   EtoroCashAccountTransactionsResponseSchema,
+  EtoroStocksIndustriesResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -381,5 +382,26 @@ describe('EtoroCashAccountTransactionsResponseSchema (Vertrag gegen Live-API v1.
   it('sollte ein leeres results-Array akzeptieren', () => {
     const empty = { results: [], pagination: { pageSize: 50, hasNext: false } };
     expect(EtoroCashAccountTransactionsResponseSchema.safeParse(empty).success).toBe(true);
+  });
+});
+
+describe('EtoroStocksIndustriesResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (StocksIndustriesResponse) akzeptieren', () => {
+    const realApiResponse = {
+      stocksIndustries: [
+        { industryID: 12, industryName: 'Technology' },
+        { industryID: 7, industryName: 'Healthcare' },
+      ],
+    };
+    expect(EtoroStocksIndustriesResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte industryID als Pflichtfeld je Branche verlangen', () => {
+    const missingId = { stocksIndustries: [{ industryName: 'Technology' }] };
+    expect(EtoroStocksIndustriesResponseSchema.safeParse(missingId).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroStocksIndustriesResponseSchema.safeParse({}).success).toBe(true);
   });
 });

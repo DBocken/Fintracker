@@ -140,6 +140,7 @@ serve(async (req) => {
     apiKey?: string;
     userKey?: string;
     instrumentIds?: unknown;
+    stocksIndustryIds?: unknown;
     minDate?: unknown;
     page?: unknown;
     pageSize?: unknown;
@@ -188,6 +189,19 @@ serve(async (req) => {
     }
     const url = `${ETORO_BASE}/market-data/instruments/rates?instrumentIds=${ids.join(",")}`;
     return fetchEtoroJson(headers, url, apiKey, userKey, "rates");
+  }
+
+  // Branchen-Namen je stocksIndustryId (Analyse-Tab: Sektor-Exposure).
+  // stocksIndustryIds ist laut Spec optional — ohne Filter liefert eToro alle
+  // Branchen; wir filtern client-seitig ohnehin auf die im Konto vorkommenden.
+  if (endpoint === "stocks-industries") {
+    const ids = Array.isArray(body?.stocksIndustryIds)
+      ? body.stocksIndustryIds.filter((id): id is number => typeof id === "number" && Number.isFinite(id))
+      : [];
+    const url = ids.length > 0
+      ? `${ETORO_BASE}/market-data/stocks-industries?stocksIndustryIds=${ids.join(",")}`
+      : `${ETORO_BASE}/market-data/stocks-industries`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "stocks-industries");
   }
 
   // Geschlossene Trades (Handelshistorie) — minDate ist bei eToro ein

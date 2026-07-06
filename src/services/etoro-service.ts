@@ -10,7 +10,11 @@ import {
 } from './portfolio-service';
 import { localEncryption } from './local-crypto';
 import { t } from '../i18n/serviceT';
-import { EtoroInstrumentsResponseSchema, EtoroLiveRatesResponseSchema } from './etoro-api-schemas';
+import {
+  EtoroInstrumentsResponseSchema,
+  EtoroLiveRatesResponseSchema,
+  EtoroStocksIndustriesResponseSchema,
+} from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
 // eToro API Types (echtes Schema — camelCase, siehe api-portal.etoro.com
@@ -35,6 +39,8 @@ export interface EtoroPosition {
 export interface EtoroInstrumentMeta {
   symbol: string;
   name?: string;
+  /** eToro-Branchen-ID (stocksIndustryId) — Grundlage der Sektor-Exposure im Analyse-Tab. */
+  stocksIndustryId?: number;
 }
 
 export interface EtoroSyncResult {
@@ -174,6 +180,7 @@ export async function fetchEtoroInstrumentMeta(
     meta.set(entry.instrumentID, {
       symbol: entry.symbolFull.toUpperCase(),
       name: entry.instrumentDisplayName,
+      stocksIndustryId: entry.stocksIndustryId,
     });
   }
 
@@ -231,6 +238,46 @@ export async function fetchEtoroRates(
   }
 
   return prices;
+}
+
+/**
+ * Löst stocksIndustryId → Branchenname auf (/market-data/stocks-industries) —
+ * Grundlage der Sektor-Exposure im Analyse-Tab. Schlägt die Auflösung fehl,
+ * wird eine leere Map zurückgegeben statt zu werfen: die Analyse bleibt
+ * möglich, Branchen bekommen dann einen Fallback-Namen ("Branche #<id>") im
+ * Tab selbst statt komplett abzubrechen.
+ */
+export async function fetchEtoroStocksIndustries(
+  apiKey: string,
+  userKey: string,
+  stocksIndustryIds: number[] = [],
+): Promise<Map<number, string>> {
+  const uniqueIds = [...new Set(stocksIndustryIds)];
+  const names = new Map<number, string>();
+
+  const { data, error } = await callEtoroProxy(apiKey, userKey, {
+    endpoint: 'stocks-industries',
+    stocksIndustryIds: uniqueIds,
+  });
+  if (error) {
+    console.error('[etoro-service] Branchen-Auflösung fehlgeschlagen:', error.message);
+    return names;
+  }
+
+  const parsed = EtoroStocksIndustriesResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    console.error('[etoro-service] Unerwartetes Antwort-Schema bei Branchen-Auflösung.', {
+      issues: parsed.error.issues,
+      received: data,
+    });
+    return names;
+  }
+
+  for (const industry of parsed.data.stocksIndustries ?? []) {
+    if (industry.industryName) names.set(industry.industryID, industry.industryName);
+  }
+
+  return names;
 }
 
 // -----------------------------------------------------------------------------
