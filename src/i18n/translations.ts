@@ -217,6 +217,7 @@ export const translations = {
       notEtoroPortfolio: 'Dieses Portfolio ist kein eToro-Portfolio.',
       credentialsMissing: 'eToro-Zugangsdaten fehlen in diesem Portfolio. Bitte verbinde das Konto erneut.',
       proxyError: 'eToro-Abruf fehlgeschlagen: {error}',
+      unexpectedResponse: 'Unerwartete Antwort von eToro. Bitte versuche es später erneut.',
     },
     localSettingsService: {
       clientOnly: 'Lokale Daten können nur im Client verarbeitet werden.',
@@ -1125,6 +1126,35 @@ export const translations = {
       },
     },
     trading: {
+      etoro: {
+        tabs: {
+          overview: 'Übersicht',
+        },
+        gate: {
+          loading: 'eToro-Daten werden geladen …',
+          lockedTitle: 'Verschlüsselung gesperrt',
+          lockedDesc: 'Entsperre die lokale Verschlüsselung, um deine eToro-Kontodaten zu laden.',
+          scopeMissingTitle: 'Fehlende Berechtigung',
+          scopeMissingDesc: 'Dein eToro-API-Schlüssel hat nicht die nötige Berechtigung für diese Daten. Erstelle in den eToro-Einstellungen einen Schlüssel mit den passenden Lese-Rechten.',
+          errorTitle: 'Daten konnten nicht geladen werden',
+          retry: 'Erneut versuchen',
+        },
+        overview: {
+          accountTotalValue: 'eToro Gesamtwert',
+          accountTotalCaption: 'Kontowert inkl. Cash & Smart Portfolios',
+          accountSection: 'Konto',
+          availableCash: 'Verfügbares Cash',
+          frozenCash: 'Reserviertes Cash',
+          balance: 'Kontostand',
+          openPnl: 'Offene G/V',
+          usedMargin: 'Genutzte Margin',
+          reconcileSection: 'Abgleich',
+          reconcileHint: 'Die Differenz zwischen lokalen Positionen und eToro-Kontowert enthält u. a. Smart Portfolios (siehe eigener Tab).',
+          localPositions: 'Lokale Positionen (Σ)',
+          etoroCash: 'eToro Cash',
+          etoroTotal: 'eToro Kontowert',
+        },
+      },
       ocrImportDialog: {
         messages: {
           imageRequired: 'Bitte laden Sie ein Bild hoch',
@@ -3292,6 +3322,7 @@ export const translations = {
       notEtoroPortfolio: 'This portfolio is not an eToro portfolio.',
       credentialsMissing: 'eToro credentials are missing in this portfolio. Please reconnect the account.',
       proxyError: 'eToro request failed: {error}',
+      unexpectedResponse: 'Unexpected response from eToro. Please try again later.',
     },
     localSettingsService: {
       clientOnly: 'Local data can only be processed on the client.',
@@ -4200,6 +4231,35 @@ export const translations = {
       },
     },
     trading: {
+      etoro: {
+        tabs: {
+          overview: 'Overview',
+        },
+        gate: {
+          loading: 'Loading eToro data …',
+          lockedTitle: 'Encryption locked',
+          lockedDesc: 'Unlock local encryption to load your eToro account data.',
+          scopeMissingTitle: 'Missing permission',
+          scopeMissingDesc: 'Your eToro API key lacks the permission needed for this data. Create a key with the matching read scopes in your eToro settings.',
+          errorTitle: 'Could not load data',
+          retry: 'Try again',
+        },
+        overview: {
+          accountTotalValue: 'eToro total value',
+          accountTotalCaption: 'Account value incl. cash & Smart Portfolios',
+          accountSection: 'Account',
+          availableCash: 'Available cash',
+          frozenCash: 'Reserved cash',
+          balance: 'Balance',
+          openPnl: 'Open P&L',
+          usedMargin: 'Used margin',
+          reconcileSection: 'Reconciliation',
+          reconcileHint: 'The gap between local positions and eToro account value includes Smart Portfolios, among others (see dedicated tab).',
+          localPositions: 'Local positions (Σ)',
+          etoroCash: 'eToro cash',
+          etoroTotal: 'eToro account value',
+        },
+      },
       ocrImportDialog: {
         messages: {
           imageRequired: 'Please upload an image',
@@ -6367,6 +6427,7 @@ export const translations = {
       notEtoroPortfolio: "Huch ghomvam eToro Huch ghom 'oHbe'.",
       credentialsMissing: "Huch ghomvamDaq eToro ghItlhmey tu'lu'be'. chaw'moHwI' yIrurqa'moH.",
       proxyError: "eToro tlhapghach Qagh: {error}",
+      unexpectedResponse: "eToro jang pIH'eghbe'lu'bogh. tugh yInIDqa'.",
     },
     localSettingsService: {
       clientOnly: "De' naDevbogh naDevDaq neH lo'laH.",
@@ -7261,6 +7322,35 @@ export const translations = {
       },
     },
     trading: {
+      etoro: {
+        tabs: {
+          overview: "Sum",
+        },
+        gate: {
+          loading: "eToro De' luylu' …",
+          lockedTitle: "So'taHghach ngaSlu'",
+          lockedDesc: "eToro De' lupoQmeH So'taHghach yIpoSmoH.",
+          scopeMissingTitle: "chaw' tu'lu'be'",
+          scopeMissingDesc: "De'vam lupoQmeH chaw' Hutlh eToro API ngaQHa'moHwI'lIj. eToro DuHmeyDaq laDmeH chaw' ghaj ngaQHa'moHwI' chu' yIchenmoH.",
+          errorTitle: "De' luylu'laHbe'",
+          retry: "yInIDqa'",
+        },
+        overview: {
+          accountTotalValue: "eToro naQ mI'",
+          accountTotalCaption: "Huch je Smart Portfolio naQbogh Huch ghom mI'",
+          accountSection: "Huch ghom",
+          availableCash: "lo'laH Huch",
+          frozenCash: "pollu'bogh Huch",
+          balance: "Huch ghom mI'",
+          openPnl: "poSbogh Suq/chIl",
+          usedMargin: "lo'lu'bogh margin",
+          reconcileSection: "rurmoHghach",
+          reconcileHint: "eToro Huch ghom mI' je pat position mI' joj pImmoHbogh, Smart Portfolio naQ ('ay' pagh).",
+          localPositions: "pat position (Σ)",
+          etoroCash: "eToro Huch",
+          etoroTotal: "eToro Huch ghom mI'",
+        },
+      },
       ocrImportDialog: {
         messages: {
           imageRequired: "image yIchel",

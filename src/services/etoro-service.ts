@@ -51,7 +51,7 @@ export interface EtoroSyncResult {
 // Edge Function `etoro-proxy` gereicht — dort weder gespeichert noch geloggt.
 // -----------------------------------------------------------------------------
 
-async function callEtoroProxy(
+export async function callEtoroProxy(
   apiKey: string,
   userKey: string,
   extra: Record<string, unknown>,
@@ -60,6 +60,27 @@ async function callEtoroProxy(
     body: { apiKey, userKey, ...extra },
   });
   return { data, error };
+}
+
+/**
+ * Liest die (lokal verschlüsselt gespeicherten) eToro-Credentials eines
+ * Portfolios aus — mit demselben Schutzniveau wie Connect/Sync: ohne
+ * entsperrte Verschlüsselung kein Zugriff. Zentral, damit alle Live-Abfragen
+ * (Account-Service) denselben Guard nutzen.
+ */
+export function getEtoroCredentials(portfolio: Portfolio | null): { apiKey: string; userKey: string } {
+  if (!localEncryption.isUnlocked()) {
+    throw new Error(t('etoroService.encryptionRequired'));
+  }
+  if (!portfolio || portfolio.type !== 'etoro') {
+    throw new Error(t('etoroService.notEtoroPortfolio'));
+  }
+  const apiKey = portfolio.provider_config?.apiKey as string | undefined;
+  const userKey = portfolio.provider_config?.userKey as string | undefined;
+  if (!apiKey || !userKey) {
+    throw new Error(t('etoroService.credentialsMissing'));
+  }
+  return { apiKey, userKey };
 }
 
 async function callEtoroProxyOrThrow(

@@ -38,12 +38,19 @@ const corsHeaders = (origin: string | null): HeadersInit => {
   return headers;
 };
 
-// Whitelist: nur lesende Portfolio-Endpoints — keine Order-/Trading-Aufrufe.
+// Whitelist: ausschließlich LESENDE Endpoints. Order-Ausführung
+// (/trading/execution/*), Geldtransfers (/money/transfers) und Auszahlungen
+// (/money/withdraw/*) werden hier NIEMALS aufgenommen — der Proxy kann prinzip-
+// bedingt nicht handeln, auch nicht bei kompromittiertem Key.
 const ETORO_BASE = "https://public-api.etoro.com/api/v1";
 const ENDPOINT_PATHS: Record<string, string[]> = {
   // Primär der dokumentierte v1-Pfad, als Fallback der ältere real-Pfad.
   "portfolio": ["/trading/info/portfolio", "/trading/info/real/portfolio"],
   "demo-portfolio": ["/trading/info/demo/portfolio"],
+  // Konto-Snapshot inkl. Cash & Smart Portfolios (mirrors).
+  "aggregate-portfolio": ["/trading/info/aggregate-portfolio"],
+  // Profil + Scopes des Tokens (für Scope-basierte Degradation im Client).
+  "me": ["/me"],
 };
 
 function jsonResponse(headers: HeadersInit, status: number, body: unknown): Response {
