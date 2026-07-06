@@ -21,6 +21,7 @@ import { CategoryManager } from './CategoryManager';
 import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
 import { AutoCategorizationSettings } from './AutoCategorizationSettings';
+import TaxReserveSettings from './TaxReserveSettings';
 import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
@@ -302,6 +303,9 @@ export function EnhancedSettings() {
               onRecategorize={() => recategorizeMutation.mutate()}
               isRecategorizing={recategorizeMutation.isPending}
             />
+            <FeatureGate feature="creatorPack" fallback={null}>
+              <TaxReserveSettings />
+            </FeatureGate>
           </div>
         </section>
 

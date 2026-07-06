@@ -23,12 +23,19 @@ import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useTier } from "@/hooks/useTier";
+import { hasFeatureAccess } from "@/lib/tier";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function CoachPage() {
   const { t, locale } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  const { data: coach, isLoading: coachLoading } = useQuery({ queryKey: ["coach-overview", locale], queryFn: getCoachOverview });
+  const tier = useTier();
+  const includeTaxReserve = hasFeatureAccess(tier, "creatorPack");
+  const { data: coach, isLoading: coachLoading } = useQuery({
+    queryKey: ["coach-overview", locale, includeTaxReserve],
+    queryFn: () => getCoachOverview({ includeTaxReserve }),
+  });
   const { data: health } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
   const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones", locale], queryFn: evaluateMilestones });
 
