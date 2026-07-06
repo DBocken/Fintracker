@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import type { Portfolio, PortfolioPosition } from '@/types';
 import {
@@ -22,6 +22,8 @@ import {
   fetchEtoroWatchlistsForPortfolio,
   fetchEtoroWatchlistItemsForPortfolio,
   fetchEtoroPriceAlertsForPortfolio,
+  fetchEtoroNewsFeedForPortfolio,
+  fetchEtoroMarketFeedForPortfolio,
 } from '@/services/etoro-account-service';
 import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustries, fetchEtoroRates } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
@@ -34,6 +36,7 @@ import EtoroHistoryTab from './EtoroHistoryTab';
 import EtoroPerformanceTab from './EtoroPerformanceTab';
 import EtoroAnalysisTab from './EtoroAnalysisTab';
 import EtoroWatchlistsTab from './EtoroWatchlistsTab';
+import EtoroNewsTab, { type EtoroNewsFilter } from './EtoroNewsTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,6 +153,13 @@ export default function TradingDashboard() {
   const [selectedWatchlistId, setSelectedWatchlistId] = useState<string | null>(null);
   useEffect(() => {
     setSelectedWatchlistId(null);
+  }, [activePortfolio?.id]);
+
+  // Filter im News-Tab ("Alle" vs. "Meine Positionen"). Bei Portfolio-Wechsel
+  // zurücksetzen wie activeTab.
+  const [newsFilter, setNewsFilter] = useState<EtoroNewsFilter>('all');
+  useEffect(() => {
+    setNewsFilter('all');
   }, [activePortfolio?.id]);
 
   // Konto-Snapshot (Cash, Totals, Mirrors) — Live-View, nur bei aktivem
@@ -476,6 +486,48 @@ export default function TradingDashboard() {
         .reduce((sum, p) => sum + p.quantity * (p.last_price || p.entry_price), 0),
     [positions],
   );
+
+  // Allgemeiner News-Feed (News-Tab, Filter "Alle").
+  const {
+    data: etoroNewsFeed,
+    isLoading: isLoadingNewsFeed,
+    error: newsFeedError,
+    refetch: refetchNewsFeed,
+  } = useQuery({
+    queryKey: ['etoro-news-feed', activePortfolio?.id],
+    queryFn: () => fetchEtoroNewsFeedForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'news' && newsFilter === 'all',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Gehaltene eToro-Instrumente für den "Meine Positionen"-Filter — auf die
+  // ersten 10 begrenzt (ein Proxy-Aufruf je Instrument teilt sich die
+  // Feeds-Rate-Limit-Gruppe; mehr wäre auf einem breit diversifizierten Konto
+  // unnötig teuer für einen reinen Lesetab).
+  const myPositionsMarketIds = useMemo(() => {
+    const ids = (positions ?? [])
+      .filter(isEtoroPosition)
+      .map((p) => p.metadata?.etoro_instrument_id)
+      .filter((id): id is number => typeof id === 'number');
+    return [...new Set(ids)].slice(0, 10).map(String);
+  }, [positions]);
+
+  const positionsFeedQueries = useQueries({
+    queries: myPositionsMarketIds.map((marketId) => ({
+      queryKey: ['etoro-market-feed', activePortfolio?.id, marketId],
+      queryFn: () => fetchEtoroMarketFeedForPortfolio(activePortfolio, marketId),
+      enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'news' && newsFilter === 'my-positions',
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: false,
+    })),
+  });
+
+  const isLoadingPositionsFeed = positionsFeedQueries.some((q) => q.isLoading);
+  const positionsFeedError = positionsFeedQueries.find((q) => q.error)?.error;
+  const refetchPositionsFeed = () => positionsFeedQueries.forEach((q) => q.refetch());
 
   // Refresh quotes mutation
   const refreshQuotesMutation = useMutation({
@@ -835,6 +887,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="watchlists" className="shrink-0">{t('trading.etoro.tabs.watchlists')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="news" className="shrink-0">{t('trading.etoro.tabs.news')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -938,6 +993,28 @@ export default function TradingDashboard() {
                 onRetry: () => refetchPriceAlerts(),
               }}
               rates={watchlistsRates ?? new Map()}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="news" className="space-y-4">
+            <EtoroNewsTab
+              isLocked={!unlocked}
+              filter={newsFilter}
+              onFilterChange={setNewsFilter}
+              newsFeed={{
+                data: etoroNewsFeed,
+                isLoading: isLoadingNewsFeed,
+                error: newsFeedError as Error | null,
+                onRetry: () => refetchNewsFeed(),
+              }}
+              positionsFeed={{
+                responses: positionsFeedQueries.map((q) => q.data),
+                isLoading: isLoadingPositionsFeed,
+                error: positionsFeedError as Error | null,
+                onRetry: refetchPositionsFeed,
+              }}
             />
           </TabsContent>
         )}

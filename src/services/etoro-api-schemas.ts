@@ -396,3 +396,59 @@ export const EtoroPriceAlertsResponseSchema = z.object({
 
 export type EtoroPriceAlert = z.infer<typeof EtoroPriceAlertSchema>;
 export type EtoroPriceAlertsResponse = z.infer<typeof EtoroPriceAlertsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/feeds/news und GET /api/v1/feeds/markets/{marketId} (Spec
+// abgefragt 2026-07-06, v1.291.0) — beide liefern dieselbe Hülle
+// (DiscussionsResponse). Nur die für die reine Text-Anzeige benötigten Felder
+// abgebildet (kein Comment/Emotion/Attachment/Avatar — News-Tab zeigt nur
+// Text, Autor, Zeitstempel und verlinkte Instrumente).
+//
+// SICHERHEIT: message.text wird von der Komponente ausschließlich als reiner
+// Text gerendert (kein dangerouslySetInnerHTML) — nutzergenerierter Inhalt,
+// daher potenzielles XSS-Ziel. Siehe EtoroNewsTab-Tests ([REGRESSION] HTML
+// im Text wird nicht ausgeführt).
+// -----------------------------------------------------------------------------
+
+export const EtoroFeedUserSchema = z.object({
+  id: z.string().optional(),
+  username: z.string().optional(),
+});
+
+export const EtoroFeedMarketSchema = z.object({
+  id: z.string().optional(),
+  symbolName: z.string().optional(),
+  displayName: z.string().optional(),
+  internalId: z.number().optional(),
+});
+
+export const EtoroFeedPostSchema = z.object({
+  id: z.string(),
+  owner: EtoroFeedUserSchema.optional(),
+  message: z
+    .object({
+      text: z.string().optional(),
+    })
+    .optional(),
+  created: z.string().optional(),
+  tags: z
+    .array(
+      z.object({
+        market: EtoroFeedMarketSchema.optional(),
+      }),
+    )
+    .optional(),
+});
+
+export const EtoroDiscussionSchema = z.object({
+  id: z.string(),
+  post: EtoroFeedPostSchema.optional(),
+});
+
+export const EtoroDiscussionsResponseSchema = z.object({
+  discussions: z.array(EtoroDiscussionSchema).optional(),
+});
+
+export type EtoroFeedPost = z.infer<typeof EtoroFeedPostSchema>;
+export type EtoroDiscussion = z.infer<typeof EtoroDiscussionSchema>;
+export type EtoroDiscussionsResponse = z.infer<typeof EtoroDiscussionsResponseSchema>;

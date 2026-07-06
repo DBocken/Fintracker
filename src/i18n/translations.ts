@@ -1146,6 +1146,7 @@ export const translations = {
           history: 'Historie',
           analysis: 'Analyse',
           watchlists: 'Watchlists',
+          news: 'News',
         },
         gate: {
           loading: 'eToro-Daten werden geladen …',
@@ -1264,6 +1265,16 @@ export const translations = {
           columnCurrentPrice: 'Aktueller Kurs',
           columnDistance: 'Abstand',
           instrumentFallback: 'Instrument #{id}',
+        },
+        news: {
+          title: 'News',
+          filterLabel: 'Filter',
+          filterAll: 'Alle',
+          filterMyPositions: 'Meine Positionen',
+          emptyTitle: 'Keine Beiträge',
+          emptyAllDesc: 'Aktuell liegen keine News-Beiträge vor.',
+          emptyMyPositionsDesc: 'Für deine gehaltenen Positionen liegen aktuell keine Beiträge vor.',
+          unknownAuthor: 'Unbekannt',
         },
       },
       ocrImportDialog: {
@@ -4461,6 +4472,7 @@ export const translations = {
           history: 'History',
           analysis: 'Analysis',
           watchlists: 'Watchlists',
+          news: 'News',
         },
         gate: {
           loading: 'Loading eToro data …',
@@ -4579,6 +4591,16 @@ export const translations = {
           columnCurrentPrice: 'Current price',
           columnDistance: 'Distance',
           instrumentFallback: 'Instrument #{id}',
+        },
+        news: {
+          title: 'News',
+          filterLabel: 'Filter',
+          filterAll: 'All',
+          filterMyPositions: 'My positions',
+          emptyTitle: 'No posts',
+          emptyAllDesc: 'There are currently no news posts.',
+          emptyMyPositionsDesc: 'There are currently no posts for your held positions.',
+          unknownAuthor: 'Unknown',
         },
       },
       ocrImportDialog: {
@@ -7762,6 +7784,7 @@ export const translations = {
           history: "qeS",
           analysis: "chovnatlh",
           watchlists: "bejlu'meH tetlh",
+          news: "QIn",
         },
         gate: {
           loading: "eToro De' luylu' …",
@@ -7880,6 +7903,16 @@ export const translations = {
           columnCurrentPrice: "DaH mI'",
           columnDistance: "chaq",
           instrumentFallback: "instrument #{id}",
+        },
+        news: {
+          title: "QIn",
+          filterLabel: "wIvlu'meH",
+          filterAll: "Hoch",
+          filterMyPositions: "position wIj",
+          emptyTitle: "QIn tu'lu'be'",
+          emptyAllDesc: "DaH QIn tu'lu'be'.",
+          emptyMyPositionsDesc: "position wIj QIn tu'lu'be'.",
+          unknownAuthor: "Sovbe'lu'",
         },
       },
       ocrImportDialog: {

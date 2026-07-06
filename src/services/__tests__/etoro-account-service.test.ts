@@ -28,6 +28,10 @@ import {
   fetchEtoroWatchlistItemsForPortfolio,
   fetchEtoroPriceAlerts,
   fetchEtoroPriceAlertsForPortfolio,
+  fetchEtoroNewsFeed,
+  fetchEtoroNewsFeedForPortfolio,
+  fetchEtoroMarketFeed,
+  fetchEtoroMarketFeedForPortfolio,
   EtoroAccountError,
 } from '../etoro-account-service';
 import {
@@ -39,6 +43,7 @@ import {
   EtoroCashAccountTransactionsResponseSchema,
   EtoroWatchlistsResponseSchema,
   EtoroPriceAlertsResponseSchema,
+  EtoroDiscussionsResponseSchema,
 } from '../etoro-api-schemas';
 import type { Portfolio } from '../../types';
 
@@ -652,6 +657,117 @@ describe('fetchEtoroPriceAlertsForPortfolio (mit Credentials-Guard)', () => {
 
   it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
     await expect(fetchEtoroPriceAlertsForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+// Fixture validiert sich selbst gegen das Schema (Issue-#195-Regel).
+function discussionsResponse() {
+  return EtoroDiscussionsResponseSchema.parse({
+    discussions: [
+      {
+        id: '1',
+        post: {
+          id: '1',
+          owner: { username: 'johndoe' },
+          message: { text: 'Excited about $TSLA earnings next week!' },
+          created: '2026-01-15T10:30:00Z',
+          tags: [{ market: { symbolName: 'TSLA', internalId: 59114 } }],
+        },
+      },
+    ],
+  });
+}
+
+describe('fetchEtoroNewsFeed', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den feeds-news-Endpoint über den Proxy aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: discussionsResponse(), error: null } as never);
+
+    const result = await fetchEtoroNewsFeed('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'feeds-news', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.discussions).toHaveLength(1);
+  });
+
+  it('sollte take/offset durchreichen', async () => {
+    invokeMock.mockResolvedValue({ data: discussionsResponse(), error: null } as never);
+
+    await fetchEtoroNewsFeed('k1', 'k2', { take: 50, offset: 10 });
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'feeds-news', apiKey: 'k1', userKey: 'k2', take: 50, offset: 10 },
+    });
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender feed:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+    await expect(fetchEtoroNewsFeed('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { discussions: [{ post: { text: 'x' } }] }, error: null } as never);
+    await expect(fetchEtoroNewsFeed('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroNewsFeedForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroNewsFeedForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchEtoroMarketFeed', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den feeds-market-Endpoint mit marketId aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: discussionsResponse(), error: null } as never);
+
+    const result = await fetchEtoroMarketFeed('k1', 'k2', '59114');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'feeds-market', apiKey: 'k1', userKey: 'k2', marketId: '59114' },
+    });
+    expect(result.discussions).toHaveLength(1);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender feed:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 401 } },
+    } as never);
+    await expect(fetchEtoroMarketFeed('k1', 'k2', '59114')).rejects.toMatchObject({ isAuthError: true });
+  });
+});
+
+describe('fetchEtoroMarketFeedForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroMarketFeedForPortfolio(etoroPortfolio(), '59114')).rejects.toThrow(/Verschlüsselung/i);
     expect(invokeMock).not.toHaveBeenCalled();
   });
 });

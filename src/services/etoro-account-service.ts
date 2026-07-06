@@ -18,6 +18,8 @@ import {
   type EtoroWatchlistsResponse,
   EtoroPriceAlertsResponseSchema,
   type EtoroPriceAlertsResponse,
+  EtoroDiscussionsResponseSchema,
+  type EtoroDiscussionsResponse,
 } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -350,4 +352,72 @@ export async function fetchEtoroPriceAlerts(apiKey: string, userKey: string): Pr
 export async function fetchEtoroPriceAlertsForPortfolio(portfolio: Portfolio | null): Promise<EtoroPriceAlertsResponse> {
   const { apiKey, userKey } = getEtoroCredentials(portfolio);
   return fetchEtoroPriceAlerts(apiKey, userKey);
+}
+
+export interface EtoroNewsFeedOptions {
+  take?: number;
+  offset?: number;
+}
+
+/**
+ * Holt den allgemeinen News-Feed (/feeds/news, eToro-Ranking). Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true (Scope
+ * etoro-public:feed:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroNewsFeed(
+  apiKey: string,
+  userKey: string,
+  options: EtoroNewsFeedOptions = {},
+): Promise<EtoroDiscussionsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'feeds-news', ...options },
+    EtoroDiscussionsResponseSchema,
+    'feeds-news',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroNewsFeedForPortfolio(
+  portfolio: Portfolio | null,
+  options?: EtoroNewsFeedOptions,
+): Promise<EtoroDiscussionsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroNewsFeed(apiKey, userKey, options);
+}
+
+export interface EtoroMarketFeedOptions {
+  take?: number;
+}
+
+/**
+ * Holt Feed-Beiträge zu einem bestimmten Instrument (/feeds/markets/{id}) —
+ * Grundlage des "Meine Positionen"-Filters im News-Tab (ein Aufruf je
+ * gehaltenem Instrument, siehe selectMergedMarketFeed). Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true.
+ */
+export async function fetchEtoroMarketFeed(
+  apiKey: string,
+  userKey: string,
+  marketId: string,
+  options: EtoroMarketFeedOptions = {},
+): Promise<EtoroDiscussionsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'feeds-market', marketId, ...options },
+    EtoroDiscussionsResponseSchema,
+    'feeds-market',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroMarketFeedForPortfolio(
+  portfolio: Portfolio | null,
+  marketId: string,
+  options?: EtoroMarketFeedOptions,
+): Promise<EtoroDiscussionsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroMarketFeed(apiKey, userKey, marketId, options);
 }

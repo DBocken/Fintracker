@@ -157,6 +157,9 @@ serve(async (req) => {
     watchlistId?: unknown;
     pageNumber?: unknown;
     itemsPerPage?: unknown;
+    take?: unknown;
+    offset?: unknown;
+    marketId?: unknown;
   } | null = null;
   try {
     body = await req.json();
@@ -294,6 +297,37 @@ serve(async (req) => {
 
     const url = `${ETORO_BASE}/watchlists/${encodeURIComponent(watchlistId)}${qs ? `?${qs}` : ""}`;
     return fetchEtoroJson(headers, url, apiKey, userKey, "watchlist-items");
+  }
+
+  // Allgemeiner News-Feed (personalisiert, eToro-Ranking).
+  if (endpoint === "feeds-news") {
+    const take = typeof body?.take === "number" && Number.isFinite(body.take) ? body.take : undefined;
+    const offset = typeof body?.offset === "number" && Number.isFinite(body.offset) ? body.offset : undefined;
+
+    const params = new URLSearchParams();
+    if (take !== undefined) params.set("take", String(take));
+    if (offset !== undefined) params.set("offset", String(offset));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/feeds/news${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "feeds-news");
+  }
+
+  // Feed-Beiträge zu einem bestimmten Instrument (News-Tab: "Meine
+  // Positionen"-Filter, ein Aufruf je gehaltenem Instrument).
+  if (endpoint === "feeds-market") {
+    const marketId = typeof body?.marketId === "string" ? body.marketId.trim() : "";
+    if (!marketId) {
+      return jsonResponse(headers, 400, { error: "missing_market_id" });
+    }
+    const take = typeof body?.take === "number" && Number.isFinite(body.take) ? body.take : undefined;
+
+    const params = new URLSearchParams();
+    if (take !== undefined) params.set("take", String(take));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/feeds/markets/${encodeURIComponent(marketId)}${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "feeds-market");
   }
 
   const paths = ENDPOINT_PATHS[endpoint];

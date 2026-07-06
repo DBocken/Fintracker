@@ -11,6 +11,7 @@ import {
   EtoroStocksIndustriesResponseSchema,
   EtoroWatchlistsResponseSchema,
   EtoroPriceAlertsResponseSchema,
+  EtoroDiscussionsResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -471,5 +472,41 @@ describe('EtoroPriceAlertsResponseSchema (Vertrag gegen Live-API v1.291.0)', () 
 
   it('sollte eine leere Antwort {} akzeptieren', () => {
     expect(EtoroPriceAlertsResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroDiscussionsResponseSchema (Vertrag gegen Live-API v1.291.0, GET /feeds/news und /feeds/markets/{id})', () => {
+  it('sollte die reale Antwort (DiscussionsResponse) mit Post-Text/Tags akzeptieren', () => {
+    const realApiResponse = {
+      discussions: [
+        {
+          id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+          post: {
+            id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+            owner: { id: '7890', username: 'johndoe' },
+            message: { text: 'Excited about $TSLA earnings next week!', languageCode: 'en' },
+            created: '2025-01-15T10:30:00Z',
+            type: 'Default',
+            tags: [{ market: { id: 'TSLA', symbolName: 'TSLA', displayName: 'Tesla', internalId: 59114 } }],
+          },
+        },
+      ],
+      paging: { offSet: 0, take: 20 },
+    };
+    expect(EtoroDiscussionsResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte id als Pflichtfeld je Discussion/Post verlangen', () => {
+    const missingId = { discussions: [{ post: { owner: { username: 'x' } } }] };
+    expect(EtoroDiscussionsResponseSchema.safeParse(missingId).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroDiscussionsResponseSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('sollte einen Discussion-Eintrag ohne post akzeptieren (z. B. gelöschter Post)', () => {
+    const noPost = { discussions: [{ id: '1' }] };
+    expect(EtoroDiscussionsResponseSchema.safeParse(noPost).success).toBe(true);
   });
 });
