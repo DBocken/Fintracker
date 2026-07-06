@@ -153,6 +153,8 @@ export interface UserSettings {
   };
   preferred_market_provider?: 'yahoo' | 'stooq';
   gentle_mode?: boolean;
+  /** Empfohlener Steuer-Rücklage-Prozentsatz für Creator-/Selbstständigen-Einnahmen (0 = aus). */
+  tax_reserve_percent?: number;
 }
 
 export interface HierarchicalCategory extends Category {

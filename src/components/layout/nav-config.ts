@@ -15,6 +15,7 @@ import {
   Receipt,
   Activity,
   Gauge,
+  HandCoins,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 
@@ -80,6 +81,14 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: "nav.groups.analysen",
     items: [
       { label: "Dashboard", labelKey: "nav.items.dashboard", path: "/dashboard", icon: BarChart3 },
+      {
+        label: "Einkommen",
+        labelKey: "nav.items.income",
+        path: "/income",
+        icon: HandCoins,
+        subtitle: "Woher kommt mein Geld?",
+        subtitleKey: "nav.subtitles.income",
+      },
       { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
       {
         label: "Trends & Berichte",

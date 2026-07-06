@@ -19,6 +19,8 @@ const LiquidityPage = lazy(() => import("@/pages/LiquidityPage"));
 const MilestonesPage = lazy(() => import("@/pages/MilestonesPage"));
 const BudgetsPage = lazy(() => import("@/pages/BudgetsPage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const IncomePage = lazy(() => import("@/pages/IncomePage"));
+const IncomeWrappedPage = lazy(() => import("@/pages/IncomeWrappedPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
 const SimulationPage = lazy(() => import("@/pages/SimulationPage"));
@@ -111,6 +113,7 @@ function App() {
               <Route path="/milestones" element={<MilestonesPage />} />
               <Route path="/budgets" element={<BudgetsPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/income" element={<IncomePage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route
                 path="/premium"
@@ -134,6 +137,9 @@ function App() {
               <Route path="/backups" element={<Navigate to="/settings" replace />} />
               <Route path="/performance" element={<Navigate to="/settings" replace />} />
             </Route>
+
+            {/* Fullscreen-Story ohne AppShell-Chrome (Premium-gated per FeatureGate). */}
+            <Route path="/income/wrapped" element={<IncomeWrappedPage />} />
 
             <Route path="*" element={<Navigate to="/coach" replace />} />
           </>

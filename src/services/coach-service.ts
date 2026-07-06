@@ -2,7 +2,36 @@ import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuida
 import { getTransactions, getCategories } from "./transaction-service";
 import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from "./debt-service";
 import { getFinancialHealth, monthlyAverages } from "./financial-health-service";
+import { getLocalUserSettings } from "./local-settings-service";
+import { deriveIncomeStreams, type IncomeStream } from "../lib/income-streams";
+import { computeTaxReserve, resolveTaxReservePercent } from "../lib/tax-reserve";
 import { t } from "../i18n/serviceT";
+
+const formatCurrency = (v: number) =>
+  v.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+/**
+ * Steuer-Puffer-Empfehlung für Creator-/Selbstständigen-Einnahmen. `null`, wenn
+ * kein steuerrelevantes Einkommen vorliegt oder der Prozentsatz auf 0 steht.
+ */
+export function buildTaxReserveRecommendation(
+  streams: IncomeStream[],
+  percent: number,
+): CoachRecommendation | null {
+  const reserve = computeTaxReserve(streams, percent);
+  if (!reserve) return null;
+  return {
+    id: "tax-reserve",
+    title: t("coachService.recommendations.taxReserveTitle"),
+    message: t("coachService.recommendations.taxReserveMessage")
+      .replace("{amount}", formatCurrency(reserve.reserveTotal))
+      .replace("{percent}", String(reserve.percent)),
+    reason: t("coachService.recommendations.taxReserveReason"),
+    severity: "info",
+    ctaLabel: t("coachService.recommendations.taxReserveCta"),
+    ctaTo: "/income",
+  };
+}
 
 function currentStageKey(totalDebt: number, emergencyBufferMonths: number): RoadmapStageKey {
   if (emergencyBufferMonths < 1) return "starter_emergency_fund";
@@ -46,7 +75,7 @@ function buildStage(key: RoadmapStageKey, totalDebt: number, emergencyBufferMont
   return { ...config[key], progress, status: progress >= 1 ? "completed" : key === currentStageKey(totalDebt, emergencyBufferMonths) ? "active" : "locked" };
 }
 
-export async function getCoachOverview(): Promise<CoachOverview> {
+export async function getCoachOverview(options?: { includeTaxReserve?: boolean }): Promise<CoachOverview> {
   const [transactions, debts, health, categories] = await Promise.all([
     getTransactions(10000),
     getDebts(),
@@ -129,6 +158,15 @@ export async function getCoachOverview(): Promise<CoachOverview> {
       ctaLabel: t("coachService.recommendations.ctaGoals"),
       ctaTo: "/net-worth",
     });
+  }
+
+  // Steuer-Puffer-Empfehlung (nur Premium/Creator-Paket): auf Basis der
+  // erkannten Creator-/Selbstständigen-Einnahmen und des konfigurierten Prozents.
+  if (options?.includeTaxReserve) {
+    const settings = await getLocalUserSettings();
+    const streams = deriveIncomeStreams(transactions, categories).streams;
+    const taxRec = buildTaxReserveRecommendation(streams, resolveTaxReservePercent(settings));
+    if (taxRec) recommendations.push(taxRec);
   }
 
   const protectedNames = ["groceries", "housing", "insurance", "transport"];

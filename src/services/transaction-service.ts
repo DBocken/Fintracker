@@ -13,6 +13,7 @@ import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
 import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
 import { parseGermanNumber } from '../lib/money';
 import { t } from '@/i18n/serviceT';
+import { resolveAusgabenklasse } from '@/lib/analysis-data';
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -115,11 +116,20 @@ export function explainCategorization(
   }
 
   // Stufe 2: Filter-Matching (Spezifität), inkl. normalisiertem Zahlungsempfänger
+  // Negative Beträge dürfen keine Einkommens-Kategorie treffen: eine Ausgabe (z. B.
+  // eBay-Kauf) darf nicht als "Verkäufe"-Einnahme fehlkategorisiert werden. Positive
+  // Beträge bleiben frei für Ausgaben-Kategorien (Erstattungen sind positive Buchungen
+  // in einer Ausgaben-Kategorie).
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const isBlockedByDirection = (category: Category) =>
+    transaction.amount < 0 && resolveAusgabenklasse(byId, category.id) === 'einkommen';
+
   let bestMatch: Category | null = null;
   let bestMatchedFilters: string[] = [];
   let bestSpecificity = 0;
 
   for (const category of categories) {
+    if (isBlockedByDirection(category)) continue;
     const filters = (category.filters || []) as string[];
     const matches = filters.filter((filter) => {
       const f = filter.toLowerCase();
@@ -152,7 +162,7 @@ export function explainCategorization(
   for (const rule of REGEX_FALLBACK_RULES) {
     if (rule.pattern.test(haystack)) {
       const fallbackCategory = categories.find((c) => c.name === rule.category);
-      if (fallbackCategory) {
+      if (fallbackCategory && !isBlockedByDirection(fallbackCategory)) {
         return {
           categoryId: fallbackCategory.id,
           confidence: 0.55,

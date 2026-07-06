@@ -65,7 +65,7 @@ function dayDiff(aISO: string, bISO: string): number {
   return Math.round((a - b) / 86_400_000);
 }
 
-function addOneMonthISO(iso: string): string {
+export function addOneMonthISO(iso: string): string {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
   d.setMonth(d.getMonth() + 1);
   return d.toISOString().slice(0, 10);
