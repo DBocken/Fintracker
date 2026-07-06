@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import type { Portfolio, PortfolioPosition } from '@/types';
@@ -12,6 +12,9 @@ import {
 } from '@/services/portfolio-service';
 import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates, isEtoroPosition } from '@/services/quote-service';
 import { syncEtoroPortfolio } from '@/services/etoro-service';
+import { fetchEtoroAggregateForPortfolio } from '@/services/etoro-account-service';
+import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
+import EtoroOverviewTab from './EtoroOverviewTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,6 +113,45 @@ export default function TradingDashboard() {
     queryFn: () => getPortfolioSummary(activePortfolio!.id),
     enabled: !!activePortfolio?.id,
   });
+
+  // eToro-spezifische Tabs & Live-Konto-Snapshot
+  const { unlocked } = useLocalEncryption();
+  const isEtoro = activePortfolio?.type === 'etoro';
+
+  // Kontrollierter Tab-State: null = Standard je Portfolio-Typ (eToro →
+  // Übersicht, sonst Positionen). Bei Portfolio-Wechsel zurücksetzen.
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  useEffect(() => {
+    setActiveTab(null);
+  }, [activePortfolio?.id]);
+  const effectiveTab = activeTab ?? (isEtoro ? 'overview' : 'positions');
+
+  // Konto-Snapshot (Cash, Totals, Mirrors) — Live-View, nur bei aktivem
+  // Übersicht-Tab und entsperrter Verschlüsselung. staleTime 60 s wegen des
+  // geteilten Portfolio-Gruppen-Rate-Limits (60 req/60 s).
+  const {
+    data: etoroAggregate,
+    isLoading: isLoadingAggregate,
+    error: aggregateError,
+    refetch: refetchAggregate,
+  } = useQuery({
+    queryKey: ['etoro-aggregate', activePortfolio?.id],
+    queryFn: () => fetchEtoroAggregateForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'overview',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Σ aktueller Wert der lokal gespeicherten eToro-Positionen (USD) für den
+  // Abgleich im Übersicht-Tab.
+  const localEtoroPositionsValue = useMemo(
+    () =>
+      (positions ?? [])
+        .filter(isEtoroPosition)
+        .reduce((sum, p) => sum + p.quantity * (p.last_price || p.entry_price), 0),
+    [positions],
+  );
 
   // Refresh quotes mutation
   const refreshQuotesMutation = useMutation({
@@ -442,12 +484,36 @@ export default function TradingDashboard() {
       )}
 
       {/* Main Content */}
-      <Tabs defaultValue="positions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="positions">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
-          <TabsTrigger value="performance">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
-          <TabsTrigger value="portfolios">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
-        </TabsList>
+      <Tabs
+        value={effectiveTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
+        {/* Horizontal scrollbar, damit die eToro-Tabs auch mobil vollständig
+            erreichbar bleiben; Fade-Kante rechts signalisiert weitere Tabs. */}
+        <div className="-mx-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch] [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]">
+          <TabsList className="w-max flex-nowrap">
+            {isEtoro && (
+              <TabsTrigger value="overview" className="shrink-0">{t('trading.etoro.tabs.overview')}</TabsTrigger>
+            )}
+            <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
+            <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
+            <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
+          </TabsList>
+        </div>
+
+        {isEtoro && (
+          <TabsContent value="overview" className="space-y-4">
+            <EtoroOverviewTab
+              isLocked={!unlocked}
+              isLoading={isLoadingAggregate}
+              error={aggregateError as Error | null}
+              onRetry={() => refetchAggregate()}
+              aggregate={etoroAggregate}
+              localPositionsValue={localEtoroPositionsValue}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="positions" className="space-y-4">
           {isLoadingPositions ? (

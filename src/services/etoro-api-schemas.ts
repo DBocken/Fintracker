@@ -59,3 +59,86 @@ export const EtoroLiveRatesResponseSchema = z.object({
 });
 
 export type EtoroLiveRatesResponse = z.infer<typeof EtoroLiveRatesResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/trading/info/aggregate-portfolio (Spec abgefragt 2026-07-05,
+// v1.291.0). Vollständiger Konto-Snapshot: Konto-Totals (inkl. Cash), pro
+// Instrument aggregierte Positionen und Copy-Trading-Beziehungen (mirrors =
+// Smart Portfolios). Die Portfolio-Antwort selbst liefert kein Cash/Mirror —
+// deshalb dieser separate Endpoint.
+//
+// Die Spec markiert außer den Identifikatoren keine Felder als required;
+// reale Antworten liefern für alte/leere Mirrors teils null/fehlende Werte.
+// Daher: Identifikatoren (instrumentId, mirrorId) verpflichtend, Kennzahlen
+// optional, explizit nullable nur wo die Spec es sagt (pnlAssetCurrency).
+// -----------------------------------------------------------------------------
+
+export const EtoroAccountTotalsSchema = z.object({
+  accountAvailableCash: z.number().optional(),
+  accountFrozenCash: z.number().optional(),
+  accountCurrentPnl: z.number().optional(),
+  accountTotalValue: z.number().optional(),
+  accountTotalUsedMargin: z.number().optional(),
+  accountBalance: z.number().optional(),
+});
+
+export const EtoroInstrumentAggregateSchema = z.object({
+  instrumentId: z.number(),
+  assetCurrency: z.string().optional(),
+  totalMarginAccountCurrency: z.number().optional(),
+  totalFees: z.number().optional(),
+  totalFeesAcctCcy: z.number().optional(),
+  totalTaxes: z.number().optional(),
+  totalTaxesAcctCcy: z.number().optional(),
+  totalMarginAssetCurrency: z.number().optional(),
+  pnlAssetCurrency: z.number().nullable().optional(),
+  accountCurrencyRoePercent: z.number().optional(),
+  netContracts: z.number().optional(),
+  netUnits: z.number().optional(),
+  netCurrentExposureAssetCurrency: z.number().optional(),
+  netCurrentExposureAccountCurrency: z.number().optional(),
+  netInitialExposureAccountCurrency: z.number().optional(),
+  accountCurrencyReturn: z.number().optional(),
+  liquidationValueAccountCurrency: z.number().optional(),
+  liquidationValueAssetCurrency: z.number().optional(),
+  avgLeverage: z.number().optional(),
+  avgOpenRate: z.number().optional(),
+  netAvgOpenRate: z.number().optional(),
+  avgConversionRate: z.number().optional(),
+});
+
+export const EtoroMirrorTotalsSchema = z.object({
+  mirrorNetFunding: z.number().optional(),
+  mirrorPositionsPnl: z.number().optional(),
+  mirrorLiquidationValue: z.number().optional(),
+  mirrorPositionsPnlPercent: z.number().optional(),
+  mirrorMarginPercent: z.number().optional(),
+  mirrorValuePercent: z.number().optional(),
+  mirrorActiveMargin: z.number().optional(),
+});
+
+export const EtoroMirrorAggregateSchema = z.object({
+  mirrorId: z.number(),
+  mirrorAvailableCash: z.number().optional(),
+  mirrorDepositTotal: z.number().optional(),
+  mirrorWithdrawalTotal: z.number().optional(),
+  mirrorStopLossPercentage: z.number().optional(),
+  mirrorStopLoss: z.number().optional(),
+  mirrorClosedPositionsPnl: z.number().optional(),
+  mirrorTotals: EtoroMirrorTotalsSchema.optional(),
+  instrumentAggregates: z.array(EtoroInstrumentAggregateSchema).optional(),
+});
+
+export const EtoroAggregatePortfolioResponseSchema = z.object({
+  cid: z.number().optional(),
+  timestamp: z.string().optional(),
+  accountCurrency: z.string().optional(),
+  accountTotals: EtoroAccountTotalsSchema.optional(),
+  instrumentAggregates: z.array(EtoroInstrumentAggregateSchema).optional(),
+  mirrors: z.array(EtoroMirrorAggregateSchema).optional(),
+});
+
+export type EtoroAggregatePortfolioResponse = z.infer<typeof EtoroAggregatePortfolioResponseSchema>;
+export type EtoroAccountTotals = z.infer<typeof EtoroAccountTotalsSchema>;
+export type EtoroMirrorAggregate = z.infer<typeof EtoroMirrorAggregateSchema>;
+export type EtoroInstrumentAggregate = z.infer<typeof EtoroInstrumentAggregateSchema>;
