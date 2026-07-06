@@ -14,6 +14,8 @@ interface EtoroOverviewTabProps {
   aggregate: EtoroAggregatePortfolioResponse | undefined;
   /** Σ aktueller Wert der lokal gespeicherten eToro-Positionen (USD). */
   localPositionsValue: number;
+  /** Σ Liquidationswert aller Smart Portfolios (mirrors), siehe sumMirrorLiquidationValue. */
+  mirrorsValue: number;
 }
 
 // eToro-Konten laufen in USD (siehe etoro-service.ts) — nie das EUR-Default.
@@ -35,10 +37,18 @@ export default function EtoroOverviewTab({
   onRetry,
   aggregate,
   localPositionsValue,
+  mirrorsValue,
 }: EtoroOverviewTabProps) {
   const { t } = useI18n();
   const totals = aggregate?.accountTotals;
   const cashTotal = (totals?.accountAvailableCash ?? 0) + (totals?.accountFrozenCash ?? 0);
+  const accountTotalValue = totals?.accountTotalValue ?? 0;
+  // Abweichung zwischen dem eToro-Kontowert und der Summe der Bausteine, die
+  // wir lokal kennen (Positionen + Cash + Smart Portfolios). Über 1% des
+  // Kontowerts wird die Zeile als Warnung markiert (z. B. unbekannte Gebühren,
+  // Krypto-Wallet-Transfers, o. Ä.) — darunter ist es normales Rundungsrauschen.
+  const diff = accountTotalValue - (localPositionsValue + cashTotal + mirrorsValue);
+  const diffIsSignificant = accountTotalValue > 0 && Math.abs(diff) > 0.01 * accountTotalValue;
 
   const accountStats: InfoStat[] = [
     { label: t('trading.etoro.overview.availableCash'), value: fmt(totals?.accountAvailableCash) },
@@ -55,7 +65,13 @@ export default function EtoroOverviewTab({
   const reconcileStats: InfoStat[] = [
     { label: t('trading.etoro.overview.localPositions'), value: fmt(localPositionsValue) },
     { label: t('trading.etoro.overview.etoroCash'), value: fmt(cashTotal) },
+    { label: t('trading.etoro.overview.mirrorsValue'), value: fmt(mirrorsValue) },
     { label: t('trading.etoro.overview.etoroTotal'), value: fmt(totals?.accountTotalValue) },
+    {
+      label: t('trading.etoro.overview.reconcileDiff'),
+      value: fmt(diff),
+      tone: diffIsSignificant ? 'warning' : 'default',
+    },
   ];
 
   return (

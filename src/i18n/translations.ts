@@ -1142,6 +1142,7 @@ export const translations = {
       etoro: {
         tabs: {
           overview: 'Übersicht',
+          mirrors: 'Smart Portfolios',
         },
         gate: {
           loading: 'eToro-Daten werden geladen …',
@@ -1165,7 +1166,24 @@ export const translations = {
           reconcileHint: 'Die Differenz zwischen lokalen Positionen und eToro-Kontowert enthält u. a. Smart Portfolios (siehe eigener Tab).',
           localPositions: 'Lokale Positionen (Σ)',
           etoroCash: 'eToro Cash',
+          mirrorsValue: 'Smart Portfolios',
           etoroTotal: 'eToro Kontowert',
+          totalValueHint: 'ohne Cash & Smart Portfolios — siehe Übersicht',
+          reconcileDiff: 'Differenz',
+        },
+        mirrors: {
+          title: 'Smart Portfolios',
+          headerValue: 'Σ Wert',
+          headerNetFunding: 'Σ Netto-Einzahlung',
+          headerPnl: 'Σ G/V',
+          invested: 'Einzahlung',
+          value: 'Wert',
+          pnl: 'G/V',
+          instruments: 'Enthaltene Instrumente',
+          portfolioLabel: 'Smart Portfolio #{id}',
+          instrumentFallback: 'Instrument #{id}',
+          emptyTitle: 'Keine Smart Portfolios',
+          emptyDesc: 'Dieses eToro-Konto folgt aktuell keinen Smart Portfolios (Copy-Trading).',
         },
       },
       ocrImportDialog: {
@@ -4359,6 +4377,7 @@ export const translations = {
       etoro: {
         tabs: {
           overview: 'Overview',
+          mirrors: 'Smart Portfolios',
         },
         gate: {
           loading: 'Loading eToro data …',
@@ -4382,7 +4401,24 @@ export const translations = {
           reconcileHint: 'The gap between local positions and eToro account value includes Smart Portfolios, among others (see dedicated tab).',
           localPositions: 'Local positions (Σ)',
           etoroCash: 'eToro cash',
+          mirrorsValue: 'Smart Portfolios',
           etoroTotal: 'eToro account value',
+          totalValueHint: 'excludes cash & Smart Portfolios — see overview',
+          reconcileDiff: 'Difference',
+        },
+        mirrors: {
+          title: 'Smart Portfolios',
+          headerValue: 'Total value',
+          headerNetFunding: 'Total net funding',
+          headerPnl: 'Total P&L',
+          invested: 'Funding',
+          value: 'Value',
+          pnl: 'P&L',
+          instruments: 'Included instruments',
+          portfolioLabel: 'Smart Portfolio #{id}',
+          instrumentFallback: 'Instrument #{id}',
+          emptyTitle: 'No Smart Portfolios',
+          emptyDesc: 'This eToro account is not currently following any Smart Portfolios (copy trading).',
         },
       },
       ocrImportDialog: {
@@ -7562,6 +7598,7 @@ export const translations = {
       etoro: {
         tabs: {
           overview: "Sum",
+          mirrors: "val Huch ghom",
         },
         gate: {
           loading: "eToro De' luylu' …",
@@ -7585,7 +7622,24 @@ export const translations = {
           reconcileHint: "eToro Huch ghom mI' je pat position mI' joj pImmoHbogh, Smart Portfolio naQ ('ay' pagh).",
           localPositions: "pat position (Σ)",
           etoroCash: "eToro Huch",
+          mirrorsValue: "val Huch ghom",
           etoroTotal: "eToro Huch ghom mI'",
+          totalValueHint: "Huch je val Huch ghom Hutlh — Huch ghom mI' yIlegh",
+          reconcileDiff: "pImmoHghach",
+        },
+        mirrors: {
+          title: "val Huch ghom",
+          headerValue: "Huch ghom mI' Hoch",
+          headerNetFunding: "Huch nobHa' mI' Hoch",
+          headerPnl: "Suq/chIl Hoch",
+          invested: "Huch nobHa'",
+          value: "mI'",
+          pnl: "Suq/chIl",
+          instruments: "instrument tu'lu'bogh",
+          portfolioLabel: "val Huch ghom #{id}",
+          instrumentFallback: "instrument #{id}",
+          emptyTitle: "val Huch ghom tu'lu'be'",
+          emptyDesc: "DaH eToro account vam val Huch ghom tIqmoHbe'.",
         },
       },
       ocrImportDialog: {
