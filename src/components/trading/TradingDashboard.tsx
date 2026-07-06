@@ -13,8 +13,11 @@ import {
 import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates, isEtoroPosition } from '@/services/quote-service';
 import { syncEtoroPortfolio } from '@/services/etoro-service';
 import { fetchEtoroAggregateForPortfolio } from '@/services/etoro-account-service';
+import { getEtoroCredentials, fetchEtoroInstrumentMeta } from '@/services/etoro-service';
+import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import EtoroOverviewTab from './EtoroOverviewTab';
+import EtoroMirrorsTab from './EtoroMirrorsTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -137,8 +140,44 @@ export default function TradingDashboard() {
   } = useQuery({
     queryKey: ['etoro-aggregate', activePortfolio?.id],
     queryFn: () => fetchEtoroAggregateForPortfolio(activePortfolio),
-    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'overview',
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      (effectiveTab === 'overview' || effectiveTab === 'mirrors'),
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Instrument-Symbole/-Namen für die im Smart-Portfolios-Tab aufgeklappte
+  // Instrumentenliste. Eigene, separat gecachte Query (5 min staleTime — diese
+  // Metadaten ändern sich praktisch nie), nur bei Bedarf (Tab aktiv + Mirrors
+  // mit Instrumenten vorhanden). Fehler defensiv: leere Map statt Absturz, da
+  // Namen nur nice-to-have sind (Fallback "Instrument #<id>" im Tab selbst).
+  const mirrorInstrumentIds = useMemo(
+    () => selectEtoroMirrors(etoroAggregate).flatMap((m) => m.instrumentIds),
+    [etoroAggregate],
+  );
+
+  const { data: mirrorInstrumentMeta } = useQuery({
+    queryKey: ['etoro-mirror-instruments', activePortfolio?.id],
+    queryFn: async () => {
+      try {
+        const { apiKey, userKey } = getEtoroCredentials(activePortfolio);
+        return await fetchEtoroInstrumentMeta(apiKey, userKey, mirrorInstrumentIds);
+      } catch (err) {
+        console.error('[TradingDashboard] Mirror-Instrument-Auflösung fehlgeschlagen:', err);
+        return new Map();
+      }
+    },
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      effectiveTab === 'mirrors' &&
+      mirrorInstrumentIds.length > 0,
+    staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
@@ -421,6 +460,9 @@ export default function TradingDashboard() {
               <p className="text-xs text-muted-foreground">
                 {t('trading.dashboard.summary.positionsCount').replace('{count}', String(summary.positions_count))}
               </p>
+              {isEtoro && (
+                <p className="text-xs text-muted-foreground">{t('trading.etoro.overview.totalValueHint')}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -496,6 +538,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="overview" className="shrink-0">{t('trading.etoro.tabs.overview')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="mirrors" className="shrink-0">{t('trading.etoro.tabs.mirrors')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -511,6 +556,20 @@ export default function TradingDashboard() {
               onRetry={() => refetchAggregate()}
               aggregate={etoroAggregate}
               localPositionsValue={localEtoroPositionsValue}
+              mirrorsValue={sumMirrorLiquidationValue(etoroAggregate)}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="mirrors" className="space-y-4">
+            <EtoroMirrorsTab
+              isLocked={!unlocked}
+              isLoading={isLoadingAggregate}
+              error={aggregateError as Error | null}
+              onRetry={() => refetchAggregate()}
+              aggregate={etoroAggregate}
+              instrumentMeta={mirrorInstrumentMeta}
             />
           </TabsContent>
         )}
