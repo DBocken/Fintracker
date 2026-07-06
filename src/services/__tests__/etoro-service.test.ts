@@ -15,13 +15,14 @@ import {
   fetchEtoroPortfolio,
   fetchEtoroInstrumentMeta,
   fetchEtoroRates,
+  fetchEtoroStocksIndustries,
   etoroCurrentPrice,
   syncEtoroPortfolio,
   connectEtoroAccount,
 } from '../etoro-service';
 import { createPortfolio, createPosition, getPositions } from '../portfolio-service';
 import { translations } from '../../i18n/translations';
-import { EtoroInstrumentDisplayDataSchema } from '../etoro-api-schemas';
+import { EtoroInstrumentDisplayDataSchema, EtoroStocksIndustriesResponseSchema } from '../etoro-api-schemas';
 
 const invokeMock = vi.mocked(supabase.functions.invoke);
 
@@ -241,6 +242,63 @@ describe('fetchEtoroInstrumentMeta', () => {
     invokeMock.mockResolvedValue({ data: null, error: { message: 'boom' } } as never);
     const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001]);
     expect(meta.size).toBe(0);
+  });
+
+  it('sollte stocksIndustryId mit auflösen (Grundlage der Sektor-Exposure im Analyse-Tab)', async () => {
+    invokeMock.mockResolvedValue({
+      data: { instrumentDisplayDatas: [instrumentMetaResponse({ stocksIndustryId: 12 })] },
+      error: null,
+    } as never);
+
+    const meta = await fetchEtoroInstrumentMeta('api-key', 'user-key', [1001]);
+    expect(meta.get(1001)).toEqual({ symbol: 'AAPL', name: 'Apple Inc.', stocksIndustryId: 12 });
+  });
+});
+
+describe('fetchEtoroStocksIndustries', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+  });
+
+  it('sollte Branchennamen je stocksIndustryId auflösen', async () => {
+    invokeMock.mockResolvedValue({
+      data: EtoroStocksIndustriesResponseSchema.parse({
+        stocksIndustries: [
+          { industryID: 12, industryName: 'Technology' },
+          { industryID: 7, industryName: 'Healthcare' },
+        ],
+      }),
+      error: null,
+    } as never);
+
+    const names = await fetchEtoroStocksIndustries('api-key', 'user-key', [12, 7]);
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'stocks-industries', apiKey: 'api-key', userKey: 'user-key', stocksIndustryIds: [12, 7] },
+    });
+    expect(names.get(12)).toBe('Technology');
+    expect(names.get(7)).toBe('Healthcare');
+  });
+
+  it('sollte eine leere Map liefern, wenn der Proxy fehlschlägt', async () => {
+    invokeMock.mockResolvedValue({ data: null, error: { message: 'boom' } } as never);
+    const names = await fetchEtoroStocksIndustries('api-key', 'user-key', [12]);
+    expect(names.size).toBe(0);
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema eine leere Map liefern statt zu werfen', async () => {
+    invokeMock.mockResolvedValue({ data: { industries: [] }, error: null } as never);
+    const names = await fetchEtoroStocksIndustries('api-key', 'user-key', [12]);
+    expect(names.size).toBe(0);
+  });
+
+  it('sollte Branchen ohne industryName auslassen', async () => {
+    invokeMock.mockResolvedValue({
+      data: EtoroStocksIndustriesResponseSchema.parse({ stocksIndustries: [{ industryID: 12 }] }),
+      error: null,
+    } as never);
+    const names = await fetchEtoroStocksIndustries('api-key', 'user-key', [12]);
+    expect(names.has(12)).toBe(false);
   });
 });
 

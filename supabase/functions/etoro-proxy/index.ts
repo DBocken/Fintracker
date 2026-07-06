@@ -49,8 +49,20 @@ const ENDPOINT_PATHS: Record<string, string[]> = {
   "demo-portfolio": ["/trading/info/demo/portfolio"],
   // Konto-Snapshot inkl. Cash & Smart Portfolios (mirrors).
   "aggregate-portfolio": ["/trading/info/aggregate-portfolio"],
+  // Konto-P&L (Guthaben, Bonus-Guthaben, unrealisierte G/V, realisierte
+  // Mirror-G/V) — keine dynamischen Parameter, daher hier statisch gelistet.
+  "pnl": ["/trading/info/real/pnl"],
   // Profil + Scopes des Tokens (für Scope-basierte Degradation im Client).
   "me": ["/me"],
+  // Liste aller Watchlists inkl. Items (bis itemsPerPageForSingle, eToro-
+  // Default 100) — keine dynamischen Parameter nötig für die Grundabfrage.
+  "watchlists": ["/watchlists"],
+  // Aktive Kursalarme des Nutzers.
+  "price-alerts": ["/price-alerts"],
+  // Konto-P&L des Demo-Kontos — analog "pnl", aber /demo/pnl.
+  "demo-pnl": ["/trading/info/demo/pnl"],
+  // Empfehlungen/kuratierte Listen — keine dynamischen Parameter.
+  "curated-lists": ["/curated-lists"],
 };
 
 function jsonResponse(headers: HeadersInit, status: number, body: unknown): Response {
@@ -58,6 +70,45 @@ function jsonResponse(headers: HeadersInit, status: number, body: unknown): Resp
     status,
     headers: { ...headers, "Content-Type": "application/json" },
   });
+}
+
+/**
+ * Gemeinsame GET-Aufruf-Logik aller eToro-Endpoints: Keys durchreichen,
+ * Upstream-Fehler auf ein einheitliches Fehler-Shape abbilden (401/403 →
+ * eigener 401, alles andere → 502), Erfolg unverändert durchreichen.
+ */
+async function fetchEtoroJson(
+  headers: HeadersInit,
+  url: string,
+  apiKey: string,
+  userKey: string,
+  label: string,
+): Promise<Response> {
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "x-user-key": userKey,
+        "x-request-id": crypto.randomUUID(),
+        "Accept": "application/json",
+      },
+    });
+    if (!resp.ok) {
+      const text = (await resp.text().catch(() => "")).slice(0, 300);
+      console.error(`[etoro-proxy] eToro ${label} -> ${resp.status}`);
+      return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
+        error: "etoro_request_failed",
+        upstream_status: resp.status,
+        details: text,
+      });
+    }
+    const data = await resp.json();
+    return jsonResponse(headers, 200, data);
+  } catch (e) {
+    console.error(`[etoro-proxy] Fetch failed for ${label}`, String(e));
+    return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+  }
 }
 
 serve(async (req) => {
@@ -93,7 +144,33 @@ serve(async (req) => {
     return new Response("Invalid token", { status: 401, headers });
   }
 
-  let body: { endpoint?: string; apiKey?: string; userKey?: string; instrumentIds?: unknown } | null = null;
+  let body: {
+    endpoint?: string;
+    apiKey?: string;
+    userKey?: string;
+    instrumentIds?: unknown;
+    stocksIndustryIds?: unknown;
+    minDate?: unknown;
+    page?: unknown;
+    pageSize?: unknown;
+    displayCurrency?: unknown;
+    fromDate?: unknown;
+    toDate?: unknown;
+    accountId?: unknown;
+    pageToken?: unknown;
+    watchlistId?: unknown;
+    pageNumber?: unknown;
+    itemsPerPage?: unknown;
+    take?: unknown;
+    offset?: unknown;
+    marketId?: unknown;
+    query?: unknown;
+    instrumentId?: unknown;
+    direction?: unknown;
+    interval?: unknown;
+    candlesCount?: unknown;
+    username?: unknown;
+  } | null = null;
   try {
     body = await req.json();
   } catch {
@@ -117,33 +194,8 @@ serve(async (req) => {
     if (ids.length === 0) {
       return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
     }
-
     const url = `${ETORO_BASE}/market-data/instruments?instrumentIds=${ids.join(",")}`;
-    try {
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "x-user-key": userKey,
-          "x-request-id": crypto.randomUUID(),
-          "Accept": "application/json",
-        },
-      });
-      if (!resp.ok) {
-        const text = (await resp.text().catch(() => "")).slice(0, 300);
-        console.error(`[etoro-proxy] eToro instruments -> ${resp.status}`);
-        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
-          error: "etoro_request_failed",
-          upstream_status: resp.status,
-          details: text,
-        });
-      }
-      const data = await resp.json();
-      return jsonResponse(headers, 200, data);
-    } catch (e) {
-      console.error("[etoro-proxy] Fetch failed for instruments", String(e));
-      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
-    }
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instruments");
   }
 
   // Live-Kurse je instrumentID — kollisionsfrei im Gegensatz zu Yahoo-Tickern
@@ -156,33 +208,184 @@ serve(async (req) => {
     if (ids.length === 0) {
       return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
     }
-
     const url = `${ETORO_BASE}/market-data/instruments/rates?instrumentIds=${ids.join(",")}`;
-    try {
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "x-user-key": userKey,
-          "x-request-id": crypto.randomUUID(),
-          "Accept": "application/json",
-        },
-      });
-      if (!resp.ok) {
-        const text = (await resp.text().catch(() => "")).slice(0, 300);
-        console.error(`[etoro-proxy] eToro rates -> ${resp.status}`);
-        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
-          error: "etoro_request_failed",
-          upstream_status: resp.status,
-          details: text,
-        });
-      }
-      const data = await resp.json();
-      return jsonResponse(headers, 200, data);
-    } catch (e) {
-      console.error("[etoro-proxy] Fetch failed for rates", String(e));
-      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+    return fetchEtoroJson(headers, url, apiKey, userKey, "rates");
+  }
+
+  // Branchen-Namen je stocksIndustryId (Analyse-Tab: Sektor-Exposure).
+  // stocksIndustryIds ist laut Spec optional — ohne Filter liefert eToro alle
+  // Branchen; wir filtern client-seitig ohnehin auf die im Konto vorkommenden.
+  if (endpoint === "stocks-industries") {
+    const ids = Array.isArray(body?.stocksIndustryIds)
+      ? body.stocksIndustryIds.filter((id): id is number => typeof id === "number" && Number.isFinite(id))
+      : [];
+    const url = ids.length > 0
+      ? `${ETORO_BASE}/market-data/stocks-industries?stocksIndustryIds=${ids.join(",")}`
+      : `${ETORO_BASE}/market-data/stocks-industries`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "stocks-industries");
+  }
+
+  // Geschlossene Trades (Handelshistorie) — minDate ist bei eToro ein
+  // Pflichtparameter; ohne Angabe im Client wird die komplette Kontohistorie
+  // angefragt (eToro-Konten sind praktisch nie älter als das Jahr 2000).
+  if (endpoint === "trade-history") {
+    const minDate = typeof body?.minDate === "string" && body.minDate.trim() ? body.minDate.trim() : "2000-01-01";
+    const page = typeof body?.page === "number" && Number.isFinite(body.page) ? body.page : undefined;
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : undefined;
+
+    const params = new URLSearchParams({ minDate });
+    if (page !== undefined) params.set("page", String(page));
+    if (pageSize !== undefined) params.set("pageSize", String(pageSize));
+
+    const url = `${ETORO_BASE}/trading/info/trade/history?${params.toString()}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "trade-history");
+  }
+
+  // Aggregierte Kontostände über alle eToro-Produkte (Trading, Cash, ...) —
+  // liefert u. a. die Cash-Account-ID, die cash-transactions als Pfad-Parameter
+  // benötigt (die Portfolio-/Aggregate-Antworten liefern sie nicht).
+  if (endpoint === "balances") {
+    const displayCurrency =
+      typeof body?.displayCurrency === "string" && body.displayCurrency.trim() ? body.displayCurrency.trim() : "USD";
+    const url = `${ETORO_BASE}/balances?displayCurrency=${encodeURIComponent(displayCurrency)}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "balances");
+  }
+
+  // Tägliche Kontostand-Snapshots — ersetzt den bisherigen synthetischen
+  // Performance-Chart-Mock im Client. fromDate/toDate optional (eToro
+  // default: letzte 30 Tage bis heute; max. 365 Tage Spanne, max. 12 Monate
+  // zurück laut Spec).
+  if (endpoint === "balances-history") {
+    const displayCurrency =
+      typeof body?.displayCurrency === "string" && body.displayCurrency.trim() ? body.displayCurrency.trim() : "USD";
+    const fromDate = typeof body?.fromDate === "string" && body.fromDate.trim() ? body.fromDate.trim() : undefined;
+    const toDate = typeof body?.toDate === "string" && body.toDate.trim() ? body.toDate.trim() : undefined;
+
+    const params = new URLSearchParams({ displayCurrency });
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+
+    const url = `${ETORO_BASE}/balances/history?${params.toString()}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "balances-history");
+  }
+
+  // Cash-Konto-Bewegungen (Gebühren, Transfers, Kartenzahlungen, ...) — die
+  // accountId (eToro Cash-Account, NICHT die Portfolio-ID) muss der Client
+  // zuvor über den balances-Endpoint auflösen.
+  if (endpoint === "cash-transactions") {
+    const accountId = typeof body?.accountId === "string" ? body.accountId.trim() : "";
+    if (!accountId) {
+      return jsonResponse(headers, 400, { error: "missing_account_id" });
     }
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : undefined;
+    const pageToken = typeof body?.pageToken === "string" && body.pageToken.trim() ? body.pageToken.trim() : undefined;
+
+    const params = new URLSearchParams();
+    if (pageSize !== undefined) params.set("pageSize", String(pageSize));
+    if (pageToken) params.set("pageToken", pageToken);
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/money/accounts/cash/${encodeURIComponent(accountId)}/transactions${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "cash-transactions");
+  }
+
+  // Einzelne Watchlist mit voll paginierten Items (anders als die
+  // "watchlists"-Sammelabfrage, deren Items pro Watchlist auf
+  // itemsPerPageForSingle begrenzt sind).
+  if (endpoint === "watchlist-items") {
+    const watchlistId = typeof body?.watchlistId === "string" ? body.watchlistId.trim() : "";
+    if (!watchlistId) {
+      return jsonResponse(headers, 400, { error: "missing_watchlist_id" });
+    }
+    const pageNumber = typeof body?.pageNumber === "number" && Number.isFinite(body.pageNumber) ? body.pageNumber : undefined;
+    const itemsPerPage = typeof body?.itemsPerPage === "number" && Number.isFinite(body.itemsPerPage) ? body.itemsPerPage : undefined;
+
+    const params = new URLSearchParams();
+    if (pageNumber !== undefined) params.set("pageNumber", String(pageNumber));
+    if (itemsPerPage !== undefined) params.set("itemsPerPage", String(itemsPerPage));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/watchlists/${encodeURIComponent(watchlistId)}${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "watchlist-items");
+  }
+
+  // Allgemeiner News-Feed (personalisiert, eToro-Ranking).
+  if (endpoint === "feeds-news") {
+    const take = typeof body?.take === "number" && Number.isFinite(body.take) ? body.take : undefined;
+    const offset = typeof body?.offset === "number" && Number.isFinite(body.offset) ? body.offset : undefined;
+
+    const params = new URLSearchParams();
+    if (take !== undefined) params.set("take", String(take));
+    if (offset !== undefined) params.set("offset", String(offset));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/feeds/news${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "feeds-news");
+  }
+
+  // Feed-Beiträge zu einem bestimmten Instrument (News-Tab: "Meine
+  // Positionen"-Filter, ein Aufruf je gehaltenem Instrument).
+  if (endpoint === "feeds-market") {
+    const marketId = typeof body?.marketId === "string" ? body.marketId.trim() : "";
+    if (!marketId) {
+      return jsonResponse(headers, 400, { error: "missing_market_id" });
+    }
+    const take = typeof body?.take === "number" && Number.isFinite(body.take) ? body.take : undefined;
+
+    const params = new URLSearchParams();
+    if (take !== undefined) params.set("take", String(take));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/feeds/markets/${encodeURIComponent(marketId)}${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "feeds-market");
+  }
+
+  // Instrument-Suche — `fields` ist bei eToro Pflicht (Response-Projektion);
+  // `query` wird als Filter auf `displayname` angewandt (siehe Spec-Beispiel
+  // `fields=...&displayname=Bitcoin`). Feste Feldliste, damit die Antwort zum
+  // Zod-Schema (EtoroInstrumentSearchResultSchema) passt.
+  if (endpoint === "instrument-search") {
+    const query = typeof body?.query === "string" ? body.query.trim() : "";
+    if (!query) {
+      return jsonResponse(headers, 400, { error: "missing_query" });
+    }
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : 20;
+
+    const params = new URLSearchParams({
+      fields: "instrumentId,displayname,internalSymbolFull,currentRate,dailyPriceChange",
+      displayname: query,
+      pageSize: String(pageSize),
+    });
+
+    const url = `${ETORO_BASE}/market-data/search?${params.toString()}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instrument-search");
+  }
+
+  // Candle-Historie (OHLCV) eines einzelnen Instruments.
+  if (endpoint === "instrument-candles") {
+    const instrumentId = typeof body?.instrumentId === "number" && Number.isFinite(body.instrumentId) ? body.instrumentId : undefined;
+    if (instrumentId === undefined) {
+      return jsonResponse(headers, 400, { error: "missing_instrument_id" });
+    }
+    const direction = body?.direction === "asc" ? "asc" : "desc";
+    const validIntervals = ["OneMinute", "FiveMinutes", "TenMinutes", "FifteenMinutes", "ThirtyMinutes", "OneHour", "FourHours", "OneDay", "OneWeek"];
+    const interval = typeof body?.interval === "string" && validIntervals.includes(body.interval) ? body.interval : "OneDay";
+    const candlesCount = typeof body?.candlesCount === "number" && Number.isFinite(body.candlesCount)
+      ? Math.min(Math.max(body.candlesCount, 1), 1000)
+      : 50;
+
+    const url = `${ETORO_BASE}/market-data/instruments/${instrumentId}/history/candles/${direction}/${interval}/${candlesCount}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instrument-candles");
+  }
+
+  // Öffentliches Nutzerprofil (Trader-Profil) je Username.
+  if (endpoint === "user-info") {
+    const username = typeof body?.username === "string" ? body.username.trim() : "";
+    if (!username) {
+      return jsonResponse(headers, 400, { error: "missing_username" });
+    }
+    const url = `${ETORO_BASE}/user-info/people?usernames=${encodeURIComponent(username)}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "user-info");
   }
 
   const paths = ENDPOINT_PATHS[endpoint];
