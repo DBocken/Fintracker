@@ -9,6 +9,8 @@ import {
   EtoroHistoricalBalancesResponseSchema,
   EtoroCashAccountTransactionsResponseSchema,
   EtoroStocksIndustriesResponseSchema,
+  EtoroWatchlistsResponseSchema,
+  EtoroPriceAlertsResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -403,5 +405,71 @@ describe('EtoroStocksIndustriesResponseSchema (Vertrag gegen Live-API v1.291.0)'
 
   it('sollte eine leere Antwort {} akzeptieren', () => {
     expect(EtoroStocksIndustriesResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroWatchlistsResponseSchema (Vertrag gegen Live-API v1.291.0, GET /watchlists und /watchlists/{id})', () => {
+  it('sollte die reale Antwort (WatchlistsResponse) mit verschachtelten Items akzeptieren', () => {
+    const realApiResponse = {
+      status: 200,
+      isSucceeded: true,
+      watchlists: [
+        {
+          watchlistId: '12345',
+          name: 'Tech Watchlist',
+          watchlistType: 'Static',
+          totalItems: 100,
+          isDefault: true,
+          isUserSelectedDefault: true,
+          watchlistRank: 1,
+          items: [
+            { itemId: 12345, itemType: 'Instrument', itemRank: 1, market: { symbolName: 'AAPL', displayName: 'Apple Inc.' } },
+          ],
+        },
+      ],
+    };
+    expect(EtoroWatchlistsResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte watchlistId als Pflichtfeld je Watchlist verlangen', () => {
+    const missingId = { watchlists: [{ name: 'Tech Watchlist' }] };
+    expect(EtoroWatchlistsResponseSchema.safeParse(missingId).success).toBe(false);
+  });
+
+  it('sollte itemId/itemType als Pflichtfelder je Item verlangen', () => {
+    const missingItemFields = { watchlists: [{ watchlistId: '1', items: [{ itemRank: 1 }] }] };
+    expect(EtoroWatchlistsResponseSchema.safeParse(missingItemFields).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroWatchlistsResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroPriceAlertsResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (PriceAlertCollectionResponse) akzeptieren', () => {
+    const realApiResponse = {
+      results: [
+        {
+          alertId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          instrumentId: 1001,
+          symbol: 'AAPL',
+          targetPrice: 185.5,
+          currentPrice: 182.3,
+          createdAt: '2026-04-20T10:00:00Z',
+          updatedAt: '2026-04-25T14:30:00Z',
+        },
+      ],
+    };
+    expect(EtoroPriceAlertsResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte targetPrice/currentPrice als Pflichtfelder verlangen', () => {
+    const missingFields = { results: [{ alertId: 'x', instrumentId: 1001, symbol: 'AAPL' }] };
+    expect(EtoroPriceAlertsResponseSchema.safeParse(missingFields).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroPriceAlertsResponseSchema.safeParse({}).success).toBe(true);
   });
 });

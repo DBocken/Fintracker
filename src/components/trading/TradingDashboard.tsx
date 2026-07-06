@@ -19,16 +19,21 @@ import {
   fetchEtoroBalancesForPortfolio,
   fetchEtoroBalancesHistoryForPortfolio,
   fetchEtoroCashTransactionsForPortfolio,
+  fetchEtoroWatchlistsForPortfolio,
+  fetchEtoroWatchlistItemsForPortfolio,
+  fetchEtoroPriceAlertsForPortfolio,
 } from '@/services/etoro-account-service';
-import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustries } from '@/services/etoro-service';
+import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustries, fetchEtoroRates } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { selectCashAccountId, selectPerformanceSeries } from '@/services/etoro-performance';
+import { selectWatchlistSummaries, selectWatchlistItems } from '@/services/etoro-watchlists';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import EtoroOverviewTab from './EtoroOverviewTab';
 import EtoroMirrorsTab from './EtoroMirrorsTab';
 import EtoroHistoryTab from './EtoroHistoryTab';
 import EtoroPerformanceTab from './EtoroPerformanceTab';
 import EtoroAnalysisTab from './EtoroAnalysisTab';
+import EtoroWatchlistsTab from './EtoroWatchlistsTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -139,6 +144,13 @@ export default function TradingDashboard() {
     setActiveTab(null);
   }, [activePortfolio?.id]);
   const effectiveTab = activeTab ?? (isEtoro ? 'overview' : 'positions');
+
+  // Ausgewählte Watchlist im Watchlists-Tab — null = Standard (isDefault/erste
+  // Watchlist). Bei Portfolio-Wechsel zurücksetzen wie activeTab.
+  const [selectedWatchlistId, setSelectedWatchlistId] = useState<string | null>(null);
+  useEffect(() => {
+    setSelectedWatchlistId(null);
+  }, [activePortfolio?.id]);
 
   // Konto-Snapshot (Cash, Totals, Mirrors) — Live-View, nur bei aktivem
   // Übersicht-Tab und entsperrter Verschlüsselung. staleTime 60 s wegen des
@@ -370,6 +382,87 @@ export default function TradingDashboard() {
       effectiveTab === 'analysis' &&
       analysisIndustryIds.length > 0,
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Liste aller Watchlists (Namen/Metadaten, Watchlists-Tab) — teilt sich eine
+  // Rate-Limit-Gruppe mit der Einzelabfrage unten.
+  const {
+    data: etoroWatchlists,
+    isLoading: isLoadingWatchlists,
+    error: watchlistsError,
+    refetch: refetchWatchlists,
+  } = useQuery({
+    queryKey: ['etoro-watchlists', activePortfolio?.id],
+    queryFn: () => fetchEtoroWatchlistsForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'watchlists',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const watchlistSummaries = useMemo(() => selectWatchlistSummaries(etoroWatchlists), [etoroWatchlists]);
+  const effectiveWatchlistId =
+    selectedWatchlistId ?? watchlistSummaries.find((w) => w.isDefault)?.watchlistId ?? watchlistSummaries[0]?.watchlistId;
+
+  // Voll paginierte Items der ausgewählten Watchlist — eigene Abfrage, da die
+  // Sammelabfrage oben Items je Watchlist auf itemsPerPageForSingle begrenzt.
+  const {
+    data: etoroWatchlistItems,
+    isLoading: isLoadingWatchlistItems,
+    error: watchlistItemsError,
+    refetch: refetchWatchlistItems,
+  } = useQuery({
+    queryKey: ['etoro-watchlist-items', activePortfolio?.id, effectiveWatchlistId],
+    queryFn: () => fetchEtoroWatchlistItemsForPortfolio(activePortfolio, effectiveWatchlistId!),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'watchlists' && !!effectiveWatchlistId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Aktive Kursalarme (Watchlists-Tab) — eigener "Default"-Rate-Limit-Pool.
+  const {
+    data: etoroPriceAlerts,
+    isLoading: isLoadingPriceAlerts,
+    error: priceAlertsError,
+    refetch: refetchPriceAlerts,
+  } = useQuery({
+    queryKey: ['etoro-price-alerts', activePortfolio?.id],
+    queryFn: () => fetchEtoroPriceAlertsForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'watchlists',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Live-Kurse für Watchlist-Items + Kursalarm-Instrumente — über den
+  // bestehenden fetchEtoroRates (kollisionsfrei ggü. Yahoo-Tickern).
+  const watchlistsRateInstrumentIds = useMemo(() => {
+    const fromItems = selectWatchlistItems(etoroWatchlistItems, new Map()).map((item) => item.itemId);
+    const fromAlerts = (etoroPriceAlerts?.results ?? []).map((alert) => alert.instrumentId);
+    return [...new Set([...fromItems, ...fromAlerts])];
+  }, [etoroWatchlistItems, etoroPriceAlerts]);
+
+  const { data: watchlistsRates } = useQuery({
+    queryKey: ['etoro-watchlists-rates', activePortfolio?.id, watchlistsRateInstrumentIds],
+    queryFn: async () => {
+      try {
+        const { apiKey, userKey } = getEtoroCredentials(activePortfolio);
+        return await fetchEtoroRates(apiKey, userKey, watchlistsRateInstrumentIds);
+      } catch (err) {
+        console.error('[TradingDashboard] Watchlists-Kursabfrage fehlgeschlagen:', err);
+        return new Map();
+      }
+    },
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      effectiveTab === 'watchlists' &&
+      watchlistsRateInstrumentIds.length > 0,
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
@@ -739,6 +832,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="analysis" className="shrink-0">{t('trading.etoro.tabs.analysis')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="watchlists" className="shrink-0">{t('trading.etoro.tabs.watchlists')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -813,6 +909,35 @@ export default function TradingDashboard() {
               instrumentIndustryMap={analysisInstrumentIndustryMap}
               industryNameMap={analysisIndustryNameMap ?? new Map()}
               instrumentMeta={analysisInstrumentMeta}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="watchlists" className="space-y-4">
+            <EtoroWatchlistsTab
+              isLocked={!unlocked}
+              watchlists={{
+                data: etoroWatchlists,
+                isLoading: isLoadingWatchlists,
+                error: watchlistsError as Error | null,
+                onRetry: () => refetchWatchlists(),
+              }}
+              selectedWatchlistId={effectiveWatchlistId}
+              onSelectWatchlist={setSelectedWatchlistId}
+              watchlistItems={{
+                data: etoroWatchlistItems,
+                isLoading: isLoadingWatchlistItems,
+                error: watchlistItemsError as Error | null,
+                onRetry: () => refetchWatchlistItems(),
+              }}
+              priceAlerts={{
+                data: etoroPriceAlerts,
+                isLoading: isLoadingPriceAlerts,
+                error: priceAlertsError as Error | null,
+                onRetry: () => refetchPriceAlerts(),
+              }}
+              rates={watchlistsRates ?? new Map()}
             />
           </TabsContent>
         )}

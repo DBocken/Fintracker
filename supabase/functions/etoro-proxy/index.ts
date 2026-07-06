@@ -54,6 +54,11 @@ const ENDPOINT_PATHS: Record<string, string[]> = {
   "pnl": ["/trading/info/real/pnl"],
   // Profil + Scopes des Tokens (für Scope-basierte Degradation im Client).
   "me": ["/me"],
+  // Liste aller Watchlists inkl. Items (bis itemsPerPageForSingle, eToro-
+  // Default 100) — keine dynamischen Parameter nötig für die Grundabfrage.
+  "watchlists": ["/watchlists"],
+  // Aktive Kursalarme des Nutzers.
+  "price-alerts": ["/price-alerts"],
 };
 
 function jsonResponse(headers: HeadersInit, status: number, body: unknown): Response {
@@ -149,6 +154,9 @@ serve(async (req) => {
     toDate?: unknown;
     accountId?: unknown;
     pageToken?: unknown;
+    watchlistId?: unknown;
+    pageNumber?: unknown;
+    itemsPerPage?: unknown;
   } | null = null;
   try {
     body = await req.json();
@@ -266,6 +274,26 @@ serve(async (req) => {
 
     const url = `${ETORO_BASE}/money/accounts/cash/${encodeURIComponent(accountId)}/transactions${qs ? `?${qs}` : ""}`;
     return fetchEtoroJson(headers, url, apiKey, userKey, "cash-transactions");
+  }
+
+  // Einzelne Watchlist mit voll paginierten Items (anders als die
+  // "watchlists"-Sammelabfrage, deren Items pro Watchlist auf
+  // itemsPerPageForSingle begrenzt sind).
+  if (endpoint === "watchlist-items") {
+    const watchlistId = typeof body?.watchlistId === "string" ? body.watchlistId.trim() : "";
+    if (!watchlistId) {
+      return jsonResponse(headers, 400, { error: "missing_watchlist_id" });
+    }
+    const pageNumber = typeof body?.pageNumber === "number" && Number.isFinite(body.pageNumber) ? body.pageNumber : undefined;
+    const itemsPerPage = typeof body?.itemsPerPage === "number" && Number.isFinite(body.itemsPerPage) ? body.itemsPerPage : undefined;
+
+    const params = new URLSearchParams();
+    if (pageNumber !== undefined) params.set("pageNumber", String(pageNumber));
+    if (itemsPerPage !== undefined) params.set("itemsPerPage", String(itemsPerPage));
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/watchlists/${encodeURIComponent(watchlistId)}${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "watchlist-items");
   }
 
   const paths = ENDPOINT_PATHS[endpoint];

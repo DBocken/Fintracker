@@ -22,6 +22,12 @@ import {
   fetchEtoroBalancesHistoryForPortfolio,
   fetchEtoroCashTransactions,
   fetchEtoroCashTransactionsForPortfolio,
+  fetchEtoroWatchlists,
+  fetchEtoroWatchlistsForPortfolio,
+  fetchEtoroWatchlistItems,
+  fetchEtoroWatchlistItemsForPortfolio,
+  fetchEtoroPriceAlerts,
+  fetchEtoroPriceAlertsForPortfolio,
   EtoroAccountError,
 } from '../etoro-account-service';
 import {
@@ -31,6 +37,8 @@ import {
   EtoroBalancesResponseSchema,
   EtoroHistoricalBalancesResponseSchema,
   EtoroCashAccountTransactionsResponseSchema,
+  EtoroWatchlistsResponseSchema,
+  EtoroPriceAlertsResponseSchema,
 } from '../etoro-api-schemas';
 import type { Portfolio } from '../../types';
 
@@ -478,6 +486,172 @@ describe('fetchEtoroCashTransactionsForPortfolio (mit Credentials-Guard)', () =>
 
   it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
     await expect(fetchEtoroCashTransactionsForPortfolio(etoroPortfolio(), 'cash-acc-1')).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+// Fixture validiert sich selbst gegen das Schema (Issue-#195-Regel).
+function watchlistsResponse() {
+  return EtoroWatchlistsResponseSchema.parse({
+    watchlists: [
+      {
+        watchlistId: '12345',
+        name: 'Tech Watchlist',
+        isUserSelectedDefault: true,
+        items: [{ itemId: 1001, itemType: 'Instrument', market: { symbolName: 'AAPL' } }],
+      },
+    ],
+  });
+}
+
+function priceAlertsResponse() {
+  return EtoroPriceAlertsResponseSchema.parse({
+    results: [
+      {
+        alertId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        instrumentId: 1001,
+        symbol: 'AAPL',
+        targetPrice: 185.5,
+        currentPrice: 182.3,
+      },
+    ],
+  });
+}
+
+describe('fetchEtoroWatchlists', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den watchlists-Endpoint über den Proxy aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: watchlistsResponse(), error: null } as never);
+
+    const result = await fetchEtoroWatchlists('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'watchlists', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.watchlists).toHaveLength(1);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender watchlist:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+    await expect(fetchEtoroWatchlists('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { watchlists: [{ name: 'x' }] }, error: null } as never);
+    await expect(fetchEtoroWatchlists('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroWatchlistsForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroWatchlistsForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchEtoroWatchlistItems', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den watchlist-items-Endpoint mit watchlistId aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: watchlistsResponse(), error: null } as never);
+
+    const result = await fetchEtoroWatchlistItems('k1', 'k2', '12345');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'watchlist-items', apiKey: 'k1', userKey: 'k2', watchlistId: '12345' },
+    });
+    expect(result.watchlists?.[0].items).toHaveLength(1);
+  });
+
+  it('sollte pageNumber/itemsPerPage durchreichen', async () => {
+    invokeMock.mockResolvedValue({ data: watchlistsResponse(), error: null } as never);
+
+    await fetchEtoroWatchlistItems('k1', 'k2', '12345', { pageNumber: 1, itemsPerPage: 200 });
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'watchlist-items', apiKey: 'k1', userKey: 'k2', watchlistId: '12345', pageNumber: 1, itemsPerPage: 200 },
+    });
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender watchlist:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 401 } },
+    } as never);
+    await expect(fetchEtoroWatchlistItems('k1', 'k2', '12345')).rejects.toMatchObject({ isAuthError: true });
+  });
+});
+
+describe('fetchEtoroWatchlistItemsForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroWatchlistItemsForPortfolio(etoroPortfolio(), '12345')).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchEtoroPriceAlerts', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den price-alerts-Endpoint über den Proxy aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: priceAlertsResponse(), error: null } as never);
+
+    const result = await fetchEtoroPriceAlerts('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'price-alerts', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.results).toHaveLength(1);
+    expect(result.results?.[0].targetPrice).toBe(185.5);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender price-alerts:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+    await expect(fetchEtoroPriceAlerts('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { results: [{ alertId: 'x' }] }, error: null } as never);
+    await expect(fetchEtoroPriceAlerts('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroPriceAlertsForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroPriceAlertsForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
     expect(invokeMock).not.toHaveBeenCalled();
   });
 });

@@ -14,6 +14,10 @@ import {
   type EtoroHistoricalBalancesResponse,
   EtoroCashAccountTransactionsResponseSchema,
   type EtoroCashAccountTransactionsResponse,
+  EtoroWatchlistsResponseSchema,
+  type EtoroWatchlistsResponse,
+  EtoroPriceAlertsResponseSchema,
+  type EtoroPriceAlertsResponse,
 } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -268,4 +272,82 @@ export async function fetchEtoroCashTransactionsForPortfolio(
 ): Promise<EtoroCashAccountTransactionsResponse> {
   const { apiKey, userKey } = getEtoroCredentials(portfolio);
   return fetchEtoroCashTransactions(apiKey, userKey, accountId, options);
+}
+
+/**
+ * Holt alle Watchlists inkl. Items (/watchlists, bis itemsPerPageForSingle,
+ * eToro-Default 100 je Watchlist). Wirft EtoroAccountError; bei 401/403 mit
+ * isAuthError=true (Scope etoro-public:watchlist:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroWatchlists(apiKey: string, userKey: string): Promise<EtoroWatchlistsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'watchlists' },
+    EtoroWatchlistsResponseSchema,
+    'watchlists',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroWatchlistsForPortfolio(portfolio: Portfolio | null): Promise<EtoroWatchlistsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroWatchlists(apiKey, userKey);
+}
+
+export interface EtoroWatchlistItemsOptions {
+  pageNumber?: number;
+  itemsPerPage?: number;
+}
+
+/**
+ * Holt eine einzelne Watchlist mit voll paginierten Items
+ * (/watchlists/{watchlistId}) — anders als fetchEtoroWatchlists, dessen Items
+ * je Watchlist auf itemsPerPageForSingle begrenzt sind. Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true.
+ */
+export async function fetchEtoroWatchlistItems(
+  apiKey: string,
+  userKey: string,
+  watchlistId: string,
+  options: EtoroWatchlistItemsOptions = {},
+): Promise<EtoroWatchlistsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'watchlist-items', watchlistId, ...options },
+    EtoroWatchlistsResponseSchema,
+    'watchlist-items',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroWatchlistItemsForPortfolio(
+  portfolio: Portfolio | null,
+  watchlistId: string,
+  options?: EtoroWatchlistItemsOptions,
+): Promise<EtoroWatchlistsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroWatchlistItems(apiKey, userKey, watchlistId, options);
+}
+
+/**
+ * Holt aktive Kursalarme (/price-alerts). Wirft EtoroAccountError; bei
+ * 401/403 mit isAuthError=true (Scope etoro-public:price-alerts:read fehlt
+ * evtl. im Key).
+ */
+export async function fetchEtoroPriceAlerts(apiKey: string, userKey: string): Promise<EtoroPriceAlertsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'price-alerts' },
+    EtoroPriceAlertsResponseSchema,
+    'price-alerts',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroPriceAlertsForPortfolio(portfolio: Portfolio | null): Promise<EtoroPriceAlertsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroPriceAlerts(apiKey, userKey);
 }

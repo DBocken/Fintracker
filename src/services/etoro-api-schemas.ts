@@ -330,3 +330,69 @@ export const EtoroStocksIndustriesResponseSchema = z.object({
 
 export type EtoroStocksIndustry = z.infer<typeof EtoroStocksIndustrySchema>;
 export type EtoroStocksIndustriesResponse = z.infer<typeof EtoroStocksIndustriesResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/watchlists und GET /api/v1/watchlists/{watchlistId} (Spec
+// abgefragt 2026-07-06, v1.291.0) — beide liefern laut Spec dieselbe Hülle
+// (WatchlistsResponse: { watchlists: [...] }), auch die Einzelabfrage. Nur
+// die für die Watchlists-Ansicht benötigten Felder abgebildet (kein
+// avatar/svg — reine Anzeige-Metadaten, hier nicht gebraucht).
+// -----------------------------------------------------------------------------
+
+export const EtoroWatchlistItemSchema = z.object({
+  itemId: z.number(),
+  itemType: z.string(),
+  itemRank: z.number().optional(),
+  market: z
+    .object({
+      symbolName: z.string().optional(),
+      displayName: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const EtoroWatchlistSchema = z.object({
+  watchlistId: z.string(),
+  name: z.string().optional(),
+  watchlistType: z.string().optional(),
+  totalItems: z.number().optional(),
+  isDefault: z.boolean().optional(),
+  isUserSelectedDefault: z.boolean().optional(),
+  watchlistRank: z.number().optional(),
+  items: z.array(EtoroWatchlistItemSchema).optional(),
+});
+
+export const EtoroWatchlistsResponseSchema = z.object({
+  status: z.number().optional(),
+  isSucceeded: z.boolean().optional(),
+  watchlists: z.array(EtoroWatchlistSchema).optional(),
+});
+
+export type EtoroWatchlistItem = z.infer<typeof EtoroWatchlistItemSchema>;
+export type EtoroWatchlist = z.infer<typeof EtoroWatchlistSchema>;
+export type EtoroWatchlistsResponse = z.infer<typeof EtoroWatchlistsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/price-alerts (Spec abgefragt 2026-07-06, v1.291.0). Aktive
+// Kursalarme des Nutzers. `targetPrice`/`currentPrice` sind laut Spec
+// Pflichtfelder (anders als bei den meisten übrigen eToro-Endpoints, die
+// außer Identifikatoren nichts als required markieren) — hier bewusst
+// wörtlich übernommen.
+// -----------------------------------------------------------------------------
+
+export const EtoroPriceAlertSchema = z.object({
+  alertId: z.string(),
+  instrumentId: z.number(),
+  symbol: z.string(),
+  targetPrice: z.number(),
+  currentPrice: z.number(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const EtoroPriceAlertsResponseSchema = z.object({
+  results: z.array(EtoroPriceAlertSchema).optional(),
+});
+
+export type EtoroPriceAlert = z.infer<typeof EtoroPriceAlertSchema>;
+export type EtoroPriceAlertsResponse = z.infer<typeof EtoroPriceAlertsResponseSchema>;
