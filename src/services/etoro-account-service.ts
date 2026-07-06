@@ -20,6 +20,14 @@ import {
   type EtoroPriceAlertsResponse,
   EtoroDiscussionsResponseSchema,
   type EtoroDiscussionsResponse,
+  EtoroInstrumentSearchResponseSchema,
+  type EtoroInstrumentSearchResponse,
+  EtoroCuratedListsResponseSchema,
+  type EtoroCuratedListsResponse,
+  EtoroCandlesResponseSchema,
+  type EtoroCandlesResponse,
+  EtoroPublicUserInfoResponseSchema,
+  type EtoroPublicUserInfoResponse,
 } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -420,4 +428,153 @@ export async function fetchEtoroMarketFeedForPortfolio(
 ): Promise<EtoroDiscussionsResponse> {
   const { apiKey, userKey } = getEtoroCredentials(portfolio);
   return fetchEtoroMarketFeed(apiKey, userKey, marketId, options);
+}
+
+/**
+ * Holt das Konto-P&L des Demo-Kontos (/trading/info/demo/pnl) — analog
+ * fetchEtoroPnl, aber für das Übungskonto (Backlog-Extra "Demo-Konto").
+ * Wirft EtoroAccountError; bei 401/403 mit isAuthError=true (Scope
+ * etoro-public:demo:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroDemoPnl(apiKey: string, userKey: string): Promise<EtoroPnlResponse> {
+  return fetchEtoroAccountEndpoint(apiKey, userKey, { endpoint: 'demo-pnl' }, EtoroPnlResponseSchema, 'demo-pnl');
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroDemoPnlForPortfolio(portfolio: Portfolio | null): Promise<EtoroPnlResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroDemoPnl(apiKey, userKey);
+}
+
+export interface EtoroInstrumentSearchOptions {
+  pageSize?: number;
+}
+
+/**
+ * Sucht Instrumente per Freitext (/market-data/search, Filter auf
+ * `displayname`) — Backlog-Extra "Instrument-Suche". Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true.
+ */
+export async function fetchEtoroInstrumentSearch(
+  apiKey: string,
+  userKey: string,
+  query: string,
+  options: EtoroInstrumentSearchOptions = {},
+): Promise<EtoroInstrumentSearchResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'instrument-search', query, ...options },
+    EtoroInstrumentSearchResponseSchema,
+    'instrument-search',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroInstrumentSearchForPortfolio(
+  portfolio: Portfolio | null,
+  query: string,
+  options?: EtoroInstrumentSearchOptions,
+): Promise<EtoroInstrumentSearchResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroInstrumentSearch(apiKey, userKey, query, options);
+}
+
+/**
+ * Holt Empfehlungen/kuratierte Listen (/curated-lists) — Backlog-Extra
+ * "Empfehlungen/kuratierte Listen". Wirft EtoroAccountError; bei 401/403 mit
+ * isAuthError=true (Scope etoro-public:watchlist:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroCuratedLists(apiKey: string, userKey: string): Promise<EtoroCuratedListsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'curated-lists' },
+    EtoroCuratedListsResponseSchema,
+    'curated-lists',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroCuratedListsForPortfolio(portfolio: Portfolio | null): Promise<EtoroCuratedListsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroCuratedLists(apiKey, userKey);
+}
+
+export type EtoroCandleDirection = 'asc' | 'desc';
+export type EtoroCandleInterval =
+  | 'OneMinute'
+  | 'FiveMinutes'
+  | 'TenMinutes'
+  | 'FifteenMinutes'
+  | 'ThirtyMinutes'
+  | 'OneHour'
+  | 'FourHours'
+  | 'OneDay'
+  | 'OneWeek';
+
+export interface EtoroInstrumentCandlesOptions {
+  direction?: EtoroCandleDirection;
+  interval?: EtoroCandleInterval;
+  candlesCount?: number;
+}
+
+/**
+ * Holt die Candle-Historie (OHLCV) eines Instruments
+ * (/market-data/instruments/{id}/history/candles/...) — Backlog-Extra
+ * "Candles-Chart je Instrument". Wirft EtoroAccountError; bei 401/403 mit
+ * isAuthError=true.
+ */
+export async function fetchEtoroInstrumentCandles(
+  apiKey: string,
+  userKey: string,
+  instrumentId: number,
+  options: EtoroInstrumentCandlesOptions = {},
+): Promise<EtoroCandlesResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'instrument-candles', instrumentId, ...options },
+    EtoroCandlesResponseSchema,
+    'instrument-candles',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroInstrumentCandlesForPortfolio(
+  portfolio: Portfolio | null,
+  instrumentId: number,
+  options?: EtoroInstrumentCandlesOptions,
+): Promise<EtoroCandlesResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroInstrumentCandles(apiKey, userKey, instrumentId, options);
+}
+
+/**
+ * Holt das öffentliche Profil eines Traders per Username
+ * (/user-info/people?usernames=...) — Backlog-Extra "Öffentliche
+ * Trader-Profile". Wirft EtoroAccountError; bei 401/403 mit
+ * isAuthError=true (Scope etoro-public:user-info:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroPublicUserInfo(
+  apiKey: string,
+  userKey: string,
+  username: string,
+): Promise<EtoroPublicUserInfoResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'user-info', username },
+    EtoroPublicUserInfoResponseSchema,
+    'user-info',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroPublicUserInfoForPortfolio(
+  portfolio: Portfolio | null,
+  username: string,
+): Promise<EtoroPublicUserInfoResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroPublicUserInfo(apiKey, userKey, username);
 }

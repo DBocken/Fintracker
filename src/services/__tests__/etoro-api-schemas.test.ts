@@ -12,6 +12,10 @@ import {
   EtoroWatchlistsResponseSchema,
   EtoroPriceAlertsResponseSchema,
   EtoroDiscussionsResponseSchema,
+  EtoroInstrumentSearchResponseSchema,
+  EtoroCuratedListsResponseSchema,
+  EtoroCandlesResponseSchema,
+  EtoroPublicUserInfoResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -508,5 +512,99 @@ describe('EtoroDiscussionsResponseSchema (Vertrag gegen Live-API v1.291.0, GET /
   it('sollte einen Discussion-Eintrag ohne post akzeptieren (z. B. gelöschter Post)', () => {
     const noPost = { discussions: [{ id: '1' }] };
     expect(EtoroDiscussionsResponseSchema.safeParse(noPost).success).toBe(true);
+  });
+});
+
+describe('EtoroInstrumentSearchResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (InstrumentSearchResponse) akzeptieren', () => {
+    const realApiResponse = {
+      page: 0,
+      pageSize: 20,
+      totalItems: 1,
+      items: [{ instrumentId: 1001, displayname: 'Apple Inc.', internalSymbolFull: 'AAPL', currentRate: 190.5, dailyPriceChange: 1.2 }],
+    };
+    expect(EtoroInstrumentSearchResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte instrumentId als Pflichtfeld je Treffer verlangen', () => {
+    const missingId = { items: [{ displayname: 'Apple Inc.' }] };
+    expect(EtoroInstrumentSearchResponseSchema.safeParse(missingId).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroInstrumentSearchResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroCuratedListsResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (CuratedListsResponse) akzeptieren', () => {
+    const realApiResponse = {
+      curatedLists: [{ uuid: '12345', name: 'Tech Watchlist', description: 'A list of tech stocks', items: [{ instrumentId: 12345 }] }],
+    };
+    expect(EtoroCuratedListsResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte uuid als Pflichtfeld je Liste verlangen', () => {
+    const missingUuid = { curatedLists: [{ name: 'Tech Watchlist' }] };
+    expect(EtoroCuratedListsResponseSchema.safeParse(missingUuid).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren (204 No Content)', () => {
+    expect(EtoroCuratedListsResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroCandlesResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (candlesResponse) mit verschachtelten Candles akzeptieren', () => {
+    const realApiResponse = {
+      interval: 'OneMinute',
+      candles: [
+        {
+          instrumentId: 12,
+          candles: [
+            { instrumentID: 12, fromDate: '2025-03-05T10:34:00Z', open: 1.70227, high: 1.70277, low: 1.70221, close: 1.70253, volume: 0.0 },
+          ],
+          rangeOpen: 1.70227,
+          rangeClose: 1.70276,
+        },
+      ],
+    };
+    expect(EtoroCandlesResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte fromDate als Pflichtfeld je Candle verlangen', () => {
+    const missingDate = { candles: [{ candles: [{ open: 1 }] }] };
+    expect(EtoroCandlesResponseSchema.safeParse(missingDate).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroCandlesResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroPublicUserInfoResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (PublicAggregatedInfoResponse) akzeptieren', () => {
+    const realApiResponse = {
+      users: [
+        {
+          gcid: 1536861,
+          username: 'exampleuser',
+          isVerified: false,
+          verificationLevel: 1,
+          userBio: { aboutMe: null, aboutMeShort: null },
+          avatars: [{ url: 'https://example.test/35x35/cy.png', width: 35, height: 35 }],
+        },
+      ],
+    };
+    expect(EtoroPublicUserInfoResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte username als Pflichtfeld je User verlangen', () => {
+    const missingUsername = { users: [{ gcid: 1 }] };
+    expect(EtoroPublicUserInfoResponseSchema.safeParse(missingUsername).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroPublicUserInfoResponseSchema.safeParse({}).success).toBe(true);
   });
 });

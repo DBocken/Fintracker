@@ -59,6 +59,10 @@ const ENDPOINT_PATHS: Record<string, string[]> = {
   "watchlists": ["/watchlists"],
   // Aktive Kursalarme des Nutzers.
   "price-alerts": ["/price-alerts"],
+  // Konto-P&L des Demo-Kontos — analog "pnl", aber /demo/pnl.
+  "demo-pnl": ["/trading/info/demo/pnl"],
+  // Empfehlungen/kuratierte Listen — keine dynamischen Parameter.
+  "curated-lists": ["/curated-lists"],
 };
 
 function jsonResponse(headers: HeadersInit, status: number, body: unknown): Response {
@@ -160,6 +164,12 @@ serve(async (req) => {
     take?: unknown;
     offset?: unknown;
     marketId?: unknown;
+    query?: unknown;
+    instrumentId?: unknown;
+    direction?: unknown;
+    interval?: unknown;
+    candlesCount?: unknown;
+    username?: unknown;
   } | null = null;
   try {
     body = await req.json();
@@ -328,6 +338,54 @@ serve(async (req) => {
 
     const url = `${ETORO_BASE}/feeds/markets/${encodeURIComponent(marketId)}${qs ? `?${qs}` : ""}`;
     return fetchEtoroJson(headers, url, apiKey, userKey, "feeds-market");
+  }
+
+  // Instrument-Suche — `fields` ist bei eToro Pflicht (Response-Projektion);
+  // `query` wird als Filter auf `displayname` angewandt (siehe Spec-Beispiel
+  // `fields=...&displayname=Bitcoin`). Feste Feldliste, damit die Antwort zum
+  // Zod-Schema (EtoroInstrumentSearchResultSchema) passt.
+  if (endpoint === "instrument-search") {
+    const query = typeof body?.query === "string" ? body.query.trim() : "";
+    if (!query) {
+      return jsonResponse(headers, 400, { error: "missing_query" });
+    }
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : 20;
+
+    const params = new URLSearchParams({
+      fields: "instrumentId,displayname,internalSymbolFull,currentRate,dailyPriceChange",
+      displayname: query,
+      pageSize: String(pageSize),
+    });
+
+    const url = `${ETORO_BASE}/market-data/search?${params.toString()}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instrument-search");
+  }
+
+  // Candle-Historie (OHLCV) eines einzelnen Instruments.
+  if (endpoint === "instrument-candles") {
+    const instrumentId = typeof body?.instrumentId === "number" && Number.isFinite(body.instrumentId) ? body.instrumentId : undefined;
+    if (instrumentId === undefined) {
+      return jsonResponse(headers, 400, { error: "missing_instrument_id" });
+    }
+    const direction = body?.direction === "asc" ? "asc" : "desc";
+    const validIntervals = ["OneMinute", "FiveMinutes", "TenMinutes", "FifteenMinutes", "ThirtyMinutes", "OneHour", "FourHours", "OneDay", "OneWeek"];
+    const interval = typeof body?.interval === "string" && validIntervals.includes(body.interval) ? body.interval : "OneDay";
+    const candlesCount = typeof body?.candlesCount === "number" && Number.isFinite(body.candlesCount)
+      ? Math.min(Math.max(body.candlesCount, 1), 1000)
+      : 50;
+
+    const url = `${ETORO_BASE}/market-data/instruments/${instrumentId}/history/candles/${direction}/${interval}/${candlesCount}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instrument-candles");
+  }
+
+  // Öffentliches Nutzerprofil (Trader-Profil) je Username.
+  if (endpoint === "user-info") {
+    const username = typeof body?.username === "string" ? body.username.trim() : "";
+    if (!username) {
+      return jsonResponse(headers, 400, { error: "missing_username" });
+    }
+    const url = `${ETORO_BASE}/user-info/people?usernames=${encodeURIComponent(username)}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "user-info");
   }
 
   const paths = ENDPOINT_PATHS[endpoint];

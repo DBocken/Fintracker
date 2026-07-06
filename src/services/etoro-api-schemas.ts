@@ -452,3 +452,114 @@ export const EtoroDiscussionsResponseSchema = z.object({
 export type EtoroFeedPost = z.infer<typeof EtoroFeedPostSchema>;
 export type EtoroDiscussion = z.infer<typeof EtoroDiscussionSchema>;
 export type EtoroDiscussionsResponse = z.infer<typeof EtoroDiscussionsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/market-data/search (Spec abgefragt 2026-07-06, v1.291.0) —
+// Backlog-Extra "Instrument-Suche". Nur die für eine einfache Suchliste
+// benötigten Felder abgebildet (die reale Instrument-Antwort hat >60 Felder).
+// -----------------------------------------------------------------------------
+
+export const EtoroInstrumentSearchResultSchema = z.object({
+  instrumentId: z.number(),
+  displayname: z.string().optional(),
+  internalSymbolFull: z.string().optional(),
+  currentRate: z.number().optional(),
+  dailyPriceChange: z.number().optional(),
+});
+
+export const EtoroInstrumentSearchResponseSchema = z.object({
+  page: z.number().optional(),
+  pageSize: z.number().optional(),
+  totalItems: z.number().optional(),
+  items: z.array(EtoroInstrumentSearchResultSchema).optional(),
+});
+
+export type EtoroInstrumentSearchResult = z.infer<typeof EtoroInstrumentSearchResultSchema>;
+export type EtoroInstrumentSearchResponse = z.infer<typeof EtoroInstrumentSearchResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/curated-lists (Spec abgefragt 2026-07-06, v1.291.0) —
+// Backlog-Extra "Empfehlungen/kuratierte Listen".
+// -----------------------------------------------------------------------------
+
+export const EtoroCuratedListItemSchema = z.object({
+  instrumentId: z.number(),
+});
+
+export const EtoroCuratedListSchema = z.object({
+  uuid: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  items: z.array(EtoroCuratedListItemSchema).optional(),
+});
+
+export const EtoroCuratedListsResponseSchema = z.object({
+  curatedLists: z.array(EtoroCuratedListSchema).optional(),
+});
+
+export type EtoroCuratedList = z.infer<typeof EtoroCuratedListSchema>;
+export type EtoroCuratedListsResponse = z.infer<typeof EtoroCuratedListsResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/market-data/instruments/{id}/history/candles/{direction}/
+// {interval}/{candlesCount} (Spec abgefragt 2026-07-06, v1.291.0) —
+// Backlog-Extra "Candles-Chart je Instrument". Antwortform laut Live-Beispiel:
+// { interval, candles: [{ instrumentId, candles: [...], rangeOpen, ... }] } —
+// eine verschachtelte Hülle je angefragtem Instrument (hier immer genau eins).
+// -----------------------------------------------------------------------------
+
+export const EtoroCandleSchema = z.object({
+  fromDate: z.string(),
+  open: z.number().optional(),
+  high: z.number().optional(),
+  low: z.number().optional(),
+  close: z.number().optional(),
+  volume: z.number().optional(),
+});
+
+export const EtoroInstrumentCandlesSchema = z.object({
+  instrumentId: z.number().optional(),
+  candles: z.array(EtoroCandleSchema).optional(),
+});
+
+export const EtoroCandlesResponseSchema = z.object({
+  interval: z.string().optional(),
+  candles: z.array(EtoroInstrumentCandlesSchema).optional(),
+});
+
+export type EtoroCandle = z.infer<typeof EtoroCandleSchema>;
+export type EtoroCandlesResponse = z.infer<typeof EtoroCandlesResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/user-info/people (Spec abgefragt 2026-07-06, v1.291.0) —
+// Backlog-Extra "Öffentliche Trader-Profile". Nur die für eine einfache
+// Profilkarte benötigten Felder (kein customerRestrictions/gdprInfo — interne
+// Compliance-Daten, hier nicht relevant).
+// -----------------------------------------------------------------------------
+
+export const EtoroPublicUserAvatarSchema = z.object({
+  url: z.string().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+});
+
+export const EtoroPublicUserBioSchema = z.object({
+  aboutMe: z.string().nullable().optional(),
+  aboutMeShort: z.string().nullable().optional(),
+});
+
+export const EtoroPublicUserSchema = z.object({
+  gcid: z.number().optional(),
+  username: z.string(),
+  isVerified: z.boolean().optional(),
+  verificationLevel: z.number().optional(),
+  userBio: EtoroPublicUserBioSchema.optional(),
+  avatars: z.array(EtoroPublicUserAvatarSchema).optional(),
+});
+
+export const EtoroPublicUserInfoResponseSchema = z.object({
+  users: z.array(EtoroPublicUserSchema).optional(),
+});
+
+export type EtoroPublicUser = z.infer<typeof EtoroPublicUserSchema>;
+export type EtoroPublicUserInfoResponse = z.infer<typeof EtoroPublicUserInfoResponseSchema>;

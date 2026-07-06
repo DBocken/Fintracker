@@ -24,19 +24,32 @@ import {
   fetchEtoroPriceAlertsForPortfolio,
   fetchEtoroNewsFeedForPortfolio,
   fetchEtoroMarketFeedForPortfolio,
+  fetchEtoroDemoPnlForPortfolio,
+  fetchEtoroInstrumentSearchForPortfolio,
+  fetchEtoroCuratedListsForPortfolio,
+  fetchEtoroInstrumentCandlesForPortfolio,
+  fetchEtoroPublicUserInfoForPortfolio,
 } from '@/services/etoro-account-service';
 import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustries, fetchEtoroRates } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { selectCashAccountId, selectPerformanceSeries } from '@/services/etoro-performance';
 import { selectWatchlistSummaries, selectWatchlistItems } from '@/services/etoro-watchlists';
+import {
+  selectInstrumentSearchResults,
+  selectCuratedLists,
+  selectCandlePoints,
+  selectPublicUserProfile,
+} from '@/services/etoro-discover';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import EtoroOverviewTab from './EtoroOverviewTab';
+import EtoroDemoAccountCard from './EtoroDemoAccountCard';
 import EtoroMirrorsTab from './EtoroMirrorsTab';
 import EtoroHistoryTab from './EtoroHistoryTab';
 import EtoroPerformanceTab from './EtoroPerformanceTab';
 import EtoroAnalysisTab from './EtoroAnalysisTab';
 import EtoroWatchlistsTab from './EtoroWatchlistsTab';
 import EtoroNewsTab, { type EtoroNewsFilter } from './EtoroNewsTab';
+import EtoroDiscoverTab, { type EtoroDiscoverInstrumentOption } from './EtoroDiscoverTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -160,6 +173,26 @@ export default function TradingDashboard() {
   const [newsFilter, setNewsFilter] = useState<EtoroNewsFilter>('all');
   useEffect(() => {
     setNewsFilter('all');
+  }, [activePortfolio?.id]);
+
+  // Discover-Tab: Instrument-/Trader-Suche sind nutzer-getriggert — das
+  // Eingabefeld (Input-State) ist getrennt von der zuletzt abgeschickten
+  // Suche (Query-State, treibt Query-Key + `enabled`), damit Tippen allein
+  // keinen Fetch auslöst. Bei Portfolio-Wechsel alles zurücksetzen wie
+  // activeTab.
+  const [discoverSearchInput, setDiscoverSearchInput] = useState('');
+  const [discoverSearchQuery, setDiscoverSearchQuery] = useState('');
+  const [discoverUsernameInput, setDiscoverUsernameInput] = useState('');
+  const [discoverUsername, setDiscoverUsername] = useState('');
+  const [discoverSelectedInstrument, setDiscoverSelectedInstrument] = useState<EtoroDiscoverInstrumentOption | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    setDiscoverSearchInput('');
+    setDiscoverSearchQuery('');
+    setDiscoverUsernameInput('');
+    setDiscoverUsername('');
+    setDiscoverSelectedInstrument(undefined);
   }, [activePortfolio?.id]);
 
   // Konto-Snapshot (Cash, Totals, Mirrors) — Live-View, nur bei aktivem
@@ -529,6 +562,84 @@ export default function TradingDashboard() {
   const positionsFeedError = positionsFeedQueries.find((q) => q.error)?.error;
   const refetchPositionsFeed = () => positionsFeedQueries.forEach((q) => q.refetch());
 
+  // Demo-Konto-P&L (kleiner Zusatzblock im Übersicht-Tab) — teilt sich denselben
+  // Response-Shape wie das reale Konto-pnl (siehe EtoroPnlResponseSchema).
+  // Kein Demo-Konto zu haben ist der Normalfall, daher degradiert die Karte
+  // selbst still bei Fehler/leerer Antwort (siehe EtoroDemoAccountCard).
+  const {
+    data: etoroDemoPnl,
+    isLoading: isLoadingDemoPnl,
+    error: demoPnlError,
+  } = useQuery({
+    queryKey: ['etoro-demo-pnl', activePortfolio?.id],
+    queryFn: () => fetchEtoroDemoPnlForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'overview',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Instrument-Suche (Discover-Tab) — nutzer-getriggert: `enabled` erst nach
+  // Absenden des Suchformulars (discoverSearchQuery), nicht bei jedem Tastenanschlag.
+  const {
+    data: etoroInstrumentSearch,
+    isLoading: isLoadingInstrumentSearch,
+    error: instrumentSearchError,
+    refetch: refetchInstrumentSearch,
+  } = useQuery({
+    queryKey: ['etoro-instrument-search', activePortfolio?.id, discoverSearchQuery],
+    queryFn: () => fetchEtoroInstrumentSearchForPortfolio(activePortfolio, discoverSearchQuery),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'discover' && discoverSearchQuery.length > 0,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Kuratierte Listen (Discover-Tab) — tab-gated, kein Nutzer-Trigger nötig.
+  const {
+    data: etoroCuratedLists,
+    isLoading: isLoadingCuratedLists,
+    error: curatedListsError,
+    refetch: refetchCuratedLists,
+  } = useQuery({
+    queryKey: ['etoro-curated-lists', activePortfolio?.id],
+    queryFn: () => fetchEtoroCuratedListsForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'discover',
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Candles des im Discover-Tab ausgewählten Instruments (Suche oder kuratierte Liste).
+  const {
+    data: etoroInstrumentCandles,
+    isLoading: isLoadingCandles,
+    error: candlesError,
+    refetch: refetchCandles,
+  } = useQuery({
+    queryKey: ['etoro-instrument-candles', activePortfolio?.id, discoverSelectedInstrument?.instrumentId],
+    queryFn: () => fetchEtoroInstrumentCandlesForPortfolio(activePortfolio, discoverSelectedInstrument!.instrumentId),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'discover' && !!discoverSelectedInstrument,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Öffentliches Trader-Profil (Discover-Tab) — nutzer-getriggert wie die Instrument-Suche.
+  const {
+    data: etoroPublicUserInfo,
+    isLoading: isLoadingPublicUserInfo,
+    error: publicUserInfoError,
+    refetch: refetchPublicUserInfo,
+  } = useQuery({
+    queryKey: ['etoro-user-info', activePortfolio?.id, discoverUsername],
+    queryFn: () => fetchEtoroPublicUserInfoForPortfolio(activePortfolio, discoverUsername),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'discover' && discoverUsername.length > 0,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
   // Refresh quotes mutation
   const refreshQuotesMutation = useMutation({
     mutationFn: async () => {
@@ -890,6 +1001,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="news" className="shrink-0">{t('trading.etoro.tabs.news')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="discover" className="shrink-0">{t('trading.etoro.tabs.discover')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -907,6 +1021,7 @@ export default function TradingDashboard() {
               localPositionsValue={localEtoroPositionsValue}
               mirrorsValue={sumMirrorLiquidationValue(etoroAggregate)}
             />
+            <EtoroDemoAccountCard isLoading={isLoadingDemoPnl} error={demoPnlError as Error | null} pnl={etoroDemoPnl} />
           </TabsContent>
         )}
 
@@ -1014,6 +1129,48 @@ export default function TradingDashboard() {
                 isLoading: isLoadingPositionsFeed,
                 error: positionsFeedError as Error | null,
                 onRetry: refetchPositionsFeed,
+              }}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="discover" className="space-y-4">
+            <EtoroDiscoverTab
+              isLocked={!unlocked}
+              searchQuery={discoverSearchInput}
+              onSearchQueryChange={setDiscoverSearchInput}
+              onSearchSubmit={() => setDiscoverSearchQuery(discoverSearchInput.trim())}
+              searchResults={selectInstrumentSearchResults(etoroInstrumentSearch)}
+              searchState={{
+                isLoading: isLoadingInstrumentSearch,
+                error: instrumentSearchError as Error | null,
+                onRetry: () => refetchInstrumentSearch(),
+                hasSearched: discoverSearchQuery.length > 0,
+              }}
+              curatedLists={selectCuratedLists(etoroCuratedLists)}
+              curatedListsState={{
+                isLoading: isLoadingCuratedLists,
+                error: curatedListsError as Error | null,
+                onRetry: () => refetchCuratedLists(),
+              }}
+              selectedInstrument={discoverSelectedInstrument}
+              onSelectInstrument={setDiscoverSelectedInstrument}
+              candles={selectCandlePoints(etoroInstrumentCandles)}
+              candlesState={{
+                isLoading: isLoadingCandles,
+                error: candlesError as Error | null,
+                onRetry: () => refetchCandles(),
+              }}
+              usernameQuery={discoverUsernameInput}
+              onUsernameQueryChange={setDiscoverUsernameInput}
+              onUsernameSubmit={() => setDiscoverUsername(discoverUsernameInput.trim())}
+              userProfile={selectPublicUserProfile(etoroPublicUserInfo)}
+              userProfileState={{
+                isLoading: isLoadingPublicUserInfo,
+                error: publicUserInfoError as Error | null,
+                onRetry: () => refetchPublicUserInfo(),
+                hasSearched: discoverUsername.length > 0,
               }}
             />
           </TabsContent>
