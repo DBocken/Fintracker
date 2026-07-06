@@ -31,6 +31,9 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
     confidence: 0.95,
     share: 0.9,
     transactionCount: 12,
+    nextDateISO: null,
+    nextAmount: null,
+    monthlyTotals: {},
     ...overrides,
   };
 }

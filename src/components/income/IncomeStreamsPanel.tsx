@@ -8,17 +8,23 @@ import EmptyState from '@/components/common/EmptyState';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/analysis-data';
 import { deriveIncomeStreams } from '@/lib/income-streams';
+import { useTier } from '@/hooks/useTier';
+import { hasFeatureAccess } from '@/lib/tier';
+import { PremiumUpsell } from '@/components/PremiumUpsell';
 import type { Transaction, Category } from '@/types';
 import IncomeKpiStrip from './IncomeKpiStrip';
 import IncomeBreakdownCard from './IncomeBreakdownCard';
 import IncomeOverTimeCard from './IncomeOverTimeCard';
 import IncomeStreamList from './IncomeStreamList';
+import IncomePayoutRadar from './IncomePayoutRadar';
 
 type PeriodMode = '12m' | 'all';
 const WINDOW_MONTHS = 12;
 
 export default function IncomeStreamsPanel() {
   const { t } = useI18n();
+  const tier = useTier();
+  const creatorUnlocked = hasFeatureAccess(tier, 'creatorPack');
   const [period, setPeriod] = useState<PeriodMode>('12m');
 
   const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
@@ -66,10 +72,12 @@ export default function IncomeStreamsPanel() {
       ) : (
         <>
           <IncomeKpiStrip streams={streams} />
+          {creatorUnlocked && <IncomePayoutRadar streams={streams.streams} />}
           <div className="grid gap-6 lg:grid-cols-2">
             <IncomeBreakdownCard breakdown={breakdown} />
             <IncomeOverTimeCard points={overTime} />
           </div>
+          {!creatorUnlocked && <PremiumUpsell feature="creatorPack" />}
           <div>
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">{t('income.streamsTitle')}</h2>
             <IncomeStreamList streams={streams.streams} />

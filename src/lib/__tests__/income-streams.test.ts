@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { deriveIncomeStreams } from '../income-streams';
+import { deriveIncomeStreams, buildPayoutRadar } from '../income-streams';
+import type { IncomeStream } from '../income-streams';
 import type { Transaction, Category } from '@/types';
 
 const categories: Category[] = [
@@ -131,5 +132,115 @@ describe('deriveIncomeStreams', () => {
     const result = deriveIncomeStreams(txs, categories, { now: NOW });
     expect(result.streams).toHaveLength(1);
     expect(result.streams[0].counterparty).toBe('konto-acc-1');
+  });
+
+  describe('Payout-Projektion (nextDateISO/nextAmount/monthlyTotals)', () => {
+    it('projiziert bei einer Gehaltsserie die nächste Zahlung (letzter Eingang + 1 Monat)', () => {
+      const txs: Transaction[] = monthlyDates(6, 1, 7).map((date, i) =>
+        tx({ id: `s${i}`, date, amount: 3000, payee: 'Muster GmbH', description: 'Gehalt', category_id: 'anstellung', subcategory_id: 'gehalt' }),
+      );
+      const result = deriveIncomeStreams(txs, categories, { now: NOW });
+      const stream = result.streams[0];
+      expect(stream.isSalary).toBe(true);
+      // letzter Eingang 2024-12-01 → nächste erwartete Zahlung 2025-01-01
+      expect(stream.nextDateISO).toBe('2025-01-01');
+      expect(stream.nextAmount).toBe(3000);
+    });
+
+    it('projiziert bei einem regelmäßigen Nicht-Gehalts-Strom lastDate+1M mit letztem Betrag', () => {
+      const txs: Transaction[] = monthlyDates(6, 5, 7).map((date, i) =>
+        tx({ id: `t${i}`, date, amount: 200, payee: 'Twitch Interactive', category_id: 'onlinecreator', subcategory_id: 'onlinecreator' }),
+      );
+      const result = deriveIncomeStreams(
+        [...txs],
+        [
+          ...categories,
+          { id: 'onlinecreator', name: 'Online & Creator', filters: [], parent_id: null, attributes: { ausgabenklasse: 'einkommen' } },
+        ],
+        { now: NOW },
+      );
+      const stream = result.streams[0];
+      expect(stream.isSalary).toBe(false);
+      expect(stream.cadence).toBe('regelmaessig');
+      // letzter Eingang 2024-12-05 → 2025-01-05
+      expect(stream.nextDateISO).toBe('2025-01-05');
+      expect(stream.nextAmount).toBe(200);
+    });
+
+    it('liefert keine Projektion für einen unregelmäßigen Strom', () => {
+      const txs: Transaction[] = [
+        tx({ id: 'e1', date: '2024-02-10', amount: 45, payee: 'eBay Payments', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+        tx({ id: 'e2', date: '2024-09-22', amount: 60, payee: 'eBay Payments', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+      ];
+      const result = deriveIncomeStreams(txs, categories, { now: NOW });
+      expect(result.streams[0].cadence).toBe('unregelmaessig');
+      expect(result.streams[0].nextDateISO).toBeNull();
+      expect(result.streams[0].nextAmount).toBeNull();
+    });
+
+    it('füllt monthlyTotals je aktivem Monat mit der Monatssumme', () => {
+      const txs: Transaction[] = [
+        tx({ id: '1', date: '2024-03-01', amount: 100, payee: 'Kunde A', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+        tx({ id: '2', date: '2024-03-15', amount: 50, payee: 'Kunde A', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+        tx({ id: '3', date: '2024-04-01', amount: 120, payee: 'Kunde A', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+      ];
+      const result = deriveIncomeStreams(txs, categories, { now: NOW });
+      expect(result.streams[0].monthlyTotals).toEqual({ '2024-03': 150, '2024-04': 120 });
+    });
+
+    it('[REGRESSION] sollte bestehende Stream-Kernfelder (share/cadence/trend) unverändert liefern', () => {
+      const txs: Transaction[] = monthlyDates(6, 1, 7).map((date, i) =>
+        tx({ id: `s${i}`, date, amount: 3000, payee: 'Muster GmbH', description: 'Gehalt', category_id: 'anstellung', subcategory_id: 'gehalt' }),
+      );
+      const stream = deriveIncomeStreams(txs, categories, { now: NOW }).streams[0];
+      expect(stream.share).toBe(1);
+      expect(stream.cadence).toBe('regelmaessig');
+      expect(stream.trend).toBe('flat');
+    });
+  });
+
+  describe('buildPayoutRadar', () => {
+    const RADAR_NOW = new Date('2024-12-15T12:00:00Z');
+
+    function stream(overrides: Partial<IncomeStream>): IncomeStream {
+      return {
+        key: 'k', label: 'Strom', counterparty: 'strom', mainCategoryId: null, mainCategoryName: '',
+        isSalary: false, cadence: 'regelmaessig', monthlyAverage: 100, totalInWindow: 100,
+        lastDateISO: '2024-11-01', lastAmount: 100, monthsActive: 6, trend: 'flat', confidence: 0.9,
+        share: 0.5, transactionCount: 6, nextDateISO: '2024-12-20', nextAmount: 100, monthlyTotals: {},
+        ...overrides,
+      };
+    }
+
+    it('sortiert vorhersagbare Auszahlungen aufsteigend nach Datum', () => {
+      const radar = buildPayoutRadar(
+        [
+          stream({ key: 'a', label: 'A', nextDateISO: '2024-12-28' }),
+          stream({ key: 'b', label: 'B', nextDateISO: '2024-12-20' }),
+        ],
+        { now: RADAR_NOW },
+      );
+      expect(radar.map((e) => e.key)).toEqual(['b', 'a']);
+    });
+
+    it('blendet unregelmäßige Ströme ohne Prognose aus', () => {
+      const radar = buildPayoutRadar(
+        [stream({ key: 'a', nextDateISO: null, nextAmount: null })],
+        { now: RADAR_NOW },
+      );
+      expect(radar).toEqual([]);
+    });
+
+    it('markiert überfällige Zahlungen', () => {
+      const radar = buildPayoutRadar([stream({ nextDateISO: '2024-12-10' })], { now: RADAR_NOW });
+      expect(radar[0].overdue).toBe(true);
+    });
+
+    it('respektiert das Limit', () => {
+      const streams = Array.from({ length: 8 }, (_, i) =>
+        stream({ key: `s${i}`, nextDateISO: `2024-12-${String(10 + i).padStart(2, '0')}` }),
+      );
+      expect(buildPayoutRadar(streams, { now: RADAR_NOW, limit: 3 })).toHaveLength(3);
+    });
   });
 });

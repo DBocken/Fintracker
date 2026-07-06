@@ -10,7 +10,7 @@
 import { parseISO, format, subMonths, differenceInCalendarMonths } from "date-fns";
 import type { Category, Transaction } from "@/types";
 import { resolveAusgabenklasse, resolveHierarchy } from "@/lib/analysis-data";
-import { detectSalarySeries } from "@/lib/salary-detection";
+import { detectSalarySeries, addOneMonthISO } from "@/lib/salary-detection";
 import { normalizeMerchantName } from "@/services/merchant-normalization";
 
 export type StreamCadence = "regelmaessig" | "unregelmaessig";
@@ -37,6 +37,12 @@ export interface IncomeStream {
   /** Anteil an totalIncome (0..1). */
   share: number;
   transactionCount: number;
+  /** Nächste erwartete Zahlung (ISO yyyy-MM-dd) — null bei unregelmäßigen Strömen. */
+  nextDateISO: string | null;
+  /** Erwarteter Betrag der nächsten Zahlung — null bei unregelmäßigen Strömen. */
+  nextAmount: number | null;
+  /** Summe je Monat (yyyy-MM) im Fenster — Basis für Payout-Radar & Wrapped. */
+  monthlyTotals: Record<string, number>;
 }
 
 export interface IncomeStreamsResult {
@@ -163,6 +169,19 @@ export function deriveIncomeStreams(
       }
     }
 
+    // Projektion der nächsten Auszahlung: Gehalt nutzt die Serien-Vorhersage,
+    // andere regelmäßige Ströme extrapolieren „letzter Eingang + 1 Monat".
+    // Unregelmäßige Ströme werden bewusst NICHT vorhergesagt (kein Scheinwert).
+    let nextDateISO: string | null = null;
+    let nextAmount: number | null = null;
+    if (isSalary) {
+      nextDateISO = salarySeries!.nextDateISO;
+      nextAmount = salarySeries!.amountRecentTypical;
+    } else if (cadence === "regelmaessig") {
+      nextDateISO = addOneMonthISO(last.date.slice(0, 10));
+      nextAmount = last.amount;
+    }
+
     return {
       key: g.key,
       label: last.payee?.trim() || g.counterparty,
@@ -180,6 +199,9 @@ export function deriveIncomeStreams(
       confidence,
       share: totalIncome > 0 ? totalInWindow / totalIncome : 0,
       transactionCount: g.transactions.length,
+      nextDateISO,
+      nextAmount,
+      monthlyTotals: Object.fromEntries(g.monthlyTotals),
     };
   });
 
@@ -190,4 +212,49 @@ export function deriveIncomeStreams(
     largestShare > 0.75 ? "concentrated" : largestShare > 0.4 ? "moderate" : "diversified";
 
   return { streams, totalIncome, largestShare, diversification, windowMonths };
+}
+
+// -----------------------------------------------------------------------------
+// Payout-Radar — „Wann kommt das nächste Geld?" aus den Strom-Projektionen.
+// -----------------------------------------------------------------------------
+
+export interface PayoutRadarEntry {
+  key: string;
+  label: string;
+  nextDateISO: string;
+  nextAmount: number;
+  confidence: number;
+  isSalary: boolean;
+  /** true, wenn die erwartete Zahlung vor `now` liegt (überfällig). */
+  overdue: boolean;
+}
+
+/**
+ * Baut den Payout-Radar aus den Strömen: nur Ströme mit vorhersagbarer nächster
+ * Zahlung (`nextDateISO !== null`), aufsteigend nach Datum sortiert, auf `limit`
+ * begrenzt (Default 5). Überfällige Zahlungen werden markiert.
+ */
+export function buildPayoutRadar(
+  streams: IncomeStream[],
+  options?: { now?: Date; limit?: number },
+): PayoutRadarEntry[] {
+  const now = options?.now ?? new Date();
+  const limit = options?.limit ?? 5;
+  const nowISO = format(now, "yyyy-MM-dd");
+
+  return streams
+    .filter((s): s is IncomeStream & { nextDateISO: string; nextAmount: number } =>
+      s.nextDateISO !== null && s.nextAmount !== null,
+    )
+    .map((s) => ({
+      key: s.key,
+      label: s.label,
+      nextDateISO: s.nextDateISO,
+      nextAmount: s.nextAmount,
+      confidence: s.confidence,
+      isSalary: s.isSalary,
+      overdue: s.nextDateISO < nowISO,
+    }))
+    .sort((a, b) => a.nextDateISO.localeCompare(b.nextDateISO))
+    .slice(0, limit);
 }

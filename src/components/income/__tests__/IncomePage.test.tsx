@@ -18,6 +18,7 @@ const categories: Category[] = [
 ];
 
 let mockTransactions: Transaction[] = [];
+let mockTier: 'anonymous' | 'free' | 'premium' = 'free';
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: unknown[] }) => {
@@ -27,6 +28,8 @@ vi.mock('@tanstack/react-query', () => ({
   },
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
+
+vi.mock('@/hooks/useTier', () => ({ useTier: () => mockTier }));
 
 import IncomeStreamsPanel from '../IncomeStreamsPanel';
 
@@ -85,5 +88,33 @@ describe('IncomeStreamsPanel (IncomePage)', () => {
     expect(screen.getAllByText(/18\.000/).length).toBeGreaterThan(0);
     // Alle 6 Buchungen bilden EINEN Strom (gleiche Kategorie + gleicher Zahler).
     expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+  });
+
+  describe('Creator-Paket-Gating', () => {
+    function withIncome() {
+      const now = new Date();
+      mockTransactions = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        return tx({
+          id: `s${i}`, date: d.toISOString().slice(0, 10), amount: 3000, payee: 'Muster GmbH',
+          description: 'Gehalt', category_id: 'anstellung', subcategory_id: 'gehalt',
+        });
+      });
+    }
+
+    it('zeigt bei Premium den Payout-Radar', () => {
+      withIncome();
+      mockTier = 'premium';
+      renderPanel();
+      expect(screen.getByText('Payout-Radar')).toBeInTheDocument();
+    });
+
+    it('zeigt bei Free den Upsell statt der Premium-Sektionen', () => {
+      withIncome();
+      mockTier = 'free';
+      renderPanel();
+      expect(screen.getByText('Werkzeuge für Creator & Selbstständige')).toBeInTheDocument();
+      expect(screen.queryByText('Payout-Radar')).not.toBeInTheDocument();
+    });
   });
 });

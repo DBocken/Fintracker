@@ -428,6 +428,7 @@ export function buildDefaultLocalSettings(): UserSettings {
       order: ["savings_rate", "average_daily_expenses"],
       active: ["savings_rate", "average_daily_expenses"],
     },
+    tax_reserve_percent: 30,
   };
 }
 

@@ -24,6 +24,7 @@ const EXPECTED: Record<FeatureKey, Record<Tier, boolean>> = {
   familyMode: { anonymous: false, free: false, premium: true },
   receiptLineItems: { anonymous: false, free: false, premium: true },
   budgetPremium: { anonymous: false, free: false, premium: true },
+  creatorPack: { anonymous: false, free: false, premium: true },
 };
 
 const TIERS: Tier[] = ["anonymous", "free", "premium"];
