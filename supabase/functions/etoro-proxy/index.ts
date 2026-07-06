@@ -49,6 +49,9 @@ const ENDPOINT_PATHS: Record<string, string[]> = {
   "demo-portfolio": ["/trading/info/demo/portfolio"],
   // Konto-Snapshot inkl. Cash & Smart Portfolios (mirrors).
   "aggregate-portfolio": ["/trading/info/aggregate-portfolio"],
+  // Konto-P&L (Guthaben, Bonus-Guthaben, unrealisierte G/V, realisierte
+  // Mirror-G/V) — keine dynamischen Parameter, daher hier statisch gelistet.
+  "pnl": ["/trading/info/real/pnl"],
   // Profil + Scopes des Tokens (für Scope-basierte Degradation im Client).
   "me": ["/me"],
 };
@@ -93,7 +96,15 @@ serve(async (req) => {
     return new Response("Invalid token", { status: 401, headers });
   }
 
-  let body: { endpoint?: string; apiKey?: string; userKey?: string; instrumentIds?: unknown } | null = null;
+  let body: {
+    endpoint?: string;
+    apiKey?: string;
+    userKey?: string;
+    instrumentIds?: unknown;
+    minDate?: unknown;
+    page?: unknown;
+    pageSize?: unknown;
+  } | null = null;
   try {
     body = await req.json();
   } catch {
@@ -181,6 +192,46 @@ serve(async (req) => {
       return jsonResponse(headers, 200, data);
     } catch (e) {
       console.error("[etoro-proxy] Fetch failed for rates", String(e));
+      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+    }
+  }
+
+  // Geschlossene Trades (Handelshistorie) — minDate ist bei eToro ein
+  // Pflichtparameter; ohne Angabe im Client wird die komplette Kontohistorie
+  // angefragt (eToro-Konten sind praktisch nie älter als das Jahr 2000).
+  if (endpoint === "trade-history") {
+    const minDate = typeof body?.minDate === "string" && body.minDate.trim() ? body.minDate.trim() : "2000-01-01";
+    const page = typeof body?.page === "number" && Number.isFinite(body.page) ? body.page : undefined;
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : undefined;
+
+    const params = new URLSearchParams({ minDate });
+    if (page !== undefined) params.set("page", String(page));
+    if (pageSize !== undefined) params.set("pageSize", String(pageSize));
+
+    const url = `${ETORO_BASE}/trading/info/trade/history?${params.toString()}`;
+    try {
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-api-key": apiKey,
+          "x-user-key": userKey,
+          "x-request-id": crypto.randomUUID(),
+          "Accept": "application/json",
+        },
+      });
+      if (!resp.ok) {
+        const text = (await resp.text().catch(() => "")).slice(0, 300);
+        console.error(`[etoro-proxy] eToro trade-history -> ${resp.status}`);
+        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
+          error: "etoro_request_failed",
+          upstream_status: resp.status,
+          details: text,
+        });
+      }
+      const data = await resp.json();
+      return jsonResponse(headers, 200, data);
+    } catch (e) {
+      console.error("[etoro-proxy] Fetch failed for trade-history", String(e));
       return jsonResponse(headers, 502, { error: "etoro_request_failed" });
     }
   }

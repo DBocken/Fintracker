@@ -12,9 +12,17 @@ import { localEncryption } from '../local-crypto';
 import {
   fetchEtoroAggregatePortfolio,
   fetchEtoroAggregateForPortfolio,
+  fetchEtoroTradeHistory,
+  fetchEtoroTradeHistoryForPortfolio,
+  fetchEtoroPnl,
+  fetchEtoroPnlForPortfolio,
   EtoroAccountError,
 } from '../etoro-account-service';
-import { EtoroAggregatePortfolioResponseSchema } from '../etoro-api-schemas';
+import {
+  EtoroAggregatePortfolioResponseSchema,
+  EtoroTradeHistoryResponseSchema,
+  EtoroPnlResponseSchema,
+} from '../etoro-api-schemas';
 import type { Portfolio } from '../../types';
 
 const invokeMock = vi.mocked(supabase.functions.invoke);
@@ -123,6 +131,160 @@ describe('fetchEtoroAggregateForPortfolio (mit Credentials-Guard)', () => {
 
     expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
       body: { endpoint: 'aggregate-portfolio', apiKey: 'k1', userKey: 'k2' },
+    });
+  });
+});
+
+// Fixture validiert sich selbst gegen das Schema (Issue-#195-Regel).
+function tradeHistoryResponse() {
+  return EtoroTradeHistoryResponseSchema.parse([
+    {
+      positionId: 987654321,
+      instrumentId: 1001,
+      netProfit: 42.5,
+      closeTimestamp: '2026-06-01T10:00:00Z',
+      openTimestamp: '2026-05-01T09:00:00Z',
+      isBuy: true,
+    },
+  ]);
+}
+
+function pnlResponse() {
+  return EtoroPnlResponseSchema.parse({
+    clientPortfolio: {
+      credit: 10000.5,
+      bonusCredit: 500,
+      unrealizedPnL: 251,
+      mirrors: [{ mirrorID: 1, closedPositionsNetProfit: 350.75, parentUsername: 'parent_user' }],
+    },
+  });
+}
+
+describe('fetchEtoroTradeHistory', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den trade-history-Endpoint mit Default-minDate/pageSize aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: tradeHistoryResponse(), error: null } as never);
+
+    const result = await fetchEtoroTradeHistory('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'trade-history', apiKey: 'k1', userKey: 'k2', minDate: '2000-01-01', page: undefined, pageSize: 200 },
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].netProfit).toBe(42.5);
+  });
+
+  it('sollte übergebene minDate/page/pageSize durchreichen', async () => {
+    invokeMock.mockResolvedValue({ data: [], error: null } as never);
+
+    await fetchEtoroTradeHistory('k1', 'k2', { minDate: '2026-01-01', page: 2, pageSize: 50 });
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'trade-history', apiKey: 'k1', userKey: 'k2', minDate: '2026-01-01', page: 2, pageSize: 50 },
+    });
+  });
+
+  it('sollte ein leeres Array akzeptieren (keine geschlossenen Trades)', async () => {
+    invokeMock.mockResolvedValue({ data: [], error: null } as never);
+    await expect(fetchEtoroTradeHistory('k1', 'k2')).resolves.toEqual([]);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 401 } },
+    } as never);
+
+    await expect(fetchEtoroTradeHistory('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { trades: [] }, error: null } as never);
+    await expect(fetchEtoroTradeHistory('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroTradeHistoryForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroTradeHistoryForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('sollte nach Entsperren die Credentials des Portfolios verwenden', async () => {
+    await localEncryption.enable('test-passwort-123');
+    invokeMock.mockResolvedValue({ data: tradeHistoryResponse(), error: null } as never);
+
+    await fetchEtoroTradeHistoryForPortfolio(etoroPortfolio());
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'trade-history', apiKey: 'k1', userKey: 'k2', minDate: '2000-01-01', page: undefined, pageSize: 200 },
+    });
+  });
+});
+
+describe('fetchEtoroPnl', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den pnl-Endpoint über den Proxy aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: pnlResponse(), error: null } as never);
+
+    const result = await fetchEtoroPnl('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'pnl', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.clientPortfolio?.unrealizedPnL).toBe(251);
+    expect(result.clientPortfolio?.mirrors?.[0].closedPositionsNetProfit).toBe(350.75);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+
+    await expect(fetchEtoroPnl('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { clientPortfolio: { mirrors: [{ closedPositionsNetProfit: 5 }] } }, error: null } as never);
+    await expect(fetchEtoroPnl('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroPnlForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroPnlForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('sollte nach Entsperren die Credentials des Portfolios verwenden', async () => {
+    await localEncryption.enable('test-passwort-123');
+    invokeMock.mockResolvedValue({ data: pnlResponse(), error: null } as never);
+
+    await fetchEtoroPnlForPortfolio(etoroPortfolio());
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'pnl', apiKey: 'k1', userKey: 'k2' },
     });
   });
 });

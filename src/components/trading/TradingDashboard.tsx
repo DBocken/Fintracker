@@ -12,12 +12,17 @@ import {
 } from '@/services/portfolio-service';
 import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates, isEtoroPosition } from '@/services/quote-service';
 import { syncEtoroPortfolio } from '@/services/etoro-service';
-import { fetchEtoroAggregateForPortfolio } from '@/services/etoro-account-service';
+import {
+  fetchEtoroAggregateForPortfolio,
+  fetchEtoroTradeHistoryForPortfolio,
+  fetchEtoroPnlForPortfolio,
+} from '@/services/etoro-account-service';
 import { getEtoroCredentials, fetchEtoroInstrumentMeta } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import EtoroOverviewTab from './EtoroOverviewTab';
 import EtoroMirrorsTab from './EtoroMirrorsTab';
+import EtoroHistoryTab from './EtoroHistoryTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,6 +182,69 @@ export default function TradingDashboard() {
       unlocked &&
       effectiveTab === 'mirrors' &&
       mirrorInstrumentIds.length > 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Geschlossene Trades (Historie-Tab) — MVP: eine Seite (200 Trades, siehe
+  // fetchEtoroTradeHistory-Default) ohne Nachlade-Paginierung. staleTime 5 min:
+  // historische Daten ändern sich selten, und der Endpoint teilt sich den
+  // "Default"-Rate-Limit-Pool mit vielen anderen eToro-Endpoints.
+  const {
+    data: etoroTradeHistory,
+    isLoading: isLoadingTradeHistory,
+    error: tradeHistoryError,
+    refetch: refetchTradeHistory,
+  } = useQuery({
+    queryKey: ['etoro-trade-history', activePortfolio?.id],
+    queryFn: () => fetchEtoroTradeHistoryForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'history',
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Konto-P&L (Historie-Tab) — teilt sich die Portfolio-Gruppe (60 req/60 s)
+  // mit aggregate-portfolio/portfolio, daher dieselbe staleTime.
+  const {
+    data: etoroPnl,
+    isLoading: isLoadingPnl,
+    error: pnlError,
+    refetch: refetchPnl,
+  } = useQuery({
+    queryKey: ['etoro-pnl', activePortfolio?.id],
+    queryFn: () => fetchEtoroPnlForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'history',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Instrument-Symbole/-Namen für die Trade-Zeilen im Historie-Tab — analog
+  // mirrorInstrumentMeta oben (eigene Query, Fehler defensiv auf leere Map).
+  const tradeHistoryInstrumentIds = useMemo(
+    () => (etoroTradeHistory ?? []).map((trade) => trade.instrumentId),
+    [etoroTradeHistory],
+  );
+
+  const { data: tradeHistoryInstrumentMeta } = useQuery({
+    queryKey: ['etoro-trade-history-instruments', activePortfolio?.id],
+    queryFn: async () => {
+      try {
+        const { apiKey, userKey } = getEtoroCredentials(activePortfolio);
+        return await fetchEtoroInstrumentMeta(apiKey, userKey, tradeHistoryInstrumentIds);
+      } catch (err) {
+        console.error('[TradingDashboard] Trade-History-Instrument-Auflösung fehlgeschlagen:', err);
+        return new Map();
+      }
+    },
+    enabled:
+      !!activePortfolio?.id &&
+      isEtoro &&
+      unlocked &&
+      effectiveTab === 'history' &&
+      tradeHistoryInstrumentIds.length > 0,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     retry: false,
@@ -541,6 +609,9 @@ export default function TradingDashboard() {
             {isEtoro && (
               <TabsTrigger value="mirrors" className="shrink-0">{t('trading.etoro.tabs.mirrors')}</TabsTrigger>
             )}
+            {isEtoro && (
+              <TabsTrigger value="history" className="shrink-0">{t('trading.etoro.tabs.history')}</TabsTrigger>
+            )}
             <TabsTrigger value="positions" className="shrink-0">{t('trading.dashboard.tabs.positions')}</TabsTrigger>
             <TabsTrigger value="performance" className="shrink-0">{t('trading.dashboard.tabs.performance')}</TabsTrigger>
             <TabsTrigger value="portfolios" className="shrink-0">{t('trading.dashboard.tabs.portfolios')}</TabsTrigger>
@@ -570,6 +641,27 @@ export default function TradingDashboard() {
               onRetry={() => refetchAggregate()}
               aggregate={etoroAggregate}
               instrumentMeta={mirrorInstrumentMeta}
+            />
+          </TabsContent>
+        )}
+
+        {isEtoro && (
+          <TabsContent value="history" className="space-y-4">
+            <EtoroHistoryTab
+              isLocked={!unlocked}
+              pnl={{
+                data: etoroPnl,
+                isLoading: isLoadingPnl,
+                error: pnlError as Error | null,
+                onRetry: () => refetchPnl(),
+              }}
+              tradeHistory={{
+                data: etoroTradeHistory,
+                isLoading: isLoadingTradeHistory,
+                error: tradeHistoryError as Error | null,
+                onRetry: () => refetchTradeHistory(),
+              }}
+              instrumentMeta={tradeHistoryInstrumentMeta}
             />
           </TabsContent>
         )}

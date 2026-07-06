@@ -3,6 +3,8 @@ import {
   EtoroInstrumentsResponseSchema,
   EtoroLiveRatesResponseSchema,
   EtoroAggregatePortfolioResponseSchema,
+  EtoroTradeHistoryResponseSchema,
+  EtoroPnlResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -182,5 +184,88 @@ describe('EtoroAggregatePortfolioResponseSchema (Vertrag gegen Live-API v1.291.0
   it('sollte mirrorId als Pflichtfeld je Mirror verlangen', () => {
     const missingMirrorId = { mirrors: [{ mirrorDepositTotal: 100 }] };
     expect(EtoroAggregatePortfolioResponseSchema.safeParse(missingMirrorId).success).toBe(false);
+  });
+});
+
+describe('EtoroTradeHistoryResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte das reale nackte Array geschlossener Trades akzeptieren', () => {
+    // Struktur 1:1 aus der Live-Spec (GET /trading/info/trade/history,
+    // 200-Antwort: type "array" von Trade-Objekten — keine benannte Hülle,
+    // anders als instruments/rates/aggregate-portfolio.
+    const realApiResponse = [
+      {
+        netProfit: 42.5,
+        closeRate: 190.2,
+        closeTimestamp: '2026-06-01T10:00:00Z',
+        positionId: 987654321,
+        instrumentId: 1001,
+        isBuy: true,
+        leverage: 1,
+        openRate: 180.0,
+        openTimestamp: '2026-05-01T09:00:00Z',
+        stopLossRate: 170.0,
+        takeProfitRate: 200.0,
+        trailingStopLoss: false,
+        orderId: 555,
+        socialTradeId: 0,
+        parentPositionId: 0,
+        investment: 500,
+        initialInvestment: 500,
+        fees: 1.25,
+        units: 2.5,
+      },
+    ];
+
+    const result = EtoroTradeHistoryResponseSchema.safeParse(realApiResponse);
+    expect(result.success).toBe(true);
+  });
+
+  it('[REGRESSION] sollte eine benannte Hülle ({ trades: [...] }) ablehnen — die reale Antwort ist ein nacktes Array', () => {
+    const wrongShape = { trades: [{ positionId: 1, instrumentId: 1001 }] };
+    expect(EtoroTradeHistoryResponseSchema.safeParse(wrongShape).success).toBe(false);
+  });
+
+  it('sollte positionId und instrumentId als Pflichtfelder verlangen', () => {
+    const missingIds = [{ netProfit: 10 }];
+    expect(EtoroTradeHistoryResponseSchema.safeParse(missingIds).success).toBe(false);
+  });
+
+  it('sollte ein leeres Array akzeptieren (Konto ohne geschlossene Trades)', () => {
+    expect(EtoroTradeHistoryResponseSchema.safeParse([]).success).toBe(true);
+  });
+});
+
+describe('EtoroPnlResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Hülle { clientPortfolio: {...} } akzeptieren', () => {
+    // Ausschnitt 1:1 aus der Live-Spec (GET /trading/info/real/pnl,
+    // Schema PortfolioResponseWithPnl → ClientPortfolio → Mirror). Die reale
+    // Antwort enthält daneben u. a. positions/orders — hier bewusst nur der
+    // für die Historie-Ansicht benötigte Ausschnitt geprüft.
+    const realApiResponse = {
+      clientPortfolio: {
+        credit: 10000.5,
+        bonusCredit: 500.0,
+        unrealizedPnL: 251.0,
+        mirrors: [
+          {
+            mirrorID: 1,
+            closedPositionsNetProfit: 350.75,
+            parentUsername: 'parent_user',
+          },
+        ],
+      },
+    };
+
+    const result = EtoroPnlResponseSchema.safeParse(realApiResponse);
+    expect(result.success).toBe(true);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren (clientPortfolio optional)', () => {
+    expect(EtoroPnlResponseSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('sollte mirrorID als Pflichtfeld je Mirror verlangen', () => {
+    const missingId = { clientPortfolio: { mirrors: [{ closedPositionsNetProfit: 10 }] } };
+    expect(EtoroPnlResponseSchema.safeParse(missingId).success).toBe(false);
   });
 });

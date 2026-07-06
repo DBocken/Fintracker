@@ -142,3 +142,75 @@ export type EtoroAggregatePortfolioResponse = z.infer<typeof EtoroAggregatePortf
 export type EtoroAccountTotals = z.infer<typeof EtoroAccountTotalsSchema>;
 export type EtoroMirrorAggregate = z.infer<typeof EtoroMirrorAggregateSchema>;
 export type EtoroInstrumentAggregate = z.infer<typeof EtoroInstrumentAggregateSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/trading/info/trade/history (Spec abgefragt 2026-07-06, v1.291.0).
+// Liste geschlossener Trades (Handelshistorie) — nacktes Array als Top-Level-
+// Antwort (keine benannte Hülle, anders als instruments/rates/aggregate).
+//
+// Die Spec markiert keines der Item-Felder als required; wir verlangen daher
+// nur die Identifikatoren (positionId, instrumentId) verpflichtend, alle
+// Kennzahlen optional — analog zur aggregate-portfolio-Konvention oben.
+// -----------------------------------------------------------------------------
+
+export const EtoroClosedTradeSchema = z.object({
+  positionId: z.number(),
+  instrumentId: z.number(),
+  netProfit: z.number().optional(),
+  closeRate: z.number().optional(),
+  closeTimestamp: z.string().optional(),
+  openRate: z.number().optional(),
+  openTimestamp: z.string().optional(),
+  isBuy: z.boolean().optional(),
+  leverage: z.number().optional(),
+  stopLossRate: z.number().optional(),
+  takeProfitRate: z.number().optional(),
+  trailingStopLoss: z.boolean().optional(),
+  orderId: z.number().optional(),
+  socialTradeId: z.number().optional(),
+  parentPositionId: z.number().optional(),
+  investment: z.number().optional(),
+  initialInvestment: z.number().optional(),
+  fees: z.number().optional(),
+  units: z.number().optional(),
+});
+
+export const EtoroTradeHistoryResponseSchema = z.array(EtoroClosedTradeSchema);
+
+export type EtoroClosedTrade = z.infer<typeof EtoroClosedTradeSchema>;
+export type EtoroTradeHistoryResponse = z.infer<typeof EtoroTradeHistoryResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/trading/info/real/pnl (Spec abgefragt 2026-07-06, v1.291.0).
+// Konto-P&L: Guthaben, Bonus-Guthaben, unrealisierte Gesamt-G/V sowie je
+// Mirror die realisierte G/V geschlossener Positionen (closedPositionsNetProfit
+// — in aggregate-portfolio nicht enthalten). Response-Hülle laut Spec-Schema
+// "PortfolioResponseWithPnl": { clientPortfolio: {...} }.
+//
+// Wir bilden hier nur den für die Historie-Ansicht benötigten Ausschnitt von
+// ClientPortfolio/Mirror ab (nicht positions/orders — die liefert bereits
+// aggregate-portfolio bzw. die Positions-Tabelle). Zusätzliche, hier nicht
+// gelistete Felder der echten Antwort werden von Zod stillschweigend
+// ignoriert (kein .strict()), verändern also nicht das Validierungsergebnis.
+// -----------------------------------------------------------------------------
+
+export const EtoroPnlMirrorSchema = z.object({
+  mirrorID: z.number(),
+  closedPositionsNetProfit: z.number().optional(),
+  parentUsername: z.string().optional(),
+});
+
+export const EtoroClientPortfolioPnlSchema = z.object({
+  credit: z.number().optional(),
+  bonusCredit: z.number().optional(),
+  unrealizedPnL: z.number().optional(),
+  mirrors: z.array(EtoroPnlMirrorSchema).optional(),
+});
+
+export const EtoroPnlResponseSchema = z.object({
+  clientPortfolio: EtoroClientPortfolioPnlSchema.optional(),
+});
+
+export type EtoroPnlMirror = z.infer<typeof EtoroPnlMirrorSchema>;
+export type EtoroClientPortfolioPnl = z.infer<typeof EtoroClientPortfolioPnlSchema>;
+export type EtoroPnlResponse = z.infer<typeof EtoroPnlResponseSchema>;
