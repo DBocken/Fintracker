@@ -8,6 +8,12 @@ import {
   type EtoroTradeHistoryResponse,
   EtoroPnlResponseSchema,
   type EtoroPnlResponse,
+  EtoroBalancesResponseSchema,
+  type EtoroBalancesResponse,
+  EtoroHistoricalBalancesResponseSchema,
+  type EtoroHistoricalBalancesResponse,
+  EtoroCashAccountTransactionsResponseSchema,
+  type EtoroCashAccountTransactionsResponse,
 } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -173,4 +179,93 @@ export async function fetchEtoroPnl(apiKey: string, userKey: string): Promise<Et
 export async function fetchEtoroPnlForPortfolio(portfolio: Portfolio | null): Promise<EtoroPnlResponse> {
   const { apiKey, userKey } = getEtoroCredentials(portfolio);
   return fetchEtoroPnl(apiKey, userKey);
+}
+
+/**
+ * Holt die aggregierten Kontostände über alle eToro-Produkte (/balances):
+ * u. a. die Cash-Account-ID, die fetchEtoroCashTransactions als Pfad-Parameter
+ * benötigt. Wirft EtoroAccountError; bei 401/403 mit isAuthError=true
+ * (Scope etoro-public:money.balance:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroBalances(apiKey: string, userKey: string): Promise<EtoroBalancesResponse> {
+  return fetchEtoroAccountEndpoint(apiKey, userKey, { endpoint: 'balances' }, EtoroBalancesResponseSchema, 'balances');
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroBalancesForPortfolio(portfolio: Portfolio | null): Promise<EtoroBalancesResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroBalances(apiKey, userKey);
+}
+
+export interface EtoroBalancesHistoryOptions {
+  /** ISO-Datum (YYYY-MM-DD); eToro-Default: toDate minus 30 Tage. */
+  fromDate?: string;
+  /** ISO-Datum (YYYY-MM-DD); eToro-Default: heute (UTC). */
+  toDate?: string;
+}
+
+/**
+ * Holt tägliche Kontostand-Snapshots (/balances/history) — Grundlage des
+ * echten Performance-Charts (ersetzt den bisherigen Mock). Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true.
+ */
+export async function fetchEtoroBalancesHistory(
+  apiKey: string,
+  userKey: string,
+  options: EtoroBalancesHistoryOptions = {},
+): Promise<EtoroHistoricalBalancesResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'balances-history', ...options },
+    EtoroHistoricalBalancesResponseSchema,
+    'balances-history',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroBalancesHistoryForPortfolio(
+  portfolio: Portfolio | null,
+  options?: EtoroBalancesHistoryOptions,
+): Promise<EtoroHistoricalBalancesResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroBalancesHistory(apiKey, userKey, options);
+}
+
+export interface EtoroCashTransactionsOptions {
+  pageSize?: number;
+  pageToken?: string;
+}
+
+/**
+ * Holt Cash-Konto-Bewegungen (/money/accounts/cash/{accountId}/transactions):
+ * Gebühren, Transfers, Kartenzahlungen, Guthaben-Anpassungen — Grundlage des
+ * „Cash-Bewegungen"-Segments im Historie-Tab. `accountId` muss zuvor über
+ * fetchEtoroBalances aufgelöst werden (selectCashAccountId). Wirft
+ * EtoroAccountError; bei 401/403 mit isAuthError=true (Scope
+ * etoro-public:money.cash-transactions:read fehlt evtl. im Key).
+ */
+export async function fetchEtoroCashTransactions(
+  apiKey: string,
+  userKey: string,
+  accountId: string,
+  options: EtoroCashTransactionsOptions = {},
+): Promise<EtoroCashAccountTransactionsResponse> {
+  return fetchEtoroAccountEndpoint(
+    apiKey,
+    userKey,
+    { endpoint: 'cash-transactions', accountId, ...options },
+    EtoroCashAccountTransactionsResponseSchema,
+    'cash-transactions',
+  );
+}
+
+/** Convenience-Wrapper analog fetchEtoroAggregateForPortfolio. */
+export async function fetchEtoroCashTransactionsForPortfolio(
+  portfolio: Portfolio | null,
+  accountId: string,
+  options?: EtoroCashTransactionsOptions,
+): Promise<EtoroCashAccountTransactionsResponse> {
+  const { apiKey, userKey } = getEtoroCredentials(portfolio);
+  return fetchEtoroCashTransactions(apiKey, userKey, accountId, options);
 }

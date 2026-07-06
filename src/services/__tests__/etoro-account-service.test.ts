@@ -16,12 +16,21 @@ import {
   fetchEtoroTradeHistoryForPortfolio,
   fetchEtoroPnl,
   fetchEtoroPnlForPortfolio,
+  fetchEtoroBalances,
+  fetchEtoroBalancesForPortfolio,
+  fetchEtoroBalancesHistory,
+  fetchEtoroBalancesHistoryForPortfolio,
+  fetchEtoroCashTransactions,
+  fetchEtoroCashTransactionsForPortfolio,
   EtoroAccountError,
 } from '../etoro-account-service';
 import {
   EtoroAggregatePortfolioResponseSchema,
   EtoroTradeHistoryResponseSchema,
   EtoroPnlResponseSchema,
+  EtoroBalancesResponseSchema,
+  EtoroHistoricalBalancesResponseSchema,
+  EtoroCashAccountTransactionsResponseSchema,
 } from '../etoro-api-schemas';
 import type { Portfolio } from '../../types';
 
@@ -286,5 +295,189 @@ describe('fetchEtoroPnlForPortfolio (mit Credentials-Guard)', () => {
     expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
       body: { endpoint: 'pnl', apiKey: 'k1', userKey: 'k2' },
     });
+  });
+});
+
+// Fixture validiert sich selbst gegen das Schema (Issue-#195-Regel).
+function balancesResponse() {
+  return EtoroBalancesResponseSchema.parse({
+    totalBalance: 5654.48,
+    displayCurrency: 'USD',
+    balances: [
+      { accountId: 'cash-acc-1', accountType: 'Cash', balance: 500, displayBalance: 500 },
+      { accountId: 'trading-acc-1', accountType: 'Trading', balance: 5154.48, displayBalance: 5154.48 },
+    ],
+  });
+}
+
+function balancesHistoryResponse() {
+  return EtoroHistoricalBalancesResponseSchema.parse({
+    displayCurrency: 'USD',
+    snapshots: [
+      { date: '2026-06-01', totalBalance: 5000, displayTotalBalance: 5000 },
+      { date: '2026-06-02', totalBalance: 5100, displayTotalBalance: 5100 },
+    ],
+  });
+}
+
+function cashTransactionsResponse() {
+  return EtoroCashAccountTransactionsResponseSchema.parse({
+    results: [
+      {
+        id: '1',
+        accountId: 'cash-acc-1',
+        transactionType: 'balanceAdjustment',
+        transactionSubtype: 'fee',
+        direction: 'debit',
+        status: 'settled',
+        amount: '2.50',
+        currency: 'USD',
+        postedAt: '2026-06-01T00:00:00Z',
+      },
+    ],
+    pagination: { pageSize: 50, hasNext: false },
+  });
+}
+
+describe('fetchEtoroBalances', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den balances-Endpoint über den Proxy aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: balancesResponse(), error: null } as never);
+
+    const result = await fetchEtoroBalances('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'balances', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.balances).toHaveLength(2);
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender money.balance:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+    await expect(fetchEtoroBalances('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+
+  it('[REGRESSION] sollte bei unerwartetem Antwort-Schema werfen statt still Müll zu liefern', async () => {
+    invokeMock.mockResolvedValue({ data: { balances: [{ accountId: 'x' }] }, error: null } as never);
+    await expect(fetchEtoroBalances('k1', 'k2')).rejects.toBeInstanceOf(EtoroAccountError);
+  });
+});
+
+describe('fetchEtoroBalancesForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroBalancesForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchEtoroBalancesHistory', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den balances-history-Endpoint ohne Datumsfilter aufrufen (eToro-Default: letzte 30 Tage)', async () => {
+    invokeMock.mockResolvedValue({ data: balancesHistoryResponse(), error: null } as never);
+
+    const result = await fetchEtoroBalancesHistory('k1', 'k2');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'balances-history', apiKey: 'k1', userKey: 'k2' },
+    });
+    expect(result.snapshots).toHaveLength(2);
+  });
+
+  it('sollte fromDate/toDate durchreichen', async () => {
+    invokeMock.mockResolvedValue({ data: balancesHistoryResponse(), error: null } as never);
+
+    await fetchEtoroBalancesHistory('k1', 'k2', { fromDate: '2026-01-01', toDate: '2026-02-01' });
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'balances-history', apiKey: 'k1', userKey: 'k2', fromDate: '2026-01-01', toDate: '2026-02-01' },
+    });
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender money.balance:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 401 } },
+    } as never);
+    await expect(fetchEtoroBalancesHistory('k1', 'k2')).rejects.toMatchObject({ isAuthError: true });
+  });
+});
+
+describe('fetchEtoroBalancesHistoryForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroBalancesHistoryForPortfolio(etoroPortfolio())).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchEtoroCashTransactions', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  it('sollte den cash-transactions-Endpoint mit accountId aufrufen und validierte Daten liefern', async () => {
+    invokeMock.mockResolvedValue({ data: cashTransactionsResponse(), error: null } as never);
+
+    const result = await fetchEtoroCashTransactions('k1', 'k2', 'cash-acc-1');
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'cash-transactions', apiKey: 'k1', userKey: 'k2', accountId: 'cash-acc-1' },
+    });
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0].amount).toBe('2.50');
+  });
+
+  it('sollte pageSize/pageToken durchreichen', async () => {
+    invokeMock.mockResolvedValue({ data: cashTransactionsResponse(), error: null } as never);
+
+    await fetchEtoroCashTransactions('k1', 'k2', 'cash-acc-1', { pageSize: 100, pageToken: 'tok' });
+
+    expect(invokeMock).toHaveBeenCalledWith('etoro-proxy', {
+      body: { endpoint: 'cash-transactions', apiKey: 'k1', userKey: 'k2', accountId: 'cash-acc-1', pageSize: 100, pageToken: 'tok' },
+    });
+  });
+
+  it('[REGRESSION] sollte 401/403 als isAuthError markieren (fehlender money.cash-transactions:read-Scope)', async () => {
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: { message: 'unauthorized', context: { status: 403 } },
+    } as never);
+    await expect(fetchEtoroCashTransactions('k1', 'k2', 'cash-acc-1')).rejects.toMatchObject({ isAuthError: true });
+  });
+});
+
+describe('fetchEtoroCashTransactionsForPortfolio (mit Credentials-Guard)', () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+    localEncryption.lock();
+  });
+
+  it('[SECURITY] sollte bei gesperrter Verschlüsselung werfen, ohne den Proxy zu rufen', async () => {
+    await expect(fetchEtoroCashTransactionsForPortfolio(etoroPortfolio(), 'cash-acc-1')).rejects.toThrow(/Verschlüsselung/i);
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 });

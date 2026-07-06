@@ -1,4 +1,4 @@
-import type { EtoroTradeHistoryResponse, EtoroPnlResponse } from './etoro-api-schemas';
+import type { EtoroTradeHistoryResponse, EtoroPnlResponse, EtoroCashAccountTransactionsResponse } from './etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
 // Historie (eToro geschlossene Trades + Konto-P&L) — reine Selektor-Funktionen
@@ -90,4 +90,64 @@ export function selectAccountPnl(pnl: EtoroPnlResponse | undefined): AccountPnlV
     unrealizedPnl: clientPortfolio?.unrealizedPnL,
     mirrorsRealizedPnl,
   };
+}
+
+export interface CashMovementView {
+  id: string;
+  postedAt: string;
+  subtype: string;
+  direction: 'debit' | 'credit';
+  /** Absoluter Betrag (>= 0). */
+  amount: number;
+  /** Vorzeichenbehafteter Betrag: positiv = Zufluss (credit), negativ = Abfluss (debit). */
+  signedAmount: number;
+  currency: string;
+  counterpartyName: string | undefined;
+}
+
+/**
+ * Bildet die rohe Cash-Transactions-Antwort auf ein UI-taugliches Shape ab,
+ * neueste Bewegung zuerst (postedAt absteigend). `amount` kommt von eToro als
+ * Dezimal-String — hier bewusst einmalig in eine Zahl geparst (Number()),
+ * nicht weiter in der Kette (Rundungsfallen bei Geldbeträgen vermeiden).
+ *
+ * eToros transactionSubtype-Enum kennt kein „dividend" — nur Kartenzahlungen,
+ * Transfers, Gebühren und Guthaben-Anpassungen (siehe Live-Spec). Das
+ * „Cash-Bewegungen"-Segment zeigt daher alle verfügbaren Bewegungsarten, nicht
+ * ausschließlich Dividenden/Gebühren.
+ */
+export function selectCashMovements(transactions: EtoroCashAccountTransactionsResponse | undefined): CashMovementView[] {
+  const results = transactions?.results ?? [];
+
+  return [...results]
+    .map((tx) => {
+      const amount = Math.abs(Number(tx.amount)) || 0;
+      return {
+        id: tx.id,
+        postedAt: tx.postedAt,
+        subtype: tx.transactionSubtype,
+        direction: tx.direction,
+        amount,
+        signedAmount: tx.direction === 'debit' ? -amount : amount,
+        currency: tx.currency,
+        counterpartyName: tx.counterparty?.name,
+      };
+    })
+    .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+}
+
+/** Summen über alle Cash-Bewegungen — für den Kopf des Cash-Bewegungen-Segments. */
+export function selectCashMovementsTotals(movements: CashMovementView[]): {
+  count: number;
+  totalSigned: number;
+  totalFees: number;
+} {
+  return movements.reduce(
+    (acc, m) => ({
+      count: acc.count + 1,
+      totalSigned: acc.totalSigned + m.signedAmount,
+      totalFees: acc.totalFees + (m.subtype === 'fee' ? m.amount : 0),
+    }),
+    { count: 0, totalSigned: 0, totalFees: 0 },
+  );
 }

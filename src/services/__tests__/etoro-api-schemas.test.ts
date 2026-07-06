@@ -5,6 +5,9 @@ import {
   EtoroAggregatePortfolioResponseSchema,
   EtoroTradeHistoryResponseSchema,
   EtoroPnlResponseSchema,
+  EtoroBalancesResponseSchema,
+  EtoroHistoricalBalancesResponseSchema,
+  EtoroCashAccountTransactionsResponseSchema,
 } from '../etoro-api-schemas';
 
 // -----------------------------------------------------------------------------
@@ -267,5 +270,116 @@ describe('EtoroPnlResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
   it('sollte mirrorID als Pflichtfeld je Mirror verlangen', () => {
     const missingId = { clientPortfolio: { mirrors: [{ closedPositionsNetProfit: 10 }] } };
     expect(EtoroPnlResponseSchema.safeParse(missingId).success).toBe(false);
+  });
+});
+
+describe('EtoroBalancesResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (GetBalancesResponse) akzeptieren', () => {
+    const realApiResponse = {
+      gcid: 4498,
+      totalBalance: 5654.48,
+      displayCurrency: 'USD',
+      balances: [
+        { accountId: 'f0995efc-25a1-465e-bec3-d309aaf00ede', accountType: 'Cash', balance: 500, currency: 'USD', displayBalance: 500 },
+        { accountId: null, accountType: 'Trading', balance: 5154.48, currency: 'USD', displayBalance: 5154.48 },
+      ],
+    };
+    expect(EtoroBalancesResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte accountType als Pflichtfeld je Konto verlangen', () => {
+    const missingType = { balances: [{ accountId: 'x' }] };
+    expect(EtoroBalancesResponseSchema.safeParse(missingType).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroBalancesResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroHistoricalBalancesResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (GetHistoricalBalancesResponse) mit snapshots akzeptieren', () => {
+    const realApiResponse = {
+      gcid: 4498,
+      displayCurrency: 'USD',
+      fromDate: '2026-06-01',
+      toDate: '2026-07-01',
+      snapshots: [
+        { date: '2026-06-01', totalBalance: 5000, displayTotalBalance: 5000, totalCash: 400, totalInvestedAmount: 4600, totalPnl: 0 },
+        { date: '2026-06-02', totalBalance: 5100, displayTotalBalance: 5100 },
+      ],
+    };
+    expect(EtoroHistoricalBalancesResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('sollte date als Pflichtfeld je Snapshot verlangen', () => {
+    const missingDate = { snapshots: [{ totalBalance: 100 }] };
+    expect(EtoroHistoricalBalancesResponseSchema.safeParse(missingDate).success).toBe(false);
+  });
+
+  it('sollte eine leere Antwort {} akzeptieren', () => {
+    expect(EtoroHistoricalBalancesResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('EtoroCashAccountTransactionsResponseSchema (Vertrag gegen Live-API v1.291.0)', () => {
+  it('sollte die reale Antwort (CashAccountTransactionsResponse, amount als String) akzeptieren', () => {
+    // Struktur 1:1 aus der Live-Spec — inkl. amount als Dezimal-STRING, nicht number.
+    const realApiResponse = {
+      results: [
+        {
+          id: '12345',
+          accountId: 'f0995efc-25a1-465e-bec3-d309aaf00ede',
+          transactionType: 'card',
+          transactionSubtype: 'cardPayment',
+          direction: 'debit',
+          status: 'settled',
+          amount: '100.00',
+          currency: 'USD',
+          originalAmount: '90.00',
+          originalCurrency: 'EUR',
+          conversionRate: '1.1111',
+          postedAt: '2026-05-03T10:16:12Z',
+          counterparty: { name: 'Acme Store', type: 'merchant' },
+          cardTransactionDetails: { cardId: '101', merchantName: 'Acme Store', country: 'US', authorizationStatus: 'normal' },
+          bankTransferTransactionDetails: null,
+          internalTransferTransactionDetails: null,
+        },
+      ],
+      pagination: { pageSize: 50, nextPageToken: 'eyJsYXN0SWQiOjEyMzk1fQ==', hasNext: true },
+    };
+    expect(EtoroCashAccountTransactionsResponseSchema.safeParse(realApiResponse).success).toBe(true);
+  });
+
+  it('[REGRESSION] sollte amount als String belassen, nicht in eine Zahl umwandeln', () => {
+    const minimal = {
+      results: [
+        {
+          id: '1',
+          accountId: 'acc-1',
+          transactionType: 'balanceAdjustment',
+          transactionSubtype: 'fee',
+          direction: 'debit',
+          status: 'settled',
+          amount: '2.50',
+          currency: 'USD',
+          postedAt: '2026-06-01T00:00:00Z',
+        },
+      ],
+      pagination: { pageSize: 50, hasNext: false },
+    };
+    const result = EtoroCashAccountTransactionsResponseSchema.parse(minimal);
+    expect(result.results[0].amount).toBe('2.50');
+    expect(typeof result.results[0].amount).toBe('string');
+  });
+
+  it('sollte die Pflichtfelder je Transaktion verlangen', () => {
+    const missingFields = { results: [{ id: '1' }], pagination: { pageSize: 50, hasNext: false } };
+    expect(EtoroCashAccountTransactionsResponseSchema.safeParse(missingFields).success).toBe(false);
+  });
+
+  it('sollte ein leeres results-Array akzeptieren', () => {
+    const empty = { results: [], pagination: { pageSize: 50, hasNext: false } };
+    expect(EtoroCashAccountTransactionsResponseSchema.safeParse(empty).success).toBe(true);
   });
 });

@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { translations } from '@/i18n/translations';
-import { EtoroTradeHistoryResponseSchema, EtoroPnlResponseSchema } from '@/services/etoro-api-schemas';
+import {
+  EtoroTradeHistoryResponseSchema,
+  EtoroPnlResponseSchema,
+  EtoroCashAccountTransactionsResponseSchema,
+} from '@/services/etoro-api-schemas';
 import { EtoroAccountError } from '@/services/etoro-account-service';
 import EtoroHistoryTab from '../EtoroHistoryTab';
 
@@ -45,6 +49,35 @@ const pnl = EtoroPnlResponseSchema.parse({
   },
 });
 
+const cashMovements = EtoroCashAccountTransactionsResponseSchema.parse({
+  results: [
+    {
+      id: '1',
+      accountId: 'cash-1',
+      transactionType: 'balanceAdjustment',
+      transactionSubtype: 'fee',
+      direction: 'debit',
+      status: 'settled',
+      amount: '2.50',
+      currency: 'USD',
+      postedAt: '2026-06-01T00:00:00Z',
+    },
+    {
+      id: '2',
+      accountId: 'cash-1',
+      transactionType: 'internalTransfer',
+      transactionSubtype: 'transferReceived',
+      direction: 'credit',
+      status: 'settled',
+      amount: '100.00',
+      currency: 'USD',
+      postedAt: '2026-06-05T00:00:00Z',
+      counterparty: { name: 'Jane Doe', type: 'internal_account' },
+    },
+  ],
+  pagination: { pageSize: 50, hasNext: false },
+});
+
 const instrumentMeta = new Map([
   [1001, { symbol: 'AAPL', name: 'Apple Inc.' }],
   [1002, { symbol: 'TSLA' }],
@@ -54,6 +87,8 @@ function noopSection<T>(data: T | undefined) {
   return { data, isLoading: false, error: null };
 }
 
+const emptyCashMovements = noopSection(undefined);
+
 describe('EtoroHistoryTab', () => {
   describe('Normal Behavior', () => {
     it('sollte die Konto-P&L-Kennzahlen mit USD-Werten anzeigen (nie EUR-Default)', () => {
@@ -62,6 +97,7 @@ describe('EtoroHistoryTab', () => {
           isLocked={false}
           pnl={noopSection(pnl)}
           tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
           instrumentMeta={instrumentMeta}
         />,
         'de',
@@ -76,6 +112,7 @@ describe('EtoroHistoryTab', () => {
           isLocked={false}
           pnl={noopSection(pnl)}
           tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
           instrumentMeta={instrumentMeta}
         />,
         'de',
@@ -93,6 +130,7 @@ describe('EtoroHistoryTab', () => {
           isLocked={false}
           pnl={noopSection(pnl)}
           tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
           instrumentMeta={instrumentMeta}
         />,
         'de',
@@ -102,34 +140,95 @@ describe('EtoroHistoryTab', () => {
     });
 
     it('sollte Instrumente ohne Metadaten mit Fallback "Instrument #<id>" anzeigen', () => {
-      renderWithI18n(<EtoroHistoryTab isLocked={false} pnl={noopSection(pnl)} tradeHistory={noopSection(tradeHistory)} />, 'de');
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
+        />,
+        'de',
+      );
       expect(screen.getByText('Instrument #1001')).toBeInTheDocument();
       expect(screen.getByText('Instrument #1002')).toBeInTheDocument();
     });
 
+    it('sollte Cash-Bewegungen absteigend nach Datum mit vorzeichenbehafteten Beträgen anzeigen', () => {
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(tradeHistory)}
+          cashMovements={noopSection(cashMovements)}
+        />,
+        'de',
+      );
+      expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+      expect(screen.getByText('+100,00 $')).toBeInTheDocument();
+      expect(screen.getByText('-2,50 $')).toBeInTheDocument();
+    });
+
     it('sollte englische Labels rendern', () => {
       renderWithI18n(
-        <EtoroHistoryTab isLocked={false} pnl={noopSection(pnl)} tradeHistory={noopSection(tradeHistory)} />,
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
+        />,
         'en',
       );
       expect(screen.getByText('Account P&L')).toBeInTheDocument();
       expect(screen.getByText('Closed trades')).toBeInTheDocument();
+      expect(screen.getByText('Cash movements')).toBeInTheDocument();
     });
   });
 
   describe('Edge Cases', () => {
     it('sollte einen Empty-State zeigen, wenn keine geschlossenen Trades vorhanden sind', () => {
-      renderWithI18n(<EtoroHistoryTab isLocked={false} pnl={noopSection(pnl)} tradeHistory={noopSection([])} />, 'de');
+      renderWithI18n(
+        <EtoroHistoryTab isLocked={false} pnl={noopSection(pnl)} tradeHistory={noopSection([])} cashMovements={emptyCashMovements} />,
+        'de',
+      );
       expect(screen.getByText('Keine geschlossenen Trades')).toBeInTheDocument();
     });
 
     it('sollte einen Empty-State zeigen, wenn tradeHistory undefined ist', () => {
-      renderWithI18n(<EtoroHistoryTab isLocked={false} pnl={noopSection(pnl)} tradeHistory={noopSection(undefined)} />, 'de');
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(undefined)}
+          cashMovements={emptyCashMovements}
+        />,
+        'de',
+      );
       expect(screen.getByText('Keine geschlossenen Trades')).toBeInTheDocument();
     });
 
+    it('sollte einen Empty-State zeigen, wenn keine Cash-Bewegungen vorhanden sind', () => {
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
+        />,
+        'de',
+      );
+      expect(screen.getByText('Keine Cash-Bewegungen')).toBeInTheDocument();
+    });
+
     it('sollte 0-Werte anzeigen, wenn pnl undefined ist', () => {
-      renderWithI18n(<EtoroHistoryTab isLocked={false} pnl={noopSection(undefined)} tradeHistory={noopSection(tradeHistory)} />, 'de');
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(undefined)}
+          tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
+        />,
+        'de',
+      );
       expect(screen.getAllByText(/^0,00\s*\$$/).length).toBeGreaterThan(0);
     });
   });
@@ -137,7 +236,12 @@ describe('EtoroHistoryTab', () => {
   describe('Gate-Zustände', () => {
     it('sollte bei gesperrter Verschlüsselung einen Hinweis statt Daten zeigen', () => {
       renderWithI18n(
-        <EtoroHistoryTab isLocked pnl={noopSection(undefined)} tradeHistory={noopSection(undefined)} />,
+        <EtoroHistoryTab
+          isLocked
+          pnl={noopSection(undefined)}
+          tradeHistory={noopSection(undefined)}
+          cashMovements={emptyCashMovements}
+        />,
         'de',
       );
       expect(screen.getByText('Verschlüsselung gesperrt')).toBeInTheDocument();
@@ -150,11 +254,12 @@ describe('EtoroHistoryTab', () => {
           isLocked={false}
           pnl={{ data: undefined, isLoading: true, error: null }}
           tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
           instrumentMeta={instrumentMeta}
         />,
         'de',
       );
-      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.getAllByRole('status').length).toBeGreaterThan(0);
       expect(screen.getByText('Apple Inc.')).toBeInTheDocument();
     });
 
@@ -164,6 +269,7 @@ describe('EtoroHistoryTab', () => {
           isLocked={false}
           pnl={{ data: undefined, isLoading: false, error: new EtoroAccountError('unauthorized', true) }}
           tradeHistory={noopSection(tradeHistory)}
+          cashMovements={emptyCashMovements}
           instrumentMeta={instrumentMeta}
         />,
         'de',
@@ -199,6 +305,16 @@ describe('EtoroHistoryTab', () => {
         'trading.etoro.history.instrumentFallback',
         'trading.etoro.history.emptyTitle',
         'trading.etoro.history.emptyDesc',
+        'trading.etoro.history.cashMovementsSection',
+        'trading.etoro.history.cashMovementsCount',
+        'trading.etoro.history.cashMovementsNet',
+        'trading.etoro.history.cashMovementsFees',
+        'trading.etoro.history.cashMovementsEmptyTitle',
+        'trading.etoro.history.cashMovementsEmptyDesc',
+        'trading.etoro.history.columnDate',
+        'trading.etoro.history.columnType',
+        'trading.etoro.history.columnCounterparty',
+        'trading.etoro.history.columnAmount',
       ];
       const locales = [translations.de, translations.en, translations.tlh];
       keys.forEach((key) => {

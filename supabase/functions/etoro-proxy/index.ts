@@ -63,6 +63,45 @@ function jsonResponse(headers: HeadersInit, status: number, body: unknown): Resp
   });
 }
 
+/**
+ * Gemeinsame GET-Aufruf-Logik aller eToro-Endpoints: Keys durchreichen,
+ * Upstream-Fehler auf ein einheitliches Fehler-Shape abbilden (401/403 →
+ * eigener 401, alles andere → 502), Erfolg unverändert durchreichen.
+ */
+async function fetchEtoroJson(
+  headers: HeadersInit,
+  url: string,
+  apiKey: string,
+  userKey: string,
+  label: string,
+): Promise<Response> {
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "x-user-key": userKey,
+        "x-request-id": crypto.randomUUID(),
+        "Accept": "application/json",
+      },
+    });
+    if (!resp.ok) {
+      const text = (await resp.text().catch(() => "")).slice(0, 300);
+      console.error(`[etoro-proxy] eToro ${label} -> ${resp.status}`);
+      return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
+        error: "etoro_request_failed",
+        upstream_status: resp.status,
+        details: text,
+      });
+    }
+    const data = await resp.json();
+    return jsonResponse(headers, 200, data);
+  } catch (e) {
+    console.error(`[etoro-proxy] Fetch failed for ${label}`, String(e));
+    return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+  }
+}
+
 serve(async (req) => {
   const origin = req.headers.get("Origin");
   const headers = corsHeaders(origin);
@@ -104,6 +143,11 @@ serve(async (req) => {
     minDate?: unknown;
     page?: unknown;
     pageSize?: unknown;
+    displayCurrency?: unknown;
+    fromDate?: unknown;
+    toDate?: unknown;
+    accountId?: unknown;
+    pageToken?: unknown;
   } | null = null;
   try {
     body = await req.json();
@@ -128,33 +172,8 @@ serve(async (req) => {
     if (ids.length === 0) {
       return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
     }
-
     const url = `${ETORO_BASE}/market-data/instruments?instrumentIds=${ids.join(",")}`;
-    try {
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "x-user-key": userKey,
-          "x-request-id": crypto.randomUUID(),
-          "Accept": "application/json",
-        },
-      });
-      if (!resp.ok) {
-        const text = (await resp.text().catch(() => "")).slice(0, 300);
-        console.error(`[etoro-proxy] eToro instruments -> ${resp.status}`);
-        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
-          error: "etoro_request_failed",
-          upstream_status: resp.status,
-          details: text,
-        });
-      }
-      const data = await resp.json();
-      return jsonResponse(headers, 200, data);
-    } catch (e) {
-      console.error("[etoro-proxy] Fetch failed for instruments", String(e));
-      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
-    }
+    return fetchEtoroJson(headers, url, apiKey, userKey, "instruments");
   }
 
   // Live-Kurse je instrumentID — kollisionsfrei im Gegensatz zu Yahoo-Tickern
@@ -167,33 +186,8 @@ serve(async (req) => {
     if (ids.length === 0) {
       return jsonResponse(headers, 400, { error: "missing_instrument_ids" });
     }
-
     const url = `${ETORO_BASE}/market-data/instruments/rates?instrumentIds=${ids.join(",")}`;
-    try {
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "x-user-key": userKey,
-          "x-request-id": crypto.randomUUID(),
-          "Accept": "application/json",
-        },
-      });
-      if (!resp.ok) {
-        const text = (await resp.text().catch(() => "")).slice(0, 300);
-        console.error(`[etoro-proxy] eToro rates -> ${resp.status}`);
-        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
-          error: "etoro_request_failed",
-          upstream_status: resp.status,
-          details: text,
-        });
-      }
-      const data = await resp.json();
-      return jsonResponse(headers, 200, data);
-    } catch (e) {
-      console.error("[etoro-proxy] Fetch failed for rates", String(e));
-      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
-    }
+    return fetchEtoroJson(headers, url, apiKey, userKey, "rates");
   }
 
   // Geschlossene Trades (Handelshistorie) — minDate ist bei eToro ein
@@ -209,31 +203,55 @@ serve(async (req) => {
     if (pageSize !== undefined) params.set("pageSize", String(pageSize));
 
     const url = `${ETORO_BASE}/trading/info/trade/history?${params.toString()}`;
-    try {
-      const resp = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": apiKey,
-          "x-user-key": userKey,
-          "x-request-id": crypto.randomUUID(),
-          "Accept": "application/json",
-        },
-      });
-      if (!resp.ok) {
-        const text = (await resp.text().catch(() => "")).slice(0, 300);
-        console.error(`[etoro-proxy] eToro trade-history -> ${resp.status}`);
-        return jsonResponse(headers, resp.status === 401 || resp.status === 403 ? 401 : 502, {
-          error: "etoro_request_failed",
-          upstream_status: resp.status,
-          details: text,
-        });
-      }
-      const data = await resp.json();
-      return jsonResponse(headers, 200, data);
-    } catch (e) {
-      console.error("[etoro-proxy] Fetch failed for trade-history", String(e));
-      return jsonResponse(headers, 502, { error: "etoro_request_failed" });
+    return fetchEtoroJson(headers, url, apiKey, userKey, "trade-history");
+  }
+
+  // Aggregierte Kontostände über alle eToro-Produkte (Trading, Cash, ...) —
+  // liefert u. a. die Cash-Account-ID, die cash-transactions als Pfad-Parameter
+  // benötigt (die Portfolio-/Aggregate-Antworten liefern sie nicht).
+  if (endpoint === "balances") {
+    const displayCurrency =
+      typeof body?.displayCurrency === "string" && body.displayCurrency.trim() ? body.displayCurrency.trim() : "USD";
+    const url = `${ETORO_BASE}/balances?displayCurrency=${encodeURIComponent(displayCurrency)}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "balances");
+  }
+
+  // Tägliche Kontostand-Snapshots — ersetzt den bisherigen synthetischen
+  // Performance-Chart-Mock im Client. fromDate/toDate optional (eToro
+  // default: letzte 30 Tage bis heute; max. 365 Tage Spanne, max. 12 Monate
+  // zurück laut Spec).
+  if (endpoint === "balances-history") {
+    const displayCurrency =
+      typeof body?.displayCurrency === "string" && body.displayCurrency.trim() ? body.displayCurrency.trim() : "USD";
+    const fromDate = typeof body?.fromDate === "string" && body.fromDate.trim() ? body.fromDate.trim() : undefined;
+    const toDate = typeof body?.toDate === "string" && body.toDate.trim() ? body.toDate.trim() : undefined;
+
+    const params = new URLSearchParams({ displayCurrency });
+    if (fromDate) params.set("fromDate", fromDate);
+    if (toDate) params.set("toDate", toDate);
+
+    const url = `${ETORO_BASE}/balances/history?${params.toString()}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "balances-history");
+  }
+
+  // Cash-Konto-Bewegungen (Gebühren, Transfers, Kartenzahlungen, ...) — die
+  // accountId (eToro Cash-Account, NICHT die Portfolio-ID) muss der Client
+  // zuvor über den balances-Endpoint auflösen.
+  if (endpoint === "cash-transactions") {
+    const accountId = typeof body?.accountId === "string" ? body.accountId.trim() : "";
+    if (!accountId) {
+      return jsonResponse(headers, 400, { error: "missing_account_id" });
     }
+    const pageSize = typeof body?.pageSize === "number" && Number.isFinite(body.pageSize) ? body.pageSize : undefined;
+    const pageToken = typeof body?.pageToken === "string" && body.pageToken.trim() ? body.pageToken.trim() : undefined;
+
+    const params = new URLSearchParams();
+    if (pageSize !== undefined) params.set("pageSize", String(pageSize));
+    if (pageToken) params.set("pageToken", pageToken);
+    const qs = params.toString();
+
+    const url = `${ETORO_BASE}/money/accounts/cash/${encodeURIComponent(accountId)}/transactions${qs ? `?${qs}` : ""}`;
+    return fetchEtoroJson(headers, url, apiKey, userKey, "cash-transactions");
   }
 
   const paths = ENDPOINT_PATHS[endpoint];

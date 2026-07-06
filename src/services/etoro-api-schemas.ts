@@ -214,3 +214,100 @@ export const EtoroPnlResponseSchema = z.object({
 export type EtoroPnlMirror = z.infer<typeof EtoroPnlMirrorSchema>;
 export type EtoroClientPortfolioPnl = z.infer<typeof EtoroClientPortfolioPnlSchema>;
 export type EtoroPnlResponse = z.infer<typeof EtoroPnlResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/balances (Spec abgefragt 2026-07-06, v1.291.0). Aggregierte
+// Kontostände über alle eToro-Produkte (Trading, Cash, Options, Crypto, ...).
+// Liefert u. a. die Cash-Account-ID, die cash-transactions als Pfad-Parameter
+// benötigt — die Portfolio-/Aggregate-Antworten kennen sie nicht.
+// -----------------------------------------------------------------------------
+
+export const EtoroAccountBalanceSchema = z.object({
+  accountId: z.string().nullable().optional(),
+  accountType: z.string(),
+  balance: z.number().optional(),
+  currency: z.string().nullable().optional(),
+  displayBalance: z.number().optional(),
+  displayCurrency: z.string().nullable().optional(),
+});
+
+export const EtoroBalancesResponseSchema = z.object({
+  gcid: z.number().optional(),
+  totalBalance: z.number().optional(),
+  displayCurrency: z.string().nullable().optional(),
+  balances: z.array(EtoroAccountBalanceSchema).optional(),
+});
+
+export type EtoroAccountBalance = z.infer<typeof EtoroAccountBalanceSchema>;
+export type EtoroBalancesResponse = z.infer<typeof EtoroBalancesResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/balances/history (Spec abgefragt 2026-07-06, v1.291.0). Tägliche
+// Kontostand-Snapshots (letzte 12 Monate, max. 365 Tage Spanne pro Anfrage) —
+// ersetzt den bisherigen synthetischen Performance-Chart-Mock im Client.
+// -----------------------------------------------------------------------------
+
+export const EtoroHistoricalDailySnapshotSchema = z.object({
+  date: z.string(),
+  totalCash: z.number().optional(),
+  totalInvestedAmount: z.number().optional(),
+  totalPnl: z.number().optional(),
+  totalBalance: z.number().optional(),
+  displayTotalCash: z.number().optional(),
+  displayTotalInvestedAmount: z.number().optional(),
+  displayTotalPnl: z.number().optional(),
+  displayTotalBalance: z.number().optional(),
+});
+
+export const EtoroHistoricalBalancesResponseSchema = z.object({
+  gcid: z.number().optional(),
+  displayCurrency: z.string().nullable().optional(),
+  fromDate: z.string().optional(),
+  toDate: z.string().optional(),
+  snapshots: z.array(EtoroHistoricalDailySnapshotSchema).optional(),
+});
+
+export type EtoroHistoricalDailySnapshot = z.infer<typeof EtoroHistoricalDailySnapshotSchema>;
+export type EtoroHistoricalBalancesResponse = z.infer<typeof EtoroHistoricalBalancesResponseSchema>;
+
+// -----------------------------------------------------------------------------
+// GET /api/v1/money/accounts/cash/{accountId}/transactions (Spec abgefragt
+// 2026-07-06, v1.291.0). Cash-Konto-Bewegungen (Gebühren, Transfers,
+// Kartenzahlungen, Guthaben-Anpassungen, ...) — cursor-paginiert.
+//
+// `amount` ist laut Spec ein Dezimal-STRING (kein number) — bewusst so
+// übernommen, nicht in eine Zahl umgedeutet (Rundungsfallen bei Geldbeträgen).
+// Detail-Objekte (card/bankTransfer/internalTransfer) werden hier nicht
+// abgebildet, da die Historie-Ansicht sie nicht braucht; Zod lässt
+// ungelistete Felder unangetastet durch (kein .strict()).
+// -----------------------------------------------------------------------------
+
+export const EtoroCashAccountTransactionSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  transactionType: z.string(),
+  transactionSubtype: z.string(),
+  direction: z.enum(['debit', 'credit']),
+  status: z.string(),
+  amount: z.string(),
+  currency: z.string(),
+  postedAt: z.string(),
+  counterparty: z
+    .object({
+      name: z.string().optional(),
+      type: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const EtoroCashAccountTransactionsResponseSchema = z.object({
+  results: z.array(EtoroCashAccountTransactionSchema),
+  pagination: z.object({
+    pageSize: z.number().optional(),
+    nextPageToken: z.string().nullable().optional(),
+    hasNext: z.boolean().optional(),
+  }),
+});
+
+export type EtoroCashAccountTransaction = z.infer<typeof EtoroCashAccountTransactionSchema>;
+export type EtoroCashAccountTransactionsResponse = z.infer<typeof EtoroCashAccountTransactionsResponseSchema>;

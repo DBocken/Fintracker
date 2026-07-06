@@ -16,13 +16,18 @@ import {
   fetchEtoroAggregateForPortfolio,
   fetchEtoroTradeHistoryForPortfolio,
   fetchEtoroPnlForPortfolio,
+  fetchEtoroBalancesForPortfolio,
+  fetchEtoroBalancesHistoryForPortfolio,
+  fetchEtoroCashTransactionsForPortfolio,
 } from '@/services/etoro-account-service';
 import { getEtoroCredentials, fetchEtoroInstrumentMeta } from '@/services/etoro-service';
 import { selectEtoroMirrors, sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
+import { selectCashAccountId, selectPerformanceSeries } from '@/services/etoro-performance';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import EtoroOverviewTab from './EtoroOverviewTab';
 import EtoroMirrorsTab from './EtoroMirrorsTab';
 import EtoroHistoryTab from './EtoroHistoryTab';
+import EtoroPerformanceTab from './EtoroPerformanceTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -249,6 +254,59 @@ export default function TradingDashboard() {
     refetchOnWindowFocus: false,
     retry: false,
   });
+
+  // Aggregierte Kontostände (/balances) — nur zur Auflösung der Cash-Account-ID
+  // fürs Cash-Bewegungen-Segment im Historie-Tab (die Portfolio-/Aggregate-
+  // Antworten kennen sie nicht).
+  const {
+    data: etoroBalances,
+    isLoading: isLoadingBalances,
+    error: balancesError,
+    refetch: refetchBalances,
+  } = useQuery({
+    queryKey: ['etoro-balances', activePortfolio?.id],
+    queryFn: () => fetchEtoroBalancesForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'history',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const cashAccountId = useMemo(() => selectCashAccountId(etoroBalances), [etoroBalances]);
+
+  // Cash-Konto-Bewegungen (Historie-Tab, „Cash-Bewegungen"-Segment) — erst
+  // aktivierbar, sobald die Cash-Account-ID aus /balances aufgelöst ist.
+  const {
+    data: etoroCashMovements,
+    isLoading: isLoadingCashMovements,
+    error: cashMovementsError,
+    refetch: refetchCashMovements,
+  } = useQuery({
+    queryKey: ['etoro-cash-transactions', activePortfolio?.id, cashAccountId],
+    queryFn: () => fetchEtoroCashTransactionsForPortfolio(activePortfolio, cashAccountId!),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'history' && !!cashAccountId,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  // Tägliche Kontostand-Snapshots (Performance-Tab) — ersetzt den bisherigen
+  // synthetischen Mock. eToro-Default (letzte 30 Tage) wird nicht überschrieben.
+  const {
+    data: etoroBalancesHistory,
+    isLoading: isLoadingBalancesHistory,
+    error: balancesHistoryError,
+    refetch: refetchBalancesHistory,
+  } = useQuery({
+    queryKey: ['etoro-balances-history', activePortfolio?.id],
+    queryFn: () => fetchEtoroBalancesHistoryForPortfolio(activePortfolio),
+    enabled: !!activePortfolio?.id && isEtoro && unlocked && effectiveTab === 'performance',
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const performanceSeries = useMemo(() => selectPerformanceSeries(etoroBalancesHistory), [etoroBalancesHistory]);
 
   // Σ aktueller Wert der lokal gespeicherten eToro-Positionen (USD) für den
   // Abgleich im Übersicht-Tab.
@@ -661,6 +719,15 @@ export default function TradingDashboard() {
                 error: tradeHistoryError as Error | null,
                 onRetry: () => refetchTradeHistory(),
               }}
+              cashMovements={{
+                data: etoroCashMovements,
+                isLoading: isLoadingBalances || isLoadingCashMovements,
+                error: (balancesError as Error | null) ?? (cashMovementsError as Error | null),
+                onRetry: () => {
+                  refetchBalances();
+                  if (cashAccountId) refetchCashMovements();
+                },
+              }}
               instrumentMeta={tradeHistoryInstrumentMeta}
             />
           </TabsContent>
@@ -682,36 +749,48 @@ export default function TradingDashboard() {
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('trading.dashboard.performanceChart.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={generatePerformanceData()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value, 'EUR'),
-                      t('trading.dashboard.performanceChart.valueLabel')
-                    ]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <p className="text-xs text-muted-foreground mt-4 text-center">
-                {t('trading.dashboard.performanceChart.disclaimer')}
-              </p>
-            </CardContent>
-          </Card>
+          {isEtoro ? (
+            // eToro-Portfolios zeigen den echten Kontostand-Verlauf
+            // (/balances/history) — nie mehr den synthetischen Mock unten.
+            <EtoroPerformanceTab
+              isLocked={!unlocked}
+              isLoading={isLoadingBalancesHistory}
+              error={balancesHistoryError as Error | null}
+              onRetry={() => refetchBalancesHistory()}
+              series={performanceSeries}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('trading.dashboard.performanceChart.title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={generatePerformanceData()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        formatCurrency(value, 'EUR'),
+                        t('trading.dashboard.performanceChart.valueLabel')
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-muted-foreground mt-4 text-center">
+                  {t('trading.dashboard.performanceChart.disclaimer')}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="portfolios" className="space-y-4">

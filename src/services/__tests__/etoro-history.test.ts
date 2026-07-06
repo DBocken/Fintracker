@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { EtoroTradeHistoryResponseSchema, EtoroPnlResponseSchema } from '../etoro-api-schemas';
-import { selectClosedTrades, selectClosedTradesTotals, selectAccountPnl } from '../etoro-history';
+import { EtoroTradeHistoryResponseSchema, EtoroPnlResponseSchema, EtoroCashAccountTransactionsResponseSchema } from '../etoro-api-schemas';
+import {
+  selectClosedTrades,
+  selectClosedTradesTotals,
+  selectAccountPnl,
+  selectCashMovements,
+  selectCashMovementsTotals,
+} from '../etoro-history';
 
 describe('selectClosedTrades', () => {
   describe('Normal Behavior', () => {
@@ -159,5 +165,87 @@ describe('selectAccountPnl', () => {
       const pnl = EtoroPnlResponseSchema.parse({ clientPortfolio: { mirrors: [{ mirrorID: 1 }] } });
       expect(selectAccountPnl(pnl).mirrorsRealizedPnl).toBe(0);
     });
+  });
+});
+
+describe('selectCashMovements', () => {
+  describe('Normal Behavior', () => {
+    it('sollte amount als String in eine Zahl parsen und nach postedAt absteigend sortieren', () => {
+      const transactions = EtoroCashAccountTransactionsResponseSchema.parse({
+        results: [
+          {
+            id: '1',
+            accountId: 'acc-1',
+            transactionType: 'balanceAdjustment',
+            transactionSubtype: 'fee',
+            direction: 'debit',
+            status: 'settled',
+            amount: '2.50',
+            currency: 'USD',
+            postedAt: '2026-06-01T00:00:00Z',
+          },
+          {
+            id: '2',
+            accountId: 'acc-1',
+            transactionType: 'internalTransfer',
+            transactionSubtype: 'transferReceived',
+            direction: 'credit',
+            status: 'settled',
+            amount: '100.00',
+            currency: 'USD',
+            postedAt: '2026-06-05T00:00:00Z',
+            counterparty: { name: 'Jane Doe', type: 'internal_account' },
+          },
+        ],
+        pagination: { pageSize: 50, hasNext: false },
+      });
+
+      const movements = selectCashMovements(transactions);
+      expect(movements.map((m) => m.id)).toEqual(['2', '1']);
+      expect(movements[0].amount).toBe(100);
+      expect(movements[0].signedAmount).toBe(100);
+      expect(movements[0].counterpartyName).toBe('Jane Doe');
+      expect(movements[1].signedAmount).toBe(-2.5);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('sollte [] liefern, wenn transactions undefined ist', () => {
+      expect(selectCashMovements(undefined)).toEqual([]);
+    });
+
+    it('sollte 0 liefern, wenn amount nicht parsbar ist', () => {
+      const transactions = EtoroCashAccountTransactionsResponseSchema.parse({
+        results: [
+          {
+            id: '1',
+            accountId: 'acc-1',
+            transactionType: 'balanceAdjustment',
+            transactionSubtype: 'fee',
+            direction: 'debit',
+            status: 'settled',
+            amount: 'not-a-number',
+            currency: 'USD',
+            postedAt: '2026-06-01T00:00:00Z',
+          },
+        ],
+        pagination: { pageSize: 50, hasNext: false },
+      });
+      expect(selectCashMovements(transactions)[0].amount).toBe(0);
+    });
+  });
+});
+
+describe('selectCashMovementsTotals', () => {
+  it('sollte Anzahl, Σ vorzeichenbehafteten Betrag und Σ Gebühren summieren', () => {
+    const totals = selectCashMovementsTotals([
+      { id: '1', postedAt: '', subtype: 'fee', direction: 'debit', amount: 2.5, signedAmount: -2.5, currency: 'USD', counterpartyName: undefined },
+      { id: '2', postedAt: '', subtype: 'transferReceived', direction: 'credit', amount: 100, signedAmount: 100, currency: 'USD', counterpartyName: undefined },
+    ]);
+    expect(totals).toEqual({ count: 2, totalSigned: 97.5, totalFees: 2.5 });
+  });
+
+  it('sollte bei leerer Liste Nullen liefern', () => {
+    expect(selectCashMovementsTotals([])).toEqual({ count: 0, totalSigned: 0, totalFees: 0 });
   });
 });

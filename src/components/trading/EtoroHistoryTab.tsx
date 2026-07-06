@@ -1,12 +1,22 @@
-import { History } from 'lucide-react';
+import { History, ArrowLeftRight } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { formatCurrency } from '@/lib/utils';
 import EmptyState from '@/components/common/EmptyState';
 import { InfoGroup, InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { EtoroTradeHistoryResponse, EtoroPnlResponse } from '@/services/etoro-api-schemas';
-import { selectClosedTrades, selectClosedTradesTotals, selectAccountPnl } from '@/services/etoro-history';
+import type {
+  EtoroTradeHistoryResponse,
+  EtoroPnlResponse,
+  EtoroCashAccountTransactionsResponse,
+} from '@/services/etoro-api-schemas';
+import {
+  selectClosedTrades,
+  selectClosedTradesTotals,
+  selectAccountPnl,
+  selectCashMovements,
+  selectCashMovementsTotals,
+} from '@/services/etoro-history';
 import EtoroScopeGate from './EtoroScopeGate';
 
 interface EtoroInstrumentMetaLite {
@@ -25,6 +35,7 @@ interface EtoroHistoryTabProps {
   isLocked: boolean;
   pnl: EtoroHistorySectionState<EtoroPnlResponse>;
   tradeHistory: EtoroHistorySectionState<EtoroTradeHistoryResponse>;
+  cashMovements: EtoroHistorySectionState<EtoroCashAccountTransactionsResponse>;
   /** instrumentId → Symbol/Name für die Trade-Zeilen. Optional (nice-to-have). */
   instrumentMeta?: Map<number, EtoroInstrumentMetaLite>;
 }
@@ -45,11 +56,18 @@ function formatDate(timestamp: string | undefined, locale: string): string {
  * Historie-Tab für eToro-Portfolios: Konto-P&L (Guthaben, unrealisierte G/V,
  * realisierte Smart-Portfolio-G/V) plus die Liste geschlossener Trades.
  *
- * Zwei unabhängige Live-Abfragen (pnl/trade-history, unterschiedliche
- * Rate-Limit-Gruppen) — daher zwei separate EtoroScopeGate-Instanzen, damit
- * ein Fehler/Ladezustand der einen Sektion die andere nicht blockiert.
+ * Drei unabhängige Live-Abfragen (pnl/trade-history/cash-transactions,
+ * unterschiedliche Rate-Limit-Gruppen) — daher drei separate
+ * EtoroScopeGate-Instanzen, damit ein Fehler/Ladezustand einer Sektion die
+ * anderen nicht blockiert.
  */
-export default function EtoroHistoryTab({ isLocked, pnl, tradeHistory, instrumentMeta }: EtoroHistoryTabProps) {
+export default function EtoroHistoryTab({
+  isLocked,
+  pnl,
+  tradeHistory,
+  cashMovements,
+  instrumentMeta,
+}: EtoroHistoryTabProps) {
   const { t, locale } = useI18n();
 
   if (isLocked) {
@@ -63,6 +81,8 @@ export default function EtoroHistoryTab({ isLocked, pnl, tradeHistory, instrumen
   const accountPnl = selectAccountPnl(pnl.data);
   const trades = selectClosedTrades(tradeHistory.data);
   const tradesTotals = selectClosedTradesTotals(trades);
+  const movements = selectCashMovements(cashMovements.data);
+  const movementsTotals = selectCashMovementsTotals(movements);
 
   const pnlStats: InfoStat[] = [
     { label: t('trading.etoro.history.credit'), value: fmt(accountPnl.credit) },
@@ -87,6 +107,16 @@ export default function EtoroHistoryTab({ isLocked, pnl, tradeHistory, instrumen
       tone: signTone(tradesTotals.totalNetProfit),
     },
     { label: t('trading.etoro.history.tradesFees'), value: fmt(tradesTotals.totalFees) },
+  ];
+
+  const movementsStats: InfoStat[] = [
+    { label: t('trading.etoro.history.cashMovementsCount'), value: String(movementsTotals.count) },
+    {
+      label: t('trading.etoro.history.cashMovementsNet'),
+      value: fmt(movementsTotals.totalSigned),
+      tone: signTone(movementsTotals.totalSigned),
+    },
+    { label: t('trading.etoro.history.cashMovementsFees'), value: fmt(movementsTotals.totalFees) },
   ];
 
   return (
@@ -162,6 +192,54 @@ export default function EtoroHistoryTab({ isLocked, pnl, tradeHistory, instrumen
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </InfoGroup>
+      </EtoroScopeGate>
+
+      <EtoroScopeGate
+        isLocked={false}
+        isLoading={cashMovements.isLoading}
+        error={cashMovements.error}
+        onRetry={cashMovements.onRetry}
+      >
+        <InfoGroup title={t('trading.etoro.history.cashMovementsSection')}>
+          {movements.length === 0 ? (
+            <EmptyState
+              icon={ArrowLeftRight}
+              title={t('trading.etoro.history.cashMovementsEmptyTitle')}
+              description={t('trading.etoro.history.cashMovementsEmptyDesc')}
+            />
+          ) : (
+            <div className="space-y-4">
+              <InfoStatStrip items={movementsStats} />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('trading.etoro.history.columnDate')}</TableHead>
+                    <TableHead>{t('trading.etoro.history.columnType')}</TableHead>
+                    <TableHead>{t('trading.etoro.history.columnCounterparty')}</TableHead>
+                    <TableHead className="text-right">{t('trading.etoro.history.columnAmount')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movements.map((movement) => (
+                    <TableRow key={movement.id}>
+                      <TableCell>{formatDate(movement.postedAt, locale)}</TableCell>
+                      <TableCell className="font-medium">{movement.subtype}</TableCell>
+                      <TableCell>{movement.counterpartyName || '—'}</TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums font-medium ${
+                          movement.signedAmount >= 0 ? 'text-positive' : 'text-warning'
+                        }`}
+                      >
+                        {movement.signedAmount >= 0 ? '+' : ''}
+                        {formatCurrency(movement.signedAmount, movement.currency)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
