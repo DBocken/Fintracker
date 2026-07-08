@@ -92,4 +92,39 @@ describe("getPortfolioSummary — Investiert bei Hebel-Positionen", () => {
     const summary = await getPortfolioSummary(p.id);
     expect(summary.total_cost).toBe(1600);
   });
+
+  it("[Edge] sollte für ein leeres Portfolio (keine Positionen) alles auf 0 setzen", async () => {
+    const p = await seedPortfolio();
+    const summary = await getPortfolioSummary(p.id);
+    expect(summary).toMatchObject({
+      total_value: 0,
+      total_cost: 0,
+      unrealized_gain_loss: 0,
+      unrealized_gain_loss_percent: 0,
+      positions_count: 0,
+    });
+  });
+
+  it("[REGRESSION] sollte bei fehlendem Kurs (last_price nie gesetzt) auf den Einstiegskurs zurückfallen", async () => {
+    const p = await seedPortfolio();
+    await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 10, entry_price: 150 });
+    const summary = await getPortfolioSummary(p.id);
+    // Ohne last_price (undefined) ist der Einstiegskurs die einzig sinnvolle Annäherung.
+    expect(summary.total_value).toBe(1500);
+  });
+
+  it("[Edge] dokumentiert aktuelles Verhalten bei last_price === 0: fällt auf entry_price zurück statt 0 zu zeigen", async () => {
+    const p = await seedPortfolio();
+    const pos = await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 10, entry_price: 150 });
+    await updatePositionPrice(pos.id, 0);
+    const summary = await getPortfolioSummary(p.id);
+    // `position.last_price || position.entry_price` behandelt einen echten
+    // Kurs von 0 (z.B. wertlose/delistete Position) wie "kein Kurs geladen"
+    // und zeigt den Einstiegskurs statt 0 — dieselbe Falsy-Falle existiert
+    // konsistent auch in position-metrics.ts und PositionTable.tsx. Dieser
+    // Test dokumentiert das aktuelle (fragwürdige) Verhalten bewusst, statt
+    // es hier isoliert zu "reparieren" und die drei Stellen auseinanderlaufen
+    // zu lassen — eine echte Korrektur müsste alle drei gemeinsam ändern.
+    expect(summary.total_value).toBe(1500);
+  });
 });

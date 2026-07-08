@@ -54,6 +54,28 @@ describe("[INTEGRITY] deleteCategory bereinigt Referenzen (F-CAT-DELETE)", () =>
     expect(budgets[0].subcategory_ids).toEqual([subB.id]);
   });
 
+  it("[REGRESSION] setzt subcategory_ids auf undefined (nicht []), wenn ALLE referenzierten Unterkategorien wegfallen", async () => {
+    const { main, subA, subB } = await seedCategories();
+    // Budget auf eine ANDERE Hauptkategorie, das BEIDE Unterkategorien von main referenziert.
+    const other = await saveLocalCategory({ name: "TST-Sonstiges2" });
+    await saveBudget({
+      name: "TST-BeideWeg",
+      category_id: other.id,
+      subcategory_ids: [subA.id, subB.id],
+      limit: 200,
+    } as Partial<Budget>);
+
+    // main löschen kaskadiert auf subA UND subB (beide Kinder von main) —
+    // damit wird die subcategory_ids-Auswahl des Budgets komplett geleert.
+    const result = await deleteCategory(main.id);
+    expect(result.prunedBudgets).toBe(1);
+    const [budget] = await getBudgets();
+    // Leeres Array würde bedeuten "passt auf nichts mehr" — die Formular-
+    // Semantik verlangt stattdessen undefined ("alle Unterkategorien zählen"),
+    // sonst würde das Budget nach dieser Löschung stillschweigend nichts mehr matchen.
+    expect(budget.subcategory_ids).toBeUndefined();
+  });
+
   it("löscht Händlerregeln, die auf gelöschte Kategorien zeigen", async () => {
     const { main, subA } = await seedCategories();
     await upsertMerchantRule("kino xyz", subA.id);

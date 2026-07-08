@@ -6,10 +6,12 @@ import {
   updateAutomationSuggestionStatus,
   deleteAutomationSuggestion,
   buildCategorySuggestion,
+  buildCategorySuggestionFromResult,
   type AutomationSuggestion,
 } from '../automation-suggestion-service';
 import { writeLocalFinanceList } from '../local-finance-store';
 import type { Transaction } from '@/types';
+import type { CategorizationResult } from '../transaction-service';
 
 beforeEach(async () => {
   await writeLocalFinanceList('automationSuggestions', []);
@@ -91,5 +93,31 @@ describe('automation-suggestion-service (local)', () => {
     expect(built.proposedChange).toEqual({ category_id: 'food' });
     expect(built.status).toBe('pending');
     expect(built.confidence).toBe(0.95);
+  });
+
+  describe('buildCategorySuggestionFromResult', () => {
+    it('returns null when the result has no categoryId (unmatched)', () => {
+      const result: CategorizationResult = {
+        categoryId: null,
+        confidence: 0,
+        reasons: [],
+        source: 'none',
+      };
+      expect(buildCategorySuggestionFromResult(tx(), result)).toBeNull();
+    });
+
+    it('builds a suggestion mirroring the CategorizationResult when categoryId is present', () => {
+      const result: CategorizationResult = {
+        categoryId: 'food',
+        confidence: 0.8,
+        reasons: ['Filter-Treffer: REWE'],
+        source: 'category_filter',
+      };
+      const built = buildCategorySuggestionFromResult(tx(), result);
+      expect(built).not.toBeNull();
+      expect(built?.proposedChange).toEqual({ category_id: 'food' });
+      expect(built?.confidence).toBe(0.8);
+      expect(built?.reasons).toEqual(['Filter-Treffer: REWE']);
+    });
   });
 });
