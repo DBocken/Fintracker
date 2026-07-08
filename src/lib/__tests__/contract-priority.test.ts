@@ -14,6 +14,17 @@ describe("contract-priority", () => {
       expect(matchContractDomain("Miete Wohnung")).toBeNull();
       expect(matchContractDomain("")).toBeNull();
     });
+
+    it("sollte unabhängig von Groß-/Kleinschreibung erkennen", () => {
+      expect(matchContractDomain("NETFLIX ABO")).toBe("Streaming");
+      expect(matchContractDomain("netflix abo")).toBe("Streaming");
+    });
+
+    it("[Edge] sollte bei mehrdeutigem Namen die zuerst in CONTRACT_DOMAINS gelistete Domäne gewinnen", () => {
+      // Enthält sowohl das Streaming-Keyword "streaming" als auch das
+      // Fitness-Keyword "fitnessstudio" — Streaming steht im Array zuerst.
+      expect(matchContractDomain("Fitnessstudio mit Streaming-Flat")).toBe("Streaming");
+    });
   });
 
   describe("classifyContractPriority", () => {

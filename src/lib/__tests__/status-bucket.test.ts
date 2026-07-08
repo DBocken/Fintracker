@@ -21,6 +21,20 @@ describe("getStatusBucket", () => {
     expect(getStatusBucket(81)).toBe("excellent");
     expect(getStatusBucket(100)).toBe("excellent");
   });
+
+  it("[Edge] clampt Werte unterhalb 0 auf 'critical' und oberhalb 100 auf 'excellent'", () => {
+    expect(getStatusBucket(-50)).toBe("critical");
+    expect(getStatusBucket(150)).toBe("excellent");
+  });
+
+  it("[REGRESSION] dokumentiert: NaN fällt durch alle Schwellen und landet bei 'excellent' statt eines Fehlers", () => {
+    // Jeder `<=`-Vergleich mit NaN ist false, daher fällt die Funktion beim
+    // letzten `return "excellent"` durch — ein für eine Bewertungsfunktion
+    // überraschendes Ergebnis. Hier bewusst als Ist-Zustand dokumentiert,
+    // damit eine künftige Änderung (z.B. NaN wie 0 behandeln) bewusst
+    // getroffen wird statt versehentlich zu passieren.
+    expect(getStatusBucket(NaN)).toBe("excellent");
+  });
 });
 
 describe("getStatusStage", () => {

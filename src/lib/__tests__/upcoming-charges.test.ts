@@ -97,6 +97,18 @@ describe('upcoming-charges', () => {
       const charges = getUpcomingCharges(flows, { fromISO: '2026-01-01', toISO: '2026-04-30' });
       expect(charges.map((c) => c.dateISO)).toEqual(['2026-01-15', '2026-02-15', '2026-03-15', '2026-04-15']);
     });
+
+    it('sollte eine wöchentliche Kadenz alle 7 Tage fällig stellen', () => {
+      const flows = [flow({ id: 'wochen', amount: -20, anchorDate: '2026-06-03', cadence: 'weekly' })];
+      const charges = getUpcomingCharges(flows, { fromISO: '2026-06-01', toISO: '2026-06-21' });
+      expect(charges.map((c) => c.dateISO)).toEqual(['2026-06-03', '2026-06-10', '2026-06-17']);
+    });
+
+    it('sollte eine jährliche Kadenz nur einmal im Jahr fällig stellen', () => {
+      const flows = [flow({ id: 'jahres', amount: -300, anchorDate: '2026-03-15', cadence: 'annual' })];
+      const charges = getUpcomingCharges(flows, { fromISO: '2026-01-01', toISO: '2026-12-31' });
+      expect(charges.map((c) => c.dateISO)).toEqual(['2026-03-15']);
+    });
   });
 
   describe('Aggregate', () => {

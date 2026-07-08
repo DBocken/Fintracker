@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useAnimatedNumber } from "../useAnimatedNumber";
 
 // Reduced-Motion-Status pro Test steuerbar machen.
@@ -39,6 +39,67 @@ describe("useAnimatedNumber", () => {
     it("sollte unterhalb des Ziels starten (nicht sofort springen)", () => {
       const { result } = renderHook(() => useAnimatedNumber(80));
       expect(result.current).toBeLessThan(80);
+    });
+  });
+
+  describe("Zieländerung während laufender Animation", () => {
+    it("sollte bei neuem Ziel vom zuletzt sichtbaren Zwischenwert weiterlaufen (kein Reset auf 0)", () => {
+      let now = 1000;
+      let pendingCb: FrameRequestCallback | null = null;
+      const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => now);
+      const rafSpy = vi
+        .spyOn(globalThis, "requestAnimationFrame")
+        .mockImplementation((cb: FrameRequestCallback) => {
+          pendingCb = cb;
+          return 0;
+        });
+      try {
+        const { result, rerender } = renderHook(
+          ({ target }) => useAnimatedNumber(target, { durationMs: 100 }),
+          { initialProps: { target: 100 } },
+        );
+
+        // Erster Frame: 50 % der Strecke zum ursprünglichen Ziel (100).
+        now += 50;
+        act(() => pendingCb!(now));
+        const midValue = result.current;
+        expect(midValue).toBeGreaterThan(0);
+        expect(midValue).toBeLessThan(100);
+
+        // Ziel ändert sich, BEVOR die erste Animation fertig ist.
+        rerender({ target: 50 });
+        // Direkt nach dem Rerender (vor dem ersten neuen Frame) bleibt der
+        // zuletzt sichtbare Wert stehen — kein Sprung zurück auf 0.
+        expect(result.current).toBe(midValue);
+
+        // Erster Frame der neuen Tween-Phase: bewegt sich nur leicht in
+        // Richtung 50, statt von 0 aus neu zu starten.
+        now += 1;
+        act(() => pendingCb!(now));
+        const afterRetarget = result.current;
+        expect(afterRetarget).not.toBe(0);
+        expect(Math.abs(afterRetarget - midValue)).toBeLessThan(Math.abs(50 - midValue));
+      } finally {
+        rafSpy.mockRestore();
+        nowSpy.mockRestore();
+      }
+    });
+  });
+
+  describe("Cleanup", () => {
+    it("sollte requestAnimationFrame beim Unmount abbrechen (cancelAnimationFrame)", () => {
+      const rafSpy = vi
+        .spyOn(globalThis, "requestAnimationFrame")
+        .mockImplementation(() => 42);
+      const cafSpy = vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation(() => {});
+      try {
+        const { unmount } = renderHook(() => useAnimatedNumber(80));
+        unmount();
+        expect(cafSpy).toHaveBeenCalledWith(42);
+      } finally {
+        rafSpy.mockRestore();
+        cafSpy.mockRestore();
+      }
     });
   });
 

@@ -54,11 +54,14 @@ function makeClaim(partial: Partial<Claim> & { id: string }): Claim {
   };
 }
 
-function renderDialog(open = true) {
+function renderDialog(open = true, locale: "de" | "en" = "de") {
   const queryClient = new QueryClient();
   const onOpenChange = vi.fn();
+  // getScanGuidance() liest die Sprache direkt aus localStorage (Nicht-React-Code,
+  // siehe src/i18n/serviceT.ts) — unabhängig vom initialLocale-Prop des Providers.
+  window.localStorage.setItem("ausgabentracker_locale_v1", locale);
   render(
-    <I18nProvider initialLocale="de">
+    <I18nProvider initialLocale={locale}>
       <QueryClientProvider client={queryClient}>
         <ClaimImportDialog open={open} onOpenChange={onOpenChange} />
       </QueryClientProvider>
@@ -90,6 +93,38 @@ describe("ClaimImportDialog", () => {
       screen.getByText(/PDF oder Fotos hierher ziehen oder auswählen/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Alles passiert auf deinem Gerät/)).toBeInTheDocument();
+  });
+
+  it("sollte den Titel auf Englisch rendern", () => {
+    renderDialog(true, "en");
+    expect(screen.getByText("Scan claim letters")).toBeInTheDocument();
+  });
+
+  it("verarbeitet hochgeladene Fotos über importLettersFromImages, nicht importLettersFromPdf", async () => {
+    const claim = makeClaim({ id: "claim-1" });
+    const result: LetterImportResult = {
+      claims: [claim],
+      letters: [{} as never],
+      letterCount: 1,
+      claimCount: 1,
+      needsReview: [],
+      splitReviewNeeded: [],
+      summary: "1 Forderung erfasst.",
+    };
+    vi.mocked(importLettersFromImages).mockResolvedValue(result);
+
+    renderDialog();
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["fake-image-bytes"], "brief.jpg", { type: "image/jpeg" });
+    uploadFile(input, file);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 Forderung erfasst.")).toBeInTheDocument();
+    });
+
+    expect(importLettersFromImages).toHaveBeenCalledTimes(1);
+    expect(importLettersFromPdf).not.toHaveBeenCalled();
   });
 
   it("verarbeitet ein hochgeladenes PDF und zeigt erkannte Forderungen zur Bestätigung", async () => {
