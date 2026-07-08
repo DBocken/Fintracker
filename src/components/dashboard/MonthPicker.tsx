@@ -3,12 +3,17 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
+import type { Locale } from "@/i18n/translations";
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+// Intl unterstützt kein "tlh" (Klingonisch) als Kalender-Locale — auf Englisch
+// zurückfallen, statt einen Formatierungsfehler zu riskieren.
+function intlLocale(locale: Locale): string {
+  return locale === "de" ? "de-DE" : "en-US";
+}
 
-function monthLabel(key: string, t: (key: string, fallback?: string) => string): string {
+function monthLabel(key: string, t: (key: string, fallback?: string) => string, locale: Locale): string {
   if (!/^\d{4}-\d{2}$/.test(key)) return t("dashboard.selectMonth", "Monat wählen…");
-  return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(
+  return new Intl.DateTimeFormat(intlLocale(locale), { month: "long", year: "numeric" }).format(
     new Date(`${key}-01T00:00:00`),
   );
 }
@@ -29,9 +34,15 @@ interface MonthPickerProps {
  * Monate ohne Buchungen sind deaktiviert.
  */
 export function MonthPicker({ value, onChange, availableMonths, label, id }: MonthPickerProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const available = useMemo(() => new Set(availableMonths), [availableMonths]);
+
+  const monthsShort = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(intlLocale(locale), { month: "short" });
+    // 2024 ist beliebig gewählt (nur zur Formatierung der 12 Monatsnamen).
+    return Array.from({ length: 12 }, (_, m) => fmt.format(new Date(2024, m, 1)));
+  }, [locale]);
 
   const years = useMemo(() => {
     const ys = new Set<number>();
@@ -61,7 +72,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
             className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            {monthLabel(value, t)}
+            {monthLabel(value, t, locale)}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
@@ -87,7 +98,7 @@ export function MonthPicker({ value, onChange, availableMonths, label, id }: Mon
             </button>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
-            {MONTHS_SHORT.map((m, idx) => {
+            {monthsShort.map((m, idx) => {
               const key = `${viewYear}-${String(idx + 1).padStart(2, "0")}`;
               const isAvailable = available.has(key);
               const isSelected = key === value;

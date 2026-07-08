@@ -196,6 +196,30 @@ describe('StressPresetQuickAdd', () => {
     });
   });
 
+  describe('i18n Compliance', () => {
+    it('sollte Preset-Buttons und Apply-Button auf Englisch rendern', () => {
+      const { container, getByRole } = renderWithI18n(
+        <StressPresetQuickAdd
+          startISO="2026-06-26"
+          accountId="acc1"
+          variableExpenses={mockVariableExpenses}
+          overrides={mockOverrides}
+          onApply={() => {}}
+        />,
+        'en'
+      );
+
+      const buttons = container.querySelectorAll('button[type="button"]');
+      const labels = Array.from(buttons).map((b) => b.textContent);
+      expect(labels.some((l) => l?.includes('Purchase'))).toBe(true);
+
+      const purchaseButton = Array.from(buttons).find((b) => b.textContent?.includes('Purchase'));
+      expect(purchaseButton).toBeTruthy();
+      fireEvent.click(purchaseButton!);
+      expect(getByRole('button', { name: /Add assumption/i })).toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte mit negativen Werten umgehen', () => {
       const onApply = vitest.fn();

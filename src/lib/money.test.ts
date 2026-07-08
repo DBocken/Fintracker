@@ -28,6 +28,10 @@ describe("money", () => {
     expect(sumMinor([333, 333, 334])).toBe(1000);
     expect(sumMinor([])).toBe(0);
   });
+
+  it("summiert negative und gemischte Vorzeichen korrekt", () => {
+    expect(sumMinor([-1000, 500, -250])).toBe(-750);
+  });
 });
 
 describe("parseGermanNumber / parseEuroInput", () => {

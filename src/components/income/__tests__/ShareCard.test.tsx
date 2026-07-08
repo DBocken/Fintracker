@@ -33,9 +33,10 @@ describe('ShareCard', () => {
     expect(screen.getByText('60 %')).toBeInTheDocument();
   });
 
-  it('rendert den englischen Titel', () => {
+  it('rendert englische Texte korrekt', () => {
     renderWithI18n(<ShareCard data={data} format="square" />, 'en');
     expect(screen.getByText('How I earn my money')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
   });
 
   it('[REGRESSION] sollte niemals Beträge oder ein Euro-Zeichen enthalten (story)', () => {
@@ -71,18 +72,38 @@ describe('ShareCardDialog', () => {
     totalIncome: 10000, largestShare: 0.6, diversification: 'moderate', windowMonths: 12,
   };
 
-  it('exportiert im Story-Format mit korrektem Dateinamen', async () => {
-    renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />);
-    fireEvent.click(screen.getByText('PNG herunterladen'));
-    await Promise.resolve();
-    expect(exportNodeAsPng).toHaveBeenCalledWith(expect.anything(), 'einkommensmix-story.png');
+  describe('German locale', () => {
+    it('exportiert im Story-Format mit korrektem Dateinamen', async () => {
+      renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />, 'de');
+      fireEvent.click(screen.getByText('PNG herunterladen'));
+      await Promise.resolve();
+      expect(exportNodeAsPng).toHaveBeenCalledWith(expect.anything(), 'einkommensmix-story.png');
+    });
+
+    it('wechselt beim Formatwechsel den Dateinamen auf Quadrat', async () => {
+      renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />, 'de');
+      fireEvent.click(screen.getByText('Quadrat 1:1'));
+      fireEvent.click(screen.getByText('PNG herunterladen'));
+      await Promise.resolve();
+      expect(exportNodeAsPng).toHaveBeenLastCalledWith(expect.anything(), 'einkommensmix-quadrat.png');
+    });
   });
 
-  it('wechselt beim Formatwechsel den Dateinamen auf Quadrat', async () => {
-    renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />);
-    fireEvent.click(screen.getByText('Quadrat 1:1'));
-    fireEvent.click(screen.getByText('PNG herunterladen'));
-    await Promise.resolve();
-    expect(exportNodeAsPng).toHaveBeenLastCalledWith(expect.anything(), 'einkommensmix-quadrat.png');
+  describe('English locale', () => {
+    it('renders UI strings in English', () => {
+      renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />, 'en');
+      expect(screen.getByText('Share income mix')).toBeInTheDocument();
+      expect(screen.getByText('Shows percentages only – no amounts.')).toBeInTheDocument();
+      expect(screen.getByText('Download PNG')).toBeInTheDocument();
+      expect(screen.getByText('Square 1:1')).toBeInTheDocument();
+    });
+
+    it('exports in square format with correct filename (en)', async () => {
+      renderWithI18n(<ShareCardDialog result={result} open onOpenChange={() => {}} />, 'en');
+      fireEvent.click(screen.getByText('Square 1:1'));
+      fireEvent.click(screen.getByText('Download PNG'));
+      await Promise.resolve();
+      expect(exportNodeAsPng).toHaveBeenCalledWith(expect.anything(), 'einkommensmix-quadrat.png');
+    });
   });
 });

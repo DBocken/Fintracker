@@ -16,7 +16,7 @@ interface CategoryTwoStepSelectProps {
 const NONE_VALUE = '__none__';
 const MAIN_ONLY_VALUE = '__main_only__';
 
-function buildCategoryIndex(categories: Category[]) {
+export function buildCategoryIndex(categories: Category[]) {
   const byId = new Map<string, Category>();
   const childrenByParent = new Map<string, Category[]>();
   const mains: Category[] = [];
@@ -47,7 +47,7 @@ function buildCategoryIndex(categories: Category[]) {
   return { byId, childrenByParent, mains };
 }
 
-function getRootAncestorId(byId: Map<string, Category>, id: string): string {
+export function getRootAncestorId(byId: Map<string, Category>, id: string): string {
   let current = byId.get(id);
   let guard = 0;
   while (current?.parent_id && guard < 20) {

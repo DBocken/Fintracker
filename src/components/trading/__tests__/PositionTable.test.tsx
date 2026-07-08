@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { translations } from '@/i18n/translations';
 import type { PortfolioPosition } from '@/types';
@@ -23,6 +23,83 @@ function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
   window.localStorage.setItem('ausgabentracker_locale_v1', locale);
   return render(<I18nProvider>{ui}</I18nProvider>);
 }
+
+describe('PositionTable — Core Table Behavior', () => {
+  describe('Empty State', () => {
+    it('sollte einen Hinweis statt einer leeren Tabelle zeigen, wenn keine Positionen vorhanden sind', () => {
+      renderWithI18n(<PositionTable positions={[]} />, 'de');
+      expect(screen.getByText('Keine Positionen vorhanden')).toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Sortierung', () => {
+    function rowSymbols() {
+      const rows = screen.getAllByRole('row').slice(1); // erste Zeile ist der Header
+      return rows.map((r) => within(r).getAllByRole('cell')[0].textContent);
+    }
+
+    it('sollte nach Symbol sortieren beim Klick auf den Spaltenkopf', () => {
+      renderWithI18n(
+        <PositionTable positions={[position({ id: 'p1', symbol: 'TSLA' }), position({ id: 'p2', symbol: 'AAPL' })]} />,
+        'de',
+      );
+      // Erster Klick auf eine neue Spalte sortiert absteigend (Z→A für Text).
+      fireEvent.click(screen.getByText('Symbol'));
+      expect(rowSymbols()).toEqual(['TSLA', 'AAPL']);
+
+      // Erneuter Klick auf dieselbe Spalte kehrt die Richtung um.
+      fireEvent.click(screen.getByText('Symbol'));
+      expect(rowSymbols()).toEqual(['AAPL', 'TSLA']);
+    });
+
+    it('sollte Positionen ohne Kaufdatum unabhängig von der Sortierrichtung ans Ende stellen', () => {
+      renderWithI18n(
+        <PositionTable
+          positions={[
+            position({ id: 'no-date', symbol: 'NODATE' }),
+            position({ id: 'with-date', symbol: 'WITHDATE', metadata: { open_date: '2024-01-01' } }),
+          ]}
+        />,
+        'de',
+      );
+      fireEvent.click(screen.getByText('Kaufdatum'));
+      expect(rowSymbols()).toEqual(['WITHDATE', 'NODATE']);
+      fireEvent.click(screen.getByText('Kaufdatum'));
+      expect(rowSymbols()).toEqual(['WITHDATE', 'NODATE']);
+    });
+  });
+
+  describe('Bearbeiten & Löschen', () => {
+    it('sollte onEdit mit der Position aufrufen, wenn der Bearbeiten-Button geklickt wird', () => {
+      const onEdit = vi.fn();
+      const pos = position();
+      renderWithI18n(<PositionTable positions={[pos]} onEdit={onEdit} />, 'de');
+      fireEvent.click(screen.getByRole('row', { name: /AAPL/ }).querySelectorAll('button')[0]);
+      expect(onEdit).toHaveBeenCalledWith(pos);
+    });
+
+    it('sollte onDelete erst nach Bestätigung im Dialog mit der Position-ID aufrufen', () => {
+      const onDelete = vi.fn();
+      const pos = position({ symbol: 'MSFT' });
+      renderWithI18n(<PositionTable positions={[pos]} onDelete={onDelete} />, 'de');
+
+      fireEvent.click(screen.getByRole('row', { name: /MSFT/ }).querySelectorAll('button')[0]);
+      expect(screen.getByText('Position löschen?')).toBeInTheDocument();
+      expect(onDelete).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+      expect(onDelete).toHaveBeenCalledWith(pos.id);
+    });
+  });
+
+  describe('Gewinn/Verlust-Grenzfall', () => {
+    it('sollte bei last_price === entry_price (Nullgewinn) als Gewinn (>= 0) grün darstellen', () => {
+      renderWithI18n(<PositionTable positions={[position({ entry_price: 100, last_price: 100 })]} />, 'de');
+      expect(screen.getByText('+0.00%')).toBeInTheDocument();
+    });
+  });
+});
 
 describe('PositionTable — Kaufdatum & annualisierte Rendite', () => {
   describe('Normal Behavior', () => {

@@ -22,9 +22,10 @@ function flow(p: Partial<RecurringFlow> & { id: string; amount: number; anchorDa
 
 const NOW = new Date("2026-06-01T12:00:00");
 
-function renderList() {
+function renderList(locale: 'de' | 'en' = 'de') {
+  localStorage.setItem('ausgabentracker_locale_v1', locale);
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       <MemoryRouter>
         <UpcomingChargesList now={NOW} horizonDays={30} />
       </MemoryRouter>
@@ -33,46 +34,82 @@ function renderList() {
 }
 
 describe("UpcomingChargesList (Feature 1: Anstehende Abbuchungen)", () => {
-  it("sollte anstehende Ausgaben auflisten und Geldeingänge ausblenden", () => {
-    h.forecast = {
-      isLoading: false,
-      input: {
-        accounts: [],
-        recurringFlows: [
-          flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
-          flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
-        ],
-      },
-    };
-    renderList();
+  describe("German locale", () => {
+    it("sollte anstehende Ausgaben auflisten und Geldeingänge ausblenden", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderList('de');
 
-    // i18n: Check for either German or English based on resolved locale
-    const titleElement = screen.queryByText("Anstehende Abbuchungen") || screen.queryByText("Upcoming charges");
-    expect(titleElement).toBeInTheDocument();
-    expect(screen.getByText("Miete")).toBeInTheDocument();
-    // Einnahmen sind keine Abbuchungen → dürfen NICHT in der Liste stehen.
-    expect(screen.queryByText("Gehalt")).toBeNull();
+      expect(screen.getByText("Anstehende Abbuchungen")).toBeInTheDocument();
+      expect(screen.getByText("Miete")).toBeInTheDocument();
+      // Einnahmen sind keine Abbuchungen → dürfen NICHT in der Liste stehen.
+      expect(screen.queryByText("Gehalt")).toBeNull();
+    });
+
+    it("[REGRESSION] sollte einen in der Vergangenheit verankerten Monats-Flow als künftige Abbuchung zeigen", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [],
+          recurringFlows: [flow({ id: "abo", name: "Streaming", amount: -12, anchorDate: "2026-01-15" })],
+        },
+      };
+      renderList('de');
+      // Anker im Januar, „heute" ist der 01.06. → die nächste Fälligkeit (15.06.) erscheint.
+      expect(screen.getByText("Streaming")).toBeInTheDocument();
+    });
+
+    it("sollte einen leeren Zustand zeigen, wenn keine Abbuchungen anstehen", () => {
+      h.forecast = { isLoading: false, input: { accounts: [], recurringFlows: [] } };
+      renderList('de');
+      expect(screen.getByText(/Keine Abbuchungen in den nächsten 30 Tagen/)).toBeInTheDocument();
+    });
   });
 
-  it("[REGRESSION] sollte einen in der Vergangenheit verankerten Monats-Flow als künftige Abbuchung zeigen", () => {
-    h.forecast = {
-      isLoading: false,
-      input: {
-        accounts: [],
-        recurringFlows: [flow({ id: "abo", name: "Streaming", amount: -12, anchorDate: "2026-01-15" })],
-      },
-    };
-    renderList();
-    // Anker im Januar, „heute" ist der 01.06. → die nächste Fälligkeit (15.06.) erscheint.
-    expect(screen.getByText("Streaming")).toBeInTheDocument();
-  });
+  describe("English locale", () => {
+    it("should list upcoming charges and hide deposits", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderList('en');
 
-  it("sollte einen leeren Zustand zeigen, wenn keine Abbuchungen anstehen", () => {
-    h.forecast = { isLoading: false, input: { accounts: [], recurringFlows: [] } };
-    renderList();
-    // i18n: Check for either German or English message
-    const emptyMessage = screen.queryByText(/Keine Abbuchungen in den nächsten 30 Tagen/) ||
-                        screen.queryByText(/No charges detected in the next 30 days/);
-    expect(emptyMessage).toBeInTheDocument();
+      expect(screen.getByText("Upcoming charges")).toBeInTheDocument();
+      expect(screen.getByText("Miete")).toBeInTheDocument();
+      // Deposits are no charges → must NOT be in the list.
+      expect(screen.queryByText("Gehalt")).toBeNull();
+    });
+
+    it("[REGRESSION] should show monthly flow anchored in past as upcoming charge", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [],
+          recurringFlows: [flow({ id: "abo", name: "Streaming", amount: -12, anchorDate: "2026-01-15" })],
+        },
+      };
+      renderList('en');
+      expect(screen.getByText("Streaming")).toBeInTheDocument();
+    });
+
+    it("should show empty state when no charges are upcoming", () => {
+      h.forecast = { isLoading: false, input: { accounts: [], recurringFlows: [] } };
+      renderList('en');
+      expect(screen.getByText(/No charges detected in the next 30 days/)).toBeInTheDocument();
+    });
   });
 });

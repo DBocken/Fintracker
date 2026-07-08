@@ -58,4 +58,31 @@ describe('RiskSummaryCard', () => {
     renderWithI18n(<RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />);
     expect(screen.getByText(/40 % Pufferbruch/)).toBeInTheDocument();
   });
+
+  describe('i18n Compliance', () => {
+    it('zeigt eine tragfähige Alltagslage und Stress-Tragfähigkeit auf Englisch', () => {
+      renderWithI18n(
+        <RiskSummaryCard lumpy={lumpy('low')} stress90={cap(2000)} baseBreachProbability={0} />,
+        'en',
+      );
+      expect(screen.getByText('sustainable')).toBeInTheDocument();
+      expect(screen.getByText(/at 90 %/)).toBeInTheDocument();
+    });
+
+    it('zeigt den englischen Pufferbruch-Anteil, wenn die Basisprüfung bricht', () => {
+      renderWithI18n(
+        <RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />,
+        'en',
+      );
+      expect(screen.getByText(/40 % buffer breach/)).toBeInTheDocument();
+    });
+
+    it('zeigt den englischen Disclaimer-Text', () => {
+      renderWithI18n(
+        <RiskSummaryCard lumpy={lumpy('low')} stress90={cap(2000)} baseBreachProbability={0} />,
+        'en',
+      );
+      expect(screen.getByText(/Calculated locally/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -66,13 +66,21 @@ describe("MobileNav", () => {
     });
 
     it("[REGRESSION] sollte alle shell-Keys in beiden Sprachen haben", () => {
-      const requiredKeys = ["navigation", "openNavigation", "premium"];
+      // Iterate through all keys in translations.de.shell
+      const deKeys = Object.keys(translations.de.shell);
+      const enKeys = Object.keys(translations.en.shell);
 
-      requiredKeys.forEach((key) => {
+      // Both locales should have the same keys
+      expect(enKeys.sort()).toEqual(deKeys.sort());
+
+      // Each key should have a string value in both locales
+      deKeys.forEach((key) => {
         const deKey = key as keyof typeof translations.de.shell;
         const enKey = key as keyof typeof translations.en.shell;
         expect(translations.de.shell[deKey]).toBeDefined();
+        expect(typeof translations.de.shell[deKey]).toBe("string");
         expect(translations.en.shell[enKey]).toBeDefined();
+        expect(typeof translations.en.shell[enKey]).toBe("string");
       });
     });
   });

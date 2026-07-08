@@ -95,6 +95,24 @@ describe('disposable-budget', () => {
       expect(r.health).toBe('over');
     });
 
+    it('[REGRESSION] sollte bei bereits überzogenem Konto (negatives Guthaben) ebenfalls over + vollen Tank zeigen', () => {
+      // Wie im 0€-Fall: "Ohne positives Guthaben ist der Tank voll, sobald
+      // überhaupt Pflichten anstehen" (Kommentar in disposable-budget.ts) —
+      // ein Überzug vertieft den fillPercent nicht über 100 hinaus, aber
+      // "disposable" bleibt korrekt negativ und zeigt die tatsächliche Tiefe.
+      const r = computeDisposableUntilPayday({
+        accounts: [account({ id: 'giro', kind: 'checking', openingBalance: -200 })],
+        recurringFlows: [flow({ id: 'abo', amount: -20, anchorDate: '2026-06-10' })],
+        fromISO: '2026-06-01',
+        paydayISO: '2026-06-30',
+        daysUntilPayday: 29,
+      });
+      expect(r.operatingCash).toBe(-200);
+      expect(r.disposable).toBe(-220);
+      expect(r.fillPercent).toBe(100);
+      expect(r.health).toBe('over');
+    });
+
     it('sollte ohne anstehende Pflichten einen leeren Tank (ok) und volles Guthaben verfügbar zeigen', () => {
       const r = computeDisposableUntilPayday({
         accounts: [account({ id: 'giro', kind: 'checking', openingBalance: 800 })],

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import type { Account, Category, Transaction } from "@/types";
 
 // --- Fixtures ---------------------------------------------------------------
@@ -31,15 +32,6 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/i18n/useI18n", async () => {
-  const { translations } = await vi.importActual<typeof import("@/i18n/translations")>("@/i18n/translations");
-  const lookup = (key: string): string | undefined =>
-    key.split(".").reduce<unknown>((node, segment) => {
-      if (node && typeof node === "object" && segment in node) return (node as Record<string, unknown>)[segment];
-      return undefined;
-    }, translations.de) as string | undefined;
-  return { useI18n: () => ({ t: (k: string, f?: string) => lookup(k) ?? f ?? k, locale: "de" }) };
-});
 vi.mock("@/components/providers/GentleModeProvider", () => ({ useGentleMode: () => ({ enabled: false }) }));
 vi.mock("@/hooks/usePersistedSet", () => ({ usePersistedSet: () => [new Set(), vi.fn()] }));
 vi.mock("@/hooks/useTransactionDetailEditing", () => ({
@@ -50,11 +42,13 @@ vi.mock("@/components/transactions/TransactionFormDialog", () => ({ TransactionF
 
 import TransactionsPage from "./TransactionsPage";
 
-function renderPage(initialUrl = "/transactions") {
+function renderPage(initialUrl = "/transactions", locale: "de" | "en" = "de") {
   return render(
-    <MemoryRouter initialEntries={[initialUrl]}>
-      <TransactionsPage />
-    </MemoryRouter>,
+    <I18nProvider initialLocale={locale}>
+      <MemoryRouter initialEntries={[initialUrl]}>
+        <TransactionsPage />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 
@@ -99,6 +93,19 @@ describe("TransactionsPage – Filter steuern alle Anzeigen", () => {
       expect(screen.getByText("Miete Wohnung")).toBeTruthy();
       expect(screen.queryByText("Lieferando")).toBeNull();
       expect(screen.queryByText("Rewe")).toBeNull();
+    });
+  });
+
+  describe("i18n Compliance", () => {
+    it("sollte englische Filter-Bedienelemente rendern", () => {
+      renderPage("/transactions", "en");
+      // Verify filter labels are displayed in English
+      expect(screen.getByRole("combobox", { name: /Filter by account/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Filter by category/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Filter by contract status/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Filter by essential status/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Filter by expense class/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /Filter by time range/i })).toBeTruthy();
     });
   });
 });

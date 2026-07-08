@@ -8,8 +8,8 @@ import {
   type CounselingRecommendation,
 } from "@/services/debt-guardrails-service";
 
-function renderWithI18n(component: React.ReactElement) {
-  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+function renderWithI18n(component: React.ReactElement, locale: "de" | "en" = "de") {
+  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
 }
 
 let recommended: CounselingRecommendation;
@@ -59,6 +59,21 @@ describe("CounselingBridgeCard", () => {
         />,
       );
       expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  describe("English Locale", () => {
+    it("sollte englische Texte rendern", () => {
+      window.localStorage.setItem("ausgabentracker_locale_v1", "en");
+      const enRecommended = {
+        recommended: true,
+        reason: "Your plan lasts longer than 6 years.",
+        services: getCounselingServices(),
+        warning: getCommercialRegulatorWarning(),
+      };
+      renderWithI18n(<CounselingBridgeCard recommendation={enRecommended} />, "en");
+      expect(screen.getByText("Get free support")).toBeInTheDocument();
+      window.localStorage.removeItem("ausgabentracker_locale_v1");
     });
   });
 });

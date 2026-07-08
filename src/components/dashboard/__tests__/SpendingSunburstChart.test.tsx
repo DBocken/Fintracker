@@ -58,16 +58,16 @@ const colorMap = new Map<string, string>([
 
 function renderWithI18n(
   component: React.ReactElement,
-  _locale: 'de' | 'en' = 'de'
+  locale: 'de' | 'en' = 'de'
 ) {
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       {component}
     </I18nProvider>
   );
 }
 
-function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunburstChart>> = {}) {
+function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunburstChart>> = {}, locale: 'de' | 'en' = 'de') {
   const onNavigateCategory = vi.fn();
   const onNavigateKlasse = vi.fn();
   const utils = renderWithI18n(
@@ -78,7 +78,8 @@ function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunb
       onNavigateCategory={onNavigateCategory}
       onNavigateKlasse={onNavigateKlasse}
       {...overrides}
-    />
+    />,
+    locale
   );
   return { ...utils, onNavigateCategory, onNavigateKlasse };
 }
@@ -130,6 +131,19 @@ describe('SpendingSunburstChart (grafisches, mehrstufiges Sunburst)', () => {
       renderChart({ showPercent: true });
       // 300 von 300 → 100 %
       expect(screen.getByText('100%')).toBeInTheDocument();
+    });
+  });
+
+  describe('i18n Compliance', () => {
+    it('sollte englische Texte korrekt rendern', () => {
+      renderChart({}, 'en');
+      expect(screen.getByText('300 €')).toBeInTheDocument();
+      expect(screen.getByText('Total')).toBeInTheDocument();
+    });
+
+    it('sollte den englischen Empty-State-Hinweis zeigen', () => {
+      renderChart({ tree: { total: 0, children: [] } }, 'en');
+      expect(screen.getByText('No expenses recorded yet.')).toBeInTheDocument();
     });
   });
 

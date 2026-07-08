@@ -102,4 +102,17 @@ describe('SpendingBreakdownCard – mobile Aufschlüsselung', () => {
       expect(screen.getByText(/Noch keine Ausgaben erfasst/i)).toBeInTheDocument();
     });
   });
+
+  describe('i18n Compliance', () => {
+    it('sollte den englischen Empty-State-Hinweis zeigen', () => {
+      renderWithI18n(<SpendingBreakdownCard sunburst={{ total: 0, inner: [], outer: [] }} />, 'en');
+      expect(screen.getByText(/No expenses recorded yet\./i)).toBeInTheDocument();
+    });
+
+    it('sollte den englischen "expand"-Aria-Label für zugeklappte Klassen zeigen', () => {
+      const { container } = renderWithI18n(<SpendingBreakdownCard sunburst={sunburst} />, 'en');
+      const list = mobileList(container);
+      expect(within(list).getByRole('button', { name: /Nicht-Essenziell expand/i })).toBeInTheDocument();
+    });
+  });
 });

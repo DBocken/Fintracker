@@ -52,6 +52,23 @@ describe("AdaptiveSpendingToggle", () => {
     });
   });
 
+  describe("i18n Compliance", () => {
+    it("sollte Titel, Schalter und Regler auf Englisch anzeigen", () => {
+      renderWithI18n(
+        <AdaptiveSpendingToggle
+          enabled={true}
+          onEnabledChange={() => {}}
+          strength={0.7}
+          onStrengthChange={() => {}}
+        />,
+        "en"
+      );
+      expect(screen.getByText(/What if you counter-steer from the start\?/)).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: /Counter-steer when tight/ })).toBeInTheDocument();
+      expect(screen.getByLabelText(/Consistency of counter-steering/)).toBeInTheDocument();
+    });
+  });
+
   describe("Konsequenz-Regler (nur wenn aktiv)", () => {
     it("sollte den Regler NICHT zeigen, solange deaktiviert", () => {
       renderWithI18n(

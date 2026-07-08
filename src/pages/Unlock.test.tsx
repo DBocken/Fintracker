@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import UnlockPage from './Unlock'
 import { LocalEncryptionProvider } from '@/components/providers/LocalEncryptionProvider'
 import { I18nProvider } from '@/i18n/I18nProvider'
@@ -9,12 +9,22 @@ import { translations } from '@/i18n/translations'
 import { localEncryption } from '@/services/local-crypto'
 import * as reset from '@/services/local-data-reset'
 
-function renderUnlock(locale: 'de' | 'en' = 'de') {
+const CORRECT_PASSWORD = 'ursprüngliches-passwort'
+
+function renderUnlock(locale: 'de' | 'en' = 'de', initialEntry = '/unlock') {
+  // local-crypto.ts (Service-Ebene) liest die Locale eigenständig aus
+  // localStorage (resolveInitialLocale), unabhängig vom I18nProvider-Prop —
+  // ohne diesen Sync würde die Fehlermeldung bei falschem Passwort in der
+  // Browser-Default-Sprache statt der Test-Locale erscheinen.
+  window.localStorage.setItem('ausgabentracker_locale_v1', locale)
   return render(
-    <MemoryRouter initialEntries={['/unlock']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <I18nProvider initialLocale={locale}>
         <LocalEncryptionProvider>
-          <UnlockPage />
+          <Routes>
+            <Route path="/unlock" element={<UnlockPage />} />
+            <Route path="/" element={<div>HOME_MARKER</div>} />
+          </Routes>
         </LocalEncryptionProvider>
       </I18nProvider>
     </MemoryRouter>,
@@ -55,6 +65,41 @@ describe('UnlockPage – Lokale Instanz zurücksetzen (Passwort vergessen)', () 
       await user.click(screen.getByRole('button', { name: /endgültig löschen/i }))
 
       await waitFor(() => expect(clearSpy).toHaveBeenCalledTimes(1))
+    })
+  })
+
+  describe('Entsperr-Flow (echtes Passwort)', () => {
+    it('sollte den Entsperren-Button deaktivieren solange kein Passwort eingegeben wurde', async () => {
+      const user = userEvent.setup()
+      renderUnlock()
+      const unlockButton = screen.getByRole('button', { name: /^Entsperren$/i })
+      expect(unlockButton).toBeDisabled()
+
+      await user.type(screen.getByLabelText(/passwort/i), 'x')
+      expect(unlockButton).not.toBeDisabled()
+    })
+
+    it('sollte bei falschem Passwort eine Fehlermeldung zeigen und NICHT navigieren', async () => {
+      const user = userEvent.setup()
+      renderUnlock()
+
+      await user.type(screen.getByLabelText(/passwort/i), 'falsches-passwort')
+      await user.click(screen.getByRole('button', { name: /^Entsperren$/i }))
+
+      expect(await screen.findByText(/Falsches Passwort/i)).toBeInTheDocument()
+      // Bleibt auf der Entsperr-Seite, keine Navigation zur Startseite.
+      expect(screen.getByText('App entsperren')).toBeInTheDocument()
+      expect(screen.queryByText('HOME_MARKER')).not.toBeInTheDocument()
+    })
+
+    it('sollte bei korrektem Passwort entsperren und zur nächsten Seite navigieren', async () => {
+      const user = userEvent.setup()
+      renderUnlock('de', '/unlock?next=%2F')
+
+      await user.type(screen.getByLabelText(/passwort/i), CORRECT_PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^Entsperren$/i }))
+
+      await waitFor(() => expect(screen.getByText('HOME_MARKER')).toBeInTheDocument())
     })
   })
 

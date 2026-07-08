@@ -25,9 +25,10 @@ function flow(p: Partial<RecurringFlow> & { id: string; amount: number; anchorDa
 
 const NOW = new Date("2026-06-01T12:00:00");
 
-function renderCard() {
+function renderCard(locale: 'de' | 'en' = 'de') {
+  localStorage.setItem('ausgabentracker_locale_v1', locale);
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       <MemoryRouter>
         <DisposableTankCard now={NOW} />
       </MemoryRouter>
@@ -36,59 +37,101 @@ function renderCard() {
 }
 
 describe("DisposableTankCard (Feature 2: Verfügbar bis Gehalt)", () => {
-  it("sollte verfügbares Geld bis zum Gehalt zeigen und als ganze Karte zur Liquidität verlinken", () => {
-    h.forecast = {
-      isLoading: false,
-      input: {
-        accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 }), account({ id: "spar", kind: "savings", openingBalance: 5000 })],
-        recurringFlows: [
-          flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
-          flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
-        ],
-      },
-    };
-    renderCard();
+  describe("German locale", () => {
+    it("sollte verfügbares Geld bis zum Gehalt zeigen und als ganze Karte zur Liquidität verlinken", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 }), account({ id: "spar", kind: "savings", openingBalance: 5000 })],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderCard('de');
 
-    // i18n: Check for either German or English message
-    const titleMessage = screen.queryByText("Verfügbar bis Gehalt") ||
-                        screen.queryByText("Available until payday");
-    expect(titleMessage).toBeInTheDocument();
-    // 1000 € Giro − 600 € Miete = 400 € (Sparen zählt nicht).
-    expect(screen.getByText(/400,00/)).toBeInTheDocument();
-    // Karten-Regel: die ganze Fläche navigiert zur Liquiditäts-Detailansicht.
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/liquidity");
+      expect(screen.getByText("Verfügbar bis Gehalt")).toBeInTheDocument();
+      // 1000 € Giro − 600 € Miete = 400 € (Sparen zählt nicht).
+      expect(screen.getByText(/400,00/)).toBeInTheDocument();
+      // Karten-Regel: die ganze Fläche navigiert zur Liquiditäts-Detailansicht.
+      expect(screen.getByRole("link")).toHaveAttribute("href", "/liquidity");
+    });
+
+    it("[REGRESSION] sollte warnen, wenn die Fixkosten das Guthaben vor dem Gehalt übersteigen", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 500 })],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderCard('de');
+      expect(screen.getByText("Achtung: Die Fixkosten übersteigen dein Guthaben vor dem Gehalt.")).toBeInTheDocument();
+    });
+
+    it("sollte einen Hinweis zeigen, wenn kein regelmäßiger Geldeingang erkannt ist", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 })],
+          recurringFlows: [flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" })],
+        },
+      };
+      renderCard('de');
+      expect(screen.getByText("Noch kein regelmäßiger Geldeingang erkannt.")).toBeInTheDocument();
+    });
   });
 
-  it("[REGRESSION] sollte warnen, wenn die Fixkosten das Guthaben vor dem Gehalt übersteigen", () => {
-    h.forecast = {
-      isLoading: false,
-      input: {
-        accounts: [account({ id: "giro", kind: "checking", openingBalance: 500 })],
-        recurringFlows: [
-          flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
-          flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
-        ],
-      },
-    };
-    renderCard();
-    // i18n: Check for either German or English message
-    const warningMessage = screen.queryByText(/Fixkosten übersteigen dein Guthaben/) ||
-                          screen.queryByText(/Fixed costs exceed your balance/);
-    expect(warningMessage).toBeInTheDocument();
-  });
+  describe("English locale", () => {
+    it("should show available money until payday and link whole card to liquidity", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 }), account({ id: "spar", kind: "savings", openingBalance: 5000 })],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderCard('en');
 
-  it("sollte einen Hinweis zeigen, wenn kein regelmäßiger Geldeingang erkannt ist", () => {
-    h.forecast = {
-      isLoading: false,
-      input: {
-        accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 })],
-        recurringFlows: [flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" })],
-      },
-    };
-    renderCard();
-    // i18n: Check for either German or English message
-    const noIncomeMessage = screen.queryByText(/Noch kein regelmäßiger Geldeingang erkannt/) ||
-                           screen.queryByText(/No recurring income detected/);
-    expect(noIncomeMessage).toBeInTheDocument();
+      expect(screen.getByText("Available until payday")).toBeInTheDocument();
+      // 1000 € Giro − 600 € Miete = 400 € (Sparen zählt nicht).
+      expect(screen.getByText(/400,00/)).toBeInTheDocument();
+      // Karten-Regel: die ganze Fläche navigiert zur Liquiditäts-Detailansicht.
+      expect(screen.getByRole("link")).toHaveAttribute("href", "/liquidity");
+    });
+
+    it("[REGRESSION] should warn if fixed costs exceed balance before payday", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 500 })],
+          recurringFlows: [
+            flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" }),
+            flow({ id: "gehalt", name: "Gehalt", amount: 2000, anchorDate: "2026-06-30" }),
+          ],
+        },
+      };
+      renderCard('en');
+      expect(screen.getByText("Attention: Fixed costs exceed your balance before payday.")).toBeInTheDocument();
+    });
+
+    it("should show notice when no recurring income detected", () => {
+      h.forecast = {
+        isLoading: false,
+        input: {
+          accounts: [account({ id: "giro", kind: "checking", openingBalance: 1000 })],
+          recurringFlows: [flow({ id: "miete", name: "Miete", amount: -600, anchorDate: "2026-06-10" })],
+        },
+      };
+      renderCard('en');
+      expect(screen.getByText("No recurring income detected yet.")).toBeInTheDocument();
+    });
   });
 });

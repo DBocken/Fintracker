@@ -130,6 +130,26 @@ describe('CellDetailBody', () => {
     });
   });
 
+  describe('i18n Compliance', () => {
+    it('sollte Pager, Treiber-Text und Empty-State auf Englisch rendern', () => {
+      renderWithI18n(<CellDetailBody detail={multiPathDetail(0)} onSelectPath={() => {}} />, 'en');
+      expect(screen.getByText(/Path 1 of 3/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Previous path' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Next path' })).toBeInTheDocument();
+    });
+
+    it('sollte den englischen Hinweis für leere Zellen zeigen', () => {
+      const detail: CellDetail = {
+        ...singlePathDetail(),
+        pathsInCell: 0,
+        pathCount: 0,
+        representative: null,
+      };
+      renderWithI18n(<CellDetailBody detail={detail} onSelectPath={() => {}} />, 'en');
+      expect(screen.getByText(/no simulated path/i)).toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte ohne mehrere Pfade weder Pager noch Treiber-Verteilung zeigen', () => {
       renderWithI18n(<CellDetailBody detail={singlePathDetail()} onSelectPath={() => {}} />);

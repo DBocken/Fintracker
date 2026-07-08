@@ -75,6 +75,29 @@ describe("FeatureGate", () => {
       expect(screen.queryByText("Premium-Inhalt")).toBeNull();
       expect(screen.getByText("Gesperrt")).toBeTruthy();
     });
+
+    it("sollte free-Tier Zugriff auf ein free-Feature (bankSync) gewähren", () => {
+      tierMock.mockReturnValue("free");
+      renderWithI18n(
+        <FeatureGate feature="bankSync">
+          <div>Bank-Sync</div>
+        </FeatureGate>,
+        'de'
+      );
+      expect(screen.getByText("Bank-Sync")).toBeTruthy();
+    });
+
+    it("sollte anonymous-Tier vom free-Feature (bankSync) auf den Fallback zeigen", () => {
+      tierMock.mockReturnValue("anonymous");
+      renderWithI18n(
+        <FeatureGate feature="bankSync" fallback={<div>Login nötig</div>}>
+          <div>Bank-Sync</div>
+        </FeatureGate>,
+        'de'
+      );
+      expect(screen.queryByText("Bank-Sync")).toBeNull();
+      expect(screen.getByText("Login nötig")).toBeTruthy();
+    });
   });
 
   describe("Regression Protection", () => {

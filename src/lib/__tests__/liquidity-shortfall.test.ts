@@ -29,4 +29,16 @@ describe("computeBufferShortfall", () => {
     expect(r.monthsUntilTrough).toBe(1);
     expect(r.monthlyNeeded).toBe(500);
   });
+
+  it("[Edge] sollte bei negativem Sicherheitspuffer (dispotoleranter Nutzer) keinen Bruch melden, solange der Tiefststand darüber liegt", () => {
+    const r = computeBufferShortfall({ lowestBalance: -100, safetyBuffer: -500, daysUntilTrough: 10 });
+    expect(r.breaches).toBe(false);
+    expect(r.deficit).toBe(0);
+  });
+
+  it("[Edge] sollte negative daysUntilTrough weiterhin auf mind. 1 Monat klemmen", () => {
+    const r = computeBufferShortfall({ lowestBalance: 500, safetyBuffer: 1000, daysUntilTrough: -30 });
+    expect(r.monthsUntilTrough).toBe(1);
+    expect(r.monthlyNeeded).toBe(500);
+  });
 });

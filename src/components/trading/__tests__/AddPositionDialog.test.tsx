@@ -86,4 +86,17 @@ describe('AddPositionDialog — Kurs-Verifikation', () => {
       await waitFor(() => expect(screen.getByText(/network down/i)).toBeInTheDocument());
     });
   });
+
+  describe('English Locale', () => {
+    it('sollte englische Texte korrekt rendern', async () => {
+      fetchQuoteMock.mockResolvedValue({ symbol: 'AAPL', price: 512.3, currency: 'USD', provider: 'yahoo' });
+      renderDialog('en');
+
+      fireEvent.change(screen.getByLabelText(/Symbol/), { target: { value: 'AAPL' } });
+      fireEvent.click(screen.getByRole('button', { name: /Check quote/i }));
+
+      await waitFor(() => expect(screen.getByText(/512,30/)).toBeInTheDocument());
+      expect(fetchQuoteMock).toHaveBeenCalledWith('AAPL', 'yahoo');
+    });
+  });
 });

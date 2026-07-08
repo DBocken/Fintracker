@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Category } from '@/types';
+import { buildCategoryIndex, getRootAncestorId } from '../CategoryTwoStepSelect';
 
 /**
  * CategoryTwoStepSelect Hierarchie-Tests
@@ -9,37 +10,11 @@ import type { Category } from '@/types';
  *
  * Context: Issue wurde verursacht durch fehlende `parent_id` bei Kategorien,
  *         die vor der Migration 20260614120000 gespeichert wurden.
+ *
+ * `buildCategoryIndex`/`getRootAncestorId` werden direkt aus der Komponente
+ * importiert (nicht mehr lokal kopiert), damit dieser Test eine Regression
+ * in der echten Hierarchie-Logik auch tatsächlich bemerkt.
  */
-
-// Helper: Baut Index für schnelle Hierarchie-Lookups
-function buildCategoryIndex(categories: Category[]) {
-  const byId = new Map<string, Category>();
-  const childrenByParent = new Map<string, Category[]>();
-  const mains: Category[] = [];
-
-  for (const c of categories) {
-    byId.set(c.id, c);
-  }
-
-  for (const c of categories) {
-    if (!c.parent_id) {
-      mains.push(c);
-    } else {
-      if (byId.has(c.parent_id)) {
-        const arr = childrenByParent.get(c.parent_id) || [];
-        arr.push(c);
-        childrenByParent.set(c.parent_id, arr);
-      }
-    }
-  }
-
-  mains.sort((a, b) => a.name.localeCompare(b.name));
-  for (const arr of childrenByParent.values()) {
-    arr.sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  return { byId, childrenByParent, mains };
-}
 
 describe('CategoryTwoStepSelect - Hierarchie-Logik', () => {
   // ============================================================================
@@ -159,6 +134,42 @@ describe('CategoryTwoStepSelect - Hierarchie-Logik', () => {
       // Sortiert: Bäckerei kommt vor Supermarkt alphabetisch
       expect(childrenByParent.get('main1')?.[0].name).toBe('Bäckerei');
       expect(childrenByParent.get('main1')?.[1].name).toBe('Supermarkt');
+    });
+  });
+
+  // ============================================================================
+  // Gruppe 4: getRootAncestorId (bislang ungetestet)
+  // ============================================================================
+  describe('getRootAncestorId', () => {
+    it('sollte für eine Hauptkategorie ihre eigene ID zurückgeben', () => {
+      const categories: Category[] = [
+        { id: 'main1', name: 'Lebensmittel', filters: [], parent_id: null },
+      ];
+      const { byId } = buildCategoryIndex(categories);
+      expect(getRootAncestorId(byId, 'main1')).toBe('main1');
+    });
+
+    it('sollte für eine Unterkategorie die Hauptkategorie zurückgeben', () => {
+      const categories: Category[] = [
+        { id: 'main1', name: 'Lebensmittel', filters: [], parent_id: null },
+        { id: 'sub1', name: 'Supermarkt', filters: [], parent_id: 'main1' },
+      ];
+      const { byId } = buildCategoryIndex(categories);
+      expect(getRootAncestorId(byId, 'sub1')).toBe('main1');
+    });
+
+    it('[REGRESSION] sollte bei zirkulärer Referenz nicht endlos schleifen', () => {
+      const categories: Category[] = [
+        { id: 'cat1', name: 'Kategorie 1', filters: [], parent_id: 'cat2' },
+        { id: 'cat2', name: 'Kategorie 2', filters: [], parent_id: 'cat1' },
+      ];
+      const { byId } = buildCategoryIndex(categories);
+      expect(() => getRootAncestorId(byId, 'cat1')).not.toThrow();
+    });
+
+    it('sollte bei unbekannter ID die ID selbst zurückgeben', () => {
+      const { byId } = buildCategoryIndex([]);
+      expect(getRootAncestorId(byId, 'unknown')).toBe('unknown');
     });
   });
 });

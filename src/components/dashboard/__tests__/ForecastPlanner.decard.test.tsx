@@ -50,4 +50,19 @@ describe('ForecastPlanner Prinzip 8 (Karten sind Aktionen)', () => {
     expect(getByText('Wohnen')).toBeInTheDocument();
     expect(getAllByRole('spinbutton').length).toBe(1);
   });
+
+  it('sollte englische Texte korrekt rendern', () => {
+    const { getByText } = render(
+      <I18nProvider initialLocale="en">
+        <BudgetOverrideForm
+          variableExpenses={[{ category: 'Housing', monthlyAmount: 1071.08, confidence: 0.75 }]}
+          overrides={overrides}
+          onChange={() => {}}
+        />
+      </I18nProvider>,
+    );
+    // Überprüfe dass englische Translations geladen sind
+    expect(getByText(/Baseline/)).toBeInTheDocument();
+    expect(getByText('Housing')).toBeInTheDocument();
+  });
 });

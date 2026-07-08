@@ -110,6 +110,21 @@ describe('RiskDensityChart', () => {
     });
   });
 
+  describe('i18n Compliance', () => {
+    it('sollte Heatmap-Aria-Label, Legende und Empty-State auf Englisch rendern', () => {
+      renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />, 'en');
+      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Liquidity heatmap/);
+      expect(screen.getByText('healthy')).toBeInTheDocument();
+      expect(screen.getByText(/lighter = more likely/)).toBeInTheDocument();
+    });
+
+    it('sollte den englischen Platzhalter bei leerem Dichtefeld zeigen', () => {
+      const empty = makeResult([], []);
+      renderWithI18n(<RiskDensityChart result={empty} safetyBuffer={1000} />, 'en');
+      expect(screen.getByText(/No paths yet/)).toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('sollte bei leerem Dichtefeld einen Platzhalter zeigen', () => {
       const empty = makeResult([], []);

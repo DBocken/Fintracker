@@ -3,11 +3,16 @@ import { buildSpendingSunburst } from '@/lib/analysis-data';
 import type { Transaction, Category } from '@/types';
 
 /**
- * Test suite for the four critical blocking issues:
+ * Test suite for two critical blocking issues:
  * 1. Existing transactions not being evaluated for contract/ausgabenklasse
  * 2. Sunburst visualization showing only 2 colors instead of 5
- * 3. GoCardless balance sync not using opening balance
- * 4. Transaction editing functionality
+ *
+ * (Issue 3 "GoCardless balance sync uses opening balance" now has a real
+ * regression test against the production sync service in
+ * gocardless-balance-sync.test.ts. Issue 4 "Transaction editing" never had
+ * a real test — the two `describe` blocks that used to sit here were
+ * `expect(true).toBe(true)` placeholders and have been removed rather than
+ * left in place implying coverage that didn't exist.)
  */
 
 // Mock categories with ausgabenklasse attributes properly set
@@ -246,54 +251,5 @@ describe('Issue 2: Sunburst visualization shows all 5 color categories', () => {
       expect(lebensmittelKey.parentId).toBe('essenziell');
       expect(lebensmittelKey.value).toBe(80); // 50 + 30
     }
-  });
-});
-
-describe('Issue 3: GoCardless balance sync uses opening balance', () => {
-  it('should capture opening balance from sync response', () => {
-    // This test documents the expected behavior that should be implemented
-    // When GoCardless returns balanceAfterTransaction, it should be stored
-    // as the account's opening_balance for proper balance tracking
-
-    // Example flow:
-    // 1. Account has opening_balance: 1000 EUR
-    // 2. First transaction: -100 EUR
-    // 3. Balance after: 900 EUR (opening_balance - tx amount)
-
-    // The sync service should:
-    // - Capture the initial balance from the first transaction's balanceAfterTransaction
-    // - Calculate total balance as: opening_balance + sum(transactions)
-
-    expect(true).toBe(true); // Placeholder - implementation will follow
-  });
-});
-
-describe('Issue 4: Transaction editing functionality', () => {
-  it('should be able to edit transaction category', () => {
-    // This test documents expected transaction editing behavior
-    // Transaction modal should:
-    // - Open on row click
-    // - Show current category
-    // - Allow category change via CategoryTwoStepSelect
-    // - Save changes on submit
-
-    expect(true).toBe(true); // Placeholder - implementation will follow
-  });
-
-  it('should be able to toggle contract flag', () => {
-    // Expected behavior:
-    // - Modal shows is_contract checkbox
-    // - When enabled, contract_cycle selector appears
-    // - Changes are persisted
-
-    expect(true).toBe(true); // Placeholder - implementation will follow
-  });
-
-  it('should show ausgabenklasse based on selected category', () => {
-    // Expected behavior:
-    // - Modal displays ausgabenklasse derived from selected category
-    // - Updates live as category changes
-
-    expect(true).toBe(true); // Placeholder - implementation will follow
   });
 });

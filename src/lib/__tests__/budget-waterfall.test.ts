@@ -90,6 +90,20 @@ describe("budget-waterfall", () => {
         expect(r.surplus).toBe(2000);
         expect(r.feasible).toBe(true);
       });
+
+      it("sollte negatives Einkommen und negative Fixkosten/Töpfe auf 0 klemmen statt sie durchzureichen", () => {
+        const r = computeWaterfall({
+          income: -500,
+          savings: { mode: "amount", value: 0 },
+          essentials: -1500,
+          discretionaryRequested: -800,
+        });
+        expect(r.income).toBe(0);
+        expect(r.steps.find((s) => s.key === "essentials")?.requested).toBe(0);
+        expect(r.steps.find((s) => s.key === "discretionary")?.requested).toBe(0);
+        expect(r.surplus).toBe(0);
+        expect(r.feasible).toBe(true);
+      });
     });
   });
 });

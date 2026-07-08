@@ -122,6 +122,9 @@ describe('EtoroHistoryTab', () => {
       // Position 1 schloss am 2026-02-01, Position 2 am 2026-01-10 → 1 zuerst.
       expect(rows[0]).toHaveTextContent('Apple Inc.');
       expect(rows[1]).toHaveTextContent('TSLA');
+      // Leverage aus den Fixtures (2x bzw. 1x) muss tatsächlich angezeigt werden.
+      expect(rows[0]).toHaveTextContent('2x');
+      expect(rows[1]).toHaveTextContent('1x');
     });
 
     it('sollte Buy/Sell-Badges korrekt zuordnen', () => {
@@ -217,6 +220,60 @@ describe('EtoroHistoryTab', () => {
         'de',
       );
       expect(screen.getByText('Keine Cash-Bewegungen')).toBeInTheDocument();
+    });
+
+    it('sollte "—" zeigen, wenn leverage fehlt', () => {
+      const noLeverageTrade = EtoroTradeHistoryResponseSchema.parse([
+        {
+          positionId: 3,
+          instrumentId: 1001,
+          isBuy: true,
+          openTimestamp: '2026-01-01T00:00:00Z',
+          closeTimestamp: '2026-02-01T00:00:00Z',
+          investment: 500,
+          fees: 0,
+          netProfit: 10,
+        },
+      ]);
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(noLeverageTrade)}
+          cashMovements={emptyCashMovements}
+          instrumentMeta={instrumentMeta}
+        />,
+        'de',
+      );
+      const row = screen.getAllByRole('row')[1];
+      expect(row).toHaveTextContent('—');
+    });
+
+    it('sollte sehr hohes Leverage (z.B. 400x) unverändert anzeigen', () => {
+      const highLeverageTrade = EtoroTradeHistoryResponseSchema.parse([
+        {
+          positionId: 4,
+          instrumentId: 1001,
+          isBuy: true,
+          leverage: 400,
+          openTimestamp: '2026-01-01T00:00:00Z',
+          closeTimestamp: '2026-02-01T00:00:00Z',
+          investment: 500,
+          fees: 0,
+          netProfit: -450,
+        },
+      ]);
+      renderWithI18n(
+        <EtoroHistoryTab
+          isLocked={false}
+          pnl={noopSection(pnl)}
+          tradeHistory={noopSection(highLeverageTrade)}
+          cashMovements={emptyCashMovements}
+          instrumentMeta={instrumentMeta}
+        />,
+        'de',
+      );
+      expect(screen.getByText('400x')).toBeInTheDocument();
     });
 
     it('sollte 0-Werte anzeigen, wenn pnl undefined ist', () => {

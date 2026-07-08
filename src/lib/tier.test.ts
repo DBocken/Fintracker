@@ -5,8 +5,33 @@ import {
   setTierOverride,
   clearTierOverride,
   hasFeatureAccess,
+  tierMeets,
+  FEATURES,
   TIER_OVERRIDE_KEY,
+  type Tier,
 } from "./tier";
+
+describe("tierMeets", () => {
+  const tiers: Tier[] = ["anonymous", "free", "premium"];
+
+  it("is true when the user's tier is exactly the required tier", () => {
+    for (const tier of tiers) {
+      expect(tierMeets(tier, tier)).toBe(true);
+    }
+  });
+
+  it("is true when the user's tier is higher than required", () => {
+    expect(tierMeets("free", "anonymous")).toBe(true);
+    expect(tierMeets("premium", "anonymous")).toBe(true);
+    expect(tierMeets("premium", "free")).toBe(true);
+  });
+
+  it("is false when the user's tier is lower than required", () => {
+    expect(tierMeets("anonymous", "free")).toBe(false);
+    expect(tierMeets("anonymous", "premium")).toBe(false);
+    expect(tierMeets("free", "premium")).toBe(false);
+  });
+});
 
 describe("deriveTier", () => {
   it("leitet ohne Override aus dem Auth-Status ab", () => {
@@ -101,5 +126,24 @@ describe("Tier-Recut: Free-Kernnutzen", () => {
   it("lässt anonyme Nutzer nicht an Free-Kernnutzen (Login nötig)", () => {
     expect(hasFeatureAccess("anonymous", "basicContracts")).toBe(false);
     expect(hasFeatureAccess("anonymous", "basicForecast")).toBe(false);
+  });
+
+  it("gewährt bankSync free und premium Nutzern, aber nicht anonym", () => {
+    expect(hasFeatureAccess("anonymous", "bankSync")).toBe(false);
+    expect(hasFeatureAccess("free", "bankSync")).toBe(true);
+    expect(hasFeatureAccess("premium", "bankSync")).toBe(true);
+  });
+
+  it("hält jedes als premium-gegatet definierte Feature ausschließlich für premium frei", () => {
+    const premiumFeatures = (Object.keys(FEATURES) as Array<keyof typeof FEATURES>).filter(
+      (key) => FEATURES[key] === "premium",
+    );
+    expect(premiumFeatures.length).toBeGreaterThan(0);
+
+    for (const feature of premiumFeatures) {
+      expect(hasFeatureAccess("anonymous", feature)).toBe(false);
+      expect(hasFeatureAccess("free", feature)).toBe(false);
+      expect(hasFeatureAccess("premium", feature)).toBe(true);
+    }
   });
 });

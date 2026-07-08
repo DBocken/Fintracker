@@ -21,8 +21,8 @@ vi.mock('@/services/transaction-service', () => ({
 import TaxReserveSettings from '../TaxReserveSettings';
 import { updateUserSettings } from '@/services/transaction-service';
 
-function renderWithI18n(component: React.ReactElement) {
-  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
 }
 
 describe('TaxReserveSettings', () => {
@@ -40,5 +40,13 @@ describe('TaxReserveSettings', () => {
     fireEvent.change(input, { target: { value: '150' } });
     fireEvent.click(screen.getByText('Speichern'));
     expect(updateUserSettings).toHaveBeenCalledWith({ tax_reserve_percent: 100 });
+  });
+
+  describe('English Locale', () => {
+    it('sollte englische Labels rendern', () => {
+      renderWithI18n(<TaxReserveSettings />, 'en');
+      expect(screen.getByLabelText(/Reserve in %/i)).toBeInTheDocument();
+      expect(screen.getByText('Save')).toBeInTheDocument();
+    });
   });
 });

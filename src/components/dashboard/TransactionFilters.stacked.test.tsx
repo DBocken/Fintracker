@@ -54,4 +54,41 @@ describe("TransactionFilters – aufgeräumtes Raster (stacked)", () => {
     expect(screen.queryByText("Verträge")).toBeNull();
     expect(screen.queryByText("Zeitraum")).toBeNull();
   });
+
+  it("sollte englische Texte korrekt rendern", () => {
+    render(
+      <I18nProvider initialLocale="en">
+        <TransactionFilters
+          filterCat="all"
+          setFilterCat={noop}
+          filterAccount="all"
+          setFilterAccount={noop}
+          searchInput=""
+          setSearchInput={noop}
+          range="Gesamt"
+          setRange={noop}
+          customDays={30}
+          setCustomDays={noop}
+          customGran="daily"
+          setCustomGran={noop}
+          customPeriod=""
+          setCustomPeriod={noop}
+          periodOptions={[]}
+          categories={[]}
+          filterContract="all"
+          setFilterContract={noop}
+          filterEssential="all"
+          setFilterEssential={noop}
+          filterAusgabenklasse="all"
+          setFilterAusgabenklasse={noop}
+          showSearch={false}
+          stacked={true}
+        />
+      </I18nProvider>,
+    );
+    // Überprüfe dass englische Translations geladen sind
+    for (const label of ["Account", "Category", "Contracts", "Essential", "Spending category", "Time range"]) {
+      expect(screen.getByText(label)).toBeTruthy();
+    }
+  });
 });
