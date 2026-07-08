@@ -64,6 +64,14 @@ describe("calculatePayoffPlan", () => {
     expect(plan.steps.find((s) => s.debtId === "a")?.balance).toBe(1000);
   });
 
+  it("pays off an interest-free debt in exactly balance/payment months, zero interest", () => {
+    const debts = [makeDebt({ id: "a", balance: 1000, min_payment: 100, interest_rate: 0 })];
+    const plan = calculatePayoffPlan(debts, 100, "snowball");
+    expect(plan.insufficientBudget).toBe(false);
+    expect(plan.totalMonths).toBe(10);
+    expect(plan.totalInterestPaid).toBe(0);
+  });
+
   it("avalanche prioritizes the highest interest rate first", () => {
     const debts = [
       makeDebt({ id: "low-rate", balance: 1000, min_payment: 50, interest_rate: 5 }),

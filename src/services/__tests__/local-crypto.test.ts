@@ -88,6 +88,22 @@ describe("localEncryption", () => {
     const loaded = await localEncryption.loadAndMaybeDecrypt<{ foo: string }>("test_key");
     expect(loaded).toEqual({ foo: "bar" });
   });
+
+  it("[REGRESSION] Roundtrip über die 8-KB-Base64-Blockgrenze (F-PERF-1)", async () => {
+    await localEncryption.enable("super-geheim-123");
+    // Payload deutlich größer als die 8-KB-Chunkgröße des blockweisen b64encode,
+    // inkl. Nicht-ASCII, um korrektes Kodieren über Blockgrenzen zu prüfen.
+    const large = {
+      items: Array.from({ length: 5000 }, (_, i) => ({
+        id: i,
+        payee: `Händler Ä${i} — Straße`,
+        amount: -i - 0.99,
+      })),
+    };
+    const envelope = await localEncryption.encryptJson(large);
+    const back = await localEncryption.decryptJson<typeof large>(envelope);
+    expect(back).toEqual(large);
+  });
 });
 
 describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
@@ -168,5 +184,19 @@ describe("estimatePasswordStrength", () => {
   it("classifies long passwords with mixed character classes as stark", () => {
     const result = estimatePasswordStrength("Correct-Horse-Battery-9");
     expect(result.label).toBe("stark");
+  });
+
+  it("erkennt reine Wiederholung trotz Länge als schwach (Entropie statt Länge)", () => {
+    expect(estimatePasswordStrength("aaaaaaaaaaaa").label).toBe("schwach");
+  });
+
+  it("wertet einfache Sequenzen ab", () => {
+    expect(estimatePasswordStrength("abcdefghijkl").label).toBe("schwach");
+  });
+
+  it("wertet gängige Passwörter hart ab", () => {
+    const res = estimatePasswordStrength("Passwort123!");
+    expect(res.label).toBe("schwach");
+    expect(res.score).toBeLessThanOrEqual(25);
   });
 });
