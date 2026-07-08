@@ -119,6 +119,45 @@ describe('zykluskorrekte wiederkehrende Zahlungen', () => {
     expect(charged.slice(0, 3)).toEqual(['2026-01-02', '2026-01-16', '2026-01-30']);
   });
 
+  it('[REGRESSION] bucht eine monatliche Zahlung mit Anker-Tag 29 im Schaltjahr auf den 29. Februar (kein Clamp nötig)', () => {
+    const flow: RecurringFlow = {
+      id: 'leap',
+      name: 'Schaltjahr-Miete',
+      amount: -500,
+      cadence: 'monthly',
+      anchorDate: '2028-01-29',
+      accountId: 'giro',
+    };
+    const result = calculateDeterministicForecast(
+      { accounts: [checking(10_000)], recurringFlows: [flow] },
+      { startDate: '2028-01-29', months: 3 },
+    );
+    const charged = result.daily.filter((d) => d.fixedExpenses > 0).map((d) => d.date);
+    // months wird auf mindestens 6 angehoben (siehe Horizont-Test oben).
+    expect(charged).toEqual([
+      '2028-01-29', '2028-02-29', '2028-03-29', '2028-04-29', '2028-05-29', '2028-06-29',
+    ]);
+  });
+
+  it('[REGRESSION] klemmt denselben Anker-Tag 29 in einem Nicht-Schaltjahr auf den 28. Februar', () => {
+    const flow: RecurringFlow = {
+      id: 'noleap',
+      name: 'Miete',
+      amount: -500,
+      cadence: 'monthly',
+      anchorDate: '2027-01-29',
+      accountId: 'giro',
+    };
+    const result = calculateDeterministicForecast(
+      { accounts: [checking(10_000)], recurringFlows: [flow] },
+      { startDate: '2027-01-29', months: 3 },
+    );
+    const charged = result.daily.filter((d) => d.fixedExpenses > 0).map((d) => d.date);
+    expect(charged).toEqual([
+      '2027-01-29', '2027-02-28', '2027-03-29', '2027-04-29', '2027-05-29', '2027-06-29',
+    ]);
+  });
+
   it('verbucht Einnahmen als inflow und erhöht den Saldo', () => {
     const gehalt: RecurringFlow = {
       id: 'salary',

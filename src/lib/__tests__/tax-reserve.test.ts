@@ -62,4 +62,15 @@ describe('computeTaxReserve', () => {
     expect(result!.incomeTotal).toBe(1000);
     expect(result!.reserveTotal).toBe(300);
   });
+
+  it('[Edge] dokumentiert: eine negative totalInWindow (z.B. Rückerstattung) senkt incomeTotal ungeklemmt und kann reserveTotal negativ machen', () => {
+    // Kein Floor bei 0 auf incomeTotal/reserveTotal — eine Korrektur/Rückbuchung,
+    // die größer als das übrige Einkommen im Fenster ist, kippt beide ins Negative.
+    const result = computeTaxReserve(
+      [stream('local-cat-verkaeufe', -500, 'Rückerstattung'), stream('local-cat-onlinecreator', 300, 'YouTube')],
+      30,
+    );
+    expect(result!.incomeTotal).toBe(-200);
+    expect(result!.reserveTotal).toBe(-60);
+  });
 });

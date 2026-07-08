@@ -85,6 +85,24 @@ describe("InteractiveCard", () => {
       await userEvent.keyboard("{Enter}");
       expect(onClick).toHaveBeenCalled();
     });
+
+    it("[REGRESSION] sollte die dokumentierte Mindest-Touch-Ziel-Höhe (≥44px) tragen", () => {
+      renderWithRouter(
+        <InteractiveCard onClick={() => {}}>
+          <div>Touch-Ziel</div>
+        </InteractiveCard>,
+      );
+      expect(screen.getByRole("button").className).toMatch(/min-h-\[44px\]/);
+    });
+
+    it("[REGRESSION] sollte einen sichtbaren Fokusring tragen (Tastatur-Zugänglichkeit)", () => {
+      renderWithRouter(
+        <InteractiveCard onClick={() => {}}>
+          <div>Fokusring</div>
+        </InteractiveCard>,
+      );
+      expect(screen.getByRole("button").className).toMatch(/focus-visible:ring-2/);
+    });
   });
 
   describe("Edge Cases", () => {
