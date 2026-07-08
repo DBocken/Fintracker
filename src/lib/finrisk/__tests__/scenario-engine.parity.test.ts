@@ -4,9 +4,15 @@ import type { ForecastAccount, ForecastConfig, ForecastInput, RecurringFlow } fr
 import type { ScenarioPayload } from '../scenario-payload-types';
 
 /**
- * Parität zum v27-Paket: bildet die Akzeptanztests aus
- * `tests/scenarioEngine.test.js` auf unsere ForecastInput-Form ab. Die exakte
- * Engine ist anders (echte Monte-Carlo-Pfade), die Produktaussagen sind identisch.
+ * Akzeptanzkriterien der v27-Spezifikation, übersetzt in unsere ForecastInput-Form.
+ *
+ * Wichtig: Es gibt kein `tests/scenarioEngine.test.js` einer zweiten
+ * Referenzimplementierung in diesem Repo (v27 ist nur die interne
+ * Versionsbezeichnung dieses Moduls, siehe scenario-engine.ts) — dieser Test
+ * beweist also KEINE Parität zwischen zwei Engines, sondern prüft die
+ * Produktaussagen (Richtung + bei festem Seed reproduzierbare exakte Werte)
+ * der einen echten Engine. Frühere Version dieser Datei behauptete im
+ * Docblock eine Parität, die sie nie geprüft hat.
  */
 
 const START = '2026-01-01';
@@ -43,7 +49,7 @@ function baseInput(): ForecastInput {
   };
 }
 
-describe('FinRisk Szenario-Engine – Parität zum v27-Paket', () => {
+describe('FinRisk Szenario-Engine – Akzeptanzkriterien (v27-Spezifikation)', () => {
   it('1. Large Purchase senkt den Endsaldo (≈ um den Betrag)', () => {
     const payload: ScenarioPayload = {
       scenarioId: 'large-purchase',
@@ -69,6 +75,10 @@ describe('FinRisk Szenario-Engine – Parität zum v27-Paket', () => {
     };
     const result = runScenarioPayload(baseInput(), CONFIG, payload, { monteCarlo: MC });
     expect(result.scenarioEndP50).toBeLessThan(result.baselineEndP50);
+    // Bei festem Seed deterministisch — pinnt den exakten Wert, damit eine
+    // künftige Regression (die Baseline & Szenario gleichermaßen verschiebt
+    // und damit die reine Richtungsprüfung bestehen ließe) auffällt.
+    expect(result.deltaEndP50).toBeCloseTo(-8550, 1);
   });
 
   it('3. Higher Cost of Living senkt die Pfade', () => {
@@ -99,6 +109,8 @@ describe('FinRisk Szenario-Engine – Parität zum v27-Paket', () => {
     expect(result.scenarioEndP50).toBeLessThan(result.baselineEndP50);
     // Recovery kompensiert -> Verschlechterung kleiner als der reine Schock.
     expect(result.baselineEndP50 - result.scenarioEndP50).toBeLessThan(4500);
+    // Exakter, bei festem Seed deterministischer Wert als Regressionsschutz.
+    expect(result.baselineEndP50 - result.scenarioEndP50).toBeCloseTo(2700, 1);
   });
 
   it('5. Stress Capacity fällt mit höherem Sicherheitsniveau', () => {
@@ -113,6 +125,10 @@ describe('FinRisk Szenario-Engine – Parität zum v27-Paket', () => {
     const [c80, c90, c95] = result.stressCapacity;
     expect(c80.maxAffordableShock).toBeGreaterThanOrEqual(c90.maxAffordableShock);
     expect(c90.maxAffordableShock).toBeGreaterThanOrEqual(c95.maxAffordableShock);
+    // Exakte, bei festem Seed deterministische Werte als Regressionsschutz.
+    expect([c80.maxAffordableShock, c90.maxAffordableShock, c95.maxAffordableShock]).toEqual([
+      8070.67, 8053.44, 8041.26,
+    ]);
   });
 
   it('6. Erzeugt keine Netzwerk-Requests mit persönlichen Daten', () => {

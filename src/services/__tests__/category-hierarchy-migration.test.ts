@@ -1,40 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import type { Category } from '@/types';
+import { migrateParentIds } from '../local-settings-service';
 
 /**
  * Testet die parent_id-Migration für Kategorien, die vor der Hierarchie-
  * Umstrukturierung gespeichert wurden (Issue: fehlende Unterkategorien).
+ *
+ * Nutzt echte lokale Default-Kategorien-IDs (local-cat-wohnen/-miete/-stromenergie/
+ * -lebensmittel/-supermarkt) statt einer selbst gepflegten Kopie der Default-Liste —
+ * diese war bereits von der echten Taxonomie abgedriftet (z.B. existiert
+ * "local-cat-energie" nicht, real heißt es "local-cat-stromenergie") und rief
+ * außerdem eine lokal reimplementierte Kopie von migrateParentIds auf, statt die
+ * echte Funktion aus local-settings-service zu testen.
  */
-
 describe('Category Hierarchy Migration', () => {
-  const DEFAULT_CATEGORIES_MOCK: Category[] = [
-    { id: 'local-cat-einkommen', name: 'Einkommen', filters: [], parent_id: null },
-    { id: 'local-cat-gehalt', name: 'Gehalt', filters: [], parent_id: 'local-cat-einkommen' },
-    { id: 'local-cat-wohnen', name: 'Wohnen', filters: [], parent_id: null },
-    { id: 'local-cat-miete', name: 'Miete & Hausgeld', filters: [], parent_id: 'local-cat-wohnen' },
-    { id: 'local-cat-energie', name: 'Strom & Energie', filters: [], parent_id: 'local-cat-wohnen' },
-    { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: [], parent_id: null },
-    { id: 'local-cat-supermarkt', name: 'Supermarkt', filters: [], parent_id: 'local-cat-lebensmittel' },
-  ];
-
-  function migrateParentIds(stored: Category[]): Category[] {
-    return stored.map((cat) => {
-      // Wenn parent_id bereits gesetzt (null oder string), nicht verändern
-      if (cat.parent_id !== undefined) return cat;
-      // Sonst: versuche aus Default-Kategorien zu laden
-      const defaultCat = DEFAULT_CATEGORIES_MOCK.find((d) => d.id === cat.id);
-      const resolvedParentId = defaultCat?.parent_id ?? null;
-      return { ...cat, parent_id: resolvedParentId };
-    });
-  }
-
   it('sollte Kategorien ohne parent_id migrieren', () => {
     const oldCategories: Category[] = [
       { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: [] },
       { id: 'local-cat-supermarkt', name: 'Supermarkt', filters: [] },
     ];
 
-    const migrated = migrateParentIds(oldCategories);
+    const { categories: migrated } = migrateParentIds(oldCategories);
 
     expect(migrated[0].parent_id).toBeNull();
     expect(migrated[1].parent_id).toBe('local-cat-lebensmittel');
@@ -46,7 +32,7 @@ describe('Category Hierarchy Migration', () => {
       { id: 'local-cat-miete', name: 'Miete & Hausgeld', filters: [], parent_id: undefined },
     ];
 
-    const migrated = migrateParentIds(oldCategories);
+    const { categories: migrated } = migrateParentIds(oldCategories);
 
     expect(migrated[0].parent_id).toBeNull();
     expect(migrated[1].parent_id).toBe('local-cat-wohnen');
@@ -58,7 +44,7 @@ describe('Category Hierarchy Migration', () => {
       { id: 'local-cat-supermarkt', name: 'Supermarkt', filters: [], parent_id: 'local-cat-lebensmittel' },
     ];
 
-    const result = migrateParentIds(migratedCategories);
+    const { categories: result } = migrateParentIds(migratedCategories);
 
     expect(result[0].parent_id).toBeNull();
     expect(result[1].parent_id).toBe('local-cat-lebensmittel');
@@ -69,7 +55,7 @@ describe('Category Hierarchy Migration', () => {
       { id: 'custom-1', name: 'Meine eigene Kategorie', filters: [] },
     ];
 
-    const migrated = migrateParentIds(customCategories);
+    const { categories: migrated } = migrateParentIds(customCategories);
 
     expect(migrated[0].parent_id).toBeNull();
   });
@@ -86,7 +72,7 @@ describe('Category Hierarchy Migration', () => {
       { id: 'custom-1', name: 'Custom', filters: [] },
     ];
 
-    const migrated = migrateParentIds(mixedCategories);
+    const { categories: migrated } = migrateParentIds(mixedCategories);
 
     expect(migrated[0].parent_id).toBeNull();
     expect(migrated[1].parent_id).toBe('local-cat-lebensmittel');
@@ -97,7 +83,7 @@ describe('Category Hierarchy Migration', () => {
 
   it('[REGRESSION] sollte leere Kategorienarray verarbeiten', () => {
     const empty: Category[] = [];
-    const result = migrateParentIds(empty);
+    const { categories: result } = migrateParentIds(empty);
     expect(result).toHaveLength(0);
   });
 
@@ -105,10 +91,10 @@ describe('Category Hierarchy Migration', () => {
     const oldCategories: Category[] = [
       { id: 'local-cat-wohnen', name: 'Wohnen', filters: [] },
       { id: 'local-cat-miete', name: 'Miete & Hausgeld', filters: [] },
-      { id: 'local-cat-energie', name: 'Strom & Energie', filters: [] },
+      { id: 'local-cat-stromenergie', name: 'Strom & Energie', filters: [] },
     ];
 
-    const migrated = migrateParentIds(oldCategories);
+    const { categories: migrated } = migrateParentIds(oldCategories);
 
     expect(migrated[0].parent_id).toBeNull();
     expect(migrated[1].parent_id).toBe('local-cat-wohnen');
