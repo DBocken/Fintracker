@@ -65,4 +65,20 @@ describe('RecurringFlowOverrideForm – Tabellen-Darstellung (Prinzip 8)', () =>
     expect(screen.getByText(/beendet|ended/)).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).toBeDisabled();
   });
+
+  it('sollte englische Spaltenüberschriften rendern', () => {
+    render(
+      <I18nProvider initialLocale="en">
+        <RecurringFlowOverrideForm
+          recurringFlows={[flow(), flow({ id: 'f2', name: 'Salary', amount: 2597 })]}
+          overrides={overrides}
+          onChange={() => {}}
+        />
+      </I18nProvider>,
+    );
+    const table = screen.getByRole('table');
+    expect(within(table).getByRole('columnheader', { name: /Payment/ })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: /Amount/ })).toBeInTheDocument();
+    expect(within(table).getByText('Salary')).toBeInTheDocument();
+  });
 });

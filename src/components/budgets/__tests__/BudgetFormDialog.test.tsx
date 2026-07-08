@@ -97,4 +97,23 @@ describe("BudgetFormDialog – Rollover & Adaptive", () => {
     await userEvent.click(screen.getByRole("button", { name: /speichern/i }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ adaptive: true }));
   });
+
+  describe("English Locale", () => {
+    it("sollte englische Texte rendern", () => {
+      const onSave = vi.fn();
+      renderWithI18n(
+        <BudgetFormDialog
+          open
+          onOpenChange={() => {}}
+          budget={{ id: "b1", name: "Groceries", category_id: "wohnen", limit: 500 } as Budget}
+          categories={CATEGORIES}
+          accounts={ACCOUNTS}
+          onSave={onSave}
+        />,
+        "en"
+      );
+      // Check for English dialog text
+      expect(screen.getByText(/Edit budget|Add budget/i)).toBeInTheDocument();
+    });
+  });
 });

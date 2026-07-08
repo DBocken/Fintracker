@@ -83,8 +83,58 @@ describe('WrappedSlides', () => {
     expect(within(slide as HTMLElement).queryByText(/€/)).not.toBeInTheDocument();
   });
 
-  it('rendert englische Texte', () => {
-    renderWithI18n(<WrappedSlides stats={stats()} onClose={() => {}} />, 'en');
-    expect(screen.getByText('Your income year 2025')).toBeInTheDocument();
+  describe('English locale', () => {
+    it('renders intro slide with year and navigates on click', () => {
+      renderWithI18n(<WrappedSlides stats={stats()} onClose={() => {}} />, 'en');
+      expect(screen.getByText('Your income year 2025')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Tap to continue/ }));
+      expect(screen.getByText('This much came in')).toBeInTheDocument();
+    });
+
+    it('navigates with arrow keys and closes with Escape (en)', () => {
+      const onClose = vi.fn();
+      renderWithI18n(<WrappedSlides stats={stats()} onClose={onClose} />, 'en');
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      expect(screen.getByText('This much came in')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowLeft' });
+      expect(screen.getByText('Your income year 2025')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('[REGRESSION] navigates through all slides in English', () => {
+      renderWithI18n(
+        <WrappedSlides stats={stats()} onClose={() => {}} />,
+        'en'
+      );
+      // Intro
+      expect(screen.getByText('Your income year 2025')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Total
+      expect(screen.getByText('This much came in')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Best month
+      expect(screen.getByText('Your strongest month')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Growth
+      expect(screen.getByText('Fastest growing')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Loyal
+      expect(screen.getByText('Your most loyal stream')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Diversity
+      expect(screen.getByText('Your income sources')).toBeInTheDocument();
+      fireEvent.keyDown(window, { key: 'ArrowRight' });
+      // Final
+      expect(screen.getByText('Your income mix 2025')).toBeInTheDocument();
+    });
+
+    it('exports on final slide with correct filename (en)', async () => {
+      renderWithI18n(<WrappedSlides stats={stats()} onClose={() => {}} />, 'en');
+      for (let i = 0; i < 6; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
+      fireEvent.click(screen.getByText('Download PNG'));
+      await Promise.resolve();
+      expect(exportNodeAsPng).toHaveBeenCalledWith(expect.anything(), 'einkommens-jahr-2025.png');
+    });
   });
 });

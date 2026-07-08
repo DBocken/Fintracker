@@ -5,8 +5,8 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { DebtCard } from "../DebtCard";
 import type { Debt } from "@/types";
 
-function renderWithI18n(component: React.ReactElement) {
-  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+function renderWithI18n(component: React.ReactElement, locale: "de" | "en" = "de") {
+  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
 }
 
 function makeDebt(overrides: Partial<Debt> = {}): Debt {
@@ -48,6 +48,34 @@ describe("DebtCard", () => {
       expect(onTogglePaid).toHaveBeenCalledTimes(1);
       // Sekundäraktion darf NICHT zusätzlich die Detailansicht öffnen.
       expect(onOpenDetails).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("English Locale", () => {
+    it("sollte englische Aria-Labels rendern", async () => {
+      const onOpenDetails = vi.fn();
+      renderWithI18n(
+        <DebtCard
+          debt={makeDebt()}
+          onTogglePaid={() => {}}
+          onOpenDetails={onOpenDetails}
+        />,
+        "en"
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Details for Visa-Karte/i }));
+      expect(onOpenDetails).toHaveBeenCalledTimes(1);
+    });
+
+    it("sollte englischen Button-Text für 'Mark as paid' rendern", () => {
+      renderWithI18n(
+        <DebtCard
+          debt={makeDebt()}
+          onTogglePaid={() => {}}
+          onOpenDetails={() => {}}
+        />,
+        "en"
+      );
+      expect(screen.getByRole("button", { name: /Mark as paid/i })).toBeInTheDocument();
     });
   });
 });

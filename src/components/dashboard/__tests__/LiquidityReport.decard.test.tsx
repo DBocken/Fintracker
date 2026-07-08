@@ -4,8 +4,8 @@ import { I18nProvider } from '@/i18n/I18nProvider';
 import { MonthlyOverviewTable } from '../LiquidityReport';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
 
-function renderWithI18n(component: React.ReactElement) {
-  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
 }
 
 /** Karten-Chrome = sichtbarer Rahmen (`border`-Breiten-Utility) oder Schatten.
@@ -75,5 +75,22 @@ describe('MonthlyOverviewTable (kompakte Monatsübersicht, Prinzip 8)', () => {
     expect(screen.getByRole('columnheader', { name: 'Zinsen' })).toBeInTheDocument();
     const table = screen.getByRole('table');
     expect(within(table).getByText('+5 €')).toBeInTheDocument();
+  });
+
+  describe('i18n Compliance', () => {
+    it('sollte Spaltenköpfe auf Englisch rendern', () => {
+      renderWithI18n(
+        <MonthlyOverviewTable months={[month({ transfersOut: 200, interest: 5 })]} />,
+        'en',
+      );
+      expect(screen.getByRole('columnheader', { name: 'Month end' })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: 'Savings/Transfer' })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: 'Interest' })).toBeInTheDocument();
+    });
+
+    it('sollte "below buffer" auf Englisch signalisieren', () => {
+      renderWithI18n(<MonthlyOverviewTable months={[month({ belowSafetyBuffer: true })]} />, 'en');
+      expect(screen.getByText('below buffer')).toBeInTheDocument();
+    });
   });
 });

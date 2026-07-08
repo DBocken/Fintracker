@@ -26,12 +26,11 @@ vi.mock("@/services/household-service", () => ({
 
 const tx = { id: "t1", amount: -10, date: "2026-01-01" } as Transaction;
 
-function renderPanel() {
+function renderPanel(locale: 'de' | 'en' = 'de') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  // Set locale to German for tests
-  localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  localStorage.setItem('ausgabentracker_locale_v1', locale);
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       <QueryClientProvider client={client}>
         <MemoryRouter>
           <HouseholdSplitPanel transaction={tx} />
@@ -76,5 +75,37 @@ describe("HouseholdSplitPanel", () => {
     expect(screen.getByLabelText("Anteil Ben")).toHaveValue("4.00");
     expect(screen.getByRole("button", { name: "Aufteilung speichern" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aufteilung entfernen" })).toBeInTheDocument();
+  });
+
+  describe("English locale", () => {
+    it("should prompt to create household (en)", async () => {
+      mocks.getHouseholds.mockResolvedValue([]);
+      renderPanel('en');
+      expect(await screen.findByText(/First create a household/)).toBeInTheDocument();
+    });
+
+    it("should display existing split with members and shares (en)", async () => {
+      mocks.getHouseholds.mockResolvedValue([{ id: "h1", name: "WG" }]);
+      mocks.getSharedExpenseSplit.mockResolvedValue({
+        id: "s1",
+        transaction_id: "t1",
+        household_id: "h1",
+        shares: [
+          { member_id: "m1", amount: 6 },
+          { member_id: "m2", amount: 4 },
+        ],
+      });
+      mocks.getHouseholdMembers.mockResolvedValue([
+        { id: "m1", household_id: "h1", name: "Anna" },
+        { id: "m2", household_id: "h1", name: "Ben" },
+      ]);
+
+      renderPanel('en');
+
+      expect(await screen.findByLabelText("Share Anna")).toHaveValue("6.00");
+      expect(screen.getByLabelText("Share Ben")).toHaveValue("4.00");
+      expect(screen.getByRole("button", { name: "Save split" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove split" })).toBeInTheDocument();
+    });
   });
 });

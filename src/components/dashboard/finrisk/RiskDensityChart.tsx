@@ -454,9 +454,11 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         onPointerCancel={handlePointerCancel}
         onPointerLeave={() => setHover(null)}
         role="img"
-        aria-label={`Liquiditäts-Heatmap über ${nDays} Tage. Median-Endsaldo ${eur.format(
-          result.scenarioEndP50,
-        )}.${canInspect ? ' ' + t('finrisk.tapToSeeAssumptions') : ''}`}
+        aria-label={`${t('finrisk.heatmapAriaLabel')
+          .replace('{days}', String(nDays))
+          .replace('{balance}', eur.format(result.scenarioEndP50))}${
+          canInspect ? ' ' + t('finrisk.tapToSeeAssumptions') : ''
+        }`}
       >
         <canvas ref={canvasRef} className="rounded-xl" />
 
@@ -525,9 +527,9 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
 
       {/* Legende: Farbtrennung + Intensität. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        <LegendSwatch region="deficit" label="Defizit (< 0 €)" />
-        {safetyBuffer > 0 && <LegendSwatch region="caution" label="unter Puffer" />}
-        <LegendSwatch region="healthy" label="gesund" />
+        <LegendSwatch region="deficit" label={t('finrisk.legendDeficit')} />
+        {safetyBuffer > 0 && <LegendSwatch region="caution" label={t('finrisk.legendBelowBuffer')} />}
+        <LegendSwatch region="healthy" label={t('finrisk.legendHealthy')} />
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2.5 w-10 rounded-sm" style={{ background: 'linear-gradient(90deg, rgba(148,163,184,0.15), rgb(148,163,184))' }} />
           {t('finrisk.lighterIsProbable')}

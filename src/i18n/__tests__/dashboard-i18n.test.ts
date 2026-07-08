@@ -19,10 +19,13 @@ describe('Dashboard & Transactions i18n-Abdeckung', () => {
   });
 
   it('sollte tatsächlich unterschiedliche Texte für DE und EN liefern', () => {
-    if (translations.de.dashboard?.selectAll && translations.en.dashboard?.selectAll) {
-      expect(lookupTranslation('de', 'dashboard.selectAll')).not.toBe(
-        lookupTranslation('en', 'dashboard.selectAll'),
-      );
-    }
+    // Assert that the key exists in both locales first
+    expect(translations.de.dashboard?.selectAll).toBeDefined();
+    expect(translations.en.dashboard?.selectAll).toBeDefined();
+
+    // Then verify they have different values (German ≠ English)
+    expect(lookupTranslation('de', 'dashboard.selectAll')).not.toBe(
+      lookupTranslation('en', 'dashboard.selectAll'),
+    );
   });
 });

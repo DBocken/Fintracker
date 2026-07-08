@@ -42,4 +42,15 @@ describe("BudgetTile", () => {
     await userEvent.click(screen.getByRole("button"));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  describe("English Locale", () => {
+    it("sollte englische Aria-Labels rendern", () => {
+      renderWithI18n(
+        <BudgetTile status={status()} onClick={() => {}} />,
+        "en"
+      );
+      const btn = screen.getByRole("button");
+      expect(btn.getAttribute("aria-label")).toContain("Open details");
+    });
+  });
 });

@@ -376,14 +376,14 @@ export default function TransactionsPage() {
                       isHidden={detailsTransaction.id ? hidden.has(detailsTransaction.id) : false}
                       isLoading={detailsSaving}
                       onClose={closeDetails}
-                      closeLabel="Schließen"
+                      closeLabel={t('common.close')}
                       layout="split"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-                  Wähle links eine Buchung, um Details zu sehen und zu bearbeiten.
+                  {t('dashboard.selectTransactionHint')}
                 </div>
               )}
             </div>

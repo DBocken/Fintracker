@@ -65,4 +65,25 @@ describe("TransactionDetailsPanel – Split-Layout (horizontal, 2 Spalten)", () 
     expect(container.querySelector(".md\\:columns-2")).toBeNull();
     expect(screen.getByText("Kategorisierung")).toBeTruthy();
   });
+
+  it("sollte englische Texte korrekt rendern", () => {
+    render(
+      <I18nProvider initialLocale="en">
+        <MemoryRouter>
+          <TransactionDetailsPanel
+            transaction={TX}
+            categories={CATS}
+            accounts={[]}
+            allTransactions={[TX]}
+            onSave={vi.fn()}
+            onClose={vi.fn()}
+            layout="split"
+          />
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+    // Überprüfe dass englische Translations geladen sind
+    expect(screen.getByText("Categorization")).toBeTruthy();
+    expect(screen.getByText("Internal Transfer")).toBeTruthy();
+  });
 });

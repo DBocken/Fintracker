@@ -39,9 +39,10 @@ function suggestion(partial: Partial<AutomationSuggestion> = {}): AutomationSugg
   };
 }
 
-function renderWithI18n(component: React.ReactElement) {
+function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
+  localStorage.setItem('ausgabentracker_locale_v1', locale);
   return render(
-    <I18nProvider>
+    <I18nProvider initialLocale={locale}>
       {component}
     </I18nProvider>,
   );
@@ -55,33 +56,64 @@ describe("CategorySuggestionsInbox", () => {
   });
 
   it("sollte nichts rendern, wenn keine Vorschlaege offen sind", () => {
-    const { container } = renderWithI18n(<CategorySuggestionsInbox />);
+    const { container } = renderWithI18n(<CategorySuggestionsInbox />, 'de');
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("sollte Vorschlag mit Kategorie, Sicherheitsstufe und Grund anzeigen", () => {
-    mockState.suggestions = [suggestion()];
-    renderWithI18n(<CategorySuggestionsInbox />);
+  describe("German locale", () => {
+    it("sollte Vorschlag mit Kategorie, Sicherheitsstufe und Grund anzeigen", () => {
+      mockState.suggestions = [suggestion()];
+      renderWithI18n(<CategorySuggestionsInbox />, 'de');
 
-    expect(screen.getByText("Kategorie-Vorschlag für REWE Markt")).toBeInTheDocument();
-    expect(screen.getByText("Lebensmittel")).toBeInTheDocument();
-    expect(screen.getByText(/hoch.*confidence|hoch.*Sicherheit/)).toBeInTheDocument();
-    expect(screen.getByText("Beschreibung enthält Filter rewe")).toBeInTheDocument();
+      expect(screen.getByText("Kategorie-Vorschlag für REWE Markt")).toBeInTheDocument();
+      expect(screen.getByText("Lebensmittel")).toBeInTheDocument();
+      expect(screen.getByText(/hoch.*Sicherheit/)).toBeInTheDocument();
+      expect(screen.getByText("Beschreibung enthält Filter rewe")).toBeInTheDocument();
+    });
+
+    it("sollte beim Uebernehmen accept mit dem Vorschlag aufrufen", () => {
+      const s = suggestion();
+      mockState.suggestions = [s];
+      renderWithI18n(<CategorySuggestionsInbox />, 'de');
+      fireEvent.click(screen.getByRole("button", { name: "Übernehmen" }));
+      expect(accept).toHaveBeenCalledWith(s);
+    });
+
+    it("sollte beim Ablehnen reject mit dem Vorschlag aufrufen", () => {
+      const s = suggestion();
+      mockState.suggestions = [s];
+      renderWithI18n(<CategorySuggestionsInbox />, 'de');
+      fireEvent.click(screen.getByRole("button", { name: /Vorschlag ablehnen/ }));
+      expect(reject).toHaveBeenCalledWith(s);
+    });
   });
 
-  it("sollte beim Uebernehmen accept mit dem Vorschlag aufrufen", () => {
-    const s = suggestion();
-    mockState.suggestions = [s];
-    renderWithI18n(<CategorySuggestionsInbox />);
-    fireEvent.click(screen.getByRole("button", { name: /Accept|Uebernehmen/ }));
-    expect(accept).toHaveBeenCalledWith(s);
-  });
+  describe("English locale", () => {
+    it("should show suggestion with category, confidence level and reason", () => {
+      mockState.suggestions = [suggestion()];
+      mockState.categoryNameById = new Map([["c-food", "Groceries"]]);
+      renderWithI18n(<CategorySuggestionsInbox />, 'en');
 
-  it("sollte beim Ablehnen reject mit dem Vorschlag aufrufen", () => {
-    const s = suggestion();
-    mockState.suggestions = [s];
-    renderWithI18n(<CategorySuggestionsInbox />);
-    fireEvent.click(screen.getByRole("button", { name: /Vorschlag ablehnen|Reject suggestion/ }));
-    expect(reject).toHaveBeenCalledWith(s);
+      expect(screen.getByText("Kategorie-Vorschlag für REWE Markt")).toBeInTheDocument();
+      expect(screen.getByText("Groceries")).toBeInTheDocument();
+      expect(screen.getByText(/hoch.*confidence/)).toBeInTheDocument();
+      expect(screen.getByText("Beschreibung enthält Filter rewe")).toBeInTheDocument();
+    });
+
+    it("should call accept with suggestion on accept", () => {
+      const s = suggestion();
+      mockState.suggestions = [s];
+      renderWithI18n(<CategorySuggestionsInbox />, 'en');
+      fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+      expect(accept).toHaveBeenCalledWith(s);
+    });
+
+    it("should call reject with suggestion on reject", () => {
+      const s = suggestion();
+      mockState.suggestions = [s];
+      renderWithI18n(<CategorySuggestionsInbox />, 'en');
+      fireEvent.click(screen.getByRole("button", { name: /Reject suggestion/ }));
+      expect(reject).toHaveBeenCalledWith(s);
+    });
   });
 });

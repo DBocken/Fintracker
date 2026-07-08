@@ -227,7 +227,10 @@ export function CellDetailBody({ detail, onSelectPath }: CellDetailBodyProps) {
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-xs tabular-nums text-muted-foreground">
-            Pfad {detail.pathIndex + 1} von {detail.pathCount} {t('finrisk.inThisCell')}
+            {t('finrisk.cellDetailPaging.pathOfTotal')
+              .replace('{current}', String(detail.pathIndex + 1))
+              .replace('{total}', String(detail.pathCount))}{' '}
+            {t('finrisk.inThisCell')}
             {detail.pathIndex === 0 ? ' · ' + t('finrisk.cellDetailPaging.representative') : ''}
           </span>
           <button

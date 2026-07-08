@@ -117,4 +117,25 @@ describe('IncomeStreamsPanel (IncomePage)', () => {
       expect(screen.queryByText('Payout-Radar')).not.toBeInTheDocument();
     });
   });
+
+  describe('English Locale', () => {
+    it('sollte englische Texte rendern und Premium-Sektionen bei Premium-Tier', () => {
+      const now = new Date();
+      mockTransactions = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        return tx({
+          id: `s${i}`,
+          date: d.toISOString().slice(0, 10),
+          amount: 3000,
+          payee: 'Test Company',
+          description: 'Salary',
+          category_id: 'anstellung',
+          subcategory_id: 'gehalt',
+        });
+      });
+      mockTier = 'premium';
+      renderPanel('en');
+      expect(screen.getByText('Payout radar')).toBeInTheDocument();
+    });
+  });
 });

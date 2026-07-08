@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import type { Account, Category, Transaction } from "@/types";
 
 const CATS: Category[] = [{ id: "food", name: "Lebensmittel", parent_id: null } as Category];
@@ -24,7 +25,6 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/i18n/useI18n", () => ({ useI18n: () => ({ t: (_k: string, f?: string) => f ?? _k, locale: "de" }) }));
 vi.mock("@/components/providers/GentleModeProvider", () => ({ useGentleMode: () => ({ enabled: false }) }));
 vi.mock("@/hooks/usePersistedSet", () => ({ usePersistedSet: () => [new Set(), vi.fn()] }));
 vi.mock("@/hooks/useTransactionDetailEditing", () => ({
@@ -63,11 +63,13 @@ afterEach(() => {
   delete window.matchMedia;
 });
 
-function renderPage() {
+function renderPage(locale: "de" | "en" = "de") {
   return render(
-    <MemoryRouter initialEntries={["/transactions"]}>
-      <TransactionsPage />
-    </MemoryRouter>,
+    <I18nProvider initialLocale={locale}>
+      <MemoryRouter initialEntries={["/transactions"]}>
+        <TransactionsPage />
+      </MemoryRouter>
+    </I18nProvider>,
   );
 }
 
@@ -97,6 +99,19 @@ describe("TransactionsPage – Master-Detail", () => {
       renderPage();
       fireEvent.click(screen.getByRole("button", { name: /Lieferando/i }));
       expect(screen.getByTestId("overlay-modal")).toBeTruthy();
+    });
+  });
+
+  describe("i18n Compliance", () => {
+    it("sollte den Platzhalter-Hinweis auf Englisch rendern (Master-Detail-Layout)", () => {
+      mockMatchMedia(true);
+      renderPage("en");
+      // Echter übersetzter Text statt eines sprachneutralen Payee-Namens —
+      // beweist, dass die englische Übersetzung tatsächlich gerendert wird.
+      expect(screen.getByText(/Select a transaction on the left to see and edit its details\./)).toBeTruthy();
+      // Clicking on a transaction should show the detail panel
+      fireEvent.click(screen.getByRole("button", { name: /Lieferando/i }));
+      expect(screen.getByTestId("inline-panel")).toBeTruthy();
     });
   });
 });
