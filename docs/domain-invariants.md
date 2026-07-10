@@ -24,3 +24,4 @@ Diese Regeln sind Sicherheitsgrenzen der Finanzlogik. Änderungen an Import, Per
 18. Ungültige oder nur teilweise parsebare Importe werden nicht unbemerkt als gültige Nullwerte gespeichert.
 19. Exporte neutralisieren Tabellenformeln aus nutzerkontrollierten Textfeldern.
 20. Rohtexte aus Bank- und Belegimporten bleiben für Nachvollziehbarkeit erhalten, werden aber nie als ausführbarer Inhalt gerendert.
+21. Steuer-Jahresparameter vergangener Veranlagungszeiträume ändern sich nie unbemerkt; ein Golden-Table-Test pinnt jeden VZ vollständig, und jeder Parameter trägt eine typerzwungene Rechtsgrundlage.

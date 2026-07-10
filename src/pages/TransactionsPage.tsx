@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, X } from "lucide-react";
@@ -235,6 +235,21 @@ export default function TransactionsPage() {
     // Desktop: inline im rechten Panel; sonst als Bottom-Sheet/Overlay.
     setDetailsOpen(!isWide);
   };
+
+  // Deep-Link `?tx=<id>` (z. B. von /tax): einmalig nach dem Laden der Buchungen
+  // das Detail öffnen. Die ID wird im State-Initializer eingefangen, BEVOR der
+  // Filter-Sync-Effekt den fremden Param aus der URL entfernt. One-Shot via Ref:
+  // auch eine unbekannte/gelöschte ID wird nur einmal gesucht.
+  const [deepLinkTxId] = useState<string | null>(() => searchParams.get("tx"));
+  const deepLinkConsumedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkConsumedRef.current || !deepLinkTxId || txs.length === 0) return;
+    deepLinkConsumedRef.current = true;
+    const target = txs.find((candidate) => candidate.id === deepLinkTxId);
+    if (target) openDetails(target);
+    // openDetails ist stabil genug für den One-Shot (Ref verhindert Re-Runs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkTxId, txs]);
 
   const emptyList = (
     <div className="space-y-4 py-8 text-center text-muted-foreground">

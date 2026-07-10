@@ -16,6 +16,7 @@ import {
   Activity,
   Gauge,
   HandCoins,
+  Landmark,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 
@@ -90,6 +91,14 @@ export const NAV_GROUPS: NavGroup[] = [
         subtitleKey: "nav.subtitles.income",
       },
       { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
+      {
+        label: "Steuer",
+        labelKey: "nav.items.tax",
+        path: "/tax",
+        icon: Landmark,
+        subtitle: "Was kannst du absetzen?",
+        subtitleKey: "nav.subtitles.tax",
+      },
       {
         label: "Trends & Berichte",
         labelKey: "nav.items.premium",

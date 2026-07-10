@@ -17,6 +17,7 @@ import { parseGermanNumber } from "@/lib/money";
 import { getAccounts } from "@/services/account-service";
 import { createTransaction, getCategories } from "@/services/transaction-service";
 import { useI18n } from "@/i18n/useI18n";
+import { TaxCategorySelect } from "@/components/tax/TaxCategorySelect";
 import type { Account, Category } from "@/types";
 
 export interface TransactionPrefill {
@@ -74,6 +75,7 @@ export function TransactionFormDialog({
   const [payee, setPayee] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string>(NO_CATEGORY);
+  const [taxCategoryId, setTaxCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -83,8 +85,19 @@ export function TransactionFormDialog({
     setPayee(prefill?.payee ?? "");
     setDescription(prefill?.description ?? "");
     setCategoryId(prefill?.categoryId ?? NO_CATEGORY);
+    setTaxCategoryId(null);
     setAccountId(prefill?.accountId ?? defaultAccountId ?? "");
   }, [open, prefill, defaultAccountId]);
+
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+
+  // Steuer-Rubrik aus dem Default der gewählten Kategorie vorbelegen (Vorschlag,
+  // nie erzwungen — der Nutzer kann sie im Select ändern oder entfernen).
+  useEffect(() => {
+    if (categoryId === NO_CATEGORY) return;
+    const def = categoriesById.get(categoryId)?.attributes?.default_tax_category_id ?? null;
+    setTaxCategoryId(def);
+  }, [categoryId, categoriesById]);
 
   // Fällt das Konto erst nach dem Laden ein, sinnvoll vorbelegen.
   useEffect(() => {
@@ -114,6 +127,8 @@ export function TransactionFormDialog({
         payee: payee.trim() || (direction === "expense" ? t("transactions.cashExpense") : t("transactions.moneyIncome")),
         description: description.trim(),
         category_id: categoryId === NO_CATEGORY ? null : categoryId,
+        // Steuer-Markierung nur bei Ausgaben übernehmen.
+        tax_category_id: direction === "expense" ? taxCategoryId : null,
         confirmed: true,
       });
     },
@@ -221,6 +236,18 @@ export function TransactionFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {direction === "expense" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="tx-tax-category">{t("tax.form.sectionTitle", "Steuer")}</Label>
+              <TaxCategorySelect
+                id="tx-tax-category"
+                className="w-full"
+                value={taxCategoryId}
+                onChange={setTaxCategoryId}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>

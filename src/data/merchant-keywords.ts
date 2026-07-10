@@ -26,6 +26,12 @@ export interface SubcategoryDef {
   keywords: string[];
   /** Überschreibt die `klasse` der Hauptkategorie (z. B. Parken in Mobilität). */
   klasse?: Ausgabenklasse;
+  /**
+   * Voreingestellte Steuer-Rubrik (ID aus tax-catalog.ts). Buchungen dieser
+   * Kategorie werden damit VORGESCHLAGEN (nie automatisch markiert). Setzt
+   * zugleich `steuerrelevant: true` auf der erzeugten Standardkategorie.
+   */
+  taxDefault?: string;
 }
 
 export interface CategoryDef {
@@ -288,6 +294,30 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         klasse: "diskretionaer",
         keywords: ["tedox", "ikea", "möbel", "moebel"],
       },
+      {
+        slug: "handwerker",
+        name: "Handwerker & Reparaturen",
+        klasse: "diskretionaer",
+        // §35a Abs. 3: nur der Arbeits-/Fahrtkostenanteil ist begünstigt (Material nicht).
+        taxDefault: "tax-35a3-handwerker",
+        keywords: [
+          "handwerker", "sanitär", "sanitaer", "elektriker", "elektroinstallation",
+          "maler", "malerbetrieb", "dachdecker", "schornsteinfeger", "kaminkehrer",
+          "heizungswartung", "klempner", "installateur", "tischler", "schreiner",
+          "fliesenleger", "rohrreinigung", "schlüsseldienst", "schluesseldienst",
+        ],
+      },
+      {
+        slug: "haushaltsdienste",
+        name: "Haushaltsnahe Dienstleistungen",
+        klasse: "diskretionaer",
+        taxDefault: "tax-35a2-dienstleistung",
+        keywords: [
+          "reinigungsservice", "putzhilfe", "putzkraft", "gebäudereinigung",
+          "gebaeudereinigung", "fensterreinigung", "gartenpflege", "gartenservice",
+          "winterdienst", "hausmeisterservice", "pflegedienst", "umzugsservice",
+        ],
+      },
     ],
   },
   {
@@ -434,6 +464,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "kfzversicherung",
         name: "KFZ-Versicherung",
         klasse: "essenziell",
+        // Sonderausgabe: nur der Kfz-Haftpflicht-Anteil (nicht Kasko).
+        taxDefault: "tax-so-versicherungen",
         keywords: ["kfz-versicherung", "kfz versicherung", "volkswagen autoversicherung", "autoversicherung"],
       },
       {
@@ -464,6 +496,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "apotheke",
         name: "Apotheke",
         klasse: "essenziell",
+        // Außergewöhnliche Belastung: nur ärztlich verordnete Präparate zählen.
+        taxDefault: "tax-agb-krankheit",
         keywords: [
           "apotheke", "dm apotheke", "shop-apotheke", "shop apotheke", "docmorris",
           "medpex", "easyapotheke",
@@ -473,6 +507,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "arztzahnarzt",
         name: "Arzt & Zahnarzt",
         klasse: "essenziell",
+        taxDefault: "tax-agb-krankheit",
         keywords: [
           "arztpraxis", "zahnarzt", "augenarzt", "hausarzt", "facharzt",
           "krankenhaus", "klinik", "labor diagnostik",
@@ -481,6 +516,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "therapie",
         name: "Therapie",
+        taxDefault: "tax-agb-krankheit",
         keywords: ["physiotherapie", "ergotherapie", "logopädie", "logopaedie"],
       },
       {
@@ -501,6 +537,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "optikerhoergeraete",
         name: "Optiker & Hörgeräte",
+        taxDefault: "tax-agb-krankheit",
         keywords: ["sehtest", "optiker", "hörgeräte", "hoergeraete", "fielmann"],
       },
     ],
@@ -515,6 +552,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "haftpflichthausrat",
         name: "Haftpflicht & Hausrat",
+        // Sonderausgabe: nur Haftpflicht-Anteil (Hausrat/Wohngebäude zählen nicht).
+        taxDefault: "tax-so-versicherungen",
         keywords: [
           "haftpflicht", "hausratversicherung", "wohngebäudeversicherung",
           "wohngebaeudeversicherung", "vgh",
@@ -524,12 +563,14 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "lebensversicherung",
         name: "Lebensversicherung",
         klasse: "sparen",
+        taxDefault: "tax-so-versicherungen",
         keywords: ["lebensversicherung", "provinzial", "alte leipziger"],
       },
       {
         slug: "sonstigeversicherung",
         name: "Sonstige Versicherung",
         klasse: "diskretionaer",
+        taxDefault: "tax-so-versicherungen",
         keywords: [
           "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna",
           "generali", "wgv", "devk", "gothaer", "barmenia", "hanse merkur",
@@ -610,6 +651,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "vereine",
         name: "Vereine",
+        // Sonderausgabe: nur Beiträge/Spenden an gemeinnützige Vereine.
+        taxDefault: "tax-so-spenden",
         keywords: ["verein", "esports", "drk", "mitgliedsbeitrag"],
       },
       {
@@ -693,6 +736,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "kontofuehrung",
         name: "Kontoführung",
+        // Werbungskosten: 16 € Kontoführungspauschale ohne Einzelnachweis.
+        taxDefault: "tax-n-kontofuehrung",
         keywords: ["kontoführung", "kontogebühr", "kontofuehrung", "kontoführungsgebühr"],
       },
       {
@@ -732,7 +777,19 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     icon: "📦",
     color: "#9aa0a6",
     klasse: "diskretionaer",
-    subcategories: [],
+    subcategories: [
+      {
+        slug: "spenden",
+        name: "Spenden",
+        // Nur Spenden an steuerbegünstigte Organisationen (Zuwendungsbestätigung).
+        taxDefault: "tax-so-spenden",
+        keywords: [
+          "spende", "betterplace", "unicef", "wwf", "caritas",
+          "ärzte ohne grenzen", "aerzte ohne grenzen", "brot für die welt",
+          "welthungerhilfe",
+        ],
+      },
+    ],
   },
 ];
 
@@ -777,7 +834,11 @@ export function buildDefaultCategories(): Category[] {
       filters: sub.keywords,
       is_default: true,
       parent_id: mainId,
-      attributes: { essenziell: isEssenziell(main, sub), ausgabenklasse: resolveKlasse(main, sub) },
+      attributes: {
+        essenziell: isEssenziell(main, sub),
+        ausgabenklasse: resolveKlasse(main, sub),
+        ...(sub.taxDefault ? { steuerrelevant: true, default_tax_category_id: sub.taxDefault } : {}),
+      },
     }));
     return [mainCategory, ...subCategories];
   });

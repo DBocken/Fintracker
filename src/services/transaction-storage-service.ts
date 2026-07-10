@@ -1,6 +1,7 @@
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { escapeCsvCell } from '@/lib/csv-utils';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -189,22 +190,6 @@ class TransactionStorageService {
       if (!txs || txs.length === 0) {
         return { success: false, error: t('transactionStorage.noTransactionsExport') };
       }
-
-      const escapeCsvCell = (value: unknown) => {
-        let s = String(value ?? '');
-        // Rein numerische Zellen (auch dt. "-12,34") sind keine Formeln und
-        // dürfen NICHT mit ' präfigiert werden — sonst wären alle (negativen)
-        // Beträge in Excel Text und Summen falsch (F-MONEY-2).
-        const isNumeric = /^-?\d+(?:[.,]\d+)?$/.test(s);
-        // Formel-Injection neutralisieren (inkl. Tab/CR als Umgehung).
-        if (!isNumeric && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-        // RFC-4180-Quoting: Trennzeichen, Quote oder Zeilenumbruch in der Zelle
-        // → in Anführungszeichen setzen und " verdoppeln. Verhindert, dass ein
-        // eingebettetes ';' (z. B. "Shop;=CMD()") eine neue, ausführbare Zelle
-        // erzeugt oder die Spaltenstruktur zerbricht.
-        if (/[";\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
-        return s;
-      };
 
       const headers = ['date', 'payee', 'description', 'amount', 'currency', 'category', 'subcategory_id'];
       const rows = txs.map(tx =>

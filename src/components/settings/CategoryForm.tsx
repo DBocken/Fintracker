@@ -9,6 +9,7 @@ import { Plus, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import type { Category, CategoryAttributes, Rhythmus, Prioritaet, Zahlungsweg } from '../../types';
 
 interface CategoryFormProps {
@@ -244,6 +245,20 @@ export function CategoryForm({
                       </div>
                     );
                   })}
+                </div>
+
+                <div>
+                  <Label htmlFor="category-default-tax">{t('categoryForm.defaultTaxCategoryLabel', 'Steuer-Rubrik (Vorschlag)')}</Label>
+                  <TaxCategorySelect
+                    id="category-default-tax"
+                    className="w-full"
+                    value={attributes.default_tax_category_id}
+                    noneLabel={t('categoryForm.defaultTaxCategoryNone', 'Keine Vorauswahl')}
+                    onChange={(taxId) => onAttributesChange({ default_tax_category_id: taxId })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('categoryForm.defaultTaxCategoryHint', 'Buchungen dieser Kategorie werden für diese Rubrik vorgeschlagen – nie automatisch markiert.')}
+                  </p>
                 </div>
               </div>
 

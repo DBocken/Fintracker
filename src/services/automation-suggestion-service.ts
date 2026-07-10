@@ -19,7 +19,8 @@ export type AutomationSuggestionKind =
   | 'contract'
   | 'transfer'
   | 'salary'
-  | 'receipt';
+  | 'receipt'
+  | 'tax';
 
 export type AutomationSuggestionStatus =
   | 'pending'
@@ -124,4 +125,35 @@ export function buildCategorySuggestionFromResult(
     result.reasons,
     result.confidence,
   );
+}
+
+/**
+ * Erzeugt einen Steuer-Rubrik-Vorschlag für eine Buchung. `entityId`/ID sind
+ * idempotent an der Transaktion (`tax:<id>`), damit pro Buchung nur ein
+ * Vorschlag existiert und eine Ablehnung dauerhaft wirkt. `taxCategoryId` kann
+ * `null` sein (Kategorie ist steuerrelevant markiert, aber ohne Rubrik — der
+ * Nutzer wählt sie dann selbst).
+ */
+export function buildTaxSuggestion(
+  transaction: Transaction,
+  taxCategoryId: string | null,
+  reasons: string[],
+  confidence: number,
+): AutomationSuggestion {
+  return {
+    id: `tax:${transaction.id ?? transaction.original_text}`,
+    kind: 'tax',
+    entityType: 'transaction',
+    entityId: transaction.id ?? '',
+    title: t('automationSuggestionServiceLib.taxTitle', 'Steuer-Vorschlag für {payee}').replace(
+      '{payee}',
+      transaction.payee || t('automationSuggestionServiceLib.transactionFallback', 'Buchung'),
+    ),
+    description: reasons[0] ?? '',
+    confidence,
+    reasons,
+    proposedChange: { tax_category_id: taxCategoryId },
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
 }

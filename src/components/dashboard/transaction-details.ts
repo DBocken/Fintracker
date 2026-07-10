@@ -85,6 +85,12 @@ export interface TransactionDetailDraft {
    * Entwürfe ohne dieses Feld unverändert funktionieren.
    */
   is_transfer?: boolean;
+  /** Steuer-Rubrik-Markierung (ID aus tax-catalog.ts) oder null. */
+  tax_category_id?: string | null;
+  /** Arbeitskostenanteil in EUR (nur §35a Abs. 3). */
+  tax_labor_costs?: number | null;
+  /** Freie Steuer-Notiz. */
+  tax_note?: string | null;
 }
 
 /**
@@ -202,6 +208,9 @@ export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
     is_contract: tx.is_contract ?? false,
     contract_cycle: tx.contract_cycle ?? null,
     is_transfer: tx.is_transfer ?? false,
+    tax_category_id: tx.tax_category_id ?? null,
+    tax_labor_costs: tx.tax_labor_costs ?? null,
+    tax_note: tx.tax_note ?? null,
   };
 }
 
@@ -238,6 +247,22 @@ export function diffTransactionDraft(
     patch.is_transfer = draft.is_transfer;
     if (!draft.is_transfer) {
       patch.transfer_pair_id = null;
+    }
+  }
+
+  // Steuer-Markierung. Wird die Rubrik entfernt, werden auch Arbeitskosten und
+  // Notiz genullt (kein „hängender" Arbeitskostenanteil ohne Rubrik).
+  if (draft.tax_category_id !== undefined) {
+    const normalizedLabor = draft.tax_category_id ? draft.tax_labor_costs ?? null : null;
+    const normalizedNote = draft.tax_category_id ? draft.tax_note ?? null : null;
+    if ((tx.tax_category_id ?? null) !== draft.tax_category_id) {
+      patch.tax_category_id = draft.tax_category_id;
+    }
+    if ((tx.tax_labor_costs ?? null) !== normalizedLabor) {
+      patch.tax_labor_costs = normalizedLabor;
+    }
+    if ((tx.tax_note ?? null) !== normalizedNote) {
+      patch.tax_note = normalizedNote;
     }
   }
 

@@ -20,3 +20,8 @@ export function formatNumber(value: number, decimals: number = 2): string {
     maximumFractionDigits: decimals,
   });
 }
+
+/** Formatiert einen Satz (0,2 → „20 %") im deutschen Zahlenformat. */
+export function formatPercent(rate: number, maxDecimals: number = 1): string {
+  return `${(rate * 100).toLocaleString('de-DE', { maximumFractionDigits: maxDecimals })} %`;
+}
