@@ -8,11 +8,10 @@
  * über {@link getTaxParams} je Veranlagungszeitraum (VZ) aufgelöst — nie in der
  * Berechnungslogik hartkodiert, damit Gesetzesänderungen an einer Stelle landen.
  *
- * Quellen der Zahlen (Stand VZ 2024–2026):
- * - Pendlerpauschale ab VZ 2026: 0,38 €/km ab dem 1. km (Steueränderungsgesetz,
- *   Bundesrat 19.12.2025); bis VZ 2025: 0,30 €/km (km 1–20), 0,38 €/km ab km 21.
- * - Kinderbetreuung ab VZ 2025: 80 % von max. 6.000 € = 4.800 €/Kind (JStG 2024);
- *   VZ 2024: 2/3 von max. 6.000 € = 4.000 €/Kind.
+ * Auditierbarkeit: Die Rechtsgrundlage jedes Parameters steht typerzwungen in
+ * {@link TAX_PARAM_LEGAL_BASIS}; die aufgelösten Werte je VZ pinnt der
+ * Golden-Table-Test (src/data/__tests__/tax-params-golden.test.ts). Neuer VZ:
+ * Checkliste in docs/tax-year-update.md befolgen.
  */
 
 /** Zuordnung zur Anlage/Rubrik der Steuererklärung (i18n: `tax.anlage.<id>`). */
@@ -119,6 +118,126 @@ export interface TaxYearParams {
 
 /** Nur die numerischen Parameter dürfen referenziert werden (nicht `vz`). */
 export type NumericParam = Exclude<keyof TaxYearParams, 'vz'>;
+
+export interface TaxParamLegalBasis {
+  /** Gesetzliche Fundstelle (§ EStG bzw. Verwaltungsregelung). */
+  law: string;
+  /** Jahresbezüge, Herleitungen und Semantik-Hinweise. */
+  note?: string;
+}
+
+/**
+ * Rechtsgrundlage je Parameter — typerzwungen über {@link NumericParam}:
+ * Ein neuer Parameter ohne Eintrag hier ist ein Compile-Fehler. Damit ist bei
+ * jedem Steuer-Update nachvollziehbar, WELCHE Norm ein Wert abbildet und WARUM
+ * er sich geändert hat (Audit-Anforderung).
+ */
+export const TAX_PARAM_LEGAL_BASIS: Record<NumericParam, TaxParamLegalBasis> = {
+  arbeitnehmerPauschbetrag: {
+    law: '§9a S. 1 Nr. 1 Buchst. a EStG',
+    note: '1.230 € seit VZ 2023 (Jahressteuergesetz 2022).',
+  },
+  sonderausgabenPauschbetrag: {
+    law: '§10c EStG',
+    note: '36 € (Ledige); bei Zusammenveranlagung 72 €.',
+  },
+  homeofficeProTag: {
+    law: '§4 Abs. 5 S. 1 Nr. 6c EStG i. V. m. §9 Abs. 5 EStG',
+    note: 'Tagespauschale 6 € seit VZ 2023.',
+  },
+  homeofficeMaxTage: {
+    law: '§4 Abs. 5 S. 1 Nr. 6c EStG',
+    note: 'Abgeleitet: 1.260 € Jahres-Höchstbetrag / 6 € = 210 Tage.',
+  },
+  homeofficeMax: {
+    law: '§4 Abs. 5 S. 1 Nr. 6c EStG',
+    note: 'Jahres-Höchstbetrag 1.260 €.',
+  },
+  pendlerKm1bis20: {
+    law: '§9 Abs. 1 S. 3 Nr. 4 EStG',
+    note: 'Bis VZ 2025: 0,30 €/km für km 1–20. Ab VZ 2026 einheitlich 0,38 €/km ab dem 1. km (Steueränderungsgesetz 2025, Bundesrat 19.12.2025).',
+  },
+  pendlerAbKm21: {
+    law: '§9 Abs. 1 S. 3 Nr. 4 S. 8 EStG',
+    note: '0,38 €/km ab dem 21. km (seit VZ 2022).',
+  },
+  kinderbetreuungRate: {
+    law: '§10 Abs. 1 Nr. 5 EStG',
+    note: 'Ab VZ 2025: 80 % (JStG 2024); VZ 2024: 2/3.',
+  },
+  kinderbetreuungMaxProKind: {
+    law: '§10 Abs. 1 Nr. 5 EStG',
+    note: 'Abzugs-Höchstbetrag, NICHT Aufwendungs-Deckel: 4.800 € = 80 % von 6.000 € (ab VZ 2025, JStG 2024); VZ 2024: 4.000 € = 2/3 von 6.000 €. Mathematisch gilt min(rate·x; Abzugsdeckel) ≡ rate·min(x; 6.000 €).',
+  },
+  schulgeldRate: {
+    law: '§10 Abs. 1 Nr. 9 EStG',
+    note: '30 % des Entgelts (ohne Beherbergung/Betreuung/Verpflegung).',
+  },
+  schulgeldMax: {
+    law: '§10 Abs. 1 Nr. 9 EStG',
+    note: 'Höchstbetrag 5.000 € je Kind.',
+  },
+  riesterMax: {
+    law: '§10a Abs. 1 EStG',
+    note: 'Sonderausgaben-Höchstbetrag 2.100 €.',
+  },
+  vorsorgeMaxArbeitnehmer: {
+    law: '§10 Abs. 4 S. 1–2 EStG',
+    note: '1.900 € für Personen mit steuerfreiem Arbeitgeberzuschuss/Beihilfe.',
+  },
+  vorsorgeMaxSelbst: {
+    law: '§10 Abs. 4 S. 3 EStG',
+    note: '2.800 € für Personen, die ihre Krankenversicherung allein tragen.',
+  },
+  unterhaltExPartnerMax: {
+    law: '§10 Abs. 1a Nr. 1 EStG',
+    note: 'Realsplitting: 13.805 € zzgl. übernommener Basis-KV/PV-Beiträge.',
+  },
+  erstausbildungMax: {
+    law: '§10 Abs. 1 Nr. 7 EStG',
+    note: 'Erstausbildung 6.000 €/Jahr (Zweitausbildung → Werbungskosten).',
+  },
+  kontofuehrungPauschale: {
+    law: 'H 9.1 LStH (Verwaltungspraxis)',
+    note: 'Nichtbeanstandungsgrenze 16 € ohne Einzelnachweis — keine gesetzliche Pauschale.',
+  },
+  creditRate35a: {
+    law: '§35a Abs. 1–3 EStG',
+    note: 'Ermäßigungssatz jeweils 20 % der Aufwendungen (Abs. 3: nur Arbeits-/Fahrt-/Maschinenkosten).',
+  },
+  a35a1CapCosts: {
+    law: '§35a Abs. 1 EStG',
+    note: 'Abgeleitet: 2.550 € = 510 € Ermäßigungs-Höchstbetrag / 20 %.',
+  },
+  a35a1CapCredit: {
+    law: '§35a Abs. 1 EStG',
+    note: 'Ermäßigungs-Höchstbetrag 510 € (Minijob im Haushalt); gilt je Haushalt.',
+  },
+  a35a2CapCosts: {
+    law: '§35a Abs. 2 EStG',
+    note: 'Abgeleitet: 20.000 € = 4.000 € Ermäßigungs-Höchstbetrag / 20 %.',
+  },
+  a35a2CapCredit: {
+    law: '§35a Abs. 2 EStG',
+    note: 'Ermäßigungs-Höchstbetrag 4.000 € (haushaltsnahe Dienstleistungen, Pflege); gilt je Haushalt.',
+  },
+  a35a3CapCosts: {
+    law: '§35a Abs. 3 EStG',
+    note: 'Abgeleitet: 6.000 € = 1.200 € Ermäßigungs-Höchstbetrag / 20 %.',
+  },
+  a35a3CapCredit: {
+    law: '§35a Abs. 3 EStG',
+    note: 'Ermäßigungs-Höchstbetrag 1.200 € (Handwerkerleistungen); gilt je Haushalt.',
+  },
+  creditRate35c: {
+    law: '§35c Abs. 1 EStG',
+    note: '20 % insgesamt, verteilt über drei Jahre (7 %/7 %/6 %) — App erfasst nur, rechnet nicht.',
+  },
+  a35cCapCredit: {
+    law: '§35c Abs. 1 S. 5 EStG',
+    note: 'Höchstbetrag der Ermäßigung 40.000 € je begünstigtem Objekt.',
+  },
+};
 
 /**
  * Über alle VZ 2024–2026 konstante Parameter. Werden je Jahr gespreizt und dort
