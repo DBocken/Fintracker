@@ -138,6 +138,30 @@ describe('buildTaxYearReport', () => {
     });
   });
 
+  describe('§35c (nur informativ)', () => {
+    it('sollte Kosten sammeln, aber KEINE Gutschrift und keinen Cap-Balken berechnen', () => {
+      const txs = [tx({ amount: -20000, tax_category_id: 'tax-35c-sanierung' })];
+      const report = buildTaxYearReport(txs, 2025, null);
+      const s = rubric(report, '35c-sanierung')!;
+      expect(s.costsTotal).toBe(20000);
+      expect(s.credit).toBeNull();
+      expect(s.capUtilization).toBeNull();
+      expect(report.creditTotal).toBe(0);
+    });
+  });
+
+  describe('Robustheit', () => {
+    it('sollte Buchungen mit unbekannter Steuer-Kategorie ignorieren', () => {
+      const txs = [
+        tx({ amount: -100, tax_category_id: 'tax-gibt-es-nicht' }),
+        tx({ amount: -50, tax_category_id: 'tax-agb-krankheit' }),
+      ];
+      const report = buildTaxYearReport(txs, 2025, null);
+      expect(report.markedTotal).toBe(50);
+      expect(rubric(report, 'agb')!.costsTotal).toBe(50);
+    });
+  });
+
   describe('Performance', () => {
     it('sollte 5.000 Buchungen in einem Durchlauf verarbeiten', () => {
       const txs = Array.from({ length: 5000 }, (_, i) =>

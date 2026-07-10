@@ -83,7 +83,7 @@ export function TaxRubricCard({ report, onOpenTransaction }: { report: TaxRubric
           <div className="space-y-1">
             <Progress value={fill} className={cn('h-2', barTone)} />
             {report.capUtilization >= 1 && (
-              <p className="text-xs text-warning">{t('tax.page.capReached', 'Höchstbetrag erreicht.').replace('{overflow}', '')}</p>
+              <p className="text-xs text-warning">{t('tax.page.capReached', 'Höchstbetrag erreicht – der übersteigende Teil wirkt sich nicht mehr aus.')}</p>
             )}
           </div>
         )}
@@ -146,7 +146,7 @@ export function TaxRubricCard({ report, onOpenTransaction }: { report: TaxRubric
               className="text-xs text-brand underline underline-offset-2"
               onClick={() => onOpenTransaction(report.transactionIds[0])}
             >
-              {t('tax.page.rubrikenTitle', 'Nach Steuer-Rubrik')}
+              {t('tax.page.openTransactions', 'Buchungen ansehen')}
             </button>
           )}
         </div>
