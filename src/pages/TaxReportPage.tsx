@@ -62,7 +62,8 @@ export default function TaxReportPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const openTransaction = () => navigate('/transactions');
+  // Deep-Link auf die konkrete Buchung — TransactionsPage öffnet sie via ?tx=.
+  const openTransaction = (id: string) => navigate(`/transactions?tx=${encodeURIComponent(id)}`);
 
   const hasMarked = report.txCount > 0;
 
