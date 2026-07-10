@@ -138,6 +138,82 @@ describe('buildTaxYearReport', () => {
     });
   });
 
+  describe('Musterrechnungen (End-to-End, amtliche Beispiele)', () => {
+    it('Handwerker VZ 2025: 1.800 € Rechnung / 1.200 € Arbeitskosten → min(1.200; 6.000) × 20 % = 240 €', () => {
+      const txs = [tx({ amount: -1800, tax_category_id: 'tax-35a3-handwerker', tax_labor_costs: 1200 })];
+      const report = buildTaxYearReport(txs, 2025, null);
+      const hw = rubric(report, '35a-handwerker')!;
+      // Rechenweg: Bemessungsgrundlage 1.200 € (nur Arbeitskosten) → keine
+      // Kappung (< 6.000 €) → 1.200 × 0,2 = 240 € → kein Deckel (< 1.200 €).
+      expect(hw.calculation).toEqual({
+        base: 1200,
+        capCosts: 6000,
+        cappedBase: 1200,
+        rate: 0.2,
+        rawCredit: 240,
+        capCredit: 1200,
+        credit: 240,
+      });
+    });
+
+    it('Dienstleistungen VZ 2025: 21.000 € → gedeckelt 20.000 € × 20 % = 4.000 € (Höchstbetrag erreicht)', () => {
+      const txs = [tx({ amount: -21000, tax_category_id: 'tax-35a2-dienstleistung' })];
+      const report = buildTaxYearReport(txs, 2025, null);
+      const dl = rubric(report, '35a-dienstleistungen')!;
+      // Rechenweg: 21.000 € > Kosten-Deckel 20.000 € → 20.000 × 0,2 = 4.000 € =
+      // exakt der Ermäßigungs-Höchstbetrag.
+      expect(dl.calculation).toEqual({
+        base: 21000,
+        capCosts: 20000,
+        cappedBase: 20000,
+        rate: 0.2,
+        rawCredit: 4000,
+        capCredit: 4000,
+        credit: 4000,
+      });
+      expect(dl.capUtilization).toBe(1);
+    });
+
+    it('[REGRESSION] Pendler 220 Tage × 30 km via Profil: 2.156 € (VZ 2025) vs. 2.508 € (VZ 2026)', () => {
+      const profile: TaxYearProfile = {
+        id: 'p',
+        year: 2025,
+        commuteDaysPerYear: 220,
+        commuteOneWayKm: 30,
+        homeofficeDays: 0,
+      };
+      const txs25 = [tx({ date: '2025-06-01', amount: -10, tax_category_id: 'tax-n-arbeitsmittel' })];
+      // VZ 2025: 220 × (20 × 0,30 + 10 × 0,38) = 220 × 9,80 = 2.156 €
+      const r25 = rubric(buildTaxYearReport(txs25, 2025, profile), 'werbungskosten')!;
+      expect(r25.virtualItems.find((v) => v.labelKey === 'tax.commute.pendlerResult')?.amount).toBe(2156);
+
+      const txs26 = [tx({ date: '2026-06-01', amount: -10, tax_category_id: 'tax-n-arbeitsmittel' })];
+      // VZ 2026 (StÄndG 2025): 220 × 30 × 0,38 = 2.508 €
+      const r26 = rubric(buildTaxYearReport(txs26, 2026, { ...profile, year: 2026 }), 'werbungskosten')!;
+      expect(r26.virtualItems.find((v) => v.labelKey === 'tax.commute.pendlerResult')?.amount).toBe(2508);
+    });
+
+    it('Homeoffice 250 Tage → gedeckelt 210 × 6 € = 1.260 € (VZ 2025)', () => {
+      const profile: TaxYearProfile = {
+        id: 'p',
+        year: 2025,
+        commuteDaysPerYear: 0,
+        commuteOneWayKm: 0,
+        homeofficeDays: 250,
+      };
+      const txs = [tx({ amount: -10, tax_category_id: 'tax-n-arbeitsmittel' })];
+      const wk = rubric(buildTaxYearReport(txs, 2025, profile), 'werbungskosten')!;
+      expect(wk.virtualItems.find((v) => v.labelKey === 'tax.commute.homeofficeResult')?.amount).toBe(1260);
+    });
+
+    it('deduction-Rubriken haben keinen Rechenweg (calculation = null)', () => {
+      const txs = [tx({ amount: -100, tax_category_id: 'tax-agb-krankheit' })];
+      const report = buildTaxYearReport(txs, 2025, null);
+      expect(rubric(report, 'agb')!.calculation).toBeNull();
+      expect(rubric(report, 'werbungskosten')!.calculation).toBeNull();
+    });
+  });
+
   describe('§35c (nur informativ)', () => {
     it('sollte Kosten sammeln, aber KEINE Gutschrift und keinen Cap-Balken berechnen', () => {
       const txs = [tx({ amount: -20000, tax_category_id: 'tax-35c-sanierung' })];

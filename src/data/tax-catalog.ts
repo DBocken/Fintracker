@@ -314,6 +314,28 @@ function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+/**
+ * Vollständiger Rechenweg einer §35a-Ermäßigung. Wird von der UI 1:1 angezeigt
+ * (Audit-Anforderung): Der angezeigte Rechenweg stammt aus derselben Funktion
+ * wie das Ergebnis — UI und Mathematik können nicht divergieren.
+ */
+export interface Credit35aTrace {
+  /** Bemessungsgrundlage vor Kappung (Arbeitskosten bzw. Netto-Kosten). */
+  base: number;
+  /** Kosten-Höchstbetrag. */
+  capCosts: number;
+  /** min(base, capCosts). */
+  cappedBase: number;
+  /** Ermäßigungssatz (z. B. 0,2). */
+  rate: number;
+  /** cappedBase × rate, vor Deckelung auf capCredit. */
+  rawCredit: number;
+  /** Ermäßigungs-Höchstbetrag. */
+  capCredit: number;
+  /** Ergebnis: min(rawCredit, capCredit). */
+  credit: number;
+}
+
 export interface Credit35aResult {
   /** Kosten nach Kappung auf den Kosten-Höchstbetrag. */
   cappedCosts: number;
@@ -323,6 +345,8 @@ export interface Credit35aResult {
   capUtilization: number;
   /** Kosten-Höchstbetrag überschritten? */
   capCostsExceeded: boolean;
+  /** Vollständiger Rechenweg (für Anzeige & Audit). */
+  trace: Credit35aTrace;
 }
 
 /**
@@ -337,7 +361,7 @@ export function compute35aCredit(
 ): Credit35aResult {
   const safe = Number.isFinite(costs) && costs > 0 ? costs : 0;
   const cappedCosts = Math.min(safe, capCosts);
-  const rawCredit = cappedCosts * rate;
+  const rawCredit = round2(cappedCosts * rate);
   const credit = round2(Math.min(rawCredit, capCredit));
   const capUtilization = capCredit > 0 ? Math.min(1, credit / capCredit) : 0;
   return {
@@ -345,6 +369,15 @@ export function compute35aCredit(
     credit,
     capUtilization,
     capCostsExceeded: safe > capCosts,
+    trace: {
+      base: round2(safe),
+      capCosts,
+      cappedBase: round2(cappedCosts),
+      rate,
+      rawCredit,
+      capCredit,
+      credit,
+    },
   };
 }
 

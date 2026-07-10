@@ -20,6 +20,7 @@ import {
   compute35aCredit,
   computePendlerpauschale,
   computeHomeofficePauschale,
+  type Credit35aTrace,
   type TaxRubric,
   type TaxRubricId,
   type TaxYearParams,
@@ -73,6 +74,8 @@ export interface TaxRubricReport {
   capUtilization: number | null;
   /** Kosten-Höchstbetrag (für Fortschrittsanzeige); null bei deduction. */
   capCosts: number | null;
+  /** Vollständiger Rechenweg (§35a); null bei deduction/informational. */
+  calculation: Credit35aTrace | null;
   /** Pauschbetrag-Schwelle (Anlage N); null sonst. */
   threshold: TaxThreshold | null;
   /** Virtuelle Posten aus dem Jahres-Profil (Pendler-/Homeoffice-Pauschale). */
@@ -204,6 +207,7 @@ export function buildTaxYearReport(
     let credit: number | null = null;
     let capUtilization: number | null = null;
     let capCosts: number | null = null;
+    let calculation: Credit35aTrace | null = null;
     let eligibleCosts = 0;
 
     if (rubric.kind === 'credit' && !rubric.informationalOnly) {
@@ -216,6 +220,7 @@ export function buildTaxYearReport(
       eligibleCosts = result.cappedCosts;
       credit = result.credit;
       capUtilization = result.capUtilization;
+      calculation = result.trace;
       creditTotal = round2(creditTotal + credit);
       if (result.capCostsExceeded) warnings.push({ kind: 'capCostsExceeded' });
       if (result.capUtilization >= 1) warnings.push({ kind: 'capCreditReached' });
@@ -260,6 +265,7 @@ export function buildTaxYearReport(
       credit,
       capUtilization,
       capCosts,
+      calculation,
       threshold,
       virtualItems,
       byCategory,
