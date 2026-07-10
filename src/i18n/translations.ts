@@ -1998,6 +1998,8 @@ export const translations = {
       merchantRuleSaved: 'Händlerregel gespeichert',
       markedAsTransfer: 'Als internen Übertrag markiert',
       unmarkedAsTransfer: 'Transfer-Markierung entfernt',
+      markedAsTax: 'Als steuerrelevant markiert',
+      unmarkedAsTax: 'Steuer-Markierung entfernt',
     },
     contracts: {
       monthly: 'Monatlich',
@@ -5534,6 +5536,8 @@ export const translations = {
       merchantRuleSaved: 'Merchant rule saved',
       markedAsTransfer: 'Marked as internal transfer',
       unmarkedAsTransfer: 'Transfer marking removed',
+      markedAsTax: 'Marked as tax-relevant',
+      unmarkedAsTax: 'Tax marking removed',
     },
     contracts: {
       monthly: 'Monthly',

@@ -5,7 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users } from 'lucide-react';
+import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
+import { getRubricForCategory } from '@/data/tax-catalog';
 import { safeAudit, redactForAudit } from '@/services/audit-log-service';
 import { explainCategorization } from '@/services/transaction-service';
 import { getMerchantRules, upsertMerchantRule } from '@/services/merchant-rules-service';
@@ -138,6 +141,10 @@ export function TransactionDetailsPanel({
   const account = transaction.account_id ? accountsById.get(transaction.account_id) : null;
   const ausgabenklasse = resolveAusgabenklasse(categoriesById, draft.subcategory_id || draft.category_id);
 
+  const taxRubric = draft.tax_category_id ? getRubricForCategory(draft.tax_category_id) : undefined;
+  const isHandwerkerRubric = taxRubric?.laborCostOnly === true;
+  const requiresCashless = taxRubric?.requiresCashlessPayment === true;
+
   const handleCategoryChange = (selectedId: string) => {
     const { category_id, subcategory_id } = resolveCategorySelection(categoriesById, selectedId);
     setDraft((d) => (d ? { ...d, category_id, subcategory_id } : d));
@@ -184,6 +191,19 @@ export function TransactionDetailsPanel({
           title: patch.is_transfer ? t('transactionDetails.markedAsTransfer') : t('transactionDetails.unmarkedAsTransfer'),
           redactedBefore: redactForAudit(transaction, ['is_transfer', 'transfer_pair_id']),
           redactedAfter: { is_transfer: patch.is_transfer ?? false },
+          reversible: true,
+          reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
+        });
+      }
+      if ('tax_category_id' in patch) {
+        void safeAudit({
+          actor: 'user',
+          entityType: 'transaction',
+          entityId: transaction.id,
+          action: patch.tax_category_id ? 'mark_tax' : 'unmark_tax',
+          title: patch.tax_category_id ? t('transactionDetails.markedAsTax', 'Als steuerrelevant markiert') : t('transactionDetails.unmarkedAsTax', 'Steuer-Markierung entfernt'),
+          redactedBefore: redactForAudit(transaction, ['tax_category_id', 'tax_labor_costs', 'tax_note']),
+          redactedAfter: { tax_category_id: patch.tax_category_id ?? null },
           reversible: true,
           reversal: { operation: 'update', targetCollection: 'transactions', targetId: transaction.id },
         });
@@ -421,6 +441,74 @@ export function TransactionDetailsPanel({
           </div>
         </div>
       </div>
+
+      {/* Steuer */}
+      {!draft.is_transfer && (
+        <div className={cn('space-y-3 pt-4', !isSplit && 'border-t')}>
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+            <Landmark className="h-4 w-4" aria-hidden="true" /> {t('tax.form.sectionTitle', 'Steuer')}
+          </h3>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="tax-category-select" className="text-xs text-muted-foreground">
+              {t('tax.form.sectionTitle', 'Steuer')}
+            </Label>
+            <TaxCategorySelect
+              id="tax-category-select"
+              value={draft.tax_category_id}
+              onChange={(taxId) => setDraft((d) => (d ? { ...d, tax_category_id: taxId } : d))}
+            />
+          </div>
+
+          {transaction.amount > 0 && draft.tax_category_id && (
+            <p className="text-xs text-muted-foreground">{t('tax.form.refundHint', 'Positive Beträge werden als Erstattung gewertet und mindern die Rubrik.')}</p>
+          )}
+
+          {isHandwerkerRubric && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tax-labor-costs" className="text-xs text-muted-foreground">
+                {t('tax.form.laborCostsLabel', 'davon Arbeitskosten (€)')}
+              </Label>
+              <Input
+                id="tax-labor-costs"
+                type="number"
+                min={0}
+                max={Math.abs(transaction.amount)}
+                value={draft.tax_labor_costs ?? ''}
+                disabled={isLoading}
+                onChange={(e) =>
+                  setDraft((d) => (d ? { ...d, tax_labor_costs: e.target.value ? Number(e.target.value) : null } : d))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                {draft.tax_labor_costs
+                  ? t('tax.form.laborCostsHint', 'Nur der Arbeits-/Fahrtkostenanteil ist bei Handwerkerleistungen begünstigt.')
+                  : t('tax.form.laborCostsMissing', 'Ohne Arbeitskostenanteil wird keine Ermäßigung berechnet.')}
+              </p>
+            </div>
+          )}
+
+          {draft.tax_category_id && (
+            <>
+              {requiresCashless && (
+                <p className="text-xs text-warning">{t('tax.form.cashlessHint', 'Wichtig: nur unbare Zahlung (Überweisung) wird anerkannt. Rechnung aufbewahren.')}</p>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tax-note" className="text-xs text-muted-foreground">
+                  {t('tax.form.noteLabel', 'Steuer-Notiz')}
+                </Label>
+                <Input
+                  id="tax-note"
+                  value={draft.tax_note ?? ''}
+                  disabled={isLoading}
+                  placeholder={t('tax.form.notePlaceholder', 'z. B. Rechnungsnummer, Zahlungsweg')}
+                  onChange={(e) => setDraft((d) => (d ? { ...d, tax_note: e.target.value || null } : d))}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Aktionen: Sichtbarkeit & Löschen */}
       {(onToggleVisibility || onDelete) && (
