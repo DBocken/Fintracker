@@ -1844,15 +1844,15 @@ export const translations = {
       rubric: {
         '35aMinijob': {
           name: 'Minijob im Haushalt (§35a Abs. 1)',
-          hint: '20 % der Kosten, höchstens 510 €/Jahr. Nur über das Haushaltsscheckverfahren und unbar gezahlt.',
+          hint: '20 % der Kosten, höchstens 510 €/Jahr (gilt je Haushalt, auch bei Paaren). Nur über das Haushaltsscheckverfahren und unbar gezahlt.',
         },
         '35aDienstleistungen': {
           name: 'Haushaltsnahe Dienstleistungen (§35a Abs. 2)',
-          hint: '20 % der Kosten, höchstens 4.000 €/Jahr. Reinigung, Garten, Winterdienst, Pflege. Unbare Zahlung + Rechnung nötig.',
+          hint: '20 % der Kosten, höchstens 4.000 €/Jahr (gilt je Haushalt, auch bei Paaren). Reinigung, Garten, Winterdienst, Pflege. Unbare Zahlung + Rechnung nötig.',
         },
         '35aHandwerker': {
           name: 'Handwerkerleistungen (§35a Abs. 3)',
-          hint: '20 % nur der Arbeits-/Fahrtkosten, höchstens 1.200 €/Jahr. Material zählt nicht. Unbare Zahlung + Rechnung nötig.',
+          hint: '20 % nur der Arbeits-/Fahrtkosten, höchstens 1.200 €/Jahr (gilt je Haushalt, auch bei Paaren). Material zählt nicht. Unbare Zahlung + Rechnung nötig.',
         },
         '35cSanierung': {
           name: 'Energetische Sanierung (§35c)',
@@ -1860,7 +1860,7 @@ export const translations = {
         },
         werbungskosten: {
           name: 'Werbungskosten (Anlage N)',
-          hint: 'Wirken erst über dem Arbeitnehmer-Pauschbetrag von 1.230 €/Jahr.',
+          hint: 'Wirken erst über dem Arbeitnehmer-Pauschbetrag von 1.230 €/Jahr (gilt je Arbeitnehmer).',
         },
         sonderausgaben: {
           name: 'Sonderausgaben',
@@ -1896,7 +1896,7 @@ export const translations = {
         telefonInternet: { name: 'Telefon & Internet (beruflich)', hint: 'Nur der berufliche Anteil – pauschal oft 20 % / höchstens 20 €/Monat.' },
         kontofuehrung: { name: 'Kontoführung', hint: '16 € Pauschale ohne Einzelnachweis.' },
         spenden: { name: 'Spende', hint: 'Nur an steuerbegünstigte Organisationen; ab 300 € Zuwendungsbestätigung.' },
-        parteispenden: { name: 'Parteispende', hint: '50 % Steuerermäßigung bis 825 € Zuwendung, der Rest als Sonderausgabe.' },
+        parteispenden: { name: 'Parteispende', hint: '50 % der Zuwendung als Steuerermäßigung, höchstens 825 € (d. h. Zuwendungen bis 1.650 €); darüber hinaus Sonderausgabenabzug (§34g EStG).' },
         kirchensteuer: { name: 'Kirchensteuer' },
         kinderbetreuung: { name: 'Kinderbetreuung', hint: '80 % von höchstens 6.000 €/Kind = 4.800 €. Unbare Zahlung nötig, Kind unter 14.' },
         schulgeld: { name: 'Schulgeld', hint: '30 %, höchstens 5.000 €/Kind (Privatschule).' },
@@ -5390,15 +5390,15 @@ export const translations = {
       rubric: {
         '35aMinijob': {
           name: 'Household mini-job (§35a(1))',
-          hint: '20% of costs, max. €510/year. Only via the household-cheque scheme and paid cashless.',
+          hint: '20% of costs, max. €510/year (per household, also for couples). Only via the household-cheque scheme and paid cashless.',
         },
         '35aDienstleistungen': {
           name: 'Household-related services (§35a(2))',
-          hint: '20% of costs, max. €4,000/year. Cleaning, garden, winter service, care. Cashless payment + invoice required.',
+          hint: '20% of costs, max. €4,000/year (per household, also for couples). Cleaning, garden, winter service, care. Cashless payment + invoice required.',
         },
         '35aHandwerker': {
           name: 'Tradesperson services (§35a(3))',
-          hint: '20% of labour/travel costs only, max. €1,200/year. Materials do not count. Cashless payment + invoice required.',
+          hint: '20% of labour/travel costs only, max. €1,200/year (per household, also for couples). Materials do not count. Cashless payment + invoice required.',
         },
         '35cSanierung': {
           name: 'Energy-efficient renovation (§35c)',
@@ -5406,7 +5406,7 @@ export const translations = {
         },
         werbungskosten: {
           name: 'Income-related expenses (Anlage N)',
-          hint: 'Only take effect above the employee lump sum of €1,230/year.',
+          hint: 'Only take effect above the employee lump sum of €1,230/year (per employee).',
         },
         sonderausgaben: {
           name: 'Special expenses',
@@ -5442,7 +5442,7 @@ export const translations = {
         telefonInternet: { name: 'Phone & internet (work)', hint: 'Work-related share only – often 20% flat / max. €20/month.' },
         kontofuehrung: { name: 'Account fees', hint: '€16 flat rate without individual proof.' },
         spenden: { name: 'Donation', hint: 'Only to tax-privileged organisations; donation receipt from €300.' },
-        parteispenden: { name: 'Party donation', hint: '50% tax credit up to €825 donated, the rest as a special expense.' },
+        parteispenden: { name: 'Party donation', hint: '50% of the donation as a tax credit, capped at €825 (i.e. donations up to €1,650); beyond that special-expenses deduction (§34g EStG).' },
         kirchensteuer: { name: 'Church tax' },
         kinderbetreuung: { name: 'Childcare', hint: '80% of max. €6,000/child = €4,800. Cashless payment required, child under 14.' },
         schulgeld: { name: 'School fees', hint: '30%, max. €5,000/child (private school).' },
@@ -8920,11 +8920,11 @@ export const translations = {
         catCount: "{count} Huch mIwmey",
       },
       rubric: {
-        "35aMinijob": { name: "juH Huch vum mach (§35a Abs. 1)", hint: "Huch 20 %, DIS 510 € HeH." },
-        "35aDienstleistungen": { name: "juH lI'ghachmey (§35a Abs. 2)", hint: "Huch 20 %, DIS 4.000 € HeH." },
-        "35aHandwerker": { name: "ghItlhwI' lI'ghachmey (§35a Abs. 3)", hint: "vum Huch neH 20 %, DIS 1.200 € HeH." },
+        "35aMinijob": { name: "juH Huch vum mach (§35a Abs. 1)", hint: "Huch 20 %, DIS 510 € HeH (juH wa'vaD)." },
+        "35aDienstleistungen": { name: "juH lI'ghachmey (§35a Abs. 2)", hint: "Huch 20 %, DIS 4.000 € HeH (juH wa'vaD)." },
+        "35aHandwerker": { name: "ghItlhwI' lI'ghachmey (§35a Abs. 3)", hint: "vum Huch neH 20 %, DIS 1.200 € HeH (juH wa'vaD)." },
         "35cSanierung": { name: "tuj choHmey (§35c)", hint: "wej DIS 20 %, ghaytan qonlu' neH." },
-        werbungskosten: { name: "vum Huch (Anlage N)", hint: "vum Huch HeH 1.230 € Dung neH lI'." },
+        werbungskosten: { name: "vum Huch (Anlage N)", hint: "vum Huch HeH 1.230 € Dung neH lI' (vumwI' wa'vaD)." },
         sonderausgaben: { name: "pIm Huch", hint: "nobmey, puq Qorgh, Qan, lalDan tamey." },
         agb: { name: "motlhbe' qatlhmey", hint: "qatlh HeH Dung neH lI' – reH Huch teywI' pol." },
         vermietung: { name: "juH nob (Anlage V)", hint: "juH nob vum Huch: cha'DIch, choHmey, Huch pIm." },
@@ -8947,7 +8947,7 @@ export const translations = {
         telefonInternet: { name: "ghogh & Internet (vum)", hint: "vum 'ay' neH – 20 % / 20 €/jar HeH." },
         kontofuehrung: { name: "Huch pa' Huch", hint: "16 € mach." },
         spenden: { name: "nob", hint: "tamey QaQ tay'mey neH; 300 € vo' teywI' poQlu'." },
-        parteispenden: { name: "ghom nob", hint: "825 € HeH 50 % tamey mach, latlh pIm Huch." },
+        parteispenden: { name: "ghom nob", hint: "nob 50 % tamey mach, 825 € HeH (nobmey 1.650 € HeH); latlh pIm Huch (§34g EStG)." },
         kirchensteuer: { name: "lalDan tamey" },
         kinderbetreuung: { name: "puq Qorgh", hint: "6.000 €/puq vo' 80 % = 4.800 €. Huch ngeH poQlu', puq DISmey 14 bIng." },
         schulgeld: { name: "DuSaQ Huch", hint: "30 %, 5.000 €/puq HeH." },
