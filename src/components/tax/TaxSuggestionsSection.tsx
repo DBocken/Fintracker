@@ -56,6 +56,27 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
     onSuccess: invalidate,
   });
 
+  // Sichere Vorschläge (hohe Konfidenz + eindeutige Ziel-Rubrik) für die
+  // Sammel-Übernahme. Ein Batch-Write statt n Einzel-Writes.
+  const safePending = pending.filter(
+    (s) => s.confidence >= 0.85 && Boolean((s.proposedChange as { tax_category_id?: string | null }).tax_category_id) && s.entityId,
+  );
+
+  const bulkAcceptMutation = useMutation({
+    mutationFn: async () => {
+      await updateTransaction(
+        safePending.map((s) => ({
+          id: s.entityId,
+          tax_category_id: (s.proposedChange as { tax_category_id?: string | null }).tax_category_id as string,
+        })),
+      );
+      for (const s of safePending) {
+        await upsertAutomationSuggestion({ ...s, status: 'accepted' });
+      }
+    },
+    onSuccess: invalidate,
+  });
+
   if (pending.length === 0) return null;
 
   const confidenceLabel = (level: 'hoch' | 'mittel' | 'niedrig') =>
@@ -67,7 +88,21 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
 
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold text-muted-foreground">{t('tax.page.rubrikenTitle', 'Vorschläge prüfen')}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground">{t('tax.page.suggestionsTitle', 'Vorschläge prüfen')}</h2>
+        {safePending.length >= 2 && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={bulkAcceptMutation.isPending}
+            onClick={() => bulkAcceptMutation.mutate()}
+          >
+            <Check className="mr-1 h-4 w-4" aria-hidden="true" />
+            {t('tax.form.applyAllSafe', 'Alle sicheren übernehmen ({count})').replace('{count}', String(safePending.length))}
+          </Button>
+        )}
+      </div>
       <ul className="space-y-2">
         {pending.map((s) => {
           const hasTarget = Boolean((s.proposedChange as { tax_category_id?: string | null }).tax_category_id);

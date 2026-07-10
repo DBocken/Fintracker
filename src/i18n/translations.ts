@@ -1829,6 +1829,7 @@ export const translations = {
         valuesForYear: 'Werte für Veranlagungszeitraum {year}',
         paramsClamped: 'Für {year} liegen noch keine amtlichen Werte vor – es gelten die Werte aus {used}.',
         noData: 'Keine markierten Buchungen in diesem Jahr.',
+        suggestionsTitle: 'Vorschläge prüfen',
         creditExact: '{rate} von {costs} = {credit} Steuerermäßigung',
         rechenweg: 'Rechenweg: min({base}; {capCosts}) × {rate} = {rawCredit}',
         capReached: 'Höchstbetrag erreicht – der übersteigende Teil wirkt sich nicht mehr aus.',
@@ -1948,6 +1949,7 @@ export const translations = {
         refundHint: 'Positive Beträge werden als Erstattung gewertet und mindern die Rubrik.',
         applySuggestion: 'Übernehmen',
         dismissSuggestion: 'Ablehnen',
+        applyAllSafe: 'Alle sicheren übernehmen ({count})',
       },
       commute: {
         title: 'Arbeitsweg & Homeoffice',
@@ -5373,6 +5375,7 @@ export const translations = {
         valuesForYear: 'Values for assessment year {year}',
         paramsClamped: 'No official figures available for {year} yet – values from {used} apply.',
         noData: 'No marked transactions in this year.',
+        suggestionsTitle: 'Review suggestions',
         creditExact: '{rate} of {costs} = {credit} tax credit',
         rechenweg: 'Calculation: min({base}; {capCosts}) × {rate} = {rawCredit}',
         capReached: 'Cap reached – the excess no longer has any effect.',
@@ -5492,6 +5495,7 @@ export const translations = {
         refundHint: 'Positive amounts count as refunds and reduce the category.',
         applySuggestion: 'Apply',
         dismissSuggestion: 'Dismiss',
+        applyAllSafe: 'Apply all confident ({count})',
       },
       commute: {
         title: 'Commute & home office',
@@ -8903,6 +8907,7 @@ export const translations = {
         valuesForYear: "{year} DISvaD mIw",
         paramsClamped: "{year} DISvaD Segh mIw ngaHbe' – {used} mIw lo'lu'.",
         noData: "DISvamvaD ngu'ta'bogh Huch tu'be'lu'.",
+        suggestionsTitle: "qechHommey yIbuS",
         creditExact: "{costs} {rate} = {credit} tamey mach",
         rechenweg: "mIw: min({base}; {capCosts}) × {rate} = {rawCredit}",
         capReached: "'ar HeH SIchlu' – 'ay' Dung lI'be'.",
@@ -8995,6 +9000,7 @@ export const translations = {
         refundHint: "Huch nItebHa' ngoHvaD lo'lu', Segh machmoH.",
         applySuggestion: "yIlo'",
         dismissSuggestion: "yIlaj Qo'",
+        applyAllSafe: "Hoch Sarmey yIlo' ({count})",
       },
       commute: {
         title: "vum leng & juH vum",
