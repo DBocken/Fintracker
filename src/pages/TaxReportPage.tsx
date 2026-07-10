@@ -13,6 +13,7 @@ import { TaxSummaryStrip } from '@/components/tax/TaxSummaryStrip';
 import { TaxRubricCard } from '@/components/tax/TaxRubricCard';
 import { TaxCommuteCard } from '@/components/tax/TaxCommuteCard';
 import { TaxSuggestionsSection } from '@/components/tax/TaxSuggestionsSection';
+import { TaxExportCard } from '@/components/tax/TaxExportCard';
 import { TaxDisclaimer } from '@/components/tax/TaxDisclaimer';
 
 const FALLBACK_YEAR = new Date().getFullYear();
@@ -99,6 +100,8 @@ export default function TaxReportPage() {
       )}
 
       <TaxCommuteCard year={year} />
+
+      {hasMarked && <TaxExportCard report={report} transactions={transactions} />}
 
       <p className="text-xs text-muted-foreground">
         {t('tax.page.valuesForYear', 'Werte für Veranlagungszeitraum {year}').replace('{year}', String(report.paramsUsedYear))}
