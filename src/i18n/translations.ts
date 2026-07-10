@@ -3317,6 +3317,8 @@ export const translations = {
     },
     automationSuggestionServiceLib: {
       defaultCategoryDescription: 'Automatisch erkannter Kategorievorschlag',
+      taxTitle: 'Steuer-Vorschlag für {payee}',
+      transactionFallback: 'Buchung',
     },
     claimServiceLib: {
       unknownCreditor: 'Unbekannter Absender',
@@ -6851,6 +6853,8 @@ export const translations = {
     },
     automationSuggestionServiceLib: {
       defaultCategoryDescription: 'Automatically detected category suggestion',
+      taxTitle: 'Tax suggestion for {payee}',
+      transactionFallback: 'transaction',
     },
     claimServiceLib: {
       unknownCreditor: 'Unknown sender',
