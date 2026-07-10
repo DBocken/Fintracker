@@ -3,7 +3,7 @@ import InteractiveCard from '@/components/common/InteractiveCard';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle } from 'lucide-react';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { getRubric, taxCategoryById } from '@/data/tax-catalog';
 import type { TaxRubricReport, TaxReportWarning } from '@/lib/tax-report';
@@ -67,9 +67,11 @@ export function TaxRubricCard({ report, onOpenTransaction }: { report: TaxRubric
                 {t(`tax.anlage.${report.anlage}`, report.anlage)}
               </Badge>
             </div>
-            {report.credit !== null ? (
+            {report.credit !== null && report.calculation !== null ? (
               <p className="text-sm text-positive">
-                {t('tax.page.creditExact', '20 % von {costs} = {credit} Steuerermäßigung')
+                {/* Satz stammt aus dem Rechenweg-Trace (Jahresparameter) — nie hartkodiert. */}
+                {t('tax.page.creditExact', '{rate} von {costs} = {credit} Steuerermäßigung')
+                  .replace('{rate}', formatPercent(report.calculation.rate))
                   .replace('{costs}', formatCurrency(report.eligibleCosts))
                   .replace('{credit}', formatCurrency(report.credit))}
               </p>
@@ -105,6 +107,24 @@ export function TaxRubricCard({ report, onOpenTransaction }: { report: TaxRubric
       {expanded && (
         <div id={panelId} className="mt-2 space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
           {rubric?.hintKey && <p className="text-xs text-muted-foreground">{t(rubric.hintKey, '')}</p>}
+
+          {report.calculation && (
+            <div className="space-y-0.5">
+              {/* Auditierbarkeit: Rechenweg 1:1 aus compute35aCredit — per Taschenrechner nachvollziehbar. */}
+              <p className="text-xs tabular-nums text-muted-foreground">
+                {t('tax.page.rechenweg', 'Rechenweg: min({base}; {capCosts}) × {rate} = {rawCredit}')
+                  .replace('{base}', formatCurrency(report.calculation.base))
+                  .replace('{capCosts}', formatCurrency(report.calculation.capCosts))
+                  .replace('{rate}', formatPercent(report.calculation.rate))
+                  .replace('{rawCredit}', formatCurrency(report.calculation.rawCredit))}
+              </p>
+              <p className="text-xs tabular-nums text-muted-foreground">
+                {t('tax.page.capUtilization', '{used} von {cap} ausgeschöpft')
+                  .replace('{used}', formatCurrency(report.calculation.credit))
+                  .replace('{cap}', formatCurrency(report.calculation.capCredit))}
+              </p>
+            </div>
+          )}
 
           {report.virtualItems.length > 0 && (
             <dl className="space-y-1">

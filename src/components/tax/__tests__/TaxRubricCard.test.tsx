@@ -77,11 +77,20 @@ describe('TaxRubricCard', () => {
       // Der Kategorie-Zähler „(1 Buchungen)" erscheint nur im aufgeklappten Panel.
       expect(screen.getByText(/1 Buchungen/)).toBeInTheDocument();
     });
+
+    it('sollte den Rechenweg im aufgeklappten Zustand anzeigen (auditierbar)', () => {
+      renderWithI18n(<TaxRubricCard report={creditReport} />);
+      fireEvent.click(screen.getByRole('button'));
+      // min(1.200,00 €; 6.000,00 €) × 20 % = 240,00 €
+      expect(screen.getByText(/Rechenweg: min\(1\.200,00\s*€; 6\.000,00\s*€\) × 20\s*% = 240,00\s*€/)).toBeInTheDocument();
+      // Ausschöpfung: 240,00 € von 1.200,00 € ausgeschöpft
+      expect(screen.getByText(/240,00\s*€ von 1\.200,00\s*€ ausgeschöpft/)).toBeInTheDocument();
+    });
   });
 
   describe('Regression Protection', () => {
     it('[REGRESSION] sollte die Rubrik-/Anlage-Keys in de und en definieren', () => {
-      const keys = ['tax.rubric.35aHandwerker.name', 'tax.anlage.35a', 'tax.page.creditExact'];
+      const keys = ['tax.rubric.35aHandwerker.name', 'tax.anlage.35a', 'tax.page.creditExact', 'tax.page.rechenweg'];
       for (const key of keys) {
         for (const locale of ['de', 'en'] as const) {
           let node: unknown = translations[locale];
@@ -89,6 +98,19 @@ describe('TaxRubricCard', () => {
           expect(typeof node, `${key} in ${locale}`).toBe('string');
         }
       }
+    });
+
+    it('[REGRESSION] sollte den Ermäßigungssatz aus den Parametern rendern (kein hartkodiertes 20 %)', () => {
+      // Hypothetischer Satz 25 %: Ändert sich creditRate35a je VZ, muss die UI
+      // den neuen Satz zeigen — nicht einen einprogrammierten Text.
+      const report25: TaxRubricReport = {
+        ...creditReport,
+        credit: 300,
+        calculation: { base: 1200, capCosts: 6000, cappedBase: 1200, rate: 0.25, rawCredit: 300, capCredit: 1200, credit: 300 },
+      };
+      renderWithI18n(<TaxRubricCard report={report25} />);
+      expect(screen.getByText(/25\s*% von/)).toBeInTheDocument();
+      expect(screen.queryByText(/20\s*% von/)).not.toBeInTheDocument();
     });
   });
 });

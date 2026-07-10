@@ -36,6 +36,8 @@ describe('Tax i18n Vollständigkeit', () => {
   it('[REGRESSION] sollte die zentralen tax.*-Bereiche in allen Locales haben', () => {
     const keys = [
       'tax.page.title',
+      'tax.page.rechenweg',
+      'tax.page.creditExact',
       'tax.form.sectionTitle',
       'tax.commute.title',
       'tax.export.button',
