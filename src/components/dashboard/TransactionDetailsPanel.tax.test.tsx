@@ -5,7 +5,13 @@ import type { Category, Transaction } from '@/types';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { translations } from '@/i18n/translations';
 
-vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
+// Key-sensitiver Query-Mock: liefert Allocations nur für den 'allocations'-Key,
+// damit der Split-Hinweis gezielt getestet werden kann.
+let mockAllocations: unknown[] = [];
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: ({ queryKey }: { queryKey?: unknown[] } = {}) =>
+    queryKey?.[0] === 'allocations' ? { data: mockAllocations } : { data: [] },
+}));
 vi.mock('@/components/categories/CategoryTwoStepSelect', () => ({
   CategoryTwoStepSelect: () => <div data-testid="cat-select" />,
 }));
@@ -58,8 +64,10 @@ describe('TransactionDetailsPanel – Steuer-Sektion', () => {
   describe('Normal Behavior', () => {
     it('sollte die Steuer-Sektion auf Deutsch anzeigen', () => {
       renderPanel(baseTx());
-      // Sektionsüberschrift „Steuer" (mehrfach, da Label identisch) → getAllByText.
-      expect(screen.getAllByText('Steuer').length).toBeGreaterThan(0);
+      // Genau EINE Überschrift „Steuer"; das Feld-Label heißt „Steuer-Rubrik"
+      // (kein doppeltes Label mehr).
+      expect(screen.getAllByText('Steuer')).toHaveLength(1);
+      expect(screen.getByText('Steuer-Rubrik')).toBeInTheDocument();
     });
 
     it('sollte die Steuer-Sektion auf Englisch anzeigen', () => {
@@ -88,6 +96,28 @@ describe('TransactionDetailsPanel – Steuer-Sektion', () => {
       renderPanel(baseTx({ is_transfer: true }));
       // Sektionsüberschrift „Steuer" darf nicht erscheinen (nur der Transfer-Block).
       expect(screen.queryByText('Steuer')).not.toBeInTheDocument();
+    });
+
+    it('sollte bei aufgeteilten Buchungen den Gesamtbetrag-Hinweis zeigen (auch ohne Premium)', () => {
+      // FeatureGate ist in diesem Test auf Fallback gemockt (= kein Premium):
+      // Der Hinweis muss trotzdem erscheinen, weil Allocations ein Downgrade überleben.
+      mockAllocations = [{ id: 'a1', transaction_id: 't1', amount_minor: -90000, category_id: 'food', source: 'manual' }];
+      try {
+        renderPanel(baseTx({ tax_category_id: 'tax-35a3-handwerker' }));
+        expect(screen.getByText(/bezieht sich auf den Gesamtbetrag/)).toBeInTheDocument();
+      } finally {
+        mockAllocations = [];
+      }
+    });
+
+    it('sollte den Split-Hinweis ohne Steuer-Markierung NICHT zeigen', () => {
+      mockAllocations = [{ id: 'a1', transaction_id: 't1', amount_minor: -90000, category_id: 'food', source: 'manual' }];
+      try {
+        renderPanel(baseTx({}));
+        expect(screen.queryByText(/bezieht sich auf den Gesamtbetrag/)).not.toBeInTheDocument();
+      } finally {
+        mockAllocations = [];
+      }
     });
   });
 

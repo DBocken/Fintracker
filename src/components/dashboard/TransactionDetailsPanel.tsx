@@ -9,6 +9,7 @@ import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, C
 import { Input } from '@/components/ui/input';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
+import { getAllocationsForTransaction } from '@/services/transaction-allocation-service';
 import { safeAudit, redactForAudit } from '@/services/audit-log-service';
 import { explainCategorization } from '@/services/transaction-service';
 import { getMerchantRules, upsertMerchantRule } from '@/services/merchant-rules-service';
@@ -115,6 +116,17 @@ export function TransactionDetailsPanel({
     queryFn: getMerchantRules,
     enabled: !!transaction,
     staleTime: 5 * 60 * 1000,
+  });
+
+  // Gleicher Query-Key wie das TransactionSplitPanel (geteilter Cache; dessen
+  // Save/Clear-Mutations invalidieren diesen Hinweis automatisch). Bewusst
+  // AUSSERHALB der FeatureGate geladen: Aufteilungen überleben ein Tier-Downgrade,
+  // der Steuer-Hinweis muss also auch ohne Premium sichtbar sein.
+  const txIdForAllocations = transaction?.id ?? '';
+  const { data: taxAllocations = [] } = useQuery({
+    queryKey: ['allocations', txIdForAllocations],
+    queryFn: () => getAllocationsForTransaction(txIdForAllocations),
+    enabled: !!txIdForAllocations,
   });
 
   const similar = useMemo(() => {
@@ -451,7 +463,7 @@ export function TransactionDetailsPanel({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tax-category-select" className="text-xs text-muted-foreground">
-              {t('tax.form.sectionTitle', 'Steuer')}
+              {t('tax.form.rubricLabel', 'Steuer-Rubrik')}
             </Label>
             <TaxCategorySelect
               id="tax-category-select"
@@ -462,6 +474,12 @@ export function TransactionDetailsPanel({
 
           {transaction.amount > 0 && draft.tax_category_id && (
             <p className="text-xs text-muted-foreground">{t('tax.form.refundHint', 'Positive Beträge werden als Erstattung gewertet und mindern die Rubrik.')}</p>
+          )}
+
+          {draft.tax_category_id && taxAllocations.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {t('tax.form.splitHint', 'Diese Buchung ist aufgeteilt – die Steuer-Markierung bezieht sich auf den Gesamtbetrag.')}
+            </p>
           )}
 
           {isHandwerkerRubric && (

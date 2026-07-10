@@ -1933,6 +1933,8 @@ export const translations = {
       },
       form: {
         sectionTitle: 'Steuer',
+        rubricLabel: 'Steuer-Rubrik',
+        splitHint: 'Diese Buchung ist aufgeteilt – die Steuer-Markierung bezieht sich auf den Gesamtbetrag.',
         selectPlaceholder: 'Steuer-Rubrik wählen …',
         notTaxRelevant: 'Nicht steuerrelevant',
         laborCostsLabel: 'davon Arbeitskosten (€)',
@@ -5475,6 +5477,8 @@ export const translations = {
       },
       form: {
         sectionTitle: 'Taxes',
+        rubricLabel: 'Tax category',
+        splitHint: 'This transaction is split – the tax marking applies to the full amount.',
         selectPlaceholder: 'Choose a tax category …',
         notTaxRelevant: 'Not tax-relevant',
         laborCostsLabel: 'of which labour costs (€)',
@@ -8976,6 +8980,8 @@ export const translations = {
       },
       form: {
         sectionTitle: "tamey",
+        rubricLabel: "tamey Segh",
+        splitHint: "Huch mIwvam wavlu' – tamey ngu'ghach Huch Hoch 'oS.",
         selectPlaceholder: "tamey Segh yIwIv …",
         notTaxRelevant: "tamey Seghbe'",
         laborCostsLabel: "vum Huch (€)",
