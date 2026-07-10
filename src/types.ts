@@ -59,6 +59,12 @@ export interface Transaction {
   is_contract?: boolean;
   /** Zyklus des Vertrags (weekly, monthly, etc.) */
   contract_cycle?: Rhythmus | null;
+  /** Steuer-Rubrik dieser Buchung (stabile ID aus tax-catalog.ts). null/undefined = nicht steuerrelevant. */
+  tax_category_id?: string | null;
+  /** Arbeits-/Fahrtkostenanteil in EUR (positiv, ≤ |amount|) für §35a Abs. 3 – nur dieser Anteil ist begünstigt. */
+  tax_labor_costs?: number | null;
+  /** Kurznotiz für die Steuererklärung (z. B. Rechnungsnummer, Zahlungsweg). */
+  tax_note?: string | null;
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
@@ -117,6 +123,8 @@ export interface CategoryAttributes {
   zahlungsweg?: Zahlungsweg | null;
   merchant_alias?: string | null;
   steuerrelevant?: boolean;
+  /** Default-Steuer-Rubrik: Buchungen dieser Kategorie werden mit dieser Rubrik VORGESCHLAGEN (nie automatisch markiert). */
+  default_tax_category_id?: string | null;
   tags?: string[];
   sichtbar?: boolean;
   archiviert?: boolean;

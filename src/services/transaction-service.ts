@@ -298,6 +298,11 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
       is_transfer: tx.is_transfer ?? false,
       transfer_pair_id: tx.transfer_pair_id ?? null,
       counterparty_iban: tx.counterparty_iban ?? null,
+      // Steuer-Markierungen sind nutzergepflegte Daten und müssen einen
+      // Restore-/Reimport-Roundtrip an dieser strikten Grenze überleben.
+      tax_category_id: tx.tax_category_id ?? null,
+      tax_labor_costs: tx.tax_labor_costs ?? null,
+      tax_note: tx.tax_note ?? null,
       csvCategoryName: (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvCategoryName ?? (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvcategoryname ?? undefined,
     };
   });
@@ -354,6 +359,9 @@ export interface TransactionUpdate {
   subcategory_id?: string | null;
   is_contract?: boolean;
   contract_cycle?: Rhythmus | null;
+  tax_category_id?: string | null;
+  tax_labor_costs?: number | null;
+  tax_note?: string | null;
 }
 
 export async function updateTransaction(
@@ -378,6 +386,17 @@ export async function updateTransaction(
     }
     if (Object.prototype.hasOwnProperty.call(u, 'contract_cycle')) {
       patch.contract_cycle = u.contract_cycle ?? null;
+    }
+    // Steuer-Felder rein durchleiten: KEIN confirmed/auto_mapped-Flip und KEINE
+    // Merchant-Lernregel (das ist keine Kategorie-Korrektur, nur eine Markierung).
+    if (Object.prototype.hasOwnProperty.call(u, 'tax_category_id')) {
+      patch.tax_category_id = u.tax_category_id || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(u, 'tax_labor_costs')) {
+      patch.tax_labor_costs = u.tax_labor_costs ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(u, 'tax_note')) {
+      patch.tax_note = u.tax_note ?? null;
     }
 
     // Bei manueller Kategorie-Korrektur als bestätigt markieren (nicht mehr
