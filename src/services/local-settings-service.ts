@@ -58,13 +58,17 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Einkommens-Hauptkategorien (Anstellung, Verkäufe, Kapitalerträge, …).
     const { categories: incomeMigrated, changed: incomeChanged } = migrateIncomeTaxonomy(backfilled);
 
+    // Rüste Steuer-Rubrik-Defaults nach (neue Handwerker-/Spenden-Kategorien +
+    // default_tax_category_id auf bestehenden Defaults).
+    const { categories: taxMigrated, changed: taxChanged } = backfillTaxDefaults(incomeMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged) {
-      await writeLocalCategories(incomeMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged) {
+      await writeLocalCategories(taxMigrated);
     }
-    return incomeMigrated;
+    return taxMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -257,6 +261,65 @@ export function migrateIncomeTaxonomy(categories: Category[]): { categories: Cat
   });
 
   const result = [...migrated, ...missingIncomeDefaults.map((c) => ({ ...c }))];
+  return { categories: result, changed };
+}
+
+/**
+ * Rüstet Steuer-Defaults nach:
+ * 1. Hängt neue Default-(Unter-)Kategorien an, die die `taxDefault`-Erweiterung
+ *    eingeführt hat (Handwerker, Haushaltsnahe Dienstleistungen, Spenden), sofern
+ *    ihre stabile ID noch fehlt.
+ * 2. Setzt `attributes.default_tax_category_id` (+ `steuerrelevant`) auf
+ *    bestehenden DEFAULT-Kategorien (per stabiler ID), die in den Defaults eine
+ *    Steuer-Rubrik tragen — aber nur, wenn der Nutzer die Kategorie nicht selbst
+ *    überschrieben hat (`is_default !== false`) und noch kein Wert gesetzt ist.
+ *
+ * Reine Funktion (testbar): `changed` ist NUR true bei echter Änderung — sonst
+ * würde die verschlüsselte Liste bei jedem Lesen neu geschrieben (F-CAT).
+ */
+// Mit dieser Erweiterung neu eingeführte Standard-Unterkategorien (§35a/Spenden).
+const NEW_TAX_SUBCATEGORY_IDS = [
+  "local-cat-handwerker",
+  "local-cat-haushaltsdienste",
+  "local-cat-spenden",
+];
+
+export function backfillTaxDefaults(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  // 1. NUR die mit dieser Erweiterung neu eingeführten Subkategorien anhängen,
+  //    falls sie fehlen. Bewusst eine feste Allowlist statt „alle steuerrelevanten
+  //    Defaults" — sonst würde eine vom Nutzer gelöschte Alt-Kategorie (z. B.
+  //    Apotheke) beim nächsten Lesen wieder auferstehen.
+  const missingTaxDefaults = NEW_TAX_SUBCATEGORY_IDS.map((id) => defaultsById.get(id)).filter(
+    (c): c is Category => Boolean(c) && !existingIds.has(c!.id)
+  );
+  if (missingTaxDefaults.length > 0) {
+    changed = true;
+  }
+
+  // 2. default_tax_category_id auf bestehenden, nicht überschriebenen Defaults setzen.
+  const migrated = categories.map((cat) => {
+    if (cat.is_default === false) return cat; // Nutzer-Override unangetastet lassen
+    if (cat.attributes?.default_tax_category_id !== undefined) return cat; // bereits gesetzt
+    const def = defaultsById.get(cat.id);
+    const rubric = def?.attributes?.default_tax_category_id;
+    if (!rubric) return cat;
+
+    changed = true;
+    return {
+      ...cat,
+      attributes: {
+        ...cat.attributes,
+        steuerrelevant: cat.attributes?.steuerrelevant ?? true,
+        default_tax_category_id: rubric,
+      },
+    };
+  });
+
+  const result = [...migrated, ...missingTaxDefaults.map((c) => ({ ...c }))];
   return { categories: result, changed };
 }
 
