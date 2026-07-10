@@ -22,6 +22,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const IncomePage = lazy(() => import("@/pages/IncomePage"));
 const IncomeWrappedPage = lazy(() => import("@/pages/IncomeWrappedPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
+const TaxReportPage = lazy(() => import("@/pages/TaxReportPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
 const SimulationPage = lazy(() => import("@/pages/SimulationPage"));
 const TradingPage = lazy(() => import("@/pages/TradingPage"));
@@ -115,6 +116,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/tax" element={<TaxReportPage />} />
               <Route
                 path="/premium"
                 element={<RouteGuard path="/premium"><AnalysisPage /></RouteGuard>}

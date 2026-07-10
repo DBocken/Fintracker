@@ -106,6 +106,7 @@ export const translations = {
         dashboard: 'Dashboard',
         income: 'Einkommen',
         transactions: 'Buchungen',
+        tax: 'Steuer',
         premium: 'Trends & Berichte',
         simulation: 'Simulation',
         trading: 'Trading',
@@ -122,6 +123,7 @@ export const translations = {
         simulation: 'Zukunft durchspielen',
         trading: 'Depot im Blick',
         income: 'Woher kommt mein Geld?',
+        tax: 'Was kannst du absetzen?',
       },
       short: {
         coach: 'Heute',
@@ -3644,6 +3646,7 @@ export const translations = {
         dashboard: 'Dashboard',
         income: 'Income',
         transactions: 'Transactions',
+        tax: 'Taxes',
         premium: 'Trends & Reports',
         simulation: 'Simulation',
         trading: 'Trading',
@@ -3660,6 +3663,7 @@ export const translations = {
         simulation: 'Play through the future',
         trading: 'Portfolio at a glance',
         income: 'Where does my money come from?',
+        tax: 'What can you deduct?',
       },
       short: {
         coach: 'Today',
@@ -7182,6 +7186,7 @@ export const translations = {
         dashboard: "nab",
         income: "Huch ghoStaH",
         transactions: "Huch mIwmey",
+        tax: "tamey",
         premium: "choHmey qonmey je",
         simulation: "Simulation",
         trading: "je' Suq",
@@ -7198,6 +7203,7 @@ export const translations = {
         simulation: "wa'leS yIv",
         trading: "Huch ghom bIlegh",
         income: "nuqDaq Huch wIj ghoStaH?",
+        tax: "nuq DaSuqlaH?",
       },
       short: {
         coach: "DaHjaj",
