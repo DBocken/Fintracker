@@ -93,12 +93,24 @@ describe('draftFromTransaction', () => {
       is_contract: true,
       contract_cycle: 'monthly',
       is_transfer: false,
+      tax_category_id: null,
+      tax_labor_costs: null,
+      tax_note: null,
     });
   });
 
   it('setzt sinnvolle Defaults für fehlende Felder', () => {
     const d = draftFromTransaction(tx({}));
-    expect(d).toEqual({ category_id: null, subcategory_id: null, is_contract: false, contract_cycle: null, is_transfer: false });
+    expect(d).toEqual({
+      category_id: null,
+      subcategory_id: null,
+      is_contract: false,
+      contract_cycle: null,
+      is_transfer: false,
+      tax_category_id: null,
+      tax_labor_costs: null,
+      tax_note: null,
+    });
   });
 });
 
