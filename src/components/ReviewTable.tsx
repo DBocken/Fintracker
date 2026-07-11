@@ -24,6 +24,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, HierarchicalCategory } from '../types';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
+import { getMerchantRules } from '../services/merchant-rules-service';
+import { buildAutoCategoryPreview } from '@/lib/review-preview';
 import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
@@ -195,22 +197,19 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     [hierarchicalCategories, flattenCategories]
   );
 
-  // Auto-Kategorie pro Zeile einmalig vorberechnen, statt bei jedem Render
-  // erneut über alle Kategorien/Filter zu iterieren.
-  const autoCategoryById = useMemo(() => {
-    const map = new Map<string, (typeof flatCategories)[number]>();
-    for (const row of rows) {
-      const match = flatCategories.find(cat =>
-        (cat.filters || []).some((filter: string) =>
-          (row.payee || '').toLowerCase().includes(filter.toLowerCase()) ||
-          (row.description || '').toLowerCase().includes(filter.toLowerCase()) ||
-          (row.original_text || '').toLowerCase().includes(filter.toLowerCase())
-        )
-      );
-      if (match) map.set(row.id || '', match);
-    }
-    return map;
-  }, [rows, flatCategories]);
+  const { data: learnedRules = [] } = useQuery({
+    queryKey: ['merchant-rules'],
+    queryFn: getMerchantRules,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Auto-Kategorie pro Zeile über die ECHTE Engine vorberechnen (gelernte
+  // Regeln, Normalisierung, Spezifität, Richtungs-Guard, Konfidenz-Floor) —
+  // damit die Anzeige nie von der tatsächlichen Zuweisung abweicht.
+  const autoCategoryById = useMemo(
+    () => buildAutoCategoryPreview(rows, flatCategories, learnedRules),
+    [rows, flatCategories, learnedRules],
+  );
 
   const PAGE_SIZE = 50;
   const [currentPage, setCurrentPage] = useState(1);
@@ -322,9 +321,18 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                     </TableCell>
                     <TableCell>
                       {autoCategory ? (
-                        <Badge variant="outline" className="bg-opacity-20" style={{ backgroundColor: (autoCategory.color || '#000') + '20', color: autoCategory.color || '#000' }}>
-                          {(autoCategory.icon || '')} {autoCategory.name}
-                        </Badge>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Badge variant="outline" className="bg-opacity-20" style={{ backgroundColor: (autoCategory.category.color || '#000') + '20', color: autoCategory.category.color || '#000' }}>
+                            {(autoCategory.category.icon || '')} {autoCategory.category.name}
+                          </Badge>
+                          <span className="text-[11px] text-muted-foreground">
+                            {autoCategory.level === 'hoch'
+                              ? t('reviewTable.confidenceHigh', 'hoch')
+                              : autoCategory.level === 'mittel'
+                                ? t('reviewTable.confidenceMedium', 'mittel')
+                                : t('reviewTable.confidenceLow', 'niedrig')}
+                          </span>
+                        </span>
                       ) : (
                         <span className="text-muted-foreground">{t('reviewTable.emptyCell')}</span>
                       )}
