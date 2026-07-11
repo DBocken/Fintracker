@@ -1818,6 +1818,22 @@ export const translations = {
       defaultTaxCategoryHint: 'Buchungen dieser Kategorie werden für diese Rubrik vorgeschlagen – nie automatisch markiert.',
       defaultTaxCategoryNone: 'Keine Vorauswahl',
     },
+    euer: {
+      export: {
+        colSection: 'Bereich',
+        colLine: 'Zeile',
+        colDeductible: 'Abziehbar',
+        sectionIncome: 'Betriebseinnahmen',
+        sectionExpenses: 'Betriebsausgaben',
+        sumPrefix: 'Summe',
+        sumIncome: 'Summe Betriebseinnahmen',
+        sumExpenses: 'Summe Betriebsausgaben',
+        profit: 'Gewinn',
+        privatEntnahmen: 'Privatentnahmen (Info)',
+        privatEinlagen: 'Privateinlagen (Info)',
+        unknownCategory: 'Ohne Kategorie',
+      },
+    },
     tax: {
       page: {
         title: 'Steuer',
@@ -5388,6 +5404,22 @@ export const translations = {
       defaultTaxCategoryHint: 'Transactions in this category are suggested for this tax category – never marked automatically.',
       defaultTaxCategoryNone: 'No preset',
     },
+    euer: {
+      export: {
+        colSection: 'Section',
+        colLine: 'Line',
+        colDeductible: 'Deductible',
+        sectionIncome: 'Business income',
+        sectionExpenses: 'Business expenses',
+        sumPrefix: 'Total',
+        sumIncome: 'Total business income',
+        sumExpenses: 'Total business expenses',
+        profit: 'Profit',
+        privatEntnahmen: 'Owner drawings (info)',
+        privatEinlagen: 'Owner contributions (info)',
+        unknownCategory: 'No category',
+      },
+    },
     tax: {
       page: {
         title: 'Taxes',
@@ -8943,6 +8975,22 @@ export const translations = {
       defaultTaxCategoryLabel: "tamey Segh (qechHom)",
       defaultTaxCategoryHint: "Seghvam Huch mIwmey tamey Seghvad ngu'lu' – reH pagh ngu'choHlu'.",
       defaultTaxCategoryNone: "wIv pagh",
+    },
+    euer: {
+      export: {
+        colSection: "'ay'",
+        colLine: "mIr",
+        colDeductible: "teqlaHbogh",
+        sectionIncome: "vum Suq",
+        sectionExpenses: "vum Huch",
+        sumPrefix: "naQ",
+        sumIncome: "vum Suq naQ",
+        sumExpenses: "vum Huch naQ",
+        profit: "Suq chuv",
+        privatEntnahmen: "ghItlh teqmey (De')",
+        privatEinlagen: "ghItlh lanmey (De')",
+        unknownCategory: "Segh Hutlh",
+      },
     },
     tax: {
       page: {
