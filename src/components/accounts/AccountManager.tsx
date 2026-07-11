@@ -374,6 +374,11 @@ export function AccountManager() {
                           {account.is_budget_pool_member && (
                             <Badge variant="outline" className="text-xs shrink-0">{t('accounts.manager.budgetPoolBadge')}</Badge>
                           )}
+                          {account.is_business && (
+                            <Badge variant="outline" className="text-xs shrink-0 border-primary/40 text-primary">
+                              {t('accounts.manager.businessBadge')}
+                            </Badge>
+                          )}
                           {account.gocardless_account_id && (
                             <Badge className="bg-positive/15 text-positive dark:text-positive text-xs shrink-0 flex items-center gap-1">
                               <Link2 className="h-3 w-3" />

@@ -100,6 +100,7 @@ export async function createAccount(account: Partial<Account>): Promise<Account>
     color: account.color || ACCOUNT_TYPE_COLORS[type],
     icon: account.icon || ACCOUNT_TYPE_ICONS[type],
     is_budget_pool_member: account.is_budget_pool_member ?? true,
+    is_business: account.is_business ?? false,
     order_index: account.order_index ?? existingAccounts.length,
     statement_close_day: account.statement_close_day || null,
     due_day: account.due_day || null,

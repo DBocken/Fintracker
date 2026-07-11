@@ -320,6 +320,7 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
       tax_category_id: tx.tax_category_id ?? null,
       tax_labor_costs: tx.tax_labor_costs ?? null,
       tax_note: tx.tax_note ?? null,
+      euer_private: tx.euer_private ?? false,
       csvCategoryName: (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvCategoryName ?? (tx as Transaction & { csvCategoryName?: string; csvcategoryname?: string }).csvcategoryname ?? undefined,
     };
   });
@@ -379,6 +380,7 @@ export interface TransactionUpdate {
   tax_category_id?: string | null;
   tax_labor_costs?: number | null;
   tax_note?: string | null;
+  euer_private?: boolean;
 }
 
 export async function updateTransaction(
@@ -414,6 +416,10 @@ export async function updateTransaction(
     }
     if (Object.prototype.hasOwnProperty.call(u, 'tax_note')) {
       patch.tax_note = u.tax_note ?? null;
+    }
+    // Wie die Steuer-Felder: reine Markierung, kein Status-Flip, keine Lernregel.
+    if (Object.prototype.hasOwnProperty.call(u, 'euer_private')) {
+      patch.euer_private = u.euer_private ?? false;
     }
 
     // Bei manueller Kategorie-Korrektur als bestätigt markieren (nicht mehr
