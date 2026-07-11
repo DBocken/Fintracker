@@ -10,6 +10,9 @@
  *   Erstattungen und MINDERN die Rubrik (Netto, Clamp auf 0 + Warnung).
  * - §35a Abs. 3 (Handwerker): nur `tax_labor_costs` ist begünstigt; fehlt der
  *   Wert, werden 0 € angesetzt und eine Warnung ausgegeben (nie 100 % annehmen).
+ * - EÜR-Rubriken (Anlage 'euer') sind AUSGESCHLOSSEN: Betriebseinnahmen/-ausgaben
+ *   wertet buildEuerReport separat aus (eigene Netting-Regeln, Bewirtung 70 %) —
+ *   hier mitzuzählen wäre eine Doppelzählung mit falscher Mathematik.
  */
 import type { Transaction } from '@/types';
 import {
@@ -107,6 +110,16 @@ function paramValue(params: TaxYearParams, key: keyof TaxYearParams | undefined)
 /** Rubriken, die immer angezeigt werden (auch ohne Daten) – die Kern-Wertversprechen. */
 const ALWAYS_SHOWN: TaxRubricId[] = ['35a-handwerker', '35a-dienstleistungen', 'werbungskosten'];
 
+/**
+ * Gibt es EÜR-markierte Buchungen? Steuert die Pointer-Karte auf /tax:
+ * Bestandsdaten dürfen durch die Entkopplung nie unsichtbar werden.
+ */
+export function hasEuerMarkings(transactions: Transaction[]): boolean {
+  return transactions.some(
+    (tx) => tx.tax_category_id && getRubricForCategory(tx.tax_category_id)?.anlage === 'euer',
+  );
+}
+
 export function buildTaxYearReport(
   transactions: Transaction[],
   year: number,
@@ -138,7 +151,7 @@ export function buildTaxYearReport(
 
   for (const tx of marked) {
     const rubric = getRubricForCategory(tx.tax_category_id!);
-    if (!rubric) continue;
+    if (!rubric || rubric.anlage === 'euer') continue;
     const bucket =
       buckets.get(rubric.id) ??
       ({ byCat: new Map(), txIds: [], laborCostsSum: 0, missingLaborCount: 0 } as Bucket);
@@ -175,6 +188,7 @@ export function buildTaxYearReport(
   let txCount = 0;
 
   for (const rubric of TAX_RUBRICS) {
+    if (rubric.anlage === 'euer') continue;
     const bucket = buckets.get(rubric.id);
     const hasData = Boolean(bucket && bucket.byCat.size > 0);
     if (!hasData && !ALWAYS_SHOWN.includes(rubric.id)) continue;

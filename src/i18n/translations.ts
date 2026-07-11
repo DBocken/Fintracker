@@ -1944,6 +1944,10 @@ export const translations = {
         perChild: 'je Kind',
         perYear: 'pro Jahr',
       },
+      euerPointer: {
+        title: 'Einnahmenüberschussrechnung (EÜR)',
+        body: 'Betriebseinnahmen & -ausgaben werden separat ausgewertet.',
+      },
       suggestReason: {
         categoryDefault: 'Kategorie „{category}" ist als {rubric} voreingestellt',
         keyword: 'Stichwort „{keyword}" erkannt',
@@ -5510,6 +5514,10 @@ export const translations = {
         perChild: 'per child',
         perYear: 'per year',
       },
+      euerPointer: {
+        title: 'Income-surplus statement (EÜR)',
+        body: 'Business income & expenses are evaluated separately.',
+      },
       suggestReason: {
         categoryDefault: 'Category “{category}” is preset as {rubric}',
         keyword: 'Keyword “{keyword}” detected',
@@ -9031,6 +9039,10 @@ export const translations = {
       capUnit: {
         perChild: "puq wa'",
         perYear: "DIS wa'",
+      },
+      euerPointer: {
+        title: "EÜR (vum Huch mIw)",
+        body: "vum Suq je vum Huch pIm nochlu'.",
       },
       suggestReason: {
         categoryDefault: "Segh „{category}“ {rubric}vaD ngu'lu'pu'",
