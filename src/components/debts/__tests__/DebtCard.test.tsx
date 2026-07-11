@@ -1,13 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import { DebtCard } from "../DebtCard";
 import type { Debt } from "@/types";
-
-function renderWithI18n(component: React.ReactElement, locale: "de" | "en" = "de") {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 function makeDebt(overrides: Partial<Debt> = {}): Debt {
   return {

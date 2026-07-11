@@ -1,16 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import { CounselingBridgeCard } from "../CounselingBridgeCard";
 import {
   getCounselingServices,
   getCommercialRegulatorWarning,
   type CounselingRecommendation,
 } from "@/services/debt-guardrails-service";
-
-function renderWithI18n(component: React.ReactElement, locale: "de" | "en" = "de") {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 let recommended: CounselingRecommendation;
 

@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
+import { renderWithI18n } from '@/test-utils/render';
 import { MonthlyOverviewTable } from '../LiquidityReport';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 /** Karten-Chrome = sichtbarer Rahmen (`border`-Breiten-Utility) oder Schatten.
  * Hintergrund-Tönung/`divide-*` zum Bündeln zählt NICHT als Karte. */

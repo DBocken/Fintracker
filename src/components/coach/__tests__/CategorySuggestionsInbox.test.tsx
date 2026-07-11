@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import CategorySuggestionsInbox from "../CategorySuggestionsInbox";
 import type { AutomationSuggestion } from "@/services/automation-suggestion-service";
 
@@ -37,15 +37,6 @@ function suggestion(partial: Partial<AutomationSuggestion> = {}): AutomationSugg
     created_at: "2026-01-01T00:00:00.000Z",
     ...partial,
   };
-}
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>,
-  );
 }
 
 describe("CategorySuggestionsInbox", () => {

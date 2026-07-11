@@ -2,16 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { I18nProvider } from '@/i18n/I18nProvider';
+import { renderWithProviders } from '@/test-utils/render';
 import IncomeStreamList from '../IncomeStreamList';
 import type { IncomeStream } from '@/lib/income-streams';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      <MemoryRouter>{component}</MemoryRouter>
-    </I18nProvider>,
-  );
-}
 
 function stream(overrides: Partial<IncomeStream>): IncomeStream {
   return {
@@ -53,31 +46,31 @@ describe('IncomeStreamList', () => {
   });
 
   it('zeigt die Kadenz-Badges übersetzt (Deutsch)', () => {
-    renderWithI18n(
+    renderWithProviders(
       <IncomeStreamList streams={[stream({ cadence: 'regelmaessig' }), stream({ key: 'x', label: 'eBay Payments', cadence: 'unregelmaessig' })]} />,
-      'de',
+      { locale: 'de' },
     );
     expect(screen.getByText('Regelmäßig')).toBeInTheDocument();
     expect(screen.getByText('Unregelmäßig')).toBeInTheDocument();
   });
 
   it('zeigt die Kadenz-Badges übersetzt (Englisch)', () => {
-    renderWithI18n(
+    renderWithProviders(
       <IncomeStreamList streams={[stream({ cadence: 'regelmaessig' }), stream({ key: 'x', label: 'eBay Payments', cadence: 'unregelmaessig' })]} />,
-      'en',
+      { locale: 'en' },
     );
     expect(screen.getByText('Regular')).toBeInTheDocument();
     expect(screen.getByText('Irregular')).toBeInTheDocument();
   });
 
   it('zeigt einen Hinweis, wenn keine Ströme vorliegen', () => {
-    renderWithI18n(<IncomeStreamList streams={[]} />);
+    renderWithProviders(<IncomeStreamList streams={[]} />);
     expect(screen.getByText(/Noch keine Einnahmen erfasst/i)).toBeInTheDocument();
   });
 
   it('zeigt "Alle anzeigen" erst ab mehr als 8 Strömen', () => {
     const many = Array.from({ length: 9 }, (_, i) => stream({ key: `s${i}`, label: `Strom ${i}` }));
-    renderWithI18n(<IncomeStreamList streams={many} />);
+    renderWithProviders(<IncomeStreamList streams={many} />);
     expect(screen.getByRole('button', { name: /Alle anzeigen/i })).toBeInTheDocument();
   });
 });

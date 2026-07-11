@@ -1,15 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { EtoroWatchlistsResponseSchema, EtoroPriceAlertsResponseSchema } from '@/services/etoro-api-schemas';
 import { EtoroAccountError } from '@/services/etoro-account-service';
 import EtoroWatchlistsTab from '../EtoroWatchlistsTab';
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  window.localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(<I18nProvider>{ui}</I18nProvider>);
-}
 
 const watchlists = EtoroWatchlistsResponseSchema.parse({
   watchlists: [

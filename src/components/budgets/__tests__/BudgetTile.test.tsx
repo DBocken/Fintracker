@@ -1,21 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Budget, BudgetStatus } from "@/types";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import BudgetTile from "../BudgetTile";
-
-// Helper: I18nProvider Wrapper
-function renderWithI18n(
-  component: React.ReactElement,
-  locale: "de" | "en" = "de"
-) {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 const status = (over: Partial<BudgetStatus> = {}): BudgetStatus => ({
   budget: { id: "b1", name: "Lebensmittel", category_id: "c1", limit: 250, icon: "🛒" } as Budget,

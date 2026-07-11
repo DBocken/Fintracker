@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent, within } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import type { WrappedStats } from '@/lib/income-wrapped';
 
 beforeAll(() => {
@@ -15,10 +15,6 @@ vi.mock('@/lib/png-export', () => ({ exportNodeAsPng: vi.fn() }));
 import { exportNodeAsPng } from '@/lib/png-export';
 
 import WrappedSlides from '../wrapped/WrappedSlides';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 function stats(overrides: Partial<WrappedStats> = {}): WrappedStats {
   return {

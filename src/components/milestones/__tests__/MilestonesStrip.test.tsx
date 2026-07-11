@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { screen } from "@testing-library/react";
+import { renderWithI18n } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import MilestonesStrip from "../MilestonesStrip";
 import type { MilestoneStatus } from "@/services/milestones-service";
@@ -18,14 +18,6 @@ function milestone(over: Partial<MilestoneStatus> = {}): MilestoneStatus {
     justAchieved: false,
     ...over,
   };
-}
-
-function renderWithI18n(component: any, locale: "de" | "en" = "de") {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
 }
 
 describe("MilestonesStrip", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { EtoroAccountError } from '@/services/etoro-account-service';
 import type { PerformancePoint } from '@/services/etoro-performance';
@@ -15,11 +15,6 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 });
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  window.localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(<I18nProvider>{ui}</I18nProvider>);
-}
 
 const series: PerformancePoint[] = [
   { date: '2026-06-01', value: 5000 },

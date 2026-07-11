@@ -1,15 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { renderWithI18n } from '@/test-utils/render';
 import type { Transaction } from '@/types';
 import { TransactionDayList } from './TransactionDayList';
 
 vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
-
-function renderWithI18n(component: React.ReactElement) {
-  return render(<I18nProvider initialLocale="de">{component}</I18nProvider>);
-}
 
 function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
   return {

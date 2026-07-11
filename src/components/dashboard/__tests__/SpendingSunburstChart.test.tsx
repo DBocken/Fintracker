@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { SpendingSunburstChart } from '../SpendingSunburstChart';
 import type { SunburstTree } from '@/lib/analysis-data';
@@ -55,17 +55,6 @@ const colorMap = new Map<string, string>([
   ['essenziell', '#22aa66'],
   ['unkategorisiert', '#cccccc'],
 ]);
-
-function renderWithI18n(
-  component: React.ReactElement,
-  locale: 'de' | 'en' = 'de'
-) {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 function renderChart(overrides: Partial<React.ComponentProps<typeof SpendingSunburstChart>> = {}, locale: 'de' | 'en' = 'de') {
   const onNavigateCategory = vi.fn();

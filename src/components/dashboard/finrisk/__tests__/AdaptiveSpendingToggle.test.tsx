@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import AdaptiveSpendingToggle from "../AdaptiveSpendingToggle";
 
 // Radix' Slider misst seine Breite über ResizeObserver, den jsdom nicht kennt.
@@ -9,14 +9,6 @@ globalThis.ResizeObserver ||= class {
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver;
-
-function renderWithI18n(component: React.ReactElement, locale: "de" | "en" = "de") {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 describe("AdaptiveSpendingToggle", () => {
   describe("Normal Behavior", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import ShareCard from '../ShareCard';
 import ShareCardDialog from '../ShareCardDialog';
 import type { ShareCardData } from '@/lib/share-card';
@@ -8,10 +8,6 @@ import type { IncomeStream, IncomeStreamsResult } from '@/lib/income-streams';
 
 vi.mock('@/lib/png-export', () => ({ exportNodeAsPng: vi.fn() }));
 import { exportNodeAsPng } from '@/lib/png-export';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 const data: ShareCardData = {
   slices: [

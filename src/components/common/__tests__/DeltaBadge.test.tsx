@@ -1,20 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import DeltaBadge from "../DeltaBadge";
-
-// Helper: I18nProvider Wrapper
-function renderWithI18n(
-  component: React.ReactElement,
-  locale: "de" | "en" = "de"
-) {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 describe("DeltaBadge", () => {
   it("sollte kleine Änderungen neutral (ohne Alarmfarbe) zeigen", () => {
