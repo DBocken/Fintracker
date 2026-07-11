@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import { appendErrorLogEntry } from '@/services/error-log-service';
 
 interface Props {
   children: ReactNode;
@@ -52,33 +53,15 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Log to error reporting service (would integrate with Sentry, etc.)
-    this.logErrorToService(error, errorInfo);
-  }
-
-  private logErrorToService(error: Error, errorInfo: ErrorInfo) {
-    // In production, you would send this to an error tracking service
-    const errorData = {
+    // Lokales, redigiertes Fehlerprotokoll (einsehbar unter Einstellungen →
+    // Technischer Status). Bewusst kein externer Dienst: Stacks können
+    // Finanzdaten enthalten und verlassen das Gerät nie automatisch.
+    void appendErrorLogEntry({
+      level: 'error',
+      source: 'boundary',
       message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-    };
-
-    // Store in localStorage for debugging
-    try {
-      const errorLog = JSON.parse(localStorage.getItem('error_log') || '[]');
-      errorLog.push(errorData);
-      // Keep only last 10 errors
-      if (errorLog.length > 10) {
-        errorLog.shift();
-      }
-      localStorage.setItem('error_log', JSON.stringify(errorLog));
-    } catch (e) {
-      console.error('[ErrorBoundary] Failed to log error:', e);
-    }
+      stack: `${error.stack ?? ''}\n--- component stack ---${errorInfo.componentStack ?? ''}`,
+    });
   }
 
   private handleReset = () => {
@@ -183,10 +166,9 @@ export class ErrorBoundary extends Component<Props, State> {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      const log = localStorage.getItem('error_log');
-                      if (log) {
-                        console.log('Error Log:', JSON.parse(log));
-                      }
+                      void import('@/services/error-log-service').then(({ getErrorLog }) =>
+                        getErrorLog().then((log) => console.log('Error Log:', log)),
+                      );
                     }}
                     className="text-xs text-muted-foreground"
                   >
@@ -238,19 +220,12 @@ export function useErrorHandler() {
   const handleError = (error: Error) => {
     console.error('[useErrorHandler]', error);
     showError(error.message || t('errorBoundary.errorOccurred'));
-
-    // Store error in localStorage for debugging
-    try {
-      const errorLog = JSON.parse(localStorage.getItem('error_log') || '[]');
-      errorLog.push({
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString(),
-      });
-      localStorage.setItem('error_log', JSON.stringify(errorLog.slice(-10)));
-    } catch (e) {
-      console.error('Failed to log error:', e);
-    }
+    void appendErrorLogEntry({
+      level: 'error',
+      source: 'manual',
+      message: error.message,
+      stack: error.stack,
+    });
   };
 
   return { handleError };

@@ -28,6 +28,7 @@ import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
+import DiagnosticsSettings from './DiagnosticsSettings';
 import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
@@ -367,6 +368,7 @@ export function EnhancedSettings() {
                   {t('settings.technicalStatusDescription', 'Nur ergänzende Informationen zur App-Leistung und lokalen Speicherung.')}
                 </p>
                 <PerformanceDashboard />
+                <DiagnosticsSettings />
               </AccordionContent>
             </AccordionItem>
           </Accordion>

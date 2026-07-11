@@ -1,5 +1,6 @@
 import { requireUserId } from './auth-service';
 import { t } from '../i18n/serviceT';
+import { logger } from '@/utils/logger';
 import type { Category, Account, UserSettings } from '../types';
 import {
   getCategories,
@@ -434,7 +435,7 @@ class BackupService {
     try {
       return await getTransactions(10000);
     } catch (error) {
-      console.error('[BackupService] Error fetching local transactions:', error);
+      logger.error(`[BackupService] Error fetching local transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'backup' });
       return [];
     }
   }
@@ -459,7 +460,7 @@ class BackupService {
     try {
       return await restoreLocalCategories(categories);
     } catch (error) {
-      console.error('[BackupService] Error restoring categories:', error);
+      logger.error(`[BackupService] Error restoring categories: ${error instanceof Error ? error.message : String(error)}`, { source: 'backup' });
       return 0;
     }
   }
@@ -480,7 +481,7 @@ class BackupService {
         if (acc.id) existingIds.add(acc.id);
         restored++;
       } catch (error) {
-        console.error('[BackupService] Error restoring local account:', error);
+        logger.error(`[BackupService] Error restoring local account: ${error instanceof Error ? error.message : String(error)}`, { source: 'backup' });
       }
     }
 
@@ -495,7 +496,7 @@ class BackupService {
       await updateUserSettings(settings);
       return true;
     } catch (error) {
-      console.error('[BackupService] Error restoring settings:', error);
+      logger.error(`[BackupService] Error restoring settings: ${error instanceof Error ? error.message : String(error)}`, { source: 'backup' });
       return false;
     }
   }

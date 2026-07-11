@@ -20,6 +20,10 @@ const LOCAL_ONLY_SERVICES = [
   'analytics-aggregation-service.ts',
   'snapshot-sync-service.ts',
   'backup-service.ts',
+  // Fehlerprotokoll & globale Handler: Fehlerdaten (Stacks!) dürfen das Gerät
+  // nie automatisch verlassen — Export nur nutzerinitiiert in den Einstellungen.
+  'error-log-service.ts',
+  'global-error-handlers.ts',
 ] as const;
 
 describe('[PRIVACY] lokale Finanzdaten-Grenze', () => {
@@ -28,6 +32,18 @@ describe('[PRIVACY] lokale Finanzdaten-Grenze', () => {
 
     expect(source).not.toMatch(/integrations\/supabase|\bsupabase\b/i);
     expect(source).not.toMatch(/user_contract_decisions|user_transaction_allocations/);
+  });
+});
+
+describe('[PRIVACY] Logger bleibt netzwerkfrei', () => {
+  it('sollte in utils/logger.ts und utils/redact.ts keinen fetch-/Supabase-Pfad haben', () => {
+    const UTILS_DIR = path.resolve(SERVICES_DIR, '..', 'utils');
+    for (const file of ['logger.ts', 'redact.ts']) {
+      const source = readFileSync(path.join(UTILS_DIR, file), 'utf8');
+      expect(source, `${file} darf keinen Netzwerk-Code enthalten`).not.toMatch(
+        /\bfetch\s*\(|XMLHttpRequest|navigator\.sendBeacon|integrations\/supabase|\bsupabase\b/i,
+      );
+    }
   });
 });
 

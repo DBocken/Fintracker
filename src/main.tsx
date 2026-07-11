@@ -20,11 +20,19 @@ import '@/integrations/capacitor/setup'
 import { LocalEncryptionProvider } from '@/components/providers/LocalEncryptionProvider'
 import { migrateLocalStorageToIdb } from './services/idb-kv'
 import { applyDetectedContracts } from './services/contract-detection-service'
+import { installGlobalErrorHandlers } from './services/global-error-handlers'
+import { migrateLegacyErrorLog } from './services/error-log-service'
 
 // Einmalige Migration der lokalen Bulk-Daten von localStorage nach IndexedDB
 // (Issue #29). Fire-and-forget: Lese-Zugriffe migrieren fehlende Schlüssel
 // notfalls selbst nach (Lazy-Fallback), daher muss der Render nicht warten.
 void migrateLocalStorageToIdb()
+
+// Fehler außerhalb des React-Baums (Timer, Event-Handler, uncaught async)
+// landen im lokalen, redigierten Fehlerprotokoll — der Root-ErrorBoundary
+// sieht sie nie. So früh wie möglich installieren.
+installGlobalErrorHandlers()
+void migrateLegacyErrorLog()
 
 const queryClient = new QueryClient({
   defaultOptions: {
