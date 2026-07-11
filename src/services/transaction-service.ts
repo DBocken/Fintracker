@@ -10,6 +10,7 @@ import {
 } from './local-settings-service';
 import { normalizeMerchantName } from './merchant-normalization';
 import { REGEX_FALLBACK_RULES } from '../data/merchant-keywords';
+import { matchesKeyword } from '@/lib/keyword-match';
 import { getMerchantRules, upsertMerchantRule, type MerchantRule } from './merchant-rules-service';
 import { parseGermanNumber } from '../lib/money';
 import { t } from '@/i18n/serviceT';
@@ -131,15 +132,13 @@ export function explainCategorization(
   for (const category of categories) {
     if (isBlockedByDirection(category)) continue;
     const filters = (category.filters || []) as string[];
-    const matches = filters.filter((filter) => {
-      const f = filter.toLowerCase();
-      return (
-        (transaction.payee || '').toLowerCase().includes(f) ||
-        (transaction.description || '').toLowerCase().includes(f) ||
-        (transaction.original_text || '').toLowerCase().includes(f) ||
-        normalizedPayee.includes(f)
-      );
-    });
+    const matches = filters.filter(
+      (filter) =>
+        matchesKeyword(transaction.payee || '', filter) ||
+        matchesKeyword(transaction.description || '', filter) ||
+        matchesKeyword(transaction.original_text || '', filter) ||
+        matchesKeyword(normalizedPayee, filter),
+    );
 
     if (matches.length > bestSpecificity) {
       bestMatch = category;
@@ -187,6 +186,24 @@ export function categorizeTransaction(
   learnedRules?: MerchantRule[]
 ): string | null {
   return explainCategorization(transaction, categories, learnedRules).categoryId;
+}
+
+/**
+ * Mindest-Konfidenz für STILLE Zuweisungen (Import/Sync/Bulk-Recategorize).
+ * Darunter (insb. Regex-Fallback 0,55) wird nichts geschrieben — die Buchung
+ * bleibt unkategorisiert und erscheint als Vorschlag in der Coach-Inbox
+ * („Automatisch, aber nie bevormundend": raten ja, still festschreiben nein).
+ */
+export const MIN_SILENT_ASSIGN_CONFIDENCE = 0.7;
+
+/** Kategorie-ID nur bei ausreichender Konfidenz für stille Zuweisung. */
+export function categorizeTransactionConfident(
+  transaction: Transaction,
+  categories: Category[],
+  learnedRules?: MerchantRule[]
+): string | null {
+  const result = explainCategorization(transaction, categories, learnedRules);
+  return result.confidence >= MIN_SILENT_ASSIGN_CONFIDENCE ? result.categoryId : null;
 }
 
 // -----------------------------------------------------------------------------
@@ -518,7 +535,7 @@ export async function recategorizeTransactions(): Promise<{
   const undo: CategorizationSnapshotEntry[] = [];
 
   for (const tx of transactions) {
-    const newCat = categorizeTransaction(tx, categories, learnedRules);
+    const newCat = categorizeTransactionConfident(tx, categories, learnedRules);
     const prevCat = tx.category_id || null;
 
     if (newCat) assigned += 1;
@@ -565,7 +582,7 @@ export async function applyAutoCategorization(transactions: Transaction[]): Prom
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
   return transactions.map((t) => {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
+    const newCat = categorizeTransactionConfident(t, categories, learnedRules);
     return {
       ...t,
       category_id: newCat,

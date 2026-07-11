@@ -8,6 +8,7 @@
 import { buildTaxSuggestion } from '@/services/automation-suggestion-service';
 import type { AutomationSuggestion } from '@/services/automation-suggestion-service';
 import { TAX_CATEGORIES, taxCategoryById, getRubricForCategory } from '@/data/tax-catalog';
+import { matchesKeyword } from '@/lib/keyword-match';
 import type { Category, Transaction } from '@/types';
 import { t } from '@/i18n/serviceT';
 
@@ -23,11 +24,11 @@ function rubricName(taxCategoryId: string): string {
   return rubric ? t(rubric.nameKey as never, rubric.id) : taxCategoryId;
 }
 
-/** Erstes Keyword einer Steuer-Kategorie, das im Text vorkommt. */
+/** Erstes Keyword einer Steuer-Kategorie, das im Text vorkommt (wortgrenzen-bewusst). */
 function keywordMatch(haystack: string): { taxCategoryId: string; keyword: string } | null {
   for (const cat of TAX_CATEGORIES) {
     for (const kw of cat.keywords) {
-      if (haystack.includes(kw)) return { taxCategoryId: cat.id, keyword: kw };
+      if (matchesKeyword(haystack, kw)) return { taxCategoryId: cat.id, keyword: kw };
     }
   }
   return null;

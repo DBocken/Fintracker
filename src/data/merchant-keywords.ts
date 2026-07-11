@@ -292,7 +292,9 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "haushaltswaren",
         name: "Haushaltswaren",
         klasse: "diskretionaer",
-        keywords: ["tedox", "ikea", "möbel", "moebel"],
+        // "möbelhaus"/"moebelhaus" kompensieren die Wortgrenzen-Regel für das
+        // kurze Keyword "möbel" (Komposita matchen sonst nicht mehr).
+        keywords: ["tedox", "ikea", "möbel", "moebel", "möbelhaus", "moebelhaus"],
       },
       {
         slug: "handwerker",
@@ -627,7 +629,9 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "wertpapiere",
         name: "Wertpapiere",
-        keywords: ["broker", "depot", "wertpapier", "etf", "trade republic", "scalable", "comdirect"],
+        // Bewusst KEIN bares "depot": kollidiert als eigenständiges Wort mit der
+        // Deko-Kette DEPOT (Homonym, Wortgrenzen helfen nicht).
+        keywords: ["broker", "depotgebühr", "depotgebuehr", "depotführung", "depotfuehrung", "depotübertrag", "wertpapier", "etf", "trade republic", "scalable", "comdirect"],
       },
       {
         slug: "tagesgeld",
