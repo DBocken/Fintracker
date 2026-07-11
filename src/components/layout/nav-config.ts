@@ -17,6 +17,7 @@ import {
   Gauge,
   HandCoins,
   Landmark,
+  Briefcase,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 
@@ -32,6 +33,8 @@ export type NavItem = {
   subtitle?: string;
   /** i18n-Key für den Untertitel; `subtitle` dient als Fallback (DE). */
   subtitleKey?: string;
+  /** Nur im Einzelunternehmer-Modus sichtbar (Route bleibt immer registriert). */
+  businessOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -100,6 +103,15 @@ export const NAV_GROUPS: NavGroup[] = [
         subtitleKey: "nav.subtitles.tax",
       },
       {
+        label: "EÜR",
+        labelKey: "nav.items.euer",
+        path: "/euer",
+        icon: Briefcase,
+        businessOnly: true,
+        subtitle: "Einnahmen − Ausgaben = Gewinn",
+        subtitleKey: "nav.subtitles.euer",
+      },
+      {
         label: "Trends & Berichte",
         labelKey: "nav.items.premium",
         path: "/premium",
@@ -152,12 +164,16 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
 };
 
 /**
- * Liefert die sichtbaren Nav-Gruppen. Früher wurden hier Beta-Ziele per
- * lokalem Feature-Flag gefiltert; seit Trading regulär sichtbar ist, gibt es
- * keine Flags mehr — die Funktion bleibt als zentrale Nav-Quelle bestehen.
+ * Liefert die sichtbaren Nav-Gruppen. `businessOnly`-Ziele (EÜR) erscheinen nur
+ * im Einzelunternehmer-Modus („Ruhe vor Fülle" — Opt-in); ihre Routen bleiben
+ * trotzdem immer registriert (Deep-Links, Bestandsdaten).
  */
-export function getVisibleNavGroups(): NavGroup[] {
-  return NAV_GROUPS;
+export function getVisibleNavGroups(businessMode: boolean): NavGroup[] {
+  if (businessMode) return NAV_GROUPS;
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.businessOnly),
+  })).filter((group) => group.items.length > 0);
 }
 
 /**

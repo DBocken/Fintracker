@@ -43,6 +43,8 @@ describe('Golden Table: TAX_YEAR_PARAMS', () => {
       a35a3CapCredit: 1200,
       creditRate35c: 0.2,
       a35cCapCredit: 40000,
+      bewirtungAbzugRate: 0.7,
+      gwgGrenzeNetto: 800,
     });
   });
 
@@ -76,6 +78,8 @@ describe('Golden Table: TAX_YEAR_PARAMS', () => {
       a35a3CapCredit: 1200,
       creditRate35c: 0.2,
       a35cCapCredit: 40000,
+      bewirtungAbzugRate: 0.7,
+      gwgGrenzeNetto: 800,
     });
   });
 
@@ -109,6 +113,8 @@ describe('Golden Table: TAX_YEAR_PARAMS', () => {
       a35a3CapCredit: 1200,
       creditRate35c: 0.2,
       a35cCapCredit: 40000,
+      bewirtungAbzugRate: 0.7,
+      gwgGrenzeNetto: 800,
     });
   });
 
@@ -136,6 +142,17 @@ describe('Rechtsgrundlagen', () => {
       expect(basis.law.trim().length, `law fehlt für ${p}`).toBeGreaterThan(0);
       // Der Typ erzwingt Vollständigkeit; hier fangen wir leere Platzhalter ab.
       expect(/§|EStG|LStH|BMF/.test(basis.law), `law für ${p} ohne Fundstelle: "${basis.law}"`).toBe(true);
+    }
+  });
+});
+
+describe('Musterrechnung Bewirtung (Parameter-Ebene)', () => {
+  // §4 Abs. 5 S. 1 Nr. 2 EStG: 70 % der angemessenen Bewirtungsaufwendungen
+  // sind abziehbar — gesetzlich exakter, konstanter Satz (alle VZ identisch).
+  it('1.000 € Bewirtungsaufwand → 700 € abziehbar (alle VZ)', () => {
+    for (const vz of [2024, 2025, 2026] as const) {
+      const p = TAX_YEAR_PARAMS[vz];
+      expect(p.bewirtungAbzugRate * 1000, `VZ ${vz}`).toBe(700);
     }
   });
 });

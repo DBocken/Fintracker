@@ -1,5 +1,6 @@
 import type { Ausgabenklasse, Category, Rhythmus, Transaction } from '@/types';
 import type { CategorizationResult } from '@/services/transaction-service';
+import { taxCategoryById } from '@/data/tax-catalog';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -91,6 +92,8 @@ export interface TransactionDetailDraft {
   tax_labor_costs?: number | null;
   /** Freie Steuer-Notiz. */
   tax_note?: string | null;
+  /** Explizit privat trotz Geschäftskonto (EÜR-Exklusion, gewinnt Konflikte). */
+  euer_private?: boolean;
 }
 
 /**
@@ -200,6 +203,35 @@ export function buildContractHint(
   };
 }
 
+export interface DetailTaxDefault {
+  taxCategoryId: string;
+  categoryName: string;
+}
+
+/**
+ * Steuer-Default-Vorschlag für die Steuer-Sektion des Detail-Panels: Trägt die
+ * gewählte (Unter-)Kategorie eine voreingestellte Steuer-Rubrik und ist die
+ * Buchung noch unmarkiert, wird sie als Chip VORGESCHLAGEN — nie automatisch
+ * gesetzt. Nur für Ausgaben; Transfers sind nie steuerrelevant. Unbekannte
+ * Rubrik-IDs (z. B. nach Katalog-Umbau) werden ignoriert.
+ */
+export function buildDetailTaxDefault(
+  draft: TransactionDetailDraft,
+  amount: number,
+  categoriesById: Map<string, Category>,
+): DetailTaxDefault | null {
+  if (draft.tax_category_id) return null;
+  if (draft.is_transfer) return null;
+  if (amount >= 0) return null;
+
+  const category =
+    categoriesById.get(draft.subcategory_id ?? '') ?? categoriesById.get(draft.category_id ?? '');
+  const taxCategoryId = category?.attributes?.default_tax_category_id;
+  if (!category || !taxCategoryId || !taxCategoryById.has(taxCategoryId)) return null;
+
+  return { taxCategoryId, categoryName: category.name };
+}
+
 /** Initialisiert den bearbeitbaren Entwurf aus einer Transaktion. */
 export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
   return {
@@ -211,6 +243,7 @@ export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
     tax_category_id: tx.tax_category_id ?? null,
     tax_labor_costs: tx.tax_labor_costs ?? null,
     tax_note: tx.tax_note ?? null,
+    euer_private: tx.euer_private ?? false,
   };
 }
 
@@ -264,6 +297,11 @@ export function diffTransactionDraft(
     if ((tx.tax_note ?? null) !== normalizedNote) {
       patch.tax_note = normalizedNote;
     }
+  }
+
+  // EÜR-Exklusion (nur wenn der Entwurf das Feld kennt — alte Entwürfe unberührt).
+  if (draft.euer_private !== undefined && (tx.euer_private ?? false) !== draft.euer_private) {
+    patch.euer_private = draft.euer_private;
   }
 
   return patch;

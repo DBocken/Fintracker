@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 const STEP_FILL: Record<WaterfallStepKey, string> = {
+  "tax-reserve": "bg-violet-500",
   savings: "bg-sky-500",
   essentials: "bg-amber-500",
   discretionary: "bg-[hsl(var(--brand))]",
@@ -85,7 +86,8 @@ export default function WaterfallPanel() {
     );
   }
 
-  const stepHints = {
+  const stepHints: Record<WaterfallStepKey, string> = {
+    'tax-reserve': t('budgets.waterfall.stepHints.taxReserve'),
     savings: t('budgets.waterfall.stepHints.savings'),
     essentials: t('budgets.waterfall.stepHints.essentials'),
     discretionary: t('budgets.waterfall.stepHints.discretionary'),

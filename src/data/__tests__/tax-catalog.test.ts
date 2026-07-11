@@ -56,6 +56,57 @@ describe('Tax Catalog', () => {
     });
   });
 
+  describe('EÜR-Katalog (Einzelunternehmer)', () => {
+    it('sollte die Rubrik betriebseinnahmen mit kind=income auf Anlage EÜR haben', () => {
+      const rubric = TAX_RUBRICS.find((r) => r.id === 'betriebseinnahmen');
+      expect(rubric?.kind).toBe('income');
+      expect(rubric?.anlage).toBe('euer');
+    });
+
+    it('sollte genau ein Einnahmen-Blatt für Betriebseinnahmen haben', () => {
+      const leaves = TAX_CATEGORIES.filter((c) => c.rubricId === 'betriebseinnahmen');
+      expect(leaves.map((c) => c.id)).toEqual(['tax-eur-betriebseinnahme']);
+    });
+
+    it('sollte 10 Ausgaben-Blätter unter betriebsausgaben haben (inkl. Sammel-Blatt, ID-stabil)', () => {
+      const ids = TAX_CATEGORIES.filter((c) => c.rubricId === 'betriebsausgaben').map((c) => c.id);
+      expect(ids).toEqual([
+        'tax-eur-wareneinkauf',
+        'tax-eur-fremdleistungen',
+        'tax-eur-raumkosten',
+        'tax-eur-kfz',
+        'tax-eur-reisekosten',
+        'tax-eur-bewirtung',
+        'tax-eur-arbeitsmittel',
+        'tax-eur-versicherungen-beitraege',
+        'tax-eur-telefon-internet',
+        'tax-eur-betriebsausgabe',
+      ]);
+    });
+
+    it('sollte Bewirtung über rule.rateParam an bewirtungAbzugRate koppeln (70 %)', () => {
+      const bewirtung = taxCategoryById.get('tax-eur-bewirtung');
+      expect(bewirtung?.rule?.rateParam).toBe('bewirtungAbzugRate');
+      expect(TAX_YEAR_PARAMS[2025].bewirtungAbzugRate).toBe(0.7);
+    });
+
+    it('sollte keine Keyword-Kollisionen zwischen EÜR- und Nicht-EÜR-Blättern haben', () => {
+      // EÜR-Vorschläge werden auf Geschäftskonten beschränkt; ein Keyword, das
+      // zugleich auf ein Privat-Blatt zeigt, würde mehrdeutige Vorschläge erzeugen.
+      const euerIds = new Set(
+        TAX_CATEGORIES.filter((c) => c.rubricId === 'betriebsausgaben' || c.rubricId === 'betriebseinnahmen').map((c) => c.id),
+      );
+      const privateKeywords = new Set(
+        TAX_CATEGORIES.filter((c) => !euerIds.has(c.id)).flatMap((c) => c.keywords),
+      );
+      for (const cat of TAX_CATEGORIES.filter((c) => euerIds.has(c.id))) {
+        for (const kw of cat.keywords) {
+          expect(privateKeywords.has(kw), `Keyword "${kw}" kollidiert mit Privat-Blatt`).toBe(false);
+        }
+      }
+    });
+  });
+
   describe('getTaxParams', () => {
     it('sollte exakte Parameter für bekannte Jahre liefern', () => {
       expect(getTaxParams(2024)).toEqual({ params: TAX_YEAR_PARAMS[2024], exact: true });

@@ -1,8 +1,11 @@
 // Liquiditäts-Wasserfall: unsere eigene Budget-Methodik.
 //
 // Reihenfolge der Mittelverwendung (Pay-yourself-first + Null-Saldo):
-//   Einkommen → Sparen zuerst → Existenzsichernde Fixkosten → variable Töpfe
-//   (Null-Saldo) → Überschuss.
+//   Einkommen → [Steuerrücklage] → Sparen zuerst → Existenzsichernde Fixkosten
+//   → variable Töpfe (Null-Saldo) → Überschuss.
+// Die Steuer-Stufe kommt VOR dem Sparen (Steuern sind fremdes Geld → höchste
+// Dotierungs-Priorität) und wird nur emittiert, wenn taxReserveMonthly > 0 —
+// ohne sie bleibt das Ergebnis bit-identisch zum Bestand.
 // Reine, datengetriebene Logik (die realen Eingaben liefert der Service).
 
 import { t } from "@/i18n/serviceT";
@@ -18,9 +21,11 @@ export interface WaterfallInput {
   essentials: number;
   /** Summe der gewünschten variablen Budgets (Null-Saldo-Verteilung). */
   discretionaryRequested: number;
+  /** Monatliche Steuerrücklage (Einzelunternehmer); fehlt/≤ 0 ⇒ keine Stufe. */
+  taxReserveMonthly?: number;
 }
 
-export type WaterfallStepKey = "savings" | "essentials" | "discretionary" | "surplus";
+export type WaterfallStepKey = "tax-reserve" | "savings" | "essentials" | "discretionary" | "surplus";
 
 export interface WaterfallStep {
   key: WaterfallStepKey;
@@ -81,6 +86,11 @@ export function computeWaterfall(input: WaterfallInput): WaterfallResult {
     });
   };
 
+  // Steuer vor Sparen — nur emittieren, wenn wirklich dotiert wird, damit das
+  // Bestandsverhalten ohne Einzelunternehmer-Modus unverändert bleibt.
+  if ((input.taxReserveMonthly ?? 0) > 0) {
+    take("tax-reserve", t("budgetWaterfall.taxReserve", "Steuerrücklage"), input.taxReserveMonthly!);
+  }
   take("savings", t("budgetWaterfall.savingsFirst", "Sparen zuerst"), resolveSavingsAmount(income, input.savings));
   take("essentials", t("budgetWaterfall.essentials", "Fixkosten"), input.essentials);
   take("discretionary", t("budgetWaterfall.discretionary", "Variable Töpfe"), input.discretionaryRequested);
@@ -95,8 +105,10 @@ export function computeWaterfall(input: WaterfallInput): WaterfallResult {
     shortfall: 0,
   });
 
-  const savingsAllocated = steps[0].allocated;
-  const essentialsShortfall = steps[1].shortfall;
+  // Key-Lookup statt Positionsindex: die optionale Steuer-Stufe verschiebt die
+  // Positionen — steps[0]/steps[1] würde Sparquote/feasible still verfälschen.
+  const savingsAllocated = steps.find((s) => s.key === "savings")?.allocated ?? 0;
+  const essentialsShortfall = steps.find((s) => s.key === "essentials")?.shortfall ?? 0;
   const totalShortfall = steps.reduce((sum, s) => sum + s.shortfall, 0);
 
   return {

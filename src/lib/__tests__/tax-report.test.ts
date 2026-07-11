@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTaxYearReport } from '../tax-report';
+import { buildTaxYearReport, hasEuerMarkings } from '../tax-report';
 import type { Transaction } from '@/types';
 import type { TaxYearProfile } from '@/services/tax-profile-service';
 
@@ -97,6 +97,38 @@ describe('buildTaxYearReport', () => {
       // agb wird nur angezeigt, wenn Daten vorhanden — hier keine.
       expect(agb).toBeUndefined();
       expect(report.markedTotal).toBe(0);
+    });
+  });
+
+  describe('EÜR-Entkopplung (Einzelunternehmer)', () => {
+    it('[REGRESSION] sollte EÜR-markierte Buchungen NICHT zählen (eigene /euer-Auswertung, keine Doppelzählung)', () => {
+      const txs = [
+        tx({ amount: -500, tax_category_id: 'tax-eur-betriebsausgabe' }),
+        tx({ amount: -200, tax_category_id: 'tax-eur-bewirtung' }),
+        tx({ amount: 3000, tax_category_id: 'tax-eur-betriebseinnahme' }),
+      ];
+      const report = buildTaxYearReport(txs, 2025, null);
+      expect(rubric(report, 'betriebsausgaben')).toBeUndefined();
+      expect(rubric(report, 'betriebseinnahmen')).toBeUndefined();
+      expect(report.markedTotal).toBe(0);
+      expect(report.txCount).toBe(0);
+    });
+
+    it('sollte Nicht-EÜR-Markierungen daneben unverändert auswerten', () => {
+      const txs = [
+        tx({ amount: -500, tax_category_id: 'tax-eur-betriebsausgabe' }),
+        tx({ amount: -100, tax_category_id: 'tax-agb-krankheit' }),
+      ];
+      const report = buildTaxYearReport(txs, 2025, null);
+      expect(rubric(report, 'agb')?.costsTotal).toBe(100);
+      expect(report.txCount).toBe(1);
+    });
+
+    it('hasEuerMarkings sollte EÜR-Markierungen erkennen (für die Pointer-Karte)', () => {
+      expect(hasEuerMarkings([tx({ tax_category_id: 'tax-eur-bewirtung' })])).toBe(true);
+      expect(hasEuerMarkings([tx({ tax_category_id: 'tax-agb-krankheit' })])).toBe(false);
+      expect(hasEuerMarkings([tx({})])).toBe(false);
+      expect(hasEuerMarkings([])).toBe(false);
     });
   });
 

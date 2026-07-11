@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { draftFromTransaction, diffTransactionDraft } from '../transaction-details';
-import type { Transaction } from '@/types';
+import { draftFromTransaction, diffTransactionDraft, buildDetailTaxDefault } from '../transaction-details';
+import type { Category, Transaction } from '@/types';
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return {
@@ -52,6 +52,59 @@ describe('Transaction Steuer-Draft/Diff', () => {
       const patch = diffTransactionDraft(original, draft);
       expect('tax_category_id' in patch).toBe(false);
       expect('tax_labor_costs' in patch).toBe(false);
+    });
+  });
+
+  describe('buildDetailTaxDefault (Steuer-Default-Chip)', () => {
+    const handwerkerCat: Category = {
+      id: 'local-cat-handwerker',
+      name: 'Handwerker & Reparaturen',
+      filters: [],
+      parent_id: 'local-cat-wohnen',
+      attributes: { default_tax_category_id: 'tax-35a3-handwerker' },
+    };
+    const wohnenCat: Category = { id: 'local-cat-wohnen', name: 'Wohnen', filters: [], parent_id: null };
+    const byId = new Map([
+      [handwerkerCat.id, handwerkerCat],
+      [wohnenCat.id, wohnenCat],
+    ]);
+
+    it('sollte den Kategorie-Default vorschlagen, wenn die Buchung unmarkiert ist', () => {
+      const draft = draftFromTransaction(
+        tx({ category_id: 'local-cat-wohnen', subcategory_id: 'local-cat-handwerker' }),
+      );
+      const suggestion = buildDetailTaxDefault(draft, -1800, byId);
+      expect(suggestion?.taxCategoryId).toBe('tax-35a3-handwerker');
+      expect(suggestion?.categoryName).toBe('Handwerker & Reparaturen');
+    });
+
+    it('sollte NICHT vorschlagen, wenn bereits eine Rubrik gesetzt ist', () => {
+      const draft = {
+        ...draftFromTransaction(tx({ subcategory_id: 'local-cat-handwerker' })),
+        tax_category_id: 'tax-agb-krankheit',
+      };
+      expect(buildDetailTaxDefault(draft, -1800, byId)).toBeNull();
+    });
+
+    it('sollte NICHT vorschlagen, wenn die Kategorie keinen Default trägt', () => {
+      const draft = draftFromTransaction(tx({ category_id: 'local-cat-wohnen' }));
+      expect(buildDetailTaxDefault(draft, -1800, byId)).toBeNull();
+    });
+
+    it('sollte NICHT für Einnahmen oder Transfers vorschlagen', () => {
+      const draft = draftFromTransaction(tx({ subcategory_id: 'local-cat-handwerker' }));
+      expect(buildDetailTaxDefault(draft, 200, byId)).toBeNull();
+      const transferDraft = { ...draft, is_transfer: true };
+      expect(buildDetailTaxDefault(transferDraft, -1800, byId)).toBeNull();
+    });
+
+    it('sollte einen unbekannten Default (gelöschte Steuer-Kategorie) ignorieren', () => {
+      const broken: Category = {
+        ...handwerkerCat,
+        attributes: { default_tax_category_id: 'tax-gibt-es-nicht' },
+      };
+      const draft = draftFromTransaction(tx({ subcategory_id: broken.id }));
+      expect(buildDetailTaxDefault(draft, -1800, new Map([[broken.id, broken]]))).toBeNull();
     });
   });
 });

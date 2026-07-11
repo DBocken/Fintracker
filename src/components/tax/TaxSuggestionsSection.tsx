@@ -12,6 +12,8 @@ import {
 } from '@/services/automation-suggestion-service';
 import { buildPendingTaxSuggestions } from '@/lib/tax-suggestions';
 import { suggestionConfidenceLevel } from '@/lib/automation-suggestions';
+import { getAccounts } from '@/services/account-service';
+import { useBusinessMode } from '@/hooks/useBusinessMode';
 
 interface Props {
   transactions: Transaction[];
@@ -22,15 +24,23 @@ interface Props {
 export function TaxSuggestionsSection({ transactions, categories, onOpenTransaction }: Props) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const businessMode = useBusinessMode();
 
   const { data: decided = [] } = useQuery({
     queryKey: ['automationSuggestions'],
     queryFn: getAutomationSuggestions,
   });
+  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
+
+  // EÜR-Blätter nur im Business-Modus und nur auf Geschäftskonten vorschlagen.
+  const businessAccountIds = useMemo(
+    () => (businessMode ? new Set(accounts.filter((a) => a.is_business).map((a) => a.id)) : undefined),
+    [businessMode, accounts],
+  );
 
   const pending = useMemo(
-    () => buildPendingTaxSuggestions(transactions, categories, decided),
-    [transactions, categories, decided],
+    () => buildPendingTaxSuggestions(transactions, categories, decided, 50, businessAccountIds),
+    [transactions, categories, decided, businessAccountIds],
   );
 
   const invalidate = () => {

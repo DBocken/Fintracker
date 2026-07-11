@@ -96,6 +96,7 @@ describe('draftFromTransaction', () => {
       tax_category_id: null,
       tax_labor_costs: null,
       tax_note: null,
+      euer_private: false,
     });
   });
 
@@ -110,6 +111,7 @@ describe('draftFromTransaction', () => {
       tax_category_id: null,
       tax_labor_costs: null,
       tax_note: null,
+      euer_private: false,
     });
   });
 });
@@ -129,6 +131,18 @@ describe('diffTransactionDraft', () => {
   it('erfasst Vertrags-Aktivierung samt Zyklus', () => {
     const draft: TransactionDetailDraft = { ...draftFromTransaction(base), is_contract: true, contract_cycle: 'monthly' };
     expect(diffTransactionDraft(base, draft)).toEqual({ is_contract: true, contract_cycle: 'monthly' });
+  });
+
+  it('erfasst den euer_private-Toggle (EÜR-Exklusion) nur bei Änderung', () => {
+    const draft: TransactionDetailDraft = { ...draftFromTransaction(base), euer_private: true };
+    expect(diffTransactionDraft(base, draft)).toEqual({ euer_private: true });
+
+    const marked = tx({ euer_private: true });
+    const unchanged = draftFromTransaction(marked);
+    expect(diffTransactionDraft(marked, unchanged)).toEqual({});
+
+    const cleared: TransactionDetailDraft = { ...draftFromTransaction(marked), euer_private: false };
+    expect(diffTransactionDraft(marked, cleared)).toEqual({ euer_private: false });
   });
 
   it('setzt den Zyklus auf null, wenn is_contract deaktiviert wird', () => {

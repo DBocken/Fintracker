@@ -26,7 +26,8 @@ export type TaxRubricId =
   | 'sonderausgaben'
   | 'agb'
   | 'vermietung'
-  | 'betriebsausgaben';
+  | 'betriebsausgaben'
+  | 'betriebseinnahmen';
 
 /**
  * Mechanik einer Rubrik. Enthält NIE Beträge, sondern nur Referenzen auf Felder
@@ -40,8 +41,9 @@ export interface TaxRubric {
    * `credit` = direkte Steuerermäßigung (§35a/§35c, exakt berechenbar).
    * `deduction` = mindert nur das zu versteuernde Einkommen — hier zeigt die App
    * ausschließlich Summen + Schwellen-Hinweise, keine Ersparnis-Schätzung.
+   * `income` = Betriebseinnahmen (EÜR) — erhöht den Gewinn, mindert nichts.
    */
-  kind: 'credit' | 'deduction';
+  kind: 'credit' | 'deduction' | 'income';
   /** Nur Arbeits-/Fahrt-/Maschinenkosten sind begünstigt (§35a Abs. 3). */
   laborCostOnly?: boolean;
   /** Unbare Zahlung + Rechnung gesetzlich erforderlich (§35a Abs. 5 S. 3). */
@@ -114,6 +116,8 @@ export interface TaxYearParams {
   a35a3CapCredit: number;
   creditRate35c: number;
   a35cCapCredit: number;
+  bewirtungAbzugRate: number;
+  gwgGrenzeNetto: number;
 }
 
 /** Nur die numerischen Parameter dürfen referenziert werden (nicht `vz`). */
@@ -237,6 +241,14 @@ export const TAX_PARAM_LEGAL_BASIS: Record<NumericParam, TaxParamLegalBasis> = {
     law: '§35c Abs. 1 S. 5 EStG',
     note: 'Höchstbetrag der Ermäßigung 40.000 € je begünstigtem Objekt.',
   },
+  bewirtungAbzugRate: {
+    law: '§4 Abs. 5 S. 1 Nr. 2 EStG',
+    note: '70 % der angemessenen Bewirtungsaufwendungen abziehbar; Aufzeichnungspflicht nach §4 Abs. 7 EStG (Anlass, Teilnehmer, Beleg).',
+  },
+  gwgGrenzeNetto: {
+    law: '§6 Abs. 2 EStG',
+    note: 'GWG-Sofortabzug bis 800 € netto (≈952 € brutto bei 19 % USt) — nur Hinweis, die App entscheidet nicht Sofortabzug vs. AfA.',
+  },
 };
 
 /**
@@ -271,6 +283,8 @@ const CONSTANT_PARAMS: Omit<TaxYearParams, 'vz'> = {
   a35a3CapCredit: 1200,
   creditRate35c: 0.2,
   a35cCapCredit: 40000,
+  bewirtungAbzugRate: 0.7,
+  gwgGrenzeNetto: 800,
 };
 
 export const TAX_YEAR_PARAMS: Record<number, TaxYearParams> = {
@@ -489,6 +503,13 @@ export const TAX_RUBRICS: TaxRubric[] = [
     kind: 'deduction',
     nameKey: 'tax.rubric.betriebsausgaben.name',
     hintKey: 'tax.rubric.betriebsausgaben.hint',
+  },
+  {
+    id: 'betriebseinnahmen',
+    anlage: 'euer',
+    kind: 'income',
+    nameKey: 'tax.rubric.betriebseinnahmen.name',
+    hintKey: 'tax.rubric.betriebseinnahmen.hint',
   },
 ];
 
@@ -789,11 +810,85 @@ export const TAX_CATEGORIES: TaxCategory[] = [
     keywords: [],
   },
   // ── Betriebsausgaben (EÜR) ────────────────────────────────────────────────
+  // Gliederung an Anlage EÜR orientiert; Vorschlags-Keywords bewusst konservativ
+  // (EÜR-Blätter werden nur auf Geschäftskonten vorgeschlagen, nie auto-markiert).
   {
+    id: 'tax-eur-wareneinkauf',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerWareneinkauf.name',
+    keywords: ['wareneinkauf', 'großhandel', 'grosshandel'],
+  },
+  {
+    id: 'tax-eur-fremdleistungen',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerFremdleistungen.name',
+    keywords: ['fremdleistung', 'subunternehmer'],
+  },
+  {
+    id: 'tax-eur-raumkosten',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerRaumkosten.name',
+    hintKey: 'tax.cat.euerRaumkosten.hint',
+    keywords: ['büromiete', 'bueromiete', 'coworking'],
+  },
+  {
+    id: 'tax-eur-kfz',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerKfz.name',
+    hintKey: 'tax.cat.euerKfz.hint',
+    keywords: [],
+  },
+  {
+    id: 'tax-eur-reisekosten',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerReisekosten.name',
+    hintKey: 'tax.cat.euerReisekosten.hint',
+    keywords: [],
+  },
+  {
+    // Einziges EÜR-Blatt mit eigener Rechenregel: nur 70 % sind abziehbar —
+    // gesetzlich exakter, konstanter Satz, daher rechnet die App ihn.
+    id: 'tax-eur-bewirtung',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerBewirtung.name',
+    hintKey: 'tax.cat.euerBewirtung.hint',
+    keywords: ['bewirtung', 'geschäftsessen', 'geschaeftsessen'],
+    rule: { rateParam: 'bewirtungAbzugRate' },
+  },
+  {
+    id: 'tax-eur-arbeitsmittel',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerArbeitsmittel.name',
+    hintKey: 'tax.cat.euerArbeitsmittel.hint',
+    keywords: [],
+  },
+  {
+    id: 'tax-eur-versicherungen-beitraege',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerVersicherungen.name',
+    keywords: ['betriebshaftpflicht', 'berufsgenossenschaft', 'handwerkskammer', 'ihk'],
+  },
+  {
+    id: 'tax-eur-telefon-internet',
+    rubricId: 'betriebsausgaben',
+    nameKey: 'tax.cat.euerTelefonInternet.name',
+    hintKey: 'tax.cat.euerTelefonInternet.hint',
+    keywords: [],
+  },
+  {
+    // ID-stabil (bestand vor der EÜR-Gliederung) — umgewidmet zu „Sonstige".
     id: 'tax-eur-betriebsausgabe',
     rubricId: 'betriebsausgaben',
     nameKey: 'tax.cat.betriebsausgabe.name',
     hintKey: 'tax.cat.betriebsausgabe.hint',
+    keywords: [],
+  },
+  // ── Betriebseinnahmen (EÜR) ───────────────────────────────────────────────
+  {
+    id: 'tax-eur-betriebseinnahme',
+    rubricId: 'betriebseinnahmen',
+    nameKey: 'tax.cat.euerBetriebseinnahme.name',
+    hintKey: 'tax.cat.euerBetriebseinnahme.hint',
     keywords: [],
   },
 ];

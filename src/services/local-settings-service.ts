@@ -62,13 +62,23 @@ export async function getLocalCategories(): Promise<Category[]> {
     // default_tax_category_id auf bestehenden Defaults).
     const { categories: taxMigrated, changed: taxChanged } = backfillTaxDefaults(incomeMigrated);
 
+    // Präzisiere Steuer-Defaults: Haftpflicht/Hausrat-Split + Vereine ohne
+    // pauschalen Spenden-Default.
+    const { categories: insuranceMigrated, changed: insuranceChanged } = migrateInsuranceTaxSplit(taxMigrated);
+
+    // Kategorien-Paket 2026 (Kinder & Familie, Bildung, Steuern & Abgaben).
+    const { categories: packMigrated, changed: packChanged } = migrateCategoryPack2026(insuranceMigrated);
+
+    // Klassen-Korrektur: Therapie/Sehhilfen sind essenziell.
+    const { categories: healthMigrated, changed: healthChanged } = migrateEssentialHealthClasses(packMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged) {
-      await writeLocalCategories(taxMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged || healthChanged) {
+      await writeLocalCategories(healthMigrated);
     }
-    return taxMigrated;
+    return healthMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -323,6 +333,149 @@ export function backfillTaxDefaults(categories: Category[]): { categories: Categ
   return { categories: result, changed };
 }
 
+/**
+ * Präzisions-Migration der Steuer-Vorschlags-Defaults:
+ * 1. Die frühere Misch-Kategorie „Haftpflicht & Hausrat" wird zu
+ *    „Hausrat & Gebäude" OHNE Steuer-Default (Hausrat/Gebäude sind nicht
+ *    absetzbar — der pauschale 0,9-Vorschlag war irreführend); der
+ *    Haftpflicht-Anteil zieht in die neue Kategorie `local-cat-haftpflicht`
+ *    (wird angehängt, falls sie fehlt).
+ * 2. Vereine verlieren den Spenden-Default (Mitgliedsbeiträge sind meist nicht
+ *    gemeinnützig); echte Spenden erkennt die Keyword-Ebene weiterhin.
+ *
+ * Nur unveränderte Defaults (`is_default !== false`) und nur die ALTEN
+ * Default-Werte werden angefasst — bewusst vom Nutzer gesetzte Abweichungen
+ * bleiben stehen. Reine Funktion, `changed` nur bei echter Änderung (F-CAT).
+ */
+// Aus der Misch-Kategorie in die neue Haftpflicht-Kategorie umgezogene Keywords.
+const HAFTPFLICHT_KEYWORDS_MOVED = ["haftpflicht"];
+
+export function migrateInsuranceTaxSplit(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  const migrated = categories.map((cat) => {
+    if (cat.is_default === false) return cat;
+
+    if (cat.id === "local-cat-haftpflichthausrat") {
+      let next = cat;
+      if (next.name === "Haftpflicht & Hausrat") {
+        changed = true;
+        next = { ...next, name: defaultsById.get(next.id)?.name ?? "Hausrat & Gebäude" };
+      }
+      if (next.attributes?.default_tax_category_id === "tax-so-versicherungen") {
+        changed = true;
+        next = {
+          ...next,
+          attributes: { ...next.attributes, default_tax_category_id: null, steuerrelevant: false },
+        };
+      }
+      const filtered = next.filters.filter((f) => !HAFTPFLICHT_KEYWORDS_MOVED.includes(f));
+      if (filtered.length !== next.filters.length) {
+        changed = true;
+        next = { ...next, filters: filtered };
+      }
+      return next;
+    }
+
+    if (cat.id === "local-cat-vereine" && cat.attributes?.default_tax_category_id === "tax-so-spenden") {
+      changed = true;
+      return {
+        ...cat,
+        attributes: { ...cat.attributes, default_tax_category_id: null, steuerrelevant: false },
+      };
+    }
+
+    return cat;
+  });
+
+  // Neue Haftpflicht-Kategorie additiv anhängen (nur wenn der Nutzer die
+  // Versicherungs-Hauptgruppe überhaupt kennt — sonst kommt sie ohnehin mit
+  // dem nächsten vollständigen Seed).
+  const appended: Category[] = [];
+  const haftpflichtDefault = defaultsById.get("local-cat-haftpflicht");
+  if (haftpflichtDefault && !existingIds.has(haftpflichtDefault.id) && existingIds.has("local-cat-haftpflichthausrat")) {
+    changed = true;
+    appended.push({ ...haftpflichtDefault });
+  }
+
+  return { categories: [...migrated, ...appended], changed };
+}
+
+/**
+ * Kategorien-Paket 2026: hängt die neuen Alltags-Kategorien (Kinder & Familie,
+ * Bildung, Steuern & Abgaben) additiv an und zieht das Keyword „grundsteuer"
+ * aus Miete um (für Eigentümer ist Grundsteuer keine Miete). Feste Allowlist
+ * statt „alle fehlenden Defaults", damit vom Nutzer gelöschte Alt-Kategorien
+ * nicht wieder auferstehen. Reine Funktion, `changed` nur bei echter Änderung
+ * (F-CAT), Nutzer-Overrides bleiben unangetastet.
+ */
+const CATEGORY_PACK_2026_IDS = [
+  "local-cat-kinderfamilie",
+  "local-cat-kinderbetreuung",
+  "local-cat-schule",
+  "local-cat-spielzeugkind",
+  "local-cat-bildung",
+  "local-cat-fortbildung",
+  "local-cat-buecher",
+  "local-cat-steuernabgaben",
+  "local-cat-grundsteuerabgabe",
+  "local-cat-steuerzahlungen",
+  "local-cat-kommunaleabgaben",
+];
+
+// Aus Miete in „Steuern & Abgaben" umgezogene Keywords.
+const MIETE_KEYWORDS_MOVED = ["grundsteuer"];
+
+export function migrateCategoryPack2026(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  const migrated = categories.map((cat) => {
+    if (cat.id !== "local-cat-miete" || cat.is_default === false) return cat;
+    const filtered = cat.filters.filter((f) => !MIETE_KEYWORDS_MOVED.includes(f));
+    if (filtered.length === cat.filters.length) return cat;
+    changed = true;
+    return { ...cat, filters: filtered };
+  });
+
+  const appended = CATEGORY_PACK_2026_IDS.map((id) => defaultsById.get(id)).filter(
+    (c): c is Category => Boolean(c) && !existingIds.has(c!.id),
+  );
+  if (appended.length > 0) changed = true;
+
+  return { categories: [...migrated, ...appended.map((c) => ({ ...c }))], changed };
+}
+
+/**
+ * Klassen-Korrektur: Medizinische Therapie und Sehhilfen/Hörgeräte erbten
+ * fälschlich „diskretionär" von der Gesundheit-Hauptkategorie — sie sind
+ * essenziell (wie Arzt/Apotheke). Hebt NUR den alten diskretionär-Default auf
+ * unveränderten Default-Kategorien an; bewusst gesetzte andere Klassen und
+ * Nutzer-Overrides bleiben stehen. Reine Funktion, F-CAT-konform.
+ */
+const ESSENTIAL_HEALTH_IDS = ["local-cat-therapie", "local-cat-optikerhoergeraete"];
+
+export function migrateEssentialHealthClasses(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+
+  const migrated = categories.map((cat) => {
+    if (!ESSENTIAL_HEALTH_IDS.includes(cat.id)) return cat;
+    if (cat.is_default === false) return cat;
+    if (cat.attributes?.ausgabenklasse !== "diskretionaer") return cat;
+
+    changed = true;
+    return {
+      ...cat,
+      attributes: { ...cat.attributes, ausgabenklasse: "essenziell" as const, essenziell: true },
+    };
+  });
+
+  return { categories: migrated, changed };
+}
+
 async function writeLocalCategories(categories: Category[]): Promise<void> {
   assertClient();
   assertUnlocked();
@@ -492,6 +645,7 @@ export function buildDefaultLocalSettings(): UserSettings {
       active: ["savings_rate", "average_daily_expenses"],
     },
     tax_reserve_percent: 30,
+    business_mode: false,
   };
 }
 

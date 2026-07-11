@@ -8,6 +8,7 @@
 import { buildTaxSuggestion } from '@/services/automation-suggestion-service';
 import type { AutomationSuggestion } from '@/services/automation-suggestion-service';
 import { TAX_CATEGORIES, taxCategoryById, getRubricForCategory } from '@/data/tax-catalog';
+import { matchesKeyword } from '@/lib/keyword-match';
 import type { Category, Transaction } from '@/types';
 import { t } from '@/i18n/serviceT';
 
@@ -23,14 +24,22 @@ function rubricName(taxCategoryId: string): string {
   return rubric ? t(rubric.nameKey as never, rubric.id) : taxCategoryId;
 }
 
-/** Erstes Keyword einer Steuer-Kategorie, das im Text vorkommt. */
-function keywordMatch(haystack: string): { taxCategoryId: string; keyword: string } | null {
+/** Erstes Keyword einer Steuer-Kategorie, das im Text vorkommt (wortgrenzen-bewusst). */
+function keywordMatch(
+  haystack: string,
+  allow: (taxCategoryId: string) => boolean,
+): { taxCategoryId: string; keyword: string } | null {
   for (const cat of TAX_CATEGORIES) {
+    if (!allow(cat.id)) continue;
     for (const kw of cat.keywords) {
-      if (haystack.includes(kw)) return { taxCategoryId: cat.id, keyword: kw };
+      if (matchesKeyword(haystack, kw)) return { taxCategoryId: cat.id, keyword: kw };
     }
   }
   return null;
+}
+
+function isEuerLeaf(taxCategoryId: string): boolean {
+  return getRubricForCategory(taxCategoryId)?.anlage === 'euer';
 }
 
 /**
@@ -38,12 +47,16 @@ function keywordMatch(haystack: string): { taxCategoryId: string; keyword: strin
  * - nur Ausgaben (`amount < 0`), keine Transfers, noch nicht markiert
  * - Reihenfolge: (1) Kategorie-Default, (2) Keyword-Treffer, (3) steuerrelevant-Flag
  * - bereits entschiedene Vorschläge (angenommen/abgelehnt/ignoriert) fallen raus
+ * - EÜR-Blätter werden NUR für Buchungen auf Geschäftskonten vorgeschlagen
+ *   (`businessAccountIds`); ohne den Parameter (Business-Modus aus) nie —
+ *   private Restaurant-Buchungen sollen keine Bewirtungs-Vorschläge sehen.
  */
 export function buildPendingTaxSuggestions(
   transactions: Transaction[],
   categories: Category[],
   decidedSuggestions: AutomationSuggestion[],
   limit = 50,
+  businessAccountIds?: ReadonlySet<string>,
 ): AutomationSuggestion[] {
   const decidedById = new Map(decidedSuggestions.map((s) => [s.id, s.status]));
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -59,10 +72,13 @@ export function buildPendingTaxSuggestions(
     let confidence = 0;
     let reason = '';
 
+    const allowTaxCategory = (id: string): boolean =>
+      !isEuerLeaf(id) || Boolean(tx.account_id && businessAccountIds?.has(tx.account_id));
+
     // 1. Kategorie-Default (Unterkategorie vor Hauptkategorie).
     const cat = catById.get(tx.subcategory_id ?? '') ?? catById.get(tx.category_id ?? '');
     const def = cat?.attributes?.default_tax_category_id;
-    if (def && taxCategoryById.has(def)) {
+    if (def && taxCategoryById.has(def) && allowTaxCategory(def)) {
       taxCategoryId = def;
       confidence = TAX_CONFIDENCE.categoryDefault;
       reason = t('tax.suggestReason.categoryDefault', 'Kategorie „{category}" ist als {rubric} voreingestellt')
@@ -73,7 +89,7 @@ export function buildPendingTaxSuggestions(
     // 2. Keyword-Treffer auf Empfänger + Verwendungszweck.
     if (!taxCategoryId) {
       const haystack = `${tx.payee} ${tx.description}`.toLowerCase();
-      const hit = keywordMatch(haystack);
+      const hit = keywordMatch(haystack, allowTaxCategory);
       if (hit) {
         taxCategoryId = hit.taxCategoryId;
         confidence = TAX_CONFIDENCE.keyword;

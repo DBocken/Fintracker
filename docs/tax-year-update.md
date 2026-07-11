@@ -41,6 +41,19 @@ per Taschenrechner nachvollziehbar.
 7. **`npm run test && npm run lint && npm run build`** — der Review-Diff zeigt
    Werte + Fundstellen nebeneinander.
 
+## EÜR-Parameter (Einzelunternehmer)
+
+Die EÜR-Blätter (`betriebseinnahmen`/`betriebsausgaben`, Anlage `euer`) nutzen dieselbe
+Parameter-Mechanik — bei Steuer-Updates mitprüfen:
+
+- `bewirtungAbzugRate` (0,7 — §4 Abs. 5 S. 1 Nr. 2 EStG): einziger EÜR-Parameter,
+  mit dem die App rechnet (`tax-eur-bewirtung` via `rule.rateParam`). Musterrechnung
+  „1.000 € → 700 €" im Golden-Test.
+- `gwgGrenzeNetto` (800 € — §6 Abs. 2 EStG): reiner Hinweis-Wert (GWG-Sofortabzug),
+  keine Berechnung. Bei Anhebung der GWG-Grenze auch den Hint
+  `tax.cat.euerArbeitsmittel.hint` aktualisieren (enthält den Betrag als Text,
+  da er nicht gerechnet, nur erklärt wird).
+
 ## Verwandte Schutzmechanismen
 
 - Unbekannte Jahre clampen zur Laufzeit auf das nächste bekannte Jahr;

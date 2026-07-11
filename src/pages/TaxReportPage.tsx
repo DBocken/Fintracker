@@ -6,7 +6,8 @@ import EmptyState from '@/components/common/EmptyState';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getTaxYearProfile } from '@/services/tax-profile-service';
-import { buildTaxYearReport } from '@/lib/tax-report';
+import { getUserSettings } from '@/services/user-settings-service';
+import { buildTaxYearReport, hasEuerMarkings } from '@/lib/tax-report';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import { TaxYearPicker } from '@/components/tax/TaxYearPicker';
 import { TaxSummaryStrip } from '@/components/tax/TaxSummaryStrip';
@@ -15,6 +16,7 @@ import { TaxCommuteCard } from '@/components/tax/TaxCommuteCard';
 import { TaxSuggestionsSection } from '@/components/tax/TaxSuggestionsSection';
 import { TaxExportCard } from '@/components/tax/TaxExportCard';
 import { TaxDisclaimer } from '@/components/tax/TaxDisclaimer';
+import { EuerPointerCard } from '@/components/tax/EuerPointerCard';
 
 const FALLBACK_YEAR = new Date().getFullYear();
 
@@ -51,6 +53,11 @@ export default function TaxReportPage() {
     queryFn: () => getTaxYearProfile(year),
   });
 
+  const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  // Pointer zur EÜR: im Business-Modus immer; sonst nur, wenn Bestandsdaten
+  // existieren — die Entkopplung darf markierte Buchungen nie unsichtbar machen.
+  const showEuerPointer = Boolean(settings?.business_mode) || hasEuerMarkings(transactions);
+
   const report = useMemo(
     () => buildTaxYearReport(transactions, year, profile),
     [transactions, year, profile],
@@ -84,6 +91,8 @@ export default function TaxReportPage() {
       )}
 
       <TaxSummaryStrip report={report} />
+
+      {showEuerPointer && <EuerPointerCard />}
 
       <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
 

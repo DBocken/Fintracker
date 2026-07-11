@@ -54,6 +54,7 @@ export function AccountFormDialog({
   const [color, setColor] = useState('#1d5c54');
   const [icon, setIcon] = useState('🏦');
   const [isBudgetPoolMember, setIsBudgetPoolMember] = useState(true);
+  const [isBusiness, setIsBusiness] = useState(false);
   const [statementCloseDay, setStatementCloseDay] = useState<number | null>(null);
   const [dueDay, setDueDay] = useState<number | null>(null);
   const [autopayAccountId, setAutopayAccountId] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export function AccountFormDialog({
       setColor(account.color);
       setIcon(account.icon);
       setIsBudgetPoolMember(account.is_budget_pool_member);
+      setIsBusiness(account.is_business ?? false);
       setStatementCloseDay(account.statement_close_day || null);
       setDueDay(account.due_day || null);
       setAutopayAccountId(account.autopay_account_id || '');
@@ -90,6 +92,7 @@ export function AccountFormDialog({
       setColor(ACCOUNT_TYPE_COLORS.checking);
       setIcon(ACCOUNT_TYPE_ICONS.checking);
       setIsBudgetPoolMember(true);
+      setIsBusiness(false);
       setStatementCloseDay(null);
       setDueDay(null);
       setAutopayAccountId('');
@@ -139,6 +142,7 @@ export function AccountFormDialog({
       color,
       icon,
       is_budget_pool_member: isBudgetPoolMember,
+      is_business: isBusiness,
       statement_close_day: type === 'credit_card' ? statementCloseDay : null,
       due_day: type === 'credit_card' ? dueDay : null,
       autopay_account_id: type === 'credit_card' ? autopayAccountId : null,
@@ -307,6 +311,20 @@ export function AccountFormDialog({
             <Switch
               checked={isBudgetPoolMember}
               onCheckedChange={setIsBudgetPoolMember}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="isBusiness">{t('accounts.formDialog.businessLabel')}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t('accounts.formDialog.businessHint')}
+              </p>
+            </div>
+            <Switch
+              id="isBusiness"
+              checked={isBusiness}
+              onCheckedChange={setIsBusiness}
             />
           </div>
 

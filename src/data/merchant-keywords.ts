@@ -262,11 +262,13 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "miete",
         name: "Miete & Hausgeld",
+        // "grundsteuer" ist bewusst NICHT mehr hier (→ Steuern & Abgaben):
+        // für Eigentümer ist Grundsteuer keine Miete.
         keywords: [
           "miete", "kaltmiete", "warmmiete", "nebenkosten", "nebenkostenabrechnung",
           "hausgeld", "wohnungsgenossenschaft", "vonovia", "deutsche wohnen", "wbg",
           "gwg", "leg immobilien", "immobilien verwaltung", "hausverwaltung",
-          "vw immobilien", "grundsteuer",
+          "vw immobilien",
         ],
       },
       {
@@ -292,7 +294,9 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "haushaltswaren",
         name: "Haushaltswaren",
         klasse: "diskretionaer",
-        keywords: ["tedox", "ikea", "möbel", "moebel"],
+        // "möbelhaus"/"moebelhaus" kompensieren die Wortgrenzen-Regel für das
+        // kurze Keyword "möbel" (Komposita matchen sonst nicht mehr).
+        keywords: ["tedox", "ikea", "möbel", "moebel", "möbelhaus", "moebelhaus"],
       },
       {
         slug: "handwerker",
@@ -516,6 +520,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "therapie",
         name: "Therapie",
+        // Medizinische Therapie ist keine Kür — essenziell wie Arzt/Apotheke.
+        klasse: "essenziell",
         taxDefault: "tax-agb-krankheit",
         keywords: ["physiotherapie", "ergotherapie", "logopädie", "logopaedie"],
       },
@@ -537,8 +543,66 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "optikerhoergeraete",
         name: "Optiker & Hörgeräte",
+        // Sehhilfen/Hörgeräte sind medizinische Hilfsmittel — essenziell.
+        klasse: "essenziell",
         taxDefault: "tax-agb-krankheit",
         keywords: ["sehtest", "optiker", "hörgeräte", "hoergeraete", "fielmann"],
+      },
+    ],
+  },
+  {
+    slug: "kinderfamilie",
+    name: "Kinder & Familie",
+    icon: "👶",
+    color: "#c88ba0",
+    klasse: "essenziell",
+    subcategories: [
+      {
+        slug: "kinderbetreuung",
+        name: "Kinderbetreuung",
+        // Sonderausgabe §10 Abs. 1 Nr. 5 EStG (80 % von max. 6.000 €/Kind).
+        taxDefault: "tax-so-kinderbetreuung",
+        keywords: [
+          "kita", "kindergarten", "kindertagesstätte", "kindertagesstaette",
+          "kinderhort", "tagesmutter", "babysitter", "kinderbetreuung",
+        ],
+      },
+      {
+        slug: "schule",
+        name: "Schule",
+        // Sonderausgabe §10 Abs. 1 Nr. 9 EStG (Schulgeld 30 %, max. 5.000 €).
+        taxDefault: "tax-so-schulgeld",
+        keywords: ["schulgeld", "privatschule", "schulbedarf", "klassenfahrt"],
+      },
+      {
+        slug: "spielzeugkind",
+        name: "Spielzeug & Kind",
+        klasse: "diskretionaer",
+        keywords: ["spielzeug", "mytoys", "smyths toys"],
+      },
+    ],
+  },
+  {
+    slug: "bildung",
+    name: "Bildung",
+    icon: "🎓",
+    color: "#8a6d9c",
+    klasse: "diskretionaer",
+    subcategories: [
+      {
+        slug: "fortbildung",
+        name: "Fortbildung & Kurse",
+        // Werbungskosten (Anlage N): berufliche Fort-/Weiterbildung.
+        taxDefault: "tax-n-fortbildung",
+        keywords: [
+          "seminar", "fortbildung", "weiterbildung", "schulung", "udemy",
+          "coursera", "volkshochschule", "vhs", "fernuni", "ihk",
+        ],
+      },
+      {
+        slug: "buecher",
+        name: "Bücher & Fachliteratur",
+        keywords: ["thalia", "hugendubel", "buchhandlung", "fachliteratur", "buecher.de", "bücher.de"],
       },
     ],
   },
@@ -550,14 +614,23 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     klasse: "essenziell",
     subcategories: [
       {
+        // Slug bleibt aus ID-Stabilität "haftpflichthausrat" (Bestandsdaten
+        // referenzieren local-cat-haftpflichthausrat); fachlich ist die Kategorie
+        // jetzt NUR Hausrat/Gebäude — beides steuerlich nicht absetzbar, daher
+        // bewusst KEIN taxDefault. Haftpflicht hat eine eigene Kategorie.
         slug: "haftpflichthausrat",
-        name: "Haftpflicht & Hausrat",
-        // Sonderausgabe: nur Haftpflicht-Anteil (Hausrat/Wohngebäude zählen nicht).
-        taxDefault: "tax-so-versicherungen",
+        name: "Hausrat & Gebäude",
         keywords: [
-          "haftpflicht", "hausratversicherung", "wohngebäudeversicherung",
-          "wohngebaeudeversicherung", "vgh",
+          "hausratversicherung", "hausrat", "wohngebäudeversicherung",
+          "wohngebaeudeversicherung",
         ],
+      },
+      {
+        slug: "haftpflicht",
+        name: "Haftpflichtversicherung",
+        // Sonderausgabe (§10 Abs. 1 Nr. 3a EStG): Haftpflicht ist absetzbar.
+        taxDefault: "tax-so-versicherungen",
+        keywords: ["haftpflicht", "privathaftpflicht", "haftpflichtversicherung"],
       },
       {
         slug: "lebensversicherung",
@@ -572,7 +645,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         klasse: "diskretionaer",
         taxDefault: "tax-so-versicherungen",
         keywords: [
-          "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna",
+          "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna", "vgh",
           "generali", "wgv", "devk", "gothaer", "barmenia", "hanse merkur",
           "württembergische", "wuerttembergische", "cosmosdirekt", "verti versicherung",
           "ottonova", "zurich versicherung", "ihre versicherung", "r+v versicherung",
@@ -627,7 +700,9 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "wertpapiere",
         name: "Wertpapiere",
-        keywords: ["broker", "depot", "wertpapier", "etf", "trade republic", "scalable", "comdirect"],
+        // Bewusst KEIN bares "depot": kollidiert als eigenständiges Wort mit der
+        // Deko-Kette DEPOT (Homonym, Wortgrenzen helfen nicht).
+        keywords: ["broker", "depotgebühr", "depotgebuehr", "depotführung", "depotfuehrung", "depotübertrag", "wertpapier", "etf", "trade republic", "scalable", "comdirect"],
       },
       {
         slug: "tagesgeld",
@@ -649,10 +724,11 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         keywords: ["lotto", "toto", "toto-lotto", "eurojackpot"],
       },
       {
+        // Bewusst KEIN taxDefault: Vereins-/Mitgliedsbeiträge (ADAC, Sportverein)
+        // sind meist NICHT gemeinnützig — echte Spenden erkennt die Keyword-Ebene
+        // der Steuer-Vorschläge (tax-so-spenden) mit sichtbarem Grund.
         slug: "vereine",
         name: "Vereine",
-        // Sonderausgabe: nur Beiträge/Spenden an gemeinnützige Vereine.
-        taxDefault: "tax-so-spenden",
         keywords: ["verein", "esports", "drk", "mitgliedsbeitrag"],
       },
       {
@@ -700,8 +776,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "allgemeinerhandel",
         name: "Allgemeiner Einzelhandel",
         keywords: [
-          "amazon", "amzn", "otto", "ebay", "galeria", "thalia", "decathlon", "tedi",
-          "kleinanzeigen", "temu", "shein", "wish", "lovoo", "buecher.de", "bücher.de",
+          "amazon", "amzn", "otto", "ebay", "galeria", "decathlon", "tedi",
+          "kleinanzeigen", "temu", "shein", "wish", "lovoo",
           "real.de",
         ],
       },
@@ -749,6 +825,34 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "gebuehrenzinsen",
         name: "Gebühren & Zinsen",
         keywords: ["dispozinsen", "sollzinsen", "gebühr", "sollzins"],
+      },
+    ],
+  },
+  {
+    slug: "steuernabgaben",
+    name: "Steuern & Abgaben",
+    icon: "🏛️",
+    color: "#6b7a8f",
+    klasse: "essenziell",
+    subcategories: [
+      {
+        // "grundsteuer" ist hier fachlich richtig verortet (früher fälschlich in
+        // Miete — für Eigentümer irreführend). Selbstgenutzt nicht absetzbar,
+        // daher bewusst KEIN taxDefault (bei Vermietung greift die manuelle
+        // Zuordnung zur Anlage-V-Rubrik).
+        slug: "grundsteuerabgabe",
+        name: "Grundsteuer",
+        keywords: ["grundsteuer"],
+      },
+      {
+        slug: "steuerzahlungen",
+        name: "Steuerzahlungen",
+        keywords: ["finanzamt", "einkommensteuer", "steuernachzahlung", "kfz-steuer", "kfzsteuer"],
+      },
+      {
+        slug: "kommunaleabgaben",
+        name: "Kommunale Abgaben",
+        keywords: ["abfallwirtschaft", "müllabfuhr", "muellabfuhr", "stadtkasse", "straßenreinigung", "strassenreinigung"],
       },
     ],
   },

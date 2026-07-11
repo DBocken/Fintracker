@@ -32,6 +32,7 @@ import {
   ausgabenklasseLabel,
   buildContractHint,
   buildDetailCategorySuggestion,
+  buildDetailTaxDefault,
   getConfidenceLevelLabel,
   currentCategoryValue,
   diffTransactionDraft,
@@ -156,6 +157,11 @@ export function TransactionDetailsPanel({
   const taxRubric = draft.tax_category_id ? getRubricForCategory(draft.tax_category_id) : undefined;
   const isHandwerkerRubric = taxRubric?.laborCostOnly === true;
   const requiresCashless = taxRubric?.requiresCashlessPayment === true;
+
+  // Steuer-Default der gewählten Kategorie als Vorschlag (nie automatisch).
+  const taxDefault = buildDetailTaxDefault(draft, transaction.amount, categoriesById);
+  const taxDefaultRubric = taxDefault ? getRubricForCategory(taxDefault.taxCategoryId) : undefined;
+  const taxDefaultRubricName = taxDefaultRubric ? t(taxDefaultRubric.nameKey as never, taxDefaultRubric.id) : '';
 
   const handleCategoryChange = (selectedId: string) => {
     const { category_id, subcategory_id } = resolveCategorySelection(categoriesById, selectedId);
@@ -460,6 +466,47 @@ export function TransactionDetailsPanel({
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
             <Landmark className="h-4 w-4" aria-hidden="true" /> {t('tax.form.sectionTitle', 'Steuer')}
           </h3>
+
+          {/* EÜR-Exklusion: nur auf Geschäftskonten sichtbar (Regel: privat gewinnt). */}
+          {account?.is_business && (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="euer-private"
+                checked={draft.euer_private ?? false}
+                disabled={isLoading}
+                onCheckedChange={(checked) => setDraft((d) => (d ? { ...d, euer_private: checked === true } : d))}
+              />
+              <div className="flex-1">
+                <Label htmlFor="euer-private" className="cursor-pointer text-sm font-normal">
+                  {t('tax.form.euerPrivateLabel', 'Private Buchung (nicht in die EÜR)')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('tax.form.euerPrivateHint', 'Schließt diese Buchung trotz Geschäftskonto aus der Einnahmenüberschussrechnung aus.')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {taxDefault && (
+            <div className="space-y-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
+              <div className="flex items-start gap-2">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                <p className="flex-1 text-xs text-muted-foreground">
+                  {t('tax.suggestReason.categoryDefault', 'Kategorie „{category}" ist als {rubric} voreingestellt')
+                    .replace('{category}', taxDefault.categoryName)
+                    .replace('{rubric}', taxDefaultRubricName)}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isLoading}
+                onClick={() => setDraft((d) => (d ? { ...d, tax_category_id: taxDefault.taxCategoryId } : d))}
+              >
+                <Check className="mr-1 h-4 w-4" aria-hidden="true" /> {t('tax.form.applySuggestion', 'Übernehmen')}
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tax-category-select" className="text-xs text-muted-foreground">

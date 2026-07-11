@@ -46,6 +46,7 @@ vi.mock('../transaction-service', () => ({
   getTransactions: vi.fn(() => Promise.resolve(mockStoredTransactions)),
   getCategories: vi.fn(() => Promise.resolve([])),
   categorizeTransaction: vi.fn(() => null),
+  categorizeTransactionConfident: vi.fn(() => null),
   getUserSettings: vi.fn(() => Promise.resolve({
     user_id: 'user-1',
     auto_confirm_mapping: false,

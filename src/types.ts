@@ -12,6 +12,8 @@ export interface Account {
   color: string;
   icon: string;
   is_budget_pool_member: boolean;
+  /** Geschäftskonto (Einzelunternehmer): Buchungen zählen in die EÜR. Fehlend ≙ privat. */
+  is_business?: boolean;
   order_index: number;
   statement_close_day?: number | null;
   due_day?: number | null;
@@ -65,6 +67,11 @@ export interface Transaction {
   tax_labor_costs?: number | null;
   /** Kurznotiz für die Steuererklärung (z. B. Rechnungsnummer, Zahlungsweg). */
   tax_note?: string | null;
+  /**
+   * Explizit privat trotz Geschäftskonto (EÜR-Exklusion). Gewinnt gegen ein
+   * gesetztes EÜR-`tax_category_id` (Konflikt ⇒ Warnung im EÜR-Report).
+   */
+  euer_private?: boolean;
 }
 
 export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
@@ -163,6 +170,36 @@ export interface UserSettings {
   gentle_mode?: boolean;
   /** Empfohlener Steuer-Rücklage-Prozentsatz für Creator-/Selbstständigen-Einnahmen (0 = aus). */
   tax_reserve_percent?: number;
+  /** Einzelunternehmer-Modus (Opt-in): schaltet EÜR-Seite, Steuer-Tank & Waterfall-Stufe frei. */
+  business_mode?: boolean;
+}
+
+/**
+ * Eine Bewegung der Steuerrücklage: + = zurückgelegt, − = Steuer gezahlt.
+ * Quick-Actions im Steuer-Tank; keine Auto-Erkennung von Transfers (v1).
+ */
+export interface TaxReserveMovement {
+  id: string;
+  /** Buchungsdatum der Bewegung (YYYY-MM-DD). */
+  date: string;
+  amount: number;
+  note?: string | null;
+}
+
+/**
+ * Steuerrücklage je Veranlagungsjahr. Das ZIEL wird NIE persistiert, sondern
+ * immer abgeleitet (Prozent × YTD-Betriebseinnahmen) — sonst driftet es.
+ */
+export interface TaxReserveState {
+  /** Stabile ID `tax-reserve-<year>` (Upsert-Anker im lokalen Store). */
+  id: string;
+  user_id: string;
+  year: number;
+  movements: TaxReserveMovement[];
+  /** Übersteuert tax_reserve_percent aus den Settings nur für dieses Jahr. */
+  percent_override?: number | null;
+  /** Konto, auf dem die Rücklage physisch liegt (nur Anzeige). */
+  account_id?: string | null;
 }
 
 export interface HierarchicalCategory extends Category {

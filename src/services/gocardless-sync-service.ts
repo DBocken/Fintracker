@@ -1,6 +1,6 @@
 import { gocardlessService } from './gocardless-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
-import { createTransaction, getTransactions, getCategories, categorizeTransaction, getUserSettings, markTransferPair } from './transaction-service';
+import { createTransaction, getTransactions, getCategories, categorizeTransactionConfident, getUserSettings, markTransferPair } from './transaction-service';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';
@@ -318,7 +318,9 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
           auto_mapped: false,
           confirmed: false,
         };
-        const categoryId = categorizeTransaction(draftTransaction as import('../types').Transaction, categories, learnedRules);
+        // Stille Zuweisung nur ab mittlerer Konfidenz — Regex-Raten (0,55) bleiben
+        // unkategorisiert und landen als Vorschlag in der Coach-Inbox.
+        const categoryId = categorizeTransactionConfident(draftTransaction as import('../types').Transaction, categories, learnedRules);
 
         const created = await createTransaction({
           account_id: account.id,

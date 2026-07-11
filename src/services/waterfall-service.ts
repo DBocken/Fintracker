@@ -13,6 +13,10 @@ import { currentMonthKey, lastNMonths } from "./budget-service";
 import { getCategories, getTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
 import { getCategoryContributions } from "@/lib/analysis-data";
+import { getAccounts } from "./account-service";
+import { getUserSettings } from "./user-settings-service";
+import { isBusinessIncomeTx } from "@/lib/euer-report";
+import { resolveTaxReservePercent } from "@/lib/tax-reserve";
 
 const WINDOW_MONTHS = 6;
 const DEFAULT_SAVINGS: WaterfallInput["savings"] = { mode: "percent", value: 10 };
@@ -31,10 +35,12 @@ export async function getWaterfallPlan(
   savings: WaterfallInput["savings"] = DEFAULT_SAVINGS,
   reference: Date = new Date(),
 ): Promise<WaterfallPlan> {
-  const [categories, transactions, allocationsByTx] = await Promise.all([
+  const [categories, transactions, allocationsByTx, settings, accounts] = await Promise.all([
     getCategories(),
     getTransactions(5000),
     getAllocationMap(),
+    getUserSettings(),
+    getAccounts(),
   ]);
 
   // Ausgabenklasse je Kategorie-ID auflösen (Unterkategorie erbt von der Hauptkategorie).
@@ -50,12 +56,21 @@ export async function getWaterfallPlan(
   const income = new Map<string, number>();
   const essentials = new Map<string, number>();
   const discretionary = new Map<string, number>();
+  const businessIncome = new Map<string, number>();
   const add = (m: Map<string, number>, key: string, v: number) => m.set(key, (m.get(key) ?? 0) + v);
+
+  // Steuer-Stufe nur im Einzelunternehmer-Modus und mit aktivem Prozentsatz.
+  const taxPercent = resolveTaxReservePercent(settings);
+  const trackBusinessIncome = Boolean(settings.business_mode) && taxPercent > 0;
+  const businessAccountIds = new Set(accounts.filter((a) => a.is_business).map((a) => a.id));
 
   for (const tx of transactions) {
     if (tx.is_transfer) continue;
     const mk = monthKeyOf(tx.date);
     if (!monthSet.has(mk)) continue;
+    if (trackBusinessIncome && isBusinessIncomeTx(tx, businessAccountIds)) {
+      add(businessIncome, mk, tx.amount);
+    }
     for (const c of getCategoryContributions(tx, allocationsByTx)) {
       if (!c.assignedId) continue;
       const klasse = klasseOf(c.assignedId);
@@ -69,11 +84,18 @@ export async function getWaterfallPlan(
   const medianOf = (m: Map<string, number>) => median(months.map((k) => m.get(k) ?? 0).filter((v) => v > 0));
   const incomeVals = months.map((k) => income.get(k) ?? 0).filter((v) => v > 0);
 
+  // Median statt Mittelwert: robust gegen einzelne große Rechnungen — bei stark
+  // unregelmäßigem Einkommen zeigt die UI einen Hinweis (monthsAnalyzed).
+  const taxReserveMonthly = trackBusinessIncome
+    ? medianOf(businessIncome) * (taxPercent / 100)
+    : 0;
+
   const result = computeWaterfall({
     income: median(incomeVals),
     savings,
     essentials: medianOf(essentials),
     discretionaryRequested: medianOf(discretionary),
+    taxReserveMonthly,
   });
 
   return { ...result, monthsAnalyzed: incomeVals.length, savings };
