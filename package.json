@@ -47,7 +47,7 @@
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.108.1",
-    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.14.2",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
