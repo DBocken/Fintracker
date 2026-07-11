@@ -232,8 +232,14 @@ export interface TransactionFilterOptions {
 // Transactions (local encrypted storage)
 // -----------------------------------------------------------------------------
 
+/**
+ * In-Memory-Filter + Slice über den voll entschlüsselten Transaktionsbestand —
+ * KEIN Storage-Level-Paging: die Storage-Schicht lädt/entschlüsselt immer den
+ * gesamten Blob (siehe PERFORMANCE_OPTIMIZATIONS.md, Phase B für echtes
+ * Cursor-Paging über Monats-Chunks). Nützlich bleibt die Funktion für
+ * Filterung + seitenweise UI-Anzeige, nicht als IO-Optimierung.
+ */
 export async function getTransactionsPaginated(
-
   page: number = 1,
   pageSize: number = 50,
   filters?: TransactionFilterOptions
@@ -261,7 +267,8 @@ export async function getTransactionsPaginated(
     return true;
   });
 
-  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Kein Re-Sort: getTransactions liefert bereits datum-absteigend (Storage-
+  // Contract), .filter erhält die Ordnung (transaction-service.ordering.test).
   const from = (page - 1) * pageSize;
   const rows = filtered.slice(from, from + pageSize);
 
@@ -275,13 +282,15 @@ export async function getTransactionsPaginated(
 }
 
 /**
- * Legacy function - get all transactions (limited)
- * @deprecated Use getTransactionsPaginated for better performance
+ * Lädt die (limitierte) Transaktionsliste, datum-absteigend sortiert.
+ * Sortier-Contract: transaction-storage-service sortiert VOR dem Limit
+ * (sonst verliert das Limit die jüngsten Buchungen) — hier bewusst kein
+ * zweites Sort. Gepinnt durch transaction-service.ordering.test.ts.
  */
 export async function getTransactions(limit: number = 1000): Promise<Transaction[]> {
   const result = await transactionStorage.getTransactions(limit, 0);
   if (!result.success) throw new Error(result.error || t('transactionService.loadError'));
-  return (result.data || []).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return result.data || [];
 }
 
 export async function saveTransactions(transactions: Transaction[]): Promise<Transaction[]> {

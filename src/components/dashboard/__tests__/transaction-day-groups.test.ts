@@ -131,3 +131,33 @@ describe('formatDayHeading', () => {
     expect(formatDayHeading('nicht-ein-datum', now)).toBe('nicht-ein-datum');
   });
 });
+
+describe('flattenDayGroups', () => {
+  describe('Normal Behavior', () => {
+    it('sollte pro Tag eine Heading-Zeile gefolgt von den Buchungs-Zeilen liefern', async () => {
+      const { flattenDayGroups } = await import('../transaction-day-groups');
+      const groups = buildDayGroups(
+        [
+          tx({ date: '2026-07-03', amount: -23.4, payee: 'Lieferando' }),
+          tx({ date: '2026-07-02', amount: -41.17, payee: 'Rewe' }),
+          tx({ date: '2026-07-02', amount: -4.8, payee: 'Bäckerei' }),
+        ],
+        1240,
+      );
+      const flat = flattenDayGroups(groups);
+      expect(flat.map((f) => f.type)).toEqual(['heading', 'row', 'heading', 'row', 'row']);
+      // Jede Zeile kennt ihre Gruppe (für Kontostand/Key) und ob sie die erste
+      // des Tages ist (für die Trennlinien-Optik).
+      expect(flat[1]).toMatchObject({ type: 'row', isFirstRowOfDay: true });
+      expect(flat[4]).toMatchObject({ type: 'row', isFirstRowOfDay: false });
+      expect(flat[2].group.key).toBe('2026-07-02');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('sollte leere Gruppenlisten zu leerer Flatliste machen', async () => {
+      const { flattenDayGroups } = await import('../transaction-day-groups');
+      expect(flattenDayGroups([])).toEqual([]);
+    });
+  });
+});

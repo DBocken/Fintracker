@@ -224,3 +224,18 @@ describe("Filter-URL Encode/Decode (Audit P1.3)", () => {
     expect(decoded.range).toBe("Gesamt");
   });
 });
+
+describe("filterTransactions Ordnungserhalt", () => {
+  it("[REGRESSION] erhält die Eingabe-Reihenfolge (Voraussetzung für Sort-Verzicht der Aufrufer)", () => {
+    // Die TransactionsPage verzichtet auf ein Re-Sort nach dem Filtern —
+    // filterTransactions muss ein reiner Filter bleiben (keine Umordnung).
+    const ordered = [
+      tx({ id: "n3", date: "2024-06-14", payee: "C" }),
+      tx({ id: "n2", date: "2024-06-12", payee: "B" }),
+      tx({ id: "n2b", date: "2024-06-12", payee: "B2" }),
+      tx({ id: "n1", date: "2024-06-10", payee: "A" }),
+    ];
+    const result = filterTransactions(ordered, categories, accounts, baseFilters, NOW, new Map());
+    expect(result.map((t) => t.id)).toEqual(["n3", "n2", "n2b", "n1"]);
+  });
+});

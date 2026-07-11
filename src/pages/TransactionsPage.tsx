@@ -144,10 +144,13 @@ export default function TransactionsPage() {
     return effectiveBalanceById[filters.account] ?? 0;
   }, [accounts, effectiveBalanceById, filters.account]);
 
-  const filtered = useMemo(() => {
-    const list = filterTransactions(txs, cats, accounts, filters, new Date(), contractDecisions);
-    return [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  }, [txs, cats, accounts, filters, contractDecisions]);
+  const filtered = useMemo(
+    // Kein Re-Sort: txs kommen datum-absteigend aus dem Service (Sortier-
+    // Contract der Storage-Schicht) und filterTransactions ist ordnungserhaltend
+    // ([REGRESSION]-Test in filter-utils.test.ts).
+    () => filterTransactions(txs, cats, accounts, filters, new Date(), contractDecisions),
+    [txs, cats, accounts, filters, contractDecisions],
+  );
 
   const visible = useMemo(() => filtered.filter((tx) => !hidden.has(tx.id || "")), [filtered, hidden]);
 
