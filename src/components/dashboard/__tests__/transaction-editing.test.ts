@@ -315,7 +315,7 @@ describe('Transaction Editing - Draft Management', () => {
 });
 
 describe('Transaction Editing - Modal Scenarios', () => {
-  it('should handle category change from uncategorized to essenziell', () => {
+  it('sollte Kategoriewechsel von unkategorisiert zu essenziell verarbeiten', () => {
     // Scenario: User opens uncategorized transaction and assigns it to "Wohnen"
     const uncategorizedTx: Transaction = {
       id: 'tx-1',
@@ -341,7 +341,7 @@ describe('Transaction Editing - Modal Scenarios', () => {
     expect(patch.subcategory_id).toBeUndefined();
   });
 
-  it('should handle toggling contract flag with auto-selected cycle', () => {
+  it('sollte Vertrags-Flag mit automatisch gewähltem Zyklus umschalten', () => {
     // Scenario: User marks Netflix as a contract
     const tx: Transaction = {
       id: 'tx-1',
@@ -365,7 +365,7 @@ describe('Transaction Editing - Modal Scenarios', () => {
     expect(patch.contract_cycle).toBe('monthly');
   });
 
-  it('should preserve unchanged category when toggling contract', () => {
+  it('sollte unveränderte Kategorie beim Vertrags-Toggle beibehalten', () => {
     // Scenario: Category stays the same, only contract flag changes
     const contractTx: Transaction = {
       id: 'tx-1',
