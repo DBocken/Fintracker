@@ -11,9 +11,12 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
+import { fileURLToPath } from 'url';
 
-const REPO_ROOT = path.resolve(import.meta.url, '../../../');
+// import.meta.url ist eine file://-URL, kein Pfad → erst fileURLToPath,
+// sonst zeigt REPO_ROOT auf ein nicht existierendes Verzeichnis.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // Liste deutscher Wörter, die verdächtig sind (Heuristik)
 const GERMAN_KEYWORDS = [
@@ -32,7 +35,7 @@ const ENGLISH_KEYWORDS = [
 
 function getChangedFiles() {
   try {
-    const output = execSync('git diff --cached --name-only --diff-filter=ACM', {
+    const output = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACM'], {
       encoding: 'utf8',
       cwd: REPO_ROOT,
     });
@@ -44,7 +47,8 @@ function getChangedFiles() {
 
 function getChangedLines(file) {
   try {
-    const output = execSync(`git diff --cached -U0 "${file}"`, {
+    // Argument-Array + '--': Dateiname kann weder Shell-Kommando noch git-Option injizieren
+    const output = execFileSync('git', ['diff', '--cached', '-U0', '--', file], {
       encoding: 'utf8',
       cwd: REPO_ROOT,
     });
