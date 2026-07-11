@@ -1,20 +1,8 @@
 import { describe, it, expect, vi as vitest } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { fireEvent, waitFor } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import StressPresetQuickAdd from '../StressPresetQuickAdd';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
-
-// Helper: I18nProvider Wrapper
-function renderWithI18n(
-  component: React.ReactElement,
-  locale: 'de' | 'en' = 'de'
-) {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 describe('StressPresetQuickAdd', () => {
   const mockOverrides: ForecastOverrides = {

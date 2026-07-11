@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent, within } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import type { PortfolioPosition } from '@/types';
 import PositionTable from '../PositionTable';
@@ -17,11 +17,6 @@ function position(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition
     metadata: {},
     ...overrides,
   } as PortfolioPosition;
-}
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  window.localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(<I18nProvider>{ui}</I18nProvider>);
 }
 
 describe('PositionTable — Core Table Behavior', () => {

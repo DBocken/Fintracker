@@ -19,6 +19,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/card-clickability-check.mjs\"",
             "statusMessage": "Prüfe Karten-Klickbarkeit (Karten sind Aktionen)…"
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/test-structure-check.mjs\"",
+            "statusMessage": "Prüfe Test-Struktur (zentraler Helfer & __tests__/)…"
           }
         ]
       }

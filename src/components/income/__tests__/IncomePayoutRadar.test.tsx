@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, within } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import IncomePayoutRadar from '../IncomePayoutRadar';
 import type { IncomeStream } from '@/lib/income-streams';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 function stream(overrides: Partial<IncomeStream>): IncomeStream {
   return {

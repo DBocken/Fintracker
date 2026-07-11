@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { screen } from "@testing-library/react";
+import { renderWithI18n } from "@/test-utils/render";
 
 // FeatureGate liest Tier (useTier) und Auth-Status (useAuth). Beide werden hier
 // gemockt, damit das Gating-Verhalten isoliert (ohne echten AuthProvider/Supabase)
@@ -12,15 +12,6 @@ vi.mock("@/hooks/useTier", () => ({ useTier: () => tierMock() }));
 vi.mock("@/components/providers/AuthProvider", () => ({ useAuth: () => authMock() }));
 
 import { FeatureGate } from "@/components/FeatureGate";
-
-// Helper: Render mit I18nProvider wrapper
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 describe("FeatureGate", () => {
   beforeEach(() => {

@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { EtoroPnlResponseSchema } from '@/services/etoro-api-schemas';
 import EtoroDemoAccountCard from '../EtoroDemoAccountCard';
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  window.localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(<I18nProvider>{ui}</I18nProvider>);
-}
 
 const pnl = EtoroPnlResponseSchema.parse({
   clientPortfolio: { credit: 10000, unrealizedPnL: 234.5 },

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { renderWithI18n } from '@/test-utils/render';
 import type { CandlePoint } from '@/services/etoro-discover';
 import EtoroCandlestickChart, { computeCandleGeometry } from '../EtoroCandlestickChart';
 
@@ -12,11 +11,6 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 });
-
-function renderWithI18n(ui: React.ReactElement) {
-  window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
-  return render(<I18nProvider>{ui}</I18nProvider>);
-}
 
 const candles: CandlePoint[] = [
   { date: '2026-01-01T00:00:00Z', open: 100, high: 105, low: 98, close: 102, isUp: true },

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import type { CandlePoint, InstrumentSearchResultView, CuratedListView, PublicUserProfileView } from '@/services/etoro-discover';
 import EtoroDiscoverTab from '../EtoroDiscoverTab';
@@ -13,11 +13,6 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 });
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  window.localStorage.setItem('ausgabentracker_locale_v1', locale);
-  return render(<I18nProvider>{ui}</I18nProvider>);
-}
 
 function noopState<T extends object = object>(extra?: T) {
   return { isLoading: false, error: null, ...extra } as { isLoading: boolean; error: Error | null } & T;

@@ -1,17 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import RiskSummaryCard from '../RiskSummaryCard';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 function lumpy(level: LumpyRiskProfile['lumpyRiskLevel'], count = 5): LumpyRiskProfile {
   return {

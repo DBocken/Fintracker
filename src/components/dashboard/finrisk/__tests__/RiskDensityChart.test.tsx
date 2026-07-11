@@ -1,17 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import RiskDensityChart from '../RiskDensityChart';
 import { buildDensityField } from '@/lib/finrisk/density';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 /** Baut ein minimales, aber vollständiges ScenarioResult für den Render-Test. */
 function makeResult(paths: number[][], dates: string[], withDetails = false): ScenarioResult {

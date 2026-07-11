@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, within, fireEvent } from '@testing-library/react';
+import { renderWithProviders } from '@/test-utils/render';
 import IncomeBreakdownCard from '../IncomeBreakdownCard';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
 
@@ -12,14 +11,6 @@ beforeAll(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 });
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      <MemoryRouter>{component}</MemoryRouter>
-    </I18nProvider>,
-  );
-}
 
 const breakdown: IncomeBreakdown = {
   total: 3300,
@@ -49,14 +40,14 @@ function mobileList(container: HTMLElement): HTMLElement {
 
 describe('IncomeBreakdownCard – mobile Aufschlüsselung', () => {
   it('listet alle Einkommens-Hauptkategorien als Gruppen (Deutsch)', () => {
-    const { container } = renderWithI18n(<IncomeBreakdownCard breakdown={breakdown} />, 'de');
+    const { container } = renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />, { locale: 'de' });
     const list = mobileList(container);
     expect(within(list).getByText('Anstellung')).toBeInTheDocument();
     expect(within(list).getByText('Verkäufe')).toBeInTheDocument();
   });
 
   it('listet alle Einkommens-Hauptkategorien als Gruppen (Englisch)', () => {
-    const { container } = renderWithI18n(<IncomeBreakdownCard breakdown={breakdown} />, 'en');
+    const { container } = renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />, { locale: 'en' });
     const list = mobileList(container);
     expect(within(list).getByText('Anstellung')).toBeInTheDocument();
     expect(within(list).getByText('Verkäufe')).toBeInTheDocument();
@@ -64,7 +55,7 @@ describe('IncomeBreakdownCard – mobile Aufschlüsselung', () => {
   });
 
   it('klappt eine Gruppe auf und zeigt ihre Unterkategorien', () => {
-    const { container } = renderWithI18n(<IncomeBreakdownCard breakdown={breakdown} />);
+    const { container } = renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />);
     const list = mobileList(container);
     expect(within(list).queryByText('Online-Verkäufe')).not.toBeInTheDocument();
     fireEvent.click(within(list).getByRole('button', { name: /Verkäufe aufklappen/i }));
@@ -72,7 +63,7 @@ describe('IncomeBreakdownCard – mobile Aufschlüsselung', () => {
   });
 
   it('zeigt einen Hinweis, wenn keine Einnahmen vorliegen', () => {
-    renderWithI18n(<IncomeBreakdownCard breakdown={{ total: 0, groups: [] }} />);
+    renderWithProviders(<IncomeBreakdownCard breakdown={{ total: 0, groups: [] }} />);
     expect(screen.getAllByText(/Noch keine Einnahmen erfasst/i).length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, waitFor, within } from "@testing-library/react";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { waitFor, within } from "@testing-library/react";
+import { renderWithI18n } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import HealthScoreCard from "../HealthScoreCard";
 import type { FinancialHealth } from "@/services/financial-health-service";
@@ -12,14 +12,6 @@ vi.mock("@/hooks/useReducedMotion", () => ({
 }));
 
 afterEach(() => reduceMock.mockReturnValue(false));
-
-function renderWithI18n(component: any, locale: "de" | "en" = "de") {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 function makeHealth(score: number): FinancialHealth {
   return {

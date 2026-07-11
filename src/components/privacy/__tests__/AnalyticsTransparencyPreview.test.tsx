@@ -1,7 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithProviders } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import AnalyticsTransparencyPreview from "../AnalyticsTransparencyPreview";
 import type { AnalyticsPackageV1 } from "@/services/analytics-aggregation-service";
@@ -37,20 +36,13 @@ vi.mock("@/services/analytics-aggregation-service", () => ({
   buildAnalyticsPackage: vi.fn(async () => pkg),
 }));
 
-function renderWithI18n(component: any, locale: "de" | "en" = "de") {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <I18nProvider initialLocale={locale}>
-      <QueryClientProvider client={client}>
-        {component}
-      </QueryClientProvider>
-    </I18nProvider>,
-  );
-}
+// Diese Komponente (useQuery) braucht zusätzlich den QueryClientProvider.
+const renderPreview = (component: React.ReactElement, locale: "de" | "en" = "de") =>
+  renderWithProviders(component, { locale, router: false, query: true });
 
 describe("AnalyticsTransparencyPreview", () => {
   it("sollte zuerst nur den 'nichts verlässt dein Gerät'-Hinweis + Button zeigen", () => {
-    renderWithI18n(<AnalyticsTransparencyPreview />, "de");
+    renderPreview(<AnalyticsTransparencyPreview />, "de");
     expect(screen.getByText(/Upload\s+ist deaktiviert/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: translations.de.analytics.showPreview })).toBeInTheDocument();
     // Vor dem Klick keine Aggregat-Zahlen.
@@ -58,7 +50,7 @@ describe("AnalyticsTransparencyPreview", () => {
   });
 
   it("sollte nach dem Aufdecken Aggregat-Übersicht, Schutzmaßnahmen und Datensatz zeigen", async () => {
-    renderWithI18n(<AnalyticsTransparencyPreview />, "de");
+    renderPreview(<AnalyticsTransparencyPreview />, "de");
     fireEvent.click(screen.getByRole("button", { name: translations.de.analytics.showPreview }));
 
     expect(await screen.findByText(new RegExp(translations.de.analytics.aggregatedRecords))).toBeInTheDocument();
@@ -68,7 +60,7 @@ describe("AnalyticsTransparencyPreview", () => {
   });
 
   it("should show preview button in English", () => {
-    renderWithI18n(<AnalyticsTransparencyPreview />, "en");
+    renderPreview(<AnalyticsTransparencyPreview />, "en");
     expect(screen.getByRole("button", { name: translations.en.analytics.showPreview })).toBeInTheDocument();
   });
 

@@ -248,17 +248,10 @@ export default function MyComponent() {
 **Jeder Component-Test MUSS i18n überprüfen:**
 
 ```typescript
-import { render, screen } from "@testing-library/react";
-import { I18nProvider } from "@/i18n/I18nProvider";
-
-// Helper: Alle Tests mit I18nProvider wrappen
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
+import { screen } from "@testing-library/react";
+// ZENTRAL — keine lokale renderWithI18n-Definition mehr (der Hook blockiert das):
+import { renderWithI18n } from "@/test-utils/render";
+// Für Komponenten mit Routing: renderWithProviders(ui, { locale, router: true })
 
 describe('MyComponent', () => {
   // Pattern 1: Deutsch überprüfen
@@ -327,6 +320,8 @@ export default function MyComponent() {
 
 **Schritt 3: Tests schreiben (TDD!)**
 ```typescript
+import { renderWithI18n } from "@/test-utils/render"; // zentral, nicht lokal definieren
+
 it('sollte deutsche Texte rendern', () => {
   renderWithI18n(<MyComponent />, 'de');
   expect(screen.getByText('Meine Überschrift')).toBeInTheDocument();

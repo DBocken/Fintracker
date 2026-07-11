@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '@/test-utils/render';
 import type { IncomeStream } from '@/lib/income-streams';
 import type { ForecastInput } from '@/lib/forecast-types';
 
@@ -32,14 +31,6 @@ vi.mock('@/hooks/useForecastOverrides', () => ({
 import IncomeStressTestDialog from '../IncomeStressTestDialog';
 import IncomeStressTestSection from '../IncomeStressTestSection';
 
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      <MemoryRouter>{component}</MemoryRouter>
-    </I18nProvider>,
-  );
-}
-
 function stream(overrides: Partial<IncomeStream>): IncomeStream {
   return {
     key: 'anstellung|muster', label: 'Muster GmbH', counterparty: 'muster', mainCategoryId: 'anstellung',
@@ -52,26 +43,26 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
 
 describe('IncomeStressTestDialog', () => {
   it('zeigt die Szenario-Kennzahlen für einen prognostizierten Strom', () => {
-    renderWithI18n(<IncomeStressTestDialog stream={stream({})} open onOpenChange={() => {}} />);
+    renderWithProviders(<IncomeStressTestDialog stream={stream({})} open onOpenChange={() => {}} />);
     expect(screen.getByText('Tiefster Kontostand')).toBeInTheDocument();
     expect(screen.getByText('Tage unter Sicherheitspuffer')).toBeInTheDocument();
   });
 
   it('[REGRESSION] zeigt bei fehlendem Flow-Match einen Hinweis statt 0-Kennzahlen', () => {
-    renderWithI18n(<IncomeStressTestDialog stream={stream({ counterparty: 'nichtinprognose', key: 'x' })} open onOpenChange={() => {}} />);
+    renderWithProviders(<IncomeStressTestDialog stream={stream({ counterparty: 'nichtinprognose', key: 'x' })} open onOpenChange={() => {}} />);
     expect(screen.getByText(/nicht Teil der Liquiditätsprognose/)).toBeInTheDocument();
     expect(screen.queryByText('Tiefster Kontostand')).not.toBeInTheDocument();
   });
 
   it('zeigt die Kennzahlen englisch', () => {
-    renderWithI18n(<IncomeStressTestDialog stream={stream({})} open onOpenChange={() => {}} />, 'en');
+    renderWithProviders(<IncomeStressTestDialog stream={stream({})} open onOpenChange={() => {}} />, { locale: 'en' });
     expect(screen.getByText('Lowest balance')).toBeInTheDocument();
   });
 });
 
 describe('IncomeStressTestSection', () => {
   it('blendet Mini-Ströme unter 3 % aus', () => {
-    renderWithI18n(
+    renderWithProviders(
       <IncomeStressTestSection
         streams={[stream({ key: 'big', label: 'Groß', share: 0.5 }), stream({ key: 'tiny', label: 'Winzig', share: 0.01 })]}
       />,
@@ -81,7 +72,7 @@ describe('IncomeStressTestSection', () => {
   });
 
   it('rendert nichts, wenn kein Strom relevant ist', () => {
-    const { container } = renderWithI18n(<IncomeStressTestSection streams={[stream({ share: 0.01 })]} />);
+    const { container } = renderWithProviders(<IncomeStressTestSection streams={[stream({ share: 0.01 })]} />);
     expect(container.textContent).toBe('');
   });
 });

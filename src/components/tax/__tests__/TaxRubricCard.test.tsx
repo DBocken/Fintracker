@@ -1,13 +1,9 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { TaxRubricCard } from '../TaxRubricCard';
 import type { TaxRubricReport } from '@/lib/tax-report';
-
-function renderWithI18n(ui: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{ui}</I18nProvider>);
-}
 
 const creditReport: TaxRubricReport = {
   rubricId: '35a-handwerker',

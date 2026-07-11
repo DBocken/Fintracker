@@ -1,13 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { CategoryForm } from '../CategoryForm';
 import type { CategoryAttributes } from '../../../types';
-
-function renderWithI18n(component: React.ReactElement, locale: 'de' | 'en' = 'de') {
-  return render(<I18nProvider initialLocale={locale}>{component}</I18nProvider>);
-}
 
 function openAdvanced(triggerLabel: RegExp) {
   fireEvent.click(screen.getByText(triggerLabel));
