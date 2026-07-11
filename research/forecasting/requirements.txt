@@ -1,7 +1,9 @@
 # Pflicht-Abhängigkeiten für den Benchmark.
+# Floors auf gepatchte Stände angehoben (Security-Advisories in älteren
+# numpy/statsmodels-Versionen) — Research-only, läuft nicht in App oder CI.
 pandas>=2.0
-numpy>=1.24
-statsmodels>=0.14
+numpy>=1.26.4
+statsmodels>=0.14.1
 
 # Optionale Modelle – Benchmark überspringt sie sauber, wenn nicht installiert.
 # tbats>=1.1          # TBATS (Mehrfachsaison-Spezialist)
