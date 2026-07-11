@@ -66,13 +66,16 @@ export async function getLocalCategories(): Promise<Category[]> {
     // pauschalen Spenden-Default.
     const { categories: insuranceMigrated, changed: insuranceChanged } = migrateInsuranceTaxSplit(taxMigrated);
 
+    // Kategorien-Paket 2026 (Kinder & Familie, Bildung, Steuern & Abgaben).
+    const { categories: packMigrated, changed: packChanged } = migrateCategoryPack2026(insuranceMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged) {
-      await writeLocalCategories(insuranceMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged) {
+      await writeLocalCategories(packMigrated);
     }
-    return insuranceMigrated;
+    return packMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -395,6 +398,52 @@ export function migrateInsuranceTaxSplit(categories: Category[]): { categories: 
   }
 
   return { categories: [...migrated, ...appended], changed };
+}
+
+/**
+ * Kategorien-Paket 2026: hängt die neuen Alltags-Kategorien (Kinder & Familie,
+ * Bildung, Steuern & Abgaben) additiv an und zieht das Keyword „grundsteuer"
+ * aus Miete um (für Eigentümer ist Grundsteuer keine Miete). Feste Allowlist
+ * statt „alle fehlenden Defaults", damit vom Nutzer gelöschte Alt-Kategorien
+ * nicht wieder auferstehen. Reine Funktion, `changed` nur bei echter Änderung
+ * (F-CAT), Nutzer-Overrides bleiben unangetastet.
+ */
+const CATEGORY_PACK_2026_IDS = [
+  "local-cat-kinderfamilie",
+  "local-cat-kinderbetreuung",
+  "local-cat-schule",
+  "local-cat-spielzeugkind",
+  "local-cat-bildung",
+  "local-cat-fortbildung",
+  "local-cat-buecher",
+  "local-cat-steuernabgaben",
+  "local-cat-grundsteuerabgabe",
+  "local-cat-steuerzahlungen",
+  "local-cat-kommunaleabgaben",
+];
+
+// Aus Miete in „Steuern & Abgaben" umgezogene Keywords.
+const MIETE_KEYWORDS_MOVED = ["grundsteuer"];
+
+export function migrateCategoryPack2026(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  const migrated = categories.map((cat) => {
+    if (cat.id !== "local-cat-miete" || cat.is_default === false) return cat;
+    const filtered = cat.filters.filter((f) => !MIETE_KEYWORDS_MOVED.includes(f));
+    if (filtered.length === cat.filters.length) return cat;
+    changed = true;
+    return { ...cat, filters: filtered };
+  });
+
+  const appended = CATEGORY_PACK_2026_IDS.map((id) => defaultsById.get(id)).filter(
+    (c): c is Category => Boolean(c) && !existingIds.has(c!.id),
+  );
+  if (appended.length > 0) changed = true;
+
+  return { categories: [...migrated, ...appended.map((c) => ({ ...c }))], changed };
 }
 
 async function writeLocalCategories(categories: Category[]): Promise<void> {

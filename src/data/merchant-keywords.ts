@@ -262,11 +262,13 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "miete",
         name: "Miete & Hausgeld",
+        // "grundsteuer" ist bewusst NICHT mehr hier (→ Steuern & Abgaben):
+        // für Eigentümer ist Grundsteuer keine Miete.
         keywords: [
           "miete", "kaltmiete", "warmmiete", "nebenkosten", "nebenkostenabrechnung",
           "hausgeld", "wohnungsgenossenschaft", "vonovia", "deutsche wohnen", "wbg",
           "gwg", "leg immobilien", "immobilien verwaltung", "hausverwaltung",
-          "vw immobilien", "grundsteuer",
+          "vw immobilien",
         ],
       },
       {
@@ -545,6 +547,62 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     ],
   },
   {
+    slug: "kinderfamilie",
+    name: "Kinder & Familie",
+    icon: "👶",
+    color: "#c88ba0",
+    klasse: "essenziell",
+    subcategories: [
+      {
+        slug: "kinderbetreuung",
+        name: "Kinderbetreuung",
+        // Sonderausgabe §10 Abs. 1 Nr. 5 EStG (80 % von max. 6.000 €/Kind).
+        taxDefault: "tax-so-kinderbetreuung",
+        keywords: [
+          "kita", "kindergarten", "kindertagesstätte", "kindertagesstaette",
+          "kinderhort", "tagesmutter", "babysitter", "kinderbetreuung",
+        ],
+      },
+      {
+        slug: "schule",
+        name: "Schule",
+        // Sonderausgabe §10 Abs. 1 Nr. 9 EStG (Schulgeld 30 %, max. 5.000 €).
+        taxDefault: "tax-so-schulgeld",
+        keywords: ["schulgeld", "privatschule", "schulbedarf", "klassenfahrt"],
+      },
+      {
+        slug: "spielzeugkind",
+        name: "Spielzeug & Kind",
+        klasse: "diskretionaer",
+        keywords: ["spielzeug", "mytoys", "smyths toys"],
+      },
+    ],
+  },
+  {
+    slug: "bildung",
+    name: "Bildung",
+    icon: "🎓",
+    color: "#8a6d9c",
+    klasse: "diskretionaer",
+    subcategories: [
+      {
+        slug: "fortbildung",
+        name: "Fortbildung & Kurse",
+        // Werbungskosten (Anlage N): berufliche Fort-/Weiterbildung.
+        taxDefault: "tax-n-fortbildung",
+        keywords: [
+          "seminar", "fortbildung", "weiterbildung", "schulung", "udemy",
+          "coursera", "volkshochschule", "vhs", "fernuni", "ihk",
+        ],
+      },
+      {
+        slug: "buecher",
+        name: "Bücher & Fachliteratur",
+        keywords: ["thalia", "hugendubel", "buchhandlung", "fachliteratur", "buecher.de", "bücher.de"],
+      },
+    ],
+  },
+  {
     slug: "versicherungen",
     name: "Versicherungen",
     icon: "🛡️",
@@ -714,8 +772,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "allgemeinerhandel",
         name: "Allgemeiner Einzelhandel",
         keywords: [
-          "amazon", "amzn", "otto", "ebay", "galeria", "thalia", "decathlon", "tedi",
-          "kleinanzeigen", "temu", "shein", "wish", "lovoo", "buecher.de", "bücher.de",
+          "amazon", "amzn", "otto", "ebay", "galeria", "decathlon", "tedi",
+          "kleinanzeigen", "temu", "shein", "wish", "lovoo",
           "real.de",
         ],
       },
@@ -763,6 +821,34 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         slug: "gebuehrenzinsen",
         name: "Gebühren & Zinsen",
         keywords: ["dispozinsen", "sollzinsen", "gebühr", "sollzins"],
+      },
+    ],
+  },
+  {
+    slug: "steuernabgaben",
+    name: "Steuern & Abgaben",
+    icon: "🏛️",
+    color: "#6b7a8f",
+    klasse: "essenziell",
+    subcategories: [
+      {
+        // "grundsteuer" ist hier fachlich richtig verortet (früher fälschlich in
+        // Miete — für Eigentümer irreführend). Selbstgenutzt nicht absetzbar,
+        // daher bewusst KEIN taxDefault (bei Vermietung greift die manuelle
+        // Zuordnung zur Anlage-V-Rubrik).
+        slug: "grundsteuerabgabe",
+        name: "Grundsteuer",
+        keywords: ["grundsteuer"],
+      },
+      {
+        slug: "steuerzahlungen",
+        name: "Steuerzahlungen",
+        keywords: ["finanzamt", "einkommensteuer", "steuernachzahlung", "kfz-steuer", "kfzsteuer"],
+      },
+      {
+        slug: "kommunaleabgaben",
+        name: "Kommunale Abgaben",
+        keywords: ["abfallwirtschaft", "müllabfuhr", "muellabfuhr", "stadtkasse", "straßenreinigung", "strassenreinigung"],
       },
     ],
   },
