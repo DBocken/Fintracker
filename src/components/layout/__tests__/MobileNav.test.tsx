@@ -1,17 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { translations } from "@/i18n/translations";
 import MobileNav from "@/components/layout/MobileNav";
 
 function renderMobileNav(locale: "de" | "en" = "de") {
+  // QueryClient: die Nav liest den Business-Modus über useBusinessMode (useQuery).
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <I18nProvider initialLocale={locale}>
-      <MemoryRouter>
-        <MobileNav />
-      </MemoryRouter>
-    </I18nProvider>,
+    <QueryClientProvider client={client}>
+      <I18nProvider initialLocale={locale}>
+        <MemoryRouter>
+          <MobileNav />
+        </MemoryRouter>
+      </I18nProvider>
+    </QueryClientProvider>,
   );
 }
 

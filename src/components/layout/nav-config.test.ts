@@ -66,16 +66,35 @@ describe("getVisibleNavGroups", () => {
   it("[REGRESSION] zeigt Trading ohne Beta-Flag und ohne Premium-Gate (Nutzer-Entscheid)", () => {
     // Trading war zuvor doppelt versteckt (trading_beta-Flag + Premium-Tier)
     // und leitete Nutzer verwirrend zum Coach um. Jetzt normal sichtbar.
-    const trading = getVisibleNavGroups()
+    const trading = getVisibleNavGroups(false)
       .flatMap((g) => g.items)
       .find((i) => i.path === "/trading");
     expect(trading).toBeDefined();
     expect(trading?.requiredTier).not.toBe("premium");
   });
 
-  it("lässt alle Nav-Ziele sichtbar", () => {
-    const visiblePaths = getVisibleNavGroups().flatMap((g) => g.items).map((i) => i.path);
+  it("lässt im Business-Modus alle Nav-Ziele sichtbar", () => {
+    const visiblePaths = getVisibleNavGroups(true).flatMap((g) => g.items).map((i) => i.path);
     const allPaths = NAV_GROUPS.flatMap((g) => g.items).map((i) => i.path);
     expect(visiblePaths).toEqual(allPaths);
+  });
+
+  describe("businessOnly-Gating (Einzelunternehmer, „Ruhe vor Fülle“)", () => {
+    it("versteckt /euer ohne Business-Modus (Default)", () => {
+      const paths = getVisibleNavGroups(false).flatMap((g) => g.items).map((i) => i.path);
+      expect(paths).not.toContain("/euer");
+    });
+
+    it("zeigt /euer im Business-Modus in der Analysen-Gruppe", () => {
+      const analysen = getVisibleNavGroups(true).find((g) => g.id === "analysen");
+      expect(analysen?.items.map((i) => i.path)).toContain("/euer");
+    });
+
+    it("[REGRESSION] versteckt außer businessOnly-Zielen nichts", () => {
+      const hidden = NAV_GROUPS.flatMap((g) => g.items)
+        .filter((i) => !getVisibleNavGroups(false).flatMap((g) => g.items).some((v) => v.path === i.path));
+      expect(hidden.every((i) => i.businessOnly)).toBe(true);
+      expect(hidden.map((i) => i.path)).toEqual(["/euer"]);
+    });
   });
 });
