@@ -11,6 +11,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     css: false,
+    // v8-Coverage-Instrumentierung verdoppelt grob die Laufzeit; rechenintensive
+    // Tests (Monte-Carlo-Forecast, PBKDF2/AES) reißen sonst die 5s-Standardgrenze
+    // auf langsameren CI-Runnern. 20s gibt Puffer, ohne echte Hänger zu verstecken.
+    testTimeout: 20000,
     coverage: {
       provider: "v8",
       reporter: ["text-summary", "html", "lcov"],
