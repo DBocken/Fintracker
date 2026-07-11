@@ -32,8 +32,8 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
-      - name: Tests
-        run: pnpm test
+      - name: Tests & Coverage
+        run: pnpm test:coverage
 
       - name: Red-team regression suites
         run: |
