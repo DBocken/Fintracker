@@ -3,6 +3,7 @@ import { getCurrentUserId } from './auth-service';
 import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
 import { escapeCsvCell } from '@/lib/csv-utils';
 import { t } from '@/i18n/serviceT';
+import { logger } from '@/utils/logger';
 
 /**
  * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
@@ -95,7 +96,7 @@ class TransactionStorageService {
       const sorted = [...rows].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       return { success: true, data: sorted.slice(offset, offset + limit) };
     } catch (error) {
-      console.error('[TransactionStorage] Error getting transactions:', error);
+      logger.error(`[TransactionStorage] Error getting transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
@@ -110,7 +111,7 @@ class TransactionStorageService {
     try {
       return await this.saveLocalTransactions(transactions);
     } catch (error) {
-      console.error('[TransactionStorage] Error saving transactions:', error);
+      logger.error(`[TransactionStorage] Error saving transactions: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
@@ -125,7 +126,7 @@ class TransactionStorageService {
     try {
       return await this.updateLocalTransaction(id, updates);
     } catch (error) {
-      console.error('[TransactionStorage] Error updating transaction:', error);
+      logger.error(`[TransactionStorage] Error updating transaction: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
@@ -145,7 +146,7 @@ class TransactionStorageService {
       await deleteAllocationsForTransactions([id]);
       return result;
     } catch (error) {
-      console.error('[TransactionStorage] Error deleting transaction:', error);
+      logger.error(`[TransactionStorage] Error deleting transaction: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
@@ -170,7 +171,7 @@ class TransactionStorageService {
         error: t('transactionStorage.cloudSyncDisabled'),
       };
     } catch (error) {
-      console.error('[TransactionStorage] Sync error:', error);
+      logger.error(`[TransactionStorage] Sync error: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorage.unknownError'),
@@ -203,7 +204,7 @@ class TransactionStorageService {
 
       return { success: true, data: csv };
     } catch (error) {
-      console.error('[TransactionStorage] Export error:', error);
+      logger.error(`[TransactionStorage] Export error: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });
       return {
         success: false,
         error: error instanceof Error ? error.message : t('transactionStorageServiceLib.unknownError', 'Unknown error'),
