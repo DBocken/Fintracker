@@ -67,6 +67,70 @@ describe("budget-waterfall", () => {
       expect(r.totalShortfall).toBe(700 + 300); // Fixkosten + variable ungedeckt
     });
 
+    describe("Steuerrücklage-Stufe (Einzelunternehmer)", () => {
+      it("sollte die Steuer-Stufe VOR dem Sparen dotieren (fremdes Geld zuerst)", () => {
+        const r = computeWaterfall({
+          income: 3000,
+          savings: { mode: "percent", value: 10 },
+          essentials: 1500,
+          discretionaryRequested: 800,
+          taxReserveMonthly: 500,
+        });
+        expect(r.steps.map((s) => [s.key, s.allocated])).toEqual([
+          ["tax-reserve", 500],
+          ["savings", 300],
+          ["essentials", 1500],
+          ["discretionary", 700],
+          ["surplus", 0],
+        ]);
+        expect(r.savingsRate).toBeCloseTo(0.1); // Sparquote misst SPAREN, nicht Steuer
+        expect(r.feasible).toBe(true);
+      });
+
+      it("sollte feasible=false melden, wenn nach Steuer+Sparen die Fixkosten reißen", () => {
+        const r = computeWaterfall({
+          income: 2000,
+          savings: { mode: "amount", value: 300 },
+          essentials: 1500,
+          discretionaryRequested: 0,
+          taxReserveMonthly: 600,
+        });
+        const ess = r.steps.find((s) => s.key === "essentials")!;
+        expect(ess.allocated).toBe(1100);
+        expect(ess.shortfall).toBe(400);
+        expect(r.feasible).toBe(false);
+      });
+
+      it("[REGRESSION] sollte ohne taxReserveMonthly bit-identisch zum Bestand bleiben (deckt den steps[0/1]-Index-Fix)", () => {
+        const base = {
+          income: 3000,
+          savings: { mode: "percent" as const, value: 10 },
+          essentials: 1500,
+          discretionaryRequested: 800,
+        };
+        const without = computeWaterfall(base);
+        const withUndefined = computeWaterfall({ ...base, taxReserveMonthly: undefined });
+        const withZero = computeWaterfall({ ...base, taxReserveMonthly: 0 });
+
+        expect(without.steps.map((s) => s.key)).toEqual(["savings", "essentials", "discretionary", "surplus"]);
+        expect(withUndefined).toEqual(without);
+        expect(withZero).toEqual(without);
+        expect(without.savingsRate).toBeCloseTo(0.1);
+        expect(without.feasible).toBe(true);
+      });
+
+      it("sollte negative Steuer-Rücklage auf 0 klemmen (keine Stufe)", () => {
+        const r = computeWaterfall({
+          income: 3000,
+          savings: { mode: "percent", value: 10 },
+          essentials: 1500,
+          discretionaryRequested: 800,
+          taxReserveMonthly: -100,
+        });
+        expect(r.steps.some((s) => s.key === "tax-reserve")).toBe(false);
+      });
+    });
+
     describe("Edge Cases", () => {
       it("sollte mit Einkommen 0 umgehen", () => {
         const r = computeWaterfall({

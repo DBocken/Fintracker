@@ -2512,6 +2512,7 @@ export const translations = {
         highSavingsRateWarning: 'Sparquote zu hoch: Nach dem Sparen bleiben die Fixkosten unterdeckt. Reduziere die Sparquote oder senke Fixkosten.',
         insufficientData: 'Basis: erst {months} Monat(e) Daten – die Schätzung wird mit der Zeit genauer.',
         stepHints: {
+          taxReserve: 'Steuern sind fremdes Geld',
           savings: 'Pay-yourself-first',
           essentials: 'existenzsichernd',
           discretionary: 'Null-Saldo',
@@ -3527,6 +3528,7 @@ export const translations = {
       ok: 'Liquidität bleibt über den gesamten Horizont über dem Sicherheitspuffer ({buffer}). Tiefststand {lowestBalance} am {lowestBalanceDate}.',
     },
     budgetWaterfall: {
+      taxReserve: 'Steuerrücklage',
       savingsFirst: 'Sparen zuerst',
       essentials: 'Fixkosten',
       discretionary: 'Variable Töpfe',
@@ -6101,6 +6103,7 @@ export const translations = {
         highSavingsRateWarning: 'Savings rate too high: After saving, fixed costs remain underfunded. Reduce the savings rate or lower fixed costs.',
         insufficientData: 'Based on only {months} month(s) of data – the estimate will improve over time.',
         stepHints: {
+          taxReserve: 'Taxes are not your money',
           savings: 'Pay yourself first',
           essentials: 'Essential',
           discretionary: 'Zero balance',
@@ -7116,6 +7119,7 @@ export const translations = {
       ok: 'Liquidity stays above the safety buffer ({buffer}) throughout the entire horizon. Lowest point {lowestBalance} on {lowestBalanceDate}.',
     },
     budgetWaterfall: {
+      taxReserve: 'Tax reserve',
       savingsFirst: 'Savings first',
       essentials: 'Fixed costs',
       discretionary: 'Variable pots',
@@ -9642,6 +9646,7 @@ export const translations = {
         highSavingsRateWarning: "polghach patlh tlhoy law': polDI', Huch poQbogh tebHa'taH. polghach patlh yImachmoH, pagh Huch poQbogh yImachmoH.",
         insufficientData: "jar {months} De' neH lo'lu' – poH law'DI', wIHaDbogh nIvqa'.",
         stepHints: {
+          taxReserve: "tamey Huch SoHvaD ghobe'",
           savings: "wa'DIch SoHvaD yInob",
           essentials: "poQbogh",
           discretionary: "pagh mI'",
@@ -10646,6 +10651,7 @@ export const translations = {
       ok: "poH Hoch: lo'laHbogh Huch QaQmeH tep ({buffer}) Dung taHtaH. {lowestBalanceDate}: bIng Daq {lowestBalance}.",
     },
     budgetWaterfall: {
+      taxReserve: "tamey polHuch",
       savingsFirst: "tep wa'DIch",
       essentials: "poQbogh Huch",
       discretionary: "wIvlu'meH Huch",
