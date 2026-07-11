@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import type { Category, Transaction } from '@/types';
@@ -118,6 +118,68 @@ describe('TransactionDetailsPanel – Steuer-Sektion', () => {
       } finally {
         mockAllocations = [];
       }
+    });
+  });
+
+  describe('Steuer-Default-Chip', () => {
+    const HANDWERKER_CATS: Category[] = [
+      { id: 'local-cat-wohnen', name: 'Wohnen', filters: [], parent_id: null } as Category,
+      {
+        id: 'local-cat-handwerker',
+        name: 'Handwerker & Reparaturen',
+        filters: [],
+        parent_id: 'local-cat-wohnen',
+        attributes: { default_tax_category_id: 'tax-35a3-handwerker' },
+      } as Category,
+    ];
+
+    function renderWithHandwerker(tx: Transaction, locale: 'de' | 'en' = 'de') {
+      return render(
+        <I18nProvider initialLocale={locale}>
+          <MemoryRouter>
+            <TransactionDetailsPanel
+              transaction={tx}
+              categories={HANDWERKER_CATS}
+              accounts={[]}
+              allTransactions={[tx]}
+              onSave={vi.fn()}
+              onClose={vi.fn()}
+              layout="stacked"
+            />
+          </MemoryRouter>
+        </I18nProvider>,
+      );
+    }
+
+    it('sollte den Kategorie-Default als Vorschlag anbieten und übernehmen', () => {
+      renderWithHandwerker(
+        baseTx({ category_id: 'local-cat-wohnen', subcategory_id: 'local-cat-handwerker' }),
+      );
+      // Chip mit Grund sichtbar …
+      expect(screen.getByText(/ist als .* voreingestellt/)).toBeInTheDocument();
+      // … Übernehmen setzt die Rubrik in den Entwurf → Arbeitskosten-Feld erscheint.
+      fireEvent.click(screen.getByRole('button', { name: /Übernehmen/ }));
+      expect(screen.getByLabelText(/davon Arbeitskosten/)).toBeInTheDocument();
+      expect(screen.queryByText(/ist als .* voreingestellt/)).not.toBeInTheDocument();
+    });
+
+    it('sollte den Chip auf Englisch rendern', () => {
+      renderWithHandwerker(
+        baseTx({ category_id: 'local-cat-wohnen', subcategory_id: 'local-cat-handwerker' }),
+        'en',
+      );
+      expect(screen.getByText(/is preset as/)).toBeInTheDocument();
+    });
+
+    it('sollte KEINEN Chip zeigen, wenn bereits markiert', () => {
+      renderWithHandwerker(
+        baseTx({
+          category_id: 'local-cat-wohnen',
+          subcategory_id: 'local-cat-handwerker',
+          tax_category_id: 'tax-35a3-handwerker',
+        }),
+      );
+      expect(screen.queryByText(/ist als .* voreingestellt/)).not.toBeInTheDocument();
     });
   });
 

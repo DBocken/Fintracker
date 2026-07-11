@@ -1,5 +1,6 @@
 import type { Ausgabenklasse, Category, Rhythmus, Transaction } from '@/types';
 import type { CategorizationResult } from '@/services/transaction-service';
+import { taxCategoryById } from '@/data/tax-catalog';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -198,6 +199,35 @@ export function buildContractHint(
     reason: reasonTemplate.replace('{count}', String(months.size)).replace('{payee}', payeeLabel),
     occurrences: months.size,
   };
+}
+
+export interface DetailTaxDefault {
+  taxCategoryId: string;
+  categoryName: string;
+}
+
+/**
+ * Steuer-Default-Vorschlag für die Steuer-Sektion des Detail-Panels: Trägt die
+ * gewählte (Unter-)Kategorie eine voreingestellte Steuer-Rubrik und ist die
+ * Buchung noch unmarkiert, wird sie als Chip VORGESCHLAGEN — nie automatisch
+ * gesetzt. Nur für Ausgaben; Transfers sind nie steuerrelevant. Unbekannte
+ * Rubrik-IDs (z. B. nach Katalog-Umbau) werden ignoriert.
+ */
+export function buildDetailTaxDefault(
+  draft: TransactionDetailDraft,
+  amount: number,
+  categoriesById: Map<string, Category>,
+): DetailTaxDefault | null {
+  if (draft.tax_category_id) return null;
+  if (draft.is_transfer) return null;
+  if (amount >= 0) return null;
+
+  const category =
+    categoriesById.get(draft.subcategory_id ?? '') ?? categoriesById.get(draft.category_id ?? '');
+  const taxCategoryId = category?.attributes?.default_tax_category_id;
+  if (!category || !taxCategoryId || !taxCategoryById.has(taxCategoryId)) return null;
+
+  return { taxCategoryId, categoryName: category.name };
 }
 
 /** Initialisiert den bearbeitbaren Entwurf aus einer Transaktion. */
