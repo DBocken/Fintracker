@@ -552,14 +552,23 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
     klasse: "essenziell",
     subcategories: [
       {
+        // Slug bleibt aus ID-Stabilität "haftpflichthausrat" (Bestandsdaten
+        // referenzieren local-cat-haftpflichthausrat); fachlich ist die Kategorie
+        // jetzt NUR Hausrat/Gebäude — beides steuerlich nicht absetzbar, daher
+        // bewusst KEIN taxDefault. Haftpflicht hat eine eigene Kategorie.
         slug: "haftpflichthausrat",
-        name: "Haftpflicht & Hausrat",
-        // Sonderausgabe: nur Haftpflicht-Anteil (Hausrat/Wohngebäude zählen nicht).
-        taxDefault: "tax-so-versicherungen",
+        name: "Hausrat & Gebäude",
         keywords: [
-          "haftpflicht", "hausratversicherung", "wohngebäudeversicherung",
-          "wohngebaeudeversicherung", "vgh",
+          "hausratversicherung", "hausrat", "wohngebäudeversicherung",
+          "wohngebaeudeversicherung",
         ],
+      },
+      {
+        slug: "haftpflicht",
+        name: "Haftpflichtversicherung",
+        // Sonderausgabe (§10 Abs. 1 Nr. 3a EStG): Haftpflicht ist absetzbar.
+        taxDefault: "tax-so-versicherungen",
+        keywords: ["haftpflicht", "privathaftpflicht", "haftpflichtversicherung"],
       },
       {
         slug: "lebensversicherung",
@@ -574,7 +583,7 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         klasse: "diskretionaer",
         taxDefault: "tax-so-versicherungen",
         keywords: [
-          "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna",
+          "versicherung", "allianz", "axa", "ergo", "debeka", "signal iduna", "vgh",
           "generali", "wgv", "devk", "gothaer", "barmenia", "hanse merkur",
           "württembergische", "wuerttembergische", "cosmosdirekt", "verti versicherung",
           "ottonova", "zurich versicherung", "ihre versicherung", "r+v versicherung",
@@ -653,10 +662,11 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
         keywords: ["lotto", "toto", "toto-lotto", "eurojackpot"],
       },
       {
+        // Bewusst KEIN taxDefault: Vereins-/Mitgliedsbeiträge (ADAC, Sportverein)
+        // sind meist NICHT gemeinnützig — echte Spenden erkennt die Keyword-Ebene
+        // der Steuer-Vorschläge (tax-so-spenden) mit sichtbarem Grund.
         slug: "vereine",
         name: "Vereine",
-        // Sonderausgabe: nur Beiträge/Spenden an gemeinnützige Vereine.
-        taxDefault: "tax-so-spenden",
         keywords: ["verein", "esports", "drk", "mitgliedsbeitrag"],
       },
       {

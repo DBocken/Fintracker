@@ -62,13 +62,17 @@ export async function getLocalCategories(): Promise<Category[]> {
     // default_tax_category_id auf bestehenden Defaults).
     const { categories: taxMigrated, changed: taxChanged } = backfillTaxDefaults(incomeMigrated);
 
+    // Präzisiere Steuer-Defaults: Haftpflicht/Hausrat-Split + Vereine ohne
+    // pauschalen Spenden-Default.
+    const { categories: insuranceMigrated, changed: insuranceChanged } = migrateInsuranceTaxSplit(taxMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged) {
-      await writeLocalCategories(taxMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged) {
+      await writeLocalCategories(insuranceMigrated);
     }
-    return taxMigrated;
+    return insuranceMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -321,6 +325,76 @@ export function backfillTaxDefaults(categories: Category[]): { categories: Categ
 
   const result = [...migrated, ...missingTaxDefaults.map((c) => ({ ...c }))];
   return { categories: result, changed };
+}
+
+/**
+ * Präzisions-Migration der Steuer-Vorschlags-Defaults:
+ * 1. Die frühere Misch-Kategorie „Haftpflicht & Hausrat" wird zu
+ *    „Hausrat & Gebäude" OHNE Steuer-Default (Hausrat/Gebäude sind nicht
+ *    absetzbar — der pauschale 0,9-Vorschlag war irreführend); der
+ *    Haftpflicht-Anteil zieht in die neue Kategorie `local-cat-haftpflicht`
+ *    (wird angehängt, falls sie fehlt).
+ * 2. Vereine verlieren den Spenden-Default (Mitgliedsbeiträge sind meist nicht
+ *    gemeinnützig); echte Spenden erkennt die Keyword-Ebene weiterhin.
+ *
+ * Nur unveränderte Defaults (`is_default !== false`) und nur die ALTEN
+ * Default-Werte werden angefasst — bewusst vom Nutzer gesetzte Abweichungen
+ * bleiben stehen. Reine Funktion, `changed` nur bei echter Änderung (F-CAT).
+ */
+// Aus der Misch-Kategorie in die neue Haftpflicht-Kategorie umgezogene Keywords.
+const HAFTPFLICHT_KEYWORDS_MOVED = ["haftpflicht"];
+
+export function migrateInsuranceTaxSplit(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+  const existingIds = new Set(categories.map((c) => c.id));
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+
+  const migrated = categories.map((cat) => {
+    if (cat.is_default === false) return cat;
+
+    if (cat.id === "local-cat-haftpflichthausrat") {
+      let next = cat;
+      if (next.name === "Haftpflicht & Hausrat") {
+        changed = true;
+        next = { ...next, name: defaultsById.get(next.id)?.name ?? "Hausrat & Gebäude" };
+      }
+      if (next.attributes?.default_tax_category_id === "tax-so-versicherungen") {
+        changed = true;
+        next = {
+          ...next,
+          attributes: { ...next.attributes, default_tax_category_id: null, steuerrelevant: false },
+        };
+      }
+      const filtered = next.filters.filter((f) => !HAFTPFLICHT_KEYWORDS_MOVED.includes(f));
+      if (filtered.length !== next.filters.length) {
+        changed = true;
+        next = { ...next, filters: filtered };
+      }
+      return next;
+    }
+
+    if (cat.id === "local-cat-vereine" && cat.attributes?.default_tax_category_id === "tax-so-spenden") {
+      changed = true;
+      return {
+        ...cat,
+        attributes: { ...cat.attributes, default_tax_category_id: null, steuerrelevant: false },
+      };
+    }
+
+    return cat;
+  });
+
+  // Neue Haftpflicht-Kategorie additiv anhängen (nur wenn der Nutzer die
+  // Versicherungs-Hauptgruppe überhaupt kennt — sonst kommt sie ohnehin mit
+  // dem nächsten vollständigen Seed).
+  const appended: Category[] = [];
+  const haftpflichtDefault = defaultsById.get("local-cat-haftpflicht");
+  if (haftpflichtDefault && !existingIds.has(haftpflichtDefault.id) && existingIds.has("local-cat-haftpflichthausrat")) {
+    changed = true;
+    appended.push({ ...haftpflichtDefault });
+  }
+
+  return { categories: [...migrated, ...appended], changed };
 }
 
 async function writeLocalCategories(categories: Category[]): Promise<void> {
