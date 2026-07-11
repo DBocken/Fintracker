@@ -171,6 +171,10 @@ async function readBody(req: VercelReq): Promise<unknown> {
 function sendJson(res: ServerResponse, status: number, payload: unknown) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
+  // Defense-in-Depth: vercel.json setzt die globalen Header nur in Prod —
+  // hier zusätzlich, damit vercel dev / andere Hosts nicht ungeschützt sind.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'no-store'); // Finanzdaten nie cachen
   res.end(JSON.stringify(payload));
 }
 
