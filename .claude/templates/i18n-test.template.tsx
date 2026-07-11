@@ -8,23 +8,13 @@
  * 4. [REGRESSION] Keys existieren in beiden Sprachen
  */
 
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
 import { translations } from "@/i18n/translations";
+// ZENTRAL — keine lokale renderWithI18n-Definition (der Hook blockiert das).
+// Für Komponenten mit Routing: renderWithProviders(ui, { locale, router: true }).
+import { renderWithI18n } from "@/test-utils/render";
 import ComponentName from "../ComponentName";
-
-// Helper: I18nProvider Wrapper
-function renderWithI18n(
-  component: React.ReactElement,
-  locale: "de" | "en" = "de"
-) {
-  return render(
-    <I18nProvider initialLocale={locale}>
-      {component}
-    </I18nProvider>
-  );
-}
 
 describe("ComponentName", () => {
   it("sollte deutsche Texte rendern", () => {

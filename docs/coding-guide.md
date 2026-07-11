@@ -23,6 +23,9 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - `src/components/` — UI. **Keine** Domänentypen, keine Geschäftslogik hier.
 - `src/pages/` — Routen-Einstiegspunkte, dünn.
 - Tests **immer** in `__tests__/` neben dem Code (nicht als `x.test.ts` neben `x.ts`).
+  Einzige Ausnahme: die Repo-/Config-Wächter-Tests unter `src/security/*.security.test.ts`
+  (bewusst dort, siehe CLAUDE.md). Ein PostToolUse-Hook
+  (`.claude/hooks/test-structure-check.mjs`) blockiert falsch platzierte Test-Dateien.
 
 ## 3. TypeScript
 
@@ -101,6 +104,15 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
   Sicherheits-/Integritäts-/Privacy-Tests mit `[SECURITY]`/`[INTEGRITY]`/`[PRIVACY]`.
 - CI (`pnpm lint`, `tsc`, `pnpm test`, Build) muss grün sein; `main` ist
   branch-protected.
+- **Ein Render-Helfer, ein Ort.** Komponenten-Tests rendern über den zentralen
+  `@/test-utils/render` (`renderWithI18n` / `renderWithProviders`) — **keine**
+  lokale `renderWithI18n`-Definition pro Datei (der Hook blockiert das).
+  Ändert sich das Provider-Setup, wird nur diese eine Datei angefasst.
+- **Datei-Suffixe** kennzeichnen Test-Kategorien und werden von den
+  `pnpm test:*`-Skripten adressiert: `*.security.test.ts` (Security-Wächter),
+  `*.mobile.test.tsx` (Mobile), sonst normale `*.test.ts(x)`.
+- **Coverage** wird gemessen (`pnpm test:coverage`); die Thresholds in
+  `vitest.config.ts` dürfen nicht unterschritten werden (CI wird sonst rot).
 
 ## 13. Trackingverse-Modularität
 
