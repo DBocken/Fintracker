@@ -11,6 +11,10 @@ import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
 
+// Anon-Key ist public-by-design (RLS schützt; gelesen wird nur über die
+// token-gegatete SECURITY-DEFINER-Funktion). Env-first für Rotation; als
+// Fallback darf hier NIE ein Service-Role-Key stehen (Wächter-Test:
+// src/security/supabase-env.security.test.ts).
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://pbopyawkxxrluhofjtub.supabase.co';
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ??
