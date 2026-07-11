@@ -191,6 +191,8 @@ export interface TaxReserveMovement {
  * immer abgeleitet (Prozent × YTD-Betriebseinnahmen) — sonst driftet es.
  */
 export interface TaxReserveState {
+  /** Stabile ID `tax-reserve-<year>` (Upsert-Anker im lokalen Store). */
+  id: string;
   user_id: string;
   year: number;
   movements: TaxReserveMovement[];

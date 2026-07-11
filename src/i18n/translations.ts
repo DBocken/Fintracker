@@ -3379,6 +3379,9 @@ export const translations = {
     transactionStorageServiceLib: {
       unknownError: 'Unbekannter Fehler',
     },
+    taxReserveService: {
+      invalidAmount: 'Ungültiger Betrag für die Steuerrücklage.',
+    },
     accountService: {
       accountTypeLabelChecking: 'Girokonto',
       accountTypeLabelCreditCard: 'Kreditkarte',
@@ -6965,6 +6968,9 @@ export const translations = {
     transactionStorageServiceLib: {
       unknownError: 'Unknown error',
     },
+    taxReserveService: {
+      invalidAmount: 'Invalid amount for the tax reserve.',
+    },
     accountService: {
       accountTypeLabelChecking: 'Checking account',
       accountTypeLabelCreditCard: 'Credit card',
@@ -10491,6 +10497,9 @@ export const translations = {
     },
     transactionStorageServiceLib: {
       unknownError: "Qagh Sovbe'lu'",
+    },
+    taxReserveService: {
+      invalidAmount: "tamey polHuch mI' qar be'.",
     },
     accountService: {
       accountTypeLabelChecking: "lo'meH Huchpol",
