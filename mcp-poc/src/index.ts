@@ -6,6 +6,7 @@
 // OAuth 2.1. Run it next to nothing sensitive and treat the token as a secret.
 
 import express, { type Request, type Response } from 'express';
+import helmet from 'helmet';
 import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -168,6 +169,18 @@ async function handleMcpPost(req: Request, res: Response) {
 }
 
 const app = express();
+// JSON-RPC-only API: helmet-Defaults plus strikte CSP ohne Browser-Annahmen.
+// MCP-Clients sind keine Browser und ignorieren CSP — die Header schützen
+// nur (z. B. falls die Antwort doch in einem Browser landet), brechen nichts.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: { 'default-src': ["'none'"], 'frame-ancestors': ["'none'"] },
+    },
+  }),
+);
+app.disable('x-powered-by');
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ ok: true }));

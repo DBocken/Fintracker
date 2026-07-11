@@ -25,6 +25,7 @@ import { deriveAccountDataQuality } from '../../services/account-data-quality-se
 import { GoCardlessConnect } from '../GoCardlessConnect';
 import RequireTier from '@/components/common/RequireTier';
 import { getRedirectOrigin } from '@/lib/app-origin';
+import { isSafeExternalAuthUrl } from '@/lib/safe-url';
 import { syncAccountTransactions, canSyncAccount, disconnectGoCardlessAccount, getAccountConsentStatus, reconcileAllInternalTransfers } from '../../services/gocardless-sync-service';
 import { gocardlessService } from '../../services/gocardless-service';
 import {
@@ -183,9 +184,17 @@ export function AccountManager() {
     const redirectUrl = `${getRedirectOrigin()}/ausgabentracker/return`;
     const requisition = await gocardlessService.reconnectBankConnection(account.bank_connection_id, redirectUrl);
 
+    // requisition.link zeigt auf GoCardless, der redirect-Fallback auf die eigene App —
+    // beides API-Antwort und damit vor dem Redirect zu validieren (safe-url)
+    const link = requisition.link || requisition.redirect;
+    if (!isSafeExternalAuthUrl(link, { allowedOrigins: [getRedirectOrigin(), window.location.origin] })) {
+      showError(t('accounts.manager.unsafeAuthLinkError'));
+      return;
+    }
+
     sessionStorage.setItem('gocardless_requisition_id', requisition.id);
     showSuccess(t('accounts.manager.reconnectRequestedMessage'));
-    window.location.href = requisition.link || requisition.redirect;
+    window.location.href = link;
   };
 
   const handleRefreshAll = async () => {

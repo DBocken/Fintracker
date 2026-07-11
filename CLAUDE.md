@@ -357,6 +357,39 @@ Wird überprüft durch `.claude/hooks/i18n-compliance.mjs`:
 
 ---
 
+## Security — Verbindlicher Standard
+
+**REGEL:** Für die folgenden Schwachstellen-Klassen gelten die Regeln aus
+**`docs/security-guidelines.md`** verbindlich. Jede Klasse hat einen Wächter-Test
+in `src/security/` (läuft in `pnpm test` und `pnpm test:security`) — Verstöße
+werden in CI rot.
+
+### Kurzfassung (Details + ❌/✅-Beispiele in den Guidelines)
+
+1. **child_process:** nie `execSync`/String-Interpolation — immer
+   `execFileSync('cmd', [args, '--', file])`; `import.meta.url` nur via `fileURLToPath`.
+2. **HTTP-Header:** Web-App über `vercel.json`/`netlify.toml`; neue Express-Server
+   → `helmet` als erste Middleware; Serverless-JSON → `nosniff` + `no-store`.
+3. **Secrets:** echte Secrets nur `process.env` ohne Fallback (`requireEnv`);
+   Supabase-Anon-Key env-first (public-by-design); `.env` nie committen.
+4. **GitHub Actions:** `uses:` nur mit 40-Hex-SHA + `# vX.Y.Z`-Kommentar;
+   top-level `permissions: contents: read` in jeder Workflow-Datei.
+5. **Redirects:** externe URLs vor `window.location.href`/`window.open` immer
+   durch `isSafeExternalAuthUrl` (`@/lib/safe-url`); `window.open` mit `noopener`.
+6. **Android:** `allowBackup="false"`, Network-Security-Config ohne Klartext,
+   keine neuen exportierten Komponenten ohne Begründung + Test.
+
+### Testpflicht (TDD, wie oben)
+
+- Änderungen in diesen Klassen **nur mit `[SECURITY]`/`[REGRESSION]`-Test im
+  selben Commit** — behobene Schwachstellen bekommen immer einen
+  `[REGRESSION]`-Test gegen den Rückfall.
+- Neue Wächter-Tests (Repo-/Config-Scans) → `src/security/*.security.test.ts`;
+  Unit-Tests für Security-Utilities → neben den Code (`__tests__/`).
+- Vor jedem Push: `pnpm test:security` und `pnpm security:secrets` grün.
+
+---
+
 ## Design & Animation (verbindlich)
 
 Vollständige Prinzipien: **`docs/design-principles.md`**. Kurzfassung für jede UI-Arbeit:

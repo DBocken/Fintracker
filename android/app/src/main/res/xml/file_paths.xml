@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Capacitor-Template-Default. Der zugehörige FileProvider ist NICHT exportiert
+     (URIs nur per explizitem Grant); aktuell nutzt ihn kein installiertes Plugin.
+     Bei Aufnahme von Camera/Share/Filesystem-Plugins: Pfade auf das tatsächlich
+     benötigte Unterverzeichnis eingrenzen statt "." (siehe docs/security-guidelines.md). -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-path name="my_images" path="." />
     <cache-path name="my_cache_images" path="." />

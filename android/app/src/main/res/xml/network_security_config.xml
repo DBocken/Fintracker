@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- minSdk 24: Ohne diese Config wäre Klartext-HTTP auf API 24-27 standardmäßig
+     erlaubt. Capacitor läuft ohnehin über https (capacitor.config.ts), die Config
+     macht das Verbot systemweit explizit und durchsetzbar. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

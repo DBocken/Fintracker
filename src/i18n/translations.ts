@@ -1704,6 +1704,7 @@ export const translations = {
         confirmDeleteMessage: 'Möchtest du das Konto "{name}" wirklich löschen?',
         connectionValidUntil: 'Verbindung gültig bis {date}',
         bankConnectionMissingError: 'Für dieses Konto fehlt die Bankverbindung. Bitte verbinde die Bank erneut.',
+        unsafeAuthLinkError: 'Der Bank-Link wurde blockiert, weil er nicht sicher ist. Bitte verbinde die Bank neu.',
         reconnectRequestedMessage: 'Die Bankfreigabe wird jetzt erneut angefragt.',
         syncNotPossibleMessage: 'Synchronisation noch nicht möglich. {nextSyncIn}',
         syncNotPossibleDefault: 'Bitte warte etwas.',
@@ -2939,6 +2940,7 @@ export const translations = {
     goCardlessConnect: {
       selectBankPlease: 'Bitte wähle eine Bank aus',
       httpRedirectError: 'Die Redirect-URL muss HTTPS sein, oder benutze die Sandbox-Testbank.',
+      unsafeAuthLink: 'Der Authentifizierungslink wurde blockiert, weil er nicht sicher ist (kein HTTPS oder unbekannter Anbieter).',
       linkCopied: 'Link kopiert',
       copyError: 'Fehler beim Kopieren',
       title: 'Bank verbinden',
@@ -5346,6 +5348,7 @@ export const translations = {
         confirmDeleteMessage: 'Do you really want to delete account "{name}"?',
         connectionValidUntil: 'Connection valid until {date}',
         bankConnectionMissingError: 'This account is missing a bank connection. Please connect the bank again.',
+        unsafeAuthLinkError: 'The bank link was blocked because it is not safe. Please reconnect the bank.',
         reconnectRequestedMessage: 'Bank authorization is being requested again.',
         syncNotPossibleMessage: 'Sync not yet possible. {nextSyncIn}',
         syncNotPossibleDefault: 'Please wait a moment.',
@@ -6581,6 +6584,7 @@ export const translations = {
     goCardlessConnect: {
       selectBankPlease: 'Please select a bank',
       httpRedirectError: 'The redirect URL must be HTTPS, or use the sandbox test bank.',
+      unsafeAuthLink: 'The authentication link was blocked because it is not safe (no HTTPS or unknown provider).',
       linkCopied: 'Link copied',
       copyError: 'Error copying',
       title: 'Connect bank',
@@ -8974,6 +8978,7 @@ export const translations = {
         confirmDeleteMessage: "Huch ngaSwI' \"{name}\" teHmo' DaQaw'neH'a'?",
         connectionValidUntil: "chaw' taHtaH: {date}",
         bankConnectionMissingError: "Huch ngaSwI'vam tuq chaw' Hutlh. tuq yIchaw'qa'.",
+        unsafeAuthLinkError: "QaDbe'mo' tuq rarwI' botlu'. tuq yIrarqa'.",
         reconnectRequestedMessage: "tuq chaw' poQqa'lu'taH.",
         syncNotPossibleMessage: "wej chu'moHlu'laH. {nextSyncIn}",
         syncNotPossibleDefault: "puS poH yISIQ.",
@@ -10164,6 +10169,7 @@ export const translations = {
     goCardlessConnect: {
       selectBankPlease: "Huch tuq yIwIv",
       httpRedirectError: "He (URL) HTTPS 'oSnIS, pagh chovmeH Huch tuq (Sandbox) yIlo'.",
+      unsafeAuthLink: "QaDbe'mo' poj rarwI' botlu' (HTTPS Hutlh pagh je'wI' Sovbe'lu').",
       linkCopied: "rarwI' chenmoHqa'lu'",
       copyError: "chenmoHqa'taHvIS Qagh",
       title: "Huch tuq yIrar",

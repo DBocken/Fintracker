@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { gocardlessService } from '../services/gocardless-service'
 import { CreditCard, ExternalLink, Loader2, RefreshCw, AlertTriangle, Search, Building2, Check } from 'lucide-react'
 import { getRedirectOrigin, PRODUCTION_APP_ORIGIN } from '@/lib/app-origin'
+import { isSafeExternalAuthUrl } from '@/lib/safe-url'
 import InfoButton from '@/components/common/InfoSheet'
 import { useI18n } from '@/i18n/useI18n'
 
@@ -206,13 +207,22 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
     }
   }
 
+  // Auth-Links kommen aus der API-Antwort → vor Redirect validieren (safe-url)
   const openAuthInThisTab = (link: string) => {
+    if (!isSafeExternalAuthUrl(link, { allowedOrigins: [window.location.origin] })) {
+      setError(t('goCardlessConnect.unsafeAuthLink'))
+      return
+    }
     setShowAuthDialog(false)
     window.location.href = link
   }
 
   const openAuthInNewTab = (link: string) => {
-    window.open(link, '_blank')
+    if (!isSafeExternalAuthUrl(link, { allowedOrigins: [window.location.origin] })) {
+      setError(t('goCardlessConnect.unsafeAuthLink'))
+      return
+    }
+    window.open(link, '_blank', 'noopener')
   }
 
   return (
