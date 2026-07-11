@@ -51,6 +51,27 @@ export function buildDayGroups(transactions: Transaction[], endingBalance: numbe
   return groups;
 }
 
+export type FlatDayItem =
+  | { type: 'heading'; group: DayGroup }
+  | { type: 'row'; group: DayGroup; transaction: Transaction; isFirstRowOfDay: boolean };
+
+/**
+ * Flacht Tages-Gruppen zu einer einzelnen Item-Liste ab (Heading, dann Zeilen),
+ * damit die Liste fenster-virtualisiert werden kann: der Virtualizer braucht
+ * eine flache, indexierbare Sequenz. `isFirstRowOfDay` erhält die
+ * Trennlinien-Optik (divide-y) über die absolute Positionierung hinweg.
+ */
+export function flattenDayGroups(groups: DayGroup[]): FlatDayItem[] {
+  const flat: FlatDayItem[] = [];
+  for (const group of groups) {
+    flat.push({ type: 'heading', group });
+    group.items.forEach((transaction, index) => {
+      flat.push({ type: 'row', group, transaction, isFirstRowOfDay: index === 0 });
+    });
+  }
+  return flat;
+}
+
 /**
  * Menschliche Tages-Überschrift wie im Buchungs-Schema: „Heute · Do 3.7.",
  * „Gestern · Mi 2.7." bzw. „Di 1.7." für weiter zurückliegende Tage.
