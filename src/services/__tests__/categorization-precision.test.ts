@@ -100,6 +100,41 @@ describe('Konfidenz-Floor für stille Zuweisung', () => {
   });
 
   describe('recategorizeTransactions', () => {
+    it('[REGRESSION] sollte vom Nutzer bestätigte Kategorien NIE überschreiben', async () => {
+      // Nutzer hat REWE bewusst als "Essen & Trinken" statt Supermarkt bestätigt.
+      const seeded = tx({
+        payee: 'REWE Markt',
+        category_id: 'local-cat-restaurant',
+        confirmed: true,
+        auto_mapped: false,
+      });
+      await saveTransactions([seeded]);
+
+      const summary = await recategorizeTransactions();
+
+      const all = await getTransactions(100);
+      const after = all.find((x) => x.id === seeded.id);
+      expect(after?.category_id).toBe('local-cat-restaurant');
+      // Bestätigte Buchungen tauchen auch nicht im Undo-Snapshot auf.
+      expect(summary.undo.some((u) => u.id === seeded.id)).toBe(false);
+    });
+
+    it('sollte unbestätigte Buchungen weiterhin umkategorisieren', async () => {
+      const seeded = tx({
+        payee: 'REWE Markt',
+        category_id: 'local-cat-restaurant',
+        confirmed: false,
+        auto_mapped: true,
+      });
+      await saveTransactions([seeded]);
+
+      await recategorizeTransactions();
+
+      const all = await getTransactions(100);
+      const after = all.find((x) => x.id === seeded.id);
+      expect(after?.category_id).toBe('local-cat-supermarkt');
+    });
+
     it('sollte unbestätigte Buchungen nicht auf 0,55-Raten umkategorisieren', async () => {
       const seeded = tx({ payee: 'Kaution Wohnung Meier', category_id: null, confirmed: false });
       await saveTransactions([seeded]);

@@ -535,6 +535,14 @@ export async function recategorizeTransactions(): Promise<{
   const undo: CategorizationSnapshotEntry[] = [];
 
   for (const tx of transactions) {
+    // Vom Nutzer bestätigte Kategorien sind manuelle Arbeit und werden vom
+    // Bulk-Lauf NIE überschrieben (nur unbestätigte/automatische Zuordnungen).
+    if (tx.confirmed) {
+      if (tx.category_id) assigned += 1;
+      else unassigned += 1;
+      continue;
+    }
+
     const newCat = categorizeTransactionConfident(tx, categories, learnedRules);
     const prevCat = tx.category_id || null;
 
