@@ -520,6 +520,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "therapie",
         name: "Therapie",
+        // Medizinische Therapie ist keine Kür — essenziell wie Arzt/Apotheke.
+        klasse: "essenziell",
         taxDefault: "tax-agb-krankheit",
         keywords: ["physiotherapie", "ergotherapie", "logopädie", "logopaedie"],
       },
@@ -541,6 +543,8 @@ export const CATEGORY_TAXONOMY: CategoryDef[] = [
       {
         slug: "optikerhoergeraete",
         name: "Optiker & Hörgeräte",
+        // Sehhilfen/Hörgeräte sind medizinische Hilfsmittel — essenziell.
+        klasse: "essenziell",
         taxDefault: "tax-agb-krankheit",
         keywords: ["sehtest", "optiker", "hörgeräte", "hoergeraete", "fielmann"],
       },

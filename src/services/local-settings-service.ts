@@ -69,13 +69,16 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Kategorien-Paket 2026 (Kinder & Familie, Bildung, Steuern & Abgaben).
     const { categories: packMigrated, changed: packChanged } = migrateCategoryPack2026(insuranceMigrated);
 
+    // Klassen-Korrektur: Therapie/Sehhilfen sind essenziell.
+    const { categories: healthMigrated, changed: healthChanged } = migrateEssentialHealthClasses(packMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged) {
-      await writeLocalCategories(packMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged || healthChanged) {
+      await writeLocalCategories(healthMigrated);
     }
-    return packMigrated;
+    return healthMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
@@ -444,6 +447,33 @@ export function migrateCategoryPack2026(categories: Category[]): { categories: C
   if (appended.length > 0) changed = true;
 
   return { categories: [...migrated, ...appended.map((c) => ({ ...c }))], changed };
+}
+
+/**
+ * Klassen-Korrektur: Medizinische Therapie und Sehhilfen/Hörgeräte erbten
+ * fälschlich „diskretionär" von der Gesundheit-Hauptkategorie — sie sind
+ * essenziell (wie Arzt/Apotheke). Hebt NUR den alten diskretionär-Default auf
+ * unveränderten Default-Kategorien an; bewusst gesetzte andere Klassen und
+ * Nutzer-Overrides bleiben stehen. Reine Funktion, F-CAT-konform.
+ */
+const ESSENTIAL_HEALTH_IDS = ["local-cat-therapie", "local-cat-optikerhoergeraete"];
+
+export function migrateEssentialHealthClasses(categories: Category[]): { categories: Category[]; changed: boolean } {
+  let changed = false;
+
+  const migrated = categories.map((cat) => {
+    if (!ESSENTIAL_HEALTH_IDS.includes(cat.id)) return cat;
+    if (cat.is_default === false) return cat;
+    if (cat.attributes?.ausgabenklasse !== "diskretionaer") return cat;
+
+    changed = true;
+    return {
+      ...cat,
+      attributes: { ...cat.attributes, ausgabenklasse: "essenziell" as const, essenziell: true },
+    };
+  });
+
+  return { categories: migrated, changed };
 }
 
 async function writeLocalCategories(categories: Category[]): Promise<void> {
