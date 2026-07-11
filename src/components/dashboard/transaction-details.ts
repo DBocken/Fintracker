@@ -92,6 +92,8 @@ export interface TransactionDetailDraft {
   tax_labor_costs?: number | null;
   /** Freie Steuer-Notiz. */
   tax_note?: string | null;
+  /** Explizit privat trotz Geschäftskonto (EÜR-Exklusion, gewinnt Konflikte). */
+  euer_private?: boolean;
 }
 
 /**
@@ -241,6 +243,7 @@ export function draftFromTransaction(tx: Transaction): TransactionDetailDraft {
     tax_category_id: tx.tax_category_id ?? null,
     tax_labor_costs: tx.tax_labor_costs ?? null,
     tax_note: tx.tax_note ?? null,
+    euer_private: tx.euer_private ?? false,
   };
 }
 
@@ -294,6 +297,11 @@ export function diffTransactionDraft(
     if ((tx.tax_note ?? null) !== normalizedNote) {
       patch.tax_note = normalizedNote;
     }
+  }
+
+  // EÜR-Exklusion (nur wenn der Entwurf das Feld kennt — alte Entwürfe unberührt).
+  if (draft.euer_private !== undefined && (tx.euer_private ?? false) !== draft.euer_private) {
+    patch.euer_private = draft.euer_private;
   }
 
   return patch;

@@ -467,6 +467,26 @@ export function TransactionDetailsPanel({
             <Landmark className="h-4 w-4" aria-hidden="true" /> {t('tax.form.sectionTitle', 'Steuer')}
           </h3>
 
+          {/* EÜR-Exklusion: nur auf Geschäftskonten sichtbar (Regel: privat gewinnt). */}
+          {account?.is_business && (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="euer-private"
+                checked={draft.euer_private ?? false}
+                disabled={isLoading}
+                onCheckedChange={(checked) => setDraft((d) => (d ? { ...d, euer_private: checked === true } : d))}
+              />
+              <div className="flex-1">
+                <Label htmlFor="euer-private" className="cursor-pointer text-sm font-normal">
+                  {t('tax.form.euerPrivateLabel', 'Private Buchung (nicht in die EÜR)')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('tax.form.euerPrivateHint', 'Schließt diese Buchung trotz Geschäftskonto aus der Einnahmenüberschussrechnung aus.')}
+                </p>
+              </div>
+            </div>
+          )}
+
           {taxDefault && (
             <div className="space-y-2 rounded-lg border border-brand/40 bg-brand/5 p-3">
               <div className="flex items-start gap-2">

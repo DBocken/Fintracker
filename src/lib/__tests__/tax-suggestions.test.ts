@@ -53,6 +53,37 @@ describe('buildPendingTaxSuggestions', () => {
     });
   });
 
+  describe('EÜR-Gate (Geschäftskonten)', () => {
+    it('[REGRESSION] sollte EÜR-Keywords ohne businessAccountIds NICHT vorschlagen (Modus aus)', () => {
+      const txs = [tx({ payee: 'Bewirtung Restaurant Adler', account_id: 'priv' })];
+      expect(buildPendingTaxSuggestions(txs, [], [])).toHaveLength(0);
+    });
+
+    it('sollte EÜR-Keywords nur auf Geschäftskonten vorschlagen', () => {
+      const txs = [
+        tx({ id: 'on-biz', payee: 'Bewirtung Restaurant Adler', account_id: 'biz' }),
+        tx({ id: 'on-priv', payee: 'Bewirtung Restaurant Adler', account_id: 'priv' }),
+      ];
+      const out = buildPendingTaxSuggestions(txs, [], [], 50, new Set(['biz']));
+      expect(out).toHaveLength(1);
+      expect(out[0].entityId).toBe('on-biz');
+      expect(out[0].proposedChange.tax_category_id).toBe('tax-eur-bewirtung');
+    });
+
+    it('sollte Nicht-EÜR-Vorschläge vom Gate unberührt lassen', () => {
+      const txs = [tx({ payee: 'Malerbetrieb Müller', account_id: 'priv' })];
+      const out = buildPendingTaxSuggestions(txs, [], [], 50, new Set(['biz']));
+      expect(out).toHaveLength(1);
+      expect(out[0].proposedChange.tax_category_id).toBe('tax-35a3-handwerker');
+    });
+
+    it('sollte einen EÜR-Kategorie-Default auf Privatkonten unterdrücken', () => {
+      const categories = [cat('local-cat-buero', { default_tax_category_id: 'tax-eur-raumkosten' })];
+      const txs = [tx({ category_id: 'local-cat-buero', payee: 'Vermieter', account_id: 'priv' })];
+      expect(buildPendingTaxSuggestions(txs, categories, [], 50, new Set(['biz']))).toHaveLength(0);
+    });
+  });
+
   describe('Ausschlüsse', () => {
     it('sollte bereits markierte Buchungen überspringen', () => {
       const txs = [tx({ payee: 'Malerbetrieb', tax_category_id: 'tax-35a3-handwerker' })];

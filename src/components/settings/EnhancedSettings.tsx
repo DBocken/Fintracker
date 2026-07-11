@@ -22,6 +22,7 @@ import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
 import { AutoCategorizationSettings } from './AutoCategorizationSettings';
 import TaxReserveSettings from './TaxReserveSettings';
+import BusinessModeSettings from './BusinessModeSettings';
 import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
@@ -303,9 +304,16 @@ export function EnhancedSettings() {
               onRecategorize={() => recategorizeMutation.mutate()}
               isRecategorizing={recategorizeMutation.isPending}
             />
-            <FeatureGate feature="creatorPack" fallback={null}>
+            <BusinessModeSettings />
+            {/* Prozent-Regler wird vom Einzelunternehmer-Modus mitgenutzt —
+                im Modus sichtbar auch ohne Creator-Pack. */}
+            {settings?.business_mode ? (
               <TaxReserveSettings />
-            </FeatureGate>
+            ) : (
+              <FeatureGate feature="creatorPack" fallback={null}>
+                <TaxReserveSettings />
+              </FeatureGate>
+            )}
           </div>
         </section>
 
