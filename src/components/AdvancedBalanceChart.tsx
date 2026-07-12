@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, DollarSign, Settings } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,23 +7,23 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { yAxisDomain } from '@/lib/chart-axis';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction } from '../types';
-import { getTransactions } from '../services/transaction-service';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
 
 interface AdvancedBalanceChartProps {
   className?: string;
-  endBalanceFromAccounts: number
+  endBalanceFromAccounts: number;
+  transactions: Transaction[];
+  isLoading?: boolean;
 }
 
-export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalanceChartProps) {
+export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isLoading = false }: AdvancedBalanceChartProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
@@ -34,70 +33,20 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts }: AdvancedBalance
   // Achsen-Hygiene (#54): Auto-Skalierung als Default, 0-Linie optional erzwingbar
   const [axisFromZero, setAxisFromZero] = useState(false);
 
-  const { data: txs = [], isLoading } = useQuery<Transaction[], Error>({
-    queryKey: ['transactions-chart'],
-    queryFn: () => getTransactions(1000),
-  });
-
-  const totalFlow = useMemo(() => txs.reduce((sum, tx) => sum + tx.amount, 0), [txs]);
+  const totalFlow = useMemo(() => computeTotalFlow(transactions), [transactions]);
 
   // Wir nehmen den aktuellen Kontostand als Endwert und rechnen den Startwert zurück.
-  const autoStartingBalance = useMemo(() => {
-    const computed = endBalanceFromAccounts - totalFlow;
-    return Number.isFinite(computed) ? computed : 0;
-  }, [endBalanceFromAccounts, totalFlow]);
+  const autoStartingBalance = useMemo(
+    () => computeAutoStartingBalance(endBalanceFromAccounts, totalFlow),
+    [endBalanceFromAccounts, totalFlow],
+  );
 
   const effectiveStartingBalance = startingBalance ?? autoStartingBalance;
 
-  const chartData = useMemo(() => {
-    if (!txs.length) return [];
-
-    // Sort transactions by actual date ascending
-    const sortedTxs = [...txs].sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
-
-    // Map keyed by ISO date for robust ordering
-    const dailyMap = new Map<string, {
-      iso: string;
-      label: string;
-      income: number;
-      expenses: number;
-      balance: number;
-      cumulative: number;
-    }>();
-
-    let currentBalance = effectiveStartingBalance;
-
-    sortedTxs.forEach(tx => {
-      const isoKey = format(parseISO(tx.date), 'yyyy-MM-dd');
-      const label = format(parseISO(tx.date), 'dd.MM', { locale: de });
-
-      if (!dailyMap.has(isoKey)) {
-        dailyMap.set(isoKey, {
-          iso: isoKey,
-          label,
-          income: 0,
-          expenses: 0,
-          balance: 0,
-          cumulative: currentBalance
-        });
-      }
-
-      const day = dailyMap.get(isoKey)!;
-
-      if (tx.amount > 0) {
-        day.income += tx.amount;
-      } else {
-        day.expenses += Math.abs(tx.amount);
-      }
-
-      day.balance += tx.amount;
-      currentBalance += tx.amount;
-      day.cumulative = currentBalance;
-    });
-
-    // Return ascending by ISO date
-    return Array.from(dailyMap.values()).sort((a, b) => a.iso.localeCompare(b.iso));
-  }, [txs, effectiveStartingBalance]);
+  const chartData = useMemo(
+    () => buildBalanceHistory(transactions, effectiveStartingBalance),
+    [transactions, effectiveStartingBalance],
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {

@@ -5,13 +5,14 @@ import { Activity, Waypoints, PieChart, Mountain, Wallet, CreditCard, HeartPulse
 import { Card, CardContent } from "@/components/ui/card";
 import { useI18n } from "@/i18n/useI18n";
 import { AdvancedBalanceChart } from "@/components/AdvancedBalanceChart";
-import { SpendingBreakdownCard, ExpensesOverTimeCard } from "./TransactionCharts";
+import { SpendingBreakdownCard, ExpensesOverTimeCard } from "@/components/dashboard/TransactionCharts";
 import { AccountCards } from "@/components/accounts/AccountCards";
 import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
 import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
+import type { FinanceOverviewViewModel } from "../../application/finance-overview-view-model";
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
@@ -62,13 +63,8 @@ function LandscapeView() {
 }
 
 interface Props {
+  model: FinanceOverviewViewModel;
   className?: string;
-  sunburst: React.ComponentProps<typeof SpendingBreakdownCard>["sunburst"];
-  sunburstTree?: React.ComponentProps<typeof SpendingBreakdownCard>["tree"];
-  series: React.ComponentProps<typeof ExpensesOverTimeCard>["series"];
-  sankeyData: React.ComponentProps<typeof SankeyChart>["data"];
-  effectiveBalances: React.ComponentProps<typeof AccountCards>["balances"];
-  totalEffectiveBalance: number;
 }
 
 /**
@@ -77,16 +73,12 @@ interface Props {
  * Pro Ansicht etwa eine Bildschirmhöhe mit einer klaren Hauptaussage; horizontal
  * wischbar zwischen den Ansichten. Nur mobil – Desktop behält das Raster.
  */
-export default function DashboardMobileStory({
-  className,
-  sunburst,
-  sunburstTree,
-  series,
-  sankeyData,
-  effectiveBalances,
-  totalEffectiveBalance,
-}: Props) {
+export default function DashboardMobileStory({ className, model }: Props) {
   const { t } = useI18n();
+  const { sunburst, sunburstTree, series } = model.stats;
+  const { sankeyData } = model;
+  const effectiveBalances = model.balances.byAccount;
+  const totalEffectiveBalance = model.balances.total;
   const [params, setParams] = useSearchParams();
   const requestedView = params.get("view");
   const current: StoryView = isStoryView(requestedView) ? requestedView : "verlauf";
@@ -146,12 +138,25 @@ export default function DashboardMobileStory({
 
       {/* Aktive Ansicht – eine Hauptaussage pro Bildschirm, erst beim Anzeigen gerendert */}
       <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="min-h-[60vh] touch-pan-y">
-        {current === "verlauf" && <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />}
+        {current === "verlauf" && (
+          <AdvancedBalanceChart
+            endBalanceFromAccounts={totalEffectiveBalance}
+            transactions={model.transactions.all}
+            isLoading={model.loading}
+          />
+        )}
         {current === "fluss" && <SankeyChart data={sankeyData} enableDrilldown={false} />}
         {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} tree={sunburstTree} />}
         {current === "landschaft" && <LandscapeView />}
         {current === "ausgaben" && <ExpensesOverTimeCard series={series} />}
-        {current === "konten" && <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />}
+        {current === "konten" && (
+          <AccountCards
+            accounts={model.accounts}
+            balances={effectiveBalances}
+            totalBalance={totalEffectiveBalance}
+            isLoading={model.loading}
+          />
+        )}
       </div>
 
       {/* Punkt-Indikator */}

@@ -1,23 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { getAccounts } from '@/services/account-service'
 import type { Account } from '@/types'
 import { RefreshCw } from 'lucide-react'
 import { useGentleMode } from '@/components/providers/GentleModeProvider'
 import { useI18n } from '@/i18n/useI18n'
 
 interface AccountCardsProps {
+  accounts: Account[]
   balances: Record<string, { amount: number; source: 'bank' | 'local'; balanceType?: string }>
   totalBalance: number
+  isLoading?: boolean
 }
 
-export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
+export function AccountCards({ accounts, balances, totalBalance, isLoading = false }: AccountCardsProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  const { data: accounts = [], isLoading, error } = useQuery<Account[]>({
-    queryKey: ['accounts'],
-    queryFn: () => getAccounts(),
-  })
 
   const formatBalance = (amount: number) => {
     if (gentleModeEnabled) return '***'
@@ -53,12 +49,6 @@ export function AccountCards({ balances, totalBalance }: AccountCardsProps) {
         </div>
       </CardHeader>
       <CardContent className="flex-1">
-        {error && (
-          <div className="text-destructive text-sm mb-4">
-            {t('accounts.cards.errorLoading')}
-          </div>
-        )}
-
         {accounts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>{t('accounts.cards.emptyTitle')}</p>

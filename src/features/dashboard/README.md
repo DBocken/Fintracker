@@ -30,14 +30,14 @@ Gemeinsame Fach- und Datenbasis (Domain + Application) mit getrennter Desktop-/M
 - UI-Zustand: Dialoge (Filter/Löschen/Details), Sortierung, hidden-Set via `usePersistedSet('dashboard_hidden_transactions')`
 - Mutationen: Kategorie-Update + Löschen (invalidieren `['transactions']` + Toast), Detail-Speichern via `useTransactionDetailEditing` (invalidiert `['transactions']`, `['transactions','contracts']`, `['contract-decisions']`)
 
-### Desktop/Mobile heute
+### Desktop/Mobile heute (nach dem Refactoring)
 
-Rein CSS-basiert: `<DashboardMobileStory className="lg:hidden">` und Desktop-Grid `<div className="hidden lg:block">`. Beide Zweige verdrahten dieselben fünf Komponenten mit denselben Props (AdvancedBalanceChart, SankeyChart, SpendingBreakdownCard, ExpensesOverTimeCard, AccountCards). DashboardMobileStory ist bereits props-getrieben.
+Rein CSS-basiert: `<DashboardMobileStory className="lg:hidden">` und `<DashboardDesktopView className="hidden lg:block">`. Beide Präsentationen bekommen dasselbe `model` (`FinanceOverviewViewModel`) als Prop und verdrahten damit dieselben fünf Komponenten (AdvancedBalanceChart, SankeyChart, SpendingBreakdownCard, ExpensesOverTimeCard, AccountCards) — keine eigenen Queries mehr in den Präsentationskomponenten.
 
-### Bekannte Verstöße gegen „gleiche Daten, keine Doppel-Queries" (werden in diesem Refactoring behoben)
+### Ehemalige Verstöße gegen „gleiche Daten, keine Doppel-Queries" (in diesem Refactoring behoben)
 
-1. `AdvancedBalanceChart` lädt eigene Transaktionen unter `['transactions-chart']` (1000 Zeilen) → Saldo-Historie rechnete auf anderem Datensatz als `stats` (5000). Wird auf Props umgestellt; der Key entfällt inkl. 6 toter Invalidierungen (BankCallbackPage, gocardless-sync-service, AccountManager ×2, TransferSuggestions, ReviewTable).
-2. `AccountCards` re-fetcht `['accounts']`, obwohl balances/totalBalance als Props ankommen. Wird auf Props umgestellt.
+1. `AdvancedBalanceChart` lud früher eigene Transaktionen über einen chart-spezifischen Query-Key (1000 Zeilen) → Saldo-Historie rechnete auf anderem Datensatz als `stats` (5000). Jetzt auf Props (`transactions`, `isLoading`) umgestellt; der Key entfiel inkl. 6 toter Invalidierungen (BankCallbackPage, gocardless-sync-service, AccountManager ×2, TransferSuggestions, ReviewTable).
+2. `AccountCards` re-fetchte `['accounts']`, obwohl balances/totalBalance bereits als Props ankamen. Jetzt auf Props (`accounts`, `isLoading`) umgestellt.
 3. Akzeptierte Ausnahme (bleibt): `LandscapeView` in DashboardMobileStory lädt `['financial-health', locale]` lazy nur bei aktivem Tab — bewusste progressive Offenlegung; eine Verlagerung in den Hook würde die Query für alle eager machen.
 
 ## Ziel-Zuordnung (nach dem Refactoring)

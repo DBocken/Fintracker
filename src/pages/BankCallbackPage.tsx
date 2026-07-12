@@ -218,7 +218,6 @@ export default function BankCallbackPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     } catch (err: unknown) {
