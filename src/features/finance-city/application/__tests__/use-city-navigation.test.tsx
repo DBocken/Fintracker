@@ -1,42 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { CITY_DISTRICTS_DEMO_DATA, CITY_STREAMING_CONTRACTS_DEMO_DATA } from '../../data/city-demo-data';
+import { cityDemoModel } from '../../data/city-demo-data';
 import type { CityModel } from '../city-view-model';
 import { useCityNavigation } from '../use-city-navigation';
 
-/**
- * Fixture: projiziert die vorhandene Demo-Fixture (`data/city-demo-data.ts`)
- * auf das generische `CityModel`-Shape des Navigations-Hooks. "Streaming" ist
- * dort bewusst KEINE reguläre Unterkategorie-Fixture-Zeile, sondern ein
- * separates Array (`CITY_STREAMING_CONTRACTS_DEMO_DATA`) — für die Tests wird
- * es hier als zusätzliche Unterkategorie unter "Freizeit" eingehängt, wie es
- * das README beschreibt (Ebene 3 = "einzelne Unterkategorie ODER
- * Streaming-Vertrag als Gebäude"). Modul-Konstante (kein Fabrik-Aufruf pro
- * Test) für Referenzstabilität — sonst würde jeder Test-Render ein neues
- * `model`-Objekt sehen und die `actions`-Referenzstabilität (Test 12) künstlich
- * brechen.
- */
-const CITY_DEMO_MODEL: CityModel = {
-  districts: CITY_DISTRICTS_DEMO_DATA.map((district) => ({
-    id: district.id,
-    label: district.name,
-    subcategories: [
-      ...district.subcategories.map((subcategory) => ({ id: subcategory.id, label: subcategory.name })),
-      ...(district.id === 'leisure'
-        ? [
-            {
-              id: 'streaming',
-              label: 'Streaming',
-              contracts: CITY_STREAMING_CONTRACTS_DEMO_DATA.map((contract) => ({
-                id: contract.id,
-                label: contract.name,
-              })),
-            },
-          ]
-        : []),
-    ],
-  })),
-};
+// Kanonische Demo-Fixture (Streaming hängt dort bereits als Unterkategorie
+// unter "Freizeit" mit den vier Verträgen). Modul-Konstante für die
+// actions-Referenzstabilität (Test 12).
+const CITY_DEMO_MODEL: CityModel = cityDemoModel;
 
 const LABELS = { city: 'Stadt' };
 

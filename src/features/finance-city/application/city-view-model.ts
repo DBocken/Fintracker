@@ -4,41 +4,20 @@
  * Ebenenwechsel Stadt → Distrikt → Unterkategorie/Gebäude — VERBOTEN: three.js,
  * TanStack Query, react-router (Architektur-Tabelle im README, `application/`-Zeile).
  *
- * `CityLevel` gehört fachlich nach `domain/city-layout.ts` (WP-C1, läuft
- * parallel zu diesem Work Package). Zum Zeitpunkt dieses Auftrags existierte
- * die Datei noch nicht (geprüft), daher lokale Definition hier.
- * TODO(WP-C1): sobald `domain/city-layout.ts` den `CityLevel`-Typ exportiert,
- * diese lokale Definition entfernen und von dort importieren:
- * `import type { CityLevel } from '../domain/city-layout';`
+ * Typen kommen kanonisch aus der Domain (`domain/city-model.ts` /
+ * `domain/city-layout.ts`) — hier nur Aliase, damit application/ eine stabile
+ * eigene Oberfläche behält (Muster der übrigen Slices).
  */
-export type CityLevel = 'city' | 'district' | 'subcategory';
+import type { CityLevel } from '../domain/city-layout';
+import type { CityContract, CityDistrict, CityModel, CitySubcategory } from '../domain/city-model';
 
+export type { CityLevel, CityModel };
 /** Ein einzelnes Gebäude innerhalb einer Unterkategorie (z. B. ein Streaming-Abo). Kein eigenes Navigations-Level — nur Sheet-Ziel via `tapContract`. */
-export interface CityContractModel {
-  id: string;
-  /** Bereits aufgelöstes Label (Demo-Fixture-Inhalt bzw. Domain-Daten, kein i18n-Key — siehe `data/city-demo-data.ts`). */
-  label: string;
-}
-
+export type CityContractModel = CityContract;
 /** Eine Unterkategorie (Ebene 3, "Gebäude-Ebene" im README) innerhalb eines Distrikts. */
-export interface CitySubcategoryModel {
-  id: string;
-  label: string;
-  /** Optionale verschachtelte Verträge (z. B. "Streaming" bündelt Netflix/Spotify/…). */
-  contracts?: CityContractModel[];
-}
-
+export type CitySubcategoryModel = CitySubcategory;
 /** Ein Distrikt (Ebene 2) mit seinen Unterkategorien. */
-export interface CityDistrictModel {
-  id: string;
-  label: string;
-  subcategories: CitySubcategoryModel[];
-}
-
-/** Wurzel-Datenstruktur, die der Navigations-Hook konsumiert — Projektion aus `data/city-demo-data.ts` bzw. später der echten Aggregation (README "Folgeschritte"). */
-export interface CityModel {
-  districts: CityDistrictModel[];
-}
+export type CityDistrictModel = CityDistrict;
 
 export type CityBreadcrumbEntry = { level: CityLevel; id: string | null; label: string };
 
