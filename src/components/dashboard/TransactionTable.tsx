@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -9,13 +8,13 @@ import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Account, Category } from '../../types';
-import { getAccounts } from '../../services/account-service';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 
 interface TransactionTableProps {
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   selected: Set<string>;
   hiddenTransactions: Set<string>;
   sortConfig: { key: keyof Transaction; direction: 'asc' | 'desc' } | null;
@@ -39,6 +38,7 @@ const currencyFormatter = new Intl.NumberFormat('de-DE', {
 export function TransactionTable({
   transactions,
   categories,
+  accounts,
   selected,
   hiddenTransactions,
   sortConfig,
@@ -51,10 +51,6 @@ export function TransactionTable({
 }: TransactionTableProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAccounts,
-  });
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
     if (!accountId) return undefined;

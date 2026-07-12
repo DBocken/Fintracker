@@ -563,6 +563,9 @@ export const translations = {
       cashExpense: 'Barausgabe',
       moneyIncome: 'Geldeingang',
       receiptTitle: 'Barausgabe vom Beleg',
+      reset: 'Zurücksetzen',
+      emptyTitle: 'Keine Buchungen gefunden',
+      emptyHint: 'Passe Filter oder Suchbegriff an.',
     },
     debts: {
       title: 'Schulden & Forderungen',
@@ -4225,6 +4228,9 @@ export const translations = {
       cashExpense: 'Cash expense',
       moneyIncome: 'Money received',
       receiptTitle: 'Cash expense from receipt',
+      reset: 'Reset',
+      emptyTitle: 'No transactions found',
+      emptyHint: 'Adjust filter or search term.',
     },
     debts: {
       title: 'Debts & Receivables',
@@ -7887,6 +7893,9 @@ export const translations = {
       cashExpense: "Huch DIl",
       moneyIncome: "Huch Hevlu'",
       receiptTitle: "Huch DIl ('ay' Del vo')",
+      reset: "yIchu'moH",
+      emptyTitle: "Huch mIwmey tu'lu'be'",
+      emptyHint: "filter pagh nejwI' mu' yIchoH.",
     },
     debts: {
       title: "SubmeH Huch 'ej HevmeH Huch",

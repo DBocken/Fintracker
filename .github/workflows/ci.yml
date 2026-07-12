@@ -13,6 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # Voller Verlauf: der i18n-Check diffed gegen origin/main (merge-base).
+          # Bewusst voller Klon statt gezieltem Deepen — Repo ist mit ~7,5 MB
+          # klein genug, dass das nicht ins Gewicht fällt. Bei spürbarem
+          # Repo-Wachstum auf ein gezieltes Deepen (z. B. `fetch-depth: <n>` +
+          # `git fetch --deepen` bei Bedarf) umstellen.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
@@ -28,6 +35,14 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Test-Struktur-Check
+        run: pnpm check:test-structure
+
+      - name: i18n-Check
+        run: |
+          git fetch origin main
+          pnpm check:i18n --range origin/main...HEAD
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit

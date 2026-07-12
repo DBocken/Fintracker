@@ -1,6 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,43 +7,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SlidersHorizontal, Sparkles, ArrowRight } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { useI18n } from '@/i18n/useI18n';
-import { AdvancedBalanceChart } from '../AdvancedBalanceChart';
-import { AccountCards } from '../accounts/AccountCards';
 import { TransactionStats } from './TransactionStats';
-import { ExpensesOverTimeCard, SpendingBreakdownCard } from './TransactionCharts';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
 import { TransactionListMobile } from './TransactionListMobile';
 import { TransactionDetailsModal } from './TransactionDetailsModal';
-import DashboardMobileStory from './DashboardMobileStory';
-import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '../../services/transaction-service';
-import { getAccounts } from '../../services/account-service';
-import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
-import type { Transaction, Category, Account } from '../../types';
+import DashboardMobileStory from '@/features/dashboard/presentation/mobile/DashboardMobileStory';
+import { DashboardDesktopView } from '@/features/dashboard/presentation/desktop/DashboardDesktopView';
+import { useFinanceOverview } from '@/features/dashboard/application/use-finance-overview';
+import type { Transaction } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
-import { usePersistedSet } from '@/hooks/usePersistedSet';
-import {
-  DEFAULT_DASHBOARD_FILTERS,
-  PERIOD_RANGES,
-  type ContractFilter,
-  type DashboardGranularity,
-  type DashboardRange,
-  type EssentialFilter,
-  type AusgabenklasseFilter,
-} from './filter-constants';
-import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from './filter-utils';
-import { listAvailablePeriods } from './period-utils';
 import AnalysisModePanel from './AnalysisModePanel';
-import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
-import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
-import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
 
 // Die Buchungen-Vorschau auf dem Dashboard ist reine Vorschau ohne Sammelbearbeitung
@@ -54,114 +31,14 @@ const noop = () => {};
 
 export function Dashboard() {
   const { t } = useI18n();
-  const qc = useQueryClient();
 
-  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
-    // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
-    // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
-    queryKey: ['transactions', 5000],
-    queryFn: () => getTransactions(5000),
-  });
-
-  const { data: cats = [] } = useQuery<Category[], Error>({
-    queryKey: ['categories'],
-    queryFn: () => getCategories(),
-  });
-
-  const { data: accounts = [] } = useQuery<Account[], Error>({
-    queryKey: ['accounts'],
-    queryFn: () => getAccounts(),
-  });
-
-  const { data: contractDecisions = new Map<string, ContractDecision>() } = useQuery({
-    queryKey: ['contract-decisions'],
-    queryFn: getContractDecisionMap,
-  });
-
-  const localBalances = useMemo(() => {
-
-    const map: Record<string, number> = {};
-    for (const t of txs) {
-      const aid = t.account_id;
-      if (!aid) continue;
-      map[aid] = (map[aid] || 0) + (t.amount || 0);
-    }
-    return map;
-  }, [txs]);
-
-  const effectiveBalances = useMemo(() => {
-    const map: Record<string, { amount: number; source: 'bank' | 'local'; balanceType?: string }> = {};
-    for (const a of accounts) {
-      if (a.live_balance_amount !== null && a.live_balance_amount !== undefined) {
-        map[a.id] = {
-          amount: Number(a.live_balance_amount) || 0,
-          source: 'bank',
-          balanceType: a.live_balance_type || undefined,
-        };
-        continue;
-      }
-      // Lokaler Saldo = Eröffnungssaldo (z. B. aus GoCardless-Sync) plus die
-      // Summe der erfassten Transaktionen. Ohne den Eröffnungssaldo zeigt das
-      // Konto fälschlich ein Minus, wenn nur ein Teil der Historie importiert ist.
-      const opening = a.opening_balance ?? 0;
-      map[a.id] = { amount: opening + (localBalances[a.id] ?? 0), source: 'local' };
-    }
-    return map;
-  }, [accounts, localBalances]);
-
-  const totalEffectiveBalance = useMemo(() => {
-    return accounts.reduce((sum, a) => sum + (effectiveBalances[a.id]?.amount ?? 0), 0);
-  }, [accounts, effectiveBalances]);
-
-  const [_filterCat, _setFilterCat] = useState<string>(DEFAULT_DASHBOARD_FILTERS.category);
-  const [_filterAccount, _setFilterAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
-  const [filterContract, setFilterContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
-  const [filterEssential, setFilterEssential] = useState<EssentialFilter>(DEFAULT_DASHBOARD_FILTERS.essential);
-  const [filterAusgabenklasse, setFilterAusgabenklasse] = useState<AusgabenklasseFilter>(DEFAULT_DASHBOARD_FILTERS.ausgabenklasse);
-  const [searchInput, setSearchInput] = useState<string>(DEFAULT_DASHBOARD_FILTERS.search);
-  const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
-  const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
-  const [customGran, setCustomGran] = useState<DashboardGranularity>(DEFAULT_DASHBOARD_FILTERS.customGranularity);
-  const [customPeriod, setCustomPeriod] = useState<string>(DEFAULT_DASHBOARD_FILTERS.customPeriod);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
-  const [hiddenTransactions, toggleHiddenTransaction] = usePersistedSet('dashboard_hidden_transactions');
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Transaction; direction: 'asc' | 'desc' } | null>(null);
   const [detailsTransaction, setDetailsTransaction] = useState<Transaction | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const mutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
-    mutationFn: updateTransaction,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success(t('dashboard.categoriesUpdated'));
-    },
-    onError: (error) => {
-      toast.error(`${t('dashboard.updateError')}${error.message}`);
-    },
-  });
-
-  const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(
-    txs,
-    () => setDetailsOpen(false),
-  );
-
-  const deleteMutation = useMutation<void, Error, string>({
-    mutationFn: deleteTransaction,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success(t('dashboard.transactionDeleted'));
-    },
-    onError: (error) => {
-      toast.error(`${t('dashboard.deleteError')}${error.message}`);
-    },
-  });
-
-  const handleUpdateCategory = useCallback((transactionId: string, categoryId: string) => {
-    if (!transactionId) return;
-    mutation.mutate([{ id: transactionId, category_id: categoryId }]);
-  }, [mutation]);
+  const model = useFinanceOverview({ onDetailsSaved: () => setDetailsOpen(false) });
 
   const handleDelete = useCallback((transactionId: string) => {
     setTransactionToDelete(transactionId);
@@ -176,183 +53,17 @@ export function Dashboard() {
   const handleSaveDetails = useCallback(
     (id: string, patch: Partial<Transaction>, options: { applyToSimilar: boolean; similarIds: string[] }) => {
       if (!detailsTransaction) return;
-      saveDetails(detailsTransaction, id, patch, options);
+      model.actions.saveDetails(detailsTransaction, id, patch, options);
     },
-    [saveDetails, detailsTransaction],
+    [model.actions, detailsTransaction],
   );
 
   const handleDeleteConfirmed = useCallback(() => {
     if (transactionToDelete) {
-      deleteMutation.mutate(transactionToDelete);
+      model.actions.deleteTransaction(transactionToDelete);
     }
     setDeleteDialogOpen(false);
-  }, [transactionToDelete, deleteMutation]);
-
-  const handleSort = useCallback((key: keyof Transaction) => {
-    setSortConfig(prev => {
-      if (prev?.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
-      }
-      return { key, direction: 'desc' };
-    });
-  }, []);
-
-  const handleToggleVisibility = useCallback((id: string) => {
-    toggleHiddenTransaction(id);
-  }, [toggleHiddenTransaction]);
-
-  const handleResetFilters = useCallback(() => {
-    _setFilterCat(DEFAULT_DASHBOARD_FILTERS.category);
-    _setFilterAccount(DEFAULT_DASHBOARD_FILTERS.account);
-    setFilterContract(DEFAULT_DASHBOARD_FILTERS.contract);
-    setFilterEssential(DEFAULT_DASHBOARD_FILTERS.essential);
-    setSearchInput(DEFAULT_DASHBOARD_FILTERS.search);
-    setRange(DEFAULT_DASHBOARD_FILTERS.range);
-    setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
-    setCustomGran(DEFAULT_DASHBOARD_FILTERS.customGranularity);
-    setCustomPeriod(DEFAULT_DASHBOARD_FILTERS.customPeriod);
-  }, []);
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (_filterCat !== DEFAULT_DASHBOARD_FILTERS.category) count += 1;
-    if (_filterAccount !== DEFAULT_DASHBOARD_FILTERS.account) count += 1;
-    if (filterContract !== DEFAULT_DASHBOARD_FILTERS.contract) count += 1;
-    if (filterEssential !== DEFAULT_DASHBOARD_FILTERS.essential) count += 1;
-    if (range !== DEFAULT_DASHBOARD_FILTERS.range) count += 1;
-    return count;
-  }, [_filterCat, _filterAccount, filterContract, filterEssential, range]);
-
-  const granularity = useMemo(
-    () => getDashboardGranularity(range, customDays, customGran),
-    [range, customDays, customGran],
-  );
-
-  // Verfügbare Perioden (Jahr/Quartal/Monat) aus den Buchungen ableiten.
-  const periodOptions = useMemo(
-    () => (PERIOD_RANGES.has(range) ? listAvailablePeriods(txs, range) : []),
-    [txs, range],
-  );
-
-  // Beim Wechsel der Granularität die neueste verfügbare Periode vorbelegen,
-  // damit sofort sinnvolle Daten erscheinen.
-  const handleSetRange = useCallback((next: DashboardRange) => {
-    setRange(next);
-    if (PERIOD_RANGES.has(next)) {
-      const opts = listAvailablePeriods(txs, next);
-      setCustomPeriod(opts[0]?.value ?? '');
-    } else {
-      setCustomPeriod('');
-    }
-  }, [txs]);
-
-  const filteredTransactions = useMemo(() => {
-    return filterTransactions(txs, cats, accounts, {
-      category: _filterCat,
-      account: _filterAccount,
-      contract: filterContract,
-      essential: filterEssential,
-      ausgabenklasse: filterAusgabenklasse,
-      search: searchInput,
-      range,
-      customDays,
-      customPeriod,
-    }, new Date(), contractDecisions);
-  }, [txs, cats, accounts, _filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, customPeriod, contractDecisions]);
-
-  const visibleTransactions = filteredTransactions.filter(t => !hiddenTransactions.has(t.id || ''));
-
-  const sortedTransactions = useMemo(() => {
-    if (!sortConfig) return visibleTransactions;
-    return [...visibleTransactions].sort((a, b) => {
-      const aVal = a[sortConfig.key];
-      const bVal = b[sortConfig.key];
-
-      if (aVal == null || bVal == null) return 0;
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        const comparison = aVal.localeCompare(bVal);
-        return sortConfig.direction === 'asc' ? comparison : -comparison;
-      }
-
-      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      return sortConfig.direction === 'asc' ? comparison : -comparison;
-    });
-  }, [visibleTransactions, sortConfig]);
-
-  // Dashboard zeigt nur eine Vorschau (Audit P1.3); die vollständige Verwaltung
-  // lebt auf /transactions. Die CTA übergibt die aktiven Filter per URL.
-  const previewTransactions = useMemo(() => sortedTransactions.slice(0, 5), [sortedTransactions]);
-  const transactionsLink = useMemo(() => {
-    const params = encodeDashboardFilters({
-      category: _filterCat,
-      account: _filterAccount,
-      contract: filterContract,
-      essential: filterEssential,
-      ausgabenklasse: filterAusgabenklasse,
-      search: searchInput,
-      range,
-      customDays,
-      customPeriod,
-    });
-    const qs = params.toString();
-    return qs ? `/transactions?${qs}` : '/transactions';
-  }, [_filterCat, _filterAccount, filterContract, filterEssential, filterAusgabenklasse, searchInput, range, customDays, customPeriod]);
-
-  const stats = useMemo(() => {
-    const flowTransactions = visibleTransactions.filter(t => !t.is_transfer);
-
-    const income = flowTransactions
-      .filter(t => t.amount > 0)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const expenses = flowTransactions
-      .filter(t => t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-    const balance = income - expenses;
-
-    const currentBalance = totalEffectiveBalance;
-
-    // Time series data for charts - convert to array format
-    const seriesObj = flowTransactions.reduce((acc, t) => {
-      const date = format(parseISO(t.date), granularity === 'daily' ? 'dd.MM.' : granularity === 'weekly' ? 'dd.MM.' : 'MM.yy', { locale: de });
-      if (!acc[date]) acc[date] = { income: 0, expenses: 0 };
-      if (t.amount > 0) acc[date].income += t.amount;
-      else acc[date].expenses += Math.abs(t.amount);
-      return acc;
-    }, {} as Record<string, { income: number; expenses: number }>);
-
-    // Convert to array for TransactionCharts
-    const series = Object.entries(seriesObj).map(([date, data]) => ({
-      date,
-      ...data
-    }));
-
-    // Sunburst: vorgelagerte Ausgabenklasse (Innenring) -> Hauptkategorie (Außenring)
-    const sunburst = buildSpendingSunburst(flowTransactions, cats);
-    // Mehrstufiger Baum (Klasse -> Hauptkat. -> Unterkat.) für das grafische,
-    // zoombare Sunburst auf Mobil.
-    const sunburstTree = buildSunburstTree(flowTransactions, cats);
-
-    return {
-      income,
-      expenses,
-      balance,
-      currentBalance,
-      count: visibleTransactions.length,
-      series,
-      sunburst,
-      sunburstTree,
-    };
-  }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
-
-  // Einfaches Sankey auf Hauptkategorien-Ebene — der Aha-Moment ist FREE
-  // (Issue #40, Beschluss aus Epic #19/#25). Drilldown gibt es im Analyse-Bereich.
-  const sankeyData = useMemo(
-    () => buildSankeyData(visibleTransactions, cats, accounts),
-    [visibleTransactions, cats, accounts]
-  );
+  }, [transactionToDelete, model.actions]);
 
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -362,7 +73,7 @@ export function Dashboard() {
   };
 
   // Nie eine leere Seite: ohne Transaktionen klare nächste Aktionen (Issue #39).
-  if (!txsLoading && txs.length === 0) {
+  if (model.isEmpty) {
     return <FinanceEmptyState />;
   }
 
@@ -387,17 +98,17 @@ export function Dashboard() {
             id="transaction-search"
             type="search"
             placeholder={t("dashboard.search")}
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            value={model.filters.values.search}
+            onChange={(event) => model.filters.set.search(event.target.value)}
             className="w-48 bg-background/50 backdrop-blur-sm"
           />
         </div>
         <Button type="button" variant="outline" size="sm" className="relative" onClick={() => setFilterDialogOpen(true)}>
           <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
           {t("dashboard.filter")}
-          {activeFilterCount > 0 && (
+          {model.filters.activeCount > 0 && (
             <Badge variant="default" className="ml-2 h-5 min-w-5 px-1.5 justify-center">
-              {activeFilterCount}
+              {model.filters.activeCount}
             </Badge>
           )}
         </Button>
@@ -410,34 +121,35 @@ export function Dashboard() {
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <TransactionFilters
-              filterCat={_filterCat}
-              setFilterCat={_setFilterCat}
-              filterAccount={_filterAccount}
-              setFilterAccount={_setFilterAccount}
-              searchInput={searchInput}
-              setSearchInput={setSearchInput}
-              range={range}
-              setRange={handleSetRange}
-              customDays={customDays}
-              setCustomDays={setCustomDays}
-              customGran={customGran}
-              setCustomGran={setCustomGran}
-              customPeriod={customPeriod}
-              setCustomPeriod={setCustomPeriod}
-              periodOptions={periodOptions}
-              categories={cats}
-              filterContract={filterContract}
-              setFilterContract={setFilterContract}
-              filterEssential={filterEssential}
-              setFilterEssential={setFilterEssential}
-              filterAusgabenklasse={filterAusgabenklasse}
-              setFilterAusgabenklasse={setFilterAusgabenklasse}
+              filterCat={model.filters.values.category}
+              setFilterCat={model.filters.set.category}
+              filterAccount={model.filters.values.account}
+              setFilterAccount={model.filters.set.account}
+              searchInput={model.filters.values.search}
+              setSearchInput={model.filters.set.search}
+              range={model.filters.values.range}
+              setRange={model.filters.set.range}
+              customDays={model.filters.values.customDays}
+              setCustomDays={model.filters.set.customDays}
+              customGran={model.filters.values.customGranularity}
+              setCustomGran={model.filters.set.customGranularity}
+              customPeriod={model.filters.values.customPeriod}
+              setCustomPeriod={model.filters.set.customPeriod}
+              periodOptions={model.filters.periodOptions}
+              categories={model.categories}
+              accounts={model.accounts}
+              filterContract={model.filters.values.contract}
+              setFilterContract={model.filters.set.contract}
+              filterEssential={model.filters.values.essential}
+              setFilterEssential={model.filters.set.essential}
+              filterAusgabenklasse={model.filters.values.ausgabenklasse}
+              setFilterAusgabenklasse={model.filters.set.ausgabenklasse}
               showSearch={false}
               stacked
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+            <Button type="button" variant="outline" size="sm" onClick={model.filters.reset}>
               {t("dashboard.resetFilters")}
             </Button>
           </DialogFooter>
@@ -445,62 +157,29 @@ export function Dashboard() {
       </Dialog>
 
       <TransactionStats
-        income={stats.income}
-        expenses={stats.expenses}
-        balance={stats.balance}
-        count={stats.count}
-        totalTransactions={txs.length}
-        currentBalance={formatBalance(stats.currentBalance)}
+        income={model.stats.income}
+        expenses={model.stats.expenses}
+        balance={model.stats.balance}
+        count={model.stats.count}
+        totalTransactions={model.transactions.all.length}
+        currentBalance={formatBalance(model.stats.currentBalance)}
       />
 
       <AnalysisModePanel
-        allTransactions={txs}
-        categories={cats}
-        range={range}
-        customDays={customDays}
+        allTransactions={model.transactions.all}
+        categories={model.categories}
+        range={model.filters.values.range}
+        customDays={model.filters.values.customDays}
       />
 
-      <KpiSection data={{ transactions: visibleTransactions }} />
+      <KpiSection data={{ transactions: model.transactions.visible }} />
 
       {/* Mobile: Finanz-Story mit adressierbaren Ansichten (Audit P1.4).
           Kontostand/Saldo kommen aus TransactionStats oben – hier nicht doppelt. */}
-      <DashboardMobileStory
-        className="lg:hidden"
-        sunburst={stats.sunburst}
-        sunburstTree={stats.sunburstTree}
-        series={stats.series}
-        sankeyData={sankeyData}
-        effectiveBalances={effectiveBalances}
-        totalEffectiveBalance={totalEffectiveBalance}
-      />
+      <DashboardMobileStory className="lg:hidden" model={model} />
 
       {/* Desktop: bisheriges Raster + Cashflow */}
-      <div className="hidden lg:block space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-8">
-            <AdvancedBalanceChart endBalanceFromAccounts={totalEffectiveBalance} />
-          </div>
-          <div className="xl:col-span-4">
-            <SpendingBreakdownCard sunburst={stats.sunburst} tree={stats.sunburstTree} />
-          </div>
-          <div className="xl:col-span-7">
-            <ExpensesOverTimeCard series={stats.series} />
-          </div>
-          <div className="xl:col-span-5">
-            <AccountCards balances={effectiveBalances} totalBalance={totalEffectiveBalance} />
-          </div>
-        </div>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-sm font-semibold">{t("dashboard.cashflowTitle")}</h2>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.cashflowDescription")}
-            </p>
-          </div>
-          <SankeyChart data={sankeyData} enableDrilldown={false} />
-        </section>
-      </div>
+      <DashboardDesktopView className="hidden lg:block" model={model} />
 
       <Card className="card-premium">
         <CardHeader>
@@ -508,42 +187,44 @@ export function Dashboard() {
         </CardHeader>
         <CardContent className="space-y-4">
           <TransactionTable
-            transactions={previewTransactions}
-            categories={cats}
+            transactions={model.transactions.preview}
+            categories={model.categories}
+            accounts={model.accounts}
             selected={EMPTY_SELECTION}
-            hiddenTransactions={hiddenTransactions}
-            sortConfig={sortConfig}
+            hiddenTransactions={model.hidden.ids}
+            sortConfig={model.sort.config}
             onSelect={noop}
-            onToggleVisibility={handleToggleVisibility}
-            onUpdateCategory={handleUpdateCategory}
+            onToggleVisibility={model.hidden.toggle}
+            onUpdateCategory={model.actions.updateCategory}
             onDelete={handleDelete}
-            onSort={handleSort}
+            onSort={model.sort.toggle}
             onOpenDetails={handleOpenDetails}
           />
 
           <div className="md:hidden">
             <TransactionListMobile
-              transactions={previewTransactions}
-              categories={cats}
+              transactions={model.transactions.preview}
+              categories={model.categories}
+              accounts={model.accounts}
               selected={EMPTY_SELECTION}
-              hiddenTransactions={hiddenTransactions}
+              hiddenTransactions={model.hidden.ids}
               onSelect={noop}
               onOpenDetails={handleOpenDetails}
             />
           </div>
 
-          {sortedTransactions.length > 0 && (
+          {model.transactions.sorted.length > 0 && (
             <Button asChild variant="outline" className="w-full justify-center">
-              <Link to={transactionsLink}>
-                {sortedTransactions.length > previewTransactions.length
-                  ? t("dashboard.showAllTransactions").replace('{count}', String(sortedTransactions.length))
+              <Link to={model.filters.transactionsLink}>
+                {model.transactions.sorted.length > model.transactions.preview.length
+                  ? t("dashboard.showAllTransactions").replace('{count}', String(model.transactions.sorted.length))
                   : t("dashboard.showAllTransactionsAlt")}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
           )}
 
-          {sortedTransactions.length === 0 && txs.length > 0 && (
+          {model.transactions.sorted.length === 0 && model.transactions.all.length > 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <div>
                 <div className="font-medium text-foreground">{t("dashboard.noTransactionsFiltered")}</div>
@@ -552,16 +233,16 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+                <Button type="button" variant="outline" size="sm" onClick={model.filters.reset}>
                   {t("dashboard.resetFilters")}
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
+                <Button type="button" variant="outline" size="sm" onClick={model.actions.reload}>
                   {t("dashboard.reload")}
                 </Button>
               </div>
             </div>
           )}
-          {txs.length === 0 && (
+          {model.transactions.all.length === 0 && (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <div>
                 <div className="font-medium text-foreground">{t("dashboard.noTransactionsEmpty")}</div>
@@ -574,7 +255,7 @@ export function Dashboard() {
                 <Button asChild variant="outline" size="sm">
                   <Link to="/accounts">{t("dashboard.connectBank")}</Link>
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['transactions'] })}>
+                <Button type="button" variant="outline" size="sm" onClick={model.actions.reload}>
                   {t("dashboard.reload")}
                 </Button>
               </div>
@@ -596,14 +277,14 @@ export function Dashboard() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         transaction={detailsTransaction}
-        categories={cats}
-        accounts={accounts}
-        allTransactions={txs}
+        categories={model.categories}
+        accounts={model.accounts}
+        allTransactions={model.transactions.all}
         onSave={handleSaveDetails}
-        onToggleVisibility={handleToggleVisibility}
+        onToggleVisibility={model.hidden.toggle}
         onDelete={handleDelete}
-        isHidden={detailsTransaction?.id ? hiddenTransactions.has(detailsTransaction.id) : false}
-        isLoading={detailsSaving}
+        isHidden={detailsTransaction?.id ? model.hidden.ids.has(detailsTransaction.id) : false}
+        isLoading={model.actions.detailsSaving}
       />
     </div>
   );

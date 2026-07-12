@@ -1,0 +1,12 @@
+#!/bin/sh
+# Agentenunabhängige Pflicht-Checks (siehe AGENTS.md §12). CI erzwingt dieselben
+# Prüfungen — dieser Hook ist der schnelle lokale Zaun vor jedem Commit.
+
+# GUI-Git-Clients starten oft ohne den PATH einer interaktiven Shell (kein
+# nvm/pnpm im Environment) — ohne diesen Guard würde jeder Commit aus so
+# einem Client hart fehlschlagen. CI bleibt der verbindliche Zaun, dieser
+# Hook ist nur die schnelle lokale Abkürzung.
+command -v pnpm >/dev/null 2>&1 || { echo "[pre-commit] pnpm nicht im PATH — Checks übersprungen (CI erzwingt sie)."; exit 0; }
+
+pnpm check:i18n --staged || exit 1
+pnpm check:test-structure || exit 1

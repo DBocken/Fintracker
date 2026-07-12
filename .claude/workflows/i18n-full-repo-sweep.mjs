@@ -32,7 +32,7 @@ const GROUPS = [
     'src/components/dashboard/AnalysisModePanel.tsx',
   ]},
   { label: 'dashboard-3', files: [
-    'src/components/dashboard/DashboardMobileStory.tsx',
+    'src/features/dashboard/presentation/mobile/DashboardMobileStory.tsx',
     'src/components/dashboard/DataQualityNotice.tsx',
     'src/components/dashboard/TransactionCharts.tsx',
     'src/components/dashboard/TransactionStats.tsx',
@@ -188,7 +188,7 @@ const GROUPS = [
 ]
 
 function buildPrompt(group) {
-  return `You are acting as the "i18n-enforcer" agent for the Fintracker repo at /home/user/Fintracker. Read your full role definition first: ${ROLE_FILE} — follow it exactly. Also skim /home/user/Fintracker/CLAUDE.md section "Internationalisierung (i18n)" and /home/user/Fintracker/.claude/i18n-workflow.md for the established conventions (translations.ts structure, useI18n hook, test template with renderWithI18n).
+  return `You are acting as the "i18n-enforcer" agent for the Fintracker repo at /home/user/Fintracker. Read your full role definition first: ${ROLE_FILE} — follow it exactly. Also skim /home/user/Fintracker/AGENTS.md §6 "i18n (verbindlich)" and /home/user/Fintracker/.claude/i18n-workflow.md for the established conventions (translations.ts structure, useI18n hook, test template with renderWithI18n).
 
 Your assigned file list for this pass (sweep ALL of these, each independently):
 ${group.files.map(f => `- ${f}`).join('\n')}

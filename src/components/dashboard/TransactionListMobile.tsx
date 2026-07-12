@@ -1,18 +1,17 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Repeat } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
-import type { Category, Transaction } from '../../types';
-import { getAccounts } from '../../services/account-service';
+import type { Account, Category, Transaction } from '../../types';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import ListRow from '@/components/common/ListRow';
 
 interface TransactionListMobileProps {
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   selected: Set<string>;
   hiddenTransactions: Set<string>;
   onSelect: (id: string) => void;
@@ -46,8 +45,6 @@ export function TransactionListMobile({
 }: TransactionListMobileProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  // Konten werden vorgeladen, damit das Detail-Modal sie ohne Flackern anzeigt.
-  useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 

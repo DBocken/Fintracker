@@ -85,7 +85,6 @@ export function AccountManager() {
     try {
       await reconcileAllInternalTransfers();
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
     } catch (error) {
       console.warn('Internal transfer reconciliation failed after account save:', error);
     }
@@ -234,7 +233,6 @@ export function AccountManager() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['account-consent-statuses'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['live-balances'] });
       queryClient.invalidateQueries({ queryKey: ['net-worth'] });

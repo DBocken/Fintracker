@@ -94,7 +94,6 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
       }
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
       onConfirm(saved.length, rows.length - saved.length);
     },
   });

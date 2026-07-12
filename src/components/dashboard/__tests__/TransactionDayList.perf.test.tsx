@@ -3,7 +3,6 @@ import { renderWithI18n } from '@/test-utils/render';
 import { makeSyntheticTransactions } from '@/test-utils/synthetic-transactions';
 import { TransactionDayList } from '../TransactionDayList';
 
-vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
 
 describe('TransactionDayList (Perf-Smoke, 10k Buchungen)', () => {
@@ -13,6 +12,7 @@ describe('TransactionDayList (Perf-Smoke, 10k Buchungen)', () => {
       <TransactionDayList
         transactions={transactions}
         categories={[]}
+        accounts={[]}
         hiddenTransactions={new Set()}
         onOpenDetails={vi.fn()}
         endingBalance={5000}
@@ -33,6 +33,7 @@ describe('TransactionDayList (Perf-Smoke, 10k Buchungen)', () => {
       <TransactionDayList
         transactions={transactions}
         categories={[]}
+        accounts={[]}
         hiddenTransactions={new Set()}
         onOpenDetails={vi.fn()}
         endingBalance={5000}

@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -44,4 +44,31 @@ export function renderWithProviders(
     tree = <QueryClientProvider client={client}>{tree}</QueryClientProvider>;
   }
   return render(<I18nProvider initialLocale={locale}>{tree}</I18nProvider>);
+}
+
+export interface HookWrapperOptions {
+  locale?: Locale;
+}
+
+export interface HookWrapperResult {
+  wrapper: (props: { children: ReactNode }) => ReactElement;
+  /** Frischer QueryClient der Wrapper-Instanz — z.B. zum Spyen auf `invalidateQueries`. */
+  queryClient: QueryClient;
+}
+
+/**
+ * Wrapper-Helfer für `renderHook()` bei Application-/Feature-Hooks, die
+ * `useI18n()` UND React-Query (`useQuery`/`useMutation`) benötigen. Liefert
+ * den `QueryClient` zurück, damit Tests eigene Assertions (z.B. Spies auf
+ * `invalidateQueries`) daran hängen können, statt einen neuen Client zu bauen.
+ */
+export function createHookWrapper({ locale = 'de' }: HookWrapperOptions = {}): HookWrapperResult {
+  window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <I18nProvider initialLocale={locale}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </I18nProvider>
+  );
+  return { wrapper, queryClient };
 }

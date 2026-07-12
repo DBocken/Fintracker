@@ -1,3 +1,5 @@
+import type { DashboardGranularity } from '@/features/dashboard/domain/overview-types';
+
 export const DASHBOARD_RANGE_OPTIONS = [
   'Gesamt',
   'Jahr',
@@ -12,7 +14,9 @@ export const DASHBOARD_RANGE_OPTIONS = [
 ] as const;
 
 export type DashboardRange = (typeof DASHBOARD_RANGE_OPTIONS)[number];
-export type DashboardGranularity = 'daily' | 'weekly' | 'monthly';
+// Kanonische Definition lebt in der Domain-Schicht (overview-types.ts) —
+// hier nur Re-Export, damit bestehende Importeure unverändert funktionieren.
+export type { DashboardGranularity };
 
 /**
  * Granularitäten, bei denen zusätzlich eine konkrete Periode (Jahr/Quartal/Monat)

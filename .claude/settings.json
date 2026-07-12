@@ -7,11 +7,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/i18n-compliance.mjs\"",
-            "statusMessage": "Prüfe i18n-Compliance (Strings & Translations)…"
-          },
-          {
-            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/animation-baseline-check.mjs\"",
             "statusMessage": "Prüfe Animations-Baseline (Daten-Aufbau)…"
           },

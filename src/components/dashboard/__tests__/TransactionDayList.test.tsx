@@ -4,8 +4,10 @@ import { renderWithI18n } from '@/test-utils/render';
 import type { Transaction } from '@/types';
 import { TransactionDayList } from '../TransactionDayList';
 
-vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
+vi.mock('@/services/account-service', () => ({ getAccounts: vi.fn() }));
+
+import { getAccounts } from '@/services/account-service';
 
 function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
   return {
@@ -30,6 +32,7 @@ describe('TransactionDayList', () => {
             tx({ id: 'b', date: '2026-07-02', amount: -53.16, payee: 'Rewe' }),
           ]}
           categories={[]}
+          accounts={[]}
           hiddenTransactions={new Set()}
           onOpenDetails={vi.fn()}
           endingBalance={1240}
@@ -50,6 +53,7 @@ describe('TransactionDayList', () => {
         <TransactionDayList
           transactions={[tx({ id: 'g', date: '2026-06-30', amount: 2180, payee: 'Gehalt' })]}
           categories={[]}
+          accounts={[]}
           hiddenTransactions={new Set()}
           onOpenDetails={vi.fn()}
           endingBalance={2180}
@@ -66,6 +70,7 @@ describe('TransactionDayList', () => {
         <TransactionDayList
           transactions={[row]}
           categories={[]}
+          accounts={[]}
           hiddenTransactions={new Set()}
           onOpenDetails={onOpenDetails}
           endingBalance={100}
@@ -83,6 +88,7 @@ describe('TransactionDayList', () => {
         <TransactionDayList
           transactions={[tx({ id: 'a', date: '2026-07-03', amount: -10, payee: 'X' })]}
           categories={[]}
+          accounts={[]}
           hiddenTransactions={new Set()}
           onOpenDetails={vi.fn()}
           endingBalance={1000}
@@ -92,5 +98,20 @@ describe('TransactionDayList', () => {
       );
       expect(screen.queryByText('1.000,00 €')).toBeNull();
     });
+  });
+
+  it('[REGRESSION] sollte keine eigene Konten-Query ausführen', () => {
+    renderWithI18n(
+      <TransactionDayList
+        transactions={[tx({ id: 'a', date: '2026-07-03', amount: -10, payee: 'X' })]}
+        categories={[]}
+        accounts={[]}
+        hiddenTransactions={new Set()}
+        onOpenDetails={vi.fn()}
+        endingBalance={1000}
+        now={NOW}
+      />,
+    );
+    expect(getAccounts).not.toHaveBeenCalled();
   });
 });

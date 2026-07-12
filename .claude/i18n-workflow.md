@@ -74,22 +74,34 @@ export default function MyComponent() {
 
 ## 2️⃣ Automatische Compliance-Überprüfung
 
-### Hook: `.claude/hooks/i18n-compliance.mjs`
+### Check: `pnpm check:i18n` (Pre-Commit + CI, agentenunabhängig)
 
-**Wenn du Code schreibst**, läuft automatisch eine Überprüfung:
+**Vor jedem Commit** (`.githooks/pre-commit`) und in CI läuft automatisch eine Überprüfung:
 
 ```
 ❌ FALSCH: <h1>Willkommen</h1>
 ```
 
-Der Hook erkennt hardcodierte deutsche/englische Strings und blockiert den Commit.
+Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert den Commit
+(lokal `--staged`, in CI `--range origin/main...HEAD`). Er gilt für ALLE Agenten
+(Claude, Codex, …) und menschliche Entwickler gleichermaßen.
 
 **Lösung:**
 1. Zeile aus Komponente entfernen
 2. In `translations.ts` als `myFeature.welcome: 'Willkommen'` hinzufügen
 3. In Komponente mit `t('myFeature.welcome')` ersetzen
 
-### Hook-Überprüfungen
+### Anti-Patterns & Häufige Fehler
+
+| ❌ FALSCH | ✅ RICHTIG |
+|---|---|
+| `<h1>Willkommen</h1>` | `<h1>{t('page.welcome')}</h1>` |
+| `"Keine Daten" + status` | `t('page.noData').replace('{status}', status)` |
+| Test nur auf Deutsch | Test auf DE + EN (Bilingual!) |
+| String in Komponente hardcodiert | String in `translations.ts` zentral |
+| Nur `t()` ohne I18nProvider wrapping | `renderWithI18n()` helper verwenden |
+
+### Check-Überprüfungen
 
 - ✅ Erkennt hardcodierte Strings in JSX
 - ✅ Prüft Asymmetrie zwischen DE/EN (Schlüssel müssen gleich sein)
@@ -108,8 +120,8 @@ Der Hook erkennt hardcodierte deutsche/englische Strings und blockiert den Commi
 - [ ] Tests mit `renderWithI18n()` Wrapper
 - [ ] Tests überprüfen beide Sprachen (DE + EN)
 - [ ] `[REGRESSION] Tests überprüfen dass Keys existieren`
-- [ ] `npm test` — alle Tests grün
-- [ ] `npm run build` — TypeScript OK
+- [ ] `pnpm test` — alle Tests grün
+- [ ] `pnpm build` — TypeScript OK
 
 ---
 
@@ -171,9 +183,10 @@ src/i18n/
       ├── i18n.test.ts
       └── format.test.ts
 
+scripts/
+  └── check-i18n.mjs           ← Auto-Check (Pre-Commit + CI, blockiert hardcodierte Strings)
+
 .claude/
-  ├── hooks/
-  │   └── i18n-compliance.mjs  ← Auto-Check (blockiert hardcodierte Strings)
   ├── templates/
   │   ├── i18n-component.template.tsx   ← Copy-Paste Template
   │   └── i18n-test.template.tsx        ← Copy-Paste Test-Template
@@ -276,4 +289,4 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 
 ---
 
-**Fragen?** → Siehe CLAUDE.md Abschnitt "Internationalisierung"
+**Fragen?** → Siehe AGENTS.md §6 (i18n)

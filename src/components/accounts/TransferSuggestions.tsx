@@ -50,7 +50,6 @@ export function TransferSuggestions() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['transactions-chart'] });
   };
 
   const markMutation = useMutation({

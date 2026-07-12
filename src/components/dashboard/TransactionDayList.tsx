@@ -1,10 +1,8 @@
 import { useMemo, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Repeat } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account, Category, Transaction } from '@/types';
-import { getAccounts } from '../../services/account-service';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import ListRow from '@/components/common/ListRow';
 import { cn } from '@/lib/utils';
@@ -19,6 +17,7 @@ interface TransactionDayListProps {
   /** Bereits gefilterte, absteigend nach Datum sortierte Buchungen. */
   transactions: Transaction[];
   categories: Category[];
+  accounts: Account[];
   hiddenTransactions: Set<string>;
   onOpenDetails: (transaction: Transaction) => void;
   /** Aktueller Gesamtsaldo als Anker für den rückwärts abgeleiteten Tagesstand. */
@@ -68,6 +67,7 @@ function payeeInitial(payee: string): string {
 export function TransactionDayList({
   transactions,
   categories,
+  accounts,
   hiddenTransactions,
   onOpenDetails,
   endingBalance,
@@ -77,8 +77,6 @@ export function TransactionDayList({
 }: TransactionDayListProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
-  // Konten für den Farb-Punkt je Zeile und ein flackerfreies Detail-Modal.
-  const { data: accounts = [] } = useQuery<Account[]>({ queryKey: ['accounts'], queryFn: getAccounts });
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);

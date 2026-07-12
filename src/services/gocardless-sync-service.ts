@@ -27,7 +27,6 @@ export function setGoCardlessQueryClient(queryClient: QueryClient | null) {
 function invalidateTransactionConsumers() {
   if (!queryClientRef) return;
   queryClientRef.invalidateQueries({ queryKey: ['transactions'] });
-  queryClientRef.invalidateQueries({ queryKey: ['transactions-chart'] });
   queryClientRef.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
   queryClientRef.invalidateQueries({ queryKey: ['accounts'] });
   queryClientRef.invalidateQueries({ queryKey: ['live-balances'] });
