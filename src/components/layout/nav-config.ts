@@ -18,6 +18,7 @@ import {
   HandCoins,
   Landmark,
   Briefcase,
+  Building2,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 
@@ -127,6 +128,20 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: LineChart,
         subtitle: "Depot im Blick",
         subtitleKey: "nav.subtitles.trading",
+      },
+      {
+        label: "Finanzstadt",
+        labelKey: "nav.items.city",
+        path: "/city",
+        icon: Building2,
+        // Beta-Hinweis über das bestehende subtitle-Feld (kein neues
+        // Badge-Rendering in SideNav/MobileNav nötig — Präzedenzfall:
+        // Nachbar-Einträge nutzen subtitle bereits für kurze Teaser).
+        // subtitleKey zeigt bewusst auf `city.betaBadge` statt auf einen
+        // neuen `nav.subtitles.city`-Key — derselbe "Beta"-String wird auch
+        // als Badge auf der Seite selbst wiederverwendet (CityPage.tsx).
+        subtitle: "Beta",
+        subtitleKey: "city.betaBadge",
       },
     ],
   },

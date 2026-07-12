@@ -116,6 +116,7 @@ export const translations = {
         export: 'Daten Export',
         contracts: 'Abos & Verträge',
         settings: 'Einstellungen',
+        city: 'Finanzstadt',
       },
       subtitles: {
         liquidity: 'Wann wird dein Geld knapp?',
@@ -132,6 +133,17 @@ export const translations = {
         dashboard: 'Übersicht',
         transactions: 'Buchungen',
       },
+    },
+    city: {
+      title: 'Finanzstadt',
+      tabOverview: 'Übersicht',
+      tabIncome: 'Einnahmen',
+      tabExpenses: 'Ausgaben',
+      tabGoals: 'Ziele',
+      breadcrumbCity: 'Stadt',
+      betaBadge: 'Beta',
+      a11yListToggle: 'Zur Listenansicht wechseln',
+      canvasPlaceholder: '3D-Ansicht folgt in Kürze',
     },
     premium: {
       addWidget: 'Widget hinzufügen',
@@ -3781,6 +3793,7 @@ export const translations = {
         export: 'Data export',
         contracts: 'Subscriptions & Contracts',
         settings: 'Settings',
+        city: 'Finance City',
       },
       subtitles: {
         liquidity: 'When will your money get tight?',
@@ -3797,6 +3810,17 @@ export const translations = {
         dashboard: 'Overview',
         transactions: 'Transactions',
       },
+    },
+    city: {
+      title: 'Finance City',
+      tabOverview: 'Overview',
+      tabIncome: 'Income',
+      tabExpenses: 'Expenses',
+      tabGoals: 'Goals',
+      breadcrumbCity: 'City',
+      betaBadge: 'Beta',
+      a11yListToggle: 'Switch to list view',
+      canvasPlaceholder: '3D view coming soon',
     },
     premium: {
       addWidget: 'Add widget',
@@ -7446,6 +7470,7 @@ export const translations = {
         export: "De' mejmoH",
         contracts: "malja'mey",
         settings: "chenmoHghach",
+        city: "Huch veng",
       },
       subtitles: {
         liquidity: "ghorgh Huch lIj mach?",
@@ -7462,6 +7487,17 @@ export const translations = {
         dashboard: "Hoch legh",
         transactions: "Huch mIwmey",
       },
+    },
+    city: {
+      title: "Huch veng",
+      tabOverview: "Hoch legh",
+      tabIncome: "Huch Hev",
+      tabExpenses: "Huch chagh",
+      tabGoals: "ngoQmey",
+      breadcrumbCity: "veng",
+      betaBadge: "Beta",
+      a11yListToggle: "tetlh legh yIchoH",
+      canvasPlaceholder: "3D legh: wa'leS",
     },
     premium: {
       addWidget: "nab 'ay' yIchel",
