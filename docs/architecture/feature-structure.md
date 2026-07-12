@@ -39,9 +39,9 @@ Details zum Ist-Zustand vor der Migration (Query-Tabelle, betroffene Zeilen, beh
 
 ## Verbindliche Repo-Regeln (Abweichung vom CLAUDE.md-Template!)
 
-- Tests IMMER in `__tests__/`-Ordnern — der Hook `.claude/hooks/test-structure-check.mjs` BLOCKT `<feature>-calculations.test.ts` direkt neben dem Code.
+- Tests IMMER in `__tests__/`-Ordnern — Pre-Commit/CI (`pnpm check:test-structure`) blockt andere Ablagen; Claude Code blockt zusätzlich live (`.claude/hooks/test-structure-check.mjs`).
 - Deutsche Testtitel `it('sollte …')`; `renderWithI18n`/`renderWithProviders`/`createHookWrapper` nur zentral aus `@/test-utils/render`.
-- i18n: keine neuen hardcodierten UI-Strings; Keys in beiden Sprachen in `src/i18n/translations.ts`.
+- i18n: keine neuen hardcodierten UI-Strings; Keys in beiden Sprachen in `src/i18n/translations.ts` (erzwungen via `pnpm check:i18n` in Pre-Commit + CI).
 - Karten-Regel & Animations-Baseline gelten auch in `presentation/` (siehe `docs/design-principles.md`).
 
 ## Nächste Migrationskandidaten (Reihenfolge mit Begründung)

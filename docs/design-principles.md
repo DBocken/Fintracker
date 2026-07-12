@@ -85,11 +85,11 @@ CSS-Theme-Vererbung, geringes Gewicht). Vor einem Lottie-Einsatz: Renderer (`lot
 `@lottiefiles/dotlottie-react`) hinzufügen und `prefers-reduced-motion` berücksichtigen.
 
 ### Automatische Prüfung (Baseline-Hook)
-`.claude/settings.json` enthält einen PostToolUse-Hook
-(`.claude/hooks/animation-baseline-check.mjs`): Nach jeder Bearbeitung einer UI-Datei
-(`src/**/*.tsx|ts`) meldet er, wenn Daten **aufpoppen** (`isAnimationActive={false}`) oder ein Chart
-ergänzt wird, der die Aufbau-Animation/Schwellwerte berücksichtigen sollte. Rein hinweisend – er
-erzwingt die bewusste Entscheidung für den datengetriebenen Aufbau.
+Die Regel gilt werkzeugunabhängig. Claude Code erhält automatische Live-Hinweise über einen
+PostToolUse-Hook (`.claude/hooks/animation-baseline-check.mjs`); andere Agenten (z. B. Codex)
+prüfen den Punkt im Selbst-Review. Der Hook meldet, wenn Daten **aufpoppen** (`isAnimationActive={false}`)
+oder ein Chart ergänzt wird, der die Aufbau-Animation/Schwellwerte berücksichtigen sollte — rein
+hinweisend zur bewussten Entscheidung für den datengetriebenen Aufbau.
 
 ---
 
@@ -119,11 +119,11 @@ keine Karte.
 - Bewegung nur `motion-safe` (z. B. Chevron-Shift); `prefers-reduced-motion` neutralisiert global.
 
 ### Automatische Prüfung (Karten-Hook)
-`.claude/settings.json` enthält einen PostToolUse-Hook
-(`.claude/hooks/card-clickability-check.mjs`): Nach Bearbeitung einer UI-Datei (`src/**/*.tsx`)
-meldet er, wenn Karten-Chrome ohne Klick-Aktion auftaucht (→ `InteractiveCard` oder de-cardden via
-`InfoGroup`/`InfoStatStrip`) bzw. erinnert, das **ganze** Kartenfeld klickbar zu machen. Rein
-hinweisend – er erzwingt die bewusste Entscheidung.
+Die Regel gilt werkzeugunabhängig. Claude Code erhält automatische Live-Hinweise über einen
+PostToolUse-Hook (`.claude/hooks/card-clickability-check.mjs`); andere Agenten (z. B. Codex)
+prüfen den Punkt im Selbst-Review. Der Hook meldet, wenn Karten-Chrome ohne Klick-Aktion auftaucht
+(→ `InteractiveCard` oder de-cardden via `InfoGroup`/`InfoStatStrip`) bzw. erinnert, das **ganze**
+Kartenfeld klickbar zu machen — rein hinweisend zur bewussten Entscheidung.
 
 ---
 

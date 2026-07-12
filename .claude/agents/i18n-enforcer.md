@@ -39,10 +39,10 @@ After all assigned files are done, run this repo-wide sanity check (adjust the p
 
 Then run, in this order, and fix any failure before reporting done:
 ```
-npm test -- <affected test files>
-npm run build
+pnpm test <affected test files>
+pnpm build
 ```
-If `npm run build` fails on a file you touched, fix the TypeScript error — don't leave the tree red.
+If `pnpm build` fails on a file you touched, fix the TypeScript error — don't leave the tree red.
 
 Note: "affected test files" is broader than it looks for widely-imported modules (local-crypto, claim-service, account-service, etc.) — grep the whole repo for the module's exported names to find every test file that imports it, not just the one sitting next to the source file. A prior batch missed several such indirect consumers and shipped locale-dependent test failures the calling session had to track down and fix separately.
 
