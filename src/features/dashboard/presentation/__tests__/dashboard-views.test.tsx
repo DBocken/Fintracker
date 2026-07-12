@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
-import { renderWithProviders } from '@/test-utils/render';
+import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
 import { DEFAULT_DASHBOARD_FILTERS } from '@/components/dashboard/filter-constants';
 import type { FinanceOverviewViewModel } from '../../application/finance-overview-view-model';
@@ -13,6 +13,13 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver;
+});
+
+// Call-Zähler-Hygiene: die not.toHaveBeenCalled-Asserts unten prüfen pro Test
+// von Null an — ohne Reset würden Aufrufe aus vorherigen Tests fälschlich
+// als "Query wurde ausgeführt" durchgehen.
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 vi.mock('@/services/transaction-service', () => ({
@@ -67,6 +74,8 @@ function buildModel(overrides: Partial<FinanceOverviewViewModel> = {}): FinanceO
   return {
     loading: false,
     isEmpty: false,
+    accountsLoading: false,
+    accountsError: false,
     transactions: {
       all: FIXTURE_TRANSACTIONS,
       visible: FIXTURE_TRANSACTIONS,
@@ -146,6 +155,20 @@ describe('AccountCards – Props statt eigener Query', () => {
 
     expect(getAccounts).not.toHaveBeenCalled();
     expect(screen.getByText('Giro')).toBeInTheDocument();
+  });
+
+  it('sollte bei hasError den Fehlertext rendern', () => {
+    renderWithI18n(
+      <AccountCards
+        accounts={FIXTURE_ACCOUNTS}
+        balances={{ [ACC_CHECKING]: { amount: 950, source: 'local' } }}
+        totalBalance={950}
+        isLoading={false}
+        hasError
+      />,
+    );
+
+    expect(screen.getByText(/Fehler beim Laden der Konten|Error loading accounts/)).toBeInTheDocument();
   });
 });
 

@@ -213,6 +213,35 @@ describe('useFinanceOverview', () => {
       });
     });
 
+    it('sollte deleteTransaction ausführen und die Transaktions-Query invalidieren', async () => {
+      const { result, queryClient } = await renderOverview();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      act(() => {
+        result.current.actions.deleteTransaction('tx-2');
+      });
+
+      await waitFor(() => {
+        // React Query v5 ruft mutationFn(variables, mutationFnContext) auf —
+        // nur die eigentliche ID (erstes Argument) interessiert hier.
+        expect(vi.mocked(deleteTransaction).mock.calls[0]?.[0]).toBe('tx-2');
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: dashboardKeys.transactionsRoot });
+      });
+    });
+
+    it('sollte customPeriod leeren wenn keine Perioden verfügbar sind', async () => {
+      // Ohne Buchungen liefert listAvailablePeriods() eine leere Liste ->
+      // die Range-Vorbelegung muss auf '' zurückfallen statt eine Periode zu raten.
+      vi.mocked(getTransactions).mockResolvedValue([]);
+      const { result } = await renderOverview();
+
+      act(() => {
+        result.current.filters.set.range('Jahr');
+      });
+
+      expect(result.current.filters.values.customPeriod).toBe('');
+    });
+
     it('sollte Sortier-Toggle asc/desc wechseln', async () => {
       const { result } = await renderOverview();
 
@@ -309,6 +338,41 @@ describe('useFinanceOverview', () => {
       expect(Object.is(result.current.categories, categoriesBefore)).toBe(true);
       expect(Object.is(result.current.sankeyData, sankeyBefore)).toBe(true);
       expect(result.current.sort.config).toEqual({ key: 'date', direction: 'desc' });
+    });
+
+    it('[REGRESSION] sollte accountsLoading den Ladezustand der accounts-Query unabhängig von der Transaktions-Query spiegeln', async () => {
+      let resolveAccounts!: (accounts: Account[]) => void;
+      const pending = new Promise<Account[]>((resolve) => {
+        resolveAccounts = resolve;
+      });
+      vi.mocked(getAccounts).mockReturnValue(pending);
+
+      const { wrapper } = createHookWrapper();
+      const { result } = renderHook(() => useFinanceOverview(), { wrapper });
+
+      // Transaktionen sind bereits fertig geladen, die accounts-Query hängt
+      // noch -> accountsLoading darf NICHT einfach `loading` mitbenutzen.
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.accountsLoading).toBe(true);
+      expect(result.current.accountsError).toBe(false);
+
+      await act(async () => {
+        resolveAccounts(FIXTURE_ACCOUNTS);
+        await pending;
+      });
+
+      await waitFor(() => expect(result.current.accountsLoading).toBe(false));
+    });
+
+    it('[REGRESSION] sollte accountsError bei fehlgeschlagener accounts-Query true werden', async () => {
+      vi.mocked(getAccounts).mockRejectedValue(new Error('accounts down'));
+
+      const { wrapper } = createHookWrapper();
+      const { result } = renderHook(() => useFinanceOverview(), { wrapper });
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.accountsError).toBe(true));
+      expect(result.current.accountsLoading).toBe(false);
     });
   });
 });

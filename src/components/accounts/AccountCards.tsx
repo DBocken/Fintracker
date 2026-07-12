@@ -1,17 +1,19 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import type { Account } from '@/types'
+import type { EffectiveBalance } from '@/features/dashboard/domain/overview-types'
 import { RefreshCw } from 'lucide-react'
 import { useGentleMode } from '@/components/providers/GentleModeProvider'
 import { useI18n } from '@/i18n/useI18n'
 
 interface AccountCardsProps {
   accounts: Account[]
-  balances: Record<string, { amount: number; source: 'bank' | 'local'; balanceType?: string }>
+  balances: Record<string, EffectiveBalance>
   totalBalance: number
   isLoading?: boolean
+  hasError?: boolean
 }
 
-export function AccountCards({ accounts, balances, totalBalance, isLoading = false }: AccountCardsProps) {
+export function AccountCards({ accounts, balances, totalBalance, isLoading = false, hasError = false }: AccountCardsProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
 
@@ -49,6 +51,9 @@ export function AccountCards({ accounts, balances, totalBalance, isLoading = fal
         </div>
       </CardHeader>
       <CardContent className="flex-1">
+        {hasError && (
+          <div className="text-destructive text-sm mb-4">{t('accounts.cards.errorLoading')}</div>
+        )}
         {accounts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>{t('accounts.cards.emptyTitle')}</p>

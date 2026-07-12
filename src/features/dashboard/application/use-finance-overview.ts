@@ -31,6 +31,11 @@ const PREVIEW_COUNT = 5;
 
 const noop = () => {};
 
+// Stabile Referenz für den Query-Default: eine neue `new Map()` bei jedem
+// Render würde die Memo-Kette bis zum ViewModel invalidieren, solange die
+// Query noch lädt (Default wird bei jedem Re-Render neu erzeugt).
+const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
+
 export type UseFinanceOverviewOptions = {
   /** Wird nach erfolgreichem Detail-Speichern aufgerufen (z.B. Modal schließen). Bleibt Sache der aufrufenden Seite. */
   onDetailsSaved?: () => void;
@@ -58,12 +63,12 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryFn: () => getCategories(),
   });
 
-  const { data: accounts = [] } = useQuery({
+  const { data: accounts = [], isLoading: accountsLoading, isError: accountsError } = useQuery({
     queryKey: dashboardKeys.accounts,
     queryFn: () => getAccounts(),
   });
 
-  const { data: contractDecisions = new Map<string, ContractDecision>() } = useQuery({
+  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
     queryKey: dashboardKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
@@ -198,15 +203,17 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   }, [category, account, contract, essential, ausgabenklasse, search, range, customDays, customPeriod]);
 
   const stats = useMemo(() => {
-    const { income, expenses, balance } = computeFlowTotals(visibleTransactions);
-    const series = buildIncomeExpenseSeries(visibleTransactions, granularity);
+    // Ein geteilter Durchlauf statt fünf unabhängiger Filter-Pässe: alle vier
+    // Berechnungen brauchen dieselbe transferbereinigte Liste, ihre internen
+    // is_transfer-Filter (siehe lib/analysis-data.ts) bleiben unangetastet und
+    // sind idempotent — Ergebnis identisch, aber nur noch ein voller Durchlauf
+    // über die (potenziell große) Buchungsliste.
+    const flowTransactions = visibleTransactions.filter((t) => !t.is_transfer);
 
-    // buildSpendingSunburst/buildSunburstTree filtern is_transfer bereits
-    // intern (siehe lib/analysis-data.ts) — ein zusätzliches Vorfiltern auf
-    // flowTransactions liefert nachweislich dasselbe Ergebnis und entfällt
-    // hier bewusst, um die Buchungsliste nicht doppelt zu durchlaufen.
-    const sunburst = buildSpendingSunburst(visibleTransactions, cats);
-    const sunburstTree = buildSunburstTree(visibleTransactions, cats);
+    const { income, expenses, balance } = computeFlowTotals(flowTransactions);
+    const series = buildIncomeExpenseSeries(flowTransactions, granularity);
+    const sunburst = buildSpendingSunburst(flowTransactions, cats);
+    const sunburstTree = buildSunburstTree(flowTransactions, cats);
 
     return {
       income,
@@ -220,8 +227,8 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     };
   }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
 
-  // Einfaches Sankey auf Hauptkategorien-Ebene — der Aha-Moment ist FREE
-  // (Issue #40, Beschluss aus Epic #19/#25). Drilldown gibt es im Analyse-Bereich.
+  // Einfaches Sankey auf Hauptkategorien-Ebene bleibt bewusst im Free-Tier
+  // (Aha-Moment für alle Nutzer); Drilldown lebt im Analyse-Bereich.
   const sankeyData = useMemo(
     () => buildSankeyData(visibleTransactions, cats, accounts),
     [visibleTransactions, cats, accounts],
@@ -249,14 +256,20 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     },
   });
 
+  // `mutate` ist in React Query v5 per useCallback stabil, das Mutation-Objekt
+  // selbst nicht — daher vor dem useCallback destrukturieren, damit die
+  // Callbacks (und damit das ViewModel) referenzstabil bleiben.
+  const { mutate: mutateCategory } = categoryMutation;
+  const { mutate: mutateDelete } = deleteMutation;
+
   const updateCategory = useCallback((transactionId: string, categoryId: string) => {
     if (!transactionId) return;
-    categoryMutation.mutate([{ id: transactionId, category_id: categoryId }]);
-  }, [categoryMutation]);
+    mutateCategory([{ id: transactionId, category_id: categoryId }]);
+  }, [mutateCategory]);
 
   const deleteTransactionAction = useCallback((id: string) => {
-    deleteMutation.mutate(id);
-  }, [deleteMutation]);
+    mutateDelete(id);
+  }, [mutateDelete]);
 
   const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(
     txs,
@@ -341,6 +354,8 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   return useMemo<FinanceOverviewViewModel>(() => ({
     loading: txsLoading,
     isEmpty: !txsLoading && txs.length === 0,
+    accountsLoading,
+    accountsError,
     transactions,
     categories: cats,
     accounts,
@@ -351,5 +366,5 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     sort,
     hidden,
     actions,
-  }), [txsLoading, txs, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+  }), [txsLoading, txs, accountsLoading, accountsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
 }

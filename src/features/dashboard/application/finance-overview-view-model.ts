@@ -35,6 +35,9 @@ export type SortConfig = { key: keyof Transaction; direction: 'asc' | 'desc' };
 export type FinanceOverviewViewModel = {
   loading: boolean;
   isEmpty: boolean;
+  /** Konten-Query lädt/scheitert unabhängig von der Transaktions-Query — eigene Flags statt `loading` mitzubenutzen. */
+  accountsLoading: boolean;
+  accountsError: boolean;
   transactions: {
     all: Transaction[];
     visible: Transaction[];

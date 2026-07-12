@@ -2,8 +2,7 @@ import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction } from '@/types';
 import { sumIncome, sumExpenses } from '@/lib/analysis-data';
-import type { DashboardGranularity } from '@/components/dashboard/filter-constants';
-import type { BalanceHistoryPoint, IncomeExpensePoint } from './overview-types';
+import type { BalanceHistoryPoint, DashboardGranularity, IncomeExpensePoint } from './overview-types';
 
 /**
  * Transferbereinigte Einnahmen/Ausgaben/Saldo über `sumIncome`/`sumExpenses`

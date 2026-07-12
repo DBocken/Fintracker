@@ -6,6 +6,13 @@ import type { SpendingSunburst, SunburstTree } from '@/lib/analysis-data';
  */
 export type EffectiveBalance = { amount: number; source: 'bank' | 'local'; balanceType?: string };
 
+/**
+ * Kanonische Definition der Dashboard-Granularität — hier in der Domain-Schicht,
+ * damit sowohl Domain- als auch Presentation-Module importieren können, ohne
+ * dass die Domain von `components` abhängt.
+ */
+export type DashboardGranularity = 'daily' | 'weekly' | 'monthly';
+
 export type IncomeExpensePoint = { date: string; income: number; expenses: number };
 
 export type FinanceOverviewStats = {

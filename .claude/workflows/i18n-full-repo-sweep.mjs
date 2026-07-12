@@ -32,7 +32,7 @@ const GROUPS = [
     'src/components/dashboard/AnalysisModePanel.tsx',
   ]},
   { label: 'dashboard-3', files: [
-    'src/components/dashboard/DashboardMobileStory.tsx',
+    'src/features/dashboard/presentation/mobile/DashboardMobileStory.tsx',
     'src/components/dashboard/DataQualityNotice.tsx',
     'src/components/dashboard/TransactionCharts.tsx',
     'src/components/dashboard/TransactionStats.tsx',

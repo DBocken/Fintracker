@@ -154,7 +154,8 @@ export default function DashboardMobileStory({ className, model }: Props) {
             accounts={model.accounts}
             balances={effectiveBalances}
             totalBalance={totalEffectiveBalance}
-            isLoading={model.loading}
+            isLoading={model.accountsLoading}
+            hasError={model.accountsError}
           />
         )}
       </div>

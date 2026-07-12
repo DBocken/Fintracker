@@ -40,7 +40,8 @@ export function DashboardDesktopView({ model, className }: Props) {
             accounts={model.accounts}
             balances={model.balances.byAccount}
             totalBalance={model.balances.total}
-            isLoading={model.loading}
+            isLoading={model.accountsLoading}
+            hasError={model.accountsError}
           />
         </div>
       </div>
