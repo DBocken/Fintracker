@@ -44,6 +44,8 @@ export function TransactionDetailsModal({
   const { t } = useI18n();
   const [isDesktop, setIsDesktop] = useState(true);
 
+  // Bewusst 768px (md) statt useIsWideDesktop (1024px/lg): Diese Weiche wählt Dialog vs.
+  // Bottom-Sheet INNERHALB des Overlays; der Master-Detail-Split der Seite liegt bei lg.
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 768);
     check();
