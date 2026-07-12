@@ -4,6 +4,7 @@ import {
   visualCenterOffset,
   easeInOutCubic,
   sphericalPose,
+  sphericalFromPose,
   zoomOutTargetLerp,
 } from '../camera-math';
 
@@ -144,6 +145,47 @@ describe('sphericalPose', () => {
       expect(pose.position.y).toBeCloseTo(10, 2);
       expect(Math.abs(pose.position.x)).toBeLessThan(0.1);
       expect(Math.abs(pose.position.z)).toBeLessThan(0.1);
+    });
+  });
+});
+
+describe('sphericalFromPose', () => {
+  describe('Happy Path', () => {
+    it('sollte die exakte Umkehrung von sphericalPose sein (Roundtrip)', () => {
+      const target = { x: 3, y: 1, z: -2 };
+      const radius = 7;
+      const azimuth = Math.PI / 4;
+      const polar = Math.PI / 3;
+      const pose = sphericalPose(target, radius, azimuth, polar);
+
+      const result = sphericalFromPose(pose.position, pose.target);
+      expect(result.radius).toBeCloseTo(radius, 10);
+      expect(result.azimuthRad).toBeCloseTo(azimuth, 10);
+      expect(result.polarRad).toBeCloseTo(polar, 10);
+    });
+
+    it('sollte für mehrere Winkel-Kombinationen roundtrip-stabil bleiben', () => {
+      const target = { x: 0, y: 0, z: 0 };
+      const cases: Array<{ radius: number; azimuth: number; polar: number }> = [
+        { radius: 10, azimuth: 0, polar: Math.PI / 2 },
+        { radius: 5, azimuth: -Math.PI / 3, polar: (20 * Math.PI) / 180 },
+        { radius: 20, azimuth: (170 * Math.PI) / 180, polar: (70 * Math.PI) / 180 },
+      ];
+      for (const { radius, azimuth, polar } of cases) {
+        const pose = sphericalPose(target, radius, azimuth, polar);
+        const result = sphericalFromPose(pose.position, pose.target);
+        expect(result.radius).toBeCloseTo(radius, 9);
+        expect(result.azimuthRad).toBeCloseTo(azimuth, 9);
+        expect(result.polarRad).toBeCloseTo(polar, 9);
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('sollte bei identischer Position/Target (Radius 0) alle Winkel als 0 liefern statt NaN', () => {
+      const point = { x: 5, y: 5, z: 5 };
+      const result = sphericalFromPose(point, point);
+      expect(result).toEqual({ radius: 0, azimuthRad: 0, polarRad: 0 });
     });
   });
 });

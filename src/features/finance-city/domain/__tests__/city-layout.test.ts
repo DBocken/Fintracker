@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCityLayout } from '../city-layout';
+import { buildCityLayout, computeFocusBounds } from '../city-layout';
 import type { CityModel } from '../city-model';
 
 function makeModel(): CityModel {
@@ -316,6 +316,71 @@ describe('buildCityLayout', () => {
       const layout = buildCityLayout({ districts: [] }, { level: 'city' });
       expect(layout.boxes.filter((b) => b.kind === 'bar')).toHaveLength(0);
       expect(layout.boxes.filter((b) => b.kind === 'hull')).toHaveLength(0);
+    });
+  });
+});
+
+describe('computeFocusBounds', () => {
+  describe('Happy Path', () => {
+    it('sollte für einen Distrikt (city-Ebene) Center/Radius liefern, die Hülle UND alle Balken dieses Distrikts umfassen', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+
+      const bounds = computeFocusBounds(layout, 'leisure');
+      expect(bounds).not.toBeNull();
+
+      const focusBoxes = layout.boxes.filter((b) => b.id === 'leisure' || b.id.startsWith('leisure/'));
+      expect(focusBoxes.length).toBeGreaterThan(0);
+
+      for (const box of focusBoxes) {
+        const dx = Math.abs(box.center.x - bounds!.center.x) + box.size.x / 2;
+        const dy = Math.abs(box.center.y - bounds!.center.y) + box.size.y / 2;
+        const dz = Math.abs(box.center.z - bounds!.center.z) + box.size.z / 2;
+        const cornerDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        expect(cornerDistance).toBeLessThanOrEqual(bounds!.radius + 1e-9);
+      }
+
+      // Andere Distrikte dürfen die Bounds NICHT vergrößern (nur "leisure" zählt).
+      const housingHull = layout.boxes.find((b) => b.id === 'housing')!;
+      const distanceToOtherDistrict = Math.hypot(
+        housingHull.center.x - bounds!.center.x,
+        housingHull.center.y - bounds!.center.y,
+        housingHull.center.z - bounds!.center.z,
+      );
+      // Die anderen Distrikte liegen weiter weg als der eigene Fokus-Radius,
+      // sonst hätte computeFocusBounds fälschlich über den Distrikt hinaus mitgezählt.
+      expect(distanceToOtherDistrict).toBeGreaterThan(bounds!.radius);
+    });
+
+    it('sollte für eine bereits in Etagen aufgelöste Unterkategorie (subcategory-Ebene) alle Etagen umfassen', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, {
+        level: 'subcategory',
+        focusDistrictId: 'leisure',
+        focusSubcategoryId: 'streaming',
+      });
+
+      const bounds = computeFocusBounds(layout, 'leisure/streaming');
+      expect(bounds).not.toBeNull();
+
+      const floors = layout.boxes.filter((b) => b.kind === 'floor');
+      expect(floors.length).toBeGreaterThan(0);
+      for (const floor of floors) {
+        const distance = Math.hypot(
+          floor.center.x - bounds!.center.x,
+          floor.center.y - bounds!.center.y,
+          floor.center.z - bounds!.center.z,
+        );
+        expect(distance).toBeLessThanOrEqual(bounds!.radius + 1e-9);
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('sollte null liefern, wenn keine Box zur focusId passt', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      expect(computeFocusBounds(layout, 'unknown-id')).toBeNull();
     });
   });
 });

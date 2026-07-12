@@ -90,6 +90,34 @@ export function sphericalPose(
 }
 
 /**
+ * Kehrfunktion zu `sphericalPose`: leitet Radius/Azimut/Polar aus einer
+ * bestehenden Kamera-Pose (Position + Target) ab. WP-C4-Baustein für
+ * azimut-/polar-erhaltende Fokusflüge (Kamera-Controller,
+ * `presentation/city-camera-controller.ts`): der Controller darf die
+ * aktuellen Blickwinkel NICHT selbst aus den Vektor-Komponenten neu
+ * herleiten (Parallel-Mathematik zu `sphericalPose`) — er ruft stattdessen
+ * diese Funktion. `radius/azimuthRad/polarRad` folgen exakt der Umkehrung
+ * der in `sphericalPose` dokumentierten Formel (three.js-Konvention:
+ * `polarRad` = Winkel von +Y, `azimuthRad` = Winkel um Y via `atan2(x, z)`).
+ * Degenerierter Fall (Position == Target, Radius 0): liefert alle Winkel 0
+ * statt NaN.
+ */
+export function sphericalFromPose(
+  position: Vec3,
+  target: Vec3,
+): { radius: number; azimuthRad: number; polarRad: number } {
+  const dx = position.x - target.x;
+  const dy = position.y - target.y;
+  const dz = position.z - target.z;
+  const radius = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (radius === 0) return { radius: 0, azimuthRad: 0, polarRad: 0 };
+
+  const polarRad = Math.acos(Math.max(-1, Math.min(1, dy / radius)));
+  const azimuthRad = Math.atan2(dx, dz);
+  return { radius, azimuthRad, polarRad };
+}
+
+/**
  * Kamera-Regel 5 / README-Zoom-Verhalten: Beim Herauszoomen wandert das
  * Orbit-Target sanft (proportional zum aktuellen Radius zwischen
  * `focusRadius` und `cityRadius`) von `currentTarget` zur Stadtmitte

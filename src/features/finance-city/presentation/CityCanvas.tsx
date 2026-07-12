@@ -2,16 +2,35 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCityScene, type CitySceneHandle } from './city-scene';
+import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+
+/**
+ * WP-C4: kleine imperative API, über die der (außerhalb von `CityCanvas`
+ * lebende, `CityPage.tsx`-verwaltete) Kamera-Controller die OrbitControls-
+ * Zoom-Grenzen setzt (Regel 6, `maxDistance` aus `fitCameraDistance` der
+ * Gesamt-Stadt) und den Render-on-Demand-Loop weckt (`invalidate`), ohne
+ * dass `CityCanvas` selbst etwas über den Controller wissen muss.
+ */
+export type CityControlsApi = {
+  setLimits(minDistance: number, maxDistance: number): void;
+  invalidate(): void;
+};
 
 export type CityCanvasProps = {
   /** Aus `useMemo(() => buildCityLayout(...), [...])` der Page — die EINZIGE Geometrie-Quelle (README). */
   layout: CityLayout;
   /** Tap-Raycast-Ergebnis; `null` = Boden/Leere (kein pickbares Objekt getroffen). */
   onTapBox: (id: string | null) => void;
-  /** WP-C4-Andockpunkt: feuert, wenn der Nutzer manuell zu orbiten beginnt (Kamera-Controller bricht dann laufende Auto-Flüge ab). */
+  /** WP-C4: feuert, wenn der Nutzer manuell zu orbiten beginnt (Kamera-Controller bricht dann laufende Auto-Flüge ab, Regel 2). */
   onControlsStart?: () => void;
+  /** WP-C4: feuert bei jeder OrbitControls-'change' (Kamera-Controller lerpt darauf das Zoom-out-Target, Regel 5/6). */
+  onControlsChange?: () => void;
+  /** WP-C4: pro Render-Frame getickter Kamera-Controller (`presentation/city-camera-controller.ts`) — `CityPage.tsx` erzeugt ihn erst NACH dem Mount (braucht `sceneRef`/`controlsApiRef`), deshalb optional/nachträglich befüllbar. */
+  cameraController?: CityCameraController | null;
+  /** WP-C4-Andockpunkt für den Kamera-Controller (Zoom-Grenzen setzen, Loop wecken). */
+  controlsApiRef?: MutableRefObject<CityControlsApi | null>;
   /** WP-C4/Debug-Zugriff auf das rohe Szenen-Handle (`applyCameraPose`, `camera`, `target`, …) ohne `CityCanvas` selbst umzubauen. */
   sceneRef?: MutableRefObject<CitySceneHandle | null>;
   className?: string;
@@ -56,7 +75,16 @@ function initialDprStepIndex(): number {
  * besitzt nur den Container/Canvas-DOM-Knoten plus Resize-/Visibility-
  * Observer (README-Architekturtabelle, `presentation/`-Zeile).
  */
-export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, className }: CityCanvasProps) {
+export function CityCanvas({
+  layout,
+  onTapBox,
+  onControlsStart,
+  onControlsChange,
+  cameraController,
+  controlsApiRef,
+  sceneRef,
+  className,
+}: CityCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const handleRef = useRef<CitySceneHandle | null>(null);
@@ -65,12 +93,20 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
   const reducedMotion = useReducedMotion();
 
   // „Aktuellster Callback"-Ref-Muster: vermeidet, dass eine neue Funktions-
-  // Identität von `onTapBox`/`onControlsStart` bei jedem Elternrender den
-  // teuren WebGL-Mount-Effekt (Szene/Renderer/Controls neu aufbauen) auslöst.
+  // Identität von `onTapBox`/`onControlsStart`/`onControlsChange`/
+  // `cameraController` bei jedem Elternrender den teuren WebGL-Mount-Effekt
+  // (Szene/Renderer/Controls neu aufbauen) auslöst. Wichtig zusätzlich für
+  // `cameraController`: `CityPage` erzeugt ihn ERST NACH dem ersten Commit
+  // (braucht `sceneRef`/`controlsApiRef`) — ohne Ref-Spiegelung würde der auf
+  // `[]` gemountete Loop für immer den anfänglichen `null`-Wert sehen.
   const onTapBoxRef = useRef(onTapBox);
   onTapBoxRef.current = onTapBox;
   const onControlsStartRef = useRef(onControlsStart);
   onControlsStartRef.current = onControlsStart;
+  const onControlsChangeRef = useRef(onControlsChange);
+  onControlsChangeRef.current = onControlsChange;
+  const cameraControllerRef = useRef(cameraController);
+  cameraControllerRef.current = cameraController;
 
   // Mount/Unmount: EIN Effekt für den kompletten WebGL-Lifecycle.
   useEffect(() => {
@@ -103,6 +139,20 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
     controls.maxPolarAngle = MAX_POLAR_ANGLE;
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     controlsRef.current = controls;
+
+    // WP-C4: kleine imperative API für den (extern in `CityPage.tsx`
+    // verwalteten) Kamera-Controller — Zoom-Grenzen setzen (Regel 6) und den
+    // Render-on-Demand-Loop wecken (`invalidate` unten, per Referenz erst
+    // NACH ihrer Definition zugewiesen, siehe unten).
+    if (controlsApiRef) {
+      controlsApiRef.current = {
+        setLimits: (minDistance, maxDistance) => {
+          controls.minDistance = minDistance;
+          controls.maxDistance = maxDistance;
+        },
+        invalidate: () => invalidate(),
+      };
+    }
 
     // --- Render-on-Demand-Loop -------------------------------------------
     // Läuft NUR, solange (a) der Nutzer aktiv interagiert, (b) Damping noch
@@ -157,7 +207,14 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
     function tick(timestamp: number) {
       rafHandle = null;
 
-      const changed = controls.update();
+      // WP-C4: der Kamera-Controller tickt ZUERST (wendet ggf. eine
+      // interpolierte Auto-Flug-Pose für diesen Frame an), DANACH liest
+      // `controls.update()` die (evtl. gerade von ihm gesetzte) Kamera-/
+      // Target-Position ein — vermeidet einen 1-Frame-Lag zwischen
+      // Flug-Tween und OrbitControls' internem Zustand.
+      const controllerActive = cameraControllerRef.current?.tick(timestamp) ?? false;
+      const controlsChanged = controls.update();
+      const changed = controllerActive || controlsChanged;
       if (changed) needsRender = true;
       if (isInteracting) trackFps(timestamp);
 
@@ -166,6 +223,9 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
         needsRender = false;
       }
 
+      // Loop läuft weiter, solange (a) der automatische Flug noch aktiv ist,
+      // (b) `controls.update()` noch Änderung meldet (Damping-Ausklang), oder
+      // (c) der Nutzer aktiv interagiert.
       if (changed || isInteracting) {
         rafHandle = requestAnimationFrame(tick);
       }
@@ -182,7 +242,10 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
       // (Damping-Ausklang) — kein separates Zeitfenster nötig.
       invalidate();
     };
-    const handleControlsChange = () => invalidate();
+    const handleControlsChange = () => {
+      onControlsChangeRef.current?.();
+      invalidate();
+    };
 
     controls.addEventListener('start', handleControlsStart);
     controls.addEventListener('end', handleControlsEnd);
@@ -245,6 +308,7 @@ export function CityCanvas({ layout, onTapBox, onControlsStart, sceneRef, classN
       controls.removeEventListener('change', handleControlsChange);
       controls.dispose();
       controlsRef.current = null;
+      if (controlsApiRef) controlsApiRef.current = null;
       handle.dispose();
       handleRef.current = null;
       if (sceneRef) sceneRef.current = null;

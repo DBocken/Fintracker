@@ -347,7 +347,7 @@ function computeCityWideMaxSubcategoryAmount(model: CityModel): number {
   return max;
 }
 
-function computeBounds(boxes: LayoutBox[]): { center: Vec3; boundingRadius: number } {
+export function computeBounds(boxes: LayoutBox[]): { center: Vec3; boundingRadius: number } {
   if (boxes.length === 0) return { center: { x: 0, y: 0, z: 0 }, boundingRadius: 0 };
 
   let minX = Infinity;
@@ -372,6 +372,31 @@ function computeBounds(boxes: LayoutBox[]): { center: Vec3; boundingRadius: numb
   );
 
   return { center, boundingRadius };
+}
+
+/**
+ * WP-C4: Bounding-Sphere (Center + Radius) aller Boxen eines Fokus-Ziels
+ * innerhalb eines bereits gebauten Layouts — für den Kamera-Controller
+ * (`presentation/city-camera-controller.ts`), der beim Fokuswechsel/
+ * Eintauchen (Kamera-Regeln „focus-district"/„enter-district"/„enter-
+ * subcategory") eine passende Fokus-Distanz braucht (`fitCameraDistance`).
+ *
+ * Matcht per exakter id-Gleichheit ODER `id` beginnt mit `${focusId}/`
+ * (city-layout.ts-Id-Konvention oben): deckt sowohl "Distrikt-Hülle + ihre
+ * Balken" (`focusId` = Distrikt-Id) als auch "Unterkategorie-Balken bzw.
+ * dessen Etagen, falls bereits aufgelöst" (`focusId` =
+ * `${districtId}/${subcategoryId}`) ab, OHNE die Layout-Ebene zu kennen.
+ * `plot`/`ground`-Boxen zählen nicht zur Fokus-Silhouette (reine
+ * Hilfsgeometrie). `null`, wenn keine passende Box existiert.
+ */
+export function computeFocusBounds(layout: CityLayout, focusId: string): { center: Vec3; radius: number } | null {
+  const boxes = layout.boxes.filter(
+    (box) => box.kind !== 'plot' && box.kind !== 'ground' && (box.id === focusId || box.id.startsWith(`${focusId}/`)),
+  );
+  if (boxes.length === 0) return null;
+
+  const { center, boundingRadius } = computeBounds(boxes);
+  return { center, radius: boundingRadius };
 }
 
 /**

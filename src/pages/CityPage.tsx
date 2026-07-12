@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, ChevronRight, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,16 @@ import { useI18n } from "@/i18n/useI18n";
 import { formatCurrency } from "@/lib/utils";
 import { cityDemoModel } from "@/features/finance-city/data/city-demo-data";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
-import { buildCityLayout } from "@/features/finance-city/domain/city-layout";
-import { fitCameraDistance, sphericalPose } from "@/features/finance-city/domain/camera-math";
+import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
-import { CityCanvas } from "@/features/finance-city/presentation/CityCanvas";
+import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
 import { CAMERA_FOV_Y_DEG, type CitySceneHandle } from "@/features/finance-city/presentation/city-scene";
+import {
+  createCityCameraController,
+  type CityCameraController,
+  type CityCameraControllerConfig,
+} from "@/features/finance-city/presentation/city-camera-controller";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
  * Kompakte Tab-Chrome der Stadt (WP-C0-Platzhalter): nur "Ausgaben" ist
@@ -30,14 +35,7 @@ const CITY_TABS = [
 
 const ACTIVE_CITY_TAB = "expenses";
 
-// Kamera-Regel 1 (README, Auto-Frame): statische Startpose, solange WP-C4
-// (Kamera-Controller mit gedämpften Flügen) noch nicht existiert. 45°-Azimut
-// vermeidet einen Blick exakt entlang einer Distrikt-Grenze; 55° Polarwinkel
-// liegt in der erlaubten Halbraum-Spanne (15°–80°, Kamera-Regel 2) und
-// bleibt eine erkennbare "Vogelperspektive", ohne Gebäudehöhen unlesbar zu
-// machen (reine Top-Down-Sicht wäre 0°).
-const CITY_DEFAULT_AZIMUTH_RAD = Math.PI / 4;
-const CITY_DEFAULT_POLAR_RAD = (55 * Math.PI) / 180;
+/** Fallback-Seitenverhältnis, solange die Canvas-Größe noch nicht messbar ist (0 Höhe während Layout-Übergängen). */
 const FALLBACK_ASPECT = 16 / 9;
 
 /** Löst die für das BottomSheet nötigen Objekte aus den (bereits vom Tap validierten) IDs auf. */
@@ -50,10 +48,28 @@ function findSelectedContract(model: CityModel, districtId: string | null, subca
   return { district, subcategory, contract };
 }
 
+/** Plain-`Vec3`-Kopie einer three.js-`Vector3` (o. ä. `{x,y,z}`-Quelle) — der Kamera-Controller ist bewusst three.js-frei (`presentation/city-camera-controller.ts`), bekommt also nie eine echte `THREE.Vector3`-Instanz gereicht. */
+function toVec3(v: { x: number; y: number; z: number }) {
+  return { x: v.x, y: v.y, z: v.z };
+}
+
 export default function CityPage() {
   const { t } = useI18n();
   const sceneRef = useRef<CitySceneHandle | null>(null);
-  const initialCameraPoseAppliedRef = useRef(false);
+  const controlsApiRef = useRef<CityControlsApi | null>(null);
+  // Umschließt Header + Tabs (den kompletten "Chrome" oberhalb der Canvas) —
+  // seine gerenderte Höhe ist `chromeTopPx` für die Sichtzentrums-Korrektur
+  // des Kamera-Controllers (`camera-math.ts#visualCenterOffset`).
+  const chromeRef = useRef<HTMLDivElement | null>(null);
+  const [cameraController, setCameraController] = useState<CityCameraController | null>(null);
+  const reducedMotion = useReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
+  // Letzte per DOM-Messung ermittelte (Nicht-reducedMotion-)Konfiguration —
+  // der separate reducedMotion-Reaktivitäts-Effekt unten braucht sie, um bei
+  // einer System-Einstellungsänderung erneut zu konfigurieren, ohne selbst
+  // neu zu messen.
+  const lastMeasuredConfigRef = useRef<Omit<CityCameraControllerConfig, "reducedMotion"> | null>(null);
 
   const nav = useCityNavigation(cityDemoModel, { city: t("city.breadcrumbCity") });
 
@@ -66,6 +82,24 @@ export default function CityPage() {
     const focusSubcategoryId = nav.activeSubcategoryId ?? undefined;
     return buildCityLayout(cityDemoModel, { level: nav.level, focusDistrictId, focusSubcategoryId });
   }, [nav.level, nav.focusDistrictId, nav.activeDistrictId, nav.activeSubcategoryId]);
+
+  // WP-C4: Fokus-Bounding-Sphere für den Kamera-Controller (Distrikt-Fokus/
+  // -Eintauchen bzw. Unterkategorie-Eintauchen) — `computeFocusBounds` liest
+  // ausschließlich das bereits gebaute `layout` (README: `presentation/`/der
+  // Controller trifft keine eigenen Geometrie-Entscheidungen). Die
+  // Balken-/Etagen-Id-Konvention (`districtId/subcategoryId`) verlangt für
+  // `enter-subcategory` den zusammengesetzten Schlüssel.
+  const focusLayout = useMemo(() => {
+    const intent = nav.cameraIntent;
+    if (intent.kind === "focus-district" || intent.kind === "enter-district") {
+      return intent.targetId ? computeFocusBounds(layout, intent.targetId) : null;
+    }
+    if (intent.kind === "enter-subcategory") {
+      const districtId = nav.activeDistrictId ?? nav.focusDistrictId;
+      return districtId && intent.targetId ? computeFocusBounds(layout, `${districtId}/${intent.targetId}`) : null;
+    }
+    return null;
+  }, [layout, nav.cameraIntent, nav.activeDistrictId, nav.focusDistrictId]);
 
   // Tap-Ergebnis (box.id aus city-scene.ts#pick) auf die passende Navigations-
   // Aktion abbilden: Hüllen-id = "districtId", Balken-id = "districtId/subId",
@@ -86,22 +120,73 @@ export default function CityPage() {
     [nav.actions],
   );
 
-  // Statische Startpose (siehe Kommentar oben) — läuft genau EINMAL, sobald
-  // `sceneRef` durch den `CityCanvas`-Mount-Effekt befüllt ist (Kind-Effekte
-  // laufen vor denen des Elternteils innerhalb desselben Commits, deshalb ist
-  // `sceneRef.current` beim ersten Durchlauf bereits gesetzt). WP-C4 ersetzt
-  // dies durch einen Kamera-Controller, der auf `nav.cameraIntent` reagiert.
+  // WP-C4: Kamera-Controller-Lifecycle. Läuft NACH `CityCanvas`s eigenem
+  // Mount-Effekt im selben Commit (Kind-Effekte vor Eltern-Effekten,
+  // React-Garantie) — `sceneRef.current`/`controlsApiRef.current` sind daher
+  // beim ersten Durchlauf bereits befüllt. `setCameraController` propagiert
+  // die Instanz als Prop nach unten (Ref-Zuweisung allein würde CityCanvas'
+  // eigenen `[]`-Mount-Effekt nicht erneut ausführen, ABER CityCanvas
+  // spiegelt den Prop selbst per Ref bei jedem Render — ein einziges
+  // Re-Render nach der Erstellung reicht).
   useEffect(() => {
-    if (initialCameraPoseAppliedRef.current) return;
     const scene = sceneRef.current;
-    if (!scene || layout.boundingRadius <= 0) return;
+    const controlsApi = controlsApiRef.current;
+    if (!scene || !controlsApi) return;
 
-    const rect = scene.domElement.getBoundingClientRect();
-    const aspect = rect.height > 0 ? rect.width / rect.height : FALLBACK_ASPECT;
-    const distance = fitCameraDistance(layout.boundingRadius, CAMERA_FOV_Y_DEG, aspect);
-    scene.applyCameraPose(sphericalPose(layout.center, distance, CITY_DEFAULT_AZIMUTH_RAD, CITY_DEFAULT_POLAR_RAD));
-    initialCameraPoseAppliedRef.current = true;
-  }, [layout]);
+    const controller = createCityCameraController({
+      getCameraPose: () => ({ position: toVec3(scene.camera.position), target: toVec3(scene.target) }),
+      applyCameraPose: (pose) => scene.applyCameraPose(pose),
+      setControlLimits: (opts) => controlsApi.setLimits(opts.minDistance, opts.maxDistance),
+      setFog: (near, far) => scene.setFog(near, far),
+      invalidate: () => controlsApi.invalidate(),
+      onZoomOutThreshold: () => nav.actions.zoomOutStep(),
+    });
+
+    const measure = () => {
+      const chromeTopPx = chromeRef.current?.getBoundingClientRect().height ?? 0;
+      const canvasRect = scene.domElement.getBoundingClientRect();
+      const aspect = canvasRect.height > 0 ? canvasRect.width / canvasRect.height : FALLBACK_ASPECT;
+      const viewportHeightPx = chromeTopPx + canvasRect.height;
+      lastMeasuredConfigRef.current = { fovYDeg: CAMERA_FOV_Y_DEG, aspect, chromeTopPx, viewportHeightPx };
+      controller.configure({ ...lastMeasuredConfigRef.current, reducedMotion: reducedMotionRef.current });
+    };
+
+    measure();
+    setCameraController(controller);
+
+    // Reagiert auf Resize/Orientierungswechsel UND Chrome-Höhenänderungen
+    // (z. B. Breadcrumb-Umbruch auf schmalen Viewports).
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(scene.domElement);
+    if (chromeRef.current) resizeObserver.observe(chromeRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      controller.dispose();
+      setCameraController(null);
+    };
+    // Bewusst `[]`: läuft genau einmal pro `CityCanvas`-Mount (`sceneRef`/
+    // `controlsApiRef` sind für die gesamte Lebensdauer stabil); `nav.actions`
+    // ist laut `use-city-navigation.ts` referenzstabil (reine `useCallback`s
+    // ohne externe deps), `reducedMotion` wird separat unten reaktiv gepflegt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // `prefers-reduced-motion` kann sich zur Laufzeit ändern — ohne neu zu
+  // messen, einfach mit der zuletzt gemessenen Konfiguration erneut
+  // konfigurieren (gleiches Muster wie `CityCanvas`s eigener reducedMotion-Effekt).
+  useEffect(() => {
+    if (!cameraController || !lastMeasuredConfigRef.current) return;
+    cameraController.configure({ ...lastMeasuredConfigRef.current, reducedMotion });
+  }, [cameraController, reducedMotion]);
+
+  // WP-C4 Regel 4: NUR Fokuswechsel/Eintauchen und Reset (= `cameraIntent.seq`-
+  // Änderung) starten eine neue Kamerafahrt — der Controller selbst entscheidet
+  // per `seq`-Vergleich, ob ein Intent bereits geflogen wurde (Regel 4).
+  useEffect(() => {
+    if (!cameraController) return;
+    cameraController.onIntent(nav.cameraIntent, { layout, focusLayout });
+  }, [cameraController, nav.cameraIntent, layout, focusLayout]);
 
   const selectedContract = findSelectedContract(
     cityDemoModel,
@@ -128,77 +213,88 @@ export default function CityPage() {
     // ("absolute Positionierung im Content-Bereich" statt negativer Margins).
     <div className="relative h-[calc(100dvh-3.5rem-3rem-5rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-3.5rem-3rem)]">
       <div className="flex h-full min-h-0 flex-col gap-3">
-        <header className="flex shrink-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              {/* Breadcrumb der 3 Ebenen (Stadt → Distrikt → Unterkategorie,
-                  siehe README) — jeder Eintrag ist per `goTo` direkt anspringbar. */}
-              <nav aria-label={t("city.breadcrumbNavLabel")} className="flex flex-wrap items-center">
-                {nav.breadcrumb.map((entry, index) => (
-                  <span key={`${entry.level}:${entry.id ?? "root"}`} className="flex items-center">
-                    {index > 0 && <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-11 min-w-11 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-                      onClick={() => nav.actions.goTo(entry.level, entry.id ?? undefined)}
-                    >
-                      {entry.label}
-                    </Button>
-                  </span>
-                ))}
-              </nav>
+        <div ref={chromeRef} className="flex shrink-0 flex-col gap-3">
+          <header className="flex shrink-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {/* Breadcrumb der 3 Ebenen (Stadt → Distrikt → Unterkategorie,
+                    siehe README) — jeder Eintrag ist per `goTo` direkt anspringbar. */}
+                <nav aria-label={t("city.breadcrumbNavLabel")} className="flex flex-wrap items-center">
+                  {nav.breadcrumb.map((entry, index) => (
+                    <span key={`${entry.level}:${entry.id ?? "root"}`} className="flex items-center">
+                      {index > 0 && <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-11 min-w-11 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                        onClick={() => nav.actions.goTo(entry.level, entry.id ?? undefined)}
+                      >
+                        {entry.label}
+                      </Button>
+                    </span>
+                  ))}
+                </nav>
+              </div>
+
+              {/* A11y-Fallback für die 3D-Ansicht (README, Akzeptanzkriterium
+                  zur nicht-visuellen Alternative): Listenansicht-Toggle. Noch
+                  ohne Funktion (keine Listenansicht existiert vor WP-C3),
+                  deshalb disabled statt versteckt — finale Struktur, kein
+                  totes UI. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled
+                aria-disabled="true"
+                aria-label={t("city.a11yListToggle")}
+              >
+                <List className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
 
-            {/* A11y-Fallback für die 3D-Ansicht (README, Akzeptanzkriterium
-                zur nicht-visuellen Alternative): Listenansicht-Toggle. Noch
-                ohne Funktion (keine Listenansicht existiert vor WP-C3),
-                deshalb disabled statt versteckt — finale Struktur, kein
-                totes UI. */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-disabled="true"
-              aria-label={t("city.a11yListToggle")}
-            >
-              <List className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold text-foreground">{t("city.title")}</h1>
+              <Badge variant="secondary">{t("city.betaBadge")}</Badge>
+            </div>
+          </header>
 
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-foreground">{t("city.title")}</h1>
-            <Badge variant="secondary">{t("city.betaBadge")}</Badge>
-          </div>
-        </header>
-
-        <Tabs defaultValue={ACTIVE_CITY_TAB} className="shrink-0">
-          <TabsList aria-label={t("city.title")}>
-            {CITY_TABS.map((tab) => {
-              const active = tab.value === ACTIVE_CITY_TAB;
-              return (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  disabled={!active}
-                  aria-disabled={!active}
-                >
-                  {t(tab.labelKey)}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
+          <Tabs defaultValue={ACTIVE_CITY_TAB} className="shrink-0">
+            <TabsList aria-label={t("city.title")}>
+              {CITY_TABS.map((tab) => {
+                const active = tab.value === ACTIVE_CITY_TAB;
+                return (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    disabled={!active}
+                    aria-disabled={!active}
+                  >
+                    {t(tab.labelKey)}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div
           className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30"
           role="img"
           aria-label={t("city.canvasAriaLabel")}
         >
-          <CityCanvas layout={layout} onTapBox={handleTapBox} sceneRef={sceneRef} className="absolute inset-0" />
+          <CityCanvas
+            layout={layout}
+            onTapBox={handleTapBox}
+            onControlsStart={() => cameraController?.cancelFlight()}
+            onControlsChange={() => cameraController?.onControlsChange()}
+            cameraController={cameraController}
+            controlsApiRef={controlsApiRef}
+            sceneRef={sceneRef}
+            className="absolute inset-0"
+          />
         </div>
       </div>
 
