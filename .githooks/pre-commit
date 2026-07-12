@@ -1,0 +1,5 @@
+#!/bin/sh
+# Agentenunabhängige Pflicht-Checks (siehe AGENTS.md §12). CI erzwingt dieselben
+# Prüfungen — dieser Hook ist der schnelle lokale Zaun vor jedem Commit.
+pnpm check:i18n --staged || exit 1
+pnpm check:test-structure || exit 1

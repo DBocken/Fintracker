@@ -1,12 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * i18n Compliance Hook
+ * i18n Compliance Check
+ *
+ * Agentenunabhängige Fassung des früheren PostToolUse-Hooks i18n-compliance.mjs
+ * (der lief gegen `git diff --cached`, sah im PostToolUse-Kontext aber nie
+ * etwas Gestagtes und war damit wirkungslos — deshalb entfernt).
+ * Dieses Script läuft als `pnpm check:i18n` — lokal per Pre-Commit-Hook und
+ * in CI gegen den PR-Diff — und bindet damit auch Agenten ohne .claude-Hooks
+ * (z. B. Codex) an dieselbe Regel.
  *
  * Überprüft, dass:
  * 1. Keine neuen hardcodierten deutschen/englischen Strings in JSX auftauchen
  * 2. Neue i18n-Keys in BEIDEN Sprachen in translations.ts definiert sind
- * 3. Test-Files i18n-Provider wrapping haben (wenn UI-Tests)
+ *
+ * Diff-Quelle (Kernlogik selbst UNVERÄNDERT gegenüber dem alten Hook):
+ *   --staged (Default)       git diff --cached …
+ *   --range <base>...<head>  git diff <base>...<head> …
  */
 
 import fs from 'fs';
@@ -16,7 +26,39 @@ import { fileURLToPath } from 'url';
 
 // import.meta.url ist eine file://-URL, kein Pfad → erst fileURLToPath,
 // sonst zeigt REPO_ROOT auf ein nicht existierendes Verzeichnis.
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+function parseArgs(argv) {
+  let mode = 'staged';
+  let range = null;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--staged') {
+      mode = 'staged';
+    } else if (arg === '--range') {
+      mode = 'range';
+      range = argv[i + 1];
+      i++;
+    } else if (arg.startsWith('--range=')) {
+      mode = 'range';
+      range = arg.slice('--range='.length);
+    } else {
+      console.error(`❌ Unbekanntes Argument: ${arg}`);
+      console.error('Nutzung: check-i18n.mjs [--staged | --range <base>...<head>]');
+      process.exit(2);
+    }
+  }
+
+  if (mode === 'range' && !range) {
+    console.error('❌ --range benötigt ein Argument, z. B. --range origin/main...HEAD');
+    process.exit(2);
+  }
+
+  return { mode, range };
+}
+
+const { mode, range } = parseArgs(process.argv.slice(2));
 
 // Liste deutscher Wörter, die verdächtig sind (Heuristik)
 const GERMAN_KEYWORDS = [
@@ -34,24 +76,30 @@ const ENGLISH_KEYWORDS = [
 ];
 
 function getChangedFiles() {
+  const args =
+    mode === 'range'
+      ? ['diff', range, '--name-only', '--diff-filter=ACM']
+      : ['diff', '--cached', '--name-only', '--diff-filter=ACM'];
+
   try {
-    const output = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACM'], {
-      encoding: 'utf8',
-      cwd: REPO_ROOT,
-    });
+    const output = execFileSync('git', args, { encoding: 'utf8', cwd: REPO_ROOT });
     return output.trim().split('\n').filter(Boolean);
   } catch (e) {
+    if (mode === 'range') {
+      console.error(`❌ Ungültiger Range "${range}": ${e.message}`);
+      process.exit(2);
+    }
     return [];
   }
 }
 
 function getChangedLines(file) {
+  const args =
+    mode === 'range' ? ['diff', range, '-U0', '--', file] : ['diff', '--cached', '-U0', '--', file];
+
   try {
     // Argument-Array + '--': Dateiname kann weder Shell-Kommando noch git-Option injizieren
-    const output = execFileSync('git', ['diff', '--cached', '-U0', '--', file], {
-      encoding: 'utf8',
-      cwd: REPO_ROOT,
-    });
+    const output = execFileSync('git', args, { encoding: 'utf8', cwd: REPO_ROOT });
     return output;
   } catch (e) {
     return '';
@@ -188,6 +236,7 @@ function checkTranslationsComplete(diff) {
 
 // Main
 console.log('\n🌍 i18n Compliance Check läuft...\n');
+console.log(mode === 'range' ? `   Modus: --range ${range}\n` : '   Modus: --staged\n');
 
 const files = getChangedFiles();
 let hasErrors = false;

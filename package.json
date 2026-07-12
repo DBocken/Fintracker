@@ -15,7 +15,10 @@
     "test:integrity": "vitest run src/services/__tests__/transaction-allocation-service.test.ts src/services/__tests__/transaction-storage-service.security.test.ts src/services/__tests__/csv-service.test.ts src/services/__tests__/receipt-parser-service.test.ts src/components/dashboard/__tests__/filter-utils.test.ts src/lib/__tests__/contract-derivation.test.ts --testNamePattern='\\[INTEGRITY\\]'",
     "test:privacy": "vitest run src/services/__tests__/local-crypto.security.test.ts src/services/__tests__/local-data-boundary.security.test.ts --testNamePattern='\\[PRIVACY\\]'",
     "test:mobile": "vitest run src/features/dashboard/presentation/mobile/__tests__/DashboardMobileStory.swipe.test.ts src/components/dashboard/__tests__/TransactionListMobile.mobile.test.tsx --testNamePattern='\\[MOBILE\\]'",
-    "security:secrets": "node scripts/security-check.mjs"
+    "security:secrets": "node scripts/security-check.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:test-structure": "node scripts/check-test-structure.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",

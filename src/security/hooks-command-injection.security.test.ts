@@ -22,7 +22,8 @@ const SCANNED_FILES = [...listMjsFiles('.claude/hooks'), ...listMjsFiles('script
 describe('[SECURITY] Shell-Injection-Schutz in Hooks & Scripts', () => {
   it('sollte mindestens die bekannten Hook-/Script-Dateien finden', () => {
     expect(SCANNED_FILES.length).toBeGreaterThanOrEqual(4);
-    expect(SCANNED_FILES).toContain(path.join('.claude/hooks', 'i18n-compliance.mjs'));
+    // Der frühere i18n-Hook lebt agentenunabhängig als scripts/check-i18n.mjs weiter.
+    expect(SCANNED_FILES).toContain(path.join('scripts', 'check-i18n.mjs'));
   });
 
   describe.each(SCANNED_FILES)('%s', (file) => {
@@ -39,8 +40,10 @@ describe('[SECURITY] Shell-Injection-Schutz in Hooks & Scripts', () => {
   });
 
   describe('Regression Protection', () => {
+    // Nachfolger des früheren PostToolUse-Hooks i18n-compliance.mjs (entfernt,
+    // da im PostToolUse-Kontext wirkungslos) — der Wächter zieht mit um.
     const hookSource = fs.readFileSync(
-      path.join(REPO_ROOT, '.claude/hooks/i18n-compliance.mjs'),
+      path.join(REPO_ROOT, 'scripts/check-i18n.mjs'),
       'utf8',
     );
 
