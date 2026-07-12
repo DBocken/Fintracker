@@ -18,7 +18,7 @@
     "security:secrets": "node scripts/security-check.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:test-structure": "node scripts/check-test-structure.mjs",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",

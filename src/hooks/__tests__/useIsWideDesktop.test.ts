@@ -162,13 +162,13 @@ describe("useIsWideDesktop", () => {
   });
 
   describe("Regression Protection", () => {
-    it("[REGRESSION] sollte Initial-State korrekt setzen, bevor useEffect läuft", () => {
-      mockMatchMedia(true);
-      const { result } = renderHook(() => useIsWideDesktop());
-      // Initiale State sollte bereits von useState-Initializer kommen.
-      expect(result.current).toBe(true);
-    });
-
+    // Der frühere Initial-State-Test hier war ein Duplikat des Happy-Path-Tests
+    // oben ("sollte true liefern wenn Breakpoint 1024px erreicht"): `renderHook`
+    // flusht Effects synchron, bevor `result.current` gelesen wird — ein Test,
+    // der NUR danach prüft, kann einen kaputten `useState`-Initializer gar
+    // nicht von einem korrekten unterscheiden (der `useEffect` würde den
+    // Zustand ohnehin im selben Tick nachziehen). Entfernt statt eine
+    // Schein-Absicherung zu pflegen.
     it("[REGRESSION] sollte bei mehreren Mount/Unmount-Zyklen korrekt funktionieren", () => {
       mockMatchMedia(true);
       const { unmount } = renderHook(() => useIsWideDesktop());

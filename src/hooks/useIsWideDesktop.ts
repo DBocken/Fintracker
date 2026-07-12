@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMediaQuery } from "./useMediaQuery";
 
 /**
  * true ab dem `lg`-Breakpoint (min-width: 1024px) — Schwelle für Master-Detail-Split.
@@ -14,21 +14,9 @@ import { useEffect, useState } from "react";
  * Zwei feste semantische Hooks (`useIsMobile`, `useIsWideDesktop`) genügen für unsere
  * Layouts und verhindern Breakpoint-Wildwuchs. Neue responsive Weichen sollten auf einer
  * dieser beiden aufbauen oder (intern) ein drittes semantisches Breakpoint hinzufügen,
- * nicht eine generische Funktion verwenden.
+ * nicht eine generische Funktion verwenden. (Intern teilen sich beide Hooks denselben
+ * `useMediaQuery`-Baustein — das ist Implementierungsdetail, keine öffentliche API.)
  */
 export function useIsWideDesktop(): boolean {
-  const query = "(min-width: 1024px)";
-  const [wide, setWide] = useState(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-    return window.matchMedia(query).matches;
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mql = window.matchMedia(query);
-    const onChange = () => setWide(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-  return wide;
+  return useMediaQuery("(min-width: 1024px)");
 }

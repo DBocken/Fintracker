@@ -185,6 +185,20 @@ function checkHardcodedStrings(file, diff) {
   return issues;
 }
 
+// Muss `SUPPORTED_LOCALES` aus `src/i18n/translations.ts` exakt spiegeln —
+// bei einer neuen Sprache dort UND hier ergänzen (Reihenfolge egal, `de`
+// bleibt aber die Referenz für den paarweisen Vergleich unten).
+const TRANSLATION_LOCALES = ['de', 'en', 'tlh'];
+
+function extractLocaleBlock(content, locale) {
+  // Gleiche Heuristik wie zuvor für de/en: non-greedy Match vom Locale-Key bis
+  // zur ersten `},`-Zeile. Bewusst einfach (kein echter Parser) — reicht, um
+  // grobe Asymmetrien (fehlender Locale-Block, stark abweichende Verschachtelung)
+  // zu erkennen; kein Ersatz für einen vollständigen Key-für-Key-Vergleich.
+  const re = new RegExp(`^\\s*${locale}:\\s*\\{[\\s\\S]*?\\n\\s*\\},`, 'm');
+  return content.match(re)?.[0] || '';
+}
+
 function checkTranslationsComplete(diff) {
   const issues = [];
 
@@ -201,31 +215,30 @@ function checkTranslationsComplete(diff) {
   try {
     const content = fs.readFileSync(translationsPath, 'utf8');
 
-    // Vereinfachte Prüfung: Zähle offene/schließende Klammern für de/en
-    const deMatch = content.match(/^\s*de:\s*\{[\s\S]*?\n\s*\},/m);
-    const enMatch = content.match(/^\s*en:\s*\{[\s\S]*?\n\s*\},/m);
-
-    if (!deMatch || !enMatch) {
-      issues.push({
-        file: 'translations.ts',
-        type: 'INCOMPLETE_TRANSLATIONS',
-        message: 'Translations.ts muss beide Sprachen (de, en) haben',
-      });
+    const blocks = {};
+    for (const locale of TRANSLATION_LOCALES) {
+      blocks[locale] = extractLocaleBlock(content, locale);
+      if (!blocks[locale]) {
+        issues.push({
+          file: 'translations.ts',
+          type: 'INCOMPLETE_TRANSLATIONS',
+          message: `Translations.ts muss alle Sprachen (${TRANSLATION_LOCALES.join(', ')}) haben — "${locale}" fehlt oder ist nicht auffindbar.`,
+        });
+      }
     }
 
-    // Prüfe auf Asymmetrie: Keys die nur in einer Sprache existieren
-    const deKeys = content.match(/^\s*de:\s*\{[\s\S]*?\n\s*\},/m)?.[0] || '';
-    const enKeys = content.match(/^\s*en:\s*\{[\s\S]*?\n\s*\},/m)?.[0] || '';
-
-    const deLevelCount = (deKeys.match(/:\s*{/g) || []).length;
-    const enLevelCount = (enKeys.match(/:\s*{/g) || []).length;
-
-    if (deLevelCount !== enLevelCount) {
-      issues.push({
-        file: 'translations.ts',
-        type: 'ASYMMETRIC_KEYS',
-        message: `Asymmetrische Keys: DE hat ${deLevelCount} Levels, EN hat ${enLevelCount}`,
-      });
+    // Prüfe auf Asymmetrie: Klammer-Ebenen jeder Sprache paarweise gegen de.
+    const referenceLevelCount = (blocks.de.match(/:\s*{/g) || []).length;
+    for (const locale of TRANSLATION_LOCALES) {
+      if (locale === 'de' || !blocks[locale]) continue; // de ist Referenz; fehlende Blöcke bereits gemeldet
+      const levelCount = (blocks[locale].match(/:\s*{/g) || []).length;
+      if (levelCount !== referenceLevelCount) {
+        issues.push({
+          file: 'translations.ts',
+          type: 'ASYMMETRIC_KEYS',
+          message: `Asymmetrische Keys: DE hat ${referenceLevelCount} Levels, ${locale.toUpperCase()} hat ${levelCount}`,
+        });
+      }
     }
   } catch (e) {
     // Parse-Fehler OK, wird von TypeScript überprüft

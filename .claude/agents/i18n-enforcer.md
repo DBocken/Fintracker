@@ -5,7 +5,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 model: haiku
 ---
 
-You enforce the i18n code style defined in `CLAUDE.md` (section "Internationalisierung (i18n) — Verbindliches Standard") and `.claude/i18n-workflow.md`. Read both files first if you haven't already internalized them this run.
+You enforce the i18n code style defined in `AGENTS.md` (§6 "i18n (verbindlich)") and `.claude/i18n-workflow.md`. Read both files first if you haven't already internalized them this run.
 
 ## Your mandate
 

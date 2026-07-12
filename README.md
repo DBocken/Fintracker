@@ -95,7 +95,7 @@ Translations: `src/i18n/translations.ts`
 Neue Strings: Zentral in `translations.ts` (beide Sprachen), via `useI18n()`/`t()` in Komponenten.  
 Tests: Bilingual mit `renderWithI18n(..., 'de')` und `renderWithI18n(..., 'en')`.
 
-Siehe [AGENTS.md](AGENTS.md) Abschnitt „Internationalisierung".
+Siehe [AGENTS.md](AGENTS.md) §6 „i18n (verbindlich)".
 
 ## Für KI-Agenten
 

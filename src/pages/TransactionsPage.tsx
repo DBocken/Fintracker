@@ -12,8 +12,9 @@ import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { decodeDashboardFilters, encodeDashboardFilters } from "@/components/dashboard/filter-utils";
 import { useTransactionsOverview } from "@/features/transactions/application/use-transactions-overview";
 import { transactionsKeys } from "@/features/transactions/data/transactions-query-keys";
-import { TransactionsDesktopView } from "@/features/transactions/presentation/desktop/TransactionsDesktopView";
-import { TransactionsMobileView } from "@/features/transactions/presentation/mobile/TransactionsMobileView";
+import { TransactionsListPane } from "@/features/transactions/presentation/shared/TransactionsListPane";
+import { TransactionsDetailAside } from "@/features/transactions/presentation/desktop/TransactionsDetailAside";
+import { TransactionsDetailSheet } from "@/features/transactions/presentation/mobile/TransactionsDetailSheet";
 import type { Transaction } from "@/types";
 
 /**
@@ -25,11 +26,12 @@ import type { Transaction } from "@/types";
  * das Detail als angedocktes Panel (horizontal 1/3 · 2/3), nicht als Overlay.
  * Auf kleinen Screens Liste + Bottom-Sheet.
  *
- * Die Wahl zwischen Desktop-/Mobile-View passiert bewusst per JS
- * (`isWide ? <TransactionsDesktopView/> : <TransactionsMobileView/>`), NICHT
- * über CSS-Dual-Render wie beim Dashboard: die fenstervirtualisierte
- * Tagesliste (bis zu 5000 Buchungen) darf nicht doppelt im DOM stehen.
- * Details: `src/features/transactions/README.md`.
+ * `TransactionsListPane` (Suchfeld, Filter, Kennzahlen, fenstervirtualisierte
+ * Tagesliste) ist IMMER gemountet — nur die Detail-Region verzweigt per JS
+ * zwischen `TransactionsDetailAside` (Desktop) und `TransactionsDetailSheet`
+ * (Mobile). Ein Breakpoint-Wechsel (z. B. iPad-Rotation über 1024px) remountet
+ * die Liste dadurch nicht mehr — kein Verlust von Scrollposition, Fokus oder
+ * Virtualizer-Cache. Details: `src/features/transactions/README.md`.
  */
 export default function TransactionsPage() {
   const { t } = useI18n();
@@ -110,23 +112,26 @@ export default function TransactionsPage() {
         </div>
       ) : model.isEmpty ? (
         <FinanceEmptyState />
-      ) : isWide ? (
-        <TransactionsDesktopView
-          model={model}
-          detailsTransaction={detailsTransaction}
-          onOpenDetails={openDetails}
-          onCloseDetails={closeDetails}
-          onSaveDetails={handleSaveDetails}
-        />
       ) : (
-        <TransactionsMobileView
-          model={model}
-          detailsTransaction={detailsTransaction}
-          onOpenDetails={openDetails}
-          onSaveDetails={handleSaveDetails}
-          detailsOpen={detailsOpen}
-          onDetailsOpenChange={handleDetailsOpenChange}
-        />
+        <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+          <TransactionsListPane model={model} detailsTransaction={detailsTransaction} onOpenDetails={openDetails} />
+          {isWide ? (
+            <TransactionsDetailAside
+              model={model}
+              detailsTransaction={detailsTransaction}
+              onCloseDetails={closeDetails}
+              onSaveDetails={handleSaveDetails}
+            />
+          ) : (
+            <TransactionsDetailSheet
+              model={model}
+              detailsTransaction={detailsTransaction}
+              onSaveDetails={handleSaveDetails}
+              detailsOpen={detailsOpen}
+              onDetailsOpenChange={handleDetailsOpenChange}
+            />
+          )}
+        </div>
       )}
 
       <TransactionFormDialog

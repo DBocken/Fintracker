@@ -24,6 +24,10 @@ Details zum Ist-Zustand vor der Migration (Query-Tabelle, betroffene Zeilen, beh
 - Unterschiedliche Informationshierarchie, Bedienablauf oder gleichzeitig sichtbare Informationsmenge → getrennte Desktop-/Mobile-Komponenten mit gemeinsamem ViewModel.
 - Anti-Pattern: große Komponenten mit vielen `hidden lg:block`/`lg:hidden`/`isMobile ? … : …`-Kombinationen.
 
+### Zweite legitime Verzweigungsmechanik: gemeinsamer Kern immer gemountet + JS-Branching nur für die abweichende Region
+
+Neben CSS-Dual-Render (Dashboard-Muster oben) gibt es einen zweiten legitimen Fall: ein gemeinsamer, IMMER gemounteter Kern (`presentation/shared/`, z. B. `TransactionsListPane`) plus JS-Branching NUR für die strukturell unterschiedliche Restregion (Referenz: `src/features/transactions/`, `TransactionsDetailAside` vs. `TransactionsDetailSheet`). Kriterium, wann dieses Muster statt CSS-Dual-Render oder statt JS-Branching über den GANZEN Baum gilt: virtualisierte/teure Bäume (z. B. `@tanstack/react-virtual` über hunderte/tausende Zeilen) dürfen **nie doppelt gemountet** werden (CSS-Dual-Render würde sie zweimal ins DOM hängen und zweimal virtualisieren) UND **nie per Ternary remounten** (`isWide ? <Desktop/> : <Mobile/>` über den ganzen Baum würde bei jedem Breakpoint-Wechsel Scroll-/Fokus-/Virtualizer-Zustand verlieren, z. B. bei iPad-Rotation über 1024px). Die Lösung: den teuren, gemeinsamen Teil als eigene `presentation/shared/`-Komponente extrahieren, die immer rendert, und nur die kleine, strukturell abweichende Region (z. B. Detail-Panel vs. Detail-Sheet) per JS verzweigen lassen.
+
 ## Migrations-Kochrezept
 
 1. Ist-Datenflüsse dokumentieren (README in der Slice).
@@ -49,3 +53,4 @@ Details zum Ist-Zustand vor der Migration (Query-Tabelle, betroffene Zeilen, beh
 1. **TransactionsPage** (`src/pages/TransactionsPage.tsx`, 434 Zeilen) — größter Gewinn: viele Inline-Aggregationen (`effectiveBalanceById`, `scopedCurrentBalance`, `endingBalance`, `stats`), eigene `useIsWideDesktop`-matchMedia-Kopie, Master-Detail-Split; kann `domain/balance-calculations` der Dashboard-Slice wiederverwenden (ggf. nach `src/features/shared/` oder `src/lib` heben, wenn zwei Slices sie brauchen).
 2. **CoachPage / NetWorthPage** — bereits nahe am Muster (`getCoachOverview`/`getNetWorthBreakdown` liefern ViewModel-artige Objekte aus dem Service-Layer); fehlt nur ein dünner Application-Hook + explizite Typen.
 3. **Repo-weite Query-Key-Normalisierung** (`userSettings` vs. `user-settings`, `automation-suggestions` vs. `automationSuggestions`) — separater, mechanischer Schritt mit eigener Invalidierungs-Prüfung.
+4. **`filter-utils`/`filter-constants`/`period-utils` nach `src/features/shared/` heben** (aktuell `src/components/dashboard/`) — werden inzwischen von ≥ 2 Slices (Dashboard, Transactions) UND direkt von `IncomeBreakdownCard`/`IncomeStreamList`, `EuerPage`, `TaxReportPage` importiert; laut Entscheidungsbaum-Kriterium „von ≥ 2 Slices gebraucht → nach `features/shared/`" ein dokumentierter Zwischenschritt, der noch aussteht (siehe `src/features/transactions/README.md`).

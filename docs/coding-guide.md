@@ -24,8 +24,9 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - `src/pages/` — Routen-Einstiegspunkte, dünn.
 - Tests **immer** in `__tests__/` neben dem Code (nicht als `x.test.ts` neben `x.ts`).
   Einzige Ausnahme: die Repo-/Config-Wächter-Tests unter `src/security/*.security.test.ts`
-  (bewusst dort, siehe CLAUDE.md). Durchsetzung: Pre-Commit/CI (`pnpm check:test-structure`);
-  Claude Code blockt zusätzlich live über einen Hook.
+  (bewusst dort: Repo-/Config-Wächter ohne Modul-Bezug, siehe AGENTS.md §5/§10).
+  Durchsetzung: Pre-Commit/CI (`pnpm check:test-structure`); Claude Code blockt
+  zusätzlich live über einen Hook.
 
 ## 3. TypeScript
 

@@ -91,6 +91,16 @@ Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert 
 2. In `translations.ts` als `myFeature.welcome: 'Willkommen'` hinzufügen
 3. In Komponente mit `t('myFeature.welcome')` ersetzen
 
+### Anti-Patterns & Häufige Fehler
+
+| ❌ FALSCH | ✅ RICHTIG |
+|---|---|
+| `<h1>Willkommen</h1>` | `<h1>{t('page.welcome')}</h1>` |
+| `"Keine Daten" + status` | `t('page.noData').replace('{status}', status)` |
+| Test nur auf Deutsch | Test auf DE + EN (Bilingual!) |
+| String in Komponente hardcodiert | String in `translations.ts` zentral |
+| Nur `t()` ohne I18nProvider wrapping | `renderWithI18n()` helper verwenden |
+
 ### Check-Überprüfungen
 
 - ✅ Erkennt hardcodierte Strings in JSX
@@ -279,4 +289,4 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 
 ---
 
-**Fragen?** → Siehe CLAUDE.md Abschnitt "Internationalisierung"
+**Fragen?** → Siehe AGENTS.md §6 (i18n)

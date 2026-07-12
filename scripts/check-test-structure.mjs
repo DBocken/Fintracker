@@ -4,19 +4,21 @@
  * Test-Struktur-Check (agentenunabhängig)
  *
  * Setzt dieselben Test-Struktur-Konventionen durch wie der PostToolUse-Hook
- * `.claude/hooks/test-structure-check.mjs` (CLAUDE.md / docs/coding-guide.md),
+ * `.claude/hooks/test-structure-check.mjs` (AGENTS.md §5 / docs/coding-guide.md),
  * aber repo-weit über alle vorhandenen Test-Dateien statt nur die zuletzt von
  * Claude bearbeitete — läuft per `pnpm check:test-structure` lokal (Pre-Commit)
  * und in CI, damit auch Agenten ohne .claude-Hooks (z. B. Codex) gebunden sind.
  *
- * Nutzt dieselbe Prüflogik (`analyzeTestFile`) wie der Hook — keine
- * Doppelimplementierung.
+ * Nutzt dieselbe Prüflogik (`analyzeTestFile` aus `./test-structure-core.mjs`)
+ * wie der Hook — keine Doppelimplementierung. Der Hook importiert dieselbe
+ * Kernlogik von dort (Abhängigkeitsrichtung: `scripts/` ist die Quelle,
+ * `.claude/hooks/` re-exportiert nur).
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { analyzeTestFile } from '../.claude/hooks/test-structure-check.mjs';
+import { analyzeTestFile } from './test-structure-core.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC_DIR = path.join(REPO_ROOT, 'src');
@@ -31,7 +33,15 @@ function findTestFiles(dir) {
   return entries
     .filter((rel) => /\.(test|spec)\.tsx?$/.test(rel))
     .map((rel) => path.join(dir, rel))
-    .filter((abs) => fs.statSync(abs).isFile());
+    .filter((abs) => {
+      // Tote/dangling Symlinks (oder Pfade, die zwischen readdirSync und hier
+      // verschwunden sind) dürfen den Check nicht crashen — einfach überspringen.
+      try {
+        return fs.statSync(abs).isFile();
+      } catch {
+        return false;
+      }
+    });
 }
 
 const testFiles = findTestFiles(SRC_DIR).sort();
@@ -43,6 +53,20 @@ const allWarnings = [];
 
 for (const absPath of testFiles) {
   const relPath = path.relative(REPO_ROOT, absPath).split(path.sep).join('/');
+
+  // `.spec.`-Dateien sind keine anerkannte Konvention in diesem Repo (nur
+  // `.test.ts(x)`) — früher fielen sie stumm durch `analyzeTestFile` (das nur
+  // `.test.` prüft) und wurden nie beanstandet, egal wo sie lagen. Jetzt
+  // direkt als Fehler melden statt sie unkontrolliert durchzulassen.
+  if (/\.spec\.tsx?$/.test(relPath)) {
+    hasErrors = true;
+    console.error(`❌ Test-Struktur-Verstoß in ${relPath}:`);
+    console.error(
+      '   • .spec-Dateien sind nicht Teil der Konvention — .test.ts(x) in __tests__/ verwenden.',
+    );
+    console.error('');
+    continue;
+  }
 
   let content;
   try {
@@ -70,7 +94,7 @@ if (allWarnings.length > 0) {
 }
 
 if (hasErrors) {
-  console.error('Siehe CLAUDE.md (Test-Organisation) / docs/coding-guide.md.\n');
+  console.error('Siehe AGENTS.md §5 (TDD & Teststruktur) / docs/coding-guide.md.\n');
   process.exit(1);
 } else {
   console.log('✅ Test-Struktur OK\n');

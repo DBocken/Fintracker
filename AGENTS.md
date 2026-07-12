@@ -33,7 +33,7 @@ verwenden**.
 | `pnpm test:integrity` | Integritäts-Tests (`[INTEGRITY]`) |
 | `pnpm test:privacy` | Privacy-Tests (`[PRIVACY]`) |
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
-| `pnpm check:i18n` | Prüft i18n-Compliance (keine hardcodierten UI-Strings im Diff, de/en-Key-Symmetrie) — läuft in Pre-Commit und CI |
+| `pnpm check:i18n` | Prüft i18n-Compliance (keine hardcodierten UI-Strings im Diff, Key-Symmetrie ALLER `SUPPORTED_LOCALES` gegen `de` per Klammer-Ebenen-Heuristik) — läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 

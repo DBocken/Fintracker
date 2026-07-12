@@ -4,8 +4,9 @@ import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
 import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/components/dashboard/filter-constants';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
-import { TransactionsDesktopView } from '../desktop/TransactionsDesktopView';
-import { TransactionsMobileView } from '../mobile/TransactionsMobileView';
+import { TransactionsListPane } from '../shared/TransactionsListPane';
+import { TransactionsDetailAside } from '../desktop/TransactionsDetailAside';
+import { TransactionsDetailSheet } from '../mobile/TransactionsDetailSheet';
 
 // Call-Zähler-Hygiene wie im Dashboard-Pendant (dashboard-views.test.tsx):
 // die not.toHaveBeenCalled-Asserts unten prüfen pro Test von Null an.
@@ -89,31 +90,40 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
   };
 }
 
-const baseProps = {
+const listPaneProps = {
   detailsTransaction: null,
   onOpenDetails: noop,
+};
+
+const detailProps = {
+  detailsTransaction: null,
   onSaveDetails: noop,
 };
 
-describe('Desktop- und Mobile-View aus demselben ViewModel', () => {
-  it('sollte Desktop- und Mobile-View aus demselben ViewModel rendern', () => {
+describe('TransactionsListPane – gemeinsamer Kern für Desktop und Mobile', () => {
+  it('sollte dieselbe Tagesliste unabhängig von der umgebenden Detail-Region rendern', () => {
     const model = buildModel();
 
-    const desktop = renderWithProviders(
-      <TransactionsDesktopView model={model} {...baseProps} onCloseDetails={noop} />,
+    // Einmal neben der Desktop-Detail-Spalte …
+    const withAside = renderWithProviders(
+      <>
+        <TransactionsListPane model={model} {...listPaneProps} />
+        <TransactionsDetailAside model={model} {...detailProps} onCloseDetails={noop} />
+      </>,
     );
-    // Buchung aus dem Model in der Tagesliste.
-    expect(desktop.container.textContent).toContain('Rewe');
-    // Platzhalter im rechten Panel, solange nichts ausgewählt ist.
+    expect(withAside.container.textContent).toContain('Rewe');
     expect(screen.getByText(/Wähle links eine Buchung/)).toBeTruthy();
-    desktop.unmount();
+    withAside.unmount();
 
-    const mobile = renderWithProviders(
-      <TransactionsMobileView model={model} {...baseProps} detailsOpen={false} onDetailsOpenChange={noop} />,
+    // … einmal neben dem Mobile-Sheet — dieselbe Liste, dasselbe ViewModel.
+    const withSheet = renderWithProviders(
+      <>
+        <TransactionsListPane model={model} {...listPaneProps} />
+        <TransactionsDetailSheet model={model} {...detailProps} detailsOpen={false} onDetailsOpenChange={noop} />
+      </>,
     );
-    // Dieselbe Buchung aus demselben Model, jetzt im normalen Seitenfluss.
-    expect(mobile.container.textContent).toContain('Rewe');
-    mobile.unmount();
+    expect(withSheet.container.textContent).toContain('Rewe');
+    withSheet.unmount();
   });
 });
 
@@ -121,14 +131,14 @@ describe('Views – keine eigenen Service-Queries', () => {
   it('[REGRESSION] sollte keine eigenen Service-Queries in den Views ausführen', () => {
     const model = buildModel();
 
-    const desktop = renderWithProviders(
-      <TransactionsDesktopView model={model} {...baseProps} onCloseDetails={noop} />,
+    const rendered = renderWithProviders(
+      <>
+        <TransactionsListPane model={model} {...listPaneProps} />
+        <TransactionsDetailAside model={model} {...detailProps} onCloseDetails={noop} />
+        <TransactionsDetailSheet model={model} {...detailProps} detailsOpen={false} onDetailsOpenChange={noop} />
+      </>,
     );
-    desktop.unmount();
-    const mobile = renderWithProviders(
-      <TransactionsMobileView model={model} {...baseProps} detailsOpen={false} onDetailsOpenChange={noop} />,
-    );
-    mobile.unmount();
+    rendered.unmount();
 
     expect(getTransactions).not.toHaveBeenCalled();
     expect(getCategories).not.toHaveBeenCalled();
@@ -140,17 +150,14 @@ describe('Views – keine eigenen Service-Queries', () => {
 describe('Leerer Zustand (i18n)', () => {
   const emptyModel = buildModel({ transactions: { all: FIXTURE_TRANSACTIONS, visible: [] } });
 
-  it('sollte den leeren Zustand bilingual (de) rendern', () => {
-    renderWithI18n(<TransactionsDesktopView model={emptyModel} {...baseProps} onCloseDetails={noop} />, 'de');
+  it('sollte den leeren Zustand der ListPane bilingual (de) rendern', () => {
+    renderWithI18n(<TransactionsListPane model={emptyModel} {...listPaneProps} />, 'de');
     expect(screen.getByText('Keine Buchungen gefunden')).toBeTruthy();
     expect(screen.getByText('Passe Filter oder Suchbegriff an.')).toBeTruthy();
   });
 
-  it('sollte den leeren Zustand bilingual (en) rendern', () => {
-    renderWithI18n(
-      <TransactionsMobileView model={emptyModel} {...baseProps} detailsOpen={false} onDetailsOpenChange={noop} />,
-      'en',
-    );
+  it('sollte den leeren Zustand der ListPane bilingual (en) rendern', () => {
+    renderWithI18n(<TransactionsListPane model={emptyModel} {...listPaneProps} />, 'en');
     expect(screen.getByText('No transactions found')).toBeTruthy();
     expect(screen.getByText('Adjust filter or search term.')).toBeTruthy();
   });
