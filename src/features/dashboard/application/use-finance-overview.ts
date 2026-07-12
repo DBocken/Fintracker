@@ -1,0 +1,355 @@
+import { useCallback, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
+import { useI18n } from '@/i18n/useI18n';
+import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
+import { getAccounts } from '@/services/account-service';
+import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
+import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
+import { usePersistedSet } from '@/hooks/usePersistedSet';
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  PERIOD_RANGES,
+  type ContractFilter,
+  type DashboardGranularity,
+  type DashboardRange,
+  type EssentialFilter,
+  type AusgabenklasseFilter,
+} from '@/components/dashboard/filter-constants';
+import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from '@/components/dashboard/filter-utils';
+import { listAvailablePeriods } from '@/components/dashboard/period-utils';
+import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
+import type { Transaction } from '@/types';
+import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';
+import { computeLocalBalances, computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
+import { computeFlowTotals, buildIncomeExpenseSeries } from '../domain/overview-calculations';
+import type { FinanceOverviewViewModel, DashboardFilterValues, SortConfig } from './finance-overview-view-model';
+
+// Dashboard zeigt nur eine Vorschau (Audit P1.3); die vollständige Verwaltung
+// lebt auf /transactions.
+const PREVIEW_COUNT = 5;
+
+const noop = () => {};
+
+export type UseFinanceOverviewOptions = {
+  /** Wird nach erfolgreichem Detail-Speichern aufgerufen (z.B. Modal schließen). Bleibt Sache der aufrufenden Seite. */
+  onDetailsSaved?: () => void;
+};
+
+/**
+ * UI-neutrales ViewModel der Finanzübersicht: Queries, Filterzustand,
+ * abgeleitete Werte (Balances/Stats/Sankey) und Mutationen inkl.
+ * Invalidierungen. Desktop- und Mobile-Präsentation konsumieren dasselbe
+ * Ergebnis — keine Darstellungsentscheidungen (keine Farben/Spalten/JSX).
+ */
+export function useFinanceOverview(options?: UseFinanceOverviewOptions): FinanceOverviewViewModel {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+
+  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
+    // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
+    // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
+    queryKey: dashboardKeys.transactions(DASHBOARD_TRANSACTION_LIMIT),
+    queryFn: () => getTransactions(DASHBOARD_TRANSACTION_LIMIT),
+  });
+
+  const { data: cats = [] } = useQuery({
+    queryKey: dashboardKeys.categories,
+    queryFn: () => getCategories(),
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: dashboardKeys.accounts,
+    queryFn: () => getAccounts(),
+  });
+
+  const { data: contractDecisions = new Map<string, ContractDecision>() } = useQuery({
+    queryKey: dashboardKeys.contractDecisions,
+    queryFn: getContractDecisionMap,
+  });
+
+  const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
+  const effectiveBalances = useMemo(
+    () => computeEffectiveBalances(accounts, localBalances),
+    [accounts, localBalances],
+  );
+  const totalEffectiveBalance = useMemo(
+    () => computeTotalEffectiveBalance(accounts, effectiveBalances),
+    [accounts, effectiveBalances],
+  );
+
+  const [category, setCategory] = useState<string>(DEFAULT_DASHBOARD_FILTERS.category);
+  const [account, setAccount] = useState<string>(DEFAULT_DASHBOARD_FILTERS.account);
+  const [contract, setContract] = useState<ContractFilter>(DEFAULT_DASHBOARD_FILTERS.contract);
+  const [essential, setEssential] = useState<EssentialFilter>(DEFAULT_DASHBOARD_FILTERS.essential);
+  const [ausgabenklasse, setAusgabenklasse] = useState<AusgabenklasseFilter>(DEFAULT_DASHBOARD_FILTERS.ausgabenklasse);
+  const [search, setSearch] = useState<string>(DEFAULT_DASHBOARD_FILTERS.search);
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_DASHBOARD_FILTERS.range);
+  const [customDays, setCustomDays] = useState<number>(DEFAULT_DASHBOARD_FILTERS.customDays);
+  const [customGranularity, setCustomGranularity] = useState<DashboardGranularity>(DEFAULT_DASHBOARD_FILTERS.customGranularity);
+  const [customPeriod, setCustomPeriod] = useState<string>(DEFAULT_DASHBOARD_FILTERS.customPeriod);
+
+  const [hiddenTransactions, toggleHiddenTransaction] = usePersistedSet('dashboard_hidden_transactions');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+
+  // Beim Wechsel der Granularität die neueste verfügbare Periode vorbelegen,
+  // damit sofort sinnvolle Daten erscheinen (ehem. handleSetRange).
+  const setRangeWithPeriod = useCallback((next: DashboardRange) => {
+    setRange(next);
+    if (PERIOD_RANGES.has(next)) {
+      const opts = listAvailablePeriods(txs, next);
+      setCustomPeriod(opts[0]?.value ?? '');
+    } else {
+      setCustomPeriod('');
+    }
+  }, [txs]);
+
+  // 1:1 zum ehemaligen handleResetFilters (Dashboard.tsx 204–214): setzt
+  // ausgabenklasse bewusst NICHT zurück — Verhalten konserviert, nicht neu
+  // entschieden.
+  const reset = useCallback(() => {
+    setCategory(DEFAULT_DASHBOARD_FILTERS.category);
+    setAccount(DEFAULT_DASHBOARD_FILTERS.account);
+    setContract(DEFAULT_DASHBOARD_FILTERS.contract);
+    setEssential(DEFAULT_DASHBOARD_FILTERS.essential);
+    setSearch(DEFAULT_DASHBOARD_FILTERS.search);
+    setRange(DEFAULT_DASHBOARD_FILTERS.range);
+    setCustomDays(DEFAULT_DASHBOARD_FILTERS.customDays);
+    setCustomGranularity(DEFAULT_DASHBOARD_FILTERS.customGranularity);
+    setCustomPeriod(DEFAULT_DASHBOARD_FILTERS.customPeriod);
+  }, []);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (category !== DEFAULT_DASHBOARD_FILTERS.category) count += 1;
+    if (account !== DEFAULT_DASHBOARD_FILTERS.account) count += 1;
+    if (contract !== DEFAULT_DASHBOARD_FILTERS.contract) count += 1;
+    if (essential !== DEFAULT_DASHBOARD_FILTERS.essential) count += 1;
+    if (range !== DEFAULT_DASHBOARD_FILTERS.range) count += 1;
+    return count;
+  }, [category, account, contract, essential, range]);
+
+  const granularity = useMemo(
+    () => getDashboardGranularity(range, customDays, customGranularity),
+    [range, customDays, customGranularity],
+  );
+
+  // Verfügbare Perioden (Jahr/Quartal/Monat) aus den Buchungen ableiten.
+  const periodOptions = useMemo(
+    () => (PERIOD_RANGES.has(range) ? listAvailablePeriods(txs, range) : []),
+    [txs, range],
+  );
+
+  const filteredTransactions = useMemo(() => {
+    return filterTransactions(txs, cats, accounts, {
+      category,
+      account,
+      contract,
+      essential,
+      ausgabenklasse,
+      search,
+      range,
+      customDays,
+      customPeriod,
+    }, new Date(), contractDecisions);
+  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, search, range, customDays, customPeriod, contractDecisions]);
+
+  const visibleTransactions = useMemo(
+    () => filteredTransactions.filter((tx) => !hiddenTransactions.has(tx.id || '')),
+    [filteredTransactions, hiddenTransactions],
+  );
+
+  const sortedTransactions = useMemo(() => {
+    if (!sortConfig) return visibleTransactions;
+    return [...visibleTransactions].sort((a, b) => {
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
+
+      if (aVal == null || bVal == null) return 0;
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const comparison = aVal.localeCompare(bVal);
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      }
+
+      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [visibleTransactions, sortConfig]);
+
+  const previewTransactions = useMemo(() => sortedTransactions.slice(0, PREVIEW_COUNT), [sortedTransactions]);
+
+  // Dashboard zeigt nur eine Vorschau (Audit P1.3); die vollständige Verwaltung
+  // lebt auf /transactions. Die CTA übergibt die aktiven Filter per URL.
+  const transactionsLink = useMemo(() => {
+    const params = encodeDashboardFilters({
+      category,
+      account,
+      contract,
+      essential,
+      ausgabenklasse,
+      search,
+      range,
+      customDays,
+      customPeriod,
+    });
+    const qs = params.toString();
+    return qs ? `/transactions?${qs}` : '/transactions';
+  }, [category, account, contract, essential, ausgabenklasse, search, range, customDays, customPeriod]);
+
+  const stats = useMemo(() => {
+    const { income, expenses, balance } = computeFlowTotals(visibleTransactions);
+    const series = buildIncomeExpenseSeries(visibleTransactions, granularity);
+
+    // buildSpendingSunburst/buildSunburstTree filtern is_transfer bereits
+    // intern (siehe lib/analysis-data.ts) — ein zusätzliches Vorfiltern auf
+    // flowTransactions liefert nachweislich dasselbe Ergebnis und entfällt
+    // hier bewusst, um die Buchungsliste nicht doppelt zu durchlaufen.
+    const sunburst = buildSpendingSunburst(visibleTransactions, cats);
+    const sunburstTree = buildSunburstTree(visibleTransactions, cats);
+
+    return {
+      income,
+      expenses,
+      balance,
+      currentBalance: totalEffectiveBalance,
+      count: visibleTransactions.length,
+      series,
+      sunburst,
+      sunburstTree,
+    };
+  }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
+
+  // Einfaches Sankey auf Hauptkategorien-Ebene — der Aha-Moment ist FREE
+  // (Issue #40, Beschluss aus Epic #19/#25). Drilldown gibt es im Analyse-Bereich.
+  const sankeyData = useMemo(
+    () => buildSankeyData(visibleTransactions, cats, accounts),
+    [visibleTransactions, cats, accounts],
+  );
+
+  const categoryMutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
+    mutationFn: updateTransaction,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: dashboardKeys.transactionsRoot });
+      toast.success(t('dashboard.categoriesUpdated'));
+    },
+    onError: (error) => {
+      toast.error(`${t('dashboard.updateError')}${error.message}`);
+    },
+  });
+
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: deleteTransaction,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: dashboardKeys.transactionsRoot });
+      toast.success(t('dashboard.transactionDeleted'));
+    },
+    onError: (error) => {
+      toast.error(`${t('dashboard.deleteError')}${error.message}`);
+    },
+  });
+
+  const updateCategory = useCallback((transactionId: string, categoryId: string) => {
+    if (!transactionId) return;
+    categoryMutation.mutate([{ id: transactionId, category_id: categoryId }]);
+  }, [categoryMutation]);
+
+  const deleteTransactionAction = useCallback((id: string) => {
+    deleteMutation.mutate(id);
+  }, [deleteMutation]);
+
+  const { save: saveDetails, isPending: detailsSaving } = useTransactionDetailEditing(
+    txs,
+    options?.onDetailsSaved ?? noop,
+  );
+
+  const toggleSort = useCallback((key: keyof Transaction) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'desc' };
+    });
+  }, []);
+
+  const reload = useCallback(() => {
+    qc.invalidateQueries({ queryKey: dashboardKeys.transactionsRoot });
+  }, [qc]);
+
+  const filterValues = useMemo<DashboardFilterValues>(() => ({
+    category,
+    account,
+    contract,
+    essential,
+    ausgabenklasse,
+    search,
+    range,
+    customDays,
+    customGranularity,
+    customPeriod,
+  }), [category, account, contract, essential, ausgabenklasse, search, range, customDays, customGranularity, customPeriod]);
+
+  const filterSetters = useMemo(() => ({
+    category: setCategory,
+    account: setAccount,
+    contract: setContract,
+    essential: setEssential,
+    ausgabenklasse: setAusgabenklasse,
+    search: setSearch,
+    range: setRangeWithPeriod,
+    customDays: setCustomDays,
+    customGranularity: setCustomGranularity,
+    customPeriod: setCustomPeriod,
+  }), [setRangeWithPeriod]);
+
+  const filters = useMemo(() => ({
+    values: filterValues,
+    set: filterSetters,
+    activeCount: activeFilterCount,
+    periodOptions,
+    transactionsLink,
+    reset,
+  }), [filterValues, filterSetters, activeFilterCount, periodOptions, transactionsLink, reset]);
+
+  const sort = useMemo(() => ({ config: sortConfig, toggle: toggleSort }), [sortConfig, toggleSort]);
+
+  const hidden = useMemo(
+    () => ({ ids: hiddenTransactions, toggle: toggleHiddenTransaction }),
+    [hiddenTransactions, toggleHiddenTransaction],
+  );
+
+  const actions = useMemo(() => ({
+    updateCategory,
+    deleteTransaction: deleteTransactionAction,
+    saveDetails,
+    detailsSaving,
+    reload,
+  }), [updateCategory, deleteTransactionAction, saveDetails, detailsSaving, reload]);
+
+  const transactions = useMemo(() => ({
+    all: txs,
+    visible: visibleTransactions,
+    sorted: sortedTransactions,
+    preview: previewTransactions,
+  }), [txs, visibleTransactions, sortedTransactions, previewTransactions]);
+
+  const balances = useMemo(
+    () => ({ byAccount: effectiveBalances, total: totalEffectiveBalance }),
+    [effectiveBalances, totalEffectiveBalance],
+  );
+
+  return useMemo<FinanceOverviewViewModel>(() => ({
+    loading: txsLoading,
+    isEmpty: !txsLoading && txs.length === 0,
+    transactions,
+    categories: cats,
+    accounts,
+    balances,
+    stats,
+    sankeyData,
+    filters,
+    sort,
+    hidden,
+    actions,
+  }), [txsLoading, txs, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+}
