@@ -323,6 +323,7 @@ export default function TransactionsPage() {
                 setCustomPeriod={(v) => patchFilters({ customPeriod: v })}
                 periodOptions={periodOptions}
                 categories={cats}
+                accounts={accounts}
                 filterContract={filters.contract}
                 setFilterContract={(v: ContractFilter) => patchFilters({ contract: v })}
                 filterEssential={filters.essential}
@@ -353,6 +354,7 @@ export default function TransactionsPage() {
             <TransactionDayList
               transactions={visible}
               categories={cats}
+              accounts={accounts}
               hiddenTransactions={hidden}
               onOpenDetails={openDetails}
               endingBalance={endingBalance}

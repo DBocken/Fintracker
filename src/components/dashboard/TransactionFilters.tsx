@@ -1,12 +1,10 @@
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
-import { getAccounts } from '../../services/account-service';
 import type { Account, Category } from '../../types';
 import {
   DASHBOARD_RANGE_OPTIONS,
@@ -38,6 +36,7 @@ interface TransactionFiltersProps {
   /** Verfügbare Perioden (Jahr/Quartal/Monat) je nach gewählter Granularität. */
   periodOptions: PeriodOption[];
   categories: Category[];
+  accounts: Account[];
   filterContract: ContractFilter;
   setFilterContract: (v: ContractFilter) => void;
   filterEssential: EssentialFilter;
@@ -69,6 +68,7 @@ export function TransactionFilters({
   setCustomPeriod,
   periodOptions,
   categories,
+  accounts,
   filterContract,
   setFilterContract,
   filterEssential,
@@ -79,10 +79,6 @@ export function TransactionFilters({
   stacked = false,
 }: TransactionFiltersProps) {
   const { t } = useI18n();
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAccounts,
-  });
 
   // Im Stacked-Modus füllen die Trigger die Spalte; in der Toolbar feste Breiten.
   const triggerClass = (barWidth: string) =>

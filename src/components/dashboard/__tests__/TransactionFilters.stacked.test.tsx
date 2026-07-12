@@ -1,15 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { renderWithI18n } from "@/test-utils/render";
+import type { Account } from "@/types";
 import { TransactionFilters } from "../TransactionFilters";
 
-vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: [] }) }));
+vi.mock("@/services/account-service", () => ({ getAccounts: vi.fn() }));
+
+import { getAccounts } from "@/services/account-service";
 
 const noop = () => {};
+const ACCOUNTS: Account[] = [];
 
-function renderFilters(stacked: boolean) {
-  return render(
-    <I18nProvider initialLocale="de">
+function renderFilters(stacked: boolean, locale: "de" | "en" = "de") {
+  return renderWithI18n(
     <TransactionFilters
       filterCat="all"
       setFilterCat={noop}
@@ -27,6 +30,7 @@ function renderFilters(stacked: boolean) {
       setCustomPeriod={noop}
       periodOptions={[]}
       categories={[]}
+      accounts={ACCOUNTS}
       filterContract="all"
       setFilterContract={noop}
       filterEssential="all"
@@ -35,8 +39,8 @@ function renderFilters(stacked: boolean) {
       setFilterAusgabenklasse={noop}
       showSearch={false}
       stacked={stacked}
-    />
-    </I18nProvider>,
+    />,
+    locale,
   );
 }
 
@@ -56,39 +60,15 @@ describe("TransactionFilters – aufgeräumtes Raster (stacked)", () => {
   });
 
   it("sollte englische Texte korrekt rendern", () => {
-    render(
-      <I18nProvider initialLocale="en">
-        <TransactionFilters
-          filterCat="all"
-          setFilterCat={noop}
-          filterAccount="all"
-          setFilterAccount={noop}
-          searchInput=""
-          setSearchInput={noop}
-          range="Gesamt"
-          setRange={noop}
-          customDays={30}
-          setCustomDays={noop}
-          customGran="daily"
-          setCustomGran={noop}
-          customPeriod=""
-          setCustomPeriod={noop}
-          periodOptions={[]}
-          categories={[]}
-          filterContract="all"
-          setFilterContract={noop}
-          filterEssential="all"
-          setFilterEssential={noop}
-          filterAusgabenklasse="all"
-          setFilterAusgabenklasse={noop}
-          showSearch={false}
-          stacked={true}
-        />
-      </I18nProvider>,
-    );
+    renderFilters(true, "en");
     // Überprüfe dass englische Translations geladen sind
     for (const label of ["Account", "Category", "Contracts", "Essential", "Spending category", "Time range"]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
+  });
+
+  it("[REGRESSION] sollte keine eigene Konten-Query ausführen", () => {
+    renderFilters(true);
+    expect(getAccounts).not.toHaveBeenCalled();
   });
 });

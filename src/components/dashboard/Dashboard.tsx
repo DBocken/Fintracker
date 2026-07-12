@@ -137,6 +137,7 @@ export function Dashboard() {
               setCustomPeriod={model.filters.set.customPeriod}
               periodOptions={model.filters.periodOptions}
               categories={model.categories}
+              accounts={model.accounts}
               filterContract={model.filters.values.contract}
               setFilterContract={model.filters.set.contract}
               filterEssential={model.filters.values.essential}
@@ -188,6 +189,7 @@ export function Dashboard() {
           <TransactionTable
             transactions={model.transactions.preview}
             categories={model.categories}
+            accounts={model.accounts}
             selected={EMPTY_SELECTION}
             hiddenTransactions={model.hidden.ids}
             sortConfig={model.sort.config}
@@ -203,6 +205,7 @@ export function Dashboard() {
             <TransactionListMobile
               transactions={model.transactions.preview}
               categories={model.categories}
+              accounts={model.accounts}
               selected={EMPTY_SELECTION}
               hiddenTransactions={model.hidden.ids}
               onSelect={noop}
