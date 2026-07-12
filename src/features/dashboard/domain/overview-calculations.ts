@@ -1,23 +1,10 @@
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction } from '@/types';
-import { sumIncome, sumExpenses } from '@/lib/analysis-data';
 import type { BalanceHistoryPoint, DashboardGranularity, IncomeExpensePoint } from './overview-types';
 
-/**
- * Transferbereinigte Einnahmen/Ausgaben/Saldo über `sumIncome`/`sumExpenses`
- * (analysis-data.ts) — keine eigene Reduce-Kette, um Duplikate wie im
- * bisherigen Dashboard.tsx (F-MONEY-3) zu vermeiden.
- */
-export function computeFlowTotals(visibleTransactions: Transaction[]): {
-  income: number;
-  expenses: number;
-  balance: number;
-} {
-  const income = sumIncome(visibleTransactions);
-  const expenses = sumExpenses(visibleTransactions);
-  return { income, expenses, balance: income - expenses };
-}
+// Kanonische Quelle: src/features/shared/domain/flow-calculations.ts (≥2 Slices benötigen diese Logik).
+export { computeFlowTotals } from '@/features/shared/domain/flow-calculations';
 
 /**
  * Zeitreihe Einnahmen/Ausgaben je Granularitäts-Bucket. Die Bucket-Reihenfolge

@@ -1,10 +1,7 @@
 import type { SpendingSunburst, SunburstTree } from '@/lib/analysis-data';
 
-/**
- * Effektiver Kontosaldo: entweder der Live-Saldo der Bank (GoCardless-Sync)
- * oder der lokal aus Eröffnungssaldo + erfassten Transaktionen berechnete Wert.
- */
-export type EffectiveBalance = { amount: number; source: 'bank' | 'local'; balanceType?: string };
+// Kanonische Quelle: src/features/shared/domain/balance-calculations.ts (≥2 Slices benötigen diesen Typ).
+export type { EffectiveBalance } from '@/features/shared/domain/balance-calculations';
 
 /**
  * Kanonische Definition der Dashboard-Granularität — hier in der Domain-Schicht,
