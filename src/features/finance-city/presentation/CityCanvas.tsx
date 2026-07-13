@@ -140,6 +140,18 @@ export function CityCanvas({
     handleRef.current = handle;
     if (sceneRef) sceneRef.current = handle;
 
+    // WP-C6: MUSS hier (im Mount-Effekt) gesetzt werden, NICHT erst im
+    // separaten `reducedMotion`-Sync-Effekt weiter unten — Effekte laufen
+    // beim initialen Mount in Deklarationsreihenfolge, und der Layout-Effekt
+    // (`[layout]`, unten) ruft direkt danach den ERSTEN `applyLayout()`-Aufruf
+    // auf. Ohne diese Zeile hier würde die Startszene je nach Default in
+    // `city-scene.ts` entweder fälschlich durchanimieren (Balken wachsen von
+    // 0 hoch, obwohl `prefers-reduced-motion` aktiv ist) oder nie animieren
+    // (Default `false`). Schließt bewusst über den aktuellen `reducedMotion`-
+    // Wert beim Mount (wie `controls.enableDamping` unten) — spätere System-
+    // Einstellungsänderungen pflegt der dedizierte Effekt weiter unten.
+    handle.setAnimationsEnabled(!reducedMotion);
+
     const controls = new OrbitControls(handle.camera, handle.domElement);
     controls.target = handle.target; // Gleiche Vector3-Instanz wie die Szene — Controls und Szene laufen nie auseinander.
     controls.enableDamping = !reducedMotion; // Kamera-Regel 6: Damping komplett aus bei prefers-reduced-motion.
@@ -234,7 +246,13 @@ export function CityCanvas({
       // Flug-Tween und OrbitControls' internem Zustand.
       const controllerActive = cameraControllerRef.current?.tick(timestamp) ?? false;
       const controlsChanged = controls.update();
-      const changed = controllerActive || controlsChanged;
+      // WP-C6: Aufbau-Animationen (Balkenwachstum/Hüllen-Fade/Etagen-Split)
+      // laufen über DIESEN bestehenden Loop — kein zweiter rAF/Timer (Single-
+      // rAF-Invariante, REGRESSION-Test WP-C4.1 oben). Muss vor `render()`
+      // laufen (unten), damit ein in diesem Frame fortgeschriebener Tween
+      // auch tatsächlich mitgerendert wird.
+      const sceneAnimating = handle.advanceAnimations(timestamp);
+      const changed = controllerActive || controlsChanged || sceneAnimating;
       if (changed) needsRender = true;
       if (isInteracting) trackFps(timestamp);
 
@@ -354,9 +372,13 @@ export function CityCanvas({
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern (System-Setting) —
   // ohne den ganzen Mount-Effekt neu zu triggern, einfach auf den Controls
-  // gespiegelt.
+  // UND die Szene (WP-C6) gespiegelt. Läuft auch beim initialen Mount (dritter
+  // Effekt in Deklarationsreihenfolge) — dann redundant zum Aufruf im
+  // Mount-Effekt oben (derselbe Wert, kein sichtbarer Unterschied), relevant
+  // wird dieser Effekt erst bei SPÄTEREN Änderungen der System-Einstellung.
   useEffect(() => {
     if (controlsRef.current) controlsRef.current.enableDamping = !reducedMotion;
+    if (handleRef.current) handleRef.current.setAnimationsEnabled(!reducedMotion);
   }, [reducedMotion]);
 
   if (webglUnavailable) {

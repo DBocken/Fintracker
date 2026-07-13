@@ -28,9 +28,20 @@ vi.mock('../city-scene', async () => {
   return { ...actual, createCityScene };
 });
 
+// WP-C6: `useReducedMotion` kontrollierbar mocken, um die Mount-Reihenfolge
+// (`setAnimationsEnabled` VOR dem ersten `applyLayout`) unabhängig vom
+// tatsächlichen `matchMedia`-Verhalten in jsdom zu testen.
+const { useReducedMotionMock } = vi.hoisted(() => ({ useReducedMotionMock: vi.fn(() => false) }));
+vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: useReducedMotionMock }));
+
 function createFakeHandle(canvas: HTMLCanvasElement, overrides: Partial<CitySceneHandle> = {}): CitySceneHandle {
   return {
     applyLayout: vi.fn(),
+    // WP-C6: Default `false` — der Fake verhält sich wie eine Szene ohne
+    // laufende Aufbau-Animation, damit bestehende Tests (die nur Kamera-
+    // Controller-Aktivität prüfen) unverändert bleiben.
+    advanceAnimations: vi.fn(() => false),
+    setAnimationsEnabled: vi.fn(),
     pick: vi.fn(() => null),
     setSize: vi.fn(),
     setFog: vi.fn(),
@@ -52,6 +63,8 @@ function firePointer(el: Element, type: string, x: number, y: number) {
 
 beforeEach(() => {
   createCityScene.mockReset();
+  useReducedMotionMock.mockReset();
+  useReducedMotionMock.mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -310,6 +323,81 @@ describe('CityCanvas', () => {
 
     expect(handle!.render).toHaveBeenCalledTimes(2);
     expect(onFrame).toHaveBeenCalledTimes(2);
+    expect(queue.size).toBe(0);
+  });
+
+  it('sollte beim Mount setAnimationsEnabled mit dem aktuellen reducedMotion-Wert aufrufen, BEVOR das erste applyLayout passiert (WP-C6-Mount-Reihenfolge)', async () => {
+    useReducedMotionMock.mockReturnValue(true);
+
+    let handle: CitySceneHandle | null = null;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas);
+      return handle;
+    });
+
+    render(<CityCanvas layout={LAYOUT} onTapBox={vi.fn()} />);
+    await waitFor(() => expect(handle).not.toBeNull());
+    await waitFor(() => expect(handle!.applyLayout).toHaveBeenCalled());
+
+    // reducedMotion=true -> setAnimationsEnabled(false). Muss VOR applyLayout
+    // passiert sein, sonst würde das allererste Layout mit dem falschen
+    // (default) Animations-Zustand angewendet.
+    expect(handle!.setAnimationsEnabled).toHaveBeenCalledWith(false);
+    const enabledCallOrder = (handle!.setAnimationsEnabled as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0];
+    const layoutCallOrder = (handle!.applyLayout as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0];
+    expect(enabledCallOrder).toBeLessThan(layoutCallOrder);
+  });
+
+  it('sollte advanceAnimations() der Szene pro Frame ticken und bei laufender Animation den Loop am Laufen halten (Single-rAF-Invariante bleibt erhalten)', async () => {
+    const queue = new Map<number, FrameRequestCallback>();
+    let nextRafId = 1;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextRafId++;
+      queue.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      queue.delete(id);
+    });
+
+    let handle: CitySceneHandle | null = null;
+    // Fake-Szene: "in Animation" für die ersten beiden Ticks (Balken wächst
+    // noch), danach abgeschlossen — kein Kamera-Controller beteiligt, damit
+    // ausschließlich `advanceAnimations()` den Loop am Laufen hält.
+    let ticksRemaining = 2;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas, {
+        advanceAnimations: vi.fn(() => {
+          if (ticksRemaining > 0) {
+            ticksRemaining -= 1;
+            return true;
+          }
+          return false;
+        }),
+      });
+      return handle;
+    });
+
+    render(<CityCanvas layout={LAYOUT} onTapBox={vi.fn()} />);
+    await waitFor(() => expect(handle).not.toBeNull());
+    expect(queue.size).toBe(1); // Mount-invalidate plant genau den ersten Frame.
+
+    const flushFrame = (nowMs: number) => {
+      const callbacks = [...queue.values()];
+      queue.clear();
+      for (const cb of callbacks) cb(nowMs);
+    };
+
+    // Frame 1+2: advanceAnimations() liefert true -> Render, Loop läuft weiter.
+    flushFrame(1000);
+    expect(queue.size).toBeLessThanOrEqual(1);
+    flushFrame(1016);
+    expect(queue.size).toBeLessThanOrEqual(1);
+    // Frame 3: advanceAnimations() liefert false, keine sonstige Aktivität -> Loop stoppt.
+    flushFrame(1032);
+
+    expect(handle!.advanceAnimations).toHaveBeenCalledTimes(3);
+    expect(handle!.render).toHaveBeenCalledTimes(2);
     expect(queue.size).toBe(0);
   });
 });
