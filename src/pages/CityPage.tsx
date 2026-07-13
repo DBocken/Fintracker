@@ -148,6 +148,21 @@ export default function CityPage() {
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Sobald die Canvas-Fläche bekannt ist / sich ändert, EINEN Frame anfordern:
+  // `CityLabels.reproject` läuft ausschließlich über `onFrame` (Perf-Vorgabe),
+  // und `onFrame` feuert nur in tatsächlich gerenderten Frames. Ohne diesen
+  // Anstoß bliebe die Reprojektion aus, wenn der einzige bisherige Frame noch
+  // mit `canvasSize {0,0}` lief (reproject bricht dann früh ab) und die Kamera
+  // danach still steht — insbesondere unter `prefers-reduced-motion`, wo der
+  // Eröffnungs-Intent nur einen Sofort-Schnitt (ein Frame) statt eines Fluges
+  // auslöst. Der erzwungene Frame reprojiziert mit korrekter Größe UND frischen
+  // Kamera-Matrizen (onFrame läuft direkt nach `render()`).
+  useEffect(() => {
+    if (canvasSize.width > 0 && canvasSize.height > 0) {
+      controlsApiRef.current?.invalidate();
+    }
+  }, [canvasSize]);
+
   // WP-C5-Andockpunkt der Perf-Vorgabe: `CityCanvas` feuert `onFrame` NUR in
   // Frames, in denen tatsächlich gerendert wurde (siehe CityCanvas.tsx) — die
   // Labels reprojizieren sich exakt darüber, OHNE eigenen Timer.

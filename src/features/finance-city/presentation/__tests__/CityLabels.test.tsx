@@ -14,6 +14,9 @@ import type { CityLabel } from '../../domain/city-labels';
  */
 function identityCamera(): THREE.PerspectiveCamera {
   return {
+    // `position` wird für die Welt-Distanz des Fadings gebraucht (nah genug
+    // -> volle Opazität); Identitätsmatrizen halten NDC == anchor.
+    position: new THREE.Vector3(0, 0, 5),
     matrixWorldInverse: new THREE.Matrix4(),
     projectionMatrix: new THREE.Matrix4(),
   } as unknown as THREE.PerspectiveCamera;
@@ -35,6 +38,36 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
     act(() => ref.current?.reproject(identityCamera()));
 
     expect(container.querySelectorAll('[data-testid="city-label"]')).toHaveLength(2);
+  });
+
+  it('[REGRESSION] sollte Labels bei realer Perspektiv-Projektion sichtbar lassen (Fade über Welt-Distanz, nicht über NDC-Tiefe)', () => {
+    // Reproduktion des WP-C5-Bugs „keine Labels an Vierteln/Gebäuden/Etagen":
+    // Eine echte PerspectiveCamera in typischer Stadt-Distanz projiziert JEDEN
+    // Anker auf ndc.z ~ 0.99 (nichtlineare Tiefe). Der frühere Fade über ndc.z
+    // blendete dadurch ALLE Labels aus. Der Fade läuft jetzt über die
+    // Welt-Distanz -> in dieser Distanz voll sichtbar.
+    const camera = new THREE.PerspectiveCamera(50, 800 / 600, 0.1, 1000);
+    camera.position.set(0, 10, 30);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true); // aktualisiert matrixWorldInverse (Camera-Override) — sonst projiziert project() falsch.
+
+    // Sanity: die perspektivische NDC-Tiefe liegt tatsächlich im „alten Fade
+    // hätte alles ausgeblendet"-Bereich.
+    const ndc = new THREE.Vector3(0, 0, 0).project(camera);
+    expect(ndc.z).toBeGreaterThan(0.98);
+
+    const labels = [makeLabel('rent', 0, 0, 0, 5)];
+    const ref = createRef<CityLabelsHandle>();
+    const { container } = renderWithI18n(
+      <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} />,
+      locale,
+    );
+
+    act(() => ref.current?.reproject(camera));
+
+    const rendered = container.querySelectorAll('[data-testid="city-label"]');
+    expect(rendered).toHaveLength(1);
+    expect((rendered[0] as HTMLElement).style.opacity).toBe('1');
   });
 
   it('sollte Labels hinter der Kamera (NDC z > 1) NICHT rendern', () => {

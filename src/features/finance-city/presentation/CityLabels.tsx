@@ -42,16 +42,36 @@ export type CityLabelsProps = {
 const LABEL_WIDTH_PX = 132;
 const LABEL_HEIGHT_PX = 34;
 
-/** README/Task: Labels mit NDC-Tiefe > 1 sind hinter der Kamera bzw. jenseits der Fern-Ebene — ausblenden. */
+/**
+ * Reine Sichtbarkeits-/Hinter-der-Kamera-Prüfung über die projizierte
+ * NDC-Tiefe: `> 1` = hinter der Kamera (Vorzeichen-Flip von `w`) bzw. jenseits
+ * der Fern-Ebene. Das ist der EINZIGE Zweck von `ndc.z` hier.
+ *
+ * [REGRESSION] WP-C5: `ndc.z` NICHT für das Distanz-Fading verwenden — die
+ * perspektivische Tiefe ist nichtlinear (1/z) und liegt bei realen
+ * Kameradistanzen (near 0.1 / far 1000, Stadt ~30 Einheiten entfernt) bereits
+ * bei ~0.99 für ALLE Anker. Ein Fade über `ndc.z` blendete dadurch jedes Label
+ * aus (nichts sichtbar an Vierteln/Gebäuden/Etagen). Das Fading läuft jetzt
+ * über die echte Welt-Distanz Kamera→Anker.
+ */
 const NDC_Z_CULL = 1;
-/** Distanz-Fade: ab dieser Tiefe beginnt das Ausblenden, bei `NDC_Z_FADE_END` (knapp vor dem Cull-Punkt) ist die Opazität 0. */
-const NDC_Z_FADE_START = 0.85;
-const NDC_Z_FADE_END = 0.98;
 
-function fadeOpacityForDepth(ndcZ: number): number {
-  if (ndcZ <= NDC_Z_FADE_START) return 1;
-  if (ndcZ >= NDC_Z_FADE_END) return 0;
-  return 1 - (ndcZ - NDC_Z_FADE_START) / (NDC_Z_FADE_END - NDC_Z_FADE_START);
+/**
+ * Distanz-Fade über die WELT-Distanz (Kamera→Anker). Großzügig gewählt: bis
+ * `FADE_START_DISTANCE` voll sichtbar, danach linear bis 0 bei
+ * `FADE_END_DISTANCE`. `selectCityLabels` liefert ohnehin nur Labels der
+ * AKTUELLEN Ebene (alle in vergleichbarer Distanz), das Entzerren übernimmt
+ * die Kollisionsauflösung + `maxVisible` — der Fade greift daher praktisch nur
+ * für sehr große Städte / extreme Kamera-Distanzen und darf die normalen
+ * Labels nie ausblenden.
+ */
+const FADE_START_DISTANCE = 60;
+const FADE_END_DISTANCE = 100;
+
+function fadeOpacityForDistance(distance: number): number {
+  if (distance <= FADE_START_DISTANCE) return 1;
+  if (distance >= FADE_END_DISTANCE) return 0;
+  return 1 - (distance - FADE_START_DISTANCE) / (FADE_END_DISTANCE - FADE_START_DISTANCE);
 }
 
 type ProjectedLabel = { id: string; x: number; y: number; opacity: number };
@@ -80,9 +100,13 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
       const projectedById = new Map<string, ProjectedLabel>();
       const vector = new THREE.Vector3();
       for (const label of labels) {
-        vector.set(label.anchor.x, label.anchor.y, label.anchor.z).project(camera);
+        // Welt-Distanz VOR `project()` messen (project() mutiert `vector`
+        // in-place zu NDC — danach ist die Weltposition verloren).
+        vector.set(label.anchor.x, label.anchor.y, label.anchor.z);
+        const worldDistance = camera.position.distanceTo(vector);
+        vector.project(camera);
         if (vector.z > NDC_Z_CULL) continue; // hinter der Kamera / jenseits der Fern-Ebene.
-        const opacity = fadeOpacityForDepth(vector.z);
+        const opacity = fadeOpacityForDistance(worldDistance);
         if (opacity <= 0) continue;
         const x = ((vector.x + 1) / 2) * canvasSize.width;
         const y = ((1 - vector.y) / 2) * canvasSize.height;

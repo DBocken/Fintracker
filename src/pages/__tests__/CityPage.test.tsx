@@ -33,9 +33,10 @@ vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
   },
 }));
 
-/** Deterministischer Fake-Kamera-Stub (Präzedenzfall CityLabels.test.tsx): Identitätsmatrizen -> NDC === anchor. */
+/** Deterministischer Fake-Kamera-Stub (Präzedenzfall CityLabels.test.tsx): Identitätsmatrizen -> NDC === anchor; `position` für die Welt-Distanz des Label-Fadings (nah -> volle Opazität). */
 function identityCamera(): THREE.PerspectiveCamera {
   return {
+    position: new THREE.Vector3(0, 0, 5),
     matrixWorldInverse: new THREE.Matrix4(),
     projectionMatrix: new THREE.Matrix4(),
   } as unknown as THREE.PerspectiveCamera;
