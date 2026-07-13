@@ -10,6 +10,7 @@ import {
 import { readLocalFinanceList, writeLocalFinanceList } from "../local-finance-store";
 import { clearLocalKvStore } from "../idb-kv";
 import { localEncryption } from "../local-crypto";
+import { buildDefaultCategories } from "../../data/merchant-keywords";
 import type { Account, Debt, Transaction } from "@/types";
 
 const NOW = new Date("2026-06-12T12:00:00Z");
@@ -24,6 +25,19 @@ describe("buildDemoDataset (Issue #39)", () => {
     expect(months.size).toBe(3);
     expect(months).toContain("2026-06");
     expect(months).toContain("2026-04");
+  });
+
+  it("[REGRESSION] verweist ausschließlich auf existierende Kategorie-IDs der Default-Taxonomie", () => {
+    // Zuvor zeigten die Streaming-/Versicherungs-Buchungen auf nicht
+    // existierende IDs (`local-cat-abos`/`local-cat-versicherung`) und landeten
+    // dadurch überall (Dashboard, Finanzstadt) in „Unkategorisiert" statt in
+    // ihrer echten Kategorie. Jede Demo-Kategorie-ID MUSS in der Taxonomie
+    // existieren, sonst ist die Buchung effektiv unkategorisiert.
+    const validIds = new Set(buildDefaultCategories().map((c) => c.id));
+    const ds = buildDemoDataset(NOW);
+    const usedIds = new Set(ds.transactions.map((t) => t.category_id).filter((id): id is string => !!id));
+    const unknown = [...usedIds].filter((id) => !validIds.has(id));
+    expect(unknown).toEqual([]);
   });
 
   it("kennzeichnet ausnahmslos alle Datensätze mit dem Demo-Präfix", () => {
