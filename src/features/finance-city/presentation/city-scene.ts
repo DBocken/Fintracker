@@ -138,7 +138,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       canvas,
       antialias: initialDpr <= 1.5,
       alpha: false,
-      powerPreference: 'default',
+      // 'high-performance': die Stadt ist eine dedizierte 3D-Vollflächen-
+      // Ansicht — auf Dual-GPU-Geräten soll der schnelle Chip ran. Den
+      // Akku schont bereits der Render-on-Demand-Loop (CityCanvas.tsx),
+      // nicht die GPU-Wahl.
+      powerPreference: 'high-performance',
     });
 
   const raycaster = new THREE.Raycaster();

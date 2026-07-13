@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import * as THREE from 'three';
 import { createRef } from 'react';
-import { CityCanvas } from '../CityCanvas';
+import { CityCanvas, type CityControlsApi } from '../CityCanvas';
 import type { CitySceneHandle } from '../city-scene';
 import { buildCityLayout } from '../../domain/city-layout';
 import { cityDemoModel } from '../../data/city-demo-data';
@@ -57,6 +57,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('CityCanvas', () => {
@@ -134,6 +135,76 @@ describe('CityCanvas', () => {
 
     expect(handle!.pick).toHaveBeenCalledWith(102, 101);
     expect(onTapBox).toHaveBeenCalledWith('leisure');
+  });
+
+  it('[REGRESSION] sollte pro Frame höchstens einen requestAnimationFrame planen (kein Verdoppeln durch invalidate() während des Ticks)', async () => {
+    // Nachgestellter Produktions-Bug (WP-C4.1): Während eines Kamera-Flugs ruft
+    // der Controller in JEDEM tick() deps.invalidate() auf (city-camera-
+    // controller.ts) — landete das mitten im Loop-Tick, wurde ZUSÄTZLICH zum
+    // Reschedule am Tick-Ende ein zweiter Callback geplant und dessen Handle
+    // ohne cancel überschrieben → Callback-Zahl verdoppelte sich pro Frame
+    // (exponentieller Render-Sturm, „Performance sehr schlecht" auf Mobile).
+    const queue = new Map<number, FrameRequestCallback>();
+    let nextRafId = 1;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextRafId++;
+      queue.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      queue.delete(id);
+    });
+
+    let handle: CitySceneHandle | null = null;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas);
+      return handle;
+    });
+
+    const controlsApiRef = createRef<CityControlsApi | null>();
+    // Dauer-aktiver Fake-Flug: verhält sich wie der echte Controller-Tick
+    // (invalidate() pro Frame, Rückgabe true = „Flug läuft noch").
+    const cameraController = {
+      onIntent: vi.fn(),
+      tick: vi.fn(() => {
+        controlsApiRef.current?.invalidate();
+        return true;
+      }),
+      cancelFlight: vi.fn(),
+      onControlsChange: vi.fn(),
+      configure: vi.fn(),
+      dispose: vi.fn(),
+    };
+
+    const { unmount } = render(
+      <CityCanvas
+        layout={LAYOUT}
+        onTapBox={vi.fn()}
+        cameraController={cameraController}
+        controlsApiRef={controlsApiRef}
+      />,
+    );
+    await waitFor(() => expect(handle).not.toBeNull());
+    expect(queue.size).toBe(1); // Mount-invalidate plant genau den ersten Frame.
+
+    const flushFrame = (nowMs: number) => {
+      const callbacks = [...queue.values()];
+      queue.clear();
+      for (const cb of callbacks) cb(nowMs);
+    };
+
+    const FRAMES = 6;
+    for (let frame = 0; frame < FRAMES; frame += 1) {
+      flushFrame(1000 + frame * 16);
+      // Kern-Assertion: der Loop plant sich GENAU EINMAL neu — nicht
+      // zusätzlich über den verschachtelten invalidate()-Pfad.
+      expect(queue.size).toBeLessThanOrEqual(1);
+    }
+    // Genau ein Szenen-Render pro Frame — nicht 2^n durch verdoppelte Callbacks.
+    expect(handle!.render).toHaveBeenCalledTimes(FRAMES);
+
+    unmount();
+    expect(queue.size).toBe(0); // Unmount cancelt den ausstehenden Frame.
   });
 
   it('sollte bei einem Drag (> 8px Versatz zwischen Pointer-Down/Up) NICHT als Tap werten', async () => {

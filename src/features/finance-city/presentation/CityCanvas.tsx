@@ -205,8 +205,16 @@ export function CityCanvas({
     }
 
     function tick(timestamp: number) {
-      rafHandle = null;
-
+      // `rafHandle` bleibt während des GESAMTEN Ticks gesetzt („Loop läuft"):
+      // `invalidate()`-Aufrufe, die INNERHALB dieses Frames landen (Controller-
+      // Flug ruft `deps.invalidate` pro Tick, OrbitControls' 'change'-Event
+      // feuert aus `controls.update()` heraus), dürfen keinen parallelen rAF
+      // planen. [REGRESSION] WP-C4.1: vorher wurde `rafHandle` hier sofort
+      // genullt — jeder Mid-Tick-invalidate plante einen ZWEITEN Callback,
+      // dessen Handle das Loop-Ende ohne cancel überschrieb → die Callback-
+      // Zahl verdoppelte sich pro Frame (exponentieller Render-Sturm, spürbar
+      // als massiver FPS-Einbruch bei jedem Flug/jeder Orbit-Geste).
+      //
       // WP-C4: der Kamera-Controller tickt ZUERST (wendet ggf. eine
       // interpolierte Auto-Flug-Pose für diesen Frame an), DANACH liest
       // `controls.update()` die (evtl. gerade von ihm gesetzte) Kamera-/
@@ -223,11 +231,14 @@ export function CityCanvas({
         needsRender = false;
       }
 
+      // Erst JETZT freigeben und GENAU EINE Stelle plant den Folgeframe.
       // Loop läuft weiter, solange (a) der automatische Flug noch aktiv ist,
-      // (b) `controls.update()` noch Änderung meldet (Damping-Ausklang), oder
-      // (c) der Nutzer aktiv interagiert.
-      if (changed || isInteracting) {
-        rafHandle = requestAnimationFrame(tick);
+      // (b) `controls.update()` noch Änderung meldet (Damping-Ausklang),
+      // (c) der Nutzer aktiv interagiert, oder (d) ein Mid-Tick-invalidate
+      // NACH dem Render oben einen weiteren Frame angefordert hat.
+      rafHandle = null;
+      if (changed || isInteracting || needsRender) {
+        startLoopIfNeeded();
       }
     }
 
