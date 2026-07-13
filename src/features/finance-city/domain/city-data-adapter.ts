@@ -24,8 +24,9 @@
  *   = mainId) läuft über denselben Zweig wie echte Unterkategorien mit durch
  *   (kein Sonderfall nötig) — sein Gebäude trägt dadurch dieselbe Id wie der
  *   Distrikt selbst, was mit der Etagen-Zuordnung unten übereinstimmt.
- * - **Etage** = ein aktiver, nicht-veralteter Vertrag mit bekanntem Zyklus
- *   (`isActiveForTotals`), dessen Kategorie über `resolveHierarchy` auf
+ * - **Etage** = ein erkannter, laufender wiederkehrender Eintrag (Kandidat
+ *   ODER bestätigt/pausiert, mit bekanntem Zyklus, nicht veraltet — siehe
+ *   `isFloorContract`), dessen Kategorie über `resolveHierarchy` auf
  *   Distrikt (`mainId`) und Gebäude (`subId ?? mainId` — passt zur
  *   Gebäude-Id-Konvention oben) auflöst. Beträge sind Monatsäquivalente
  *   (`monthlyEquivalent`), bevorzugt aus dem robusteren „letzte 3 Buchungen"-
@@ -37,11 +38,29 @@
  *   verteilt sie nur proportional auf die bereits feststehende Balkenhöhe.
  */
 import { resolveHierarchy, type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
-import { isActiveForTotals, monthlyEquivalent } from '@/lib/contract-derivation';
+import { monthlyEquivalent } from '@/lib/contract-derivation';
 import type { ContractRow } from '@/components/contracts/contract-types';
 import type { Category } from '@/types';
 import { CATEGORY_COLORS } from '@/lib/constants';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
+
+/**
+ * Etage = ein ERKANNTER, laufender wiederkehrender Eintrag innerhalb eines
+ * Gebäudes (z. B. Netflix/Spotify unter „Streaming"). Bewusst NICHT
+ * `isActiveForTotals` (das verlangt `status === 'active'`, also eine manuelle
+ * Vertrags-Bestätigung): frisch kategorisierte Abos sind zunächst `candidate`
+ * — würden sie ausgeschlossen, hätte ein Streaming-Gebäude nach dem Zuweisen
+ * der Kategorie 0 Etagen ([REGRESSION], Nutzer-Befund „Streaming wird nicht
+ * korrekt erkannt"). Aufgenommen werden daher Kandidaten UND aktive/pausierte
+ * Verträge mit erkanntem Zyklus, die nicht veraltet sind; ausgeschlossen bleibt
+ * nur, was der Nutzer/die Ableitung ausdrücklich verwirft (rejected/ended/
+ * archived) oder was gar kein wiederkehrendes Muster ist (`!cycleKnown`) bzw.
+ * seit > 2 Zyklen ruht (`stale`, wahrscheinlich beendet).
+ */
+function isFloorContract(row: ContractRow): boolean {
+  if (!row.cycleKnown || row.stale) return false;
+  return row.status !== 'rejected' && row.status !== 'ended' && row.status !== 'archived';
+}
 
 /** Deterministischer Fallback, falls eine Hauptkategorie keine `color` gesetzt hat — Index im sortierten Distrikt-Array modulo Palettengröße (kein Zufall, reproduzierbar). */
 function fallbackColor(index: number): string {
@@ -82,7 +101,7 @@ function attachContracts(
   const districtById = new Map(districts.map((d) => [d.id, d]));
 
   for (const row of expenseContracts) {
-    if (!isActiveForTotals(row) || row.categoryId == null) continue;
+    if (!isFloorContract(row) || row.categoryId == null) continue;
 
     const { mainId, subId } = resolveHierarchy(categoriesById, row.categoryId);
     const district = districtById.get(mainId);

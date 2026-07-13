@@ -169,18 +169,38 @@ describe('buildCityModelFromData', () => {
       expect(model.districts[0].subcategories[0].contracts).toEqual([{ id: 'shell', label: 'Shell', amount: 60 }]);
     });
 
-    it('sollte inaktive/stale/zyklus-unbekannte Verträge NICHT als Etage übernehmen', () => {
+    it('[REGRESSION] sollte einen noch nicht bestätigten Kandidaten (z. B. frisch kategorisiertes Netflix/Spotify) als Etage übernehmen', () => {
+      // Nutzer-Befund „Streaming wird nicht korrekt erkannt": nach dem Zuweisen
+      // der Kategorie sind die erkannten Abos `candidate` (nicht `active`) —
+      // sie MÜSSEN trotzdem Etagen werden, sonst bleibt das Gebäude leer.
+      const sub = subNode({ id: 'x::leisure::streaming', name: 'Streaming', value: 24, categoryId: 'streaming' });
+      const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 24, categoryId: 'leisure', children: [sub] });
+      const categoriesById = new Map<string, Category>([
+        ['leisure', category('leisure', 'Freizeit')],
+        ['streaming', category('streaming', 'Streaming', { parent_id: 'leisure' })],
+      ]);
+      const netflix = contractRow({ key: 'nf', payee: 'Netflix', categoryId: 'streaming', amountTypical: 13, status: 'candidate' });
+      const spotify = contractRow({ key: 'sp', payee: 'Spotify', categoryId: 'streaming', amountTypical: 11, status: 'candidate' });
+
+      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [netflix, spotify]);
+
+      const building = model.districts[0].subcategories.find((s) => s.id === 'streaming')!;
+      expect(building.contracts?.map((c) => c.label)).toEqual(['Netflix', 'Spotify']);
+    });
+
+    it('sollte verworfene/beendete/veraltete/zyklus-unbekannte Einträge NICHT als Etage übernehmen', () => {
       const sub = subNode({ id: 'x::leisure::streaming', name: 'Streaming', value: 30, categoryId: 'streaming' });
       const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure', children: [sub] });
       const categoriesById = new Map<string, Category>([
         ['leisure', category('leisure', 'Freizeit')],
         ['streaming', category('streaming', 'Streaming', { parent_id: 'leisure' })],
       ]);
-      const candidate = contractRow({ key: 'c1', payee: 'Kandidat', categoryId: 'streaming', amountTypical: 5, status: 'candidate' });
+      const rejected = contractRow({ key: 'c0', payee: 'Verworfen', categoryId: 'streaming', amountTypical: 5, status: 'rejected' });
+      const ended = contractRow({ key: 'c1', payee: 'Beendet', categoryId: 'streaming', amountTypical: 5, status: 'ended' });
       const stale = contractRow({ key: 'c2', payee: 'Veraltet', categoryId: 'streaming', amountTypical: 5, stale: true });
       const unknownCycle = contractRow({ key: 'c3', payee: 'Unbekannt', categoryId: 'streaming', amountTypical: 5, cycle: 'Unbekannt', cycleKnown: false });
 
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [candidate, stale, unknownCycle]);
+      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [rejected, ended, stale, unknownCycle]);
 
       const building = model.districts[0].subcategories.find((s) => s.id === 'streaming')!;
       expect(building.contracts).toBeUndefined();
