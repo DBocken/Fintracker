@@ -38,9 +38,21 @@ export type CityLabelsProps = {
   className?: string;
 };
 
-/** Fixe Label-Box-Größe (px) für die Kollisionsauflösung — großzügig genug für Name + Betrag (Truncation im JSX). */
+/**
+ * Fixe Label-Box-Größe (px) für die Kollisionsauflösung — MUSS zur realen
+ * gerenderten Größe des zweizeiligen Labels unten passen (Name oben, Betrag
+ * darunter), sonst überlappen echte Labels trotz "kollisionsfrei" laut
+ * `resolveLabelCollisions`.
+ *
+ * `LABEL_WIDTH_PX` = `max-w-[132px]` im JSX (Truncation greift bei dieser
+ * Breite).
+ *
+ * `LABEL_HEIGHT_PX` = vertikales Padding (`py-1.5` = 2 × 6px = 12px) + Name-
+ * Zeile (`leading-4` = 16px) + Zeilenabstand (`gap-0.5` = 2px) + Betrags-
+ * Zeile (`leading-[14px]` = 14px) = 12 + 16 + 2 + 14 = 44px.
+ */
 const LABEL_WIDTH_PX = 132;
-const LABEL_HEIGHT_PX = 34;
+const LABEL_HEIGHT_PX = 44;
 
 /**
  * Reine Sichtbarkeits-/Hinter-der-Kamera-Prüfung über die projizierte
@@ -177,13 +189,19 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
               else elementRefs.current.delete(label.id);
             }}
             className={cn(
-              'absolute left-0 top-0 max-w-[8.5rem] truncate rounded bg-background/80 px-1.5 py-0.5 text-xs font-medium text-foreground shadow-sm',
+              'absolute left-0 top-0 flex max-w-[132px] flex-col gap-0.5 rounded bg-background/80 px-1.5 py-1.5 shadow-sm',
               !reducedMotion && 'transition-opacity duration-150 ease-out',
             )}
           >
-            {label.text}
+            {/* Zweizeilig (WP-C8): Name oben, Betrag darunter — vorher einzeilig
+                nebeneinander, bei längeren Kategorie-/Vertragsnamen kollidierte
+                der Betrag mit der Truncation. `LABEL_HEIGHT_PX` oben MUSS zu
+                dieser Höhe passen. */}
+            <span className="truncate text-xs font-medium leading-4 text-foreground">{label.text}</span>
             {typeof label.amount === 'number' && (
-              <span className="ml-1 text-muted-foreground">{formatCurrency(label.amount)}</span>
+              <span className="truncate text-[10px] leading-[14px] text-muted-foreground">
+                {formatCurrency(label.amount)}
+              </span>
             )}
           </div>
         ))}

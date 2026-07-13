@@ -320,6 +320,48 @@ describe('buildCityLayout', () => {
   });
 });
 
+describe('Etagen-Shading (WP-C8)', () => {
+  it('sollte benachbarten Etagen desselben Gebäudes unterschiedliche Farben geben', () => {
+    const model = makeModel();
+    const layout = buildCityLayout(model, {
+      level: 'subcategory',
+      focusDistrictId: 'leisure',
+      focusSubcategoryId: 'streaming',
+    });
+    const floors = layout.boxes.filter((b) => b.kind === 'floor');
+    expect(floors.length).toBeGreaterThan(1);
+    for (let i = 1; i < floors.length; i++) {
+      expect(floors[i].color).not.toBe(floors[i - 1].color);
+    }
+  });
+
+  it('sollte für alle Etagen gültige Hex-Farben liefern, abgeleitet von der Distrikt-Basisfarbe', () => {
+    const model = makeModel();
+    const layout = buildCityLayout(model, {
+      level: 'subcategory',
+      focusDistrictId: 'leisure',
+      focusSubcategoryId: 'streaming',
+    });
+    const floors = layout.boxes.filter((b) => b.kind === 'floor');
+    expect(floors.length).toBeGreaterThan(0);
+    for (const floor of floors) {
+      expect(floor.color).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('sollte bei identischem Input deterministisch dieselben Etagenfarben liefern', () => {
+    const model = makeModel();
+    const view = { level: 'subcategory' as const, focusDistrictId: 'leisure', focusSubcategoryId: 'streaming' };
+    const colors1 = buildCityLayout(model, view)
+      .boxes.filter((b) => b.kind === 'floor')
+      .map((b) => b.color);
+    const colors2 = buildCityLayout(model, view)
+      .boxes.filter((b) => b.kind === 'floor')
+      .map((b) => b.color);
+    expect(colors1).toEqual(colors2);
+  });
+});
+
 describe('computeFocusBounds', () => {
   describe('Happy Path', () => {
     it('sollte für einen Distrikt (city-Ebene) Center/Radius liefern, die Hülle UND alle Balken dieses Distrikts umfassen', () => {

@@ -66,6 +66,101 @@ const GROUND_MARGIN = 2;
 /** Neutrale Bodenfarbe (Domain kennt keine Theming-Palette, bewusst ein fester Ton). */
 const GROUND_COLOR = '#94a3b8';
 
+// ---------------------------------------------------------------------------
+// Etagen-Shading (WP-C8): reine Hex->HSL->Hex-Arithmetik (kein three.js
+// `Color`, `domain/` bleibt three.js-frei, README-Architekturtabelle) — jede
+// Etage bekommt eine leicht andere Helligkeit ihrer Distrikt-Basisfarbe, damit
+// benachbarte Etagen (Stapelreihenfolge aus `scaleFloors`) optisch
+// unterscheidbar bleiben, ohne die Distrikt-Farbidentität zu verlieren.
+// ---------------------------------------------------------------------------
+
+/** Lightness-Delta (Prozentpunkte) je Etagen-Index-"Stufe" — klein/dezent gehalten. */
+const FLOOR_SHADE_STEP_PERCENT = 6;
+/** Deckelt die Gesamt-Abweichung von der Basisfarbe, damit hohe Etagenzahlen nicht fast schwarz/weiß werden. */
+const FLOOR_SHADE_MAX_DELTA_PERCENT = 18;
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return null;
+  const int = parseInt(match[1], 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  return { h: h / 6, s, l };
+}
+
+function hue2rgb(p: number, q: number, t: number): number {
+  let tt = t;
+  if (tt < 0) tt += 1;
+  if (tt > 1) tt -= 1;
+  if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+  if (tt < 1 / 2) return q;
+  if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+  return p;
+}
+
+function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return { r: v, g: v, b: v };
+  }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, h) * 255),
+    b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+  };
+}
+
+function toHexByte(n: number): string {
+  return Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+}
+
+/**
+ * Passt die Helligkeit (Lightness) einer 6-stelligen Hex-Farbe um
+ * `deltaPercent` Prozentpunkte an (positiv = heller, negativ = dunkler),
+ * geclamped auf [0, 100]. Ungültige Hex-Eingaben geben die Eingabe
+ * unverändert zurück — dezente Degradation statt Absturz (Farbe ist Pflicht,
+ * siehe `LayoutBox.color`).
+ */
+export function adjustHexLightness(hex: string, deltaPercent: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  const nextL = Math.max(0, Math.min(1, l + deltaPercent / 100));
+  const { r, g, b } = hslToRgb(h, s, nextL);
+  return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
+}
+
+/**
+ * Lightness-Delta je Etagen-Index: Vorzeichen alterniert (jede Etage
+ * unterscheidet sich dadurch IMMER von ihrer direkten Nachbarin, auch bei
+ * gedeckelter Magnitude), die Magnitude wächst alle 2 Etagen um eine Stufe
+ * und wird bei `FLOOR_SHADE_MAX_DELTA_PERCENT` gedeckelt. Rein indexbasiert
+ * -> deterministisch bei identischer Eingabe.
+ */
+function floorShadeDelta(index: number): number {
+  const sign = index % 2 === 0 ? 1 : -1;
+  const magnitude = Math.min(FLOOR_SHADE_MAX_DELTA_PERCENT, FLOOR_SHADE_STEP_PERCENT * (Math.floor(index / 2) + 1));
+  return sign * magnitude;
+}
+
 // Opazitäten je Ebene/Fokus-Stufe (Spec-Vorgabe: "Stadt = Hülle ~0.12 + Balken
 // ~0.35; Fokus: +Stufe; district-Level: Hülle ~0.04, Balken 1.0; floors voll").
 const HULL_OPACITY_CITY = 0.12;
@@ -289,7 +384,7 @@ function buildFloorBoxes(district: CityDistrict, bar: PositionedBar): LayoutBox[
   if (!subcategory.contracts || subcategory.contracts.length === 0) return [];
 
   const floors = scaleFloors(subcategory.contracts, bar.height);
-  return floors.map((floor) => {
+  return floors.map((floor, index) => {
     const size: Vec3 = { x: bar.footprint, y: floor.height, z: bar.footprint };
     const center: Vec3 = { x: bar.center.x, y: GROUND_LEVEL + floor.y, z: bar.center.z };
     return {
@@ -297,7 +392,10 @@ function buildFloorBoxes(district: CityDistrict, bar: PositionedBar): LayoutBox[
       kind: 'floor',
       center,
       size,
-      color: district.color,
+      // Etagen-Shading (WP-C8): dezente Helligkeitsvariation der Distrikt-
+      // Basisfarbe je Etagen-Index, damit gestapelte Etagen visuell
+      // gegeneinander abgegrenzt bleiben (`adjustHexLightness`/`floorShadeDelta` oben).
+      color: adjustHexLightness(district.color, floorShadeDelta(index)),
       opacity: FLOOR_OPACITY,
       edges: false,
       pickable: true,

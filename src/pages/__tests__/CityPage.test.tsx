@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as THREE from 'three';
-import { renderWithI18n } from '@/test-utils/render';
+import { renderWithProviders } from '@/test-utils/render';
+import { merchantFingerprint } from '@/lib/merchant-fingerprint';
+import type { Category, Transaction } from '@/types';
+import type { ContractDecision } from '@/services/contract-decision-service';
 import CityPage from '../CityPage';
 
 // jsdom kennt weder ResizeObserver noch requestAnimationFrame standardmäßig
@@ -33,6 +36,24 @@ vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
   },
 }));
 
+// WP-C8: CityPage lädt jetzt echte Daten über `useCityModel` (TanStack Query)
+// statt der `cityDemoModel`-Fixture — die drei zugrunde liegenden Services
+// werden gemockt, damit die Seite ein deterministisches Modell (1 Distrikt
+// "Freizeit" mit Unterkategorie "Streaming" + aktiven Verträgen Netflix/HBO)
+// baut. Das hält alle bestehenden Verhaltens-Assertions (Listen-Toggle,
+// aria-current, Sheet-Prozent, onFrame-Verdrahtung, Stadt→…→Streaming) am
+// Leben, nur über den echten Daten-Pfad statt der Fixture.
+vi.mock('@/services/transaction-service', () => ({
+  getTransactions: vi.fn(),
+  getCategories: vi.fn(),
+}));
+vi.mock('@/services/contract-decision-service', () => ({
+  getContractDecisionMap: vi.fn(),
+}));
+
+import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getContractDecisionMap } from '@/services/contract-decision-service';
+
 /** Deterministischer Fake-Kamera-Stub (Präzedenzfall CityLabels.test.tsx): Identitätsmatrizen -> NDC === anchor; `position` für die Welt-Distanz des Label-Fadings (nah -> volle Opazität). */
 function identityCamera(): THREE.PerspectiveCamera {
   return {
@@ -42,7 +63,73 @@ function identityCamera(): THREE.PerspectiveCamera {
   } as unknown as THREE.PerspectiveCamera;
 }
 
+const CAT_LEISURE = 'cat-leisure';
+const CAT_STREAMING = 'cat-streaming';
+
+const FIXTURE_CATEGORIES: Category[] = [
+  { id: CAT_LEISURE, name: 'Freizeit', filters: [] },
+  { id: CAT_STREAMING, name: 'Streaming', filters: [], parent_id: CAT_LEISURE },
+];
+
+/** Tagesoffset relativ zu "jetzt" statt fixer Daten — bleibt unabhängig vom tatsächlichen Testlauf-Datum gültig (Stale-Erkennung in `computeContracts` vergleicht gegen `new Date()`). */
+function daysAgoISO(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
+const FIXTURE_TRANSACTIONS: Transaction[] = [
+  {
+    id: 'tx-netflix',
+    date: daysAgoISO(5),
+    amount: -17.99,
+    payee: 'Netflix',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_STREAMING,
+  },
+  {
+    id: 'tx-hbo',
+    date: daysAgoISO(8),
+    amount: -9.99,
+    payee: 'HBO',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_STREAMING,
+  },
+];
+
+/**
+ * Ein `cycle_override: 'monthly'` je Fingerprint macht die Verträge auch bei
+ * nur EINER Buchung je Händler "active" (Entscheidung schlägt die sonst
+ * nötige Mindestanzahl/Zyklus-Erkennung, siehe `computeContracts`) — hält die
+ * Fixture minimal, ohne die Vertragslogik selbst zu duplizieren.
+ */
+function buildContractDecisions(transactions: Transaction[]): Map<string, ContractDecision> {
+  const decisions = new Map<string, ContractDecision>();
+  for (const tx of transactions) {
+    const fingerprint = merchantFingerprint(tx);
+    decisions.set(fingerprint, {
+      id: `decision-${tx.id}`,
+      user_id: 'local',
+      fingerprint,
+      status: 'active',
+      cycle_override: 'monthly',
+    });
+  }
+  return decisions;
+}
+
 beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
+  vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
+  vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
+
   // jsdom liefert für `getBoundingClientRect()` ohne echtes Layout immer
   // 0x0 — `CityPage` misst darüber aber die reale Canvas-Fläche
   // (`canvasSize` für die Label-Reprojektion). Fester Stub macht die Größe
@@ -70,7 +157,8 @@ afterEach(() => {
 describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
   it('sollte den Listen-Toggle aktivieren und zwischen Canvas- und Listenansicht umschalten (aria-pressed spiegelt den Zustand)', async () => {
     const user = userEvent.setup();
-    renderWithI18n(<CityPage />, locale);
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
 
     const toggle = screen.getByRole('button', { name: /list|liste/i });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
@@ -86,8 +174,9 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(screen.queryByTestId('city-accessible-list')).not.toBeInTheDocument();
   });
 
-  it('sollte den aktuellen (letzten) Breadcrumb-Eintrag mit aria-current="page" markieren', () => {
-    renderWithI18n(<CityPage />, locale);
+  it('sollte den aktuellen (letzten) Breadcrumb-Eintrag mit aria-current="page" markieren', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
 
     const nav = screen.getByRole('navigation', { name: locale === 'de' ? 'Stadt-Navigation' : 'City navigation' });
     const current = nav.querySelector('[aria-current="page"]');
@@ -97,7 +186,8 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
 
   it('sollte im Vertrags-Sheet den prozentualen Anteil des Vertrags an seiner Unterkategorie anzeigen', async () => {
     const user = userEvent.setup();
-    renderWithI18n(<CityPage />, locale);
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
 
     // Über die Listenansicht navigieren (teilt denselben nav-State wie der
     // Canvas) bis zu einem Vertrag mit `contracts` (Streaming in "Freizeit").
@@ -106,18 +196,19 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     // Scoping wäre die Query mehrdeutig.
     await user.click(screen.getByRole('button', { name: /list|liste/i }));
     const list = () => within(screen.getByTestId('city-accessible-list'));
-    await user.click(list().getByRole('button', { name: /Freizeit|Leisure/ })); // 1. Tap: Fokus
-    await user.click(list().getByRole('button', { name: /Freizeit|Leisure/ })); // 2. Tap: Eintauchen
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // 1. Tap: Fokus
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // 2. Tap: Eintauchen
     await user.click(list().getByRole('button', { name: /Streaming/ }));
     await user.click(list().getByRole('button', { name: /Netflix/ }));
 
-    // Sheet ist offen -> Prozentanteil sichtbar (Netflix 17.99 von Streaming-Summe).
+    // Sheet ist offen -> Prozentanteil sichtbar (Netflix-Anteil an Streaming-Summe).
     const percentText = locale === 'de' ? /von Streaming/ : /of Streaming/;
     expect(await screen.findByText(percentText)).toBeInTheDocument();
   });
 
   it('sollte onFrame von CityCanvas an die Label-Reprojektion weiterreichen (kein eigener Timer)', async () => {
-    renderWithI18n(<CityPage />, locale);
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
 
     expect(capturedOnFrame).toBeInstanceOf(Function);
     // Direkter Aufruf simuliert exakt das, was `CityCanvas`s Render-on-Demand-
@@ -127,5 +218,14 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     // Mindestens ein Distrikt-Label sollte nach der Reprojektion sichtbar sein.
     const labels = await screen.findAllByTestId('city-label');
     expect(labels.length).toBeGreaterThan(0);
+  });
+
+  it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {
+    vi.mocked(getTransactions).mockResolvedValue([]);
+    renderWithProviders(<CityPage />, { query: true, locale });
+
+    const emptyText = locale === 'de' ? /Noch keine Ausgabendaten/ : /No spending data yet/;
+    expect(await screen.findByText(emptyText)).toBeInTheDocument();
+    expect(screen.queryByTestId('city-canvas-stub')).not.toBeInTheDocument();
   });
 });

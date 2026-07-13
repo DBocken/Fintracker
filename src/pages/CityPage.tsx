@@ -7,11 +7,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useI18n } from "@/i18n/useI18n";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
-import { cityDemoModel } from "@/features/finance-city/data/city-demo-data";
+import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
+import { useCityModel } from "@/features/finance-city/application/use-city-model";
 import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
 import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
@@ -30,10 +31,10 @@ const MAX_VISIBLE_LABELS_DESKTOP = 10;
 
 /**
  * Kompakte Tab-Chrome der Stadt (WP-C0-Platzhalter): nur "Ausgaben" ist
- * aktuell erreichbar (dieses WP liefert nur den Ausgaben-Distrikt-Fixture,
- * `src/features/finance-city/data/city-demo-data.ts`). Einnahmen/Ziele/
- * Übersicht sind bewusst disabled statt versteckt, damit die finale
- * Navigationsstruktur (siehe README, "3 Ebenen") schon jetzt sichtbar ist.
+ * aktuell erreichbar (`useCityModel`/`buildCityModelFromData` bilden bislang
+ * nur Ausgaben-Distrikte ab, WP-C8). Einnahmen/Ziele/Übersicht sind bewusst
+ * disabled statt versteckt, damit die finale Navigationsstruktur (siehe
+ * README, "3 Ebenen") schon jetzt sichtbar ist.
  */
 const CITY_TABS = [
   { value: "overview", labelKey: "city.tabOverview" },
@@ -91,7 +92,19 @@ export default function CityPage() {
   const isWideDesktop = useIsWideDesktop();
   const maxVisibleLabels = isWideDesktop ? MAX_VISIBLE_LABELS_DESKTOP : MAX_VISIBLE_LABELS_MOBILE;
 
-  const nav = useCityNavigation(cityDemoModel, { city: t("city.breadcrumbCity") });
+  // WP-C8: echte Daten statt Fixture (`cityDemoModel` bleibt nur als
+  // Test-Fixture erhalten, README "Folgeschritte") — `useCityModel` teilt
+  // dieselben `financeKeys`-Query-Keys wie das Dashboard (kein Query-
+  // Duplikat, AGENTS.md §4/§7). `model` ist `{ districts: [] }` solange
+  // geladen wird ODER es keine Ausgabendaten gibt; `useCityNavigation` bleibt
+  // damit unbedingt aufrufbar (React-Hook-Regel) und ist mit einem leeren
+  // Modell bereits crash-frei (Taps sind No-ops, siehe `use-city-navigation.ts`).
+  const { model, isLoading, isEmpty } = useCityModel();
+  // Canvas/Labels/Liste mounten NUR mit geladenen, nicht-leeren Daten — spart
+  // den WebGL-Kontext während des Ladens/bei leeren Daten (kein Demo-Fallback).
+  const canvasMounted = !isLoading && !isEmpty;
+
+  const nav = useCityNavigation(model, { city: t("city.breadcrumbCity") });
 
   // buildCityLayout ist die EINZIGE Geometrie-Quelle (README) — `presentation/`
   // trifft keine eigenen Layout-Entscheidungen. `focusDistrictId` bedeutet je
@@ -100,8 +113,8 @@ export default function CityPage() {
   const layout = useMemo(() => {
     const focusDistrictId = (nav.level === "city" ? nav.focusDistrictId : nav.activeDistrictId) ?? undefined;
     const focusSubcategoryId = nav.activeSubcategoryId ?? undefined;
-    return buildCityLayout(cityDemoModel, { level: nav.level, focusDistrictId, focusSubcategoryId });
-  }, [nav.level, nav.focusDistrictId, nav.activeDistrictId, nav.activeSubcategoryId]);
+    return buildCityLayout(model, { level: nav.level, focusDistrictId, focusSubcategoryId });
+  }, [model, nav.level, nav.focusDistrictId, nav.activeDistrictId, nav.activeSubcategoryId]);
 
   // WP-C4: Fokus-Bounding-Sphere für den Kamera-Controller (Distrikt-Fokus/
   // -Eintauchen bzw. Unterkategorie-Eintauchen) — `computeFocusBounds` liest
@@ -126,8 +139,8 @@ export default function CityPage() {
   // `domain/city-labels.ts`). Reine Auswahl, KEINE Screen-Projektion hier —
   // die übernimmt `CityLabels.reproject()` pro `onFrame`-Tick (Perf-Vorgabe).
   const labels = useMemo(
-    () => selectCityLabels(cityDemoModel, layout, nav.level),
-    [layout, nav.level],
+    () => selectCityLabels(model, layout, nav.level),
+    [model, layout, nav.level],
   );
 
   // Misst die reale Canvas-Fläche für die Label-Reprojektion (NDC ->
@@ -135,6 +148,10 @@ export default function CityPage() {
   // statt über `scene.domElement` (WP-C4-Messeffekt unten): bleibt so auch
   // funktionsfähig, wenn WebGL nicht verfügbar ist (`webglUnavailable`-
   // Fallback in `CityCanvas.tsx`) — die Fläche existiert so oder so.
+  // Abhängigkeit von `canvasMounted` (WP-C8): der Container-Div existiert erst,
+  // sobald Laden/Leer-Zustand vorbei sind — ohne diese Dep würde der Effekt
+  // beim allerersten (leeren) Render laufen, `el` wäre `null`, und der
+  // ResizeObserver würde nie nachträglich angehängt.
   useEffect(() => {
     const el = canvasContainerRef.current;
     if (!el) return;
@@ -146,7 +163,7 @@ export default function CityPage() {
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(el);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [canvasMounted]);
 
   // Sobald die Canvas-Fläche bekannt ist / sich ändert, EINEN Frame anfordern:
   // `CityLabels.reproject` läuft ausschließlich über `onFrame` (Perf-Vorgabe),
@@ -197,6 +214,11 @@ export default function CityPage() {
   // eigenen `[]`-Mount-Effekt nicht erneut ausführen, ABER CityCanvas
   // spiegelt den Prop selbst per Ref bei jedem Render — ein einziges
   // Re-Render nach der Erstellung reicht).
+  //
+  // WP-C8: `CityCanvas` mountet jetzt erst mit `canvasMounted` (Laden/Leer-
+  // Zustand zeigen keinen Canvas) — dieser Effekt muss deshalb auf
+  // `canvasMounted` reagieren, sonst liefe er beim allerersten (Canvas-losen)
+  // Render mit `sceneRef.current === null` und würde nie erneut versuchen.
   useEffect(() => {
     const scene = sceneRef.current;
     const controlsApi = controlsApiRef.current;
@@ -234,12 +256,13 @@ export default function CityPage() {
       controller.dispose();
       setCameraController(null);
     };
-    // Bewusst `[]`: läuft genau einmal pro `CityCanvas`-Mount (`sceneRef`/
-    // `controlsApiRef` sind für die gesamte Lebensdauer stabil); `nav.actions`
-    // ist laut `use-city-navigation.ts` referenzstabil (reine `useCallback`s
-    // ohne externe deps), `reducedMotion` wird separat unten reaktiv gepflegt.
+    // `canvasMounted` ist die einzige echte Dependency: `sceneRef`/
+    // `controlsApiRef` sind für die gesamte Lebensdauer EINES `CityCanvas`-
+    // Mounts stabil; `nav.actions` ist laut `use-city-navigation.ts`
+    // referenzstabil (reine `useCallback`s ohne externe deps), `reducedMotion`
+    // wird separat unten reaktiv gepflegt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canvasMounted]);
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern — ohne neu zu
   // messen, einfach mit der zuletzt gemessenen Konfiguration erneut
@@ -258,7 +281,7 @@ export default function CityPage() {
   }, [cameraController, nav.cameraIntent, layout, focusLayout]);
 
   const selectedContract = findSelectedContract(
-    cityDemoModel,
+    model,
     nav.activeDistrictId,
     nav.activeSubcategoryId,
     nav.selectedContractId,
@@ -368,45 +391,64 @@ export default function CityPage() {
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
-          {/* Canvas bleibt IMMER gemountet (kein WebGL-Kontext-Neuaufbau bei
-              jedem Listen-Toggle, siehe Kommentar bei `showList` oben) — im
-              Listen-Modus nur visuell ausgeblendet + `aria-hidden`, damit
-              Screenreader nicht zwei konkurrierende Ansichten sehen. */}
-          <div
-            ref={canvasContainerRef}
-            aria-hidden={showList}
-            role={showList ? undefined : "img"}
-            aria-label={showList ? undefined : t("city.canvasAriaLabel")}
-            className={cn("absolute inset-0", showList && "invisible")}
-          >
-            <CityCanvas
-              layout={layout}
-              onTapBox={handleTapBox}
-              onControlsStart={() => cameraController?.cancelFlight()}
-              onControlsChange={() => cameraController?.onControlsChange()}
-              cameraController={cameraController}
-              onFrame={handleFrame}
-              controlsApiRef={controlsApiRef}
-              sceneRef={sceneRef}
-              className="absolute inset-0"
-            />
-            <CityLabels
-              ref={cityLabelsRef}
-              labels={labels}
-              canvasSize={canvasSize}
-              maxVisible={maxVisibleLabels}
-              className="absolute inset-0"
-            />
-          </div>
-
-          {showList && (
-            <div className="absolute inset-0 overflow-y-auto p-3">
-              <CityAccessibleList
-                model={cityDemoModel}
-                nav={nav}
-                onBackToCanvas={() => setShowList(false)}
-              />
+          {/* WP-C8: solange geladen wird, zeigt die Fläche nur einen dezenten
+              Lade-Hinweis — Canvas/Labels/Liste mounten erst mit echten Daten
+              (kein Fixture-Fallback, kein unnötiger WebGL-Kontext). */}
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <p className="text-sm text-muted-foreground">{t("city.loading")}</p>
             </div>
+          ) : isEmpty ? (
+            // WP-C8: keine Ausgabendaten -> Hinweis-Karte statt Canvas (README/
+            // Akzeptanzkriterium "nur echte Daten"). Canvas/Labels/Liste
+            // mounten hier bewusst NICHT (spart den WebGL-Kontext).
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <EmptyState icon={Building2} title={t("city.emptyState")} />
+            </div>
+          ) : (
+            <>
+              {/* Canvas bleibt gemountet, solange Daten vorhanden sind (kein
+                  WebGL-Kontext-Neuaufbau bei jedem Listen-Toggle, siehe
+                  Kommentar bei `showList` oben) — im Listen-Modus nur visuell
+                  ausgeblendet + `aria-hidden`, damit Screenreader nicht zwei
+                  konkurrierende Ansichten sehen. */}
+              <div
+                ref={canvasContainerRef}
+                aria-hidden={showList}
+                role={showList ? undefined : "img"}
+                aria-label={showList ? undefined : t("city.canvasAriaLabel")}
+                className={cn("absolute inset-0", showList && "invisible")}
+              >
+                <CityCanvas
+                  layout={layout}
+                  onTapBox={handleTapBox}
+                  onControlsStart={() => cameraController?.cancelFlight()}
+                  onControlsChange={() => cameraController?.onControlsChange()}
+                  cameraController={cameraController}
+                  onFrame={handleFrame}
+                  controlsApiRef={controlsApiRef}
+                  sceneRef={sceneRef}
+                  className="absolute inset-0"
+                />
+                <CityLabels
+                  ref={cityLabelsRef}
+                  labels={labels}
+                  canvasSize={canvasSize}
+                  maxVisible={maxVisibleLabels}
+                  className="absolute inset-0"
+                />
+              </div>
+
+              {showList && (
+                <div className="absolute inset-0 overflow-y-auto p-3">
+                  <CityAccessibleList
+                    model={model}
+                    nav={nav}
+                    onBackToCanvas={() => setShowList(false)}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
