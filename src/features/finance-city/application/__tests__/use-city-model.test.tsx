@@ -77,4 +77,35 @@ describe('useCityModel', () => {
     expect(result.current.isEmpty).toBe(true);
     expect(result.current.model.districts).toHaveLength(0);
   });
+
+  it('[REGRESSION] sollte eine nachträgliche Kategorie-Zuweisung automatisch übernehmen (Stadt baut nach ["transactions"]-Invalidierung neu)', async () => {
+    // Reproduziert die Nutzeranforderung „wenn ich eine Kategorie zuweise,
+    // muss die Stadt das automatisch erkennen": eine zunächst UNkategorisierte
+    // Buchung erzeugt keinen Distrikt (unkategorisierte Ausgaben haben keine
+    // Hauptkategorie -> kein Stadtviertel). Nach der Zuweisung liefert die
+    // Transaktions-Query (denselben Key, den der Detail-Sheet-Speichern-
+    // Mutations-Hook invalidiert: `['transactions']`) die Buchung MIT Kategorie
+    // -> die Stadt muss beim nächsten Fetch das neue Viertel enthalten.
+    const uncategorized: Transaction = { ...FIXTURE_TRANSACTIONS[0], category_id: null };
+    vi.mocked(getTransactions).mockResolvedValue([uncategorized]);
+
+    const { wrapper, queryClient } = createHookWrapper();
+    const { result } = renderHook(() => useCityModel(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    // Unkategorisiert -> kein Hauptkategorie-Distrikt.
+    expect(result.current.model.districts).toHaveLength(0);
+    expect(result.current.isEmpty).toBe(true);
+
+    // Kategorie zugewiesen: die Query liefert jetzt die kategorisierte Buchung.
+    vi.mocked(getTransactions).mockResolvedValue([{ ...uncategorized, category_id: CAT_STREAMING }]);
+    // Exakt die Invalidierung, die `useTransactionDetailEditing` beim Speichern
+    // einer Kategorie auslöst — die Stadt-Query `['transactions', <limit>]`
+    // fällt unter dieses Präfix.
+    await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+
+    await waitFor(() => expect(result.current.model.districts).toHaveLength(1));
+    expect(result.current.model.districts[0]).toMatchObject({ id: CAT_LEISURE, label: 'Freizeit' });
+    expect(result.current.isEmpty).toBe(false);
+  });
 });
