@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import { Building2, ChevronRight, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useI18n } from "@/i18n/useI18n";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import { cityDemoModel } from "@/features/finance-city/data/city-demo-data";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
+import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
+import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
+import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
 import { CAMERA_FOV_Y_DEG, type CitySceneHandle } from "@/features/finance-city/presentation/city-scene";
 import {
   createCityCameraController,
@@ -18,6 +22,11 @@ import {
   type CityCameraControllerConfig,
 } from "@/features/finance-city/presentation/city-camera-controller";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
+
+/** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
+const MAX_VISIBLE_LABELS_MOBILE = 6;
+const MAX_VISIBLE_LABELS_DESKTOP = 10;
 
 /**
  * Kompakte Tab-Chrome der Stadt (WP-C0-Platzhalter): nur "Ausgaben" ist
@@ -71,6 +80,17 @@ export default function CityPage() {
   // neu zu messen.
   const lastMeasuredConfigRef = useRef<Omit<CityCameraControllerConfig, "reducedMotion"> | null>(null);
 
+  // WP-C5: A11y-Parallelstruktur (README-Akzeptanzkriterium: 3D ist nie der
+  // einzige Zugriffsweg). Der Canvas bleibt permanent gemountet (kein
+  // WebGL-Kontext-Neuaufbau bei jedem Toggle) — im Listen-Modus wird er nur
+  // visuell ausgeblendet + `aria-hidden`, siehe JSX unten.
+  const [showList, setShowList] = useState(false);
+  const cityLabelsRef = useRef<CityLabelsHandle | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const isWideDesktop = useIsWideDesktop();
+  const maxVisibleLabels = isWideDesktop ? MAX_VISIBLE_LABELS_DESKTOP : MAX_VISIBLE_LABELS_MOBILE;
+
   const nav = useCityNavigation(cityDemoModel, { city: t("city.breadcrumbCity") });
 
   // buildCityLayout ist die EINZIGE Geometrie-Quelle (README) — `presentation/`
@@ -100,6 +120,40 @@ export default function CityPage() {
     }
     return null;
   }, [layout, nav.cameraIntent, nav.activeDistrictId, nav.focusDistrictId]);
+
+  // WP-C5: HTML-Overlay-Labels — dieselbe Layout-Quelle wie die 3D-Boxen
+  // (`layout`), Text/Beträge kommen aus dem Model (`selectCityLabels`,
+  // `domain/city-labels.ts`). Reine Auswahl, KEINE Screen-Projektion hier —
+  // die übernimmt `CityLabels.reproject()` pro `onFrame`-Tick (Perf-Vorgabe).
+  const labels = useMemo(
+    () => selectCityLabels(cityDemoModel, layout, nav.level),
+    [layout, nav.level],
+  );
+
+  // Misst die reale Canvas-Fläche für die Label-Reprojektion (NDC ->
+  // Bildschirm-Pixel, `CityLabels`). Bewusst über einen EIGENEN Container-Ref
+  // statt über `scene.domElement` (WP-C4-Messeffekt unten): bleibt so auch
+  // funktionsfähig, wenn WebGL nicht verfügbar ist (`webglUnavailable`-
+  // Fallback in `CityCanvas.tsx`) — die Fläche existiert so oder so.
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setCanvasSize({ width: rect.width, height: rect.height });
+    };
+    measure();
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(el);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // WP-C5-Andockpunkt der Perf-Vorgabe: `CityCanvas` feuert `onFrame` NUR in
+  // Frames, in denen tatsächlich gerendert wurde (siehe CityCanvas.tsx) — die
+  // Labels reprojizieren sich exakt darüber, OHNE eigenen Timer.
+  const handleFrame = useCallback((camera: THREE.PerspectiveCamera) => {
+    cityLabelsRef.current?.reproject(camera);
+  }, []);
 
   // Tap-Ergebnis (box.id aus city-scene.ts#pick) auf die passende Navigations-
   // Aktion abbilden: Hüllen-id = "districtId", Balken-id = "districtId/subId",
@@ -195,6 +249,16 @@ export default function CityPage() {
     nav.selectedContractId,
   );
 
+  // WP-C5: Anteil des Vertrags an seiner Unterkategorie (z. B. "32 % von
+  // Streaming") — Beträge kommen 1:1 aus dem Model (kein Re-Aggregieren,
+  // AGENTS.md §8), Formatierung über `formatPercent` (Anzeige-Rundung, KEIN
+  // eigener `toFixed`). `null` bei einer (in den Demo-Daten nicht
+  // vorkommenden) Unterkategorie ohne Betrag, statt einer Division durch 0.
+  const contractShareOfSubcategoryRate =
+    selectedContract && selectedContract.subcategory.amount > 0
+      ? selectedContract.contract.amount / selectedContract.subcategory.amount
+      : null;
+
   return (
     // AppShell (`src/components/layout/AppShell.tsx`) umschließt jede Route
     // mit einem scrollenden `<main class="overflow-y-auto … pb-[calc(5rem+
@@ -221,35 +285,43 @@ export default function CityPage() {
                 {/* Breadcrumb der 3 Ebenen (Stadt → Distrikt → Unterkategorie,
                     siehe README) — jeder Eintrag ist per `goTo` direkt anspringbar. */}
                 <nav aria-label={t("city.breadcrumbNavLabel")} className="flex flex-wrap items-center">
-                  {nav.breadcrumb.map((entry, index) => (
-                    <span key={`${entry.level}:${entry.id ?? "root"}`} className="flex items-center">
-                      {index > 0 && <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-11 min-w-11 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-                        onClick={() => nav.actions.goTo(entry.level, entry.id ?? undefined)}
-                      >
-                        {entry.label}
-                      </Button>
-                    </span>
-                  ))}
+                  {nav.breadcrumb.map((entry, index) => {
+                    const isCurrent = index === nav.breadcrumb.length - 1;
+                    return (
+                      <span key={`${entry.level}:${entry.id ?? "root"}`} className="flex items-center">
+                        {index > 0 && (
+                          <ChevronRight
+                            className="mx-0.5 h-3.5 w-3.5 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-current={isCurrent ? "page" : undefined}
+                          className="h-11 min-w-11 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                          onClick={() => nav.actions.goTo(entry.level, entry.id ?? undefined)}
+                        >
+                          {entry.label}
+                        </Button>
+                      </span>
+                    );
+                  })}
                 </nav>
               </div>
 
               {/* A11y-Fallback für die 3D-Ansicht (README, Akzeptanzkriterium
-                  zur nicht-visuellen Alternative): Listenansicht-Toggle. Noch
-                  ohne Funktion (keine Listenansicht existiert vor WP-C3),
-                  deshalb disabled statt versteckt — finale Struktur, kein
-                  totes UI. */}
+                  zur nicht-visuellen Alternative): Listenansicht-Toggle
+                  (WP-C5) — schaltet zwischen Canvas- und Listenansicht um,
+                  teilt denselben `nav`-State (kein Parallel-State). */}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                disabled
-                aria-disabled="true"
-                aria-label={t("city.a11yListToggle")}
+                aria-pressed={showList}
+                aria-label={showList ? t("city.listView.backToCanvas") : t("city.a11yListToggle")}
+                onClick={() => setShowList((prev) => !prev)}
               >
                 <List className="h-4 w-4" aria-hidden="true" />
               </Button>
@@ -280,21 +352,47 @@ export default function CityPage() {
           </Tabs>
         </div>
 
-        <div
-          className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30"
-          role="img"
-          aria-label={t("city.canvasAriaLabel")}
-        >
-          <CityCanvas
-            layout={layout}
-            onTapBox={handleTapBox}
-            onControlsStart={() => cameraController?.cancelFlight()}
-            onControlsChange={() => cameraController?.onControlsChange()}
-            cameraController={cameraController}
-            controlsApiRef={controlsApiRef}
-            sceneRef={sceneRef}
-            className="absolute inset-0"
-          />
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
+          {/* Canvas bleibt IMMER gemountet (kein WebGL-Kontext-Neuaufbau bei
+              jedem Listen-Toggle, siehe Kommentar bei `showList` oben) — im
+              Listen-Modus nur visuell ausgeblendet + `aria-hidden`, damit
+              Screenreader nicht zwei konkurrierende Ansichten sehen. */}
+          <div
+            ref={canvasContainerRef}
+            aria-hidden={showList}
+            role={showList ? undefined : "img"}
+            aria-label={showList ? undefined : t("city.canvasAriaLabel")}
+            className={cn("absolute inset-0", showList && "invisible")}
+          >
+            <CityCanvas
+              layout={layout}
+              onTapBox={handleTapBox}
+              onControlsStart={() => cameraController?.cancelFlight()}
+              onControlsChange={() => cameraController?.onControlsChange()}
+              cameraController={cameraController}
+              onFrame={handleFrame}
+              controlsApiRef={controlsApiRef}
+              sceneRef={sceneRef}
+              className="absolute inset-0"
+            />
+            <CityLabels
+              ref={cityLabelsRef}
+              labels={labels}
+              canvasSize={canvasSize}
+              maxVisible={maxVisibleLabels}
+              className="absolute inset-0"
+            />
+          </div>
+
+          {showList && (
+            <div className="absolute inset-0 overflow-y-auto p-3">
+              <CityAccessibleList
+                model={cityDemoModel}
+                nav={nav}
+                onBackToCanvas={() => setShowList(false)}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -317,6 +415,13 @@ export default function CityPage() {
                 <span className="text-muted-foreground">{t("city.sheetMonthlyAmountLabel")}</span>
                 <span className="font-semibold">{formatCurrency(selectedContract.contract.amount)}</span>
               </div>
+              {contractShareOfSubcategoryRate !== null && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t("city.sheetShareOfSubcategory")
+                    .replace("{percent}", formatPercent(contractShareOfSubcategoryRate, 0))
+                    .replace("{subcategory}", selectedContract.subcategory.label)}
+                </p>
+              )}
             </>
           )}
         </SheetContent>

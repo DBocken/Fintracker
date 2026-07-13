@@ -29,6 +29,15 @@ export type CityCanvasProps = {
   onControlsChange?: () => void;
   /** WP-C4: pro Render-Frame getickter Kamera-Controller (`presentation/city-camera-controller.ts`) — `CityPage.tsx` erzeugt ihn erst NACH dem Mount (braucht `sceneRef`/`controlsApiRef`), deshalb optional/nachträglich befüllbar. */
   cameraController?: CityCameraController | null;
+  /**
+   * WP-C5: feuert am Ende von `tick()`, aber NUR in Frames, in denen
+   * tatsächlich gerendert wurde (`needsRender` war `true`) — genau der Pfad,
+   * den Kameraflug UND Orbit-Geste beide durchlaufen. KEINE zweite
+   * rAF-Schleife für Labels: sie reprojizieren sich exakt einmal pro
+   * tatsächlich gerendertem Frame über diesen Callback (README/Perf-Vorgabe,
+   * `[REGRESSION]`-Test WP-C4.1 bleibt dadurch unangetastet).
+   */
+  onFrame?: (camera: THREE.PerspectiveCamera) => void;
   /** WP-C4-Andockpunkt für den Kamera-Controller (Zoom-Grenzen setzen, Loop wecken). */
   controlsApiRef?: MutableRefObject<CityControlsApi | null>;
   /** WP-C4/Debug-Zugriff auf das rohe Szenen-Handle (`applyCameraPose`, `camera`, `target`, …) ohne `CityCanvas` selbst umzubauen. */
@@ -81,6 +90,7 @@ export function CityCanvas({
   onControlsStart,
   onControlsChange,
   cameraController,
+  onFrame,
   controlsApiRef,
   sceneRef,
   className,
@@ -107,6 +117,8 @@ export function CityCanvas({
   onControlsChangeRef.current = onControlsChange;
   const cameraControllerRef = useRef(cameraController);
   cameraControllerRef.current = cameraController;
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
 
   // Mount/Unmount: EIN Effekt für den kompletten WebGL-Lifecycle.
   useEffect(() => {
@@ -229,6 +241,9 @@ export function CityCanvas({
       if (needsRender) {
         handle.render();
         needsRender = false;
+        // WP-C5: NUR hier (tatsächlich gerendertes Frame) — kein separater
+        // Timer/rAF für Labels, siehe Prop-Dokumentation oben.
+        onFrameRef.current?.(handle.camera);
       }
 
       // Erst JETZT freigeben und GENAU EINE Stelle plant den Folgeframe.

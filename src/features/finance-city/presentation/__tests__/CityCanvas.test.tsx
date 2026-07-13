@@ -225,4 +225,91 @@ describe('CityCanvas', () => {
     expect(handle!.pick).not.toHaveBeenCalled();
     expect(onTapBox).not.toHaveBeenCalled();
   });
+
+  it('sollte onFrame nach dem initialen Render-Tick genau einmal mit der aktuellen Kamera aufrufen (WP-C5)', async () => {
+    let handle: CitySceneHandle | null = null;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas);
+      return handle;
+    });
+    const onFrame = vi.fn();
+
+    render(<CityCanvas layout={LAYOUT} onTapBox={vi.fn()} onFrame={onFrame} />);
+    await waitFor(() => expect(handle).not.toBeNull());
+    await waitFor(() => expect(handle!.render).toHaveBeenCalledTimes(1));
+
+    // Kein weiterer Tick wird geplant (nichts hat sich geändert) -> onFrame
+    // feuert exakt einmal, mit derselben Kamera-Instanz wie das Szenen-Handle.
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    expect(onFrame).toHaveBeenCalledWith(handle!.camera);
+  });
+
+  it('[REGRESSION] sollte onFrame NUR bei Frames feuern, in denen tatsächlich gerendert wurde (keine zweite rAF-Schleife, kein Feuern bei No-Op-Ticks)', async () => {
+    const queue = new Map<number, FrameRequestCallback>();
+    let nextRafId = 1;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextRafId++;
+      queue.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      queue.delete(id);
+    });
+
+    let handle: CitySceneHandle | null = null;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas);
+      return handle;
+    });
+
+    const onFrame = vi.fn();
+    const controlsApiRef = createRef<CityControlsApi | null>();
+    // Fake-Controller: Frame 1+2 "in Flug" (Änderung, Render nötig), danach
+    // beendet (keine Änderung mehr) -> Loop stoppt von selbst.
+    let ticksRemaining = 2;
+    const cameraController = {
+      onIntent: vi.fn(),
+      tick: vi.fn(() => {
+        if (ticksRemaining > 0) {
+          ticksRemaining -= 1;
+          return true;
+        }
+        return false;
+      }),
+      cancelFlight: vi.fn(),
+      onControlsChange: vi.fn(),
+      configure: vi.fn(),
+      dispose: vi.fn(),
+    };
+
+    render(
+      <CityCanvas
+        layout={LAYOUT}
+        onTapBox={vi.fn()}
+        onFrame={onFrame}
+        cameraController={cameraController}
+        controlsApiRef={controlsApiRef}
+      />,
+    );
+    await waitFor(() => expect(handle).not.toBeNull());
+
+    const flushFrame = (nowMs: number) => {
+      const callbacks = [...queue.values()];
+      queue.clear();
+      for (const cb of callbacks) cb(nowMs);
+    };
+
+    // Frame 1: Mount-invalidate + controllerActive=true -> Render + onFrame.
+    flushFrame(1000);
+    // Frame 2: controllerActive=true (zweiter Tick) -> Render + onFrame.
+    flushFrame(1016);
+    // Frame 3: controllerActive=false, controls.update() ebenfalls false
+    // (Fake-Renderer/-Canvas ohne echte Interaktion) -> KEIN Render, KEIN onFrame,
+    // Loop stoppt (queue bleibt leer).
+    flushFrame(1032);
+
+    expect(handle!.render).toHaveBeenCalledTimes(2);
+    expect(onFrame).toHaveBeenCalledTimes(2);
+    expect(queue.size).toBe(0);
+  });
 });
