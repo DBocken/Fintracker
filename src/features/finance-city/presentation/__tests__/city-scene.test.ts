@@ -261,6 +261,35 @@ describe('createCityScene', () => {
     });
   });
 
+  describe('setTheme (WP-C9)', () => {
+    it('sollte Hintergrund und Fog-Farbe auf das gewählte Theme umstellen', () => {
+      // jsdom hat keine `dark`-Klasse -> Szene startet im Light-Theme.
+      const { handle, scene } = createHandle();
+      const lightBg = (scene.background as THREE.Color).getHex();
+
+      handle.setTheme('dark');
+      const darkBg = (scene.background as THREE.Color).getHex();
+      expect(darkBg).not.toBe(lightBg);
+
+      // Fog trägt die Hintergrundfarbe des aktiven Themes.
+      handle.setFog(10, 20);
+      expect((scene.fog as THREE.Fog).color.getHex()).toBe(darkBg);
+
+      // Zurück auf Light stellt den Ausgangston wieder her (idempotent).
+      handle.setTheme('light');
+      expect((scene.background as THREE.Color).getHex()).toBe(lightBg);
+    });
+
+    it('sollte die Beleuchtungs-Intensität je Theme anpassen', () => {
+      const { handle, scene } = createHandle();
+      const dirLight = scene.children.find((c): c is THREE.DirectionalLight => c instanceof THREE.DirectionalLight)!;
+      handle.setTheme('light');
+      const lightIntensity = dirLight.intensity;
+      handle.setTheme('dark');
+      expect(dirLight.intensity).not.toBe(lightIntensity);
+    });
+  });
+
   describe('Aufbau-Animationen (WP-C6)', () => {
     it('sollte OHNE setAnimationsEnabled(true) weiterhin sofort die Zielwerte setzen (Default-Verhalten unverändert)', () => {
       const { handle, scene } = createHandle();

@@ -91,26 +91,37 @@ describe('buildCityModelFromData', () => {
       expect(model.districts[1].total).toBe(500);
     });
 
-    it('sollte die Farbe der Kategorie übernehmen, wenn gesetzt', () => {
-      const main = mainNode({ id: 'x::housing', name: 'Wohnen', value: 100, categoryId: 'housing' });
-      const categoriesById = new Map<string, Category>([['housing', category('housing', 'Wohnen', { color: '#abcdef' })]]);
-
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, []);
-
-      expect(model.districts[0].color).toBe('#abcdef');
-    });
-
-    it('sollte eine deterministische Fallback-Farbe je Distrikt-Index verwenden, wenn die Kategorie keine Farbe hat', () => {
+    it('sollte NICHT die (nahezu einheitliche) Kategorie-Farbe verwenden, sondern eine distinkte Stadt-Palette', () => {
+      // Die Default-Taxonomie färbt fast alle Kategorien gleich petrol — als
+      // Distrikt-Farbe wären die Viertel ununterscheidbar. Der Adapter ignoriert
+      // `Category.color` daher bewusst zugunsten einer eigenen Palette.
       const a = mainNode({ id: 'x::a', name: 'A', value: 300, categoryId: 'a' });
       const b = mainNode({ id: 'x::b', name: 'B', value: 200, categoryId: 'b' });
-      const model1 = buildCityModelFromData(sunburstWithMains([a, b]), new Map(), []);
-      const model2 = buildCityModelFromData(sunburstWithMains([a, b]), new Map(), []);
+      const categoriesById = new Map<string, Category>([
+        ['a', category('a', 'A', { color: '#2e7d72' })],
+        ['b', category('b', 'B', { color: '#2e7d72' })], // gleiche Kategorie-Farbe …
+      ]);
 
-      expect(model1.districts[0].color).toMatch(/^#/);
-      expect(model1.districts[1].color).toMatch(/^#/);
-      expect(model1.districts[0].color).not.toBe(model1.districts[1].color);
-      // Determinismus: zweiter Lauf mit identischem Input liefert dieselben Fallback-Farben.
-      expect(model2.districts.map((d) => d.color)).toEqual(model1.districts.map((d) => d.color));
+      const model = buildCityModelFromData(sunburstWithMains([a, b]), categoriesById, []);
+
+      // … aber die Distrikte müssen dennoch verschiedene Farben haben.
+      expect(model.districts[0].color).not.toBe('#2e7d72');
+      expect(model.districts[0].color).not.toBe(model.districts[1].color);
+    });
+
+    it('sollte distinkte, deterministische Distrikt-Farben je Index vergeben (verschiedene Viertel klar unterscheidbar)', () => {
+      const a = mainNode({ id: 'x::a', name: 'A', value: 300, categoryId: 'a' });
+      const b = mainNode({ id: 'x::b', name: 'B', value: 200, categoryId: 'b' });
+      const c = mainNode({ id: 'x::c', name: 'C', value: 100, categoryId: 'c' });
+      const model1 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), []);
+      const model2 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), []);
+
+      const colors = model1.districts.map((d) => d.color);
+      colors.forEach((col) => expect(col).toMatch(/^#[0-9a-fA-F]{6}$/));
+      // Alle drei paarweise verschieden.
+      expect(new Set(colors).size).toBe(3);
+      // Determinismus: identischer Input -> identische Farben.
+      expect(model2.districts.map((d) => d.color)).toEqual(colors);
     });
 
     it('sollte Hauptkategorie-Knoten mit value <= 0 ignorieren', () => {

@@ -65,6 +65,8 @@ export type CitySceneHandle = {
   setSize(width: number, height: number, dpr: number): void;
   /** Erst ab WP-C4 mit echten Werten befüllt — hier no-op-fähig (near/far nicht endlich → Fog aus). */
   setFog(near: number, far: number): void;
+  /** WP-C9: Light/Dark umschalten (Hintergrund, Beleuchtung, Fog-Farbe). Initial aus der `dark`-Klasse am `<html>` abgeleitet; `CityCanvas` spiegelt spätere Theme-Wechsel per `subscribeToDarkModeChanges`. */
+  setTheme(theme: 'light' | 'dark'): void;
   render(): void;
   /** Räumt ALLES auf: geteilte Geometrien, Material-/Edge-Material-Registry, Renderer. */
   dispose(): void;
@@ -96,13 +98,48 @@ export type CreateCitySceneOptions = {
 export const CAMERA_FOV_Y_DEG = 50;
 
 /**
- * Hintergrundfarbe: fester neutraler Ton passend zum Dark-Theme der App
- * (`src/index.css`, `.dark { --background: 190 22% 8%; }` → als Hex). Die
- * Domain-/Presentation-Schicht hat keinen Zugriff auf CSS-Variablen (three.js
- * rendert außerhalb des DOM-Stylesheet-Kontexts) — deshalb ein bewusst
- * dokumentierter fester Wert statt eines Theming-Mechanismus.
+ * Theme-abhängige Szenen-Farben/-Beleuchtung (WP-C9). three.js rendert außerhalb
+ * des DOM-Stylesheet-Kontexts, hat also keinen Zugriff auf CSS-Variablen —
+ * deshalb bewusst dokumentierte feste Werte je Theme statt einer CSS-Anbindung.
+ * `dark` orientiert sich am App-Dark-`--background` (190 22% 8%), `light` an
+ * einem hellen neutralen Slate-Ton, damit die (mittelhelle) Distrikt-Palette
+ * auf beiden Hintergründen lesbar bleibt.
  */
-const BACKGROUND_COLOR = 0x101719;
+type CityTheme = 'light' | 'dark';
+
+type ThemePalette = {
+  background: number;
+  /** Hemisphären-Licht (Himmel/Boden) + Intensität. */
+  hemiSky: number;
+  hemiGround: number;
+  hemiIntensity: number;
+  /** Gerichtetes Licht (Modellierung/Schattierung der Baukörper). */
+  dirColor: number;
+  dirIntensity: number;
+};
+
+const THEME_PALETTES: Record<CityTheme, ThemePalette> = {
+  dark: {
+    background: 0x101719,
+    hemiSky: 0xdfe8ea,
+    hemiGround: 0x14181b,
+    hemiIntensity: 1.15,
+    dirColor: 0xffffff,
+    dirIntensity: 0.85,
+  },
+  light: {
+    background: 0xeef2f4,
+    hemiSky: 0xffffff,
+    hemiGround: 0xd3dce0,
+    hemiIntensity: 1.0,
+    dirColor: 0xffffff,
+    dirIntensity: 0.55, // schwächer: auf hellem Hintergrund würde starkes Direktlicht die Baukörper ausbleichen.
+  },
+};
+
+function initialTheme(): CityTheme {
+  return typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+}
 
 const CAMERA_NEAR = 0.1;
 const CAMERA_FAR = 1000;
@@ -144,8 +181,13 @@ function renderOrderFor(kind: LayoutBoxKind): number {
 export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const { canvas } = opts;
 
+  let theme: CityTheme = initialTheme();
+  let palette = THEME_PALETTES[theme];
+  /** Aktuelle Hintergrundfarbe — auch von `setFog` genutzt (Fog-Farbe == Hintergrund), damit der Ausklang am Stadtrand nicht gegen einen fremden Ton läuft. */
+  let backgroundColor = palette.background;
+
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(BACKGROUND_COLOR);
+  scene.background = new THREE.Color(backgroundColor);
 
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV_Y_DEG, 1, CAMERA_NEAR, CAMERA_FAR);
   camera.position.set(0, 10, 16);
@@ -159,9 +201,10 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   // Kein Schatten (README/Akzeptanzkriterium: Render-on-Demand + Mobil-Akku
   // — Schatten-Maps kosten zusätzliche Passes, die hier nicht nötig sind).
-  const hemisphereLight = new THREE.HemisphereLight(0xdfe8ea, 0x14181b, 1.15);
+  // Farben/Intensitäten kommen aus der Theme-Palette (WP-C9, `setTheme`).
+  const hemisphereLight = new THREE.HemisphereLight(palette.hemiSky, palette.hemiGround, palette.hemiIntensity);
   scene.add(hemisphereLight);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  const directionalLight = new THREE.DirectionalLight(palette.dirColor, palette.dirIntensity);
   directionalLight.position.set(8, 14, 6);
   scene.add(directionalLight);
 
@@ -576,14 +619,35 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     camera.updateProjectionMatrix();
   }
 
+  /** Zuletzt gesetzte Fog-Grenzen — für die Neu-Einfärbung bei Theme-Wechsel (`setTheme`) gemerkt. `null` = Fog aus. */
+  let fogRange: { near: number; far: number } | null = null;
+
   function setFog(near: number, far: number): void {
     // WP-C4 konfiguriert Fog passend zur jeweiligen Ebene. Nicht-endliche
     // Werte (NaN/Infinity) schalten Fog aus — no-op-fähig, wie gefordert.
     if (!Number.isFinite(near) || !Number.isFinite(far)) {
+      fogRange = null;
       scene.fog = null;
       return;
     }
-    scene.fog = new THREE.Fog(BACKGROUND_COLOR, near, far);
+    fogRange = { near, far };
+    scene.fog = new THREE.Fog(backgroundColor, near, far);
+  }
+
+  function setTheme(next: CityTheme): void {
+    if (next === theme) return;
+    theme = next;
+    palette = THEME_PALETTES[theme];
+    backgroundColor = palette.background;
+
+    (scene.background as THREE.Color).set(backgroundColor);
+    hemisphereLight.color.set(palette.hemiSky);
+    hemisphereLight.groundColor.set(palette.hemiGround);
+    hemisphereLight.intensity = palette.hemiIntensity;
+    directionalLight.color.set(palette.dirColor);
+    directionalLight.intensity = palette.dirIntensity;
+    // Fog trägt die Hintergrundfarbe — bei Theme-Wechsel mit denselben Grenzen neu setzen.
+    if (fogRange) scene.fog = new THREE.Fog(backgroundColor, fogRange.near, fogRange.far);
   }
 
   function render(): void {
@@ -627,6 +691,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     pick,
     setSize,
     setFog,
+    setTheme,
     render,
     dispose,
     applyCameraPose,

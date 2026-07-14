@@ -5,6 +5,7 @@ import { createCityScene, type CitySceneHandle } from './city-scene';
 import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { isDarkMode, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 
 /**
  * WP-C4: kleine imperative API, über die der (außerhalb von `CityCanvas`
@@ -380,6 +381,25 @@ export function CityCanvas({
     if (controlsRef.current) controlsRef.current.enableDamping = !reducedMotion;
     if (handleRef.current) handleRef.current.setAnimationsEnabled(!reducedMotion);
   }, [reducedMotion]);
+
+  // WP-C9: Light/Dark zur Laufzeit spiegeln. Die Szene liest ihr Start-Theme
+  // bei der Erstellung selbst aus der `dark`-Klasse (`initialTheme` in
+  // `city-scene.ts`); dieser Effekt hält es bei späteren Theme-Wechseln (App-
+  // Toggle/System) synchron und fordert einen Frame an. Eigener Effekt statt
+  // im `[]`-Mount-Effekt, weil das Abo über die gesamte Mount-Lebensdauer aktiv
+  // bleiben muss; `handleRef`/`controlsApiRef` sind dann bereits gesetzt.
+  useEffect(() => {
+    const apply = (dark: boolean) => {
+      handleRef.current?.setTheme(dark ? 'dark' : 'light');
+      controlsApiRef?.current?.invalidate();
+    };
+    const unsubscribe = subscribeToDarkModeChanges(apply);
+    // Einmal angleichen, falls sich das Theme zwischen Szenen-Erstellung und
+    // diesem Effekt-Lauf geändert hat (selten, aber deterministisch abgedeckt).
+    apply(isDarkMode());
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (webglUnavailable) {
     return <div data-testid="city-canvas-unavailable" className={className} ref={containerRef} />;

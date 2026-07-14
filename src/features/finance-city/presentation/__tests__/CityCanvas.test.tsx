@@ -42,6 +42,7 @@ function createFakeHandle(canvas: HTMLCanvasElement, overrides: Partial<CityScen
     // Controller-Aktivität prüfen) unverändert bleiben.
     advanceAnimations: vi.fn(() => false),
     setAnimationsEnabled: vi.fn(),
+    setTheme: vi.fn(),
     pick: vi.fn(() => null),
     setSize: vi.fn(),
     setFog: vi.fn(),

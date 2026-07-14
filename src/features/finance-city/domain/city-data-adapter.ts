@@ -12,9 +12,10 @@
  * - **Distrikt** = jeder Hauptkategorie-Knoten über ALLE Ausgabenklassen
  *   hinweg (`sunburst.children.flatMap(klasse => klasse.children)`), global
  *   nach Betrag absteigend sortiert (nicht nur je Klasse). Farbe kommt aus
- *   `Category.color`; fehlt sie, greift eine deterministische Fallback-
- *   Palette (Index im sortierten Distrikt-Array modulo Palettengröße — kein
- *   Zufall, reproduzierbar über Renders/Tests hinweg).
+ *   einer eigenen, hue-gespreizten Stadt-Palette per Distrikt-Index
+ *   (`CITY_DISTRICT_PALETTE`) — NICHT aus `Category.color`, weil die
+ *   Default-Taxonomie fast alle Kategorien einheitlich petrol färbt und die
+ *   Viertel dadurch ununterscheidbar wären.
  * - **Gebäude** = Unterkategorie-Knoten des Mains. Hat der Main gar keine
  *   Unterkategorien (nur direkt auf der Hauptkategorie gebuchte Ausgaben,
  *   `main.children.length === 0`), synthetisiert der Adapter GENAU EIN
@@ -41,7 +42,6 @@ import { resolveHierarchy, type SunburstNode, type SunburstTree } from '@/lib/an
 import { monthlyEquivalent } from '@/lib/contract-derivation';
 import type { ContractRow } from '@/components/contracts/contract-types';
 import type { Category } from '@/types';
-import { CATEGORY_COLORS } from '@/lib/constants';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
 
 /**
@@ -62,9 +62,35 @@ function isFloorContract(row: ContractRow): boolean {
   return row.status !== 'rejected' && row.status !== 'ended' && row.status !== 'archived';
 }
 
-/** Deterministischer Fallback, falls eine Hauptkategorie keine `color` gesetzt hat — Index im sortierten Distrikt-Array modulo Palettengröße (kein Zufall, reproduzierbar). */
-function fallbackColor(index: number): string {
-  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+/**
+ * Distrikt-Farben der Stadt: eine EIGENE, hue-gespreizte Palette statt
+ * `Category.color`. Grund: die Default-Taxonomie (`data/merchant-keywords.ts`)
+ * färbt nahezu ALLE Hauptkategorien einheitlich petrol (`#2e7d72`) — als
+ * Distrikt-Farben wären die Viertel dadurch nicht unterscheidbar
+ * (Nutzer-Befund „Farben nicht gut zu erkennen"). Für eine räumliche Karte
+ * schlägt Unterscheidbarkeit die Farb-Konsistenz mit den Dashboard-Kategorien.
+ * Zuweisung deterministisch per Distrikt-Index (nach Betrag sortiert) — die
+ * ersten `length` Distrikte sind damit garantiert farblich verschieden.
+ * Töne bewusst mittelhell/mittelgesättigt, damit sie sowohl auf dunklem als
+ * auch hellem Hintergrund lesbar bleiben (Light-Mode, WP-C9).
+ */
+const CITY_DISTRICT_PALETTE = [
+  '#2e9e8f', // Teal
+  '#e0644f', // Korallenrot
+  '#e0a53e', // Bernstein
+  '#4f86d6', // Blau
+  '#9b6fd6', // Violett
+  '#4caf50', // Grün
+  '#e07b3e', // Orange
+  '#d264a0', // Pink
+  '#5ab0bd', // Cyan
+  '#b0894f', // Sand
+  '#7186ad', // Schieferblau
+  '#7a9e3f', // Oliv-Grün
+] as const;
+
+function districtColor(index: number): string {
+  return CITY_DISTRICT_PALETTE[index % CITY_DISTRICT_PALETTE.length];
 }
 
 /** Ein Gebäude je Unterkategorie-Knoten; ohne jede Unterkategorie GENAU EIN Gebäude für den gesamten Hauptkategorie-Betrag (jeder Distrikt hat so >= 1 Gebäude). */
@@ -80,14 +106,12 @@ function buildSubcategoriesForMain(main: SunburstNode): CitySubcategory[] {
   }));
 }
 
-function buildDistrict(main: SunburstNode, index: number, categoriesById: Map<string, Category>): CityDistrict {
-  const id = main.categoryId as string;
-  const color = categoriesById.get(id)?.color ?? fallbackColor(index);
+function buildDistrict(main: SunburstNode, index: number): CityDistrict {
   return {
-    id,
+    id: main.categoryId as string,
     label: main.name,
     total: main.value,
-    color,
+    color: districtColor(index),
     subcategories: buildSubcategoriesForMain(main),
   };
 }
@@ -135,7 +159,7 @@ export function buildCityModelFromData(
     .filter((main) => main.value > 0)
     .sort((a, b) => b.value - a.value);
 
-  const districts = mainNodes.map((main, index) => buildDistrict(main, index, categoriesById));
+  const districts = mainNodes.map((main, index) => buildDistrict(main, index));
   attachContracts(districts, expenseContracts, categoriesById);
 
   return { districts };
