@@ -463,6 +463,11 @@ export default function CityPage() {
                   // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
                   // potenziell viele Gebäude -> dort bleibt entzerrt.
                   declutter={nav.level !== "city"}
+                  // WP-D1: Fade-in nur bei echtem Ebenenwechsel (Balken wachsen
+                  // neu), NICHT bei jedem Query-Refetch — sonst flackern alle
+                  // Labels, sobald eine Kategorie-Zuweisung/ein Fensterfokus
+                  // die Stadt-Query neu lädt.
+                  fadeKey={nav.level}
                   className="absolute inset-0"
                 />
               </div>

@@ -179,18 +179,20 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
   });
 
   describe('Label-Aufbau-Sync (WP-D1, C7-Review)', () => {
-    it('sollte den Label-Container nach einem Wechsel der labels-Prop verzögert einblenden (Delay synchron zum Balkenwachstum)', () => {
+    it('sollte den Label-Container nach einem Ebenenwechsel (fadeKey) verzögert einblenden (Delay synchron zum Balkenwachstum)', () => {
       const labelsA = [makeLabel('a', 0, 0, 0, 5)];
       const labelsB = [makeLabel('b', 0, 0, 0, 5)];
       const ref = createRef<CityLabelsHandle>();
       const { getByTestId, rerender } = renderWithI18n(
-        <CityLabels ref={ref} labels={labelsA} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
+        <CityLabels ref={ref} labels={labelsA} fadeKey="city" canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
         locale,
       );
 
+      // Ebenenwechsel Stadt -> Distrikt: neue Balken wachsen, Label-Container
+      // blendet verzögert ein.
       rerender(
         <I18nProvider initialLocale={locale}>
-          <CityLabels ref={ref} labels={labelsB} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />
+          <CityLabels ref={ref} labels={labelsB} fadeKey="district" canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />
         </I18nProvider>,
       );
 
@@ -198,6 +200,39 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
       expect(layer.style.transitionProperty).toBe('opacity');
       expect(layer.style.transitionDelay).toBe('500ms');
       expect(layer.style.opacity).toBe('1');
+    });
+
+    it('[REGRESSION] sollte bei reinem Daten-Refetch (neue labels-Identität, GLEICHE Ebene) NICHT neu einblenden', () => {
+      // Nutzeranforderung "Kategorie zuweisen -> Stadt erkennt automatisch"
+      // löst einen Query-Refetch aus. `labels` wird in CityPage aus `model`
+      // abgeleitet und bekommt bei JEDEM Refetch eine neue Array-Identität —
+      // auch ohne Ebenenwechsel. Früher setzte der Fade-Effekt (Dependency
+      // `[labels]`) den gesamten Container dadurch sichtbar auf 0 zurück und
+      // wieder ein: ALLE Labels flackerten bei jedem Refetch/Fensterfokus,
+      // ohne dass der Nutzer navigiert hat. Der Fade hängt jetzt an `fadeKey`
+      // (= Navigations-Ebene), nicht mehr an der labels-Identität.
+      const labelsA = [makeLabel('a', 0, 0, 0, 5)];
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId, rerender } = renderWithI18n(
+        <CityLabels ref={ref} labels={labelsA} fadeKey="city" canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
+        locale,
+      );
+
+      const layer = getByTestId('city-labels-layer');
+      expect(layer.style.opacity).toBe('1');
+      // Sentinel: läuft der Fade-Effekt erneut, überschreibt er die Opazität.
+      layer.style.opacity = '0.42';
+
+      // Refetch: neue labels-Array-Identität (anderer Betrag), gleiche Ebene.
+      const labelsB = [makeLabel('a', 0, 0, 0, 9)];
+      rerender(
+        <I18nProvider initialLocale={locale}>
+          <CityLabels ref={ref} labels={labelsB} fadeKey="city" canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />
+        </I18nProvider>,
+      );
+
+      // Kein erneuter Fade -> Sentinel unangetastet.
+      expect(layer.style.opacity).toBe('0.42');
     });
 
     it('sollte bei prefers-reduced-motion sofort sichtbar sein, ohne Transition/Delay (konsistent zum Sofort-Verhalten der Balken)', () => {

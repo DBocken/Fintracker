@@ -50,6 +50,18 @@ export type CityLabelsProps = {
    * gibt es potenziell viele Gebäude/Etagen, dort bleibt das Entzerren aktiv.
    */
   declutter: boolean;
+  /**
+   * WP-D1 (Label-Aufbau-Sync): steuert, WANN der Label-Container verzögert
+   * einblendet. `CityPage` übergibt hier die Navigations-Ebene (`nav.level`).
+   * Der Fade läuft nur bei einem Wechsel DIESES Werts (echter Ebenenwechsel,
+   * bei dem Balken neu wachsen) — NICHT bei jeder neuen `labels`-Identität.
+   * Grund: `labels` wird aus dem Query-`model` abgeleitet und bekommt bei
+   * JEDEM Refetch (z. B. Kategorie zugewiesen, Fensterfokus) eine neue
+   * Array-Referenz; ein Fade an der `labels`-Identität ließe dadurch ALLE
+   * Labels bei jedem Refetch flackern, ohne dass der Nutzer navigiert hat.
+   * Optional: ohne Wert blendet der Container nur beim Mount ein.
+   */
+  fadeKey?: string;
   className?: string;
 };
 
@@ -126,7 +138,7 @@ function fadeOpacityForDistance(distance: number): number {
 type ProjectedLabel = { id: string; x: number; y: number; opacity: number };
 
 export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function CityLabels(
-  { labels, canvasSize, maxVisible, declutter, className },
+  { labels, canvasSize, maxVisible, declutter, fadeKey, className },
   ref,
 ) {
   const reducedMotion = useReducedMotion();
@@ -219,9 +231,12 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
   }, [visibleIds, applyPosition]);
 
   // Label-Aufbau-Sync (WP-D1/C7-Review, siehe `LABEL_FADE_IN_DELAY_MS` oben):
-  // NUR bei geänderter `labels`-Prop-IDENTITÄT (= Ebenen-/Layoutwechsel) neu
-  // einblenden — NICHT bei jedem `reproject()`-Tick (Kamera-Bewegung ändert
-  // `labels` nicht). Rein CSS-getrieben: kein Timer/rAF-Nachtick nötig, der
+  // NUR bei geändertem `fadeKey` (= Navigations-Ebene, echter Ebenenwechsel mit
+  // neu wachsenden Balken) neu einblenden — NICHT bei jedem `reproject()`-Tick
+  // (Kamera-Bewegung) und NICHT bei jeder neuen `labels`-Identität (ein
+  // Query-Refetch liefert bei GLEICHER Ebene ein neues `labels`-Array; ein Fade
+  // daran ließe alle Labels bei jedem Refetch/Fensterfokus flackern —
+  // [REGRESSION]). Rein CSS-getrieben: kein Timer/rAF-Nachtick nötig, der
   // Browser fährt die Transition selbständig zu Ende, auch nachdem der
   // `onFrame`-Loop nach Flugende wieder schläft (Single-rAF-Invariante bleibt
   // unberührt — diese Komponente startet selbst KEINEN eigenen rAF/Timer).
@@ -253,7 +268,7 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
     el.style.transitionDelay = `${LABEL_FADE_IN_DELAY_MS}ms`;
     el.style.transitionTimingFunction = 'ease-out';
     el.style.opacity = '1';
-  }, [labels, reducedMotion]);
+  }, [fadeKey, reducedMotion]);
 
   return (
     <div
