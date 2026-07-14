@@ -67,6 +67,32 @@ describe('useCityModel', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
+  it('[REGRESSION] sollte isLoading true halten, bis auch die Vertragsentscheidungen geladen sind', async () => {
+    // Rennen beim ersten Mount: transactions/categories können (gecacht/schnell)
+    // vor der dritten Query (contractDecisions) fertig sein. Würde isLoading dann
+    // bereits false, mountete CityPage den Canvas und buildCityModelFromData liefe
+    // mit der leeren EMPTY_CONTRACT_DECISIONS-Map — ein vom Nutzer als beendet/
+    // verworfen markierter Vertrag bestünde kurz isFloorContract und poppte als
+    // Etage rein/raus, sobald die echten Entscheidungen nachladen.
+    let resolveDecisions!: (m: Map<string, never>) => void;
+    vi.mocked(getContractDecisionMap).mockReturnValue(
+      new Promise<Map<string, never>>((res) => {
+        resolveDecisions = res;
+      }),
+    );
+
+    const { wrapper } = createHookWrapper();
+    const { result } = renderHook(() => useCityModel(), { wrapper });
+
+    // Sobald das Modell steht, sind transactions+categories geladen — die
+    // Vertragsentscheidungen hängen aber noch (Promise offen).
+    await waitFor(() => expect(result.current.model.districts).toHaveLength(1));
+    expect(result.current.isLoading).toBe(true);
+
+    resolveDecisions(new Map());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
+
   it('sollte bei leeren Transaktionen isEmpty=true liefern (kein Demo-Fallback)', async () => {
     vi.mocked(getTransactions).mockResolvedValue([]);
     const { wrapper } = createHookWrapper();

@@ -45,7 +45,7 @@ export function useCityModel(): UseCityModelResult {
     queryFn: () => getCategories(),
   });
 
-  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
+  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS, isLoading: contractDecisionsLoading } = useQuery({
     queryKey: financeKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
@@ -66,7 +66,12 @@ export function useCityModel(): UseCityModelResult {
 
   return {
     model,
-    isLoading: transactionsLoading || categoriesLoading,
+    // Auch die Vertragsentscheidungen müssen geladen sein, bevor der Canvas
+    // mountet: computeContracts hängt von ihnen ab, und mit der leeren
+    // Default-Map bestünde ein zuvor beendeter/verworfener Vertrag kurz
+    // isFloorContract und poppte als Etage rein/raus, sobald die echten
+    // Entscheidungen nachladen.
+    isLoading: transactionsLoading || categoriesLoading || contractDecisionsLoading,
     isEmpty: model.districts.length === 0,
   };
 }
