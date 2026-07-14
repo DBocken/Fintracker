@@ -378,7 +378,11 @@ export function CityCanvas({
     // ist idempotent (setzt nur `needsRender` + startet den Loop bei Bedarf),
     // verletzt also die Single-rAF-Invariante nicht.
     controlsApiRef?.current?.invalidate();
-  }, [layout]);
+    // `controlsApiRef` ist eine über die Mount-Lebensdauer stabile Ref (der
+    // Aufrufer hält sie via `useRef`), taucht aber als Prop in den Deps auf,
+    // damit exhaustive-deps zufrieden ist — effektiv läuft der Effekt weiterhin
+    // nur bei `layout`-Wechsel.
+  }, [layout, controlsApiRef]);
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern (System-Setting) —
   // ohne den ganzen Mount-Effekt neu zu triggern, einfach auf den Controls
