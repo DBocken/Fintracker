@@ -320,4 +320,78 @@ describe('useCityNavigation', () => {
     expect(Object.is(result.current.actions.zoomOutStep, before.zoomOutStep)).toBe(true);
     expect(Object.is(result.current.actions.reset, before.reset)).toBe(true);
   });
+
+  describe('Model-Resync (WP-D3, geschrumpftes Live-Model)', () => {
+    // `model` kommt seit WP-C8 aus Live-Queries und kann Distrikte/Unter-
+    // kategorien verlieren (letzte Buchung einer Kategorie gelöscht/um-
+    // kategorisiert), während der Nutzer bereits eingetaucht ist. Ohne Abgleich
+    // bliebe der Navigations-State auf einer toten ID stehen: buildCityLayout
+    // filtert leer, computeFocusBounds liefert null -> leere, nicht mehr
+    // existierende Ansicht.
+    function districtModel(id: string, subs: { id: string; amount: number }[]): CityModel['districts'][number] {
+      return {
+        id,
+        label: id.toUpperCase(),
+        total: subs.reduce((sum, s) => sum + s.amount, 0),
+        color: '#123456',
+        subcategories: subs.map((s) => ({ id: s.id, label: s.id, amount: s.amount })),
+      };
+    }
+    function renderWithModel(model: CityModel) {
+      return renderHook(({ m }) => useCityNavigation(m, LABELS), { initialProps: { m: model } });
+    }
+
+    it('[REGRESSION] sollte auf Stadt zurückfallen, wenn der eingetauchte Distrikt aus dem Model verschwindet', () => {
+      const full: CityModel = { districts: [districtModel('a', [{ id: 'a1', amount: 100 }]), districtModel('b', [{ id: 'b1', amount: 50 }])] };
+      const { result, rerender } = renderWithModel(full);
+
+      act(() => result.current.actions.tapDistrict('a')); // fokussieren
+      act(() => result.current.actions.tapDistrict('a')); // eintauchen
+      expect(result.current.level).toBe('district');
+      const seqBefore = result.current.cameraIntent.seq;
+
+      rerender({ m: { districts: full.districts.filter((d) => d.id !== 'a') } });
+
+      expect(result.current.level).toBe('city');
+      expect(result.current.focusDistrictId).toBeNull();
+      expect(result.current.activeDistrictId).toBeNull();
+      expect(result.current.cameraIntent.kind).toBe('fit-city');
+      expect(result.current.cameraIntent.seq).toBeGreaterThan(seqBefore);
+      // Breadcrumb zeigt nicht mehr die tote ID.
+      expect(result.current.breadcrumb).toEqual([{ level: 'city', id: null, label: 'Stadt' }]);
+    });
+
+    it('[REGRESSION] sollte auf Distrikt zurückfallen, wenn die eingetauchte Unterkategorie verschwindet (Distrikt bleibt)', () => {
+      const full: CityModel = { districts: [districtModel('a', [{ id: 's1', amount: 60 }, { id: 's2', amount: 40 }])] };
+      const { result, rerender } = renderWithModel(full);
+
+      act(() => result.current.actions.tapDistrict('a'));
+      act(() => result.current.actions.tapDistrict('a'));
+      act(() => result.current.actions.tapSubcategory('s1'));
+      expect(result.current.level).toBe('subcategory');
+
+      rerender({ m: { districts: [districtModel('a', [{ id: 's2', amount: 40 }])] } }); // s1 weg
+
+      expect(result.current.level).toBe('district');
+      expect(result.current.activeDistrictId).toBe('a');
+      expect(result.current.activeSubcategoryId).toBeNull();
+      expect(result.current.cameraIntent.kind).toBe('enter-district');
+    });
+
+    it('sollte den Navigations-State unverändert lassen, wenn eine Model-Änderung den aktuellen Fokus nicht betrifft (kein Flug-Neustart)', () => {
+      const full: CityModel = { districts: [districtModel('a', [{ id: 'a1', amount: 100 }]), districtModel('b', [{ id: 'b1', amount: 50 }])] };
+      const { result, rerender } = renderWithModel(full);
+
+      act(() => result.current.actions.tapDistrict('a'));
+      act(() => result.current.actions.tapDistrict('a'));
+      const seqBefore = result.current.cameraIntent.seq;
+
+      // 'b' ändert nur seinen Betrag, 'a' (der Fokus) bleibt unberührt.
+      rerender({ m: { districts: [full.districts[0], districtModel('b', [{ id: 'b1', amount: 5 }])] } });
+
+      expect(result.current.level).toBe('district');
+      expect(result.current.activeDistrictId).toBe('a');
+      expect(result.current.cameraIntent.seq).toBe(seqBefore); // kein neuer Intent
+    });
+  });
 });

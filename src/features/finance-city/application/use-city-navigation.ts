@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   CityBreadcrumbEntry,
   CityCameraIntent,
@@ -233,6 +233,55 @@ export function useCityNavigation(model: CityModel, labels: { city: string }): C
       cameraIntent: nextIntent(prev.cameraIntent, 'reset', null),
     }));
   }, []);
+
+  // Resync bei geschrumpftem Model (WP-D3): `model` kommt seit WP-C8 aus
+  // Live-Queries und kann Distrikte/Unterkategorien/Verträge verlieren (letzte
+  // Buchung einer Kategorie gelöscht/umkategorisiert), während der Nutzer
+  // bereits eingetaucht ist. Ohne Abgleich bliebe der Navigations-State auf
+  // einer toten ID stehen: `buildCityLayout` filtert leer, `computeFocusBounds`
+  // liefert null -> leere, nicht mehr existierende Ansicht, Breadcrumb zeigt die
+  // rohe ID. Auf die tiefste noch gültige Ebene zurückfallen. `setState`
+  // gibt `prev` unverändert zurück, wenn alles noch existiert (kein Re-Render,
+  // kein neuer Kamera-Intent) — betrifft also NUR den echten Schrumpf-Fall.
+  useEffect(() => {
+    setState((prev) => {
+      if (prev.level === 'city') return prev;
+
+      const district = findDistrict(model, prev.focusDistrictId);
+      if (!district) {
+        // Fokus-Distrikt verschwunden -> zurück auf Stadt (Gesamtansicht).
+        return {
+          level: 'city',
+          focusDistrictId: null,
+          activeDistrictId: null,
+          activeSubcategoryId: null,
+          selectedContractId: null,
+          cameraIntent: nextIntent(prev.cameraIntent, 'fit-city', null),
+        };
+      }
+
+      if (prev.level === 'subcategory' && !findSubcategory(district, prev.activeSubcategoryId)) {
+        // Unterkategorie verschwunden, Distrikt existiert noch -> zurück auf Distrikt.
+        return {
+          ...prev,
+          level: 'district',
+          activeSubcategoryId: null,
+          selectedContractId: null,
+          cameraIntent: nextIntent(prev.cameraIntent, 'enter-district', prev.activeDistrictId),
+        };
+      }
+
+      if (prev.selectedContractId !== null) {
+        const subcategory = findSubcategory(district, prev.activeSubcategoryId);
+        if (!findContract(subcategory, prev.selectedContractId)) {
+          // Ausgewählter Vertrag verschwunden -> Sheet schließen (kein Flug).
+          return { ...prev, selectedContractId: null };
+        }
+      }
+
+      return prev;
+    });
+  }, [model]);
 
   const actions = useMemo(
     () => ({ tapDistrict, tapSubcategory, tapContract, closeContract, goTo, zoomOutStep, reset }),
