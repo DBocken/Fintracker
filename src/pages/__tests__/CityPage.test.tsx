@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { renderWithProviders } from '@/test-utils/render';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import type { Category, Transaction } from '@/types';
 import type { ContractDecision } from '@/services/contract-decision-service';
 import type { CityLabelsHandle, CityLabelsProps } from '@/features/finance-city/presentation/CityLabels';
+import type { CityControlsApi } from '@/features/finance-city/presentation/CityCanvas';
+import type { CitySceneHandle } from '@/features/finance-city/presentation/city-scene';
 import CityPage from '../CityPage';
 
 // jsdom kennt weder ResizeObserver noch requestAnimationFrame standardmäßig
@@ -29,11 +31,58 @@ if (typeof globalThis.requestAnimationFrame !== 'function') {
 // seinen eigenen "unavailable"-Fallback zurückfallen (siehe CityCanvas.tsx).
 // Für den `onFrame`-Verdrahtungstest wird hier ein schlanker Stub verwendet,
 // der `onFrame` über einen Button gezielt auslösbar macht (deterministisch,
-// ohne echten WebGL-Kontext).
+// ohne echten WebGL-Kontext). Der Stub befüllt zusätzlich — wie das echte
+// CityCanvas in seinem Mount-Effekt — `controlsApiRef`/`sceneRef`, damit der
+// Kamera-Controller der Page in Tests tatsächlich erstellt wird (nötig für
+// den StrictMode-/Remount-[REGRESSION]-Test unten).
 let capturedOnFrame: ((camera: THREE.PerspectiveCamera) => void) | undefined;
+let capturedControlsApiRef: MutableRefObject<CityControlsApi | null> | undefined;
+
+/** Loop-API-Stub mit signaturtreuen Mocks — strukturell kompatibel zu `CityControlsApi`, Assertions über `.mock.calls`. */
+function makeControlsApiStub() {
+  return {
+    setLimits: vi.fn<(minDistance: number, maxDistance: number) => void>(),
+    invalidate: vi.fn<() => void>(),
+  };
+}
+let stubControlsApi: ReturnType<typeof makeControlsApiStub> | undefined;
+
+function makeSceneStub(): CitySceneHandle {
+  return {
+    applyLayout: vi.fn(),
+    advanceAnimations: vi.fn(() => false),
+    setAnimationsEnabled: vi.fn(),
+    setTheme: vi.fn(),
+    pick: vi.fn(() => null),
+    setSize: vi.fn(),
+    setFog: vi.fn(),
+    render: vi.fn(),
+    dispose: vi.fn(),
+    applyCameraPose: vi.fn(),
+    target: new THREE.Vector3(),
+    camera: new THREE.PerspectiveCamera(),
+    domElement: document.createElement('canvas'),
+  };
+}
+
 vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
-  CityCanvas: (props: { onFrame?: (camera: THREE.PerspectiveCamera) => void }) => {
+  CityCanvas: (props: {
+    onFrame?: (camera: THREE.PerspectiveCamera) => void;
+    controlsApiRef?: MutableRefObject<CityControlsApi | null>;
+    sceneRef?: MutableRefObject<CitySceneHandle | null>;
+  }) => {
     capturedOnFrame = props.onFrame;
+    capturedControlsApiRef = props.controlsApiRef;
+    useEffect(() => {
+      stubControlsApi = makeControlsApiStub();
+      if (props.controlsApiRef) props.controlsApiRef.current = stubControlsApi;
+      if (props.sceneRef) props.sceneRef.current = makeSceneStub();
+      return () => {
+        if (props.controlsApiRef) props.controlsApiRef.current = null;
+        if (props.sceneRef) props.sceneRef.current = null;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     return <div data-testid="city-canvas-stub" />;
   },
 }));
@@ -269,5 +318,33 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     const emptyText = locale === 'de' ? /Noch keine Ausgabendaten/ : /No spending data yet/;
     expect(await screen.findByText(emptyText)).toBeInTheDocument();
     expect(screen.queryByTestId('city-canvas-stub')).not.toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte Kamera-Controller-Callbacks LIVE über die Refs auflösen — invalidate() erreicht nach einem Canvas-Remount die NEUE Loop-Instanz', async () => {
+    // Nachgestellter Dev-Befund (StrictMode-Doppelmount): CityCanvas remountet
+    // und setzt `controlsApiRef` auf eine NEUE Loop-Instanz; die alte Closure
+    // ist tot (ihr rafHandle bleibt auf einem gecancelten Callback stehen,
+    // invalidate() dort ist für immer ein No-op). Captured der Controller die
+    // API einmalig statt live über die Refs, weckt KEIN Kamera-Intent mehr den
+    // Render-Loop — Flüge starten nie, die Szene friert auf dem alten Bild ein.
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+    expect(capturedControlsApiRef?.current).not.toBeNull();
+
+    // Simulierter Remount: Refs zeigen jetzt auf die neue (lebende) Instanz B.
+    const apiB = makeControlsApiStub();
+    const apiA = stubControlsApi!;
+    capturedControlsApiRef!.current = apiB;
+    const apiACallsBefore = apiA.invalidate.mock.calls.length;
+
+    // Kamera-Intent über die Listenansicht auslösen (Fokus-Flug auf "Freizeit").
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = within(screen.getByTestId('city-accessible-list'));
+    await user.click(list.getByRole('button', { name: /Freizeit/ }));
+
+    // Der Flug muss den LEBENDEN Loop wecken — nicht die tote Erst-Instanz.
+    expect(apiB.invalidate).toHaveBeenCalled();
+    expect(apiA.invalidate.mock.calls.length).toBe(apiACallsBefore);
   });
 });

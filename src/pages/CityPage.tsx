@@ -225,20 +225,35 @@ export default function CityPage() {
   // `canvasMounted` reagieren, sonst liefe er beim allerersten (Canvas-losen)
   // Render mit `sceneRef.current === null` und würde nie erneut versuchen.
   useEffect(() => {
-    const scene = sceneRef.current;
-    const controlsApi = controlsApiRef.current;
-    if (!scene || !controlsApi) return;
+    // Reiner Mount-Guard: `CityCanvas` hat seine Refs im eigenen Mount-Effekt
+    // gesetzt (Kind-Effekte vor Eltern-Effekten). Die Instanzen werden hier
+    // bewusst NICHT in die deps-Closures gecaptured — siehe Kommentar unten.
+    if (!sceneRef.current || !controlsApiRef.current) return;
 
+    // [REGRESSION] StrictMode-/Remount-Robustheit: Alle deps lösen die Refs
+    // LIVE beim Aufruf auf, statt die aktuelle Instanz einmalig zu capturen.
+    // Grund (Dev-Befund, rAF-Sonde): React-StrictMode remountet CityCanvas
+    // (Mount A → Cleanup → Mount B) NACH diesem Effekt — eine gecapturte
+    // Instanz A wäre danach tot: ihr Loop-Closure behält ein gecanceltes
+    // rafHandle, `invalidate()` dort ist für immer ein No-op, und kein
+    // Kamera-Intent (Fokus/Eintauchen/Reset) weckt den lebenden Loop B —
+    // Flüge starten nie, die Szene friert auf dem alten Frame ein.
     const controller = createCityCameraController({
-      getCameraPose: () => ({ position: toVec3(scene.camera.position), target: toVec3(scene.target) }),
-      applyCameraPose: (pose) => scene.applyCameraPose(pose),
-      setControlLimits: (opts) => controlsApi.setLimits(opts.minDistance, opts.maxDistance),
-      setFog: (near, far) => scene.setFog(near, far),
-      invalidate: () => controlsApi.invalidate(),
+      getCameraPose: () => {
+        const scene = sceneRef.current;
+        if (!scene) return { position: { x: 0, y: 0, z: 0 }, target: { x: 0, y: 0, z: 0 } };
+        return { position: toVec3(scene.camera.position), target: toVec3(scene.target) };
+      },
+      applyCameraPose: (pose) => sceneRef.current?.applyCameraPose(pose),
+      setControlLimits: (opts) => controlsApiRef.current?.setLimits(opts.minDistance, opts.maxDistance),
+      setFog: (near, far) => sceneRef.current?.setFog(near, far),
+      invalidate: () => controlsApiRef.current?.invalidate(),
       onZoomOutThreshold: () => nav.actions.zoomOutStep(),
     });
 
     const measure = () => {
+      const scene = sceneRef.current;
+      if (!scene) return;
       const chromeTopPx = chromeRef.current?.getBoundingClientRect().height ?? 0;
       const canvasRect = scene.domElement.getBoundingClientRect();
       const aspect = canvasRect.height > 0 ? canvasRect.width / canvasRect.height : FALLBACK_ASPECT;
@@ -251,9 +266,11 @@ export default function CityPage() {
     setCameraController(controller);
 
     // Reagiert auf Resize/Orientierungswechsel UND Chrome-Höhenänderungen
-    // (z. B. Breadcrumb-Umbruch auf schmalen Viewports).
+    // (z. B. Breadcrumb-Umbruch auf schmalen Viewports). Das beobachtete
+    // Canvas-DOM-Element ist über einen Remount hinweg dasselbe (React
+    // erhält den Knoten, nur der WebGL-Lifecycle drumherum wird neu erzeugt).
     const resizeObserver = new ResizeObserver(measure);
-    resizeObserver.observe(scene.domElement);
+    resizeObserver.observe(sceneRef.current.domElement);
     if (chromeRef.current) resizeObserver.observe(chromeRef.current);
 
     return () => {
