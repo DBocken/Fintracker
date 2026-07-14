@@ -106,14 +106,13 @@ function buildSubcategoriesForMain(main: SunburstNode): CitySubcategory[] {
   }));
 }
 
-function buildDistrict(main: SunburstNode, index: number): CityDistrict {
-  return {
-    id: main.categoryId as string,
-    label: main.name,
-    total: main.value,
-    color: districtColor(index),
-    subcategories: buildSubcategoriesForMain(main),
-  };
+/** Führt eingehende Gebäude in `target` zusammen — gleiche Gebäude-Id addiert den Betrag, sonst anhängen. */
+function mergeSubcategories(target: CitySubcategory[], incoming: CitySubcategory[]): void {
+  for (const sub of incoming) {
+    const existing = target.find((s) => s.id === sub.id);
+    if (existing) existing.amount += sub.amount;
+    else target.push(sub);
+  }
 }
 
 /** Hängt aktive Vertrags-Etagen an ihr aufgelöstes Gebäude — mutiert die frisch gebauten (noch nicht nach außen sichtbaren) `districts`. */
@@ -156,10 +155,40 @@ export function buildCityModelFromData(
 ): CityModel {
   const mainNodes = sunburst.children
     .flatMap((klasse) => klasse.children)
-    .filter((main) => main.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .filter((main) => main.value > 0);
 
-  const districts = mainNodes.map((main, index) => buildDistrict(main, index));
+  // Dieselbe Hauptkategorie kann über MEHRERE Ausgabenklassen-Zweige verteilt
+  // sein: `buildSunburstTree` gruppiert primär nach der aus der ZUGEWIESENEN
+  // (Unter-)Kategorie aufgelösten Ausgabenklasse, und eine Unterkategorie darf
+  // eine ANDERE Klasse haben als ihre Hauptkategorie (Default-Taxonomie, z. B.
+  // 'Restaurants' diskretionär unter 'Lebensmittel' essenziell). Bucht ein
+  // Nutzer sowohl direkt auf der Hauptkategorie als auch auf einer abweichend
+  // klassifizierten Unterkategorie, erscheint dieselbe `categoryId` unter ZWEI
+  // Klassen-Knoten. Pro `categoryId` zu EINEM Distrikt zusammenführen (Beträge
+  // summieren, Gebäude vereinen) — sonst zwei Kacheln mit identischer id
+  // (React-Key-Kollision, per `find`/Map unerreichbare Gebäude, verworfene
+  // Vertrags-Etagen). [REGRESSION]
+  const order: string[] = [];
+  const merged = new Map<string, Omit<CityDistrict, 'color'>>();
+  for (const main of mainNodes) {
+    const id = main.categoryId as string;
+    const subs = buildSubcategoriesForMain(main);
+    const existing = merged.get(id);
+    if (!existing) {
+      order.push(id);
+      merged.set(id, { id, label: main.name, total: main.value, subcategories: subs });
+    } else {
+      existing.total += main.value;
+      mergeSubcategories(existing.subcategories, subs);
+    }
+  }
+
+  // Global nach Betrag absteigend, Farbe deterministisch je Distrikt-Index.
+  const districts: CityDistrict[] = order
+    .map((id) => merged.get(id) as Omit<CityDistrict, 'color'>)
+    .sort((a, b) => b.total - a.total)
+    .map((d, index) => ({ ...d, color: districtColor(index) }));
+
   attachContracts(districts, expenseContracts, categoriesById);
 
   return { districts };

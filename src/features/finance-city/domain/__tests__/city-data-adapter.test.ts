@@ -129,6 +129,41 @@ describe('buildCityModelFromData', () => {
       const model = buildCityModelFromData(sunburstWithMains([zero]), new Map(), []);
       expect(model.districts).toHaveLength(0);
     });
+
+    it('[REGRESSION] sollte dieselbe Hauptkategorie über mehrere Ausgabenklassen-Zweige zu EINEM Distrikt zusammenführen (keine doppelten Distrikt-IDs)', () => {
+      // buildSunburstTree gruppiert primär nach der aus der ZUGEWIESENEN
+      // (Unter-)Kategorie aufgelösten Ausgabenklasse; eine Unterkategorie darf
+      // eine ANDERE Klasse haben als ihre Hauptkategorie (Default-Taxonomie,
+      // z. B. 'Restaurants' diskretionär unter 'Lebensmittel' essenziell).
+      // Bucht ein Nutzer sowohl direkt auf der Hauptkategorie als auch auf einer
+      // abweichend klassifizierten Unterkategorie, erscheint dieselbe
+      // `categoryId` unter ZWEI Klassen-Knoten. Früher erzeugte der Adapter
+      // daraus zwei Distrikte mit identischer id (React-Key-Kollision, per
+      // `find`/Map unerreichbare Gebäude, verworfene Vertrags-Etagen).
+      const essenziellBranch = mainNode({ id: 'essenziell::food', name: 'Lebensmittel', value: 400, categoryId: 'food' });
+      const restaurant = subNode({ id: 'diskretionaer::food::restaurant', name: 'Restaurants', value: 150, categoryId: 'restaurant' });
+      const diskretionaerBranch = mainNode({ id: 'diskretionaer::food', name: 'Lebensmittel', value: 150, categoryId: 'food', children: [restaurant] });
+      const tree: SunburstTree = {
+        total: 550,
+        children: [
+          { id: 'essenziell', name: 'Essenziell', value: 400, klasseId: 'essenziell', categoryId: null, children: [essenziellBranch] },
+          { id: 'diskretionaer', name: 'Nicht-Essenziell', value: 150, klasseId: 'diskretionaer', categoryId: null, children: [diskretionaerBranch] },
+        ],
+      };
+
+      const model = buildCityModelFromData(tree, new Map(), []);
+
+      // Genau EIN Distrikt 'food' — keine doppelte id.
+      expect(model.districts).toHaveLength(1);
+      expect(model.districts.filter((d) => d.id === 'food')).toHaveLength(1);
+      // Beträge beider Klassen-Zweige zusammengeführt.
+      expect(model.districts[0].total).toBe(550);
+      // Beide Gebäude erreichbar: das Direkt-Gebäude (id = Hauptkategorie) UND
+      // das abweichend klassifizierte Unterkategorie-Gebäude.
+      expect(model.districts[0].subcategories.map((s) => s.id).sort()).toEqual(['food', 'restaurant']);
+      expect(model.districts[0].subcategories.find((s) => s.id === 'food')?.amount).toBe(400);
+      expect(model.districts[0].subcategories.find((s) => s.id === 'restaurant')?.amount).toBe(150);
+    });
   });
 
   describe('Gebäude (Unterkategorien)', () => {
