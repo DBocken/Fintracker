@@ -435,6 +435,12 @@ export default function CityPage() {
                   labels={labels}
                   canvasSize={canvasSize}
                   maxVisible={maxVisibleLabels}
+                  // WP-D1 (Nutzer-Befund "wo würde Streaming auftauchen?"):
+                  // Stadt-Ebene hat nur wenige Distrikte -> ALLE Distrikt-
+                  // Labels sichtbar (kein Kollisions-Culling/Cap). Ab der
+                  // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
+                  // potenziell viele Gebäude -> dort bleibt entzerrt.
+                  declutter={nav.level !== "city"}
                   className="absolute inset-0"
                 />
               </div>

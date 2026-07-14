@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { forwardRef } from 'react';
 import * as THREE from 'three';
 import { renderWithProviders } from '@/test-utils/render';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import type { Category, Transaction } from '@/types';
 import type { ContractDecision } from '@/services/contract-decision-service';
+import type { CityLabelsHandle, CityLabelsProps } from '@/features/finance-city/presentation/CityLabels';
 import CityPage from '../CityPage';
 
 // jsdom kennt weder ResizeObserver noch requestAnimationFrame standardmäßig
@@ -35,6 +37,27 @@ vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
     return <div data-testid="city-canvas-stub" />;
   },
 }));
+
+// WP-D1: `declutter`-Prop abgreifen, die `CityPage` an `CityLabels` reicht
+// (Stadt-Ebene = false, ab Distrikt-Ebene = true) — dafür die ECHTE
+// `CityLabels`-Implementierung durchreichen (`vi.importActual`, Präzedenzfall
+// `createCityScene`-Mock in `CityCanvas.test.tsx`), nur eine dünne
+// `forwardRef`-Hülle davor, die die Prop abgreift. Damit bleibt der bereits
+// bestehende onFrame-Test (echte `city-label`-Elemente nach `reproject()`)
+// unverändert gültig — ein reiner Stub ohne echtes Rendering hätte diesen
+// kaputt gemacht bzw. ihn selbst neu implementieren müssen.
+let capturedDeclutter: boolean | undefined;
+vi.mock('@/features/finance-city/presentation/CityLabels', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/features/finance-city/presentation/CityLabels')>(
+      '@/features/finance-city/presentation/CityLabels',
+    );
+  const CapturingCityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>((props, ref) => {
+    capturedDeclutter = props.declutter;
+    return <actual.CityLabels {...props} ref={ref} />;
+  });
+  return { ...actual, CityLabels: CapturingCityLabels };
+});
 
 // WP-C8: CityPage lädt jetzt echte Daten über `useCityModel` (TanStack Query)
 // statt der `cityDemoModel`-Fixture — die drei zugrunde liegenden Services
@@ -152,6 +175,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   capturedOnFrame = undefined;
+  capturedDeclutter = undefined;
 });
 
 describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
@@ -218,6 +242,24 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     // Mindestens ein Distrikt-Label sollte nach der Reprojektion sichtbar sein.
     const labels = await screen.findAllByTestId('city-label');
     expect(labels.length).toBeGreaterThan(0);
+  });
+
+  it('sollte declutter=false auf Stadt-Ebene und declutter=true nach Eintauchen in einen Distrikt an CityLabels reichen (WP-D1)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    // Stadt-Ebene (Ausgangszustand): wenige Distrikte -> kein Culling.
+    expect(capturedDeclutter).toBe(false);
+
+    // Über die Listenansicht (teilt denselben nav-State wie der Canvas) in
+    // "Freizeit" eintauchen: 1. Tap = Fokus, 2. Tap = Eintauchen (district-Ebene).
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+
+    expect(capturedDeclutter).toBe(true);
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {
