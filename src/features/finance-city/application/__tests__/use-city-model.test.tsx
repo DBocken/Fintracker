@@ -13,7 +13,7 @@ vi.mock('@/services/contract-decision-service', () => ({
 }));
 
 import { getTransactions, getCategories } from '@/services/transaction-service';
-import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 
 const CAT_LEISURE = 'cat-leisure';
 const CAT_STREAMING = 'cat-streaming';
@@ -74,9 +74,9 @@ describe('useCityModel', () => {
     // mit der leeren EMPTY_CONTRACT_DECISIONS-Map — ein vom Nutzer als beendet/
     // verworfen markierter Vertrag bestünde kurz isFloorContract und poppte als
     // Etage rein/raus, sobald die echten Entscheidungen nachladen.
-    let resolveDecisions!: (m: Map<string, never>) => void;
+    let resolveDecisions!: (m: Map<string, ContractDecision>) => void;
     vi.mocked(getContractDecisionMap).mockReturnValue(
-      new Promise<Map<string, never>>((res) => {
+      new Promise<Map<string, ContractDecision>>((res) => {
         resolveDecisions = res;
       }),
     );
