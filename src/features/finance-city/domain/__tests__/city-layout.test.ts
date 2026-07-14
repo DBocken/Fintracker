@@ -364,23 +364,29 @@ describe('Etagen-Shading (WP-C8)', () => {
 
 describe('computeFocusBounds', () => {
   describe('Happy Path', () => {
-    it('sollte für einen Distrikt (city-Ebene) Center/Radius liefern, die Hülle UND alle Balken dieses Distrikts umfassen', () => {
+    it('sollte für einen Distrikt (city-Ebene) die BALKEN umfassen, NICHT die (breite, nahezu unsichtbare) Hülle', () => {
       const model = makeModel();
       const layout = buildCityLayout(model, { level: 'city' });
 
       const bounds = computeFocusBounds(layout, 'leisure');
       expect(bounds).not.toBeNull();
 
-      const focusBoxes = layout.boxes.filter((b) => b.id === 'leisure' || b.id.startsWith('leisure/'));
-      expect(focusBoxes.length).toBeGreaterThan(0);
-
-      for (const box of focusBoxes) {
+      // Alle Balken des Distrikts liegen innerhalb der Bounds.
+      const bars = layout.boxes.filter((b) => b.kind === 'bar' && b.id.startsWith('leisure/'));
+      expect(bars.length).toBeGreaterThan(0);
+      for (const box of bars) {
         const dx = Math.abs(box.center.x - bounds!.center.x) + box.size.x / 2;
         const dy = Math.abs(box.center.y - bounds!.center.y) + box.size.y / 2;
         const dz = Math.abs(box.center.z - bounds!.center.z) + box.size.z / 2;
         const cornerDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         expect(cornerDistance).toBeLessThanOrEqual(bounds!.radius + 1e-9);
       }
+
+      // Der Fokus-Radius ist ENGER als eine hüllen-inklusive Rahmung — sonst
+      // rahmte die Kamera das leere Grundstück und die Balken wirkten zu klein
+      // (Nutzer-Befund „Balken werden beim Eintauchen kleiner").
+      const hull = layout.boxes.find((b) => b.id === 'leisure')!;
+      expect(bounds!.radius).toBeLessThan(hull.size.x / 2 + hull.size.z / 2);
 
       // Andere Distrikte dürfen die Bounds NICHT vergrößern (nur "leisure" zählt).
       const housingHull = layout.boxes.find((b) => b.id === 'housing')!;
@@ -389,8 +395,6 @@ describe('computeFocusBounds', () => {
         housingHull.center.y - bounds!.center.y,
         housingHull.center.z - bounds!.center.z,
       );
-      // Die anderen Distrikte liegen weiter weg als der eigene Fokus-Radius,
-      // sonst hätte computeFocusBounds fälschlich über den Distrikt hinaus mitgezählt.
       expect(distanceToOtherDistrict).toBeGreaterThan(bounds!.radius);
     });
 

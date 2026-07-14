@@ -484,13 +484,23 @@ export function computeBounds(boxes: LayoutBox[]): { center: Vec3; boundingRadiu
  * Balken" (`focusId` = Distrikt-Id) als auch "Unterkategorie-Balken bzw.
  * dessen Etagen, falls bereits aufgelöst" (`focusId` =
  * `${districtId}/${subcategoryId}`) ab, OHNE die Layout-Ebene zu kennen.
- * `plot`/`ground`-Boxen zählen nicht zur Fokus-Silhouette (reine
- * Hilfsgeometrie). `null`, wenn keine passende Box existiert.
+ *
+ * Gerahmt werden die SICHTBAREN Baukörper (`bar`/`floor`) — NICHT die Hülle
+ * (`hull`) und nicht `plot`/`ground` (reine Hilfsgeometrie). Grund
+ * (Nutzer-Befund): Die Distrikt-Hülle ist so breit wie das ganze Grundstück,
+ * aber beim Eintauchen nahezu unsichtbar (Opazität ~0.04). Rahmte die Kamera
+ * sie mit, würde sie das breite, leere Grundstück einfangen und die Balken
+ * wirkten viel zu klein. Fallback auf hüllen-inklusive Bounds nur, wenn
+ * ausnahmsweise gar kein Baukörper existiert (degenerierter Distrikt).
+ * `null`, wenn keine passende Box existiert.
  */
 export function computeFocusBounds(layout: CityLayout, focusId: string): { center: Vec3; radius: number } | null {
-  const boxes = layout.boxes.filter(
-    (box) => box.kind !== 'plot' && box.kind !== 'ground' && (box.id === focusId || box.id.startsWith(`${focusId}/`)),
-  );
+  const matchesFocus = (box: LayoutBox) => box.id === focusId || box.id.startsWith(`${focusId}/`);
+  const solidBoxes = layout.boxes.filter((box) => matchesFocus(box) && (box.kind === 'bar' || box.kind === 'floor'));
+  const boxes =
+    solidBoxes.length > 0
+      ? solidBoxes
+      : layout.boxes.filter((box) => matchesFocus(box) && box.kind !== 'plot' && box.kind !== 'ground');
   if (boxes.length === 0) return null;
 
   const { center, boundingRadius } = computeBounds(boxes);

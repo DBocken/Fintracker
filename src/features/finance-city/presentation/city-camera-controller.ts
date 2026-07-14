@@ -130,6 +130,8 @@ const FOG_DIAMETER_MARGIN = 2;
 
 /** Beim Eintauchen in eine Unterkategorie senkt sich der Polarwinkel leicht (mehr Seitenansicht auf die Etagen-Stapelung). */
 const SUBCATEGORY_POLAR_DROP_RAD = (10 * Math.PI) / 180;
+/** Beim Eintauchen in ein Viertel MINDEST-Polarwinkel für eine seitliche „Skyline"-Ansicht (Balkenhöhen lesbar statt aus der Vogelperspektive verkürzt). < CityCanvas MAX_POLAR (80°). */
+const DISTRICT_ENTER_MIN_POLAR_RAD = (70 * Math.PI) / 180;
 /** Untere Sicherheitsgrenze für den abgesenkten Polarwinkel — unabhängig von `CityCanvas`s eigenem OrbitControls-Clamp (Verteidigung in der Tiefe, reiner Presentation-Wert). */
 const MIN_POLAR_FLOOR_RAD = (10 * Math.PI) / 180;
 
@@ -266,8 +268,16 @@ export function createCityCameraController(deps: CityCameraControllerDeps): City
         const distance = fitCameraDistance(ctx.focusLayout.radius, config.fovYDeg, config.aspect, margin);
         lastFocusDistance = distance;
         lastFocusCenter = { ...ctx.focusLayout.center };
-        // Regel 3 (README): Azimut/Polar der aktuellen Kamera bleiben erhalten.
-        startFlight(sphericalPose(ctx.focusLayout.center, distance, azimuthRad, polarRad));
+        // Azimut bleibt immer erhalten (Regel 3). Beim reinen FOKUS (Stadt-Ebene)
+        // bleibt auch der Polarwinkel erhalten (Kontext der Nachbar-Viertel).
+        // Beim EINTAUCHEN (Distrikt-Ebene) kippt die Kamera dagegen auf eine
+        // seitlichere „Skyline"-Ansicht: aus der Stadt-Vogelperspektive (~55°)
+        // wirken senkrechte Balken stark verkürzt und damit klein — beim
+        // Vergleich der Balkenhöhen (= Beträge) innerhalb eines Viertels will
+        // man sie aber deutlich sehen (Nutzer-Befund „Balken werden kleiner").
+        const polar =
+          intent.kind === 'enter-district' ? Math.max(polarRad, DISTRICT_ENTER_MIN_POLAR_RAD) : polarRad;
+        startFlight(sphericalPose(ctx.focusLayout.center, distance, azimuthRad, polar));
         return;
       }
 

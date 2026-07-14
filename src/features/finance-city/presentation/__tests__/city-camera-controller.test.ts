@@ -226,8 +226,8 @@ describe('createCityCameraController', () => {
     });
   });
 
-  describe('Fokusflüge erhalten Azimut/Polar der aktuellen Pose', () => {
-    it('sollte enter-district Azimut/Polar der aktuellen Kamera-Pose beibehalten', () => {
+  describe('Fokusflüge erhalten Azimut, enter-district kippt auf Skyline', () => {
+    it('sollte focus-district Azimut UND Polar der aktuellen Kamera-Pose beibehalten (Regel 3, Kontext bleibt)', () => {
       const deps = makeDeps();
       const controller = createCityCameraController(deps);
       const layout = makeCityLayout();
@@ -237,7 +237,7 @@ describe('createCityCameraController', () => {
       const knownPolar = (40 * Math.PI) / 180;
       deps.getCameraPose.mockReturnValue(sphericalPose({ x: 0, y: 0, z: 0 }, 25, knownAzimuth, knownPolar));
 
-      controller.onIntent({ seq: 1, kind: 'enter-district', targetId: 'leisure' }, { layout, focusLayout });
+      controller.onIntent({ seq: 1, kind: 'focus-district', targetId: 'leisure' }, { layout, focusLayout });
       controller.tick(0);
       controller.tick(1000);
 
@@ -245,6 +245,47 @@ describe('createCityCameraController', () => {
       const { azimuthRad, polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
       expect(azimuthRad).toBeCloseTo(knownAzimuth, 5);
       expect(polarRad).toBeCloseTo(knownPolar, 5);
+    });
+
+    it('sollte beim enter-district Azimut beibehalten, aber den Polar auf eine seitlichere Skyline-Ansicht anheben (Balkenhöhen lesbar)', () => {
+      const deps = makeDeps();
+      const controller = createCityCameraController(deps);
+      const layout = makeCityLayout();
+      const focusLayout = { center: { x: 5, y: 0, z: 3 }, radius: 2 };
+
+      const knownAzimuth = (110 * Math.PI) / 180;
+      const cityPolar = (40 * Math.PI) / 180; // Vogelperspektive der Stadt-Ebene.
+      deps.getCameraPose.mockReturnValue(sphericalPose({ x: 0, y: 0, z: 0 }, 25, knownAzimuth, cityPolar));
+
+      controller.onIntent({ seq: 1, kind: 'enter-district', targetId: 'leisure' }, { layout, focusLayout });
+      controller.tick(0);
+      controller.tick(1000);
+
+      const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
+      const { azimuthRad, polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
+      expect(azimuthRad).toBeCloseTo(knownAzimuth, 5);
+      // Polar wird seitlicher (größer) als die Stadt-Vogelperspektive …
+      expect(polarRad).toBeGreaterThan(cityPolar);
+      // … auf mindestens den Skyline-Winkel (70°).
+      expect(polarRad).toBeCloseTo((70 * Math.PI) / 180, 5);
+    });
+
+    it('sollte beim enter-district einen bereits seitlicheren Polar NICHT wieder anheben (max, kein Zwang)', () => {
+      const deps = makeDeps();
+      const controller = createCityCameraController(deps);
+      const layout = makeCityLayout();
+      const focusLayout = { center: { x: 5, y: 0, z: 3 }, radius: 2 };
+
+      const sidePolar = (78 * Math.PI) / 180; // Nutzer hat schon seitlich gedreht.
+      deps.getCameraPose.mockReturnValue(sphericalPose({ x: 0, y: 0, z: 0 }, 25, Math.PI / 4, sidePolar));
+
+      controller.onIntent({ seq: 1, kind: 'enter-district', targetId: 'leisure' }, { layout, focusLayout });
+      controller.tick(0);
+      controller.tick(1000);
+
+      const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
+      const { polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
+      expect(polarRad).toBeCloseTo(sidePolar, 5);
     });
   });
 
