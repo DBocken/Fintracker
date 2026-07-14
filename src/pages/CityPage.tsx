@@ -12,6 +12,7 @@ import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
+import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
 import { useCityModel } from "@/features/finance-city/application/use-city-model";
 import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
@@ -105,6 +106,10 @@ export default function CityPage() {
   const canvasMounted = !isLoading && !isEmpty;
 
   const nav = useCityNavigation(model, { city: t("city.breadcrumbCity") });
+  // README-Akzeptanzkriterium "Android-Hardware-Back": Drill-down zuerst eine
+  // Ebene zurück (Distrikt→Stadt, Gebäude→Distrikt), erst danach Standard-
+  // Navigation. Inert im Web (kein Capacitor-Listener).
+  useCityBackNavigation(nav);
 
   // buildCityLayout ist die EINZIGE Geometrie-Quelle (README) — `presentation/`
   // trifft keine eigenen Layout-Entscheidungen. `focusDistrictId` bedeutet je

@@ -87,9 +87,10 @@ dieselben aggregierten Daten wie im restlichen Dashboard
       `src/features/finance-city/presentation/` (WebGL-Lifecycle außerhalb
       des React-Render-Zyklus, sauberes `dispose()` beim Unmount) — kein
       Memory-Leak über Seitenwechsel (AGENTS.md §7).
-- [ ] Android-Hardware-Back navigiert beim Drill-down zuerst eine Ebene
+- [x] Android-Hardware-Back navigiert beim Drill-down zuerst eine Ebene
       zurück (Distrikt→Stadt, Gebäude→Distrikt); erst auf oberster Ebene
-      verlässt sie die Seite (Capacitor, Folgeschritt).
+      verlässt sie die Seite (Capacitor, WP-D2:
+      `application/use-city-back-navigation.ts`).
 
 ## Architektur
 
@@ -142,9 +143,6 @@ AppShell. Details im Code-Kommentar von `src/pages/CityPage.tsx`.
   und `computeContracts` (`src/lib/contract-derivation.ts`) auf
   `CityDistrictData`/`CityContractData` abbildet, statt der Fixture in
   `data/city-demo-data.ts`. Typen wandern dabei nach `domain/city-model.ts`.
-- **Android-Hardware-Back** via Capacitor: Drill-down-Ebenen (Stadt→Distrikt→
-  Gebäude) abfangen, bevor die Seite verlassen wird (Akzeptanzkriterium
-  oben).
 - **Canvas-Lifecycle** (WP-C3): three.js-Renderer/Kamera/Szene,
   Render-on-Demand-Loop, DPR-Cap, HTML-Label-Overlays.
 - **Navigation/Drill-down-State** (WP-C2): Application-Hook ohne
