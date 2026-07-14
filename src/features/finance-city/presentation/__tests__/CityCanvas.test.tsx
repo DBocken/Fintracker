@@ -119,6 +119,64 @@ describe('CityCanvas', () => {
     expect(createCityScene).toHaveBeenCalledTimes(1);
   });
 
+  it('[REGRESSION] sollte bei Layout-Wechsel im Ruhezustand einen Frame anfordern (Balken nicht eingefroren)', async () => {
+    // Der Render-on-Demand-Loop schläft nach Flugende/ohne Interaktion
+    // (rafHandle===null). Ändert sich das `layout` durch einen Hintergrund-
+    // Refetch (neue Model-Identität) STATT durch Navigation, käme ohne ein
+    // explizites invalidate im Layout-Effekt kein Frame — applyLayout würde neue
+    // Höhen-/Opazitäts-Tweens registrieren, die aber nie getickt/gerendert
+    // werden. Die Balken blieben bis zur nächsten Interaktion eingefroren.
+    const queue = new Map<number, FrameRequestCallback>();
+    let nextRafId = 1;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextRafId++;
+      queue.set(id, cb);
+      return id;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      queue.delete(id);
+    });
+
+    let handle: CitySceneHandle | null = null;
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas);
+      return handle;
+    });
+
+    const controlsApiRef = createRef<CityControlsApi | null>();
+    const { rerender } = render(
+      <CityCanvas layout={LAYOUT} onTapBox={vi.fn()} controlsApiRef={controlsApiRef} />,
+    );
+    await waitFor(() => expect(handle).not.toBeNull());
+
+    const flushFrame = (nowMs: number) => {
+      const callbacks = [...queue.values()];
+      queue.clear();
+      for (const cb of callbacks) cb(nowMs);
+    };
+
+    // Loop in den Ruhezustand fahren: ohne Controller/Animation klingt er (nach
+    // dem Damping-Ausklang der Controls) von selbst aus.
+    let guard = 0;
+    while (queue.size > 0 && guard < 30) {
+      flushFrame(1000 + guard * 16);
+      guard += 1;
+    }
+    expect(queue.size).toBe(0); // Loop schläft.
+    const rendersWhileIdle = (handle!.render as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    // Neues Layout durch (simulierten) Hintergrund-Refetch — KEINE Navigation.
+    const districtLayout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+    rerender(<CityCanvas layout={districtLayout} onTapBox={vi.fn()} controlsApiRef={controlsApiRef} />);
+
+    await waitFor(() => expect(handle!.applyLayout).toHaveBeenCalledWith(districtLayout));
+    // Kern-Assertion: der Layout-Wechsel hat einen Frame angefordert.
+    expect(queue.size).toBe(1);
+
+    flushFrame(1016);
+    expect((handle!.render as ReturnType<typeof vi.fn>).mock.calls.length).toBe(rendersWhileIdle + 1);
+  });
+
   it('sollte sceneRef beim Mount mit dem Handle befüllen und beim Unmount wieder auf null setzen', async () => {
     const handle = createFakeHandle(document.createElement('canvas'));
     createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => ({ ...handle, domElement: canvas }));

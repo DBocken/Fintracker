@@ -369,6 +369,15 @@ export function CityCanvas({
     const handle = handleRef.current;
     if (!handle) return;
     handle.applyLayout(layout);
+    // Einen Frame anfordern: der Render-on-Demand-Loop schläft nach Flugende/
+    // ohne Interaktion (rafHandle===null). Ändert sich `layout` durch einen
+    // Hintergrund-Refetch (neue Model-Identität) STATT durch Navigation (die
+    // über den Kamera-Controller ohnehin invalidiert), käme sonst kein Frame —
+    // applyLayout registriert neue Höhen-/Opazitäts-Tweens, die aber nie
+    // getickt/gerendert würden und die Balken blieben eingefroren. `invalidate`
+    // ist idempotent (setzt nur `needsRender` + startet den Loop bei Bedarf),
+    // verletzt also die Single-rAF-Invariante nicht.
+    controlsApiRef?.current?.invalidate();
   }, [layout]);
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern (System-Setting) —
