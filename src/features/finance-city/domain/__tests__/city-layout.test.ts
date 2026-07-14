@@ -180,6 +180,34 @@ describe('buildCityLayout', () => {
       const subDiningBar = subLayout.boxes.find((b) => b.id === 'leisure/dining')!;
       expect(subDiningBar.opacity).toBeLessThan(districtDiningBar.opacity);
     });
+
+    it('[REGRESSION] sollte ein fokussiertes Gebäude OHNE Etagen voll sichtbar rendern (keine verwaschene Sackgasse)', () => {
+      // Die meisten Unterkategorien haben keine erkannten wiederkehrenden
+      // Verträge (im Fixture nur "Streaming & Abos"). Tauchte man in ein solches
+      // Gebäude ein, fiel es früher auf BAR_OPACITY_DIMMED_SUBCATEGORY (wie ein
+      // nicht-fokussierter Nachbar) zurück — das Eintauchen wirkte wie ein
+      // toter, ausgewaschener Balken. Das fokussierte Gebäude selbst muss voll
+      // sichtbar bleiben.
+      const model = makeModel();
+      const districtLayout = buildCityLayout(model, { level: 'district', focusDistrictId: 'leisure' });
+      const subLayout = buildCityLayout(model, {
+        level: 'subcategory',
+        focusDistrictId: 'leisure',
+        focusSubcategoryId: 'dining', // 'dining' hat keine contracts -> keine Etagen
+      });
+
+      // Kein Etagen-Split (Gebäude ohne Verträge).
+      expect(subLayout.boxes.filter((b) => b.kind === 'floor')).toHaveLength(0);
+
+      const focusedBar = subLayout.boxes.find((b) => b.id === 'leisure/dining')!;
+      expect(focusedBar).toBeDefined();
+      // Voll sichtbar — genauso wie beim Browsen auf Distrikt-Ebene ...
+      const districtDiningBar = districtLayout.boxes.find((b) => b.id === 'leisure/dining')!;
+      expect(focusedBar.opacity).toBe(districtDiningBar.opacity);
+      // ... und deutlich sichtbarer als ein nicht-fokussierter (gedimmter) Nachbar.
+      const neighborBar = subLayout.boxes.find((b) => b.id === 'leisure/shopping')!;
+      expect(focusedBar.opacity).toBeGreaterThan(neighborBar.opacity);
+    });
   });
 
   describe('Hülle umschließt alle Balken ihres Viertels', () => {

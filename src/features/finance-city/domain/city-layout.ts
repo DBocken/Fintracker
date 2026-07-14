@@ -557,6 +557,14 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
           boxes.push(...floorBoxes);
           continue;
         }
+        // Fokussiertes Gebäude OHNE erkannte Etagen (die meisten Unterkategorien
+        // haben keine wiederkehrenden Verträge): das Gebäude selbst VOLL sichtbar
+        // rendern statt es wie einen nicht-fokussierten Nachbarn auf
+        // BAR_OPACITY_DIMMED_SUBCATEGORY auszuwaschen — sonst wirkt das
+        // Eintauchen wie eine tote, verwaschene Sackgasse. Nicht pickbar (es gibt
+        // nichts, in das man weiter eintauchen könnte).
+        boxes.push(buildBarBox(district, bar, BAR_OPACITY_DISTRICT, false));
+        continue;
       }
 
       const barOpacity =
