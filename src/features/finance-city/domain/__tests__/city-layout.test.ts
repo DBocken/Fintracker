@@ -244,6 +244,50 @@ describe('buildCityLayout', () => {
     });
   });
 
+  describe('Hülle: konstanter Kopffreiheits-Anteil über dem höchsten Balken', () => {
+    // Füllgrad = höchster Balken des Viertels / Hüllenhöhe. Bei PROPORTIONALER
+    // Kopffreiheit (Anteil der Balkenhöhe statt festem additivem Abstand) ist
+    // dieser Anteil für JEDES Viertel gleich — unabhängig von der Gebäudegröße.
+    const fillRatio = (
+      layout: ReturnType<typeof buildCityLayout>,
+      districtId: string,
+    ): number => {
+      const hull = layout.boxes.find((b) => b.kind === 'hull' && b.id === districtId)!;
+      const bars = layout.boxes.filter((b) => b.kind === 'bar' && b.id.startsWith(`${districtId}/`));
+      const tallest = Math.max(...bars.map((b) => b.size.y));
+      return tallest / hull.size.y;
+    };
+
+    it('sollte für JEDES Viertel denselben Balken-Füllanteil liefern (proportionale statt fester Kopffreiheit)', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      const ratios = model.districts.map((d) => fillRatio(layout, d.id));
+      for (const ratio of ratios) {
+        expect(ratio).toBeCloseTo(ratios[0], 10);
+      }
+    });
+
+    it('[REGRESSION] sollte ein kleines Viertel nicht mit unverhältnismäßig hoher Hülle strafen (kleiner Höchstbalken füllt seine Hülle genauso stark wie der größte der Stadt)', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      // "housing" trägt den Stadt-Höchstbalken (Miete 980), "leisure" den
+      // kleinsten Höchstbalken. Mit fester +0.6-Kopffreiheit füllte "leisure"
+      // seine Hülle deutlich schwächer als "housing" (Nutzer-Befund: innerer
+      // Balken wirkt klein); mit proportionaler Kopffreiheit sind beide gleich.
+      expect(fillRatio(layout, 'leisure')).toBeCloseTo(fillRatio(layout, 'housing'), 10);
+    });
+
+    it('sollte die Hülle des Stadt-Höchstbalken-Viertels unverändert lassen (proportional == alt für den Höchstbalken)', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      const housingHull = layout.boxes.find((b) => b.kind === 'hull' && b.id === 'housing')!;
+      // Höchster Balken der Stadt = MAX_BAR_HEIGHT (6). Alte feste Kopffreiheit
+      // 6 + 0.6 = 6.6; proportionale (10 %) 6 * 1.1 = 6.6 — bewusst identisch,
+      // damit der Fix ausschließlich kleinere Gebäude betrifft.
+      expect(housingHull.size.y).toBeCloseTo(6.6, 10);
+    });
+  });
+
   describe('Pickable-Matrix je Level', () => {
     it('sollte auf city-Ebene nur Hüllen pickable machen', () => {
       const model = makeModel();

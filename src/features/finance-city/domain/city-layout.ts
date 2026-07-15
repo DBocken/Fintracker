@@ -56,9 +56,23 @@ const BAR_GRID_GAP = 0.5;
 /** Referenzhöhe für den höchsten Balken der ganzen Stadt (scaleHeight-maxHeight). */
 const MAX_BAR_HEIGHT = 6;
 
-/** Marge zwischen äußerstem Balken und Hüllen-Wand (x/z) bzw. -Dach (y). */
+/** Marge zwischen äußerstem Balken und Hüllen-Wand (x/z). */
 const HULL_MARGIN = 0.8;
-const HULL_HEIGHT_MARGIN = 0.6;
+/**
+ * Kopffreiheit der Hülle ÜBER dem höchsten Balken ihres Viertels — als ANTEIL
+ * der Balkenhöhe, NICHT als fester additiver Abstand. Nutzer-Befund: der innere
+ * Balken wirkte beim Reinzoomen (Fokus) viel kleiner als in der Stadtübersicht.
+ * Ursache war die früher FESTE Kopffreiheit (+0.6): für den Stadt-Höchstbalken
+ * (6.0) sind das nur 9 %, für ein kleines Gebäude (Balken 0.6) aber 50 % — die
+ * Hülle stand dann halb leer über dem Balken, und die nahe Fokus-Vogelperspektive
+ * blies diese leere Kopfzone zusätzlich auf. Ein proportionaler Anteil gibt JEDEM
+ * Gebäude denselben Füllgrad (Balken/Hülle konstant über alle Gebäudegrößen und
+ * Zoom-Ebenen). Bewusst 10 %, damit die Hülle des Stadt-Höchstbalken-Viertels
+ * exakt gleich bleibt (6.0 * 1.1 = 6.6 = altes 6.0 + 0.6) — der Fix betrifft nur
+ * kleinere Gebäude. `computeFocusBounds` rahmt weiterhin nur die soliden Balken,
+ * die Kamera bleibt also unberührt.
+ */
+const HULL_HEIGHT_HEADROOM_RATIO = 0.1;
 
 const PLOT_THICKNESS = 0.05;
 const GROUND_THICKNESS = 0.1;
@@ -341,7 +355,7 @@ function buildHullBox(district: CityDistrict, bars: PositionedBar[], opacity: nu
 
   const sizeX = maxX - minX + 2 * HULL_MARGIN;
   const sizeZ = maxZ - minZ + 2 * HULL_MARGIN;
-  const sizeY = maxHeight + HULL_HEIGHT_MARGIN;
+  const sizeY = maxHeight * (1 + HULL_HEIGHT_HEADROOM_RATIO);
   const centerX = (minX + maxX) / 2;
   const centerZ = (minZ + maxZ) / 2;
   const centerY = GROUND_LEVEL + sizeY / 2;
