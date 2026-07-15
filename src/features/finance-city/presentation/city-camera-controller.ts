@@ -91,13 +91,16 @@ const FLIGHT_DURATION_MS = 700;
 /**
  * Startpose der Stadt-Übersicht (Kamera-Regel 1 im README, "Auto-Frame"):
  * 45°-Azimut vermeidet einen Blick exakt entlang einer Distrikt-Grenze,
- * 55° Polar bleibt eine erkennbare Vogelperspektive innerhalb der erlaubten
- * Halbraum-Spanne (Kamera-Regel 2, 15°–80°). Übernommen aus der vorherigen
- * statischen Startpose in `CityPage.tsx` (WP-C3) — der Controller ist jetzt
- * die EINZIGE Stelle, die diese Konstanten kennt.
+ * 62° Polar liest die Balkenhöhen (= Beträge) schon in der Stadt-Übersicht
+ * gut ab und bleibt dabei klar eine Vogelperspektive innerhalb der erlaubten
+ * Halbraum-Spanne (Kamera-Regel 2, 15°–80°). Der Polarwinkel bleibt jetzt
+ * über ALLE Zoom-Ebenen hinweg konstant (siehe `focus-district`/
+ * `enter-district`/`enter-subcategory` unten) — Nutzer-Befund „Balken werden
+ * beim Reinzoomen kleiner" kam vom Kamera-Kippen, nicht von der Balkenhöhe
+ * selbst (die ist modellweit ohnehin immer gleich, `city-layout.ts`).
  */
 const CITY_DEFAULT_AZIMUTH_RAD = Math.PI / 4;
-const CITY_DEFAULT_POLAR_RAD = (55 * Math.PI) / 180;
+const CITY_DEFAULT_POLAR_RAD = (62 * Math.PI) / 180;
 
 /** Fallback-Aspect, bevor `configure()` je aufgerufen wurde (Startwert, seltener Pfad). */
 const DEFAULT_ASPECT = 16 / 9;
@@ -127,13 +130,6 @@ const ZOOM_OUT_THRESHOLD_RATIO = 0.85;
 
 /** Regel 7: `fog.far = maxDistance + FOG_DIAMETER_MARGIN * cityRadius` (Stadtdurchmesser = 2 * Radius). */
 const FOG_DIAMETER_MARGIN = 2;
-
-/** Beim Eintauchen in eine Unterkategorie senkt sich der Polarwinkel leicht (mehr Seitenansicht auf die Etagen-Stapelung). */
-const SUBCATEGORY_POLAR_DROP_RAD = (10 * Math.PI) / 180;
-/** Beim Eintauchen in ein Viertel MINDEST-Polarwinkel für eine seitliche „Skyline"-Ansicht (Balkenhöhen lesbar statt aus der Vogelperspektive verkürzt). < CityCanvas MAX_POLAR (80°). */
-const DISTRICT_ENTER_MIN_POLAR_RAD = (70 * Math.PI) / 180;
-/** Untere Sicherheitsgrenze für den abgesenkten Polarwinkel — unabhängig von `CityCanvas`s eigenem OrbitControls-Clamp (Verteidigung in der Tiefe, reiner Presentation-Wert). */
-const MIN_POLAR_FLOOR_RAD = (10 * Math.PI) / 180;
 
 const EPSILON = 1e-6;
 
@@ -268,15 +264,13 @@ export function createCityCameraController(deps: CityCameraControllerDeps): City
         const distance = fitCameraDistance(ctx.focusLayout.radius, config.fovYDeg, config.aspect, margin);
         lastFocusDistance = distance;
         lastFocusCenter = { ...ctx.focusLayout.center };
-        // Azimut bleibt immer erhalten (Regel 3). Beim reinen FOKUS (Stadt-Ebene)
-        // bleibt auch der Polarwinkel erhalten (Kontext der Nachbar-Viertel).
-        // Beim EINTAUCHEN (Distrikt-Ebene) kippt die Kamera dagegen auf eine
-        // seitlichere „Skyline"-Ansicht: aus der Stadt-Vogelperspektive (~55°)
-        // wirken senkrechte Balken stark verkürzt und damit klein — beim
-        // Vergleich der Balkenhöhen (= Beträge) innerhalb eines Viertels will
-        // man sie aber deutlich sehen (Nutzer-Befund „Balken werden kleiner").
-        const polar =
-          intent.kind === 'enter-district' ? Math.max(polarRad, DISTRICT_ENTER_MIN_POLAR_RAD) : polarRad;
+        // Azimut UND Polarwinkel bleiben bei BEIDEN Intents erhalten (Regel 3)
+        // — nur die Distanz ändert sich. Der Blickwinkel ist damit über alle
+        // Zoom-Ebenen konstant, die (modellweit gleich hohen) Balken behalten
+        // beim Rein-/Rauszoomen eine konsistente Silhouette (Nutzer-Befund
+        // „Balken werden beim Klick aufs Viertel kleiner" kam vom Kamera-
+        // Kippen, nicht von der tatsächlichen Balkenhöhe).
+        const polar = polarRad;
         startFlight(sphericalPose(ctx.focusLayout.center, distance, azimuthRad, polar));
         return;
       }
@@ -285,12 +279,16 @@ export function createCityCameraController(deps: CityCameraControllerDeps): City
         if (!ctx.focusLayout) return;
         const current = deps.getCameraPose();
         const { azimuthRad, polarRad } = sphericalFromPose(current.position, current.target);
+        // Azimut snappt auf die nächste Vierteldrehung (saubere Etagen-
+        // Seitenansicht) — der Polarwinkel bleibt dagegen unverändert (kein
+        // Drop mehr), damit die Balken-/Etagen-Silhouette konsistent mit den
+        // anderen Zoom-Ebenen bleibt.
         const snappedAzimuth = nearestQuarterTurnAzimuth(azimuthRad);
-        const loweredPolar = Math.max(MIN_POLAR_FLOOR_RAD, polarRad - SUBCATEGORY_POLAR_DROP_RAD);
+        const polar = polarRad;
         const distance = fitCameraDistance(ctx.focusLayout.radius, config.fovYDeg, config.aspect, SUBCATEGORY_FIT_MARGIN);
         lastFocusDistance = distance;
         lastFocusCenter = { ...ctx.focusLayout.center };
-        startFlight(sphericalPose(ctx.focusLayout.center, distance, snappedAzimuth, loweredPolar));
+        startFlight(sphericalPose(ctx.focusLayout.center, distance, snappedAzimuth, polar));
         return;
       }
 

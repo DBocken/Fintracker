@@ -189,6 +189,22 @@ describe('createCityCameraController', () => {
     });
   });
 
+  describe('Stadt-Startpose (fit-city): konsistenter Polarwinkel über alle Zoom-Ebenen', () => {
+    it('[REGRESSION] sollte die Stadt-Startpose einen Polarwinkel von 62° verwenden (Balken schon in der Übersicht lesbar)', () => {
+      const deps = makeDeps();
+      const controller = createCityCameraController(deps);
+      const layout = makeCityLayout({ center: { x: 0, y: 0, z: 0 }, boundingRadius: 20 });
+
+      controller.onIntent(fitCityIntent(1), { layout });
+      controller.tick(0);
+      controller.tick(1000); // Flug abgeschlossen.
+
+      const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
+      const { polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
+      expect(polarRad).toBeCloseTo((62 * Math.PI) / 180, 5);
+    });
+  });
+
   describe('enter-subcategory: Azimut-Drehung auf die nächste Seitenansicht', () => {
     it('sollte den Azimut auf die nächste Seitenansicht (kürzester Weg zu einem Vielfachen von 90°) drehen', () => {
       const deps = makeDeps();
@@ -208,6 +224,27 @@ describe('createCityCameraController', () => {
       const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
       const { azimuthRad } = sphericalFromPose(finalPose.position, finalPose.target);
       expect(azimuthRad).toBeCloseTo(0, 5);
+    });
+
+    it('[REGRESSION] sollte beim enter-subcategory den Polarwinkel unverändert von der Ausgangspose übernehmen (kein Drop mehr), Azimut-Snap bleibt bestehen', () => {
+      const deps = makeDeps();
+      const controller = createCityCameraController(deps);
+      const layout = makeCityLayout();
+      const focusLayout = { center: { x: 2, y: 0, z: -1 }, radius: 1 };
+
+      // Aktuelle Kamera-Pose: Azimut 20° -> nächstes Vielfaches von 90° ist 0°.
+      const currentAzimuth = (20 * Math.PI) / 180;
+      const currentPolar = (50 * Math.PI) / 180;
+      deps.getCameraPose.mockReturnValue(sphericalPose({ x: 0, y: 0, z: 0 }, 15, currentAzimuth, currentPolar));
+
+      controller.onIntent({ seq: 1, kind: 'enter-subcategory', targetId: 'streaming' }, { layout, focusLayout });
+      controller.tick(0);
+      controller.tick(1000); // Flug abgeschlossen.
+
+      const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
+      const { azimuthRad, polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
+      expect(azimuthRad).toBeCloseTo(0, 5); // Azimut-Snap bleibt erhalten.
+      expect(polarRad).toBeCloseTo(currentPolar, 5); // Polarwinkel: keine Absenkung mehr.
     });
   });
 
@@ -247,7 +284,7 @@ describe('createCityCameraController', () => {
       expect(polarRad).toBeCloseTo(knownPolar, 5);
     });
 
-    it('sollte beim enter-district Azimut beibehalten, aber den Polar auf eine seitlichere Skyline-Ansicht anheben (Balkenhöhen lesbar)', () => {
+    it('[REGRESSION] sollte beim enter-district den Polarwinkel unverändert von der Ausgangspose übernehmen (kein Skyline-Kippen mehr, nur die Distanz ändert sich)', () => {
       const deps = makeDeps();
       const controller = createCityCameraController(deps);
       const layout = makeCityLayout();
@@ -264,13 +301,12 @@ describe('createCityCameraController', () => {
       const finalPose = deps.applyCameraPose.mock.calls.at(-1)![0] as { position: Vec3; target: Vec3 };
       const { azimuthRad, polarRad } = sphericalFromPose(finalPose.position, finalPose.target);
       expect(azimuthRad).toBeCloseTo(knownAzimuth, 5);
-      // Polar wird seitlicher (größer) als die Stadt-Vogelperspektive …
-      expect(polarRad).toBeGreaterThan(cityPolar);
-      // … auf mindestens den Skyline-Winkel (70°).
-      expect(polarRad).toBeCloseTo((70 * Math.PI) / 180, 5);
+      // Polarwinkel bleibt exakt gleich wie in der Stadt-Vogelperspektive —
+      // die Balken behalten dadurch dieselbe Silhouette wie auf Stadt-Ebene.
+      expect(polarRad).toBeCloseTo(cityPolar, 5);
     });
 
-    it('sollte beim enter-district einen bereits seitlicheren Polar NICHT wieder anheben (max, kein Zwang)', () => {
+    it('[REGRESSION] sollte beim enter-district auch einen bereits seitlichen Polarwinkel unverändert lassen (kein Clamp mehr, reine Identität)', () => {
       const deps = makeDeps();
       const controller = createCityCameraController(deps);
       const layout = makeCityLayout();
