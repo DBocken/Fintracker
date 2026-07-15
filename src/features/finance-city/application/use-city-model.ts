@@ -1,30 +1,31 @@
 /**
- * Application-Hook (WP-C8): lädt echte Transaktionen/Kategorien/Vertrags-
- * entscheidungen über dieselben TanStack-Query-Keys wie das Dashboard
- * (`financeKeys`, `src/features/shared/data/finance-query-keys.ts` —
- * geteilter Cache, kein Query-Duplikat, AGENTS.md §4/§7) und baut daraus über
- * die geteilte Aggregation (`buildSunburstTree`, `computeContracts`) +
+ * Application-Hook (WP-C8): lädt echte Transaktionen/Kategorien über
+ * dieselben TanStack-Query-Keys wie das Dashboard (`financeKeys`,
+ * `src/features/shared/data/finance-query-keys.ts` — geteilter Cache, kein
+ * Query-Duplikat, AGENTS.md §4/§7) und baut daraus über die geteilte
+ * Aggregation (`buildSunburstTree`, `buildMerchantFloorsByBuilding`) +
  * `buildCityModelFromData` das `CityModel` für die Finanzstadt.
  *
  * KEIN eigener React-Query-`select`/eigene Aggregation hier über Beträge
- * (AGENTS.md §8) — `buildSunburstTree`/`computeContracts` bleiben die
- * einzige Quelle der Wahrheit, dieser Hook verdrahtet nur Queries + den
- * reinen Adapter.
+ * (AGENTS.md §8) — `buildSunburstTree`/`buildMerchantFloorsByBuilding`
+ * bleiben die einzige Quelle der Wahrheit, dieser Hook verdrahtet nur
+ * Queries + den reinen Adapter.
+ *
+ * Etagen kommen seit WP-E2 NICHT mehr aus `computeContracts` (das Händler
+ * mit zu wenigen Buchungen überspringt, siehe `city-merchant-floors.ts`),
+ * sondern aus `buildMerchantFloorsByBuilding` — dafür braucht dieser Hook
+ * keine `contractDecisions`-Query mehr (Etage = Händler, unabhängig von
+ * einer Nutzer-Vertragsentscheidung).
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions, getCategories } from '@/services/transaction-service';
-import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { buildSunburstTree } from '@/lib/analysis-data';
-import { computeContracts } from '@/lib/contract-derivation';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
+import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import type { CityModel } from '../domain/city-model';
 import type { Category } from '@/types';
-
-// Stabile Referenz für den Query-Default (Muster aus `use-finance-overview.ts`):
-// eine neue `new Map()` bei jedem Render würde die Memo-Kette unnötig invalidieren.
-const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
 
 export type UseCityModelResult = {
   model: CityModel;
@@ -45,11 +46,6 @@ export function useCityModel(): UseCityModelResult {
     queryFn: () => getCategories(),
   });
 
-  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS, isLoading: contractDecisionsLoading } = useQuery({
-    queryKey: financeKeys.contractDecisions,
-    queryFn: getContractDecisionMap,
-  });
-
   const categoriesById = useMemo(() => {
     const map = new Map<string, Category>();
     for (const c of categories) map.set(c.id, c);
@@ -58,20 +54,13 @@ export function useCityModel(): UseCityModelResult {
 
   const model = useMemo(() => {
     const sunburst = buildSunburstTree(transactions, categories);
-    const expenseContracts = computeContracts(transactions, categoriesById, 'Ausgabe', {
-      decisions: contractDecisions,
-    });
-    return buildCityModelFromData(sunburst, categoriesById, expenseContracts);
-  }, [transactions, categories, categoriesById, contractDecisions]);
+    const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById);
+    return buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
+  }, [transactions, categories, categoriesById]);
 
   return {
     model,
-    // Auch die Vertragsentscheidungen müssen geladen sein, bevor der Canvas
-    // mountet: computeContracts hängt von ihnen ab, und mit der leeren
-    // Default-Map bestünde ein zuvor beendeter/verworfener Vertrag kurz
-    // isFloorContract und poppte als Etage rein/raus, sobald die echten
-    // Entscheidungen nachladen.
-    isLoading: transactionsLoading || categoriesLoading || contractDecisionsLoading,
+    isLoading: transactionsLoading || categoriesLoading,
     isEmpty: model.districts.length === 0,
   };
 }

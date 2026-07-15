@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildCityModelFromData } from '../city-data-adapter';
 import type { SunburstNode, SunburstTree } from '@/lib/analysis-data';
-import type { ContractRow } from '@/components/contracts/contract-types';
 import type { Category } from '@/types';
+import type { CityContract } from '../city-model';
 
 function mainNode(opts: { id: string; name: string; value: number; categoryId: string; children?: SunburstNode[] }): SunburstNode {
   return {
@@ -34,40 +34,9 @@ function category(id: string, name: string, overrides: Partial<Category> = {}): 
   return { id, name, filters: [], ...overrides };
 }
 
-function contractRow(opts: {
-  key: string;
-  payee: string;
-  categoryId: string;
-  amountTypical: number;
-  amountRecentTypical?: number;
-  cycle?: ContractRow['cycle'];
-  status?: ContractRow['status'];
-  stale?: boolean;
-  cycleKnown?: boolean;
-}): ContractRow {
-  return {
-    key: opts.key,
-    type: 'Ausgabe',
-    payee: opts.payee,
-    categoryName: opts.payee,
-    categoryId: opts.categoryId,
-    amountTypical: opts.amountTypical,
-    amountRecentTypical: opts.amountRecentTypical,
-    amountLast: opts.amountTypical,
-    cycle: opts.cycle ?? 'Monatlich',
-    lastDateISO: '2026-06-01',
-    firstDateISO: '2026-01-01',
-    nextDateISO: null,
-    changed: false,
-    changeAmount: 0,
-    changeSinceLabel: null,
-    confirmed: true,
-    transactionIds: [],
-    fingerprint: opts.key,
-    status: opts.status ?? 'active',
-    stale: opts.stale ?? false,
-    cycleKnown: opts.cycleKnown ?? true,
-  };
+/** Baut eine `floorsByBuilding`-Map (Gebäude-Id -> Etagen) aus `[buildingId, contracts][]` — Präzedenzfall `buildMerchantFloorsByBuilding`-Rückgabetyp. */
+function floorsByBuilding(entries: [string, CityContract[]][]): Map<string, CityContract[]> {
+  return new Map(entries);
 }
 
 describe('buildCityModelFromData', () => {
@@ -84,7 +53,7 @@ describe('buildCityModelFromData', () => {
       };
       const categoriesById = new Map<string, Category>([['housing', category('housing', 'Wohnen', { color: '#123456' })]]);
 
-      const model = buildCityModelFromData(tree, categoriesById, []);
+      const model = buildCityModelFromData(tree, categoriesById, new Map());
 
       expect(model.districts.map((d) => d.id)).toEqual(['housing', 'leisure']);
       expect(model.districts[0].total).toBe(1000);
@@ -102,7 +71,7 @@ describe('buildCityModelFromData', () => {
         ['b', category('b', 'B', { color: '#2e7d72' })], // gleiche Kategorie-Farbe …
       ]);
 
-      const model = buildCityModelFromData(sunburstWithMains([a, b]), categoriesById, []);
+      const model = buildCityModelFromData(sunburstWithMains([a, b]), categoriesById, new Map());
 
       // … aber die Distrikte müssen dennoch verschiedene Farben haben.
       expect(model.districts[0].color).not.toBe('#2e7d72');
@@ -113,8 +82,8 @@ describe('buildCityModelFromData', () => {
       const a = mainNode({ id: 'x::a', name: 'A', value: 300, categoryId: 'a' });
       const b = mainNode({ id: 'x::b', name: 'B', value: 200, categoryId: 'b' });
       const c = mainNode({ id: 'x::c', name: 'C', value: 100, categoryId: 'c' });
-      const model1 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), []);
-      const model2 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), []);
+      const model1 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), new Map());
+      const model2 = buildCityModelFromData(sunburstWithMains([a, b, c]), new Map(), new Map());
 
       const colors = model1.districts.map((d) => d.color);
       colors.forEach((col) => expect(col).toMatch(/^#[0-9a-fA-F]{6}$/));
@@ -126,7 +95,7 @@ describe('buildCityModelFromData', () => {
 
     it('sollte Hauptkategorie-Knoten mit value <= 0 ignorieren', () => {
       const zero = mainNode({ id: 'x::zero', name: 'Null', value: 0, categoryId: 'zero' });
-      const model = buildCityModelFromData(sunburstWithMains([zero]), new Map(), []);
+      const model = buildCityModelFromData(sunburstWithMains([zero]), new Map(), new Map());
       expect(model.districts).toHaveLength(0);
     });
 
@@ -151,7 +120,7 @@ describe('buildCityModelFromData', () => {
         ],
       };
 
-      const model = buildCityModelFromData(tree, new Map(), []);
+      const model = buildCityModelFromData(tree, new Map(), new Map());
 
       // Genau EIN Distrikt 'food' — keine doppelte id.
       expect(model.districts).toHaveLength(1);
@@ -169,7 +138,7 @@ describe('buildCityModelFromData', () => {
   describe('Gebäude (Unterkategorien)', () => {
     it('sollte für einen Main OHNE Unterkategorien genau ein synthetisches Gebäude mit dem vollen Hauptkategorie-Betrag anlegen', () => {
       const main = mainNode({ id: 'x::fuel', name: 'Tanken', value: 200, categoryId: 'fuel' });
-      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), []);
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), new Map());
 
       expect(model.districts[0].subcategories).toHaveLength(1);
       expect(model.districts[0].subcategories[0]).toMatchObject({ id: 'fuel', label: 'Tanken', amount: 200 });
@@ -180,7 +149,7 @@ describe('buildCityModelFromData', () => {
       const direct = subNode({ id: 'x::leisure::__direct', name: 'Ohne Unterkategorie', value: 10, categoryId: 'leisure' });
       const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 40, categoryId: 'leisure', children: [sub, direct] });
 
-      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), []);
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), new Map());
 
       expect(model.districts[0].subcategories.map((s) => ({ id: s.id, label: s.label, amount: s.amount }))).toEqual([
         { id: 'streaming', label: 'Streaming', amount: 30 },
@@ -189,82 +158,80 @@ describe('buildCityModelFromData', () => {
     });
   });
 
-  describe('Etagen (Verträge)', () => {
-    it('sollte einen aktiven Vertrag mit Unterkategorie als Etage im richtigen Gebäude einordnen', () => {
+  describe('Etagen (Händler-Aggregation, WP-E2)', () => {
+    it('sollte Etagen aus der floorsByBuilding-Map im richtigen Gebäude (Unterkategorie) einordnen', () => {
       const sub = subNode({ id: 'x::leisure::streaming', name: 'Streaming', value: 30, categoryId: 'streaming' });
       const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure', children: [sub] });
-      const categoriesById = new Map<string, Category>([
-        ['leisure', category('leisure', 'Freizeit')],
-        ['streaming', category('streaming', 'Streaming', { parent_id: 'leisure' })],
-      ]);
-      const netflix = contractRow({ key: 'netflix', payee: 'Netflix', categoryId: 'streaming', amountTypical: 17.99 });
+      const netflix: CityContract = { id: 'netflix', label: 'Netflix', amount: 17.99 };
+      const spotify: CityContract = { id: 'spotify', label: 'Spotify', amount: 9.99 };
 
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [netflix]);
+      const model = buildCityModelFromData(
+        sunburstWithMains([main]),
+        new Map(),
+        floorsByBuilding([['streaming', [netflix, spotify]]]),
+      );
 
       const streamingBuilding = model.districts[0].subcategories.find((s) => s.id === 'streaming')!;
-      expect(streamingBuilding.contracts).toEqual([{ id: 'netflix', label: 'Netflix', amount: 17.99 }]);
+      expect(streamingBuilding.contracts).toEqual([netflix, spotify]);
     });
 
-    it('sollte einen aktiven Vertrag OHNE Unterkategorie im Direkt-Gebäude (Hauptkategorie selbst) einordnen', () => {
-      const main = mainNode({ id: 'x::fuel', name: 'Tanken', value: 100, categoryId: 'fuel' });
-      const categoriesById = new Map<string, Category>([['fuel', category('fuel', 'Tanken')]]);
-      const shell = contractRow({ key: 'shell', payee: 'Shell', categoryId: 'fuel', amountTypical: 60 });
+    it('sollte Etagen OHNE Unterkategorie im Direkt-Gebäude (Hauptkategorie selbst) einordnen', () => {
+      const main = mainNode({ id: 'x::fuel', name: 'Tanken', value: 60, categoryId: 'fuel' });
+      const shell: CityContract = { id: 'shell', label: 'Shell', amount: 60 };
 
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [shell]);
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), floorsByBuilding([['fuel', [shell]]]));
 
-      expect(model.districts[0].subcategories[0].contracts).toEqual([{ id: 'shell', label: 'Shell', amount: 60 }]);
+      expect(model.districts[0].subcategories[0].contracts).toEqual([shell]);
     });
 
-    it('[REGRESSION] sollte einen noch nicht bestätigten Kandidaten (z. B. frisch kategorisiertes Netflix/Spotify) als Etage übernehmen', () => {
-      // Nutzer-Befund „Streaming wird nicht korrekt erkannt": nach dem Zuweisen
-      // der Kategorie sind die erkannten Abos `candidate` (nicht `active`) —
-      // sie MÜSSEN trotzdem Etagen werden, sonst bleibt das Gebäude leer.
-      const sub = subNode({ id: 'x::leisure::streaming', name: 'Streaming', value: 24, categoryId: 'streaming' });
-      const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 24, categoryId: 'leisure', children: [sub] });
-      const categoriesById = new Map<string, Category>([
-        ['leisure', category('leisure', 'Freizeit')],
-        ['streaming', category('streaming', 'Streaming', { parent_id: 'leisure' })],
-      ]);
-      const netflix = contractRow({ key: 'nf', payee: 'Netflix', categoryId: 'streaming', amountTypical: 13, status: 'candidate' });
-      const spotify = contractRow({ key: 'sp', payee: 'Spotify', categoryId: 'streaming', amountTypical: 11, status: 'candidate' });
+    it('[REGRESSION] sollte eine einzelne, nicht wiederkehrende Buchung (z. B. Aldi, 1x) als eigene, beschriftete Etage aufnehmen', () => {
+      // Nutzer-Befund: die alte, auf `computeContracts` basierende Etagen-
+      // Ableitung überspringt Händler mit weniger als `minCount` Buchungen —
+      // eine einzelne Aldi-Buchung wurde dadurch NIE eine Etage. Der Adapter
+      // selbst kennt keine Mindestanzahl mehr: er hängt einfach an, was
+      // `floorsByBuilding` liefert (die Deckelungs-/Aggregationslogik liegt in
+      // `buildMerchantFloorsByBuilding`, hier wird nur die Verdrahtung geprüft).
+      const main = mainNode({ id: 'x::fuel', name: 'Tanken', value: 8.5, categoryId: 'fuel' });
+      const aldi: CityContract = { id: 'aldi', label: 'Aldi', amount: 8.5 };
 
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [netflix, spotify]);
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), floorsByBuilding([['fuel', [aldi]]]));
 
-      const building = model.districts[0].subcategories.find((s) => s.id === 'streaming')!;
-      expect(building.contracts?.map((c) => c.label)).toEqual(['Netflix', 'Spotify']);
+      expect(model.districts[0].subcategories[0].contracts).toEqual([aldi]);
     });
 
-    it('sollte verworfene/beendete/veraltete/zyklus-unbekannte Einträge NICHT als Etage übernehmen', () => {
-      const sub = subNode({ id: 'x::leisure::streaming', name: 'Streaming', value: 30, categoryId: 'streaming' });
-      const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure', children: [sub] });
-      const categoriesById = new Map<string, Category>([
-        ['leisure', category('leisure', 'Freizeit')],
-        ['streaming', category('streaming', 'Streaming', { parent_id: 'leisure' })],
-      ]);
-      const rejected = contractRow({ key: 'c0', payee: 'Verworfen', categoryId: 'streaming', amountTypical: 5, status: 'rejected' });
-      const ended = contractRow({ key: 'c1', payee: 'Beendet', categoryId: 'streaming', amountTypical: 5, status: 'ended' });
-      const stale = contractRow({ key: 'c2', payee: 'Veraltet', categoryId: 'streaming', amountTypical: 5, stale: true });
-      const unknownCycle = contractRow({ key: 'c3', payee: 'Unbekannt', categoryId: 'streaming', amountTypical: 5, cycle: 'Unbekannt', cycleKnown: false });
-
-      const model = buildCityModelFromData(sunburstWithMains([main]), categoriesById, [rejected, ended, stale, unknownCycle]);
-
-      const building = model.districts[0].subcategories.find((s) => s.id === 'streaming')!;
-      expect(building.contracts).toBeUndefined();
-    });
-
-    it('sollte einen Vertrag ohne auflösbares Gebäude überspringen statt abzustürzen', () => {
+    it('sollte ein Gebäude ohne Eintrag in der Map ohne Etagen lassen (kein Crash)', () => {
       const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure' });
-      const orphan = contractRow({ key: 'orphan', payee: 'Unbekannter Laden', categoryId: 'not-in-sunburst', amountTypical: 20 });
 
-      expect(() => buildCityModelFromData(sunburstWithMains([main]), new Map(), [orphan])).not.toThrow();
-      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), [orphan]);
+      expect(() => buildCityModelFromData(sunburstWithMains([main]), new Map(), new Map())).not.toThrow();
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), new Map());
+      expect(model.districts[0].subcategories[0].contracts).toBeUndefined();
+    });
+
+    it('sollte eine LEERE Etagen-Liste für ein Gebäude NICHT als `contracts` anhängen', () => {
+      const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure' });
+
+      const model = buildCityModelFromData(sunburstWithMains([main]), new Map(), floorsByBuilding([['leisure', []]]));
+
+      expect(model.districts[0].subcategories[0].contracts).toBeUndefined();
+    });
+
+    it('sollte Etagen für ein Gebäude, das im Sunburst gar nicht vorkommt, ignorieren (kein passendes Gebäude gebaut)', () => {
+      const main = mainNode({ id: 'x::leisure', name: 'Freizeit', value: 30, categoryId: 'leisure' });
+      const orphan: CityContract = { id: 'orphan', label: 'Unbekannter Laden', amount: 20 };
+
+      const model = buildCityModelFromData(
+        sunburstWithMains([main]),
+        new Map(),
+        floorsByBuilding([['not-in-sunburst', [orphan]]]),
+      );
+
       expect(model.districts[0].subcategories[0].contracts).toBeUndefined();
     });
   });
 
   describe('Edge Cases', () => {
     it('sollte bei leerem Sunburst ein leeres Modell liefern', () => {
-      const model = buildCityModelFromData({ total: 0, children: [] }, new Map(), []);
+      const model = buildCityModelFromData({ total: 0, children: [] }, new Map(), new Map());
       expect(model).toEqual({ districts: [] });
     });
   });

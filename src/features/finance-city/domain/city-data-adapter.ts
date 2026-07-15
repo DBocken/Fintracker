@@ -1,12 +1,12 @@
 /**
  * Reiner Adapter (WP-C8, `src/features/finance-city/README.md` "Folgeschritte
  * … Echte Daten"): bildet die geteilten Aggregations-Ergebnisse
- * (`buildSunburstTree` aus `src/lib/analysis-data.ts`, `computeContracts` aus
- * `src/lib/contract-derivation.ts`) auf das kanonische `CityModel`
- * (`city-model.ts`) ab — KEINE eigene Aggregation (AGENTS.md §8): jeder Betrag
- * kommt 1:1 aus dem bereits aggregierten Sunburst-Baum bzw. den bereits
- * abgeleiteten Vertragszeilen. Reine Funktionen, kein React/Query/three.js-
- * Import (README-Architekturtabelle, `domain/`).
+ * (`buildSunburstTree` aus `src/lib/analysis-data.ts`, Etagen aus
+ * `buildMerchantFloorsByBuilding` aus `city-merchant-floors.ts`) auf das
+ * kanonische `CityModel` (`city-model.ts`) ab — KEINE eigene Aggregation
+ * (AGENTS.md §8): jeder Betrag kommt 1:1 aus dem bereits aggregierten
+ * Sunburst-Baum bzw. der bereits aggregierten Etagen-Map. Reine Funktionen,
+ * kein React/Query/three.js-Import (README-Architekturtabelle, `domain/`).
  *
  * Mapping-Entscheidungen:
  * - **Distrikt** = jeder Hauptkategorie-Knoten über ALLE Ausgabenklassen
@@ -25,42 +25,20 @@
  *   = mainId) läuft über denselben Zweig wie echte Unterkategorien mit durch
  *   (kein Sonderfall nötig) — sein Gebäude trägt dadurch dieselbe Id wie der
  *   Distrikt selbst, was mit der Etagen-Zuordnung unten übereinstimmt.
- * - **Etage** = ein erkannter, laufender wiederkehrender Eintrag (Kandidat
- *   ODER bestätigt/pausiert, mit bekanntem Zyklus, nicht veraltet — siehe
- *   `isFloorContract`), dessen Kategorie über `resolveHierarchy` auf
- *   Distrikt (`mainId`) und Gebäude (`subId ?? mainId` — passt zur
- *   Gebäude-Id-Konvention oben) auflöst. Beträge sind Monatsäquivalente
- *   (`monthlyEquivalent`), bevorzugt aus dem robusteren „letzte 3 Buchungen"-
- *   Median (`amountRecentTypical`), sonst dem Gesamt-Median. Verträge ohne
- *   auflösbares Gebäude (z. B. Kategorie nicht im Sunburst vertreten, etwa
- *   eine als „Einkommen" eingestufte Kategorie) werden übersprungen, nicht
- *   als Absturz behandelt. Contracts addieren sich NICHT zur Gebäude-Summe
- *   (`amount` bleibt der Sunburst-Wert) — `city-scaling.ts#scaleFloors`
- *   verteilt sie nur proportional auf die bereits feststehende Balkenhöhe.
+ * - **Etage** = ein Händler innerhalb eines Gebäudes (WP-E2, Nutzer-Befund:
+ *   eine einzelne, nicht wiederkehrende Buchung wie Aldi oder eine einmalige
+ *   Zeitungs-Buchung tauchte zuvor gar nicht als Etage auf, weil Etagen aus
+ *   `computeContracts` kamen und das Händler mit zu wenigen Buchungen
+ *   überspringt). `buildMerchantFloorsByBuilding` (`city-merchant-floors.ts`)
+ *   liefert bereits eine fertige Gebäude-Id -> Etagen-Map — dieser Adapter
+ *   hängt sie nur an die passenden, bereits gebauten Gebäude. Contracts
+ *   addieren sich NICHT zur Gebäude-Summe (`amount` bleibt der Sunburst-Wert)
+ *   — `city-scaling.ts#scaleFloors` verteilt sie nur proportional auf die
+ *   bereits feststehende Balkenhöhe.
  */
-import { resolveHierarchy, type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
-import { monthlyEquivalent } from '@/lib/contract-derivation';
-import type { ContractRow } from '@/components/contracts/contract-types';
+import { type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
 import type { Category } from '@/types';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
-
-/**
- * Etage = ein ERKANNTER, laufender wiederkehrender Eintrag innerhalb eines
- * Gebäudes (z. B. Netflix/Spotify unter „Streaming"). Bewusst NICHT
- * `isActiveForTotals` (das verlangt `status === 'active'`, also eine manuelle
- * Vertrags-Bestätigung): frisch kategorisierte Abos sind zunächst `candidate`
- * — würden sie ausgeschlossen, hätte ein Streaming-Gebäude nach dem Zuweisen
- * der Kategorie 0 Etagen ([REGRESSION], Nutzer-Befund „Streaming wird nicht
- * korrekt erkannt"). Aufgenommen werden daher Kandidaten UND aktive/pausierte
- * Verträge mit erkanntem Zyklus, die nicht veraltet sind; ausgeschlossen bleibt
- * nur, was der Nutzer/die Ableitung ausdrücklich verwirft (rejected/ended/
- * archived) oder was gar kein wiederkehrendes Muster ist (`!cycleKnown`) bzw.
- * seit > 2 Zyklen ruht (`stale`, wahrscheinlich beendet).
- */
-function isFloorContract(row: ContractRow): boolean {
-  if (!row.cycleKnown || row.stale) return false;
-  return row.status !== 'rejected' && row.status !== 'ended' && row.status !== 'archived';
-}
 
 /**
  * Distrikt-Farben der Stadt: eine EIGENE, hue-gespreizte Palette statt
@@ -115,31 +93,13 @@ function mergeSubcategories(target: CitySubcategory[], incoming: CitySubcategory
   }
 }
 
-/** Hängt aktive Vertrags-Etagen an ihr aufgelöstes Gebäude — mutiert die frisch gebauten (noch nicht nach außen sichtbaren) `districts`. */
-function attachContracts(
-  districts: CityDistrict[],
-  expenseContracts: ContractRow[],
-  categoriesById: Map<string, Category>,
-): void {
-  const districtById = new Map(districts.map((d) => [d.id, d]));
-
-  for (const row of expenseContracts) {
-    if (!isFloorContract(row) || row.categoryId == null) continue;
-
-    const { mainId, subId } = resolveHierarchy(categoriesById, row.categoryId);
-    const district = districtById.get(mainId);
-    if (!district) continue; // Kategorie nicht im Sunburst vertreten (z. B. Einkommens-Klasse) — überspringen statt crashen.
-
-    const buildingId = subId ?? mainId;
-    const building = district.subcategories.find((s) => s.id === buildingId);
-    if (!building) continue;
-
-    const amount = monthlyEquivalent(row.amountRecentTypical ?? row.amountTypical, row.cycle);
-    if (!(amount > 0)) continue;
-
-    const contract: CityContract = { id: row.key, label: row.payee, amount };
-    if (!building.contracts) building.contracts = [];
-    building.contracts.push(contract);
+/** Hängt die vorab aggregierten Händler-Etagen an ihr Gebäude — mutiert die frisch gebauten (noch nicht nach außen sichtbaren) `districts`. */
+function attachFloors(districts: CityDistrict[], floorsByBuilding: Map<string, CityContract[]>): void {
+  for (const district of districts) {
+    for (const building of district.subcategories) {
+      const floors = floorsByBuilding.get(building.id);
+      if (floors && floors.length > 0) building.contracts = floors;
+    }
   }
 }
 
@@ -150,8 +110,15 @@ function attachContracts(
  */
 export function buildCityModelFromData(
   sunburst: SunburstTree,
-  categoriesById: Map<string, Category>,
-  expenseContracts: ContractRow[],
+  // Aktuell ungenutzt: die Etagen-Zuordnung braucht keine Kategorie-Hierarchie
+  // mehr (das erledigt bereits `buildMerchantFloorsByBuilding` VOR dem Aufruf
+  // hier). Bewusst im Parameter belassen (Unterstrich-Präfix für
+  // `noUnusedParameters`), damit die Signatur mit den beiden geteilten
+  // Eingaben des Aufrufers (`use-city-model.ts`: Kategorien + Etagen-Map)
+  // symmetrisch bleibt und bestehende Aufrufer/Tests nicht auf ein anderes
+  // Argument-Layout umgestellt werden müssen.
+  _categoriesById: Map<string, Category>,
+  floorsByBuilding: Map<string, CityContract[]>,
 ): CityModel {
   const mainNodes = sunburst.children
     .flatMap((klasse) => klasse.children)
@@ -189,7 +156,7 @@ export function buildCityModelFromData(
     .sort((a, b) => b.total - a.total)
     .map((d, index) => ({ ...d, color: districtColor(index) }));
 
-  attachContracts(districts, expenseContracts, categoriesById);
+  attachFloors(districts, floorsByBuilding);
 
   return { districts };
 }

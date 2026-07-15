@@ -3658,6 +3658,9 @@ export const translations = {
       withoutSubcategory: 'Ohne Unterkategorie',
       otherInflows: 'Sonstige Zuflüsse',
     },
+    financeCity: {
+      otherMerchants: 'Sonstige',
+    },
     merchantRulesService: {
       ruleUpdatedTitle: 'Händlerregel aktualisiert: {pattern}',
       ruleCreatedTitle: 'Händlerregel angelegt: {pattern}',
@@ -7351,6 +7354,9 @@ export const translations = {
       withoutSubcategory: 'Without subcategory',
       otherInflows: 'Other inflows',
     },
+    financeCity: {
+      otherMerchants: 'Other',
+    },
     merchantRulesService: {
       ruleUpdatedTitle: 'Merchant rule updated: {pattern}',
       ruleCreatedTitle: 'Merchant rule created: {pattern}',
@@ -10984,6 +10990,9 @@ export const translations = {
       unassignedAccount: "latlh pat",
       withoutSubcategory: "cha'DIch 'ay' ghajbe'",
       otherInflows: "latlh Huch ghoStaH",
+    },
+    financeCity: {
+      otherMerchants: "latlh",
     },
     merchantRulesService: {
       ruleUpdatedTitle: "Suy' ra'ghach choHpu': {pattern}",

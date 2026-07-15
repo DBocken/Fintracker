@@ -8,12 +8,8 @@ vi.mock('@/services/transaction-service', () => ({
   getTransactions: vi.fn(),
   getCategories: vi.fn(),
 }));
-vi.mock('@/services/contract-decision-service', () => ({
-  getContractDecisionMap: vi.fn(),
-}));
 
 import { getTransactions, getCategories } from '@/services/transaction-service';
-import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 
 const CAT_LEISURE = 'cat-leisure';
 const CAT_STREAMING = 'cat-streaming';
@@ -41,7 +37,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
-  vi.mocked(getContractDecisionMap).mockResolvedValue(new Map());
 });
 
 describe('useCityModel', () => {
@@ -67,30 +62,34 @@ describe('useCityModel', () => {
     expect(result.current.isLoading).toBe(true);
   });
 
-  it('[REGRESSION] sollte isLoading true halten, bis auch die Vertragsentscheidungen geladen sind', async () => {
-    // Rennen beim ersten Mount: transactions/categories können (gecacht/schnell)
-    // vor der dritten Query (contractDecisions) fertig sein. Würde isLoading dann
-    // bereits false, mountete CityPage den Canvas und buildCityModelFromData liefe
-    // mit der leeren EMPTY_CONTRACT_DECISIONS-Map — ein vom Nutzer als beendet/
-    // verworfen markierter Vertrag bestünde kurz isFloorContract und poppte als
-    // Etage rein/raus, sobald die echten Entscheidungen nachladen.
-    let resolveDecisions!: (m: Map<string, ContractDecision>) => void;
-    vi.mocked(getContractDecisionMap).mockReturnValue(
-      new Promise<Map<string, ContractDecision>>((res) => {
-        resolveDecisions = res;
-      }),
-    );
+  it('[REGRESSION] sollte eine einzelne, nicht wiederkehrende Buchung (z. B. Aldi, 1x) als eigene Etage im richtigen Gebäude liefern', async () => {
+    // End-to-End über den echten Hook (WP-E2, Nutzer-Befund): eine EINMALIGE
+    // Aldi-Buchung wurde bisher NIE eine Etage, weil Etagen aus `computeContracts`
+    // kamen und das Händler mit weniger als `minCount` Buchungen überspringt.
+    // Seit `buildMerchantFloorsByBuilding` ist Etage = Händler, unabhängig von
+    // Wiederkehr — die einzelne Aldi-Buchung muss als eigene, beschriftete
+    // Etage im Streaming-Gebäude (bzw. hier: im "Freizeit"-Direkt-Gebäude)
+    // erscheinen.
+    const aldi: Transaction = {
+      id: 'tx-aldi',
+      date: '2026-06-10',
+      amount: -8.5,
+      payee: 'Aldi',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+      category_id: CAT_LEISURE,
+    };
+    vi.mocked(getTransactions).mockResolvedValue([aldi]);
 
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    // Sobald das Modell steht, sind transactions+categories geladen — die
-    // Vertragsentscheidungen hängen aber noch (Promise offen).
-    await waitFor(() => expect(result.current.model.districts).toHaveLength(1));
-    expect(result.current.isLoading).toBe(true);
-
-    resolveDecisions(new Map());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const building = result.current.model.districts[0].subcategories[0];
+    expect(building.contracts).toEqual([{ id: expect.any(String), label: 'Aldi', amount: 8.5 }]);
   });
 
   it('sollte bei leeren Transaktionen isEmpty=true liefern (kein Demo-Fallback)', async () => {
