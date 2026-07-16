@@ -12,6 +12,7 @@ const LOCALES = [
   { value: 'de', flag: '🇩🇪', label: 'Deutsch' },
   { value: 'en', flag: '🇬🇧', label: 'English' },
   { value: 'tlh', flag: '⚔️', label: 'tlhIngan Hol' },
+  { value: 'ru', flag: '🇷🇺', label: 'Русский' },
 ] as const;
 
 /**
