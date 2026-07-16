@@ -75,7 +75,7 @@
     "react-dropzone": "^14.4.1",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.17.0",
-    "recharts": "^2.15.4",
+    "recharts": "^3.9.2",
     "tailwind-merge": "^2.6.1",
     "tesseract.js": "^7.0.0",
     "three": "^0.185.1",
