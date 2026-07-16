@@ -33,6 +33,9 @@ const CsvPage = lazy(() => import("@/pages/CsvPage"));
 const ExportPage = lazy(() => import("@/pages/ExportPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
+// three.js-Slice (AGENTS.md §7): eigener Chunk, damit das WebGL-Bundle nicht
+// ins initiale Laden anderer Seiten einfließt.
+const CityPage = lazy(() => import("@/pages/CityPage"));
 
 function LockedRedirect() {
   const location = useLocation();
@@ -129,6 +132,10 @@ function App() {
                 element={<RouteGuard path="/simulation"><SimulationPage /></RouteGuard>}
               />
               <Route path="/trading" element={<TradingPage />} />
+              {/* 3D-Ausgabenstadt (Beta): läuft INNERHALB der App-Navigation
+                  (Sidebar/BottomNav bleiben erreichbar), siehe
+                  src/features/finance-city/README.md. */}
+              <Route path="/city" element={<CityPage />} />
               <Route
                 path="/contracts"
                 element={<RouteGuard path="/contracts"><ContractsPage /></RouteGuard>}

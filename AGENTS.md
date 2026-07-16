@@ -126,6 +126,7 @@ Workflow inkl. Test-Template, dynamische Strings, neue Sprachen hinzufügen:
   ist datengetriebener Aufbau (siehe §9).
 - **Icons:** ausschließlich `lucide-react`.
 - **CSV:** Papaparse.
+- **3D:** three.js — ausschließlich in src/features/finance-city/ (WebGL-Stadt); nirgendwo sonst importieren.
 
 ## 8. Geld & Domäne
 

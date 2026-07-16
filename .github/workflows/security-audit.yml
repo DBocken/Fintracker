@@ -11,16 +11,26 @@ permissions:
   contents: read
 
 jobs:
+  # Job-Key bewusst weiterhin "npm-audit": falls dieser Check in der
+  # Branch-Protection als "required" hinterlegt ist, bliebe ein umbenannter Job
+  # als nie gemeldeter Pflicht-Check hängen und würde den Merge blockieren.
+  # Inhaltlich läuft hier jetzt OSV-Scanner statt `pnpm audit`.
   npm-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          version: 10.12.4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=moderate
+      # Ersetzt das frühere `pnpm audit --audit-level=moderate`: npm hat den
+      # Legacy-Audit-Endpoint (/-/npm/v1/security/audits), den `pnpm audit`
+      # aufruft, dauerhaft abgeschaltet (HTTP 410) — der Schritt schlug bei
+      # jedem Commit fehl, ohne echten Sicherheitsbefund. OSV-Scanner scannt
+      # pnpm-lock.yaml direkt gegen die OSV-Advisory-DB und exit-codet != 0 bei
+      # Funden (echtes Pass/Fail-Gate). Als Go-Tool per `go install` mit
+      # VERSIONS-Pin bezogen (Go-Modul + Go-Checksum-DB = reproduzierbar); es
+      # ist kein zu pinnender Action-Ref nötig (AGENTS.md §10.4 gilt für
+      # `uses:` — hier bleibt nur das bereits SHA-gepinnte actions/checkout).
+      # Go ist auf ubuntu-latest vorinstalliert; kein `pnpm install` mehr nötig,
+      # da OSV die Lockdatei liest.
+      - name: OSV-Scanner installieren (versions-gepinnt)
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0
+      - name: pnpm-Lockfile gegen OSV-Advisories scannen
+        run: $(go env GOPATH)/bin/osv-scanner scan source --lockfile=pnpm-lock.yaml
