@@ -188,7 +188,7 @@ function checkHardcodedStrings(file, diff) {
 // Muss `SUPPORTED_LOCALES` aus `src/i18n/translations.ts` exakt spiegeln —
 // bei einer neuen Sprache dort UND hier ergänzen (Reihenfolge egal, `de`
 // bleibt aber die Referenz für den paarweisen Vergleich unten).
-const TRANSLATION_LOCALES = ['de', 'en', 'tlh'];
+const TRANSLATION_LOCALES = ['de', 'en', 'tlh', 'ru'];
 
 function extractLocaleBlock(content, locale) {
   // Gleiche Heuristik wie zuvor für de/en: non-greedy Match vom Locale-Key bis
