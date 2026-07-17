@@ -185,6 +185,15 @@ Commit-Message nennt **Ziel + Test-Abdeckung** (nicht nur „was"). PR-Workflow:
 Branch anlegen → Tests schreiben (rot) → implementieren (grün) → pushen → CI
 abwarten → Review-Kommentare bearbeiten.
 
+**Supabase Edge Functions (`supabase/functions/**`) deployen nicht
+automatisch** — es gibt keinen CI-Schritt dafür (geprüft:
+`.github/workflows/*.yml`). Immer wenn ein PR Dateien unter
+`supabase/functions/` ändert und gemerged wird, legt der Agent **sofort ein
+GitHub-Issue** an („Deployment ausstehend: <function-name> (PR #…)“) mit dem
+konkreten `supabase functions deploy <name>`-Befehl, kurzer Begründung und
+Link zum PR. Gilt für jeden Merge in diesem Bereich, nicht nur beim ersten
+Mal — kein Vorgang wird stillschweigend übersprungen.
+
 ## 12. Automatische Durchsetzung
 
 Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
