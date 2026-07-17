@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { assertAccountBelongsToRequisition, assertRequisitionBoundToUser } from "./ownership.ts";
+import { parseJsonBody } from "./http.ts";
 
 // GoCardless API configuration
 const GOCARDLESS_SECRET_ID = Deno.env.get("GOCARDLESS_SECRET_ID") || "";
@@ -412,41 +414,6 @@ async function getRequisition(requisitionIdOrRef: string, accessToken: string): 
   throw error;
 }
 
-async function assertRequisitionBoundToUser(
-  supabaseClient: ReturnType<typeof createClient>,
-  requisition: Requisition,
-  userId: string,
-  lookupKey?: string,
-): Promise<void> {
-  if (requisition.reference === userId || requisition.reference?.startsWith(`${userId}:`)) {
-    return;
-  }
-
-  let query = supabaseClient
-    .from("bank_connections")
-    .select("id")
-    .eq("user_id", userId)
-    .or(`requisition_id.eq.${requisition.id},reference.eq.${requisition.id}`)
-    .limit(1);
-
-  if (lookupKey && lookupKey !== requisition.id) {
-    query = supabaseClient
-      .from("bank_connections")
-      .select("id")
-      .eq("user_id", userId)
-      .or(`requisition_id.eq.${requisition.id},reference.eq.${requisition.id},requisition_id.eq.${lookupKey},reference.eq.${lookupKey}`)
-      .limit(1);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  if (data && data.length > 0) return;
-
-  const err = new Error("Forbidden") as Error & { status?: number };
-  err.status = 403;
-  throw err;
-}
-
 async function getAccountDetails(accountId: string, accessToken: string): Promise<AccountDetails> {
   const payload = await goCardlessFetch<AccountDetails | { account?: AccountDetails }>(
     `/accounts/${encodeURIComponent(accountId)}/details/`,
@@ -516,7 +483,7 @@ serve(async (req) => {
       return jsonResponse(origin, 401, { error: "unauthorized" });
     }
 
-    const body = await req.json();
+    const body = (await parseJsonBody(req)) as Record<string, unknown> | null;
     const action = body?.action as string | undefined;
 
     if (!action) {
@@ -595,9 +562,6 @@ serve(async (req) => {
         const requisitionIdOrRef = body?.requisition_id as string | undefined;
         const accountId = body?.account_id as string | undefined;
 
-        // Gleiche Ownership-Prüfung wie get-transactions: ohne sie könnte ein
-        // authentifizierter Nutzer über eine fremde account_id fremde Salden
-        // abrufen (Konsistenz-Bug — die Schwester-Action prüfte, diese nicht).
         if (!requisitionIdOrRef) {
           const err = new Error("requisition_id required") as any;
           err.status = 400;
@@ -612,13 +576,7 @@ serve(async (req) => {
 
         const requisition = await getRequisition(requisitionIdOrRef, accessToken);
         await assertRequisitionBoundToUser(supabaseClient, requisition, user.id, requisitionIdOrRef);
-
-        const allowedAccounts = requisition.accounts || [];
-        if (!allowedAccounts.includes(accountId)) {
-          const err = new Error("Forbidden") as any;
-          err.status = 403;
-          throw err;
-        }
+        assertAccountBelongsToRequisition(requisition, accountId);
 
         const balances = await getAccountBalances(accountId, accessToken);
         return jsonResponse(origin, 200, { balances });
@@ -642,13 +600,7 @@ serve(async (req) => {
 
         const requisition = await getRequisition(requisitionIdOrRef, accessToken);
         await assertRequisitionBoundToUser(supabaseClient, requisition, user.id, requisitionIdOrRef);
-
-        const allowedAccounts = requisition.accounts || [];
-        if (!allowedAccounts.includes(accountId)) {
-          const err = new Error("Forbidden") as any;
-          err.status = 403;
-          throw err;
-        }
+        assertAccountBelongsToRequisition(requisition, accountId);
 
         const today = new Date();
         const fromDate =
