@@ -30,6 +30,15 @@ function forbidden(): Error & { status: number } {
   return err;
 }
 
+// Fremde Requisition antwortet identisch zur nicht existierenden (404 statt
+// 403): sonst könnte ein Angreifer über den Statuscode-Unterschied testen,
+// welche geratenen requisition-IDs existieren (Existenz-Orakel).
+function requisitionNotFound(): Error & { status: number } {
+  const err = new Error("Requisition not found") as Error & { status: number };
+  err.status = 404;
+  return err;
+}
+
 export async function assertRequisitionBoundToUser(
   supabaseClient: SupabaseOwnershipQueryClient,
   requisition: RequisitionOwnership,
@@ -60,7 +69,7 @@ export async function assertRequisitionBoundToUser(
   if (error) throw error;
   if (data && data.length > 0) return;
 
-  throw forbidden();
+  throw requisitionNotFound();
 }
 
 export function assertAccountBelongsToRequisition(

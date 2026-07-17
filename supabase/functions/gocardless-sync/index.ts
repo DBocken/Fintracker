@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { assertAccountBelongsToRequisition, assertRequisitionBoundToUser } from "./ownership.ts";
+import { parseJsonBody } from "./http.ts";
 
 // GoCardless API configuration
 const GOCARDLESS_SECRET_ID = Deno.env.get("GOCARDLESS_SECRET_ID") || "";
@@ -482,7 +483,7 @@ serve(async (req) => {
       return jsonResponse(origin, 401, { error: "unauthorized" });
     }
 
-    const body = await req.json();
+    const body = (await parseJsonBody(req)) as Record<string, unknown> | null;
     const action = body?.action as string | undefined;
 
     if (!action) {

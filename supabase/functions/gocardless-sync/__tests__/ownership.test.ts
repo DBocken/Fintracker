@@ -5,6 +5,7 @@ import {
   type RequisitionOwnership,
   type SupabaseOwnershipQueryClient,
 } from "../ownership";
+import { parseJsonBody } from "../http";
 
 /**
  * IDOR-Regressionstest für gocardless-sync: simuliert zwei echte Nutzer und
@@ -98,7 +99,7 @@ describe("assertRequisitionBoundToUser (IDOR-Schutz gocardless-sync)", () => {
 
     await expect(
       assertRequisitionBoundToUser(client, requisitionOfUserA, userB, "req-owned-by-a"),
-    ).rejects.toMatchObject({ status: 403 });
+    ).rejects.toMatchObject({ status: 404, message: "Requisition not found" });
   });
 
   it("[REGRESSION][SECURITY] sollte ablehnen wenn für die requisition keine Zeile des anfragenden Nutzers existiert", async () => {
@@ -106,7 +107,48 @@ describe("assertRequisitionBoundToUser (IDOR-Schutz gocardless-sync)", () => {
     // Es existiert eine Zeile — aber nur für Nutzer A, nicht für den Anfragenden (Nutzer B).
     const client = createFakeSupabaseClient([{ user_id: userA, requisition_id: "req-x", reference: "ref-x" }]);
 
-    await expect(assertRequisitionBoundToUser(client, requisition, userB)).rejects.toMatchObject({ status: 403 });
+    await expect(assertRequisitionBoundToUser(client, requisition, userB)).rejects.toMatchObject({
+      status: 404,
+      message: "Requisition not found",
+    });
+  });
+
+  it("[SECURITY] sollte für fremde Requisitions dieselbe Antwort liefern wie für nicht existierende (kein Existenz-Orakel)", async () => {
+    // Nutzer B darf aus der Antwort nicht ableiten können, ob eine geratene
+    // requisition-ID existiert: fremd und nicht existent müssen identisch aussehen.
+    const foreignRequisition: RequisitionOwnership = { id: "req-owned-by-a", reference: "legacy-ref" };
+    const client = createFakeSupabaseClient([{ user_id: userA, requisition_id: "req-owned-by-a" }]);
+
+    const foreignError = await assertRequisitionBoundToUser(client, foreignRequisition, userB).catch((e) => e);
+    const notFoundShape = { status: 404, message: "Requisition not found" };
+
+    expect({ status: foreignError.status, message: foreignError.message }).toEqual(notFoundShape);
+  });
+});
+
+describe("parseJsonBody (gocardless-sync Request-Parsing)", () => {
+  it("sollte einen gültigen JSON-Body parsen", async () => {
+    const req = new Request("http://localhost", {
+      method: "POST",
+      body: JSON.stringify({ action: "get-balances", account_id: "acc-1" }),
+    });
+
+    await expect(parseJsonBody(req)).resolves.toEqual({ action: "get-balances", account_id: "acc-1" });
+  });
+
+  it("[REGRESSION] sollte bei ungültigem JSON mit 400 ablehnen statt mit 500", async () => {
+    const req = new Request("http://localhost", { method: "POST", body: "das ist kein json {{{" });
+
+    await expect(parseJsonBody(req)).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("[SECURITY] sollte den Request-Body nicht in die Fehlermeldung reflektieren", async () => {
+    const attackerBody = "boeser-marker-9812 {{{";
+    const req = new Request("http://localhost", { method: "POST", body: attackerBody });
+
+    const error = await parseJsonBody(req).catch((e) => e);
+
+    expect(String(error.message)).not.toContain("boeser-marker-9812");
   });
 });
 
