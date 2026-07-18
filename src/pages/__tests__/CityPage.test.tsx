@@ -54,6 +54,7 @@ function makeSceneStub(): CitySceneHandle {
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),
     pick: vi.fn(() => null),
+    setHighlight: vi.fn(),
     setSize: vi.fn(),
     setFog: vi.fn(),
     render: vi.fn(),
@@ -198,6 +199,10 @@ function buildContractDecisions(transactions: Transaction[]): Map<string, Contra
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // WP-D3: Erst-Besuch-Hinweis persistiert seine Abweisung in localStorage —
+  // zwischen Tests zurücksetzen, sonst hängt die Sichtbarkeit von der
+  // Testreihenfolge ab.
+  window.localStorage.clear();
   vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
@@ -309,6 +314,56 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Freizeit/ }));
 
     expect(capturedDeclutter).toBe(true);
+  });
+
+  it('sollte auf Stadt-Ebene den Kontext-Chip mit der Gesamtausgabe zeigen (WP-D3)', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const chip = await screen.findByTestId('city-context-chip');
+    const totalLabel = locale === 'de' ? /Gesamtausgaben/ : /Total spending/;
+    expect(chip.textContent).toMatch(totalLabel);
+    expect(chip.textContent).toMatch(/€/);
+  });
+
+  it('sollte nach dem Eintauchen in einen Distrikt den Kontext-Chip mit Name, Gebäudezahl und Anteil zeigen (WP-D3)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // Fokus
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // Eintauchen
+
+    const chip = await screen.findByTestId('city-context-chip');
+    expect(chip.textContent).toMatch(/Freizeit/);
+    const buildingText = locale === 'de' ? /Gebäude/ : /buildings/;
+    expect(chip.textContent).toMatch(buildingText);
+    expect(chip.textContent).toMatch(/%/);
+  });
+
+  it('sollte den Erst-Besuch-Hinweis auf Stadt-Ebene zeigen und nach dem ersten Drill-down dauerhaft ausblenden (WP-D3)', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(await screen.findByTestId('city-tap-hint')).toBeInTheDocument();
+
+    // Drill-down über die Listenansicht (teilt denselben nav-State).
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+
+    expect(screen.queryByTestId('city-tap-hint')).not.toBeInTheDocument();
+
+    // Dauerhaft: ein NEUER Mount (z. B. nächster Besuch) zeigt den Hinweis
+    // nicht mehr — die Abweisung ist persistiert.
+    unmount();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+    expect(screen.queryByTestId('city-tap-hint')).not.toBeInTheDocument();
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

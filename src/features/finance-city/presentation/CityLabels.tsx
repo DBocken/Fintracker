@@ -74,6 +74,16 @@ export type CityLabelsProps = {
    * mittig über dem Anker, kein Connector).
    */
   connectors?: boolean;
+  /**
+   * WP-D3 (Hover-Kopplung): id der aktuell hervorgehobenen Box (Canvas-Hover
+   * via Raycast ODER Label-Hover) — das zugehörige Label bekommt einen Ring in
+   * seiner Etagen-/Kategorienfarbe. `null`/`undefined` = keine Hervorhebung.
+   */
+  highlightedId?: string | null;
+  /** WP-D3: feuert bei Maus-Enter/-Leave eines Labels (`null` = Leave) — `CityPage` spiegelt das als Szenen-Highlight auf die Box. */
+  onLabelHover?: (id: string | null) => void;
+  /** WP-D3: Klick/Tap auf ein Label wirkt wie ein Tap auf seine Box (größere Touch-Fläche, gleiche Navigation). */
+  onLabelTap?: (id: string) => void;
   className?: string;
 };
 
@@ -125,13 +135,17 @@ const LEADER_OFFSET_X = 150;
 /** Mindest-Vertikalabstand zwischen zwei entstapelten Connector-Labels (Label-Kante zu Label-Kante). */
 const LEADER_STACK_GAP_PX = 8;
 /**
- * Hysterese-Marge (px) für die Seitenwahl der Connector-Labels: die
- * Label-Spalte bleibt auf ihrer Seite, bis der Balken-Anker um mehr als diesen
- * Betrag über die Bildschirmmitte auf die Gegenseite wandert. Ohne diese Marge
- * flackerte die Spalte beim Drehen dicht an der Mitte pro Frame von links nach
- * rechts (Nutzer-Befund).
+ * Hysterese-Marge (px) für die Seitenwahl eines Connector-Labels: das Label
+ * bleibt auf seiner Seite, bis sein Balken-Anker um mehr als diesen Betrag
+ * über die Bildschirmmitte auf die Gegenseite wandert. Ohne diese Marge
+ * flackerte das Label beim Drehen dicht an der Mitte pro Frame von links nach
+ * rechts (Nutzer-Befund). Seite = „nach außen" (Anker rechts der Mitte →
+ * Label rechts vom Anker): hält bei mehreren Gebäuden (Distrikt-Ebene) die
+ * Bildmitte frei, statt alle Labels über den zentralen Balken zu schieben.
  */
 const LEADER_SIDE_HYSTERESIS_PX = 90;
+/** Mindestabstand der Label-Box zum Canvas-Rand (px) beim Clamping. */
+const LEADER_EDGE_MARGIN_PX = 8;
 /** Strichstärke der Führungslinie (px). */
 const LEADER_STROKE_WIDTH = 1.5;
 
@@ -187,14 +201,14 @@ type ProjectedLabel = {
 };
 
 export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function CityLabels(
-  { labels, canvasSize, maxVisible, declutter, fadeKey, connectors = false, className },
+  { labels, canvasSize, maxVisible, declutter, fadeKey, connectors = false, highlightedId, onLabelHover, onLabelTap, className },
   ref,
 ) {
   const reducedMotion = useReducedMotion();
   const elementRefs = useRef(new Map<string, HTMLDivElement>());
   const connectorRefs = useRef(new Map<string, SVGPathElement>());
-  /** Aktuelle Seite der Connector-Label-Spalte (-1 = links, +1 = rechts, 0 = noch unentschieden) — mit Hysterese gehalten (siehe `LEADER_SIDE_HYSTERESIS_PX`). */
-  const connectorSideRef = useRef(0);
+  /** Seiten-Gedächtnis je Label-Id (-1 = links, +1 = rechts vom Anker) — mit Hysterese gehalten (siehe `LEADER_SIDE_HYSTERESIS_PX`). */
+  const connectorSideById = useRef(new Map<string, 1 | -1>());
   const lastProjectedRef = useRef(new Map<string, ProjectedLabel>());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -245,42 +259,49 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
         projectedById.set(label.id, { id: label.id, x, y, anchorX: x, anchorY: y, opacity });
       }
 
-      // WP-D2 (Connector-Modus, Einzel-/Etagenansicht): Labels seitlich neben
-      // den Balken versetzen, statt sie mittig auf den Balken zu setzen (sonst
-      // verdecken sie kleine Etagen). Alle Etagen eines Balkens teilen sich
-      // x/z, projizieren also auf ~dieselbe Anker-X — die Labels landen als
-      // Spalte auf der Balkenseite mit mehr Platz und werden vertikal
-      // entstapelt (Mindestabstand), damit auch dicht gestapelte Etagen ihr
-      // Label behalten. Die farbige Führungslinie stellt die Zuordnung her.
+      // WP-D2/D3 (Connector-Modus, Etagen- UND Distrikt-Ebene): Labels
+      // seitlich neben ihren Balken versetzen, statt sie mittig auf den Balken
+      // zu setzen (sonst verdecken sie kleine Etagen bzw. Gebäude dahinter).
+      // Seite je Label „nach außen" mit Hysterese (kein Flacker-Flip an der
+      // Bildmitte); Position wird auf die Canvas-Fläche geclampt (Mobile:
+      // fester Versatz darf keinen Text über den Rand drücken). Vertikal
+      // entstapelt werden nur Labels, deren Spalten sich horizontal wirklich
+      // überlappen — so behalten dicht gestapelte Etagen ihr Label, während
+      // weit auseinanderliegende Gebäude-Labels an ihren Ankern bleiben.
       if (connectors) {
         const centerX = canvasSize.width / 2;
+        const minX = LABEL_WIDTH_PX / 2 + LEADER_EDGE_MARGIN_PX;
+        const maxX = canvasSize.width - LABEL_WIDTH_PX / 2 - LEADER_EDGE_MARGIN_PX;
+        const minY = LABEL_HEIGHT_PX + LEADER_EDGE_MARGIN_PX;
+        const maxY = canvasSize.height - LEADER_EDGE_MARGIN_PX;
+
+        // Seiten-Gedächtnis von verschwundenen Ids befreien (Ebenenwechsel).
+        for (const id of connectorSideById.current.keys()) {
+          if (!projectedById.has(id)) connectorSideById.current.delete(id);
+        }
+
         const ordered = labels
           .map((l) => projectedById.get(l.id))
           .filter((p): p is ProjectedLabel => p !== undefined)
           .sort((a, b) => a.anchorY - b.anchorY);
 
-        if (ordered.length > 0) {
-          // Seiten-Entscheidung EINMAL für die ganze Etagen-Spalte (alle Etagen
-          // teilen sich ~dieselbe Anker-X) und mit Hysterese: die Spalte bleibt
-          // auf ihrer Seite, bis der Balken deutlich über die Gegenseite
-          // wandert (`LEADER_SIDE_HYSTERESIS_PX`) — verhindert das Links-rechts-
-          // Flackern beim Drehen dicht an der Bildschirmmitte. `side === -1` =
-          // Label links vom Balken (Balken rechts der Mitte), `+1` = rechts.
-          const groupAnchorX = ordered.reduce((sum, p) => sum + p.anchorX, 0) / ordered.length;
-          let side = connectorSideRef.current;
-          if (side === 0) side = groupAnchorX > centerX ? -1 : 1;
-          else if (groupAnchorX > centerX + LEADER_SIDE_HYSTERESIS_PX) side = -1;
-          else if (groupAnchorX < centerX - LEADER_SIDE_HYSTERESIS_PX) side = 1;
-          connectorSideRef.current = side;
+        const placed: ProjectedLabel[] = [];
+        for (const p of ordered) {
+          let side: 1 | -1 | 0 = connectorSideById.current.get(p.id) ?? 0;
+          if (side === 0) side = p.anchorX > centerX ? 1 : -1;
+          else if (p.anchorX > centerX + LEADER_SIDE_HYSTERESIS_PX) side = 1;
+          else if (p.anchorX < centerX - LEADER_SIDE_HYSTERESIS_PX) side = -1;
+          connectorSideById.current.set(p.id, side);
 
-          let prevBottom = Number.NEGATIVE_INFINITY;
-          for (const p of ordered) {
-            const minBottom = prevBottom + LEADER_STACK_GAP_PX + LABEL_HEIGHT_PX;
-            const bottom = Number.isFinite(prevBottom) ? Math.max(p.anchorY, minBottom) : p.anchorY;
-            prevBottom = bottom;
-            p.x = p.anchorX + side * LEADER_OFFSET_X;
-            p.y = bottom;
+          p.x = Math.min(maxX, Math.max(minX, p.anchorX + side * LEADER_OFFSET_X));
+          let bottom = Math.min(maxY, Math.max(minY, p.anchorY));
+          for (const q of placed) {
+            if (Math.abs(q.x - p.x) < LABEL_WIDTH_PX) {
+              bottom = Math.max(bottom, q.y + LEADER_STACK_GAP_PX + LABEL_HEIGHT_PX);
+            }
           }
+          p.y = bottom;
+          placed.push(p);
         }
       }
 
@@ -434,14 +455,27 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
             key={label.id}
             data-testid="city-label"
             data-label-id={label.id}
+            data-highlighted={highlightedId === label.id || undefined}
             ref={(el) => {
               if (el) elementRefs.current.set(label.id, el);
               else elementRefs.current.delete(label.id);
             }}
+            // WP-D3: Labels sind Maus-/Touch-Ziele ihrer Box (Hover-Kopplung +
+            // größere Tap-Fläche) — bewusst KEINE Buttons: der Container ist
+            // `aria-hidden` (Canvas-Beiwerk), der zugängliche Weg zu denselben
+            // Aktionen ist die CityAccessibleList (README-A11y-Parallelstruktur).
+            onMouseEnter={onLabelHover ? () => onLabelHover(label.id) : undefined}
+            onMouseLeave={onLabelHover ? () => onLabelHover(null) : undefined}
+            onClick={onLabelTap ? () => onLabelTap(label.id) : undefined}
             className={cn(
               'absolute left-0 top-0 flex max-w-[132px] flex-col gap-0.5 rounded bg-background/80 px-1.5 py-1.5 shadow-sm',
               !reducedMotion && 'transition-opacity duration-150 ease-out',
+              (onLabelHover || onLabelTap) && 'pointer-events-auto cursor-pointer',
             )}
+            // Highlight-Ring in der Etagen-/Kategorienfarbe (dynamischer Wert
+            // -> inline style zulässig, AGENTS.md §7). Transform/Opacity setzt
+            // `applyPosition` imperativ — React rührt diese Keys hier nie an.
+            style={highlightedId === label.id ? { boxShadow: `0 0 0 1.5px ${label.color}` } : undefined}
           >
             {/* Zweizeilig (WP-C8): Name oben, Betrag darunter — vorher einzeilig
                 nebeneinander, bei längeren Kategorie-/Vertragsnamen kollidierte

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { motion } from "framer-motion";
 import { Building2, ChevronRight, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
+import { selectCityContext } from "@/features/finance-city/domain/city-context";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
 import { useCityModel } from "@/features/finance-city/application/use-city-model";
@@ -23,7 +25,7 @@ import {
   type CityCameraController,
   type CityCameraControllerConfig,
 } from "@/features/finance-city/presentation/city-camera-controller";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
@@ -45,6 +47,14 @@ const CITY_TABS = [
 ] as const;
 
 const ACTIVE_CITY_TAB = "expenses";
+
+/**
+ * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
+ * wird nach der ersten erfolgreichen Interaktion dauerhaft ausgeblendet —
+ * reines UI-Flag, deshalb direkt localStorage (Präzedenzfall
+ * `GentleModeProvider`/`SkinProvider`), kein Service-Umweg nötig.
+ */
+const TAP_HINT_DISMISSED_KEY = "fintracker.city.tap-hint-dismissed";
 
 /** Fallback-Seitenverhältnis, solange die Canvas-Größe noch nicht messbar ist (0 Höhe während Layout-Übergängen). */
 const FALLBACK_ASPECT = 16 / 9;
@@ -148,6 +158,72 @@ export default function CityPage() {
     [model, layout, nav.level],
   );
 
+  // WP-D3: Kontext-Chip der aktuellen Ebene (Was betrachte ich? Wie groß?
+  // Welcher Anteil an der Gesamtausgabe?) — reine Domain-Auswahl, keine
+  // komponenten-lokale Aggregation (AGENTS.md §8).
+  const cityContext = useMemo(
+    () =>
+      selectCityContext(
+        model,
+        nav.level,
+        nav.level === "city" ? undefined : nav.activeDistrictId,
+        nav.activeSubcategoryId,
+      ),
+    [model, nav.level, nav.activeDistrictId, nav.activeSubcategoryId],
+  );
+
+  // WP-D3 (Hover-Kopplung Label↔Box): EIN gemeinsamer Hover-Zustand, gespeist
+  // aus beiden Richtungen (Canvas-Raycast über `onHoverBox`, Label-Hover über
+  // `onLabelHover`) — gespiegelt als Szenen-Highlight + Label-Ring.
+  const [hoveredBoxId, setHoveredBoxId] = useState<string | null>(null);
+  const handleHoverBox = useCallback((id: string | null) => setHoveredBoxId(id), []);
+
+  useEffect(() => {
+    sceneRef.current?.setHighlight(hoveredBoxId);
+    // Highlight ändert nur Material — der Render-on-Demand-Loop schläft ggf.,
+    // deshalb explizit einen Frame anfordern.
+    controlsApiRef.current?.invalidate();
+  }, [hoveredBoxId]);
+
+  // Ebenenwechsel: die gehoverte Box existiert im neuen Layout evtl. nicht
+  // mehr — Hover-Zustand zurücksetzen statt ein totes Highlight zu halten.
+  useEffect(() => {
+    setHoveredBoxId(null);
+  }, [nav.level]);
+
+  // WP-D3 (Klick-Affordanz): Erst-Besuch-Hinweis, bis zum ersten erfolgreichen
+  // Drill-down (Tap auf ein Viertel ODER Navigation über die Listenansicht).
+  const [showTapHint, setShowTapHint] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(TAP_HINT_DISMISSED_KEY) !== "1";
+    } catch {
+      return true; // Storage blockiert (z. B. Privacy-Modus): Hinweis nur sessionweise.
+    }
+  });
+  const dismissTapHint = useCallback(() => {
+    setShowTapHint((prev) => {
+      if (!prev) return prev;
+      try {
+        window.localStorage.setItem(TAP_HINT_DISMISSED_KEY, "1");
+      } catch {
+        // Storage blockiert: Hinweis verschwindet trotzdem für diese Session.
+      }
+      return false;
+    });
+  }, []);
+  useEffect(() => {
+    if (nav.level !== "city") dismissTapHint();
+  }, [nav.level, dismissTapHint]);
+
+  const tapHintMotion = useMotionSafe({
+    // Datengetriebener Aufbau statt Aufpoppen (docs/design-principles.md §2):
+    // der Hinweis gleitet dezent von unten ein, verzögert, damit er erst nach
+    // dem Balken-Aufbau die Aufmerksamkeit bekommt.
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay: 0.8, duration: 0.35 },
+  });
+
   // Misst die reale Canvas-Fläche für die Label-Reprojektion (NDC ->
   // Bildschirm-Pixel, `CityLabels`). Bewusst über einen EIGENEN Container-Ref
   // statt über `scene.domElement` (WP-C4-Messeffekt unten): bleibt so auch
@@ -199,6 +275,7 @@ export default function CityPage() {
   const handleTapBox = useCallback(
     (id: string | null) => {
       if (!id) return;
+      dismissTapHint();
       const parts = id.split("/");
       if (parts.length === 1) {
         nav.actions.tapDistrict(parts[0]);
@@ -208,7 +285,7 @@ export default function CityPage() {
         nav.actions.tapContract(parts[2]);
       }
     },
-    [nav.actions],
+    [nav.actions, dismissTapHint],
   );
 
   // WP-C4: Kamera-Controller-Lifecycle. Läuft NACH `CityCanvas`s eigenem
@@ -444,6 +521,7 @@ export default function CityPage() {
                 <CityCanvas
                   layout={layout}
                   onTapBox={handleTapBox}
+                  onHoverBox={handleHoverBox}
                   onControlsStart={() => cameraController?.cancelFlight()}
                   onControlsChange={() => cameraController?.onControlsChange()}
                   cameraController={cameraController}
@@ -463,11 +541,19 @@ export default function CityPage() {
                   // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
                   // potenziell viele Gebäude -> dort bleibt entzerrt.
                   declutter={nav.level !== "city"}
-                  // WP-D2 (Nutzer-Befund "Labels verdecken kleine Etagen"): in
-                  // der Etagen-/Einzelansicht die Labels seitlich versetzen und
-                  // per farbiger Führungslinie mit ihrer Etage verbinden, statt
-                  // sie mittig auf den (teils sehr kleinen) Balken zu setzen.
-                  connectors={nav.level === "subcategory"}
+                  // WP-D2/D3 (Nutzer-Befund "Labels verdecken kleine Etagen"):
+                  // ab der Distrikt-Ebene die Labels seitlich versetzen und per
+                  // farbiger Führungslinie mit ihrer Etage/ihrem Gebäude
+                  // verbinden, statt sie mittig auf die Baukörper zu setzen.
+                  // Stadt-Ebene bleibt beim bisherigen Verhalten (wenige
+                  // Distrikt-Hüllen, Label über der Hülle verdeckt nichts).
+                  connectors={nav.level !== "city"}
+                  // WP-D3 (Hover-Kopplung + Tap-Fläche): Label-Hover spiegelt
+                  // das Szenen-Highlight, Label-Tap wirkt wie ein Tap auf die
+                  // Box (gleiche Navigations-Semantik wie der Canvas-Raycast).
+                  highlightedId={hoveredBoxId}
+                  onLabelHover={handleHoverBox}
+                  onLabelTap={handleTapBox}
                   // WP-D1: Fade-in nur bei echtem Ebenenwechsel (Balken wachsen
                   // neu), NICHT bei jedem Query-Refetch — sonst flackern alle
                   // Labels, sobald eine Kategorie-Zuweisung/ein Fensterfokus
@@ -475,6 +561,63 @@ export default function CityPage() {
                   fadeKey={nav.level}
                   className="absolute inset-0"
                 />
+
+                {/* WP-D3: Kontext-Chip der aktuellen Ebene (reines Readout,
+                    bewusst ohne Karten-Chrome/Rahmen — kein Klickziel,
+                    docs/design-principles.md §8 greift daher nicht). */}
+                {cityContext && (
+                  <div
+                    data-testid="city-context-chip"
+                    className="pointer-events-none absolute bottom-3 left-3 max-w-[70%] truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground"
+                  >
+                    {cityContext.kind === "city" ? (
+                      <>
+                        {t("city.contextTotalLabel")} ·{" "}
+                        <span className="font-medium text-foreground">{formatCurrency(cityContext.amount)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-foreground">{cityContext.label}</span>
+                        {" · "}
+                        {formatCurrency(cityContext.amount)}
+                        {cityContext.kind === "district" && (
+                          <>
+                            {" · "}
+                            {t("city.contextBuildingCount").replace("{count}", String(cityContext.buildingCount))}
+                          </>
+                        )}
+                        {cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
+                          <>
+                            {" · "}
+                            {t("city.contextContractCount").replace("{count}", String(cityContext.contractCount))}
+                          </>
+                        )}
+                        {typeof cityContext.share === "number" && (
+                          <>
+                            {" · "}
+                            {t("city.contextShareOfTotal").replace("{percent}", formatPercent(cityContext.share, 0))}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* WP-D3: Erst-Besuch-Hinweis (Klick-Affordanz) — verschwindet
+                    dauerhaft nach dem ersten Drill-down. Bewusst über dem
+                    Kontext-Chip (bottom-12), damit sich beide auf schmalen
+                    Viewports nicht überlagern. */}
+                {showTapHint && nav.level === "city" && (
+                  <motion.div
+                    {...tapHintMotion}
+                    data-testid="city-tap-hint"
+                    className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center"
+                  >
+                    <span className="rounded-full bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                      {t("city.tapHint")}
+                    </span>
+                  </motion.div>
+                )}
               </div>
 
               {showList && (

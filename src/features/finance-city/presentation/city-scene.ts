@@ -62,6 +62,16 @@ export type CitySceneHandle = {
   setAnimationsEnabled(enabled: boolean): void;
   /** Raycast auf pickable Boxen → `box.id`, oder `null` bei Boden/Leere. */
   pick(clientX: number, clientY: number): string | null;
+  /**
+   * WP-D3 (Hover-Kopplung Label↔Box): hebt GENAU EINE Box visuell hervor
+   * (`null` = keine). Lambert-Baukörper (Balken/Etagen) bekommen ein dezentes
+   * Emissive-Glühen, transparente Hüllen einen Opazitäts-Schub — jeweils über
+   * eine EIGENE Klon-Material-Instanz (Invariante 2 von WP-C6: die geteilte
+   * `materialRegistry`-Instanz wird NIE mutiert, sonst leuchten alle Boxen mit
+   * demselben Material-Schlüssel mit). Aufrufer muss danach einen Frame
+   * anfordern (`invalidate`) — diese Methode rendert nicht selbst.
+   */
+  setHighlight(id: string | null): void;
   setSize(width: number, height: number, dpr: number): void;
   /** Erst ab WP-C4 mit echten Werten befüllt — hier no-op-fähig (near/far nicht endlich → Fog aus). */
   setFog(near: number, far: number): void;
@@ -505,6 +515,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // Auftrag ohnehin auf Wachstum + Hüllen-Fade, nicht auf Exit-Animation.
     for (const [id, mesh] of meshesById) {
       if (seenIds.has(id)) continue;
+      // WP-D3: ein Highlight auf einer gerade entsorgten Box aufheben (ihr
+      // Klon-Material würde sonst leaken; Restore entfällt, Mesh geht weg).
+      if (highlightedId === id) clearHighlight();
       scene.remove(mesh);
       meshesById.delete(id);
       const edgeLine = edgesById.get(id);
@@ -596,6 +609,58 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     opacityTweensById.clear();
   }
 
+  // --- WP-D3: Hover-Highlight ---------------------------------------------
+  /** Dezente Glüh-Intensität für Lambert-Baukörper (Balken/Etagen) im Hover. */
+  const HIGHLIGHT_EMISSIVE_INTENSITY = 0.18;
+  /** Opazitäts-Schub für transparente Hüllen im Hover (geclamped auf 1). */
+  const HIGHLIGHT_OPACITY_BOOST = 0.15;
+
+  let highlightedId: string | null = null;
+  /** Material der Box VOR dem Highlight — wird bei Aufhebung wieder eingesetzt. */
+  let highlightRestoreMaterial: THREE.Material | null = null;
+  /** Eigene Klon-Instanz für die Highlight-Dauer (nie die Registry-Instanz mutieren). */
+  let highlightMaterial: THREE.Material | null = null;
+
+  function clearHighlight(): void {
+    if (highlightedId) {
+      const mesh = meshesById.get(highlightedId);
+      // Nur zurücksetzen, wenn das Highlight-Material noch aktiv ist — ein
+      // zwischenzeitliches applyLayout/Opazitäts-Tween darf nicht überschrieben
+      // werden (das Highlight ist dann ohnehin schon visuell weg).
+      if (mesh && highlightRestoreMaterial && mesh.material === highlightMaterial) {
+        mesh.material = highlightRestoreMaterial;
+      }
+      highlightMaterial?.dispose();
+    }
+    highlightedId = null;
+    highlightRestoreMaterial = null;
+    highlightMaterial = null;
+  }
+
+  function setHighlight(id: string | null): void {
+    if (id === highlightedId) return;
+    clearHighlight();
+    if (id === null) return;
+
+    const mesh = meshesById.get(id);
+    if (!mesh) return; // Unbekannte/gerade entsorgte id: stilles No-op.
+
+    const base = mesh.material as THREE.Material;
+    const clone = base.clone();
+    if (clone instanceof THREE.MeshLambertMaterial) {
+      clone.emissive = new THREE.Color(0xffffff);
+      clone.emissiveIntensity = HIGHLIGHT_EMISSIVE_INTENSITY;
+    } else {
+      clone.transparent = true;
+      clone.opacity = Math.min(1, clone.opacity + HIGHLIGHT_OPACITY_BOOST);
+    }
+
+    highlightedId = id;
+    highlightRestoreMaterial = base;
+    highlightMaterial = clone;
+    mesh.material = clone;
+  }
+
   function pick(clientX: number, clientY: number): string | null {
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
@@ -666,6 +731,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   }
 
   function dispose(): void {
+    // WP-D3: Highlight-Klon gehört (wie die Tween-Klone) NICHT der Registry —
+    // ohne diesen Schritt würde er im Registry-Loop unten übersehen/geleakt.
+    clearHighlight();
     for (const mesh of meshesById.values()) scene.remove(mesh);
     meshesById.clear();
     for (const edgeLine of edgesById.values()) scene.remove(edgeLine);
@@ -694,6 +762,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     advanceAnimations,
     setAnimationsEnabled,
     pick,
+    setHighlight,
     setSize,
     setFog,
     setTheme,

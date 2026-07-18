@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act } from '@testing-library/react';
+import { act, fireEvent } from '@testing-library/react';
 import { createRef } from 'react';
 import * as THREE from 'three';
 import { renderWithI18n } from '@/test-utils/render';
@@ -358,7 +358,7 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
 
       act(() => ref.current?.reproject(identityCamera()));
       const anchorX1 = ((0.1 + 1) / 2) * 800; // 440
-      expect(labelX() < anchorX1).toBe(true); // Label links vom Anker.
+      expect(labelX() > anchorX1).toBe(true); // Label „nach außen" = rechts vom Anker.
 
       // Kleiner Dreh: Anker jetzt leicht LINKS der Mitte (screen x = 360), also
       // die Mitte gekreuzt, aber innerhalb der Hysterese-Marge (90 px).
@@ -376,9 +376,142 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
       );
       act(() => ref.current?.reproject(identityCamera()));
       const anchorX2 = ((-0.1 + 1) / 2) * 800; // 360
-      // Seite bleibt "links" (kein Flip trotz Mitten-Kreuzung) — ohne Hysterese
-      // wäre das Label auf die rechte Seite gesprungen (Flackern).
-      expect(labelX() < anchorX2).toBe(true);
+      // Seite bleibt "rechts" (kein Flip trotz Mitten-Kreuzung) — ohne Hysterese
+      // wäre das Label auf die linke Seite gesprungen (Flackern).
+      expect(labelX() > anchorX2).toBe(true);
+    });
+
+    it('sollte Labels an den Canvas-Rand clampen (fester Versatz drückt auf Mobile keinen Text über den Rand)', () => {
+      // Schmale Canvas (320 px): Anker bei x=160, Versatz ±150 ergäbe
+      // Label-Mitte 10 bzw. 310 — beide Ränder würden die 132px-Box abschneiden.
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('f', 0, 0, 0, 5)]}
+          canvasSize={{ width: 320, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const el = getByTestId('city-label') as HTMLElement;
+      const x = Number(/translate\((-?\d+(?:\.\d+)?)px, /.exec(el.style.transform)![1]);
+      // Label-Mitte so geclampt, dass die halbe Breite (66 px) + Marge (8 px)
+      // an beiden Rändern hineinpasst.
+      expect(x).toBeGreaterThanOrEqual(66 + 8);
+      expect(x).toBeLessThanOrEqual(320 - 66 - 8);
+    });
+
+    it('sollte auf Distrikt-Ebene (mehrere Gebäude) jedes Label nach außen neben SEIN Gebäude setzen, ohne fremde Spalten zu entstapeln', () => {
+      // Zwei Gebäude weit auseinander (x=200 bzw. x=600 auf 800px) mit gleicher
+      // Anker-Höhe: beide Labels bleiben auf ihrer Anker-Höhe (keine
+      // Entstapelung über die Distanz hinweg) und liegen jeweils außen.
+      const ref = createRef<CityLabelsHandle>();
+      const { container } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('left', -0.5, 0.2, 0, 5), makeLabel('right', 0.5, 0.2, 0, 4)]}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const pos = (id: string) => {
+        const el = container.querySelector(`[data-testid="city-label"][data-label-id="${id}"]`) as HTMLElement;
+        const m = /translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\)/.exec(el.style.transform)!;
+        return { x: Number(m[1]), y: Number(m[2]) };
+      };
+
+      expect(pos('left').x).toBeLessThan(200); // außen = weiter links als der linke Anker.
+      expect(pos('right').x).toBeGreaterThan(600); // außen = weiter rechts als der rechte Anker.
+      // Gleiche Anker-Höhe bleibt erhalten — kein unnötiges Auseinanderstapeln.
+      expect(pos('left').y).toBeCloseTo(pos('right').y, 5);
+    });
+
+    it('sollte das Label der hervorgehobenen Box mit einem Ring in der Etagenfarbe markieren (highlightedId)', () => {
+      const ref = createRef<CityLabelsHandle>();
+      const { container } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('a', 0, 0, 0, 5, '#123456'), makeLabel('b', 0.5, 0, 0, 4, '#654321')]}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+          highlightedId="a"
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      // WICHTIG: data-testid mit abfragen — die Führungslinien (SVG-Pfade)
+      // tragen dieselbe data-label-id.
+      const a = container.querySelector('[data-testid="city-label"][data-label-id="a"]') as HTMLElement;
+      const b = container.querySelector('[data-testid="city-label"][data-label-id="b"]') as HTMLElement;
+      expect(a.dataset.highlighted).toBe('true');
+      expect(a.style.boxShadow).toContain('#123456');
+      expect(b.dataset.highlighted).toBeUndefined();
+      expect(b.style.boxShadow).toBe('');
+    });
+
+    it('sollte Label-Hover und -Tap an die Callbacks melden (Hover-Kopplung + große Tap-Fläche)', () => {
+      const onLabelHover = vi.fn();
+      const onLabelTap = vi.fn();
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('leisure/streaming/netflix', 0, 0, 0, 5)]}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+          onLabelHover={onLabelHover}
+          onLabelTap={onLabelTap}
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const label = getByTestId('city-label');
+      expect(label.className).toContain('pointer-events-auto');
+      fireEvent.mouseEnter(label);
+      expect(onLabelHover).toHaveBeenLastCalledWith('leisure/streaming/netflix');
+      fireEvent.mouseLeave(label);
+      expect(onLabelHover).toHaveBeenLastCalledWith(null);
+      fireEvent.click(label);
+      expect(onLabelTap).toHaveBeenCalledWith('leisure/streaming/netflix');
+    });
+
+    it('sollte ohne Hover-/Tap-Callbacks nicht interaktiv sein (Taps fallen weiter auf den Canvas durch)', () => {
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('a', 0, 0, 0, 5)]}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      expect((getByTestId('city-label') as HTMLElement).className).not.toContain('pointer-events-auto');
     });
 
     it('sollte ohne connectors keine Führungslinien-Ebene rendern (Default-Verhalten)', () => {

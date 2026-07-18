@@ -457,6 +457,75 @@ describe('createCityScene', () => {
     });
   });
 
+  describe('setHighlight (WP-D3, Hover-Kopplung)', () => {
+    it('sollte einen Lambert-Baukörper mit eigener Klon-Instanz (Emissive) hervorheben und bei null die geteilte Instanz wiederherstellen', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const barMesh = meshesOf(scene).find((m) => m.userData.kind === 'bar')!;
+      const sharedMaterial = barMesh.material as THREE.Material;
+
+      handle.setHighlight(barMesh.userData.id as string);
+      const highlighted = barMesh.material as THREE.MeshLambertMaterial;
+      // EIGENE Instanz (Invariante 2: geteilte Registry-Instanz nie mutieren) …
+      expect(Object.is(highlighted, sharedMaterial)).toBe(false);
+      // … mit dezentem Glühen.
+      expect(highlighted.emissiveIntensity).toBeGreaterThan(0);
+      // Die geteilte Instanz selbst bleibt unangetastet.
+      expect((sharedMaterial as THREE.MeshLambertMaterial).emissiveIntensity ?? 1).not.toBe(highlighted.emissiveIntensity);
+
+      handle.setHighlight(null);
+      expect(Object.is(barMesh.material, sharedMaterial)).toBe(true);
+    });
+
+    it('sollte eine transparente Hülle über einen Opazitäts-Schub hervorheben (kein Emissive auf MeshBasicMaterial)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+
+      const hullMesh = meshesOf(scene).find((m) => m.userData.kind === 'hull')!;
+      const baseOpacity = (hullMesh.material as THREE.Material).opacity;
+
+      handle.setHighlight(hullMesh.userData.id as string);
+      expect((hullMesh.material as THREE.Material).opacity).toBeGreaterThan(baseOpacity);
+
+      handle.setHighlight(null);
+      expect((hullMesh.material as THREE.Material).opacity).toBeCloseTo(baseOpacity, 10);
+    });
+
+    it('sollte beim Wechsel des Highlights die vorherige Box zurücksetzen und unbekannte Ids still ignorieren', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const meshes = meshesOf(scene).filter((m) => m.userData.kind === 'bar');
+      const [first, second] = meshes;
+      const firstShared = first.material as THREE.Material;
+      const secondShared = second.material as THREE.Material;
+
+      handle.setHighlight(first.userData.id as string);
+      handle.setHighlight(second.userData.id as string);
+      // Erste Box wieder auf der geteilten Instanz, zweite hervorgehoben (Klon).
+      expect(Object.is(first.material, firstShared)).toBe(true);
+      expect(Object.is(second.material, secondShared)).toBe(false);
+
+      expect(() => handle.setHighlight('gibt-es-nicht')).not.toThrow();
+      // Unbekannte Id hebt das vorherige Highlight auf (zurück zur geteilten Instanz).
+      expect(Object.is(second.material, secondShared)).toBe(true);
+    });
+
+    it('sollte ein Highlight auf einer beim Ebenenwechsel entsorgten Box aufheben, ohne abzustürzen', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+      const hullMesh = meshesOf(scene).find((m) => m.userData.kind === 'hull')!;
+      handle.setHighlight(hullMesh.userData.id as string);
+
+      // Ebenenwechsel: die Stadt-Hülle verschwindet aus dem Layout.
+      expect(() =>
+        handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'leisure' })),
+      ).not.toThrow();
+      expect(() => handle.setHighlight(null)).not.toThrow();
+    });
+  });
+
   it('sollte createCityScene ohne createRenderer-Option nicht direkt aufgerufen werden müssen — TypeScript-Vertragstest via Handle-Form', () => {
     // Reiner Struktur-Check: alle laut CitySceneHandle geforderten Mitglieder existieren.
     const { handle } = createHandle();
@@ -465,6 +534,7 @@ describe('createCityScene', () => {
       'advanceAnimations',
       'setAnimationsEnabled',
       'pick',
+      'setHighlight',
       'setSize',
       'setFog',
       'render',
