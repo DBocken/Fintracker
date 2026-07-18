@@ -37,6 +37,7 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
     mainCategoryName: 'Anstellung', isSalary: true, cadence: 'regelmaessig', monthlyAverage: 3000,
     totalInWindow: 36000, lastDateISO: '2024-12-01', lastAmount: 3000, monthsActive: 12, trend: 'flat',
     confidence: 0.95, share: 0.9, transactionCount: 12, nextDateISO: null, nextAmount: null, monthlyTotals: {},
+    payments: [],
     ...overrides,
   };
 }

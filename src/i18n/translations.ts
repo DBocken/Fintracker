@@ -158,6 +158,12 @@ export const translations = {
       contextBuildingCount: '{count} Gebäude',
       contextContractCount: '{count} Verträge',
       contextShareOfTotal: '{percent} der Gesamtausgaben',
+      contextTotalIncomeLabel: 'Gesamteinnahmen',
+      contextShareOfTotalIncome: '{percent} der Gesamteinnahmen',
+      contextMonthCount: '{count} Monate',
+      sheetNextPayment: 'Nächste erwartete Zahlung: {date} · {amount}',
+      sheetIncomeTitle: 'Zahlungsdetails',
+      emptyStateIncome: 'Noch keine Einnahmendaten für die Finanzstadt. Importiere oder erfasse Buchungen, um deine Stadt zu bauen.',
       listView: {
         title: 'Listenansicht',
         pathAnnouncement: 'Aktuelle Ansicht: {path}',
@@ -3674,6 +3680,7 @@ export const translations = {
     },
     financeCity: {
       otherMerchants: 'Sonstige',
+      earlierMonths: 'Frühere Monate',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Händlerregel aktualisiert: {pattern}',
@@ -3868,6 +3875,12 @@ export const translations = {
       contextBuildingCount: '{count} buildings',
       contextContractCount: '{count} contracts',
       contextShareOfTotal: '{percent} of total spending',
+      contextTotalIncomeLabel: 'Total income',
+      contextShareOfTotalIncome: '{percent} of total income',
+      contextMonthCount: '{count} months',
+      sheetNextPayment: 'Next expected payment: {date} · {amount}',
+      sheetIncomeTitle: 'Payment details',
+      emptyStateIncome: 'No income data yet for the finance city. Import or add transactions to build your city.',
       listView: {
         title: 'List view',
         pathAnnouncement: 'Current view: {path}',
@@ -7384,6 +7397,7 @@ export const translations = {
     },
     financeCity: {
       otherMerchants: 'Other',
+      earlierMonths: 'Earlier months',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Merchant rule updated: {pattern}',
@@ -7578,6 +7592,12 @@ export const translations = {
       contextBuildingCount: "{count} qachmey",
       contextContractCount: "{count} lay'mey",
       contextShareOfTotal: "Hoch Huch chagh vo' {percent}",
+      contextTotalIncomeLabel: "Hoch Huch Hev",
+      contextShareOfTotalIncome: "Hoch Huch Hev vo' {percent}",
+      contextMonthCount: "{count} jarmey",
+      sheetNextPayment: "Huch veb pIH: {date} · {amount}",
+      sheetIncomeTitle: "Huch De'",
+      emptyStateIncome: "Huch veng vaD Huch Hev mI' tu'lu'be'. mIwmey lo'lu'DI', veng lIj chenmoHlu'.",
       listView: {
         title: "tetlh legh",
         pathAnnouncement: "DaH legh: {path}",
@@ -11035,6 +11055,7 @@ export const translations = {
     },
     financeCity: {
       otherMerchants: "latlh",
+      earlierMonths: "jarmey qan",
     },
     merchantRulesService: {
       ruleUpdatedTitle: "Suy' ra'ghach choHpu': {pattern}",
@@ -11229,6 +11250,12 @@ export const translations = {
       contextBuildingCount: '{count} зданий',
       contextContractCount: '{count} договоров',
       contextShareOfTotal: '{percent} от общих расходов',
+      contextTotalIncomeLabel: 'Общие доходы',
+      contextShareOfTotalIncome: '{percent} от общих доходов',
+      contextMonthCount: '{count} месяцев',
+      sheetNextPayment: 'Следующий ожидаемый платёж: {date} · {amount}',
+      sheetIncomeTitle: 'Детали платежа',
+      emptyStateIncome: 'Пока нет данных о доходах для финансового города. Импортируйте или добавьте транзакции, чтобы построить свой город.',
       listView: {
         title: 'Вид списком',
         pathAnnouncement: 'Текущий вид: {path}',
@@ -14739,6 +14766,7 @@ export const translations = {
     },
     financeCity: {
       otherMerchants: 'Другое',
+      earlierMonths: 'Более ранние месяцы',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Правило продавца обновлено: {pattern}',

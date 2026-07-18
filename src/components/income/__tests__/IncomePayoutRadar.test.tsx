@@ -10,6 +10,7 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
     isSalary: false, cadence: 'regelmaessig', monthlyAverage: 100, totalInWindow: 100,
     lastDateISO: '2999-11-01', lastAmount: 100, monthsActive: 6, trend: 'flat', confidence: 0.9,
     share: 0.5, transactionCount: 6, nextDateISO: '2999-12-20', nextAmount: 100, monthlyTotals: {},
+    payments: [],
     ...overrides,
   };
 }

@@ -31,7 +31,20 @@ export type CityBooking = { txId: string; date: string; amount: number; payee: s
  * absteigend) sind die Einzelbuchungen hinter der Etage, Grundlage der
  * kompakten Buchungsliste im Vertrags-Sheet.
  */
-export type CityContract = { id: string; label: string; amount: number; bookings?: CityBooking[] };
+export type CityContract = {
+  id: string;
+  label: string;
+  amount: number;
+  bookings?: CityBooking[];
+  /**
+   * Deep-Link-Semantik dieser Etage für die Buchungsseite (WP-D5): der
+   * jeweilige Adapter entscheidet, wie „alle Buchungen dieser Etage" gefiltert
+   * werden (Ausgaben: Kategorie + Händler; Einnahmen: ggf. nur Zahler-Suche —
+   * Einnahmen-Gebäude-Ids sind KEINE Kategorie-Ids). Die Presentation baut
+   * daraus nur noch den Link (`buildTransactionsHref`), ohne Tab-Wissen.
+   */
+  filter?: { categoryId?: string; search?: string };
+};
 
 /**
  * Eine Ausgaben-Unterkategorie — ein Gebäude ("Balken") in der Stadt.
@@ -44,6 +57,8 @@ export type CitySubcategory = {
   label: string;
   amount: number;
   contracts?: CityContract[];
+  /** Nächste erwartete Zahlung (nur Einnahmen-Stadt, regelmäßige Ströme) — im Vertrags-Sheet angezeigt. */
+  nextPayment?: { dateISO: string; amount: number };
 };
 
 /** Ein Distrikt (Hauptkategorie-Gruppe) — ein räumlich getrenntes Gebäude-Cluster. */

@@ -27,6 +27,7 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
     nextDateISO: null,
     nextAmount: null,
     monthlyTotals: {},
+    payments: [],
     ...overrides,
   };
 }

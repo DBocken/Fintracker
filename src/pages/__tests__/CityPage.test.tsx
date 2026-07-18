@@ -138,16 +138,27 @@ function identityCamera(): THREE.PerspectiveCamera {
 
 const CAT_LEISURE = 'cat-leisure';
 const CAT_STREAMING = 'cat-streaming';
+const CAT_EMPLOYMENT = 'cat-anstellung';
 
 const FIXTURE_CATEGORIES: Category[] = [
   { id: CAT_LEISURE, name: 'Freizeit', filters: [] },
   { id: CAT_STREAMING, name: 'Streaming', filters: [], parent_id: CAT_LEISURE },
+  // WP-D5 (Einnahmen-Tab): Einkommens-Hauptkategorie für die Gehalts-Fixture.
+  { id: CAT_EMPLOYMENT, name: 'Anstellung', filters: [], attributes: { ausgabenklasse: 'einkommen' } },
 ];
 
 /** Tagesoffset relativ zu "jetzt" statt fixer Daten — bleibt unabhängig vom tatsächlichen Testlauf-Datum gültig (Stale-Erkennung in `computeContracts` vergleicht gegen `new Date()`). */
 function daysAgoISO(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
+/** N Kalendermonate zurück, fixiert auf den 15. — garantiert verschiedene Monate, unabhängig vom Testlauf-Datum (WP-D5, Einnahmen-Fixture). */
+function monthsAgoISO(months: number): string {
+  const d = new Date();
+  d.setDate(15);
+  d.setMonth(d.getMonth() - months);
   return d.toISOString().split('T')[0];
 }
 
@@ -187,6 +198,26 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
     confirmed: true,
     category_id: CAT_STREAMING,
   },
+  // WP-D5 (Einnahmen-Tab): DREI monatliche Gehaltseingänge -> ein
+  // REGELMÄSSIGER Einnahmen-Strom "Muster GmbH" im Distrikt "Anstellung"
+  // (deriveIncomeStreams braucht >= 3 aktive Monate für die Kadenz und damit
+  // die nächste-Zahlung-Projektion). `monthsAgoISO` garantiert drei
+  // verschiedene Kalendermonate (Tages-Offsets könnten am Monatsanfang
+  // kollidieren). Positive Beträge sind für das Ausgaben-Modell
+  // (Sunburst/Etagen) unsichtbar — bestehende Tests unberührt.
+  // Monate 1..3 (nicht 0): der 15. des LAUFENDEN Monats läge in der ersten
+  // Monatshälfte in der Zukunft und fiele aus dem Stream-Fenster.
+  ...[1, 2, 3].map((monthsAgo) => ({
+    id: `tx-gehalt-${monthsAgo}`,
+    date: monthsAgoISO(monthsAgo),
+    amount: 3000,
+    payee: 'Muster GmbH',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_EMPLOYMENT,
+  })),
 ];
 
 /**
@@ -395,6 +426,66 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     renderWithProviders(<CityPage />, { query: true, locale });
     await screen.findByTestId('city-canvas-stub');
     expect(screen.queryByTestId('city-tap-hint')).not.toBeInTheDocument();
+  });
+
+  it('sollte auf den Einnahmen-Tab wechseln: Einnahmen-Welt mit eigenem Chip, Navigation resettet auf Stadt-Ebene (WP-D5)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    // Erst in der Ausgaben-Welt eintauchen (Distrikt-Ebene) …
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+
+    // … dann in die Einnahmen-Welt wechseln.
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await user.click(screen.getByRole('tab', { name: incomeTabName }));
+
+    // Kontext-Chip zeigt die Gesamteinnahmen -> Navigation ist zurück auf
+    // Stadt-Ebene (Weltwechsel resettet den Drill-down der Ausgaben-Welt).
+    const chip = await screen.findByTestId('city-context-chip');
+    const totalIncomeLabel = locale === 'de' ? /Gesamteinnahmen/ : /Total income/;
+    expect(chip.textContent).toMatch(totalIncomeLabel);
+
+    // Einnahmen-Distrikt (Einkommens-Hauptkategorie) in der Listenansicht.
+    expect(list().getByRole('button', { name: /Anstellung/ })).toBeInTheDocument();
+    // Die Ausgaben-Distrikte gehören NICHT zur Einnahmen-Welt.
+    expect(list().queryByRole('button', { name: /Freizeit/ })).not.toBeInTheDocument();
+  });
+
+  it('sollte im Einnahmen-Sheet die nächste erwartete Zahlung zeigen und den Deep-Link über die Zahler-Suche bauen (WP-D5)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await user.click(screen.getByRole('tab', { name: incomeTabName }));
+
+    // Über die Listenansicht bis zur Monats-Etage des Gehalts-Stroms.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Anstellung/ })); // Fokus
+    await user.click(list().getByRole('button', { name: /Anstellung/ })); // Eintauchen
+    await user.click(list().getByRole('button', { name: /Muster GmbH/ }));
+    // Monats-Etagen (MM/yyyy) — die neueste anklicken.
+    const floorButtons = list().getAllByRole('button', { name: /\d{2}\/\d{4}/ });
+    await user.click(floorButtons[0]);
+
+    // Nächste erwartete Zahlung (regelmäßiger Strom, 2 Monatszahlungen).
+    expect(await screen.findByTestId('city-sheet-next-payment')).toBeInTheDocument();
+
+    // Deep-Links: Zahler-Suche + ECHTE Einnahmen-Kategorie.
+    const cta = screen.getByTestId('city-sheet-all-bookings');
+    const ctaHref = cta.getAttribute('href') ?? '';
+    expect(ctaHref).toContain('/transactions?');
+    expect(ctaHref).toContain('q=Muster');
+    expect(ctaHref).toContain('cat=cat-anstellung');
+
+    // Buchungszeile der neuesten Monats-Etage verlinkt auf die exakte Buchung.
+    const bookingLinks = screen.getAllByTestId('city-sheet-booking');
+    expect(bookingLinks[0].getAttribute('href')).toContain('tx=tx-gehalt-1');
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

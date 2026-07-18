@@ -131,6 +131,13 @@ export function buildMerchantFloorsByBuilding(
           id: f.id,
           label: f.label,
           amount: toMajor(f.totalMinor),
+          // WP-D5: Deep-Link-Semantik der Ausgaben-Etage — Kategorie (Gebäude)
+          // + Händler-Suche; die "Sonstige"-Etage bündelt viele Händler und
+          // filtert deshalb nur nach Kategorie.
+          filter: {
+            categoryId: buildingId,
+            ...(f.id === OTHER_MERCHANTS_FLOOR_ID ? {} : { search: f.label }),
+          },
           // WP-D4 (Sheet-Buchungsliste): nach Datum absteigend (neueste zuerst,
           // ISO-Strings sind lexikografisch sortierbar); Tie-Breaker txId für
           // deterministische Reihenfolge bei gleichem Datum. Nur Buchungen MIT

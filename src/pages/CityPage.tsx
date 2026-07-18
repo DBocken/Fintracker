@@ -18,7 +18,7 @@ import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
-import { useCityModel } from "@/features/finance-city/application/use-city-model";
+import { useCityModel, type CityModelTab } from "@/features/finance-city/application/use-city-model";
 import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
 import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
@@ -36,11 +36,10 @@ const MAX_VISIBLE_LABELS_MOBILE = 6;
 const MAX_VISIBLE_LABELS_DESKTOP = 10;
 
 /**
- * Kompakte Tab-Chrome der Stadt (WP-C0-Platzhalter): nur "Ausgaben" ist
- * aktuell erreichbar (`useCityModel`/`buildCityModelFromData` bilden bislang
- * nur Ausgaben-Distrikte ab, WP-C8). Einnahmen/Ziele/Übersicht sind bewusst
- * disabled statt versteckt, damit die finale Navigationsstruktur (siehe
- * README, "3 Ebenen") schon jetzt sichtbar ist.
+ * Tab-Chrome der Stadt: "Ausgaben" und seit WP-D5 auch "Einnahmen" sind
+ * erreichbar (eigener Adapter `buildCityModelFromIncomeStreams`). Ziele/
+ * Übersicht bleiben bewusst disabled statt versteckt, damit die finale
+ * Navigationsstruktur (README, "3 Ebenen") schon jetzt sichtbar ist.
  */
 const CITY_TABS = [
   { value: "overview", labelKey: "city.tabOverview" },
@@ -49,7 +48,7 @@ const CITY_TABS = [
   { value: "goals", labelKey: "city.tabGoals" },
 ] as const;
 
-const ACTIVE_CITY_TAB = "expenses";
+const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income"]);
 
 /**
  * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
@@ -124,7 +123,10 @@ export default function CityPage() {
   // geladen wird ODER es keine Ausgabendaten gibt; `useCityNavigation` bleibt
   // damit unbedingt aufrufbar (React-Hook-Regel) und ist mit einem leeren
   // Modell bereits crash-frei (Taps sind No-ops, siehe `use-city-navigation.ts`).
-  const { model, isLoading, isEmpty } = useCityModel();
+  // WP-D5: aktive Welt der Stadt (Ausgaben/Einnahmen) — gleiche Pipeline,
+  // anderer Adapter (`useCityModel(tab)`).
+  const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
+  const { model, isLoading, isEmpty } = useCityModel(activeTab);
   // Canvas/Labels/Liste mounten NUR mit geladenen, nicht-leeren Daten — spart
   // den WebGL-Kontext während des Ladens/bei leeren Daten (kein Demo-Fallback).
   const canvasMounted = !isLoading && !isEmpty;
@@ -204,6 +206,16 @@ export default function CityPage() {
   useEffect(() => {
     setHoveredBoxId(null);
   }, [nav.level]);
+
+  // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
+  // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)
+  // und Hover aufheben. `nav.actions` ist referenzstabil
+  // (use-city-navigation.ts), bewusst nicht in den Deps.
+  useEffect(() => {
+    nav.actions.goTo("city");
+    setHoveredBoxId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // WP-D3 (Klick-Affordanz): Erst-Besuch-Hinweis, bis zum ersten erfolgreichen
   // Drill-down (Tap auf ein Viertel ODER Navigation über die Listenansicht).
@@ -410,15 +422,21 @@ export default function CityPage() {
   // 'Gesamt' des Deep-Links deckt sich damit, Summen bleiben konsistent.
   const sheetBookings = selectedContract?.contract.bookings ?? [];
   const sheetRecentBookings = sheetBookings.slice(0, MAX_SHEET_BOOKINGS);
-  const sheetPriceIncrease = computeLatestPriceIncrease(selectedContract?.contract.bookings);
+  // Preis-Trend nur in der Ausgaben-Welt: bei Einnahmen wäre "teurer geworden"
+  // eine GUTE Nachricht (Gehaltserhöhung) — der Warnhinweis passt dort nicht.
+  const sheetPriceIncrease =
+    activeTab === "expenses" ? computeLatestPriceIncrease(selectedContract?.contract.bookings) : null;
   const sheetIsOtherFloor = selectedContract?.contract.id === OTHER_MERCHANTS_FLOOR_ID;
+  // WP-D5: Deep-Link-Semantik kommt aus dem Domain-Modell (`contract.filter`,
+  // vom jeweiligen Adapter gesetzt) — die Page kennt keine Tab-Sonderfälle.
+  const sheetFilter = selectedContract?.contract.filter;
   const sheetAllBookingsHref = selectedContract
     ? buildTransactionsHref({
-        category: selectedContract.subcategory.id,
-        // "Sonstige" bündelt viele Händler — dort nur nach Kategorie filtern.
-        search: sheetIsOtherFloor ? "" : selectedContract.contract.label,
+        category: sheetFilter?.categoryId ?? "all",
+        search: sheetFilter?.search ?? "",
       })
     : "";
+  const sheetNextPayment = selectedContract?.subcategory.nextPayment;
   const sheetBookingHref = (txId: string) =>
     `${sheetAllBookingsHref}${sheetAllBookingsHref.includes("?") ? "&" : "?"}tx=${encodeURIComponent(txId)}`;
   const sheetDateFormatter = useMemo(
@@ -500,16 +518,22 @@ export default function CityPage() {
             </div>
           </header>
 
-          <Tabs defaultValue={ACTIVE_CITY_TAB} className="shrink-0">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              if (ENABLED_CITY_TABS.has(value)) setActiveTab(value as CityModelTab);
+            }}
+            className="shrink-0"
+          >
             <TabsList aria-label={t("city.title")}>
               {CITY_TABS.map((tab) => {
-                const active = tab.value === ACTIVE_CITY_TAB;
+                const enabled = ENABLED_CITY_TABS.has(tab.value);
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    disabled={!active}
-                    aria-disabled={!active}
+                    disabled={!enabled}
+                    aria-disabled={!enabled}
                   >
                     {t(tab.labelKey)}
                   </TabsTrigger>
@@ -532,7 +556,10 @@ export default function CityPage() {
             // Akzeptanzkriterium "nur echte Daten"). Canvas/Labels/Liste
             // mounten hier bewusst NICHT (spart den WebGL-Kontext).
             <div className="absolute inset-0 flex items-center justify-center p-6">
-              <EmptyState icon={Building2} title={t("city.emptyState")} />
+              <EmptyState
+                icon={Building2}
+                title={t(activeTab === "income" ? "city.emptyStateIncome" : "city.emptyState")}
+              />
             </div>
           ) : (
             <>
@@ -584,11 +611,12 @@ export default function CityPage() {
                   highlightedId={hoveredBoxId}
                   onLabelHover={handleHoverBox}
                   onLabelTap={handleTapBox}
-                  // WP-D1: Fade-in nur bei echtem Ebenenwechsel (Balken wachsen
-                  // neu), NICHT bei jedem Query-Refetch — sonst flackern alle
-                  // Labels, sobald eine Kategorie-Zuweisung/ein Fensterfokus
-                  // die Stadt-Query neu lädt.
-                  fadeKey={nav.level}
+                  // WP-D1: Fade-in nur bei echtem Ebenen-/Weltwechsel (Balken
+                  // wachsen neu), NICHT bei jedem Query-Refetch — sonst
+                  // flackern alle Labels, sobald eine Kategorie-Zuweisung/ein
+                  // Fensterfokus die Stadt-Query neu lädt. Tab im Key (WP-D5):
+                  // auch der Tab-Wechsel baut die Stadt neu auf.
+                  fadeKey={`${activeTab}:${nav.level}`}
                   className="absolute inset-0"
                 />
 
@@ -602,7 +630,7 @@ export default function CityPage() {
                   >
                     {cityContext.kind === "city" ? (
                       <>
-                        {t("city.contextTotalLabel")} ·{" "}
+                        {t(activeTab === "income" ? "city.contextTotalIncomeLabel" : "city.contextTotalLabel")} ·{" "}
                         <span className="font-medium text-foreground">{formatCurrency(cityContext.amount)}</span>
                       </>
                     ) : (
@@ -619,13 +647,19 @@ export default function CityPage() {
                         {cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
                           <>
                             {" · "}
-                            {t("city.contextContractCount").replace("{count}", String(cityContext.contractCount))}
+                            {/* WP-D5: Einnahmen-Etagen sind MONATE, Ausgaben-Etagen Verträge/Händler. */}
+                            {t(activeTab === "income" ? "city.contextMonthCount" : "city.contextContractCount").replace(
+                              "{count}",
+                              String(cityContext.contractCount),
+                            )}
                           </>
                         )}
                         {typeof cityContext.share === "number" && (
                           <>
                             {" · "}
-                            {t("city.contextShareOfTotal").replace("{percent}", formatPercent(cityContext.share, 0))}
+                            {t(
+                              activeTab === "income" ? "city.contextShareOfTotalIncome" : "city.contextShareOfTotal",
+                            ).replace("{percent}", formatPercent(cityContext.share, 0))}
                           </>
                         )}
                       </>
@@ -676,7 +710,8 @@ export default function CityPage() {
               <SheetHeader>
                 <SheetTitle>{selectedContract.contract.label}</SheetTitle>
                 <SheetDescription>
-                  {t("city.sheetContractTitle")} · {selectedContract.district.label} → {selectedContract.subcategory.label}
+                  {t(activeTab === "income" ? "city.sheetIncomeTitle" : "city.sheetContractTitle")} ·{" "}
+                  {selectedContract.district.label} → {selectedContract.subcategory.label}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
@@ -694,6 +729,16 @@ export default function CityPage() {
                 >
                   <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {t("city.sheetPriceIncrease").replace("{amount}", formatCurrency(sheetPriceIncrease))}
+                </p>
+              )}
+
+              {/* WP-D5 (Einnahmen): nächste erwartete Zahlung des Stroms —
+                  nur regelmäßige Quellen tragen eine Projektion (Adapter). */}
+              {sheetNextPayment && (
+                <p data-testid="city-sheet-next-payment" className="mt-2 text-xs text-muted-foreground">
+                  {t("city.sheetNextPayment")
+                    .replace("{date}", sheetDateFormatter.format(new Date(sheetNextPayment.dateISO)))
+                    .replace("{amount}", formatCurrency(sheetNextPayment.amount))}
                 </p>
               )}
 
