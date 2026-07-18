@@ -79,10 +79,16 @@ export async function snapshotLocalCollections(): Promise<Record<string, unknown
   return out;
 }
 
+function itemId(item: unknown): string | null {
+  if (!item || typeof item !== 'object') return null;
+  const id = (item as Record<string, unknown>).id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
 /**
- * Stellt die generischen Collections wieder her — NICHT-destruktiv: es werden
- * nur LEERE Collections befüllt (Wiederherstellung auf neuem Gerät / nach
- * Datenverlust). Bestehende Daten werden nie überschrieben oder dupliziert.
+ * Stellt die generischen Collections wieder her — NICHT-destruktiver Merge per
+ * stabiler `id`: vorhandene Einträge bleiben unverändert, fehlende Backup-Items
+ * werden ergänzt. Ein erneuter Restore desselben Backups erzeugt keine Duplikate.
  */
 export async function restoreLocalCollections(
   collections: Record<string, unknown[]> | undefined,
@@ -95,10 +101,16 @@ export async function restoreLocalCollections(
     if (!Array.isArray(items) || items.length === 0) continue;
 
     const current = await readLocalFinanceList<unknown>(key);
-    if (current.length > 0) continue; // bestehende Daten unangetastet lassen
+    const existingIds = new Set(current.map(itemId).filter((id): id is string => id !== null));
+    const additions = items.filter((item) => {
+      const id = itemId(item);
+      return id !== null && !existingIds.has(id);
+    });
 
-    await writeLocalFinanceList(key, items);
-    results[key] = items.length;
+    if (additions.length === 0) continue;
+
+    await writeLocalFinanceList(key, [...current, ...additions]);
+    results[key] = additions.length;
   }
   return results;
 }
@@ -382,7 +394,7 @@ class BackupService {
         results.settings = await this.restoreSettings(userId, backupData.data.settings);
       }
 
-      // Übrige Collections nicht-destruktiv wiederherstellen (nur leere füllen).
+      // Übrige Collections nicht-destruktiv per stabiler ID mergen.
       const restoredCollections = await restoreLocalCollections(backupData.collections);
       results.collections = Object.values(restoredCollections).reduce((sum, n) => sum + n, 0);
 
@@ -394,6 +406,10 @@ class BackupService {
         details: results,
       };
     } catch (error) {
+      if (error instanceof Error && error.message === 'FOREIGN_BACKUP') {
+        throw error;
+      }
+
       throw new Error(
         t('backup.service.restoreFailed', 'Wiederherstellung fehlgeschlagen: {error}').replace('{error}', error instanceof Error ? error.message : t('backup.service.unknownError', 'Unbekannter Fehler'))
       );
@@ -448,8 +464,14 @@ class BackupService {
     // Merge per ID (VE-5): Original-IDs behalten, damit der Idempotenz-Guard des
     // Stores greift — ein Restore auf bestehende Daten verdoppelt keine Buchungen
     // und wiederhergestellte Buchungen behalten gültige Kategorie-/Konto-Bezüge (T1.4).
-    const restored = await saveTransactions(transactions);
-    return restored.length;
+    // `saveTransactions` gibt die gespeicherten Inputs zurück; für die Restore-
+    // Zusammenfassung zählen wir daher nur tatsächlich neue Backup-IDs.
+    const existingIds = new Set((await getTransactions(10000)).map((tx) => tx.id));
+    const newTransactions = transactions.filter((tx) => tx.id && !existingIds.has(tx.id));
+    if (newTransactions.length === 0) return 0;
+
+    await saveTransactions(transactions);
+    return newTransactions.length;
   }
 
   private async restoreCategories(

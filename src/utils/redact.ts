@@ -19,8 +19,12 @@ const AMOUNT_PREFIX = /€\s?\d{1,3}(?:\.\d{3})*,\d{2}\b/g;
 
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 
+// MCP-Connector-Tokens sind 64-Hex-Werte im Pfad /api/mcp/<token>.
+const MCP_CONNECTOR_TOKEN_PATH = /\/api\/mcp\/[0-9a-f]{32,128}\b/gi;
+
 export function redactSensitive(text: string): string {
   return text
+    .replace(MCP_CONNECTOR_TOKEN_PATH, '/api/mcp/[MCP_TOKEN]')
     .replace(IBAN_GROUPED, '[IBAN]')
     .replace(IBAN_COMPACT, '[IBAN]')
     .replace(AMOUNT_SUFFIX, '[AMOUNT]')

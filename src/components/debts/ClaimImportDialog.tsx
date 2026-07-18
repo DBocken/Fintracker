@@ -83,7 +83,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
       showError(t('debts.claimImport.ocrFailed'));
       setStep("upload");
     }
-  }, []);
+  }, [t]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {

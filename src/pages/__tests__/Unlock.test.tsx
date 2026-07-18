@@ -161,14 +161,14 @@ describe('UnlockPage – Lokale Instanz zurücksetzen (Passwort vergessen)', () 
 
       requiredKeys.forEach((key) => {
         const path = key.split('.')
-        let deValue: any = de
-        let enValue: any = en
+        let deValue: unknown = de
+        let enValue: unknown = en
 
         path.forEach((p) => {
-          expect(deValue[p]).toBeDefined()
-          expect(enValue[p]).toBeDefined()
-          deValue = deValue[p]
-          enValue = enValue[p]
+          expect((deValue as Record<string, unknown>)[p]).toBeDefined()
+          expect((enValue as Record<string, unknown>)[p]).toBeDefined()
+          deValue = (deValue as Record<string, unknown>)[p]
+          enValue = (enValue as Record<string, unknown>)[p]
         })
 
         expect(typeof deValue).toBe('string')

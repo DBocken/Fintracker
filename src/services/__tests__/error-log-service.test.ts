@@ -93,6 +93,21 @@ describe('error-log-service', () => {
       expect(raw).toBeTruthy();
       expect(raw).not.toContain('DE89370400440532013000');
     });
+
+    it('[REGRESSION] sollte MCP-Connector-Tokens in URLs redigieren', async () => {
+      const token = 'a'.repeat(64);
+      await appendErrorLogEntry({
+        level: 'error',
+        source: 'manual',
+        message: `Connector fehlgeschlagen: https://app.example/api/mcp/${token}`,
+      });
+      const [entry] = await getErrorLog();
+      const raw = await idbGet(ERROR_LOG_KEY);
+
+      expect(entry.message).toContain('/api/mcp/[MCP_TOKEN]');
+      expect(entry.message).not.toContain(token);
+      expect(raw).not.toContain(token);
+    });
   });
 
   describe('Regression Protection', () => {

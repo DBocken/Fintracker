@@ -444,7 +444,7 @@ describe('syncEtoroPortfolio', () => {
         };
       }
       throw new Error('unexpected endpoint');
-    }) as any);
+    }) as never);
 
     const result = await syncEtoroPortfolio(portfolio.id);
     expect(result).toEqual({ created: 1, updated: 1, removed: 0 });
@@ -481,7 +481,7 @@ describe('syncEtoroPortfolio', () => {
         data: [instrumentMetaResponse({ instrumentID: 1002, symbolFull: 'MSFT', instrumentDisplayName: 'Microsoft' })],
         error: null,
       };
-    }) as any);
+    }) as never);
 
     const second = await syncEtoroPortfolio(portfolio.id);
     expect(second.removed).toBe(1);
@@ -506,7 +506,7 @@ describe('syncEtoroPortfolio', () => {
       }
       // Instrument-Lookup schlägt fehl — darf den Sync nicht crashen lassen.
       return { data: null, error: { message: 'instruments down' } };
-    }) as any);
+    }) as never);
 
     const result = await syncEtoroPortfolio(portfolio.id);
     expect(result.created).toBe(1);
@@ -536,7 +536,7 @@ describe('connectEtoroAccount', () => {
         return { data: { rates: [{ instrumentID: 1001, bid: 160 }] }, error: null };
       }
       return { data: [instrumentMetaResponse()], error: null };
-    }) as any);
+    }) as never);
 
     const portfolio = await connectEtoroAccount('nutzer', 'k1', 'k2');
     expect(portfolio.type).toBe('etoro');

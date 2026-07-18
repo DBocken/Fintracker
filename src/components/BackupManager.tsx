@@ -49,6 +49,25 @@ import { showSuccess, showError } from '@/utils/toast';
 import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
 
+type RestoreDetails = {
+  transactions: number;
+  categories: number;
+  accounts: number;
+  settings: boolean;
+  collections: number;
+};
+
+export function formatRestoreDetailsSummary(
+  details: RestoreDetails,
+  t: (key: string) => string,
+): string {
+  return t('backup.restoreSummary')
+    .replace('{transactions}', String(details.transactions))
+    .replace('{categories}', String(details.categories))
+    .replace('{accounts}', String(details.accounts))
+    .replace('{collections}', String(details.collections));
+}
+
 export function BackupManager() {
   const { t } = useI18n();
   const [backupFile, setBackupFile] = useState<File | null>(null);
@@ -96,7 +115,7 @@ export function BackupManager() {
       return await backupService.restoreBackup(backupData, { allowForeign });
     },
     onSuccess: (result) => {
-      showSuccess(result.message);
+      showSuccess(`${result.message} ${formatRestoreDetailsSummary(result.details, t)} ${t('backup.restoreMergeNote')}`);
       setRestoreDialogOpen(false);
       setBackupFile(null);
       setEncryptedRestorePassword('');
@@ -402,7 +421,7 @@ export function BackupManager() {
                       <Alert>
                         <Info className="h-4 w-4" />
                         <AlertDescription className="text-sm">
-                          Datei: {backupFile.name}
+                          {t('backup.selectedFile').replace('{name}', backupFile.name)}
                           <br />
                           {t('backup.fileSize').replace('{size}', formatFileSize(backupFile.size))}
                         </AlertDescription>
@@ -454,10 +473,12 @@ export function BackupManager() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {restoreMutation.data.message}
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1 text-sm text-muted-foreground mb-4">
+              <p>{restoreMutation.data.message}</p>
+              <p>{formatRestoreDetailsSummary(restoreMutation.data.details, t)}</p>
+              <p>{t('backup.restoreMergeNote')}</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold text-positive">
                   {restoreMutation.data.details.transactions}
@@ -475,6 +496,12 @@ export function BackupManager() {
                   {restoreMutation.data.details.accounts}
                 </p>
                 <p className="text-xs text-muted-foreground">{t('backup.accounts')}</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-card">
+                <p className="text-2xl font-bold text-positive">
+                  {restoreMutation.data.details.collections}
+                </p>
+                <p className="text-xs text-muted-foreground">{t('backup.collections')}</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-card">
                 <p className="text-2xl font-bold">

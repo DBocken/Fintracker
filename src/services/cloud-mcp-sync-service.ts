@@ -264,34 +264,52 @@ const LOOKBACK_MONTHS = 6;
  * (`/api/mcp/<token>`) – dann ist keine Konfiguration nötig. Optional kann
  * `VITE_MCP_POC_URL` auf einen separaten Server (mcp-poc/) zeigen.
  */
-// Das Klartext-Token wird zusätzlich lokal gemerkt, damit die Connector-URL
-// jederzeit (auch nach Reload) erneut angezeigt werden kann. Liegt nur auf
-// diesem Gerät – serverseitig wird weiterhin nur der Hash gespeichert.
-const CONNECTOR_TOKEN_KEY = 'ausgabentracker_mcp_connector_token_v1';
+// Legacy-Key: enthielt früher das Klartext-Connector-Token in localStorage.
+// Wird ab jetzt nur noch entfernt, damit langlebige Tokens nicht persistieren.
+const LEGACY_CONNECTOR_TOKEN_KEY = 'ausgabentracker_mcp_connector_token_v1';
+const CONNECTOR_SESSION_TOKEN_KEY = 'ausgabentracker_mcp_connector_token_session_v1';
+const CONNECTOR_ACTIVE_MARKER_KEY = 'ausgabentracker_mcp_connector_active_v1';
+
+function hasLocalStorage(): boolean {
+  return typeof localStorage !== 'undefined';
+}
+
+function hasSessionStorage(): boolean {
+  return typeof sessionStorage !== 'undefined';
+}
+
+function purgeLegacyToken(): void {
+  if (hasLocalStorage()) localStorage.removeItem(LEGACY_CONNECTOR_TOKEN_KEY);
+}
 
 function rememberToken(token: string): void {
-  if (typeof localStorage !== 'undefined') localStorage.setItem(CONNECTOR_TOKEN_KEY, token);
+  purgeLegacyToken();
+  if (hasSessionStorage()) sessionStorage.setItem(CONNECTOR_SESSION_TOKEN_KEY, token);
+  if (hasLocalStorage()) localStorage.setItem(CONNECTOR_ACTIVE_MARKER_KEY, '1');
 }
 
-function forgetToken(): void {
-  if (typeof localStorage !== 'undefined') localStorage.removeItem(CONNECTOR_TOKEN_KEY);
+export function clearStoredCloudMcpConnector(): void {
+  purgeLegacyToken();
+  if (hasSessionStorage()) sessionStorage.removeItem(CONNECTOR_SESSION_TOKEN_KEY);
+  if (hasLocalStorage()) localStorage.removeItem(CONNECTOR_ACTIVE_MARKER_KEY);
 }
 
-/** Connector-URL aus dem lokal gemerkten Token, falls vorhanden (sonst null). */
+/** Connector-URL aus dem Session-Token, falls in dieser Browser-Session vorhanden. */
 export function getStoredConnectorUrl(): string | null {
-  if (typeof localStorage === 'undefined') return null;
-  const token = localStorage.getItem(CONNECTOR_TOKEN_KEY);
+  purgeLegacyToken();
+  if (!hasSessionStorage()) return null;
+  const token = sessionStorage.getItem(CONNECTOR_SESSION_TOKEN_KEY);
   return token ? buildConnectorUrl(token) : null;
 }
 
 /**
- * Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist (lokal gemerkter Connector-
- * Token). Synchron, damit der Privacy-Indikator den realen Zustand ableiten kann:
- * Bei aktivem Sync verlassen Kategorie-/Budgetnamen und Monatssummen das Gerät.
+ * Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist. Der Persistenzmarker enthält
+ * kein Secret; das Klartext-Connector-Token bleibt nur in der aktuellen Session.
  */
 export function isCloudMcpSyncActive(): boolean {
-  if (typeof localStorage === 'undefined') return false;
-  return localStorage.getItem(CONNECTOR_TOKEN_KEY) !== null;
+  purgeLegacyToken();
+  if (!hasLocalStorage()) return false;
+  return localStorage.getItem(CONNECTOR_ACTIVE_MARKER_KEY) === '1';
 }
 
 function buildConnectorUrl(token: string): string {
@@ -385,7 +403,7 @@ export async function disableCloudMcpSync(): Promise<void> {
   const userId = await currentUserId();
   const { error } = await supabase.from(SNAPSHOT_TABLE).delete().eq('user_id', userId);
   if (error) throw new Error(t('mcpService.disableFailed').replace('{error}', error.message));
-  forgetToken();
+  clearStoredCloudMcpConnector();
 }
 
 export interface SyncStatus {

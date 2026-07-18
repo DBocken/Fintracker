@@ -31,6 +31,10 @@ function sha256Hex(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function isValidAccessToken(token: string): boolean {
+  return /^[0-9a-f]{64}$/i.test(token);
+}
+
 // ── Snapshot loading (the only data source) ─────────────────────────────────
 type Snapshot = {
   schema_version: number;
@@ -48,7 +52,7 @@ async function loadSnapshot(token: string): Promise<Snapshot | null> {
     .select('payload')
     .eq('token_hash', sha256Hex(token))
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error('Snapshot lookup failed');
   return (data?.payload as Snapshot) ?? null;
 }
 
@@ -148,13 +152,14 @@ function resolveToken(req: Request): string | null {
   const fromPath = typeof req.params.token === 'string' ? req.params.token : null;
   const auth = req.header('authorization');
   const fromHeader = auth?.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : null;
-  return fromPath || fromHeader || null;
+  const token = fromPath || fromHeader || null;
+  return token && isValidAccessToken(token) ? token : null;
 }
 
 async function handleMcpPost(req: Request, res: Response) {
   const token = resolveToken(req);
   if (!token) {
-    res.status(401).json({ error: 'missing access token (use /mcp/<token> or Bearer header)' });
+    res.status(401).json({ error: 'invalid or missing access token' });
     return;
   }
   // Stateless: fresh server + transport per request.

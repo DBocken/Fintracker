@@ -88,9 +88,13 @@ function sha256Hex(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function isValidAccessToken(token: string): boolean {
+  return /^[0-9a-f]{64}$/i.test(token);
+}
+
 async function loadSnapshot(token: string): Promise<Snapshot | null> {
   const { data, error } = await supabase.rpc('get_mcp_snapshot', { p_token_hash: sha256Hex(token) });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error('Snapshot lookup failed');
   return (data as Snapshot) ?? null;
 }
 
@@ -181,8 +185,8 @@ function sendJson(res: ServerResponse, status: number, payload: unknown) {
 export default async function handler(req: VercelReq, res: ServerResponse): Promise<void> {
   const tokenParam = req.query?.token;
   const token = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
-  if (!token) {
-    sendJson(res, 401, { error: 'missing access token in path (/api/mcp/<token>)' });
+  if (!token || !isValidAccessToken(token)) {
+    sendJson(res, 401, { error: 'invalid or missing access token' });
     return;
   }
   if (req.method !== 'POST') {
@@ -221,6 +225,6 @@ export default async function handler(req: VercelReq, res: ServerResponse): Prom
     sendJson(res, 200, single);
   } catch (err) {
     const id = (body as RpcRequest | undefined)?.id ?? null;
-    sendJson(res, 200, rpcError(id, -32603, err instanceof Error ? err.message : 'Internal error'));
+    sendJson(res, 200, rpcError(id, -32603, 'Internal error'));
   }
 }

@@ -497,6 +497,6 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     categories,
     decisions,
     transactions,
-    overrides: getForecastOverrides(),
+    overrides: await getForecastOverrides(),
   });
 }

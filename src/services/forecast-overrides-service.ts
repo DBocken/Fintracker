@@ -6,13 +6,17 @@
  * Budget-Overrides, geplante Einmalposten, Rücklagen, Transfers und
  * Overrides für auto-erkannte wiederkehrende Zahlungen.
  *
- * Persistenz als versioniertes JSON im localStorage – gleiches Muster wie die
- * KPI-Präferenzen. Diese Werte sind Planungsannahmen, keine Rohkontodaten.
+ * Persistenz läuft über den lokalen verschlüsselbaren IndexedDB-Store. Der
+ * frühere localStorage-Key wird beim Lesen/Schreiben lazy migriert und danach
+ * gelöscht, damit finanzielle Planungsdaten nicht dauerhaft in localStorage
+ * verbleiben.
  */
 import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer } from '@/lib/forecast-types';
 import type { ForecastScenario } from '@/lib/forecast-scenario-types';
+import { localEncryption } from './local-crypto';
+import { LOCAL_FINANCE_KEYS } from './local-storage-keys';
 
-const STORAGE_KEY = 'fintracker_forecast_overrides_v1';
+export const FORECAST_OVERRIDES_STORAGE_KEY = LOCAL_FINANCE_KEYS.forecastOverrides;
 
 /** Override für eine auto-erkannte wiederkehrende Zahlung. */
 export interface RecurringFlowOverride {
@@ -54,6 +58,10 @@ export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
   scenarios: [],
 };
 
+function cloneDefaults(): ForecastOverrides {
+  return { ...DEFAULT_FORECAST_OVERRIDES };
+}
+
 function normalize(raw: Partial<ForecastOverrides> | null | undefined): ForecastOverrides {
   return {
     months: raw?.months ?? DEFAULT_FORECAST_OVERRIDES.months,
@@ -69,20 +77,52 @@ function normalize(raw: Partial<ForecastOverrides> | null | undefined): Forecast
   };
 }
 
-/** Liest die gespeicherten Overrides (mit Defaults für fehlende Felder). */
-export function getForecastOverrides(): ForecastOverrides {
-  if (typeof window === 'undefined') return { ...DEFAULT_FORECAST_OVERRIDES };
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_FORECAST_OVERRIDES };
-    return normalize(JSON.parse(raw) as Partial<ForecastOverrides>);
-  } catch {
-    return { ...DEFAULT_FORECAST_OVERRIDES };
+function readLegacyLocalStorage(): Partial<ForecastOverrides> | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(FORECAST_OVERRIDES_STORAGE_KEY);
+  if (!raw) return null;
+  return JSON.parse(raw) as Partial<ForecastOverrides>;
+}
+
+function clearLegacyLocalStorage(): void {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(FORECAST_OVERRIDES_STORAGE_KEY);
   }
 }
 
-/** Persistiert die Overrides. */
-export function saveForecastOverrides(overrides: ForecastOverrides): void {
+/**
+ * Migriert Forecast-Overrides aus dem früheren localStorage-Key in den
+ * verschlüsselbaren IndexedDB-Store und löscht die Klartext-Kopie erst nach
+ * erfolgreichem Schreiben.
+ */
+export async function migrateForecastOverridesFromLocalStorage(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const legacy = readLegacyLocalStorage();
+    if (!legacy) return false;
+    await localEncryption.encryptAndStore(FORECAST_OVERRIDES_STORAGE_KEY, normalize(legacy));
+    clearLegacyLocalStorage();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Liest die gespeicherten Overrides (mit Defaults für fehlende Felder). */
+export async function getForecastOverrides(): Promise<ForecastOverrides> {
+  if (typeof window === 'undefined') return cloneDefaults();
+  try {
+    await migrateForecastOverridesFromLocalStorage();
+    const stored = await localEncryption.loadAndMaybeDecrypt<Partial<ForecastOverrides>>(FORECAST_OVERRIDES_STORAGE_KEY);
+    return normalize(stored);
+  } catch {
+    return cloneDefaults();
+  }
+}
+
+/** Persistiert die Overrides im verschlüsselbaren lokalen Store. */
+export async function saveForecastOverrides(overrides: ForecastOverrides): Promise<void> {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalize(overrides)));
+  await localEncryption.encryptAndStore(FORECAST_OVERRIDES_STORAGE_KEY, normalize(overrides));
+  clearLegacyLocalStorage();
 }
