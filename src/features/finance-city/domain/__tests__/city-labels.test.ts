@@ -87,6 +87,27 @@ describe('selectCityLabels', () => {
     expect(labels[0]).toMatchObject({ text: 'Netflix', amount: 17.99 });
   });
 
+  it('sollte jedem Etagen-Label die (schattierte) Farbe seiner Etagen-Box mitgeben (für die farbige Führungslinie, WP-D2)', () => {
+    const model = makeModel();
+    const view = {
+      level: 'subcategory' as const,
+      focusDistrictId: 'leisure',
+      focusSubcategoryId: 'streaming',
+    };
+    const layout = buildCityLayout(model, view);
+    const floors = layout.boxes.filter((b) => b.kind === 'floor');
+    const labels = selectCityLabels(model, layout, 'subcategory');
+
+    expect(labels).toHaveLength(floors.length);
+    for (const label of labels) {
+      const floor = floors.find((f) => f.id === label.id)!;
+      expect(floor).toBeDefined();
+      // Label trägt exakt die (pro Etage schattierte) Boxfarbe.
+      expect(label.color).toBe(floor.color);
+      expect(label.color).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
   it('sollte für ein leeres Model keine Labels liefern', () => {
     const model: CityModel = { districts: [] };
     const layout = buildCityLayout(model, { level: 'city' });

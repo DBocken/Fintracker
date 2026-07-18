@@ -29,6 +29,14 @@ export type CityLabel = {
    */
   amount?: number;
   anchor: Vec3;
+  /**
+   * Farbe der zugehörigen `LayoutBox` (`box.color`) — auf Etagen-Ebene die
+   * bereits schattierte Etagenfarbe (`city-layout.ts#buildFloorBoxes`). Die
+   * Presentation nutzt sie für die Führungslinie vom versetzten Label zur
+   * jeweiligen Etage (gleiche Farbe wie die Etage), damit Zuordnung ohne
+   * Überdeckung des Balkens erkennbar bleibt.
+   */
+  color: string;
   /** Sortier-/Auswahlkriterium für `resolveLabelCollisions` — aktuell 1:1 der Betrag (höherer Betrag = höhere Priorität). */
   priority: number;
 };
@@ -94,6 +102,7 @@ export function selectCityLabels(model: CityModel, layout: CityLayout, level: Ci
       text: content.text,
       amount: content.amount,
       anchor: box.labelAnchor,
+      color: box.color,
       priority: content.amount,
     });
   }

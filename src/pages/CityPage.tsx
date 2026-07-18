@@ -463,6 +463,11 @@ export default function CityPage() {
                   // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
                   // potenziell viele Gebäude -> dort bleibt entzerrt.
                   declutter={nav.level !== "city"}
+                  // WP-D2 (Nutzer-Befund "Labels verdecken kleine Etagen"): in
+                  // der Etagen-/Einzelansicht die Labels seitlich versetzen und
+                  // per farbiger Führungslinie mit ihrer Etage verbinden, statt
+                  // sie mittig auf den (teils sehr kleinen) Balken zu setzen.
+                  connectors={nav.level === "subcategory"}
                   // WP-D1: Fade-in nur bei echtem Ebenenwechsel (Balken wachsen
                   // neu), NICHT bei jedem Query-Refetch — sonst flackern alle
                   // Labels, sobald eine Kategorie-Zuweisung/ein Fensterfokus

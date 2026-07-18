@@ -35,8 +35,8 @@ function identityCamera(): THREE.PerspectiveCamera {
   } as unknown as THREE.PerspectiveCamera;
 }
 
-function makeLabel(id: string, x: number, y: number, z: number, priority = 1): CityLabel {
-  return { id, text: `Label ${id}`, amount: priority, anchor: { x, y, z }, priority };
+function makeLabel(id: string, x: number, y: number, z: number, priority = 1, color = '#1d5c54'): CityLabel {
+  return { id, text: `Label ${id}`, amount: priority, anchor: { x, y, z }, color, priority };
 }
 
 describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
@@ -155,7 +155,7 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
   });
 
   it('sollte den Namen und den formatierten Betrag anzeigen', () => {
-    const labels = [{ id: 'rent', text: 'Miete', amount: 980, anchor: { x: 0, y: 0, z: 0 }, priority: 980 }];
+    const labels = [{ id: 'rent', text: 'Miete', amount: 980, anchor: { x: 0, y: 0, z: 0 }, color: '#1d5c54', priority: 980 }];
     const ref = createRef<CityLabelsHandle>();
     const { getByTestId } = renderWithI18n(
       <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
@@ -176,6 +176,114 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
     );
 
     expect(getByTestId('city-labels-layer')).toHaveClass('pointer-events-none');
+  });
+
+  describe('Connector-Modus (WP-D2, Etagen-/Einzelansicht)', () => {
+    it('sollte je sichtbarem Label eine Führungslinie in der Farbe der jeweiligen Etage rendern', () => {
+      const labels = [
+        makeLabel('netflix', 0, 0.3, 0, 5, '#123456'),
+        makeLabel('spotify', 0, 0.1, 0, 3, '#abcdef'),
+      ];
+      const ref = createRef<CityLabelsHandle>();
+      const { container } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={labels}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const connectors = container.querySelectorAll('[data-testid="city-label-connector"]');
+      expect(connectors).toHaveLength(2);
+      const netflix = container.querySelector(
+        '[data-testid="city-label-connector"][data-label-id="netflix"]',
+      )!;
+      expect(netflix.getAttribute('stroke')).toBe('#123456');
+      // Geometrie wird imperativ gesetzt (Draw-on übernimmt Framer Motion) und
+      // endet am projizierten Anker (Canvasmitte 400,300 bei Identitätskamera).
+      const d = netflix.getAttribute('d') ?? '';
+      expect(d).toMatch(/^M /);
+      // Endpunkt = projizierter Anker: x=400 (Canvasmitte), y=((1-0.3)/2)*600=210.
+      expect(d).toContain('L 400 210');
+    });
+
+    it('sollte die Labels seitlich neben den Balken versetzen, statt mittig auf den Anker', () => {
+      const labels = [makeLabel('netflix', 0, 0, 0, 5)];
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={labels}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const label = getByTestId('city-label') as HTMLElement;
+      // Anker projiziert auf die Canvasmitte (x=400). Das Label ist horizontal
+      // deutlich versetzt (>= 100 px), verdeckt den Balken also nicht mehr.
+      const match = /translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\)/.exec(label.style.transform);
+      expect(match).not.toBeNull();
+      expect(Math.abs(Number(match![1]) - 400)).toBeGreaterThanOrEqual(100);
+    });
+
+    it('sollte alle Etagen-Labels behalten (kein Kollisions-Culling) und dicht gestapelte vertikal entstapeln', () => {
+      // Identische Anker -> ohne Connector würde declutter das auf 1 ausdünnen
+      // (siehe declutter=true-Kontrasttest oben). Im Connector-Modus behält
+      // JEDE Etage ihr Label, vertikal entstapelt.
+      const labels = Array.from({ length: 4 }, (_, i) => makeLabel(`f${i}`, 0, 0, 0, 4 - i));
+      const ref = createRef<CityLabelsHandle>();
+      const { container } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={labels}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={2}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      const rendered = [...container.querySelectorAll('[data-testid="city-label"]')] as HTMLElement[];
+      expect(rendered).toHaveLength(4);
+
+      // Entstapelung: die vertikalen Versätze (zweiter translate-Y) sind paarweise
+      // verschieden, keine zwei Labels liegen aufeinander.
+      const ys = rendered.map((el) => {
+        const m = /translate\(-?\d+(?:\.\d+)?px, (-?\d+(?:\.\d+)?)px\)/.exec(el.style.transform);
+        return Number(m![1]);
+      });
+      const uniqueYs = new Set(ys);
+      expect(uniqueYs.size).toBe(4);
+    });
+
+    it('sollte ohne connectors keine Führungslinien-Ebene rendern (Default-Verhalten)', () => {
+      const labels = [makeLabel('a', 0, 0, 0, 5)];
+      const ref = createRef<CityLabelsHandle>();
+      const { container } = renderWithI18n(
+        <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
+        locale,
+      );
+
+      act(() => ref.current?.reproject(identityCamera()));
+
+      expect(container.querySelector('[data-testid="city-labels-connectors"]')).toBeNull();
+      expect(container.querySelectorAll('[data-testid="city-label-connector"]')).toHaveLength(0);
+    });
   });
 
   describe('Label-Aufbau-Sync (WP-D1, C7-Review)', () => {

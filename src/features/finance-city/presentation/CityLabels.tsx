@@ -14,6 +14,7 @@
  * ist als einziges React-State erlaubt.
  */
 import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { resolveLabelCollisions, type CityLabel } from '../domain/city-labels';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -62,6 +63,17 @@ export type CityLabelsProps = {
    * Optional: ohne Wert blendet der Container nur beim Mount ein.
    */
   fadeKey?: string;
+  /**
+   * WP-D2 (Nutzer-Befund: "Labels sitzen genau auf dem Balken und verdecken
+   * kleine Etagen"): `true` (Einzel-/Etagenansicht, `nav.level ===
+   * 'subcategory'`) versetzt jedes Label seitlich neben den Balken und zieht
+   * eine Führungslinie in der Farbe der jeweiligen Etage vom Label zur Etage.
+   * Kollisions-Culling/`maxVisible` entfallen dabei bewusst — die seitlichen
+   * Labels werden stattdessen vertikal entstapelt, sodass JEDE Etage (auch
+   * winzige) ihr Label behält. `false` (Default): bisheriges Verhalten (Label
+   * mittig über dem Anker, kein Connector).
+   */
+  connectors?: boolean;
   className?: string;
 };
 
@@ -104,6 +116,26 @@ const LABEL_WIDTH_PX = 132;
 const LABEL_HEIGHT_PX = 44;
 
 /**
+ * WP-D2 (Connector-Modus): horizontaler Versatz der Label-MITTE vom Balken-
+ * Anker. Muss groß genug sein, damit das Label neben dem Balken-Footprint
+ * steht (Balken ~0.9 Weltbreite ≈ 60–100 px projiziert) und diesen — inkl.
+ * kleiner Etagen — nicht mehr überdeckt.
+ */
+const LEADER_OFFSET_X = 150;
+/** Mindest-Vertikalabstand zwischen zwei entstapelten Connector-Labels (Label-Kante zu Label-Kante). */
+const LEADER_STACK_GAP_PX = 8;
+/** Strichstärke der Führungslinie (px). */
+const LEADER_STROKE_WIDTH = 1.5;
+
+/**
+ * WP-D2: Draw-on-Animation der Führungslinie (`pathLength` 0 → 1). Delay
+ * synchron zum Balkenwachstum (`LABEL_FADE_IN_DELAY_MS`), damit die Linie erst
+ * gezeichnet wird, wenn die Etagen ihre Zielhöhe erreicht haben.
+ */
+const LEADER_DRAW_DELAY_S = LABEL_FADE_IN_DELAY_MS / 1000;
+const LEADER_DRAW_DURATION_S = 0.5;
+
+/**
  * Reine Sichtbarkeits-/Hinter-der-Kamera-Prüfung über die projizierte
  * NDC-Tiefe: `> 1` = hinter der Kamera (Vorzeichen-Flip von `w`) bzw. jenseits
  * der Fern-Ebene. Das ist der EINZIGE Zweck von `ndc.z` hier.
@@ -135,24 +167,52 @@ function fadeOpacityForDistance(distance: number): number {
   return 1 - (distance - FADE_START_DISTANCE) / (FADE_END_DISTANCE - FADE_START_DISTANCE);
 }
 
-type ProjectedLabel = { id: string; x: number; y: number; opacity: number };
+type ProjectedLabel = {
+  id: string;
+  /** Bildschirmposition des Labels selbst (im Connector-Modus seitlich versetzt, sonst == Anker). */
+  x: number;
+  y: number;
+  /** Projizierte Ankerposition am Balken/an der Etage — Endpunkt der Führungslinie. */
+  anchorX: number;
+  anchorY: number;
+  opacity: number;
+};
 
 export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function CityLabels(
-  { labels, canvasSize, maxVisible, declutter, fadeKey, className },
+  { labels, canvasSize, maxVisible, declutter, fadeKey, connectors = false, className },
   ref,
 ) {
   const reducedMotion = useReducedMotion();
   const elementRefs = useRef(new Map<string, HTMLDivElement>());
+  const connectorRefs = useRef(new Map<string, SVGPathElement>());
   const lastProjectedRef = useRef(new Map<string, ProjectedLabel>());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const applyPosition = useCallback((projected: ProjectedLabel) => {
     const el = elementRefs.current.get(projected.id);
-    if (!el) return;
-    // Imperatives Positions-Update — bewusst KEIN React-State (Perf-Vorgabe oben).
-    el.style.transform = `translate(-50%, -100%) translate(${projected.x}px, ${projected.y}px)`;
-    el.style.opacity = String(projected.opacity);
+    if (el) {
+      // Imperatives Positions-Update — bewusst KEIN React-State (Perf-Vorgabe oben).
+      el.style.transform = `translate(-50%, -100%) translate(${projected.x}px, ${projected.y}px)`;
+      el.style.opacity = String(projected.opacity);
+    }
+    // Connector-Modus: Führungslinie vom (versetzten) Label zur Etage neu
+    // zeichnen. Die Linie unterstreicht das Label (kurzes Horizontalstück von
+    // der ankerfernen zur ankernahen Unterkante) und läuft dann diagonal zum
+    // Anker — Startpunkt am Label, damit die Draw-on-Animation "vom Label zur
+    // Etage" verläuft. `pathLength`/Opazität steuert Framer Motion (Enter),
+    // hier nur die Geometrie (dynamischer Wert -> imperativ, kein State).
+    const path = connectorRefs.current.get(projected.id);
+    if (path) {
+      const side = projected.anchorX >= projected.x ? 1 : -1;
+      const nearX = projected.x + (side * LABEL_WIDTH_PX) / 2;
+      const farX = projected.x - (side * LABEL_WIDTH_PX) / 2;
+      const underY = projected.y; // Unterkante des Labels (transform -100%).
+      path.setAttribute(
+        'd',
+        `M ${farX} ${underY} L ${nearX} ${underY} L ${projected.anchorX} ${projected.anchorY}`,
+      );
+    }
   }, []);
 
   const reproject = useCallback(
@@ -172,16 +232,41 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
         if (opacity <= 0) continue;
         const x = ((vector.x + 1) / 2) * canvasSize.width;
         const y = ((1 - vector.y) / 2) * canvasSize.height;
-        projectedById.set(label.id, { id: label.id, x, y, opacity });
+        projectedById.set(label.id, { id: label.id, x, y, anchorX: x, anchorY: y, opacity });
       }
+
+      // WP-D2 (Connector-Modus, Einzel-/Etagenansicht): Labels seitlich neben
+      // den Balken versetzen, statt sie mittig auf den Balken zu setzen (sonst
+      // verdecken sie kleine Etagen). Alle Etagen eines Balkens teilen sich
+      // x/z, projizieren also auf ~dieselbe Anker-X — die Labels landen als
+      // Spalte auf der Balkenseite mit mehr Platz und werden vertikal
+      // entstapelt (Mindestabstand), damit auch dicht gestapelte Etagen ihr
+      // Label behalten. Die farbige Führungslinie stellt die Zuordnung her.
+      if (connectors) {
+        const centerX = canvasSize.width / 2;
+        const ordered = labels
+          .map((l) => projectedById.get(l.id))
+          .filter((p): p is ProjectedLabel => p !== undefined)
+          .sort((a, b) => a.anchorY - b.anchorY);
+        let prevBottom = Number.NEGATIVE_INFINITY;
+        for (const p of ordered) {
+          const dir = p.anchorX > centerX ? -1 : 1;
+          const minBottom = prevBottom + LEADER_STACK_GAP_PX + LABEL_HEIGHT_PX;
+          const bottom = Number.isFinite(prevBottom) ? Math.max(p.anchorY, minBottom) : p.anchorY;
+          prevBottom = bottom;
+          p.x = p.anchorX + dir * LEADER_OFFSET_X;
+          p.y = bottom;
+        }
+      }
+
       lastProjectedRef.current = projectedById;
 
-      // WP-D1: Culling/Cap gelten NUR noch, wenn `declutter` aktiv ist
-      // (district-/subcategory-Ebene — dort potenziell viele Gebäude/
-      // Etagen). Auf Stadt-Ebene (`declutter=false`) sind alle projizierten
-      // (nicht hinter der Kamera liegenden, nicht weggefadeten) Labels
-      // sichtbar — wenige Distrikte, kein Grund zum Ausdünnen.
-      const nextVisible = declutter
+      // WP-D1/D2: Culling/Cap gelten NUR, wenn `declutter` aktiv ist UND wir
+      // NICHT im Connector-Modus sind. Auf Stadt-Ebene (`declutter=false`) sind
+      // ohnehin alle Labels sichtbar; im Connector-Modus (Etagenansicht) soll
+      // jede Etage ihr — jetzt entstapeltes, seitlich versetztes — Label
+      // behalten, deshalb kein Kollisions-Culling.
+      const nextVisible = declutter && !connectors
         ? resolveLabelCollisions(
             labels
               .filter((l) => projectedById.has(l.id))
@@ -214,7 +299,7 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
         return nextVisible;
       });
     },
-    [labels, canvasSize.width, canvasSize.height, maxVisible, declutter, applyPosition],
+    [labels, canvasSize.width, canvasSize.height, maxVisible, declutter, connectors, applyPosition],
   );
 
   useImperativeHandle(ref, () => ({ reproject }), [reproject]);
@@ -277,6 +362,46 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
       aria-hidden="true"
       data-testid="city-labels-layer"
     >
+      {/* WP-D2: Führungslinien-Ebene (nur Connector-Modus). Liegt HINTER den
+          Label-Boxen (erstes Kind), Pixel-Koordinaten 1:1 zur Canvas-Fläche
+          (kein viewBox). Geometrie (`d`) wird imperativ pro Frame gesetzt
+          (`applyPosition`), Farbe = Etagenfarbe, Draw-on via Framer Motion. */}
+      {connectors && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+          data-testid="city-labels-connectors"
+          aria-hidden="true"
+        >
+          {labels
+            .filter((label) => visibleIds.has(label.id))
+            .map((label) => (
+              <motion.path
+                key={label.id}
+                data-testid="city-label-connector"
+                data-label-id={label.id}
+                ref={(el) => {
+                  if (el) connectorRefs.current.set(label.id, el);
+                  else connectorRefs.current.delete(label.id);
+                }}
+                fill="none"
+                stroke={label.color}
+                strokeWidth={LEADER_STROKE_WIDTH}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={reducedMotion ? false : { pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : {
+                        pathLength: { delay: LEADER_DRAW_DELAY_S, duration: LEADER_DRAW_DURATION_S, ease: 'easeOut' },
+                        opacity: { delay: LEADER_DRAW_DELAY_S, duration: 0.2 },
+                      }
+                }
+              />
+            ))}
+        </svg>
+      )}
       {labels
         .filter((label) => visibleIds.has(label.id))
         .map((label) => (
