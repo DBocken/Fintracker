@@ -168,6 +168,36 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
     expect(getByTestId('city-label').textContent).toContain('980,00');
   });
 
+  it('sollte hinter dem Betrag den prozentualen Anteil an der Gesamtausgabe anzeigen', () => {
+    const labels: CityLabel[] = [
+      { id: 'rent', text: 'Miete', amount: 980, anchor: { x: 0, y: 0, z: 0 }, color: '#1d5c54', share: 0.42, priority: 980 },
+    ];
+    const ref = createRef<CityLabelsHandle>();
+    const { getByTestId } = renderWithI18n(
+      <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
+      locale,
+    );
+
+    act(() => ref.current?.reproject(identityCamera()));
+
+    const text = getByTestId('city-label').textContent ?? '';
+    expect(text).toContain('980,00');
+    expect(text).toContain('42 %'); // formatPercent(0.42, 0)
+  });
+
+  it('sollte ohne share KEINEN Prozentwert anzeigen (Rückwärtskompatibilität)', () => {
+    const labels = [makeLabel('a', 0, 0, 0, 5)]; // makeLabel setzt kein share
+    const ref = createRef<CityLabelsHandle>();
+    const { getByTestId } = renderWithI18n(
+      <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter />,
+      locale,
+    );
+
+    act(() => ref.current?.reproject(identityCamera()));
+
+    expect(getByTestId('city-label').textContent).not.toContain('%');
+  });
+
   it('sollte den Label-Container mit pointer-events-none rendern (Taps fallen durch auf den Canvas)', () => {
     const ref = createRef<CityLabelsHandle>();
     const { getByTestId } = renderWithI18n(
@@ -269,6 +299,51 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
       });
       const uniqueYs = new Set(ys);
       expect(uniqueYs.size).toBe(4);
+    });
+
+    it('[REGRESSION] sollte die Label-Seite beim Drehen dicht an der Mitte stabil halten (kein Links-rechts-Flackern)', () => {
+      // Anker leicht RECHTS der Mitte (screen x = 440, 40 px rechts von 400) ->
+      // die Spalte entscheidet sich für "links vom Balken".
+      const ref = createRef<CityLabelsHandle>();
+      const { getByTestId, rerender } = renderWithI18n(
+        <CityLabels
+          ref={ref}
+          labels={[makeLabel('f', 0.1, 0.2, 0, 5)]}
+          canvasSize={{ width: 800, height: 600 }}
+          maxVisible={10}
+          declutter
+          connectors
+        />,
+        locale,
+      );
+      const labelX = () => {
+        const el = getByTestId('city-label') as HTMLElement;
+        return Number(/translate\((-?\d+(?:\.\d+)?)px, /.exec(el.style.transform)![1]);
+      };
+
+      act(() => ref.current?.reproject(identityCamera()));
+      const anchorX1 = ((0.1 + 1) / 2) * 800; // 440
+      expect(labelX() < anchorX1).toBe(true); // Label links vom Anker.
+
+      // Kleiner Dreh: Anker jetzt leicht LINKS der Mitte (screen x = 360), also
+      // die Mitte gekreuzt, aber innerhalb der Hysterese-Marge (90 px).
+      rerender(
+        <I18nProvider initialLocale={locale}>
+          <CityLabels
+            ref={ref}
+            labels={[makeLabel('f', -0.1, 0.2, 0, 5)]}
+            canvasSize={{ width: 800, height: 600 }}
+            maxVisible={10}
+            declutter
+            connectors
+          />
+        </I18nProvider>,
+      );
+      act(() => ref.current?.reproject(identityCamera()));
+      const anchorX2 = ((-0.1 + 1) / 2) * 800; // 360
+      // Seite bleibt "links" (kein Flip trotz Mitten-Kreuzung) — ohne Hysterese
+      // wäre das Label auf die rechte Seite gesprungen (Flackern).
+      expect(labelX() < anchorX2).toBe(true);
     });
 
     it('sollte ohne connectors keine Führungslinien-Ebene rendern (Default-Verhalten)', () => {

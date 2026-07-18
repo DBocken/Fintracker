@@ -108,6 +108,34 @@ describe('selectCityLabels', () => {
     }
   });
 
+  it('sollte jedem Label den Anteil an der Gesamtausgabe (Summe aller Distrikt-Totale) mitgeben', () => {
+    const model = makeModel();
+    const layout = buildCityLayout(model, { level: 'city' });
+    const labels = selectCityLabels(model, layout, 'city');
+
+    // Gesamtausgabe (Cent) = housing (1069,00) + leisure (79,97) = 1148,97 €.
+    const cityTotalMinor = 106900 + 7997;
+    const housing = labels.find((l) => l.id === 'housing')!;
+    const leisure = labels.find((l) => l.id === 'leisure')!;
+    expect(housing.share).toBeCloseTo(106900 / cityTotalMinor, 10);
+    expect(leisure.share).toBeCloseTo(7997 / cityTotalMinor, 10);
+    // Anteile summieren sich (bis auf Rundung) zu 1.
+    expect((housing.share ?? 0) + (leisure.share ?? 0)).toBeCloseTo(1, 10);
+  });
+
+  it('sollte share weglassen, wenn die Gesamtausgabe 0 ist (kein Division-durch-0)', () => {
+    const model: CityModel = {
+      districts: [{ id: 'x', label: 'X', color: '#000000', total: 0, subcategories: [{ id: 'y', label: 'Y', amount: 0 }] }],
+    };
+    const layout = buildCityLayout(model, { level: 'city' });
+    const labels = selectCityLabels(model, layout, 'city');
+    // Degenerierter Nullbetrag-Distrikt liefert ggf. gar kein Label (Nullbox) —
+    // falls doch, darf share nicht gesetzt sein.
+    for (const label of labels) {
+      expect(label.share).toBeUndefined();
+    }
+  });
+
   it('sollte für ein leeres Model keine Labels liefern', () => {
     const model: CityModel = { districts: [] };
     const layout = buildCityLayout(model, { level: 'city' });

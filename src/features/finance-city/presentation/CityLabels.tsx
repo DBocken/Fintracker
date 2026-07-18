@@ -17,7 +17,7 @@ import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef, 
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { resolveLabelCollisions, type CityLabel } from '../domain/city-labels';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 export type CityLabelsHandle = {
@@ -124,6 +124,14 @@ const LABEL_HEIGHT_PX = 44;
 const LEADER_OFFSET_X = 150;
 /** Mindest-Vertikalabstand zwischen zwei entstapelten Connector-Labels (Label-Kante zu Label-Kante). */
 const LEADER_STACK_GAP_PX = 8;
+/**
+ * Hysterese-Marge (px) für die Seitenwahl der Connector-Labels: die
+ * Label-Spalte bleibt auf ihrer Seite, bis der Balken-Anker um mehr als diesen
+ * Betrag über die Bildschirmmitte auf die Gegenseite wandert. Ohne diese Marge
+ * flackerte die Spalte beim Drehen dicht an der Mitte pro Frame von links nach
+ * rechts (Nutzer-Befund).
+ */
+const LEADER_SIDE_HYSTERESIS_PX = 90;
 /** Strichstärke der Führungslinie (px). */
 const LEADER_STROKE_WIDTH = 1.5;
 
@@ -185,6 +193,8 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
   const reducedMotion = useReducedMotion();
   const elementRefs = useRef(new Map<string, HTMLDivElement>());
   const connectorRefs = useRef(new Map<string, SVGPathElement>());
+  /** Aktuelle Seite der Connector-Label-Spalte (-1 = links, +1 = rechts, 0 = noch unentschieden) — mit Hysterese gehalten (siehe `LEADER_SIDE_HYSTERESIS_PX`). */
+  const connectorSideRef = useRef(0);
   const lastProjectedRef = useRef(new Map<string, ProjectedLabel>());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [visibleIds, setVisibleIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -248,14 +258,29 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
           .map((l) => projectedById.get(l.id))
           .filter((p): p is ProjectedLabel => p !== undefined)
           .sort((a, b) => a.anchorY - b.anchorY);
-        let prevBottom = Number.NEGATIVE_INFINITY;
-        for (const p of ordered) {
-          const dir = p.anchorX > centerX ? -1 : 1;
-          const minBottom = prevBottom + LEADER_STACK_GAP_PX + LABEL_HEIGHT_PX;
-          const bottom = Number.isFinite(prevBottom) ? Math.max(p.anchorY, minBottom) : p.anchorY;
-          prevBottom = bottom;
-          p.x = p.anchorX + dir * LEADER_OFFSET_X;
-          p.y = bottom;
+
+        if (ordered.length > 0) {
+          // Seiten-Entscheidung EINMAL für die ganze Etagen-Spalte (alle Etagen
+          // teilen sich ~dieselbe Anker-X) und mit Hysterese: die Spalte bleibt
+          // auf ihrer Seite, bis der Balken deutlich über die Gegenseite
+          // wandert (`LEADER_SIDE_HYSTERESIS_PX`) — verhindert das Links-rechts-
+          // Flackern beim Drehen dicht an der Bildschirmmitte. `side === -1` =
+          // Label links vom Balken (Balken rechts der Mitte), `+1` = rechts.
+          const groupAnchorX = ordered.reduce((sum, p) => sum + p.anchorX, 0) / ordered.length;
+          let side = connectorSideRef.current;
+          if (side === 0) side = groupAnchorX > centerX ? -1 : 1;
+          else if (groupAnchorX > centerX + LEADER_SIDE_HYSTERESIS_PX) side = -1;
+          else if (groupAnchorX < centerX - LEADER_SIDE_HYSTERESIS_PX) side = 1;
+          connectorSideRef.current = side;
+
+          let prevBottom = Number.NEGATIVE_INFINITY;
+          for (const p of ordered) {
+            const minBottom = prevBottom + LEADER_STACK_GAP_PX + LABEL_HEIGHT_PX;
+            const bottom = Number.isFinite(prevBottom) ? Math.max(p.anchorY, minBottom) : p.anchorY;
+            prevBottom = bottom;
+            p.x = p.anchorX + side * LEADER_OFFSET_X;
+            p.y = bottom;
+          }
         }
       }
 
@@ -426,6 +451,12 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
             {typeof label.amount === 'number' && (
               <span className="truncate text-[10px] leading-[14px] text-muted-foreground">
                 {formatCurrency(label.amount)}
+                {typeof label.share === 'number' && (
+                  // Anteil an der Gesamtausgabe hinter dem Betrag (dezent
+                  // abgesetzt). `formatPercent` rundet anzeige-seitig (kein
+                  // eigener toFixed, AGENTS.md §8).
+                  <span className="text-muted-foreground/70"> · {formatPercent(label.share, 0)}</span>
+                )}
               </span>
             )}
           </div>

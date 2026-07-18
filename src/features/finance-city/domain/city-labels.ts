@@ -14,6 +14,7 @@
 
 import type { CityLayout, LayoutBoxKind, CityLevel } from './city-layout';
 import type { CityModel, Vec3 } from './city-model';
+import { sumMinor, toMinor } from '@/lib/money';
 
 export type CityLabel = {
   /** Identisch zur `LayoutBox.id` (stabil über Renders hinweg, für React-Keys/DOM-Refs). */
@@ -37,8 +38,24 @@ export type CityLabel = {
    * Überdeckung des Balkens erkennbar bleibt.
    */
   color: string;
+  /**
+   * Anteil dieses Betrags an der GESAMTAUSGABE der Stadt (Summe aller
+   * Distrikt-Totale), als Bruch in [0, 1]. Wird in der Presentation hinter dem
+   * Euro-Betrag als Prozent angezeigt. `undefined`, falls die Gesamtausgabe 0
+   * ist (keine Division durch 0).
+   */
+  share?: number;
   /** Sortier-/Auswahlkriterium für `resolveLabelCollisions` — aktuell 1:1 der Betrag (höherer Betrag = höhere Priorität). */
   priority: number;
+}
+
+/**
+ * Gesamtausgabe der Stadt in Integer-Cent = Summe aller Distrikt-Totale
+ * (AGENTS.md §8: Geld-Summierung über `toMinor`/`sumMinor`, kein roher
+ * Float-`reduce`). Bezugsgröße für den prozentualen Anteil jedes Labels.
+ */
+function computeCityTotalMinor(model: CityModel): number {
+  return sumMinor(model.districts.map((d) => toMinor(d.total)));
 };
 
 /** Welche `LayoutBoxKind` je Ebene die Label-Anker trägt (README, "Die 3 Ebenen"). */
@@ -92,6 +109,8 @@ function resolveLabelContent(
 export function selectCityLabels(model: CityModel, layout: CityLayout, level: CityLevel): CityLabel[] {
   const kind = KIND_BY_LEVEL[level];
   const labels: CityLabel[] = [];
+  // Bezugsgröße für den prozentualen Anteil: Gesamtausgabe der Stadt (in Cent).
+  const cityTotalMinor = computeCityTotalMinor(model);
 
   for (const box of layout.boxes) {
     if (box.kind !== kind || !box.labelAnchor) continue;
@@ -103,6 +122,9 @@ export function selectCityLabels(model: CityModel, layout: CityLayout, level: Ci
       amount: content.amount,
       anchor: box.labelAnchor,
       color: box.color,
+      // Anteil an der Gesamtausgabe (Cent/Cent -> Bruch), `undefined` bei
+      // Gesamtausgabe 0 (kein Division-durch-0, kein irreführendes "0 %").
+      share: cityTotalMinor > 0 ? toMinor(content.amount) / cityTotalMinor : undefined,
       priority: content.amount,
     });
   }
