@@ -413,7 +413,14 @@ function buildFloorBoxes(district: CityDistrict, bar: PositionedBar): LayoutBox[
       opacity: FLOOR_OPACITY,
       edges: false,
       pickable: true,
-      labelAnchor: { x: center.x, y: center.y + size.y / 2, z: center.z },
+      // Etagen-Anker = vertikale MITTE der Etage (nicht die Oberkante wie bei
+      // Hüllen/Balken): Etagen werden ausschließlich in der Einzelansicht mit
+      // seitlich versetztem Label + Führungslinie gezeigt (WP-D2). Die Linie
+      // soll auf die Etage selbst deuten — bei einem Oberkanten-Anker zeigte
+      // sie einer unteren Etage auf die Grenze zur darüberliegenden Etage
+      // (Nutzer-Befund: wirkt, als deute sie zwischen die Etagen). `center.y`
+      // ist bereits die Etagenmitte (`GROUND_LEVEL + floor.y`, floor.y = Mitte).
+      labelAnchor: { x: center.x, y: center.y, z: center.z },
     };
   });
 }

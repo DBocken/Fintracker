@@ -167,6 +167,24 @@ describe('buildCityLayout', () => {
       expect(sumHeights).toBeCloseTo(originalBarHeight, 10);
     });
 
+    it('[REGRESSION] sollte den Etagen-Label-Anker auf die vertikale MITTE der Etage setzen (Führungslinie deutet auf die Etage, nicht auf ihre Oberkante/Grenze)', () => {
+      const model = makeModel();
+      const subLayout = buildCityLayout(model, {
+        level: 'subcategory',
+        focusDistrictId: 'leisure',
+        focusSubcategoryId: 'streaming',
+      });
+      const floors = subLayout.boxes.filter((b) => b.kind === 'floor');
+      expect(floors.length).toBeGreaterThan(0);
+      for (const floor of floors) {
+        expect(floor.labelAnchor).toBeDefined();
+        // Anker = Etagenmitte (nicht Oberkante center.y + size.y/2).
+        expect(floor.labelAnchor!.y).toBeCloseTo(floor.center.y, 10);
+        expect(floor.labelAnchor!.x).toBeCloseTo(floor.center.x, 10);
+        expect(floor.labelAnchor!.z).toBeCloseTo(floor.center.z, 10);
+      }
+    });
+
     it('sollte andere Balken im selben Viertel bei aktivem Floor-Fokus dimmen (niedrigere opacity als auf district-Ebene)', () => {
       const model = makeModel();
       const districtLayout = buildCityLayout(model, { level: 'district', focusDistrictId: 'leisure' });
