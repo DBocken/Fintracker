@@ -164,6 +164,19 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
     category_id: CAT_STREAMING,
   },
   {
+    // WP-D4: ältere, GÜNSTIGERE Netflix-Buchung — macht die Sheet-Buchungsliste
+    // mehrzeilig und den Preis-Trend-Hinweis (+2,00 €) deterministisch testbar.
+    id: 'tx-netflix-old',
+    date: daysAgoISO(35),
+    amount: -15.99,
+    payee: 'Netflix',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_STREAMING,
+  },
+  {
     id: 'tx-hbo',
     date: daysAgoISO(8),
     amount: -9.99,
@@ -262,7 +275,7 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(current?.textContent).toMatch(locale === 'de' ? /Stadt/ : /City/);
   });
 
-  it('sollte im Vertrags-Sheet den prozentualen Anteil des Vertrags an seiner Unterkategorie anzeigen', async () => {
+  it('sollte im Vertrags-Sheet die letzten Buchungen als Deep-Links, den "Alle Buchungen"-CTA und den Preis-Trend zeigen (WP-D4)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CityPage />, { query: true, locale });
     await screen.findByTestId('city-canvas-stub');
@@ -279,9 +292,27 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Streaming/ }));
     await user.click(list().getByRole('button', { name: /Netflix/ }));
 
-    // Sheet ist offen -> Prozentanteil sichtbar (Netflix-Anteil an Streaming-Summe).
-    const percentText = locale === 'de' ? /von Streaming/ : /of Streaming/;
-    expect(await screen.findByText(percentText)).toBeInTheDocument();
+    // Buchungsliste: beide Netflix-Buchungen, neueste zuerst, jede Zeile als
+    // Deep-Link auf GENAU diese Buchung (`tx=`), gefiltert auf Kategorie+Händler.
+    const bookingLinks = await screen.findAllByTestId('city-sheet-booking');
+    expect(bookingLinks).toHaveLength(2);
+    const firstHref = bookingLinks[0].getAttribute('href') ?? '';
+    expect(firstHref).toContain('/transactions?');
+    expect(firstHref).toContain('cat=cat-streaming');
+    expect(firstHref).toContain('q=Netflix');
+    expect(firstHref).toContain('tx=tx-netflix');
+    expect(bookingLinks[1].getAttribute('href')).toContain('tx=tx-netflix-old');
+
+    // CTA auf die gefilterte Buchungsseite (gleiches Muster wie Sunburst/Sankey).
+    const cta = screen.getByTestId('city-sheet-all-bookings');
+    const ctaHref = cta.getAttribute('href') ?? '';
+    expect(ctaHref).toContain('/transactions?');
+    expect(ctaHref).toContain('cat=cat-streaming');
+    expect(ctaHref).not.toContain('tx=');
+    expect(cta.textContent).toContain('(2)');
+
+    // Preis-Trend: 17,99 € (neueste) > 15,99 € (vorletzte) -> +2,00 €.
+    expect(screen.getByTestId('city-sheet-price-increase').textContent).toContain('2,00');
   });
 
   it('sollte onFrame von CityCanvas an die Label-Reprojektion weiterreichen (kein eigener Timer)', async () => {

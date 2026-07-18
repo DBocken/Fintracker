@@ -17,8 +17,21 @@
  * Summen-Invariante).
  */
 
-/** Ein laufender Vertrag (z. B. Streaming-Abo) innerhalb einer Unterkategorie. */
-export type CityContract = { id: string; label: string; amount: number };
+/**
+ * Eine einzelne Buchung hinter einer Etage (WP-D4, Vertrags-Sheet als
+ * Absprungpunkt): Referenz auf die echte Transaktion (`txId` für den
+ * `?tx=`-Deep-Link auf die Buchungsseite) plus Anzeige-Daten. `amount` ist der
+ * ABSOLUTE Anzeige-Euro-Betrag (Ausgaben sind im Modell überall positiv).
+ */
+export type CityBooking = { txId: string; date: string; amount: number; payee: string };
+
+/**
+ * Ein laufender Vertrag/Händler (z. B. Streaming-Abo) innerhalb einer
+ * Unterkategorie — eine Etage beim Eintauchen. `bookings` (nach Datum
+ * absteigend) sind die Einzelbuchungen hinter der Etage, Grundlage der
+ * kompakten Buchungsliste im Vertrags-Sheet.
+ */
+export type CityContract = { id: string; label: string; amount: number; bookings?: CityBooking[] };
 
 /**
  * Eine Ausgaben-Unterkategorie — ein Gebäude ("Balken") in der Stadt.

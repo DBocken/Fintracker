@@ -13,7 +13,7 @@
  */
 
 import type { CityLevel } from './city-layout';
-import type { CityModel } from './city-model';
+import type { CityBooking, CityModel } from './city-model';
 import { sumMinor, toMinor, toMajor } from '@/lib/money';
 
 export type CityContextSummary =
@@ -69,4 +69,19 @@ export function selectCityContext(
     contractCount: subcategory.contracts?.length ?? 0,
     share: totalMinor > 0 ? toMinor(subcategory.amount) / totalMinor : undefined,
   };
+}
+
+/**
+ * WP-D4 (Vertrags-Sheet, Preis-Trend bei Abos): Euro-Differenz zwischen der
+ * NEUESTEN und der zweitneuesten Buchung einer Etage — nur wenn die neueste
+ * TEURER ist (schleichende Preiserhöhung, z. B. Streaming-Abo), sonst `null`
+ * (Preissenkungen/gleiche Beträge zeigen keinen Hinweis; ein „billiger
+ * geworden"-Hinweis wäre bei schwankenden Händlern wie Supermärkten Rauschen).
+ * Vergleich in Integer-Cent (AGENTS.md §8, kein roher Float-Vergleich).
+ * Erwartet `bookings` nach Datum absteigend (Modell-Konvention, `CityContract`).
+ */
+export function computeLatestPriceIncrease(bookings: CityBooking[] | undefined): number | null {
+  if (!bookings || bookings.length < 2) return null;
+  const diffMinor = toMinor(bookings[0].amount) - toMinor(bookings[1].amount);
+  return diffMinor > 0 ? toMajor(diffMinor) : null;
 }

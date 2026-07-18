@@ -18,11 +18,12 @@ function tx(opts: {
   amount: number;
   categoryId?: string | null;
   isTransfer?: boolean;
+  date?: string;
 }): Transaction {
   txCounter += 1;
   return {
     id: `tx-${txCounter}`,
-    date: '2026-06-01',
+    date: opts.date ?? '2026-06-01',
     amount: opts.amount,
     payee: opts.payee,
     description: '',
@@ -55,8 +56,9 @@ describe('buildMerchantFloorsByBuilding', () => {
 
     const floors = buildMerchantFloorsByBuilding([netflix, shell], categoriesById);
 
-    expect(floors.get(CAT_STREAMING)).toEqual([{ id: expect.any(String), label: 'Netflix', amount: 17.99 }]);
-    expect(floors.get(CAT_FUEL)).toEqual([{ id: expect.any(String), label: 'Shell', amount: 60 }]);
+    // toMatchObject: seit WP-D4 tragen Etagen zusätzlich ihre `bookings` (eigene Tests unten).
+    expect(floors.get(CAT_STREAMING)).toMatchObject([{ id: expect.any(String), label: 'Netflix', amount: 17.99 }]);
+    expect(floors.get(CAT_FUEL)).toMatchObject([{ id: expect.any(String), label: 'Shell', amount: 60 }]);
   });
 
   it('sollte eine Buchung ohne Unterkategorie im Direkt-Gebäude (Hauptkategorie selbst) einordnen', () => {
@@ -91,7 +93,7 @@ describe('buildMerchantFloorsByBuilding', () => {
     const floors = buildMerchantFloorsByBuilding([aldi], categoriesById);
 
     const building = floors.get(CAT_FUEL)!;
-    expect(building).toEqual([{ id: expect.any(String), label: 'Aldi', amount: 8.5 }]);
+    expect(building).toMatchObject([{ id: expect.any(String), label: 'Aldi', amount: 8.5 }]);
   });
 
   it('sollte bei mehr als 6 Händlern die Top 5 (nach Betrag absteigend) als eigene Etagen behalten und den Rest zu EINER "Sonstige"-Etage zusammenfassen', () => {
@@ -137,6 +139,44 @@ describe('buildMerchantFloorsByBuilding', () => {
 
     expect(building).toHaveLength(6);
     expect(building.map((f) => f.label)).not.toContain('Sonstige');
+  });
+
+  it('sollte je Etage die Einzelbuchungen (txId/Datum/Betrag/Payee) nach Datum absteigend mitliefern (WP-D4, Sheet-Buchungsliste)', () => {
+    const older = tx({ payee: 'Netflix', amount: -15.99, categoryId: CAT_FUEL, date: '2026-04-12' });
+    const newest = tx({ payee: 'Netflix', amount: -17.99, categoryId: CAT_FUEL, date: '2026-06-12' });
+    const middle = tx({ payee: 'Netflix', amount: -15.99, categoryId: CAT_FUEL, date: '2026-05-12' });
+
+    const floors = buildMerchantFloorsByBuilding([older, newest, middle], categoriesById);
+    const netflixFloor = floors.get(CAT_FUEL)![0];
+
+    expect(netflixFloor.bookings).toHaveLength(3);
+    expect(netflixFloor.bookings!.map((b) => b.txId)).toEqual([newest.id, middle.id, older.id]);
+    expect(netflixFloor.bookings![0]).toEqual({
+      txId: newest.id,
+      date: '2026-06-12',
+      amount: 17.99, // absoluter Anzeige-Betrag (Ausgaben im Modell positiv).
+      payee: 'Netflix',
+    });
+  });
+
+  it('sollte der "Sonstige"-Etage die Buchungen ALLER zusammengefassten Händler mitgeben (nach Datum absteigend)', () => {
+    const bookings = [
+      tx({ payee: 'Händler A', amount: -100, categoryId: CAT_FUEL }),
+      tx({ payee: 'Händler B', amount: -90, categoryId: CAT_FUEL }),
+      tx({ payee: 'Händler C', amount: -80, categoryId: CAT_FUEL }),
+      tx({ payee: 'Händler D', amount: -70, categoryId: CAT_FUEL }),
+      tx({ payee: 'Händler E', amount: -60, categoryId: CAT_FUEL }),
+      tx({ payee: 'Händler F', amount: -10, categoryId: CAT_FUEL, date: '2026-06-20' }),
+      tx({ payee: 'Händler G', amount: -5, categoryId: CAT_FUEL, date: '2026-06-25' }),
+    ];
+
+    const floors = buildMerchantFloorsByBuilding(bookings, categoriesById);
+    const otherFloor = floors.get(CAT_FUEL)![5];
+
+    expect(otherFloor.label).toBe('Sonstige');
+    expect(otherFloor.bookings).toHaveLength(2);
+    // Neueste zuerst: G (25.06.) vor F (20.06.) — Payee je Zeile erhalten.
+    expect(otherFloor.bookings!.map((b) => b.payee)).toEqual(['Händler G', 'Händler F']);
   });
 
   it('sollte Transfers, Einnahmen und unkategorisierte Buchungen ignorieren', () => {

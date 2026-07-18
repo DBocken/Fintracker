@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { Building2, ChevronRight, List } from "lucide-react";
+import { ArrowRight, Building2, ChevronRight, List, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +13,9 @@ import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
-import { selectCityContext } from "@/features/finance-city/domain/city-context";
+import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
+import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
+import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
 import { useCityModel } from "@/features/finance-city/application/use-city-model";
@@ -56,6 +59,17 @@ const ACTIVE_CITY_TAB = "expenses";
  */
 const TAP_HINT_DISMISSED_KEY = "fintracker.city.tap-hint-dismissed";
 
+/** WP-D4: maximal so viele Buchungen kompakt im Vertrags-Sheet — Tiefe gehört auf die Buchungsseite (CTA darunter). */
+const MAX_SHEET_BOOKINGS = 5;
+
+/** Datumsformat je App-Locale (kein zentrales formatDate im Repo; `toLocaleDateString` ist die bestehende Konvention, z. B. NotificationsBell). */
+const DATE_LOCALE_BY_APP_LOCALE: Record<string, string> = {
+  de: "de-DE",
+  en: "en-GB",
+  tlh: "de-DE",
+  ru: "ru-RU",
+};
+
 /** Fallback-Seitenverhältnis, solange die Canvas-Größe noch nicht messbar ist (0 Höhe während Layout-Übergängen). */
 const FALLBACK_ASPECT = 16 / 9;
 
@@ -75,7 +89,7 @@ function toVec3(v: { x: number; y: number; z: number }) {
 }
 
 export default function CityPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const sceneRef = useRef<CitySceneHandle | null>(null);
   const controlsApiRef = useRef<CityControlsApi | null>(null);
   // Umschließt Header + Tabs (den kompletten "Chrome" oberhalb der Canvas) —
@@ -386,15 +400,31 @@ export default function CityPage() {
     nav.selectedContractId,
   );
 
-  // WP-C5: Anteil des Vertrags an seiner Unterkategorie (z. B. "32 % von
-  // Streaming") — Beträge kommen 1:1 aus dem Model (kein Re-Aggregieren,
-  // AGENTS.md §8), Formatierung über `formatPercent` (Anzeige-Rundung, KEIN
-  // eigener `toFixed`). `null` bei einer (in den Demo-Daten nicht
-  // vorkommenden) Unterkategorie ohne Betrag, statt einer Division durch 0.
-  const contractShareOfSubcategoryRate =
-    selectedContract && selectedContract.subcategory.amount > 0
-      ? selectedContract.contract.amount / selectedContract.subcategory.amount
-      : null;
+  // WP-D4 (Sheet als Absprungpunkt, Nutzer-Wunsch): Betrag/Anteile stehen
+  // inzwischen an den Labels — das Sheet zeigt stattdessen NEUE Information:
+  // die letzten Buchungen des Händlers (kompakt, je Zeile klickbar → exakte
+  // Buchung via `?tx=`), einen Preis-Trend-Hinweis und den Deep-Link auf die
+  // gefilterte Buchungsseite (gleiches Muster wie Sunburst/Sankey-Klicks,
+  // `buildTransactionsHref`). Die Stadt aggregiert über ALLE geladenen
+  // Buchungen (`useCityModel`, kein Zeitraum-Filter) — der Default-Range
+  // 'Gesamt' des Deep-Links deckt sich damit, Summen bleiben konsistent.
+  const sheetBookings = selectedContract?.contract.bookings ?? [];
+  const sheetRecentBookings = sheetBookings.slice(0, MAX_SHEET_BOOKINGS);
+  const sheetPriceIncrease = computeLatestPriceIncrease(selectedContract?.contract.bookings);
+  const sheetIsOtherFloor = selectedContract?.contract.id === OTHER_MERCHANTS_FLOOR_ID;
+  const sheetAllBookingsHref = selectedContract
+    ? buildTransactionsHref({
+        category: selectedContract.subcategory.id,
+        // "Sonstige" bündelt viele Händler — dort nur nach Kategorie filtern.
+        search: sheetIsOtherFloor ? "" : selectedContract.contract.label,
+      })
+    : "";
+  const sheetBookingHref = (txId: string) =>
+    `${sheetAllBookingsHref}${sheetAllBookingsHref.includes("?") ? "&" : "?"}tx=${encodeURIComponent(txId)}`;
+  const sheetDateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(DATE_LOCALE_BY_APP_LOCALE[locale] ?? "de-DE", { dateStyle: "medium" }),
+    [locale],
+  );
 
   return (
     // AppShell (`src/components/layout/AppShell.tsx`) umschließt jede Route
@@ -653,12 +683,55 @@ export default function CityPage() {
                 <span className="text-muted-foreground">{t("city.sheetMonthlyAmountLabel")}</span>
                 <span className="font-semibold">{formatCurrency(selectedContract.contract.amount)}</span>
               </div>
-              {contractShareOfSubcategoryRate !== null && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("city.sheetShareOfSubcategory")
-                    .replace("{percent}", formatPercent(contractShareOfSubcategoryRate, 0))
-                    .replace("{subcategory}", selectedContract.subcategory.label)}
+
+              {/* WP-D4: Preis-Trend — nur bei VERTEUERUNG gegenüber der
+                  vorletzten Buchung (schleichende Abo-Preiserhöhung), siehe
+                  `computeLatestPriceIncrease`. */}
+              {sheetPriceIncrease !== null && (
+                <p
+                  data-testid="city-sheet-price-increase"
+                  className="mt-2 flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500"
+                >
+                  <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {t("city.sheetPriceIncrease").replace("{amount}", formatCurrency(sheetPriceIncrease))}
                 </p>
+              )}
+
+              {/* WP-D4: kompakte Buchungsliste — jede Zeile ist als Ganzes ein
+                  Link auf GENAU diese Buchung (`?tx=`-Deep-Link der
+                  Buchungsseite), gefiltert auf Kategorie + Händler, damit die
+                  Zielliste kurz ist und die Buchung sicher enthält. */}
+              {sheetRecentBookings.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("city.sheetRecentBookings")}
+                  </h3>
+                  <ul className="mt-1">
+                    {sheetRecentBookings.map((booking) => (
+                      <li key={booking.txId}>
+                        <Link
+                          to={sheetBookingHref(booking.txId)}
+                          data-testid="city-sheet-booking"
+                          className="flex min-h-11 items-center justify-between gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted/50"
+                        >
+                          <span className="text-muted-foreground">{sheetDateFormatter.format(new Date(booking.date))}</span>
+                          {/* Payee nur bei der "Sonstige"-Etage — dort mischen
+                              sich mehrere Händler, sonst wäre er redundant zum
+                              Sheet-Titel. */}
+                          {sheetIsOtherFloor && <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{booking.payee}</span>}
+                          <span className="font-medium tabular-nums">{formatCurrency(booking.amount)}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button asChild variant="outline" className="mt-3 w-full">
+                    <Link to={sheetAllBookingsHref} data-testid="city-sheet-all-bookings">
+                      {t("city.sheetViewAllBookings").replace("{count}", String(sheetBookings.length))}
+                      <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </div>
               )}
             </>
           )}

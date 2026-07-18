@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { selectCityContext } from '../city-context';
-import type { CityModel } from '../city-model';
+import { selectCityContext, computeLatestPriceIncrease } from '../city-context';
+import type { CityBooking, CityModel } from '../city-model';
 
 function makeModel(): CityModel {
   return {
@@ -86,5 +86,41 @@ describe('selectCityContext', () => {
     expect(context).toMatchObject({ kind: 'district', amount: 0 });
     if (context?.kind !== 'district') throw new Error('unerwarteter kind');
     expect(context.share).toBeUndefined();
+  });
+});
+
+describe('computeLatestPriceIncrease', () => {
+  const booking = (txId: string, date: string, amount: number): CityBooking => ({
+    txId,
+    date,
+    amount,
+    payee: 'Netflix',
+  });
+
+  it('sollte die Cent-genaue Verteuerung zwischen neuester und vorletzter Buchung liefern', () => {
+    const bookings = [booking('b', '2026-06-12', 17.99), booking('a', '2026-05-12', 15.99)];
+    expect(computeLatestPriceIncrease(bookings)).toBeCloseTo(2.0, 10);
+  });
+
+  it('sollte bei gleichem oder gesunkenem Preis null liefern (kein Rausch-Hinweis)', () => {
+    expect(
+      computeLatestPriceIncrease([booking('b', '2026-06-12', 15.99), booking('a', '2026-05-12', 15.99)]),
+    ).toBeNull();
+    expect(
+      computeLatestPriceIncrease([booking('b', '2026-06-12', 12.99), booking('a', '2026-05-12', 15.99)]),
+    ).toBeNull();
+  });
+
+  it('sollte bei weniger als zwei Buchungen null liefern', () => {
+    expect(computeLatestPriceIncrease(undefined)).toBeNull();
+    expect(computeLatestPriceIncrease([])).toBeNull();
+    expect(computeLatestPriceIncrease([booking('a', '2026-06-12', 17.99)])).toBeNull();
+  });
+
+  it('[REGRESSION] sollte Float-Artefakte nicht als Verteuerung werten (Cent-Vergleich statt rohem Float)', () => {
+    // 0.1 + 0.2 !== 0.3 in Float — als Cent-Beträge identisch (30 Cent).
+    expect(
+      computeLatestPriceIncrease([booking('b', '2026-06-12', 0.1 + 0.2), booking('a', '2026-05-12', 0.3)]),
+    ).toBeNull();
   });
 });
