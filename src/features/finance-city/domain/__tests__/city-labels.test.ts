@@ -123,6 +123,39 @@ describe('selectCityLabels', () => {
     expect((housing.share ?? 0) + (leisure.share ?? 0)).toBeCloseTo(1, 10);
   });
 
+  it('sollte den Anteil an der ELTERN-Kategorie liefern (Unterkategorie→Distrikt, Etage→Unterkategorie)', () => {
+    const model = makeModel();
+
+    // district-Ebene: Anteil der Unterkategorie am Distrikt (leisure = 79,97 €).
+    const districtLabels = selectCityLabels(
+      model,
+      buildCityLayout(model, { level: 'district', focusDistrictId: 'leisure' }),
+      'district',
+    );
+    const hobbies = districtLabels.find((l) => l.id === 'leisure/hobbies')!;
+    expect(hobbies.parentShare).toBeCloseTo(4000 / 7997, 10); // 40,00 / 79,97
+
+    // subcategory-Ebene: Anteil der Etage an der Unterkategorie (streaming = 39,97 €).
+    const floorLabels = selectCityLabels(
+      model,
+      buildCityLayout(model, { level: 'subcategory', focusDistrictId: 'leisure', focusSubcategoryId: 'streaming' }),
+      'subcategory',
+    );
+    const netflix = floorLabels.find((l) => l.id === 'leisure/streaming/netflix')!;
+    expect(netflix.parentShare).toBeCloseTo(1799 / 3997, 10); // 17,99 / 39,97
+    // Etagen-Anteile summieren sich (bis auf Rundung) zu 1 (Anteil an der Unterkategorie).
+    const parentSum = floorLabels.reduce((acc, l) => acc + (l.parentShare ?? 0), 0);
+    expect(parentSum).toBeCloseTo(1, 6);
+  });
+
+  it('sollte auf Stadt-Ebene keinen Eltern-Anteil liefern (Elternteil = ganze Stadt, deckungsgleich mit share)', () => {
+    const model = makeModel();
+    const labels = selectCityLabels(model, buildCityLayout(model, { level: 'city' }), 'city');
+    for (const label of labels) {
+      expect(label.parentShare).toBeUndefined();
+    }
+  });
+
   it('sollte share weglassen, wenn die Gesamtausgabe 0 ist (kein Division-durch-0)', () => {
     const model: CityModel = {
       districts: [{ id: 'x', label: 'X', color: '#000000', total: 0, subcategories: [{ id: 'y', label: 'Y', amount: 0 }] }],

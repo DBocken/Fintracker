@@ -457,6 +457,12 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
                   // eigener toFixed, AGENTS.md §8).
                   <span className="text-muted-foreground/70"> · {formatPercent(label.share, 0)}</span>
                 )}
+                {typeof label.parentShare === 'number' && (
+                  // Anteil an der Eltern-Kategorie — in der Kategorienfarbe
+                  // (dynamischer Wert -> inline style zulässig, AGENTS.md §7),
+                  // damit sofort erkennbar ist, worauf sich der Wert bezieht.
+                  <span style={{ color: label.color }}> · {formatPercent(label.parentShare, 0)}</span>
+                )}
               </span>
             )}
           </div>

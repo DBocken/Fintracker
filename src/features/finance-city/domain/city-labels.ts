@@ -45,6 +45,14 @@ export type CityLabel = {
    * ist (keine Division durch 0).
    */
   share?: number;
+  /**
+   * Anteil dieses Betrags an seiner ELTERN-Kategorie (Bruch in [0, 1]):
+   * Unterkategorie → Distrikt, Etage/Vertrag → Unterkategorie. Wird in der
+   * Presentation zusätzlich zum Gesamtanteil in der Kategorienfarbe angezeigt.
+   * `undefined` auf Stadt-Ebene (Elternteil = ganze Stadt, deckungsgleich mit
+   * `share`) und bei Eltern-Betrag 0 (kein Division durch 0).
+   */
+  parentShare?: number;
   /** Sortier-/Auswahlkriterium für `resolveLabelCollisions` — aktuell 1:1 der Betrag (höherer Betrag = höhere Priorität). */
   priority: number;
 }
@@ -69,21 +77,24 @@ function resolveLabelContent(
   model: CityModel,
   level: CityLevel,
   id: string,
-): { text: string; amount: number } | null {
+): { text: string; amount: number; parentTotal: number | null } | null {
   const parts = id.split('/');
 
   if (level === 'city') {
     const district = model.districts.find((d) => d.id === parts[0]);
     if (!district) return null;
-    return { text: district.label, amount: district.total };
+    // Elternteil = ganze Stadt (== Gesamtausgabe) -> parentShare wäre
+    // deckungsgleich mit `share`, deshalb `null` (kein doppelter Prozentwert).
+    return { text: district.label, amount: district.total, parentTotal: null };
   }
 
   if (level === 'district') {
     const [districtId, subcategoryId] = parts;
     const district = model.districts.find((d) => d.id === districtId);
     const subcategory = district?.subcategories.find((s) => s.id === subcategoryId);
-    if (!subcategory) return null;
-    return { text: subcategory.label, amount: subcategory.amount };
+    if (!district || !subcategory) return null;
+    // Elternteil = der Distrikt (Anteil der Unterkategorie am Distrikt).
+    return { text: subcategory.label, amount: subcategory.amount, parentTotal: district.total };
   }
 
   // level === 'subcategory': Etagen-Id-Konvention `districtId/subId/contractId`.
@@ -91,8 +102,9 @@ function resolveLabelContent(
   const district = model.districts.find((d) => d.id === districtId);
   const subcategory = district?.subcategories.find((s) => s.id === subcategoryId);
   const contract = subcategory?.contracts?.find((c) => c.id === contractId);
-  if (!contract) return null;
-  return { text: contract.label, amount: contract.amount };
+  if (!subcategory || !contract) return null;
+  // Elternteil = die Unterkategorie (Anteil des Vertrags/der Etage daran).
+  return { text: contract.label, amount: contract.amount, parentTotal: subcategory.amount };
 }
 
 /**
@@ -125,6 +137,12 @@ export function selectCityLabels(model: CityModel, layout: CityLayout, level: Ci
       // Anteil an der Gesamtausgabe (Cent/Cent -> Bruch), `undefined` bei
       // Gesamtausgabe 0 (kein Division-durch-0, kein irreführendes "0 %").
       share: cityTotalMinor > 0 ? toMinor(content.amount) / cityTotalMinor : undefined,
+      // Anteil an der Eltern-Kategorie (Cent/Cent), `undefined` wenn kein
+      // Elternteil (Stadt-Ebene) oder Eltern-Betrag 0.
+      parentShare:
+        content.parentTotal !== null && toMinor(content.parentTotal) > 0
+          ? toMinor(content.amount) / toMinor(content.parentTotal)
+          : undefined,
       priority: content.amount,
     });
   }

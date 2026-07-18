@@ -185,6 +185,41 @@ describe.each(['de', 'en'] as const)('CityLabels (%s)', (locale) => {
     expect(text).toContain('42 %'); // formatPercent(0.42, 0)
   });
 
+  it('sollte zusätzlich den Anteil an der Eltern-Kategorie in der Kategorienfarbe anzeigen', () => {
+    const labels: CityLabel[] = [
+      {
+        id: 'netflix',
+        text: 'Netflix',
+        amount: 38.58,
+        anchor: { x: 0, y: 0, z: 0 },
+        color: '#3fae9f',
+        share: 0.01,
+        parentShare: 0.48,
+        priority: 38.58,
+      },
+    ];
+    const ref = createRef<CityLabelsHandle>();
+    const { getByTestId } = renderWithI18n(
+      <CityLabels ref={ref} labels={labels} canvasSize={{ width: 800, height: 600 }} maxVisible={10} declutter connectors />,
+      locale,
+    );
+
+    act(() => ref.current?.reproject(identityCamera()));
+
+    const el = getByTestId('city-label');
+    const text = el.textContent ?? '';
+    expect(text).toContain('1 %'); // Gesamtanteil
+    expect(text).toContain('48 %'); // Eltern-Anteil
+    // Der Eltern-Anteil steht in der Kategorienfarbe (inline style color) —
+    // genau der Span mit gesetzter Farbe trägt "48 %".
+    const parentSpan = [...el.querySelectorAll('span')].find(
+      (s) => (s as HTMLElement).style.color !== '' && s.textContent?.includes('48 %'),
+    ) as HTMLElement | undefined;
+    expect(parentSpan).toBeTruthy();
+    // '#3fae9f' wird von jsdom zu 'rgb(63, 174, 159)' normalisiert.
+    expect(parentSpan!.style.color).toBe('rgb(63, 174, 159)');
+  });
+
   it('sollte ohne share KEINEN Prozentwert anzeigen (Rückwärtskompatibilität)', () => {
     const labels = [makeLabel('a', 0, 0, 0, 5)]; // makeLabel setzt kein share
     const ref = createRef<CityLabelsHandle>();
