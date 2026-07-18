@@ -3,6 +3,7 @@ import { LOCAL_FINANCE_KEYS } from './local-finance-store';
 import { idbGet, idbSet } from './idb-kv';
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from './local-settings-service';
 import { t } from '../i18n/serviceT';
+import { z } from 'zod';
 
 const DEVICE_ID_KEY = 'ausgabentracker_device_id_v1';
 const SYNC_PATHS_KEY = 'ausgabentracker_sync_paths_v1';
@@ -42,6 +43,38 @@ export type EncryptedSnapshotFileV1 = {
 };
 
 type SnapshotPlainSegment = Record<string, unknown>;
+
+const EncryptedEnvelopeV1Schema = z.object({
+  type: z.literal('ausgabentracker.enc'),
+  v: z.literal(1),
+  kdf: z.object({
+    name: z.literal('PBKDF2'),
+    hash: z.literal('SHA-256'),
+    iterations: z.number().int().positive(),
+    salt_b64: z.string().min(1),
+  }).strict(),
+  cipher: z.object({
+    name: z.literal('AES-GCM'),
+    iv_b64: z.string().min(1),
+  }).strict(),
+  ct_b64: z.string().min(1),
+}).strict();
+
+const EncryptedSnapshotFileV1Schema = z.object({
+  type: z.literal('ausgabentracker.snapshot.enc'),
+  v: z.literal(1),
+  snapshot_id: z.string().uuid(),
+  snapshot_version: z.number().int().positive(),
+  schema_version: z.literal(1),
+  device_id: z.string().uuid(),
+  created_at: z.string().datetime(),
+  segments: z.object({
+    'finance-data': EncryptedEnvelopeV1Schema,
+    'local-settings': EncryptedEnvelopeV1Schema,
+    'analytics-state': EncryptedEnvelopeV1Schema,
+  }).strict(),
+}).strict();
+
 
 function readJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -162,10 +195,17 @@ export async function importEncryptedSnapshot(file: File): Promise<EncryptedSnap
   }
 
   const raw = await file.text();
-  const parsed = JSON.parse(raw) as EncryptedSnapshotFileV1;
-  if (parsed?.type !== 'ausgabentracker.snapshot.enc' || parsed?.v !== 1 || !parsed.segments?.['finance-data']) {
+  let snapshotJson: unknown;
+  try {
+    snapshotJson = JSON.parse(raw);
+  } catch {
     throw new Error(t('snapshotSyncService.invalidSnapshotFormat'));
   }
+  const parsedResult = EncryptedSnapshotFileV1Schema.safeParse(snapshotJson);
+  if (!parsedResult.success) {
+    throw new Error(t('snapshotSyncService.invalidSnapshotFormat'));
+  }
+  const parsed = parsedResult.data as EncryptedSnapshotFileV1;
 
   const financeData = await localEncryption.decryptJson<Record<string, string | null>>(parsed.segments['finance-data']);
   for (const [name, key] of Object.entries(LOCAL_FINANCE_KEYS)) {
@@ -180,10 +220,10 @@ export async function importEncryptedSnapshot(file: File): Promise<EncryptedSnap
   if (typeof localSettings.userSettings === 'string') {
     await idbSet(LOCAL_SETTINGS_KEY, localSettings.userSettings);
   }
-  if (Array.isArray(localSettings.syncPaths)) {
-    localStorage.setItem(SYNC_PATHS_KEY, JSON.stringify(localSettings.syncPaths));
-  }
-
+  // Snapshot-Import ist ein explizites Replace für verschlüsselte Finanzsegmente.
+  // Geräte-/Pfad-Metadaten bleiben lokal: importierte syncPaths/pathHints werden
+  // bewusst nicht übernommen, damit ein fremder Snapshot keine lokalen
+  // Speicherlabels oder Pfadangaben persistiert.
   localStorage.setItem(SNAPSHOT_VERSION_KEY, String(parsed.snapshot_version));
   return parsed;
 }

@@ -64,16 +64,16 @@ describe("MilestonesStrip", () => {
 
       requiredKeys.forEach((key) => {
         const path = key.split(".");
-        let deValue: any = translations.de;
-        let enValue: any = translations.en;
+        let deValue: unknown = translations.de;
+        let enValue: unknown = translations.en;
 
         path.forEach((p) => {
           const deHas = deValue && typeof deValue === "object" && p in deValue;
           const enHas = enValue && typeof enValue === "object" && p in enValue;
           expect(deHas).toBe(true);
           expect(enHas).toBe(true);
-          deValue = deValue[p];
-          enValue = enValue[p];
+          deValue = (deValue as Record<string, unknown>)[p];
+          enValue = (enValue as Record<string, unknown>)[p];
         });
 
         expect(typeof deValue).toBe("string");

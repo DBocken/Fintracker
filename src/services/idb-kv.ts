@@ -1,3 +1,5 @@
+import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys';
+
 /**
  * Minimaler IndexedDB-Key-Value-Speicher (Issue #29).
  *
@@ -83,17 +85,7 @@ export async function clearLocalKvStore(): Promise<void> {
  * migriert werden. Kleine Metadaten/UI-Schlüssel (Verschlüsselungs-Config,
  * Anonym-Flag, device_id, KPI-Caches …) bleiben bewusst in localStorage.
  */
-export const IDB_DATA_KEYS: readonly string[] = [
-  "ausgabentracker_transactions_v3",
-  "ausgabentracker_accounts_v1",
-  "ausgabentracker_debts_v1",
-  "ausgabentracker_debt_assignments_v1",
-  "ausgabentracker_portfolios_v1",
-  "ausgabentracker_portfolio_positions_v1",
-  "ausgabentracker_bank_connections_v1",
-  "ausgabentracker_categories_v1",
-  "ausgabentracker_user_settings_v1",
-];
+export const IDB_DATA_KEYS: readonly string[] = ENCRYPTED_STORAGE_KEYS;
 
 export const IDB_DATA_KEY_PREFIXES: readonly string[] = ["ausgabentracker_transactions_v2__"];
 

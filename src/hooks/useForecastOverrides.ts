@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  DEFAULT_FORECAST_OVERRIDES,
   getForecastOverrides,
   saveForecastOverrides,
   type ForecastOverrides,
@@ -16,13 +17,23 @@ import {
  */
 export function useForecastOverrides() {
   const queryClient = useQueryClient();
-  const [overrides, setOverrides] = useState<ForecastOverrides>(getForecastOverrides);
+  const [overrides, setOverrides] = useState<ForecastOverrides>(DEFAULT_FORECAST_OVERRIDES);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getForecastOverrides().then((stored) => {
+      if (!cancelled) setOverrides(stored);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const apply = useCallback(
     (patch: Partial<ForecastOverrides>, invalidate: boolean) => {
       setOverrides((prev) => {
         const next = { ...prev, ...patch };
-        saveForecastOverrides(next);
+        void saveForecastOverrides(next);
         if (invalidate) {
           void queryClient.invalidateQueries({ queryKey: ['forecast-input'] });
         }

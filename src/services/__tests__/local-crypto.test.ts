@@ -4,11 +4,12 @@ import {
   localEncryption,
   LocalEncryptionLockedError,
 } from "../local-crypto";
-import { idbGet, idbSet } from "../idb-kv";
+import { clearLocalKvStore, idbGet, idbSet } from "../idb-kv";
 import {
   LOCAL_FINANCE_KEYS,
   LOCAL_CATEGORIES_KEY,
   LOCAL_SETTINGS_KEY,
+  ENCRYPTED_STORAGE_KEYS,
 } from "../local-storage-keys";
 
 describe("localEncryption", () => {
@@ -18,7 +19,8 @@ describe("localEncryption", () => {
     localEncryption.lock();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await clearLocalKvStore();
     localStorage.clear();
     localEncryption.lock();
   });
@@ -110,11 +112,13 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
   const PW = "correct horse battery staple";
 
   beforeEach(async () => {
+    await clearLocalKvStore();
     localStorage.clear();
     localStorage.setItem("ausgabentracker_locale_v1", "de");
     localEncryption.lock();
   });
-  afterEach(() => {
+  afterEach(async () => {
+    await clearLocalKvStore();
     localStorage.clear();
     localEncryption.lock();
   });
@@ -152,6 +156,39 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
       expect(parsed.type).not.toBe("ausgabentracker.enc"); // kein Envelope-Rest
       expect(parsed).toEqual(value); // exakt der Ausgangswert
     }
+  });
+
+
+
+  it("[REGRESSION] enable() verschlüsselt ALLE registrierten Klartext-Keys sofort", async () => {
+    for (const key of ENCRYPTED_STORAGE_KEYS) {
+      await idbSet(key, JSON.stringify([{ id: key, marker: `klartext-${key}` }]));
+    }
+
+    await localEncryption.enable(PW);
+
+    for (const key of ENCRYPTED_STORAGE_KEYS) {
+      const raw = await idbGet(key);
+      expect(raw).toBeTruthy();
+      expect(raw).not.toContain(`klartext-${key}`);
+      expect(JSON.parse(raw!).type).toBe("ausgabentracker.enc");
+    }
+  });
+
+  it("[REGRESSION] enable() migriert Legacy-localStorage-Daten nach IndexedDB und verschlüsselt sie", async () => {
+    const legacyKey = LOCAL_FINANCE_KEYS.taxReserves;
+    localStorage.setItem(legacyKey, JSON.stringify([{ id: "tax-1", marker: "legacy-klartext" }]));
+
+    await localEncryption.enable(PW);
+
+    const raw = await idbGet(legacyKey);
+    expect(localStorage.getItem(legacyKey)).toBeNull();
+    expect(raw).toBeTruthy();
+    expect(raw).not.toContain("legacy-klartext");
+    expect(JSON.parse(raw!).type).toBe("ausgabentracker.enc");
+    await expect(localEncryption.loadAndMaybeDecrypt(legacyKey)).resolves.toEqual([
+      { id: "tax-1", marker: "legacy-klartext" },
+    ]);
   });
 
   it("[REGRESSION] wirft beim Lesen, wenn bei deaktivierter Verschlüsselung ein Envelope zurückbleibt", async () => {

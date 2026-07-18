@@ -18,7 +18,7 @@ import { matchContractDomain, classifyContractPriority } from '@/lib/contract-pr
 import type { BufferShortfall } from '@/lib/liquidity-shortfall';
 
 // Note: PRIORITY_LABEL moved to i18n, but keeping fallback for backward compatibility
-const getPriorityLabel = (t: any, priority: Prioritaet): string => {
+const getPriorityLabel = (t: (key: string, fallback?: string) => string, priority: Prioritaet): string => {
   const labels: Record<Prioritaet, string> = {
     nice: t("budgetOptimizer.priorityNiceToHave"),
     normal: t("budgetOptimizer.priorityNormal"),

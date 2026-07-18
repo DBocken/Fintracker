@@ -76,7 +76,7 @@ export function CategoryForm({
   // Dynamic color options with translations
   const colorOptions = colorOptionsData.map(opt => ({
     value: opt.value,
-    label: t(opt.labelKey as any),
+    label: t(opt.labelKey),
   }));
 
   // Dynamic checkbox fields with translations
@@ -241,7 +241,7 @@ export function CategoryForm({
                           checked={isCheckboxChecked(field.key)}
                           onCheckedChange={(value) => onAttributesChange({ [field.key]: Boolean(value) })}
                         />
-                        <Label htmlFor={id}>{t(field.labelKey as any)}</Label>
+                        <Label htmlFor={id}>{t(field.labelKey)}</Label>
                       </div>
                     );
                   })}

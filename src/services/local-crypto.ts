@@ -1,4 +1,4 @@
-import { idbGet, idbSet, idbKeys, requestPersistentStorage } from './idb-kv'
+import { idbGet, idbSet, idbKeys, migrateLocalStorageToIdb, requestPersistentStorage } from './idb-kv'
 import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys'
 import { t } from '../i18n/serviceT'
 
@@ -91,9 +91,13 @@ function b64decode(b64: string): Uint8Array {
   return u8
 }
 
-function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
-  // Ensure we pass a concrete ArrayBuffer (not SharedArrayBuffer/ArrayBufferLike) to WebCrypto APIs.
-  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer
+function toWebCryptoBytes(u8: Uint8Array): Uint8Array<ArrayBuffer> {
+  // WebCrypto in Node/jsdom and browsers can reject cross-realm ArrayBuffers.
+  // A fresh Uint8Array backed by a concrete ArrayBuffer is accepted as
+  // BufferSource in both environments and preserves the exact byte range.
+  const bytes = new Uint8Array(new ArrayBuffer(u8.byteLength))
+  bytes.set(u8)
+  return bytes
 }
 
 function isEnvelopeV1(value: unknown): value is EncryptedEnvelopeV1 {
@@ -118,7 +122,7 @@ async function deriveKeyFromPassword(password: string, cfg: LocalEncryptionConfi
 
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    toArrayBuffer(new TextEncoder().encode(password)),
+    toWebCryptoBytes(new TextEncoder().encode(password)),
     { name: 'PBKDF2' },
     false,
     ['deriveKey'],
@@ -129,7 +133,7 @@ async function deriveKeyFromPassword(password: string, cfg: LocalEncryptionConfi
       name: 'PBKDF2',
       hash: cfg.kdf.hash,
       iterations: cfg.kdf.iterations,
-      salt: toArrayBuffer(salt),
+      salt: toWebCryptoBytes(salt),
     },
     keyMaterial,
     { name: 'AES-GCM', length: cfg.cipher.key_length },
@@ -140,9 +144,9 @@ async function deriveKeyFromPassword(password: string, cfg: LocalEncryptionConfi
 
 async function encryptString(plaintext: string, key: CryptoKey, cfg: LocalEncryptionConfigV1): Promise<EncryptedEnvelopeV1> {
   const ivU8 = crypto.getRandomValues(new Uint8Array(12))
-  const pt = toArrayBuffer(new TextEncoder().encode(plaintext))
+  const pt = toWebCryptoBytes(new TextEncoder().encode(plaintext))
 
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(ivU8) }, key, pt)
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toWebCryptoBytes(ivU8) }, key, pt)
 
   return {
     type: 'ausgabentracker.enc',
@@ -159,7 +163,7 @@ async function encryptString(plaintext: string, key: CryptoKey, cfg: LocalEncryp
 async function decryptString(envelope: EncryptedEnvelopeV1, key: CryptoKey): Promise<string> {
   const iv = b64decode(envelope.cipher.iv_b64)
   const ct = b64decode(envelope.ct_b64)
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, key, toArrayBuffer(ct))
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: toWebCryptoBytes(iv) }, key, toWebCryptoBytes(ct))
   return new TextDecoder().decode(pt)
 }
 
@@ -230,6 +234,9 @@ export const localEncryption = {
     const checkPlain = JSON.stringify({ ok: true, created_at: new Date().toISOString() })
     const checkEnc = await encryptString(checkPlain, key, cfg)
     localStorage.setItem(CHECK_KEY, JSON.stringify(checkEnc))
+
+    await migrateLocalStorageToIdb()
+    await this.migrateFinanceKeys('encrypt')
   },
 
   async unlock(password: string): Promise<void> {

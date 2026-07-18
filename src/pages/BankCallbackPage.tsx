@@ -22,6 +22,13 @@ import { bankConnectionService } from '@/services/bank-connection-service';
 import { updateAccount, getAccounts, createAccount, type Account } from '@/services/account-service';
 import { syncAccountTransactions } from '@/services/gocardless-sync-service';
 import { showSuccess, showError } from '@/utils/toast';
+import { isSafeExternalAuthUrl } from '@/lib/safe-url';
+import { logger } from '@/utils/logger';
+
+export function isSafeBankCallbackAuthLink(link: string | null | undefined, origin?: string): boolean {
+  const currentOrigin = origin ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
+  return isSafeExternalAuthUrl(link, { allowedOrigins: currentOrigin ? [currentOrigin] : [] });
+}
 
 interface GoCardlessAccount {
   id: string;
@@ -214,28 +221,45 @@ export default function BankCallbackPage() {
         showSuccess(t('bankCallback.transactionsImported').replace('{count}', String(result.importedCount)));
       }
       if (result.errors.length > 0) {
-        console.warn('[bank-callback] Sync mit Fehlern:', result.errors);
+        logger.warn('[bank-callback] Initialer Sync mit aggregierten Fehlern abgeschlossen.', {
+          source: 'bank-callback',
+          code: 'INITIAL_SYNC_PARTIAL_ERRORS',
+          count: result.errors.length,
+        });
       }
 
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'contracts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     } catch (err: unknown) {
-      console.error('Error importing transactions:', err);
+      logger.error('[bank-callback] Initialer Sync nach Kontoverknüpfung fehlgeschlagen.', {
+        source: 'bank-callback',
+        code: 'INITIAL_SYNC_FAILED',
+      });
       // Don't throw - linking succeeded even if import partially failed
     }
   };
 
   const handleOpenAuthLink = () => {
-    if (requisitionInfo?.link) {
-      window.open(requisitionInfo.link, '_blank');
+    const link = requisitionInfo?.link;
+    if (!link) return;
+
+    if (!isSafeBankCallbackAuthLink(link)) {
+      showError(t('bankCallback.unsafeAuthLink'));
+      return;
     }
+
+    window.open(link, '_blank', 'noopener,noreferrer');
   };
 
   const handleFinish = () => {
     sessionStorage.removeItem('gocardless_requisition_id');
     navigate('/');
   };
+
+  const safeRequisitionLink = requisitionInfo?.link && isSafeBankCallbackAuthLink(requisitionInfo.link)
+    ? requisitionInfo.link
+    : null;
 
   const accountTypeLabel = (account: GoCardlessAccount) => {
     if (account.product?.toLowerCase().includes('credit')) return t('bankCallback.creditCard');
@@ -281,7 +305,7 @@ export default function BankCallbackPage() {
           {pollingAttempts > 0 && (
             <p className="text-xs text-muted-foreground mt-2">{t('bankCallback.waitingTime').replace('{seconds}', String(pollingAttempts * 2))}</p>
           )}
-          {requisitionInfo && requisitionInfo.link && (
+          {safeRequisitionLink && (
             <div className="mt-4">
               <Button onClick={handleOpenAuthLink} className="bg-positive">
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -324,10 +348,10 @@ export default function BankCallbackPage() {
               {requisitionInfo && (
                 <div className="text-xs text-muted-foreground space-y-2">
                   <div>Requisition Status: <strong className="text-foreground">{requisitionInfo.status}</strong></div>
-                  {requisitionInfo.link && (
+                  {safeRequisitionLink && (
                     <div>
-                      <div>Auth-Link:</div>
-                      <a href={requisitionInfo.link} target="_blank" rel="noreferrer" className="text-positive underline break-words">{requisitionInfo.link}</a>
+                      <div>{t('bankCallback.authLinkLabel')}</div>
+                      <a href={safeRequisitionLink} target="_blank" rel="noopener noreferrer" className="text-positive underline break-words">{safeRequisitionLink}</a>
                     </div>
                   )}
                   {requisitionInfo.reference && (

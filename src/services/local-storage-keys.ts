@@ -32,6 +32,7 @@ export const LOCAL_FINANCE_KEYS = {
   sharedExpenseSplits: 'ausgabentracker_shared_expense_splits_v1',
   taxYearProfiles: 'ausgabentracker_tax_year_profiles_v1',
   taxReserves: 'ausgabentracker_tax_reserves_v1',
+  forecastOverrides: 'fintracker_forecast_overrides_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;

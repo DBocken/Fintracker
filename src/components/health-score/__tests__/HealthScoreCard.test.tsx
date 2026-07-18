@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { waitFor, within } from "@testing-library/react";
+import { act, within } from "@testing-library/react";
 import { renderWithI18n } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import HealthScoreCard from "../HealthScoreCard";
@@ -34,12 +34,20 @@ describe("HealthScoreCard", () => {
       expect(root?.getAttribute("data-health-score")).toBe("72");
     });
 
-    it("sollte den Score über den Tween bis zum Zielwert hochzählen", async () => {
-      const { container } = renderWithI18n(<HealthScoreCard health={makeHealth(72)} />, "de");
-      const ring = container.querySelector(".relative.h-20") as HTMLElement;
-      await waitFor(() => expect(within(ring).getByText("72")).toBeInTheDocument(), {
-        timeout: 3000,
-      });
+    it("[REGRESSION] sollte den Score deterministisch über den Tween bis zum Zielwert hochzählen", async () => {
+      vi.useFakeTimers();
+      try {
+        const { container } = renderWithI18n(<HealthScoreCard health={makeHealth(72)} />, "de");
+        const ring = container.querySelector(".relative.h-20") as HTMLElement;
+
+        await act(async () => {
+          vi.advanceTimersByTime(1400);
+        });
+
+        expect(within(ring).getByText("72")).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("sollte einen farbigen Fortschritts-Ring rendern", () => {
@@ -85,16 +93,16 @@ describe("HealthScoreCard", () => {
 
       requiredKeys.forEach((key) => {
         const path = key.split(".");
-        let deValue: any = translations.de;
-        let enValue: any = translations.en;
+        let deValue: unknown = translations.de;
+        let enValue: unknown = translations.en;
 
         path.forEach((p) => {
           const deHas = deValue && typeof deValue === "object" && p in deValue;
           const enHas = enValue && typeof enValue === "object" && p in enValue;
           expect(deHas).toBe(true);
           expect(enHas).toBe(true);
-          deValue = deValue[p];
-          enValue = enValue[p];
+          deValue = (deValue as Record<string, unknown>)[p];
+          enValue = (enValue as Record<string, unknown>)[p];
         });
 
         expect(typeof deValue).toBe("string");

@@ -55,5 +55,22 @@ describe('[SECURITY] HTTP-Security-Header für MCP-Endpunkte', () => {
         expect(headerNames).toContain(required);
       }
     });
+
+    it('[SECURITY] sollte die CSP ohne breite Exfiltrations-Wildcards definieren', () => {
+      const vercelConfig = JSON.parse(
+        fs.readFileSync(path.join(REPO_ROOT, 'vercel.json'), 'utf8'),
+      );
+      const globalBlock = (vercelConfig.headers ?? []).find(
+        (h: { source: string }) => h.source === '/(.*)',
+      );
+      const csp = globalBlock.headers.find((h: { key: string }) => h.key === 'Content-Security-Policy').value;
+
+      expect(csp).not.toMatch(/(?:^|;)\s*img-src[^;]*\shttps:/);
+      expect(csp).not.toMatch(/(?:^|;)\s*connect-src[^;]*\sws:/);
+      expect(csp).not.toMatch(/(?:^|;)\s*connect-src[^;]*\swss:/);
+      expect(csp).not.toContain('*.supabase.co');
+      expect(csp).toContain('https://pbopyawkxxrluhofjtub.supabase.co');
+    });
+
   });
 });

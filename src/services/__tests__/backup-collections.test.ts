@@ -1,8 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { snapshotLocalCollections, restoreLocalCollections } from "../backup-service";
 import { writeLocalFinanceList, readLocalFinanceList } from "../local-finance-store";
+import { clearLocalKvStore } from "../idb-kv";
+import { localEncryption } from "../local-crypto";
 
 describe("backup: vollständige Collections", () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+    await clearLocalKvStore();
+  });
   it("sollte übrige Collections snapshotten und nach Datenverlust nicht-destruktiv wiederherstellen", async () => {
     await writeLocalFinanceList("debts", [{ id: "d1", name: "Karte" }]);
     await writeLocalFinanceList("budgets", [{ id: "b1", limit: 100 }]);
@@ -28,12 +36,38 @@ describe("backup: vollständige Collections", () => {
     expect(await readLocalFinanceList("milestones")).toEqual([{ id: "m1", title: "Notgroschen" }]);
   });
 
-  it("sollte bestehende (nicht-leere) Collections NICHT überschreiben", async () => {
+  it("[INTEGRITY] sollte bestehende Collections per ID mergen ohne zu überschreiben", async () => {
     await writeLocalFinanceList("debts", [{ id: "existing", name: "Aktuell" }]);
 
-    const restored = await restoreLocalCollections({ debts: [{ id: "d1", name: "Backup" }] });
+    const restored = await restoreLocalCollections({
+      debts: [
+        { id: "existing", name: "Backup überschreibt nicht" },
+        { id: "d1", name: "Backup" },
+      ],
+    });
 
-    expect(restored.debts).toBeUndefined(); // übersprungen → kein Datenverlust
+    expect(restored.debts).toBe(1);
+    expect(await readLocalFinanceList("debts")).toEqual([
+      { id: "existing", name: "Aktuell" },
+      { id: "d1", name: "Backup" },
+    ]);
+  });
+
+  it("[REGRESSION] sollte wiederholten Collection-Restore nicht duplizieren", async () => {
+    const snap = { budgets: [{ id: "b1", limit: 100 }] };
+
+    expect((await restoreLocalCollections(snap)).budgets).toBe(1);
+    expect((await restoreLocalCollections(snap)).budgets).toBeUndefined();
+
+    expect(await readLocalFinanceList("budgets")).toEqual([{ id: "b1", limit: 100 }]);
+  });
+
+  it("[SECURITY] sollte Backup-Items ohne stabile ID nicht in bestehende Collections mergen", async () => {
+    await writeLocalFinanceList("debts", [{ id: "existing", name: "Aktuell" }]);
+
+    const restored = await restoreLocalCollections({ debts: [{ name: "Ohne ID" }] });
+
+    expect(restored.debts).toBeUndefined();
     expect(await readLocalFinanceList("debts")).toEqual([{ id: "existing", name: "Aktuell" }]);
   });
 

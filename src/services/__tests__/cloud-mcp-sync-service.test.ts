@@ -5,9 +5,12 @@ import type { WaterfallPlan } from '../waterfall-service';
 import {
   assertSyncConsent,
   buildMcpAggregateSnapshot,
+  clearStoredCloudMcpConnector,
   generateAccessToken,
+  getStoredConnectorUrl,
   hashAccessToken,
   hasValidConsent,
+  isCloudMcpSyncActive,
   MCP_CONFIRM_PHRASE,
   type SnapshotInput,
 } from '../cloud-mcp-sync-service';
@@ -45,11 +48,15 @@ function baseInput(overrides: Partial<SnapshotInput> = {}): SnapshotInput {
 
 describe('cloud-mcp-sync-service', () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
   });
 
   afterEach(() => {
+    window.sessionStorage.clear();
     window.localStorage.removeItem('ausgabentracker_locale_v1');
+    clearStoredCloudMcpConnector();
   });
 
   describe('Normal Behavior – buildMcpAggregateSnapshot', () => {
@@ -213,6 +220,44 @@ describe('cloud-mcp-sync-service', () => {
       expect(
         hasValidConsent({ acknowledgedRisk: true, confirmPhrase: '  Daten VERLASSEN   mein Gerät ' }),
       ).toBe(true);
+    });
+  });
+
+
+
+  describe('[SECURITY] Connector-Token-Speicherung', () => {
+    const legacyTokenKey = 'ausgabentracker_mcp_connector_token_v1';
+    const sessionTokenKey = 'ausgabentracker_mcp_connector_token_session_v1';
+    const activeMarkerKey = 'ausgabentracker_mcp_connector_active_v1';
+
+    it('[REGRESSION] sollte legacy localStorage-Token entfernen statt daraus eine URL zu bauen', () => {
+      window.localStorage.setItem(legacyTokenKey, 'mcp-legacy-secret-token');
+
+      expect(getStoredConnectorUrl()).toBeNull();
+      expect(window.localStorage.getItem(legacyTokenKey)).toBeNull();
+      expect(isCloudMcpSyncActive()).toBe(false);
+    });
+
+    it('[PRIVACY] sollte die Connector-URL nur aus dem Session-Token ableiten', () => {
+      window.sessionStorage.setItem(sessionTokenKey, 'mcp-session-secret-token');
+      window.localStorage.setItem(activeMarkerKey, '1');
+
+      expect(getStoredConnectorUrl()).toBe(`${window.location.origin}/api/mcp/mcp-session-secret-token`);
+      expect(isCloudMcpSyncActive()).toBe(true);
+      expect(JSON.stringify(window.localStorage)).not.toContain('mcp-session-secret-token');
+    });
+
+    it('[SECURITY] sollte Opt-out/Logout-Hilfslogik alle lokalen Connector-Spuren löschen', () => {
+      window.localStorage.setItem(legacyTokenKey, 'mcp-legacy-secret-token');
+      window.sessionStorage.setItem(sessionTokenKey, 'mcp-session-secret-token');
+      window.localStorage.setItem(activeMarkerKey, '1');
+
+      clearStoredCloudMcpConnector();
+
+      expect(window.localStorage.getItem(legacyTokenKey)).toBeNull();
+      expect(window.sessionStorage.getItem(sessionTokenKey)).toBeNull();
+      expect(window.localStorage.getItem(activeMarkerKey)).toBeNull();
+      expect(isCloudMcpSyncActive()).toBe(false);
     });
   });
 
