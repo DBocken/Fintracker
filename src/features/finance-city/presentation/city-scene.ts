@@ -359,7 +359,12 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     if (!needsTween) {
       heightTweensById.delete(box.id);
       mesh.scale.y = box.size.y;
-      mesh.position.y = targetFoot;
+      // `mesh.position.y` ist die Box-MITTE (BoxGeometry ist ums Zentrum
+      // skaliert), NICHT der Fußpunkt — also Fuß + halbe Höhe (= box.center.y).
+      // Früher fälschlich `targetFoot`: der Balken sackte dadurch beim erneuten
+      // applyLayout (Refetch/Re-Render, gleiche Höhe) um die halbe Höhe unter
+      // die Bodenplatte.
+      mesh.position.y = targetFoot + box.size.y / 2;
       return;
     }
 

@@ -331,6 +331,34 @@ describe('createCityScene', () => {
       expect(stillAnimating).toBe(false);
     });
 
+    it('[REGRESSION] sollte einen Balken bei erneutem applyLayout mit unveränderter Höhe (Refetch/Re-Render) fußpunkt-verankert auf der Bodenplatte lassen (nicht zur Balkenmitte absinken)', () => {
+      // Bug (Stadtansicht): bei aktiven Animationen setzte der `!needsTween`-
+      // Zweig von `applyBoxHeight` die Mesh-Position (= Box-MITTE) fälschlich
+      // auf den FUSSPUNKT (targetFoot). Ein zweites applyLayout mit gleicher
+      // Höhe (Hintergrund-Refetch/äquivalentes Re-Render) ließ jeden Balken so
+      // um die halbe Höhe unter die Bodenplatte sacken.
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const layout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+
+      handle.applyLayout(layout);
+      const barBox = layout.boxes.find((b) => b.kind === 'bar')!;
+      const barMesh = meshesOf(scene).find((m) => m.userData.id === barBox.id)!;
+
+      // Wachstums-Tween abschließen: Balken steht korrekt (Fuß auf y=0, Mitte bei size.y/2).
+      handle.advanceAnimations(1000);
+      handle.advanceAnimations(1000 + 2000);
+      expect(barMesh.position.y).toBeCloseTo(barBox.center.y, 10);
+
+      // Erneutes, geometrisch identisches Layout -> `!needsTween`-Zweig.
+      const sameLayout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+      handle.applyLayout(sameLayout);
+
+      // Der Balken darf NICHT absinken: Mitte bleibt bei size.y/2, Fuß bei 0.
+      expect(barMesh.position.y).toBeCloseTo(barBox.center.y, 10);
+      expect(barMesh.position.y - barMesh.scale.y / 2).toBeCloseTo(0, 10);
+    });
+
     it('sollte bei setAnimationsEnabled(false) (reduced-motion) sofort Zielwerte setzen und laufende Tweens sofort auf ihr Ziel springen lassen', () => {
       const { handle, scene } = createHandle();
       handle.setAnimationsEnabled(true);
