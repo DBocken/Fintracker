@@ -17,6 +17,7 @@ function tx(opts: {
   payee: string;
   amount: number;
   categoryId?: string | null;
+  subcategoryId?: string | null;
   isTransfer?: boolean;
   date?: string;
 }): Transaction {
@@ -31,6 +32,7 @@ function tx(opts: {
     auto_mapped: false,
     confirmed: true,
     category_id: opts.categoryId ?? null,
+    subcategory_id: opts.subcategoryId ?? null,
     is_transfer: opts.isTransfer,
   };
 }
@@ -177,6 +179,33 @@ describe('buildMerchantFloorsByBuilding', () => {
     expect(otherFloor.bookings).toHaveLength(2);
     // Neueste zuerst: G (25.06.) vor F (20.06.) — Payee je Zeile erhalten.
     expect(otherFloor.bookings!.map((b) => b.payee)).toEqual(['Händler G', 'Händler F']);
+  });
+
+  it('[REGRESSION] sollte eine per subcategory_id zugewiesene Buchung unter dem UNTERKATEGORIE-Gebäude einordnen (App-Konvention subcategory_id ?? category_id)', () => {
+    // Nutzer-Befund: Buchungen mit gesetzter `subcategory_id` (und
+    // `category_id` = Hauptkategorie) landeten unter dem HAUPTKATEGORIE-Key —
+    // das aus dem Sunburst (getCategoryContributions: subcategory_id ??
+    // category_id) gebaute Unterkategorie-Gebäude fand dadurch keine Etagen
+    // und blieb beim Eintauchen leer.
+    const netflix = tx({
+      payee: 'Netflix',
+      amount: -17.99,
+      categoryId: CAT_LEISURE, // Hauptkategorie …
+      subcategoryId: CAT_STREAMING, // … Zuweisung über die Unterkategorie.
+    });
+
+    const floors = buildMerchantFloorsByBuilding([netflix], categoriesById);
+
+    expect(floors.get(CAT_STREAMING)).toMatchObject([{ label: 'Netflix', amount: 17.99 }]);
+    expect(floors.has(CAT_LEISURE)).toBe(false);
+  });
+
+  it('[REGRESSION] sollte eine Buchung mit NUR subcategory_id (ohne category_id) nicht verlieren', () => {
+    const netflix = tx({ payee: 'Netflix', amount: -17.99, subcategoryId: CAT_STREAMING });
+
+    const floors = buildMerchantFloorsByBuilding([netflix], categoriesById);
+
+    expect(floors.get(CAT_STREAMING)).toMatchObject([{ label: 'Netflix', amount: 17.99 }]);
   });
 
   it('sollte Transfers, Einnahmen und unkategorisierte Buchungen ignorieren', () => {

@@ -44,8 +44,9 @@ type MerchantBooking = { payee: string; absMinor: number; txId?: string; date: s
  *
  * Übersprungen werden: interne Überträge (`is_transfer`), nicht-negative
  * Beträge (Einnahmen/Nullbuchungen — nur Ausgaben werden Etagen) und
- * Buchungen ohne `category_id`. Ist die Kategorie selbst nicht auflösbar
- * (z. B. gelöschte/unbekannte `category_id`), wird die Buchung ebenfalls
+ * Buchungen ohne zugewiesene Kategorie (`subcategory_id ?? category_id`,
+ * dieselbe Konvention wie `getCategoryContributions`/Sunburst). Ist die
+ * zugewiesene Kategorie selbst nicht auflösbar (z. B. gelöscht), wird die Buchung ebenfalls
  * übersprungen statt mit einer sinnlosen "unkategorisiert"-Gebäude-Id
  * einzugehen (kein Crash).
  *
@@ -63,10 +64,17 @@ export function buildMerchantFloorsByBuilding(
   for (const tx of transactions) {
     if (tx.is_transfer) continue;
     if (!(tx.amount < 0)) continue;
-    if (!tx.category_id) continue;
-    if (!categoriesById.has(tx.category_id)) continue; // Main nicht auflösbar -> überspringen statt crashen.
+    // [REGRESSION] App-Konvention der zugewiesenen Kategorie ist
+    // `subcategory_id ?? category_id` (`getCategoryContributions`,
+    // `analysis-data.ts` — daraus baut der Sunburst die Gebäude-Ids).
+    // Vorher wurde nur `category_id` gelesen: Buchungen mit gesetzter
+    // `subcategory_id` landeten unterm Hauptkategorie-Key, und das
+    // Unterkategorie-Gebäude blieb beim Eintauchen ohne Etagen.
+    const assignedId = tx.subcategory_id ?? tx.category_id;
+    if (!assignedId) continue;
+    if (!categoriesById.has(assignedId)) continue; // Kategorie nicht auflösbar -> überspringen statt crashen.
 
-    const { mainId, subId } = resolveHierarchy(categoriesById, tx.category_id);
+    const { mainId, subId } = resolveHierarchy(categoriesById, assignedId);
     const buildingId = subId ?? mainId;
 
     const fingerprint = merchantFingerprint(tx);
