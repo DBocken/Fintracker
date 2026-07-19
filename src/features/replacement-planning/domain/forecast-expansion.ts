@@ -7,23 +7,12 @@ import type {
 } from '@/lib/forecast-types';
 import {
   buildReplacementViewModel,
-  type PriceMode,
+  priceUncertaintyCv,
   type ReplacementConfig,
   type ReplacementPlan,
 } from './replacement-plan';
 
 const ISO = 'yyyy-MM-dd';
-
-/**
- * Preis-Variationskoeffizient je Modus (Slice A3, #241): die Unsicherheit des
- * Ersatzpreises, nicht die Drift. „stabil" ist am engsten, „individuell" am
- * weitesten. Bewusst konservative Defaults (Modellannahme, D6).
- */
-const PRICE_CV_BY_MODE: Record<PriceMode, number> = {
-  stable: 0.05,
-  inflation: 0.1,
-  individual: 0.15,
-};
 
 function hasReplacementWindow(plan: ReplacementPlan): boolean {
   return Boolean(
@@ -86,7 +75,7 @@ export function expandReplacementPlans(
         id: `rp-${plan.id}`,
         name: plan.name,
         amountMean: outflowEuros,
-        amountCv: PRICE_CV_BY_MODE[plan.price_mode],
+        amountCv: priceUncertaintyCv(plan),
         earliestDate: plan.earliest_replacement_date as string,
         likelyDate: plan.likely_replacement_date as string,
         latestDate: plan.latest_replacement_date as string,

@@ -28,6 +28,20 @@ const DAYS_PER_YEAR = 365.25;
 /** Standard-Inflationsrate p. a. (Entscheidung D2 — lokal konfigurierbar, pro Plan überschreibbar). */
 export const DEFAULT_INFLATION_RATE = 0.02;
 
+/**
+ * Preis-Variationskoeffizient je Modus (Preisunsicherheit, nicht Drift). „stabil"
+ * am engsten, „individuell" am weitesten. Bewusst konservative Defaults (D6).
+ */
+export const PRICE_CV_BY_MODE: Record<PriceMode, number> = {
+  stable: 0.05,
+  inflation: 0.1,
+  individual: 0.15,
+};
+
+export function priceUncertaintyCv(plan: ReplacementPlan): number {
+  return PRICE_CV_BY_MODE[plan.price_mode];
+}
+
 export interface ReplacementConfig {
   /** „Heute" als ISO-Anker (macht die Berechnungen deterministisch testbar). */
   today: string;
