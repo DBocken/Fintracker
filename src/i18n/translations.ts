@@ -16,6 +16,16 @@ export const DEFAULT_LOCALE: Locale = 'de';
 
 export const translations = {
   de: {
+    specialCategories: {
+      service: {
+        nameRequired: 'Anlass braucht einen Namen',
+        cycle: 'Ein Anlass kann sich nicht selbst oder einem seiner Unter-Anlässe untergeordnet werden',
+        duplicateAssignment: 'Diese Buchung ist dem Anlass bereits zugeordnet',
+        subtreeConflict: 'Diese Buchung ist bereits einem über- oder untergeordneten Anlass zugeordnet',
+        exceedsAmount: 'Der Teilbetrag übersteigt den noch freien Betrag der Buchung',
+        notFound: 'Anlass nicht gefunden',
+      },
+    },
     common: {
       save: 'Speichern',
       cancel: 'Abbrechen',
@@ -3733,6 +3743,16 @@ export const translations = {
     },
   },
   en: {
+    specialCategories: {
+      service: {
+        nameRequired: 'Occasion needs a name',
+        cycle: 'An occasion cannot be nested under itself or one of its sub-occasions',
+        duplicateAssignment: 'This transaction is already assigned to this occasion',
+        subtreeConflict: 'This transaction is already assigned to a parent or child occasion',
+        exceedsAmount: 'The partial amount exceeds the remaining amount of the transaction',
+        notFound: 'Occasion not found',
+      },
+    },
     common: {
       save: 'Save',
       cancel: 'Cancel',
@@ -7450,6 +7470,16 @@ export const translations = {
     },
   },
   tlh: {
+    specialCategories: {
+      service: {
+        nameRequired: "qaSwI' pong poQ",
+        cycle: "qaSwI' bIngDaq qaSwI' je'be'lu'",
+        duplicateAssignment: "qaSwI'vaD Huch mIw boqlu'ta'",
+        subtreeConflict: "qaSwI' latlhvaD Huch mIw boqlu'ta'",
+        exceedsAmount: "Huch mIw HochHom law' Huch mIw law'",
+        notFound: "qaSwI' Sambe'lu'",
+      },
+    },
     common: {
       save: "yIpol",
       cancel: "yIlajQo'",
@@ -11108,6 +11138,16 @@ export const translations = {
     },
   },
   ru: {
+    specialCategories: {
+      service: {
+        nameRequired: 'Событию нужно имя',
+        cycle: 'Событие нельзя вложить в себя или в свои под-события',
+        duplicateAssignment: 'Эта операция уже привязана к событию',
+        subtreeConflict: 'Эта операция уже привязана к родительскому или дочернему событию',
+        exceedsAmount: 'Частичная сумма превышает оставшуюся сумму операции',
+        notFound: 'Событие не найдено',
+      },
+    },
     common: {
       save: 'Сохранить',
       cancel: 'Отмена',
