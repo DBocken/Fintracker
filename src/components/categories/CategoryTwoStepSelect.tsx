@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import type { Category } from '@/types';
 
@@ -120,15 +121,19 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
     onChange(!nextSubId ? mainId : nextSubId);
   };
 
+  // `className` dimensioniert die Select-Trigger (z. B. `h-8 text-sm`) und darf
+  // nie auf dem mehrzeiligen Wrapper landen: eine feste Höhe dort lässt
+  // Badges/Selects über nachfolgende Elemente laufen ([REGRESSION]-Tests in
+  // __tests__/CategoryTwoStepSelect.layout.test.tsx).
   return (
-    <div className={`flex flex-col gap-2 ${className || ''}`.trim()}>
+    <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="secondary">{t('categories.mainBadge')}</Badge>
         <Badge variant="secondary">{t('categories.subBadge')}</Badge>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Select value={mainId} onValueChange={handleMainChange} disabled={disabled}>
-          <SelectTrigger className="w-44"><SelectValue placeholder={placeholder} /></SelectTrigger>
+          <SelectTrigger className={cn('w-full min-w-0 sm:w-44', className)}><SelectValue placeholder={placeholder} /></SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE_VALUE}>{t('categories.noneValue')}</SelectItem>
             {mains.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}
@@ -136,7 +141,7 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
         </Select>
         {mainId && children.length > 0 && (
           <Select value={subId} onValueChange={handleSubChange} disabled={disabled}>
-            <SelectTrigger className="w-48"><SelectValue placeholder={t('categories.subPlaceholder')} /></SelectTrigger>
+            <SelectTrigger className={cn('w-full min-w-0 sm:w-48', className)}><SelectValue placeholder={t('categories.subPlaceholder')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value={MAIN_ONLY_VALUE}>{t('categories.onlyMainOption')}</SelectItem>
               {children.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}
