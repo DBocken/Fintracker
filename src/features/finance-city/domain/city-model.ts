@@ -17,8 +17,34 @@
  * Summen-Invariante).
  */
 
-/** Ein laufender Vertrag (z. B. Streaming-Abo) innerhalb einer Unterkategorie. */
-export type CityContract = { id: string; label: string; amount: number };
+/**
+ * Eine einzelne Buchung hinter einer Etage (WP-D4, Vertrags-Sheet als
+ * Absprungpunkt): Referenz auf die echte Transaktion (`txId` für den
+ * `?tx=`-Deep-Link auf die Buchungsseite) plus Anzeige-Daten. `amount` ist der
+ * ABSOLUTE Anzeige-Euro-Betrag (Ausgaben sind im Modell überall positiv).
+ */
+export type CityBooking = { txId: string; date: string; amount: number; payee: string };
+
+/**
+ * Ein laufender Vertrag/Händler (z. B. Streaming-Abo) innerhalb einer
+ * Unterkategorie — eine Etage beim Eintauchen. `bookings` (nach Datum
+ * absteigend) sind die Einzelbuchungen hinter der Etage, Grundlage der
+ * kompakten Buchungsliste im Vertrags-Sheet.
+ */
+export type CityContract = {
+  id: string;
+  label: string;
+  amount: number;
+  bookings?: CityBooking[];
+  /**
+   * Deep-Link-Semantik dieser Etage für die Buchungsseite (WP-D5): der
+   * jeweilige Adapter entscheidet, wie „alle Buchungen dieser Etage" gefiltert
+   * werden (Ausgaben: Kategorie + Händler; Einnahmen: ggf. nur Zahler-Suche —
+   * Einnahmen-Gebäude-Ids sind KEINE Kategorie-Ids). Die Presentation baut
+   * daraus nur noch den Link (`buildTransactionsHref`), ohne Tab-Wissen.
+   */
+  filter?: { categoryId?: string; search?: string };
+};
 
 /**
  * Eine Ausgaben-Unterkategorie — ein Gebäude ("Balken") in der Stadt.
@@ -31,6 +57,8 @@ export type CitySubcategory = {
   label: string;
   amount: number;
   contracts?: CityContract[];
+  /** Nächste erwartete Zahlung (nur Einnahmen-Stadt, regelmäßige Ströme) — im Vertrags-Sheet angezeigt. */
+  nextPayment?: { dateISO: string; amount: number };
 };
 
 /** Ein Distrikt (Hauptkategorie-Gruppe) — ein räumlich getrenntes Gebäude-Cluster. */

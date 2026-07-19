@@ -24,6 +24,14 @@ export type CityCanvasProps = {
   layout: CityLayout;
   /** Tap-Raycast-Ergebnis; `null` = Boden/Leere (kein pickbares Objekt getroffen). */
   onTapBox: (id: string | null) => void;
+  /**
+   * WP-D3 (Hover-Kopplung + Klick-Affordanz): feuert bei Maus-Bewegung mit der
+   * id der pickbaren Box unter dem Cursor (`null` beim Verlassen bzw. über
+   * Boden/Leere) — nur bei ECHTER Maus (`pointerType === 'mouse'`), Touch-
+   * Drags lösen kein Hover aus. Der Canvas-Cursor wird dabei unabhängig vom
+   * Callback auf `pointer` gestellt, sobald etwas Pickbares unterliegt.
+   */
+  onHoverBox?: (id: string | null) => void;
   /** WP-C4: feuert, wenn der Nutzer manuell zu orbiten beginnt (Kamera-Controller bricht dann laufende Auto-Flüge ab, Regel 2). */
   onControlsStart?: () => void;
   /** WP-C4: feuert bei jeder OrbitControls-'change' (Kamera-Controller lerpt darauf das Zoom-out-Target, Regel 5/6). */
@@ -88,6 +96,7 @@ function initialDprStepIndex(): number {
 export function CityCanvas({
   layout,
   onTapBox,
+  onHoverBox,
   onControlsStart,
   onControlsChange,
   cameraController,
@@ -112,6 +121,8 @@ export function CityCanvas({
   // `[]` gemountete Loop für immer den anfänglichen `null`-Wert sehen.
   const onTapBoxRef = useRef(onTapBox);
   onTapBoxRef.current = onTapBox;
+  const onHoverBoxRef = useRef(onHoverBox);
+  onHoverBoxRef.current = onHoverBox;
   const onControlsStartRef = useRef(onControlsStart);
   onControlsStartRef.current = onControlsStart;
   const onControlsChangeRef = useRef(onControlsChange);
@@ -335,9 +346,36 @@ export function CityCanvas({
     const handlePointerCancel = () => {
       pointerDown = null;
     };
+
+    // --- WP-D3: Hover-Raycast + Klick-Affordanz (nur echte Maus) ----------
+    // Pro pointermove ein `pick()` (Raycast über ≤ ~20 Meshes — billig, kein
+    // Throttling nötig). Der Cursor zeigt `pointer` über pickbaren Boxen
+    // (Klick-Affordanz); `onHoverBox` feuert nur bei ÄNDERUNG der id, damit
+    // der Aufrufer nicht pro Bewegungspixel re-rendert. `pointerType`-Guard:
+    // Touch-Drags (Orbit-Geste) sind kein Hover.
+    let lastHoverId: string | null = null;
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse') return;
+      const id = handle.pick(event.clientX, event.clientY);
+      canvas.style.cursor = id ? 'pointer' : '';
+      if (id !== lastHoverId) {
+        lastHoverId = id;
+        onHoverBoxRef.current?.(id);
+      }
+    };
+    const handlePointerLeave = () => {
+      canvas.style.cursor = '';
+      if (lastHoverId !== null) {
+        lastHoverId = null;
+        onHoverBoxRef.current?.(null);
+      }
+    };
+
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointerup', handlePointerUp);
     canvas.addEventListener('pointercancel', handlePointerCancel);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerleave', handlePointerLeave);
 
     invalidate();
 
@@ -348,6 +386,8 @@ export function CityCanvas({
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointercancel', handlePointerCancel);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerleave', handlePointerLeave);
       controls.removeEventListener('start', handleControlsStart);
       controls.removeEventListener('end', handleControlsEnd);
       controls.removeEventListener('change', handleControlsChange);

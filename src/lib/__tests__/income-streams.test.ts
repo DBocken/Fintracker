@@ -134,6 +134,24 @@ describe('deriveIncomeStreams', () => {
     expect(result.streams[0].counterparty).toBe('konto-acc-1');
   });
 
+  it('sollte die Einzelzahlungen je Strom (payments) nach Datum absteigend mit txId/Betrag/Payee liefern (Finanzstadt WP-D5)', () => {
+    const txs: Transaction[] = [
+      tx({ id: 'p-alt', date: '2024-10-01', amount: 3000, payee: 'Muster GmbH', category_id: 'anstellung', subcategory_id: 'gehalt' }),
+      tx({ id: 'p-neu', date: '2024-12-01', amount: 3100, payee: 'Muster GmbH', category_id: 'anstellung', subcategory_id: 'gehalt' }),
+      tx({ id: 'p-mitte', date: '2024-11-01', amount: 3000, payee: 'Muster GmbH', category_id: 'anstellung', subcategory_id: 'gehalt' }),
+    ];
+    const result = deriveIncomeStreams(txs, categories, { now: NOW });
+
+    expect(result.streams).toHaveLength(1);
+    expect(result.streams[0].payments.map((p) => p.txId)).toEqual(['p-neu', 'p-mitte', 'p-alt']);
+    expect(result.streams[0].payments[0]).toEqual({
+      txId: 'p-neu',
+      dateISO: '2024-12-01',
+      amount: 3100,
+      payee: 'Muster GmbH',
+    });
+  });
+
   describe('Payout-Projektion (nextDateISO/nextAmount/monthlyTotals)', () => {
     it('projiziert bei einer Gehaltsserie die nächste Zahlung (letzter Eingang + 1 Monat)', () => {
       const txs: Transaction[] = monthlyDates(6, 1, 7).map((date, i) =>
@@ -208,6 +226,7 @@ describe('deriveIncomeStreams', () => {
         isSalary: false, cadence: 'regelmaessig', monthlyAverage: 100, totalInWindow: 100,
         lastDateISO: '2024-11-01', lastAmount: 100, monthsActive: 6, trend: 'flat', confidence: 0.9,
         share: 0.5, transactionCount: 6, nextDateISO: '2024-12-20', nextAmount: 100, monthlyTotals: {},
+        payments: [],
         ...overrides,
       };
     }

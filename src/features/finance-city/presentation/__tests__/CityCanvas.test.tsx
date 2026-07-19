@@ -44,6 +44,7 @@ function createFakeHandle(canvas: HTMLCanvasElement, overrides: Partial<CityScen
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),
     pick: vi.fn(() => null),
+    setHighlight: vi.fn(),
     setSize: vi.fn(),
     setFog: vi.fn(),
     render: vi.fn(),
@@ -100,6 +101,47 @@ describe('CityCanvas', () => {
 
     unmount();
     expect(handle!.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('sollte Maus-Hover per Raycast melden (nur bei id-Wechsel) und den Cursor über Pickbarem auf pointer stellen (WP-D3)', async () => {
+    let handle: CitySceneHandle | null = null;
+    const pick = vi.fn((x: number) => (x < 100 ? 'housing' : null));
+    createCityScene.mockImplementation(({ canvas }: { canvas: HTMLCanvasElement }) => {
+      handle = createFakeHandle(canvas, { pick });
+      return handle;
+    });
+
+    const onHoverBox = vi.fn();
+    const { getByTestId } = render(<CityCanvas layout={LAYOUT} onTapBox={vi.fn()} onHoverBox={onHoverBox} />);
+    await waitFor(() => expect(handle).not.toBeNull());
+    const canvas = getByTestId('city-canvas') as HTMLCanvasElement;
+
+    const fireMove = (x: number, pointerType = 'mouse') =>
+      canvas.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: x, clientY: 50, bubbles: true, pointerId: 1, pointerType }),
+      );
+
+    fireMove(50); // trifft 'housing'
+    expect(onHoverBox).toHaveBeenLastCalledWith('housing');
+    expect(canvas.style.cursor).toBe('pointer');
+
+    fireMove(60); // gleiche id — KEIN erneuter Callback (kein Re-Render pro Bewegungspixel).
+    expect(onHoverBox).toHaveBeenCalledTimes(1);
+
+    fireMove(200); // Boden/Leere
+    expect(onHoverBox).toHaveBeenLastCalledWith(null);
+    expect(canvas.style.cursor).toBe('');
+
+    // Touch-Drag (Orbit-Geste) ist KEIN Hover.
+    onHoverBox.mockClear();
+    fireMove(50, 'touch');
+    expect(onHoverBox).not.toHaveBeenCalled();
+
+    // Verlassen der Canvas räumt Hover-Zustand und Cursor auf.
+    fireMove(50);
+    canvas.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true, pointerId: 1, pointerType: 'mouse' }));
+    expect(onHoverBox).toHaveBeenLastCalledWith(null);
+    expect(canvas.style.cursor).toBe('');
   });
 
   it('sollte bei Layout-Prop-Wechsel applyLayout erneut aufrufen, OHNE die Szene neu zu erstellen', async () => {

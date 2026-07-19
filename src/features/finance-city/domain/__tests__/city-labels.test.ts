@@ -87,6 +87,88 @@ describe('selectCityLabels', () => {
     expect(labels[0]).toMatchObject({ text: 'Netflix', amount: 17.99 });
   });
 
+  it('sollte jedem Etagen-Label die (schattierte) Farbe seiner Etagen-Box mitgeben (für die farbige Führungslinie, WP-D2)', () => {
+    const model = makeModel();
+    const view = {
+      level: 'subcategory' as const,
+      focusDistrictId: 'leisure',
+      focusSubcategoryId: 'streaming',
+    };
+    const layout = buildCityLayout(model, view);
+    const floors = layout.boxes.filter((b) => b.kind === 'floor');
+    const labels = selectCityLabels(model, layout, 'subcategory');
+
+    expect(labels).toHaveLength(floors.length);
+    for (const label of labels) {
+      const floor = floors.find((f) => f.id === label.id)!;
+      expect(floor).toBeDefined();
+      // Label trägt exakt die (pro Etage schattierte) Boxfarbe.
+      expect(label.color).toBe(floor.color);
+      expect(label.color).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('sollte jedem Label den Anteil an der Gesamtausgabe (Summe aller Distrikt-Totale) mitgeben', () => {
+    const model = makeModel();
+    const layout = buildCityLayout(model, { level: 'city' });
+    const labels = selectCityLabels(model, layout, 'city');
+
+    // Gesamtausgabe (Cent) = housing (1069,00) + leisure (79,97) = 1148,97 €.
+    const cityTotalMinor = 106900 + 7997;
+    const housing = labels.find((l) => l.id === 'housing')!;
+    const leisure = labels.find((l) => l.id === 'leisure')!;
+    expect(housing.share).toBeCloseTo(106900 / cityTotalMinor, 10);
+    expect(leisure.share).toBeCloseTo(7997 / cityTotalMinor, 10);
+    // Anteile summieren sich (bis auf Rundung) zu 1.
+    expect((housing.share ?? 0) + (leisure.share ?? 0)).toBeCloseTo(1, 10);
+  });
+
+  it('sollte den Anteil an der ELTERN-Kategorie liefern (Unterkategorie→Distrikt, Etage→Unterkategorie)', () => {
+    const model = makeModel();
+
+    // district-Ebene: Anteil der Unterkategorie am Distrikt (leisure = 79,97 €).
+    const districtLabels = selectCityLabels(
+      model,
+      buildCityLayout(model, { level: 'district', focusDistrictId: 'leisure' }),
+      'district',
+    );
+    const hobbies = districtLabels.find((l) => l.id === 'leisure/hobbies')!;
+    expect(hobbies.parentShare).toBeCloseTo(4000 / 7997, 10); // 40,00 / 79,97
+
+    // subcategory-Ebene: Anteil der Etage an der Unterkategorie (streaming = 39,97 €).
+    const floorLabels = selectCityLabels(
+      model,
+      buildCityLayout(model, { level: 'subcategory', focusDistrictId: 'leisure', focusSubcategoryId: 'streaming' }),
+      'subcategory',
+    );
+    const netflix = floorLabels.find((l) => l.id === 'leisure/streaming/netflix')!;
+    expect(netflix.parentShare).toBeCloseTo(1799 / 3997, 10); // 17,99 / 39,97
+    // Etagen-Anteile summieren sich (bis auf Rundung) zu 1 (Anteil an der Unterkategorie).
+    const parentSum = floorLabels.reduce((acc, l) => acc + (l.parentShare ?? 0), 0);
+    expect(parentSum).toBeCloseTo(1, 6);
+  });
+
+  it('sollte auf Stadt-Ebene keinen Eltern-Anteil liefern (Elternteil = ganze Stadt, deckungsgleich mit share)', () => {
+    const model = makeModel();
+    const labels = selectCityLabels(model, buildCityLayout(model, { level: 'city' }), 'city');
+    for (const label of labels) {
+      expect(label.parentShare).toBeUndefined();
+    }
+  });
+
+  it('sollte share weglassen, wenn die Gesamtausgabe 0 ist (kein Division-durch-0)', () => {
+    const model: CityModel = {
+      districts: [{ id: 'x', label: 'X', color: '#000000', total: 0, subcategories: [{ id: 'y', label: 'Y', amount: 0 }] }],
+    };
+    const layout = buildCityLayout(model, { level: 'city' });
+    const labels = selectCityLabels(model, layout, 'city');
+    // Degenerierter Nullbetrag-Distrikt liefert ggf. gar kein Label (Nullbox) —
+    // falls doch, darf share nicht gesetzt sein.
+    for (const label of labels) {
+      expect(label.share).toBeUndefined();
+    }
+  });
+
   it('sollte für ein leeres Model keine Labels liefern', () => {
     const model: CityModel = { districts: [] };
     const layout = buildCityLayout(model, { level: 'city' });

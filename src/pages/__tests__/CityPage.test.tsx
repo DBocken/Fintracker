@@ -54,6 +54,7 @@ function makeSceneStub(): CitySceneHandle {
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),
     pick: vi.fn(() => null),
+    setHighlight: vi.fn(),
     setSize: vi.fn(),
     setFog: vi.fn(),
     render: vi.fn(),
@@ -137,10 +138,13 @@ function identityCamera(): THREE.PerspectiveCamera {
 
 const CAT_LEISURE = 'cat-leisure';
 const CAT_STREAMING = 'cat-streaming';
+const CAT_EMPLOYMENT = 'cat-anstellung';
 
 const FIXTURE_CATEGORIES: Category[] = [
   { id: CAT_LEISURE, name: 'Freizeit', filters: [] },
   { id: CAT_STREAMING, name: 'Streaming', filters: [], parent_id: CAT_LEISURE },
+  // WP-D5 (Einnahmen-Tab): Einkommens-Hauptkategorie für die Gehalts-Fixture.
+  { id: CAT_EMPLOYMENT, name: 'Anstellung', filters: [], attributes: { ausgabenklasse: 'einkommen' } },
 ];
 
 /** Tagesoffset relativ zu "jetzt" statt fixer Daten — bleibt unabhängig vom tatsächlichen Testlauf-Datum gültig (Stale-Erkennung in `computeContracts` vergleicht gegen `new Date()`). */
@@ -150,11 +154,32 @@ function daysAgoISO(days: number): string {
   return d.toISOString().split('T')[0];
 }
 
+/** N Kalendermonate zurück, fixiert auf den 15. — garantiert verschiedene Monate, unabhängig vom Testlauf-Datum (WP-D5, Einnahmen-Fixture). */
+function monthsAgoISO(months: number): string {
+  const d = new Date();
+  d.setDate(15);
+  d.setMonth(d.getMonth() - months);
+  return d.toISOString().split('T')[0];
+}
+
 const FIXTURE_TRANSACTIONS: Transaction[] = [
   {
     id: 'tx-netflix',
     date: daysAgoISO(5),
     amount: -17.99,
+    payee: 'Netflix',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_STREAMING,
+  },
+  {
+    // WP-D4: ältere, GÜNSTIGERE Netflix-Buchung — macht die Sheet-Buchungsliste
+    // mehrzeilig und den Preis-Trend-Hinweis (+2,00 €) deterministisch testbar.
+    id: 'tx-netflix-old',
+    date: daysAgoISO(35),
+    amount: -15.99,
     payee: 'Netflix',
     description: '',
     original_text: '',
@@ -173,6 +198,26 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
     confirmed: true,
     category_id: CAT_STREAMING,
   },
+  // WP-D5 (Einnahmen-Tab): DREI monatliche Gehaltseingänge -> ein
+  // REGELMÄSSIGER Einnahmen-Strom "Muster GmbH" im Distrikt "Anstellung"
+  // (deriveIncomeStreams braucht >= 3 aktive Monate für die Kadenz und damit
+  // die nächste-Zahlung-Projektion). `monthsAgoISO` garantiert drei
+  // verschiedene Kalendermonate (Tages-Offsets könnten am Monatsanfang
+  // kollidieren). Positive Beträge sind für das Ausgaben-Modell
+  // (Sunburst/Etagen) unsichtbar — bestehende Tests unberührt.
+  // Monate 1..3 (nicht 0): der 15. des LAUFENDEN Monats läge in der ersten
+  // Monatshälfte in der Zukunft und fiele aus dem Stream-Fenster.
+  ...[1, 2, 3].map((monthsAgo) => ({
+    id: `tx-gehalt-${monthsAgo}`,
+    date: monthsAgoISO(monthsAgo),
+    amount: 3000,
+    payee: 'Muster GmbH',
+    description: '',
+    original_text: '',
+    auto_mapped: false,
+    confirmed: true,
+    category_id: CAT_EMPLOYMENT,
+  })),
 ];
 
 /**
@@ -198,6 +243,10 @@ function buildContractDecisions(transactions: Transaction[]): Map<string, Contra
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // WP-D3: Erst-Besuch-Hinweis persistiert seine Abweisung in localStorage —
+  // zwischen Tests zurücksetzen, sonst hängt die Sichtbarkeit von der
+  // Testreihenfolge ab.
+  window.localStorage.clear();
   vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
@@ -257,7 +306,7 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(current?.textContent).toMatch(locale === 'de' ? /Stadt/ : /City/);
   });
 
-  it('sollte im Vertrags-Sheet den prozentualen Anteil des Vertrags an seiner Unterkategorie anzeigen', async () => {
+  it('sollte im Vertrags-Sheet die letzten Buchungen als Deep-Links, den "Alle Buchungen"-CTA und den Preis-Trend zeigen (WP-D4)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CityPage />, { query: true, locale });
     await screen.findByTestId('city-canvas-stub');
@@ -274,9 +323,27 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Streaming/ }));
     await user.click(list().getByRole('button', { name: /Netflix/ }));
 
-    // Sheet ist offen -> Prozentanteil sichtbar (Netflix-Anteil an Streaming-Summe).
-    const percentText = locale === 'de' ? /von Streaming/ : /of Streaming/;
-    expect(await screen.findByText(percentText)).toBeInTheDocument();
+    // Buchungsliste: beide Netflix-Buchungen, neueste zuerst, jede Zeile als
+    // Deep-Link auf GENAU diese Buchung (`tx=`), gefiltert auf Kategorie+Händler.
+    const bookingLinks = await screen.findAllByTestId('city-sheet-booking');
+    expect(bookingLinks).toHaveLength(2);
+    const firstHref = bookingLinks[0].getAttribute('href') ?? '';
+    expect(firstHref).toContain('/transactions?');
+    expect(firstHref).toContain('cat=cat-streaming');
+    expect(firstHref).toContain('q=Netflix');
+    expect(firstHref).toContain('tx=tx-netflix');
+    expect(bookingLinks[1].getAttribute('href')).toContain('tx=tx-netflix-old');
+
+    // CTA auf die gefilterte Buchungsseite (gleiches Muster wie Sunburst/Sankey).
+    const cta = screen.getByTestId('city-sheet-all-bookings');
+    const ctaHref = cta.getAttribute('href') ?? '';
+    expect(ctaHref).toContain('/transactions?');
+    expect(ctaHref).toContain('cat=cat-streaming');
+    expect(ctaHref).not.toContain('tx=');
+    expect(cta.textContent).toContain('(2)');
+
+    // Preis-Trend: 17,99 € (neueste) > 15,99 € (vorletzte) -> +2,00 €.
+    expect(screen.getByTestId('city-sheet-price-increase').textContent).toContain('2,00');
   });
 
   it('sollte onFrame von CityCanvas an die Label-Reprojektion weiterreichen (kein eigener Timer)', async () => {
@@ -309,6 +376,116 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Freizeit/ }));
 
     expect(capturedDeclutter).toBe(true);
+  });
+
+  it('sollte auf Stadt-Ebene den Kontext-Chip mit der Gesamtausgabe zeigen (WP-D3)', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const chip = await screen.findByTestId('city-context-chip');
+    const totalLabel = locale === 'de' ? /Gesamtausgaben/ : /Total spending/;
+    expect(chip.textContent).toMatch(totalLabel);
+    expect(chip.textContent).toMatch(/€/);
+  });
+
+  it('sollte nach dem Eintauchen in einen Distrikt den Kontext-Chip mit Name, Gebäudezahl und Anteil zeigen (WP-D3)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // Fokus
+    await user.click(list().getByRole('button', { name: /Freizeit/ })); // Eintauchen
+
+    const chip = await screen.findByTestId('city-context-chip');
+    expect(chip.textContent).toMatch(/Freizeit/);
+    const buildingText = locale === 'de' ? /Gebäude/ : /buildings/;
+    expect(chip.textContent).toMatch(buildingText);
+    expect(chip.textContent).toMatch(/%/);
+  });
+
+  it('sollte den Erst-Besuch-Hinweis auf Stadt-Ebene zeigen und nach dem ersten Drill-down dauerhaft ausblenden (WP-D3)', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(await screen.findByTestId('city-tap-hint')).toBeInTheDocument();
+
+    // Drill-down über die Listenansicht (teilt denselben nav-State).
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+
+    expect(screen.queryByTestId('city-tap-hint')).not.toBeInTheDocument();
+
+    // Dauerhaft: ein NEUER Mount (z. B. nächster Besuch) zeigt den Hinweis
+    // nicht mehr — die Abweisung ist persistiert.
+    unmount();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+    expect(screen.queryByTestId('city-tap-hint')).not.toBeInTheDocument();
+  });
+
+  it('sollte auf den Einnahmen-Tab wechseln: Einnahmen-Welt mit eigenem Chip, Navigation resettet auf Stadt-Ebene (WP-D5)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    // Erst in der Ausgaben-Welt eintauchen (Distrikt-Ebene) …
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+
+    // … dann in die Einnahmen-Welt wechseln.
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await user.click(screen.getByRole('tab', { name: incomeTabName }));
+
+    // Kontext-Chip zeigt die Gesamteinnahmen -> Navigation ist zurück auf
+    // Stadt-Ebene (Weltwechsel resettet den Drill-down der Ausgaben-Welt).
+    const chip = await screen.findByTestId('city-context-chip');
+    const totalIncomeLabel = locale === 'de' ? /Gesamteinnahmen/ : /Total income/;
+    expect(chip.textContent).toMatch(totalIncomeLabel);
+
+    // Einnahmen-Distrikt (Einkommens-Hauptkategorie) in der Listenansicht.
+    expect(list().getByRole('button', { name: /Anstellung/ })).toBeInTheDocument();
+    // Die Ausgaben-Distrikte gehören NICHT zur Einnahmen-Welt.
+    expect(list().queryByRole('button', { name: /Freizeit/ })).not.toBeInTheDocument();
+  });
+
+  it('sollte im Einnahmen-Sheet die nächste erwartete Zahlung zeigen und den Deep-Link über die Zahler-Suche bauen (WP-D5)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await user.click(screen.getByRole('tab', { name: incomeTabName }));
+
+    // Über die Listenansicht bis zur Monats-Etage des Gehalts-Stroms.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Anstellung/ })); // Fokus
+    await user.click(list().getByRole('button', { name: /Anstellung/ })); // Eintauchen
+    await user.click(list().getByRole('button', { name: /Muster GmbH/ }));
+    // Monats-Etagen (MM/yyyy) — die neueste anklicken.
+    const floorButtons = list().getAllByRole('button', { name: /\d{2}\/\d{4}/ });
+    await user.click(floorButtons[0]);
+
+    // Nächste erwartete Zahlung (regelmäßiger Strom, 2 Monatszahlungen).
+    expect(await screen.findByTestId('city-sheet-next-payment')).toBeInTheDocument();
+
+    // Deep-Links: Zahler-Suche + ECHTE Einnahmen-Kategorie.
+    const cta = screen.getByTestId('city-sheet-all-bookings');
+    const ctaHref = cta.getAttribute('href') ?? '';
+    expect(ctaHref).toContain('/transactions?');
+    expect(ctaHref).toContain('q=Muster');
+    expect(ctaHref).toContain('cat=cat-anstellung');
+
+    // Buchungszeile der neuesten Monats-Etage verlinkt auf die exakte Buchung.
+    const bookingLinks = screen.getAllByTestId('city-sheet-booking');
+    expect(bookingLinks[0].getAttribute('href')).toContain('tx=tx-gehalt-1');
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

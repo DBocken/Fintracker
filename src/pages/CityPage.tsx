@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import * as THREE from "three";
-import { Building2, ChevronRight, List } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Building2, ChevronRight, List, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,9 +13,12 @@ import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
+import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
+import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
+import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
-import { useCityModel } from "@/features/finance-city/application/use-city-model";
+import { useCityModel, type CityModelTab } from "@/features/finance-city/application/use-city-model";
 import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
 import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
@@ -23,7 +28,7 @@ import {
   type CityCameraController,
   type CityCameraControllerConfig,
 } from "@/features/finance-city/presentation/city-camera-controller";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
@@ -31,11 +36,10 @@ const MAX_VISIBLE_LABELS_MOBILE = 6;
 const MAX_VISIBLE_LABELS_DESKTOP = 10;
 
 /**
- * Kompakte Tab-Chrome der Stadt (WP-C0-Platzhalter): nur "Ausgaben" ist
- * aktuell erreichbar (`useCityModel`/`buildCityModelFromData` bilden bislang
- * nur Ausgaben-Distrikte ab, WP-C8). Einnahmen/Ziele/Übersicht sind bewusst
- * disabled statt versteckt, damit die finale Navigationsstruktur (siehe
- * README, "3 Ebenen") schon jetzt sichtbar ist.
+ * Tab-Chrome der Stadt: "Ausgaben" und seit WP-D5 auch "Einnahmen" sind
+ * erreichbar (eigener Adapter `buildCityModelFromIncomeStreams`). Ziele/
+ * Übersicht bleiben bewusst disabled statt versteckt, damit die finale
+ * Navigationsstruktur (README, "3 Ebenen") schon jetzt sichtbar ist.
  */
 const CITY_TABS = [
   { value: "overview", labelKey: "city.tabOverview" },
@@ -44,7 +48,26 @@ const CITY_TABS = [
   { value: "goals", labelKey: "city.tabGoals" },
 ] as const;
 
-const ACTIVE_CITY_TAB = "expenses";
+const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income"]);
+
+/**
+ * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
+ * wird nach der ersten erfolgreichen Interaktion dauerhaft ausgeblendet —
+ * reines UI-Flag, deshalb direkt localStorage (Präzedenzfall
+ * `GentleModeProvider`/`SkinProvider`), kein Service-Umweg nötig.
+ */
+const TAP_HINT_DISMISSED_KEY = "fintracker.city.tap-hint-dismissed";
+
+/** WP-D4: maximal so viele Buchungen kompakt im Vertrags-Sheet — Tiefe gehört auf die Buchungsseite (CTA darunter). */
+const MAX_SHEET_BOOKINGS = 5;
+
+/** Datumsformat je App-Locale (kein zentrales formatDate im Repo; `toLocaleDateString` ist die bestehende Konvention, z. B. NotificationsBell). */
+const DATE_LOCALE_BY_APP_LOCALE: Record<string, string> = {
+  de: "de-DE",
+  en: "en-GB",
+  tlh: "de-DE",
+  ru: "ru-RU",
+};
 
 /** Fallback-Seitenverhältnis, solange die Canvas-Größe noch nicht messbar ist (0 Höhe während Layout-Übergängen). */
 const FALLBACK_ASPECT = 16 / 9;
@@ -65,7 +88,7 @@ function toVec3(v: { x: number; y: number; z: number }) {
 }
 
 export default function CityPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const sceneRef = useRef<CitySceneHandle | null>(null);
   const controlsApiRef = useRef<CityControlsApi | null>(null);
   // Umschließt Header + Tabs (den kompletten "Chrome" oberhalb der Canvas) —
@@ -100,7 +123,10 @@ export default function CityPage() {
   // geladen wird ODER es keine Ausgabendaten gibt; `useCityNavigation` bleibt
   // damit unbedingt aufrufbar (React-Hook-Regel) und ist mit einem leeren
   // Modell bereits crash-frei (Taps sind No-ops, siehe `use-city-navigation.ts`).
-  const { model, isLoading, isEmpty } = useCityModel();
+  // WP-D5: aktive Welt der Stadt (Ausgaben/Einnahmen) — gleiche Pipeline,
+  // anderer Adapter (`useCityModel(tab)`).
+  const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
+  const { model, isLoading, isEmpty } = useCityModel(activeTab);
   // Canvas/Labels/Liste mounten NUR mit geladenen, nicht-leeren Daten — spart
   // den WebGL-Kontext während des Ladens/bei leeren Daten (kein Demo-Fallback).
   const canvasMounted = !isLoading && !isEmpty;
@@ -147,6 +173,82 @@ export default function CityPage() {
     () => selectCityLabels(model, layout, nav.level),
     [model, layout, nav.level],
   );
+
+  // WP-D3: Kontext-Chip der aktuellen Ebene (Was betrachte ich? Wie groß?
+  // Welcher Anteil an der Gesamtausgabe?) — reine Domain-Auswahl, keine
+  // komponenten-lokale Aggregation (AGENTS.md §8).
+  const cityContext = useMemo(
+    () =>
+      selectCityContext(
+        model,
+        nav.level,
+        nav.level === "city" ? undefined : nav.activeDistrictId,
+        nav.activeSubcategoryId,
+      ),
+    [model, nav.level, nav.activeDistrictId, nav.activeSubcategoryId],
+  );
+
+  // WP-D3 (Hover-Kopplung Label↔Box): EIN gemeinsamer Hover-Zustand, gespeist
+  // aus beiden Richtungen (Canvas-Raycast über `onHoverBox`, Label-Hover über
+  // `onLabelHover`) — gespiegelt als Szenen-Highlight + Label-Ring.
+  const [hoveredBoxId, setHoveredBoxId] = useState<string | null>(null);
+  const handleHoverBox = useCallback((id: string | null) => setHoveredBoxId(id), []);
+
+  useEffect(() => {
+    sceneRef.current?.setHighlight(hoveredBoxId);
+    // Highlight ändert nur Material — der Render-on-Demand-Loop schläft ggf.,
+    // deshalb explizit einen Frame anfordern.
+    controlsApiRef.current?.invalidate();
+  }, [hoveredBoxId]);
+
+  // Ebenenwechsel: die gehoverte Box existiert im neuen Layout evtl. nicht
+  // mehr — Hover-Zustand zurücksetzen statt ein totes Highlight zu halten.
+  useEffect(() => {
+    setHoveredBoxId(null);
+  }, [nav.level]);
+
+  // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
+  // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)
+  // und Hover aufheben. `nav.actions` ist referenzstabil
+  // (use-city-navigation.ts), bewusst nicht in den Deps.
+  useEffect(() => {
+    nav.actions.goTo("city");
+    setHoveredBoxId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // WP-D3 (Klick-Affordanz): Erst-Besuch-Hinweis, bis zum ersten erfolgreichen
+  // Drill-down (Tap auf ein Viertel ODER Navigation über die Listenansicht).
+  const [showTapHint, setShowTapHint] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(TAP_HINT_DISMISSED_KEY) !== "1";
+    } catch {
+      return true; // Storage blockiert (z. B. Privacy-Modus): Hinweis nur sessionweise.
+    }
+  });
+  const dismissTapHint = useCallback(() => {
+    setShowTapHint((prev) => {
+      if (!prev) return prev;
+      try {
+        window.localStorage.setItem(TAP_HINT_DISMISSED_KEY, "1");
+      } catch {
+        // Storage blockiert: Hinweis verschwindet trotzdem für diese Session.
+      }
+      return false;
+    });
+  }, []);
+  useEffect(() => {
+    if (nav.level !== "city") dismissTapHint();
+  }, [nav.level, dismissTapHint]);
+
+  const tapHintMotion = useMotionSafe({
+    // Datengetriebener Aufbau statt Aufpoppen (docs/design-principles.md §2):
+    // der Hinweis gleitet dezent von unten ein, verzögert, damit er erst nach
+    // dem Balken-Aufbau die Aufmerksamkeit bekommt.
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay: 0.8, duration: 0.35 },
+  });
 
   // Misst die reale Canvas-Fläche für die Label-Reprojektion (NDC ->
   // Bildschirm-Pixel, `CityLabels`). Bewusst über einen EIGENEN Container-Ref
@@ -199,6 +301,7 @@ export default function CityPage() {
   const handleTapBox = useCallback(
     (id: string | null) => {
       if (!id) return;
+      dismissTapHint();
       const parts = id.split("/");
       if (parts.length === 1) {
         nav.actions.tapDistrict(parts[0]);
@@ -208,7 +311,7 @@ export default function CityPage() {
         nav.actions.tapContract(parts[2]);
       }
     },
-    [nav.actions],
+    [nav.actions, dismissTapHint],
   );
 
   // WP-C4: Kamera-Controller-Lifecycle. Läuft NACH `CityCanvas`s eigenem
@@ -309,15 +412,37 @@ export default function CityPage() {
     nav.selectedContractId,
   );
 
-  // WP-C5: Anteil des Vertrags an seiner Unterkategorie (z. B. "32 % von
-  // Streaming") — Beträge kommen 1:1 aus dem Model (kein Re-Aggregieren,
-  // AGENTS.md §8), Formatierung über `formatPercent` (Anzeige-Rundung, KEIN
-  // eigener `toFixed`). `null` bei einer (in den Demo-Daten nicht
-  // vorkommenden) Unterkategorie ohne Betrag, statt einer Division durch 0.
-  const contractShareOfSubcategoryRate =
-    selectedContract && selectedContract.subcategory.amount > 0
-      ? selectedContract.contract.amount / selectedContract.subcategory.amount
-      : null;
+  // WP-D4 (Sheet als Absprungpunkt, Nutzer-Wunsch): Betrag/Anteile stehen
+  // inzwischen an den Labels — das Sheet zeigt stattdessen NEUE Information:
+  // die letzten Buchungen des Händlers (kompakt, je Zeile klickbar → exakte
+  // Buchung via `?tx=`), einen Preis-Trend-Hinweis und den Deep-Link auf die
+  // gefilterte Buchungsseite (gleiches Muster wie Sunburst/Sankey-Klicks,
+  // `buildTransactionsHref`). Die Stadt aggregiert über ALLE geladenen
+  // Buchungen (`useCityModel`, kein Zeitraum-Filter) — der Default-Range
+  // 'Gesamt' des Deep-Links deckt sich damit, Summen bleiben konsistent.
+  const sheetBookings = selectedContract?.contract.bookings ?? [];
+  const sheetRecentBookings = sheetBookings.slice(0, MAX_SHEET_BOOKINGS);
+  // Preis-Trend nur in der Ausgaben-Welt: bei Einnahmen wäre "teurer geworden"
+  // eine GUTE Nachricht (Gehaltserhöhung) — der Warnhinweis passt dort nicht.
+  const sheetPriceIncrease =
+    activeTab === "expenses" ? computeLatestPriceIncrease(selectedContract?.contract.bookings) : null;
+  const sheetIsOtherFloor = selectedContract?.contract.id === OTHER_MERCHANTS_FLOOR_ID;
+  // WP-D5: Deep-Link-Semantik kommt aus dem Domain-Modell (`contract.filter`,
+  // vom jeweiligen Adapter gesetzt) — die Page kennt keine Tab-Sonderfälle.
+  const sheetFilter = selectedContract?.contract.filter;
+  const sheetAllBookingsHref = selectedContract
+    ? buildTransactionsHref({
+        category: sheetFilter?.categoryId ?? "all",
+        search: sheetFilter?.search ?? "",
+      })
+    : "";
+  const sheetNextPayment = selectedContract?.subcategory.nextPayment;
+  const sheetBookingHref = (txId: string) =>
+    `${sheetAllBookingsHref}${sheetAllBookingsHref.includes("?") ? "&" : "?"}tx=${encodeURIComponent(txId)}`;
+  const sheetDateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(DATE_LOCALE_BY_APP_LOCALE[locale] ?? "de-DE", { dateStyle: "medium" }),
+    [locale],
+  );
 
   return (
     // AppShell (`src/components/layout/AppShell.tsx`) umschließt jede Route
@@ -393,16 +518,22 @@ export default function CityPage() {
             </div>
           </header>
 
-          <Tabs defaultValue={ACTIVE_CITY_TAB} className="shrink-0">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              if (ENABLED_CITY_TABS.has(value)) setActiveTab(value as CityModelTab);
+            }}
+            className="shrink-0"
+          >
             <TabsList aria-label={t("city.title")}>
               {CITY_TABS.map((tab) => {
-                const active = tab.value === ACTIVE_CITY_TAB;
+                const enabled = ENABLED_CITY_TABS.has(tab.value);
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    disabled={!active}
-                    aria-disabled={!active}
+                    disabled={!enabled}
+                    aria-disabled={!enabled}
                   >
                     {t(tab.labelKey)}
                   </TabsTrigger>
@@ -425,7 +556,10 @@ export default function CityPage() {
             // Akzeptanzkriterium "nur echte Daten"). Canvas/Labels/Liste
             // mounten hier bewusst NICHT (spart den WebGL-Kontext).
             <div className="absolute inset-0 flex items-center justify-center p-6">
-              <EmptyState icon={Building2} title={t("city.emptyState")} />
+              <EmptyState
+                icon={Building2}
+                title={t(activeTab === "income" ? "city.emptyStateIncome" : "city.emptyState")}
+              />
             </div>
           ) : (
             <>
@@ -444,6 +578,7 @@ export default function CityPage() {
                 <CityCanvas
                   layout={layout}
                   onTapBox={handleTapBox}
+                  onHoverBox={handleHoverBox}
                   onControlsStart={() => cameraController?.cancelFlight()}
                   onControlsChange={() => cameraController?.onControlsChange()}
                   cameraController={cameraController}
@@ -451,6 +586,14 @@ export default function CityPage() {
                   controlsApiRef={controlsApiRef}
                   sceneRef={sceneRef}
                   className="absolute inset-0"
+                />
+                {/* WP-D6 (Premium-Look): dezente Vignette rahmt die Szene und
+                    zieht den Blick zur Stadt — reines CSS-Overlay (kein
+                    Post-Processing/GPU-Pass), liegt UNTER den Labels. */}
+                <div
+                  aria-hidden="true"
+                  data-testid="city-vignette"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(2,6,12,0.22)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.45)_100%)]"
                 />
                 <CityLabels
                   ref={cityLabelsRef}
@@ -463,13 +606,90 @@ export default function CityPage() {
                   // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
                   // potenziell viele Gebäude -> dort bleibt entzerrt.
                   declutter={nav.level !== "city"}
-                  // WP-D1: Fade-in nur bei echtem Ebenenwechsel (Balken wachsen
-                  // neu), NICHT bei jedem Query-Refetch — sonst flackern alle
-                  // Labels, sobald eine Kategorie-Zuweisung/ein Fensterfokus
-                  // die Stadt-Query neu lädt.
-                  fadeKey={nav.level}
+                  // WP-D2/D3 (Nutzer-Befund "Labels verdecken kleine Etagen"):
+                  // ab der Distrikt-Ebene die Labels seitlich versetzen und per
+                  // farbiger Führungslinie mit ihrer Etage/ihrem Gebäude
+                  // verbinden, statt sie mittig auf die Baukörper zu setzen.
+                  // Stadt-Ebene bleibt beim bisherigen Verhalten (wenige
+                  // Distrikt-Hüllen, Label über der Hülle verdeckt nichts).
+                  connectors={nav.level !== "city"}
+                  // WP-D3 (Hover-Kopplung + Tap-Fläche): Label-Hover spiegelt
+                  // das Szenen-Highlight, Label-Tap wirkt wie ein Tap auf die
+                  // Box (gleiche Navigations-Semantik wie der Canvas-Raycast).
+                  highlightedId={hoveredBoxId}
+                  onLabelHover={handleHoverBox}
+                  onLabelTap={handleTapBox}
+                  // WP-D1: Fade-in nur bei echtem Ebenen-/Weltwechsel (Balken
+                  // wachsen neu), NICHT bei jedem Query-Refetch — sonst
+                  // flackern alle Labels, sobald eine Kategorie-Zuweisung/ein
+                  // Fensterfokus die Stadt-Query neu lädt. Tab im Key (WP-D5):
+                  // auch der Tab-Wechsel baut die Stadt neu auf.
+                  fadeKey={`${activeTab}:${nav.level}`}
                   className="absolute inset-0"
                 />
+
+                {/* WP-D3: Kontext-Chip der aktuellen Ebene (reines Readout,
+                    bewusst ohne Karten-Chrome/Rahmen — kein Klickziel,
+                    docs/design-principles.md §8 greift daher nicht). */}
+                {cityContext && (
+                  <div
+                    data-testid="city-context-chip"
+                    className="pointer-events-none absolute bottom-3 left-3 max-w-[70%] truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground"
+                  >
+                    {cityContext.kind === "city" ? (
+                      <>
+                        {t(activeTab === "income" ? "city.contextTotalIncomeLabel" : "city.contextTotalLabel")} ·{" "}
+                        <span className="font-medium text-foreground">{formatCurrency(cityContext.amount)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-foreground">{cityContext.label}</span>
+                        {" · "}
+                        {formatCurrency(cityContext.amount)}
+                        {cityContext.kind === "district" && (
+                          <>
+                            {" · "}
+                            {t("city.contextBuildingCount").replace("{count}", String(cityContext.buildingCount))}
+                          </>
+                        )}
+                        {cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
+                          <>
+                            {" · "}
+                            {/* WP-D5: Einnahmen-Etagen sind MONATE, Ausgaben-Etagen Verträge/Händler. */}
+                            {t(activeTab === "income" ? "city.contextMonthCount" : "city.contextContractCount").replace(
+                              "{count}",
+                              String(cityContext.contractCount),
+                            )}
+                          </>
+                        )}
+                        {typeof cityContext.share === "number" && (
+                          <>
+                            {" · "}
+                            {t(
+                              activeTab === "income" ? "city.contextShareOfTotalIncome" : "city.contextShareOfTotal",
+                            ).replace("{percent}", formatPercent(cityContext.share, 0))}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* WP-D3: Erst-Besuch-Hinweis (Klick-Affordanz) — verschwindet
+                    dauerhaft nach dem ersten Drill-down. Bewusst über dem
+                    Kontext-Chip (bottom-12), damit sich beide auf schmalen
+                    Viewports nicht überlagern. */}
+                {showTapHint && nav.level === "city" && (
+                  <motion.div
+                    {...tapHintMotion}
+                    data-testid="city-tap-hint"
+                    className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center"
+                  >
+                    <span className="rounded-full bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                      {t("city.tapHint")}
+                    </span>
+                  </motion.div>
+                )}
               </div>
 
               {showList && (
@@ -498,19 +718,73 @@ export default function CityPage() {
               <SheetHeader>
                 <SheetTitle>{selectedContract.contract.label}</SheetTitle>
                 <SheetDescription>
-                  {t("city.sheetContractTitle")} · {selectedContract.district.label} → {selectedContract.subcategory.label}
+                  {t(activeTab === "income" ? "city.sheetIncomeTitle" : "city.sheetContractTitle")} ·{" "}
+                  {selectedContract.district.label} → {selectedContract.subcategory.label}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
                 <span className="text-muted-foreground">{t("city.sheetMonthlyAmountLabel")}</span>
                 <span className="font-semibold">{formatCurrency(selectedContract.contract.amount)}</span>
               </div>
-              {contractShareOfSubcategoryRate !== null && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("city.sheetShareOfSubcategory")
-                    .replace("{percent}", formatPercent(contractShareOfSubcategoryRate, 0))
-                    .replace("{subcategory}", selectedContract.subcategory.label)}
+
+              {/* WP-D4: Preis-Trend — nur bei VERTEUERUNG gegenüber der
+                  vorletzten Buchung (schleichende Abo-Preiserhöhung), siehe
+                  `computeLatestPriceIncrease`. */}
+              {sheetPriceIncrease !== null && (
+                <p
+                  data-testid="city-sheet-price-increase"
+                  className="mt-2 flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500"
+                >
+                  <TrendingUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {t("city.sheetPriceIncrease").replace("{amount}", formatCurrency(sheetPriceIncrease))}
                 </p>
+              )}
+
+              {/* WP-D5 (Einnahmen): nächste erwartete Zahlung des Stroms —
+                  nur regelmäßige Quellen tragen eine Projektion (Adapter). */}
+              {sheetNextPayment && (
+                <p data-testid="city-sheet-next-payment" className="mt-2 text-xs text-muted-foreground">
+                  {t("city.sheetNextPayment")
+                    .replace("{date}", sheetDateFormatter.format(new Date(sheetNextPayment.dateISO)))
+                    .replace("{amount}", formatCurrency(sheetNextPayment.amount))}
+                </p>
+              )}
+
+              {/* WP-D4: kompakte Buchungsliste — jede Zeile ist als Ganzes ein
+                  Link auf GENAU diese Buchung (`?tx=`-Deep-Link der
+                  Buchungsseite), gefiltert auf Kategorie + Händler, damit die
+                  Zielliste kurz ist und die Buchung sicher enthält. */}
+              {sheetRecentBookings.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("city.sheetRecentBookings")}
+                  </h3>
+                  <ul className="mt-1">
+                    {sheetRecentBookings.map((booking) => (
+                      <li key={booking.txId}>
+                        <Link
+                          to={sheetBookingHref(booking.txId)}
+                          data-testid="city-sheet-booking"
+                          className="flex min-h-11 items-center justify-between gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted/50"
+                        >
+                          <span className="text-muted-foreground">{sheetDateFormatter.format(new Date(booking.date))}</span>
+                          {/* Payee nur bei der "Sonstige"-Etage — dort mischen
+                              sich mehrere Händler, sonst wäre er redundant zum
+                              Sheet-Titel. */}
+                          {sheetIsOtherFloor && <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{booking.payee}</span>}
+                          <span className="font-medium tabular-nums">{formatCurrency(booking.amount)}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button asChild variant="outline" className="mt-3 w-full">
+                    <Link to={sheetAllBookingsHref} data-testid="city-sheet-all-bookings">
+                      {t("city.sheetViewAllBookings").replace("{count}", String(sheetBookings.length))}
+                      <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </div>
               )}
             </>
           )}

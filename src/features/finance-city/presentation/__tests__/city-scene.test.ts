@@ -331,6 +331,34 @@ describe('createCityScene', () => {
       expect(stillAnimating).toBe(false);
     });
 
+    it('[REGRESSION] sollte einen Balken bei erneutem applyLayout mit unveränderter Höhe (Refetch/Re-Render) fußpunkt-verankert auf der Bodenplatte lassen (nicht zur Balkenmitte absinken)', () => {
+      // Bug (Stadtansicht): bei aktiven Animationen setzte der `!needsTween`-
+      // Zweig von `applyBoxHeight` die Mesh-Position (= Box-MITTE) fälschlich
+      // auf den FUSSPUNKT (targetFoot). Ein zweites applyLayout mit gleicher
+      // Höhe (Hintergrund-Refetch/äquivalentes Re-Render) ließ jeden Balken so
+      // um die halbe Höhe unter die Bodenplatte sacken.
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const layout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+
+      handle.applyLayout(layout);
+      const barBox = layout.boxes.find((b) => b.kind === 'bar')!;
+      const barMesh = meshesOf(scene).find((m) => m.userData.id === barBox.id)!;
+
+      // Wachstums-Tween abschließen: Balken steht korrekt (Fuß auf y=0, Mitte bei size.y/2).
+      handle.advanceAnimations(1000);
+      handle.advanceAnimations(1000 + 2000);
+      expect(barMesh.position.y).toBeCloseTo(barBox.center.y, 10);
+
+      // Erneutes, geometrisch identisches Layout -> `!needsTween`-Zweig.
+      const sameLayout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+      handle.applyLayout(sameLayout);
+
+      // Der Balken darf NICHT absinken: Mitte bleibt bei size.y/2, Fuß bei 0.
+      expect(barMesh.position.y).toBeCloseTo(barBox.center.y, 10);
+      expect(barMesh.position.y - barMesh.scale.y / 2).toBeCloseTo(0, 10);
+    });
+
     it('sollte bei setAnimationsEnabled(false) (reduced-motion) sofort Zielwerte setzen und laufende Tweens sofort auf ihr Ziel springen lassen', () => {
       const { handle, scene } = createHandle();
       handle.setAnimationsEnabled(true);
@@ -429,6 +457,105 @@ describe('createCityScene', () => {
     });
   });
 
+  describe('Premium-Look (WP-D6)', () => {
+    it('sollte filmisches ACES-Tone-Mapping mit angehobener Exposure am Renderer setzen (keine zusätzlichen Render-Passes)', () => {
+      const { renderer } = createHandle();
+      expect((renderer as unknown as { toneMapping: THREE.ToneMapping }).toneMapping).toBe(THREE.ACESFilmicToneMapping);
+      expect((renderer as unknown as { toneMappingExposure: number }).toneMappingExposure).toBeGreaterThan(1);
+    });
+
+    it('sollte zusätzlich zum Hauptlicht ein Gegen-/Kantenlicht enthalten (zwei gerichtete Lichter, ohne Schatten)', () => {
+      const { scene } = createHandle();
+      const directionals = scene.children.filter(
+        (c): c is THREE.DirectionalLight => c instanceof THREE.DirectionalLight,
+      );
+      expect(directionals).toHaveLength(2);
+      for (const light of directionals) {
+        expect(light.castShadow).toBe(false); // Akku-/Render-on-Demand-Vorgabe: keine Schatten-Maps.
+      }
+    });
+
+    it('sollte soliden Baukörpern ein dezentes Eigenleuchten in der EIGENEN Farbe geben (Emissive-Tint, kein weißes Glühen)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const barMesh = meshesOf(scene).find((m) => m.userData.kind === 'bar')!;
+      const material = barMesh.material as THREE.MeshLambertMaterial;
+      expect(material.emissiveIntensity).toBeGreaterThan(0);
+      // Emissive == Grundfarbe (Tint), nicht Weiß — Weiß ist dem Hover-Highlight vorbehalten.
+      expect(material.emissive.getHex()).toBe(material.color.getHex());
+    });
+  });
+
+  describe('setHighlight (WP-D3, Hover-Kopplung)', () => {
+    it('sollte einen Lambert-Baukörper mit eigener Klon-Instanz (Emissive) hervorheben und bei null die geteilte Instanz wiederherstellen', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const barMesh = meshesOf(scene).find((m) => m.userData.kind === 'bar')!;
+      const sharedMaterial = barMesh.material as THREE.Material;
+
+      handle.setHighlight(barMesh.userData.id as string);
+      const highlighted = barMesh.material as THREE.MeshLambertMaterial;
+      // EIGENE Instanz (Invariante 2: geteilte Registry-Instanz nie mutieren) …
+      expect(Object.is(highlighted, sharedMaterial)).toBe(false);
+      // … mit dezentem Glühen.
+      expect(highlighted.emissiveIntensity).toBeGreaterThan(0);
+      // Die geteilte Instanz selbst bleibt unangetastet.
+      expect((sharedMaterial as THREE.MeshLambertMaterial).emissiveIntensity ?? 1).not.toBe(highlighted.emissiveIntensity);
+
+      handle.setHighlight(null);
+      expect(Object.is(barMesh.material, sharedMaterial)).toBe(true);
+    });
+
+    it('sollte eine transparente Hülle über einen Opazitäts-Schub hervorheben (kein Emissive auf MeshBasicMaterial)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+
+      const hullMesh = meshesOf(scene).find((m) => m.userData.kind === 'hull')!;
+      const baseOpacity = (hullMesh.material as THREE.Material).opacity;
+
+      handle.setHighlight(hullMesh.userData.id as string);
+      expect((hullMesh.material as THREE.Material).opacity).toBeGreaterThan(baseOpacity);
+
+      handle.setHighlight(null);
+      expect((hullMesh.material as THREE.Material).opacity).toBeCloseTo(baseOpacity, 10);
+    });
+
+    it('sollte beim Wechsel des Highlights die vorherige Box zurücksetzen und unbekannte Ids still ignorieren', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const meshes = meshesOf(scene).filter((m) => m.userData.kind === 'bar');
+      const [first, second] = meshes;
+      const firstShared = first.material as THREE.Material;
+      const secondShared = second.material as THREE.Material;
+
+      handle.setHighlight(first.userData.id as string);
+      handle.setHighlight(second.userData.id as string);
+      // Erste Box wieder auf der geteilten Instanz, zweite hervorgehoben (Klon).
+      expect(Object.is(first.material, firstShared)).toBe(true);
+      expect(Object.is(second.material, secondShared)).toBe(false);
+
+      expect(() => handle.setHighlight('gibt-es-nicht')).not.toThrow();
+      // Unbekannte Id hebt das vorherige Highlight auf (zurück zur geteilten Instanz).
+      expect(Object.is(second.material, secondShared)).toBe(true);
+    });
+
+    it('sollte ein Highlight auf einer beim Ebenenwechsel entsorgten Box aufheben, ohne abzustürzen', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+      const hullMesh = meshesOf(scene).find((m) => m.userData.kind === 'hull')!;
+      handle.setHighlight(hullMesh.userData.id as string);
+
+      // Ebenenwechsel: die Stadt-Hülle verschwindet aus dem Layout.
+      expect(() =>
+        handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'leisure' })),
+      ).not.toThrow();
+      expect(() => handle.setHighlight(null)).not.toThrow();
+    });
+  });
+
   it('sollte createCityScene ohne createRenderer-Option nicht direkt aufgerufen werden müssen — TypeScript-Vertragstest via Handle-Form', () => {
     // Reiner Struktur-Check: alle laut CitySceneHandle geforderten Mitglieder existieren.
     const { handle } = createHandle();
@@ -437,6 +564,7 @@ describe('createCityScene', () => {
       'advanceAnimations',
       'setAnimationsEnabled',
       'pick',
+      'setHighlight',
       'setSize',
       'setFog',
       'render',

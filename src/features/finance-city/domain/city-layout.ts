@@ -175,19 +175,23 @@ function floorShadeDelta(index: number): number {
   return sign * magnitude;
 }
 
-// Opazitäten je Ebene/Fokus-Stufe (Spec-Vorgabe: "Stadt = Hülle ~0.12 + Balken
-// ~0.35; Fokus: +Stufe; district-Level: Hülle ~0.04, Balken 1.0; floors voll").
+// Opazitäten je Ebene/Fokus-Stufe. Ursprüngliche Spec: "Stadt = Hülle ~0.12 +
+// Balken ~0.35" — die 0.35-Balken wirkten auf der dunklen Szene aber
+// ausgewaschen (Nutzer-Befund WP-D6, "Farben nicht gut zu sehen"). Balken sind
+// jetzt auch auf Stadt-Ebene weitgehend deckend (0.8; Fokus 1.0) — die
+// Geister-Optik der Übersicht tragen weiterhin die transparenten Hüllen, nicht
+// die Baukörper.
 const HULL_OPACITY_CITY = 0.12;
 const HULL_OPACITY_CITY_FOCUSED = 0.35; // "+Stufe": eine Stufe höher als die City-Baseline.
-const BAR_OPACITY_CITY = 0.35;
-const BAR_OPACITY_CITY_FOCUSED = 0.6; // "+Stufe" analog zur Hülle.
+const BAR_OPACITY_CITY = 0.8;
+const BAR_OPACITY_CITY_FOCUSED = 1.0; // "+Stufe" analog zur Hülle.
 const HULL_OPACITY_DISTRICT = 0.04;
 const BAR_OPACITY_DISTRICT = 1.0;
 /** Andere Balken im selben Viertel, während einer in Etagen aufgelöst ist. */
 const BAR_OPACITY_DIMMED_SUBCATEGORY = 0.35;
 const FLOOR_OPACITY = 1.0;
-/** Eigene Ergänzung (Spec nennt keinen Wert für "plot"): dezente Boden-Einfärbung je Distrikt. */
-const PLOT_OPACITY = 0.08;
+/** Eigene Ergänzung (Spec nennt keinen Wert für "plot"): Boden-Einfärbung je Distrikt — seit WP-D6 etwas kräftiger (0.14), wirkt wie ein dezentes "Distrikt-Leuchten" auf der Platte. */
+const PLOT_OPACITY = 0.14;
 const GROUND_OPACITY = 1.0;
 
 type PositionedBar = {
@@ -413,7 +417,14 @@ function buildFloorBoxes(district: CityDistrict, bar: PositionedBar): LayoutBox[
       opacity: FLOOR_OPACITY,
       edges: false,
       pickable: true,
-      labelAnchor: { x: center.x, y: center.y + size.y / 2, z: center.z },
+      // Etagen-Anker = vertikale MITTE der Etage (nicht die Oberkante wie bei
+      // Hüllen/Balken): Etagen werden ausschließlich in der Einzelansicht mit
+      // seitlich versetztem Label + Führungslinie gezeigt (WP-D2). Die Linie
+      // soll auf die Etage selbst deuten — bei einem Oberkanten-Anker zeigte
+      // sie einer unteren Etage auf die Grenze zur darüberliegenden Etage
+      // (Nutzer-Befund: wirkt, als deute sie zwischen die Etagen). `center.y`
+      // ist bereits die Etagenmitte (`GROUND_LEVEL + floor.y`, floor.y = Mitte).
+      labelAnchor: { x: center.x, y: center.y, z: center.z },
     };
   });
 }

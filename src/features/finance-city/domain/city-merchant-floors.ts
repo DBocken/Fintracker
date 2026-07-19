@@ -27,14 +27,15 @@ import type { CityContract } from './city-model';
 
 /** Ab dieser Händleranzahl (exklusive) wird gedeckelt: Top 5 + EINE "Sonstige"-Etage (maximal 6 Etagen). */
 const MAX_NAMED_MERCHANTS = 5;
-const OTHER_MERCHANTS_FLOOR_ID = '__other';
+/** Exportiert für das Vertrags-Sheet (WP-D4): die "Sonstige"-Etage hat keinen einzelnen Händler — ihr Buchungs-Deep-Link filtert nur nach Kategorie, nicht nach Händlernamen. */
+export const OTHER_MERCHANTS_FLOOR_ID = '__other';
 
 function otherMerchantsLabel(): string {
   return t('financeCity.otherMerchants', 'Sonstige');
 }
 
-/** Eine einzelne Buchung, gesammelt für die spätere Cent-genaue Aggregation je Händler. */
-type MerchantBooking = { payee: string; absMinor: number };
+/** Eine einzelne Buchung, gesammelt für die spätere Cent-genaue Aggregation je Händler. `txId` fehlt nur bei (praktisch nicht vorkommenden) Transaktionen ohne id — solche Buchungen zählen zur Summe, erscheinen aber nicht in der Sheet-Buchungsliste (kein Deep-Link-Ziel). */
+type MerchantBooking = { payee: string; absMinor: number; txId?: string; date: string };
 
 /**
  * Baut je Gebäude (Unterkategorie-Id, `subId ?? mainId`) die Liste der
@@ -43,8 +44,9 @@ type MerchantBooking = { payee: string; absMinor: number };
  *
  * Übersprungen werden: interne Überträge (`is_transfer`), nicht-negative
  * Beträge (Einnahmen/Nullbuchungen — nur Ausgaben werden Etagen) und
- * Buchungen ohne `category_id`. Ist die Kategorie selbst nicht auflösbar
- * (z. B. gelöschte/unbekannte `category_id`), wird die Buchung ebenfalls
+ * Buchungen ohne zugewiesene Kategorie (`subcategory_id ?? category_id`,
+ * dieselbe Konvention wie `getCategoryContributions`/Sunburst). Ist die
+ * zugewiesene Kategorie selbst nicht auflösbar (z. B. gelöscht), wird die Buchung ebenfalls
  * übersprungen statt mit einer sinnlosen "unkategorisiert"-Gebäude-Id
  * einzugehen (kein Crash).
  *
@@ -62,10 +64,17 @@ export function buildMerchantFloorsByBuilding(
   for (const tx of transactions) {
     if (tx.is_transfer) continue;
     if (!(tx.amount < 0)) continue;
-    if (!tx.category_id) continue;
-    if (!categoriesById.has(tx.category_id)) continue; // Main nicht auflösbar -> überspringen statt crashen.
+    // [REGRESSION] App-Konvention der zugewiesenen Kategorie ist
+    // `subcategory_id ?? category_id` (`getCategoryContributions`,
+    // `analysis-data.ts` — daraus baut der Sunburst die Gebäude-Ids).
+    // Vorher wurde nur `category_id` gelesen: Buchungen mit gesetzter
+    // `subcategory_id` landeten unterm Hauptkategorie-Key, und das
+    // Unterkategorie-Gebäude blieb beim Eintauchen ohne Etagen.
+    const assignedId = tx.subcategory_id ?? tx.category_id;
+    if (!assignedId) continue;
+    if (!categoriesById.has(assignedId)) continue; // Kategorie nicht auflösbar -> überspringen statt crashen.
 
-    const { mainId, subId } = resolveHierarchy(categoriesById, tx.category_id);
+    const { mainId, subId } = resolveHierarchy(categoriesById, assignedId);
     const buildingId = subId ?? mainId;
 
     const fingerprint = merchantFingerprint(tx);
@@ -76,9 +85,10 @@ export function buildMerchantFloorsByBuilding(
       merchants = new Map();
       bookingsByBuilding.set(buildingId, merchants);
     }
+    const booking: MerchantBooking = { payee: tx.payee, absMinor, txId: tx.id, date: tx.date };
     const bookings = merchants.get(fingerprint);
-    if (bookings) bookings.push({ payee: tx.payee, absMinor });
-    else merchants.set(fingerprint, [{ payee: tx.payee, absMinor }]);
+    if (bookings) bookings.push(booking);
+    else merchants.set(fingerprint, [booking]);
   }
 
   const result = new Map<string, CityContract[]>();
@@ -90,11 +100,12 @@ export function buildMerchantFloorsByBuilding(
         id: fingerprint,
         label: representative.payee,
         totalMinor: sumMinor(bookings.map((b) => b.absMinor)),
+        bookings,
       };
     });
     merchantTotals.sort((a, b) => b.totalMinor - a.totalMinor);
 
-    let floors: { id: string; label: string; totalMinor: number }[];
+    let floors: { id: string; label: string; totalMinor: number; bookings: MerchantBooking[] }[];
     if (merchantTotals.length > MAX_NAMED_MERCHANTS + 1) {
       const top = merchantTotals.slice(0, MAX_NAMED_MERCHANTS);
       const rest = merchantTotals.slice(MAX_NAMED_MERCHANTS);
@@ -104,6 +115,9 @@ export function buildMerchantFloorsByBuilding(
           id: OTHER_MERCHANTS_FLOOR_ID,
           label: otherMerchantsLabel(),
           totalMinor: sumMinor(rest.map((r) => r.totalMinor)),
+          // "Sonstige" trägt die Buchungen ALLER zusammengefassten Händler —
+          // das Sheet listet sie gemischt (mit Payee je Zeile erkennbar).
+          bookings: rest.flatMap((r) => r.bookings),
         },
       ];
     } else {
@@ -112,7 +126,28 @@ export function buildMerchantFloorsByBuilding(
 
     result.set(
       buildingId,
-      floors.map((f): CityContract => ({ id: f.id, label: f.label, amount: toMajor(f.totalMinor) })),
+      floors.map(
+        (f): CityContract => ({
+          id: f.id,
+          label: f.label,
+          amount: toMajor(f.totalMinor),
+          // WP-D5: Deep-Link-Semantik der Ausgaben-Etage — Kategorie (Gebäude)
+          // + Händler-Suche; die "Sonstige"-Etage bündelt viele Händler und
+          // filtert deshalb nur nach Kategorie.
+          filter: {
+            categoryId: buildingId,
+            ...(f.id === OTHER_MERCHANTS_FLOOR_ID ? {} : { search: f.label }),
+          },
+          // WP-D4 (Sheet-Buchungsliste): nach Datum absteigend (neueste zuerst,
+          // ISO-Strings sind lexikografisch sortierbar); Tie-Breaker txId für
+          // deterministische Reihenfolge bei gleichem Datum. Nur Buchungen MIT
+          // txId — ohne id gibt es kein Deep-Link-Ziel auf der Buchungsseite.
+          bookings: f.bookings
+            .filter((b): b is MerchantBooking & { txId: string } => typeof b.txId === 'string')
+            .sort((a, b) => b.date.localeCompare(a.date) || a.txId.localeCompare(b.txId))
+            .map((b) => ({ txId: b.txId, date: b.date, amount: toMajor(b.absMinor), payee: b.payee })),
+        }),
+      ),
     );
   }
 

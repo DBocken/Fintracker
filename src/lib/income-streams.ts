@@ -43,6 +43,20 @@ export interface IncomeStream {
   nextAmount: number | null;
   /** Summe je Monat (yyyy-MM) im Fenster — Basis für Payout-Radar & Wrapped. */
   monthlyTotals: Record<string, number>;
+  /**
+   * Einzelzahlungen des Stroms im Fenster, nach Datum absteigend (neueste
+   * zuerst). Additiv ergänzt für die Finanzstadt (Einnahmen-Tab: Etagen +
+   * Sheet-Buchungsliste) — `txId` fehlt nur bei Transaktionen ohne id.
+   */
+  payments: IncomeStreamPayment[];
+}
+
+export interface IncomeStreamPayment {
+  txId?: string;
+  /** ISO yyyy-MM-dd. */
+  dateISO: string;
+  amount: number;
+  payee: string;
 }
 
 export interface IncomeStreamsResult {
@@ -202,6 +216,9 @@ export function deriveIncomeStreams(
       nextDateISO,
       nextAmount,
       monthlyTotals: Object.fromEntries(g.monthlyTotals),
+      payments: [...sortedTx]
+        .reverse() // sortedTx ist aufsteigend — Anzeige-Konvention ist neueste zuerst.
+        .map((t) => ({ txId: t.id, dateISO: t.date.slice(0, 10), amount: t.amount, payee: t.payee })),
     };
   });
 

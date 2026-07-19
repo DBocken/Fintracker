@@ -12,6 +12,7 @@ function stream(overrides: Partial<IncomeStream>): IncomeStream {
     cadence: 'regelmaessig', monthlyAverage: 3000, totalInWindow: 36000, lastDateISO: '2024-12-01',
     lastAmount: 3000, monthsActive: 12, trend: 'flat', confidence: 0.95, share: 0.9,
     transactionCount: 12, nextDateISO: '2025-01-01', nextAmount: 3000, monthlyTotals: {},
+    payments: [],
     ...overrides,
   };
 }

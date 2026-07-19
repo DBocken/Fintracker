@@ -9,6 +9,7 @@ function stream(mainCategoryId: string | null, total: number, name = 'X'): Incom
     totalInWindow: total, lastDateISO: '2024-12-01', lastAmount: total / 12, monthsActive: 12,
     trend: 'flat', confidence: 0.9, share: 0, transactionCount: 12, nextDateISO: null,
     nextAmount: null, monthlyTotals: {},
+    payments: [],
   };
 }
 

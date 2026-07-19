@@ -62,6 +62,16 @@ export type CitySceneHandle = {
   setAnimationsEnabled(enabled: boolean): void;
   /** Raycast auf pickable Boxen → `box.id`, oder `null` bei Boden/Leere. */
   pick(clientX: number, clientY: number): string | null;
+  /**
+   * WP-D3 (Hover-Kopplung Label↔Box): hebt GENAU EINE Box visuell hervor
+   * (`null` = keine). Lambert-Baukörper (Balken/Etagen) bekommen ein dezentes
+   * Emissive-Glühen, transparente Hüllen einen Opazitäts-Schub — jeweils über
+   * eine EIGENE Klon-Material-Instanz (Invariante 2 von WP-C6: die geteilte
+   * `materialRegistry`-Instanz wird NIE mutiert, sonst leuchten alle Boxen mit
+   * demselben Material-Schlüssel mit). Aufrufer muss danach einen Frame
+   * anfordern (`invalidate`) — diese Methode rendert nicht selbst.
+   */
+  setHighlight(id: string | null): void;
   setSize(width: number, height: number, dpr: number): void;
   /** Erst ab WP-C4 mit echten Werten befüllt — hier no-op-fähig (near/far nicht endlich → Fog aus). */
   setFog(near: number, far: number): void;
@@ -148,6 +158,13 @@ const CAMERA_FAR = 1000;
 const EDGE_OPACITY = 0.35;
 
 /**
+ * WP-D6 (Premium-Look): dezentes Eigenleuchten der soliden Baukörper in ihrer
+ * EIGENEN Farbe — hebt Sättigung/Präsenz auf der dunklen Szene, ohne Bloom/
+ * Post-Processing (Render-on-Demand + Mobil-Akku bleiben unberührt).
+ */
+const SOLID_EMISSIVE_INTENSITY = 0.16;
+
+/**
  * Zwei Material-„Buckets": undurchsichtige Baukörper (Balken/Etagen/Boden)
  * nutzen `MeshLambertMaterial` (reagiert auf Licht, `flatShading` bewusst
  * NICHT gesetzt = glatte Flächen), Hüllen/Grundstücke sind `MeshBasicMaterial`
@@ -207,6 +224,13 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const directionalLight = new THREE.DirectionalLight(palette.dirColor, palette.dirIntensity);
   directionalLight.position.set(8, 14, 6);
   scene.add(directionalLight);
+  // WP-D6 (Premium-Look): kühles Gegen-/Kantenlicht von schräg hinten —
+  // modelliert die dem Hauptlicht abgewandten Baukörper-Kanten (mehr Tiefe),
+  // bewusst OHNE Schatten-Maps (README-Akzeptanzkriterium: Render-on-Demand/
+  // Akku). Fester, themenneutraler Stil-Wert wie `EDGE_OPACITY`.
+  const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
+  rimLight.position.set(-8, 10, -10);
+  scene.add(rimLight);
 
   // DPR bei Renderer-Erstellung: Antialiasing nur, wenn der (gedeckelte)
   // Device-Pixel-Ratio niedrig genug ist (hohe DPR + MSAA verdoppelt die
@@ -228,6 +252,13 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       // nicht die GPU-Wahl.
       powerPreference: 'high-performance',
     });
+
+  // WP-D6 (Premium-Look): filmisches ACES-Tone-Mapping — tiefere Kontraste und
+  // sattere Farben OHNE zusätzliche Render-Passes (kein Post-Processing, die
+  // Render-on-Demand-/Akku-Vorgabe bleibt unberührt). Exposure leicht angehoben,
+  // weil ACES die Mitten sonst etwas absenkt.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
 
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -304,6 +335,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
           })
         : new THREE.MeshLambertMaterial({
             color: box.color,
+            // WP-D6: Eigenleuchten in der Boxfarbe (siehe SOLID_EMISSIVE_INTENSITY)
+            // — das Hover-Highlight (`setHighlight`) glüht dagegen WEISS und
+            // bleibt dadurch klar unterscheidbar.
+            emissive: box.color,
+            emissiveIntensity: SOLID_EMISSIVE_INTENSITY,
             transparent: box.opacity < 1,
             opacity: box.opacity,
           });
@@ -359,7 +395,12 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     if (!needsTween) {
       heightTweensById.delete(box.id);
       mesh.scale.y = box.size.y;
-      mesh.position.y = targetFoot;
+      // `mesh.position.y` ist die Box-MITTE (BoxGeometry ist ums Zentrum
+      // skaliert), NICHT der Fußpunkt — also Fuß + halbe Höhe (= box.center.y).
+      // Früher fälschlich `targetFoot`: der Balken sackte dadurch beim erneuten
+      // applyLayout (Refetch/Re-Render, gleiche Höhe) um die halbe Höhe unter
+      // die Bodenplatte.
+      mesh.position.y = targetFoot + box.size.y / 2;
       return;
     }
 
@@ -500,6 +541,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // Auftrag ohnehin auf Wachstum + Hüllen-Fade, nicht auf Exit-Animation.
     for (const [id, mesh] of meshesById) {
       if (seenIds.has(id)) continue;
+      // WP-D3: ein Highlight auf einer gerade entsorgten Box aufheben (ihr
+      // Klon-Material würde sonst leaken; Restore entfällt, Mesh geht weg).
+      if (highlightedId === id) clearHighlight();
       scene.remove(mesh);
       meshesById.delete(id);
       const edgeLine = edgesById.get(id);
@@ -591,6 +635,58 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     opacityTweensById.clear();
   }
 
+  // --- WP-D3: Hover-Highlight ---------------------------------------------
+  /** Glüh-Intensität für Lambert-Baukörper (Balken/Etagen) im Hover — WEISS und deutlich über dem farbigen Grund-Eigenleuchten (`SOLID_EMISSIVE_INTENSITY`), damit das Highlight klar absticht. */
+  const HIGHLIGHT_EMISSIVE_INTENSITY = 0.5;
+  /** Opazitäts-Schub für transparente Hüllen im Hover (geclamped auf 1). */
+  const HIGHLIGHT_OPACITY_BOOST = 0.15;
+
+  let highlightedId: string | null = null;
+  /** Material der Box VOR dem Highlight — wird bei Aufhebung wieder eingesetzt. */
+  let highlightRestoreMaterial: THREE.Material | null = null;
+  /** Eigene Klon-Instanz für die Highlight-Dauer (nie die Registry-Instanz mutieren). */
+  let highlightMaterial: THREE.Material | null = null;
+
+  function clearHighlight(): void {
+    if (highlightedId) {
+      const mesh = meshesById.get(highlightedId);
+      // Nur zurücksetzen, wenn das Highlight-Material noch aktiv ist — ein
+      // zwischenzeitliches applyLayout/Opazitäts-Tween darf nicht überschrieben
+      // werden (das Highlight ist dann ohnehin schon visuell weg).
+      if (mesh && highlightRestoreMaterial && mesh.material === highlightMaterial) {
+        mesh.material = highlightRestoreMaterial;
+      }
+      highlightMaterial?.dispose();
+    }
+    highlightedId = null;
+    highlightRestoreMaterial = null;
+    highlightMaterial = null;
+  }
+
+  function setHighlight(id: string | null): void {
+    if (id === highlightedId) return;
+    clearHighlight();
+    if (id === null) return;
+
+    const mesh = meshesById.get(id);
+    if (!mesh) return; // Unbekannte/gerade entsorgte id: stilles No-op.
+
+    const base = mesh.material as THREE.Material;
+    const clone = base.clone();
+    if (clone instanceof THREE.MeshLambertMaterial) {
+      clone.emissive = new THREE.Color(0xffffff);
+      clone.emissiveIntensity = HIGHLIGHT_EMISSIVE_INTENSITY;
+    } else {
+      clone.transparent = true;
+      clone.opacity = Math.min(1, clone.opacity + HIGHLIGHT_OPACITY_BOOST);
+    }
+
+    highlightedId = id;
+    highlightRestoreMaterial = base;
+    highlightMaterial = clone;
+    mesh.material = clone;
+  }
+
   function pick(clientX: number, clientY: number): string | null {
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
@@ -661,6 +757,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   }
 
   function dispose(): void {
+    // WP-D3: Highlight-Klon gehört (wie die Tween-Klone) NICHT der Registry —
+    // ohne diesen Schritt würde er im Registry-Loop unten übersehen/geleakt.
+    clearHighlight();
     for (const mesh of meshesById.values()) scene.remove(mesh);
     meshesById.clear();
     for (const edgeLine of edgesById.values()) scene.remove(edgeLine);
@@ -689,6 +788,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     advanceAnimations,
     setAnimationsEnabled,
     pick,
+    setHighlight,
     setSize,
     setFog,
     setTheme,

@@ -89,7 +89,8 @@ describe('useCityModel', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const building = result.current.model.districts[0].subcategories[0];
-    expect(building.contracts).toEqual([{ id: expect.any(String), label: 'Aldi', amount: 8.5 }]);
+    // toMatchObject: seit WP-D4 tragen Etagen zusätzlich ihre `bookings` (Sheet-Buchungsliste).
+    expect(building.contracts).toMatchObject([{ id: expect.any(String), label: 'Aldi', amount: 8.5 }]);
   });
 
   it('sollte bei leeren Transaktionen isEmpty=true liefern (kein Demo-Fallback)', async () => {
