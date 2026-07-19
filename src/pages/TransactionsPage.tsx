@@ -15,6 +15,8 @@ import { transactionsKeys } from "@/features/transactions/data/transactions-quer
 import { TransactionsListPane } from "@/features/transactions/presentation/shared/TransactionsListPane";
 import { TransactionsDetailAside } from "@/features/transactions/presentation/desktop/TransactionsDetailAside";
 import { TransactionsDetailSheet } from "@/features/transactions/presentation/mobile/TransactionsDetailSheet";
+import { FeatureGate } from "@/components/FeatureGate";
+import { TransactionOccasions } from "@/features/special-categories/presentation/shared/TransactionOccasions";
 import type { Transaction } from "@/types";
 
 /**
@@ -92,6 +94,15 @@ export default function TransactionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkTxId, model.transactions.all]);
 
+  // Anlass-Zuordnung im Detail (Premium): self-contained Widget, von der Page
+  // in den Detail-Slot von Aside/Sheet komponiert (Aside/Sheet bleiben frei von
+  // Feature-Hooks). Free/Anonymous sehen via FeatureGate den Locked-Preview.
+  const renderOccasions = (transaction: Transaction) => (
+    <FeatureGate feature="specialCategories">
+      <TransactionOccasions transaction={transaction} />
+    </FeatureGate>
+  );
+
   return (
     <div className="w-full">
       <PageHeader
@@ -121,6 +132,7 @@ export default function TransactionsPage() {
               detailsTransaction={detailsTransaction}
               onCloseDetails={closeDetails}
               onSaveDetails={handleSaveDetails}
+              renderDetailExtra={renderOccasions}
             />
           ) : (
             <TransactionsDetailSheet
@@ -129,6 +141,7 @@ export default function TransactionsPage() {
               onSaveDetails={handleSaveDetails}
               detailsOpen={detailsOpen}
               onDetailsOpenChange={handleDetailsOpenChange}
+              renderDetailExtra={renderOccasions}
             />
           )}
         </div>

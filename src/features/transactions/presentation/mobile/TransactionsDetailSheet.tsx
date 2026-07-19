@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import { TransactionDetailsModal } from '@/components/dashboard/TransactionDetailsModal';
+import type { Transaction } from '@/types';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import type { TransactionsViewInteractionProps } from '../transactions-view-props';
 
@@ -8,6 +10,8 @@ interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransacti
   detailsOpen: boolean;
   /** 1:1 an `TransactionDetailsModal.onOpenChange` (Page-`(open) => (open ? setDetailsOpen(true) : closeDetails())`). */
   onDetailsOpenChange: (open: boolean) => void;
+  /** Optionaler Zusatzbereich unter dem Detail (z. B. Anlass-Zuordnung) — von der Page komponiert. */
+  renderDetailExtra?: (transaction: Transaction) => ReactNode;
 }
 
 /**
@@ -24,6 +28,7 @@ export function TransactionsDetailSheet({
   onSaveDetails,
   detailsOpen,
   onDetailsOpenChange,
+  renderDetailExtra,
 }: Props) {
   return (
     <TransactionDetailsModal
@@ -38,6 +43,7 @@ export function TransactionsDetailSheet({
       onDelete={model.actions.deleteTransaction}
       isHidden={detailsTransaction?.id ? model.hidden.ids.has(detailsTransaction.id) : false}
       isLoading={model.actions.detailsSaving}
+      extra={detailsTransaction ? renderDetailExtra?.(detailsTransaction) : undefined}
     />
   );
 }

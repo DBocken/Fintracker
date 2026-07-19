@@ -47,6 +47,8 @@ export const translations = {
       assignEmpty: 'Noch keine Anlässe – lege zuerst einen an.',
       suggestedBadge: 'Vorschlag',
       assigned: 'Zugeordnet',
+      assignedTitle: 'Zugeordnete Anlässe',
+      unassign: 'Entfernen',
     },
     common: {
       save: 'Speichern',
@@ -3796,6 +3798,8 @@ export const translations = {
       assignEmpty: 'No occasions yet – create one first.',
       suggestedBadge: 'Suggested',
       assigned: 'Assigned',
+      assignedTitle: 'Assigned occasions',
+      unassign: 'Remove',
     },
     common: {
       save: 'Save',
@@ -7545,6 +7549,8 @@ export const translations = {
       assignEmpty: "qaSwI' tu'be'lu' – wa' yIchenmoH.",
       suggestedBadge: "qeS",
       assigned: "boqlu'ta'",
+      assignedTitle: "qaSwI' boqlu'pu'bogh",
+      unassign: "yIteq",
     },
     common: {
       save: "yIpol",
@@ -11235,6 +11241,8 @@ export const translations = {
       assignEmpty: 'Событий пока нет — сначала создайте одно.',
       suggestedBadge: 'Предложение',
       assigned: 'Привязано',
+      assignedTitle: 'Привязанные события',
+      unassign: 'Убрать',
     },
     common: {
       save: 'Сохранить',

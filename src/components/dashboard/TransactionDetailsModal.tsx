@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useI18n } from '@/i18n/useI18n';
@@ -21,6 +21,8 @@ interface TransactionDetailsModalProps {
   onDelete?: (id: string) => void;
   isHidden?: boolean;
   isLoading?: boolean;
+  /** Optionaler Zusatzbereich unter dem Detail (z. B. Anlass-Zuordnung). */
+  extra?: ReactNode;
 }
 
 /**
@@ -40,6 +42,7 @@ export function TransactionDetailsModal({
   onDelete,
   isHidden = false,
   isLoading = false,
+  extra,
 }: TransactionDetailsModalProps) {
   const { t } = useI18n();
   const [isDesktop, setIsDesktop] = useState(true);
@@ -81,6 +84,7 @@ export function TransactionDetailsModal({
             <DialogTitle>{t('dashboard.transactionDetailsTitle')}</DialogTitle>
           </DialogHeader>
           {panel('split')}
+          {extra}
         </DialogContent>
       </Dialog>
     );
@@ -93,6 +97,7 @@ export function TransactionDetailsModal({
           <SheetTitle className="text-left">{t('dashboard.transactionDetailsTitle')}</SheetTitle>
         </SheetHeader>
         {panel('stacked')}
+        {extra}
       </SheetContent>
     </Sheet>
   );
