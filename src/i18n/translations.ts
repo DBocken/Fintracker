@@ -168,6 +168,10 @@ export const translations = {
       contextGoalsSummary: '{achieved} von {count} Zielen erreicht',
       overviewBalanceSurplus: 'Sparrate',
       overviewBalanceDeficit: 'Defizit',
+      controlBack: 'Eine Ebene zurück',
+      controlReset: 'Ansicht zurücksetzen',
+      controlFullscreen: 'Vollbild',
+      controlExitFullscreen: 'Vollbild beenden',
       listView: {
         title: 'Listenansicht',
         pathAnnouncement: 'Aktuelle Ansicht: {path}',
@@ -3892,6 +3896,10 @@ export const translations = {
       contextGoalsSummary: '{achieved} of {count} goals achieved',
       overviewBalanceSurplus: 'Savings rate',
       overviewBalanceDeficit: 'Deficit',
+      controlBack: 'One level back',
+      controlReset: 'Reset view',
+      controlFullscreen: 'Fullscreen',
+      controlExitFullscreen: 'Exit fullscreen',
       listView: {
         title: 'List view',
         pathAnnouncement: 'Current view: {path}',
@@ -7616,6 +7624,10 @@ export const translations = {
       contextGoalsSummary: "{count} ngoQmey: {achieved} Qapla'",
       overviewBalanceSurplus: "Huch pol",
       overviewBalanceDeficit: "Huch Hutlh",
+      controlBack: "wa' patlh chap",
+      controlReset: "legh yIchoHqa'",
+      controlFullscreen: "Hoch jIH",
+      controlExitFullscreen: "Hoch jIH yImev",
       listView: {
         title: "tetlh legh",
         pathAnnouncement: "DaH legh: {path}",
@@ -11281,6 +11293,10 @@ export const translations = {
       contextGoalsSummary: 'Достигнуто {achieved} из {count} целей',
       overviewBalanceSurplus: 'Норма сбережений',
       overviewBalanceDeficit: 'Дефицит',
+      controlBack: 'На уровень назад',
+      controlReset: 'Сбросить вид',
+      controlFullscreen: 'Во весь экран',
+      controlExitFullscreen: 'Выйти из полноэкранного режима',
       listView: {
         title: 'Вид списком',
         pathAnnouncement: 'Текущий вид: {path}',

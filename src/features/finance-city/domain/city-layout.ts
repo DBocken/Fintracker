@@ -690,7 +690,12 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
   const groundBox = buildGroundBox(plotBoxes);
   if (groundBox) boxes.push(groundBox);
 
-  const { center, boundingRadius } = computeBounds(boxes);
+  // Kamera-Bounds OHNE den dekorativen Boden (WP-D9, Mobile-Befund): der
+  // GROUND_MARGIN-Rand gehört nicht zur Stadt — rahmte die Kamera ihn mit,
+  // wuchs die Fit-Distanz (v. a. im schmalen Portrait-Viewport) und die
+  // Stadt wirkte winzig. Der Boden wird weiterhin gerendert, nur nicht gerahmt.
+  const framedBoxes = boxes.filter((b) => b.kind !== 'ground');
+  const { center, boundingRadius } = computeBounds(framedBoxes.length > 0 ? framedBoxes : boxes);
 
   return { boxes, center, boundingRadius };
 }

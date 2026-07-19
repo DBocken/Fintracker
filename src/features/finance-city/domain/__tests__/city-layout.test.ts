@@ -493,6 +493,18 @@ describe('buildCityLayout', () => {
       expect(layout.center.y).toBeGreaterThan(0);
     });
 
+    it('[REGRESSION] sollte die Kamera-Bounds OHNE den dekorativen Boden-Rand rahmen (Mobile: Stadt füllte den Viewport nicht)', () => {
+      // Der Boden ragt mit GROUND_MARGIN über die Grundstücke hinaus — rahmte
+      // die Kamera ihn mit, wuchs die Fit-Distanz (v. a. im schmalen
+      // Portrait-Viewport) und die Stadt wirkte winzig. Die Bounds rahmen
+      // jetzt nur die Stadt selbst; der Boden bleibt gerendert.
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      const ground = layout.boxes.find((b) => b.kind === 'ground')!;
+      const groundCornerRadius = Math.sqrt((ground.size.x / 2) ** 2 + (ground.size.z / 2) ** 2);
+      expect(layout.boundingRadius).toBeLessThan(groundCornerRadius);
+    });
+
     it('sollte auf jeder Ebene ein positives boundingRadius und center.y > 0 liefern', () => {
       const model = makeModel();
       const views = [

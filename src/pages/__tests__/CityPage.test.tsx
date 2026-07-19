@@ -132,6 +132,11 @@ vi.mock('@/services/milestones-service', () => ({
   evaluateMilestones: vi.fn(),
 }));
 
+// WP-D9: Breakpoint kontrollierbar mocken (jsdom-matchMedia wäre immer
+// "schmal") — Default Desktop, einzelne Tests schalten auf Mobile um.
+const { useIsWideDesktopMock } = vi.hoisted(() => ({ useIsWideDesktopMock: vi.fn(() => true) }));
+vi.mock('@/hooks/useIsWideDesktop', () => ({ useIsWideDesktop: useIsWideDesktopMock }));
+
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { evaluateMilestones, type MilestoneStatus } from '@/services/milestones-service';
 
@@ -276,6 +281,7 @@ beforeEach(() => {
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
   vi.mocked(evaluateMilestones).mockResolvedValue(FIXTURE_MILESTONES);
+  useIsWideDesktopMock.mockReturnValue(true);
 
   // jsdom liefert für `getBoundingClientRect()` ohne echtes Layout immer
   // 0x0 — `CityPage` misst darüber aber die reale Canvas-Fläche
@@ -387,12 +393,12 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(labels.length).toBeGreaterThan(0);
   });
 
-  it('sollte declutter=false auf Stadt-Ebene und declutter=true nach Eintauchen in einen Distrikt an CityLabels reichen (WP-D1)', async () => {
+  it('sollte auf DESKTOP declutter=false auf Stadt-Ebene und declutter=true nach Eintauchen in einen Distrikt an CityLabels reichen (WP-D1)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CityPage />, { query: true, locale });
     await screen.findByTestId('city-canvas-stub');
 
-    // Stadt-Ebene (Ausgangszustand): wenige Distrikte -> kein Culling.
+    // Stadt-Ebene (Ausgangszustand, breiter Screen): wenige Distrikte -> kein Culling.
     expect(capturedDeclutter).toBe(false);
 
     // Über die Listenansicht (teilt denselben nav-State wie der Canvas) in
@@ -403,6 +409,44 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Freizeit/ }));
 
     expect(capturedDeclutter).toBe(true);
+  });
+
+  it('[REGRESSION] sollte auf SCHMALEN Screens das Label-Culling auch auf Stadt-Ebene aktivieren (WP-D9, Mobile: Labels stapelten sich unlesbar)', async () => {
+    useIsWideDesktopMock.mockReturnValue(false);
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(capturedDeclutter).toBe(true);
+  });
+
+  it('sollte die Steuerleiste rendern: Zurück (auf Stadt-Ebene deaktiviert) und Reset führen durch die Ebenen (WP-D9)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    // Stadt-Ebene: Zurück deaktiviert, Reset immer verfügbar.
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
+    expect(screen.getByTestId('city-control-reset')).toBeEnabled();
+    // jsdom hat kein Element-Vollbild (fullscreenEnabled falsy) -> Button erscheint gar nicht erst.
+    expect(screen.queryByTestId('city-control-fullscreen')).not.toBeInTheDocument();
+
+    // Eintauchen über die Listenansicht -> Zurück wird aktiv.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    expect(screen.getByTestId('city-control-back')).toBeEnabled();
+
+    // Zurück: eine Ebene raus (Distrikt -> Stadt) -> wieder deaktiviert.
+    await user.click(screen.getByTestId('city-control-back'));
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
+
+    // Erneut eintauchen, dann Reset: direkt zurück auf die Stadt-Ebene.
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    expect(screen.getByTestId('city-control-back')).toBeEnabled();
+    await user.click(screen.getByTestId('city-control-reset'));
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
   });
 
   it('sollte auf Stadt-Ebene den Kontext-Chip mit der Gesamtausgabe zeigen (WP-D3)', async () => {

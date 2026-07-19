@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, ChevronRight, List, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, ChevronLeft, ChevronRight, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -267,6 +267,27 @@ export default function CityPage() {
   useEffect(() => {
     if (nav.level !== "city") dismissTapHint();
   }, [nav.level, dismissTapHint]);
+
+  // WP-D9 (Steuerleiste): Vollbild über die Fullscreen-API auf dem Canvas-
+  // Container (Labels/Chip/Steuerleiste liegen darin und bleiben sichtbar).
+  // Auf Plattformen ohne Element-Vollbild (z. B. iPhone-Safari) erscheint der
+  // Button gar nicht erst.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenSupported = typeof document !== "undefined" && document.fullscreenEnabled === true;
+  useEffect(() => {
+    const handleChange = () => setIsFullscreen(document.fullscreenElement !== null);
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
+  }, []);
+  const toggleFullscreen = useCallback(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void el.requestFullscreen().catch(() => {});
+    }
+  }, []);
 
   const tapHintMotion = useMotionSafe({
     // Datengetriebener Aufbau statt Aufpoppen (docs/design-principles.md §2):
@@ -651,11 +672,12 @@ export default function CityPage() {
                   canvasSize={canvasSize}
                   maxVisible={maxVisibleLabels}
                   // WP-D1 (Nutzer-Befund "wo würde Streaming auftauchen?"):
-                  // Stadt-Ebene hat nur wenige Distrikte -> ALLE Distrikt-
-                  // Labels sichtbar (kein Kollisions-Culling/Cap). Ab der
-                  // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
-                  // potenziell viele Gebäude -> dort bleibt entzerrt.
-                  declutter={nav.level !== "city"}
+                  // Stadt-Ebene zeigt auf BREITEN Screens alle Distrikt-Labels
+                  // (kein Kollisions-Culling/Cap). WP-D9 (Mobile-Befund): auf
+                  // schmalen Screens stapelten sich die Labels unlesbar über
+                  // der Stadt — dort gilt das Culling auch auf Stadt-Ebene
+                  // (die wichtigsten Distrikte gewinnen, Rest über Chip/Liste).
+                  declutter={nav.level !== "city" || !isWideDesktop}
                   // WP-D2/D3 (Nutzer-Befund "Labels verdecken kleine Etagen"):
                   // ab der Distrikt-Ebene die Labels seitlich versetzen und per
                   // farbiger Führungslinie mit ihrer Etage/ihrem Gebäude
@@ -766,6 +788,54 @@ export default function CityPage() {
                     </span>
                   </motion.div>
                 )}
+
+                {/* WP-D9: kompakte Steuerleiste (Videoplayer-Optik: kleine
+                    Rechtecke, unten rechts) — Zurück eine Ebene, Ansicht
+                    zurücksetzen, Vollbild. Liegt IM Canvas-Container, bleibt
+                    also auch im Vollbild sichtbar. Touch-Ziele mobil 44px
+                    (h-11), auf Desktop kompakter (md:h-9). */}
+                <div data-testid="city-controls" className="absolute bottom-3 right-3 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    data-testid="city-control-back"
+                    aria-label={t("city.controlBack")}
+                    disabled={nav.level === "city"}
+                    onClick={() => nav.actions.zoomOutStep()}
+                    className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    data-testid="city-control-reset"
+                    aria-label={t("city.controlReset")}
+                    onClick={() => nav.actions.reset()}
+                    className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                  >
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  {fullscreenSupported && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      data-testid="city-control-fullscreen"
+                      aria-label={t(isFullscreen ? "city.controlExitFullscreen" : "city.controlFullscreen")}
+                      onClick={toggleFullscreen}
+                      className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {showList && (
