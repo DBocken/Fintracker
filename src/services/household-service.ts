@@ -38,6 +38,12 @@ export interface SharedExpenseSplit {
   transaction_id: string;
   household_id: string;
   shares: SharedExpenseShare[];
+  /**
+   * Wer die Ausgabe tatsächlich bezahlt hat (Ist-Zahler). Nur Splits mit
+   * `paid_by_member_id` gehen in die Salden-/Ausgleichsberechnung ein (#247);
+   * ohne diesen Wert ist der Split reine Kostenaufteilung ohne Schuldwirkung.
+   */
+  paid_by_member_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -118,4 +124,36 @@ export function splitEqually(amount: number, memberIds: string[]): SharedExpense
     member_id,
     amount: (base + (index === 0 ? remainder : 0)) / 100,
   }));
+}
+
+/**
+ * Teilt einen Betrag GEWICHTET nach `HouseholdMember.share` auf (Default-Gewicht 1,
+ * wenn kein Anteil gesetzt ist). Rundungsdifferenzen werden nach dem
+ * Largest-Remainder-Verfahren cent-genau verteilt, sodass die Summe der Anteile
+ * exakt `amount` ergibt (Invariante 6). Fehlt jedes Gewicht, entspricht das
+ * Ergebnis einer gleichmäßigen Aufteilung.
+ */
+export function splitWeighted(
+  amount: number,
+  members: { id: string; share?: number }[],
+): SharedExpenseShare[] {
+  if (members.length === 0) return [];
+  const cents = Math.round(amount * 100);
+  const weights = members.map((m) => (m.share != null && m.share > 0 ? m.share : 1));
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+  const raw = weights.map((w) => (cents * w) / totalWeight);
+  const floors = raw.map((r) => Math.floor(r));
+  let remainder = cents - floors.reduce((sum, f) => sum + f, 0);
+
+  // Rest cent-weise an die größten Nachkommaanteile (stabil nach Index bei Gleichstand).
+  const order = raw
+    .map((r, i) => ({ i, frac: r - Math.floor(r) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  const result = floors.slice();
+  for (let k = 0; remainder > 0 && k < order.length; k++, remainder--) {
+    result[order[k].i] += 1;
+  }
+
+  return members.map((m, i) => ({ member_id: m.id, amount: result[i] / 100 }));
 }
