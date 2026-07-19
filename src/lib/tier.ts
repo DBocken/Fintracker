@@ -23,7 +23,8 @@ export type FeatureKey =
   | "familyMode"
   | "receiptLineItems"
   | "budgetPremium"
-  | "creatorPack";
+  | "creatorPack"
+  | "specialCategories";
 
 /**
  * Maps each gated feature to the minimum tier required to use it.
@@ -45,6 +46,7 @@ export const FEATURES: Record<FeatureKey, Tier> = {
   receiptLineItems: "premium",
   budgetPremium: "premium",
   creatorPack: "premium",
+  specialCategories: "premium",
 };
 
 // Rank ist bewusst lückenlos und aufsteigend, damit ein künftiges "pro": 3 nur hier
