@@ -81,9 +81,16 @@ describe('Anlass-Vorschläge (S6)', () => {
     expect(DEFAULT_LEAD_DAYS).toBe(14);
   });
 
-  it('sollte bei offenem Ende bis heute fenstern', () => {
+  it('sollte bei offenem Ende und laufendem Anlass bis heute fenstern', () => {
     const offen: SpecialCategory = { ...flitter, end_date: null };
     const w = suggestionWindow(offen, { today: '2026-09-10' })!;
     expect(w.end).toBe('2026-09-10');
+  });
+
+  it('sollte bei offenem Ende und zukünftigem Anlass bis zum Startdatum fenstern (Vorab-Buchungen)', () => {
+    const geplant: SpecialCategory = { ...flitter, end_date: null };
+    // „Heute" liegt vor dem Start → Fenster kollabiert NICHT, es reicht bis zum Start.
+    const w = suggestionWindow(geplant, { today: '2026-07-19' })!;
+    expect(w).toEqual({ start: '2026-08-18', end: '2026-09-01' });
   });
 });

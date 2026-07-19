@@ -25,7 +25,11 @@ export function suggestionWindow(
   if (!cat.start_date) return null;
   const lead = cat.lead_days ?? DEFAULT_LEAD_DAYS;
   const start = format(addDays(parseISO(cat.start_date), -lead), 'yyyy-MM-dd');
-  const end = cat.end_date ?? options.today ?? format(new Date(), 'yyyy-MM-dd');
+  // Offenes Ende: bei einem laufenden Anlass bis heute, bei einem erst geplanten
+  // (Startdatum in der Zukunft) mindestens bis zum Startdatum – sonst kollabierte
+  // das Fenster für zukünftige Ereignisse (z. B. vorab gebuchte Flitterwochen).
+  const today = options.today ?? format(new Date(), 'yyyy-MM-dd');
+  const end = cat.end_date ?? (today > cat.start_date ? today : cat.start_date);
   return { start, end };
 }
 
