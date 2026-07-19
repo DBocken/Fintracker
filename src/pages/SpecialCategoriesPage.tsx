@@ -62,6 +62,15 @@ export default function SpecialCategoriesPage() {
     }
   };
 
+  const handleAssign = async (specialCategoryId: string, transactionId: string) => {
+    try {
+      await model.actions.assign({ specialCategoryId, transactionId });
+      toast.success(t('specialCategories.assigned'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('specialCategories.service.notFound'));
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
       <SpecialCategoriesDesktopView
@@ -69,12 +78,14 @@ export default function SpecialCategoriesPage() {
         model={model}
         onCreate={openCreate}
         onDelete={handleDelete}
+        onAssign={handleAssign}
       />
       <SpecialCategoriesMobileStory
         className="lg:hidden"
         model={model}
         onCreate={openCreate}
         onDelete={handleDelete}
+        onAssign={handleAssign}
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

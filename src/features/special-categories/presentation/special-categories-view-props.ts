@@ -8,4 +8,6 @@ export interface SpecialCategoriesViewProps {
   onCreate?: () => void;
   /** Löscht einen Anlass (Bestätigung liegt in der Page). */
   onDelete?: (id: string) => void;
+  /** Ordnet eine vorgeschlagene Buchung einem Anlass zu (Toast/Fehler in der Page). */
+  onAssign?: (specialCategoryId: string, transactionId: string) => void;
 }

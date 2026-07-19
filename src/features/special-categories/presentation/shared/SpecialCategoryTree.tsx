@@ -1,29 +1,37 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import type { Transaction } from '@/types';
 import type { SpecialCategoryTreeNode } from '../../application/special-categories-view-model';
 import { EventTotalAmount } from './EventTotalAmount';
 
 interface SpecialCategoryTreeProps {
   nodes: SpecialCategoryTreeNode[];
-  /** Anzahl Vorschläge je Anlass-ID (optional; blendet den Vorschlags-Hinweis ein). */
-  suggestionCounts?: Map<string, number>;
+  /** Zeitfenster-Vorschläge je Anlass-ID (blendet den Vorschlags-Bereich ein). */
+  getSuggestions?: (eventId: string) => Transaction[];
+  /** Ordnet eine vorgeschlagene Buchung dem Anlass zu (schließt den Loop). */
+  onAssignSuggested?: (eventId: string, transactionId: string) => void;
   onDelete?: (id: string) => void;
   /** `mobile` = eine große Hauptaussage je Karte; `desktop` = dichter, mit Direktsumme. */
   variant?: 'desktop' | 'mobile';
 }
 
+/** Wie viele Vorschläge je Anlass maximal inline gezeigt werden. */
+const MAX_INLINE_SUGGESTIONS = 5;
+
 /**
  * Rekursive, auf-/zuklappbare Anlass-Liste. Jede Karte ist als Ganzes klickbar
  * (Disclosure via InteractiveCard, „Karten sind Aktionen"). Die Gesamtsumme
- * (inkl. Unter-Anlässe) zählt hoch (Animations-Baseline). Desktop zeigt zusätzlich
- * die Direktsumme; Mobile bleibt bei einer Hauptaussage pro Karte.
+ * (inkl. Unter-Anlässe) zählt hoch (Animations-Baseline). Aufgeklappt zeigt der
+ * Anlass seine Kind-Anlässe und – falls vorhanden – Zeitfenster-Vorschläge mit
+ * Ein-Klick-Zuordnung.
  */
 export function SpecialCategoryTree({
   nodes,
-  suggestionCounts,
+  getSuggestions,
+  onAssignSuggested,
   onDelete,
   variant = 'desktop',
 }: SpecialCategoryTreeProps) {
@@ -42,14 +50,16 @@ export function SpecialCategoryTree({
     <ul className="space-y-2">
       {nodes.map((node) => {
         const hasChildren = node.children.length > 0;
+        const suggestions = getSuggestions?.(node.id) ?? [];
+        const canAssign = suggestions.length > 0 && !!onAssignSuggested;
+        const expandable = hasChildren || canAssign;
         const isOpen = expanded.has(node.id);
-        const suggestions = suggestionCounts?.get(node.id) ?? 0;
         return (
           <li key={node.id}>
             <InteractiveCard
-              onClick={hasChildren ? () => toggle(node.id) : undefined}
-              expanded={hasChildren ? isOpen : undefined}
-              indicator={hasChildren ? 'expand' : 'none'}
+              onClick={expandable ? () => toggle(node.id) : undefined}
+              expanded={expandable ? isOpen : undefined}
+              indicator={expandable ? 'expand' : 'none'}
               aria-label={node.name}
               className={cn('flex items-center justify-between gap-3', variant === 'mobile' ? 'p-4' : 'p-3')}
             >
@@ -61,7 +71,7 @@ export function SpecialCategoryTree({
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {node.total.transactionCount} {t('specialCategories.transactionsLabel')}
                   {hasChildren ? <> · {node.children.length} {t('specialCategories.childrenLabel')}</> : null}
-                  {suggestions > 0 ? <> · {suggestions} {t('specialCategories.suggestionsLabel')}</> : null}
+                  {suggestions.length > 0 ? <> · {suggestions.length} {t('specialCategories.suggestionsLabel')}</> : null}
                 </div>
               </div>
               <div className="flex flex-col items-end">
@@ -77,14 +87,43 @@ export function SpecialCategoryTree({
               </div>
             </InteractiveCard>
 
-            {isOpen && hasChildren ? (
-              <div className="ml-4 mt-2 border-l pl-3">
-                <SpecialCategoryTree
-                  nodes={node.children}
-                  suggestionCounts={suggestionCounts}
-                  onDelete={onDelete}
-                  variant={variant}
-                />
+            {isOpen ? (
+              <div className="ml-4 mt-2 space-y-3 border-l pl-3">
+                {hasChildren ? (
+                  <SpecialCategoryTree
+                    nodes={node.children}
+                    getSuggestions={getSuggestions}
+                    onAssignSuggested={onAssignSuggested}
+                    onDelete={onDelete}
+                    variant={variant}
+                  />
+                ) : null}
+
+                {canAssign ? (
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      {t('specialCategories.suggestionsLabel')}
+                    </p>
+                    <ul className="space-y-1">
+                      {suggestions.slice(0, MAX_INLINE_SUGGESTIONS).map((tx) => (
+                        <li key={tx.id}>
+                          <button
+                            type="button"
+                            onClick={() => onAssignSuggested!(node.id, tx.id ?? '')}
+                            className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-accent"
+                            aria-label={`${t('specialCategories.assignTitle')}: ${tx.payee}`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Plus className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
+                              <span className="truncate">{tx.payee}</span>
+                            </span>
+                            <span className="tabular-nums text-muted-foreground">{formatCurrency(tx.amount)}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

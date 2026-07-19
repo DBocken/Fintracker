@@ -89,6 +89,38 @@ describe('SpecialCategoriesDesktopView', () => {
   });
 });
 
+describe('SpecialCategoriesDesktopView – Zuordnung aus Vorschlägen (S6/S7, Loop-Schluss)', () => {
+  const catsWithWindow: SpecialCategory[] = [
+    { id: 'flitter', name: 'Flitterwochen', parent_id: null, start_date: '2026-09-01', end_date: '2026-09-14', lead_days: 14 },
+  ];
+  const taucher = tx('taucher', -180);
+  const txWindow = [taucher];
+
+  function suggestModel(onAssign = vi.fn()): SpecialCategoriesOverviewViewModel {
+    const data = buildSpecialCategoriesData(catsWithWindow, [], txWindow);
+    return {
+      ...data,
+      loading: false,
+      isEmpty: false,
+      suggestionsFor: (id: string) => {
+        const cat = catsWithWindow.find((c) => c.id === id);
+        return cat ? suggestTransactionsForEvent(cat, txWindow, []) : [];
+      },
+      actions: { save: vi.fn(), remove: vi.fn(), assign: onAssign, unassign: vi.fn(), saving: false },
+    };
+  }
+
+  it('sollte den Vorschlag nach Aufklappen zuordnen können', () => {
+    const onAssign = vi.fn();
+    // taucher (05.09.) liegt im Fenster [18.08., 14.09.]; payee ist 'P' (tx-Helper).
+    renderWithProviders(<SpecialCategoriesDesktopView model={suggestModel(onAssign)} onAssign={onAssign} />, { locale: 'de' });
+    // Aufklappen offenbart die Vorschläge.
+    fireEvent.click(screen.getByRole('button', { name: 'Flitterwochen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Anlass zuordnen: P' }));
+    expect(onAssign).toHaveBeenCalledWith('flitter', 'taucher');
+  });
+});
+
 describe('SpecialCategoriesMobileStory', () => {
   it.each<[Locale, string]>([
     ['de', 'Anlässe'],

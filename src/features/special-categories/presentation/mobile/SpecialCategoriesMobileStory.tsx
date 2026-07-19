@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
@@ -11,14 +10,8 @@ import { SpecialCategoryTree } from '../shared/SpecialCategoryTree';
  * inkl. Unter-Anlässe), Details per progressiver Offenlegung (Auf-/Zuklappen).
  * Gleiches ViewModel wie Desktop (Feature-Parität).
  */
-export function SpecialCategoriesMobileStory({ model, className, onCreate, onDelete }: SpecialCategoriesViewProps) {
+export function SpecialCategoriesMobileStory({ model, className, onCreate, onDelete, onAssign }: SpecialCategoriesViewProps) {
   const { t } = useI18n();
-
-  const suggestionCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const node of model.flat) map.set(node.id, model.suggestionsFor(node.id).length);
-    return map;
-  }, [model]);
 
   return (
     <section className={cn('space-y-4', className)} aria-labelledby="special-categories-heading-mobile">
@@ -37,7 +30,8 @@ export function SpecialCategoriesMobileStory({ model, className, onCreate, onDel
       ) : (
         <SpecialCategoryTree
           nodes={model.tree}
-          suggestionCounts={suggestionCounts}
+          getSuggestions={model.suggestionsFor}
+          onAssignSuggested={onAssign}
           onDelete={onDelete}
           variant="mobile"
         />
