@@ -84,6 +84,12 @@ export type CityLabelsProps = {
   onLabelHover?: (id: string | null) => void;
   /** WP-D3: Klick/Tap auf ein Label wirkt wie ein Tap auf seine Box (größere Touch-Fläche, gleiche Navigation). */
   onLabelTap?: (id: string) => void;
+  /**
+   * WP-D7 (Ziele-Tab): wie `label.amount` formatiert wird — `'currency'`
+   * (Default, Euro) oder `'percent'` (Zielfortschritt als Bruch 0..1+).
+   * `CityPage` leitet das aus `CityModel.valueKind` ab.
+   */
+  valueFormat?: 'currency' | 'percent';
   className?: string;
 };
 
@@ -201,7 +207,7 @@ type ProjectedLabel = {
 };
 
 export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function CityLabels(
-  { labels, canvasSize, maxVisible, declutter, fadeKey, connectors = false, highlightedId, onLabelHover, onLabelTap, className },
+  { labels, canvasSize, maxVisible, declutter, fadeKey, connectors = false, highlightedId, onLabelHover, onLabelTap, valueFormat = 'currency', className },
   ref,
 ) {
   const reducedMotion = useReducedMotion();
@@ -484,7 +490,7 @@ export const CityLabels = forwardRef<CityLabelsHandle, CityLabelsProps>(function
             <span className="truncate text-xs font-medium leading-4 text-foreground">{label.text}</span>
             {typeof label.amount === 'number' && (
               <span className="truncate text-[10px] leading-[14px] text-muted-foreground">
-                {formatCurrency(label.amount)}
+                {valueFormat === 'percent' ? formatPercent(label.amount, 0) : formatCurrency(label.amount)}
                 {typeof label.share === 'number' && (
                   // Anteil an der Gesamtausgabe hinter dem Betrag (dezent
                   // abgesetzt). `formatPercent` rundet anzeige-seitig (kein

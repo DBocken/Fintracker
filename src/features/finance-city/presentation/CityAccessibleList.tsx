@@ -8,7 +8,7 @@
 import { ArrowLeft } from 'lucide-react';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import type { CityModel } from '../domain/city-model';
 import type { CityNavigationViewModel } from '../application/city-view-model';
 
@@ -102,11 +102,18 @@ export function CityAccessibleList({ model, nav, onBackToCanvas, className }: Ci
                 ein verschachtelter Button in einer toten Karten-Hülle. */}
             <InteractiveCard
               onClick={row.onSelect}
-              aria-label={`${row.label} · ${t('city.listView.monthlyAmount').replace('{amount}', formatCurrency(row.amount))}`}
+              aria-label={`${row.label} · ${
+                model.valueKind === 'progress'
+                  ? t('city.listView.progressAmount').replace('{amount}', formatPercent(row.amount, 0))
+                  : t('city.listView.monthlyAmount').replace('{amount}', formatCurrency(row.amount))
+              }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-foreground">{row.label}</span>
-                <span className="text-muted-foreground">{formatCurrency(row.amount)}</span>
+                {/* WP-D7: Ziele-Modell trägt Fortschritts-Brüche, keine Euros. */}
+                <span className="text-muted-foreground">
+                  {model.valueKind === 'progress' ? formatPercent(row.amount, 0) : formatCurrency(row.amount)}
+                </span>
               </div>
             </InteractiveCard>
           </li>

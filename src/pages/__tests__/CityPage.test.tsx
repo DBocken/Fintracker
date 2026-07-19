@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { forwardRef, useEffect, type MutableRefObject } from 'react';
 import * as THREE from 'three';
@@ -123,8 +123,30 @@ vi.mock('@/services/transaction-service', () => ({
 vi.mock('@/services/contract-decision-service', () => ({
   getContractDecisionMap: vi.fn(),
 }));
+// WP-D7: Ziele-Tab wertet Meilensteine aus — der echte Service zieht
+// Financial-Health/Schulden nach und persistiert; hier deterministisch gemockt.
+vi.mock('@/services/milestones-service', () => ({
+  evaluateMilestones: vi.fn(),
+}));
 
 import { getTransactions, getCategories } from '@/services/transaction-service';
+import { evaluateMilestones, type MilestoneStatus } from '@/services/milestones-service';
+
+/** WP-D7: zwei Ziele — eines zu 65 % in Arbeit, eines erreicht (Trophäe). */
+const FIXTURE_MILESTONES: MilestoneStatus[] = [
+  {
+    definition: { key: 'notgroschen', title: 'Notgroschen 1 Monat', description: '', icon: '🌱', isAchieved: () => false },
+    achieved: false,
+    justAchieved: false,
+    progress: { amount: 650, target: 1000, unit: 'euro' },
+  },
+  {
+    definition: { key: 'vermoegen', title: 'Erstes Vermögen', description: '', icon: '💎', isAchieved: () => true },
+    achieved: true,
+    justAchieved: false,
+    progress: { amount: 12000, target: 10000, unit: 'euro' },
+  },
+];
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 
 /** Deterministischer Fake-Kamera-Stub (Präzedenzfall CityLabels.test.tsx): Identitätsmatrizen -> NDC === anchor; `position` für die Welt-Distanz des Label-Fadings (nah -> volle Opazität). */
@@ -250,6 +272,7 @@ beforeEach(() => {
   vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
+  vi.mocked(evaluateMilestones).mockResolvedValue(FIXTURE_MILESTONES);
 
   // jsdom liefert für `getBoundingClientRect()` ohne echtes Layout immer
   // 0x0 — `CityPage` misst darüber aber die reale Canvas-Fläche
@@ -486,6 +509,27 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     // Buchungszeile der neuesten Monats-Etage verlinkt auf die exakte Buchung.
     const bookingLinks = screen.getAllByTestId('city-sheet-booking');
     expect(bookingLinks[0].getAttribute('href')).toContain('tx=tx-gehalt-1');
+  });
+
+  it('sollte auf den Ziele-Tab wechseln: Trophäen-Chip, Fortschritts-Prozente statt Euros (WP-D7)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const goalsTabName = locale === 'de' ? 'Ziele' : 'Goals';
+    await user.click(screen.getByRole('tab', { name: goalsTabName }));
+
+    // Chip zählt Trophäen statt Beträge zu summieren.
+    const chip = await screen.findByTestId('city-context-chip');
+    const summary = locale === 'de' ? /1 von 2 Zielen erreicht/ : /1 of 2 goals achieved/;
+    await waitFor(() => expect(chip.textContent).toMatch(summary));
+
+    // Listenansicht: Bauprojekte mit Fortschritts-Prozent, KEINE Euro-Beträge.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    expect(list().getByRole('button', { name: /Notgroschen 1 Monat/ })).toBeInTheDocument();
+    expect(list().getByText(/65\s?%/)).toBeInTheDocument();
+    expect(list().queryByText(/€/)).not.toBeInTheDocument();
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

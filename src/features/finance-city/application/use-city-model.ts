@@ -20,17 +20,20 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions, getCategories } from '@/services/transaction-service';
+import { evaluateMilestones } from '@/services/milestones-service';
 import { buildSunburstTree } from '@/lib/analysis-data';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { useI18n } from '@/i18n/useI18n';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
 import { buildCityModelFromIncomeStreams } from '../domain/city-income-adapter';
+import { buildCityModelFromMilestones } from '../domain/city-goals-adapter';
 import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import type { CityModel } from '../domain/city-model';
 import type { Category } from '@/types';
 
-/** WP-D5: Welt der Stadt — Ausgaben (Default) oder Einnahmen. Beide teilen dieselben Queries, nur der Adapter unterscheidet sich. */
-export type CityModelTab = 'expenses' | 'income';
+/** Welt der Stadt — Ausgaben (Default), Einnahmen (WP-D5) oder Ziele (WP-D7). Ausgaben/Einnahmen teilen dieselben Queries, Ziele nutzen die Meilenstein-Auswertung der Milestones-Seite (gleicher Query-Key, geteilter Cache). */
+export type CityModelTab = 'expenses' | 'income' | 'goals';
 
 export type UseCityModelResult = {
   model: CityModel;
@@ -39,6 +42,18 @@ export type UseCityModelResult = {
 };
 
 export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult {
+  // WP-D7: Meilenstein-Titel sind zur Laufzeit lokalisiert (serviceT) —
+  // derselbe locale-abhängige Query-Key wie `MilestonesPage` (geteilter
+  // Cache, kein Duplikat). `enabled` nur im Ziele-Tab: `evaluateMilestones`
+  // wertet Financial-Health/Schulden aus und persistiert neu erreichte
+  // Meilensteine — das soll nicht bei jedem Ausgaben-Besuch mitlaufen.
+  const { locale } = useI18n();
+  const { data: milestones = [], isPending: milestonesPending } = useQuery({
+    queryKey: ['milestones', locale],
+    queryFn: evaluateMilestones,
+    enabled: tab === 'goals',
+  });
+
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     // Limit im Query-Key (F-PERF-3-Muster) — identisch zum Dashboard, sonst
     // Cache-Kollision/-Duplikat statt geteiltem Cache.
@@ -58,6 +73,10 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
   }, [categories]);
 
   const model = useMemo(() => {
+    if (tab === 'goals') {
+      // Ziele-Welt (WP-D7): Bauprojekte aus der Meilenstein-Auswertung.
+      return buildCityModelFromMilestones(milestones);
+    }
     if (tab === 'income') {
       // Einnahmen-Welt (WP-D5): geteilte Strom-Ableitung (Income-Seite nutzt
       // dieselbe Funktion) -> Einnahmen-Adapter. Keine eigene Aggregation.
@@ -66,11 +85,12 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     const sunburst = buildSunburstTree(transactions, categories);
     const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById);
     return buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
-  }, [tab, transactions, categories, categoriesById]);
+  }, [tab, transactions, categories, categoriesById, milestones]);
 
   return {
     model,
-    isLoading: transactionsLoading || categoriesLoading,
+    isLoading:
+      tab === 'goals' ? milestonesPending : transactionsLoading || categoriesLoading,
     isEmpty: model.districts.length === 0,
   };
 }

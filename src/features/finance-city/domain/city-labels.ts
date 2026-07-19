@@ -121,8 +121,12 @@ function resolveLabelContent(
 export function selectCityLabels(model: CityModel, layout: CityLayout, level: CityLevel): CityLabel[] {
   const kind = KIND_BY_LEVEL[level];
   const labels: CityLabel[] = [];
+  // WP-D7 (Ziele-Tab): Beträge sind dort bereits Fortschritts-BRÜCHE — die
+  // Anteils-Prozente an Gesamt/Eltern wären doppelte/irreführende Prozente
+  // und entfallen komplett (share/parentShare bleiben undefined).
+  const isProgressModel = model.valueKind === 'progress';
   // Bezugsgröße für den prozentualen Anteil: Gesamtausgabe der Stadt (in Cent).
-  const cityTotalMinor = computeCityTotalMinor(model);
+  const cityTotalMinor = isProgressModel ? 0 : computeCityTotalMinor(model);
 
   for (const box of layout.boxes) {
     if (box.kind !== kind || !box.labelAnchor) continue;
@@ -140,7 +144,7 @@ export function selectCityLabels(model: CityModel, layout: CityLayout, level: Ci
       // Anteil an der Eltern-Kategorie (Cent/Cent), `undefined` wenn kein
       // Elternteil (Stadt-Ebene) oder Eltern-Betrag 0.
       parentShare:
-        content.parentTotal !== null && toMinor(content.parentTotal) > 0
+        !isProgressModel && content.parentTotal !== null && toMinor(content.parentTotal) > 0
           ? toMinor(content.amount) / toMinor(content.parentTotal)
           : undefined,
       priority: content.amount,

@@ -327,7 +327,12 @@ function buildPlotBox(district: CityDistrict, geometry: DistrictGeometry, opacit
   };
 }
 
-function buildHullBox(district: CityDistrict, bars: PositionedBar[], opacity: number): LayoutBox {
+function buildHullBox(
+  district: CityDistrict,
+  bars: PositionedBar[],
+  opacity: number,
+  cityWideMaxAmount: number,
+): LayoutBox {
   if (bars.length === 0) {
     // Degenerierter Fall (Distrikt ohne Unterkategorien): flache Nullbox am Grundstückszentrum.
     return {
@@ -359,7 +364,15 @@ function buildHullBox(district: CityDistrict, bars: PositionedBar[], opacity: nu
 
   const sizeX = maxX - minX + 2 * HULL_MARGIN;
   const sizeZ = maxZ - minZ + 2 * HULL_MARGIN;
-  const sizeY = maxHeight * (1 + HULL_HEIGHT_HEADROOM_RATIO);
+  // WP-D7 (Ziele-Tab, "Bauprojekt"): trägt der Distrikt einen SOLL-Wert,
+  // kommt die Hüllen-Höhe EXAKT aus diesem Ziel (gleiche sqrt-Skala wie die
+  // Balken, KEIN Kopffreiheits-Aufschlag) — der Füllgrad des Balkens in der
+  // Hülle IST dann der Zielfortschritt; ein erreichtes Ziel füllt seine Hülle
+  // vollständig. Ohne targetAmount unverändert: höchster Balken + Headroom.
+  const sizeY =
+    district.targetAmount !== undefined && district.targetAmount > 0
+      ? scaleHeight(district.targetAmount, cityWideMaxAmount, MAX_BAR_HEIGHT)
+      : maxHeight * (1 + HULL_HEIGHT_HEADROOM_RATIO);
   const centerX = (minX + maxX) / 2;
   const centerZ = (minZ + maxZ) / 2;
   const centerY = GROUND_LEVEL + sizeY / 2;
@@ -463,6 +476,10 @@ function buildGroundBox(plotBoxes: LayoutBox[]): LayoutBox | null {
 function computeCityWideMaxSubcategoryAmount(model: CityModel): number {
   let max = 0;
   for (const district of model.districts) {
+    // WP-D7: SOLL-Werte spannen dieselbe Skala auf wie die Balken — das
+    // höchste Ziel (nicht nur der höchste Ist-Balken) definiert die
+    // Referenzhöhe, sonst ragte eine Ziel-Hülle über MAX_BAR_HEIGHT hinaus.
+    if (district.targetAmount !== undefined && district.targetAmount > max) max = district.targetAmount;
     for (const subcategory of district.subcategories) {
       if (subcategory.amount > max) max = subcategory.amount;
     }
@@ -568,7 +585,7 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
           ? HULL_OPACITY_CITY_FOCUSED
           : HULL_OPACITY_CITY
         : HULL_OPACITY_DISTRICT;
-    const hullBox = buildHullBox(district, bars, hullOpacity);
+    const hullBox = buildHullBox(district, bars, hullOpacity, cityWideMaxAmount);
     hullBox.pickable = view.level === 'city';
     boxes.push(hullBox);
 

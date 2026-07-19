@@ -48,7 +48,7 @@ const CITY_TABS = [
   { value: "goals", labelKey: "city.tabGoals" },
 ] as const;
 
-const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income"]);
+const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income", "goals"]);
 
 /**
  * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
@@ -123,10 +123,26 @@ export default function CityPage() {
   // geladen wird ODER es keine Ausgabendaten gibt; `useCityNavigation` bleibt
   // damit unbedingt aufrufbar (React-Hook-Regel) und ist mit einem leeren
   // Modell bereits crash-frei (Taps sind No-ops, siehe `use-city-navigation.ts`).
-  // WP-D5: aktive Welt der Stadt (Ausgaben/Einnahmen) — gleiche Pipeline,
-  // anderer Adapter (`useCityModel(tab)`).
+  // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
+  // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
   const { model, isLoading, isEmpty } = useCityModel(activeTab);
+  // WP-D7: Ziele-Modell trägt Fortschritts-Brüche statt Euros — steuert die
+  // Betrags-Formatierung in Labels, Chip und Listenansicht.
+  const valueFormat: "currency" | "percent" = model.valueKind === "progress" ? "percent" : "currency";
+  const formatCityAmount = useCallback(
+    (amount: number) => (valueFormat === "percent" ? formatPercent(amount, 0) : formatCurrency(amount)),
+    [valueFormat],
+  );
+  // WP-D7: Chip-Zusammenfassung der Ziele-Welt ("X von Y erreicht") — reines
+  // Zählen von Flags, keine Geld-Aggregation.
+  const goalsSummary =
+    activeTab === "goals"
+      ? {
+          achieved: model.districts.filter((d) => d.achieved).length,
+          total: model.districts.length,
+        }
+      : null;
   // Canvas/Labels/Liste mounten NUR mit geladenen, nicht-leeren Daten — spart
   // den WebGL-Kontext während des Ladens/bei leeren Daten (kein Demo-Fallback).
   const canvasMounted = !isLoading && !isEmpty;
@@ -558,7 +574,13 @@ export default function CityPage() {
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <EmptyState
                 icon={Building2}
-                title={t(activeTab === "income" ? "city.emptyStateIncome" : "city.emptyState")}
+                title={t(
+                  activeTab === "goals"
+                    ? "city.emptyStateGoals"
+                    : activeTab === "income"
+                      ? "city.emptyStateIncome"
+                      : "city.emptyState",
+                )}
               />
             </div>
           ) : (
@@ -619,6 +641,8 @@ export default function CityPage() {
                   highlightedId={hoveredBoxId}
                   onLabelHover={handleHoverBox}
                   onLabelTap={handleTapBox}
+                  // WP-D7: Ziele-Welt zeigt Fortschritts-Prozente statt Euros.
+                  valueFormat={valueFormat}
                   // WP-D1: Fade-in nur bei echtem Ebenen-/Weltwechsel (Balken
                   // wachsen neu), NICHT bei jedem Query-Refetch — sonst
                   // flackern alle Labels, sobald eine Kategorie-Zuweisung/ein
@@ -636,7 +660,15 @@ export default function CityPage() {
                     data-testid="city-context-chip"
                     className="pointer-events-none absolute bottom-3 left-3 max-w-[70%] truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground"
                   >
-                    {cityContext.kind === "city" ? (
+                    {goalsSummary && cityContext.kind === "city" ? (
+                      // WP-D7 (Ziele-Welt): Summen über Fortschritts-Brüche
+                      // wären sinnlos — der Chip zählt stattdessen Trophäen.
+                      <span className="font-medium text-foreground">
+                        {t("city.contextGoalsSummary")
+                          .replace("{achieved}", String(goalsSummary.achieved))
+                          .replace("{count}", String(goalsSummary.total))}
+                      </span>
+                    ) : cityContext.kind === "city" ? (
                       <>
                         {t(activeTab === "income" ? "city.contextTotalIncomeLabel" : "city.contextTotalLabel")} ·{" "}
                         <span className="font-medium text-foreground">{formatCurrency(cityContext.amount)}</span>
@@ -645,14 +677,17 @@ export default function CityPage() {
                       <>
                         <span className="font-medium text-foreground">{cityContext.label}</span>
                         {" · "}
-                        {formatCurrency(cityContext.amount)}
-                        {cityContext.kind === "district" && (
+                        {formatCityAmount(cityContext.amount)}
+                        {/* WP-D7: Gebäude-/Etagen-Zähler und Anteils-Prozente
+                            nur in den Geld-Welten — im Ziele-Modell (1 Gebäude
+                            je Bauprojekt, Brüche statt Beträge) wären sie Rauschen. */}
+                        {valueFormat === "currency" && cityContext.kind === "district" && (
                           <>
                             {" · "}
                             {t("city.contextBuildingCount").replace("{count}", String(cityContext.buildingCount))}
                           </>
                         )}
-                        {cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
+                        {valueFormat === "currency" && cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
                           <>
                             {" · "}
                             {/* WP-D5: Einnahmen-Etagen sind MONATE, Ausgaben-Etagen Verträge/Händler. */}
@@ -662,7 +697,7 @@ export default function CityPage() {
                             )}
                           </>
                         )}
-                        {typeof cityContext.share === "number" && (
+                        {valueFormat === "currency" && typeof cityContext.share === "number" && (
                           <>
                             {" · "}
                             {t(

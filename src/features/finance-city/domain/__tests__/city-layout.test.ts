@@ -306,6 +306,55 @@ describe('buildCityLayout', () => {
     });
   });
 
+  describe('Ziel-Hüllen (WP-D7, Hülle = Soll / Balken = Ist)', () => {
+    const goalModel = (): CityModel => ({
+      valueKind: 'progress',
+      districts: [
+        {
+          id: 'goal:done',
+          label: 'Erreichtes Ziel',
+          color: '#f0b429',
+          total: 1,
+          targetAmount: 1,
+          subcategories: [{ id: 'bar', label: 'Erreichtes Ziel', amount: 1 }],
+        },
+        {
+          id: 'goal:half',
+          label: 'Halbes Ziel',
+          color: '#3b82f6',
+          total: 0.5,
+          targetAmount: 1,
+          subcategories: [{ id: 'bar', label: 'Halbes Ziel', amount: 0.5 }],
+        },
+      ],
+    });
+
+    it('sollte die Hüllen-Höhe aus targetAmount ableiten (exakt, OHNE Kopffreiheits-Aufschlag) — der Füllgrad des Balkens IST der Fortschritt', () => {
+      const layout = buildCityLayout(goalModel(), { level: 'city' });
+
+      const doneHull = layout.boxes.find((b) => b.kind === 'hull' && b.id === 'goal:done')!;
+      const halfHull = layout.boxes.find((b) => b.kind === 'hull' && b.id === 'goal:half')!;
+      const doneBar = layout.boxes.find((b) => b.id === 'goal:done/bar')!;
+      const halfBar = layout.boxes.find((b) => b.id === 'goal:half/bar')!;
+
+      // Beide Ziele haben denselben SOLL-Wert -> exakt gleich hohe Hüllen.
+      expect(doneHull.size.y).toBeCloseTo(halfHull.size.y, 10);
+      // Erreichtes Ziel: Balken füllt die Hülle EXAKT (kein Kopffreiheits-Gap).
+      expect(doneBar.size.y).toBeCloseTo(doneHull.size.y, 10);
+      // Halbes Ziel: Füllgrad = sqrt-skaliertes Verhältnis, aber sicher < Hülle.
+      expect(halfBar.size.y).toBeLessThan(halfHull.size.y);
+      expect(halfBar.size.y).toBeGreaterThan(0);
+    });
+
+    it('sollte Distrikte OHNE targetAmount unverändert lassen (bestehende Kopffreiheits-Regel, kein Verhaltensbruch)', () => {
+      const model = makeModel();
+      const layout = buildCityLayout(model, { level: 'city' });
+      const housingHull = layout.boxes.find((b) => b.kind === 'hull' && b.id === 'housing')!;
+      // Bisheriges Verhalten: höchster Balken (6.0) * 1.1 Kopffreiheit = 6.6.
+      expect(housingHull.size.y).toBeCloseTo(6.6, 10);
+    });
+  });
+
   describe('Pickable-Matrix je Level', () => {
     it('sollte auf city-Ebene nur Hüllen pickable machen', () => {
       const model = makeModel();

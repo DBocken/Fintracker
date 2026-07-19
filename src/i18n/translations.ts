@@ -164,6 +164,8 @@ export const translations = {
       sheetNextPayment: 'Nächste erwartete Zahlung: {date} · {amount}',
       sheetIncomeTitle: 'Zahlungsdetails',
       emptyStateIncome: 'Noch keine Einnahmendaten für die Finanzstadt. Importiere oder erfasse Buchungen, um deine Stadt zu bauen.',
+      emptyStateGoals: 'Noch keine messbaren Ziele. Erfasse Buchungen, Konten oder Schulden, damit deine Bauprojekte entstehen.',
+      contextGoalsSummary: '{achieved} von {count} Zielen erreicht',
       listView: {
         title: 'Listenansicht',
         pathAnnouncement: 'Aktuelle Ansicht: {path}',
@@ -172,6 +174,7 @@ export const translations = {
         contractsHeading: 'Verträge',
         backToCanvas: 'Zurück zur 3D-Ansicht',
         monthlyAmount: 'monatlich {amount}',
+        progressAmount: '{amount} erreicht',
       },
     },
     premium: {
@@ -3881,6 +3884,8 @@ export const translations = {
       sheetNextPayment: 'Next expected payment: {date} · {amount}',
       sheetIncomeTitle: 'Payment details',
       emptyStateIncome: 'No income data yet for the finance city. Import or add transactions to build your city.',
+      emptyStateGoals: 'No measurable goals yet. Add transactions, accounts or debts to start your construction projects.',
+      contextGoalsSummary: '{achieved} of {count} goals achieved',
       listView: {
         title: 'List view',
         pathAnnouncement: 'Current view: {path}',
@@ -3889,6 +3894,7 @@ export const translations = {
         contractsHeading: 'Contracts',
         backToCanvas: 'Back to 3D view',
         monthlyAmount: 'monthly {amount}',
+        progressAmount: '{amount} achieved',
       },
     },
     premium: {
@@ -7598,6 +7604,8 @@ export const translations = {
       sheetNextPayment: "Huch veb pIH: {date} · {amount}",
       sheetIncomeTitle: "Huch De'",
       emptyStateIncome: "Huch veng vaD Huch Hev mI' tu'lu'be'. mIwmey lo'lu'DI', veng lIj chenmoHlu'.",
+      emptyStateGoals: "ngoQmey mI' tu'lu'be'. mIwmey, Huch polmey joq yIchel — Qu'mey chenmoHlu'.",
+      contextGoalsSummary: "{count} ngoQmey: {achieved} Qapla'",
       listView: {
         title: "tetlh legh",
         pathAnnouncement: "DaH legh: {path}",
@@ -7606,6 +7614,7 @@ export const translations = {
         contractsHeading: "lay'mey",
         backToCanvas: "3D legh yIchoH",
         monthlyAmount: "jar mI': {amount}",
+        progressAmount: "{amount} Qapla'",
       },
     },
     premium: {
@@ -11256,6 +11265,8 @@ export const translations = {
       sheetNextPayment: 'Следующий ожидаемый платёж: {date} · {amount}',
       sheetIncomeTitle: 'Детали платежа',
       emptyStateIncome: 'Пока нет данных о доходах для финансового города. Импортируйте или добавьте транзакции, чтобы построить свой город.',
+      emptyStateGoals: 'Пока нет измеримых целей. Добавьте транзакции, счета или долги, чтобы появились ваши строительные проекты.',
+      contextGoalsSummary: 'Достигнуто {achieved} из {count} целей',
       listView: {
         title: 'Вид списком',
         pathAnnouncement: 'Текущий вид: {path}',
@@ -11264,6 +11275,7 @@ export const translations = {
         contractsHeading: 'Договоры',
         backToCanvas: 'Назад к 3D-виду',
         monthlyAmount: 'ежемесячно {amount}',
+        progressAmount: 'достигнуто {amount}',
       },
     },
     premium: {
