@@ -68,10 +68,41 @@ export type CityDistrict = {
   total: number;
   color: string;
   subcategories: CitySubcategory[];
+  /**
+   * SOLL-Wert des Distrikts (WP-D7, Ziele-Tab „Bauprojekt"): Ist er gesetzt,
+   * leitet `city-layout.ts` die Hüllen-HÖHE aus diesem Zielwert ab (Hülle =
+   * Soll, Balken = Ist — der Füllgrad IST der Fortschritt) statt aus dem
+   * höchsten Balken + Kopffreiheit. Gleiche Skala wie `total`/`amount`.
+   */
+  targetAmount?: number;
+  /** WP-D7 (Ziele-Tab): true, wenn das Bauprojekt fertiggestellt (Meilenstein erreicht) ist — Basis für die Chip-Zusammenfassung „X von Y erreicht". */
+  achieved?: boolean;
+  /**
+   * WP-D8 (Übersicht): Platzierungs-Gruppe auf der Platte. Ist sie bei
+   * mindestens einem Distrikt gesetzt, layoutet `city-layout.ts` drei
+   * Seiten-Bänder (links | mitte | rechts) statt des einen Makro-Grids —
+   * Einnahmen-Viertel links, Spar-Turm mittig, Ausgaben-Viertel rechts.
+   * Ohne `side` (alle anderen Tabs) unverändert das bisherige Grid.
+   */
+  side?: 'left' | 'center' | 'right';
 };
 
-/** Die gesamte Stadt: alle Distrikte. */
-export type CityModel = { districts: CityDistrict[] };
+/**
+ * Die gesamte Stadt: alle Distrikte. `valueKind` (WP-D7) sagt der
+ * Presentation, WAS die Beträge sind: `'currency'` (Default, Anzeige-Euro,
+ * Ausgaben/Einnahmen) oder `'progress'` (Zielfortschritt als Bruch 0..1+,
+ * Anzeige in Prozent; Anteils-Prozente an Gesamt/Eltern entfallen).
+ */
+export type CityModel = {
+  districts: CityDistrict[];
+  valueKind?: 'currency' | 'progress';
+  /**
+   * WP-D8 (Übersicht): true unterdrückt die Anteils-Prozente an Gesamt/Eltern
+   * in den Labels — die Übersicht mischt Einnahmen-, Ausgaben- und Saldo-
+   * Distrikte, eine „Gesamt"-Bezugsgröße darüber wäre irreführend.
+   */
+  hideShares?: boolean;
+};
 
 /**
  * Einfacher, framework-freier 3D-Vektor. Bewusst KEIN `THREE.Vector3` (domain/

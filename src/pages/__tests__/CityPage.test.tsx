@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { forwardRef, useEffect, type MutableRefObject } from 'react';
 import * as THREE from 'three';
@@ -36,6 +36,7 @@ if (typeof globalThis.requestAnimationFrame !== 'function') {
 // Kamera-Controller der Page in Tests tatsächlich erstellt wird (nötig für
 // den StrictMode-/Remount-[REGRESSION]-Test unten).
 let capturedOnFrame: ((camera: THREE.PerspectiveCamera) => void) | undefined;
+let capturedOnTapBox: ((id: string | null) => void) | undefined;
 let capturedControlsApiRef: MutableRefObject<CityControlsApi | null> | undefined;
 
 /** Loop-API-Stub mit signaturtreuen Mocks — strukturell kompatibel zu `CityControlsApi`, Assertions über `.mock.calls`. */
@@ -69,10 +70,12 @@ function makeSceneStub(): CitySceneHandle {
 vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
   CityCanvas: (props: {
     onFrame?: (camera: THREE.PerspectiveCamera) => void;
+    onTapBox?: (id: string | null) => void;
     controlsApiRef?: MutableRefObject<CityControlsApi | null>;
     sceneRef?: MutableRefObject<CitySceneHandle | null>;
   }) => {
     capturedOnFrame = props.onFrame;
+    capturedOnTapBox = props.onTapBox;
     capturedControlsApiRef = props.controlsApiRef;
     useEffect(() => {
       stubControlsApi = makeControlsApiStub();
@@ -123,8 +126,35 @@ vi.mock('@/services/transaction-service', () => ({
 vi.mock('@/services/contract-decision-service', () => ({
   getContractDecisionMap: vi.fn(),
 }));
+// WP-D7: Ziele-Tab wertet Meilensteine aus — der echte Service zieht
+// Financial-Health/Schulden nach und persistiert; hier deterministisch gemockt.
+vi.mock('@/services/milestones-service', () => ({
+  evaluateMilestones: vi.fn(),
+}));
+
+// WP-D9: Breakpoint kontrollierbar mocken (jsdom-matchMedia wäre immer
+// "schmal") — Default Desktop, einzelne Tests schalten auf Mobile um.
+const { useIsWideDesktopMock } = vi.hoisted(() => ({ useIsWideDesktopMock: vi.fn(() => true) }));
+vi.mock('@/hooks/useIsWideDesktop', () => ({ useIsWideDesktop: useIsWideDesktopMock }));
 
 import { getTransactions, getCategories } from '@/services/transaction-service';
+import { evaluateMilestones, type MilestoneStatus } from '@/services/milestones-service';
+
+/** WP-D7: zwei Ziele — eines zu 65 % in Arbeit, eines erreicht (Trophäe). */
+const FIXTURE_MILESTONES: MilestoneStatus[] = [
+  {
+    definition: { key: 'notgroschen', title: 'Notgroschen 1 Monat', description: '', icon: '🌱', isAchieved: () => false },
+    achieved: false,
+    justAchieved: false,
+    progress: { amount: 650, target: 1000, unit: 'euro' },
+  },
+  {
+    definition: { key: 'vermoegen', title: 'Erstes Vermögen', description: '', icon: '💎', isAchieved: () => true },
+    achieved: true,
+    justAchieved: false,
+    progress: { amount: 12000, target: 10000, unit: 'euro' },
+  },
+];
 import { getContractDecisionMap } from '@/services/contract-decision-service';
 
 /** Deterministischer Fake-Kamera-Stub (Präzedenzfall CityLabels.test.tsx): Identitätsmatrizen -> NDC === anchor; `position` für die Welt-Distanz des Label-Fadings (nah -> volle Opazität). */
@@ -250,6 +280,8 @@ beforeEach(() => {
   vi.mocked(getTransactions).mockResolvedValue(FIXTURE_TRANSACTIONS);
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getContractDecisionMap).mockResolvedValue(buildContractDecisions(FIXTURE_TRANSACTIONS));
+  vi.mocked(evaluateMilestones).mockResolvedValue(FIXTURE_MILESTONES);
+  useIsWideDesktopMock.mockReturnValue(true);
 
   // jsdom liefert für `getBoundingClientRect()` ohne echtes Layout immer
   // 0x0 — `CityPage` misst darüber aber die reale Canvas-Fläche
@@ -273,6 +305,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   capturedOnFrame = undefined;
+  capturedOnTapBox = undefined;
   capturedDeclutter = undefined;
 });
 
@@ -360,12 +393,12 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(labels.length).toBeGreaterThan(0);
   });
 
-  it('sollte declutter=false auf Stadt-Ebene und declutter=true nach Eintauchen in einen Distrikt an CityLabels reichen (WP-D1)', async () => {
+  it('sollte auf DESKTOP declutter=false auf Stadt-Ebene und declutter=true nach Eintauchen in einen Distrikt an CityLabels reichen (WP-D1)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<CityPage />, { query: true, locale });
     await screen.findByTestId('city-canvas-stub');
 
-    // Stadt-Ebene (Ausgangszustand): wenige Distrikte -> kein Culling.
+    // Stadt-Ebene (Ausgangszustand, breiter Screen): wenige Distrikte -> kein Culling.
     expect(capturedDeclutter).toBe(false);
 
     // Über die Listenansicht (teilt denselben nav-State wie der Canvas) in
@@ -376,6 +409,44 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await user.click(list().getByRole('button', { name: /Freizeit/ }));
 
     expect(capturedDeclutter).toBe(true);
+  });
+
+  it('[REGRESSION] sollte auf SCHMALEN Screens das Label-Culling auch auf Stadt-Ebene aktivieren (WP-D9, Mobile: Labels stapelten sich unlesbar)', async () => {
+    useIsWideDesktopMock.mockReturnValue(false);
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(capturedDeclutter).toBe(true);
+  });
+
+  it('sollte die Steuerleiste rendern: Zurück (auf Stadt-Ebene deaktiviert) und Reset führen durch die Ebenen (WP-D9)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    // Stadt-Ebene: Zurück deaktiviert, Reset immer verfügbar.
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
+    expect(screen.getByTestId('city-control-reset')).toBeEnabled();
+    // jsdom hat kein Element-Vollbild (fullscreenEnabled falsy) -> Button erscheint gar nicht erst.
+    expect(screen.queryByTestId('city-control-fullscreen')).not.toBeInTheDocument();
+
+    // Eintauchen über die Listenansicht -> Zurück wird aktiv.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    expect(screen.getByTestId('city-control-back')).toBeEnabled();
+
+    // Zurück: eine Ebene raus (Distrikt -> Stadt) -> wieder deaktiviert.
+    await user.click(screen.getByTestId('city-control-back'));
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
+
+    // Erneut eintauchen, dann Reset: direkt zurück auf die Stadt-Ebene.
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    await user.click(list().getByRole('button', { name: /Freizeit/ }));
+    expect(screen.getByTestId('city-control-back')).toBeEnabled();
+    await user.click(screen.getByTestId('city-control-reset'));
+    expect(screen.getByTestId('city-control-back')).toBeDisabled();
   });
 
   it('sollte auf Stadt-Ebene den Kontext-Chip mit der Gesamtausgabe zeigen (WP-D3)', async () => {
@@ -486,6 +557,72 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     // Buchungszeile der neuesten Monats-Etage verlinkt auf die exakte Buchung.
     const bookingLinks = screen.getAllByTestId('city-sheet-booking');
     expect(bookingLinks[0].getAttribute('href')).toContain('tx=tx-gehalt-1');
+  });
+
+  it('sollte auf den Ziele-Tab wechseln: Trophäen-Chip, Fortschritts-Prozente statt Euros (WP-D7)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const goalsTabName = locale === 'de' ? 'Ziele' : 'Goals';
+    await user.click(screen.getByRole('tab', { name: goalsTabName }));
+
+    // Chip zählt Trophäen statt Beträge zu summieren.
+    const chip = await screen.findByTestId('city-context-chip');
+    const summary = locale === 'de' ? /1 von 2 Zielen erreicht/ : /1 of 2 goals achieved/;
+    await waitFor(() => expect(chip.textContent).toMatch(summary));
+
+    // Listenansicht: Bauprojekte mit Fortschritts-Prozent, KEINE Euro-Beträge.
+    await user.click(screen.getByRole('button', { name: /list|liste/i }));
+    const list = () => within(screen.getByTestId('city-accessible-list'));
+    expect(list().getByRole('button', { name: /Notgroschen 1 Monat/ })).toBeInTheDocument();
+    expect(list().getByText(/65\s?%/)).toBeInTheDocument();
+    expect(list().queryByText(/€/)).not.toBeInTheDocument();
+  });
+
+  it('sollte im Übersicht-Tab beide Seiten + Spar-Turm bilanzieren (Chip: Einnahmen · Ausgaben · Sparrate) (WP-D8)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const overviewTabName = locale === 'de' ? 'Übersicht' : 'Overview';
+    await user.click(screen.getByRole('tab', { name: overviewTabName }));
+
+    // Fixture: Einnahmen 3×3.000 = 9.000, Ausgaben 17,99+15,99+9,99 = 43,97
+    // -> Überschuss (Sparrate) 8.956,03.
+    const chip = await screen.findByTestId('city-context-chip');
+    const surplusLabel = locale === 'de' ? /Sparrate/ : /Savings rate/;
+    await waitFor(() => expect(chip.textContent).toMatch(surplusLabel));
+    expect(chip.textContent).toContain('9.000,00');
+    expect(chip.textContent).toContain('43,97');
+    expect(chip.textContent).toContain('8.956,03');
+  });
+
+  it('sollte aus der Übersicht per Doppel-Tap in die Welt des Viertels springen und dort den Distrikt betreten (WP-D8)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const overviewTabName = locale === 'de' ? 'Übersicht' : 'Overview';
+    await user.click(screen.getByRole('tab', { name: overviewTabName }));
+    await screen.findByTestId('city-context-chip');
+
+    // Spar-Turm ist reines Readout: Tap ist ein No-op (Übersicht bleibt aktiv).
+    act(() => capturedOnTapBox?.('overview:balance'));
+    expect(screen.getByRole('tab', { name: overviewTabName })).toHaveAttribute('aria-selected', 'true');
+
+    // Einnahmen-Viertel: 1. Tap = Fokus (Übersicht bleibt), 2. Tap = Welt-Sprung.
+    act(() => capturedOnTapBox?.('income:cat-anstellung'));
+    expect(screen.getByRole('tab', { name: overviewTabName })).toHaveAttribute('aria-selected', 'true');
+    act(() => capturedOnTapBox?.('income:cat-anstellung'));
+
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: incomeTabName })).toHaveAttribute('aria-selected', 'true'),
+    );
+    // Direkt im Distrikt der Ziel-Welt gelandet (Chip zeigt den Distrikt, nicht die Stadt-Summe).
+    const chip = await screen.findByTestId('city-context-chip');
+    await waitFor(() => expect(chip.textContent).toMatch(/Anstellung/));
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

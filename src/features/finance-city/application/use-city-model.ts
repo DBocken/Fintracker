@@ -20,25 +20,43 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions, getCategories } from '@/services/transaction-service';
+import { evaluateMilestones } from '@/services/milestones-service';
 import { buildSunburstTree } from '@/lib/analysis-data';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { useI18n } from '@/i18n/useI18n';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
 import { buildCityModelFromIncomeStreams } from '../domain/city-income-adapter';
+import { buildCityModelFromMilestones } from '../domain/city-goals-adapter';
+import { buildCityOverviewModel, type CityOverviewInfo } from '../domain/city-overview-adapter';
 import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import type { CityModel } from '../domain/city-model';
 import type { Category } from '@/types';
 
-/** WP-D5: Welt der Stadt — Ausgaben (Default) oder Einnahmen. Beide teilen dieselben Queries, nur der Adapter unterscheidet sich. */
-export type CityModelTab = 'expenses' | 'income';
+/** Welt der Stadt — Ausgaben (Default), Einnahmen (WP-D5), Ziele (WP-D7) oder Übersicht (WP-D8, kombiniert beide Geld-Welten). Ausgaben/Einnahmen/Übersicht teilen dieselben Queries, Ziele nutzen die Meilenstein-Auswertung der Milestones-Seite (gleicher Query-Key, geteilter Cache). */
+export type CityModelTab = 'expenses' | 'income' | 'goals' | 'overview';
 
 export type UseCityModelResult = {
   model: CityModel;
   isLoading: boolean;
   isEmpty: boolean;
+  /** Nur im Übersicht-Tab gesetzt: Welt-Zuordnung der Distrikte + Summen/Saldo für Chip und Welt-Sprung. */
+  overview?: CityOverviewInfo;
 };
 
 export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult {
+  // WP-D7: Meilenstein-Titel sind zur Laufzeit lokalisiert (serviceT) —
+  // derselbe locale-abhängige Query-Key wie `MilestonesPage` (geteilter
+  // Cache, kein Duplikat). `enabled` nur im Ziele-Tab: `evaluateMilestones`
+  // wertet Financial-Health/Schulden aus und persistiert neu erreichte
+  // Meilensteine — das soll nicht bei jedem Ausgaben-Besuch mitlaufen.
+  const { locale } = useI18n();
+  const { data: milestones = [], isPending: milestonesPending } = useQuery({
+    queryKey: ['milestones', locale],
+    queryFn: evaluateMilestones,
+    enabled: tab === 'goals',
+  });
+
   const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     // Limit im Query-Key (F-PERF-3-Muster) — identisch zum Dashboard, sonst
     // Cache-Kollision/-Duplikat statt geteiltem Cache.
@@ -57,20 +75,42 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     return map;
   }, [categories]);
 
-  const model = useMemo(() => {
+  const { model, overview } = useMemo(() => {
+    if (tab === 'goals') {
+      // Ziele-Welt (WP-D7): Bauprojekte aus der Meilenstein-Auswertung.
+      return { model: buildCityModelFromMilestones(milestones), overview: undefined };
+    }
     if (tab === 'income') {
       // Einnahmen-Welt (WP-D5): geteilte Strom-Ableitung (Income-Seite nutzt
       // dieselbe Funktion) -> Einnahmen-Adapter. Keine eigene Aggregation.
-      return buildCityModelFromIncomeStreams(deriveIncomeStreams(transactions, categories));
+      return {
+        model: buildCityModelFromIncomeStreams(deriveIncomeStreams(transactions, categories)),
+        overview: undefined,
+      };
     }
+
     const sunburst = buildSunburstTree(transactions, categories);
     const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById);
-    return buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
-  }, [tab, transactions, categories, categoriesById]);
+    const expensesModel = buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
+    if (tab !== 'overview') return { model: expensesModel, overview: undefined };
+
+    // Übersicht (WP-D8): beide Geld-Welten auf einer Platte + Spar-Turm.
+    // WICHTIG: die Einnahmen-Seite nutzt hier ein praktisch unbegrenztes
+    // Fenster (statt der 12 Monate des Einnahmen-Tabs), damit BEIDE Seiten
+    // dieselbe Datenbasis (alle geladenen Buchungen) bilanzieren — sonst
+    // wäre der Spar-Turm eine Differenz über zwei verschiedene Zeiträume.
+    const incomeModel = buildCityModelFromIncomeStreams(
+      deriveIncomeStreams(transactions, categories, { windowMonths: 1200 }),
+    );
+    const result = buildCityOverviewModel(expensesModel, incomeModel);
+    return { model: result.model, overview: result.info };
+  }, [tab, transactions, categories, categoriesById, milestones]);
 
   return {
     model,
-    isLoading: transactionsLoading || categoriesLoading,
+    overview,
+    isLoading:
+      tab === 'goals' ? milestonesPending : transactionsLoading || categoriesLoading,
     isEmpty: model.districts.length === 0,
   };
 }

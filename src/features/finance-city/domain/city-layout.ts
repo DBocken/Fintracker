@@ -216,6 +216,70 @@ function computePlotSize(district: CityDistrict): number {
  * bricht — für die Spec-Daten (4 Distrikte) ergibt das exakt 2x2.
  */
 function computeDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
+  // WP-D8 (Übersicht): tragen Distrikte eine Platzierungs-Gruppe (`side`),
+  // entstehen DREI getrennte Bänder (links | mitte | rechts) — jedes intern
+  // mit dem bestehenden Grid-Algorithmus gelayoutet, dann nebeneinander
+  // geschoben. Ohne `side` unverändert das eine Makro-Grid.
+  if (districts.some((d) => d.side !== undefined)) {
+    return computeSidedDistrictGrid(districts);
+  }
+  return computeBasicDistrictGrid(districts);
+}
+
+/** Verschiebt alle Grundstücks-Zentren einer Teil-Geometrie um `dx` (x-Achse). */
+function shiftGeometryX(geometry: Map<string, DistrictGeometry>, dx: number): void {
+  for (const entry of geometry.values()) {
+    entry.plotCenter.x += dx;
+  }
+}
+
+/** x-Ausdehnung (min/max) einer Teil-Geometrie inkl. Grundstücksgrößen. */
+function geometryXExtent(geometry: Map<string, DistrictGeometry>): { min: number; max: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const entry of geometry.values()) {
+    min = Math.min(min, entry.plotCenter.x - entry.plotSize / 2);
+    max = Math.max(max, entry.plotCenter.x + entry.plotSize / 2);
+  }
+  return { min, max };
+}
+
+/**
+ * Drei-Band-Layout der Übersicht (WP-D8): jede Seite wird für sich mit dem
+ * Basis-Grid gelayoutet (bereits um x=0 zentriert), dann werden die Bänder
+ * mit `DISTRICT_GRID_GAP` Abstand nebeneinander gesetzt und das Gesamtbild
+ * wieder um x=0 zentriert. Distrikte ohne `side` zählen zur Mitte.
+ */
+function computeSidedDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
+  const bands: CityDistrict[][] = [
+    districts.filter((d) => d.side === 'left'),
+    districts.filter((d) => d.side === 'center' || d.side === undefined),
+    districts.filter((d) => d.side === 'right'),
+  ];
+  const bandGeometries = bands
+    .filter((band) => band.length > 0)
+    .map((band) => computeBasicDistrictGrid(band));
+
+  const widths = bandGeometries.map((g) => {
+    const { min, max } = geometryXExtent(g);
+    return max - min;
+  });
+  const totalWidth =
+    widths.reduce((sum, w) => sum + w, 0) + DISTRICT_GRID_GAP * (bandGeometries.length - 1);
+
+  let cursor = -totalWidth / 2;
+  const combined = new Map<string, DistrictGeometry>();
+  bandGeometries.forEach((geometry, index) => {
+    const { min } = geometryXExtent(geometry);
+    shiftGeometryX(geometry, cursor - min);
+    cursor += widths[index] + DISTRICT_GRID_GAP;
+    for (const [id, entry] of geometry) combined.set(id, entry);
+  });
+
+  return combined;
+}
+
+function computeBasicDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
   const geometry = new Map<string, DistrictGeometry>();
   if (districts.length === 0) return geometry;
 
@@ -327,7 +391,12 @@ function buildPlotBox(district: CityDistrict, geometry: DistrictGeometry, opacit
   };
 }
 
-function buildHullBox(district: CityDistrict, bars: PositionedBar[], opacity: number): LayoutBox {
+function buildHullBox(
+  district: CityDistrict,
+  bars: PositionedBar[],
+  opacity: number,
+  cityWideMaxAmount: number,
+): LayoutBox {
   if (bars.length === 0) {
     // Degenerierter Fall (Distrikt ohne Unterkategorien): flache Nullbox am Grundstückszentrum.
     return {
@@ -359,7 +428,15 @@ function buildHullBox(district: CityDistrict, bars: PositionedBar[], opacity: nu
 
   const sizeX = maxX - minX + 2 * HULL_MARGIN;
   const sizeZ = maxZ - minZ + 2 * HULL_MARGIN;
-  const sizeY = maxHeight * (1 + HULL_HEIGHT_HEADROOM_RATIO);
+  // WP-D7 (Ziele-Tab, "Bauprojekt"): trägt der Distrikt einen SOLL-Wert,
+  // kommt die Hüllen-Höhe EXAKT aus diesem Ziel (gleiche sqrt-Skala wie die
+  // Balken, KEIN Kopffreiheits-Aufschlag) — der Füllgrad des Balkens in der
+  // Hülle IST dann der Zielfortschritt; ein erreichtes Ziel füllt seine Hülle
+  // vollständig. Ohne targetAmount unverändert: höchster Balken + Headroom.
+  const sizeY =
+    district.targetAmount !== undefined && district.targetAmount > 0
+      ? scaleHeight(district.targetAmount, cityWideMaxAmount, MAX_BAR_HEIGHT)
+      : maxHeight * (1 + HULL_HEIGHT_HEADROOM_RATIO);
   const centerX = (minX + maxX) / 2;
   const centerZ = (minZ + maxZ) / 2;
   const centerY = GROUND_LEVEL + sizeY / 2;
@@ -463,6 +540,10 @@ function buildGroundBox(plotBoxes: LayoutBox[]): LayoutBox | null {
 function computeCityWideMaxSubcategoryAmount(model: CityModel): number {
   let max = 0;
   for (const district of model.districts) {
+    // WP-D7: SOLL-Werte spannen dieselbe Skala auf wie die Balken — das
+    // höchste Ziel (nicht nur der höchste Ist-Balken) definiert die
+    // Referenzhöhe, sonst ragte eine Ziel-Hülle über MAX_BAR_HEIGHT hinaus.
+    if (district.targetAmount !== undefined && district.targetAmount > max) max = district.targetAmount;
     for (const subcategory of district.subcategories) {
       if (subcategory.amount > max) max = subcategory.amount;
     }
@@ -568,7 +649,7 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
           ? HULL_OPACITY_CITY_FOCUSED
           : HULL_OPACITY_CITY
         : HULL_OPACITY_DISTRICT;
-    const hullBox = buildHullBox(district, bars, hullOpacity);
+    const hullBox = buildHullBox(district, bars, hullOpacity, cityWideMaxAmount);
     hullBox.pickable = view.level === 'city';
     boxes.push(hullBox);
 
@@ -609,7 +690,12 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
   const groundBox = buildGroundBox(plotBoxes);
   if (groundBox) boxes.push(groundBox);
 
-  const { center, boundingRadius } = computeBounds(boxes);
+  // Kamera-Bounds OHNE den dekorativen Boden (WP-D9, Mobile-Befund): der
+  // GROUND_MARGIN-Rand gehört nicht zur Stadt — rahmte die Kamera ihn mit,
+  // wuchs die Fit-Distanz (v. a. im schmalen Portrait-Viewport) und die
+  // Stadt wirkte winzig. Der Boden wird weiterhin gerendert, nur nicht gerahmt.
+  const framedBoxes = boxes.filter((b) => b.kind !== 'ground');
+  const { center, boundingRadius } = computeBounds(framedBoxes.length > 0 ? framedBoxes : boxes);
 
   return { boxes, center, boundingRadius };
 }

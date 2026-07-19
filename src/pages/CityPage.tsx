@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, ChevronRight, List, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, ChevronLeft, ChevronRight, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
+import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
@@ -48,7 +49,7 @@ const CITY_TABS = [
   { value: "goals", labelKey: "city.tabGoals" },
 ] as const;
 
-const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income"]);
+const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["overview", "expenses", "income", "goals"]);
 
 /**
  * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
@@ -123,10 +124,30 @@ export default function CityPage() {
   // geladen wird ODER es keine Ausgabendaten gibt; `useCityNavigation` bleibt
   // damit unbedingt aufrufbar (React-Hook-Regel) und ist mit einem leeren
   // Modell bereits crash-frei (Taps sind No-ops, siehe `use-city-navigation.ts`).
-  // WP-D5: aktive Welt der Stadt (Ausgaben/Einnahmen) — gleiche Pipeline,
-  // anderer Adapter (`useCityModel(tab)`).
+  // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
+  // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
-  const { model, isLoading, isEmpty } = useCityModel(activeTab);
+  const { model, isLoading, isEmpty, overview } = useCityModel(activeTab);
+  // WP-D8 (Übersicht → Welt-Sprung): beim zweiten Tap auf ein Viertel der
+  // Übersicht wird in dessen Welt gewechselt UND direkt der Distrikt betreten
+  // — der Tab-Reset-Effekt liest dieses Ziel statt auf die Stadt-Ebene zu gehen.
+  const pendingWorldFocusRef = useRef<{ districtId: string } | null>(null);
+  // WP-D7: Ziele-Modell trägt Fortschritts-Brüche statt Euros — steuert die
+  // Betrags-Formatierung in Labels, Chip und Listenansicht.
+  const valueFormat: "currency" | "percent" = model.valueKind === "progress" ? "percent" : "currency";
+  const formatCityAmount = useCallback(
+    (amount: number) => (valueFormat === "percent" ? formatPercent(amount, 0) : formatCurrency(amount)),
+    [valueFormat],
+  );
+  // WP-D7: Chip-Zusammenfassung der Ziele-Welt ("X von Y erreicht") — reines
+  // Zählen von Flags, keine Geld-Aggregation.
+  const goalsSummary =
+    activeTab === "goals"
+      ? {
+          achieved: model.districts.filter((d) => d.achieved).length,
+          total: model.districts.length,
+        }
+      : null;
   // Canvas/Labels/Liste mounten NUR mit geladenen, nicht-leeren Daten — spart
   // den WebGL-Kontext während des Ladens/bei leeren Daten (kein Demo-Fallback).
   const canvasMounted = !isLoading && !isEmpty;
@@ -209,10 +230,16 @@ export default function CityPage() {
 
   // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
   // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)
-  // und Hover aufheben. `nav.actions` ist referenzstabil
-  // (use-city-navigation.ts), bewusst nicht in den Deps.
+  // und Hover aufheben. WP-D8: kommt der Wechsel aus einem Übersicht-Tap
+  // (`pendingWorldFocusRef`), wird stattdessen direkt der angetippte Distrikt
+  // der Ziel-Welt betreten (gleiche Ids in Übersicht und Welt-Modell).
+  // `nav.actions` ist referenzstabil (use-city-navigation.ts), bewusst nicht
+  // in den Deps.
   useEffect(() => {
-    nav.actions.goTo("city");
+    const pending = pendingWorldFocusRef.current;
+    pendingWorldFocusRef.current = null;
+    if (pending) nav.actions.goTo("district", pending.districtId);
+    else nav.actions.goTo("city");
     setHoveredBoxId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -240,6 +267,27 @@ export default function CityPage() {
   useEffect(() => {
     if (nav.level !== "city") dismissTapHint();
   }, [nav.level, dismissTapHint]);
+
+  // WP-D9 (Steuerleiste): Vollbild über die Fullscreen-API auf dem Canvas-
+  // Container (Labels/Chip/Steuerleiste liegen darin und bleiben sichtbar).
+  // Auf Plattformen ohne Element-Vollbild (z. B. iPhone-Safari) erscheint der
+  // Button gar nicht erst.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenSupported = typeof document !== "undefined" && document.fullscreenEnabled === true;
+  useEffect(() => {
+    const handleChange = () => setIsFullscreen(document.fullscreenElement !== null);
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
+  }, []);
+  const toggleFullscreen = useCallback(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    } else {
+      void el.requestFullscreen().catch(() => {});
+    }
+  }, []);
 
   const tapHintMotion = useMotionSafe({
     // Datengetriebener Aufbau statt Aufpoppen (docs/design-principles.md §2):
@@ -298,11 +346,28 @@ export default function CityPage() {
   // Aktion abbilden: Hüllen-id = "districtId", Balken-id = "districtId/subId",
   // Etagen-id = "districtId/subId/contractId" (city-layout.ts-Id-Konvention).
   // `null` (Boden/Leere) macht bewusst nichts.
+  const overviewIncomeIds = useMemo(() => new Set(overview?.incomeDistrictIds ?? []), [overview]);
+
   const handleTapBox = useCallback(
     (id: string | null) => {
       if (!id) return;
       dismissTapHint();
       const parts = id.split("/");
+
+      // WP-D8 (Übersicht): erster Tap fokussiert das Viertel (bestehende
+      // Twostep-Semantik), der zweite springt in dessen WELT und betritt dort
+      // denselben Distrikt (Ids identisch). Der Spar-Turm ist reines Readout.
+      if (activeTab === "overview" && parts.length === 1) {
+        if (id === OVERVIEW_BALANCE_DISTRICT_ID) return;
+        if (nav.focusDistrictId === id) {
+          pendingWorldFocusRef.current = { districtId: id };
+          setActiveTab(overviewIncomeIds.has(id) ? "income" : "expenses");
+          return;
+        }
+        nav.actions.tapDistrict(id);
+        return;
+      }
+
       if (parts.length === 1) {
         nav.actions.tapDistrict(parts[0]);
       } else if (parts.length === 2) {
@@ -311,7 +376,7 @@ export default function CityPage() {
         nav.actions.tapContract(parts[2]);
       }
     },
-    [nav.actions, dismissTapHint],
+    [nav.actions, dismissTapHint, activeTab, nav.focusDistrictId, overviewIncomeIds],
   );
 
   // WP-C4: Kamera-Controller-Lifecycle. Läuft NACH `CityCanvas`s eigenem
@@ -558,7 +623,13 @@ export default function CityPage() {
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <EmptyState
                 icon={Building2}
-                title={t(activeTab === "income" ? "city.emptyStateIncome" : "city.emptyState")}
+                title={t(
+                  activeTab === "goals"
+                    ? "city.emptyStateGoals"
+                    : activeTab === "income"
+                      ? "city.emptyStateIncome"
+                      : "city.emptyState",
+                )}
               />
             </div>
           ) : (
@@ -601,11 +672,12 @@ export default function CityPage() {
                   canvasSize={canvasSize}
                   maxVisible={maxVisibleLabels}
                   // WP-D1 (Nutzer-Befund "wo würde Streaming auftauchen?"):
-                  // Stadt-Ebene hat nur wenige Distrikte -> ALLE Distrikt-
-                  // Labels sichtbar (kein Kollisions-Culling/Cap). Ab der
-                  // Distrikt-Ebene (Unterkategorien/Etagen) gibt es
-                  // potenziell viele Gebäude -> dort bleibt entzerrt.
-                  declutter={nav.level !== "city"}
+                  // Stadt-Ebene zeigt auf BREITEN Screens alle Distrikt-Labels
+                  // (kein Kollisions-Culling/Cap). WP-D9 (Mobile-Befund): auf
+                  // schmalen Screens stapelten sich die Labels unlesbar über
+                  // der Stadt — dort gilt das Culling auch auf Stadt-Ebene
+                  // (die wichtigsten Distrikte gewinnen, Rest über Chip/Liste).
+                  declutter={nav.level !== "city" || !isWideDesktop}
                   // WP-D2/D3 (Nutzer-Befund "Labels verdecken kleine Etagen"):
                   // ab der Distrikt-Ebene die Labels seitlich versetzen und per
                   // farbiger Führungslinie mit ihrer Etage/ihrem Gebäude
@@ -619,6 +691,8 @@ export default function CityPage() {
                   highlightedId={hoveredBoxId}
                   onLabelHover={handleHoverBox}
                   onLabelTap={handleTapBox}
+                  // WP-D7: Ziele-Welt zeigt Fortschritts-Prozente statt Euros.
+                  valueFormat={valueFormat}
                   // WP-D1: Fade-in nur bei echtem Ebenen-/Weltwechsel (Balken
                   // wachsen neu), NICHT bei jedem Query-Refetch — sonst
                   // flackern alle Labels, sobald eine Kategorie-Zuweisung/ein
@@ -636,7 +710,28 @@ export default function CityPage() {
                     data-testid="city-context-chip"
                     className="pointer-events-none absolute bottom-3 left-3 max-w-[70%] truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground"
                   >
-                    {cityContext.kind === "city" ? (
+                    {goalsSummary && cityContext.kind === "city" ? (
+                      // WP-D7 (Ziele-Welt): Summen über Fortschritts-Brüche
+                      // wären sinnlos — der Chip zählt stattdessen Trophäen.
+                      <span className="font-medium text-foreground">
+                        {t("city.contextGoalsSummary")
+                          .replace("{achieved}", String(goalsSummary.achieved))
+                          .replace("{count}", String(goalsSummary.total))}
+                      </span>
+                    ) : overview && cityContext.kind === "city" ? (
+                      // WP-D8 (Übersicht): die EINE Hauptaussage der Platte —
+                      // beide Seiten und was übrig bleibt.
+                      <>
+                        {t("city.tabIncome")} {formatCurrency(overview.incomeTotal)}
+                        {" · "}
+                        {t("city.tabExpenses")} {formatCurrency(overview.expensesTotal)}
+                        {" · "}
+                        <span className="font-medium text-foreground">
+                          {t(overview.balance >= 0 ? "city.overviewBalanceSurplus" : "city.overviewBalanceDeficit")}{" "}
+                          {formatCurrency(Math.abs(overview.balance))}
+                        </span>
+                      </>
+                    ) : cityContext.kind === "city" ? (
                       <>
                         {t(activeTab === "income" ? "city.contextTotalIncomeLabel" : "city.contextTotalLabel")} ·{" "}
                         <span className="font-medium text-foreground">{formatCurrency(cityContext.amount)}</span>
@@ -645,14 +740,17 @@ export default function CityPage() {
                       <>
                         <span className="font-medium text-foreground">{cityContext.label}</span>
                         {" · "}
-                        {formatCurrency(cityContext.amount)}
-                        {cityContext.kind === "district" && (
+                        {formatCityAmount(cityContext.amount)}
+                        {/* WP-D7: Gebäude-/Etagen-Zähler und Anteils-Prozente
+                            nur in den Geld-Welten — im Ziele-Modell (1 Gebäude
+                            je Bauprojekt, Brüche statt Beträge) wären sie Rauschen. */}
+                        {valueFormat === "currency" && cityContext.kind === "district" && (
                           <>
                             {" · "}
                             {t("city.contextBuildingCount").replace("{count}", String(cityContext.buildingCount))}
                           </>
                         )}
-                        {cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
+                        {valueFormat === "currency" && cityContext.kind === "subcategory" && cityContext.contractCount > 0 && (
                           <>
                             {" · "}
                             {/* WP-D5: Einnahmen-Etagen sind MONATE, Ausgaben-Etagen Verträge/Händler. */}
@@ -662,7 +760,7 @@ export default function CityPage() {
                             )}
                           </>
                         )}
-                        {typeof cityContext.share === "number" && (
+                        {valueFormat === "currency" && typeof cityContext.share === "number" && (
                           <>
                             {" · "}
                             {t(
@@ -690,6 +788,54 @@ export default function CityPage() {
                     </span>
                   </motion.div>
                 )}
+
+                {/* WP-D9: kompakte Steuerleiste (Videoplayer-Optik: kleine
+                    Rechtecke, unten rechts) — Zurück eine Ebene, Ansicht
+                    zurücksetzen, Vollbild. Liegt IM Canvas-Container, bleibt
+                    also auch im Vollbild sichtbar. Touch-Ziele mobil 44px
+                    (h-11), auf Desktop kompakter (md:h-9). */}
+                <div data-testid="city-controls" className="absolute bottom-3 right-3 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    data-testid="city-control-back"
+                    aria-label={t("city.controlBack")}
+                    disabled={nav.level === "city"}
+                    onClick={() => nav.actions.zoomOutStep()}
+                    className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    data-testid="city-control-reset"
+                    aria-label={t("city.controlReset")}
+                    onClick={() => nav.actions.reset()}
+                    className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                  >
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  {fullscreenSupported && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      data-testid="city-control-fullscreen"
+                      aria-label={t(isFullscreen ? "city.controlExitFullscreen" : "city.controlFullscreen")}
+                      onClick={toggleFullscreen}
+                      className="h-11 w-11 rounded-md bg-background/80 shadow-sm backdrop-blur-sm md:h-9 md:w-9"
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {showList && (
