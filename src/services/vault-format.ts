@@ -39,6 +39,18 @@ export interface VaultPayload {
   /** Forderungsakten (Epic #24) — Feld ist ab v1 reserviert. */
   claims: SyncRecord[];
   categories: SyncRecord[];
+  /**
+   * Lokaler Haushaltsausgleich (Epic #238 / Issue #235). Ohne diese Felder gingen
+   * Haushalte, Mitglieder, Splits und Ausgleichsbuchungen beim Vault-Sync verloren
+   * (harter Blocker vor Issue #247, siehe Entscheidung D4). Die Felder sind
+   * ADDITIV: ältere Vault-Dateien ohne sie werden beim Öffnen defensiv zu `[]`
+   * normalisiert — kein Format-Version-Bump nötig, kein Bruch bestehender Dateien.
+   */
+  households: SyncRecord[];
+  householdMembers: SyncRecord[];
+  sharedExpenseSplits: SyncRecord[];
+  /** Ausgleichsbuchungen (Issue #248) — Feld ist reserviert, befüllt durch C2. */
+  householdSettlements: SyncRecord[];
   /** Einstellungen als einzelner Datensatz (id: "settings"), gleiche Merge-Regel. */
   settings: SyncRecord | null;
 }
@@ -52,7 +64,18 @@ export interface VaultFileV1 {
 }
 
 export function emptyVaultPayload(): VaultPayload {
-  return { transactions: [], accounts: [], debts: [], claims: [], categories: [], settings: null };
+  return {
+    transactions: [],
+    accounts: [],
+    debts: [],
+    claims: [],
+    categories: [],
+    households: [],
+    householdMembers: [],
+    sharedExpenseSplits: [],
+    householdSettlements: [],
+    settings: null,
+  };
 }
 
 // --- Merge-Logik ---------------------------------------------------------
@@ -132,6 +155,10 @@ export function mergeVaultPayloads(local: VaultPayload, remote: VaultPayload): V
     debts: mergeRecords(local.debts, remote.debts),
     claims: mergeRecords(local.claims, remote.claims),
     categories: mergeRecords(local.categories, remote.categories),
+    households: mergeRecords(local.households, remote.households),
+    householdMembers: mergeRecords(local.householdMembers, remote.householdMembers),
+    sharedExpenseSplits: mergeRecords(local.sharedExpenseSplits, remote.sharedExpenseSplits),
+    householdSettlements: mergeRecords(local.householdSettlements, remote.householdSettlements),
     settings,
   };
 }
@@ -196,13 +223,22 @@ export function parseVaultFile(raw: string): VaultFileV1 {
 export async function openVaultFile(file: VaultFileV1, password: string): Promise<VaultPayload> {
   const payload = await decryptJsonWithPassword<Partial<VaultPayload>>(file.payload, password);
 
-  // Defensiv normalisieren — ältere/fremde Dateien könnten Felder weglassen.
+  // Defensiv normalisieren — ältere/fremde Dateien könnten Felder weglassen
+  // (die Haushalts-Felder sind additiv und fehlen in Vault-Dateien vor #235).
   return {
     transactions: Array.isArray(payload.transactions) ? payload.transactions : [],
     accounts: Array.isArray(payload.accounts) ? payload.accounts : [],
     debts: Array.isArray(payload.debts) ? payload.debts : [],
     claims: Array.isArray(payload.claims) ? payload.claims : [],
     categories: Array.isArray(payload.categories) ? payload.categories : [],
+    households: Array.isArray(payload.households) ? payload.households : [],
+    householdMembers: Array.isArray(payload.householdMembers) ? payload.householdMembers : [],
+    sharedExpenseSplits: Array.isArray(payload.sharedExpenseSplits)
+      ? payload.sharedExpenseSplits
+      : [],
+    householdSettlements: Array.isArray(payload.householdSettlements)
+      ? payload.householdSettlements
+      : [],
     settings: payload.settings ?? null,
   };
 }
