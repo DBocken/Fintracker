@@ -49,6 +49,38 @@ describe('expandReplacementPlans (A2, #240)', () => {
     expect(residual?.date).toBe('2026-07-01');
   });
 
+  it('sollte bei vollständigem Ersatzfenster ein probabilistisches Ereignis statt eines Fixtermins erzeugen (A3)', () => {
+    const windowed = plan({
+      planned_replacement_date: undefined,
+      earliest_replacement_date: '2026-06-01',
+      likely_replacement_date: '2026-07-01',
+      latest_replacement_date: '2026-09-01',
+      price_mode: 'inflation',
+    });
+    const { events, probabilisticEvents, transfers } = expandReplacementPlans([windowed], START, 'op');
+
+    // Kein fester Ersatz-Event, dafür ein probabilistisches Ereignis.
+    expect(events.find((e) => e.id === 'rp-rp1-expense')).toBeUndefined();
+    expect(probabilisticEvents).toHaveLength(1);
+    expect(probabilisticEvents[0]).toMatchObject({
+      id: 'rp-rp1',
+      earliestDate: '2026-06-01',
+      likelyDate: '2026-07-01',
+      latestDate: '2026-09-01',
+      accountId: 'res',
+    });
+    expect(probabilisticEvents[0].amountMean).toBeLessThan(0); // Abfluss
+    expect(probabilisticEvents[0].amountCv).toBeGreaterThan(0);
+    // Rücklagen-Transfer bleibt deterministisch bestehen.
+    expect(transfers.find((t) => t.id === 'rp-rp1-contrib')).toBeDefined();
+  });
+
+  it('sollte ohne Fenster weiterhin einen festen Ersatz-Event erzeugen (A2, keine Probabilistik)', () => {
+    const { events, probabilisticEvents } = expandReplacementPlans([plan()], START, 'op');
+    expect(events.find((e) => e.id === 'rp-rp1-expense')).toBeDefined();
+    expect(probabilisticEvents).toHaveLength(0);
+  });
+
   it('sollte vergangene Ersatztermine überspringen', () => {
     const { transfers, events } = expandReplacementPlans(
       [plan({ planned_replacement_date: '2025-01-01' })],

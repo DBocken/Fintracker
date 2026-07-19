@@ -496,6 +496,10 @@ export function composeForecastInput(sources: ForecastInputSources): ForecastInp
     ...composed,
     transfers: [...(composed.transfers ?? []), ...expansion.transfers],
     plannedEvents: [...(composed.plannedEvents ?? []), ...expansion.events],
+    probabilisticEvents: [
+      ...(composed.probabilisticEvents ?? []),
+      ...expansion.probabilisticEvents,
+    ],
   };
 }
 

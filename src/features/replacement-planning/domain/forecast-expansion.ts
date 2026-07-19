@@ -1,13 +1,43 @@
 import { format, addDays, parseISO } from 'date-fns';
 import { toMajor } from '@/lib/money';
-import type { ForecastTransfer, PlannedForecastEvent } from '@/lib/forecast-types';
-import { buildReplacementViewModel, type ReplacementConfig, type ReplacementPlan } from './replacement-plan';
+import type {
+  ForecastTransfer,
+  PlannedForecastEvent,
+  ProbabilisticPlannedEvent,
+} from '@/lib/forecast-types';
+import {
+  buildReplacementViewModel,
+  type PriceMode,
+  type ReplacementConfig,
+  type ReplacementPlan,
+} from './replacement-plan';
 
 const ISO = 'yyyy-MM-dd';
+
+/**
+ * Preis-Variationskoeffizient je Modus (Slice A3, #241): die Unsicherheit des
+ * Ersatzpreises, nicht die Drift. „stabil" ist am engsten, „individuell" am
+ * weitesten. Bewusst konservative Defaults (Modellannahme, D6).
+ */
+const PRICE_CV_BY_MODE: Record<PriceMode, number> = {
+  stable: 0.05,
+  inflation: 0.1,
+  individual: 0.15,
+};
+
+function hasReplacementWindow(plan: ReplacementPlan): boolean {
+  return Boolean(
+    plan.earliest_replacement_date &&
+      plan.likely_replacement_date &&
+      plan.latest_replacement_date,
+  );
+}
 
 export interface ReplacementExpansion {
   transfers: ForecastTransfer[];
   events: PlannedForecastEvent[];
+  /** Probabilistische Ersatzereignisse (Pläne mit vollständigem Fenster, A3). */
+  probabilisticEvents: ProbabilisticPlannedEvent[];
 }
 
 /**
@@ -32,25 +62,48 @@ export function expandReplacementPlans(
 ): ReplacementExpansion {
   const transfers: ForecastTransfer[] = [];
   const events: PlannedForecastEvent[] = [];
+  const probabilisticEvents: ProbabilisticPlannedEvent[] = [];
   const config: ReplacementConfig = { today: startISO, inflationRate: options.inflationRate };
 
   for (const plan of plans) {
-    const vm = buildReplacementViewModel(plan, config);
+    const windowed = hasReplacementWindow(plan);
+    // Bei Fenster rechnet die Sicht mit dem wahrscheinlichen Termin.
+    const effectivePlan = windowed
+      ? { ...plan, planned_replacement_date: plan.likely_replacement_date }
+      : plan;
+    const vm = buildReplacementViewModel(effectivePlan, config);
     // Vergangene Ersatztermine lassen sich nicht in die Zukunft prognostizieren.
     if (vm.replacementDate < startISO) continue;
 
     const eventAccount = plan.reserve_account_id ?? defaultOperatingAccountId;
     if (!eventAccount) continue; // Ohne Konto lässt sich der Posten nicht platzieren.
 
-    // (c) Ersatz-Cashflow — der einzige saldowirksame Abfluss.
-    events.push({
-      id: `rp-${plan.id}-expense`,
-      name: plan.name,
-      amount: -Math.abs(toMajor(vm.cashflow.outflowMinor)),
-      date: vm.replacementDate,
-      accountId: eventAccount,
-      category: plan.category,
-    });
+    const outflowEuros = -Math.abs(toMajor(vm.cashflow.outflowMinor));
+
+    if (windowed) {
+      // (c) Probabilistisches Ersatzereignis: unsicheres Datum (Fenster) + Preis.
+      probabilisticEvents.push({
+        id: `rp-${plan.id}`,
+        name: plan.name,
+        amountMean: outflowEuros,
+        amountCv: PRICE_CV_BY_MODE[plan.price_mode],
+        earliestDate: plan.earliest_replacement_date as string,
+        likelyDate: plan.likely_replacement_date as string,
+        latestDate: plan.latest_replacement_date as string,
+        accountId: eventAccount,
+        category: plan.category,
+      });
+    } else {
+      // (c) Fester Ersatz-Cashflow — der einzige saldowirksame Abfluss (A2).
+      events.push({
+        id: `rp-${plan.id}-expense`,
+        name: plan.name,
+        amount: outflowEuros,
+        date: vm.replacementDate,
+        accountId: eventAccount,
+        category: plan.category,
+      });
+    }
 
     // (c) Restwert als SEPARATER Zufluss — kein Netting gegen den Abfluss.
     if (vm.cashflow.residualInflowMinor > 0) {
@@ -89,5 +142,5 @@ export function expandReplacementPlans(
     }
   }
 
-  return { transfers, events };
+  return { transfers, events, probabilisticEvents };
 }

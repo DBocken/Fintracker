@@ -9,12 +9,22 @@
  * Mit festem Seed ist der Lauf vollständig reproduzierbar und damit testbar.
  */
 import { calculateDeterministicForecast, pickVariableExpenseAccount } from './forecast';
-import { addDays, addMonths, format, getDay, getDaysInMonth, parseISO, startOfMonth } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  differenceInCalendarDays,
+  format,
+  getDay,
+  getDaysInMonth,
+  parseISO,
+  startOfMonth,
+} from 'date-fns';
 import { sampleOccurrenceMonth } from './finrisk/occurrence-amount';
 import type {
   ForecastConfig,
   ForecastInput,
   PlannedForecastEvent,
+  ProbabilisticPlannedEvent,
   RecurringFlow,
   ResolvedForecastConfig,
   VariableExpenseBaseline,
@@ -144,6 +154,47 @@ function buildOccurrenceEvents(
   return events;
 }
 
+/** Dreiecks-Ziehung aus U~[0,1) über [a,b] mit Modus c (a ≤ c ≤ b). */
+function sampleTriangular(a: number, c: number, b: number, u: number): number {
+  if (b <= a) return a;
+  const mode = Math.min(Math.max(c, a), b);
+  const fc = (mode - a) / (b - a);
+  if (u < fc) return a + Math.sqrt(u * (b - a) * (mode - a));
+  return b - Math.sqrt((1 - u) * (b - a) * (b - mode));
+}
+
+/**
+ * Zieht pro Trial für jedes probabilistische Ereignis ein Datum (Dreieck über
+ * das Fenster) und einen Betrag (lognormal, erwartungstreu über den bestehenden
+ * `lognormalMultiplier`). Leere Eingabe zieht NICHTS aus dem RNG — damit bleibt
+ * die Sequenz bestehender Läufe (ohne probabilistische Ereignisse) identisch.
+ */
+function buildProbabilisticEvents(
+  events: ProbabilisticPlannedEvent[],
+  startISO: string,
+  normal: () => number,
+  rng: () => number,
+): PlannedForecastEvent[] {
+  if (events.length === 0) return [];
+  const start = parseISO(startISO);
+  const dayIndex = (iso: string) => differenceInCalendarDays(parseISO(iso), start);
+  return events.map((pe) => {
+    const day = Math.max(
+      0,
+      Math.round(sampleTriangular(dayIndex(pe.earliestDate), dayIndex(pe.likelyDate), dayIndex(pe.latestDate), rng())),
+    );
+    const amount = round2(pe.amountMean * lognormalMultiplier(normal, pe.amountCv));
+    return {
+      id: `prob-${pe.id}`,
+      name: pe.name,
+      amount,
+      date: format(addDays(start, day), 'yyyy-MM-dd'),
+      accountId: pe.accountId,
+      category: pe.category,
+    };
+  });
+}
+
 /**
  * Erzeugt eine zufällig perturbierte Kopie des Inputs: variable Ausgaben je
  * Kategorie (um ihren Planwert) und – falls aktiviert – wiederkehrende
@@ -221,12 +272,22 @@ function perturbInput(
     return f;
   });
 
-  const plannedEvents = occurrenceEvents.length
-    ? [...(input.plannedEvents ?? []), ...occurrenceEvents]
+  // Probabilistische Ereignisse pro Trial ziehen (Datum + Betrag) und die
+  // deterministische Erwartungswert-Expansion im Kern deaktivieren, damit
+  // dasselbe Ereignis nicht doppelt gebucht wird.
+  const probabilisticSampled = buildProbabilisticEvents(
+    input.probabilisticEvents ?? [],
+    startISO,
+    normal,
+    rng,
+  );
+  const extraEvents = [...occurrenceEvents, ...probabilisticSampled];
+  const plannedEvents = extraEvents.length
+    ? [...(input.plannedEvents ?? []), ...extraEvents]
     : input.plannedEvents;
 
   return {
-    input: { ...input, variableExpenses, recurringFlows, plannedEvents },
+    input: { ...input, variableExpenses, recurringFlows, plannedEvents, probabilisticEvents: [] },
     assumptions: collectAssumptions ? { variableByCategory, income } : null,
   };
 }
