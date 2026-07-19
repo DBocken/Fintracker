@@ -144,6 +144,10 @@ class TransactionStorageService {
       // mitgelöscht, damit keine verwaisten Aufteilungen zurückbleiben.
       const { deleteAllocationsForTransactions } = await import('./transaction-allocation-service');
       await deleteAllocationsForTransactions([id]);
+      // Anlass-Zuordnungen (Sonderkategorien) sind ebenfalls kontoneutrale
+      // Zusatzdaten der Buchung und werden mitgelöscht (keine Waisen).
+      const { deleteAssignmentsForTransactions } = await import('./special-category-service');
+      await deleteAssignmentsForTransactions([id]);
       return result;
     } catch (error) {
       logger.error(`[TransactionStorage] Error deleting transaction: ${error instanceof Error ? error.message : String(error)}`, { source: 'transaction-storage' });

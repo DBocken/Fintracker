@@ -19,6 +19,7 @@ import {
   Landmark,
   Briefcase,
   Building2,
+  PartyPopper,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 
@@ -95,6 +96,17 @@ export const NAV_GROUPS: NavGroup[] = [
         subtitleKey: "nav.subtitles.income",
       },
       { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
+      {
+        // Label/Subtitle teilen sich bewusst die specialCategories-Keys (kein
+        // eigener nav.items.occasions-Key nötig – DRY über 4 Locales).
+        label: "Anlässe",
+        labelKey: "specialCategories.title",
+        path: "/occasions",
+        icon: PartyPopper,
+        requiredTier: "premium",
+        subtitle: "Was hat der Urlaub wirklich gekostet?",
+        subtitleKey: "specialCategories.subtitle",
+      },
       {
         label: "Steuer",
         labelKey: "nav.items.tax",
@@ -176,6 +188,7 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
   "/premium": "premiumAnalytics",
   "/simulation": "simulation",
   "/contracts": "bankSync",
+  "/occasions": "specialCategories",
 };
 
 /**

@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransactionDetailsPanel } from '@/components/dashboard/TransactionDetailsPanel';
 import { useI18n } from '@/i18n/useI18n';
+import type { Transaction } from '@/types';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import type { TransactionsViewInteractionProps } from '../transactions-view-props';
 
@@ -9,6 +11,8 @@ interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransacti
   model: TransactionsOverviewViewModel;
   /** Detail schließen (Desktop-Panel-X-Button, Page-`closeDetails`) — nur Desktop hat einen dedizierten Schließen-Button. */
   onCloseDetails: () => void;
+  /** Optionaler Zusatzbereich unter dem Detail (z. B. Anlass-Zuordnung) — von der Page komponiert. */
+  renderDetailExtra?: (transaction: Transaction) => ReactNode;
 }
 
 /**
@@ -19,7 +23,7 @@ interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransacti
  * ehemalige CSS-Weiche `hidden lg:block` entfällt, weil die Page das jetzt
  * per JS steuert (Details: `src/features/transactions/README.md`).
  */
-export function TransactionsDetailAside({ model, detailsTransaction, onCloseDetails, onSaveDetails }: Props) {
+export function TransactionsDetailAside({ model, detailsTransaction, onCloseDetails, onSaveDetails, renderDetailExtra }: Props) {
   const { t } = useI18n();
 
   return (
@@ -55,6 +59,7 @@ export function TransactionsDetailAside({ model, detailsTransaction, onCloseDeta
                 closeLabel={t('common.close')}
                 layout="split"
               />
+              {renderDetailExtra?.(detailsTransaction)}
             </div>
           </div>
         ) : (
