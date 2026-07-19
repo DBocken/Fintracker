@@ -10,6 +10,11 @@ import {
 } from '@/lib/schemas';
 import type { z } from 'zod';
 import type { ReplacementPlan } from '@/lib/schemas/replacement-plan.schema';
+import {
+  restartReplacementCycle,
+  type ReplacementConfirmation,
+} from '@/features/replacement-planning/domain/cycle-restart';
+import { t } from '@/i18n/serviceT';
 
 /**
  * CRUD-Service für lebensdauerbasierte Ersatzpläne (Slice A1, Issue #239).
@@ -46,4 +51,20 @@ export async function upsertReplacementPlan(draft: ReplacementPlanDraft): Promis
 
 export async function deleteReplacementPlan(id: string): Promise<void> {
   await deleteLocalFinanceItem<ReplacementPlan>('replacementPlans', id);
+}
+
+/**
+ * Bestätigt einen tatsächlichen Ersatz und startet den Rücklagenzyklus neu
+ * (Slice A5, #243). Rein additiv: der Plan bleibt bestehen, nur mit neuem
+ * Kaufdatum/Preisbasis/Rücklage und erhöhtem `cycle_count`.
+ */
+export async function confirmReplacement(
+  planId: string,
+  confirmation: ReplacementConfirmation,
+): Promise<ReplacementPlan> {
+  const plans = await getReplacementPlans();
+  const plan = plans.find((p) => p.id === planId);
+  if (!plan) throw new Error(t('replacementPlanService.notFound', 'Ersatzplan nicht gefunden'));
+  const restarted = restartReplacementCycle(plan, confirmation);
+  return upsertReplacementPlan(restarted);
 }

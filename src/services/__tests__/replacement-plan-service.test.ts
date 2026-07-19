@@ -3,6 +3,7 @@ import {
   getReplacementPlans,
   upsertReplacementPlan,
   deleteReplacementPlan,
+  confirmReplacement,
 } from '../replacement-plan-service';
 import { writeLocalFinanceList } from '../local-finance-store';
 import { clearLocalKvStore } from '../idb-kv';
@@ -61,6 +62,34 @@ describe('Ersatzplan-Service (Issue #239)', () => {
     const all = await getReplacementPlans();
     expect(all).toHaveLength(1);
     expect(all[0].id).toBe('ok');
+  });
+
+  it('sollte einen bestätigten Ersatz den Zyklus neu starten lassen (#243)', async () => {
+    const created = await upsertReplacementPlan({
+      name: 'Waschmaschine',
+      replacement_cost_minor: 60000,
+      lifespan_months: 120,
+      reserve_minor: 60000,
+      planned_replacement_date: '2026-04-01',
+    });
+
+    const restarted = await confirmReplacement(created.id, {
+      replacementDate: '2026-04-01',
+      actualCostMinor: 61000,
+      transactionId: 'tx-1',
+    });
+
+    expect(restarted.cycle_count).toBe(1);
+    expect(restarted.purchase_date).toBe('2026-04-01');
+    expect(restarted.last_replacement_transaction_id).toBe('tx-1');
+
+    const all = await getReplacementPlans();
+    expect(all).toHaveLength(1); // kein Duplikat
+    expect(all[0].reserve_minor).toBe(0);
+  });
+
+  it('sollte bei unbekanntem Plan die Bestätigung ablehnen', async () => {
+    await expect(confirmReplacement('gibtsnicht', { replacementDate: '2026-04-01' })).rejects.toThrow();
   });
 
   it('sollte einen Plan löschen', async () => {

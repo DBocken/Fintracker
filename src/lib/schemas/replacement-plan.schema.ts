@@ -60,6 +60,14 @@ export const replacementPlanSchema = z.object({
    */
   contract_record_id: z.string().optional(),
 
+  /**
+   * Zyklus-Neustart nach bestätigtem Ersatz (Slice A5, #243). Typisierte FK auf
+   * die reale Ersatz-Transaktion (statisches Ziel ⇒ FK, AD7). `cycle_count`
+   * zählt, wie oft der Gegenstand bereits ersetzt wurde.
+   */
+  last_replacement_transaction_id: z.string().optional(),
+  cycle_count: z.number().int().nonnegative().optional(),
+
   /** Fester geplanter Ersatztermin (ISO) — die erste Ausbaustufe (A1). */
   planned_replacement_date: z.string().optional(),
 
