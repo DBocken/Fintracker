@@ -53,6 +53,13 @@ export const replacementPlanSchema = z.object({
   /** Optionaler Restwert des Altgeräts beim Ersatz, in Cent (≥ 0). */
   residual_value_minor: z.number().int().nonnegative().optional(),
 
+  /**
+   * Typisierte FK auf eine Vertrags-/Garantieakte (Slice B2, #245). Statisches
+   * Ziel ⇒ FK-Feld statt generischer EntityRef (AD7); dangling-tolerant, keine
+   * Datenkopie.
+   */
+  contract_record_id: z.string().optional(),
+
   /** Fester geplanter Ersatztermin (ISO) — die erste Ausbaustufe (A1). */
   planned_replacement_date: z.string().optional(),
 

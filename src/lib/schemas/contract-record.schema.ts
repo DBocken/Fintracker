@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { entityRefSchema } from './entity-ref.schema';
 
 /**
  * zod-Schema der nutzereigenen Vertrags-, Beleg- und Garantieakte (Slice B1,
@@ -20,6 +21,33 @@ export type ContractCycle = z.infer<typeof contractCycleSchema>;
 
 export const contractStatusSchema = z.enum(['active', 'cancelled', 'ended']);
 export type ContractStatus = z.infer<typeof contractStatusSchema>;
+
+/**
+ * Beleg-/Dokument-METADATEN (Slice B2, #245). Stufe 1 speichert bewusst KEINE
+ * Blobs — der kv-Store bleibt JSON-only. Optionaler `extracted_text` kommt aus
+ * der bestehenden OCR-Pipeline; der eigentliche Blob-Speicher ist Slice B3 (#246,
+ * entscheidungsgebunden D1).
+ */
+export const documentKindSchema = z.enum(['invoice', 'receipt', 'warranty', 'contract', 'other']);
+export const contractDocumentSchema = z.object({
+  id: z.string().min(1),
+  filename: z.string().min(1),
+  kind: documentKindSchema.default('other'),
+  note: z.string().optional(),
+  /** Optionaler Inhalts-Hash (Dedup/Integrität), kein Blob. */
+  content_hash: z.string().optional(),
+  /** Optionaler, on-device extrahierter Text (OCR) — kein Bild. */
+  extracted_text: z.string().optional(),
+  added_at: z.string().optional(),
+});
+export type ContractDocument = z.infer<typeof contractDocumentSchema>;
+
+/** Ein Preisverlaufs-Punkt (Betrag in Cent zu einem Datum). */
+export const priceHistoryEntrySchema = z.object({
+  date: z.string().min(1),
+  amount_minor: z.number().int(),
+});
+export type PriceHistoryEntry = z.infer<typeof priceHistoryEntrySchema>;
 
 export const contractRecordSchema = z.object({
   id: z.string().min(1),
@@ -49,6 +77,20 @@ export const contractRecordSchema = z.object({
 
   status: contractStatusSchema.default('active'),
   note: z.string().optional(),
+
+  // --- Beleg, Garantie, Preisverlauf, Verknüpfung (Slice B2, #245) ---
+  /** Beleg-/Dokument-Metadaten (keine Blobs in Stufe B2). */
+  documents: z.array(contractDocumentSchema).optional(),
+  /** Kaufdatum — Basis für den abgeleiteten Garantieablauf. */
+  purchase_date: z.string().optional(),
+  /** Garantiedauer in Monaten ab Kaufdatum. */
+  warranty_months: z.number().int().nonnegative().optional(),
+  /** Explizites Garantieende (ISO) — Alternative zu Kaufdatum + Dauer. */
+  warranty_end: z.string().optional(),
+  /** Manueller/erkannter Preisverlauf (aufsteigend nach Datum interpretiert). */
+  price_history: z.array(priceHistoryEntrySchema).optional(),
+  /** Generischer Verweis auf ein verknüpftes Objekt (dangling-tolerant, AD7). */
+  linked_object: entityRefSchema.optional(),
 
   created_at: z.string().optional(),
   updated_at: z.string().optional(),

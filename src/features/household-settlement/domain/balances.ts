@@ -15,6 +15,8 @@ export interface SettlementEntry {
   from_member_id: string;
   to_member_id: string;
   amount_minor: number;
+  /** Optionaler Link auf die reale Transaktion, falls per Konto ausgeglichen. */
+  linked_transaction_id?: string;
 }
 
 /** Nettosaldo eines Mitglieds: > 0 = ihm wird geschuldet, < 0 = er schuldet. */
@@ -60,9 +62,7 @@ export function settlementProgress(
  * (analog Invariante 2: interne Umbuchungen sind weder Einnahme noch Ausgabe),
  * um Doppelzählung zu verhindern.
  */
-export function settlementTransactionIds(
-  settlements: { linked_transaction_id?: string }[],
-): Set<string> {
+export function settlementTransactionIds(settlements: SettlementEntry[]): Set<string> {
   const ids = new Set<string>();
   for (const s of settlements) {
     if (s.linked_transaction_id) ids.add(s.linked_transaction_id);

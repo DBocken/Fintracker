@@ -40,6 +40,33 @@ describe('Vertragsakte-Service (Issue #244)', () => {
     ).rejects.toThrow();
   });
 
+  it('sollte Belege, Garantie, Preisverlauf und Objekt-Verknüpfung persistieren (#245)', async () => {
+    const created = await upsertContractRecord({
+      name: 'Kühlschrank',
+      purchase_date: '2025-03-10',
+      warranty_months: 24,
+      documents: [{ id: 'd1', filename: 'rechnung.pdf', kind: 'invoice', extracted_text: 'Summe 499,00' }],
+      price_history: [{ date: '2025-03-10', amount_minor: 49900 }],
+      linked_object: { kind: 'replacement_plan', id: 'rp-1' },
+    });
+
+    const all = await getContractRecords();
+    expect(all[0].documents?.[0].filename).toBe('rechnung.pdf');
+    expect(all[0].warranty_months).toBe(24);
+    expect(all[0].linked_object).toEqual({ kind: 'replacement_plan', id: 'rp-1' });
+    expect(created.linked_object?.kind).toBe('replacement_plan');
+  });
+
+  it('[INTEGRITY] sollte eine EntityRef mit unbekanntem kind am Boundary abweisen', async () => {
+    await expect(
+      upsertContractRecord({
+        name: 'X',
+        // @ts-expect-error absichtlich ungültiges kind
+        linked_object: { kind: 'auto', id: 'x' },
+      }),
+    ).rejects.toThrow();
+  });
+
   it('sollte eine Akte löschen', async () => {
     const created = await upsertContractRecord({ name: 'Handyvertrag' });
     await deleteContractRecord(created.id);
