@@ -43,6 +43,10 @@ export const translations = {
       childrenLabel: 'Unter-Anlässe',
       suggestionsLabel: 'Vorschläge',
       premiumTeaser: 'Anlässe sind ein Premium-Feature.',
+      assignTitle: 'Anlass zuordnen',
+      assignEmpty: 'Noch keine Anlässe – lege zuerst einen an.',
+      suggestedBadge: 'Vorschlag',
+      assigned: 'Zugeordnet',
     },
     common: {
       save: 'Speichern',
@@ -3788,6 +3792,10 @@ export const translations = {
       childrenLabel: 'Sub-occasions',
       suggestionsLabel: 'Suggestions',
       premiumTeaser: 'Occasions are a premium feature.',
+      assignTitle: 'Assign occasion',
+      assignEmpty: 'No occasions yet – create one first.',
+      suggestedBadge: 'Suggested',
+      assigned: 'Assigned',
     },
     common: {
       save: 'Save',
@@ -7533,6 +7541,10 @@ export const translations = {
       childrenLabel: "qaSwI' bIng",
       suggestionsLabel: "qeS",
       premiumTeaser: "qaSwI'mey 'oH Premium Segh'e'.",
+      assignTitle: "qaSwI' yIboq",
+      assignEmpty: "qaSwI' tu'be'lu' – wa' yIchenmoH.",
+      suggestedBadge: "qeS",
+      assigned: "boqlu'ta'",
     },
     common: {
       save: "yIpol",
@@ -11219,6 +11231,10 @@ export const translations = {
       childrenLabel: 'Под-события',
       suggestionsLabel: 'Предложения',
       premiumTeaser: 'События — премиум-функция.',
+      assignTitle: 'Привязать к событию',
+      assignEmpty: 'Событий пока нет — сначала создайте одно.',
+      suggestedBadge: 'Предложение',
+      assigned: 'Привязано',
     },
     common: {
       save: 'Сохранить',
