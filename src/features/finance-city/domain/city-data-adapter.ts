@@ -52,19 +52,24 @@ import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './c
  * Töne bewusst mittelhell/mittelgesättigt, damit sie sowohl auf dunklem als
  * auch hellem Hintergrund lesbar bleiben (Light-Mode, WP-C9).
  */
+// Nutzer-Befund (WP-D6): die vorherigen mittelgesättigten Töne wirkten auf der
+// dunklen Szene ausgewaschen — die Palette ist jetzt bewusst KRÄFTIG
+// (hochgesättigte Juwelentöne), zusammen mit dem Emissive-Grundglühen und dem
+// ACES-Tone-Mapping der Szene (`city-scene.ts`, Premium-Look) bleiben die
+// Viertel auf dunklem UND hellem Hintergrund klar unterscheidbar.
 const CITY_DISTRICT_PALETTE = [
-  '#2e9e8f', // Teal
-  '#e0644f', // Korallenrot
-  '#e0a53e', // Bernstein
-  '#4f86d6', // Blau
-  '#9b6fd6', // Violett
-  '#4caf50', // Grün
-  '#e07b3e', // Orange
-  '#d264a0', // Pink
-  '#5ab0bd', // Cyan
-  '#b0894f', // Sand
-  '#7186ad', // Schieferblau
-  '#7a9e3f', // Oliv-Grün
+  '#14b8a6', // Teal
+  '#f0563c', // Koralle
+  '#f5a623', // Bernstein
+  '#3b82f6', // Blau
+  '#a855f7', // Violett
+  '#22c55e', // Grün
+  '#f97316', // Orange
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#d4a017', // Gold
+  '#6366f1', // Indigo
+  '#84cc16', // Limette
 ] as const;
 
 function districtColor(index: number): string {

@@ -457,6 +457,36 @@ describe('createCityScene', () => {
     });
   });
 
+  describe('Premium-Look (WP-D6)', () => {
+    it('sollte filmisches ACES-Tone-Mapping mit angehobener Exposure am Renderer setzen (keine zusätzlichen Render-Passes)', () => {
+      const { renderer } = createHandle();
+      expect((renderer as unknown as { toneMapping: THREE.ToneMapping }).toneMapping).toBe(THREE.ACESFilmicToneMapping);
+      expect((renderer as unknown as { toneMappingExposure: number }).toneMappingExposure).toBeGreaterThan(1);
+    });
+
+    it('sollte zusätzlich zum Hauptlicht ein Gegen-/Kantenlicht enthalten (zwei gerichtete Lichter, ohne Schatten)', () => {
+      const { scene } = createHandle();
+      const directionals = scene.children.filter(
+        (c): c is THREE.DirectionalLight => c instanceof THREE.DirectionalLight,
+      );
+      expect(directionals).toHaveLength(2);
+      for (const light of directionals) {
+        expect(light.castShadow).toBe(false); // Akku-/Render-on-Demand-Vorgabe: keine Schatten-Maps.
+      }
+    });
+
+    it('sollte soliden Baukörpern ein dezentes Eigenleuchten in der EIGENEN Farbe geben (Emissive-Tint, kein weißes Glühen)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' }));
+
+      const barMesh = meshesOf(scene).find((m) => m.userData.kind === 'bar')!;
+      const material = barMesh.material as THREE.MeshLambertMaterial;
+      expect(material.emissiveIntensity).toBeGreaterThan(0);
+      // Emissive == Grundfarbe (Tint), nicht Weiß — Weiß ist dem Hover-Highlight vorbehalten.
+      expect(material.emissive.getHex()).toBe(material.color.getHex());
+    });
+  });
+
   describe('setHighlight (WP-D3, Hover-Kopplung)', () => {
     it('sollte einen Lambert-Baukörper mit eigener Klon-Instanz (Emissive) hervorheben und bei null die geteilte Instanz wiederherstellen', () => {
       const { handle, scene } = createHandle();

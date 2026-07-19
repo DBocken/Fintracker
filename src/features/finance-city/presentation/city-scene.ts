@@ -158,6 +158,13 @@ const CAMERA_FAR = 1000;
 const EDGE_OPACITY = 0.35;
 
 /**
+ * WP-D6 (Premium-Look): dezentes Eigenleuchten der soliden Baukörper in ihrer
+ * EIGENEN Farbe — hebt Sättigung/Präsenz auf der dunklen Szene, ohne Bloom/
+ * Post-Processing (Render-on-Demand + Mobil-Akku bleiben unberührt).
+ */
+const SOLID_EMISSIVE_INTENSITY = 0.16;
+
+/**
  * Zwei Material-„Buckets": undurchsichtige Baukörper (Balken/Etagen/Boden)
  * nutzen `MeshLambertMaterial` (reagiert auf Licht, `flatShading` bewusst
  * NICHT gesetzt = glatte Flächen), Hüllen/Grundstücke sind `MeshBasicMaterial`
@@ -217,6 +224,13 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const directionalLight = new THREE.DirectionalLight(palette.dirColor, palette.dirIntensity);
   directionalLight.position.set(8, 14, 6);
   scene.add(directionalLight);
+  // WP-D6 (Premium-Look): kühles Gegen-/Kantenlicht von schräg hinten —
+  // modelliert die dem Hauptlicht abgewandten Baukörper-Kanten (mehr Tiefe),
+  // bewusst OHNE Schatten-Maps (README-Akzeptanzkriterium: Render-on-Demand/
+  // Akku). Fester, themenneutraler Stil-Wert wie `EDGE_OPACITY`.
+  const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
+  rimLight.position.set(-8, 10, -10);
+  scene.add(rimLight);
 
   // DPR bei Renderer-Erstellung: Antialiasing nur, wenn der (gedeckelte)
   // Device-Pixel-Ratio niedrig genug ist (hohe DPR + MSAA verdoppelt die
@@ -238,6 +252,13 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       // nicht die GPU-Wahl.
       powerPreference: 'high-performance',
     });
+
+  // WP-D6 (Premium-Look): filmisches ACES-Tone-Mapping — tiefere Kontraste und
+  // sattere Farben OHNE zusätzliche Render-Passes (kein Post-Processing, die
+  // Render-on-Demand-/Akku-Vorgabe bleibt unberührt). Exposure leicht angehoben,
+  // weil ACES die Mitten sonst etwas absenkt.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
 
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -314,6 +335,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
           })
         : new THREE.MeshLambertMaterial({
             color: box.color,
+            // WP-D6: Eigenleuchten in der Boxfarbe (siehe SOLID_EMISSIVE_INTENSITY)
+            // — das Hover-Highlight (`setHighlight`) glüht dagegen WEISS und
+            // bleibt dadurch klar unterscheidbar.
+            emissive: box.color,
+            emissiveIntensity: SOLID_EMISSIVE_INTENSITY,
             transparent: box.opacity < 1,
             opacity: box.opacity,
           });
@@ -610,8 +636,8 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   }
 
   // --- WP-D3: Hover-Highlight ---------------------------------------------
-  /** Dezente Glüh-Intensität für Lambert-Baukörper (Balken/Etagen) im Hover. */
-  const HIGHLIGHT_EMISSIVE_INTENSITY = 0.18;
+  /** Glüh-Intensität für Lambert-Baukörper (Balken/Etagen) im Hover — WEISS und deutlich über dem farbigen Grund-Eigenleuchten (`SOLID_EMISSIVE_INTENSITY`), damit das Highlight klar absticht. */
+  const HIGHLIGHT_EMISSIVE_INTENSITY = 0.5;
   /** Opazitäts-Schub für transparente Hüllen im Hover (geclamped auf 1). */
   const HIGHLIGHT_OPACITY_BOOST = 0.15;
 

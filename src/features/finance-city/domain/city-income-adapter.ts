@@ -39,13 +39,15 @@ export const EARLIER_MONTHS_FLOOR_ID = '__earlier';
  * `CITY_DISTRICT_PALETTE` (Ausgaben): die Einnahmen-Welt ist durchgehend
  * kühl/grün, Unterscheidbarkeit kommt aus der Helligkeits-/Tonspreizung.
  */
+// Kräftige Töne (WP-D6, Nutzer-Befund "Farben nicht gut zu sehen") — analog
+// zur Ausgaben-Palette hochgesättigt, bleibt aber in der kühlen Grün-Familie.
 const INCOME_DISTRICT_PALETTE = [
-  '#2e9e6b', // Smaragd
-  '#3f8fa8', // Petrol-Blau
-  '#55b08a', // Jade
-  '#6a9e4f', // Blattgrün
-  '#4fb3a5', // Türkis
-  '#8fae5a', // Lindgrün
+  '#10b981', // Smaragd
+  '#0d9488', // Petrol
+  '#22c55e', // Grün
+  '#2dd4bf', // Türkis
+  '#65a30d', // Blattgrün
+  '#34d399', // Jade
 ] as const;
 
 function incomeDistrictColor(index: number): string {

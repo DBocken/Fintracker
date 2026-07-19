@@ -587,6 +587,14 @@ export default function CityPage() {
                   sceneRef={sceneRef}
                   className="absolute inset-0"
                 />
+                {/* WP-D6 (Premium-Look): dezente Vignette rahmt die Szene und
+                    zieht den Blick zur Stadt — reines CSS-Overlay (kein
+                    Post-Processing/GPU-Pass), liegt UNTER den Labels. */}
+                <div
+                  aria-hidden="true"
+                  data-testid="city-vignette"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(2,6,12,0.22)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.45)_100%)]"
+                />
                 <CityLabels
                   ref={cityLabelsRef}
                   labels={labels}
