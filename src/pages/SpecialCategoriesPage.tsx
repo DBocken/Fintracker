@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { FeatureGate } from '@/components/FeatureGate';
 import { useI18n } from '@/i18n/useI18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +26,12 @@ import { SpecialCategoriesMobileStory } from '@/features/special-categories/pres
 
 const NO_PARENT = '__none__';
 
-function SpecialCategoriesContent() {
+/**
+ * Anlass-Übersicht (Sonderkategorien). Premium-Feature: das Gating liegt an der
+ * Route (`RouteGuard path="/occasions"` → FeatureGate), damit Free/Anonymous den
+ * begehrlichen Locked-Preview sehen (Defense-in-Depth-Invariante, [SECURITY]).
+ */
+export default function SpecialCategoriesPage() {
   const { t } = useI18n();
   const model = useSpecialCategoriesOverview();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -117,17 +121,5 @@ function SpecialCategoriesContent() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-/**
- * Anlass-Übersicht (Sonderkategorien). Premium-Feature: Free/Anonymous sehen den
- * begehrlichen Locked-Preview über die FeatureGate.
- */
-export default function SpecialCategoriesPage() {
-  return (
-    <FeatureGate feature="specialCategories">
-      <SpecialCategoriesContent />
-    </FeatureGate>
   );
 }

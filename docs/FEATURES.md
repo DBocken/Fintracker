@@ -12,6 +12,24 @@ damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
 - **Abhängigkeiten:** Marktdaten/Import, Premium-Tier (Paywall #25), Haftungsausschluss.
 - **Risiken:** Lenkt vom Kernprodukt ab; keine Anlageberatung. Als Beta/Waitlist führen.
 
+## Anlässe (Sonderkategorien)
+- **Fundort:** Route `/occasions`, `src/pages/SpecialCategoriesPage.tsx`,
+  Slice `src/features/special-categories/*`, Service `special-category-service.ts`.
+- **Status:** Premium (`FeatureKey specialCategories`). Route in der Hauptnavigation
+  (Gruppe „Analysen") mit Premium-Markierung; Free/Anonymous sehen den
+  Locked-Preview (`PremiumUpsell`).
+- **Konzept:** Quer zur Kategorie-Hierarchie liegende Ereignisse mit eigener
+  Parent-Hierarchie (Hochzeit → Flitterwochen). Eine Buchung behält ihre echte
+  Kategorie und wird zusätzlich einem Anlass zugeordnet (n:m, optional
+  cent-genauer Teilbetrag). Beantwortet „Was hat der Urlaub wirklich gekostet?".
+- **Abhängigkeiten:** local-first Store (IndexedDB, in Backup/Verschlüsselung/Reset
+  registriert), Tier/Payment (#25) für den echten Kaufweg.
+- **Ausbaustufen:** P1 Übersicht+Hierarchie (aktiv), P2 Teilbeträge/Vorschläge/
+  Batch-Zuordnung, P3 Vergleich/Kostenziel/Report (siehe
+  `docs/feature-strategy-sonderkategorien.md`).
+- **Risiken:** Ohne Kaufweg nur Preview → durch begehrlichen Locked-Preview
+  abgefedert.
+
 ## Premium-Analyse
 - **Fundort:** Route `/premium`, `src/components/premium-dashboard/*`.
 - **Status:** Vorbereitet, gesperrt (Tier ist nie `premium`, siehe `lib/tier.ts`).

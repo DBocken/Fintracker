@@ -22,6 +22,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const IncomePage = lazy(() => import("@/pages/IncomePage"));
 const IncomeWrappedPage = lazy(() => import("@/pages/IncomeWrappedPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
+const SpecialCategoriesPage = lazy(() => import("@/pages/SpecialCategoriesPage"));
 const TaxReportPage = lazy(() => import("@/pages/TaxReportPage"));
 const EuerPage = lazy(() => import("@/pages/EuerPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
@@ -120,6 +121,13 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
+              {/* Anlässe (Sonderkategorien): Premium via RouteGuard —
+                  Free/Anonymous sehen den begehrlichen Locked-Preview. */}
+              <Route
+                path="/occasions"
+                element={<RouteGuard path="/occasions"><SpecialCategoriesPage /></RouteGuard>}
+              />
+
               <Route path="/tax" element={<TaxReportPage />} />
               {/* Immer registriert (Deep-Links/Bestandsdaten); Nav zeigt sie nur im Business-Modus. */}
               <Route path="/euer" element={<EuerPage />} />
