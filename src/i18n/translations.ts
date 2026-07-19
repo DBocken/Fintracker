@@ -16,6 +16,9 @@ export const DEFAULT_LOCALE: Locale = 'de';
 
 export const translations = {
   de: {
+    schemaBoundary: {
+      rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
+    },
     specialCategories: {
       service: {
         nameRequired: 'Anlass braucht einen Namen',
@@ -3778,6 +3781,9 @@ export const translations = {
     },
   },
   en: {
+    schemaBoundary: {
+      rejected: 'Invalid data at the "{resource}" boundary was rejected.',
+    },
     specialCategories: {
       service: {
         nameRequired: 'Occasion needs a name',
@@ -7540,6 +7546,9 @@ export const translations = {
     },
   },
   tlh: {
+    schemaBoundary: {
+      rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
+    },
     specialCategories: {
       service: {
         nameRequired: "qaSwI' pong poQ",
@@ -11243,6 +11252,9 @@ export const translations = {
     },
   },
   ru: {
+    schemaBoundary: {
+      rejected: 'Недопустимые данные на границе «{resource}» отклонены.',
+    },
     specialCategories: {
       service: {
         nameRequired: 'Событию нужно имя',
