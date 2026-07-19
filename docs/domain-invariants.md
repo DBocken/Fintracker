@@ -25,3 +25,5 @@ Diese Regeln sind Sicherheitsgrenzen der Finanzlogik. Änderungen an Import, Per
 19. Exporte neutralisieren Tabellenformeln aus nutzerkontrollierten Textfeldern.
 20. Rohtexte aus Bank- und Belegimporten bleiben für Nachvollziehbarkeit erhalten, werden aber nie als ausführbarer Inhalt gerendert.
 21. Steuer-Jahresparameter vergangener Veranlagungszeiträume ändern sich nie unbemerkt; ein Golden-Table-Test pinnt jeden VZ vollständig, und jeder Parameter trägt eine typerzwungene Rechtsgrundlage.
+22. Die ökonomischen monatlichen Nutzungskosten eines Ersatzplans sind reine Analytik: sie fließen nie in die Forecast-Engine (`ForecastInput`) und erzeugen keinen Cashflow. Nur die Rücklagenbewegung (Transfer) und der tatsächliche Ersatz (Einmal-Event) sind saldowirksam.
+23. Ein Ersatzvorhaben wird über seine drei Sichten zusammengenommen genau einmal saldowirksam: der Rücklagen-Transfer ist gesamtvermögensneutral (Inv. 2), der Ersatz-Abfluss genau einmal saldowirksam (Inv. 1), und ein etwaiger Restwert ist ein separater Zufluss (kein Netting). Es gibt keine doppelte oder dreifache Erfassung derselben Kosten.
