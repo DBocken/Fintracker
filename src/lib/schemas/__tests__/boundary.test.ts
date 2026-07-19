@@ -10,7 +10,12 @@ import {
 
 describe('parseAtBoundary', () => {
   it('sollte gültige ReplacementPlan-Daten parsen', () => {
-    const value = { id: 'rp-1', name: 'Waschmaschine', replacement_cost_minor: 65000 };
+    const value = {
+      id: 'rp-1',
+      name: 'Waschmaschine',
+      replacement_cost_minor: 65000,
+      lifespan_months: 120,
+    };
     expect(parseAtBoundary(replacementPlanSchema, value, 'ReplacementPlan')).toMatchObject(value);
   });
 
@@ -41,7 +46,7 @@ describe('parseAtBoundary', () => {
   });
 
   it('[INTEGRITY] sollte ein teilweise gültiges Objekt vollständig ablehnen, nicht partiell übernehmen', () => {
-    const partial = { id: 'rp-1', name: 'Kühlschrank', replacement_cost_minor: -5 }; // negativ unzulässig
+    const partial = { id: 'rp-1', name: 'Kühlschrank', replacement_cost_minor: -5, lifespan_months: 120 }; // negativ unzulässig
     const result = safeParseAtBoundary(replacementPlanSchema, partial, 'ReplacementPlan');
     expect(result.ok).toBe(false);
     if (!result.ok) {
