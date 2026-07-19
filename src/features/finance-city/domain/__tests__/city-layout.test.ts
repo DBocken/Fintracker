@@ -355,6 +355,76 @@ describe('buildCityLayout', () => {
     });
   });
 
+  describe('Seiten-Bänder (WP-D8, Übersicht: links | mitte | rechts)', () => {
+    const overviewModel = (): CityModel => ({
+      districts: [
+        {
+          id: 'inc-a',
+          label: 'Gehalt',
+          color: '#10b981',
+          total: 3000,
+          side: 'left',
+          subcategories: [{ id: 'a', label: 'Arbeitgeber', amount: 3000 }],
+        },
+        {
+          id: 'inc-b',
+          label: 'Kapital',
+          color: '#0d9488',
+          total: 100,
+          side: 'left',
+          subcategories: [{ id: 'b', label: 'Broker', amount: 100 }],
+        },
+        {
+          id: 'balance',
+          label: 'Sparrate',
+          color: '#f0b429',
+          total: 900,
+          side: 'center',
+          subcategories: [{ id: 's', label: 'Sparrate', amount: 900 }],
+        },
+        {
+          id: 'exp-a',
+          label: 'Wohnen',
+          color: '#f0563c',
+          total: 1500,
+          side: 'right',
+          subcategories: [{ id: 'w', label: 'Miete', amount: 1500 }],
+        },
+        {
+          id: 'exp-b',
+          label: 'Freizeit',
+          color: '#3b82f6',
+          total: 600,
+          side: 'right',
+          subcategories: [{ id: 'f', label: 'Hobbys', amount: 600 }],
+        },
+      ],
+    });
+
+    it('sollte links-, mittel- und rechts-Distrikte in getrennten, nicht überlappenden Bändern platzieren (links < mitte < rechts)', () => {
+      const layout = buildCityLayout(overviewModel(), { level: 'city' });
+      const plotX = (id: string) => {
+        const plot = layout.boxes.find((b) => b.kind === 'plot' && b.id === `${id}:plot`)!;
+        return { min: plot.center.x - plot.size.x / 2, max: plot.center.x + plot.size.x / 2 };
+      };
+
+      const leftMax = Math.max(plotX('inc-a').max, plotX('inc-b').max);
+      const centerMin = plotX('balance').min;
+      const centerMax = plotX('balance').max;
+      const rightMin = Math.min(plotX('exp-a').min, plotX('exp-b').min);
+
+      expect(leftMax).toBeLessThan(centerMin);
+      expect(centerMax).toBeLessThan(rightMin);
+    });
+
+    it('sollte alle Distrikte weiterhin auf dem gemeinsamen Boden platzieren und ein zusammenhängendes Layout liefern (Bounds > 0)', () => {
+      const layout = buildCityLayout(overviewModel(), { level: 'city' });
+      expect(layout.boxes.filter((b) => b.kind === 'plot')).toHaveLength(5);
+      expect(layout.boxes.filter((b) => b.kind === 'ground')).toHaveLength(1);
+      expect(layout.boundingRadius).toBeGreaterThan(0);
+    });
+  });
+
   describe('Pickable-Matrix je Level', () => {
     it('sollte auf city-Ebene nur Hüllen pickable machen', () => {
       const model = makeModel();

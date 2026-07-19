@@ -28,17 +28,20 @@ import { useI18n } from '@/i18n/useI18n';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
 import { buildCityModelFromIncomeStreams } from '../domain/city-income-adapter';
 import { buildCityModelFromMilestones } from '../domain/city-goals-adapter';
+import { buildCityOverviewModel, type CityOverviewInfo } from '../domain/city-overview-adapter';
 import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import type { CityModel } from '../domain/city-model';
 import type { Category } from '@/types';
 
-/** Welt der Stadt — Ausgaben (Default), Einnahmen (WP-D5) oder Ziele (WP-D7). Ausgaben/Einnahmen teilen dieselben Queries, Ziele nutzen die Meilenstein-Auswertung der Milestones-Seite (gleicher Query-Key, geteilter Cache). */
-export type CityModelTab = 'expenses' | 'income' | 'goals';
+/** Welt der Stadt — Ausgaben (Default), Einnahmen (WP-D5), Ziele (WP-D7) oder Übersicht (WP-D8, kombiniert beide Geld-Welten). Ausgaben/Einnahmen/Übersicht teilen dieselben Queries, Ziele nutzen die Meilenstein-Auswertung der Milestones-Seite (gleicher Query-Key, geteilter Cache). */
+export type CityModelTab = 'expenses' | 'income' | 'goals' | 'overview';
 
 export type UseCityModelResult = {
   model: CityModel;
   isLoading: boolean;
   isEmpty: boolean;
+  /** Nur im Übersicht-Tab gesetzt: Welt-Zuordnung der Distrikte + Summen/Saldo für Chip und Welt-Sprung. */
+  overview?: CityOverviewInfo;
 };
 
 export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult {
@@ -72,23 +75,40 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     return map;
   }, [categories]);
 
-  const model = useMemo(() => {
+  const { model, overview } = useMemo(() => {
     if (tab === 'goals') {
       // Ziele-Welt (WP-D7): Bauprojekte aus der Meilenstein-Auswertung.
-      return buildCityModelFromMilestones(milestones);
+      return { model: buildCityModelFromMilestones(milestones), overview: undefined };
     }
     if (tab === 'income') {
       // Einnahmen-Welt (WP-D5): geteilte Strom-Ableitung (Income-Seite nutzt
       // dieselbe Funktion) -> Einnahmen-Adapter. Keine eigene Aggregation.
-      return buildCityModelFromIncomeStreams(deriveIncomeStreams(transactions, categories));
+      return {
+        model: buildCityModelFromIncomeStreams(deriveIncomeStreams(transactions, categories)),
+        overview: undefined,
+      };
     }
+
     const sunburst = buildSunburstTree(transactions, categories);
     const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById);
-    return buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
+    const expensesModel = buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
+    if (tab !== 'overview') return { model: expensesModel, overview: undefined };
+
+    // Übersicht (WP-D8): beide Geld-Welten auf einer Platte + Spar-Turm.
+    // WICHTIG: die Einnahmen-Seite nutzt hier ein praktisch unbegrenztes
+    // Fenster (statt der 12 Monate des Einnahmen-Tabs), damit BEIDE Seiten
+    // dieselbe Datenbasis (alle geladenen Buchungen) bilanzieren — sonst
+    // wäre der Spar-Turm eine Differenz über zwei verschiedene Zeiträume.
+    const incomeModel = buildCityModelFromIncomeStreams(
+      deriveIncomeStreams(transactions, categories, { windowMonths: 1200 }),
+    );
+    const result = buildCityOverviewModel(expensesModel, incomeModel);
+    return { model: result.model, overview: result.info };
   }, [tab, transactions, categories, categoriesById, milestones]);
 
   return {
     model,
+    overview,
     isLoading:
       tab === 'goals' ? milestonesPending : transactionsLoading || categoriesLoading,
     isEmpty: model.districts.length === 0,

@@ -14,6 +14,7 @@ import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
+import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
@@ -48,7 +49,7 @@ const CITY_TABS = [
   { value: "goals", labelKey: "city.tabGoals" },
 ] as const;
 
-const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["expenses", "income", "goals"]);
+const ENABLED_CITY_TABS: ReadonlySet<string> = new Set(["overview", "expenses", "income", "goals"]);
 
 /**
  * WP-D3 (Klick-Affordanz): der Erst-Besuch-Hinweis „Tippe auf ein Viertel"
@@ -126,7 +127,11 @@ export default function CityPage() {
   // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
   // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
-  const { model, isLoading, isEmpty } = useCityModel(activeTab);
+  const { model, isLoading, isEmpty, overview } = useCityModel(activeTab);
+  // WP-D8 (Übersicht → Welt-Sprung): beim zweiten Tap auf ein Viertel der
+  // Übersicht wird in dessen Welt gewechselt UND direkt der Distrikt betreten
+  // — der Tab-Reset-Effekt liest dieses Ziel statt auf die Stadt-Ebene zu gehen.
+  const pendingWorldFocusRef = useRef<{ districtId: string } | null>(null);
   // WP-D7: Ziele-Modell trägt Fortschritts-Brüche statt Euros — steuert die
   // Betrags-Formatierung in Labels, Chip und Listenansicht.
   const valueFormat: "currency" | "percent" = model.valueKind === "progress" ? "percent" : "currency";
@@ -225,10 +230,16 @@ export default function CityPage() {
 
   // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
   // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)
-  // und Hover aufheben. `nav.actions` ist referenzstabil
-  // (use-city-navigation.ts), bewusst nicht in den Deps.
+  // und Hover aufheben. WP-D8: kommt der Wechsel aus einem Übersicht-Tap
+  // (`pendingWorldFocusRef`), wird stattdessen direkt der angetippte Distrikt
+  // der Ziel-Welt betreten (gleiche Ids in Übersicht und Welt-Modell).
+  // `nav.actions` ist referenzstabil (use-city-navigation.ts), bewusst nicht
+  // in den Deps.
   useEffect(() => {
-    nav.actions.goTo("city");
+    const pending = pendingWorldFocusRef.current;
+    pendingWorldFocusRef.current = null;
+    if (pending) nav.actions.goTo("district", pending.districtId);
+    else nav.actions.goTo("city");
     setHoveredBoxId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -314,11 +325,28 @@ export default function CityPage() {
   // Aktion abbilden: Hüllen-id = "districtId", Balken-id = "districtId/subId",
   // Etagen-id = "districtId/subId/contractId" (city-layout.ts-Id-Konvention).
   // `null` (Boden/Leere) macht bewusst nichts.
+  const overviewIncomeIds = useMemo(() => new Set(overview?.incomeDistrictIds ?? []), [overview]);
+
   const handleTapBox = useCallback(
     (id: string | null) => {
       if (!id) return;
       dismissTapHint();
       const parts = id.split("/");
+
+      // WP-D8 (Übersicht): erster Tap fokussiert das Viertel (bestehende
+      // Twostep-Semantik), der zweite springt in dessen WELT und betritt dort
+      // denselben Distrikt (Ids identisch). Der Spar-Turm ist reines Readout.
+      if (activeTab === "overview" && parts.length === 1) {
+        if (id === OVERVIEW_BALANCE_DISTRICT_ID) return;
+        if (nav.focusDistrictId === id) {
+          pendingWorldFocusRef.current = { districtId: id };
+          setActiveTab(overviewIncomeIds.has(id) ? "income" : "expenses");
+          return;
+        }
+        nav.actions.tapDistrict(id);
+        return;
+      }
+
       if (parts.length === 1) {
         nav.actions.tapDistrict(parts[0]);
       } else if (parts.length === 2) {
@@ -327,7 +355,7 @@ export default function CityPage() {
         nav.actions.tapContract(parts[2]);
       }
     },
-    [nav.actions, dismissTapHint],
+    [nav.actions, dismissTapHint, activeTab, nav.focusDistrictId, overviewIncomeIds],
   );
 
   // WP-C4: Kamera-Controller-Lifecycle. Läuft NACH `CityCanvas`s eigenem
@@ -668,6 +696,19 @@ export default function CityPage() {
                           .replace("{achieved}", String(goalsSummary.achieved))
                           .replace("{count}", String(goalsSummary.total))}
                       </span>
+                    ) : overview && cityContext.kind === "city" ? (
+                      // WP-D8 (Übersicht): die EINE Hauptaussage der Platte —
+                      // beide Seiten und was übrig bleibt.
+                      <>
+                        {t("city.tabIncome")} {formatCurrency(overview.incomeTotal)}
+                        {" · "}
+                        {t("city.tabExpenses")} {formatCurrency(overview.expensesTotal)}
+                        {" · "}
+                        <span className="font-medium text-foreground">
+                          {t(overview.balance >= 0 ? "city.overviewBalanceSurplus" : "city.overviewBalanceDeficit")}{" "}
+                          {formatCurrency(Math.abs(overview.balance))}
+                        </span>
+                      </>
                     ) : cityContext.kind === "city" ? (
                       <>
                         {t(activeTab === "income" ? "city.contextTotalIncomeLabel" : "city.contextTotalLabel")} ·{" "}

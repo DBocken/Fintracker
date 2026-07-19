@@ -77,6 +77,14 @@ export type CityDistrict = {
   targetAmount?: number;
   /** WP-D7 (Ziele-Tab): true, wenn das Bauprojekt fertiggestellt (Meilenstein erreicht) ist — Basis für die Chip-Zusammenfassung „X von Y erreicht". */
   achieved?: boolean;
+  /**
+   * WP-D8 (Übersicht): Platzierungs-Gruppe auf der Platte. Ist sie bei
+   * mindestens einem Distrikt gesetzt, layoutet `city-layout.ts` drei
+   * Seiten-Bänder (links | mitte | rechts) statt des einen Makro-Grids —
+   * Einnahmen-Viertel links, Spar-Turm mittig, Ausgaben-Viertel rechts.
+   * Ohne `side` (alle anderen Tabs) unverändert das bisherige Grid.
+   */
+  side?: 'left' | 'center' | 'right';
 };
 
 /**
@@ -85,7 +93,16 @@ export type CityDistrict = {
  * Ausgaben/Einnahmen) oder `'progress'` (Zielfortschritt als Bruch 0..1+,
  * Anzeige in Prozent; Anteils-Prozente an Gesamt/Eltern entfallen).
  */
-export type CityModel = { districts: CityDistrict[]; valueKind?: 'currency' | 'progress' };
+export type CityModel = {
+  districts: CityDistrict[];
+  valueKind?: 'currency' | 'progress';
+  /**
+   * WP-D8 (Übersicht): true unterdrückt die Anteils-Prozente an Gesamt/Eltern
+   * in den Labels — die Übersicht mischt Einnahmen-, Ausgaben- und Saldo-
+   * Distrikte, eine „Gesamt"-Bezugsgröße darüber wäre irreführend.
+   */
+  hideShares?: boolean;
+};
 
 /**
  * Einfacher, framework-freier 3D-Vektor. Bewusst KEIN `THREE.Vector3` (domain/

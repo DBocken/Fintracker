@@ -166,6 +166,8 @@ export const translations = {
       emptyStateIncome: 'Noch keine Einnahmendaten für die Finanzstadt. Importiere oder erfasse Buchungen, um deine Stadt zu bauen.',
       emptyStateGoals: 'Noch keine messbaren Ziele. Erfasse Buchungen, Konten oder Schulden, damit deine Bauprojekte entstehen.',
       contextGoalsSummary: '{achieved} von {count} Zielen erreicht',
+      overviewBalanceSurplus: 'Sparrate',
+      overviewBalanceDeficit: 'Defizit',
       listView: {
         title: 'Listenansicht',
         pathAnnouncement: 'Aktuelle Ansicht: {path}',
@@ -3684,6 +3686,8 @@ export const translations = {
     financeCity: {
       otherMerchants: 'Sonstige',
       earlierMonths: 'Frühere Monate',
+      balanceSurplus: 'Sparrate',
+      balanceDeficit: 'Defizit',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Händlerregel aktualisiert: {pattern}',
@@ -3886,6 +3890,8 @@ export const translations = {
       emptyStateIncome: 'No income data yet for the finance city. Import or add transactions to build your city.',
       emptyStateGoals: 'No measurable goals yet. Add transactions, accounts or debts to start your construction projects.',
       contextGoalsSummary: '{achieved} of {count} goals achieved',
+      overviewBalanceSurplus: 'Savings rate',
+      overviewBalanceDeficit: 'Deficit',
       listView: {
         title: 'List view',
         pathAnnouncement: 'Current view: {path}',
@@ -7404,6 +7410,8 @@ export const translations = {
     financeCity: {
       otherMerchants: 'Other',
       earlierMonths: 'Earlier months',
+      balanceSurplus: 'Savings rate',
+      balanceDeficit: 'Deficit',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Merchant rule updated: {pattern}',
@@ -7606,6 +7614,8 @@ export const translations = {
       emptyStateIncome: "Huch veng vaD Huch Hev mI' tu'lu'be'. mIwmey lo'lu'DI', veng lIj chenmoHlu'.",
       emptyStateGoals: "ngoQmey mI' tu'lu'be'. mIwmey, Huch polmey joq yIchel — Qu'mey chenmoHlu'.",
       contextGoalsSummary: "{count} ngoQmey: {achieved} Qapla'",
+      overviewBalanceSurplus: "Huch pol",
+      overviewBalanceDeficit: "Huch Hutlh",
       listView: {
         title: "tetlh legh",
         pathAnnouncement: "DaH legh: {path}",
@@ -11065,6 +11075,8 @@ export const translations = {
     financeCity: {
       otherMerchants: "latlh",
       earlierMonths: "jarmey qan",
+      balanceSurplus: "Huch pol",
+      balanceDeficit: "Huch Hutlh",
     },
     merchantRulesService: {
       ruleUpdatedTitle: "Suy' ra'ghach choHpu': {pattern}",
@@ -11267,6 +11279,8 @@ export const translations = {
       emptyStateIncome: 'Пока нет данных о доходах для финансового города. Импортируйте или добавьте транзакции, чтобы построить свой город.',
       emptyStateGoals: 'Пока нет измеримых целей. Добавьте транзакции, счета или долги, чтобы появились ваши строительные проекты.',
       contextGoalsSummary: 'Достигнуто {achieved} из {count} целей',
+      overviewBalanceSurplus: 'Норма сбережений',
+      overviewBalanceDeficit: 'Дефицит',
       listView: {
         title: 'Вид списком',
         pathAnnouncement: 'Текущий вид: {path}',
@@ -14779,6 +14793,8 @@ export const translations = {
     financeCity: {
       otherMerchants: 'Другое',
       earlierMonths: 'Более ранние месяцы',
+      balanceSurplus: 'Норма сбережений',
+      balanceDeficit: 'Дефицит',
     },
     merchantRulesService: {
       ruleUpdatedTitle: 'Правило продавца обновлено: {pattern}',

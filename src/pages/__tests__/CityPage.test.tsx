@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { forwardRef, useEffect, type MutableRefObject } from 'react';
 import * as THREE from 'three';
@@ -36,6 +36,7 @@ if (typeof globalThis.requestAnimationFrame !== 'function') {
 // Kamera-Controller der Page in Tests tatsächlich erstellt wird (nötig für
 // den StrictMode-/Remount-[REGRESSION]-Test unten).
 let capturedOnFrame: ((camera: THREE.PerspectiveCamera) => void) | undefined;
+let capturedOnTapBox: ((id: string | null) => void) | undefined;
 let capturedControlsApiRef: MutableRefObject<CityControlsApi | null> | undefined;
 
 /** Loop-API-Stub mit signaturtreuen Mocks — strukturell kompatibel zu `CityControlsApi`, Assertions über `.mock.calls`. */
@@ -69,10 +70,12 @@ function makeSceneStub(): CitySceneHandle {
 vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
   CityCanvas: (props: {
     onFrame?: (camera: THREE.PerspectiveCamera) => void;
+    onTapBox?: (id: string | null) => void;
     controlsApiRef?: MutableRefObject<CityControlsApi | null>;
     sceneRef?: MutableRefObject<CitySceneHandle | null>;
   }) => {
     capturedOnFrame = props.onFrame;
+    capturedOnTapBox = props.onTapBox;
     capturedControlsApiRef = props.controlsApiRef;
     useEffect(() => {
       stubControlsApi = makeControlsApiStub();
@@ -296,6 +299,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   capturedOnFrame = undefined;
+  capturedOnTapBox = undefined;
   capturedDeclutter = undefined;
 });
 
@@ -530,6 +534,51 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     expect(list().getByRole('button', { name: /Notgroschen 1 Monat/ })).toBeInTheDocument();
     expect(list().getByText(/65\s?%/)).toBeInTheDocument();
     expect(list().queryByText(/€/)).not.toBeInTheDocument();
+  });
+
+  it('sollte im Übersicht-Tab beide Seiten + Spar-Turm bilanzieren (Chip: Einnahmen · Ausgaben · Sparrate) (WP-D8)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const overviewTabName = locale === 'de' ? 'Übersicht' : 'Overview';
+    await user.click(screen.getByRole('tab', { name: overviewTabName }));
+
+    // Fixture: Einnahmen 3×3.000 = 9.000, Ausgaben 17,99+15,99+9,99 = 43,97
+    // -> Überschuss (Sparrate) 8.956,03.
+    const chip = await screen.findByTestId('city-context-chip');
+    const surplusLabel = locale === 'de' ? /Sparrate/ : /Savings rate/;
+    await waitFor(() => expect(chip.textContent).toMatch(surplusLabel));
+    expect(chip.textContent).toContain('9.000,00');
+    expect(chip.textContent).toContain('43,97');
+    expect(chip.textContent).toContain('8.956,03');
+  });
+
+  it('sollte aus der Übersicht per Doppel-Tap in die Welt des Viertels springen und dort den Distrikt betreten (WP-D8)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    const overviewTabName = locale === 'de' ? 'Übersicht' : 'Overview';
+    await user.click(screen.getByRole('tab', { name: overviewTabName }));
+    await screen.findByTestId('city-context-chip');
+
+    // Spar-Turm ist reines Readout: Tap ist ein No-op (Übersicht bleibt aktiv).
+    act(() => capturedOnTapBox?.('overview:balance'));
+    expect(screen.getByRole('tab', { name: overviewTabName })).toHaveAttribute('aria-selected', 'true');
+
+    // Einnahmen-Viertel: 1. Tap = Fokus (Übersicht bleibt), 2. Tap = Welt-Sprung.
+    act(() => capturedOnTapBox?.('income:cat-anstellung'));
+    expect(screen.getByRole('tab', { name: overviewTabName })).toHaveAttribute('aria-selected', 'true');
+    act(() => capturedOnTapBox?.('income:cat-anstellung'));
+
+    const incomeTabName = locale === 'de' ? 'Einnahmen' : 'Income';
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: incomeTabName })).toHaveAttribute('aria-selected', 'true'),
+    );
+    // Direkt im Distrikt der Ziel-Welt gelandet (Chip zeigt den Distrikt, nicht die Stadt-Summe).
+    const chip = await screen.findByTestId('city-context-chip');
+    await waitFor(() => expect(chip.textContent).toMatch(/Anstellung/));
   });
 
   it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {

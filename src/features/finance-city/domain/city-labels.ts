@@ -123,8 +123,10 @@ export function selectCityLabels(model: CityModel, layout: CityLayout, level: Ci
   const labels: CityLabel[] = [];
   // WP-D7 (Ziele-Tab): Beträge sind dort bereits Fortschritts-BRÜCHE — die
   // Anteils-Prozente an Gesamt/Eltern wären doppelte/irreführende Prozente
-  // und entfallen komplett (share/parentShare bleiben undefined).
-  const isProgressModel = model.valueKind === 'progress';
+  // und entfallen komplett (share/parentShare bleiben undefined). WP-D8
+  // (Übersicht): `hideShares` unterdrückt sie ebenfalls (gemischte
+  // Einnahmen-/Ausgaben-/Saldo-Distrikte haben keine sinnvolle Bezugsgröße).
+  const isProgressModel = model.valueKind === 'progress' || model.hideShares === true;
   // Bezugsgröße für den prozentualen Anteil: Gesamtausgabe der Stadt (in Cent).
   const cityTotalMinor = isProgressModel ? 0 : computeCityTotalMinor(model);
 

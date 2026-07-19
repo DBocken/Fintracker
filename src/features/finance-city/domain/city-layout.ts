@@ -216,6 +216,70 @@ function computePlotSize(district: CityDistrict): number {
  * bricht — für die Spec-Daten (4 Distrikte) ergibt das exakt 2x2.
  */
 function computeDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
+  // WP-D8 (Übersicht): tragen Distrikte eine Platzierungs-Gruppe (`side`),
+  // entstehen DREI getrennte Bänder (links | mitte | rechts) — jedes intern
+  // mit dem bestehenden Grid-Algorithmus gelayoutet, dann nebeneinander
+  // geschoben. Ohne `side` unverändert das eine Makro-Grid.
+  if (districts.some((d) => d.side !== undefined)) {
+    return computeSidedDistrictGrid(districts);
+  }
+  return computeBasicDistrictGrid(districts);
+}
+
+/** Verschiebt alle Grundstücks-Zentren einer Teil-Geometrie um `dx` (x-Achse). */
+function shiftGeometryX(geometry: Map<string, DistrictGeometry>, dx: number): void {
+  for (const entry of geometry.values()) {
+    entry.plotCenter.x += dx;
+  }
+}
+
+/** x-Ausdehnung (min/max) einer Teil-Geometrie inkl. Grundstücksgrößen. */
+function geometryXExtent(geometry: Map<string, DistrictGeometry>): { min: number; max: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const entry of geometry.values()) {
+    min = Math.min(min, entry.plotCenter.x - entry.plotSize / 2);
+    max = Math.max(max, entry.plotCenter.x + entry.plotSize / 2);
+  }
+  return { min, max };
+}
+
+/**
+ * Drei-Band-Layout der Übersicht (WP-D8): jede Seite wird für sich mit dem
+ * Basis-Grid gelayoutet (bereits um x=0 zentriert), dann werden die Bänder
+ * mit `DISTRICT_GRID_GAP` Abstand nebeneinander gesetzt und das Gesamtbild
+ * wieder um x=0 zentriert. Distrikte ohne `side` zählen zur Mitte.
+ */
+function computeSidedDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
+  const bands: CityDistrict[][] = [
+    districts.filter((d) => d.side === 'left'),
+    districts.filter((d) => d.side === 'center' || d.side === undefined),
+    districts.filter((d) => d.side === 'right'),
+  ];
+  const bandGeometries = bands
+    .filter((band) => band.length > 0)
+    .map((band) => computeBasicDistrictGrid(band));
+
+  const widths = bandGeometries.map((g) => {
+    const { min, max } = geometryXExtent(g);
+    return max - min;
+  });
+  const totalWidth =
+    widths.reduce((sum, w) => sum + w, 0) + DISTRICT_GRID_GAP * (bandGeometries.length - 1);
+
+  let cursor = -totalWidth / 2;
+  const combined = new Map<string, DistrictGeometry>();
+  bandGeometries.forEach((geometry, index) => {
+    const { min } = geometryXExtent(geometry);
+    shiftGeometryX(geometry, cursor - min);
+    cursor += widths[index] + DISTRICT_GRID_GAP;
+    for (const [id, entry] of geometry) combined.set(id, entry);
+  });
+
+  return combined;
+}
+
+function computeBasicDistrictGrid(districts: CityDistrict[]): Map<string, DistrictGeometry> {
   const geometry = new Map<string, DistrictGeometry>();
   if (districts.length === 0) return geometry;
 
