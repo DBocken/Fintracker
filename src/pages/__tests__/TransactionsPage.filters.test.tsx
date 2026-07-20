@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -74,12 +74,16 @@ describe("TransactionsPage – Filter steuern alle Anzeigen", () => {
       expect(screen.getByRole("combobox", { name: /Zeitraum filtern/i })).toBeTruthy();
     });
 
-    it("[REGRESSION] sollte beim Tippen in die Suche Liste UND Kennzahlen anpassen", () => {
+    it("[REGRESSION] sollte beim Tippen in die Suche Liste UND Kennzahlen anpassen", async () => {
       renderPage();
       fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Rewe" } });
 
+      // Das Filtern ist jetzt debounced (300 ms) — die Liste UND die Kennzahlen
+      // folgen nach dem Debounce (Intent unverändert, nur nicht mehr synchron).
+      await waitFor(() => {
+        expect(screen.queryByText("Lieferando")).toBeNull();
+      });
       expect(screen.getByText("Rewe")).toBeTruthy();
-      expect(screen.queryByText("Lieferando")).toBeNull();
       expect(screen.queryByText("Miete Wohnung")).toBeNull();
       // Kennzahlen zählen jetzt nur die gefilterte Buchung.
       const count = screen.getByText(/von 3/).closest("dd");

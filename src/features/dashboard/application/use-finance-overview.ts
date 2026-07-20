@@ -7,6 +7,8 @@ import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { DEBOUNCE_MS } from '@/lib/constants';
 import {
   DEFAULT_DASHBOARD_FILTERS,
   PERIOD_RANGES,
@@ -145,6 +147,11 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     [txs, range],
   );
 
+  // Suche entkoppeln: das Eingabefeld bleibt an `search` gebunden (responsiv),
+  // aber das teure Filtern + die daraus abgeleiteten Charts laufen erst nach dem
+  // Debounce. Andere Filter wirken weiterhin sofort.
+  const debouncedSearch = useDebouncedValue(search, DEBOUNCE_MS);
+
   const filteredTransactions = useMemo(() => {
     return filterTransactions(txs, cats, accounts, {
       category,
@@ -152,12 +159,12 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       contract,
       essential,
       ausgabenklasse,
-      search,
+      search: debouncedSearch,
       range,
       customDays,
       customPeriod,
     }, new Date(), contractDecisions);
-  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, search, range, customDays, customPeriod, contractDecisions]);
+  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions]);
 
   const visibleTransactions = useMemo(
     () => filteredTransactions.filter((tx) => !hiddenTransactions.has(tx.id || '')),
