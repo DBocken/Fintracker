@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
 import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPanel';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { FeatureGate } from '@/components/FeatureGate';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import {
@@ -96,6 +97,7 @@ export function TransactionDetailsPanel({
 }: TransactionDetailsPanelProps) {
   const { t } = useI18n();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
@@ -601,10 +603,7 @@ export function TransactionDetailsPanel({
               size="sm"
               className="flex-1 text-warning hover:text-warning"
               disabled={isLoading || !transaction.id}
-              onClick={() => {
-                if (transaction.id) onDelete(transaction.id);
-                onClose();
-              }}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
             </Button>
@@ -622,6 +621,20 @@ export function TransactionDetailsPanel({
           Speichern
         </Button>
       </div>
+
+      {onDelete && (
+        <DeleteConfirmationDialog
+          isOpen={deleteConfirmOpen}
+          onOpenChange={setDeleteConfirmOpen}
+          transactionId={transaction?.id ?? null}
+          selectedCount={0}
+          onConfirm={() => {
+            if (transaction?.id) onDelete(transaction.id);
+            setDeleteConfirmOpen(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }

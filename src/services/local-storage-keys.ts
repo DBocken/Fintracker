@@ -35,6 +35,9 @@ export const LOCAL_FINANCE_KEYS = {
   forecastOverrides: 'fintracker_forecast_overrides_v1',
   specialCategories: 'fintracker_special_categories_v1',
   specialCategoryAssignments: 'fintracker_special_category_assignments_v1',
+  replacementPlans: 'fintracker_replacement_plans_v1',
+  householdSettlements: 'fintracker_household_settlements_v1',
+  contractRecords: 'fintracker_contract_records_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;

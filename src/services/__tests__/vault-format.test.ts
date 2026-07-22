@@ -202,3 +202,67 @@ describe("Vault-Merge Ende-zu-Ende (zwei Geräte)", () => {
     expect(convergedOnB.transactions.map((t) => t.id)).toEqual(["t1", "t2", "t3"]);
   });
 });
+
+describe("Vault-Abdeckung Haushaltsdaten (Issue #235, Blocker vor #247)", () => {
+  it("[REGRESSION] emptyVaultPayload enthält alle Haushalts-Felder", () => {
+    const empty = emptyVaultPayload();
+    expect(empty.households).toEqual([]);
+    expect(empty.householdMembers).toEqual([]);
+    expect(empty.sharedExpenseSplits).toEqual([]);
+    expect(empty.householdSettlements).toEqual([]);
+  });
+
+  it("[REGRESSION] Haushalt, Mitglieder und Splits überleben den Vault-Roundtrip", async () => {
+    const payload = payloadWith({
+      households: [{ id: "h1", updated_at: "2026-06-01T00:00:00.000Z", name: "WG" }],
+      householdMembers: [
+        { id: "m1", updated_at: "2026-06-01T00:00:00.000Z", household_id: "h1", name: "Anna" },
+        { id: "m2", updated_at: "2026-06-01T00:00:00.000Z", household_id: "h1", name: "Ben" },
+      ],
+      sharedExpenseSplits: [
+        { id: "s1", updated_at: "2026-06-01T00:00:00.000Z", transaction_id: "t1", household_id: "h1" },
+      ],
+    });
+
+    const file = await createVaultFile(payload, PASSWORD, "device-a");
+    const reopened = await openVaultFile(parseVaultFile(serializeVaultFile(file)), PASSWORD);
+    expect(reopened).toEqual(payload);
+    expect(reopened.householdMembers.map((m) => m.id)).toEqual(["m1", "m2"]);
+  });
+
+  it("[REGRESSION] Haushalts-Felder mergen per ID (kein Datenverlust bei Zwei-Geräte-Sync)", () => {
+    const deviceA = payloadWith({
+      households: [{ id: "h1", updated_at: "2026-06-02T00:00:00.000Z", name: "WG neu" }],
+      householdMembers: [{ id: "m1", updated_at: "2026-06-01T00:00:00.000Z", household_id: "h1", name: "Anna" }],
+    });
+    const deviceB = payloadWith({
+      households: [{ id: "h1", updated_at: "2026-06-01T00:00:00.000Z", name: "WG alt" }],
+      householdMembers: [{ id: "m2", updated_at: "2026-06-01T00:00:00.000Z", household_id: "h1", name: "Ben" }],
+    });
+
+    const merged = mergeVaultPayloads(deviceA, deviceB);
+    expect(merged.households.find((h) => h.id === "h1")?.name).toBe("WG neu"); // jüngerer gewinnt
+    expect(merged.householdMembers.map((m) => m.id)).toEqual(["m1", "m2"]); // beide bleiben
+  });
+
+  it("[REGRESSION] alte Vault-Datei ohne Haushalts-Felder wird defensiv zu [] normalisiert", async () => {
+    // Simuliert eine Vault-Datei aus der Zeit vor #235: Payload ohne Haushalts-Felder.
+    const legacyPayload = {
+      transactions: [tx("t1", "2026-06-01T00:00:00.000Z")],
+      accounts: [],
+      debts: [],
+      claims: [],
+      categories: [],
+      settings: null,
+    } as unknown as VaultPayload;
+
+    const file = await createVaultFile(legacyPayload, PASSWORD, "device-a");
+    const reopened = await openVaultFile(parseVaultFile(serializeVaultFile(file)), PASSWORD);
+    expect(reopened.households).toEqual([]);
+    expect(reopened.householdMembers).toEqual([]);
+    expect(reopened.sharedExpenseSplits).toEqual([]);
+    expect(reopened.householdSettlements).toEqual([]);
+    // Und mergen mit so einer normalisierten Altdatei crasht nicht.
+    expect(() => mergeVaultPayloads(reopened, emptyVaultPayload())).not.toThrow();
+  });
+});

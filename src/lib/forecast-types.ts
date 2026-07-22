@@ -233,6 +233,32 @@ export interface SinkingFund {
   category?: string;
 }
 
+/**
+ * Ein probabilistisches Ereignis mit unsicherem Datum UND Betrag (Slice A3, #241).
+ * Der deterministische Kern bucht den Erwartungswert (Mittelbetrag am
+ * wahrscheinlichen Datum); der Monte-Carlo-Layer zieht pro Trial das Datum
+ * (Dreiecksverteilung über das Fenster) und den Betrag (lognormal, erwartungstreu).
+ *
+ * MODELLANNAHMEN (bewusst, dokumentiert — Entscheidung D6): Dreiecksverteilung
+ * über [earliestDate, latestDate] mit Modus likelyDate; die Ereignisse sind
+ * UNABHÄNGIG (keine Korrelation zwischen mehreren Ersatzfällen). Keine
+ * Weibull-/Hazard-Kurven.
+ */
+export interface ProbabilisticPlannedEvent {
+  id: string;
+  name: string;
+  /** Signierter Erwartungsbetrag (negativ = Abfluss). */
+  amountMean: number;
+  /** Variationskoeffizient des Betrags (Preisunsicherheit, ≥ 0). */
+  amountCv: number;
+  /** Frühester, wahrscheinlichster und spätester Zeitpunkt (ISO yyyy-mm-dd). */
+  earliestDate: string;
+  likelyDate: string;
+  latestDate: string;
+  accountId: string;
+  category?: string;
+}
+
 /** Gesamteingabe der Engine – idealerweise auto-seeded aus echten Services. */
 export interface ForecastInput {
   accounts: ForecastAccount[];
@@ -247,6 +273,8 @@ export interface ForecastInput {
   variableExpenses?: VariableExpenseBaseline[];
   plannedEvents?: PlannedForecastEvent[];
   sinkingFunds?: SinkingFund[];
+  /** Probabilistische Ereignisse mit unsicherem Datum + Betrag (Slice A3, #241). */
+  probabilisticEvents?: ProbabilisticPlannedEvent[];
 }
 
 /** Auf welche Cash-Sicht sich der Sicherheitspuffer bezieht. */

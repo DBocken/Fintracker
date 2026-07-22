@@ -38,6 +38,7 @@ import type {
   ForecastMonthlySummary,
   ForecastResult,
   PlannedForecastEvent,
+  ProbabilisticPlannedEvent,
   ForecastTransfer,
   LiquidityRisk,
   RecurringCadence,
@@ -262,6 +263,23 @@ function expandSinkingFunds(
   return { transfers, events };
 }
 
+/**
+ * Bucht probabilistische Ereignisse deterministisch mit ihrem ERWARTUNGSWERT
+ * (Mittelbetrag am wahrscheinlichen Datum). So bleibt die deterministische Linie
+ * P50-konsistent; die Streuung entsteht erst im Monte-Carlo-Layer (A3, #241),
+ * der diese Ereignisse pro Trial durch gezogene Werte ersetzt.
+ */
+function expandProbabilisticEvents(events: ProbabilisticPlannedEvent[]): PlannedForecastEvent[] {
+  return events.map((pe) => ({
+    id: `prob-${pe.id}`,
+    name: pe.name,
+    amount: pe.amountMean,
+    date: pe.likelyDate,
+    accountId: pe.accountId,
+    category: pe.category,
+  }));
+}
+
 /** Mutable Tages-Akkumulator (alles in Cent). */
 interface DayBucket {
   inflows: number;
@@ -331,7 +349,11 @@ export function calculateDeterministicForecast(
     pickVariableExpenseAccount(input.accounts);
   const expanded = expandSinkingFunds(input.sinkingFunds ?? [], resolved.startDate, operatingDefault);
   const allTransfers = [...(input.transfers ?? []), ...expanded.transfers];
-  const allEvents = [...(input.plannedEvents ?? []), ...expanded.events];
+  const allEvents = [
+    ...(input.plannedEvents ?? []),
+    ...expanded.events,
+    ...expandProbabilisticEvents(input.probabilisticEvents ?? []),
+  ];
 
   // 1) Wiederkehrende Flows einplanen (zykluskorrekt).
   for (const flow of input.recurringFlows ?? []) {

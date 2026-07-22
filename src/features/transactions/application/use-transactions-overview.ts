@@ -7,6 +7,8 @@ import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { DEBOUNCE_MS } from '@/lib/constants';
 import {
   DEFAULT_DASHBOARD_FILTERS,
   DEFAULT_CUSTOM_GRANULARITY,
@@ -131,11 +133,20 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     [accounts, effectiveBalances, filters.account],
   );
 
+  // Suche entkoppeln: das Eingabefeld bleibt an `filters.search` gebunden
+  // (responsiv), aber das teure Filtern läuft erst nach dem Debounce. Andere
+  // Filter (Konto/Kategorie/Zeitraum…) wirken weiterhin sofort.
+  const debouncedSearch = useDebouncedValue(filters.search, DEBOUNCE_MS);
+  const filtersForFilter = useMemo(
+    () => ({ ...filters, search: debouncedSearch }),
+    [filters, debouncedSearch],
+  );
+
   const filtered = useMemo(
     // Kein Re-Sort: txs kommen datum-absteigend aus dem Service (Sortier-
     // Contract der Storage-Schicht) und filterTransactions ist ordnungserhaltend.
-    () => filterTransactions(txs, cats, accounts, filters, new Date(), contractDecisions),
-    [txs, cats, accounts, filters, contractDecisions],
+    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions),
+    [txs, cats, accounts, filtersForFilter, contractDecisions],
   );
 
   const visible = useMemo(

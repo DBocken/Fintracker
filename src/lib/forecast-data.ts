@@ -26,6 +26,9 @@ import {
   getForecastOverrides,
   type ForecastOverrides,
 } from '@/services/forecast-overrides-service';
+import { getReplacementPlans } from '@/services/replacement-plan-service';
+import { expandReplacementPlans } from '@/features/replacement-planning/domain/forecast-expansion';
+import type { ReplacementPlan } from '@/lib/schemas/replacement-plan.schema';
 import type {
   ForecastAccount,
   ForecastAccountKind,
@@ -405,6 +408,8 @@ export interface ForecastInputSources {
   decisions: Map<string, ContractDecision>;
   transactions: Transaction[];
   overrides: ForecastOverrides;
+  /** Lebensdauerbasierte Ersatzpläne (Slice A2, #240). Leer ⇒ keine Wirkung. */
+  replacementPlans?: ReplacementPlan[];
   /** Referenzdatum für Erkennung & Baseline (Default: jetzt). */
   now?: Date;
 }
@@ -474,7 +479,28 @@ export function composeForecastInput(sources: ForecastInputSources): ForecastInp
     variableExpenses,
   };
 
-  return applyForecastOverrides(seeded, overrides);
+  const composed = applyForecastOverrides(seeded, overrides);
+
+  // Ersatzpläne (A2, #240): in Transfers + Events expandieren, damit sie den
+  // Puffer/kritische Tage beeinflussen — der Kern (forecast.ts) bleibt unberührt.
+  // Leer ⇒ unverändert (rückwärtskompatibel).
+  const plans = sources.replacementPlans ?? [];
+  if (plans.length === 0) return composed;
+
+  const startISO = format(now ?? new Date(), 'yyyy-MM-dd');
+  const defaultAccount =
+    forecastAccounts.find((a) => a.kind === 'checking')?.id ?? forecastAccounts[0]?.id ?? null;
+  const expansion = expandReplacementPlans(plans, startISO, defaultAccount);
+
+  return {
+    ...composed,
+    transfers: [...(composed.transfers ?? []), ...expansion.transfers],
+    plannedEvents: [...(composed.plannedEvents ?? []), ...expansion.events],
+    probabilisticEvents: [
+      ...(composed.probabilisticEvents ?? []),
+      ...expansion.probabilisticEvents,
+    ],
+  };
 }
 
 /**
@@ -483,13 +509,15 @@ export function composeForecastInput(sources: ForecastInputSources): ForecastInp
  * liegt in {@link composeForecastInput}.
  */
 export async function buildForecastInput(): Promise<ForecastInput> {
-  const [accounts, netWorth, categories, decisions, transactions] = await Promise.all([
-    getAccounts(),
-    getNetWorthBreakdown(),
-    getCategories(),
-    getContractDecisionMap(),
-    getTransactions(10000),
-  ]);
+  const [accounts, netWorth, categories, decisions, transactions, replacementPlans] =
+    await Promise.all([
+      getAccounts(),
+      getNetWorthBreakdown(),
+      getCategories(),
+      getContractDecisionMap(),
+      getTransactions(10000),
+      getReplacementPlans(),
+    ]);
 
   return composeForecastInput({
     accounts,
@@ -497,6 +525,7 @@ export async function buildForecastInput(): Promise<ForecastInput> {
     categories,
     decisions,
     transactions,
+    replacementPlans,
     overrides: await getForecastOverrides(),
   });
 }
