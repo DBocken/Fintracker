@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, Trash2, HardDrive, Palette, Languages, Home } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, Trash2, HardDrive, Palette, Languages, Home, LayoutList } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
 import type { HierarchicalCategory, Transaction, Category } from '../../types';
@@ -33,6 +33,7 @@ import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { HouseholdSettings } from './HouseholdSettings';
+import NavFeatureSettings from './NavFeatureSettings';
 import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -261,6 +262,18 @@ export function EnhancedSettings() {
             description={t('settings.appearanceDescription', 'Wähle Theme und Darstellung (hell/dunkel) für die gesamte Oberfläche.')}
           />
           <AppearanceSettings />
+        </section>
+
+        <section className="mb-10">
+          <SectionHeader
+            icon={<LayoutList className="h-5 w-5" />}
+            title={t('onboarding.manage.title', 'Bereiche & Navigation')}
+            description={t(
+              'onboarding.manage.description',
+              'Welche Bereiche in der Navigation erscheinen. Ausgeblendetes bleibt über Links und Lesezeichen erreichbar.',
+            )}
+          />
+          <NavFeatureSettings />
         </section>
 
         <section className="mb-10">
