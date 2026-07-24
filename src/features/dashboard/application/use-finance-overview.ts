@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
+import { getAllocationMap } from '@/services/transaction-allocation-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -21,7 +22,7 @@ import {
 import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
-import type { Transaction } from '@/types';
+import type { Transaction, TransactionAllocation } from '@/types';
 import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';
 import { computeLocalBalances, computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
 import { computeFlowTotals, buildIncomeExpenseSeries } from '../domain/overview-calculations';
@@ -37,6 +38,7 @@ const noop = () => {};
 // Render würde die Memo-Kette bis zum ViewModel invalidieren, solange die
 // Query noch lädt (Default wird bei jedem Re-Render neu erzeugt).
 const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
+const EMPTY_ALLOCATIONS = new Map<string, TransactionAllocation[]>();
 
 export type UseFinanceOverviewOptions = {
   /** Wird nach erfolgreichem Detail-Speichern aufgerufen (z.B. Modal schließen). Bleibt Sache der aufrufenden Seite. */
@@ -73,6 +75,14 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
     queryKey: dashboardKeys.contractDecisions,
     queryFn: getContractDecisionMap,
+  });
+
+  // Split-Notizen (`TransactionAllocation.label`) gehören wie die Notiz an der
+  // Buchung selbst (`tax_note`) in die Suche — gleiche Trefferliste wie auf der
+  // Buchungsseite (Feature-Parität).
+  const { data: allocations = EMPTY_ALLOCATIONS } = useQuery({
+    queryKey: dashboardKeys.allocationMap,
+    queryFn: getAllocationMap,
   });
 
   const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
@@ -163,8 +173,8 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       range,
       customDays,
       customPeriod,
-    }, new Date(), contractDecisions);
-  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions]);
+    }, new Date(), contractDecisions, allocations);
+  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions, allocations]);
 
   const visibleTransactions = useMemo(
     () => filteredTransactions.filter((tx) => !hiddenTransactions.has(tx.id || '')),

@@ -10,7 +10,7 @@ import {
 import { DEFAULT_DASHBOARD_FILTERS } from "../filter-constants";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import type { ContractDecision } from "@/services/contract-decision-service";
-import type { Account, Category, Transaction } from "@/types";
+import type { Account, Category, Transaction, TransactionAllocation } from "@/types";
 
 const NOW = new Date("2024-06-15T12:00:00Z");
 
@@ -27,6 +27,17 @@ function tx(partial: Partial<Transaction> & { id: string; date: string }): Trans
     confirmed: false,
     ...partial,
   } as Transaction;
+}
+
+function alloc(partial: Partial<TransactionAllocation> & { transaction_id: string }): TransactionAllocation {
+  return {
+    id: `alloc-${partial.transaction_id}`,
+    amount_minor: 0,
+    category_id: null,
+    label: null,
+    source: "manual",
+    ...partial,
+  } as TransactionAllocation;
 }
 
 const baseFilters: DashboardFilterState = {
@@ -61,6 +72,47 @@ describe("filterTransactions", () => {
   it("findet per Suchtext über Payee und Beschreibung (case-insensitive)", () => {
     const result = filterTransactions(txs, categories, accounts, { ...baseFilters, search: "rewe" }, NOW);
     expect(result.map((t) => t.id)).toEqual(["1"]);
+  });
+
+  it("findet per Suchtext die Notiz an der Buchung selbst", () => {
+    const withNote = [
+      ...txs,
+      tx({ id: "4", date: "2024-06-12", payee: "Baumarkt", tax_note: "Rechnung 2024-104 Handwerker" }),
+    ];
+    const result = filterTransactions(withNote, categories, accounts, { ...baseFilters, search: "2024-104" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["4"]);
+  });
+
+  it("findet per Suchtext die Notiz einer Split-Zeile (case-insensitive)", () => {
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["2", [alloc({ transaction_id: "2", label: "Geschenk für Oma" })]],
+    ]);
+    const result = filterTransactions(
+      txs,
+      categories,
+      accounts,
+      { ...baseFilters, search: "geschenk" },
+      NOW,
+      new Map(),
+      allocations,
+    );
+    expect(result.map((t) => t.id)).toEqual(["2"]);
+  });
+
+  it("liefert für einen Suchtext ohne Treffer in Notizen keine Buchung", () => {
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["2", [alloc({ transaction_id: "2", label: "Geschenk für Oma" })]],
+    ]);
+    const result = filterTransactions(
+      txs,
+      categories,
+      accounts,
+      { ...baseFilters, search: "urlaub" },
+      NOW,
+      new Map(),
+      allocations,
+    );
+    expect(result).toHaveLength(0);
   });
 
   it("schränkt auf das Datumsfenster der Range ein", () => {

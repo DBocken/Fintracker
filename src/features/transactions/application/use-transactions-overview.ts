@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
+import { getAllocationMap } from '@/services/transaction-allocation-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -18,7 +19,7 @@ import {
 } from '@/components/dashboard/filter-constants';
 import { filterTransactions, type DashboardFilterState } from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
-import type { Transaction } from '@/types';
+import type { Transaction, TransactionAllocation } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
 import { computeLocalBalances, computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';
 import {
@@ -37,6 +38,7 @@ const noop = () => {};
 // Query noch lädt (Default wird bei jedem Re-Render neu erzeugt). Muster wie
 // use-finance-overview.ts.
 const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
+const EMPTY_ALLOCATIONS = new Map<string, TransactionAllocation[]>();
 
 // 1:1 zu `resetFilters` (TransactionsPage Z. 218–231): alle 9 Felder von
 // `DashboardFilterState`, OHNE `customGranularity` (die lebt in einem eigenen
@@ -92,6 +94,12 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     queryKey: transactionsKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
+  // Split-Notizen (`TransactionAllocation.label`) sind Teil des Suchindex —
+  // ohne diese Map fände die Suche nur Empfänger/Beschreibung/Buchungsnotiz.
+  const { data: allocations = EMPTY_ALLOCATIONS } = useQuery({
+    queryKey: transactionsKeys.allocationMap,
+    queryFn: getAllocationMap,
+  });
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => options?.initialFilters ?? DEFAULT_FILTERS);
   const [customGranularity, setCustomGranularity] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -145,8 +153,8 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
   const filtered = useMemo(
     // Kein Re-Sort: txs kommen datum-absteigend aus dem Service (Sortier-
     // Contract der Storage-Schicht) und filterTransactions ist ordnungserhaltend.
-    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions),
-    [txs, cats, accounts, filtersForFilter, contractDecisions],
+    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions, allocations),
+    [txs, cats, accounts, filtersForFilter, contractDecisions, allocations],
   );
 
   const visible = useMemo(

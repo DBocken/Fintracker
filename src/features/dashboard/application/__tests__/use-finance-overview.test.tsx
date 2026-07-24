@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
-import type { Account, Category, Transaction } from '@/types';
+import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import { DEFAULT_DASHBOARD_FILTERS } from '@/components/dashboard/filter-constants';
 import { encodeDashboardFilters } from '@/components/dashboard/filter-utils';
 import {
@@ -24,6 +24,9 @@ vi.mock('@/services/transaction-service', () => ({
 vi.mock('@/services/account-service', () => ({
   getAccounts: vi.fn(),
 }));
+vi.mock('@/services/transaction-allocation-service', () => ({
+  getAllocationMap: vi.fn(),
+}));
 vi.mock('@/services/contract-decision-service', () => ({
   getContractDecisionMap: vi.fn(),
 }));
@@ -34,6 +37,7 @@ vi.mock('react-hot-toast', () => ({
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { getAllocationMap } from '@/services/transaction-allocation-service';
 
 const CAT_FOOD = 'cat-food';
 const CAT_FUN = 'cat-fun';
@@ -96,6 +100,7 @@ beforeEach(() => {
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getAccounts).mockResolvedValue(FIXTURE_ACCOUNTS);
   vi.mocked(getContractDecisionMap).mockResolvedValue(new Map());
+  vi.mocked(getAllocationMap).mockResolvedValue(new Map());
   vi.mocked(updateTransaction).mockResolvedValue([]);
   vi.mocked(deleteTransaction).mockResolvedValue(undefined);
 });
@@ -254,6 +259,35 @@ describe('useFinanceOverview', () => {
         result.current.sort.toggle('date');
       });
       expect(result.current.sort.config).toEqual({ key: 'date', direction: 'asc' });
+    });
+  });
+
+  describe('Notiz-Suche', () => {
+    it('sollte über die Notiz an der Buchung und die Notiz einer Split-Zeile filtern', async () => {
+      vi.mocked(getTransactions).mockResolvedValue([
+        ...FIXTURE_TRANSACTIONS,
+        { id: 'tx-note', date: '2026-05-12', amount: -80, payee: 'Baumarkt', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104' },
+      ]);
+      vi.mocked(getAllocationMap).mockResolvedValue(
+        new Map<string, TransactionAllocation[]>([
+          ['tx-3', [{ id: 'alloc-1', transaction_id: 'tx-3', amount_minor: -10000, category_id: CAT_FUN, label: 'Geburtstagsgeschenk', source: 'manual' } as TransactionAllocation]],
+        ]),
+      );
+      const { result } = await renderOverview();
+
+      act(() => {
+        result.current.filters.set.search('2026-104');
+      });
+      await waitFor(() => {
+        expect(result.current.transactions.visible.map((tx) => tx.id)).toEqual(['tx-note']);
+      });
+
+      act(() => {
+        result.current.filters.set.search('geburtstagsgeschenk');
+      });
+      await waitFor(() => {
+        expect(result.current.transactions.visible.map((tx) => tx.id)).toEqual(['tx-3']);
+      });
     });
   });
 

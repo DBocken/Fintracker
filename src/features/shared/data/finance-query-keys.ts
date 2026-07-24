@@ -6,6 +6,13 @@ export const financeKeys = {
   categories: ['categories'] as const,
   accounts: ['accounts'] as const,
   contractDecisions: ['contract-decisions'] as const,
+  /**
+   * Aufteilungen aller Buchungen als Map (`getAllocationMap`) — Suchindex für
+   * die Notizen der Split-Zeilen. Teilt sich die Wurzel `['allocations']` mit
+   * dem Per-Buchung-Cache des `TransactionSplitPanel` (`['allocations', txId]`),
+   * damit eine Invalidierung der Wurzel beide trifft (Prefix-Matching).
+   */
+  allocationMap: ['allocations', 'map'] as const,
 } as const;
 
 // Dashboard lädt bewusst 5000 Buchungen (F-PERF-3): Limit im Key verhindert

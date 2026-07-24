@@ -107,7 +107,10 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
     },
     onSuccess: () => {
       showSuccess(t("transactionSplit.saveSplitSuccess"));
-      queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
+      // Wurzel-Key statt ['allocations', txId]: die Buchungssuche cached die
+      // Aufteilungen aller Buchungen als Map (Split-Notizen sind durchsuchbar)
+      // und muss nach dem Speichern ebenfalls neu laden.
+      queryClient.invalidateQueries({ queryKey: ['allocations'] });
     },
     onError: (err) => {
       showError(err instanceof Error ? err.message : t("transactionSplit.saveSplitError"));
@@ -120,7 +123,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       showSuccess(t("transactionSplit.saveSplitSuccess"));
       setRows([newRow(), newRow()]);
       setInitialized(false);
-      queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
+      queryClient.invalidateQueries({ queryKey: ['allocations'] });
     },
   });
 

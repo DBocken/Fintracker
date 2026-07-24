@@ -1,5 +1,5 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
-import type { Account, Category, Transaction } from '@/types';
+import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
 import { resolveAusgabenklasse, resolveEssenziell } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
@@ -152,6 +152,32 @@ function matchesAccountFilter(transaction: Transaction, accountsById: Map<string
   return transaction.account_id === filter;
 }
 
+/** Stabile Leer-Referenz für den Default (keine neue Map pro Aufruf). */
+const NO_ALLOCATIONS: ReadonlyMap<string, TransactionAllocation[]> = new Map();
+
+/**
+ * Durchsuchbarer Text einer Buchung: Empfänger, Beschreibung, Originaltext —
+ * und zusätzlich JEDE vom Nutzer erfasste Notiz. Notizen hängen an zwei
+ * Stellen: direkt an der Buchung (`tax_note`) und an einzelnen Split-Zeilen
+ * (`TransactionAllocation.label`, im UI schlicht „Notiz"). Wer eine Notiz
+ * eingibt, sucht später danach — deshalb gehören beide in den Suchindex.
+ */
+function searchableText(
+  transaction: Transaction,
+  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]>,
+): string {
+  const splitNotes = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
+  return [
+    transaction.payee,
+    transaction.description,
+    transaction.original_text,
+    transaction.tax_note ?? '',
+    ...splitNotes.map((allocation) => allocation.label ?? ''),
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
 export function filterTransactions(
   transactions: Transaction[],
   categories: Category[],
@@ -159,6 +185,8 @@ export function filterTransactions(
   filters: DashboardFilterState,
   now = new Date(),
   contractDecisions: Map<string, ContractDecision> = new Map(),
+  /** transaction_id → Aufteilungen (`getAllocationMap`), nur für die Notiz-Suche. */
+  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]> = NO_ALLOCATIONS,
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now, filters.customPeriod ?? '');
   const search = filters.search.trim().toLowerCase();
@@ -175,10 +203,7 @@ export function filterTransactions(
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
-    if (search) {
-      const searchableText = `${transaction.payee} ${transaction.description} ${transaction.original_text}`.toLowerCase();
-      if (!searchableText.includes(search)) return false;
-    }
+    if (search && !searchableText(transaction, allocationsByTransaction).includes(search)) return false;
 
     return true;
   });
