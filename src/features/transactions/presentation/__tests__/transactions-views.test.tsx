@@ -70,6 +70,7 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
     transactions: { all: FIXTURE_TRANSACTIONS, visible: FIXTURE_TRANSACTIONS },
     categories: FIXTURE_CATEGORIES,
     accounts: FIXTURE_ACCOUNTS,
+    splits: { byTransaction: new Map(), matchedIds: new Set<string>() },
     balances: { scopedCurrent: 950, ending: 950, showRunningBalance: true },
     stats: { income: 0, expenses: 50, balance: -50, count: 1 },
     filters: {

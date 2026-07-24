@@ -100,26 +100,56 @@ function matchesContractFilter(
 }
 
 /**
- * Kategorie-Filter ist hierarchie-bewusst: eine Buchung passt, wenn ihre
- * zugewiesene Kategorie (oder eine ihrer Vorfahren) der gewählten Kategorie
- * entspricht. So liefert die Auswahl einer Hauptkategorie auch deren
- * Unterkategorien (nötig für die Chart-Navigation per Sunburst-Außenring).
+ * Hierarchie-bewusster Einzelvergleich: liegt `categoryId` im gewählten Filter
+ * — direkt oder als Nachfahre? So erfasst die Auswahl einer Hauptkategorie
+ * auch deren Unterkategorien (nötig für die Chart-Navigation per
+ * Sunburst-Außenring). Die direkt zugewiesene ID zählt auch dann, wenn die
+ * Kategorie nicht (mehr) existiert.
  */
-function matchesCategoryFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: string): boolean {
-  if (filter === 'all') return true;
-  const startIds = [transaction.subcategory_id, transaction.category_id].filter(Boolean) as string[];
-  for (const startId of startIds) {
-    let current: Category | undefined = categoriesById.get(startId);
-    const visited = new Set<string>();
-    // Direkt zugewiesene ID prüfen (auch wenn die Kategorie nicht (mehr) existiert).
-    if (startId === filter) return true;
-    while (current && !visited.has(current.id)) {
-      if (current.id === filter) return true;
-      visited.add(current.id);
-      current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
-    }
+export function isCategoryInFilter(
+  categoryId: string | null | undefined,
+  categoriesById: Map<string, Category>,
+  filter: string,
+): boolean {
+  if (!categoryId) return false;
+  if (categoryId === filter) return true;
+  let current: Category | undefined = categoriesById.get(categoryId);
+  const visited = new Set<string>();
+  while (current && !visited.has(current.id)) {
+    if (current.id === filter) return true;
+    visited.add(current.id);
+    current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
   }
   return false;
+}
+
+/** Kategorie einer Aufteilung (Unterkategorie gewinnt, wie bei der Buchung). */
+function allocationCategoryId(allocation: TransactionAllocation): string | null {
+  return allocation.subcategory_id ?? allocation.category_id ?? null;
+}
+
+/**
+ * Kategorie-Filter einer Buchung. Mit `matchSplits` zählt zusätzlich JEDE
+ * Aufteilung: eine Aldi-Buchung, die auf „Lebensmittel" und „Kleidung"
+ * aufgeteilt ist, erscheint damit auch unter dem Filter „Kleidung" — sonst
+ * wäre der aufgeteilte Anteil in der Buchungsliste unauffindbar.
+ */
+function matchesCategoryFilter(
+  transaction: Transaction,
+  categoriesById: Map<string, Category>,
+  filter: string,
+  allocations: readonly TransactionAllocation[] = [],
+  matchSplits = false,
+): boolean {
+  if (filter === 'all') return true;
+  if (
+    isCategoryInFilter(transaction.subcategory_id, categoriesById, filter) ||
+    isCategoryInFilter(transaction.category_id, categoriesById, filter)
+  ) {
+    return true;
+  }
+  if (!matchSplits) return false;
+  return allocations.some((a) => isCategoryInFilter(allocationCategoryId(a), categoriesById, filter));
 }
 
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
@@ -164,9 +194,8 @@ const NO_ALLOCATIONS: ReadonlyMap<string, TransactionAllocation[]> = new Map();
  */
 function searchableText(
   transaction: Transaction,
-  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]>,
+  splitNotes: readonly TransactionAllocation[],
 ): string {
-  const splitNotes = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
   return [
     transaction.payee,
     transaction.description,
@@ -178,6 +207,44 @@ function searchableText(
     .toLowerCase();
 }
 
+/** Aufteilungs-Kontext des Filters (Split-Buchungen). */
+export interface SplitFilterContext {
+  /** transaction_id → Aufteilungen (`getAllocationMap`). */
+  byTransaction?: ReadonlyMap<string, TransactionAllocation[]>;
+  /**
+   * Kategorie-Filter zusätzlich über die Aufteilungen matchen. Bewusst opt-in:
+   * die Buchungsseite zeigt den passenden Split als eigene Zeile unter der
+   * Buchung, die Dashboard-Charts aggregieren dagegen ohne Aufteilungs-Map und
+   * würden den vollen Buchungsbetrag der gefilterten Kategorie zuschlagen.
+   */
+  matchCategories?: boolean;
+}
+
+const NO_SPLITS: SplitFilterContext = {};
+
+/**
+ * Sammelt die Aufteilungen, die zum aktiven Kategorie-Filter passen — die
+ * Buchungsliste klappt genau diese Zeilen auf („Aldi └ Kleidung"). Ohne
+ * aktiven Kategorie-Filter (oder ohne Aufteilungen) leer.
+ */
+export function collectMatchingAllocationIds(
+  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]>,
+  categories: Category[],
+  filter: string,
+): Set<string> {
+  const matched = new Set<string>();
+  if (filter === 'all') return matched;
+  const categoriesById = getCategoryById(categories);
+  for (const allocations of allocationsByTransaction.values()) {
+    for (const allocation of allocations) {
+      if (isCategoryInFilter(allocationCategoryId(allocation), categoriesById, filter)) {
+        matched.add(allocation.id);
+      }
+    }
+  }
+  return matched;
+}
+
 export function filterTransactions(
   transactions: Transaction[],
   categories: Category[],
@@ -185,25 +252,28 @@ export function filterTransactions(
   filters: DashboardFilterState,
   now = new Date(),
   contractDecisions: Map<string, ContractDecision> = new Map(),
-  /** transaction_id → Aufteilungen (`getAllocationMap`), nur für die Notiz-Suche. */
-  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]> = NO_ALLOCATIONS,
+  splits: SplitFilterContext = NO_SPLITS,
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now, filters.customPeriod ?? '');
   const search = filters.search.trim().toLowerCase();
   const categoriesById = getCategoryById(categories);
   const accountsById = getAccountById(accounts);
+  const allocationsByTransaction = splits.byTransaction ?? NO_ALLOCATIONS;
 
   return transactions.filter((transaction) => {
     const txDate = parseISO(transaction.date);
     if (!isWithinInterval(txDate, { start, end })) return false;
 
-    if (!matchesCategoryFilter(transaction, categoriesById, filters.category)) return false;
+    const allocations = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
+    if (!matchesCategoryFilter(transaction, categoriesById, filters.category, allocations, splits.matchCategories)) {
+      return false;
+    }
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
     if (!matchesContractFilter(transaction, categoriesById, contractDecisions, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
-    if (search && !searchableText(transaction, allocationsByTransaction).includes(search)) return false;
+    if (search && !searchableText(transaction, allocations).includes(search)) return false;
 
     return true;
   });

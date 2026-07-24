@@ -1,5 +1,5 @@
 import type { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
-import type { Account, Category, Transaction } from '@/types';
+import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
 import type { DashboardGranularity, DashboardRange } from '@/components/dashboard/filter-constants';
 import type { PeriodOption } from '@/components/dashboard/period-utils';
@@ -23,6 +23,16 @@ export type TransactionsOverviewViewModel = {
   };
   categories: Category[];
   accounts: Account[];
+  /**
+   * Aufteilungen (Split-Buchungen) für die Liste: `byTransaction` speist die
+   * aufklappbaren Split-Zeilen, `matchedIds` sind die Aufteilungen, die zum
+   * aktiven Kategorie-Filter passen (leer, solange kein Kategorie-Filter
+   * gesetzt ist) — deren Buchungen zeigen die passende Zeile direkt an.
+   */
+  splits: {
+    byTransaction: ReadonlyMap<string, TransactionAllocation[]>;
+    matchedIds: ReadonlySet<string>;
+  };
   balances: {
     /** Aktueller Saldo im gewählten Konto-Scope (TransactionsPage Z. 135–145). */
     scopedCurrent: number;

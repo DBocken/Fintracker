@@ -17,7 +17,11 @@ import {
   type DashboardGranularity,
   type DashboardRange,
 } from '@/components/dashboard/filter-constants';
-import { filterTransactions, type DashboardFilterState } from '@/components/dashboard/filter-utils';
+import {
+  filterTransactions,
+  collectMatchingAllocationIds,
+  type DashboardFilterState,
+} from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import type { Transaction, TransactionAllocation } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
@@ -153,7 +157,12 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
   const filtered = useMemo(
     // Kein Re-Sort: txs kommen datum-absteigend aus dem Service (Sortier-
     // Contract der Storage-Schicht) und filterTransactions ist ordnungserhaltend.
-    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions, allocations),
+    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions, {
+      byTransaction: allocations,
+      // Buchungsseite: Der Kategorie-Filter greift auch auf Aufteilungen — die
+      // Liste zeigt den passenden Split als eigene Zeile unter der Buchung.
+      matchCategories: true,
+    }),
     [txs, cats, accounts, filtersForFilter, contractDecisions, allocations],
   );
 
@@ -234,16 +243,30 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   const transactions = useMemo(() => ({ all: txs, visible }), [txs, visible]);
 
+  // Aufteilungen, die zum aktiven Kategorie-Filter passen: die Liste klappt
+  // genau diese Zeilen auf (`Aldi └ Kleidung`). Bewusst am ungedebouncten
+  // `filters.category` — der Kategorie-Filter wirkt sofort, nur die Suche
+  // ist entkoppelt.
+  const matchedAllocationIds = useMemo(
+    () => collectMatchingAllocationIds(allocations, cats, filters.category),
+    [allocations, cats, filters.category],
+  );
+  const splits = useMemo(
+    () => ({ byTransaction: allocations, matchedIds: matchedAllocationIds }),
+    [allocations, matchedAllocationIds],
+  );
+
   return useMemo<TransactionsOverviewViewModel>(() => ({
     loading: txsLoading,
     isEmpty: !txsLoading && txs.length === 0,
     transactions,
     categories: cats,
     accounts,
+    splits,
     balances,
     stats,
     filters: filtersVM,
     hidden,
     actions,
-  }), [txsLoading, txs, transactions, cats, accounts, balances, stats, filtersVM, hidden, actions]);
+  }), [txsLoading, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
 }

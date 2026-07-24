@@ -270,6 +270,45 @@ describe('useTransactionsOverview', () => {
     });
   });
 
+  describe('Aufteilungen (Split-Buchungen)', () => {
+    const SPLITS = new Map<string, TransactionAllocation[]>([
+      ['tx-food', [
+        { id: 'a-food', transaction_id: 'tx-food', amount_minor: -25000, category_id: CAT_FOOD, source: 'manual' } as TransactionAllocation,
+        { id: 'a-fun', transaction_id: 'tx-food', amount_minor: -5000, category_id: CAT_FUN, source: 'manual' } as TransactionAllocation,
+      ]],
+    ]);
+
+    it('sollte eine Buchung über die Kategorie ihrer Aufteilung sichtbar machen', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => {
+        // tx-food ist als „Essen" kategorisiert, hat aber einen Freizeit-Anteil.
+        expect(result.current.transactions.visible.map((tx) => tx.id)).toContain('tx-food');
+      });
+      expect(result.current.transactions.visible.map((tx) => tx.id)).toContain('tx-fun');
+    });
+
+    it('sollte genau die zum Kategorie-Filter passenden Aufteilungen melden', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => expect([...result.current.splits.matchedIds]).toEqual(['a-fun']));
+      expect(result.current.splits.byTransaction.get('tx-food')).toHaveLength(2);
+    });
+
+    it('sollte ohne Kategorie-Filter keine Aufteilung als Treffer melden', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview();
+
+      await waitFor(() => expect(result.current.splits.byTransaction.size).toBe(1));
+      expect(result.current.splits.matchedIds.size).toBe(0);
+    });
+  });
+
   describe('Regression Protection', () => {
     it('[REGRESSION] sollte reset() ALLE Filterfelder inkl. ausgabenklasse und customGranularity zurücksetzen', async () => {
       const { result } = await renderOverview();

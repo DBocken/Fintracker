@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Transaction } from '@/types';
+import type { Transaction, TransactionAllocation } from '@/types';
 import { buildDayGroups, formatDayHeading } from '../transaction-day-groups';
 
 function tx(p: Partial<Transaction> & { date: string; amount: number }): Transaction {
@@ -151,6 +151,35 @@ describe('flattenDayGroups', () => {
       expect(flat[1]).toMatchObject({ type: 'row', isFirstRowOfDay: true });
       expect(flat[4]).toMatchObject({ type: 'row', isFirstRowOfDay: false });
       expect(flat[2].group.key).toBe('2026-07-02');
+    });
+
+    it('sollte sichtbare Split-Zeilen direkt unter ihre Buchung einreihen', async () => {
+      const { flattenDayGroups } = await import('../transaction-day-groups');
+      const aldi = tx({ id: 'aldi', date: '2026-07-03', amount: -50, payee: 'Aldi' });
+      const rewe = tx({ id: 'rewe', date: '2026-07-03', amount: -20, payee: 'Rewe' });
+      const groups = buildDayGroups([aldi, rewe], 1240);
+
+      const flat = flattenDayGroups(
+        groups,
+        new Map([
+          ['aldi', [
+            { id: 'a1', transaction_id: 'aldi', amount_minor: -3700, category_id: 'food', source: 'manual' },
+            { id: 'a2', transaction_id: 'aldi', amount_minor: -1300, category_id: 'clothes', source: 'manual' },
+          ] as TransactionAllocation[]],
+        ]),
+      );
+
+      expect(flat.map((f) => f.type)).toEqual(['heading', 'row', 'split', 'split', 'row']);
+      expect(flat[2]).toMatchObject({ type: 'split', isLastSplit: false });
+      expect(flat[3]).toMatchObject({ type: 'split', isLastSplit: true });
+      // Die Split-Zeilen hängen an ihrer Buchung (für Klick-Ziel + Einrückung).
+      expect(flat[2].type === 'split' && flat[2].transaction.id).toBe('aldi');
+    });
+
+    it('sollte ohne sichtbare Aufteilungen unverändert bleiben (eingeklapptes Akkordeon)', async () => {
+      const { flattenDayGroups } = await import('../transaction-day-groups');
+      const groups = buildDayGroups([tx({ id: 'aldi', date: '2026-07-03', amount: -50 })], 1240);
+      expect(flattenDayGroups(groups, new Map()).map((f) => f.type)).toEqual(['heading', 'row']);
     });
   });
 

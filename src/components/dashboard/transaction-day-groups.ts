@@ -1,6 +1,6 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
-import type { Transaction } from '@/types';
+import type { Transaction, TransactionAllocation } from '@/types';
 
 export interface DayGroup {
   /** ISO-Datum als stabiler Key (z. B. `2026-07-03`). */
@@ -53,20 +53,47 @@ export function buildDayGroups(transactions: Transaction[], endingBalance: numbe
 
 export type FlatDayItem =
   | { type: 'heading'; group: DayGroup }
-  | { type: 'row'; group: DayGroup; transaction: Transaction; isFirstRowOfDay: boolean };
+  | { type: 'row'; group: DayGroup; transaction: Transaction; isFirstRowOfDay: boolean }
+  | {
+      type: 'split';
+      group: DayGroup;
+      /** Buchung, zu der die Aufteilung gehört (Klick-Ziel + Einrückung). */
+      transaction: Transaction;
+      allocation: TransactionAllocation;
+      /** Letzte sichtbare Aufteilung dieser Buchung (Baum-Optik `└` statt `├`). */
+      isLastSplit: boolean;
+    };
 
 /**
  * Flacht Tages-Gruppen zu einer einzelnen Item-Liste ab (Heading, dann Zeilen),
  * damit die Liste fenster-virtualisiert werden kann: der Virtualizer braucht
  * eine flache, indexierbare Sequenz. `isFirstRowOfDay` erhält die
  * Trennlinien-Optik (divide-y) über die absolute Positionierung hinweg.
+ *
+ * `visibleSplits` (transaction_id → aktuell sichtbare Aufteilungen) reiht die
+ * aufgeklappten Split-Zeilen direkt hinter ihre Buchung ein — bewusst als
+ * eigene Flat-Items statt als verschachteltes Markup, damit der Virtualizer
+ * ihre Höhen kennt.
  */
-export function flattenDayGroups(groups: DayGroup[]): FlatDayItem[] {
+export function flattenDayGroups(
+  groups: DayGroup[],
+  visibleSplits: ReadonlyMap<string, TransactionAllocation[]> = new Map(),
+): FlatDayItem[] {
   const flat: FlatDayItem[] = [];
   for (const group of groups) {
     flat.push({ type: 'heading', group });
     group.items.forEach((transaction, index) => {
       flat.push({ type: 'row', group, transaction, isFirstRowOfDay: index === 0 });
+      const splits = transaction.id ? visibleSplits.get(transaction.id) ?? [] : [];
+      splits.forEach((allocation, splitIndex) => {
+        flat.push({
+          type: 'split',
+          group,
+          transaction,
+          allocation,
+          isLastSplit: splitIndex === splits.length - 1,
+        });
+      });
     });
   }
   return flat;

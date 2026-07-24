@@ -173,7 +173,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       range,
       customDays,
       customPeriod,
-    }, new Date(), contractDecisions, allocations);
+    }, new Date(), contractDecisions, { byTransaction: allocations });
   }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions, allocations]);
 
   const visibleTransactions = useMemo(
