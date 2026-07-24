@@ -18,11 +18,11 @@
  * am Ende zurück nach Euro gewandelt — `CityContract.amount` bleibt wie bisher
  * Anzeige-Euro (Float), konsistent mit `CitySubcategory.amount`.
  */
-import { resolveHierarchy } from '@/lib/analysis-data';
+import { getCategoryContributions, resolveHierarchy } from '@/lib/analysis-data';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { toMinor, toMajor, sumMinor } from '@/lib/money';
 import { t } from '@/i18n/serviceT';
-import type { Transaction, Category } from '@/types';
+import type { Transaction, Category, TransactionAllocation } from '@/types';
 import type { CityContract } from './city-model';
 
 /** Ab dieser Händleranzahl (exklusive) wird gedeckelt: Top 5 + EINE "Sonstige"-Etage (maximal 6 Etagen). */
@@ -42,13 +42,19 @@ type MerchantBooking = { payee: string; absMinor: number; txId?: string; date: s
  * Etagen — ein Eintrag je Händler (`merchantFingerprint`), über alle
  * Buchungen dieses Händlers in diesem Gebäude aufsummiert.
  *
+ * Aufgeteilte Buchungen (`allocationsByTx`) zerfallen anteilig: Wer Kleidung
+ * bei Aldi kauft und die Buchung aufteilt, bekommt den Kleidungs-Anteil als
+ * Aldi-Etage im KLEIDUNGS-Gebäude — nicht den vollen Betrag bei Lebensmitteln.
+ * Beides läuft über dieselbe Expansion wie Sunburst/Sankey
+ * (`getCategoryContributions`), ohne Map bleibt es bei einer Kategorie je
+ * Buchung.
+ *
  * Übersprungen werden: interne Überträge (`is_transfer`), nicht-negative
- * Beträge (Einnahmen/Nullbuchungen — nur Ausgaben werden Etagen) und
- * Buchungen ohne zugewiesene Kategorie (`subcategory_id ?? category_id`,
- * dieselbe Konvention wie `getCategoryContributions`/Sunburst). Ist die
- * zugewiesene Kategorie selbst nicht auflösbar (z. B. gelöscht), wird die Buchung ebenfalls
- * übersprungen statt mit einer sinnlosen "unkategorisiert"-Gebäude-Id
- * einzugehen (kein Crash).
+ * Beträge (Einnahmen/Nullbuchungen — nur Ausgaben werden Etagen) und Beiträge
+ * ohne zugewiesene Kategorie (`subcategory_id ?? category_id`). Ist die
+ * zugewiesene Kategorie selbst nicht auflösbar (z. B. gelöscht), wird der
+ * Beitrag ebenfalls übersprungen statt mit einer sinnlosen
+ * "unkategorisiert"-Gebäude-Id einzugehen (kein Crash).
  *
  * Deckelung je Gebäude: mehr als `MAX_NAMED_MERCHANTS` (5) Händler -> die
  * Top 5 (nach Gesamtbetrag absteigend) bleiben eigene Etagen, der Rest wird
@@ -57,6 +63,7 @@ type MerchantBooking = { payee: string; absMinor: number; txId?: string; date: s
 export function buildMerchantFloorsByBuilding(
   transactions: Transaction[],
   categoriesById: Map<string, Category>,
+  allocationsByTx?: Map<string, TransactionAllocation[]>,
 ): Map<string, CityContract[]> {
   // Gebäude-Id -> Fingerprint -> alle Einzelbuchungen dieses Händlers (Cent-Summierung erst am Ende).
   const bookingsByBuilding = new Map<string, Map<string, MerchantBooking[]>>();
@@ -64,31 +71,35 @@ export function buildMerchantFloorsByBuilding(
   for (const tx of transactions) {
     if (tx.is_transfer) continue;
     if (!(tx.amount < 0)) continue;
+
     // [REGRESSION] App-Konvention der zugewiesenen Kategorie ist
     // `subcategory_id ?? category_id` (`getCategoryContributions`,
     // `analysis-data.ts` — daraus baut der Sunburst die Gebäude-Ids).
     // Vorher wurde nur `category_id` gelesen: Buchungen mit gesetzter
     // `subcategory_id` landeten unterm Hauptkategorie-Key, und das
     // Unterkategorie-Gebäude blieb beim Eintauchen ohne Etagen.
-    const assignedId = tx.subcategory_id ?? tx.category_id;
-    if (!assignedId) continue;
-    if (!categoriesById.has(assignedId)) continue; // Kategorie nicht auflösbar -> überspringen statt crashen.
+    for (const contribution of getCategoryContributions(tx, allocationsByTx)) {
+      const assignedId = contribution.assignedId;
+      if (!assignedId) continue;
+      if (!categoriesById.has(assignedId)) continue; // Kategorie nicht auflösbar -> überspringen statt crashen.
+      const absMinor = Math.abs(toMinor(contribution.amount));
+      if (absMinor === 0) continue;
 
-    const { mainId, subId } = resolveHierarchy(categoriesById, assignedId);
-    const buildingId = subId ?? mainId;
+      const { mainId, subId } = resolveHierarchy(categoriesById, assignedId);
+      const buildingId = subId ?? mainId;
 
-    const fingerprint = merchantFingerprint(tx);
-    const absMinor = Math.abs(toMinor(tx.amount));
+      const fingerprint = merchantFingerprint(tx);
 
-    let merchants = bookingsByBuilding.get(buildingId);
-    if (!merchants) {
-      merchants = new Map();
-      bookingsByBuilding.set(buildingId, merchants);
+      let merchants = bookingsByBuilding.get(buildingId);
+      if (!merchants) {
+        merchants = new Map();
+        bookingsByBuilding.set(buildingId, merchants);
+      }
+      const booking: MerchantBooking = { payee: tx.payee, absMinor, txId: tx.id, date: tx.date };
+      const bookings = merchants.get(fingerprint);
+      if (bookings) bookings.push(booking);
+      else merchants.set(fingerprint, [booking]);
     }
-    const booking: MerchantBooking = { payee: tx.payee, absMinor, txId: tx.id, date: tx.date };
-    const bookings = merchants.get(fingerprint);
-    if (bookings) bookings.push(booking);
-    else merchants.set(fingerprint, [booking]);
   }
 
   const result = new Map<string, CityContract[]>();

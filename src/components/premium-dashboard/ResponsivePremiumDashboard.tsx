@@ -16,6 +16,7 @@ import { KpiSection } from "@/components/kpi/KpiSection";
 import { dyadProps } from "@/lib/dyad";
 import { buildSankeyData, buildWeekdayPattern } from "@/lib/analysis-data";
 import { useI18n } from "@/i18n/useI18n";
+import { useAllocationMap } from "@/hooks/useAllocationMap";
 
 type FlowMode = "live" | "month" | "average";
 
@@ -41,6 +42,9 @@ export function ResponsivePremiumDashboard() {
     queryKey: ["accounts"],
     queryFn: () => getAccounts(),
   });
+
+  // Aufteilungen: Split-Anteile zählen in ihrer eigenen Kategorie.
+  const allocations = useAllocationMap();
 
   const flowTransactions = useMemo(() => {
     if (!transactions.length) return [];
@@ -178,8 +182,10 @@ export function ResponsivePremiumDashboard() {
   // Sankey mit Drilldown + Wochenmuster (Issue #40) — gleiche Datenbasis
   // wie das Basis-Sankey, eine Implementierung (lib/analysis-data).
   const sankeyData = useMemo(
-    () => buildSankeyData(flowTransactions, categories, accounts),
-    [flowTransactions, categories, accounts]
+    // Anteilsgenau wie das Basis-Sankey: aufgeteilte Buchungen fließen mit
+    // jedem Anteil in seine eigene Kategorie.
+    () => buildSankeyData(flowTransactions, categories, accounts, allocations),
+    [flowTransactions, categories, accounts, allocations]
   );
   const weekdayPattern = useMemo(() => buildWeekdayPattern(flowTransactions), [flowTransactions]);
 

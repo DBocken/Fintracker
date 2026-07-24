@@ -12,6 +12,8 @@ import {
   sumExpenses,
   buildIncomeBreakdown,
   buildIncomeOverTime,
+  isCategoryInFilter,
+  sumCategoryFlow,
 } from '../analysis-data';
 import type { SunburstNode } from '../analysis-data';
 import type { Account, Transaction, Category, TransactionAllocation } from '@/types';
@@ -964,5 +966,69 @@ describe('buildSankeyData & buildWeekdayPattern (Sankey/Wochenmuster-Aufbereitun
       expect(withAlloc.total).toBeCloseTo(without.total, 2);
       expect(withAlloc.total).toBeCloseTo(12.5, 2);
     });
+  });
+});
+
+describe('sumCategoryFlow', () => {
+  const tx = (over: Partial<Transaction>): Transaction =>
+    ({ id: 'x', account_id: 'a', date: '2026-01-01', amount: 0, payee: '', description: '', ...over }) as Transaction;
+  const cats = new Map<string, Category>([
+    ['food', { id: 'food', name: 'Lebensmittel', filters: [], parent_id: null } as Category],
+    ['clothes', { id: 'clothes', name: 'Kleidung', filters: [], parent_id: null } as Category],
+    ['shoes', { id: 'shoes', name: 'Schuhe', filters: [], parent_id: 'clothes' } as Category],
+  ]);
+  const aldi = tx({ id: 'aldi', amount: -50, category_id: 'food' });
+  const cua = tx({ id: 'cua', amount: -30, category_id: 'clothes' });
+  const allocations = new Map<string, TransactionAllocation[]>([
+    ['aldi', [
+      { id: 'a-food', transaction_id: 'aldi', amount_minor: -3700, category_id: 'food', source: 'manual' } as TransactionAllocation,
+      { id: 'a-clothes', transaction_id: 'aldi', amount_minor: -1300, category_id: 'clothes', source: 'manual' } as TransactionAllocation,
+    ]],
+  ]);
+
+  it('sollte aufgeteilte Buchungen anteilig der gefilterten Kategorie zurechnen', () => {
+    const result = sumCategoryFlow([aldi, cua], allocations, (id) => isCategoryInFilter(id, cats, 'clothes'));
+    expect(result.expenses).toBeCloseTo(43, 2);
+    expect(result.income).toBe(0);
+  });
+
+  it('sollte über die Hauptkategorie auch Unterkategorie-Anteile erfassen', () => {
+    const withSub = new Map<string, TransactionAllocation[]>([
+      ['aldi', [
+        { id: 'a-shoes', transaction_id: 'aldi', amount_minor: -2000, category_id: 'clothes', subcategory_id: 'shoes', source: 'manual' } as TransactionAllocation,
+        { id: 'a-food', transaction_id: 'aldi', amount_minor: -3000, category_id: 'food', source: 'manual' } as TransactionAllocation,
+      ]],
+    ]);
+    const result = sumCategoryFlow([aldi], withSub, (id) => isCategoryInFilter(id, cats, 'clothes'));
+    expect(result.expenses).toBeCloseTo(20, 2);
+  });
+
+  it('sollte Einnahmen und Ausgaben getrennt führen und Transfers ausschließen', () => {
+    const gehalt = tx({ id: 'inc', amount: 2000, category_id: 'food' });
+    const transfer = tx({ id: 'tr', amount: -500, category_id: 'food', is_transfer: true });
+    const result = sumCategoryFlow([gehalt, transfer, aldi], undefined, (id) => isCategoryInFilter(id, cats, 'food'));
+    expect(result.income).toBeCloseTo(2000, 2);
+    // Ohne Aufteilungs-Map zählt die Aldi-Buchung voll in ihrer eigenen Kategorie.
+    expect(result.expenses).toBeCloseTo(50, 2);
+  });
+
+  it('sollte cent-genau summieren (keine Float-Drift)', () => {
+    const a = tx({ id: 'a', amount: -0.1, category_id: 'food' });
+    const b = tx({ id: 'b', amount: -0.2, category_id: 'food' });
+    const result = sumCategoryFlow([a, b], undefined, (id) => isCategoryInFilter(id, cats, 'food'));
+    expect(result.expenses).toBe(0.3);
+  });
+});
+
+describe('isCategoryInFilter', () => {
+  const cats = new Map<string, Category>([
+    ['main', { id: 'main', name: 'Wohnen', filters: [], parent_id: null } as Category],
+    ['sub', { id: 'sub', name: 'Strom', filters: [], parent_id: 'main' } as Category],
+  ]);
+
+  it('sollte Nachfahren erfassen, Fremdkategorien ablehnen und null verkraften', () => {
+    expect(isCategoryInFilter('sub', cats, 'main')).toBe(true);
+    expect(isCategoryInFilter('main', cats, 'sub')).toBe(false);
+    expect(isCategoryInFilter(null, cats, 'main')).toBe(false);
   });
 });

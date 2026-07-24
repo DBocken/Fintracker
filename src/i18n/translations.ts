@@ -654,6 +654,10 @@ export const translations = {
       reset: 'Zurücksetzen',
       emptyTitle: 'Keine Buchungen gefunden',
       emptyHint: 'Passe Filter oder Suchbegriff an.',
+      splitBadge: 'aufgeteilt',
+      splitExpand: 'Aufteilung anzeigen',
+      splitCollapse: 'Aufteilung ausblenden',
+      splitUncategorized: 'Ohne Kategorie',
     },
     debts: {
       title: 'Schulden & Forderungen',
@@ -4419,6 +4423,10 @@ export const translations = {
       reset: 'Reset',
       emptyTitle: 'No transactions found',
       emptyHint: 'Adjust filter or search term.',
+      splitBadge: 'split',
+      splitExpand: 'Show split',
+      splitCollapse: 'Hide split',
+      splitUncategorized: 'Uncategorized',
     },
     debts: {
       title: 'Debts & Receivables',
@@ -8184,6 +8192,10 @@ export const translations = {
       reset: "yIchu'moH",
       emptyTitle: "Huch mIwmey tu'lu'be'",
       emptyHint: "filter pagh nejwI' mu' yIchoH.",
+      splitBadge: "'ay'mey",
+      splitExpand: "'ay'mey yI'ang",
+      splitCollapse: "'ay'mey yISo'",
+      splitUncategorized: "Segh Hutlhbogh",
     },
     debts: {
       title: "SubmeH Huch 'ej HevmeH Huch",
@@ -11890,6 +11902,10 @@ export const translations = {
       reset: 'Сбросить',
       emptyTitle: 'Транзакции не найдены',
       emptyHint: 'Измените фильтр или поисковый запрос.',
+      splitBadge: 'разделено',
+      splitExpand: 'Показать разделение',
+      splitCollapse: 'Скрыть разделение',
+      splitUncategorized: 'Без категории',
     },
     debts: {
       title: 'Долги и требования',

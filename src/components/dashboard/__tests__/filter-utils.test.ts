@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   filterTransactions,
+  collectMatchingAllocationIds,
+  isCategoryInFilter,
   getDashboardDateRange,
   encodeDashboardFilters,
   decodeDashboardFilters,
@@ -10,7 +12,7 @@ import {
 import { DEFAULT_DASHBOARD_FILTERS } from "../filter-constants";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import type { ContractDecision } from "@/services/contract-decision-service";
-import type { Account, Category, Transaction } from "@/types";
+import type { Account, Category, Transaction, TransactionAllocation } from "@/types";
 
 const NOW = new Date("2024-06-15T12:00:00Z");
 
@@ -27,6 +29,17 @@ function tx(partial: Partial<Transaction> & { id: string; date: string }): Trans
     confirmed: false,
     ...partial,
   } as Transaction;
+}
+
+function alloc(partial: Partial<TransactionAllocation> & { transaction_id: string }): TransactionAllocation {
+  return {
+    id: `alloc-${partial.transaction_id}`,
+    amount_minor: 0,
+    category_id: null,
+    label: null,
+    source: "manual",
+    ...partial,
+  } as TransactionAllocation;
 }
 
 const baseFilters: DashboardFilterState = {
@@ -63,6 +76,47 @@ describe("filterTransactions", () => {
     expect(result.map((t) => t.id)).toEqual(["1"]);
   });
 
+  it("findet per Suchtext die Notiz an der Buchung selbst", () => {
+    const withNote = [
+      ...txs,
+      tx({ id: "4", date: "2024-06-12", payee: "Baumarkt", tax_note: "Rechnung 2024-104 Handwerker" }),
+    ];
+    const result = filterTransactions(withNote, categories, accounts, { ...baseFilters, search: "2024-104" }, NOW);
+    expect(result.map((t) => t.id)).toEqual(["4"]);
+  });
+
+  it("findet per Suchtext die Notiz einer Split-Zeile (case-insensitive)", () => {
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["2", [alloc({ transaction_id: "2", label: "Geschenk für Oma" })]],
+    ]);
+    const result = filterTransactions(
+      txs,
+      categories,
+      accounts,
+      { ...baseFilters, search: "geschenk" },
+      NOW,
+      new Map(),
+      { byTransaction: allocations },
+    );
+    expect(result.map((t) => t.id)).toEqual(["2"]);
+  });
+
+  it("liefert für einen Suchtext ohne Treffer in Notizen keine Buchung", () => {
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["2", [alloc({ transaction_id: "2", label: "Geschenk für Oma" })]],
+    ]);
+    const result = filterTransactions(
+      txs,
+      categories,
+      accounts,
+      { ...baseFilters, search: "urlaub" },
+      NOW,
+      new Map(),
+      { byTransaction: allocations },
+    );
+    expect(result).toHaveLength(0);
+  });
+
   it("schränkt auf das Datumsfenster der Range ein", () => {
     const result = filterTransactions(txs, categories, accounts, { ...baseFilters, range: "30 Tage" }, NOW);
     expect(result.map((t) => t.id).sort()).toEqual(["1", "3"]);
@@ -90,6 +144,54 @@ describe("filterTransactions", () => {
     expect(bySub.map((t) => t.id)).toEqual(["b"]);
   });
 
+  it("Kategorie-Filter erfasst mit matchCategories auch Aufteilungen (Aldi └ Kleidung)", () => {
+    const cats: Category[] = [
+      { id: "food", name: "Lebensmittel", parent_id: null } as Category,
+      { id: "clothes", name: "Kleidung", parent_id: null } as Category,
+    ];
+    const list = [
+      tx({ id: "aldi", date: "2024-06-10", amount: -50, payee: "Aldi", category_id: "food" }),
+      tx({ id: "cua", date: "2024-06-10", amount: -30, payee: "C&A", category_id: "clothes" }),
+      tx({ id: "rewe", date: "2024-06-10", amount: -20, payee: "Rewe", category_id: "food" }),
+    ];
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["aldi", [
+        alloc({ id: "a-food", transaction_id: "aldi", amount_minor: -3700, category_id: "food" }),
+        alloc({ id: "a-clothes", transaction_id: "aldi", amount_minor: -1300, category_id: "clothes" }),
+      ]],
+    ]);
+
+    const withSplits = filterTransactions(
+      list, cats, accounts, { ...baseFilters, category: "clothes" }, NOW, new Map(),
+      { byTransaction: allocations, matchCategories: true },
+    );
+    expect(withSplits.map((t) => t.id).sort()).toEqual(["aldi", "cua"]);
+
+    // Ohne das Opt-in bleibt es beim bisherigen Verhalten (Dashboard-Charts).
+    const withoutSplits = filterTransactions(
+      list, cats, accounts, { ...baseFilters, category: "clothes" }, NOW, new Map(),
+      { byTransaction: allocations },
+    );
+    expect(withoutSplits.map((t) => t.id)).toEqual(["cua"]);
+  });
+
+  it("Kategorie-Filter über Aufteilungen ist hierarchie-bewusst (Hauptkategorie erfasst Unter-Split)", () => {
+    const cats: Category[] = [
+      { id: "main", name: "Wohnen", parent_id: null } as Category,
+      { id: "sub", name: "Strom", parent_id: "main" } as Category,
+    ];
+    const list = [tx({ id: "tx-1", date: "2024-06-10", amount: -80, category_id: "other" })];
+    const allocations = new Map<string, TransactionAllocation[]>([
+      ["tx-1", [alloc({ id: "a-1", transaction_id: "tx-1", category_id: "main", subcategory_id: "sub" })]],
+    ]);
+
+    const result = filterTransactions(
+      list, cats, accounts, { ...baseFilters, category: "main" }, NOW, new Map(),
+      { byTransaction: allocations, matchCategories: true },
+    );
+    expect(result.map((t) => t.id)).toEqual(["tx-1"]);
+  });
+
   it("[REGRESSION] Essential-/Klasse-Filter nutzen die Unterkategorie (Sub-Override, F-UX-5)", () => {
     // Diskretionäre Hauptkategorie mit einer essenziellen Unterkategorie.
     const cats: Category[] = [
@@ -108,6 +210,46 @@ describe("filterTransactions", () => {
     // Ausgabenklasse-Filter „essenziell": ebenfalls über die Unterkategorie.
     const klasse = filterTransactions(list, cats, accounts, { ...baseFilters, ausgabenklasse: "essenziell" }, NOW);
     expect(klasse.map((t) => t.id)).toEqual(["sub-ess"]);
+  });
+});
+
+describe("collectMatchingAllocationIds", () => {
+  const cats: Category[] = [
+    { id: "main", name: "Wohnen", parent_id: null } as Category,
+    { id: "sub", name: "Strom", parent_id: "main" } as Category,
+    { id: "food", name: "Lebensmittel", parent_id: null } as Category,
+  ];
+  const allocations = new Map<string, TransactionAllocation[]>([
+    ["tx-1", [
+      alloc({ id: "a-sub", transaction_id: "tx-1", category_id: "main", subcategory_id: "sub" }),
+      alloc({ id: "a-food", transaction_id: "tx-1", category_id: "food" }),
+    ]],
+  ]);
+
+  it("sollte nur die Aufteilungen der gefilterten Kategorie liefern (inkl. Unterkategorien)", () => {
+    expect([...collectMatchingAllocationIds(allocations, cats, "main")]).toEqual(["a-sub"]);
+    expect([...collectMatchingAllocationIds(allocations, cats, "food")]).toEqual(["a-food"]);
+  });
+
+  it("sollte ohne aktiven Kategorie-Filter leer bleiben", () => {
+    expect(collectMatchingAllocationIds(allocations, cats, "all").size).toBe(0);
+  });
+});
+
+describe("isCategoryInFilter", () => {
+  const byId = new Map<string, Category>([
+    ["main", { id: "main", name: "Wohnen", parent_id: null } as Category],
+    ["sub", { id: "sub", name: "Strom", parent_id: "main" } as Category],
+  ]);
+
+  it("sollte Nachfahren erfassen und Fremdkategorien ablehnen", () => {
+    expect(isCategoryInFilter("sub", byId, "main")).toBe(true);
+    expect(isCategoryInFilter("main", byId, "sub")).toBe(false);
+    expect(isCategoryInFilter(null, byId, "main")).toBe(false);
+  });
+
+  it("[REGRESSION] sollte eine gelöschte, aber direkt zugewiesene Kategorie noch matchen", () => {
+    expect(isCategoryInFilter("ghost", byId, "ghost")).toBe(true);
   });
 });
 

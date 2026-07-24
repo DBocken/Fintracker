@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
-import type { Account, Category, Transaction } from '@/types';
+import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/components/dashboard/filter-constants';
 import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
 import { computeTransactionStats } from '../../domain/transaction-stats';
@@ -20,6 +20,9 @@ vi.mock('@/services/account-service', () => ({
 vi.mock('@/services/contract-decision-service', () => ({
   getContractDecisionMap: vi.fn(),
 }));
+vi.mock('@/services/transaction-allocation-service', () => ({
+  getAllocationMap: vi.fn(),
+}));
 vi.mock('react-hot-toast', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
@@ -27,6 +30,7 @@ vi.mock('react-hot-toast', () => ({
 import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { getAllocationMap } from '@/services/transaction-allocation-service';
 
 const CAT_FOOD = 'cat-food';
 const CAT_FUN = 'cat-fun';
@@ -115,6 +119,7 @@ beforeEach(() => {
   vi.mocked(getCategories).mockResolvedValue(FIXTURE_CATEGORIES);
   vi.mocked(getAccounts).mockResolvedValue(FIXTURE_ACCOUNTS);
   vi.mocked(getContractDecisionMap).mockResolvedValue(new Map());
+  vi.mocked(getAllocationMap).mockResolvedValue(new Map());
   vi.mocked(deleteTransaction).mockResolvedValue(undefined);
 });
 
@@ -231,6 +236,89 @@ describe('useTransactionsOverview', () => {
         result.current.filters.set.patch({ category: CAT_FOOD });
       });
       expect(result.current.balances.showRunningBalance).toBe(false);
+    });
+  });
+
+  describe('Notiz-Suche', () => {
+    it('sollte eine Buchung über ihre Notiz an der Buchung finden', async () => {
+      vi.mocked(getTransactions).mockResolvedValue([
+        ...FIXTURE_TRANSACTIONS,
+        {
+          id: 'tx-note', date: '2026-06-03', amount: -80, payee: 'Baumarkt', description: '', original_text: '',
+          auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104',
+        },
+      ]);
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, search: '2026-104' } });
+
+      expect(result.current.transactions.visible.map((tx) => tx.id)).toEqual(['tx-note']);
+    });
+
+    it('sollte eine Buchung über die Notiz einer Split-Zeile finden', async () => {
+      const allocations = new Map<string, TransactionAllocation[]>([
+        ['tx-fun', [{
+          id: 'alloc-1', transaction_id: 'tx-fun', amount_minor: -10000, category_id: CAT_FUN,
+          label: 'Geburtstagsgeschenk', source: 'manual',
+        } as TransactionAllocation]],
+      ]);
+      vi.mocked(getAllocationMap).mockResolvedValue(allocations);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, search: 'geburtstagsgeschenk' } });
+
+      await waitFor(() => {
+        expect(result.current.transactions.visible.map((tx) => tx.id)).toEqual(['tx-fun']);
+      });
+    });
+  });
+
+  describe('Aufteilungen (Split-Buchungen)', () => {
+    const SPLITS = new Map<string, TransactionAllocation[]>([
+      ['tx-food', [
+        { id: 'a-food', transaction_id: 'tx-food', amount_minor: -25000, category_id: CAT_FOOD, source: 'manual' } as TransactionAllocation,
+        { id: 'a-fun', transaction_id: 'tx-food', amount_minor: -5000, category_id: CAT_FUN, source: 'manual' } as TransactionAllocation,
+      ]],
+    ]);
+
+    it('sollte eine Buchung über die Kategorie ihrer Aufteilung sichtbar machen', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => {
+        // tx-food ist als „Essen" kategorisiert, hat aber einen Freizeit-Anteil.
+        expect(result.current.transactions.visible.map((tx) => tx.id)).toContain('tx-food');
+      });
+      expect(result.current.transactions.visible.map((tx) => tx.id)).toContain('tx-fun');
+    });
+
+    it('sollte genau die zum Kategorie-Filter passenden Aufteilungen melden', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => expect([...result.current.splits.matchedIds]).toEqual(['a-fun']));
+      expect(result.current.splits.byTransaction.get('tx-food')).toHaveLength(2);
+    });
+
+    it('sollte die Kennzahlen bei Kategorie-Filter anteilsgenau rechnen', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => {
+        // tx-fun (-100) voll + Freizeit-Anteil von tx-food (-50) = 150,
+        // NICHT 100 + 300 (voller Betrag der aufgeteilten Buchung).
+        expect(result.current.stats.expenses).toBe(150);
+      });
+      expect(result.current.stats.count).toBe(result.current.transactions.visible.length);
+    });
+
+    it('sollte ohne Kategorie-Filter keine Aufteilung als Treffer melden', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview();
+
+      await waitFor(() => expect(result.current.splits.byTransaction.size).toBe(1));
+      expect(result.current.splits.matchedIds.size).toBe(0);
     });
   });
 

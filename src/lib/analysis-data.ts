@@ -1,6 +1,7 @@
 import { parseISO, getDay, format } from "date-fns";
 import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
 import { t as translate } from "@/i18n/serviceT";
+import { toMinor, toMajor, sumMinor } from "@/lib/money";
 
 /**
  * Transferbereinigte Einnahmen-/Ausgabensummen — eine Quelle der Wahrheit für
@@ -50,6 +51,64 @@ export function getCategoryContributions(
     }));
   }
   return [{ assignedId: t.subcategory_id ?? t.category_id ?? null, amount: t.amount }];
+}
+
+/**
+ * Hierarchie-bewusster Kategorie-Vergleich: liegt `categoryId` in der
+ * gewählten Kategorie — direkt oder als Nachfahre? Damit erfasst die Auswahl
+ * einer Hauptkategorie auch deren Unterkategorien. Die direkt zugewiesene ID
+ * zählt auch dann, wenn die Kategorie nicht (mehr) existiert.
+ *
+ * Wohnt hier statt bei den Dashboard-Filtern, weil auch reine Domain-/
+ * Auswertungsschichten (Kennzahlen der Buchungsseite) sie brauchen und nicht
+ * aus `src/components/` importieren dürfen (AGENTS.md §3).
+ */
+export function isCategoryInFilter(
+  categoryId: string | null | undefined,
+  categoriesById: Map<string, Category>,
+  filter: string,
+): boolean {
+  if (!categoryId) return false;
+  if (categoryId === filter) return true;
+  let current: Category | undefined = categoriesById.get(categoryId);
+  const visited = new Set<string>();
+  while (current && !visited.has(current.id)) {
+    if (current.id === filter) return true;
+    visited.add(current.id);
+    current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
+  }
+  return false;
+}
+
+/**
+ * Transferbereinigte Einnahmen/Ausgaben über KATEGORIE-BEITRÄGE statt über
+ * ganze Buchungen: eine aufgeteilte Buchung zählt mit jedem Anteil in seiner
+ * eigenen Kategorie, und `matches` grenzt auf die gefilterte Kategorie ein.
+ *
+ * Damit stimmen die Kennzahlen einer kategoriegefilterten Liste mit dem
+ * überein, was die Liste zeigt: Wer „Kleidung" filtert, sieht bei einer auf
+ * Lebensmittel+Kleidung aufgeteilten Aldi-Buchung nur den Kleidungs-Anteil in
+ * den Ausgaben — nicht den vollen Buchungsbetrag.
+ *
+ * Summiert in Integer-Cent (AGENTS.md §8) und erst am Ende zurück nach Euro.
+ */
+export function sumCategoryFlow(
+  transactions: Transaction[],
+  allocationsByTx: Map<string, TransactionAllocation[]> | undefined,
+  matches: (assignedId: string | null) => boolean,
+): { income: number; expenses: number } {
+  const incomeParts: number[] = [];
+  const expenseParts: number[] = [];
+  for (const t of transactions) {
+    if (t.is_transfer) continue;
+    for (const contribution of getCategoryContributions(t, allocationsByTx)) {
+      if (!matches(contribution.assignedId)) continue;
+      const minor = toMinor(contribution.amount);
+      if (minor > 0) incomeParts.push(minor);
+      else if (minor < 0) expenseParts.push(-minor);
+    }
+  }
+  return { income: toMajor(sumMinor(incomeParts)), expenses: toMajor(sumMinor(expenseParts)) };
 }
 
 /**

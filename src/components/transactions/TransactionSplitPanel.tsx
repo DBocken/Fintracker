@@ -9,7 +9,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/i18n/useI18n';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { showError, showSuccess } from '@/utils/toast';
-import { toMinor, toMajor, sumMinor } from '@/lib/money';
+import { toMinor, sumMinor } from '@/lib/money';
+import {
+  parseSplitAmount,
+  openSplitMinor,
+  formatSplitAmountInput,
+} from '@/lib/split-amounts';
 import {
   getAllocationsForTransaction,
   setAllocations,
@@ -58,7 +63,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       setRows(
         savedAllocations.map((a) => ({
           key: a.id,
-          amountEur: toMajor(a.amount_minor).toFixed(2),
+          amountEur: formatSplitAmountInput(a.amount_minor),
           categoryId: a.category_id,
           subcategoryId: a.subcategory_id ?? null,
           label: a.label ?? '',
@@ -68,23 +73,22 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
     }
   }, [savedAllocations, initialized]);
 
-  const allocatedMinor = sumMinor(
-    rows.map((r) => {
-      const v = parseFloat(r.amountEur.replace(',', '.'));
-      return isNaN(v) ? 0 : toMinor(v);
-    }),
-  );
-  const remainingMinor = totalMinor - allocatedMinor;
-  const isBalanced = remainingMinor === 0;
+  // Der Nutzer tippt nur Beträge — das Vorzeichen kommt aus der Buchung
+  // (`parseSplitAmount`). `openMinor` ist richtungsnormiert: > 0 offen,
+  // < 0 zu viel zugewiesen (siehe `@/lib/split-amounts`).
+  const rowMinor = (row: SplitRow) => parseSplitAmount(row.amountEur, totalMinor);
+  const allocatedMinor = sumMinor(rows.map(rowMinor));
+  const openMinor = openSplitMinor(totalMinor, allocatedMinor);
+  const isBalanced = openMinor === 0;
 
   const validation = validateAllocations(
     { id: txId, amount: transaction.amount },
     rows
-      .filter((r) => r.amountEur !== '' && !isNaN(parseFloat(r.amountEur.replace(',', '.'))))
+      .filter((r) => rowMinor(r) !== 0)
       .map((r) => ({
         id: r.key,
         transaction_id: txId,
-        amount_minor: toMinor(parseFloat(r.amountEur.replace(',', '.'))),
+        amount_minor: rowMinor(r),
         category_id: r.categoryId,
         source: 'manual' as const,
         created_at: new Date().toISOString(),
@@ -95,9 +99,9 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
   const saveMutation = useMutation({
     mutationFn: async () => {
       const inputs: AllocationInput[] = rows
-        .filter((r) => r.amountEur !== '' && !isNaN(parseFloat(r.amountEur.replace(',', '.'))))
+        .filter((r) => rowMinor(r) !== 0)
         .map((r) => ({
-          amount_minor: toMinor(parseFloat(r.amountEur.replace(',', '.'))),
+          amount_minor: rowMinor(r),
           category_id: r.categoryId,
           subcategory_id: r.subcategoryId,
           label: r.label || null,
@@ -107,7 +111,10 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
     },
     onSuccess: () => {
       showSuccess(t("transactionSplit.saveSplitSuccess"));
-      queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
+      // Wurzel-Key statt ['allocations', txId]: die Buchungssuche cached die
+      // Aufteilungen aller Buchungen als Map (Split-Notizen sind durchsuchbar)
+      // und muss nach dem Speichern ebenfalls neu laden.
+      queryClient.invalidateQueries({ queryKey: ['allocations'] });
     },
     onError: (err) => {
       showError(err instanceof Error ? err.message : t("transactionSplit.saveSplitError"));
@@ -120,7 +127,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       showSuccess(t("transactionSplit.saveSplitSuccess"));
       setRows([newRow(), newRow()]);
       setInitialized(false);
-      queryClient.invalidateQueries({ queryKey: ['allocations', txId] });
+      queryClient.invalidateQueries({ queryKey: ['allocations'] });
     },
   });
 
@@ -135,11 +142,18 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
     setRows((prev) => prev.filter((r) => r.key !== key));
   };
 
+  /**
+   * „Rest hier eintragen": setzt die Zeile auf ihren eigenen Betrag PLUS den
+   * offenen Rest — die Zeile schließt die Aufteilung damit exakt ab, statt
+   * ihren bisherigen Wert zu verlieren. Immer als vorzeichenlose Magnitude.
+   */
   const distributeRemaining = (key: string) => {
-    const sign = totalMinor < 0 ? -1 : 1;
-    const absRemaining = Math.abs(remainingMinor);
-    const euros = (sign * absRemaining) / 100;
-    updateRow(key, { amountEur: euros.toFixed(2) });
+    const row = rows.find((r) => r.key === key);
+    if (!row) return;
+    // Bei Überzuweisung (openMinor < 0) nimmt die Zeile den Überhang zurück —
+    // höchstens bis auf 0, sonst kippte sie ins Negative.
+    const filledMinor = Math.max(0, Math.abs(rowMinor(row)) + openMinor);
+    updateRow(key, { amountEur: formatSplitAmountInput(filledMinor) });
   };
 
   const isSaved = savedAllocations.length > 0;
@@ -166,10 +180,10 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       </div>
 
       <div className="text-xs text-muted-foreground">
-        {t("transactionSplit.totalLabel")} <span className="font-mono font-semibold">{toMajor(Math.abs(totalMinor)).toFixed(2)} €</span>
+        {t("transactionSplit.totalLabel")} <span className="font-mono font-semibold">{formatSplitAmountInput(totalMinor)} €</span>
         {!isBalanced && (
-          <span className={`ml-2 ${remainingMinor !== 0 ? 'text-warning' : ''}`}>
-            · {t("transactionSplit.remaining").replace('{amount}', toMajor(Math.abs(remainingMinor)).toFixed(2)).replace('{status}', remainingMinor > 0 ? t("transactionSplit.remainingOpen") : t("transactionSplit.remainingOverpaid"))}
+          <span className="ml-2 text-warning">
+            · {t("transactionSplit.remaining").replace('{amount}', formatSplitAmountInput(openMinor)).replace('{status}', openMinor > 0 ? t("transactionSplit.remainingOpen") : t("transactionSplit.remainingOverpaid"))}
           </span>
         )}
       </div>
@@ -190,14 +204,14 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
               </div>
-              {remainingMinor !== 0 && (
+              {openMinor !== 0 && (
                 <button
                   type="button"
                   onClick={() => distributeRemaining(row.key)}
                   className="text-xs text-brand hover:underline"
                   title={t("transactionSplit.fillRemainingTitle")}
                 >
-                  ={toMajor(Math.abs(remainingMinor)).toFixed(2)}
+                  ={formatSplitAmountInput(openMinor)}
                 </button>
               )}
               <button
@@ -248,9 +262,9 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       {!isBalanced && allocatedMinor !== 0 && (
         <Alert variant="destructive" className="py-2 text-xs">
           <AlertDescription>
-            {remainingMinor > 0
-              ? t("transactionSplit.remainingNotAssigned").replace('{amount}', toMajor(remainingMinor).toFixed(2))
-              : t("transactionSplit.remainingOverassigned").replace('{amount}', toMajor(Math.abs(remainingMinor)).toFixed(2))}
+            {openMinor > 0
+              ? t("transactionSplit.remainingNotAssigned").replace('{amount}', formatSplitAmountInput(openMinor))
+              : t("transactionSplit.remainingOverassigned").replace('{amount}', formatSplitAmountInput(openMinor))}
           </AlertDescription>
         </Alert>
       )}

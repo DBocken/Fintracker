@@ -120,6 +120,8 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
           endingBalance={model.balances.ending}
           showRunningBalance={model.balances.showRunningBalance}
           selectedId={detailsTransaction?.id}
+          allocationsByTransaction={model.splits.byTransaction}
+          matchedAllocationIds={model.splits.matchedIds}
         />
       )}
     </div>

@@ -6,6 +6,7 @@ import { getTransactions, getCategories, deleteTransaction } from '@/services/tr
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DEBOUNCE_MS } from '@/lib/constants';
@@ -16,7 +17,11 @@ import {
   type DashboardGranularity,
   type DashboardRange,
 } from '@/components/dashboard/filter-constants';
-import { filterTransactions, type DashboardFilterState } from '@/components/dashboard/filter-utils';
+import {
+  filterTransactions,
+  collectMatchingAllocationIds,
+  type DashboardFilterState,
+} from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import type { Transaction } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
@@ -92,6 +97,9 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     queryKey: transactionsKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
+  // Aufteilungen speisen Suche (Split-Notizen), Kategorie-Filter, die
+  // aufklappbaren Split-Zeilen und die anteilsgenauen Kennzahlen.
+  const allocations = useAllocationMap();
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => options?.initialFilters ?? DEFAULT_FILTERS);
   const [customGranularity, setCustomGranularity] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -145,8 +153,13 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
   const filtered = useMemo(
     // Kein Re-Sort: txs kommen datum-absteigend aus dem Service (Sortier-
     // Contract der Storage-Schicht) und filterTransactions ist ordnungserhaltend.
-    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions),
-    [txs, cats, accounts, filtersForFilter, contractDecisions],
+    () => filterTransactions(txs, cats, accounts, filtersForFilter, new Date(), contractDecisions, {
+      byTransaction: allocations,
+      // Buchungsseite: Der Kategorie-Filter greift auch auf Aufteilungen — die
+      // Liste zeigt den passenden Split als eigene Zeile unter der Buchung.
+      matchCategories: true,
+    }),
+    [txs, cats, accounts, filtersForFilter, contractDecisions, allocations],
   );
 
   const visible = useMemo(
@@ -165,7 +178,16 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     [visible, txs, accountsById, filters.account, scopedCurrentBalance],
   );
 
-  const stats = useMemo(() => computeTransactionStats(visible), [visible]);
+  // Anteilsgenau bei aktivem Kategorie-Filter: die Kennzahlen zählen dann nur
+  // den Anteil, den die Liste als Split-Zeile zeigt (siehe transaction-stats).
+  const stats = useMemo(
+    () => computeTransactionStats(visible, {
+      allocationsByTransaction: allocations,
+      categoryFilter: filters.category,
+      categories: cats,
+    }),
+    [visible, allocations, filters.category, cats],
+  );
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -226,16 +248,30 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   const transactions = useMemo(() => ({ all: txs, visible }), [txs, visible]);
 
+  // Aufteilungen, die zum aktiven Kategorie-Filter passen: die Liste klappt
+  // genau diese Zeilen auf (`Aldi └ Kleidung`). Bewusst am ungedebouncten
+  // `filters.category` — der Kategorie-Filter wirkt sofort, nur die Suche
+  // ist entkoppelt.
+  const matchedAllocationIds = useMemo(
+    () => collectMatchingAllocationIds(allocations, cats, filters.category),
+    [allocations, cats, filters.category],
+  );
+  const splits = useMemo(
+    () => ({ byTransaction: allocations, matchedIds: matchedAllocationIds }),
+    [allocations, matchedAllocationIds],
+  );
+
   return useMemo<TransactionsOverviewViewModel>(() => ({
     loading: txsLoading,
     isEmpty: !txsLoading && txs.length === 0,
     transactions,
     categories: cats,
     accounts,
+    splits,
     balances,
     stats,
     filters: filtersVM,
     hidden,
     actions,
-  }), [txsLoading, txs, transactions, cats, accounts, balances, stats, filtersVM, hidden, actions]);
+  }), [txsLoading, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
 }

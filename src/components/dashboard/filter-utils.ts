@@ -1,7 +1,7 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
-import type { Account, Category, Transaction } from '@/types';
+import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
-import { resolveAusgabenklasse, resolveEssenziell } from '@/lib/analysis-data';
+import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-utils';
 import type { ContractDecision } from '@/services/contract-decision-service';
@@ -99,27 +99,38 @@ function matchesContractFilter(
   return filter === 'vertrag' ? isContract : !isContract;
 }
 
+// Hierarchie-Vergleich lebt in der Domain-Schicht (`@/lib/analysis-data`),
+// damit auch reine Auswertungen ihn nutzen können, ohne aus `src/components/`
+// zu importieren. Re-Export, weil Filter-Aufrufer ihn hier erwarten.
+export { isCategoryInFilter } from '@/lib/analysis-data';
+
+/** Kategorie einer Aufteilung (Unterkategorie gewinnt, wie bei der Buchung). */
+function allocationCategoryId(allocation: TransactionAllocation): string | null {
+  return allocation.subcategory_id ?? allocation.category_id ?? null;
+}
+
 /**
- * Kategorie-Filter ist hierarchie-bewusst: eine Buchung passt, wenn ihre
- * zugewiesene Kategorie (oder eine ihrer Vorfahren) der gewählten Kategorie
- * entspricht. So liefert die Auswahl einer Hauptkategorie auch deren
- * Unterkategorien (nötig für die Chart-Navigation per Sunburst-Außenring).
+ * Kategorie-Filter einer Buchung. Mit `matchSplits` zählt zusätzlich JEDE
+ * Aufteilung: eine Aldi-Buchung, die auf „Lebensmittel" und „Kleidung"
+ * aufgeteilt ist, erscheint damit auch unter dem Filter „Kleidung" — sonst
+ * wäre der aufgeteilte Anteil in der Buchungsliste unauffindbar.
  */
-function matchesCategoryFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: string): boolean {
+function matchesCategoryFilter(
+  transaction: Transaction,
+  categoriesById: Map<string, Category>,
+  filter: string,
+  allocations: readonly TransactionAllocation[] = [],
+  matchSplits = false,
+): boolean {
   if (filter === 'all') return true;
-  const startIds = [transaction.subcategory_id, transaction.category_id].filter(Boolean) as string[];
-  for (const startId of startIds) {
-    let current: Category | undefined = categoriesById.get(startId);
-    const visited = new Set<string>();
-    // Direkt zugewiesene ID prüfen (auch wenn die Kategorie nicht (mehr) existiert).
-    if (startId === filter) return true;
-    while (current && !visited.has(current.id)) {
-      if (current.id === filter) return true;
-      visited.add(current.id);
-      current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
-    }
+  if (
+    isCategoryInFilter(transaction.subcategory_id, categoriesById, filter) ||
+    isCategoryInFilter(transaction.category_id, categoriesById, filter)
+  ) {
+    return true;
   }
-  return false;
+  if (!matchSplits) return false;
+  return allocations.some((a) => isCategoryInFilter(allocationCategoryId(a), categoriesById, filter));
 }
 
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
@@ -152,6 +163,69 @@ function matchesAccountFilter(transaction: Transaction, accountsById: Map<string
   return transaction.account_id === filter;
 }
 
+/** Stabile Leer-Referenz für den Default (keine neue Map pro Aufruf). */
+const NO_ALLOCATIONS: ReadonlyMap<string, TransactionAllocation[]> = new Map();
+
+/**
+ * Durchsuchbarer Text einer Buchung: Empfänger, Beschreibung, Originaltext —
+ * und zusätzlich JEDE vom Nutzer erfasste Notiz. Notizen hängen an zwei
+ * Stellen: direkt an der Buchung (`tax_note`) und an einzelnen Split-Zeilen
+ * (`TransactionAllocation.label`, im UI schlicht „Notiz"). Wer eine Notiz
+ * eingibt, sucht später danach — deshalb gehören beide in den Suchindex.
+ */
+function searchableText(
+  transaction: Transaction,
+  splitNotes: readonly TransactionAllocation[],
+): string {
+  return [
+    transaction.payee,
+    transaction.description,
+    transaction.original_text,
+    transaction.tax_note ?? '',
+    ...splitNotes.map((allocation) => allocation.label ?? ''),
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
+/** Aufteilungs-Kontext des Filters (Split-Buchungen). */
+export interface SplitFilterContext {
+  /** transaction_id → Aufteilungen (`getAllocationMap`). */
+  byTransaction?: ReadonlyMap<string, TransactionAllocation[]>;
+  /**
+   * Kategorie-Filter zusätzlich über die Aufteilungen matchen. Bewusst opt-in:
+   * die Buchungsseite zeigt den passenden Split als eigene Zeile unter der
+   * Buchung, die Dashboard-Charts aggregieren dagegen ohne Aufteilungs-Map und
+   * würden den vollen Buchungsbetrag der gefilterten Kategorie zuschlagen.
+   */
+  matchCategories?: boolean;
+}
+
+const NO_SPLITS: SplitFilterContext = {};
+
+/**
+ * Sammelt die Aufteilungen, die zum aktiven Kategorie-Filter passen — die
+ * Buchungsliste klappt genau diese Zeilen auf („Aldi └ Kleidung"). Ohne
+ * aktiven Kategorie-Filter (oder ohne Aufteilungen) leer.
+ */
+export function collectMatchingAllocationIds(
+  allocationsByTransaction: ReadonlyMap<string, TransactionAllocation[]>,
+  categories: Category[],
+  filter: string,
+): Set<string> {
+  const matched = new Set<string>();
+  if (filter === 'all') return matched;
+  const categoriesById = getCategoryById(categories);
+  for (const allocations of allocationsByTransaction.values()) {
+    for (const allocation of allocations) {
+      if (isCategoryInFilter(allocationCategoryId(allocation), categoriesById, filter)) {
+        matched.add(allocation.id);
+      }
+    }
+  }
+  return matched;
+}
+
 export function filterTransactions(
   transactions: Transaction[],
   categories: Category[],
@@ -159,26 +233,28 @@ export function filterTransactions(
   filters: DashboardFilterState,
   now = new Date(),
   contractDecisions: Map<string, ContractDecision> = new Map(),
+  splits: SplitFilterContext = NO_SPLITS,
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now, filters.customPeriod ?? '');
   const search = filters.search.trim().toLowerCase();
   const categoriesById = getCategoryById(categories);
   const accountsById = getAccountById(accounts);
+  const allocationsByTransaction = splits.byTransaction ?? NO_ALLOCATIONS;
 
   return transactions.filter((transaction) => {
     const txDate = parseISO(transaction.date);
     if (!isWithinInterval(txDate, { start, end })) return false;
 
-    if (!matchesCategoryFilter(transaction, categoriesById, filters.category)) return false;
+    const allocations = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
+    if (!matchesCategoryFilter(transaction, categoriesById, filters.category, allocations, splits.matchCategories)) {
+      return false;
+    }
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
     if (!matchesContractFilter(transaction, categoriesById, contractDecisions, filters.contract)) return false;
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
-    if (search) {
-      const searchableText = `${transaction.payee} ${transaction.description} ${transaction.original_text}`.toLowerCase();
-      if (!searchableText.includes(search)) return false;
-    }
+    if (search && !searchableText(transaction, allocations).includes(search)) return false;
 
     return true;
   });

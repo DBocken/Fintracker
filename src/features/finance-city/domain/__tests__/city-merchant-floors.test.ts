@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { buildMerchantFloorsByBuilding } from '../city-merchant-floors';
-import type { Category, Transaction } from '@/types';
+import type { Category, Transaction, TransactionAllocation } from '@/types';
 
 // Das "Sonstige"-Label kommt aus serviceT (`@/i18n/serviceT`), das die Sprache
 // aus localStorage liest — in jsdom sonst abhängig von `navigator.language`
@@ -40,6 +40,121 @@ function tx(opts: {
 function category(id: string, name: string, parentId?: string): Category {
   return { id, name, filters: [], parent_id: parentId ?? null };
 }
+
+function allocation(opts: {
+  id: string;
+  txId: string;
+  amountMinor: number;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+}): TransactionAllocation {
+  return {
+    id: opts.id,
+    transaction_id: opts.txId,
+    amount_minor: opts.amountMinor,
+    category_id: opts.categoryId ?? null,
+    subcategory_id: opts.subcategoryId ?? null,
+    source: 'manual',
+  } as TransactionAllocation;
+}
+
+describe('buildMerchantFloorsByBuilding – Aufteilungen', () => {
+  const CAT_FOOD = 'food';
+  const CAT_CLOTHES = 'clothes';
+  const categoriesById = new Map<string, Category>([
+    [CAT_FOOD, category(CAT_FOOD, 'Lebensmittel')],
+    [CAT_CLOTHES, category(CAT_CLOTHES, 'Kleidung')],
+  ]);
+
+  it('sollte den Kleidungs-Anteil einer Aldi-Buchung im Kleidungs-Gebäude als Etage führen', () => {
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const floors = buildMerchantFloorsByBuilding(
+      [aldi],
+      categoriesById,
+      new Map([[aldi.id!, [
+        allocation({ id: 'a-food', txId: aldi.id!, amountMinor: -3700, categoryId: CAT_FOOD }),
+        allocation({ id: 'a-clothes', txId: aldi.id!, amountMinor: -1300, categoryId: CAT_CLOTHES }),
+      ]]]),
+    );
+
+    expect(floors.get(CAT_FOOD)?.map((f) => [f.label, f.amount])).toEqual([['Aldi', 37]]);
+    // Der Anteil zählt im KLEIDUNGS-Gebäude, nicht bei Lebensmitteln.
+    expect(floors.get(CAT_CLOTHES)?.map((f) => [f.label, f.amount])).toEqual([['Aldi', 13]]);
+  });
+
+  it('sollte den Anteil je Etage mit anderen Händlern derselben Kategorie zusammenführen', () => {
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const cua = tx({ payee: 'C&A', amount: -30, categoryId: CAT_CLOTHES });
+    const floors = buildMerchantFloorsByBuilding(
+      [aldi, cua],
+      categoriesById,
+      new Map([[aldi.id!, [
+        allocation({ id: 'a-food', txId: aldi.id!, amountMinor: -3700, categoryId: CAT_FOOD }),
+        allocation({ id: 'a-clothes', txId: aldi.id!, amountMinor: -1300, categoryId: CAT_CLOTHES }),
+      ]]]),
+    );
+
+    // Absteigend nach Betrag: C&A (30) vor dem Aldi-Anteil (13).
+    expect(floors.get(CAT_CLOTHES)?.map((f) => [f.label, f.amount])).toEqual([['C&A', 30], ['Aldi', 13]]);
+  });
+
+  it('sollte einen Anteil in einer Unterkategorie im Unterkategorie-Gebäude führen', () => {
+    const withSub = new Map<string, Category>([
+      ...categoriesById,
+      ['shoes', category('shoes', 'Schuhe', CAT_CLOTHES)],
+    ]);
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const floors = buildMerchantFloorsByBuilding(
+      [aldi],
+      withSub,
+      new Map([[aldi.id!, [
+        allocation({ id: 'a-food', txId: aldi.id!, amountMinor: -3000, categoryId: CAT_FOOD }),
+        allocation({ id: 'a-shoes', txId: aldi.id!, amountMinor: -2000, categoryId: CAT_CLOTHES, subcategoryId: 'shoes' }),
+      ]]]),
+    );
+
+    expect(floors.get('shoes')?.map((f) => f.amount)).toEqual([20]);
+    expect(floors.get(CAT_CLOTHES)).toBeUndefined();
+  });
+
+  it('sollte eine Aufteilung ohne auflösbare Kategorie überspringen statt zu crashen', () => {
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const floors = buildMerchantFloorsByBuilding(
+      [aldi],
+      categoriesById,
+      new Map([[aldi.id!, [
+        allocation({ id: 'a-ghost', txId: aldi.id!, amountMinor: -2000, categoryId: 'geloescht' }),
+        allocation({ id: 'a-food', txId: aldi.id!, amountMinor: -3000, categoryId: CAT_FOOD }),
+      ]]]),
+    );
+
+    expect(floors.get(CAT_FOOD)?.map((f) => f.amount)).toEqual([30]);
+  });
+
+  it('sollte ohne Aufteilungs-Map unverändert die volle Buchung führen', () => {
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const floors = buildMerchantFloorsByBuilding([aldi], categoriesById);
+
+    expect(floors.get(CAT_FOOD)?.map((f) => f.amount)).toEqual([50]);
+    expect(floors.get(CAT_CLOTHES)).toBeUndefined();
+  });
+
+  it('sollte die Buchungsliste der Etage auf den Anteilsbetrag setzen (Sheet zeigt den Anteil)', () => {
+    const aldi = tx({ payee: 'Aldi', amount: -50, categoryId: CAT_FOOD });
+    const floors = buildMerchantFloorsByBuilding(
+      [aldi],
+      categoriesById,
+      new Map([[aldi.id!, [
+        allocation({ id: 'a-clothes', txId: aldi.id!, amountMinor: -1300, categoryId: CAT_CLOTHES }),
+        allocation({ id: 'a-food', txId: aldi.id!, amountMinor: -3700, categoryId: CAT_FOOD }),
+      ]]]),
+    );
+
+    expect(floors.get(CAT_CLOTHES)?.[0].bookings).toEqual([
+      { txId: aldi.id, date: aldi.date, amount: 13, payee: 'Aldi' },
+    ]);
+  });
+});
 
 describe('buildMerchantFloorsByBuilding', () => {
   const CAT_LEISURE = 'leisure';

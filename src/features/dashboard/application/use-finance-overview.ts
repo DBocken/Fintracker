@@ -6,6 +6,7 @@ import { getTransactions, getCategories, updateTransaction, deleteTransaction } 
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DEBOUNCE_MS } from '@/lib/constants';
@@ -74,6 +75,10 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryKey: dashboardKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
+
+  // Aufteilungen speisen zweierlei: die Suche (Split-Notizen) und die
+  // anteilsgenaue Aggregation der Charts weiter unten.
+  const allocations = useAllocationMap();
 
   const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
   const effectiveBalances = useMemo(
@@ -163,8 +168,8 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       range,
       customDays,
       customPeriod,
-    }, new Date(), contractDecisions);
-  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions]);
+    }, new Date(), contractDecisions, { byTransaction: allocations });
+  }, [txs, cats, accounts, category, account, contract, essential, ausgabenklasse, debouncedSearch, range, customDays, customPeriod, contractDecisions, allocations]);
 
   const visibleTransactions = useMemo(
     () => filteredTransactions.filter((tx) => !hiddenTransactions.has(tx.id || '')),
@@ -219,8 +224,11 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
 
     const { income, expenses, balance } = computeFlowTotals(flowTransactions);
     const series = buildIncomeExpenseSeries(flowTransactions, granularity);
-    const sunburst = buildSpendingSunburst(flowTransactions, cats);
-    const sunburstTree = buildSunburstTree(flowTransactions, cats);
+    // Anteilsgenau: eine aufgeteilte Buchung geht mit JEDEM Anteil in seine
+    // eigene Kategorie ein (`getCategoryContributions`), statt vollständig in
+    // die Kategorie der Buchung.
+    const sunburst = buildSpendingSunburst(flowTransactions, cats, allocations);
+    const sunburstTree = buildSunburstTree(flowTransactions, cats, allocations);
 
     return {
       income,
@@ -232,13 +240,13 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       sunburst,
       sunburstTree,
     };
-  }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
+  }, [visibleTransactions, totalEffectiveBalance, granularity, cats, allocations]);
 
   // Einfaches Sankey auf Hauptkategorien-Ebene bleibt bewusst im Free-Tier
   // (Aha-Moment für alle Nutzer); Drilldown lebt im Analyse-Bereich.
   const sankeyData = useMemo(
-    () => buildSankeyData(visibleTransactions, cats, accounts),
-    [visibleTransactions, cats, accounts],
+    () => buildSankeyData(visibleTransactions, cats, accounts, allocations),
+    [visibleTransactions, cats, accounts, allocations],
   );
 
   const categoryMutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({
