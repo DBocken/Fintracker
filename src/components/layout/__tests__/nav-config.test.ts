@@ -1,6 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
 
 import { NAV_GROUPS, getBottomNavItems, getVisibleNavGroups } from "../nav-config";
+import {
+  ALWAYS_VISIBLE_NAV_PATHS,
+  NAV_FEATURE_PATHS,
+  resolveFeatureSelection,
+  type NavFeatureId,
+} from "@/lib/archetypes";
 
 describe("NAV_GROUPS (Issue #42)", () => {
   const allItems = NAV_GROUPS.flatMap((g) => g.items);
@@ -95,6 +101,70 @@ describe("getVisibleNavGroups", () => {
         .filter((i) => !getVisibleNavGroups(false).flatMap((g) => g.items).some((v) => v.path === i.path));
       expect(hidden.every((i) => i.businessOnly)).toBe(true);
       expect(hidden.map((i) => i.path)).toEqual(["/euer"]);
+    });
+  });
+
+  describe("Archetyp-Filter (Onboarding)", () => {
+    const visiblePaths = (
+      businessMode: boolean,
+      features?: readonly NavFeatureId[] | null,
+    ): string[] => getVisibleNavGroups(businessMode, features).flatMap((g) => g.items).map((i) => i.path);
+
+    it("[REGRESSION] zeigt ohne Archetyp-Auswahl alles wie bisher (Bestandsnutzer)", () => {
+      // null = Onboarding nie durchlaufen. Ein Update darf niemandem
+      // stillschweigend die halbe Navigation wegnehmen.
+      expect(visiblePaths(false, null)).toEqual(visiblePaths(false));
+      expect(visiblePaths(true, undefined)).toEqual(visiblePaths(true));
+    });
+
+    it("versteckt nicht gewählte Bereiche in der Navigation", () => {
+      const paths = visiblePaths(false, ["budgets", "milestones"]);
+      expect(paths).toContain("/budgets");
+      expect(paths).toContain("/milestones");
+      expect(paths).not.toContain("/trading");
+      expect(paths).not.toContain("/net-worth");
+    });
+
+    it("hält Kernbereiche auch bei leerer Auswahl sichtbar", () => {
+      const paths = visiblePaths(false, []);
+      for (const corePath of ALWAYS_VISIBLE_NAV_PATHS) {
+        expect(paths).toContain(corePath);
+      }
+    });
+
+    it("[REGRESSION] lässt die mobilen Bottom-Nav-Ziele nie verschwinden", () => {
+      // getBottomNavItems() zieht seine Ziele aus NAV_GROUPS — fehlt eines,
+      // verliert die Bottom-Nav kommentarlos einen Tab.
+      const paths = visiblePaths(false, []);
+      for (const item of getBottomNavItems()) {
+        expect(paths).toContain(item.path);
+      }
+    });
+
+    it("hält den Rückweg in die Einstellungen offen (sonst sperrt man sich aus)", () => {
+      expect(visiblePaths(false, [])).toContain("/settings");
+    });
+
+    it("blendet EÜR nur ein, wenn Feature UND Business-Modus gesetzt sind", () => {
+      expect(visiblePaths(false, ["euer"])).not.toContain("/euer");
+      expect(visiblePaths(true, [])).not.toContain("/euer");
+      expect(visiblePaths(true, ["euer"])).toContain("/euer");
+    });
+
+    it("zeigt für einen Archetyp genau dessen Bereiche plus die Kernbereiche", () => {
+      const { features, settings } = resolveFeatureSelection("student_school", []);
+      const paths = visiblePaths(Boolean(settings.business_mode), features);
+      const expected = [
+        ...ALWAYS_VISIBLE_NAV_PATHS,
+        ...features.map((f) => NAV_FEATURE_PATHS[f]),
+      ].sort();
+      expect([...paths].sort()).toEqual(expected);
+    });
+
+    it("lässt keine leeren Gruppen in der Navigation zurück", () => {
+      for (const group of getVisibleNavGroups(false, [])) {
+        expect(group.items.length).toBeGreaterThan(0);
+      }
     });
   });
 });

@@ -22,6 +22,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
+import { isNavPathVisible, type NavFeatureId } from "@/lib/archetypes";
 
 export type NavItem = {
   label: string;
@@ -192,15 +193,28 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
 };
 
 /**
- * Liefert die sichtbaren Nav-Gruppen. `businessOnly`-Ziele (EÜR) erscheinen nur
- * im Einzelunternehmer-Modus („Ruhe vor Fülle" — Opt-in); ihre Routen bleiben
- * trotzdem immer registriert (Deep-Links, Bestandsdaten).
+ * Liefert die sichtbaren Nav-Gruppen. Zwei unabhängige Filter:
+ *
+ * - `businessOnly`-Ziele (EÜR) erscheinen nur im Einzelunternehmer-Modus
+ *   („Ruhe vor Fülle" — Opt-in).
+ * - `enabledFeatures` ist die im Onboarding getroffene Bereichsauswahl
+ *   (`@/lib/archetypes`). `null`/`undefined` heißt „keine Auswahl getroffen"
+ *   und zeigt alles — Bestandsnutzer verlieren durch das Onboarding nichts.
+ *
+ * Beides betrifft ausschließlich die **Anzeige**: die Routen bleiben immer
+ * registriert (Deep-Links, Coach-Verlinkungen, Bestandsdaten), und jeder
+ * Bereich lässt sich in den Einstellungen wieder einschalten.
  */
-export function getVisibleNavGroups(businessMode: boolean): NavGroup[] {
-  if (businessMode) return NAV_GROUPS;
+export function getVisibleNavGroups(
+  businessMode: boolean,
+  enabledFeatures?: readonly NavFeatureId[] | null,
+): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.businessOnly),
+    items: group.items.filter(
+      (item) =>
+        (businessMode || !item.businessOnly) && isNavPathVisible(item.path, enabledFeatures),
+    ),
   })).filter((group) => group.items.length > 0);
 }
 

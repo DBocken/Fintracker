@@ -1,3 +1,5 @@
+import type { ArchetypeId, ModifierId, NavFeatureId } from '@/lib/archetypes';
+
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 
 export interface Account {
@@ -230,6 +232,17 @@ export interface UserSettings {
   tax_reserve_percent?: number;
   /** Einzelunternehmer-Modus (Opt-in): schaltet EÜR-Seite, Steuer-Tank & Waterfall-Stufe frei. */
   business_mode?: boolean;
+  /** Im Onboarding gewählte Lebenssituation. Dient nur der Vorauswahl. */
+  onboarding_archetype?: ArchetypeId | null;
+  /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/archetypes`). */
+  onboarding_modifiers?: ModifierId[];
+  /**
+   * Sichtbare Nav-Bereiche. Bewusst die *bestätigte Nutzerauswahl* und nicht
+   * der Archetyp selbst: nur so überschreibt ein späterer Archetyp-Wechsel
+   * keine manuell getroffenen Entscheidungen. `null`/undefined = Onboarding
+   * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
+   */
+  enabled_nav_features?: NavFeatureId[] | null;
 }
 
 /**
