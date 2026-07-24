@@ -1,7 +1,7 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
-import { resolveAusgabenklasse, resolveEssenziell } from '@/lib/analysis-data';
+import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-utils';
 import type { ContractDecision } from '@/services/contract-decision-service';
@@ -99,29 +99,10 @@ function matchesContractFilter(
   return filter === 'vertrag' ? isContract : !isContract;
 }
 
-/**
- * Hierarchie-bewusster Einzelvergleich: liegt `categoryId` im gewählten Filter
- * — direkt oder als Nachfahre? So erfasst die Auswahl einer Hauptkategorie
- * auch deren Unterkategorien (nötig für die Chart-Navigation per
- * Sunburst-Außenring). Die direkt zugewiesene ID zählt auch dann, wenn die
- * Kategorie nicht (mehr) existiert.
- */
-export function isCategoryInFilter(
-  categoryId: string | null | undefined,
-  categoriesById: Map<string, Category>,
-  filter: string,
-): boolean {
-  if (!categoryId) return false;
-  if (categoryId === filter) return true;
-  let current: Category | undefined = categoriesById.get(categoryId);
-  const visited = new Set<string>();
-  while (current && !visited.has(current.id)) {
-    if (current.id === filter) return true;
-    visited.add(current.id);
-    current = current.parent_id ? categoriesById.get(current.parent_id) : undefined;
-  }
-  return false;
-}
+// Hierarchie-Vergleich lebt in der Domain-Schicht (`@/lib/analysis-data`),
+// damit auch reine Auswertungen ihn nutzen können, ohne aus `src/components/`
+// zu importieren. Re-Export, weil Filter-Aufrufer ihn hier erwarten.
+export { isCategoryInFilter } from '@/lib/analysis-data';
 
 /** Kategorie einer Aufteilung (Unterkategorie gewinnt, wie bei der Buchung). */
 function allocationCategoryId(allocation: TransactionAllocation): string | null {

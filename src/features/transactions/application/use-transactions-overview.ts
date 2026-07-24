@@ -5,8 +5,8 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
-import { getAllocationMap } from '@/services/transaction-allocation-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DEBOUNCE_MS } from '@/lib/constants';
@@ -23,7 +23,7 @@ import {
   type DashboardFilterState,
 } from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
-import type { Transaction, TransactionAllocation } from '@/types';
+import type { Transaction } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
 import { computeLocalBalances, computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';
 import {
@@ -42,7 +42,6 @@ const noop = () => {};
 // Query noch lädt (Default wird bei jedem Re-Render neu erzeugt). Muster wie
 // use-finance-overview.ts.
 const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
-const EMPTY_ALLOCATIONS = new Map<string, TransactionAllocation[]>();
 
 // 1:1 zu `resetFilters` (TransactionsPage Z. 218–231): alle 9 Felder von
 // `DashboardFilterState`, OHNE `customGranularity` (die lebt in einem eigenen
@@ -98,12 +97,9 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     queryKey: transactionsKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
-  // Split-Notizen (`TransactionAllocation.label`) sind Teil des Suchindex —
-  // ohne diese Map fände die Suche nur Empfänger/Beschreibung/Buchungsnotiz.
-  const { data: allocations = EMPTY_ALLOCATIONS } = useQuery({
-    queryKey: transactionsKeys.allocationMap,
-    queryFn: getAllocationMap,
-  });
+  // Aufteilungen speisen Suche (Split-Notizen), Kategorie-Filter, die
+  // aufklappbaren Split-Zeilen und die anteilsgenauen Kennzahlen.
+  const allocations = useAllocationMap();
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => options?.initialFilters ?? DEFAULT_FILTERS);
   const [customGranularity, setCustomGranularity] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -182,7 +178,16 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     [visible, txs, accountsById, filters.account, scopedCurrentBalance],
   );
 
-  const stats = useMemo(() => computeTransactionStats(visible), [visible]);
+  // Anteilsgenau bei aktivem Kategorie-Filter: die Kennzahlen zählen dann nur
+  // den Anteil, den die Liste als Split-Zeile zeigt (siehe transaction-stats).
+  const stats = useMemo(
+    () => computeTransactionStats(visible, {
+      allocationsByTransaction: allocations,
+      categoryFilter: filters.category,
+      categories: cats,
+    }),
+    [visible, allocations, filters.category, cats],
+  );
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 

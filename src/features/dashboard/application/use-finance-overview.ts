@@ -5,8 +5,8 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories, updateTransaction, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
-import { getAllocationMap } from '@/services/transaction-allocation-service';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DEBOUNCE_MS } from '@/lib/constants';
@@ -22,7 +22,7 @@ import {
 import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
-import type { Transaction, TransactionAllocation } from '@/types';
+import type { Transaction } from '@/types';
 import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';
 import { computeLocalBalances, computeEffectiveBalances, computeTotalEffectiveBalance } from '../domain/balance-calculations';
 import { computeFlowTotals, buildIncomeExpenseSeries } from '../domain/overview-calculations';
@@ -38,7 +38,6 @@ const noop = () => {};
 // Render würde die Memo-Kette bis zum ViewModel invalidieren, solange die
 // Query noch lädt (Default wird bei jedem Re-Render neu erzeugt).
 const EMPTY_CONTRACT_DECISIONS = new Map<string, ContractDecision>();
-const EMPTY_ALLOCATIONS = new Map<string, TransactionAllocation[]>();
 
 export type UseFinanceOverviewOptions = {
   /** Wird nach erfolgreichem Detail-Speichern aufgerufen (z.B. Modal schließen). Bleibt Sache der aufrufenden Seite. */
@@ -77,13 +76,9 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryFn: getContractDecisionMap,
   });
 
-  // Split-Notizen (`TransactionAllocation.label`) gehören wie die Notiz an der
-  // Buchung selbst (`tax_note`) in die Suche — gleiche Trefferliste wie auf der
-  // Buchungsseite (Feature-Parität).
-  const { data: allocations = EMPTY_ALLOCATIONS } = useQuery({
-    queryKey: dashboardKeys.allocationMap,
-    queryFn: getAllocationMap,
-  });
+  // Aufteilungen speisen zweierlei: die Suche (Split-Notizen) und die
+  // anteilsgenaue Aggregation der Charts weiter unten.
+  const allocations = useAllocationMap();
 
   const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
   const effectiveBalances = useMemo(
@@ -229,8 +224,11 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
 
     const { income, expenses, balance } = computeFlowTotals(flowTransactions);
     const series = buildIncomeExpenseSeries(flowTransactions, granularity);
-    const sunburst = buildSpendingSunburst(flowTransactions, cats);
-    const sunburstTree = buildSunburstTree(flowTransactions, cats);
+    // Anteilsgenau: eine aufgeteilte Buchung geht mit JEDEM Anteil in seine
+    // eigene Kategorie ein (`getCategoryContributions`), statt vollständig in
+    // die Kategorie der Buchung.
+    const sunburst = buildSpendingSunburst(flowTransactions, cats, allocations);
+    const sunburstTree = buildSunburstTree(flowTransactions, cats, allocations);
 
     return {
       income,
@@ -242,13 +240,13 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
       sunburst,
       sunburstTree,
     };
-  }, [visibleTransactions, totalEffectiveBalance, granularity, cats]);
+  }, [visibleTransactions, totalEffectiveBalance, granularity, cats, allocations]);
 
   // Einfaches Sankey auf Hauptkategorien-Ebene bleibt bewusst im Free-Tier
   // (Aha-Moment für alle Nutzer); Drilldown lebt im Analyse-Bereich.
   const sankeyData = useMemo(
-    () => buildSankeyData(visibleTransactions, cats, accounts),
-    [visibleTransactions, cats, accounts],
+    () => buildSankeyData(visibleTransactions, cats, accounts, allocations),
+    [visibleTransactions, cats, accounts, allocations],
   );
 
   const categoryMutation = useMutation<Transaction[], Error, { id: string; category_id: string }[]>({

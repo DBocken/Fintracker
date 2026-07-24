@@ -13,6 +13,7 @@ import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/analysis-data';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { pickWrappedYear } from '@/lib/income-wrapped';
 import { useTier } from '@/hooks/useTier';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { hasFeatureAccess } from '@/lib/tier';
 import { PremiumUpsell } from '@/components/PremiumUpsell';
 import type { Transaction, Category } from '@/types';
@@ -46,14 +47,18 @@ export default function IncomeStreamsPanel() {
     queryFn: () => getCategories(),
   });
 
+  const allocations = useAllocationMap();
+
   const periodTxs = useMemo(() => {
     if (period === 'all') return txs;
     const cutoff = subMonths(new Date(), WINDOW_MONTHS);
     return txs.filter((t) => new Date(t.date) >= cutoff);
   }, [txs, period]);
 
-  const breakdown = useMemo(() => buildIncomeBreakdown(periodTxs, cats), [periodTxs, cats]);
-  const overTime = useMemo(() => buildIncomeOverTime(periodTxs, cats), [periodTxs, cats]);
+  // Aufteilungen auch bei Einnahmen anteilsgenau (gleiche Aggregations-Regel
+  // wie Ausgaben-Charts und Finanzstadt).
+  const breakdown = useMemo(() => buildIncomeBreakdown(periodTxs, cats, allocations), [periodTxs, cats, allocations]);
+  const overTime = useMemo(() => buildIncomeOverTime(periodTxs, cats, allocations), [periodTxs, cats, allocations]);
   // Ströme brauchen Historie für die Kadenz-Erkennung — immer auf dem 12-Monats-
   // Fenster berechnen, unabhängig von der gewählten Ansicht für Breakdown/Verlauf.
   const streams = useMemo(() => deriveIncomeStreams(txs, cats, { windowMonths: WINDOW_MONTHS }), [txs, cats]);

@@ -1,5 +1,5 @@
 /**
- * Application-Hook (WP-C8): lädt echte Transaktionen/Kategorien über
+ * Application-Hook (WP-C8): lädt echte Transaktionen/Kategorien/Aufteilungen über
  * dieselben TanStack-Query-Keys wie das Dashboard (`financeKeys`,
  * `src/features/shared/data/finance-query-keys.ts` — geteilter Cache, kein
  * Query-Duplikat, AGENTS.md §4/§7) und baut daraus über die geteilte
@@ -24,6 +24,7 @@ import { evaluateMilestones } from '@/services/milestones-service';
 import { buildSunburstTree } from '@/lib/analysis-data';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
+import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { useI18n } from '@/i18n/useI18n';
 import { buildCityModelFromData } from '../domain/city-data-adapter';
 import { buildCityModelFromIncomeStreams } from '../domain/city-income-adapter';
@@ -69,6 +70,11 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     queryFn: () => getCategories(),
   });
 
+  // Aufteilungen (Split-Buchungen): Gebäude UND Etagen rechnen damit
+  // anteilsgenau — der Kleidungs-Anteil einer Aldi-Buchung baut am
+  // Kleidungs-Gebäude mit, nicht am Lebensmittel-Gebäude.
+  const allocations = useAllocationMap();
+
   const categoriesById = useMemo(() => {
     const map = new Map<string, Category>();
     for (const c of categories) map.set(c.id, c);
@@ -89,8 +95,8 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
       };
     }
 
-    const sunburst = buildSunburstTree(transactions, categories);
-    const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById);
+    const sunburst = buildSunburstTree(transactions, categories, allocations);
+    const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById, allocations);
     const expensesModel = buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
     if (tab !== 'overview') return { model: expensesModel, overview: undefined };
 
@@ -104,7 +110,7 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     );
     const result = buildCityOverviewModel(expensesModel, incomeModel);
     return { model: result.model, overview: result.info };
-  }, [tab, transactions, categories, categoriesById, milestones]);
+  }, [tab, transactions, categories, categoriesById, milestones, allocations]);
 
   return {
     model,

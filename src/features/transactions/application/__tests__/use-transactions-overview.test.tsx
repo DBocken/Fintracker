@@ -299,6 +299,19 @@ describe('useTransactionsOverview', () => {
       expect(result.current.splits.byTransaction.get('tx-food')).toHaveLength(2);
     });
 
+    it('sollte die Kennzahlen bei Kategorie-Filter anteilsgenau rechnen', async () => {
+      vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
+
+      const { result } = await renderOverview({ initialFilters: { ...BASE_FILTERS, category: CAT_FUN } });
+
+      await waitFor(() => {
+        // tx-fun (-100) voll + Freizeit-Anteil von tx-food (-50) = 150,
+        // NICHT 100 + 300 (voller Betrag der aufgeteilten Buchung).
+        expect(result.current.stats.expenses).toBe(150);
+      });
+      expect(result.current.stats.count).toBe(result.current.transactions.visible.length);
+    });
+
     it('sollte ohne Kategorie-Filter keine Aufteilung als Treffer melden', async () => {
       vi.mocked(getAllocationMap).mockResolvedValue(SPLITS);
 
