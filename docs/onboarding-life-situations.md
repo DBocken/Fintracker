@@ -114,6 +114,15 @@ Gründe:
   ausblendbar, könnte man sich selbst aussperren.
 - `/accounts`, `/csv`, `/export` sind Dateneingang und -ausgang.
 
+> **Beschlossen, noch nicht umgesetzt:** `/city` (Finanzstadt) kommt als
+> Kernbereich dazu — sie ist die zentrale Darstellung und damit nicht
+> abwählbar. `city` entfällt dann als `NavFeatureId`, fällt aus den
+> `features`-Listen von `student_school`/`student_university` heraus, und
+> gespeicherte `enabled_nav_features` mit `'city'` werden einmalig
+> aufgeräumt. Begründung und vollständige Folgenliste:
+> `docs/tutorial-sequence.md` („Die Stadt ist Kernbereich, nicht wählbarer
+> Bereich"). Bis dahin gilt der Code.
+
 ## Opt-in-Bereiche
 
 Ein Bereich in `DEFAULT_OFF_FEATURES` bleibt auch dann verborgen, wenn gar

@@ -84,11 +84,11 @@ weggeht → was steuerbar bleibt → was vorausliegt → worauf es hinausläuft.
 
 | # | Kapitel | Modul | Warum hier | Datenvoraussetzung |
 |---|---|---|---|---|
-| **Teil 1 — Der Kern & die erste Sitzung** (immer; einzige Ausnahme: Kapitel 4 braucht den gewählten Bereich) |
+| **Teil 1 — Der Kern & die erste Sitzung** (immer, unabhängig von der Bereichsauswahl) |
 | 1 | `transactions` | `/transactions` | Erst prüfen, was da ist. Jede spätere Zahl hängt daran. | ≥ 1 Buchung |
 | 2 | `categories` | Kategorien | Ohne Kategorien ist jede Auswertung eine Liste. Kapitel entfällt bei `enable_subcategories: false`. | ≥ 1 unkategorisierte Buchung |
 | 3 | `dashboard` | `/dashboard` | Die analytische Antwort: das Sankey zeigt, wohin das Geld fließt. Zugleich der Ort, auf dem der CSV-Import ohnehin landet (`CsvPage` navigiert nach `/dashboard`). | ≥ 20 Buchungen |
-| 4 | `city` | `/city` | **Das Finale der ersten Sitzung** — die emotionale Antwort auf dieselben Daten und die sichtbare Belohnung für Kapitel 2: die Stadt ist eine reine Projektion der *kategorisierten* Ausgaben (Details unten). | ≥ 1 kategorisierter Monat, WebGL |
+| 4 | `city` | `/city` | **Das Finale der ersten Sitzung** — die emotionale Antwort auf dieselben Daten und die sichtbare Belohnung für Kapitel 2: die Stadt ist eine reine Projektion der *kategorisierten* Ausgaben. **Kernbereich, nicht abwählbar** (Details unten). | ≥ 1 kategorisierter Monat |
 | 5 | `coach` | `/coach` | Der tägliche Startpunkt — erst sinnvoll, wenn es etwas zu raten gibt. Übernimmt ab hier die Rolle „dein nächster Schritt". | Kern-Kapitel 1–3 durchlaufen |
 | 6 | `accounts` | `/accounts` | Salden verankern die Buchungen in der Wirklichkeit; Voraussetzung für jede Vorschau. | ≥ 1 Konto |
 | **Teil 2 — Der Euro durch den Monat** (je nach Bereichsauswahl) |
@@ -162,25 +162,78 @@ erst das Kern-Overlay, dann die Momente. Umsetzung als gewöhnlicher
 Tutorial-Schritt mit Navigation nach `/city` — three.js bleibt ausschließlich
 im `finance-city`-Slice (AGENTS.md §7), das Tutorial bettet nichts ein.
 
-### Zwei Bedingungen, die das Kapitel trägt
+### Die Stadt ist Kernbereich, nicht wählbarer Bereich
 
-- **Bereich gewählt.** Kapitel 4 ist das einzige Kern-Kapitel mit Bedingung —
-  die Regel „Vorziehen darf nie hinzufügen" gilt auch hier. Daraus folgt die
-  eigentliche Konsequenz dieser Entscheidung: `city` steht heute nur in den
-  Vorauswahlen von `student_school` und `student_university`
-  (`src/lib/life-situations.ts`). Soll die Stadt das Highlight der ersten
-  Sitzung für alle sein, **gehört sie in die Vorauswahl (fast) jeder
-  Lebenssituation** — abwählbar bleibt sie ohnehin. Das ist eine Änderung an
-  den `features`-Listen, kein neuer Mechanismus. Bestandsnutzer mit
-  gespeicherter Auswahl bleiben unberührt (ihre `enabled_nav_features` werden
-  nie stillschweigend erweitert); wer die Stadt nicht gewählt hat, bekommt
-  das Kapitel nicht — die erste Sitzung endet dann mit Kapitel 3.
-- **WebGL verfügbar.** Die Anker-Regel („fehlender Anker überspringt den
-  Schritt, nie blockieren") wird zur Fähigkeits-Regel verallgemeinert: kein
-  WebGL, zu schwaches Gerät → Kapitel vertagen, Sitzung endet mit dem
-  Sankey. Ein Highlight, das auf Altgeräten den Einstieg blockiert, wäre
-  keins. `prefers-reduced-motion` dämpft die Kamerafahrt, streicht aber das
-  Kapitel nicht — die Stadt ist auch als Standbild eine Antwort.
+Entschieden: Die Finanzstadt ist die **zentrale Darstellung** und deshalb
+**immer da** — nicht ein Bereich, den man abwählen kann. Das ist kein neuer
+Mechanismus, sondern der bestehende: `/city` gehört in
+`ALWAYS_VISIBLE_NAV_PATHS`, zu `/coach`, `/dashboard`, `/transactions`. Ein
+wählbarer Bereich wäre der Widerspruch — zentral und optional zugleich gibt es
+nicht.
+
+Damit entfällt die Bedingung an Kapitel 4 ersatzlos: kein „nur wenn gewählt",
+keine Ergänzung der `features`-Listen, kein Sonderfall in der Reihenfolge. Die
+erste Sitzung endet für **jede** Lebenssituation mit der Stadt.
+
+**Was daraus folgt** (Textersetzung jetzt, Migration nach dem Merge — deshalb
+hier und nicht später):
+
+| Ort | Änderung |
+|---|---|
+| `NavFeatureId`, `NAV_FEATURE_PATHS` | `'city'` entfällt — es ist kein wählbarer Bereich mehr |
+| `ALWAYS_VISIBLE_NAV_PATHS` | `/city` kommt dazu |
+| `LIFE_SITUATIONS` | `city` fällt aus `student_school` und `student_university` heraus (den einzigen beiden, die es führen) — nicht weil es dort weniger gilt, sondern weil Kernbereiche in keiner Liste stehen |
+| `FeatureSelection`, `NavFeatureSettings` | die Stadt verschwindet aus der Schalterliste und erscheint in der Aufzählung „Immer dabei" |
+| `local-settings-service` | gespeicherte `enabled_nav_features` können `'city'` enthalten — einmalig beim Lesen entfernen |
+
+Die Migration ist der Punkt, an dem es unangenehm werden kann. Zwei Fälle:
+
+- **Gespeichertes `'city'`** ist nach der Änderung ein Fremdwert in einem
+  typisierten Array. Wirkungslos ist er schon (`isNavPathVisible` prüft
+  `ALWAYS_VISIBLE_NAV_PATHS` vor der Feature-Zuordnung), aber er gehört
+  weggeräumt — Präzedenzfall und Ort stehen bereit: dieselbe einmalige
+  Aufräumung, die `local-settings-service` heute für `business_mode` macht.
+- **Wer die Stadt bewusst abgewählt hat, bekommt sie zurück.** Das ist der
+  einzige Fall, in dem ein Update Navigation *hinzufügt* — sonst gilt strikt
+  das Gegenteil (`onboarding-life-situations.md`: ein Update darf niemandem
+  stillschweigend die halbe Navigation wegnehmen, abgesichert per
+  `[REGRESSION]`-Test). Das ist hier gewollt und die direkte Folge der
+  Entscheidung, aber es gehört ausgesprochen und in genau diesen Test
+  aufgenommen, statt ihn stillschweigend zu umgehen.
+
+### Was Kernbereich zusätzlich verlangt
+
+- **Der Leerzustand wird zur Pflicht.** Als Kernbereich ist `/city` ab Minute
+  null erreichbar — auch mit null Buchungen. Dann gilt dieselbe Regel wie für
+  alle Hauptseiten: nie eine leere Seite, immer eine konkrete nächste Aktion
+  (`FinanceEmptyState`: CSV-Import oder Beispieldaten).
+- **WebGL ist kein Ausschlusskriterium mehr** — anders als in der ersten
+  Fassung dieses Dokuments angenommen. `CityCanvas` hat bereits einen
+  `webglUnavailable`-Fallback und `CityPage` einen Listen-Modus: ohne WebGL
+  wird die Stadt zur Liste, nicht zur Fehlermeldung. Das Kapitel läuft
+  deshalb auch dort — mit demselben Inhalt, anderer Darstellung
+  (Plattform-Prinzip, AGENTS.md §4). Kein Vertagen nötig. `prefers-reduced-motion`
+  dämpft die Kamerafahrt, streicht aber nichts: die Stadt ist auch als
+  Standbild eine Antwort.
+- **Das Bundle trägt es.** `CityPage` ist in `App.tsx` bereits `lazy()`
+  geladen; three.js kommt erst beim Öffnen. „Immer sichtbar" heißt nicht
+  „immer geladen" — der Kernbereich kostet nichts, solange niemand hingeht.
+- **Zwei offene Punkte, die jetzt billig sind:**
+  1. **Das Beta-Etikett.** `/city` trägt heute den Untertitel „Beta"
+     (`city.betaBadge`, zugleich Badge auf der Seite). Zentrale Darstellung
+     und Beta-Kennzeichnung widersprechen sich — entweder trägt der Kern das
+     Etikett zu Recht, dann ist er noch kein Kern, oder es fällt mit dieser
+     Änderung.
+  2. **Die Bottom-Nav.** Auf 375 px ist ein Bereich, der nur über „Mehr" →
+     Scrollen erreichbar ist, nicht zentral. Empfehlung: die Stadt wird
+     vierter Tab (`BOTTOM_NAV_TARGETS`), Reihenfolge Heute · Übersicht ·
+     Stadt · Buchungen · Mehr. Preis, der dazugehört: fünf Tabs sind das
+     Maximum — danach ist die Leiste zu.
+- **Sanfter Ton bleibt möglich.** Die Stadt zeigt *Ausgaben*, nicht Vermögen —
+  anders als das Nettovermögen ist sie in `debt_focus` und `gentle_mode` kein
+  Hohn, sondern die verständlichste Antwort auf „wo ist mein Geld
+  geblieben". Was dort angepasst gehört, ist der Ton der Begleittexte, nicht
+  die Sichtbarkeit.
 
 ## Datenreife statt Schrittzähler
 
