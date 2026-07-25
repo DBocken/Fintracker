@@ -5,3 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+  # mcp-poc hat eine eigene, committete Lockdatei und ist kein
+  # Workspace-Member — ohne eigenen Eintrag sieht Dependabot sie nicht.
+  - package-ecosystem: "npm"
+    directory: "/mcp-poc"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

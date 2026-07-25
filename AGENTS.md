@@ -243,6 +243,11 @@ Verbindliche Regeln je Schwachstellenklasse (Details + ❌/✅-Beispiele in
    immer durch `isSafeExternalAuthUrl` (`@/lib/safe-url`) prüfen.
 6. **Android:** `allowBackup="false"`, keine Klartext-Netzwerkkonfiguration,
    keine neuen exportierten Komponenten ohne Begründung + Test.
+7. **Abhängigkeits-Patchstände:** `pnpm-lock.yaml` ohne bekannte Advisories
+   (CI: OSV-Scanner). Direkte Abhängigkeit anheben, transitive über
+   `pnpm.overrides` — Override-Ziele **immer nach oben begrenzen**
+   (`">=1.1.16 <2"`). Ohne kompatiblen Patch: Eintrag in `osv-scanner.toml`
+   mit `reason` **und** `ignoreUntil`, nie unbefristet.
 
 Änderungen in diesen Klassen nur mit `[SECURITY]`/`[REGRESSION]`-Test im
 selben Commit. Vor jedem Push: `pnpm test:security` und

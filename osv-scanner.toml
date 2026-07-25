@@ -1,0 +1,44 @@
+# Konfiguration für den OSV-Scanner (CI: .github/workflows/security-audit.yml).
+#
+# Hier stehen ausschließlich Funde, für die es **keinen kompatiblen Patch** gibt.
+# Alles, was durch eine Version oder ein `pnpm.overrides`-Floor behebbar ist,
+# wird behoben und nicht ignoriert (siehe docs/security-guidelines.md, Klasse 7).
+# Jeder Eintrag nennt Grund und Ablaufdatum — nach `ignoreUntil` schlägt CI
+# wieder an und erzwingt eine neue Bewertung.
+
+[[IgnoredVulns]]
+id = "GHSA-qwww-vcr4-c8h2"
+ignoreUntil = 2026-10-31
+# react-router: CSRF-Bypass im RSC-Modus (Action-Ausführung vor 400-Antwort).
+# Behoben erst in react-router 8.3.0; die 7.x-Linie bekommt keinen Patch.
+# Nicht ausnutzbar in Fintracker: die App ist eine reine Client-SPA
+# (`BrowserRouter` in src/App.tsx, Vite-Build, kein SSR/RSC-Handler, keine
+# react-router-Actions auf einem Server). Der Ausstieg ist der Wechsel auf
+# react-router 8 (Major, react-router-dom wird dort aufgelöst) — eigener
+# Vorgang, kein Sicherheitspatch.
+reason = "RSC-only CSRF; Fintracker ist Client-SPA ohne SSR/RSC. Fix nur in react-router 8 (Major-Migration)."
+
+[[IgnoredVulns]]
+id = "GHSA-mh99-v99m-4gvg"
+ignoreUntil = 2026-10-31
+# brace-expansion: OOM-Crash durch unbegrenzte Expansionslänge.
+# Betroffener Pfad ist ausschließlich die Dev-Toolchain
+# (eslint > minimatch@3 > brace-expansion@1); Laufzeit-Code der App und der
+# Edge Functions ist nicht betroffen. Die 1.x-Linie hat keinen Patch: 1.1.16
+# schließt nur GHSA-3jxr-9vmj-r5cp. Ein Override auf 5.0.8 ist nicht möglich —
+# brace-expansion 5 exportiert `exports.expand` statt einer aufrufbaren
+# `module.exports`, minimatch@3 macht `require('brace-expansion')()` und würde
+# brechen. Entfällt mit eslint 10 (nutzt minimatch@10, kein @eslint/eslintrc).
+reason = "Nur Dev-Toolchain (eslint>minimatch@3); 1.x hat keinen Patch, 5.x ist mit minimatch@3 nicht require-kompatibel."
+
+[[IgnoredVulns]]
+id = "GHSA-frvp-7c67-39w9"
+ignoreUntil = 2026-10-31
+# @hono/node-server (nur mcp-poc/pnpm-lock.yaml): Path-Traversal in
+# `serve-static` über kodierte Backslashes — ausschließlich auf Windows-Hosts.
+# Behoben erst in 2.0.5; @modelcontextprotocol/sdk 1.29.0 (aktuell) fordert
+# `^1.19.9`, ein Override auf 2.x würde die deklarierte Range des SDK brechen.
+# Ausschlaggebend: mcp-poc bindet weder hono noch `serve-static` ein (Express +
+# helmet, siehe mcp-poc/src/index.ts) — der verwundbare Code wird nicht geladen.
+# Zusätzlich betrifft der Fund nur Windows-Hosts.
+reason = "Windows-only serve-static-Traversal; mcp-poc nutzt kein serve-static. Fix erst in 2.x, außerhalb der SDK-Range ^1.19.9."

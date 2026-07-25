@@ -58,7 +58,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
-    "eslint": "^9.39.4",
+    "eslint": "^9.39.5",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -74,7 +74,7 @@
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.4.1",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.1",
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.1",
     "tesseract.js": "^7.0.0",
@@ -100,7 +100,7 @@
     "autoprefixer": "^10.5.0",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.22",
     "tailwindcss": "^4.3.1",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3",
@@ -109,10 +109,15 @@
   },
   "pnpm": {
     "overrides": {
-      "yaml@>=2.0.0 <2.8.3": ">=2.8.3",
-      "esbuild": ">=0.28.1",
+      "yaml@>=2.0.0 <2.8.3": ">=2.8.3 <3",
+      "esbuild": ">=0.28.1 <1",
       "undici": ">=7.28.0 <8",
-      "dompurify": ">=3.4.11"
+      "dompurify": ">=3.4.12 <4",
+      "tar@>=7 <8": ">=7.5.21 <8",
+      "js-yaml@>=4 <5": ">=4.3.0 <5",
+      "postcss@>=8 <9": ">=8.5.18 <9",
+      "brace-expansion@>=1 <2": ">=1.1.16 <2",
+      "brace-expansion@>=5 <6": ">=5.0.8 <6"
     }
   }
 }

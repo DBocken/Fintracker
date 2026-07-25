@@ -111,7 +111,32 @@ Unterverzeichnis eingrenzen.
 
 Wächter-Test: `src/security/android-hardening.security.test.ts`
 
-## 7. Testpflicht
+## 7. Abhängigkeits-Patchstände (Supply Chain)
+
+**Regel:** `pnpm-lock.yaml` enthält keine Version mit bekanntem Advisory. CI
+prüft das mit OSV-Scanner (`.github/workflows/security-audit.yml`); lokal zeigt
+`pnpm audit` dieselben GHSA-Daten.
+
+- **Direkte Abhängigkeit betroffen** ⇒ Version in `package.json` anheben.
+- **Transitive Abhängigkeit betroffen** ⇒ Floor in `pnpm.overrides`. Das Ziel
+  wird **immer nach oben begrenzt** (`">=1.1.16 <2"`, nicht `">=1.1.16"`): ein
+  offener Range zieht die nächste Major-Linie herein und tauscht damit
+  stillschweigend die API — bei `brace-expansion` landete so die ESM-Variante
+  5.x unter `minimatch@3`, das `require('brace-expansion')()` aufruft.
+- **Kein kompatibler Patch verfügbar** (Fix nur in einer Major-Version, oder die
+  betroffene Linie bekommt keinen Backport) ⇒ Eintrag in `osv-scanner.toml` mit
+  `reason` **und** `ignoreUntil`. Ohne Ablaufdatum wird aus einer Ausnahme ein
+  Dauerzustand; nach Ablauf schlägt CI wieder an und erzwingt eine neue
+  Bewertung. Der Eintrag nennt, warum der Fund hier nicht ausnutzbar ist und
+  welcher Vorgang ihn auflöst.
+
+`minimumReleaseAge: 1440` (`pnpm-workspace.yaml`) hält Pakete 24 h zurück —
+Patch-Floors dürfen deshalb nicht auf eine Version zeigen, die jünger ist als
+einen Tag, sonst bleibt die Auflösung darunter hängen.
+
+Wächter-Test: `src/security/dependency-patch-floors.security.test.ts`
+
+## 8. Testpflicht
 
 Änderungen in einer dieser Klassen landen nur mit passendem `[SECURITY]`- bzw.
 `[REGRESSION]`-Test **im selben Commit** im Repo. Neue Wächter-Tests gehören
