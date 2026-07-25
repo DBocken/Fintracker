@@ -7,11 +7,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/i18n/useI18n';
+import { LOCALE_OPTIONS } from '@/i18n/locale-options';
 import type { Locale } from '@/i18n/translations';
 
 /**
- * Sprachumschalter (Deutsch/Englisch). Die Wahl wird lokal gespeichert und wirkt
- * auf die bereits migrierten Screens (z. B. Datenschutz).
+ * Sprachumschalter. Die Wahl wird lokal gespeichert und wirkt auf die bereits
+ * migrierten Screens. Die Liste kommt aus `LOCALE_OPTIONS` und damit aus
+ * `SUPPORTED_LOCALES` — nicht wählbare Sprachen erscheinen hier gar nicht.
  */
 export function LanguageSettings() {
   const { locale, setLocale, t } = useI18n();
@@ -28,10 +30,11 @@ export function LanguageSettings() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="de">{t('settings.languageGerman')}</SelectItem>
-            <SelectItem value="en">{t('settings.languageEnglish')}</SelectItem>
-            <SelectItem value="tlh">{t('settings.languageKlingon')}</SelectItem>
-            <SelectItem value="ru">{t('settings.languageRussian')}</SelectItem>
+            {LOCALE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </CardContent>

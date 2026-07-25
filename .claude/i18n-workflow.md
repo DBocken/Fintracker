@@ -119,6 +119,9 @@ Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert 
 - [ ] Alle Texte mit `t('namespace.key')` aufgerufen
 - [ ] Tests mit `renderWithI18n()` Wrapper
 - [ ] Tests überprüfen beide Sprachen (DE + EN)
+- [ ] Keys in **allen** `SUPPORTED_LOCALES` ergänzt (`de`, `en`, `ru`) — `tlh`
+      ist inaktiv und nicht paritätspflichtig
+- [ ] `pnpm test src/i18n/__tests__/locale-parity.test.ts` — Key-Symmetrie grün
 - [ ] `[REGRESSION] Tests überprüfen dass Keys existieren`
 - [ ] `pnpm test` — alle Tests grün
 - [ ] `pnpm build` — TypeScript OK

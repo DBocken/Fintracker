@@ -11,7 +11,21 @@
 
 export type Locale = 'de' | 'en' | 'tlh' | 'ru';
 
-export const SUPPORTED_LOCALES: Locale[] = ['de', 'en', 'tlh', 'ru'];
+/**
+ * Auswählbare Sprachen — zugleich die Menge, die paritätspflichtig gegen `de`
+ * ist (siehe `__tests__/locale-parity.test.ts`).
+ */
+export const SUPPORTED_LOCALES: Locale[] = ['de', 'en', 'ru'];
+
+/**
+ * Im Baum vorhanden, aber bis auf Weiteres nicht wählbar. Die Übersetzungen
+ * bleiben vollständig erhalten, damit ein Reaktivieren nur bedeutet, den
+ * Eintrag hierher zu entfernen — deshalb wird `tlh` nicht gelöscht.
+ * Wer die Sprache früher gewählt hatte, fällt auf `DEFAULT_LOCALE` zurück
+ * (`resolveInitialLocale` akzeptiert nur `SUPPORTED_LOCALES`).
+ */
+export const INACTIVE_LOCALES: Locale[] = ['tlh'];
+
 export const DEFAULT_LOCALE: Locale = 'de';
 
 export const translations = {
@@ -387,6 +401,9 @@ export const translations = {
       credentialsMissing: 'eToro-Zugangsdaten fehlen in diesem Portfolio. Bitte verbinde das Konto erneut.',
       proxyError: 'eToro-Abruf fehlgeschlagen: {error}',
       unexpectedResponse: 'Unerwartete Antwort von eToro. Bitte versuche es später erneut.',
+    },
+    replacementPlanService: {
+      notFound: 'Ersatzplan nicht gefunden',
     },
     localSettingsService: {
       clientOnly: 'Lokale Daten können nur im Client verarbeitet werden.',
@@ -4232,6 +4249,9 @@ export const translations = {
       proxyError: 'eToro request failed: {error}',
       unexpectedResponse: 'Unexpected response from eToro. Please try again later.',
     },
+    replacementPlanService: {
+      notFound: 'Replacement plan not found',
+    },
     localSettingsService: {
       clientOnly: 'Local data can only be processed on the client.',
       defaultCategoryName: 'Category',
@@ -8076,6 +8096,9 @@ export const translations = {
       proxyError: "eToro tlhapghach Qagh: {error}",
       unexpectedResponse: "eToro jang pIH'eghbe'lu'bogh. tugh yInIDqa'.",
     },
+    replacementPlanService: {
+      notFound: "nab chu'wI' tu'lu'be'",
+    },
     localSettingsService: {
       clientOnly: "De' naDevbogh naDevDaq neH lo'laH.",
       defaultCategoryName: "'ay'",
@@ -11861,6 +11884,9 @@ export const translations = {
       proxyError: 'Запрос к eToro не выполнен: {error}',
       unexpectedResponse: 'Неожиданный ответ от eToro. Попробуйте позже.',
     },
+    replacementPlanService: {
+      notFound: 'План замены не найден',
+    },
     localSettingsService: {
       clientOnly: 'Локальные данные можно обрабатывать только на клиенте.',
       defaultCategoryName: 'Категория',
@@ -14057,7 +14083,11 @@ export const translations = {
       storageLocation: 'Место хранения: храните резервные копии в надёжном месте (например, облачное хранилище, внешний жёсткий диск).',
       restoration: 'Восстановление: данные копии объединяются с текущими данными (отсутствующие записи добавляются, существующие сохраняются) — восстановление ничего не дублирует.',
       compatibility: 'Совместимость: резервные копии совместимы с той же версией приложения. Обновления могут добавлять новые поля.',
+      collections: 'Дополнительные данные',
       settings: 'Настройки',
+      selectedFile: 'Файл: {name}',
+      restoreSummary: 'Добавлено: {transactions} операций, {categories} категорий, {accounts} счетов и {collections} других записей.',
+      restoreMergeNote: 'Уже существующие записи с тем же ID были пропущены и не перезаписаны.',
       service: {
         readError: 'Ошибка чтения файла резервной копии',
         unencryptedExportWarning: 'Незашифрованный экспорт должен быть явно подтверждён. Рекомендуется использовать зашифрованную резервную копию.',
@@ -14087,6 +14117,8 @@ export const translations = {
       loadingDescription: 'Пожалуйста, подождите немного, пока мы загружаем ваши счета.',
       waitingTime: 'Время ожидания: {seconds} секунд',
       openAuthLink: 'Снова открыть страницу авторизации',
+      unsafeAuthLink: 'Ссылка авторизации заблокирована, так как она небезопасна.',
+      authLinkLabel: 'Ссылка авторизации:',
       failureHeading: 'Подключение не удалось',
       failureDescription: 'Не удалось установить соединение с банком.',
       backToApp: 'Назад в приложение',
