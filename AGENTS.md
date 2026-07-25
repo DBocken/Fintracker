@@ -111,6 +111,17 @@ Zwei komplementäre Schichtungen, siehe `docs/coding-guide.md` §2 im Detail:
   Kochrezept inkl. Entscheidungsbaum „gemeinsame Komponente vs. getrennte
   Views": `docs/architecture/feature-structure.md`.
 
+### Vorentschiedenes zuerst lesen
+
+Für manche Themen liegen Vorüberlegungen bereits schriftlich vor. Sie werden
+**vor** der Arbeit daran gelesen, damit getroffene Entscheidungen nicht
+versehentlich untergraben und Überlegungen nicht neu erarbeitet werden:
+
+| Thema | Datei |
+|---|---|
+| Onboarding, Lebenssituationen, Bereichs-Vorauswahl, Einzelunternehmer-Modus | `docs/onboarding-life-situations.md` |
+| Tutorial, Freischaltung von Funktionen, behutsame Heranführung | `docs/tutorial-progressive-disclosure.md` |
+
 ## 4. Plattform-Prinzip (verbindlich)
 
 > Mobile = einfaches, sauberes Modell (eine Hauptaussage pro Ansicht,
