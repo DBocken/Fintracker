@@ -405,6 +405,65 @@ export const translations = {
     replacementPlanService: {
       notFound: 'Ersatzplan nicht gefunden',
     },
+    glossary: {
+      title: 'Fachbegriffe',
+      description: 'Jeder Begriff in beiden Sprachstilen, mit einer Erklärung in einem Satz.',
+      alsoEveryday: 'Im Alltag',
+      alsoTechnical: 'Fachbegriff',
+      openLabel: 'Was bedeutet „{term}"?',
+      switchToEveryday: 'Auf Alltagssprache umstellen',
+      switchToTechnical: 'Auf Fachsprache umstellen',
+      terms: {
+        liquidity: {
+          term: 'Liquidität',
+          definition: 'Die Mittel, über die du kurzfristig verfügen kannst: Giro- und Bargeldbestände, ohne gebundene Anlagen.',
+        },
+        netWorth: {
+          term: 'Nettovermögen',
+          definition: 'Summe aller Vermögenswerte abzüglich aller Verbindlichkeiten zu einem Stichtag.',
+        },
+        savingsRate: {
+          term: 'Sparquote',
+          definition: 'Anteil des Nettoeinkommens, der in einem Zeitraum nicht ausgegeben wird.',
+        },
+        emergencyFund: {
+          term: 'Notgroschen',
+          definition: 'Kurzfristig verfügbare Reserve für ungeplante Ausgaben, üblicherweise drei bis sechs Monatsausgaben.',
+        },
+        cashflow: {
+          term: 'Cashflow',
+          definition: 'Saldo aus Ein- und Auszahlungen innerhalb eines Zeitraums.',
+        },
+        balance: {
+          term: 'Saldo',
+          definition: 'Differenz aus Soll- und Habenseite eines Kontos zu einem Zeitpunkt.',
+        },
+        fixedCosts: {
+          term: 'Fixkosten',
+          definition: 'Ausgaben, die unabhängig vom Verbrauch in gleicher Höhe wiederkehren.',
+        },
+        amortisation: {
+          term: 'Tilgung',
+          definition: 'Der Anteil einer Rate, der die Restschuld verringert; der übrige Teil deckt die Zinsen.',
+        },
+        remainingDebt: {
+          term: 'Restschuld',
+          definition: 'Der zu einem Stichtag noch nicht getilgte Teil einer Verbindlichkeit.',
+        },
+        return: {
+          term: 'Rendite',
+          definition: 'Ertrag einer Anlage im Verhältnis zum eingesetzten Kapital, meist auf ein Jahr bezogen.',
+        },
+        liabilities: {
+          term: 'Verbindlichkeiten',
+          definition: 'Bestehende Zahlungsverpflichtungen gegenüber Dritten.',
+        },
+        reserve: {
+          term: 'Rücklage',
+          definition: 'Zweckgebunden zurückgelegte Mittel für absehbare künftige Ausgaben.',
+        },
+      },
+    },
     localSettingsService: {
       clientOnly: 'Lokale Daten können nur im Client verarbeitet werden.',
       defaultCategoryName: 'Kategorie',
@@ -426,6 +485,15 @@ export const translations = {
       languageEnglish: 'Englisch',
       languageKlingon: 'Klingonisch (tlhIngan Hol)',
       languageRussian: 'Russisch',
+      wording: {
+        title: 'Sprachstil',
+        description: 'Wie die App Fachbegriffe schreibt. Jederzeit umschaltbar — auch direkt an jedem Begriff.',
+        unavailableForLocale: 'Für diese Sprache gibt es bisher nur die Fachsprache.',
+        option: {
+          everyday: 'Alltagssprache — Fachbegriff steht daneben',
+          technical: 'Fachsprache — Begriffe direkt',
+        },
+      },
       bulkAssignment: {
         title: 'Massenzuweisung der Kategorien',
         description: 'Weise vordefinierte Kategorien basierend auf Stichworten automatisch allen Transaktionen zu',
@@ -4252,6 +4320,65 @@ export const translations = {
     replacementPlanService: {
       notFound: 'Replacement plan not found',
     },
+    glossary: {
+      title: 'Financial terms',
+      description: 'Every term in both wordings, with a one-sentence explanation.',
+      alsoEveryday: 'In everyday words',
+      alsoTechnical: 'Technical term',
+      openLabel: 'What does “{term}” mean?',
+      switchToEveryday: 'Switch to everyday wording',
+      switchToTechnical: 'Switch to technical wording',
+      terms: {
+        liquidity: {
+          term: 'Liquidity',
+          definition: 'The funds you can access at short notice: current-account and cash balances, excluding tied-up investments.',
+        },
+        netWorth: {
+          term: 'Net worth',
+          definition: 'The total of all assets minus all liabilities at a given date.',
+        },
+        savingsRate: {
+          term: 'Savings rate',
+          definition: 'The share of net income not spent over a period.',
+        },
+        emergencyFund: {
+          term: 'Emergency fund',
+          definition: 'A readily available reserve for unplanned expenses, typically three to six months of spending.',
+        },
+        cashflow: {
+          term: 'Cashflow',
+          definition: 'The balance of money received and money paid out over a period.',
+        },
+        balance: {
+          term: 'Balance',
+          definition: 'The difference between the debit and credit sides of an account at a point in time.',
+        },
+        fixedCosts: {
+          term: 'Fixed costs',
+          definition: 'Expenses that recur at the same amount regardless of usage.',
+        },
+        amortisation: {
+          term: 'Amortisation',
+          definition: 'The part of an instalment that reduces the outstanding debt; the rest covers interest.',
+        },
+        remainingDebt: {
+          term: 'Remaining balance',
+          definition: 'The portion of a liability not yet repaid at a given date.',
+        },
+        return: {
+          term: 'Return',
+          definition: 'The gain on an investment relative to the capital invested, usually stated per year.',
+        },
+        liabilities: {
+          term: 'Liabilities',
+          definition: 'Existing payment obligations towards third parties.',
+        },
+        reserve: {
+          term: 'Reserve',
+          definition: 'Funds set aside for a specific, foreseeable future expense.',
+        },
+      },
+    },
     localSettingsService: {
       clientOnly: 'Local data can only be processed on the client.',
       defaultCategoryName: 'Category',
@@ -4273,6 +4400,15 @@ export const translations = {
       languageEnglish: 'English',
       languageKlingon: 'Klingon (tlhIngan Hol)',
       languageRussian: 'Russian',
+      wording: {
+        title: 'Wording',
+        description: 'How the app writes financial terms. Switchable at any time — including directly on each term.',
+        unavailableForLocale: 'Only the technical wording is available for this language so far.',
+        option: {
+          everyday: 'Everyday words — technical term shown alongside',
+          technical: 'Technical terms — used directly',
+        },
+      },
       bulkAssignment: {
         title: 'Bulk category assignment',
         description: 'Automatically assign predefined categories to all transactions based on keywords',
@@ -11887,6 +12023,65 @@ export const translations = {
     replacementPlanService: {
       notFound: 'План замены не найден',
     },
+    glossary: {
+      title: 'Финансовые термины',
+      description: 'Каждый термин в обоих стилях речи с пояснением в одном предложении.',
+      alsoEveryday: 'Простыми словами',
+      alsoTechnical: 'Термин',
+      openLabel: 'Что означает «{term}»?',
+      switchToEveryday: 'Перейти на простой язык',
+      switchToTechnical: 'Перейти на профессиональный язык',
+      terms: {
+        liquidity: {
+          term: 'Ликвидность',
+          definition: 'Средства, доступные вам в короткий срок: остатки на текущем счёте и наличные, без учёта вложенных средств.',
+        },
+        netWorth: {
+          term: 'Чистый капитал',
+          definition: 'Сумма всех активов за вычетом всех обязательств на определённую дату.',
+        },
+        savingsRate: {
+          term: 'Норма сбережений',
+          definition: 'Доля чистого дохода, не потраченная за период.',
+        },
+        emergencyFund: {
+          term: 'Резервный фонд',
+          definition: 'Быстро доступный резерв на непредвиденные расходы, обычно на три–шесть месяцев расходов.',
+        },
+        cashflow: {
+          term: 'Денежный поток',
+          definition: 'Разница между поступлениями и выплатами за период.',
+        },
+        balance: {
+          term: 'Сальдо',
+          definition: 'Разница между дебетовой и кредитовой сторонами счёта на момент времени.',
+        },
+        fixedCosts: {
+          term: 'Постоянные расходы',
+          definition: 'Расходы, которые повторяются в одинаковом размере независимо от потребления.',
+        },
+        amortisation: {
+          term: 'Погашение долга',
+          definition: 'Часть платежа, уменьшающая остаток долга; остальное покрывает проценты.',
+        },
+        remainingDebt: {
+          term: 'Остаток долга',
+          definition: 'Непогашенная часть обязательства на определённую дату.',
+        },
+        return: {
+          term: 'Доходность',
+          definition: 'Доход от вложения по отношению к вложенному капиталу, обычно в годовом выражении.',
+        },
+        liabilities: {
+          term: 'Обязательства',
+          definition: 'Существующие обязательства по платежам перед третьими лицами.',
+        },
+        reserve: {
+          term: 'Резерв',
+          definition: 'Средства, отложенные на конкретные предстоящие расходы.',
+        },
+      },
+    },
     localSettingsService: {
       clientOnly: 'Локальные данные можно обрабатывать только на клиенте.',
       defaultCategoryName: 'Категория',
@@ -11908,6 +12103,15 @@ export const translations = {
       languageEnglish: 'Английский',
       languageKlingon: 'Клингонский (tlhIngan Hol)',
       languageRussian: 'Русский',
+      wording: {
+        title: 'Стиль речи',
+        description: 'Как приложение пишет финансовые термины. Можно переключить в любой момент — в том числе прямо у каждого термина.',
+        unavailableForLocale: 'Для этого языка пока доступен только профессиональный стиль.',
+        option: {
+          everyday: 'Простой язык — термин показан рядом',
+          technical: 'Профессиональные термины — напрямую',
+        },
+      },
       bulkAssignment: {
         title: 'Массовое назначение категорий',
         description: 'Автоматически назначить предопределённые категории всем транзакциям на основе ключевых слов',

@@ -111,9 +111,14 @@ function getChangedLines(file) {
 function checkHardcodedStrings(file, diff) {
   const issues = [];
 
-  // Überspringe bestimmte Dateitypen
+  // Überspringe bestimmte Dateitypen.
+  //
+  // `src/i18n/` komplett: das IST die Übersetzungsschicht. Neben
+  // `translations.ts` liegen dort die Sprachstil-Overlays
+  // (`overlays/everyday/*.ts`), die naturgemäß aus nichts als übersetzten
+  // Strings bestehen — ein Treffer dort ist per Definition ein Fehlalarm.
   if (file.includes('.test.') || file.includes('.spec.') ||
-      file.includes('translations.ts') || file.includes('constants') ||
+      file.includes('src/i18n/') || file.includes('constants') ||
       file.includes('README') || file.includes('.md')) {
     return issues;
   }

@@ -31,6 +31,7 @@ import DiagnosticsSettings from './DiagnosticsSettings';
 import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
+import { WordingSettings } from './WordingSettings';
 import { HouseholdSettings } from './HouseholdSettings';
 import { useBusinessMode } from '@/hooks/useBusinessMode';
 import NavFeatureSettings from './NavFeatureSettings';
@@ -284,6 +285,8 @@ export function EnhancedSettings() {
             description={t('settings.languageSettingsDescription', 'Wähle die Sprache der App (Deutsch/Englisch/Klingonisch).')}
           />
           <LanguageSettings />
+
+          <WordingSettings />
         </section>
 
         <FeatureGate feature="familyMode" fallback={null}>

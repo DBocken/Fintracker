@@ -58,22 +58,33 @@ describe('Sprachstil-Aufloesung', () => {
 });
 
 describe('lookupWorded', () => {
+  /** Fachbegriff mit Overlay-Eintrag. */
+  const OVERLAID_KEY = 'netWorth.liquidity';
+  /** Allgemeiner Begriff, der bewusst kein Register kennt. */
+  const PLAIN_KEY = 'common.save';
+
   it('sollte fuer die Fachsprache exakt den Basistext liefern', () => {
-    const key = 'nav.items.liquidity';
-    expect(lookupWorded('de', key, 'technical')).toBe(lookupTranslation('de', key));
+    expect(lookupWorded('de', OVERLAID_KEY, 'technical')).toBe('Liquidität');
+    expect(lookupWorded('de', OVERLAID_KEY, 'technical')).toBe(
+      lookupTranslation('de', OVERLAID_KEY),
+    );
+  });
+
+  it('sollte fuer die Alltagssprache den Overlay-Eintrag liefern', () => {
+    expect(lookupWorded('de', OVERLAID_KEY, 'everyday')).toBe('Verfügbares Geld');
   });
 
   it('sollte bei fehlendem Overlay-Eintrag auf den Basistext zurueckfallen', () => {
     // Overlay-Miss ist der Normalfall, kein Fehler.
-    const key = 'nav.items.liquidity';
-    expect(lookupWorded('de', key, 'everyday')).toBe(lookupTranslation('de', key));
+    expect(lookupWorded('de', PLAIN_KEY, 'everyday')).toBe(lookupTranslation('de', PLAIN_KEY));
   });
 
   it('sollte fuer Locales ohne Overlay den Basistext liefern', () => {
     // `ru` ist aktiv, bekommt aber (noch) kein Alltagssprache-Overlay.
     expect(overlayFor('everyday', 'ru')).toBeUndefined();
-    const key = 'nav.items.liquidity';
-    expect(lookupWorded('ru', key, 'everyday')).toBe(lookupTranslation('ru', key));
+    expect(lookupWorded('ru', OVERLAID_KEY, 'everyday')).toBe(
+      lookupTranslation('ru', OVERLAID_KEY),
+    );
   });
 
   it('sollte fuer unbekannte Keys undefined liefern', () => {
