@@ -3,6 +3,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '@/test-utils/render';
+import { findFeatureSwitch } from '@/test-utils/feature-switch';
 import OnboardingDialog from '../OnboardingDialog';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
@@ -57,8 +58,8 @@ describe('OnboardingDialog', () => {
     await user.click(screen.getByRole('radio', { name: /Schulden abbauen/ }));
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
 
-    expect(await screen.findByRole('switch', { name: /Schulden/ })).toBeChecked();
-    expect(screen.getByRole('switch', { name: /Trading/ })).not.toBeChecked();
+    expect(await findFeatureSwitch('debts')).toBeChecked();
+    expect(await findFeatureSwitch('trading')).not.toBeChecked();
   });
 
   it('sollte gewählte Umstände in der Vorauswahl berücksichtigen', async () => {
@@ -70,7 +71,7 @@ describe('OnboardingDialog', () => {
     await user.click(screen.getByRole('checkbox', { name: /Ich lege Geld an/ }));
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
 
-    expect(await screen.findByRole('switch', { name: /Trading/ })).toBeChecked();
+    expect(await findFeatureSwitch('trading')).toBeChecked();
   });
 
   it('sollte die bestätigte Auswahl samt abgeleiteter Einstellungen speichern', async () => {
@@ -103,7 +104,7 @@ describe('OnboardingDialog', () => {
 
     await user.click(screen.getByRole('radio', { name: /Schulden abbauen/ }));
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
-    await user.click(await screen.findByRole('switch', { name: /Trading/ }));
+    await user.click(await findFeatureSwitch('trading'));
     await user.click(screen.getByRole('button', { name: "Los geht's" }));
 
     await waitFor(async () => {

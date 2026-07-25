@@ -68,10 +68,35 @@ export const everydayEn: TranslationOverlay = {
       },
     },
   },
+  kpi: {
+    // "Balance" is already everyday English, so balanceChart/accounts/
+    // transactionStats need no entries here — only the genuine jargon does.
+    sectionTitle: 'Your numbers',
+    kpisLabel: 'Your numbers',
+    selectButton: 'Choose numbers',
+    emptyTitle: 'No numbers selected',
+    emptyDescription: 'Pick at least one number to show it on the dashboard.',
+    savingsRate: {
+      label: 'How much you save',
+    },
+  },
+  health: {
+    // `emergencyFund` stays — already everyday English.
+    savingsRate: 'How much you save',
+    liquidity: 'Money available now',
+  },
   nav: {
     items: {
       liquidity: 'Available',
       netWorth: 'Bottom line',
+      // The section shows what you hold, not the act of trading — and its own
+      // subtitle already says "Investments". Width is not a concern: this key
+      // only renders in the side/drawer nav (the bottom nav has its own
+      // `shortLabelKey`s), next to "Trends & Reports".
+      trading: 'Investments',
+    },
+    subtitles: {
+      trading: 'Investments at a glance',
     },
   },
   netWorth: {
@@ -79,6 +104,11 @@ export const everydayEn: TranslationOverlay = {
     netWorth: 'What you own minus debts',
     liquidity: 'Money available now',
     composition: 'Money available now + investments + money owed to you − debts',
+    // Closes a wave-1 inconsistency: the tile already said "Money available
+    // now" while its own explanation still said "Liquidity".
+    liquidityDetailedDescription: 'If an account is linked to a bank, the most recently fetched bank balance is used — even without synced transactions. Without a bank link, the balance is calculated from locally recorded transactions.',
+    managePortfolio: 'Manage investments',
+    addPortfolio: 'Add investments',
   },
   other: {
     liquidityTitle: 'Money available now',

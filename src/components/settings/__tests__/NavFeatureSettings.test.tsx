@@ -3,6 +3,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '@/test-utils/render';
+import { findFeatureSwitch } from '@/test-utils/feature-switch';
 import NavFeatureSettings from '../NavFeatureSettings';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
@@ -47,7 +48,7 @@ describe('NavFeatureSettings', () => {
     await updateLocalUserSettings({ enabled_nav_features: ['budgets'] });
     renderSettings();
 
-    await user.click(await screen.findByRole('switch', { name: /Trading/ }));
+    await user.click(await findFeatureSwitch('trading'));
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
@@ -60,7 +61,7 @@ describe('NavFeatureSettings', () => {
     await updateLocalUserSettings({ enabled_nav_features: ['budgets', 'trading'] });
     renderSettings();
 
-    await user.click(await screen.findByRole('switch', { name: /Trading/ }));
+    await user.click(await findFeatureSwitch('trading'));
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
