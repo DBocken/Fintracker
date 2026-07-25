@@ -58,7 +58,7 @@ beforeEach(async () => {
 });
 
 describe('getWaterfallPlan — Gating der Steuer-Stufe', () => {
-  it('[REGRESSION] sollte ohne business_mode KEINE Steuer-Stufe emittieren (Default)', async () => {
+  it('[REGRESSION] sollte ohne gewählten EÜR-Bereich KEINE Steuer-Stufe emittieren (Default)', async () => {
     await seedBusinessIncome();
 
     const plan = await getWaterfallPlan(undefined, REFERENCE);
@@ -68,7 +68,7 @@ describe('getWaterfallPlan — Gating der Steuer-Stufe', () => {
 
   it('sollte im Business-Modus Median-Betriebseinnahmen × Rücklage-% dotieren', async () => {
     await seedBusinessIncome();
-    await updateLocalUserSettings({ business_mode: true, tax_reserve_percent: 30 });
+    await updateLocalUserSettings({ enabled_nav_features: ['euer'], tax_reserve_percent: 30 });
 
     const plan = await getWaterfallPlan(undefined, REFERENCE);
 
@@ -80,7 +80,7 @@ describe('getWaterfallPlan — Gating der Steuer-Stufe', () => {
 
   it('sollte bei Prozent 0 keine Stufe emittieren (Feature aus)', async () => {
     await seedBusinessIncome();
-    await updateLocalUserSettings({ business_mode: true, tax_reserve_percent: 0 });
+    await updateLocalUserSettings({ enabled_nav_features: ['euer'], tax_reserve_percent: 0 });
 
     const plan = await getWaterfallPlan(undefined, REFERENCE);
 
@@ -88,7 +88,7 @@ describe('getWaterfallPlan — Gating der Steuer-Stufe', () => {
   });
 
   it('sollte ohne Betriebseinnahmen keine Stufe emittieren', async () => {
-    await updateLocalUserSettings({ business_mode: true, tax_reserve_percent: 30 });
+    await updateLocalUserSettings({ enabled_nav_features: ['euer'], tax_reserve_percent: 30 });
     // Nur private Einnahmen (kein Geschäftskonto, keine EÜR-Markierung).
     await saveTransactions([tx({ account_id: 'priv', date: '2025-05-10', amount: 2000 })]);
 

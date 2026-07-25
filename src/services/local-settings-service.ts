@@ -12,6 +12,7 @@ import type { Category, UserSettings } from "../types";
 import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
 import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
+import { NAV_FEATURE_PATHS, type NavFeatureId } from "@/lib/life-situations";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 import { t } from "../i18n/serviceT";
@@ -645,8 +646,33 @@ export function buildDefaultLocalSettings(): UserSettings {
       active: ["savings_rate", "average_daily_expenses"],
     },
     tax_reserve_percent: 30,
-    business_mode: false,
   };
+}
+
+/**
+ * Einmalige Migration des abgelösten `business_mode`-Flags in die
+ * Bereichsauswahl (`enabled_nav_features`).
+ *
+ * Der Einzelunternehmer-Modus lief früher über ein eigenes Flag; heute leitet
+ * er sich aus dem Bereich `euer` ab. Ein Bestandsnutzer mit aktivem Modus
+ * verlöre ohne diesen Schritt nicht nur die EÜR in der Navigation, sondern
+ * auch die Steuer-Stufe im Liquiditäts-Wasserfall.
+ *
+ * Er hatte nie eine Bereichsauswahl getroffen, sah also alles — deshalb wird
+ * die volle Liste gesetzt und nicht nur `euer`. Eine bereits getroffene
+ * Auswahl bleibt unangetastet.
+ *
+ * Gibt `null` zurück, wenn nichts zu migrieren war.
+ */
+function migrateLegacyBusinessMode(settings: UserSettings): UserSettings | null {
+  if (settings.business_mode === undefined) return null;
+
+  const { business_mode: legacy, ...rest } = settings;
+  const migrated: UserSettings = { ...rest };
+  if (legacy === true && rest.enabled_nav_features == null) {
+    migrated.enabled_nav_features = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
+  }
+  return migrated;
 }
 
 export async function getLocalUserSettings(): Promise<UserSettings> {
@@ -655,7 +681,13 @@ export async function getLocalUserSettings(): Promise<UserSettings> {
 
   const stored = await localEncryption.loadAndMaybeDecrypt<UserSettings>(LOCAL_SETTINGS_KEY);
   if (stored && typeof stored === "object") {
-    return { ...buildDefaultLocalSettings(), ...stored, user_id: LOCAL_USER_ID };
+    const merged = { ...buildDefaultLocalSettings(), ...stored, user_id: LOCAL_USER_ID };
+    const migrated = migrateLegacyBusinessMode(merged);
+    if (migrated) {
+      await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, migrated);
+      return migrated;
+    }
+    return merged;
   }
 
   const defaults = buildDefaultLocalSettings();

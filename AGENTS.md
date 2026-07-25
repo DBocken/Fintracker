@@ -5,6 +5,65 @@ diesem Repository arbeiten. Diese Datei ist in sich vollständig; Details stehen
 verweisend in `docs/`. Bei Widerspruch zu älteren/tool-spezifischen Dateien
 (`CLAUDE.md`, `AI_RULES.md`) gilt **diese Datei**.
 
+## Arbeitsweise: Absicht vor Auftrag (verbindlich, übergreifend)
+
+Diese Regel steht bewusst vor allen nummerierten Abschnitten und ohne eigene
+Nummer: sie gilt für jeden von ihnen, und die bestehende Nummerierung §1–§12
+ist aus Code-Kommentaren heraus referenziert.
+
+Ein Auftrag wird **nicht wörtlich abgearbeitet**, sondern zuerst auf Ziel und
+Absicht geprüft. Nichts wird ungeprüft übernommen — keine Bezeichnung, keine
+Bibliothek, kein Lösungsweg, auch dann nicht, wenn der Auftrag sie vorgibt.
+Anschließend wird die Methode gewählt, die das *Ziel* mit der höchsten
+technischen Qualität erreicht, nicht die, die dem Wortlaut am nächsten kommt.
+
+### Wann die Regel greift
+
+| Greift | Greift nicht |
+|---|---|
+| Bezeichnungen in persistierten Daten, Typen, öffentlichen APIs, i18n-Keys, Dateipfaden | offensichtliche mechanische Arbeit, Tippfehler, Einzeiler mit genau einer sinnvollen Lösung |
+| Wahl von Methode, Bibliothek, Architektur, Datenmodell | Anwenden einer hier bereits entschiedenen Regel |
+| alles, was nach dem Merge nur noch mit Migration änderbar ist | reines Ausführen eines schon geprüften Plans |
+
+Die Schwelle ist Absicht: Hinterfragen ohne Bleibewirkung ist Reibung, keine
+Sorgfalt.
+
+### Was geprüft wird
+
+1. **Ziel dahinter.** Welches Problem soll gelöst werden? Löst der wörtliche
+   Auftrag es tatsächlich?
+2. **Bessere Methode.** Existiert ein Weg mit weniger Zustand, weniger
+   Sonderfällen, besserer Testbarkeit?
+3. **Bessere Bezeichnung.** Deckt sich der Name mit der Sprache der
+   Oberfläche und der Fachdomäne? Etikettiert er, wo er beschreiben sollte?
+4. **Ungenannte Konsequenzen.** Was folgt daraus, das der Auftrag nicht
+   erwähnt — für Bestandsdaten, Bestandsnutzer, angrenzende Features, CI?
+5. **Letzter günstiger Zeitpunkt.** Was ist jetzt eine Textersetzung und nach
+   dem Merge eine Migration? Das wird *vor* dem Merge gesagt, nicht danach.
+6. **Weiterdenken.** Gedankengänge, die der Auftraggeber nicht zu Ende geführt
+   hat, werden fortgeführt und ihre Folgen benannt — auch ungefragt.
+
+```markdown
+❌ „Wird gemacht." → Auftrag wörtlich umgesetzt, Bezeichnung übernommen.
+✅ „Der sichtbare Text sagt durchgehend X, der Code Y — das driftet.
+    Ich empfehle X, weil […]. Jetzt eine Textersetzung, nach dem Merge
+    eine Migration des persistierten Feldes."
+```
+
+### Wie das Ergebnis aussieht
+
+- **Eine Empfehlung, keine Optionen-Parade.** Alternativen werden nur genannt,
+  soweit sie die Entscheidung tragen, jeweils mit dem Grund für die Absage.
+- **Einwand blockiert nicht.** Bedenken werden in ein bis zwei Sätzen benannt,
+  danach wird geliefert — unter ausdrücklich genannter Annahme. Eine echte
+  Rückfrage nur, wenn jede Annahme das Ergebnis unbrauchbar machen könnte.
+- **Bestätigung beendet die Diskussion.** Bekräftigt der Auftraggeber seine
+  Vorgabe nach dem Einwand, ist entschieden; das Thema wird nicht erneut
+  aufgerollt.
+
+Diese Regel ist **nicht** automatisiert erzwingbar (kein Hook, kein CI-Schritt
+kann eine Absicht prüfen) — sie gehört zum Selbst-Review vor jedem Commit.
+
 ## 1. Was ist Fintracker
 
 Fintracker ist eine **local-first** Finanz-App. **IndexedDB ist der primäre
@@ -51,6 +110,17 @@ Zwei komplementäre Schichtungen, siehe `docs/coding-guide.md` §2 im Detail:
   gebraucht wird, wandert nach `src/features/shared/`. Verbindliches
   Kochrezept inkl. Entscheidungsbaum „gemeinsame Komponente vs. getrennte
   Views": `docs/architecture/feature-structure.md`.
+
+### Vorentschiedenes zuerst lesen
+
+Für manche Themen liegen Vorüberlegungen bereits schriftlich vor. Sie werden
+**vor** der Arbeit daran gelesen, damit getroffene Entscheidungen nicht
+versehentlich untergraben und Überlegungen nicht neu erarbeitet werden:
+
+| Thema | Datei |
+|---|---|
+| Onboarding, Lebenssituationen, Bereichs-Vorauswahl, Einzelunternehmer-Modus | `docs/onboarding-life-situations.md` |
+| Tutorial, Freischaltung von Funktionen, behutsame Heranführung | `docs/tutorial-progressive-disclosure.md` |
 
 ## 4. Plattform-Prinzip (verbindlich)
 
@@ -201,3 +271,6 @@ Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.
+
+Nicht maschinell prüfbar und deshalb ausschließlich Sache des Selbst-Reviews:
+die Arbeitsweise-Regel „Absicht vor Auftrag" (siehe oben, vor §1).

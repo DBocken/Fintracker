@@ -1,3 +1,5 @@
+import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
+
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 
 export interface Account {
@@ -228,8 +230,25 @@ export interface UserSettings {
   gentle_mode?: boolean;
   /** Empfohlener Steuer-Rücklage-Prozentsatz für Creator-/Selbstständigen-Einnahmen (0 = aus). */
   tax_reserve_percent?: number;
-  /** Einzelunternehmer-Modus (Opt-in): schaltet EÜR-Seite, Steuer-Tank & Waterfall-Stufe frei. */
+  /**
+   * @deprecated Abgelöst: der Einzelunternehmer-Modus leitet sich heute aus dem
+   * Bereich `euer` in {@link UserSettings.enabled_nav_features} ab
+   * (`isBusinessModeEnabled`). Das Feld existiert nur noch, damit die einmalige
+   * Migration in `local-settings-service` Altbestände lesen und räumen kann —
+   * es wird nirgends mehr geschrieben.
+   */
   business_mode?: boolean;
+  /** Im Onboarding gewählte Lebenssituation. Dient nur der Vorauswahl. */
+  onboarding_life_situation?: LifeSituationId | null;
+  /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/life-situations`). */
+  onboarding_modifiers?: ModifierId[];
+  /**
+   * Sichtbare Nav-Bereiche. Bewusst die *bestätigte Nutzerauswahl* und nicht
+   * der Lebenssituation selbst: nur so überschreibt ein späterer Wechsel der Lebenssituation
+   * keine manuell getroffenen Entscheidungen. `null`/undefined = Onboarding
+   * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
+   */
+  enabled_nav_features?: NavFeatureId[] | null;
 }
 
 /**

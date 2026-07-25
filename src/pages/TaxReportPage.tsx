@@ -6,7 +6,7 @@ import EmptyState from '@/components/common/EmptyState';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getTaxYearProfile } from '@/services/tax-profile-service';
-import { getUserSettings } from '@/services/user-settings-service';
+import { useBusinessMode } from '@/hooks/useBusinessMode';
 import { buildTaxYearReport, hasEuerMarkings } from '@/lib/tax-report';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import { TaxYearPicker } from '@/components/tax/TaxYearPicker';
@@ -53,10 +53,10 @@ export default function TaxReportPage() {
     queryFn: () => getTaxYearProfile(year),
   });
 
-  const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
-  // Pointer zur EÜR: im Business-Modus immer; sonst nur, wenn Bestandsdaten
+  const businessMode = useBusinessMode();
+  // Pointer zur EÜR: im Einzelunternehmer-Modus immer; sonst nur, wenn Bestandsdaten
   // existieren — die Entkopplung darf markierte Buchungen nie unsichtbar machen.
-  const showEuerPointer = Boolean(settings?.business_mode) || hasEuerMarkings(transactions);
+  const showEuerPointer = businessMode || hasEuerMarkings(transactions);
 
   const report = useMemo(
     () => buildTaxYearReport(transactions, year, profile),

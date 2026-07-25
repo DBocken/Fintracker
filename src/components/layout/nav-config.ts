@@ -22,6 +22,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
+import { isNavPathVisible, type NavFeatureId } from "@/lib/life-situations";
 
 export type NavItem = {
   label: string;
@@ -35,8 +36,6 @@ export type NavItem = {
   subtitle?: string;
   /** i18n-Key für den Untertitel; `subtitle` dient als Fallback (DE). */
   subtitleKey?: string;
-  /** Nur im Einzelunternehmer-Modus sichtbar (Route bleibt immer registriert). */
-  businessOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -120,7 +119,6 @@ export const NAV_GROUPS: NavGroup[] = [
         labelKey: "nav.items.euer",
         path: "/euer",
         icon: Briefcase,
-        businessOnly: true,
         subtitle: "Einnahmen − Ausgaben = Gewinn",
         subtitleKey: "nav.subtitles.euer",
       },
@@ -192,15 +190,24 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
 };
 
 /**
- * Liefert die sichtbaren Nav-Gruppen. `businessOnly`-Ziele (EÜR) erscheinen nur
- * im Einzelunternehmer-Modus („Ruhe vor Fülle" — Opt-in); ihre Routen bleiben
- * trotzdem immer registriert (Deep-Links, Bestandsdaten).
+ * Liefert die sichtbaren Nav-Gruppen anhand der im Onboarding getroffenen
+ * Bereichsauswahl (`@/lib/life-situations`).
+ *
+ * `null`/`undefined` heißt „keine Auswahl getroffen" und zeigt alles bis auf
+ * die Opt-in-Bereiche (`DEFAULT_OFF_FEATURES`, aktuell die EÜR) —
+ * Bestandsnutzer verlieren durch das Onboarding nichts und bekommen zugleich
+ * nichts ungefragt dazu.
+ *
+ * Betrifft ausschließlich die **Anzeige**: die Routen bleiben immer
+ * registriert (Deep-Links, Coach-Verlinkungen, Bestandsdaten), und jeder
+ * Bereich lässt sich in den Einstellungen wieder einschalten.
  */
-export function getVisibleNavGroups(businessMode: boolean): NavGroup[] {
-  if (businessMode) return NAV_GROUPS;
+export function getVisibleNavGroups(
+  enabledFeatures?: readonly NavFeatureId[] | null,
+): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.businessOnly),
+    items: group.items.filter((item) => isNavPathVisible(item.path, enabledFeatures)),
   })).filter((group) => group.items.length > 0);
 }
 

@@ -16,6 +16,81 @@ export const DEFAULT_LOCALE: Locale = 'de';
 
 export const translations = {
   de: {
+    onboarding: {
+      title: 'Welche Situation beschreibt dich am ehesten?',
+      subtitle: 'Wir blenden dann nur die Bereiche ein, die dazu passen. Ändern kannst du das jederzeit.',
+      modifiersTitle: 'Trifft davon etwas zu?',
+      modifiersHint: 'Mehrfachauswahl. Jeder Punkt schaltet zusätzliche Bereiche frei.',
+      featuresTitle: 'Das schlagen wir dir vor',
+      featuresHint: 'Alles einzeln an- und abwählbar. Abgewählte Bereiche sind nur ausgeblendet, nicht gesperrt.',
+      coreTitle: 'Immer dabei',
+      coreHint: 'Diese Bereiche bleiben in jeder Situation sichtbar.',
+      selectedCount: '{count} von {total} Bereichen aktiv',
+      back: 'Zurück',
+      next: 'Weiter',
+      finish: "Los geht's",
+      skip: 'Später entscheiden',
+      saveError: 'Auswahl konnte nicht gespeichert werden.',
+      manage: {
+        title: 'Bereiche & Navigation',
+        description: 'Welche Bereiche in der Navigation erscheinen. Ausgeblendetes bleibt über Links und Lesezeichen erreichbar.',
+        restart: 'Situation neu wählen',
+        showAll: 'Alle Bereiche anzeigen',
+        current: 'Gewählte Situation — {situation}',
+        none: 'Keine Situation gewählt — es ist alles sichtbar.',
+      },
+      lifeSituations: {
+        student_school: {
+          label: 'Schüler:in oder Azubi',
+          description: 'Taschengeld, Nebenjob oder Ausbildungsvergütung — Überblick behalten und auf etwas sparen.',
+        },
+        student_university: {
+          label: 'Studium',
+          description: 'BAföG, Werkstudentenjob, Eltern — unregelmäßige Einnahmen und Ausgaben in Blöcken.',
+        },
+        career_starter: {
+          label: 'Berufseinstieg',
+          description: 'Erstes volles Gehalt, erste eigene Wohnung, erste Steuererklärung.',
+        },
+        employed_stable: {
+          label: 'Angestellt, Haushalt läuft',
+          description: 'Fixkosten im Griff — jetzt geht es ums Optimieren und Vermögen aufbauen.',
+        },
+        family: {
+          label: 'Familie mit Kindern',
+          description: 'Geteilte Haushaltskasse und große unregelmäßige Ausgaben wie Urlaub oder Einschulung.',
+        },
+        single_parent: {
+          label: 'Alleinerziehend',
+          description: 'Ein Einkommen trägt alles, Unterhalt läuft rein und raus, der Puffer muss sitzen.',
+        },
+        self_employed: {
+          label: 'Selbstständig oder freiberuflich',
+          description: 'Schwankende Umsätze und eine Steuer, die nachgelagert und groß kommt.',
+        },
+        creator: {
+          label: 'Creator oder Influencer',
+          description: 'Plattform-Auszahlungen aus vielen Quellen, Sachbezüge und Equipment als Investition.',
+        },
+        retired: {
+          label: 'Ruhestand',
+          description: 'Feste Bezüge, Vermögen wird entnommen statt aufgebaut.',
+        },
+        debt_focus: {
+          label: 'Schulden abbauen',
+          description: 'Es ist gerade knapp: bis zum Monatsende kommen, Raten sortieren, Kosten senken.',
+        },
+      },
+      modifiers: {
+        repaying_debt: { label: 'Ich zahle Kredite oder Schulden ab' },
+        children: { label: 'Kinder im Haushalt' },
+        investing: { label: 'Ich lege Geld an' },
+        irregular_income: { label: 'Meine Einnahmen schwanken' },
+        commute: { label: 'Ich pendle oder arbeite im Homeoffice' },
+        side_business: { label: 'Ich habe Nebeneinkünfte oder ein Kleingewerbe' },
+        property: { label: 'Ich besitze oder vermiete eine Immobilie' },
+      },
+    },
     schemaBoundary: {
       rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
     },
@@ -3785,6 +3860,81 @@ export const translations = {
     },
   },
   en: {
+    onboarding: {
+      title: 'Which situation describes you best?',
+      subtitle: 'We will only show the areas that fit. You can change this at any time.',
+      modifiersTitle: 'Does any of this apply?',
+      modifiersHint: 'Pick as many as you like. Each one unlocks additional areas.',
+      featuresTitle: 'Here is what we suggest',
+      featuresHint: 'Every area can be switched on or off. Areas you turn off are only hidden, never locked.',
+      coreTitle: 'Always included',
+      coreHint: 'These areas stay visible in every situation.',
+      selectedCount: '{count} of {total} areas active',
+      back: 'Back',
+      next: 'Continue',
+      finish: "Let's go",
+      skip: 'Decide later',
+      saveError: 'Your selection could not be saved.',
+      manage: {
+        title: 'Areas & navigation',
+        description: 'Choose which areas appear in the navigation. Hidden areas stay reachable via links and bookmarks.',
+        restart: 'Choose situation again',
+        showAll: 'Show all areas',
+        current: 'Selected situation — {situation}',
+        none: 'No situation selected — everything is visible.',
+      },
+      lifeSituations: {
+        student_school: {
+          label: 'Pupil or apprentice',
+          description: 'Pocket money, a side job or apprentice pay — keep an overview and save up for something.',
+        },
+        student_university: {
+          label: 'Studying',
+          description: 'Grants, a working-student job, parents — irregular income and expenses that come in blocks.',
+        },
+        career_starter: {
+          label: 'Starting a career',
+          description: 'First full salary, first place of your own, first tax return.',
+        },
+        employed_stable: {
+          label: 'Employed, household runs',
+          description: 'Fixed costs under control — now it is about optimising and building wealth.',
+        },
+        family: {
+          label: 'Family with children',
+          description: 'A shared household budget and big irregular costs like holidays or the start of school.',
+        },
+        single_parent: {
+          label: 'Single parent',
+          description: 'One income carries everything, maintenance comes and goes, the buffer has to hold.',
+        },
+        self_employed: {
+          label: 'Self-employed or freelance',
+          description: 'Revenue fluctuates and the tax bill arrives late and large.',
+        },
+        creator: {
+          label: 'Creator or influencer',
+          description: 'Platform payouts from many sources, payments in kind, equipment as an investment.',
+        },
+        retired: {
+          label: 'Retired',
+          description: 'Fixed income, wealth is drawn down rather than built up.',
+        },
+        debt_focus: {
+          label: 'Paying off debt',
+          description: 'Money is tight: make it to the end of the month, sort out instalments, cut costs.',
+        },
+      },
+      modifiers: {
+        repaying_debt: { label: 'I am repaying loans or debt' },
+        children: { label: 'Children in the household' },
+        investing: { label: 'I invest money' },
+        irregular_income: { label: 'My income fluctuates' },
+        commute: { label: 'I commute or work from home' },
+        side_business: { label: 'I have side income or a small business' },
+        property: { label: 'I own or rent out property' },
+      },
+    },
     schemaBoundary: {
       rejected: 'Invalid data at the "{resource}" boundary was rejected.',
     },
@@ -7554,6 +7704,81 @@ export const translations = {
     },
   },
   tlh: {
+    onboarding: {
+      title: "nuq ghaH SoH'e'?",
+      subtitle: 'sengmey potlh neH DaleghlaH. reH DacherlaH.',
+      modifiersTitle: "chIch DaSov'a'?",
+      modifiersHint: "law' DawIvlaH. Hoch wIv sengmey chu' poSmoH.",
+      featuresTitle: 'maH wIchup',
+      featuresHint: "Hoch Dachu'laH joq Dachu'Ha'laH. wIvHa'bogh sengmey So' neH, ngaSbe'.",
+      coreTitle: "reH tu'lu'",
+      coreHint: "reH leghlu' sengmeyvam.",
+      selectedCount: '{count} / {total} sengmey vum',
+      back: 'chegh',
+      next: 'ruch',
+      finish: 'ghoS!',
+      skip: 'tugh wIv',
+      saveError: "wIv pollu'be'.",
+      manage: {
+        title: 'sengmey nav je',
+        description: "nuq legh nav. So'bogh sengmey reH chelaH.",
+        restart: "wIv chu'",
+        showAll: "Hoch sengmey cha'",
+        current: 'wIvbogh — {situation}',
+        none: "wIvbe'lu' — Hoch leghlu'.",
+      },
+      lifeSituations: {
+        student_school: {
+          label: "ghojwI' mach",
+          description: "Huch mach 'ej vum mach: Huch legh, Huch qem.",
+        },
+        student_university: {
+          label: "ghojwI' tIn",
+          description: "Huch ghoStaH pIm 'ej Huch lIj tIn.",
+        },
+        career_starter: {
+          label: 'vum tagh',
+          description: "Huch tIn wa'DIch, juH wa'DIch, ta wa'DIch.",
+        },
+        employed_stable: {
+          label: "vumwI' Sov",
+          description: "Huch SeH: DaH Huch tay' chenmoH.",
+        },
+        family: {
+          label: "qorDu'",
+          description: "Huch tay' 'ej Huch lIj tIn: lengmey, ghojmoHwI' pa'.",
+        },
+        single_parent: {
+          label: 'SoS joq vav mob',
+          description: "wa' Huch ghoStaH neH. Huch pup nISlu'.",
+        },
+        self_employed: {
+          label: "vumwI' mob",
+          description: "Huch pIm 'ej ta tIn tugh ghoS.",
+        },
+        creator: {
+          label: "chenmoHwI'",
+          description: "Huch ghoStaH law' 'ej jan Huch.",
+        },
+        retired: {
+          label: 'leS',
+          description: "Huch nItebHa': Huch tay' natlh, chenmoHbe'.",
+        },
+        debt_focus: {
+          label: 'DIlnISghachmey Sang',
+          description: "Huch puS: jar rInDI' Huch tu'. DIlnISghachmey SeH.",
+        },
+      },
+      modifiers: {
+        repaying_debt: { label: 'DIlnISghachmey vIDIl' },
+        children: { label: "puqpu' tu'lu'" },
+        investing: { label: "Huch vIje'" },
+        irregular_income: { label: 'Huch ghoStaH pIm' },
+        commute: { label: 'vIleng joq juHDaq vIvum' },
+        side_business: { label: "Huch chu' mach vIghaj" },
+        property: { label: 'juH vIghaj' },
+      },
+    },
     schemaBoundary: {
       rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
     },
@@ -11264,6 +11489,81 @@ export const translations = {
     },
   },
   ru: {
+    onboarding: {
+      title: 'Какая ситуация описывает вас лучше всего?',
+      subtitle: 'Мы покажем только подходящие разделы. Изменить можно в любой момент.',
+      modifiersTitle: 'Что-то из этого вам подходит?',
+      modifiersHint: 'Можно выбрать несколько. Каждый пункт открывает дополнительные разделы.',
+      featuresTitle: 'Вот что мы предлагаем',
+      featuresHint: 'Каждый раздел можно включить или выключить. Выключенные разделы только скрыты, а не заблокированы.',
+      coreTitle: 'Всегда доступно',
+      coreHint: 'Эти разделы остаются видимыми в любой ситуации.',
+      selectedCount: 'Активно {count} из {total} разделов',
+      back: 'Назад',
+      next: 'Далее',
+      finish: 'Поехали',
+      skip: 'Решить позже',
+      saveError: 'Не удалось сохранить выбор.',
+      manage: {
+        title: 'Разделы и навигация',
+        description: 'Выберите, какие разделы отображаются в навигации. Скрытые разделы остаются доступны по ссылкам и закладкам.',
+        restart: 'Выбрать ситуацию заново',
+        showAll: 'Показать все разделы',
+        current: 'Выбранная ситуация — {situation}',
+        none: 'Ситуация не выбрана — видно всё.',
+      },
+      lifeSituations: {
+        student_school: {
+          label: 'Школьник или ученик',
+          description: 'Карманные деньги, подработка или стипендия — видеть картину и копить на цель.',
+        },
+        student_university: {
+          label: 'Учёба',
+          description: 'Стипендия, подработка, помощь родителей — нерегулярный доход и расходы крупными блоками.',
+        },
+        career_starter: {
+          label: 'Начало карьеры',
+          description: 'Первая полная зарплата, первое своё жильё, первая налоговая декларация.',
+        },
+        employed_stable: {
+          label: 'Работа по найму, быт налажен',
+          description: 'Постоянные расходы под контролем — теперь речь об оптимизации и накоплении.',
+        },
+        family: {
+          label: 'Семья с детьми',
+          description: 'Общий бюджет и крупные нерегулярные траты: отпуск, школа, техника.',
+        },
+        single_parent: {
+          label: 'Родитель-одиночка',
+          description: 'Всё держится на одном доходе, алименты приходят и уходят, запас должен быть надёжным.',
+        },
+        self_employed: {
+          label: 'Самозанятость или фриланс',
+          description: 'Доход колеблется, а налог приходит позже и крупной суммой.',
+        },
+        creator: {
+          label: 'Автор или блогер',
+          description: 'Выплаты платформ из многих источников, бартер, оборудование как инвестиция.',
+        },
+        retired: {
+          label: 'Пенсия',
+          description: 'Фиксированные выплаты, капитал расходуется, а не накапливается.',
+        },
+        debt_focus: {
+          label: 'Погашение долгов',
+          description: 'Сейчас туго: дожить до конца месяца, разобраться с платежами, снизить расходы.',
+        },
+      },
+      modifiers: {
+        repaying_debt: { label: 'Я выплачиваю кредиты или долги' },
+        children: { label: 'Дети в семье' },
+        investing: { label: 'Я инвестирую' },
+        irregular_income: { label: 'Мой доход нестабилен' },
+        commute: { label: 'Я езжу на работу или работаю из дома' },
+        side_business: { label: 'У меня есть подработка или своё небольшое дело' },
+        property: { label: 'У меня есть недвижимость или я её сдаю' },
+      },
+    },
     schemaBoundary: {
       rejected: 'Недопустимые данные на границе «{resource}» отклонены.',
     },

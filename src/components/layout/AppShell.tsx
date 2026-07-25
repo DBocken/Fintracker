@@ -4,6 +4,7 @@ import SideNav from "@/components/layout/SideNav";
 import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
+import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
@@ -37,6 +38,7 @@ export default function AppShell() {
     // (Sidebar, Header, Bottom-Nav) unberührt.
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <CommandPalette />
+      <OnboardingDialog />
       <div className="flex min-h-screen">
         {/* h-[100dvh] statt h-screen (100vh): An die *sichtbare* Viewport-Höhe
             koppeln, damit die ein-/ausblendende Browser-Leiste (Adressleiste/

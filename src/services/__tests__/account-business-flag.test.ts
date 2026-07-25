@@ -5,6 +5,7 @@ import { buildDefaultLocalSettings } from '../local-settings-service';
 import { saveTransactions, updateTransaction, getTransactions } from '../transaction-service';
 import { transactionStorage } from '../transaction-storage-service';
 import type { Transaction } from '../../types';
+import { isBusinessModeEnabled } from '@/lib/life-situations';
 
 beforeEach(async () => {
   localStorage.setItem('ausgabentracker_locale_v1', 'de');
@@ -37,9 +38,11 @@ describe('Geschäftskonto-Flag (Account.is_business)', () => {
   });
 });
 
-describe('business_mode Setting (Opt-in)', () => {
+describe('Einzelunternehmer-Modus (Opt-in)', () => {
   it('sollte standardmäßig deaktiviert sein („Ruhe vor Fülle": EÜR-Modus ist Opt-in)', () => {
-    expect(buildDefaultLocalSettings().business_mode).toBe(false);
+    // Abgeleitet aus der Bereichsauswahl statt aus einem eigenen Flag —
+    // ohne getroffene Auswahl bleibt die EÜR als Opt-in-Bereich verborgen.
+    expect(isBusinessModeEnabled(buildDefaultLocalSettings().enabled_nav_features)).toBe(false);
   });
 });
 
