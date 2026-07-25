@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
+import { SUPPORTED_LOCALES } from '@/i18n/translations';
 import { WordingSettings } from '../WordingSettings';
 
 /**
@@ -41,13 +42,26 @@ describe('WordingSettings', () => {
     expect(screen.getByText('Liquidität')).toBeInTheDocument();
   });
 
-  it('sollte fuer Locales ohne Overlay den Schalter sperren und das sagen', () => {
-    // `ru` hat kein Alltagssprache-Overlay — ein aktiver Schalter waere eine
-    // leere Zusage.
-    renderWithI18n(<WordingSettings />, 'ru');
-    expect(
-      screen.getByText('Для этого языка пока доступен только профессиональный стиль.'),
-    ).toBeInTheDocument();
+  it.each(SUPPORTED_LOCALES)('sollte den Schalter in %s anbieten', (locale) => {
+    // Seit jede unterstuetzte Sprache ein Overlay hat, ist der Schalter
+    // ueberall nutzbar. Das ist die Oberflaechen-Seite von
+    // `overlay-coverage.test.ts`: dort wird geprueft, DASS ein Overlay
+    // existiert, hier, dass die Nutzerin es auch einschalten kann.
+    renderWithI18n(<WordingSettings />, locale);
+    expect(screen.getByRole('combobox')).not.toBeDisabled();
+  });
+
+  it('sollte fuer Locales ohne Overlay den Schalter sperren', () => {
+    // Subjekt war frueher `ru`. Seit Russisch ein vollstaendiges Overlay hat,
+    // uebernimmt `tlh` die Rolle: bekannte Locale aus `INACTIVE_LOCALES`, die
+    // absichtlich keine Alltagssprache bekommt. Ein aktiver Schalter waere
+    // dort eine leere Zusage.
+    //
+    // Geprueft wird nur der gesperrte Schalter, nicht der Hinweistext:
+    // `tlh` ist nicht paritaetspflichtig, der Text existiert dort also gar
+    // nicht — eine Assertion darauf wuerde die Fallback-Kette testen statt
+    // das Verhalten.
+    renderWithI18n(<WordingSettings />, 'tlh');
     expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });

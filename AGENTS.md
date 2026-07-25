@@ -186,6 +186,16 @@ Abweichungen. Aufgelöst wird das in `t()` — Aufrufstellen ändern sich nie.
 Fehlt ein Overlay-Eintrag, greift der Basistext. Details und Formulierungsregeln:
 `src/i18n/wording.ts` und der Kopf von `overlays/everyday/de.ts`.
 
+**Jede Sprache in `SUPPORTED_LOCALES` braucht ein Overlay.** Der Sprachstil ist
+ein Barrierefreiheits-Versprechen; eine Sprache ohne Overlay sieht nur die
+Fachsprache und hat einen toten Schalter in den Einstellungen — ohne dass
+irgendetwas rot wird, denn `overlayFor()` liefert dann still `undefined`.
+Erzwungen durch `src/i18n/__tests__/overlay-coverage.test.ts` (Existenz **und**
+Mindestumfang, damit ein Feigenblatt-Overlay nicht durchgeht). Der Basisbaum ist
+je Sprache eigenständig zu beurteilen: „Fixed costs" ist im Englischen bereits
+Alltagssprache und braucht keinen Eintrag, „буфер" im Russischen dagegen ein
+technisches Lehnwort — deshalb steht dort „запас", wo Deutsch „Puffer" behält.
+
 ```typescript
 // ❌ NICHT ERLAUBT:            // ✅ ERFORDERLICH:
 <h1>Meine Überschrift</h1>      const { t } = useI18n();
