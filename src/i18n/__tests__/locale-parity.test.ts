@@ -131,3 +131,50 @@ describe('Doppelte Namespaces', () => {
     expect(duplicates).toEqual([]);
   });
 });
+
+describe('Platzhalter-Parität zwischen den Sprachen', () => {
+  /** Menge der `{platzhalter}` eines Strings. */
+  function placeholders(value: string): string[] {
+    return [...value.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+  }
+
+  /**
+   * Geprüft wird die Richtung, die tatsächlich kaputtgeht: eine Übersetzung darf
+   * KEINEN Platzhalter enthalten, den der deutsche Basistext nicht kennt.
+   * Die Aufrufstelle ersetzt nur die Platzhalter, die sie kennt — ein
+   * zusätzlicher `{plural}` stünde wörtlich auf dem Bildschirm.
+   *
+   * Die Gegenrichtung ist ausdrücklich ERLAUBT: eine Sprache darf einen
+   * Platzhalter weglassen, wenn der Satzbau ihn nicht braucht. `ru` macht das
+   * bei `accounts.manager.expiredConsentAlert` zu Recht — Russisch hat drei
+   * Pluralformen, ein angehängtes Suffix wie das deutsche „{plural}" → „en"
+   * funktioniert dort nicht, also formuliert die Übersetzung „Для счетов
+   * ({count})". Das `.replace('{plural}', …)` läuft dann ins Leere, was
+   * folgenlos ist. Würde dieser Test Gleichheit verlangen, erzwänge er
+   * schlechtes Russisch.
+   *
+   * Bisher prüfte diese Richtung NIEMAND: `wording-overlay-parity.test.ts`
+   * vergleicht nur Overlay gegen Basis, nicht die Sprachen untereinander.
+   */
+  it('[REGRESSION] sollte keine Platzhalter erfinden, die der Basistext nicht kennt', () => {
+    const reference = leafKeys(translations[DEFAULT_LOCALE]);
+    const strays: string[] = [];
+
+    for (const key of reference) {
+      const base = resolve(DEFAULT_LOCALE, key);
+      if (typeof base !== 'string') continue;
+      const known = new Set(placeholders(base));
+
+      for (const locale of SUPPORTED_LOCALES) {
+        if (locale === DEFAULT_LOCALE) continue;
+        const value = resolve(locale, key);
+        if (typeof value !== 'string') continue; // fehlende Keys meldet der Test oben
+        for (const name of placeholders(value)) {
+          if (!known.has(name)) strays.push(`${key} @ ${locale}: unbekanntes {${name}}`);
+        }
+      }
+    }
+
+    expect(strays).toEqual([]);
+  });
+});

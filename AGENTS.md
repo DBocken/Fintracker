@@ -93,6 +93,7 @@ verwenden**.
 | `pnpm test:privacy` | Privacy-Tests (`[PRIVACY]`) |
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
 | `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings im Diff auftauchen — läuft in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
+| `pnpm check:i18n-module-consts` | Findet `t()`-Aufrufe im Initializer einer Modul-`const` — die frieren beim Import ein und ignorieren jeden späteren Sprachwechsel. Ganzbaumig über die TypeScript-AST, läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
@@ -190,6 +191,29 @@ Fehlt ein Overlay-Eintrag, greift der Basistext. Details und Formulierungsregeln
 <h1>Meine Überschrift</h1>      const { t } = useI18n();
                                  <h1>{t('myFeature.title')}</h1>
 ```
+
+### Fallen, die hier schon zugeschlagen haben
+
+Alle folgenden Fehler waren **unsichtbar**: kein Test wurde rot, kein Compiler
+hat gemeckert. Sie sind jetzt maschinell abgesichert — die Regeln stehen hier,
+damit klar ist, *warum* der jeweilige Wächter existiert.
+
+| Falle | Was passiert | Wächter |
+|---|---|---|
+| `t()` im Initializer einer **Modul-`const`** | Wird EINMAL beim Import aufgelöst; ein Sprachwechsel wirkt nie wieder. Konstante in eine **Funktion** umwandeln | `pnpm check:i18n-module-consts` (TypeScript-AST, ganzbaumig) |
+| **Doppelter Namespace** in `translations.ts` | Gültiges JavaScript — der spätere gewinnt, der frühere verschwindet lautlos. Im ausgewerteten Objekt ist der Fehler unsichtbar | `tsc` (TS1117) **und** `locale-parity.test.ts` (liest die Quelle) |
+| **Vertippter `t()`-Key** | Rendert den rohen Punkt-String. Die Locale-Parität fängt das NICHT — sie prüft die Bäume gegeneinander, nicht die Aufrufstellen | `call-site-keys.test.ts` |
+| **Erfundener Platzhalter** in einer Übersetzung | Steht wörtlich als `{foo}` auf dem Bildschirm. Umgekehrt darf eine Sprache einen Platzhalter weglassen — Russisch braucht kein `{plural}` | `locale-parity.test.ts` |
+| **Rohe Steuerbytes** im Quelltext | `grep` hält die Datei für binär und überspringt sie in jedem Audit | `pnpm security:secrets` |
+| Matching über den **Anzeigenamen** statt der ID | Bricht bei Umbenennung und in jeder anderen Sprache. Entitäten immer über die stabile ID adressieren | Review; die historischen Ausnahmen in `local-settings-service.ts` sind als solche kommentiert |
+
+Zwei Arbeitsregeln dazu:
+
+- Nach **jeder** Änderung an `translations.ts` sofort `pnpm exec tsc --noEmit` —
+  ein doppelter Namespace fällt sonst erst viel später auf.
+- Tests, die `serviceT`-gestützten Code anfassen, brauchen **keine** eigene
+  Sprachfixierung mehr: `vitest.setup.ts` pinnt `navigator.language` auf `de-DE`.
+  Eine explizit gespeicherte Sprache gewinnt weiterhin.
 
 ## 7. Tech-Stack-Regeln
 

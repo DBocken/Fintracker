@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' })
   .split(/\r?\n/)
   .filter(Boolean)
-  .filter((file) => !/\.(png|jpe?g|gif|webp|woff2?|pptx|pdf)$/i.test(file))
+  // Echte Binaerdateien. `jar|zip|keystore|so|dylib|class` stehen hier wegen der
+  // Steuerbyte-Pruefung unten: android/gradle/wrapper/gradle-wrapper.jar enthaelt
+  // erwartungsgemaess Tausende davon und wuerde den Waechter sonst dauerhaft rot
+  // halten — worauf man ihn irgendwann abschaltet.
+  .filter((file) => !/\.(png|jpe?g|gif|webp|woff2?|pptx|pdf|jar|zip|keystore|so|dylib|class)$/i.test(file))
   .filter((file) => !['pnpm-lock.yaml', 'package-lock.json'].includes(file));
 
 const forbiddenTrackedEnv = files.filter(
@@ -19,9 +23,29 @@ const patterns = [
   ['Supabase service-role JWT', /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/],
 ];
 
+/**
+ * Rohe Steuerzeichen ausserhalb von Tab/LF/CR. Ein einzelnes davon genuegt,
+ * damit `grep` die Datei fuer binaer haelt und sie in JEDEM Audit stillschweigend
+ * ueberspringt — genau so war `src/services/receipt-parser-service.ts` fuer die
+ * i18n-Pruefungen unsichtbar (dort standen `\x00`, `\x1f` und `\x7f` roh in einer
+ * Regex-Zeichenklasse statt als Escape-Sequenz).
+ */
+const CONTROL_BYTES = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
+
 const findings = [];
 for (const file of files) {
   const content = readFileSync(file, 'utf8');
+
+  const control = content.match(CONTROL_BYTES);
+  if (control) {
+    const offset = content.indexOf(control[0]);
+    const line = content.slice(0, offset).split('\n').length;
+    const code = control[0].charCodeAt(0).toString(16).padStart(2, '0');
+    findings.push(
+      `${file}:${line}: raw control byte 0x${code} — use the escape sequence (\\x${code}) instead`,
+    );
+  }
+
   for (const [label, pattern] of patterns) {
     if (!pattern.test(content)) continue;
     // Supabase publishable/anon JWTs are intentionally public. Only flag JWTs

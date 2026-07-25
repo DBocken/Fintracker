@@ -17,6 +17,7 @@
     "test:mobile": "vitest run src/features/dashboard/presentation/mobile/__tests__/DashboardMobileStory.swipe.test.ts src/components/dashboard/__tests__/TransactionListMobile.mobile.test.tsx src/components/common/__tests__/GlossaryTerm.test.tsx --testNamePattern='\\[MOBILE\\]'",
     "security:secrets": "node scripts/security-check.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
+    "check:i18n-module-consts": "node scripts/check-i18n-module-consts.mjs",
     "check:test-structure": "node scripts/check-test-structure.mjs",
     "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },
