@@ -48,7 +48,7 @@ describe('RiskSummaryCard', () => {
 
   it('zeigt einen Pufferbruch-Anteil, wenn die Basisprüfung bricht', () => {
     renderWithI18n(<RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />);
-    expect(screen.getByText(/40 % Pufferbruch/)).toBeInTheDocument();
+    expect(screen.getByText(/40 % Risiko/)).toBeInTheDocument();
   });
 
   describe('i18n Compliance', () => {
@@ -66,7 +66,7 @@ describe('RiskSummaryCard', () => {
         <RiskSummaryCard lumpy={lumpy('low')} stress90={cap(0)} baseBreachProbability={0.4} />,
         'en',
       );
-      expect(screen.getByText(/40 % buffer breach/)).toBeInTheDocument();
+      expect(screen.getByText(/40 % chance/)).toBeInTheDocument();
     });
 
     it('zeigt den englischen Disclaimer-Text', () => {

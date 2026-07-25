@@ -51,7 +51,7 @@ describe('IncomeStressTestDialog', () => {
 
   it('[REGRESSION] zeigt bei fehlendem Flow-Match einen Hinweis statt 0-Kennzahlen', () => {
     renderWithProviders(<IncomeStressTestDialog stream={stream({ counterparty: 'nichtinprognose', key: 'x' })} open onOpenChange={() => {}} />);
-    expect(screen.getByText(/nicht Teil der Liquiditätsprognose/)).toBeInTheDocument();
+    expect(screen.getByText(/nicht Teil der Vorausschau/)).toBeInTheDocument();
     expect(screen.queryByText('Tiefster Kontostand')).not.toBeInTheDocument();
   });
 

@@ -57,7 +57,7 @@ describe('RiskDensityChart', () => {
   describe('Normal Behavior', () => {
     it('sollte die Heatmap mit Aria-Label und Legende rendern', () => {
       renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />);
-      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Liquiditäts-Heatmap/);
+      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Übersicht über/);
       expect(screen.getByText('gesund')).toBeInTheDocument();
       expect(screen.getByText(/heller = wahrscheinlicher/)).toBeInTheDocument();
     });
@@ -68,7 +68,7 @@ describe('RiskDensityChart', () => {
       fireEvent.click(btn95);
       expect(btn95).toHaveAttribute('aria-pressed', 'true');
       // Stress-Readout reagiert auf die Auswahl.
-      expect(screen.getByText(/Sicherheit trägt deine Liquidität/)).toBeInTheDocument();
+      expect(screen.getByText(/Sicherheit verkraftet dein Geld/)).toBeInTheDocument();
     });
 
     it('sollte Pointer-Interaktion ohne Absturz verarbeiten', () => {
@@ -105,7 +105,7 @@ describe('RiskDensityChart', () => {
   describe('i18n Compliance', () => {
     it('sollte Heatmap-Aria-Label, Legende und Empty-State auf Englisch rendern', () => {
       renderWithI18n(<RiskDensityChart result={makeResult(paths, dates)} safetyBuffer={1000} />, 'en');
-      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Liquidity heatmap/);
+      expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/Overview across/);
       expect(screen.getByText('healthy')).toBeInTheDocument();
       expect(screen.getByText(/lighter = more likely/)).toBeInTheDocument();
     });
@@ -121,7 +121,7 @@ describe('RiskDensityChart', () => {
     it('sollte bei leerem Dichtefeld einen Platzhalter zeigen', () => {
       const empty = makeResult([], []);
       renderWithI18n(<RiskDensityChart result={empty} safetyBuffer={1000} />);
-      expect(screen.getByText(/Noch keine Pfade/)).toBeInTheDocument();
+      expect(screen.getByText(/Noch keine Verläufe/)).toBeInTheDocument();
     });
   });
 });

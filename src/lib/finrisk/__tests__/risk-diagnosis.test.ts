@@ -74,7 +74,12 @@ describe('generateRiskDiagnosis', () => {
         threshold: 1000,
       });
       expect(diag.summary).not.toContain('kommst du voraussichtlich hin');
-      expect(diag.summary).toContain('Sicherheitspuffer');
+      // Bewusst 'Puffer' und nicht 'Sicherheitspuffer': das Wort muss in
+      // BEIDEN Sprachstilen tragen (Fachsprache „Sicherheitspuffer",
+      // Alltagssprache „Puffer") — 'Puffer' ist in beiden enthalten. Zusammen
+      // mit der Negativ-Zusicherung darüber unterscheidet das weiterhin
+      // eindeutig den Warn- vom Entwarnungs-Zweig.
+      expect(diag.summary).toContain('Puffer');
     });
 
     it('sollte bei tragfähiger Basis weiterhin entwarnen', () => {
