@@ -1,6 +1,6 @@
 ---
 name: i18n-enforcer
-description: Use this agent to sweep a set of Fintracker source files and make them i18n-compliant by DIRECTLY EDITING code — not just reporting. It moves hardcoded German/English UI strings into src/i18n/translations.ts (both locales), wires components up with useI18n()/t(), and updates existing tests to assert bilingually. Use proactively for repo-wide i18n audits, or on a specific file/directory list. Runs well on cheap/fast models (Haiku) since the work is mechanical pattern application, not novel design.
+description: Use this agent to sweep a set of Fintracker source files and make them i18n-compliant by DIRECTLY EDITING code — not just reporting. It moves hardcoded German/English UI strings into src/i18n/translations.ts (ALL SUPPORTED_LOCALES), wires components up with useI18n()/t(), and updates existing tests to assert bilingually. Use proactively for repo-wide i18n audits, or on a specific file/directory list. Runs well on cheap/fast models (Haiku) since the work is mechanical pattern application, not novel design.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: haiku
 ---
@@ -17,7 +17,8 @@ You are given a list of files (or a directory) to sweep. For EACH file:
 
 3. **For every real hardcoded string found:**
    - Pick a namespace matching the component (e.g. `debts.payoffTitle`, `settings.exportLabel`). Reuse an existing namespace if the component already has one in `translations.ts`.
-   - Add the key to **both** `de` and `en` blocks in `src/i18n/translations.ts`. The German text is usually the existing hardcoded string (verify it reads naturally); write an accurate, natural English translation — do not machine-translate literally if it reads awkwardly.
+   - Add the key to **every** locale block listed in `SUPPORTED_LOCALES` (`src/i18n/translations.ts` — currently `de`, `en`, `ru`). The German text is usually the existing hardcoded string (verify it reads naturally); write accurate, natural English and Russian translations — do not machine-translate literally if it reads awkwardly. **Do not skip `ru`.** Skipping it is exactly how the six missing `backup.*`/`bankCallback.*` keys shipped, and because their call sites pass no fallback, Russian users saw the raw dotted key on screen. `src/i18n/__tests__/locale-parity.test.ts` now fails the build for this.
+   - `tlh` (Klingon) is in `INACTIVE_LOCALES`: not selectable and **not** parity-checked. Leave its existing entries alone; adding new ones is optional and never blocking.
    - For strings with dynamic parts (`` `Noch ${n} Tage` ``), use the `{placeholder}` template convention already used in this file (e.g. `'in {days} Tagen'`) and replace at the call site with `.replace('{days}', String(n))`, or use `src/i18n/format.ts` helpers (`pluralize`, `formatCoachDaysUntil`, `replaceTemplate`) if the pattern already exists there.
    - **If the file is a React component or hook** (under `src/components/`, `src/pages/`, `src/hooks/`): import `useI18n` from `@/i18n/useI18n` if not already imported, call `const { t } = useI18n();` inside the component, and replace the hardcoded string with `{t('namespace.key')}`.
    - **If the file is a plain module under `src/services/` or `src/lib/`**: hooks CANNOT be used there (no React render context). Import `t` from `@/i18n/serviceT` instead: `import { t } from "../i18n/serviceT";` (adjust relative path). If the hardcoded strings live in a **module-level `const`** (e.g. `export const FOO_LABELS = { a: "Text" }`), you MUST convert it to a **function** (e.g. `export function getFooLabels() { return { a: t("ns.a") } }`) — a plain const would only translate once at import time and never update. Update every call site (`FOO_LABELS[x]` → `getFooLabels()[x]`, computed once per render/call, not per-item in a loop) and every import across the repo (`grep -rl "FOO_LABELS"` to find them all, including test files).
@@ -33,9 +34,9 @@ You are given a list of files (or a directory) to sweep. For EACH file:
 
 ## Verification (mandatory before you finish)
 
-**Per-key check (do this WHILE you work, not just at the end):** the moment you write a `t('namespace.key')` call in a component, immediately grep `src/i18n/translations.ts` to confirm `key` exists under BOTH the `de:` and `en:` blocks for that `namespace`. A `t()` call whose key isn't registered silently renders the raw key string in production — this exact bug shipped once already from a prior sweep. Never move to the next file with an unverified key outstanding.
+**Per-key check (do this WHILE you work, not just at the end):** the moment you write a `t('namespace.key')` call in a component, immediately grep `src/i18n/translations.ts` to confirm `key` exists under EVERY `SUPPORTED_LOCALES` block (`de:`, `en:`, `ru:`) for that `namespace`. A `t()` call whose key isn't registered silently renders the raw key string in production — this exact bug shipped once already from a prior sweep. Never move to the next file with an unverified key outstanding.
 
-After all assigned files are done, run this repo-wide sanity check (adjust the path if it's missing — it's a throwaway script, recreate it if needed): for every `t\(['"]([a-zA-Z0-9_.]+)['"]` match across `src/`, confirm the dotted path resolves in both locale blocks of `src/i18n/translations.ts`. Do not skip this — it catches keys you introduced but mistyped or forgot to add.
+After all assigned files are done, run this repo-wide sanity check (adjust the path if it's missing — it's a throwaway script, recreate it if needed): for every `t\(['"]([a-zA-Z0-9_.]+)['"]` match across `src/`, confirm the dotted path resolves in every `SUPPORTED_LOCALES` block of `src/i18n/translations.ts`. Do not skip this — it catches keys you introduced but mistyped or forgot to add. `pnpm test src/i18n/__tests__/locale-parity.test.ts` is the authoritative version of the same check.
 
 Then run, in this order, and fix any failure before reporting done:
 ```

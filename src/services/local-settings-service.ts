@@ -38,7 +38,14 @@ function assertUnlocked() {
 // Kategorien (lokal)
 // -----------------------------------------------------------------------------
 
-export async function getLocalCategories(): Promise<Category[]> {
+/**
+ * Rohdaten wie gespeichert — Migrationen angewandt, Namen NICHT uebersetzt.
+ *
+ * Alle Schreibpfade muessen diese Fassung benutzen. Wuerden sie die uebersetzte
+ * Liste zurueckschreiben, landete der englische Anzeigename dauerhaft in der
+ * Datenbank und `name_key` liefe ins Leere.
+ */
+async function readLocalCategoriesRaw(): Promise<Category[]> {
   assertClient();
   assertUnlocked();
 
@@ -73,19 +80,49 @@ export async function getLocalCategories(): Promise<Category[]> {
     // Klassen-Korrektur: Therapie/Sehhilfen sind essenziell.
     const { categories: healthMigrated, changed: healthChanged } = migrateEssentialHealthClasses(packMigrated);
 
+    // Lokalisierbare Kategorienamen: `name_key` bei unveraenderten
+    // Standard-Kategorien nachtragen (umbenannte bleiben unberuehrt).
+    const { categories: nameKeyMigrated, changed: nameKeyChanged } = backfillCategoryNameKeys(healthMigrated);
+
     // Nur zurückschreiben, wenn sich WIRKLICH etwas geändert hat. Früher wurde
     // `migrated !== stored` geprüft — das ist nach .map() immer true und schrieb
     // die komplette verschlüsselte Liste bei JEDEM Lesen neu (F-CAT).
-    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged || healthChanged) {
-      await writeLocalCategories(healthMigrated);
+    if (parentIdMigrated || backfillChanged || incomeChanged || taxChanged || insuranceChanged || packChanged || healthChanged || nameKeyChanged) {
+      await writeLocalCategories(nameKeyMigrated);
     }
-    return healthMigrated;
+    return nameKeyMigrated;
   }
 
   // Erster Aufruf: Standard-Kategorien einmalig persistieren (Seed)
   const seeded = DEFAULT_LOCAL_CATEGORIES.map((c) => ({ ...c }));
   await localEncryption.encryptAndStore(LOCAL_CATEGORIES_KEY, seeded);
   return seeded;
+}
+
+/**
+ * Uebersetzt die Anzeigenamen von Standard-Kategorien in die aktive Sprache.
+ *
+ * Nur `name` wird ersetzt und nur dort, wo `name_key` gesetzt ist — also bei
+ * Standard-Kategorien, die die Nutzerin NICHT umbenannt hat. `filters` (die
+ * Such-Stichwoerter) bleiben unangetastet: sie matchen deutschen
+ * Kontoauszugstext, eine Uebersetzung wuerde die automatische Kategorisierung
+ * zerstoeren.
+ */
+export function localizeCategories(categories: Category[]): Category[] {
+  return categories.map((category) =>
+    category.name_key ? { ...category, name: t(category.name_key, category.name) } : category,
+  );
+}
+
+/**
+ * Kategorien fuer die Anzeige: wie gespeichert, aber mit uebersetzten Namen.
+ *
+ * Die Uebersetzung passiert bewusst hier und nicht an den Renderstellen —
+ * dieselbe Begruendung wie beim Sprachstil-Overlay in `t()`: so muss keine der
+ * vielen Verwendungsstellen davon wissen.
+ */
+export async function getLocalCategories(): Promise<Category[]> {
+  return localizeCategories(await readLocalCategoriesRaw());
 }
 
 /**
@@ -111,6 +148,36 @@ export function migrateParentIds(categories: Category[]): { categories: Category
  * für übrige Kategorien wird die Ausgabenklasse von der Hauptkategorie geerbt.
  * Reine Funktion (testbar), gibt zurück ob sich etwas geändert hat.
  */
+/**
+ * Ruestet `name_key` bei Bestandsdaten nach.
+ *
+ * Gesetzt wird der Key NUR, wenn die gespeicherte Kategorie eine Standard-ID
+ * hat UND ihr Name noch exakt dem deutschen Ausgangstext entspricht. Wer eine
+ * Standard-Kategorie bereits umbenannt hat, behaelt seinen Text — genau wie
+ * jemand, der sie nach dieser Migration umbenennt.
+ *
+ * `changed` ist nur dann true, wenn wirklich ein Key ergaenzt wurde; sonst
+ * wuerde die verschluesselte Liste bei jedem Lesen neu geschrieben (F-CAT).
+ */
+export function backfillCategoryNameKeys(categories: Category[]): { categories: Category[]; changed: boolean } {
+  const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+  let changed = false;
+
+  const result = categories.map((cat) => {
+    if (cat.name_key !== undefined) return cat;
+
+    const fallback = defaultsById.get(cat.id);
+    if (!fallback?.name_key) return cat;
+    // Abweichender Name = die Nutzerin hat umbenannt. Nicht anfassen.
+    if (cat.name !== fallback.name) return cat;
+
+    changed = true;
+    return { ...cat, name_key: fallback.name_key };
+  });
+
+  return { categories: result, changed };
+}
+
 export function backfillAusgabenklasse(categories: Category[]): { categories: Category[]; changed: boolean } {
   const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
   const defaultsByName = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.name, c]));
@@ -500,7 +567,7 @@ function generateLocalCategoryId(): string {
  */
 export async function restoreLocalCategories(incoming: Category[]): Promise<number> {
   if (incoming.length === 0) return 0;
-  const existing = await getLocalCategories();
+  const existing = await readLocalCategoriesRaw();
   const knownIds = new Set(existing.map((c) => c.id).filter(Boolean));
   const added: Category[] = [];
   for (const cat of incoming) {
@@ -542,7 +609,7 @@ export async function applyCategoryTemplate(
     return { applied: false, added: 0, filtersExtended: 0, version: appliedVersion };
   }
 
-  const local = await getLocalCategories();
+  const local = await readLocalCategoriesRaw();
   const result = mergeCategoryTemplate(local, template.categories);
   if (result.changed) {
     await writeLocalCategories(result.categories);
@@ -559,10 +626,13 @@ export async function applyCategoryTemplate(
 }
 
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {
-  const categories = await getLocalCategories();
+  const categories = await readLocalCategoriesRaw();
 
   const name = category.name || t("localSettingsService.defaultCategoryName");
-  if (categories.some((c) => c.name === name)) {
+  // Gegen die ANGEZEIGTEN Namen pruefen: die Nutzerin sieht bei Standard-
+  // Kategorien den uebersetzten Text, also muss sich die Dublettenwarnung auch
+  // darauf beziehen.
+  if (localizeCategories(categories).some((c) => c.name === name)) {
     throw new Error(t("localSettingsService.categoryNameExists"));
   }
 
@@ -574,6 +644,8 @@ export async function saveLocalCategory(category: Partial<Category>): Promise<Ca
     icon: category.icon || "🛒",
     filters: category.filters || [],
     is_default: false,
+    // Selbst angelegte Kategorien tragen nie einen i18n-Key.
+    name_key: null,
     parent_id: category.parent_id || null,
     attributes: category.attributes || {},
   };
@@ -583,7 +655,7 @@ export async function saveLocalCategory(category: Partial<Category>): Promise<Ca
 }
 
 export async function updateLocalCategory(category: Category): Promise<Category> {
-  const categories = await getLocalCategories();
+  const categories = await readLocalCategoriesRaw();
   const existing = categories.find((c) => c.id === category.id);
 
   // Standard-Kategorie wird beim Bearbeiten zur Nutzer-Kopie (Verhalten wie Cloud-Pfad)
@@ -602,7 +674,9 @@ export async function updateLocalCategory(category: Category): Promise<Category>
     throw new Error(t("localSettingsService.categoryNotFound"));
   }
 
-  const duplicate = categories.some((c) => c.id !== category.id && c.name === category.name);
+  const duplicate = localizeCategories(categories).some(
+    (c) => c.id !== category.id && c.name === category.name,
+  );
   if (duplicate) {
     throw new Error(t("localSettingsService.categoryNameExists"));
   }
@@ -610,6 +684,9 @@ export async function updateLocalCategory(category: Category): Promise<Category>
   const updated: Category = {
     ...existing,
     name: category.name,
+    // Ab der ersten Umbenennung gewinnt der Text der Nutzerin; ein
+    // Sprachwechsel fasst ihn nicht mehr an.
+    name_key: null,
     color: category.color,
     icon: category.icon,
     filters: category.filters || [],
@@ -622,7 +699,7 @@ export async function updateLocalCategory(category: Category): Promise<Category>
 }
 
 export async function deleteLocalCategory(id: string): Promise<void> {
-  const categories = await getLocalCategories();
+  const categories = await readLocalCategoriesRaw();
   // Direkte Kinder mitlöschen (Verhalten wie Cloud-Pfad)
   await writeLocalCategories(
     categories.filter((c) => c.id !== id && c.parent_id !== id),

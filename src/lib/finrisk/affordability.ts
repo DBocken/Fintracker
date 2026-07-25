@@ -19,6 +19,7 @@ import { runMonteCarloForecast } from '../forecast-montecarlo';
 import { pickVariableExpenseAccount } from '../forecast';
 import type { ForecastConfig, ForecastInput, PlannedForecastEvent, RecurringFlow } from '../forecast-types';
 import type { MonteCarloConfig } from '../forecast-montecarlo-types';
+import { t } from '@/i18n/serviceT';
 
 const ISO = 'yyyy-MM-dd';
 
@@ -96,7 +97,7 @@ function withPurchase(
   const date = format(addDays(new Date(`${startISO}T00:00:00Z`), dayIndex), ISO);
   const event: PlannedForecastEvent = {
     id: 'affordability-goal',
-    name: 'Anschaffung',
+    name: t('scenario.acquisition'),
     amount: -Math.abs(amount),
     date,
     accountId,
@@ -125,7 +126,7 @@ function withExtraIncome(
 ): ForecastInput {
   const flow: RecurringFlow = {
     id: 'affordability-extra-income',
-    name: 'Mehr-Einkommen',
+    name: t('scenario.moreIncome'),
     amount: Math.abs(perMonth),
     cadence: 'monthly',
     anchorDate: startISO,

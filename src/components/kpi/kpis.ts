@@ -15,8 +15,17 @@ export type KpiComputeInput = {
 
 export type KpiDefinition = {
   id: KpiId;
+  /** Deutsche Beschriftung — Fallback fuer {@link labelKey}. */
   label: string;
+  /**
+   * i18n-Key der Beschriftung. Bewusst ein Key statt eines uebersetzten
+   * Strings: `KPI_DEFINITIONS` ist eine Modul-`const`, ein `t()`-Aufruf dort
+   * wuerde EINMAL beim Import aufgeloest und einen spaeteren Sprachwechsel
+   * nicht mehr mitbekommen. Aufgeloest wird an der Renderstelle.
+   */
+  labelKey: string;
   description?: string;
+  descriptionKey?: string;
   icon?: LucideIcon;
   compute: (input: KpiComputeInput) => number;
   format: (value: number) => string;
@@ -48,7 +57,9 @@ export const KPI_DEFINITIONS: KpiDefinition[] = [
   {
     id: "savings_rate",
     label: "Sparquote",
+    labelKey: "kpi.savingsRate.label",
     description: "(Einnahmen - Ausgaben) / Einnahmen",
+    descriptionKey: "kpi.savingsRate.description",
     icon: BadgePercent,
     compute: ({ transactions }) => {
       const { income, expenses } = calcIncomeExpenses(transactions);
@@ -60,7 +71,9 @@ export const KPI_DEFINITIONS: KpiDefinition[] = [
   {
     id: "average_daily_expenses",
     label: "Ø Tagesausgaben",
+    labelKey: "kpi.averageDailyExpenses.label",
     description: "Ausgaben / 30",
+    descriptionKey: "kpi.averageDailyExpenses.description",
     icon: CalendarClock,
     compute: ({ transactions }) => {
       const { expenses } = calcIncomeExpenses(transactions);

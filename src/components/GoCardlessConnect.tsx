@@ -453,11 +453,11 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
           <div className="flex items-center justify-between">
             <p className="font-medium text-foreground">{t('goCardlessConnect.controlTitle')}</p>
             <InfoButton title={t('goCardlessConnect.technicalDetailsTitle')} description={t('goCardlessConnect.technicalDetailsDescription')}>
-              <p>• Du wirst zur sicheren Anmeldung deiner Bank weitergeleitet.</p>
-              <p>• Nach der Authentifizierung werden deine Konten angezeigt.</p>
-              <p>• Rate Limit: 4 Abrufe/Tag pro Konto.</p>
-              <p>• Es werden maximal 90 Tage Historie geladen.</p>
-              <p>• Die Verbindung läuft verschlüsselt (HTTPS) und ist jederzeit trennbar.</p>
+              <p>{t('goCardlessConnect.technicalDetailRedirect')}</p>
+              <p>{t('goCardlessConnect.technicalDetailAccounts')}</p>
+              <p>{t('goCardlessConnect.technicalDetailRateLimit')}</p>
+              <p>{t('goCardlessConnect.technicalDetailHistory')}</p>
+              <p>{t('goCardlessConnect.technicalDetailEncryption')}</p>
             </InfoButton>
           </div>
           <p>{t('goCardlessConnect.controlDescription')}</p>

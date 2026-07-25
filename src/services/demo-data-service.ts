@@ -1,6 +1,7 @@
 import { format, startOfMonth, subMonths, addDays } from 'date-fns';
 import type { Account, Debt, Transaction } from '@/types';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { t } from '@/i18n/serviceT';
 
 /**
  * Demo-Datensatz für das Onboarding (Issue #39): ein realistischer
@@ -52,32 +53,42 @@ function vary(base: number, monthIndex: number, slot: number): number {
   return Math.round(base * factor * 100) / 100;
 }
 
-const MONTHLY_TEMPLATE: MonthlyTemplate[] = [
-  { day: 1, amount: 2650, payee: 'Muster GmbH', description: 'Gehalt', categoryId: 'local-cat-gehalt' },
-  { day: 1, amount: -980, payee: 'Wohnbau Süd', description: 'Miete Musterstraße 12', categoryId: 'local-cat-wohnen' },
-  { day: 3, amount: -89, payee: 'Stadtwerke', description: 'Abschlag Strom & Gas', categoryId: 'local-cat-wohnen' },
-  { day: 4, amount: -44.95, payee: 'Telekom', description: 'Mobilfunk & Internet', categoryId: 'local-cat-mobilfunk' },
-  { day: 5, amount: -12.99, payee: 'Netflix', description: 'Netflix Abo', categoryId: 'local-cat-streaming' },
-  { day: 6, amount: -10.99, payee: 'Spotify', description: 'Spotify Premium', categoryId: 'local-cat-streaming' },
-  { day: 7, amount: -28.5, payee: 'HUK-Coburg', description: 'Haftpflichtversicherung', categoryId: 'local-cat-haftpflicht' },
-  { day: 2, amount: -120, payee: 'Santander', description: 'Rate Möbelkredit', categoryId: 'local-cat-sonstiges' },
-  // Lebensmittel — wöchentlich
-  { day: 4, amount: -62.4, payee: 'REWE', description: 'Wocheneinkauf', categoryId: 'local-cat-lebensmittel' },
-  { day: 11, amount: -48.9, payee: 'ALDI Süd', description: 'Wocheneinkauf', categoryId: 'local-cat-lebensmittel' },
-  { day: 18, amount: -71.2, payee: 'EDEKA', description: 'Wocheneinkauf', categoryId: 'local-cat-lebensmittel' },
-  { day: 25, amount: -55.6, payee: 'LIDL', description: 'Wocheneinkauf', categoryId: 'local-cat-lebensmittel' },
-  // Mobilität
-  { day: 9, amount: -68, payee: 'Aral Tankstelle', description: 'Tanken', categoryId: 'local-cat-mobilitaet' },
-  { day: 23, amount: -64.5, payee: 'Shell', description: 'Tanken', categoryId: 'local-cat-mobilitaet' },
-  // Restaurant & Freizeit
-  { day: 13, amount: -32.8, payee: 'Lieferando', description: 'Essen bestellt', categoryId: 'local-cat-restaurant', accountId: KK_ID },
-  { day: 20, amount: -24.6, payee: 'Trattoria Roma', description: 'Restaurant', categoryId: 'local-cat-restaurant', accountId: KK_ID },
-  // Shopping & Gesundheit
-  { day: 15, amount: -59.99, payee: 'Amazon', description: 'Online-Bestellung', categoryId: 'local-cat-shopping', accountId: KK_ID },
-  { day: 27, amount: -16.9, payee: 'Rats-Apotheke', description: 'Apotheke', categoryId: 'local-cat-gesundheit' },
-  // BNPL-Rate
-  { day: 28, amount: -60, payee: 'Klarna', description: 'Klarna Rechnung Teilzahlung', categoryId: 'local-cat-shopping', accountId: KK_ID },
-];
+/**
+ * Bewusst eine FUNKTION und keine Modul-`const`: die Beschreibungen laufen ueber
+ * `serviceT`. In einer Modul-`const` wuerden sie einmal beim Import aufgeloest
+ * und ein spaeterer Sprachwechsel bliebe wirkungslos.
+ *
+ * Die `payee`-Werte bleiben unuebersetzt — es sind Haendler- und Firmennamen
+ * (REWE, Netflix, "Wohnbau Sued"), also Daten und keine Beschriftungen.
+ */
+function monthlyTemplate(): MonthlyTemplate[] {
+  return [
+    { day: 1, amount: 2650, payee: 'Muster GmbH', description: t('demoData.tx.salary'), categoryId: 'local-cat-gehalt' },
+    { day: 1, amount: -980, payee: 'Wohnbau Süd', description: t('demoData.tx.rent'), categoryId: 'local-cat-wohnen' },
+    { day: 3, amount: -89, payee: 'Stadtwerke', description: t('demoData.tx.utilities'), categoryId: 'local-cat-wohnen' },
+    { day: 4, amount: -44.95, payee: 'Telekom', description: t('demoData.tx.mobileInternet'), categoryId: 'local-cat-mobilfunk' },
+    { day: 5, amount: -12.99, payee: 'Netflix', description: t('demoData.tx.netflix'), categoryId: 'local-cat-streaming' },
+    { day: 6, amount: -10.99, payee: 'Spotify', description: t('demoData.tx.spotify'), categoryId: 'local-cat-streaming' },
+    { day: 7, amount: -28.5, payee: 'HUK-Coburg', description: t('demoData.tx.liability'), categoryId: 'local-cat-haftpflicht' },
+    { day: 2, amount: -120, payee: 'Santander', description: t('demoData.tx.furnitureLoan'), categoryId: 'local-cat-sonstiges' },
+    // Lebensmittel — wöchentlich
+    { day: 4, amount: -62.4, payee: 'REWE', description: t('demoData.tx.groceryRun'), categoryId: 'local-cat-lebensmittel' },
+    { day: 11, amount: -48.9, payee: 'ALDI Süd', description: t('demoData.tx.groceryRun'), categoryId: 'local-cat-lebensmittel' },
+    { day: 18, amount: -71.2, payee: 'EDEKA', description: t('demoData.tx.groceryRun'), categoryId: 'local-cat-lebensmittel' },
+    { day: 25, amount: -55.6, payee: 'LIDL', description: t('demoData.tx.groceryRun'), categoryId: 'local-cat-lebensmittel' },
+    // Mobilität
+    { day: 9, amount: -68, payee: 'Aral Tankstelle', description: t('demoData.tx.fuel'), categoryId: 'local-cat-mobilitaet' },
+    { day: 23, amount: -64.5, payee: 'Shell', description: t('demoData.tx.fuel'), categoryId: 'local-cat-mobilitaet' },
+    // Restaurant & Freizeit
+    { day: 13, amount: -32.8, payee: 'Lieferando', description: t('demoData.tx.foodDelivery'), categoryId: 'local-cat-restaurant', accountId: KK_ID },
+    { day: 20, amount: -24.6, payee: 'Trattoria Roma', description: t('demoData.tx.restaurant'), categoryId: 'local-cat-restaurant', accountId: KK_ID },
+    // Shopping & Gesundheit
+    { day: 15, amount: -59.99, payee: 'Amazon', description: t('demoData.tx.onlineOrder'), categoryId: 'local-cat-shopping', accountId: KK_ID },
+    { day: 27, amount: -16.9, payee: 'Rats-Apotheke', description: t('demoData.tx.pharmacy'), categoryId: 'local-cat-gesundheit' },
+    // BNPL-Rate
+    { day: 28, amount: -60, payee: 'Klarna', description: t('demoData.tx.klarna'), categoryId: 'local-cat-shopping', accountId: KK_ID },
+  ];
+}
 
 /**
  * Pure Erzeugung des Demo-Datensatzes für die letzten `months` Monate
@@ -93,7 +104,7 @@ export function buildDemoDataset(now: Date = new Date(), months = 3): DemoDatase
       name: 'Girokonto (Demo)',
       type: 'checking',
       currency: 'EUR',
-      description: 'Beispieldaten — mit einem Klick entfernbar',
+      description: t('demoData.tx.demoNotice'),
       color: '#2e7d72',
       icon: '🏦',
       is_budget_pool_member: true,
@@ -107,7 +118,7 @@ export function buildDemoDataset(now: Date = new Date(), months = 3): DemoDatase
       name: 'Kreditkarte (Demo)',
       type: 'credit_card',
       currency: 'EUR',
-      description: 'Beispieldaten — mit einem Klick entfernbar',
+      description: t('demoData.tx.demoNotice'),
       color: '#5c7a99',
       icon: '💳',
       is_budget_pool_member: true,
@@ -159,7 +170,7 @@ export function buildDemoDataset(now: Date = new Date(), months = 3): DemoDatase
   for (let m = months - 1; m >= 0; m -= 1) {
     const monthStart = startOfMonth(subMonths(now, m));
 
-    MONTHLY_TEMPLATE.forEach((tpl, slot) => {
+    monthlyTemplate().forEach((tpl, slot) => {
       const date = addDays(monthStart, Math.min(tpl.day, 28) - 1);
       // Zukunfts-Buchungen im laufenden Monat weglassen
       if (date > now) return;

@@ -7,13 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const LOCALES = [
-  { value: 'de', flag: '🇩🇪', label: 'Deutsch' },
-  { value: 'en', flag: '🇬🇧', label: 'English' },
-  { value: 'tlh', flag: '⚔️', label: 'tlhIngan Hol' },
-  { value: 'ru', flag: '🇷🇺', label: 'Русский' },
-] as const;
+import { LOCALE_OPTIONS } from '@/i18n/locale-options';
 
 /**
  * Sprachwahl als kompaktes Popup (Issue: Mobile-Skalierung). Ein einzelner
@@ -22,7 +16,7 @@ const LOCALES = [
  */
 export function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
-  const active = LOCALES.find((l) => l.value === locale) ?? LOCALES[0];
+  const active = LOCALE_OPTIONS.find((l) => l.value === locale) ?? LOCALE_OPTIONS[0];
 
   return (
     <DropdownMenu>
@@ -38,7 +32,7 @@ export function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {LOCALES.map((l) => (
+        {LOCALE_OPTIONS.map((l) => (
           <DropdownMenuItem
             key={l.value}
             onClick={() => setLocale(l.value)}

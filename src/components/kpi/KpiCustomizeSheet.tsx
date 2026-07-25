@@ -228,7 +228,7 @@ export function KpiCustomizeSheet({
                           <SortableRow
                             key={id}
                             id={id}
-                            label={def.label}
+                            label={t(def.labelKey, def.label)}
                             isActive={true}
                             onToggle={() => setActive(id, false)}
                             onMoveUp={() => move(id, -1)}
@@ -256,7 +256,7 @@ export function KpiCustomizeSheet({
                       <div className="min-w-0">
                         <div className="flex items-center gap-3">
                           <Checkbox checked={checked} onCheckedChange={() => setActive(def.id, !checked)} />
-                          <span className="text-sm font-medium">{def.label}</span>
+                          <span className="text-sm font-medium">{t(def.labelKey, def.label)}</span>
                         </div>
                         {def.description ? (
                           <div className="mt-1 text-xs text-muted-foreground">{def.description}</div>

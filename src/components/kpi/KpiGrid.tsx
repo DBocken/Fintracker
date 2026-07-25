@@ -59,7 +59,7 @@ export function KpiGrid({ data, order, active }: Props) {
         {visible.map((id) => {
           const def = KPI_BY_ID[id];
           if (!def) return null;
-          return <KpiCard key={id} label={def.label} value={computed[id] ?? def.format(0)} icon={def.icon} />;
+          return <KpiCard key={id} label={t(def.labelKey, def.label)} value={computed[id] ?? def.format(0)} icon={def.icon} />;
         })}
       </div>
     );
@@ -84,7 +84,7 @@ export function KpiGrid({ data, order, active }: Props) {
           if (!def) return null;
           return (
             <div key={id} className="w-full shrink-0 snap-center">
-              <KpiCard label={def.label} value={computed[id] ?? def.format(0)} icon={def.icon} />
+              <KpiCard label={t(def.labelKey, def.label)} value={computed[id] ?? def.format(0)} icon={def.icon} />
             </div>
           );
         })}

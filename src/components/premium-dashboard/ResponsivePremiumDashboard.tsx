@@ -210,7 +210,7 @@ export function ResponsivePremiumDashboard() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl
-              aria-label="Zeitverlauf-Modus"
+              aria-label={t('finrisk.timelineModeAriaLabel')}
               fill={false}
               size="sm"
               value={flowMode}

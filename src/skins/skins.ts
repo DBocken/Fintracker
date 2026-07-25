@@ -11,9 +11,21 @@ export type SkinId =
 
 export type SkinDef = {
   id: SkinId;
+  /** Deutscher Anzeigename — dient nur noch als Fallback fuer {@link nameKey}. */
   name: string;
+  /**
+   * i18n-Key des Anzeigenamens. Gleiches Muster wie `labelKey` in
+   * `components/layout/nav-config.ts` und `nameKey` in `data/tax-catalog.ts`:
+   * die Renderstelle loest `t(nameKey, name)` auf. Eigennamen wie "Cyberpunk"
+   * sind in allen Sprachen identisch hinterlegt — das ist Absicht, kein
+   * fehlender Eintrag.
+   */
+  nameKey: string;
   className: string; // CSS class added to <html>
+  /** Deutsche Kurzcharakterisierung — Fallback fuer {@link descriptionKey}. */
   description: string; // kurze Charakterisierung (im Theme-Selector gezeigt)
+  /** i18n-Key der Kurzcharakterisierung. */
+  descriptionKey: string;
   swatch: string; // CSS-Farbe/Gradient für die Vorschau-Kachel im Selector
   isPremium?: boolean; // Platzhalter für spätere Monetarisierung (Kauf-Themes)
   font?: string; // optionaler Anzeigename des Theme-Fonts (informativ)
@@ -30,69 +42,87 @@ export const SKINS: SkinDef[] = [
   {
     id: 'ruhe',
     name: 'Ruhe',
+    nameKey: 'skins.ruhe.name',
     className: 'theme-ruhe',
     description: 'Sandfarben & ruhig — der Standard',
+    descriptionKey: 'skins.ruhe.description',
     swatch: 'hsl(174 65% 21%)',
   },
   {
     id: 'legacy',
     name: 'Legacy',
+    nameKey: 'skins.legacy.name',
     className: 'theme-legacy',
     description: 'Klassisch, neutrale Graustufen',
+    descriptionKey: 'skins.legacy.description',
     swatch: 'hsl(222 47% 11%)',
   },
   {
     id: 'clean',
     name: 'Clean',
+    nameKey: 'skins.clean.name',
     className: 'theme-clean',
     description: 'Klare Kontraste, blauer Akzent',
+    descriptionKey: 'skins.clean.description',
     swatch: 'hsl(215 100% 50%)',
   },
   {
     id: 'neon',
     name: 'Neon (Stranger-Style)',
+    nameKey: 'skins.neon.name',
     className: 'theme-neon',
     description: 'Dunkle Bühne mit Neon-Akzenten',
+    descriptionKey: 'skins.neon.description',
     swatch: 'linear-gradient(135deg, hsl(350 100% 54%), hsl(190 100% 50%))',
     font: 'Space Grotesk',
   },
   {
     id: 'imperium',
     name: 'Imperium',
+    nameKey: 'skins.imperium.name',
     className: 'theme-imperium',
     description: 'Sci-Fi-Kommandobrücke: Cyan-Glow auf Blauschwarz',
+    descriptionKey: 'skins.imperium.description',
     swatch: 'linear-gradient(135deg, hsl(190 95% 55%), hsl(35 95% 55%))',
     font: 'Orbitron',
   },
   {
     id: 'sakura',
     name: 'Sakura',
+    nameKey: 'skins.sakura.name',
     className: 'theme-sakura',
     description: 'Anime-Pastell: weiches Rosé mit Lavendel',
+    descriptionKey: 'skins.sakura.description',
     swatch: 'linear-gradient(135deg, hsl(338 80% 75%), hsl(265 70% 80%))',
     font: 'Quicksand',
   },
   {
     id: 'iron-man',
     name: 'Iron Man',
+    nameKey: 'skins.ironMan.name',
     className: 'theme-iron-man',
     description: 'Gebürstetes Metall, Hot-Rod-Rot & Arc-Reactor-Gold',
+    descriptionKey: 'skins.ironMan.description',
     swatch: 'linear-gradient(135deg, hsl(352 80% 50%), hsl(43 95% 55%))',
     font: 'Orbitron',
   },
   {
     id: 'cyberpunk',
     name: 'Cyberpunk',
+    nameKey: 'skins.cyberpunk.name',
     className: 'theme-cyberpunk',
     description: 'Night City: Magenta/Cyan-Neon mit Glitch-Scanlines',
+    descriptionKey: 'skins.cyberpunk.description',
     swatch: 'linear-gradient(135deg, hsl(320 90% 58%), hsl(180 95% 55%))',
     font: 'Orbitron',
   },
   {
     id: 'liquid-holo',
     name: 'Liquid Holo',
+    nameKey: 'skins.liquidHolo.name',
     className: 'theme-liquid-holo',
     description: 'Schillernd-irisierend: animierte Hologramm-Kanten',
+    descriptionKey: 'skins.liquidHolo.description',
     swatch:
       'conic-gradient(from 0deg, hsl(320 90% 65%), hsl(265 85% 68%), hsl(190 90% 60%), hsl(150 80% 58%), hsl(50 95% 62%), hsl(320 90% 65%))',
     font: 'Space Grotesk',

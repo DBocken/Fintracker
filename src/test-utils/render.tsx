@@ -4,23 +4,44 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import type { Locale } from '@/i18n/translations';
+import { DEFAULT_WORDING, WORDING_STORAGE_KEY, type Wording } from '@/i18n/wording';
 
 const LOCALE_STORAGE_KEY = 'ausgabentracker_locale_v1';
 
 /**
- * Zentraler Render-Helfer für i18n-Tests.
+ * Setzt Sprache und Sprachstil auf BEIDEN Wegen: localStorage UND Provider-Prop.
  *
- * Setzt localStorage UND übergibt `initialLocale`, damit sowohl Komponenten,
- * die die Startsprache über `initialLocale` beziehen, als auch solche, die
- * `localStorage` lesen (z. B. die eToro-Tabs), dieselbe Sprache sehen.
+ * Das ist kein Gürtel-und-Hosenträger, sondern nötig, weil Komponenten ihre
+ * Texte über den Provider beziehen, `serviceT`-gestützter Code (services/, lib/)
+ * aber direkt aus localStorage liest. Wird nur einer der beiden Wege gesetzt,
+ * läuft ein Teil des Tests im anderen Register bzw. in der anderen Sprache als
+ * der Rest — eine der schwerer auffindbaren Testfehlerquellen.
  */
-export function renderWithI18n(ui: ReactElement, locale: Locale = 'de') {
+function pinI18n(locale: Locale, wording: Wording) {
   window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-  return render(<I18nProvider initialLocale={locale}>{ui}</I18nProvider>);
+  window.localStorage.setItem(WORDING_STORAGE_KEY, wording);
+}
+
+/**
+ * Zentraler Render-Helfer für i18n-Tests.
+ */
+export function renderWithI18n(
+  ui: ReactElement,
+  locale: Locale = 'de',
+  wording: Wording = DEFAULT_WORDING,
+) {
+  pinI18n(locale, wording);
+  return render(
+    <I18nProvider initialLocale={locale} initialWording={wording}>
+      {ui}
+    </I18nProvider>,
+  );
 }
 
 export interface RenderProvidersOptions {
   locale?: Locale;
+  /** Sprachstil (Alltags-/Fachsprache). Default: der Produktions-Standard. */
+  wording?: Wording;
   /** MemoryRouter ergänzen (Default an). */
   router?: boolean;
   /** QueryClientProvider mit retry-freiem Client ergänzen (Default aus). */
@@ -34,20 +55,30 @@ export interface RenderProvidersOptions {
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { locale = 'de', router = true, query = false }: RenderProvidersOptions = {},
+  {
+    locale = 'de',
+    wording = DEFAULT_WORDING,
+    router = true,
+    query = false,
+  }: RenderProvidersOptions = {},
 ) {
-  window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  pinI18n(locale, wording);
   let tree = ui;
   if (router) tree = <MemoryRouter>{tree}</MemoryRouter>;
   if (query) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     tree = <QueryClientProvider client={client}>{tree}</QueryClientProvider>;
   }
-  return render(<I18nProvider initialLocale={locale}>{tree}</I18nProvider>);
+  return render(
+    <I18nProvider initialLocale={locale} initialWording={wording}>
+      {tree}
+    </I18nProvider>,
+  );
 }
 
 export interface HookWrapperOptions {
   locale?: Locale;
+  wording?: Wording;
 }
 
 export interface HookWrapperResult {
@@ -62,11 +93,14 @@ export interface HookWrapperResult {
  * den `QueryClient` zurück, damit Tests eigene Assertions (z.B. Spies auf
  * `invalidateQueries`) daran hängen können, statt einen neuen Client zu bauen.
  */
-export function createHookWrapper({ locale = 'de' }: HookWrapperOptions = {}): HookWrapperResult {
-  window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+export function createHookWrapper({
+  locale = 'de',
+  wording = DEFAULT_WORDING,
+}: HookWrapperOptions = {}): HookWrapperResult {
+  pinI18n(locale, wording);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <I18nProvider initialLocale={locale}>
+    <I18nProvider initialLocale={locale} initialWording={wording}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </I18nProvider>
   );

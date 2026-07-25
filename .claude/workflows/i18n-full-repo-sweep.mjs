@@ -197,7 +197,7 @@ For each file: find hardcoded German/English UI strings not already going throug
 
 Do NOT touch src/components/ui/**, do NOT invent new test files for components that have none, do NOT rename existing keys already used elsewhere (grep first), do NOT commit/push.
 
-After all files in this group are done, run the relevant test files for this group's directory and \`npm run build\`, fix anything you broke, then report back: files changed with string counts, new keys added, anything skipped and why, and final test/build status.`
+After all files in this group are done, run the relevant test files for this group's directory and \`pnpm build\`, fix anything you broke, then report back: files changed with string counts, new keys added, anything skipped and why, and final test/build status.`
 }
 
 const results = []
@@ -209,7 +209,7 @@ for (const group of GROUPS) {
 
 phase('Verify')
 const verify = await agent(
-  'In /home/user/Fintracker run `npm test` and then `npm run build`. Report full pass/fail status. If anything fails, investigate which recent i18n-related change caused it (check `git diff`) and fix it directly, then re-run until both commands pass cleanly. Report the final status and what you had to fix, if anything.',
+  'In /home/user/Fintracker run `pnpm test` and then `pnpm build`. Report full pass/fail status. If anything fails, investigate which recent i18n-related change caused it (check `git diff`) and fix it directly, then re-run until both commands pass cleanly. Report the final status and what you had to fix, if anything.',
   { label: 'final-verify', phase: 'Verify' }
 )
 

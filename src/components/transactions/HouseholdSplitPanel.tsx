@@ -101,12 +101,10 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
   if (households.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        {t("household.noHouseholdMessage")}
-        {" "}
+        {t("household.noHouseholdMessage")}{" "}
         <Link to="/settings" className="underline underline-offset-2">
-          Einstellungen
-        </Link>{" "}
-        an.
+          {t("household.openSettingsLink")}
+        </Link>
       </p>
     );
   }

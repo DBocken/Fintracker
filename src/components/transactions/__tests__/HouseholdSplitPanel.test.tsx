@@ -53,6 +53,23 @@ describe("HouseholdSplitPanel", () => {
     expect(await screen.findByText(/Lege zuerst einen Haushalt/)).toBeInTheDocument();
   });
 
+  it("[REGRESSION] sollte den Hinweis nicht doppelt ausgeben", async () => {
+    // Der Satz stand vollstaendig im i18n-Key UND nochmals hartcodiert um den
+    // Link herum ("... in den Einstellungen an. Einstellungen an.").
+    mocks.getHouseholds.mockResolvedValue([]);
+    const { container } = renderPanel();
+    await screen.findByText(/Lege zuerst einen Haushalt/);
+    const text = (container.textContent ?? "").replace(/\s+/g, " ");
+    expect(text).not.toMatch(/an\.\s*Einstellungen\s*an\./);
+    expect(await screen.findByRole("link", { name: "Einstellungen öffnen" })).toBeInTheDocument();
+  });
+
+  it("[REGRESSION] sollte den Einstellungs-Link uebersetzt beschriften", async () => {
+    mocks.getHouseholds.mockResolvedValue([]);
+    renderPanel("en");
+    expect(await screen.findByRole("link", { name: "Open settings" })).toBeInTheDocument();
+  });
+
   it("sollte einen bestehenden Split mit Mitgliedern und Anteilen anzeigen", async () => {
     mocks.getHouseholds.mockResolvedValue([{ id: "h1", name: "WG" }]);
     mocks.getSharedExpenseSplit.mockResolvedValue({

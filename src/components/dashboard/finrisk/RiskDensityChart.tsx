@@ -468,15 +468,15 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             style={{ left: popLeft, top: popTop, bottom: popBottom }}
           >
             <div className="mb-1 font-medium">{fmtDay(density.dates[hover.day])}</div>
-            <Row label="Median (P50)" value={eur.format(hoveredDaily.p50)} />
+            <Row label={t('finrisk.howToReadMedian')} value={eur.format(hoveredDaily.p50)} />
             <Row label="P10 – P90" value={`${eur.format(hoveredDaily.p10)} … ${eur.format(hoveredDaily.p90)}`} />
-            {breachZero != null && <Row label="Risiko < 0 €" value={`${Math.round(breachZero * 100)} %`} />}
+            {breachZero != null && <Row label={t('finrisk.chartRiskBelowZero')} value={`${Math.round(breachZero * 100)} %`} />}
             {safetyBuffer > 0 && breachBuffer != null && (
               <Row label={`< ${eur.format(safetyBuffer)}`} value={`${Math.round(breachBuffer * 100)} %`} />
             )}
             {modes.length > 1 && (
               <div className="mt-1 border-t pt-1">
-                <div className="mb-0.5 text-muted-foreground">Verteilungs-Moden</div>
+                <div className="mb-0.5 text-muted-foreground">{t('finrisk.chartDistributionModes')}</div>
                 {modes.slice(0, 3).map((m, i) => (
                   <div key={i} className="flex items-center gap-1">
                     <span
@@ -492,7 +492,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             {canInspect && (
               <div className="mt-1 flex items-center gap-1 border-t pt-1 text-muted-foreground">
                 <MousePointerClick className="h-3 w-3 shrink-0" />
-                Tippen für Annahmen
+                {t('finrisk.tapForAssumptions')}
               </div>
             )}
           </div>

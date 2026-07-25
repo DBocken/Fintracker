@@ -274,10 +274,10 @@ export function CategoryForm({
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="weekly">Wöchentlich</SelectItem>
-                  <SelectItem value="monthly">Monatlich</SelectItem>
-                  <SelectItem value="quarterly">Vierteljährlich</SelectItem>
-                  <SelectItem value="yearly">Jährlich</SelectItem>
+                  <SelectItem value="weekly">{t('transactionDetails.rhythmusWeekly')}</SelectItem>
+                  <SelectItem value="monthly">{t('transactionDetails.rhythmusMonthly')}</SelectItem>
+                  <SelectItem value="quarterly">{t('transactionDetails.rhythmusQuarterly')}</SelectItem>
+                  <SelectItem value="yearly">{t('transactionDetails.rhythmusYearly')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -288,9 +288,9 @@ export function CategoryForm({
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="essential">Essenziell</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="nice">Nice-to-have</SelectItem>
+                  <SelectItem value="essential">{t('categoryForm.propertyEssential')}</SelectItem>
+                  <SelectItem value="normal">{t('categoryForm.prioritaetNormal')}</SelectItem>
+                  <SelectItem value="nice">{t('categoryForm.prioritaetNice')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -301,10 +301,10 @@ export function CategoryForm({
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="giro">Giro</SelectItem>
-                  <SelectItem value="credit">Kreditkarte</SelectItem>
-                  <SelectItem value="paypal">PayPal</SelectItem>
-                  <SelectItem value="cash">Bar</SelectItem>
+                  <SelectItem value="giro">{t('categoryForm.zahlungswegGiro')}</SelectItem>
+                  <SelectItem value="credit">{t('categoryForm.zahlungswegCredit')}</SelectItem>
+                  <SelectItem value="paypal">{t('categoryForm.zahlungswegPaypal')}</SelectItem>
+                  <SelectItem value="cash">{t('categoryForm.zahlungswegCash')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

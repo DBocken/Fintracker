@@ -10,16 +10,18 @@
  * in CI gegen den PR-Diff — und bindet damit auch Agenten ohne .claude-Hooks
  * (z. B. Codex) an dieselbe Regel.
  *
- * Überprüft, dass:
- * 1. Keine neuen hardcodierten deutschen/englischen Strings in JSX auftauchen
- * 2. Neue i18n-Keys in BEIDEN Sprachen in translations.ts definiert sind
+ * Überprüft, dass keine neuen hardcodierten deutschen/englischen Strings in JSX
+ * auftauchen.
+ *
+ * Die Key-Symmetrie über alle `SUPPORTED_LOCALES` prüft NICHT mehr dieses
+ * Script, sondern `src/i18n/__tests__/locale-parity.test.ts` — vollständiger
+ * Blatt-Vergleich statt Heuristik und unabhängig vom Diff.
  *
  * Diff-Quelle (Kernlogik selbst UNVERÄNDERT gegenüber dem alten Hook):
  *   --staged (Default)       git diff --cached …
  *   --range <base>...<head>  git diff <base>...<head> …
  */
 
-import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -109,9 +111,14 @@ function getChangedLines(file) {
 function checkHardcodedStrings(file, diff) {
   const issues = [];
 
-  // Überspringe bestimmte Dateitypen
+  // Überspringe bestimmte Dateitypen.
+  //
+  // `src/i18n/` komplett: das IST die Übersetzungsschicht. Neben
+  // `translations.ts` liegen dort die Sprachstil-Overlays
+  // (`overlays/everyday/*.ts`), die naturgemäß aus nichts als übersetzten
+  // Strings bestehen — ein Treffer dort ist per Definition ein Fehlalarm.
   if (file.includes('.test.') || file.includes('.spec.') ||
-      file.includes('translations.ts') || file.includes('constants') ||
+      file.includes('src/i18n/') || file.includes('constants') ||
       file.includes('README') || file.includes('.md')) {
     return issues;
   }
@@ -185,67 +192,15 @@ function checkHardcodedStrings(file, diff) {
   return issues;
 }
 
-// Muss `SUPPORTED_LOCALES` aus `src/i18n/translations.ts` exakt spiegeln —
-// bei einer neuen Sprache dort UND hier ergänzen (Reihenfolge egal, `de`
-// bleibt aber die Referenz für den paarweisen Vergleich unten).
-const TRANSLATION_LOCALES = ['de', 'en', 'tlh', 'ru'];
-
-function extractLocaleBlock(content, locale) {
-  // Gleiche Heuristik wie zuvor für de/en: non-greedy Match vom Locale-Key bis
-  // zur ersten `},`-Zeile. Bewusst einfach (kein echter Parser) — reicht, um
-  // grobe Asymmetrien (fehlender Locale-Block, stark abweichende Verschachtelung)
-  // zu erkennen; kein Ersatz für einen vollständigen Key-für-Key-Vergleich.
-  const re = new RegExp(`^\\s*${locale}:\\s*\\{[\\s\\S]*?\\n\\s*\\},`, 'm');
-  return content.match(re)?.[0] || '';
-}
-
-function checkTranslationsComplete(diff) {
-  const issues = [];
-
-  if (!diff.includes('translations.ts')) {
-    return issues;
-  }
-
-  // Lese die aktuelle translations.ts
-  const translationsPath = path.join(REPO_ROOT, 'src/i18n/translations.ts');
-  if (!fs.existsSync(translationsPath)) {
-    return issues;
-  }
-
-  try {
-    const content = fs.readFileSync(translationsPath, 'utf8');
-
-    const blocks = {};
-    for (const locale of TRANSLATION_LOCALES) {
-      blocks[locale] = extractLocaleBlock(content, locale);
-      if (!blocks[locale]) {
-        issues.push({
-          file: 'translations.ts',
-          type: 'INCOMPLETE_TRANSLATIONS',
-          message: `Translations.ts muss alle Sprachen (${TRANSLATION_LOCALES.join(', ')}) haben — "${locale}" fehlt oder ist nicht auffindbar.`,
-        });
-      }
-    }
-
-    // Prüfe auf Asymmetrie: Klammer-Ebenen jeder Sprache paarweise gegen de.
-    const referenceLevelCount = (blocks.de.match(/:\s*{/g) || []).length;
-    for (const locale of TRANSLATION_LOCALES) {
-      if (locale === 'de' || !blocks[locale]) continue; // de ist Referenz; fehlende Blöcke bereits gemeldet
-      const levelCount = (blocks[locale].match(/:\s*{/g) || []).length;
-      if (levelCount !== referenceLevelCount) {
-        issues.push({
-          file: 'translations.ts',
-          type: 'ASYMMETRIC_KEYS',
-          message: `Asymmetrische Keys: DE hat ${referenceLevelCount} Levels, ${locale.toUpperCase()} hat ${levelCount}`,
-        });
-      }
-    }
-  } catch (e) {
-    // Parse-Fehler OK, wird von TypeScript überprüft
-  }
-
-  return issues;
-}
+// Die frühere Klammer-Ebenen-Heuristik stand hier. Sie ist ersatzlos entfernt,
+// weil sie nie auslösen konnte: ihr Regex (`^\s*<locale>:\s*\{[\s\S]*?\n\s*\},`)
+// stoppte am ERSTEN `},` und erfasste damit für jede Sprache dieselben ~24
+// Zeilen des `onboarding`-Namespace — der Vergleich war unconditional gleich.
+// Zusätzlich war sie diff-basiert und sah Altbestand grundsätzlich nie.
+//
+// Die Key-Symmetrie prüft jetzt `src/i18n/__tests__/locale-parity.test.ts` mit
+// einem vollständigen rekursiven Blatt-Vergleich über alle `SUPPORTED_LOCALES`
+// — nicht diff-basiert und damit auch für Bestandslücken zuständig.
 
 // Main
 console.log('\n🌍 i18n Compliance Check läuft...\n');
@@ -259,9 +214,8 @@ for (const file of files) {
   if (!diff) continue;
 
   const issues = checkHardcodedStrings(file, diff);
-  const transIssues = checkTranslationsComplete(diff);
 
-  [...issues, ...transIssues].forEach(issue => {
+  issues.forEach(issue => {
     hasErrors = true;
     console.error(`❌ ${issue.file}`);
     console.error(`   ${issue.type}: ${issue.keyword || issue.message}`);
@@ -277,7 +231,8 @@ if (hasErrors) {
   console.error('Lösungen:');
   console.error('1. Hardcodierte Strings in src/i18n/translations.ts hinzufügen');
   console.error('2. Komponente mit useI18n() + t() aktualisieren');
-  console.error('3. Keys in BEIDE Sprachen (de + en) eintragen');
+  console.error('3. Keys in ALLE SUPPORTED_LOCALES eintragen (de, en, ru)');
+  console.error('   — geprüft von src/i18n/__tests__/locale-parity.test.ts');
   console.error('\nExample:');
   console.error('  const { t } = useI18n();');
   console.error('  <h1>{t("myFeature.title")}</h1>\n');

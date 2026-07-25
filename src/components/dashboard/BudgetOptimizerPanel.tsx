@@ -203,7 +203,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
           <>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="goal-amount">Sparziel (€)</Label>
+                <Label htmlFor="goal-amount">{t('budgetOptimizer.goalAmountLabel')}</Label>
                 <Input
                   id="goal-amount"
                   type="number"
@@ -214,7 +214,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="goal-months">In wie vielen Monaten?</Label>
+                <Label htmlFor="goal-months">{t('budgetOptimizer.goalMonthsLabel')}</Label>
                 <Input
                   id="goal-months"
                   type="number"
@@ -242,7 +242,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             {!achievable && goalAmount > 0 && (
               <Alert>
                 <Shield className="h-4 w-4" />
-                <AlertTitle>Ziel erfordert mehr als variable Ausgaben hergeben</AlertTitle>
+                <AlertTitle>{t('budgetOptimizer.goalExceedsVariableTitle')}</AlertTitle>
                 <AlertDescription>
                   Mit deinen variablen Ausgaben lassen sich realistisch ca.{' '}
                   {eur.format(Math.round(maxPossible))}/Mo. einsparen – das Ziel erfordert{' '}
@@ -266,7 +266,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               <div className="flex items-start gap-2 rounded-lg bg-positive/10 px-4 py-3 text-sm">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
                 <span>
-                  Dein Liquiditätspuffer hält im gewählten Horizont – aktuell ist kein Eingriff nötig.
+                  {t('budgetOptimizer.bufferHoldsDescription')}
                 </span>
               </div>
             ) : (
@@ -283,7 +283,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                 {!achievable && (
                   <Alert>
                     <Shield className="h-4 w-4" />
-                    <AlertTitle>Sparen allein reicht nicht ganz</AlertTitle>
+                    <AlertTitle>{t('budgetOptimizer.savingNotEnoughTitle')}</AlertTitle>
                     <AlertDescription>
                       Mit Kürzungen lassen sich realistisch ca. {eur.format(Math.round(maxPossible))}/Mo.
                       freimachen – nötig sind {eur.format(bufferShortfall.monthlyNeeded)}/Mo. Prüfe
@@ -337,7 +337,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               <div className="rounded-xl bg-muted/30 p-4">
                 <div className="flex items-center gap-2 font-medium">
                   <Shield className="h-4 w-4 text-brand" />
-                  Notrücklage
+                  {t('budgetOptimizer.emergencyReserveLabel')}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Empfehlung: ca. {eur.format(emergencyTarget)} (3 Monate Fixkosten + variable Ausgaben)
@@ -371,7 +371,7 @@ function WaterfallResult({
   if (suggestions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Noch keine kürzbaren Posten erkannt. Importiere mehr Transaktionen für Einspar-Vorschläge.
+        {t('budgetOptimizer.noCutsDetected')}
       </p>
     );
   }
@@ -379,7 +379,7 @@ function WaterfallResult({
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Wo zuerst sparen? (niedrige Priorität zuerst)
+        {t('budgetOptimizer.whereToSaveFirst')}
       </div>
       <div className="divide-y divide-border/60">
         {visible.map((s) => (

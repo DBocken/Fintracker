@@ -378,7 +378,7 @@ export function ReceivablesPanel() {
                               <span className="flex items-center gap-1.5 truncate font-medium">
                                 {transaction.payee || transaction.description || transaction.original_text}
                                 {isSuggested && !assigned && (
-                                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-positive" aria-label="Vorgeschlagen" />
+                                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-positive" aria-label={t('receivables.suggestedAriaLabel')} />
                                 )}
                               </span>
                               <span className="block text-xs text-muted-foreground">

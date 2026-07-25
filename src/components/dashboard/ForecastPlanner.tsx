@@ -854,7 +854,7 @@ export function RecurringFlowOverrideForm({
                       <button
                         onClick={() => setExpandedFlow(isOpen ? null : flow.id)}
                         className="rounded p-1.5 transition-colors hover:bg-muted"
-                        aria-label="Bearbeiten"
+                        aria-label={t('common.edit')}
                         aria-expanded={isOpen}
                       >
                         <Edit2 className="h-4 w-4" />

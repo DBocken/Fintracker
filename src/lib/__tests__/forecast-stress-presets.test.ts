@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildStressOverrides, type StressPresetContext } from '../forecast-stress-presets';
 import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
@@ -22,7 +22,27 @@ const ctx: StressPresetContext = {
   makeId: (s) => `stress-${s}`,
 };
 
+const LOCALE_STORAGE_KEY = 'ausgabentracker_locale_v1';
+
 describe('buildStressOverrides', () => {
+  // Die Posten-Namen laufen ueber `serviceT`, das die Sprache direkt aus
+  // localStorage liest — der I18nProvider erreicht es nicht. Ohne diese
+  // Fixierung haengt das Ergebnis daran, worauf jsdom `navigator.language`
+  // gerade aufloest.
+  beforeEach(() => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'de');
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+  });
+
+  it('sollte die Posten-Namen in der gewaehlten Sprache liefern', () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    const patch = buildStressOverrides(make(), { kind: 'purchase', amount: 3000, inDays: 60 }, ctx);
+    expect(patch.plannedEvents![0].name).toBe('Acquisition');
+  });
+
   // Gruppe 1: Normales Verhalten
   describe('Normal Behavior', () => {
     it('sollte eine Anschaffung als einzelnen Abfluss-Posten zum Stichtag eintragen', () => {

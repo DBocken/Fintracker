@@ -382,7 +382,7 @@ export default function LiquidityReport() {
           {insights[0] && insights[0].kind === 'below_buffer' && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Liquiditätsrisiko erkannt</AlertTitle>
+              <AlertTitle>{t('finrisk.liquidityRiskDetected')}</AlertTitle>
               <AlertDescription>{insights[0].message}</AlertDescription>
             </Alert>
           )}

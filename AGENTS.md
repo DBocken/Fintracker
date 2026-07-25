@@ -92,7 +92,7 @@ verwenden**.
 | `pnpm test:integrity` | Integritäts-Tests (`[INTEGRITY]`) |
 | `pnpm test:privacy` | Privacy-Tests (`[PRIVACY]`) |
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
-| `pnpm check:i18n` | Prüft i18n-Compliance (keine hardcodierten UI-Strings im Diff, Key-Symmetrie ALLER `SUPPORTED_LOCALES` gegen `de` per Klammer-Ebenen-Heuristik) — läuft in Pre-Commit und CI |
+| `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings im Diff auftauchen — läuft in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
@@ -164,14 +164,26 @@ describe('tests', () => {
 ## 6. i18n (verbindlich)
 
 **Kein hardcodierter UI-Text.** Jeder sichtbare String läuft über i18n und
-muss in **allen** `SUPPORTED_LOCALES` (aktuell `de`, `en`, `tlh`,
-`src/i18n/translations.ts`) vorhanden sein. In Komponenten `useI18n()`
+muss in **allen** `SUPPORTED_LOCALES` (aktuell `de`, `en`, `ru` —
+`src/i18n/translations.ts`) vorhanden sein. Klingonisch (`tlh`) steht in
+`INACTIVE_LOCALES`: die Übersetzungen bleiben im Baum, die Sprache ist aber
+nicht wählbar und **nicht paritätspflichtig**. In Komponenten `useI18n()`
 (`t('namespace.key')`), in `src/services/`/`src/lib/`-Modulen (kein React-
 Kontext) `serviceT` aus `src/i18n/serviceT.ts`. Komponententests prüfen
 **bilingual** (mind. de + en) über `@/test-utils/render`. Durchsetzung
-agentenunabhängig via `pnpm check:i18n` (Pre-Commit + CI). Vollständiger
+agentenunabhängig via `pnpm check:i18n` (hardcodierte Strings, Pre-Commit + CI)
+und `src/i18n/__tests__/locale-parity.test.ts` (Key-Symmetrie). Vollständiger
 Workflow inkl. Test-Template, dynamische Strings, neue Sprachen hinzufügen:
 `.claude/i18n-workflow.md` + `.claude/templates/i18n-*.template.tsx`.
+
+### Sprachstil (`wording`)
+
+Zweite Achse neben der Sprache: `everyday` (Alltagssprache, **Standard**) und
+`technical` (Fachsprache). Der Basisbaum in `translations.ts` **ist** die
+Fachsprache; `src/i18n/overlays/everyday/<locale>.ts` enthält nur die
+Abweichungen. Aufgelöst wird das in `t()` — Aufrufstellen ändern sich nie.
+Fehlt ein Overlay-Eintrag, greift der Basistext. Details und Formulierungsregeln:
+`src/i18n/wording.ts` und der Kopf von `overlays/everyday/de.ts`.
 
 ```typescript
 // ❌ NICHT ERLAUBT:            // ✅ ERFORDERLICH:
