@@ -1,13 +1,13 @@
 /**
- * Nutzer-LifeSituationn für das Onboarding („Welche Situation beschreibt dich am
+ * Nutzer-Lebenssituationen für das Onboarding („Welche Situation beschreibt dich am
  * ehesten?").
  *
  * Zweck: Nutzer sehen zunächst nur die Bereiche, die zu ihrer Lebenssituation
  * passen — aber nichts ist gesperrt. Die Auswahl steuert ausschließlich die
  * **Sichtbarkeit in der Navigation**; alle Routen bleiben registriert
- * (Deep-Links, Coach-Verlinkungen, Bestandsdaten). Genau dieses Muster
- * existiert bereits für den Einzelunternehmer-Modus (`businessOnly` in
- * `nav-config.ts`) und wird hier verallgemeinert.
+ * (Deep-Links, Coach-Verlinkungen, Bestandsdaten). Der Einzelunternehmer-Modus
+ * (EÜR) lief früher über einen eigenen `businessOnly`-Sonderweg und ist hier
+ * aufgegangen — ein Mechanismus statt zwei.
  *
  * Zwei Ebenen, weil Lebensphase und Lebensumstand unabhängig voneinander sind
  * (Familie *und* verschuldet, Ruhestand *und* vermietend):
@@ -104,6 +104,44 @@ export const NAV_FEATURE_PATHS: Record<NavFeatureId, string> = {
 
 const FEATURE_ORDER = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
 
+/**
+ * Bereiche, die auch **ohne** getroffene Auswahl verborgen bleiben — echtes
+ * Opt-in statt Default-an („Ruhe vor Fülle").
+ *
+ * Das löst den früheren `businessOnly`-Sonderweg für die EÜR ab: statt eines
+ * zweiten Gating-Mechanismus neben der Bereichsauswahl trägt der Katalog
+ * dieses eine Merkmal. Ohne das Merkmal bekäme jeder Bestandsnutzer
+ * (`enabled_nav_features === null` = keine Einschränkung) die EÜR ungefragt
+ * eingeblendet.
+ */
+export const DEFAULT_OFF_FEATURES: readonly NavFeatureId[] = ['euer'];
+
+/**
+ * Ist ein Bereich eingeschaltet? `enabledFeatures == null` heißt „keine
+ * Auswahl getroffen" — dann gilt alles als an, außer den Opt-in-Bereichen.
+ */
+export function isFeatureEnabled(
+  feature: NavFeatureId,
+  enabledFeatures?: readonly NavFeatureId[] | null,
+): boolean {
+  if (enabledFeatures == null) return !DEFAULT_OFF_FEATURES.includes(feature);
+  return enabledFeatures.includes(feature);
+}
+
+/**
+ * Einzelunternehmer-Modus — **abgeleitet**, nicht gespeichert.
+ *
+ * Schaltet neben der EÜR-Seite auch Fachlogik frei (Steuer-Stufe im
+ * Liquiditäts-Wasserfall, EÜR-Kandidaten auf Geschäftskonten). Genau deshalb
+ * darf es kein zweites Flag neben `enabled_nav_features` geben: sonst könnten
+ * sichtbare Navigation und rechnende Logik auseinanderlaufen.
+ */
+export function isBusinessModeEnabled(
+  enabledFeatures?: readonly NavFeatureId[] | null,
+): boolean {
+  return isFeatureEnabled('euer', enabledFeatures);
+}
+
 const PATH_TO_FEATURE = new Map<string, NavFeatureId>(
   FEATURE_ORDER.map((feature) => [NAV_FEATURE_PATHS[feature], feature]),
 );
@@ -117,24 +155,23 @@ export function navFeatureForPath(path: string): NavFeatureId | null {
  * Darf ein Nav-Ziel angezeigt werden?
  *
  * `enabledFeatures == null` bedeutet „keine Auswahl getroffen" (Bestandsnutzer,
- * Onboarding übersprungen) — dann bleibt alles sichtbar. Kernpfade und Pfade
- * ohne Feature-Zuordnung bleiben immer sichtbar: Ausblenden ist eine bewusste
+ * Onboarding übersprungen) — dann bleibt alles sichtbar außer den
+ * Opt-in-Bereichen ({@link DEFAULT_OFF_FEATURES}). Kernpfade und Pfade ohne
+ * Feature-Zuordnung bleiben immer sichtbar: Ausblenden ist eine bewusste
  * Entscheidung, kein Nebeneffekt einer fehlenden Zuordnung.
  */
 export function isNavPathVisible(
   path: string,
   enabledFeatures?: readonly NavFeatureId[] | null,
 ): boolean {
-  if (enabledFeatures == null) return true;
   if (ALWAYS_VISIBLE_NAV_PATHS.includes(path)) return true;
   const feature = navFeatureForPath(path);
   if (!feature) return true;
-  return enabledFeatures.includes(feature);
+  return isFeatureEnabled(feature, enabledFeatures);
 }
 
 /** Einstellungen, die eine Lebenssituation mit vorbelegt (bestehende `UserSettings`-Felder). */
 export interface LifeSituationSettings {
-  business_mode?: boolean;
   tax_reserve_percent?: number;
   gentle_mode?: boolean;
   enable_subcategories?: boolean;
@@ -146,8 +183,9 @@ export interface LifeSituation {
   descriptionKey: string;
   /** Vorausgewählte Bereiche. Kernbereiche stehen bewusst nicht darin. */
   features: NavFeatureId[];
-  /** Vorbelegte Einstellungen (ohne `business_mode` — das leitet sich aus `euer` ab). */
-  settings?: Omit<LifeSituationSettings, 'business_mode'>;
+  /** Vorbelegte Einstellungen. Der Einzelunternehmer-Modus steht NICHT hier —
+   *  er leitet sich aus dem Bereich `euer` ab ({@link isBusinessModeEnabled}). */
+  settings?: LifeSituationSettings;
 }
 
 export interface Modifier {
@@ -163,7 +201,7 @@ const DEFAULT_TAX_RESERVE_PERCENT = 30;
 function lifeSituation(
   id: LifeSituationId,
   features: NavFeatureId[],
-  settings?: Omit<LifeSituationSettings, 'business_mode'>,
+  settings?: LifeSituationSettings,
 ): LifeSituation {
   return {
     id,
@@ -328,11 +366,9 @@ export function resolveFeatureSelection(
   }
 
   const settings: LifeSituationSettings = { ...selected.settings };
-  // `business_mode` wird abgeleitet, nicht separat gepflegt: sonst könnten
-  // Nav-Sichtbarkeit (`euer`) und Fachlogik (Steuer-Tank, Wasserfall-Stufe)
-  // auseinanderlaufen.
+  // Kommt die EÜR erst über einen Modifikator dazu (Nebengewerbe), fehlt der
+  // Lebenssituation ein Rücklage-Vorschlag — dann greift der Standardsatz.
   if (features.has('euer')) {
-    settings.business_mode = true;
     settings.tax_reserve_percent = selected.settings?.tax_reserve_percent ?? DEFAULT_TAX_RESERVE_PERCENT;
   }
 

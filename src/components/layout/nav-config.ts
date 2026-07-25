@@ -36,8 +36,6 @@ export type NavItem = {
   subtitle?: string;
   /** i18n-Key für den Untertitel; `subtitle` dient als Fallback (DE). */
   subtitleKey?: string;
-  /** Nur im Einzelunternehmer-Modus sichtbar (Route bleibt immer registriert). */
-  businessOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -121,7 +119,6 @@ export const NAV_GROUPS: NavGroup[] = [
         labelKey: "nav.items.euer",
         path: "/euer",
         icon: Briefcase,
-        businessOnly: true,
         subtitle: "Einnahmen − Ausgaben = Gewinn",
         subtitleKey: "nav.subtitles.euer",
       },
@@ -193,28 +190,24 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
 };
 
 /**
- * Liefert die sichtbaren Nav-Gruppen. Zwei unabhängige Filter:
+ * Liefert die sichtbaren Nav-Gruppen anhand der im Onboarding getroffenen
+ * Bereichsauswahl (`@/lib/life-situations`).
  *
- * - `businessOnly`-Ziele (EÜR) erscheinen nur im Einzelunternehmer-Modus
- *   („Ruhe vor Fülle" — Opt-in).
- * - `enabledFeatures` ist die im Onboarding getroffene Bereichsauswahl
- *   (`@/lib/life-situations`). `null`/`undefined` heißt „keine Auswahl getroffen"
- *   und zeigt alles — Bestandsnutzer verlieren durch das Onboarding nichts.
+ * `null`/`undefined` heißt „keine Auswahl getroffen" und zeigt alles bis auf
+ * die Opt-in-Bereiche (`DEFAULT_OFF_FEATURES`, aktuell die EÜR) —
+ * Bestandsnutzer verlieren durch das Onboarding nichts und bekommen zugleich
+ * nichts ungefragt dazu.
  *
- * Beides betrifft ausschließlich die **Anzeige**: die Routen bleiben immer
+ * Betrifft ausschließlich die **Anzeige**: die Routen bleiben immer
  * registriert (Deep-Links, Coach-Verlinkungen, Bestandsdaten), und jeder
  * Bereich lässt sich in den Einstellungen wieder einschalten.
  */
 export function getVisibleNavGroups(
-  businessMode: boolean,
   enabledFeatures?: readonly NavFeatureId[] | null,
 ): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter(
-      (item) =>
-        (businessMode || !item.businessOnly) && isNavPathVisible(item.path, enabledFeatures),
-    ),
+    items: group.items.filter((item) => isNavPathVisible(item.path, enabledFeatures)),
   })).filter((group) => group.items.length > 0);
 }
 

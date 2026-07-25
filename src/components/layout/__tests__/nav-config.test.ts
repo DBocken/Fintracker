@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { NAV_GROUPS, getBottomNavItems, getVisibleNavGroups } from "../nav-config";
 import {
   ALWAYS_VISIBLE_NAV_PATHS,
+  DEFAULT_OFF_FEATURES,
   NAV_FEATURE_PATHS,
   resolveFeatureSelection,
   type NavFeatureId,
@@ -65,6 +66,9 @@ describe("getBottomNavItems (Issue #42)", () => {
 });
 
 describe("getVisibleNavGroups", () => {
+  const visiblePaths = (features?: readonly NavFeatureId[] | null): string[] =>
+    getVisibleNavGroups(features).flatMap((g) => g.items).map((i) => i.path);
+
   beforeEach(() => {
     localStorage.clear();
   });
@@ -72,53 +76,50 @@ describe("getVisibleNavGroups", () => {
   it("[REGRESSION] zeigt Trading ohne Beta-Flag und ohne Premium-Gate (Nutzer-Entscheid)", () => {
     // Trading war zuvor doppelt versteckt (trading_beta-Flag + Premium-Tier)
     // und leitete Nutzer verwirrend zum Coach um. Jetzt normal sichtbar.
-    const trading = getVisibleNavGroups(false)
+    const trading = getVisibleNavGroups()
       .flatMap((g) => g.items)
       .find((i) => i.path === "/trading");
     expect(trading).toBeDefined();
     expect(trading?.requiredTier).not.toBe("premium");
   });
 
-  it("lässt im Business-Modus alle Nav-Ziele sichtbar", () => {
-    const visiblePaths = getVisibleNavGroups(true).flatMap((g) => g.items).map((i) => i.path);
-    const allPaths = NAV_GROUPS.flatMap((g) => g.items).map((i) => i.path);
-    expect(visiblePaths).toEqual(allPaths);
-  });
-
-  describe("businessOnly-Gating (Einzelunternehmer, „Ruhe vor Fülle“)", () => {
-    it("versteckt /euer ohne Business-Modus (Default)", () => {
-      const paths = getVisibleNavGroups(false).flatMap((g) => g.items).map((i) => i.path);
-      expect(paths).not.toContain("/euer");
+  describe("EÜR als Opt-in-Bereich (Einzelunternehmer, „Ruhe vor Fülle“)", () => {
+    it("[REGRESSION] versteckt /euer ohne getroffene Auswahl", () => {
+      // Früher über den businessOnly-Sonderweg, jetzt über DEFAULT_OFF_FEATURES —
+      // das Verhalten für Bestandsnutzer muss identisch bleiben.
+      expect(visiblePaths(null)).not.toContain("/euer");
     });
 
-    it("zeigt /euer im Business-Modus in der Analysen-Gruppe", () => {
-      const analysen = getVisibleNavGroups(true).find((g) => g.id === "analysen");
+    it("zeigt /euer in der Analysen-Gruppe, sobald der Bereich gewählt ist", () => {
+      const analysen = getVisibleNavGroups(["euer"]).find((g) => g.id === "analysen");
       expect(analysen?.items.map((i) => i.path)).toContain("/euer");
     });
 
-    it("[REGRESSION] versteckt außer businessOnly-Zielen nichts", () => {
+    it("[REGRESSION] versteckt ohne Auswahl außer /euer nichts", () => {
       const hidden = NAV_GROUPS.flatMap((g) => g.items)
-        .filter((i) => !getVisibleNavGroups(false).flatMap((g) => g.items).some((v) => v.path === i.path));
-      expect(hidden.every((i) => i.businessOnly)).toBe(true);
-      expect(hidden.map((i) => i.path)).toEqual(["/euer"]);
+        .map((i) => i.path)
+        .filter((path) => !visiblePaths(null).includes(path));
+      expect(hidden).toEqual(["/euer"]);
+    });
+
+    it("führt kein zweites Gating mehr neben der Bereichsauswahl", () => {
+      // Der businessOnly-Sonderweg ist ersatzlos entfallen: ein Mechanismus.
+      expect(NAV_GROUPS.flatMap((g) => g.items).every((i) => !("businessOnly" in i))).toBe(true);
     });
   });
 
   describe("Situations-Filter (Onboarding)", () => {
-    const visiblePaths = (
-      businessMode: boolean,
-      features?: readonly NavFeatureId[] | null,
-    ): string[] => getVisibleNavGroups(businessMode, features).flatMap((g) => g.items).map((i) => i.path);
-
-    it("[REGRESSION] zeigt ohne gewählte Lebenssituation alles wie bisher (Bestandsnutzer)", () => {
+    it("[REGRESSION] zeigt ohne gewählte Lebenssituation alles außer den Opt-in-Bereichen", () => {
       // null = Onboarding nie durchlaufen. Ein Update darf niemandem
       // stillschweigend die halbe Navigation wegnehmen.
-      expect(visiblePaths(false, null)).toEqual(visiblePaths(false));
-      expect(visiblePaths(true, undefined)).toEqual(visiblePaths(true));
+      const all = NAV_GROUPS.flatMap((g) => g.items).map((i) => i.path);
+      const optIn = DEFAULT_OFF_FEATURES.map((f) => NAV_FEATURE_PATHS[f]);
+      expect(visiblePaths(null)).toEqual(all.filter((p) => !optIn.includes(p)));
+      expect(visiblePaths(undefined)).toEqual(visiblePaths(null));
     });
 
     it("versteckt nicht gewählte Bereiche in der Navigation", () => {
-      const paths = visiblePaths(false, ["budgets", "milestones"]);
+      const paths = visiblePaths(["budgets", "milestones"]);
       expect(paths).toContain("/budgets");
       expect(paths).toContain("/milestones");
       expect(paths).not.toContain("/trading");
@@ -126,7 +127,7 @@ describe("getVisibleNavGroups", () => {
     });
 
     it("hält Kernbereiche auch bei leerer Auswahl sichtbar", () => {
-      const paths = visiblePaths(false, []);
+      const paths = visiblePaths([]);
       for (const corePath of ALWAYS_VISIBLE_NAV_PATHS) {
         expect(paths).toContain(corePath);
       }
@@ -135,34 +136,27 @@ describe("getVisibleNavGroups", () => {
     it("[REGRESSION] lässt die mobilen Bottom-Nav-Ziele nie verschwinden", () => {
       // getBottomNavItems() zieht seine Ziele aus NAV_GROUPS — fehlt eines,
       // verliert die Bottom-Nav kommentarlos einen Tab.
-      const paths = visiblePaths(false, []);
+      const paths = visiblePaths([]);
       for (const item of getBottomNavItems()) {
         expect(paths).toContain(item.path);
       }
     });
 
     it("hält den Rückweg in die Einstellungen offen (sonst sperrt man sich aus)", () => {
-      expect(visiblePaths(false, [])).toContain("/settings");
-    });
-
-    it("blendet EÜR nur ein, wenn Feature UND Business-Modus gesetzt sind", () => {
-      expect(visiblePaths(false, ["euer"])).not.toContain("/euer");
-      expect(visiblePaths(true, [])).not.toContain("/euer");
-      expect(visiblePaths(true, ["euer"])).toContain("/euer");
+      expect(visiblePaths([])).toContain("/settings");
     });
 
     it("zeigt für eine Lebenssituation genau deren Bereiche plus die Kernbereiche", () => {
-      const { features, settings } = resolveFeatureSelection("student_school", []);
-      const paths = visiblePaths(Boolean(settings.business_mode), features);
+      const { features } = resolveFeatureSelection("student_school", []);
       const expected = [
         ...ALWAYS_VISIBLE_NAV_PATHS,
         ...features.map((f) => NAV_FEATURE_PATHS[f]),
       ].sort();
-      expect([...paths].sort()).toEqual(expected);
+      expect([...visiblePaths(features)].sort()).toEqual(expected);
     });
 
     it("lässt keine leeren Gruppen in der Navigation zurück", () => {
-      for (const group of getVisibleNavGroups(false, [])) {
+      for (const group of getVisibleNavGroups([])) {
         expect(group.items.length).toBeGreaterThan(0);
       }
     });

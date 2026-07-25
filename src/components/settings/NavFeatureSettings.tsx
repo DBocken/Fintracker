@@ -3,7 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import FeatureSelection from '@/components/onboarding/FeatureSelection';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
-import { LIFE_SITUATIONS, NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
+import {
+  LIFE_SITUATIONS,
+  NAV_FEATURE_PATHS,
+  isBusinessModeEnabled,
+  type NavFeatureId,
+} from '@/lib/life-situations';
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
@@ -69,6 +74,17 @@ export default function NavFeatureSettings() {
             })
           }
         />
+
+        {isBusinessModeEnabled(stored) && (
+          // Der abgelöste Einzelunternehmer-Schalter trug diesen Hinweis; ohne
+          // markierte Geschäftskonten bleibt die EÜR leer. Bestehender Key.
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'settings.businessMode.hint',
+              'Markiere anschließend deine Geschäftskonten in der Kontoverwaltung.',
+            )}
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button

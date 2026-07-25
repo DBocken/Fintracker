@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
-import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useNavFeatures } from "@/hooks/useNavFeatures";
 
 /** Event, mit dem z. B. der „Mehr"-Tab der Bottom-Nav dieses Sheet öffnet (Issue #42). */
@@ -16,7 +15,7 @@ export const OPEN_NAV_SHEET_EVENT = "open-nav-sheet";
 
 export default function MobileNav() {
   const { t } = useI18n();
-  const navGroups = getVisibleNavGroups(useBusinessMode(), useNavFeatures());
+  const navGroups = getVisibleNavGroups(useNavFeatures());
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import type { WaterfallInput, WaterfallResult } from "@/lib/budget-waterfall";
 import { computeWaterfall } from "@/lib/budget-waterfall";
 import { median } from "@/lib/budget-adaptive";
 import { monthKeyOf } from "@/lib/budget-logic";
+import { isBusinessModeEnabled } from "@/lib/life-situations";
 import { currentMonthKey, lastNMonths } from "./budget-service";
 import { getCategories, getTransactions } from "./transaction-service";
 import { getAllocationMap } from "./transaction-allocation-service";
@@ -61,7 +62,7 @@ export async function getWaterfallPlan(
 
   // Steuer-Stufe nur im Einzelunternehmer-Modus und mit aktivem Prozentsatz.
   const taxPercent = resolveTaxReservePercent(settings);
-  const trackBusinessIncome = Boolean(settings.business_mode) && taxPercent > 0;
+  const trackBusinessIncome = isBusinessModeEnabled(settings.enabled_nav_features) && taxPercent > 0;
   const businessAccountIds = new Set(accounts.filter((a) => a.is_business).map((a) => a.id));
 
   for (const tx of transactions) {

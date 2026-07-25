@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Plus, Settings } from "lucide-react";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { useI18n } from "@/i18n/useI18n";
-import { useBusinessMode } from "@/hooks/useBusinessMode";
 import { useNavFeatures } from "@/hooks/useNavFeatures";
 import {
   Command,
@@ -28,7 +27,6 @@ type QuickAction = {
 export default function CommandPalette() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const businessMode = useBusinessMode();
   const navFeatures = useNavFeatures();
   const [open, setOpen] = useState(false);
 
@@ -108,7 +106,7 @@ export default function CommandPalette() {
 
           <CommandSeparator />
 
-          {getVisibleNavGroups(businessMode, navFeatures).map((g) => (
+          {getVisibleNavGroups(navFeatures).map((g) => (
             <CommandGroup key={g.id} heading={t(g.labelKey ?? "", g.label)}>
               {g.items.map((item) => {
                 const Icon = item.icon;

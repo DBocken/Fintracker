@@ -16,7 +16,8 @@ können aber jederzeit alles aktivieren. Die Auswahl steuert ausschließlich die
   auch wenn der Bereich ausgeblendet ist.
 - Bestandsdaten bleiben sichtbar und werden weiter berechnet.
 - Genau dieses Muster gab es bereits für den Einzelunternehmer-Modus
-  (`businessOnly` in `nav-config.ts`); das Onboarding verallgemeinert es.
+  (`businessOnly` in `nav-config.ts`). Dieser Sonderweg ist inzwischen
+  aufgegangen — es gibt nur noch einen Mechanismus (siehe „Opt-in-Bereiche").
 
 ## Zwei Ebenen
 
@@ -55,7 +56,7 @@ Deshalb:
 | `employed_stable` | Angestellt, Haushalt läuft | Fixkosten im Griff; Frage ist Optimierung und Vermögensaufbau. | + Anlässe, Trends & Berichte, Trading |
 | `family` | Familie mit Kindern | Geteilte Haushaltskasse; der Schmerz sind die großen unregelmäßigen Ausgaben. | Liquidität, Budgets, Meilensteine, **Anlässe**, Steuer, Nettovermögen, Trends, Verträge |
 | `single_parent` | Alleinerziehend | Ein Einkommen trägt alles, Unterhalt läuft rein und raus. | + Schulden; ohne Vermögens-/Trading-Themen |
-| `self_employed` | Selbstständig / freiberuflich | Schwankende Umsätze, nachgelagerte Steuer. | + **EÜR**, `business_mode`, Rücklage 30 % |
+| `self_employed` | Selbstständig / freiberuflich | Schwankende Umsätze, nachgelagerte Steuer. | + **EÜR** (schaltet den Einzelunternehmer-Modus), Rücklage 30 % |
 | `creator` | Creator oder Influencer | Plattform-Auszahlungen aus vielen Quellen, Sachbezüge, Equipment als Investition. | wie `self_employed`, Rücklage 35 %, + Trends |
 | `retired` | Ruhestand | Feste Bezüge, Vermögens*verzehr* statt -aufbau. | Liquidität, Budgets, Meilensteine, Steuer, Nettovermögen, Trading, Verträge |
 | `debt_focus` | Schulden abbauen | Geringes Einkommen, Jobverlust, Bürgergeld, Trennung. Bis zum Monatsende kommen. | Schulden, Liquidität, Budgets, Meilensteine, Verträge |
@@ -66,7 +67,7 @@ Deshalb:
   Feature-Konsequenz ist gegenläufig zu `family`: nichts wird geteilt, ein
   Einkommen trägt alles, der Puffer muss sitzen. Als Umstand hätte sie nur
   hinzufügen können — nötig ist aber ein anderer Zuschnitt.
-- **`creator` ist von `self_employed` getrennt**, obwohl beide `business_mode`
+- **`creator` ist von `self_employed` getrennt**, obwohl beide die EÜR
   setzen: das Selbstverständnis ist ein anderes, die Rücklage liegt höher, und
   das Tier-System kennt bereits ein `creatorPack`.
 - **`student_school` bekommt bewusst weder Steuer noch Depot noch
@@ -87,7 +88,7 @@ Deshalb:
 | `investing` | Ich lege Geld an | Trading, Nettovermögen |
 | `irregular_income` | Meine Einnahmen schwanken | Liquidität, Einkommen |
 | `commute` | Ich pendle oder arbeite im Homeoffice | Steuer |
-| `side_business` | Ich habe Nebeneinkünfte oder ein Kleingewerbe | EÜR (+ `business_mode`), Steuer |
+| `side_business` | Ich habe Nebeneinkünfte oder ein Kleingewerbe | EÜR (schaltet den Einzelunternehmer-Modus), Steuer |
 | `property` | Ich besitze oder vermiete eine Immobilie | Nettovermögen, Steuer |
 
 Aufgenommen ist nur, was tatsächlich einen Nav-Bereich schaltet. Ein Chip ohne
@@ -113,6 +114,41 @@ Gründe:
   ausblendbar, könnte man sich selbst aussperren.
 - `/accounts`, `/csv`, `/export` sind Dateneingang und -ausgang.
 
+## Opt-in-Bereiche
+
+Ein Bereich in `DEFAULT_OFF_FEATURES` bleibt auch dann verborgen, wenn gar
+keine Auswahl getroffen wurde. Aktuell steht dort genau die **EÜR**.
+
+Das löst den früheren `businessOnly`-Sonderweg ab. Vorher gab es zwei
+Gating-Mechanismen nebeneinander — das gespeicherte Flag `business_mode` und
+die Bereichsauswahl —, und `/euer` verlangte beide. Jetzt trägt der Katalog
+ein Merkmal, und der Einzelunternehmer-Modus **leitet sich ab**:
+
+```ts
+isBusinessModeEnabled(enabled_nav_features)  // = enthält 'euer'
+```
+
+Das ist keine Kosmetik. `business_mode` schaltete nicht nur Navigation, sondern
+auch rechnende Logik frei: die Steuer-Stufe im Liquiditäts-Wasserfall
+(`waterfall-service.ts`) und die EÜR-Kandidaten auf Geschäftskonten. Mit zwei
+Quellen hätten sichtbare Navigation und Berechnung auseinanderlaufen können.
+
+Ohne das Opt-in-Merkmal hätte die Zusammenlegung jedem Bestandsnutzer
+(`enabled_nav_features === null` = keine Einschränkung) die EÜR ungefragt
+eingeblendet.
+
+### Migration
+
+`local-settings-service` räumt das Altfeld beim ersten Lesen einmalig:
+
+| Altzustand | Ergebnis |
+|---|---|
+| `business_mode: true`, keine Bereichsauswahl | volle Bereichsliste inkl. `euer` — er sah vorher alles, das bleibt so |
+| `business_mode: true`, Auswahl vorhanden | Auswahl bleibt unangetastet |
+| `business_mode: false`/nicht gesetzt | keine Auswahl erfunden; EÜR bleibt als Opt-in verborgen |
+
+In allen Fällen wird `business_mode` entfernt — eine Quelle der Wahrheit.
+
 ## Persistenz
 
 In `UserSettings` (lokal, wie alle Einstellungen):
@@ -127,9 +163,10 @@ Gefiltert wird ausschließlich über `enabled_nav_features`, nicht über den
 Lebenssituation. Nur so überschreibt ein späterer Wechsel der Lebenssituation keine manuell
 getroffenen Entscheidungen.
 
-`business_mode` wird aus dem Feature `euer` **abgeleitet** statt doppelt
-gepflegt — sonst könnten Nav-Sichtbarkeit und Fachlogik (Steuer-Tank,
-Steuerstufe im Wasserfall) auseinanderlaufen.
+Der Einzelunternehmer-Modus ist **kein eigenes Feld mehr** (siehe
+„Opt-in-Bereiche"). `UserSettings.business_mode` existiert nur noch als
+`@deprecated`-Altfeld, damit die einmalige Migration es lesen und räumen kann;
+geschrieben wird es nirgends.
 
 ## Verhalten für Bestandsnutzer
 

@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
 import { getUserSettings } from '@/services/user-settings-service';
+import { useBusinessMode } from '@/hooks/useBusinessMode';
 import { getTaxReserveState } from '@/services/tax-reserve-service';
 import { buildEuerReport } from '@/lib/euer-report';
 import { resolveTaxReservePercent } from '@/lib/tax-reserve';
@@ -39,6 +40,7 @@ export default function EuerPage() {
   const { data: categories = [] } = useQuery({ queryKey: ['categories', locale], queryFn: getCategories });
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  const businessMode = useBusinessMode();
 
   const years = useMemo(() => {
     const fromData = listAvailablePeriods(transactions, 'Jahr').map((p) => Number(p.value));
@@ -96,7 +98,7 @@ export default function EuerPage() {
 
       <EuerWarningsCard
         report={report}
-        showCandidates={Boolean(settings?.business_mode)}
+        showCandidates={businessMode}
         onOpenTransaction={openTransaction}
       />
 

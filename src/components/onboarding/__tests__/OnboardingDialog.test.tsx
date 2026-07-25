@@ -6,7 +6,7 @@ import { renderWithProviders } from '@/test-utils/render';
 import OnboardingDialog from '../OnboardingDialog';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
-import { resolveFeatureSelection } from '@/lib/life-situations';
+import { isBusinessModeEnabled, resolveFeatureSelection } from '@/lib/life-situations';
 
 beforeEach(() => {
   localStorage.clear();
@@ -88,8 +88,10 @@ describe('OnboardingDialog', () => {
       expect(settings.enabled_nav_features).toEqual(
         resolveFeatureSelection('self_employed', []).features,
       );
-      // Der bestehende business_mode wird mitgesetzt, nicht ersetzt.
-      expect(settings.business_mode).toBe(true);
+      // Der Einzelunternehmer-Modus wird abgeleitet, nicht als zweites Flag
+      // gespeichert — die gewählte EÜR ist die einzige Quelle.
+      expect(isBusinessModeEnabled(settings.enabled_nav_features)).toBe(true);
+      expect(settings.business_mode).toBeUndefined();
       expect(settings.tax_reserve_percent).toBe(30);
     });
   });

@@ -5,6 +5,9 @@ import {
   LIFE_SITUATIONS,
   MODIFIERS,
   NAV_FEATURE_PATHS,
+  isBusinessModeEnabled,
+  isFeatureEnabled,
+  DEFAULT_OFF_FEATURES,
   resolveFeatureSelection,
   type LifeSituationId,
   type ModifierId,
@@ -85,6 +88,31 @@ describe('Feature-Katalog ↔ Navigation', () => {
   });
 });
 
+describe('Opt-in-Bereiche (DEFAULT_OFF_FEATURES)', () => {
+  it('sollte die EÜR ohne getroffene Auswahl verborgen halten („Ruhe vor Fülle")', () => {
+    // Bestandsnutzer haben keine Auswahl getroffen. Ohne dieses Merkmal bekämen
+    // sie die EÜR ungefragt eingeblendet, sobald der businessOnly-Sonderweg fällt.
+    expect(isFeatureEnabled('euer', null)).toBe(false);
+    expect(isBusinessModeEnabled(null)).toBe(false);
+  });
+
+  it('sollte alle übrigen Bereiche ohne Auswahl anzeigen', () => {
+    for (const feature of ALL_FEATURE_IDS.filter((f) => !DEFAULT_OFF_FEATURES.includes(f))) {
+      expect(isFeatureEnabled(feature, null)).toBe(true);
+    }
+  });
+
+  it('sollte einen Opt-in-Bereich zeigen, sobald er ausdrücklich gewählt ist', () => {
+    expect(isFeatureEnabled('euer', ['euer'])).toBe(true);
+    expect(isBusinessModeEnabled(['euer'])).toBe(true);
+  });
+
+  it('sollte einen abgewählten Opt-in-Bereich verborgen halten', () => {
+    expect(isFeatureEnabled('euer', ['budgets'])).toBe(false);
+    expect(isBusinessModeEnabled(['budgets'])).toBe(false);
+  });
+});
+
 describe('resolveFeatureSelection', () => {
   it('sollte die Vorauswahl der Lebenssituation liefern', () => {
     const { features } = resolveFeatureSelection('student_university', []);
@@ -140,31 +168,31 @@ describe('resolveFeatureSelection', () => {
 });
 
 describe('Situationsspezifische Vorauswahl', () => {
-  it('sollte für Selbstständige den bestehenden business_mode setzen', () => {
+  it('sollte für Selbstständige die EÜR vorauswählen', () => {
     const { features, settings } = resolveFeatureSelection('self_employed', []);
     expect(features).toContain('euer');
-    expect(settings.business_mode).toBe(true);
     expect(settings.tax_reserve_percent).toBeGreaterThan(0);
   });
 
   it('sollte für Creator eine höhere Steuerrücklage vorschlagen als für Selbstständige', () => {
     const creator = resolveFeatureSelection('creator', []).settings;
     const selfEmployed = resolveFeatureSelection('self_employed', []).settings;
-    expect(creator.business_mode).toBe(true);
     expect(creator.tax_reserve_percent).toBeGreaterThan(selfEmployed.tax_reserve_percent ?? 0);
   });
 
-  it('sollte den business_mode NUR für LifeSituationn mit EÜR-Bezug aktivieren', () => {
+  it('sollte den Einzelunternehmer-Modus aus der EÜR ableiten statt ihn separat zu führen', () => {
     for (const lifeSituation of LIFE_SITUATIONS) {
-      const { features, settings } = resolveFeatureSelection(lifeSituation.id, []);
-      expect(Boolean(settings.business_mode)).toBe(features.includes('euer'));
+      const { features } = resolveFeatureSelection(lifeSituation.id, []);
+      expect(isBusinessModeEnabled(features)).toBe(features.includes('euer'));
     }
   });
 
-  it('sollte den business_mode auch über den Nebengewerbe-Modifikator setzen', () => {
+  it('sollte die EÜR auch über den Nebengewerbe-Modifikator einschalten', () => {
     const { features, settings } = resolveFeatureSelection('employed_stable', ['side_business']);
     expect(features).toContain('euer');
-    expect(settings.business_mode).toBe(true);
+    expect(isBusinessModeEnabled(features)).toBe(true);
+    // Ohne eigenen Vorschlag der Lebenssituation greift der Standardsatz.
+    expect(settings.tax_reserve_percent).toBe(30);
   });
 
   it('sollte Schüler:innen bewusst schlank halten (kein Steuer-, EÜR- oder Depot-Ballast)', () => {

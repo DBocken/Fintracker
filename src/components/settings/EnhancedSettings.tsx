@@ -22,7 +22,6 @@ import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
 import { AutoCategorizationSettings } from './AutoCategorizationSettings';
 import TaxReserveSettings from './TaxReserveSettings';
-import BusinessModeSettings from './BusinessModeSettings';
 import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
@@ -33,6 +32,7 @@ import { CloudMcpSyncCard } from './CloudMcpSyncCard';
 import { AppearanceSettings } from './AppearanceSettings';
 import { LanguageSettings } from './LanguageSettings';
 import { HouseholdSettings } from './HouseholdSettings';
+import { useBusinessMode } from '@/hooks/useBusinessMode';
 import NavFeatureSettings from './NavFeatureSettings';
 import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
@@ -75,6 +75,7 @@ export function EnhancedSettings() {
     queryKey: ['userSettings'],
     queryFn: getUserSettings,
   });
+  const businessMode = useBusinessMode();
 
   const { data: categories = [] } = useQuery({
     queryKey: ['hierarchicalCategories'],
@@ -318,10 +319,10 @@ export function EnhancedSettings() {
               onRecategorize={() => recategorizeMutation.mutate()}
               isRecategorizing={recategorizeMutation.isPending}
             />
-            <BusinessModeSettings />
             {/* Prozent-Regler wird vom Einzelunternehmer-Modus mitgenutzt —
-                im Modus sichtbar auch ohne Creator-Pack. */}
-            {settings?.business_mode ? (
+                im Modus sichtbar auch ohne Creator-Pack. Der Modus selbst wird
+                über den Bereich „EÜR" in „Bereiche & Navigation" geschaltet. */}
+            {businessMode ? (
               <TaxReserveSettings />
             ) : (
               <FeatureGate feature="creatorPack" fallback={null}>
