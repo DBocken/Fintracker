@@ -141,7 +141,7 @@ export function ProfileDialogContent() {
             <SelectContent>
               {SKINS.map(s => (
                 <SelectItem key={s.id} value={s.id}>
-                  {s.name}
+                  {t(s.nameKey, s.name)}
                 </SelectItem>
               ))}
             </SelectContent>

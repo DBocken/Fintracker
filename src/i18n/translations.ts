@@ -198,6 +198,14 @@ export const translations = {
       },
     },
     kpi: {
+      savingsRate: {
+        label: 'Sparquote',
+        description: '(Einnahmen − Ausgaben) / Einnahmen',
+      },
+      averageDailyExpenses: {
+        label: 'Ø Tagesausgaben',
+        description: 'Ausgaben / 30',
+      },
       sectionTitle: 'Kennzahlen',
       sectionDescription: 'Wähle KPIs aus und sortiere sie nach Wichtigkeit.',
       customizeButton: 'Dashboard anpassen',
@@ -405,6 +413,23 @@ export const translations = {
     },
     replacementPlanService: {
       notFound: 'Ersatzplan nicht gefunden',
+    },
+    skins: {
+      ruhe: { name: 'Ruhe', description: 'Sandfarben & ruhig — der Standard' },
+      legacy: { name: 'Legacy', description: 'Klassisch, neutrale Graustufen' },
+      clean: { name: 'Clean', description: 'Klare Kontraste, blauer Akzent' },
+      neon: { name: 'Neon (Stranger-Style)', description: 'Dunkle Bühne mit Neon-Akzenten' },
+      imperium: { name: 'Imperium', description: 'Sci-Fi-Kommandobrücke: Cyan-Glow auf Blauschwarz' },
+      sakura: { name: 'Sakura', description: 'Anime-Pastell: weiches Rosé mit Lavendel' },
+      ironMan: { name: 'Iron Man', description: 'Gebürstetes Metall, Hot-Rod-Rot & Arc-Reactor-Gold' },
+      cyberpunk: { name: 'Cyberpunk', description: 'Night City: Magenta/Cyan-Neon mit Glitch-Scanlines' },
+      liquidHolo: { name: 'Liquid Holo', description: 'Schillernd-irisierend: animierte Hologramm-Kanten' },
+    },
+    sankey: {
+      accountFallback: 'Konto',
+      income: 'Einnahmen',
+      otherMains: 'Weitere',
+      surplus: 'Übrig',
     },
     autoCategorization: {
       title: 'Auto-Kategorisierung',
@@ -3973,6 +3998,7 @@ export const translations = {
       incomeReduction: 'Einkommensausfall',
       acquisition: 'Anschaffung',
       additionalIncome: 'Zusätzliche Einnahme',
+      moreIncome: 'Mehr-Einkommen',
       higherCosts: 'Höhere Alltagskosten',
     },
     snapshotSyncService: {
@@ -4158,6 +4184,14 @@ export const translations = {
       },
     },
     kpi: {
+      savingsRate: {
+        label: 'Savings rate',
+        description: '(Income − expenses) / income',
+      },
+      averageDailyExpenses: {
+        label: 'Ø daily spending',
+        description: 'Expenses / 30',
+      },
       sectionTitle: 'Key Figures',
       sectionDescription: 'Select KPIs and sort them by importance.',
       customizeButton: 'Customize dashboard',
@@ -4365,6 +4399,23 @@ export const translations = {
     },
     replacementPlanService: {
       notFound: 'Replacement plan not found',
+    },
+    skins: {
+      ruhe: { name: 'Calm', description: 'Sand tones, quiet — the default' },
+      legacy: { name: 'Legacy', description: 'Classic, neutral greys' },
+      clean: { name: 'Clean', description: 'Crisp contrast, blue accent' },
+      neon: { name: 'Neon (Stranger style)', description: 'Dark stage with neon accents' },
+      imperium: { name: 'Imperium', description: 'Sci-fi bridge: cyan glow on blue-black' },
+      sakura: { name: 'Sakura', description: 'Anime pastel: soft rosé with lavender' },
+      ironMan: { name: 'Iron Man', description: 'Brushed metal, hot-rod red & arc-reactor gold' },
+      cyberpunk: { name: 'Cyberpunk', description: 'Night City: magenta/cyan neon with glitch scanlines' },
+      liquidHolo: { name: 'Liquid Holo', description: 'Iridescent shimmer: animated hologram edges' },
+    },
+    sankey: {
+      accountFallback: 'Account',
+      income: 'Income',
+      otherMains: 'Other',
+      surplus: 'Left over',
     },
     autoCategorization: {
       title: 'Auto-categorisation',
@@ -7933,6 +7984,7 @@ export const translations = {
       incomeReduction: 'Income loss',
       acquisition: 'Acquisition',
       additionalIncome: 'Additional income',
+      moreIncome: 'Extra income',
       higherCosts: 'Higher everyday costs',
     },
     snapshotSyncService: {
@@ -11906,6 +11958,14 @@ export const translations = {
       },
     },
     kpi: {
+      savingsRate: {
+        label: 'Норма сбережений',
+        description: '(Доходы − расходы) / доходы',
+      },
+      averageDailyExpenses: {
+        label: 'Ø расходы в день',
+        description: 'Расходы / 30',
+      },
       sectionTitle: 'Ключевые показатели',
       sectionDescription: 'Выберите показатели и отсортируйте их по важности.',
       customizeButton: 'Настроить панель',
@@ -12113,6 +12173,23 @@ export const translations = {
     },
     replacementPlanService: {
       notFound: 'План замены не найден',
+    },
+    skins: {
+      ruhe: { name: 'Спокойствие', description: 'Песочные тона, спокойный — по умолчанию' },
+      legacy: { name: 'Legacy', description: 'Классические нейтральные оттенки серого' },
+      clean: { name: 'Clean', description: 'Чёткий контраст, синий акцент' },
+      neon: { name: 'Neon (в стиле Stranger)', description: 'Тёмная сцена с неоновыми акцентами' },
+      imperium: { name: 'Imperium', description: 'Sci-fi рубка: голубое свечение на сине-чёрном' },
+      sakura: { name: 'Sakura', description: 'Аниме-пастель: мягкий розовый с лавандой' },
+      ironMan: { name: 'Iron Man', description: 'Матовый металл, красный хот-род и золото реактора' },
+      cyberpunk: { name: 'Cyberpunk', description: 'Night City: пурпурно-голубой неон со сканлайнами' },
+      liquidHolo: { name: 'Liquid Holo', description: 'Переливающийся блеск: анимированные грани голограммы' },
+    },
+    sankey: {
+      accountFallback: 'Счёт',
+      income: 'Доходы',
+      otherMains: 'Прочее',
+      surplus: 'Остаток',
     },
     autoCategorization: {
       title: 'Автокатегоризация',
@@ -15681,6 +15758,7 @@ export const translations = {
       incomeReduction: 'Потеря дохода',
       acquisition: 'Приобретение',
       additionalIncome: 'Дополнительный доход',
+      moreIncome: 'Дополнительный заработок',
       higherCosts: 'Более высокие повседневные расходы',
     },
     snapshotSyncService: {

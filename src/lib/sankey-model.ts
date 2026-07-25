@@ -8,6 +8,7 @@
 // der Hauptkategorie gebuchte Beträge ohne Unterkategorie).
 
 import type { SankeyData } from "@/lib/analysis-data";
+import { t } from "@/i18n/serviceT";
 
 export interface SankeyModelNode {
   name: string;
@@ -51,7 +52,7 @@ function accountsWithFallback(data: SankeyData, totalExpenses: number) {
     : [
         {
           id: "account",
-          name: "Konto",
+          name: t("sankey.accountFallback"),
           income: data.totalIncome,
           expenses: totalExpenses,
           net: data.totalIncome - totalExpenses,
@@ -144,7 +145,7 @@ export function buildSankeyModel(data: SankeyData, opts: BuildSankeyOptions = {}
     const accounts = accountsWithFallback(data, totalExpenses);
     let incomeIndex = -1;
     if (data.totalIncome > 0) {
-      incomeIndex = push({ name: "Einnahmen", id: "income", type: "income", amount: data.totalIncome });
+      incomeIndex = push({ name: t("sankey.income"), id: "income", type: "income", amount: data.totalIncome });
     }
     accounts.forEach((acc) => {
       const ai = push({ name: acc.name, id: acc.id, type: "account", amount: acc.expenses, net: acc.net, color: acc.color });
@@ -172,7 +173,7 @@ export function buildSankeyModel(data: SankeyData, opts: BuildSankeyOptions = {}
   const weitereAmount = totalExpenses - topMains.reduce((s, m) => s + m.amount, 0);
 
   let incomeIndex = -1;
-  if (drawIncome) incomeIndex = push({ name: "Einnahmen", id: "income", type: "income", amount: data.totalIncome });
+  if (drawIncome) incomeIndex = push({ name: t("sankey.income"), id: "income", type: "income", amount: data.totalIncome });
 
   // Ausgehende Einnahmen-Links sammeln, um Rundung exakt auszugleichen.
   const incomeOut: SankeyModelLink[] = [];
@@ -190,14 +191,14 @@ export function buildSankeyModel(data: SankeyData, opts: BuildSankeyOptions = {}
 
   let weitereLink: SankeyModelLink | null = null;
   if (weitereAmount > SAVINGS_MIN) {
-    const wi = push({ name: "Weitere", id: "__weitere_mains", type: "expense-main", amount: weitereAmount });
+    const wi = push({ name: t("sankey.otherMains"), id: "__weitere_mains", type: "expense-main", amount: weitereAmount });
     if (incomeIndex >= 0) weitereLink = addIncomeLink(wi, Math.round(weitereAmount), `Einnahmen → Weitere`);
   }
 
   // "Übrig" nur bei echtem Überschuss (kein erfundener Knoten aus Rundung).
   let uebrigLink: SankeyModelLink | null = null;
   if (drawIncome && surplus > SAVINGS_MIN) {
-    const ui = push({ name: "Übrig", id: "__uebrig", type: "savings", amount: Math.round(surplus) });
+    const ui = push({ name: t("sankey.surplus"), id: "__uebrig", type: "savings", amount: Math.round(surplus) });
     uebrigLink = addIncomeLink(ui, Math.round(surplus), `Einnahmen → Übrig`);
   }
 

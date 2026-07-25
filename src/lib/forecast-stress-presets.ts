@@ -12,6 +12,7 @@
 import { addDays, addMonths, format, parseISO } from 'date-fns';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { PlannedForecastEvent, VariableExpenseBaseline } from '@/lib/forecast-types';
+import { t } from '@/i18n/serviceT';
 
 export type StressPreset =
   | { kind: 'purchase'; amount: number; inDays: number }
@@ -72,7 +73,7 @@ export function buildStressOverrides(
       return appendEvents([
         {
           id: makeId('anschaffung'),
-          name: 'Anschaffung',
+          name: t('scenario.acquisition'),
           amount: -Math.abs(preset.amount),
           date: dayAfter(ctx.startISO, Math.max(0, Math.round(preset.inDays))),
           accountId: account,
@@ -107,14 +108,14 @@ export function buildStressOverrides(
       return appendEvents([
         {
           id: makeId('schock'),
-          name: 'Schock',
+          name: t('stressPresetQuickAdd.shockLabel'),
           amount: -Math.abs(preset.shock),
           date: dayAfter(ctx.startISO, Math.max(0, Math.round(preset.shockInDays))),
           accountId: account,
         },
         {
           id: makeId('kompensation'),
-          name: 'Kompensation',
+          name: t('stressPresetQuickAdd.compensationLabel'),
           amount: Math.abs(preset.recovery),
           date: dayAfter(ctx.startISO, Math.max(0, Math.round(preset.recoveryInDays))),
           accountId: account,
