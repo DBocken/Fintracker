@@ -1,4 +1,4 @@
-import type { ArchetypeId, ModifierId, NavFeatureId } from '@/lib/archetypes';
+import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
 
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 
@@ -233,12 +233,12 @@ export interface UserSettings {
   /** Einzelunternehmer-Modus (Opt-in): schaltet EÜR-Seite, Steuer-Tank & Waterfall-Stufe frei. */
   business_mode?: boolean;
   /** Im Onboarding gewählte Lebenssituation. Dient nur der Vorauswahl. */
-  onboarding_archetype?: ArchetypeId | null;
-  /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/archetypes`). */
+  onboarding_life_situation?: LifeSituationId | null;
+  /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/life-situations`). */
   onboarding_modifiers?: ModifierId[];
   /**
    * Sichtbare Nav-Bereiche. Bewusst die *bestätigte Nutzerauswahl* und nicht
-   * der Archetyp selbst: nur so überschreibt ein späterer Archetyp-Wechsel
+   * der Lebenssituation selbst: nur so überschreibt ein späterer Wechsel der Lebenssituation
    * keine manuell getroffenen Entscheidungen. `null`/undefined = Onboarding
    * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
    */

@@ -3,18 +3,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
-import { resolveFeatureSelection, type ArchetypeId, type ModifierId, type NavFeatureId } from '@/lib/archetypes';
+import { resolveFeatureSelection, type LifeSituationId, type ModifierId, type NavFeatureId } from '@/lib/life-situations';
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
-import ArchetypePicker from './ArchetypePicker';
+import LifeSituationPicker from './LifeSituationPicker';
 import FeatureSelection from './FeatureSelection';
 
 /**
  * Onboarding: „Welche Situation beschreibt dich am ehesten?" → Vorauswahl der
  * Bereiche → einzeln bestätigen.
  *
- * Erscheint genau einmal, nämlich solange `onboarding_archetype` `undefined`
+ * Erscheint genau einmal, nämlich solange `onboarding_life_situation` `undefined`
  * ist (= nie gefragt). Überspringen speichert bewusst `null` (= gefragt,
  * abgelehnt) statt gar nichts — sonst käme der Dialog bei jedem Start wieder.
  *
@@ -27,8 +27,8 @@ export default function OnboardingDialog() {
   const queryClient = useQueryClient();
   const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
 
-  const [step, setStep] = useState<'archetype' | 'features'>('archetype');
-  const [archetype, setArchetype] = useState<ArchetypeId | null>(null);
+  const [step, setStep] = useState<'lifeSituation' | 'features'>('lifeSituation');
+  const [lifeSituation, setLifeSituation] = useState<LifeSituationId | null>(null);
   const [modifiers, setModifiers] = useState<ModifierId[]>([]);
   const [features, setFeatures] = useState<NavFeatureId[] | null>(null);
 
@@ -40,11 +40,11 @@ export default function OnboardingDialog() {
   });
 
   // `undefined` = nie gefragt. `null` = gefragt und übersprungen.
-  const open = settings !== undefined && settings.onboarding_archetype === undefined;
+  const open = settings !== undefined && settings.onboarding_life_situation === undefined;
 
   const suggestion = useMemo(
-    () => (archetype ? resolveFeatureSelection(archetype, modifiers) : null),
-    [archetype, modifiers],
+    () => (lifeSituation ? resolveFeatureSelection(lifeSituation, modifiers) : null),
+    [lifeSituation, modifiers],
   );
 
   // Vor der Bestätigung zeigt Schritt 2 den Vorschlag; sobald der Nutzer etwas
@@ -52,21 +52,21 @@ export default function OnboardingDialog() {
   const shownFeatures = features ?? suggestion?.features ?? [];
 
   const goToFeatures = () => {
-    setFeatures(null); // Vorschlag zum aktuellen Archetyp neu ziehen
+    setFeatures(null); // Vorschlag zur aktuellen Lebenssituation neu ziehen
     setStep('features');
   };
 
   const finish = () => {
-    if (!archetype || !suggestion) return;
+    if (!lifeSituation || !suggestion) return;
     mutation.mutate({
-      onboarding_archetype: archetype,
+      onboarding_life_situation: lifeSituation,
       onboarding_modifiers: modifiers,
       enabled_nav_features: shownFeatures,
       ...suggestion.settings,
     });
   };
 
-  const skip = () => mutation.mutate({ onboarding_archetype: null });
+  const skip = () => mutation.mutate({ onboarding_life_situation: null });
 
   return (
     <Dialog open={open}>
@@ -78,11 +78,11 @@ export default function OnboardingDialog() {
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        {step === 'archetype' ? (
-          <ArchetypePicker
-            value={archetype}
+        {step === 'lifeSituation' ? (
+          <LifeSituationPicker
+            value={lifeSituation}
             modifiers={modifiers}
-            onChange={setArchetype}
+            onChange={setLifeSituation}
             onToggleModifier={(id) =>
               setModifiers((prev) =>
                 prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
@@ -103,18 +103,18 @@ export default function OnboardingDialog() {
         )}
 
         <div className="flex items-center justify-between gap-3 border-t pt-4">
-          {step === 'archetype' ? (
+          {step === 'lifeSituation' ? (
             <>
               <Button variant="ghost" onClick={skip} disabled={mutation.isPending}>
                 {t('onboarding.skip', 'Später entscheiden')}
               </Button>
-              <Button onClick={goToFeatures} disabled={!archetype}>
+              <Button onClick={goToFeatures} disabled={!lifeSituation}>
                 {t('onboarding.next', 'Weiter')}
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => setStep('archetype')}>
+              <Button variant="ghost" onClick={() => setStep('lifeSituation')}>
                 {t('onboarding.back', 'Zurück')}
               </Button>
               <Button onClick={finish} disabled={mutation.isPending}>

@@ -6,7 +6,7 @@ import { renderWithProviders } from '@/test-utils/render';
 import NavFeatureSettings from '../NavFeatureSettings';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
-import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/archetypes';
+import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
 
 const ALL = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
 
@@ -37,7 +37,7 @@ describe('NavFeatureSettings', () => {
   });
 
   it('sollte die gewählte Situation benennen', async () => {
-    await updateLocalUserSettings({ onboarding_archetype: 'retired' });
+    await updateLocalUserSettings({ onboarding_life_situation: 'retired' });
     renderSettings();
     expect(await screen.findByText(/Gewählte Situation — Ruhestand/)).toBeInTheDocument();
   });
@@ -83,14 +83,14 @@ describe('NavFeatureSettings', () => {
 
   it('sollte das Onboarding erneut anbieten können', async () => {
     const user = userEvent.setup();
-    await updateLocalUserSettings({ onboarding_archetype: 'family' });
+    await updateLocalUserSettings({ onboarding_life_situation: 'family' });
     renderSettings();
 
     await user.click(await screen.findByRole('button', { name: 'Situation neu wählen' }));
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
-      expect(settings.onboarding_archetype).toBeUndefined();
+      expect(settings.onboarding_life_situation).toBeUndefined();
     });
   });
 

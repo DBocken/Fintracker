@@ -1,8 +1,8 @@
-# Onboarding-Archetypen
+# Onboarding-LifeSituationn
 
-Verbindliche Beschreibung der Nutzer-Archetypen, die das Onboarding
+Verbindliche Beschreibung der Nutzer-LifeSituationn, die das Onboarding
 („Welche Situation beschreibt dich am ehesten?") anbietet. Der Code dazu ist
-`src/lib/archetypes.ts` — bei Widerspruch gilt der Code, dieses Dokument
+`src/lib/lifeSituations.ts` — bei Widerspruch gilt der Code, dieses Dokument
 erklärt das **Warum**.
 
 ## Ziel
@@ -24,7 +24,7 @@ Lebensphase und Lebensumstand sind unabhängig voneinander (Familie *und*
 verschuldet, Ruhestand *und* vermietend). Eine einzige Kachelliste hätte
 deshalb 15+ Einträge gebraucht. Stattdessen:
 
-1. **Archetyp** (genau einer) — die Lebensphase, bestimmt das Grundgerüst.
+1. **Lebenssituation** (genau einer) — die Lebensphase, bestimmt das Grundgerüst.
 2. **Umstände** (mehrere) — schalten zusätzliche Bereiche frei, **rein
    additiv**.
 3. **Bereichsliste** — alles einzeln an-/abwählbar, vorbelegt aus 1 + 2.
@@ -33,19 +33,19 @@ deshalb 15+ Einträge gebraucht. Stattdessen:
 
 Dürfte ein Umstand einen Bereich entfernen, hinge das Ergebnis von der
 Reihenfolge der Klicks ab und wäre dem Nutzer nicht mehr erklärbar. Die Regel
-ist als Test über alle Archetyp×Modifikator-Paare abgesichert.
+ist als Test über alle Lebenssituation×Modifikator-Paare abgesichert.
 
 ### Warum keine Status-Kacheln
 
 Niemand klickt freiwillig auf ein Etikett wie „verschuldet" oder „wohlhabend".
 Deshalb:
 
-- Vermögen ist **kein** eigener Archetyp — das deckt `employed_stable` plus
+- Vermögen ist **kein** eigener Lebenssituation — das deckt `employed_stable` plus
   die Umstände „Ich lege Geld an" / „Immobilie" ab.
 - Überschuldung ist als **Ziel** formuliert: „Schulden abbauen"
   (`debt_focus`), nicht als Zustand.
 
-## Die Archetypen
+## Die LifeSituationn
 
 | ID | Kachel | Situation | Vorausgewählt |
 |---|---|---|---|
@@ -71,7 +71,7 @@ Deshalb:
   das Tier-System kennt bereits ein `creatorPack`.
 - **`student_school` bekommt bewusst weder Steuer noch Depot noch
   Nettovermögen.** Das wäre nur Ballast; die Kachel ist der schlankste
-  Archetyp und setzt zusätzlich `enable_subcategories: false`.
+  Lebenssituation und setzt zusätzlich `enable_subcategories: false`.
 - **`debt_focus` bekommt kein Nettovermögen und kein Trading.** In dieser
   Situation ist eine Vermögensübersicht blanker Hohn.
 - **Sanfter Ton** (`gentle_mode`) wird nur für belastende Situationen
@@ -119,12 +119,12 @@ In `UserSettings` (lokal, wie alle Einstellungen):
 
 | Feld | Bedeutung |
 |---|---|
-| `onboarding_archetype` | `undefined` = nie gefragt (Dialog erscheint), `null` = gefragt und übersprungen, sonst die gewählte ID |
+| `onboarding_life_situation` | `undefined` = nie gefragt (Dialog erscheint), `null` = gefragt und übersprungen, sonst die gewählte ID |
 | `onboarding_modifiers` | gewählte Umstände (nur für Anzeige/Neuvorschlag) |
 | `enabled_nav_features` | die **bestätigte Nutzerauswahl**; `null` = keine Einschränkung ⇒ alles sichtbar |
 
 Gefiltert wird ausschließlich über `enabled_nav_features`, nicht über den
-Archetyp. Nur so überschreibt ein späterer Archetyp-Wechsel keine manuell
+Lebenssituation. Nur so überschreibt ein späterer Wechsel der Lebenssituation keine manuell
 getroffenen Entscheidungen.
 
 `business_mode` wird aus dem Feature `euer` **abgeleitet** statt doppelt

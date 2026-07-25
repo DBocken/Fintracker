@@ -6,7 +6,7 @@ import {
   NAV_FEATURE_PATHS,
   resolveFeatureSelection,
   type NavFeatureId,
-} from "@/lib/archetypes";
+} from "@/lib/life-situations";
 
 describe("NAV_GROUPS (Issue #42)", () => {
   const allItems = NAV_GROUPS.flatMap((g) => g.items);
@@ -104,13 +104,13 @@ describe("getVisibleNavGroups", () => {
     });
   });
 
-  describe("Archetyp-Filter (Onboarding)", () => {
+  describe("Situations-Filter (Onboarding)", () => {
     const visiblePaths = (
       businessMode: boolean,
       features?: readonly NavFeatureId[] | null,
     ): string[] => getVisibleNavGroups(businessMode, features).flatMap((g) => g.items).map((i) => i.path);
 
-    it("[REGRESSION] zeigt ohne Archetyp-Auswahl alles wie bisher (Bestandsnutzer)", () => {
+    it("[REGRESSION] zeigt ohne gewählte Lebenssituation alles wie bisher (Bestandsnutzer)", () => {
       // null = Onboarding nie durchlaufen. Ein Update darf niemandem
       // stillschweigend die halbe Navigation wegnehmen.
       expect(visiblePaths(false, null)).toEqual(visiblePaths(false));
@@ -151,7 +151,7 @@ describe("getVisibleNavGroups", () => {
       expect(visiblePaths(true, ["euer"])).toContain("/euer");
     });
 
-    it("zeigt für einen Archetyp genau dessen Bereiche plus die Kernbereiche", () => {
+    it("zeigt für eine Lebenssituation genau deren Bereiche plus die Kernbereiche", () => {
       const { features, settings } = resolveFeatureSelection("student_school", []);
       const paths = visiblePaths(Boolean(settings.business_mode), features);
       const expected = [

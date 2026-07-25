@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '@/test-utils/render';
 import FeatureSelection from '../FeatureSelection';
-import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/archetypes';
+import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
 
 const ALL = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
 

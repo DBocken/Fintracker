@@ -6,7 +6,7 @@ import {
   NAV_FEATURE_PATHS,
   navFeatureForPath,
   type NavFeatureId,
-} from '@/lib/archetypes';
+} from '@/lib/life-situations';
 import { useI18n } from '@/i18n/useI18n';
 
 interface FeatureSelectionProps {

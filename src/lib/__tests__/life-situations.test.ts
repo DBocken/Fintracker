@@ -2,48 +2,48 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ALWAYS_VISIBLE_NAV_PATHS,
-  ARCHETYPES,
+  LIFE_SITUATIONS,
   MODIFIERS,
   NAV_FEATURE_PATHS,
   resolveFeatureSelection,
-  type ArchetypeId,
+  type LifeSituationId,
   type ModifierId,
   type NavFeatureId,
-} from '../archetypes';
+} from '../life-situations';
 import { NAV_GROUPS } from '@/components/layout/nav-config';
 
-const ALL_ARCHETYPE_IDS = ARCHETYPES.map((a) => a.id);
+const ALL_ARCHETYPE_IDS = LIFE_SITUATIONS.map((a) => a.id);
 const ALL_MODIFIER_IDS = MODIFIERS.map((m) => m.id);
 const ALL_FEATURE_IDS = Object.keys(NAV_FEATURE_PATHS) as NavFeatureId[];
 
-describe('Archetypen-Katalog', () => {
+describe('LifeSituationn-Katalog', () => {
   it('sollte eindeutige IDs vergeben', () => {
-    expect(new Set(ALL_ARCHETYPE_IDS).size).toBe(ARCHETYPES.length);
+    expect(new Set(ALL_ARCHETYPE_IDS).size).toBe(LIFE_SITUATIONS.length);
     expect(new Set(ALL_MODIFIER_IDS).size).toBe(MODIFIERS.length);
   });
 
-  it('sollte für jeden Archetyp i18n-Keys statt fester Texte tragen', () => {
-    for (const archetype of ARCHETYPES) {
-      expect(archetype.labelKey).toBe(`onboarding.archetypes.${archetype.id}.label`);
-      expect(archetype.descriptionKey).toBe(`onboarding.archetypes.${archetype.id}.description`);
+  it('sollte für jede Lebenssituation i18n-Keys statt fester Texte tragen', () => {
+    for (const lifeSituation of LIFE_SITUATIONS) {
+      expect(lifeSituation.labelKey).toBe(`onboarding.lifeSituations.${lifeSituation.id}.label`);
+      expect(lifeSituation.descriptionKey).toBe(`onboarding.lifeSituations.${lifeSituation.id}.description`);
     }
     for (const modifier of MODIFIERS) {
       expect(modifier.labelKey).toBe(`onboarding.modifiers.${modifier.id}.label`);
     }
   });
 
-  it('sollte jedem Archetyp mindestens einen Bereich zuordnen', () => {
-    for (const archetype of ARCHETYPES) {
-      expect(archetype.features.length).toBeGreaterThan(0);
+  it('sollte jeder Lebenssituation mindestens einen Bereich zuordnen', () => {
+    for (const lifeSituation of LIFE_SITUATIONS) {
+      expect(lifeSituation.features.length).toBeGreaterThan(0);
     }
   });
 
   it('sollte die Auswahl auf höchstens 10 Kacheln halten (Onboarding bleibt überschaubar)', () => {
-    expect(ARCHETYPES.length).toBeLessThanOrEqual(10);
+    expect(LIFE_SITUATIONS.length).toBeLessThanOrEqual(10);
   });
 
-  it('sollte kein totes Feature führen — jeder Bereich wird von mindestens einem Archetyp vorausgewählt', () => {
-    const covered = new Set(ARCHETYPES.flatMap((a) => a.features));
+  it('sollte kein totes Feature führen — jeder Bereich wird von mindestens einer Lebenssituation vorausgewählt', () => {
+    const covered = new Set(LIFE_SITUATIONS.flatMap((a) => a.features));
     for (const feature of ALL_FEATURE_IDS) {
       expect(covered.has(feature)).toBe(true);
     }
@@ -86,7 +86,7 @@ describe('Feature-Katalog ↔ Navigation', () => {
 });
 
 describe('resolveFeatureSelection', () => {
-  it('sollte die Vorauswahl des Archetyps liefern', () => {
+  it('sollte die Vorauswahl der Lebenssituation liefern', () => {
     const { features } = resolveFeatureSelection('student_university', []);
     expect(features).toEqual(expect.arrayContaining(['liquidity', 'budgets', 'income']));
     expect(features).not.toContain('euer');
@@ -100,10 +100,10 @@ describe('resolveFeatureSelection', () => {
   });
 
   it('sollte durch Modifikatoren NIE etwas entfernen (Ergebnis bleibt erklärbar)', () => {
-    for (const archetype of ALL_ARCHETYPE_IDS) {
-      const base = new Set(resolveFeatureSelection(archetype, []).features);
+    for (const lifeSituation of ALL_ARCHETYPE_IDS) {
+      const base = new Set(resolveFeatureSelection(lifeSituation, []).features);
       for (const modifier of ALL_MODIFIER_IDS) {
-        const withModifier = resolveFeatureSelection(archetype, [modifier]).features;
+        const withModifier = resolveFeatureSelection(lifeSituation, [modifier]).features;
         for (const feature of base) {
           expect(withModifier).toContain(feature);
         }
@@ -128,8 +128,8 @@ describe('resolveFeatureSelection', () => {
     expect(selection.features).toEqual(resolveFeatureSelection('family', []).features);
   });
 
-  it('sollte bei unbekanntem Archetyp ALLE Bereiche freigeben statt auszusperren', () => {
-    const selection = resolveFeatureSelection('kaputter-wert' as ArchetypeId, []);
+  it('sollte bei unbekannter Lebenssituation ALLE Bereiche freigeben statt auszusperren', () => {
+    const selection = resolveFeatureSelection('kaputter-wert' as LifeSituationId, []);
     expect([...selection.features].sort()).toEqual([...ALL_FEATURE_IDS].sort());
   });
 
@@ -139,7 +139,7 @@ describe('resolveFeatureSelection', () => {
   });
 });
 
-describe('Archetyp-spezifische Vorauswahl', () => {
+describe('Situationsspezifische Vorauswahl', () => {
   it('sollte für Selbstständige den bestehenden business_mode setzen', () => {
     const { features, settings } = resolveFeatureSelection('self_employed', []);
     expect(features).toContain('euer');
@@ -154,9 +154,9 @@ describe('Archetyp-spezifische Vorauswahl', () => {
     expect(creator.tax_reserve_percent).toBeGreaterThan(selfEmployed.tax_reserve_percent ?? 0);
   });
 
-  it('sollte den business_mode NUR für Archetypen mit EÜR-Bezug aktivieren', () => {
-    for (const archetype of ARCHETYPES) {
-      const { features, settings } = resolveFeatureSelection(archetype.id, []);
+  it('sollte den business_mode NUR für LifeSituationn mit EÜR-Bezug aktivieren', () => {
+    for (const lifeSituation of LIFE_SITUATIONS) {
+      const { features, settings } = resolveFeatureSelection(lifeSituation.id, []);
       expect(Boolean(settings.business_mode)).toBe(features.includes('euer'));
     }
   });

@@ -36,10 +36,10 @@ export const translations = {
         description: 'Welche Bereiche in der Navigation erscheinen. Ausgeblendetes bleibt über Links und Lesezeichen erreichbar.',
         restart: 'Situation neu wählen',
         showAll: 'Alle Bereiche anzeigen',
-        current: 'Gewählte Situation — {archetype}',
+        current: 'Gewählte Situation — {situation}',
         none: 'Keine Situation gewählt — es ist alles sichtbar.',
       },
-      archetypes: {
+      lifeSituations: {
         student_school: {
           label: 'Schüler:in oder Azubi',
           description: 'Taschengeld, Nebenjob oder Ausbildungsvergütung — Überblick behalten und auf etwas sparen.',
@@ -3876,10 +3876,10 @@ export const translations = {
         description: 'Choose which areas appear in the navigation. Hidden areas stay reachable via links and bookmarks.',
         restart: 'Choose situation again',
         showAll: 'Show all areas',
-        current: 'Selected situation — {archetype}',
+        current: 'Selected situation — {situation}',
         none: 'No situation selected — everything is visible.',
       },
-      archetypes: {
+      lifeSituations: {
         student_school: {
           label: 'Pupil or apprentice',
           description: 'Pocket money, a side job or apprentice pay — keep an overview and save up for something.',
@@ -7716,10 +7716,10 @@ export const translations = {
         description: "nuq legh nav. So'bogh sengmey reH chelaH.",
         restart: "wIv chu'",
         showAll: "Hoch sengmey cha'",
-        current: 'wIvbogh — {archetype}',
+        current: 'wIvbogh — {situation}',
         none: "wIvbe'lu' — Hoch leghlu'.",
       },
-      archetypes: {
+      lifeSituations: {
         student_school: {
           label: "ghojwI' mach",
           description: "Huch mach 'ej vum mach: Huch legh, Huch qem.",
@@ -11497,10 +11497,10 @@ export const translations = {
         description: 'Выберите, какие разделы отображаются в навигации. Скрытые разделы остаются доступны по ссылкам и закладкам.',
         restart: 'Выбрать ситуацию заново',
         showAll: 'Показать все разделы',
-        current: 'Выбранная ситуация — {archetype}',
+        current: 'Выбранная ситуация — {situation}',
         none: 'Ситуация не выбрана — видно всё.',
       },
-      archetypes: {
+      lifeSituations: {
         student_school: {
           label: 'Школьник или ученик',
           description: 'Карманные деньги, подработка или стипендия — видеть картину и копить на цель.',

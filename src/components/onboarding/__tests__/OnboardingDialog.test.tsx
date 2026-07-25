@@ -6,7 +6,7 @@ import { renderWithProviders } from '@/test-utils/render';
 import OnboardingDialog from '../OnboardingDialog';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
-import { resolveFeatureSelection } from '@/lib/archetypes';
+import { resolveFeatureSelection } from '@/lib/life-situations';
 
 beforeEach(() => {
   localStorage.clear();
@@ -26,7 +26,7 @@ describe('OnboardingDialog', () => {
   });
 
   it('sollte geschlossen bleiben, wenn die Frage bereits beantwortet wurde', async () => {
-    await updateLocalUserSettings({ onboarding_archetype: 'family' });
+    await updateLocalUserSettings({ onboarding_life_situation: 'family' });
     renderDialog();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -34,7 +34,7 @@ describe('OnboardingDialog', () => {
   it('[REGRESSION] sollte geschlossen bleiben, wenn zuvor bewusst übersprungen wurde', async () => {
     // null = „gefragt, aber abgelehnt". Ohne diese Unterscheidung würde der
     // Dialog bei jedem App-Start erneut aufpoppen.
-    await updateLocalUserSettings({ onboarding_archetype: null });
+    await updateLocalUserSettings({ onboarding_life_situation: null });
     renderDialog();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -49,7 +49,7 @@ describe('OnboardingDialog', () => {
     expect(screen.getByRole('button', { name: 'Weiter' })).toBeEnabled();
   });
 
-  it('sollte im zweiten Schritt die Bereiche des Archetyps vorselektieren', async () => {
+  it('sollte im zweiten Schritt die Bereiche der Lebenssituation vorselektieren', async () => {
     const user = userEvent.setup();
     renderDialog();
     await screen.findByText('Welche Situation beschreibt dich am ehesten?');
@@ -84,7 +84,7 @@ describe('OnboardingDialog', () => {
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
-      expect(settings.onboarding_archetype).toBe('self_employed');
+      expect(settings.onboarding_life_situation).toBe('self_employed');
       expect(settings.enabled_nav_features).toEqual(
         resolveFeatureSelection('self_employed', []).features,
       );
@@ -119,7 +119,7 @@ describe('OnboardingDialog', () => {
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
-      expect(settings.onboarding_archetype).toBeNull();
+      expect(settings.onboarding_life_situation).toBeNull();
       // Keine Bereichsauswahl ⇒ die Navigation bleibt vollständig.
       expect(settings.enabled_nav_features ?? null).toBeNull();
     });

@@ -22,7 +22,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
-import { isNavPathVisible, type NavFeatureId } from "@/lib/archetypes";
+import { isNavPathVisible, type NavFeatureId } from "@/lib/life-situations";
 
 export type NavItem = {
   label: string;
@@ -198,7 +198,7 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
  * - `businessOnly`-Ziele (EÜR) erscheinen nur im Einzelunternehmer-Modus
  *   („Ruhe vor Fülle" — Opt-in).
  * - `enabledFeatures` ist die im Onboarding getroffene Bereichsauswahl
- *   (`@/lib/archetypes`). `null`/`undefined` heißt „keine Auswahl getroffen"
+ *   (`@/lib/life-situations`). `null`/`undefined` heißt „keine Auswahl getroffen"
  *   und zeigt alles — Bestandsnutzer verlieren durch das Onboarding nichts.
  *
  * Beides betrifft ausschließlich die **Anzeige**: die Routen bleiben immer

@@ -1,11 +1,11 @@
-import { ARCHETYPES, MODIFIERS, type ArchetypeId, type ModifierId } from '@/lib/archetypes';
+import { LIFE_SITUATIONS, MODIFIERS, type LifeSituationId, type ModifierId } from '@/lib/life-situations';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 
-interface ArchetypePickerProps {
-  value: ArchetypeId | null;
+interface LifeSituationPickerProps {
+  value: LifeSituationId | null;
   modifiers: readonly ModifierId[];
-  onChange: (id: ArchetypeId) => void;
+  onChange: (id: LifeSituationId) => void;
   onToggleModifier: (id: ModifierId) => void;
 }
 
@@ -18,18 +18,18 @@ interface ArchetypePickerProps {
  * Aktionen"), semantisch eine Radiogruppe, damit Tastatur und Screenreader die
  * Exklusivität der Auswahl mitbekommen.
  */
-export default function ArchetypePicker({
+export default function LifeSituationPicker({
   value,
   modifiers,
   onChange,
   onToggleModifier,
-}: ArchetypePickerProps) {
+}: LifeSituationPickerProps) {
   const { t } = useI18n();
 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 id="onboarding-archetype-title" className="font-display text-lg font-semibold">
+        <h2 id="onboarding-lifeSituation-title" className="font-display text-lg font-semibold">
           {t('onboarding.title', 'Welche Situation beschreibt dich am ehesten?')}
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -42,18 +42,18 @@ export default function ArchetypePicker({
 
       <div
         role="radiogroup"
-        aria-labelledby="onboarding-archetype-title"
+        aria-labelledby="onboarding-lifeSituation-title"
         className="grid gap-2 sm:grid-cols-2"
       >
-        {ARCHETYPES.map((archetype) => {
-          const selected = value === archetype.id;
+        {LIFE_SITUATIONS.map((lifeSituation) => {
+          const selected = value === lifeSituation.id;
           return (
             <button
-              key={archetype.id}
+              key={lifeSituation.id}
               type="button"
               role="radio"
               aria-checked={selected}
-              onClick={() => onChange(archetype.id)}
+              onClick={() => onChange(lifeSituation.id)}
               className={cn(
                 'ds-section flex min-h-[44px] w-full cursor-pointer flex-col items-start gap-1 p-3 text-left',
                 'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -62,9 +62,9 @@ export default function ArchetypePicker({
                   : 'hover:border-primary/40 hover:bg-accent/40',
               )}
             >
-              <span className="text-sm font-medium">{t(archetype.labelKey, archetype.id)}</span>
+              <span className="text-sm font-medium">{t(lifeSituation.labelKey, lifeSituation.id)}</span>
               <span className="text-xs leading-snug text-muted-foreground">
-                {t(archetype.descriptionKey, '')}
+                {t(lifeSituation.descriptionKey, '')}
               </span>
             </button>
           );

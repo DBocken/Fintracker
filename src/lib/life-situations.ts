@@ -1,5 +1,5 @@
 /**
- * Nutzer-Archetypen für das Onboarding („Welche Situation beschreibt dich am
+ * Nutzer-LifeSituationn für das Onboarding („Welche Situation beschreibt dich am
  * ehesten?").
  *
  * Zweck: Nutzer sehen zunächst nur die Bereiche, die zu ihrer Lebenssituation
@@ -11,7 +11,7 @@
  *
  * Zwei Ebenen, weil Lebensphase und Lebensumstand unabhängig voneinander sind
  * (Familie *und* verschuldet, Ruhestand *und* vermietend):
- *   1. {@link ARCHETYPES} — Lebensphase, genau eine Auswahl.
+ *   1. {@link LIFE_SITUATIONS} — Lebensphase, genau eine Auswahl.
  *   2. {@link MODIFIERS}  — Umstände, mehrfach wählbar, **rein additiv**.
  *
  * Additiv ist eine harte Regel: dürfte ein Modifikator etwas abwählen, hinge
@@ -37,7 +37,7 @@ export type NavFeatureId =
   | 'city'
   | 'contracts';
 
-export type ArchetypeId =
+export type LifeSituationId =
   | 'student_school'
   | 'student_university'
   | 'career_starter'
@@ -59,11 +59,11 @@ export type ModifierId =
   | 'property';
 
 /**
- * Nav-Ziele, die IMMER sichtbar bleiben — unabhängig vom Archetyp.
+ * Nav-Ziele, die IMMER sichtbar bleiben — unabhängig von der Lebenssituation.
  *
  * Drei Gründe, warum das kein „nice to have" ist:
  * - `/coach`, `/dashboard`, `/transactions` speisen die mobile Bottom-Nav
- *   (`getBottomNavItems`). Würde ein Archetyp eines davon verstecken, verlöre
+ *   (`getBottomNavItems`). Würde eine Lebenssituation eines davon verstecken, verlöre
  *   die Bottom-Nav stillschweigend einen Tab.
  * - `/settings` ist der Rückweg: dort schaltet man Bereiche wieder frei. Wäre
  *   es ausblendbar, könnte sich ein Nutzer selbst aussperren.
@@ -132,22 +132,22 @@ export function isNavPathVisible(
   return enabledFeatures.includes(feature);
 }
 
-/** Einstellungen, die ein Archetyp mit vorbelegt (bestehende `UserSettings`-Felder). */
-export interface ArchetypeSettings {
+/** Einstellungen, die eine Lebenssituation mit vorbelegt (bestehende `UserSettings`-Felder). */
+export interface LifeSituationSettings {
   business_mode?: boolean;
   tax_reserve_percent?: number;
   gentle_mode?: boolean;
   enable_subcategories?: boolean;
 }
 
-export interface Archetype {
-  id: ArchetypeId;
+export interface LifeSituation {
+  id: LifeSituationId;
   labelKey: string;
   descriptionKey: string;
   /** Vorausgewählte Bereiche. Kernbereiche stehen bewusst nicht darin. */
   features: NavFeatureId[];
   /** Vorbelegte Einstellungen (ohne `business_mode` — das leitet sich aus `euer` ab). */
-  settings?: Omit<ArchetypeSettings, 'business_mode'>;
+  settings?: Omit<LifeSituationSettings, 'business_mode'>;
 }
 
 export interface Modifier {
@@ -160,15 +160,15 @@ export interface Modifier {
 /** Vorschlag für die Steuerrücklage, wenn EÜR über einen Modifikator dazukommt. */
 const DEFAULT_TAX_RESERVE_PERCENT = 30;
 
-function archetype(
-  id: ArchetypeId,
+function lifeSituation(
+  id: LifeSituationId,
   features: NavFeatureId[],
-  settings?: Omit<ArchetypeSettings, 'business_mode'>,
-): Archetype {
+  settings?: Omit<LifeSituationSettings, 'business_mode'>,
+): LifeSituation {
   return {
     id,
-    labelKey: `onboarding.archetypes.${id}.label`,
-    descriptionKey: `onboarding.archetypes.${id}.description`,
+    labelKey: `onboarding.lifeSituations.${id}.label`,
+    descriptionKey: `onboarding.lifeSituations.${id}.description`,
     features,
     ...(settings ? { settings } : {}),
   };
@@ -177,27 +177,27 @@ function archetype(
 /**
  * Die Lebensphasen. Bewusst als Lebensphase formuliert, nicht als Status:
  * niemand klickt freiwillig auf ein Etikett wie „verschuldet" oder
- * „wohlhabend". Deshalb ist Vermögen kein eigener Archetyp (das deckt
+ * „wohlhabend". Deshalb ist Vermögen keine eigene Lebenssituation (das deckt
  * `employed_stable` + Modifikator `investing` ab) und Überschuldung wird als
  * Ziel formuliert (`debt_focus` — „Schulden abbauen").
  */
-export const ARCHETYPES: readonly Archetype[] = [
+export const LIFE_SITUATIONS: readonly LifeSituation[] = [
   // Taschengeld/Ausbildungsvergütung, kaum Fixkosten, erste Abo-Fallen.
-  // Bewusst der schlankste Archetyp — Steuer und Depot wären hier nur Ballast.
-  archetype('student_school', ['budgets', 'milestones', 'contracts', 'city'], {
+  // Bewusst die schlankste Lebenssituation — Steuer und Depot wären hier nur Ballast.
+  lifeSituation('student_school', ['budgets', 'milestones', 'contracts', 'city'], {
     gentle_mode: true,
     enable_subcategories: false,
   }),
 
   // Einkommensmix (BAföG, Werkstudentenjob, Eltern) und Ausgaben in Blöcken:
   // der Semesterbeitrag ist genau der Fall, für den die Liquiditätsvorschau da ist.
-  archetype('student_university', ['liquidity', 'budgets', 'milestones', 'income', 'contracts', 'city'], {
+  lifeSituation('student_university', ['liquidity', 'budgets', 'milestones', 'income', 'contracts', 'city'], {
     gentle_mode: true,
   }),
 
   // Erstes volles Gehalt, erste eigene Wohnung, erste Steuererklärung —
   // Pendler- und Homeoffice-Pauschale sind hier der konkrete Mehrwert.
-  archetype('career_starter', [
+  lifeSituation('career_starter', [
     'liquidity',
     'budgets',
     'milestones',
@@ -209,7 +209,7 @@ export const ARCHETYPES: readonly Archetype[] = [
 
   // Fixkosten im Griff; die Frage ist nicht „reicht es", sondern „optimiere ich
   // richtig". Deckt zusammen mit `investing`/`property` auch Vermögende ab.
-  archetype('employed_stable', [
+  lifeSituation('employed_stable', [
     'liquidity',
     'budgets',
     'milestones',
@@ -224,7 +224,7 @@ export const ARCHETYPES: readonly Archetype[] = [
 
   // Der eigentliche Schmerz sind nicht die Fixkosten, sondern die großen
   // unregelmäßigen Ausgaben (Urlaub, Einschulung, Waschmaschine) — Anlässe.
-  archetype('family', [
+  lifeSituation('family', [
     'liquidity',
     'budgets',
     'milestones',
@@ -235,17 +235,17 @@ export const ARCHETYPES: readonly Archetype[] = [
     'contracts',
   ]),
 
-  // Eigener Archetyp statt Modifikator, weil die Feature-Folge gegenläufig zu
+  // Eigene Lebenssituation statt Modifikator, weil die Feature-Folge gegenläufig zu
   // `family` ist: nichts wird geteilt, ein Einkommen trägt alles, Unterhalt
   // läuft rein und raus — Schulden und tagesgenaue Liquidität statt Vermögen.
-  archetype(
+  lifeSituation(
     'single_parent',
     ['debts', 'liquidity', 'budgets', 'milestones', 'income', 'occasions', 'tax', 'contracts'],
     { gentle_mode: true },
   ),
 
   // Bestehender `business_mode` (EÜR, Steuer-Tank, Steuerstufe im Wasserfall).
-  archetype(
+  lifeSituation(
     'self_employed',
     ['liquidity', 'budgets', 'milestones', 'income', 'tax', 'euer', 'netWorth', 'contracts'],
     { tax_reserve_percent: 30 },
@@ -254,7 +254,7 @@ export const ARCHETYPES: readonly Archetype[] = [
   // Spezialisierung von `self_employed`: Plattform-Auszahlungen kommen
   // verzögert und in vielen kleinen Quellen, Sachbezüge sind geldwerter
   // Vorteil, Equipment ist Investition — die Rücklage muss höher liegen.
-  archetype(
+  lifeSituation(
     'creator',
     ['liquidity', 'milestones', 'income', 'tax', 'euer', 'netWorth', 'premiumReports', 'contracts'],
     { tax_reserve_percent: 35 },
@@ -262,7 +262,7 @@ export const ARCHETYPES: readonly Archetype[] = [
 
   // Feste Bezüge, aber Vermögens*verzehr* statt -aufbau: das Depot bleibt
   // sichtbar, weil daraus entnommen wird, nicht weil angespart wird.
-  archetype('retired', [
+  lifeSituation('retired', [
     'liquidity',
     'budgets',
     'milestones',
@@ -275,7 +275,7 @@ export const ARCHETYPES: readonly Archetype[] = [
   // Deckt geringes Einkommen, Jobverlust, Bürgergeld und Trennung ab — die
   // Bedürfnisse sind dieselben: bis zum Monatsende kommen, Raten sortieren,
   // sofort kündbare Kosten finden. Vermögensthemen wären hier blanker Hohn.
-  archetype('debt_focus', ['debts', 'liquidity', 'budgets', 'milestones', 'contracts'], {
+  lifeSituation('debt_focus', ['debts', 'liquidity', 'budgets', 'milestones', 'contracts'], {
     gentle_mode: true,
   }),
 ];
@@ -300,22 +300,22 @@ export const MODIFIERS: readonly Modifier[] = (
 
 export interface FeatureSelection {
   features: NavFeatureId[];
-  settings: ArchetypeSettings;
+  settings: LifeSituationSettings;
 }
 
 /**
- * Löst Archetyp + Umstände in die vorausgewählten Bereiche und Einstellungen
+ * Löst Lebenssituation und Umstände in die vorausgewählten Bereiche und Einstellungen
  * auf.
  *
- * Robust gegenüber kaputten gespeicherten Werten: ein unbekannter Archetyp
+ * Robust gegenüber kaputten gespeicherten Werten: eine unbekannte Lebenssituation
  * gibt ALLES frei, statt den Nutzer auszusperren — im Zweifel lieber zu viel
  * Navigation als eine leere App. Unbekannte Modifikatoren werden ignoriert.
  */
 export function resolveFeatureSelection(
-  archetypeId: ArchetypeId,
+  lifeSituationId: LifeSituationId,
   modifierIds: readonly ModifierId[] = [],
 ): FeatureSelection {
-  const selected = ARCHETYPES.find((a) => a.id === archetypeId);
+  const selected = LIFE_SITUATIONS.find((a) => a.id === lifeSituationId);
   if (!selected) {
     return { features: [...FEATURE_ORDER], settings: {} };
   }
@@ -327,7 +327,7 @@ export function resolveFeatureSelection(
     for (const feature of modifier.adds) features.add(feature);
   }
 
-  const settings: ArchetypeSettings = { ...selected.settings };
+  const settings: LifeSituationSettings = { ...selected.settings };
   // `business_mode` wird abgeleitet, nicht separat gepflegt: sonst könnten
   // Nav-Sichtbarkeit (`euer`) und Fachlogik (Steuer-Tank, Wasserfall-Stufe)
   // auseinanderlaufen.

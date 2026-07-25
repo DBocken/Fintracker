@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import FeatureSelection from '@/components/onboarding/FeatureSelection';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
-import { ARCHETYPES, NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/archetypes';
+import { LIFE_SITUATIONS, NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
@@ -33,7 +33,7 @@ export default function NavFeatureSettings() {
   const stored = settings?.enabled_nav_features ?? null;
   const selected = stored ?? ALL_FEATURES;
 
-  const archetype = ARCHETYPES.find((a) => a.id === settings?.onboarding_archetype);
+  const lifeSituation = LIFE_SITUATIONS.find((a) => a.id === settings?.onboarding_life_situation);
 
   return (
     <Card>
@@ -50,10 +50,10 @@ export default function NavFeatureSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          {archetype
-            ? t('onboarding.manage.current', 'Gewählte Situation: {archetype}').replace(
-                '{archetype}',
-                t(archetype.labelKey, archetype.id),
+          {lifeSituation
+            ? t('onboarding.manage.current', 'Gewählte Situation: {situation}').replace(
+                '{situation}',
+                t(lifeSituation.labelKey, lifeSituation.id),
               )
             : t('onboarding.manage.none', 'Keine Situation gewählt — es ist alles sichtbar.')}
         </p>
@@ -85,7 +85,7 @@ export default function NavFeatureSettings() {
             disabled={mutation.isPending}
             // `undefined` = „nie gefragt" — genau der Zustand, in dem der
             // Onboarding-Dialog wieder erscheint.
-            onClick={() => mutation.mutate({ onboarding_archetype: undefined })}
+            onClick={() => mutation.mutate({ onboarding_life_situation: undefined })}
           >
             {t('onboarding.manage.restart', 'Situation neu wählen')}
           </Button>

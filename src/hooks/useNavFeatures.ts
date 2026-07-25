@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getUserSettings } from '@/services/user-settings-service';
-import type { NavFeatureId } from '@/lib/archetypes';
+import type { NavFeatureId } from '@/lib/life-situations';
 
 /**
  * Die im Onboarding bestätigte Bereichsauswahl (steuert nur die
