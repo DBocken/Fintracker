@@ -391,25 +391,80 @@ darf nirgends die Struktur tragen.**
 - **Alle `SUPPORTED_LOCALES`, nicht nur zwei.** Aktuell `de`, `en`, `tlh`, `ru`.
   Komponententests bilingual über `@/test-utils/render` (AGENTS.md §6).
 
+### Drei Ebenen von „Bezeichnung" — nur eine davon ist gefährlich
+
+Weil die Beschriftungen parallel und an anderer Stelle überarbeitet werden,
+muss unterscheidbar sein, was eine Umbenennung jeweils kostet. Es sind drei
+verschiedene Dinge, die im Deutschen alle „Bezeichnung" heißen:
+
+| Ebene | Beispiel | Wer darf wann ändern | Kosten |
+|---|---|---|---|
+| **1. Sichtbarer Text** | der Wert `'Abos & Verträge'` in `translations.ts` | jederzeit, ohne Rücksprache | keine — das Tutorial zeigt ihn, kennt ihn aber nicht |
+| **2. i18n-Schlüssel** | der Pfad `nav.items.contracts` | jederzeit, aber **Referenzen im selben PR nachziehen** | gering, wenn bemerkt — sonst stiller Anzeigefehler |
+| **3. ID / Route / persistierter Wert** | `NavFeatureId 'contracts'`, `/contracts`, `tutorial_source: 'csv'`, Kapitel-IDs | vor dem Merge frei, danach nur mit Migration | hoch |
+
+**Ebene 1 ist der Normalfall und berührt das Tutorial nie.** Genau dafür ist
+die Regel oben da: Modulnamen werden im Schritttext referenziert, nicht
+abgeschrieben. Wird aus „Abos & Verträge" morgen „Fixkosten", ändert sich der
+Tutorial-Text mit, ohne dass jemand ihn anfasst.
+
+**Ebene 2 ist die einzige echte Kollisionsstelle.** Und sie ist tückisch, weil
+sie nicht knallt: `t()` gibt bei unbekanntem Schlüssel den Schlüssel selbst
+zurück (`I18nProvider.tsx`, `lookupTranslation(...) ?? fallback ?? key`). Ein
+umbenannter Schlüssel erzeugt also keinen Fehler, sondern ein Popup, in dem
+wörtlich `nav.items.contracts` steht. `pnpm check:i18n` fängt das nicht — es
+prüft Symmetrie zwischen den Locales und hardcodierte Strings im Diff, nicht,
+ob eine Referenz noch existiert.
+
+> **Deshalb Pflicht mit dem ersten Tutorial-Code:** ein Test, der über alle
+> Kapitel läuft und für **jeden** referenzierten Schlüssel — den eigenen
+> `tutorial.*` wie den geliehenen `nav.items.*` — prüft, dass er in **allen**
+> `SUPPORTED_LOCALES` auflösbar ist. Das ist das Sicherheitsnetz, das die
+> Zusage „Beschriftungen sind jederzeit frei" überhaupt erst wahr macht: Eine
+> Umbenennung auf Ebene 1 kann dann nichts kaputt machen, und eine auf Ebene 2
+> wird rot statt still.
+
+**Ebene 3 gehört nicht in die Umbenennungs-Runde.** IDs sind kein sichtbarer
+Text; sie stehen in gespeichertem Fortschritt und in Routen. Wer die
+sichtbaren Namen überarbeitet, fasst sie nicht an — und umgekehrt sollte eine
+gute neue Beschriftung nie daran scheitern, dass die ID technisch klingt. Das
+ist der ganze Zweck der Trennung.
+
 ### Zur Benennung der drei Wege
 
-Empfehlung: nach dem, was der Nutzer **hat**, nicht nach der Technik. „CSV" ist
-ein Dateiformat, kein Nutzerbedürfnis — wer nicht weiß, was CSV ist, hat
-vielleicht trotzdem einen Kontoauszug zum Herunterladen.
+Die folgenden Formulierungen sind **Vorschläge auf Ebene 1 und damit nicht
+bindend** — läuft parallel eine Überarbeitung der Beschriftungen, gilt deren
+Ergebnis. Verbindlich sind hier nur die IDs in der linken Spalte; sie bleiben,
+was auch immer rechts danebensteht.
 
-| ID | Vorschlag DE | statt |
+Das Prinzip dahinter ist aber eine Empfehlung: benannt wird nach dem, was der
+Nutzer **hat**, nicht nach der Technik. „CSV" ist ein Dateiformat, kein
+Nutzerbedürfnis — wer nicht weiß, was CSV ist, hat vielleicht trotzdem einen
+Kontoauszug zum Herunterladen.
+
+| ID (verbindlich) | Vorschlag DE (unverbindlich) | statt |
 |---|---|---|
 | `csv` | „Ich habe eine Datei von meiner Bank" | „CSV-Import" |
 | `bank` | „Meine Bank direkt verbinden" | „GoCardless / Bankimport" |
 | `demo` | „Erst mal umsehen" | „Demo-Modus" |
 
-**Nebenbefund, der ohnehin ansteht:** dieselbe Sache heißt im Bestand heute
-schon zweierlei — `login.demoButton: 'Demo ansehen'` gegen
-`financeEmptyState.sampleDataButton: 'Beispieldaten ansehen'`, und der
-Ladehinweis desselben Buttons sagt „Beispieldaten werden geladen…". Wenn die
-Bezeichnungen ohnehin angefasst werden, ist das der Moment, sich auf ein Wort
-festzulegen; das Tutorial würde die Uneinheitlichkeit sonst an drei weiteren
-Stellen fortschreiben.
+### Zwei Punkte für die laufende Beschriftungs-Überarbeitung
+
+Beides ist reine Ebene 1 und gehört damit dorthin, nicht hierher — aber beides
+fällt bei der Tutorial-Planung auf und wäre danach teurer:
+
+1. **Ein Wort für die Beispieldaten.** Dieselbe Sache heißt im Bestand heute
+   zweierlei: `login.demoButton: 'Demo ansehen'` gegen
+   `financeEmptyState.sampleDataButton: 'Beispieldaten ansehen'` — und der
+   Ladehinweis *desselben* Buttons sagt „Beispieldaten werden geladen…". Das
+   Tutorial schreibt die Uneinheitlichkeit sonst an drei weiteren Stellen fort,
+   und ausgerechnet dieser Weg ist der, auf dem der Nutzer am wenigsten
+   Vorwissen mitbringt.
+2. **Das Beta-Etikett der Finanzstadt** (`city.betaBadge`, zugleich Untertitel
+   in `NAV_GROUPS` und Badge auf der Seite). Mit der Entscheidung „Kernbereich,
+   immer sichtbar" ist es ein Widerspruch — siehe oben. Ob es fällt, ist eine
+   Produktentscheidung; dass es zusammen mit den übrigen Beschriftungen
+   entschieden wird, ist die günstigere Reihenfolge.
 
 ## Umsetzungsreihenfolge
 
