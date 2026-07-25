@@ -3,6 +3,7 @@ import type { Wording } from '../wording';
 import type { TranslationOverlay } from './types';
 import { everydayDe } from './everyday/de';
 import { everydayEn } from './everyday/en';
+import { everydayRu } from './everyday/ru';
 
 export type { TranslationOverlay } from './types';
 
@@ -11,14 +12,21 @@ export type { TranslationOverlay } from './types';
  *
  * - `technical` hat GRUNDSÄTZLICH kein Overlay — der Basisbaum ist dieses
  *   Register.
- * - Locales ohne Eintrag (aktuell `ru`) fallen vollständig auf die Basis
- *   durch. Die Alltagssprache ist damit zunächst ein de/en-Versprechen; das
- *   gehört in die Beschreibung der Einstellung, statt still zu unterliefern.
+ * - Locales ohne Eintrag fallen vollständig auf die Basis durch. Aktuell gibt
+ *   es keine solche Locale mehr: alle `SUPPORTED_LOCALES` haben ein
+ *   Alltagssprache-Overlay. Solange das so bleibt, ist der Sprachstil-Schalter
+ *   in `WordingSettings` für niemanden deaktiviert — die Abfrage dort bleibt
+ *   trotzdem stehen, damit eine neu hinzugefügte Sprache nicht still ein
+ *   leeres Versprechen anbietet.
+ *
+ * `overlay-coverage.test.ts` hält fest, dass jede unterstützte Sprache hier
+ * eintragen ist.
  */
 const OVERLAYS: Partial<Record<Wording, Partial<Record<Locale, TranslationOverlay>>>> = {
   everyday: {
     de: everydayDe,
     en: everydayEn,
+    ru: everydayRu,
   },
 };
 

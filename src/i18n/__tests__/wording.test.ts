@@ -80,10 +80,15 @@ describe('lookupWorded', () => {
   });
 
   it('sollte fuer Locales ohne Overlay den Basistext liefern', () => {
-    // `ru` ist aktiv, bekommt aber (noch) kein Alltagssprache-Overlay.
-    expect(overlayFor('everyday', 'ru')).toBeUndefined();
-    expect(lookupWorded('ru', OVERLAID_KEY, 'everyday')).toBe(
-      lookupTranslation('ru', OVERLAID_KEY),
+    // Subjekt war frueher `ru` — das hat inzwischen ein vollstaendiges
+    // Overlay (siehe `overlay-coverage.test.ts`, das genau das erzwingt).
+    // Die MECHANIK muss trotzdem geprueft bleiben, also uebernimmt `tlh` die
+    // Rolle: eine bekannte Locale aus `INACTIVE_LOCALES`, die absichtlich
+    // keine Alltagssprache bekommt und deshalb komplett auf die Basis
+    // durchfallen muss.
+    expect(overlayFor('everyday', 'tlh')).toBeUndefined();
+    expect(lookupWorded('tlh', OVERLAID_KEY, 'everyday')).toBe(
+      lookupTranslation('tlh', OVERLAID_KEY),
     );
   });
 
