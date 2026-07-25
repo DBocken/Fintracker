@@ -169,7 +169,16 @@ export async function getCoachOverview(options?: { includeTaxReserve?: boolean }
     if (taxRec) recommendations.push(taxRec);
   }
 
-  const protectedNames = ["groceries", "housing", "insurance", "transport"];
+  // Geschuetzte Grundbedarfs-Kategorien, adressiert ueber die stabile ID.
+  // Vorher stand hier eine Liste ENGLISCHER Woerter, die gegen die deutschen
+  // Kategorienamen geprueft wurde — das traf nie zu und war ein stiller
+  // Totalausfall dieser Einstufung.
+  const protectedCategoryIds = new Set([
+    "local-cat-lebensmittel",
+    "local-cat-wohnen",
+    "local-cat-versicherungen",
+    "local-cat-mobilitaet",
+  ]);
   // Verträge sind preisgebunden und nicht frei kürzbar (Audit P2-UX U5) – sie
   // werden als geschützt behandelt mit einem Hinweis auf Kündigung/Wechsel,
   // statt eine prozentuale Reduktion vorzuschlagen.
@@ -189,7 +198,7 @@ export async function getCoachOverview(options?: { includeTaxReserve?: boolean }
       savingsOpportunity: Math.max(0, spend - recommendedMax),
       reason: contract
         ? t("coachService.categoryGuidance.contractReason")
-        : protectedNames.some((name) => category.name.toLowerCase().includes(name)) ? t("coachService.categoryGuidance.importantReason") : status === "cut" ? t("coachService.categoryGuidance.lowPriorityReason") : t("coachService.categoryGuidance.reducibleReason"),
+        : protectedCategoryIds.has(category.id) ? t("coachService.categoryGuidance.importantReason") : status === "cut" ? t("coachService.categoryGuidance.lowPriorityReason") : t("coachService.categoryGuidance.reducibleReason"),
     };
   });
 

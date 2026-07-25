@@ -61,10 +61,12 @@ describe('explainCategorization', () => {
   it('explains a regex fallback with 0.55 confidence', () => {
     const result = explainCategorization(
       tx({ payee: 'Aral Tankstelle Berlin', description: 'Tanken' }),
-      [category({ id: 'mobility', name: 'Mobilität', filters: [] })],
+      // Fallback-Regeln adressieren die stabile ID (`local-cat-<slug>`), nicht
+      // den Anzeigenamen — der ist umbenennbar und sprachabhaengig.
+      [category({ id: 'local-cat-mobilitaet', name: 'Mobilität', filters: [] })],
     );
     expect(result.source).toBe('regex_fallback');
-    expect(result.categoryId).toBe('mobility');
+    expect(result.categoryId).toBe('local-cat-mobilitaet');
     expect(result.confidence).toBe(0.55);
     expect(result.reasons[0]).toContain('Mobilität');
   });

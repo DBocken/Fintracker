@@ -154,9 +154,10 @@ describe("categorizeTransaction", () => {
 
   it("falls back to a regex rule when no category filter matches", () => {
     const transaction = tx({ payee: "Aral Tankstelle Berlin", description: "Tanken" });
-    const categories = [category({ id: "mobility", name: "Mobilität", filters: [] })];
+    // Fallback-Regeln adressieren die stabile ID, nicht den Anzeigenamen.
+    const categories = [category({ id: "local-cat-mobilitaet", name: "Mobilität", filters: [] })];
 
-    expect(categorizeTransaction(transaction, categories)).toBe("mobility");
+    expect(categorizeTransaction(transaction, categories)).toBe("local-cat-mobilitaet");
   });
 
   it("does not apply a regex fallback if the matching category does not exist", () => {

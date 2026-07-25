@@ -160,12 +160,14 @@ export function explainCategorization(
   const haystack = `${normalizedPayee} ${transaction.description || ''} ${transaction.original_text || ''}`.toLowerCase();
   for (const rule of REGEX_FALLBACK_RULES) {
     if (rule.pattern.test(haystack)) {
-      const fallbackCategory = categories.find((c) => c.name === rule.category);
+      // Match ueber die stabile ID, nicht ueber den Anzeigenamen: der ist
+      // umbenennbar und seit der Lokalisierung sprachabhaengig.
+      const fallbackCategory = categories.find((c) => c.id === `local-cat-${rule.categorySlug}`);
       if (fallbackCategory && !isBlockedByDirection(fallbackCategory)) {
         return {
           categoryId: fallbackCategory.id,
           confidence: 0.55,
-          reasons: [t('transactionService.fallbackRule', '{category}').replace('{category}', rule.category)],
+          reasons: [t('transactionService.fallbackRule', '{category}').replace('{category}', fallbackCategory.name)],
           source: 'regex_fallback',
         };
       }

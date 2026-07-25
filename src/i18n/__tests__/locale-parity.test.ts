@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { translations, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../translations';
 
@@ -87,5 +88,46 @@ describe('Locale-Parität (de = Referenz)', () => {
       }
     }
     expect(extra).toEqual([]);
+  });
+});
+
+describe('Doppelte Namespaces', () => {
+  /**
+   * Ein zweimal vergebener Schlüssel im Objektliteral ist gültiges JavaScript:
+   * der spätere gewinnt, der frühere verschwindet lautlos. Dieser Test liest
+   * deshalb die QUELLE, nicht das ausgewertete Objekt — im Objekt ist der
+   * Fehler per Definition nicht mehr sichtbar.
+   *
+   * Das ist genau einmal passiert: ein neuer `categories`-Block kollidierte mit
+   * dem bestehenden Namespace des Kategorie-Auswählers und war in allen
+   * Sprachen wirkungslos. Die Paritätsprüfung sah nichts, weil beide Seiten
+   * denselben überlebenden Block verglichen.
+   */
+  it('[REGRESSION] sollte je Locale keinen Namespace doppelt definieren', () => {
+    // Pfad ueber cwd statt import.meta.url: unter vitest/jsdom ist letzteres
+    // keine file:-URL.
+    const source = readFileSync(`${process.cwd()}/src/i18n/translations.ts`, 'utf8');
+    const lines = source.split('\n');
+
+    const localeStarts: Array<{ locale: string; line: number }> = [];
+    lines.forEach((line, index) => {
+      const match = line.match(/^ {2}(de|en|tlh|ru): \{$/);
+      if (match) localeStarts.push({ locale: match[1], line: index });
+    });
+    expect(localeStarts.length).toBe(4);
+
+    const duplicates: string[] = [];
+    localeStarts.forEach(({ locale, line }, i) => {
+      const end = i + 1 < localeStarts.length ? localeStarts[i + 1].line : lines.length;
+      const seen = new Set<string>();
+      for (let n = line + 1; n < end; n++) {
+        const match = lines[n].match(/^ {4}(\w+): [{'"[]/);
+        if (!match) continue;
+        if (seen.has(match[1])) duplicates.push(`${locale}.${match[1]} (Zeile ${n + 1})`);
+        seen.add(match[1]);
+      }
+    });
+
+    expect(duplicates).toEqual([]);
   });
 });

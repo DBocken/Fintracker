@@ -922,6 +922,7 @@ export function buildDefaultCategories(): Category[] {
       id: mainId,
       user_id: null,
       name: main.name,
+      name_key: `categoryNames.${main.slug}.name`,
       color: main.color,
       icon: main.icon,
       filters: [],
@@ -933,6 +934,7 @@ export function buildDefaultCategories(): Category[] {
       id: `local-cat-${sub.slug}`,
       user_id: null,
       name: sub.name,
+      name_key: `categoryNames.${sub.slug}.name`,
       color: main.color,
       icon: main.icon,
       filters: sub.keywords,
@@ -970,20 +972,25 @@ export function getKeywordsFor(categoryName: string): string[] {
 
 /**
  * Generische Regex-Fallback-Regeln (letzte Stufe, falls kein Keyword greift).
- * Verweisen auf die jeweilige Hauptkategorie (per Name).
+ * Verweisen auf die jeweilige Hauptkategorie (per SLUG, nicht per Name).
+ *
+ * Der Slug ist die stabile Identitaet (`local-cat-<slug>`); der Name ist eine
+ * Beschriftung, die die Nutzerin umbenennen kann und die seit der
+ * Lokalisierung der Kategorienamen ausserdem sprachabhaengig ist. Ein Match
+ * ueber den Namen brach in beiden Faellen still.
  */
 export interface RegexFallbackRule {
-  category: string;
+  categorySlug: string;
   pattern: RegExp;
 }
 
 export const REGEX_FALLBACK_RULES: RegexFallbackRule[] = [
-  { category: "Mobilität", pattern: /tankstelle|tanken|kraftstoff/i },
-  { category: "Wohnen", pattern: /\b(miete|nebenkosten|hausgeld|wohnung)\b/i },
-  { category: "Versicherungen", pattern: /versicherung|beitrag.*vers/i },
-  { category: "Abos & Streaming", pattern: /\babo(nnement)?\b|monatsbeitrag/i },
-  { category: "Gesundheit", pattern: /apotheke|arzt(praxis)?|krankenkasse/i },
-  { category: "Lebensmittel", pattern: /supermarkt|lebensmittel|getränkemarkt|getraenkemarkt/i },
-  { category: "Anstellung", pattern: /gehalt|lohn/i },
-  { category: "Staat & Soziales", pattern: /\brente\b|kindergeld|elterngeld|buergergeld|bürgergeld/i },
+  { categorySlug: "mobilitaet", pattern: /tankstelle|tanken|kraftstoff/i },
+  { categorySlug: "wohnen", pattern: /\b(miete|nebenkosten|hausgeld|wohnung)\b/i },
+  { categorySlug: "versicherungen", pattern: /versicherung|beitrag.*vers/i },
+  { categorySlug: "abosundstreaming", pattern: /\babo(nnement)?\b|monatsbeitrag/i },
+  { categorySlug: "gesundheit", pattern: /apotheke|arzt(praxis)?|krankenkasse/i },
+  { categorySlug: "lebensmittel", pattern: /supermarkt|lebensmittel|getränkemarkt|getraenkemarkt/i },
+  { categorySlug: "anstellung", pattern: /gehalt|lohn/i },
+  { categorySlug: "staatsoziales", pattern: /\brente\b|kindergeld|elterngeld|buergergeld|bürgergeld/i },
 ];

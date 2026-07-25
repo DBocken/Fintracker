@@ -147,7 +147,23 @@ export interface CategoryAttributes {
 export interface Category {
   id: string;
   user_id?: string | null;
+  /**
+   * Anzeigename. Bei Standard-Kategorien der deutsche Ausgangstext, der als
+   * Fallback zu {@link name_key} dient; bei selbst angelegten oder umbenannten
+   * Kategorien der Text der Nutzerin.
+   */
   name: string;
+  /**
+   * i18n-Key des Anzeigenamens — nur bei NICHT umbenannten Standard-Kategorien
+   * gesetzt. `getLocalCategories()` loest ihn beim Lesen auf, deshalb folgt die
+   * Beschriftung der Sprache, ohne dass eine Renderstelle das wissen muss.
+   *
+   * Sobald die Nutzerin umbenennt, wird das Feld auf `null` gesetzt: ab dann
+   * gewinnt ihr Text und ein Sprachwechsel fasst ihn nicht mehr an.
+   * `filters` (die Such-Stichwoerter) bleiben davon immer unberuehrt — sie
+   * matchen deutschen Kontoauszugstext und werden nie uebersetzt.
+   */
+  name_key?: string | null;
   color?: string;
   icon?: string;
   filters: string[];
