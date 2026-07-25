@@ -58,6 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PositionTable from './PositionTable';
 import PortfolioManager from './PortfolioManager';
+import { chartNumber } from '@/lib/chart-tooltip';
 import EtoroConnectDialog from './EtoroConnectDialog';
 import AddPositionDialog from './AddPositionDialog';
 import OcrImportDialog from './OcrImportDialog';
@@ -1214,8 +1215,8 @@ export default function TradingDashboard() {
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value: number) => [
-                        formatCurrency(value, 'EUR'),
+                      formatter={(value) => [
+                        formatCurrency(chartNumber(value), 'EUR'),
                         t('trading.dashboard.performanceChart.valueLabel')
                       ]}
                     />

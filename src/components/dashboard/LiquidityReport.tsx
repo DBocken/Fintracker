@@ -58,6 +58,7 @@ import type { BufferBasis, ForecastMonthlySummary } from '@/lib/forecast-types';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
+import { chartNumber, chartText } from '@/lib/chart-tooltip';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
@@ -634,8 +635,8 @@ function ChartLinesView({
             axisLine={{ stroke: colors.axisStroke }}
           />
           <Tooltip
-            formatter={(v: number, name: string) => [eur.format(v), CHART_SERIES_LABELS[name] ?? name]}
-            labelFormatter={(l: string) => fmtDate(l)}
+            formatter={(v, name) => [eur.format(chartNumber(v)), CHART_SERIES_LABELS[chartText(name)] ?? chartText(name)]}
+            labelFormatter={(l) => fmtDate(chartText(l))}
             contentStyle={{
               backgroundColor: 'var(--background)',
               borderColor: 'var(--border)',

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { PerformancePoint } from '@/services/etoro-performance';
 import { selectPerformanceTrend } from '@/services/etoro-performance';
 import EtoroScopeGate from './EtoroScopeGate';
+import { chartNumber } from '@/lib/chart-tooltip';
 
 interface EtoroPerformanceTabProps {
   isLocked: boolean;
@@ -65,7 +66,7 @@ export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetr
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
                 <YAxis />
-                <Tooltip formatter={(value: number) => [formatCurrency(value, USD), t('trading.etoro.performance.valueLabel')]} />
+                <Tooltip formatter={(value) => [formatCurrency(chartNumber(value), USD), t('trading.etoro.performance.valueLabel')]} />
                 <Line type="monotone" dataKey="value" stroke={trendColor[trend]} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>

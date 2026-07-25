@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { yAxisDomain } from '@/lib/chart-axis';
+import { chartNumber, chartText } from '@/lib/chart-tooltip';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
@@ -165,12 +166,12 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 'var(--radius)'
                 }}
-                formatter={(value: number, name: string) => [
-                  gentleModeEnabled ? '***' : `${value.toFixed(2)}€`,
+                formatter={(value, name) => [
+                  gentleModeEnabled ? '***' : `${chartNumber(value).toFixed(2)}€`,
                   name === 'income' ? t('balanceChart.income') :
                   name === 'expenses' ? t('balanceChart.expenses') : t('balanceChart.balance')
                 ]}
-                labelFormatter={(label) => t('balanceChart.dateLabel').replace('{label}', label)}
+                labelFormatter={(label) => t('balanceChart.dateLabel').replace('{label}', chartText(label))}
               />
               <Legend
                 wrapperStyle={{ paddingTop: '20px' }}
