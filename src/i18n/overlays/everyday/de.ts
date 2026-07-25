@@ -80,13 +80,61 @@ export const everydayDe: TranslationOverlay = {
     items: {
       liquidity: 'Verfügbar',
       netWorth: 'Unterm Strich',
+      // „Trading" ist ein englisches Lehnwort und „Depot" Bankdeutsch — beides
+      // sagt einer Schülerin nichts. Der Bereich zeigt ohnehin den Bestand,
+      // nicht das Handeln. Breite ist unkritisch: `nav.items.*` erscheint nur
+      // in Seiten-/Drawer-Navigation (die Bottom-Nav hat eigene
+      // `shortLabelKey`s), direkt neben „Trends & Berichte".
+      trading: 'Wertpapiere',
     },
+    subtitles: {
+      trading: 'Wertpapiere im Blick',
+    },
+  },
+  kpi: {
+    sectionTitle: 'Wichtige Zahlen',
+    kpisLabel: 'Wichtige Zahlen',
+    selectButton: 'Zahlen auswählen',
+    emptyTitle: 'Keine Zahlen ausgewählt',
+    emptyDescription: 'Wähle mindestens eine Zahl aus, damit sie auf dem Dashboard erscheint.',
+    savingsRate: {
+      label: 'Wie viel du sparst',
+    },
+  },
+  health: {
+    // `emergencyFund` bleibt „Notgroschen" — bereits Alltagssprache.
+    savingsRate: 'Wie viel du sparst',
+    liquidity: 'Verfügbares Geld',
+  },
+  analysisModePanel: {
+    balance: 'Kontostand',
+    avgBalance: 'Ø Kontostand',
+    timeRangeDesc: 'Zahlen und Diagramme folgen dem gewählten Zeitraum-Filter. Wechsle auf „Typischer Monat" für gemittelte Werte oder „Tendenz" für den Vergleich mit dem Vorzeitraum.',
+  },
+  transactionStats: {
+    balance: 'Kontostand',
+  },
+  balanceChart: {
+    balance: 'Kontostand',
+    endBalance: 'Kontostand am Ende:',
+    startingBalanceLabel: 'Kontostand am Anfang:',
+    currentBalance: 'Aktueller Kontostand:',
+    dialogTitle: 'Kontostand am Anfang einstellen',
+    startingBalanceInput: 'Kontostand am Anfang (€)',
   },
   netWorth: {
     title: 'Besitz minus Schulden',
     netWorth: 'Besitz minus Schulden',
     liquidity: 'Verfügbares Geld',
     composition: 'Verfügbares Geld + Investitionen + offene Forderungen − Schulden',
+    // Schliesst eine Inkonsistenz aus Welle 1: die Kachel sagte bereits
+    // „Verfügbares Geld", ihr eigener Erklärtext weiter „Liquidität"/„Saldo".
+    liquidityDetailedDescription: 'Wenn ein Konto mit der Bank verbunden ist, wird der zuletzt abgerufene Kontostand der Bank verwendet – auch ohne synchronisierte Transaktionen. Ohne Bankanbindung wird der Kontostand aus den lokal erfassten Transaktionen berechnet.',
+    liveBadge: 'Von der Bank',
+    liveSyncAt: 'Kontostand direkt von der Bank',
+    calculatedFrom: 'Berechnet aus Kontostand am Anfang + lokalen Transaktionen',
+    managePortfolio: 'Wertpapiere verwalten',
+    addPortfolio: 'Wertpapiere hinzufügen',
   },
   other: {
     liquidityTitle: 'Verfügbares Geld',
@@ -149,6 +197,12 @@ export const everydayDe: TranslationOverlay = {
   accounts: {
     formDialog: {
       balanceDateLabel: 'Kontostand-Stichtag',
+      openingBalanceLabel: 'Kontostand am Anfang (optional)',
+      balanceHint: 'Kontostand vor der ersten importierten/erfassten Transaktion. Wird zur Summe der Transaktionen addiert, damit der berechnete Stand dem echten Kontostand entspricht.',
+      manualBalanceHint: 'Überschreibt den berechneten/synchronisierten Kontostand direkt – z.B. um nach einem CSV-Import den echten Stand laut Kontoauszug einzutragen.',
+    },
+    cards: {
+      totalBalance: 'Gesamter Kontostand',
     },
   },
   dataExport: {

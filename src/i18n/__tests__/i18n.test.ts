@@ -26,10 +26,12 @@ describe('resolveInitialLocale', () => {
     expect(resolveInitialLocale()).toBe('en');
   });
 
-  it('ignores an invalid stored locale and falls back', () => {
+  it('[REGRESSION] ignores an invalid stored locale and falls back deterministically', () => {
+    // Hedgte frueher auf `expect(['de','en']).toContain(...)`, weil das Ergebnis
+    // an jsdoms `navigator.language` (en-US) hing. `vitest.setup.ts` pinnt die
+    // Browsersprache jetzt auf de-DE — diese Assertion ist der Nachweis dafuer.
     window.localStorage.setItem('ausgabentracker_locale_v1', 'fr');
-    // jsdom navigator.language is typically en-US → resolves to 'en', else default 'de'
-    expect(['de', 'en']).toContain(resolveInitialLocale());
+    expect(resolveInitialLocale()).toBe('de');
   });
 });
 

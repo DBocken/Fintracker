@@ -29,6 +29,26 @@ if (!globalThis.crypto?.subtle) {
   })
 }
 
+// Sprachwahl deterministisch machen.
+//
+// `resolveInitialLocale()` (src/i18n/I18nProvider.tsx) fällt ohne gespeicherte
+// Wahl auf `navigator.language` zurück. Unter jsdom ist das `en-US`, also lief
+// jeder Test, der `serviceT`-gestützten Code anfasst, unbemerkt auf Englisch —
+// das hat hier schon zweimal zu rätselhaften Fehlschlägen geführt.
+//
+// Bewusst ein einmaliger Property-Patch und KEIN `beforeEach`: 40 Testdateien
+// rufen `localStorage.clear()` auf, teils mitten im `it()`. Ein Hook-basierter
+// Pin würde davon weggeräumt, dieser hier nicht.
+//
+// Eine explizit gespeicherte Sprache gewinnt weiterhin — `renderWithI18n(ui, 'en')`
+// und `localStorage.setItem('ausgabentracker_locale_v1', …)` wirken unverändert.
+if (typeof window !== "undefined" && window.navigator) {
+  Object.defineProperty(window.navigator, "language", {
+    value: "de-DE",
+    configurable: true,
+  })
+}
+
 // jsdom's Blob/File lack the `text()` instance method that the CSV import
 // uses (`await file.text()`). Bridge it via FileReader, which jsdom supports.
 if (typeof Blob !== "undefined" && !Blob.prototype.text) {

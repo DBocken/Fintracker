@@ -169,6 +169,11 @@ export function backfillCategoryNameKeys(categories: Category[]): { categories: 
     const fallback = defaultsById.get(cat.id);
     if (!fallback?.name_key) return cat;
     // Abweichender Name = die Nutzerin hat umbenannt. Nicht anfassen.
+    // HISTORISCHER SEED-WERT, nicht lokalisieren: `fallback.name` ist der
+    // deutsche Ausgangstext aus der Taxonomie. Verglichen wird gegen den
+    // GESPEICHERTEN Namen, um "hat die Nutzerin umbenannt?" zu beantworten.
+    // Diese Zeile entscheidet, ob `name_key` je nachgetragen wird — ein
+    // falsch-negativer Vergleich macht die Kategorie DAUERHAFT unlokalisierbar.
     if (cat.name !== fallback.name) return cat;
 
     changed = true;
@@ -180,6 +185,9 @@ export function backfillCategoryNameKeys(categories: Category[]): { categories: 
 
 export function backfillAusgabenklasse(categories: Category[]): { categories: Category[]; changed: boolean } {
   const defaultsById = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.id, c]));
+  // HISTORISCHER SEED-WERT, nicht lokalisieren: Namens-Index nur fuer
+  // Cloud-Kategorien ohne `local-cat-*`-ID. Der Vergleich laeuft gegen die
+  // deutschen Ausgangstexte, nicht gegen Anzeigenamen.
   const defaultsByName = new Map(DEFAULT_LOCAL_CATEGORIES.map((c) => [c.name, c]));
   const byId = new Map(categories.map((c) => [c.id, c]));
   let changed = false;
@@ -270,6 +278,8 @@ export function migrateIncomeTaxonomy(categories: Category[]): { categories: Cat
 
   const migrated = categories.map((cat) => {
     // 2. local-cat-einkommen: alte Bezeichnung "Einkommen" → "Sonstige Einnahmen".
+    // HISTORISCHER SEED-WERT, nicht lokalisieren: einmalige Migration gegen den
+    // deutschen Namen von vor der Lokalisierung. ID-gated, laeuft nur einmal.
     if (cat.id === "local-cat-einkommen" && cat.name === "Einkommen") {
       const fallback = defaultsById.get("local-cat-einkommen");
       changed = true;
@@ -305,6 +315,7 @@ export function migrateIncomeTaxonomy(categories: Category[]): { categories: Cat
         changed = true;
         next = { ...next, parent_id: "local-cat-staatsoziales" };
       }
+      // HISTORISCHER SEED-WERT, nicht lokalisieren (siehe oben).
       if (next.name === "Rente & Soziales") {
         changed = true;
         next = { ...next, name: "Rente & Pension" };
@@ -428,6 +439,7 @@ export function migrateInsuranceTaxSplit(categories: Category[]): { categories: 
 
     if (cat.id === "local-cat-haftpflichthausrat") {
       let next = cat;
+      // HISTORISCHER SEED-WERT, nicht lokalisieren (siehe oben).
       if (next.name === "Haftpflicht & Hausrat") {
         changed = true;
         next = { ...next, name: defaultsById.get(next.id)?.name ?? "Hausrat & Gebäude" };

@@ -6,7 +6,11 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'android/**', 'supabase/**', 'mcp-poc/**', '.claude/templates/**', '.claude/workflows/**'],
+    // `coverage/**`: generierter HTML-Report aus `pnpm test:coverage`. Gitignored,
+    // aber ESLint sieht ihn trotzdem und meldet Warnungen aus fremdem Fremdcode.
+    // In CI faellt das nicht auf (Lint laeuft dort VOR Coverage) — lokal machte
+    // es `pnpm lint` nach jedem Coverage-Lauf unbrauchbar.
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'android/**', 'supabase/**', 'mcp-poc/**', '.claude/templates/**', '.claude/workflows/**'],
   },
   {
     files: ['**/*.{ts,tsx}'],

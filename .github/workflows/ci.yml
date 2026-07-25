@@ -44,6 +44,9 @@ jobs:
           git fetch origin main
           pnpm check:i18n --range origin/main...HEAD
 
+      - name: i18n-Waechter (eingefrorene Uebersetzungen)
+        run: pnpm check:i18n-module-consts
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
