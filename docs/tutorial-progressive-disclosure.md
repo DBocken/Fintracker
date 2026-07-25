@@ -90,15 +90,18 @@ Erhoben am Bestand, nicht geraten:
 
 ## Vor dem Bauen zu entscheiden
 
-1. **Reihenfolge.** Behutsames Heranführen braucht eine Abfolge: welcher
-   Bereich kommt für welche Lebenssituation zuerst? Die `features`-Listen in
-   `src/lib/life-situations.ts` sind heute unsortiert (die Anzeige folgt der
-   Nav-Reihenfolge). Führt man sie stattdessen als *Lernreihenfolge*, ergibt
-   sich die Kurve ohne zusätzliche Datenstruktur.
-2. **Auslöser.** Schaltet allein das Tutorial frei, oder auch Ereignisse
-   (genug Buchungen erfasst, erster voller Monat, Meilenstein erreicht)?
-   `coach-service` und `milestones-service` existieren bereits und wären der
-   natürliche Ort für „das wäre jetzt dein nächster Schritt".
+1. **Reihenfolge.** ✅ **Entschieden in `docs/tutorial-sequence.md`.** Dort
+   steht die Kapitelfolge, die Datenquellen-Weiche (Datei/Bank/Beispieldaten)
+   und die Begründung, warum die Reihenfolge als *eine* globale Konstante lebt
+   und **nicht** — wie hier ursprünglich vermutet — in den `features`-Listen
+   von `src/lib/life-situations.ts`: `resolveFeatureSelection` sortiert deren
+   Ergebnis ohnehin nach `FEATURE_ORDER`, eine dort hinterlegte Reihenfolge
+   käme nie an.
+2. **Auslöser.** ✅ **Entschieden in `docs/tutorial-sequence.md`**: Kapitel,
+   deren Datenvoraussetzung noch nicht erfüllt ist, werden *vertagt* statt leer
+   gezeigt, und der `coach-service` trägt sie als „das wäre jetzt dein nächster
+   Schritt", sobald die Voraussetzung eintritt — keine zweite
+   Benachrichtigungswelt.
 3. **Verbindlichkeit.** Muss man die Führung durchlaufen, um den Bereich zu
    bekommen, oder erklärt sie ihn nur beim ersten Auftauchen? Ersteres macht
    das Tutorial zum Türsteher — das verträgt sich nur mit einem sehr sichtbaren
