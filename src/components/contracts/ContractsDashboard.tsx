@@ -26,6 +26,7 @@ import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
+import { chartNumber } from '@/lib/chart-tooltip';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -293,7 +294,7 @@ export function ContractsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" />
                   <YAxis tickFormatter={(v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 })} />
-                  <Tooltip formatter={(value: number) => euro(value)} />
+                  <Tooltip formatter={(value) => euro(chartNumber(value))} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
                   <Area type="monotone" dataKey="income" name={t("contracts.chartIncomeLabel")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />

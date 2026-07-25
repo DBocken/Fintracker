@@ -5,6 +5,7 @@ import { chartRamp } from '@/lib/chart-colors';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeOverTimePoint } from '@/lib/analysis-data';
+import { chartNumber } from '@/lib/chart-tooltip';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -72,7 +73,7 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
                     border: '1px solid hsl(var(--border))',
                     borderRadius: 'var(--radius)',
                   }}
-                  formatter={(v: number) => formatCurrencyInt(Math.round(v))}
+                  formatter={(v) => formatCurrencyInt(Math.round(chartNumber(v)))}
                 />
                 {mainIds.map((id, idx) => (
                   <Bar

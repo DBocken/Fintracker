@@ -32,5 +32,15 @@ jobs:
       # da OSV die Lockdatei liest.
       - name: OSV-Scanner installieren (versions-gepinnt)
         run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0
-      - name: pnpm-Lockfile gegen OSV-Advisories scannen
-        run: $(go env GOPATH)/bin/osv-scanner scan source --lockfile=pnpm-lock.yaml
+      # `--config` explizit: osv-scanner.toml würde am Lockfile-Ort auch
+      # automatisch gefunden, aber explizit heißt, dass ein Tippfehler im Pfad
+      # den Lauf abbricht statt die dokumentierten Ausnahmen still zu ignorieren.
+      # Beide committeten Lockdateien werden gescannt — mcp-poc ist kein
+      # Workspace-Member, seine Abhängigkeiten sind aber genauso im Repo und
+      # werden von jedem installiert, der den PoC startet.
+      - name: pnpm-Lockfiles gegen OSV-Advisories scannen
+        run: |
+          $(go env GOPATH)/bin/osv-scanner scan source \
+            --lockfile=pnpm-lock.yaml \
+            --lockfile=mcp-poc/pnpm-lock.yaml \
+            --config=osv-scanner.toml

@@ -10,6 +10,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
+import { chartText } from '@/lib/chart-tooltip';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -166,11 +167,12 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
     return map;
   }, [breakdown]);
 
-  const tooltipFormatter = (value: number | string, name: string) => {
+  const tooltipFormatter = (value: unknown, name: unknown): [string, string] => {
+    const label = chartText(name);
     const val = Number(value);
-    if (!Number.isFinite(val)) return ['–', name];
-    if (showPercent && breakdown.total > 0) return [formatPercentInt((val / breakdown.total) * 100), name];
-    return [formatCurrencyInt(Math.round(val)), name];
+    if (!Number.isFinite(val)) return ['–', label];
+    if (showPercent && breakdown.total > 0) return [formatPercentInt((val / breakdown.total) * 100), label];
+    return [formatCurrencyInt(Math.round(val)), label];
   };
 
   return (

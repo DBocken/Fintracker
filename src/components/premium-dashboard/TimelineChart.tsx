@@ -8,6 +8,7 @@ import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
 import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 import { useI18n } from '@/i18n/useI18n';
+import { chartNumber, chartText } from '@/lib/chart-tooltip';
 
 interface TimelineChartProps {
   data: Array<{
@@ -179,9 +180,9 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             <XAxis dataKey="formattedDate" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={64} tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
-                name
+              formatter={(value, name) => [
+                chartNumber(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
+                chartText(name)
               ]}
               labelFormatter={(label) => t("premium.timeline.monthTooltip").replace('{label}', String(label))}
             />

@@ -13,6 +13,7 @@ import type { SunburstTree } from '@/lib/analysis-data';
 import { SpendingSunburstChart } from './SpendingSunburstChart';
 import { buildTransactionsHref } from './filter-utils';
 import type { AusgabenklasseFilter } from './filter-constants';
+import { chartNumber, chartText } from '@/lib/chart-tooltip';
 
 interface SunburstInner {
   id: string;
@@ -84,7 +85,7 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 'var(--radius)',
                 }}
-                formatter={(v: number) => [formatCurrencyInt(Math.round(v)), t("expensesOverTime.expensesLabel")]}
+                formatter={(v) => [formatCurrencyInt(Math.round(chartNumber(v))), t("expensesOverTime.expensesLabel")]}
               />
               <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={animate} />
             </BarChart>
@@ -338,13 +339,14 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
   }, [sunburst, colorMap, showPercent, totalExpenses]);
 
   // Tooltip-Formatter für Sunburst (beide Ringe)
-  const tooltipFormatter = (value: number | string, name: string) => {
+  const tooltipFormatter = (value: unknown, name: unknown): [string, string] => {
+    const label = chartText(name);
     const val = Number(value);
-    if (!Number.isFinite(val)) return ['–', name];
+    if (!Number.isFinite(val)) return ['–', label];
     if (showPercent && totalExpenses > 0) {
-      return [formatPercentInt((val / totalExpenses) * 100), name];
+      return [formatPercentInt((val / totalExpenses) * 100), label];
     }
-    return [formatCurrencyInt(Math.round(val)), name];
+    return [formatCurrencyInt(Math.round(val)), label];
   };
 
   return (

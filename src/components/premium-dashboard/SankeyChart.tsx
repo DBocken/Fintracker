@@ -15,6 +15,7 @@ import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
+import { chartNumber } from '@/lib/chart-tooltip';
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -404,8 +405,8 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
                   borderRadius: "6px",
                   padding: "8px 12px",
                 }}
-                formatter={(value: number, name: string) => {
-                  const formatted = value.toLocaleString("de-DE", {
+                formatter={(value, name) => {
+                  const formatted = chartNumber(value).toLocaleString("de-DE", {
                     style: "currency",
                     currency: "EUR",
                   });
