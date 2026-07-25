@@ -70,7 +70,7 @@ describe("DisposableTankCard (Feature 2: Verfügbar bis Gehalt)", () => {
         },
       };
       renderCard('de');
-      expect(screen.getByText("Achtung: Die Fixkosten übersteigen dein Guthaben vor dem Gehalt.")).toBeInTheDocument();
+      expect(screen.getByText("Achtung: Die festen Kosten übersteigen dein Guthaben vor dem Gehalt.")).toBeInTheDocument();
     });
 
     it("sollte einen Hinweis zeigen, wenn kein regelmäßiger Geldeingang erkannt ist", () => {

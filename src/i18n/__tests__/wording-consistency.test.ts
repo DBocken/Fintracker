@@ -50,6 +50,7 @@ const SAME_CONCEPT: ConceptGroup[] = [
       'coach.statusGridSavingsLabel',
       'financialHealthService.savingsRateLabel',
       'premium.smartInsights.savingsRate',
+      'budgets.waterfall.savingsRate',
     ],
   },
   {
@@ -61,6 +62,25 @@ const SAME_CONCEPT: ConceptGroup[] = [
       'coach.statusGridLiquidityLabel',
       'financialHealthService.liquidityLabel',
     ],
+  },
+  {
+    term: 'fixedCosts',
+    keys: [
+      'finrisk.fixedCosts',
+      'liquidityReport.fixedExpensesLabel',
+      'categoryForm.propertyFixedCosts',
+      'budgetWaterfall.essentials',
+    ],
+  },
+  {
+    // Der Wertpapier-Bereich hiess vor Welle 2 an vier Stellen anders
+    // („Trading", „Depot", „Portfolio"). Diese Gruppe haelt sie zusammen.
+    keys: ['nav.items.trading', 'other.tradingTitle', 'netWorth.portfolio'],
+  },
+  {
+    // Derselbe Moment, zwei Ansichten: Liquiditaetsbericht und Einkommens-
+    // Stresstest zeigen beide den ersten Tag unter dem Puffer.
+    keys: ['liquidityReport.firstBreachLabel', 'income.stress.firstBreachShift'],
   },
   {
     // Abschnittsüberschrift und Auswahl-Label derselben Dashboard-Sektion.
