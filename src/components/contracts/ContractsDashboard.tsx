@@ -232,15 +232,15 @@ export function ContractsDashboard() {
   const tableHead = (
     <TableHeader>
       <TableRow>
-        <TableHead>Art</TableHead>
+        <TableHead>{t("contracts.tableKind")}</TableHead>
         <TableHead>{t("contracts.tableName", "Vertrag")}</TableHead>
         <TableHead>{t("dashboard.category", "Kategorie")}</TableHead>
-        <TableHead>Zyklus</TableHead>
+        <TableHead>{t("contracts.tableCycle")}</TableHead>
         <TableHead>{t("contracts.typicalAmount", "Typischer Betrag")}</TableHead>
         <TableHead>{t("contracts.lastAmount", "Letzter Betrag")}</TableHead>
         <TableHead>{t("contracts.lastDate", "Letzte Fälligkeit")}</TableHead>
         <TableHead>{t("contracts.nextDue", "Nächste Fälligkeit")}</TableHead>
-        <TableHead>Status</TableHead>
+        <TableHead>{t("contracts.tableStatus")}</TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -267,7 +267,7 @@ export function ContractsDashboard() {
               </div>
             </div>
             <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
-              <SelectTrigger className="h-10 w-full sm:w-64"><SelectValue placeholder="Ansicht" /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-64"><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
                 <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>

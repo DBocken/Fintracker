@@ -201,7 +201,7 @@ export function SpendingSunburstChart({
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-full max-w-[320px]">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full" role="img" aria-label="Ausgaben-Sunburst nach Kategorie">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full" role="img" aria-label={t('finrisk.spendingSunburstAriaLabel')}>
           {segments.map((seg) => {
             const a1 = seg.a0 + (seg.a1 - seg.a0) * sweep;
             if (a1 - seg.a0 < 1e-4) return null;

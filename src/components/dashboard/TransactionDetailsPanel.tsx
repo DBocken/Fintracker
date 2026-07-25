@@ -250,34 +250,34 @@ export function TransactionDetailsPanel({
       {/* Stammdaten (read-only) */}
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <Label className="text-xs text-muted-foreground">Datum</Label>
+          <Label className="text-xs text-muted-foreground">{t('dashboard.date')}</Label>
           <p className="font-medium">{format(parseISO(transaction.date), 'dd. MMMM yyyy', { locale: de })}</p>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Betrag</Label>
+          <Label className="text-xs text-muted-foreground">{t('dashboard.amount')}</Label>
           <p className={`font-medium tabular-nums ${transaction.amount < 0 ? 'text-warning' : 'text-positive'}`}>
             {currencyFormatter.format(transaction.amount)}
           </p>
         </div>
         <div className="col-span-2">
-          <Label className="text-xs text-muted-foreground">Empfänger/Zahler</Label>
-          <p className="font-medium">{transaction.payee || 'Unbekannt'}</p>
+          <Label className="text-xs text-muted-foreground">{t('transactionDetails.payeeLabel')}</Label>
+          <p className="font-medium">{transaction.payee || t('common.unknown')}</p>
         </div>
         {transaction.description && (
           <div className="col-span-2">
-            <Label className="text-xs text-muted-foreground">Beschreibung</Label>
+            <Label className="text-xs text-muted-foreground">{t('dashboard.description')}</Label>
             <p className="text-sm">{transaction.description}</p>
           </div>
         )}
         {transaction.counterparty_iban && (
           <div className="col-span-2">
-            <Label className="text-xs text-muted-foreground">Empfänger-IBAN</Label>
+            <Label className="text-xs text-muted-foreground">{t('transactionDetails.counterpartyIbanLabel')}</Label>
             <p className="font-medium tabular-nums break-all">{transaction.counterparty_iban}</p>
           </div>
         )}
         {account && (
           <div className="col-span-2">
-            <Label className="text-xs text-muted-foreground">Konto</Label>
+            <Label className="text-xs text-muted-foreground">{t('dashboard.account')}</Label>
             <div className="mt-1 flex items-center gap-2">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: account.color }} aria-hidden="true" />
               <span aria-hidden="true">{account.icon}</span>
@@ -318,7 +318,7 @@ export function TransactionDetailsPanel({
         )}
 
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Kategorie</Label>
+          <Label className="text-xs text-muted-foreground">{t('dashboard.category')}</Label>
           <CategoryTwoStepSelect
             categories={categories}
             value={currentCategoryValue(draft)}
@@ -327,7 +327,7 @@ export function TransactionDetailsPanel({
           />
         </div>
         <div className="flex items-center justify-between pt-1">
-          <span className="text-sm text-muted-foreground">Ausgabenklasse</span>
+          <span className="text-sm text-muted-foreground">{t('transactionFilters.ausgabenklasseLabel')}</span>
           <Badge variant={ausgabenklasse ? 'default' : 'secondary'}>{ausgabenklasseLabel(ausgabenklasse)}</Badge>
         </div>
       </div>
@@ -345,7 +345,7 @@ export function TransactionDetailsPanel({
             <div className="flex-1">
               <Label htmlFor="apply-similar" className="flex cursor-pointer items-center gap-1.5 text-sm font-medium">
                 <Users className="h-4 w-4" aria-hidden="true" />
-                Auf ähnliche Transaktionen anwenden
+                {t('transactionDetails.applyToSimilar')}
               </Label>
               <p className="text-xs text-muted-foreground">
                 {similarCount} passende Buchung{similarCount === 1 ? '' : 'en'} werden mitgeändert.
@@ -372,7 +372,7 @@ export function TransactionDetailsPanel({
               </div>
               <p className="text-xs text-muted-foreground">
                 Buchungen cent-genau auf mehrere Kategorien aufteilen.{' '}
-                <Link to="/settings" className="underline underline-offset-2">Premium freischalten</Link>
+                <Link to="/settings" className="underline underline-offset-2">{t('transactionDetails.unlockPremium')}</Link>
               </p>
             </div>
           }
@@ -420,7 +420,7 @@ export function TransactionDetailsPanel({
 
         {draft.is_contract && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="cycle-select" className="text-xs text-muted-foreground">Zahlungszyklus</Label>
+            <Label htmlFor="cycle-select" className="text-xs text-muted-foreground">{t('transactionDetails.cycleLabel')}</Label>
             <Select
               value={draft.contract_cycle ?? ''}
               disabled={isLoading}
@@ -452,7 +452,7 @@ export function TransactionDetailsPanel({
           <div className="flex-1">
             <Label htmlFor="is-transfer" className="flex cursor-pointer items-center gap-1.5 text-sm font-normal">
               <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
-              Als internen Übertrag zwischen eigenen Konten markieren
+              {t('transactionDetails.markAsTransferLabel')}
             </Label>
             <p className="text-xs text-muted-foreground">
               Überträge werden aus Ausgaben-/Einnahmen-Analysen ausgeschlossen.
@@ -590,9 +590,9 @@ export function TransactionDetailsPanel({
               onClick={() => transaction.id && onToggleVisibility(transaction.id)}
             >
               {isHidden ? (
-                <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Einblenden</>
+                <><Eye className="mr-2 h-4 w-4" aria-hidden="true" /> {t('dashboard.show')}</>
               ) : (
-                <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> Ausblenden</>
+                <><EyeOff className="mr-2 h-4 w-4" aria-hidden="true" /> {t('dashboard.hide')}</>
               )}
             </Button>
           )}
