@@ -448,6 +448,42 @@ Kontoauszug zum Herunterladen.
 | `bank` | „Meine Bank direkt verbinden" | „GoCardless / Bankimport" |
 | `demo` | „Erst mal umsehen" | „Demo-Modus" |
 
+### Der Sprachstil ist eine vierte Achse — und das Tutorial ist ihr bester Ort
+
+Seit PR #269 gibt es neben der Sprache eine zweite Text-Achse: `wording`
+(`src/i18n/wording.ts`), `everyday` (Standard) gegen `technical`. Der Basisbaum
+in `translations.ts` **ist** das fachliche Register; `everyday` kommt als
+Overlay darüber, das nie einen neuen Schlüssel einführt, sondern nur Werte
+ersetzt (`src/i18n/overlays/`).
+
+Für den Aufbau des Tutorials ändert das **nichts** — und das ist die
+Bestätigung, nicht der Zufall: Der Sprachstil landet vollständig auf Ebene 1
+der Tabelle oben (sichtbarer Text). Kapitel-IDs, Reihenfolge, Datenreife und
+Anker bleiben unberührt. Tutorial-Texte werden geschrieben wie jeder andere
+Text auch: Basiswert fachlich, Alltagsfassung als Overlay.
+
+Inhaltlich ist es dagegen ein Gewinn, den man aktiv nutzen sollte:
+
+- **Das Tutorial ist die Stelle, an der ein Begriff zum ersten Mal fällt.**
+  Genau dafür gibt es `otherWording()` — die Gegenüberstellung „im Alltag: … /
+  fachlich: …". Ein Kapitel kann den Fachbegriff also *nebenbei mitgeben*,
+  statt ihn zu ersetzen: Wer im Alltagsregister liest, lernt „Was gerade
+  verfügbar ist" und erfährt zugleich, dass das anderswo Liquidität heißt.
+  Das ist mehr, als eine der beiden Fassungen allein leisten kann.
+- **Das Glossar ist die natürliche Verlinkung.** `src/i18n/glossary.ts` führt
+  zwölf Begriffe mit eigenen Stichwort- und Definitions-Schlüsseln, beide
+  registerabhängig. Mehrere davon sind exakt die Kapitelnamen aus Teil 2–4
+  (`liquidity`, `netWorth`, `fixedCosts`, `remainingDebt`, `reserve`). Ein
+  Kapitel, das einen Glossarbegriff einführt, verlinkt ihn — statt die
+  Erklärung ein zweites Mal zu formulieren und beim nächsten Umformulieren
+  auseinanderlaufen zu lassen.
+- **Die Basisfassung muss für sich stehen.** Overlays gibt es heute nur für
+  `de` und `en`; `ru` fällt vollständig auf die Basis durch
+  (`src/i18n/overlays/index.ts`). Ein Tutorial-Text, der seinen Sinn erst aus
+  der Alltagsfassung bezieht, wäre dort unverständlich. Die Basis ist das
+  fachliche Register — das trägt, solange sie vollständig formuliert ist und
+  nicht bloß die Kurzform der Alltagsfassung.
+
 ### Zwei Punkte für die laufende Beschriftungs-Überarbeitung
 
 Beides ist reine Ebene 1 und gehört damit dorthin, nicht hierher — aber beides
@@ -473,9 +509,13 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
 
 1. **Freischaltungs-Achse** (`unlocked_features`, Sichtbarkeitsregel,
    Einstellungen-Schalter „Alles freischalten", Tests) — unverändert zuerst.
-2. **`src/lib/tutorial-sequence.ts`**: Reihenfolge, `DataReadiness`,
-   `buildCurriculum`. Rein, ohne UI vollständig testbar — inklusive der
-   Zusicherung, dass der Demo-Datensatz jedes Kapitel erreichbar macht.
+2. ✅ **`src/lib/tutorial-sequence.ts`**: Reihenfolge, `DataReadiness`,
+   `buildCurriculum`. Rein, ohne UI vollständig testbar. Steht — die
+   Zusicherung, dass ein vollständig reifer Datenstand jedes Kapitel erreicht,
+   ist als Test festgehalten. Was noch fehlt: der Adapter, der `DataReadiness`
+   in der Service-Schicht aus den echten Daten erhebt, und die Kopplung an den
+   Demo-Datensatz (`buildDemoDataset(now, months = 3)` — sinkt `months` unter
+   3, fallen Einkommen, Verträge und Budgets im Demo-Tutorial still aus).
 3. **Kapitel 0 und die Verschiebung des Onboarding-Auslösers**, mit der
    datengestützten Vorbelegung der Lebenssituation.
 4. **Overlay und Kapitelinhalte**, Kern zuerst (Kapitel 1–5), dann Teil 2.
