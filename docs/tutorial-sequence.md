@@ -84,29 +84,29 @@ weggeht → was steuerbar bleibt → was vorausliegt → worauf es hinausläuft.
 
 | # | Kapitel | Modul | Warum hier | Datenvoraussetzung |
 |---|---|---|---|---|
-| **Teil 1 — Der Kern** (immer, unabhängig von der Bereichsauswahl) |
+| **Teil 1 — Der Kern & die erste Sitzung** (immer; einzige Ausnahme: Kapitel 4 braucht den gewählten Bereich) |
 | 1 | `transactions` | `/transactions` | Erst prüfen, was da ist. Jede spätere Zahl hängt daran. | ≥ 1 Buchung |
 | 2 | `categories` | Kategorien | Ohne Kategorien ist jede Auswertung eine Liste. Kapitel entfällt bei `enable_subcategories: false`. | ≥ 1 unkategorisierte Buchung |
-| 3 | `dashboard` | `/dashboard` | Der erste Zahltag: das Sankey macht sichtbar, wohin das Geld fließt. Der Aha-Moment gehört früh. | ≥ 20 Buchungen |
-| 4 | `coach` | `/coach` | Der tägliche Startpunkt — erst sinnvoll, wenn es etwas zu raten gibt. | Kern-Kapitel 1–3 durchlaufen |
-| 5 | `accounts` | `/accounts` | Salden verankern die Buchungen in der Wirklichkeit; Voraussetzung für jede Vorschau. | ≥ 1 Konto |
+| 3 | `dashboard` | `/dashboard` | Die analytische Antwort: das Sankey zeigt, wohin das Geld fließt. Zugleich der Ort, auf dem der CSV-Import ohnehin landet (`CsvPage` navigiert nach `/dashboard`). | ≥ 20 Buchungen |
+| 4 | `city` | `/city` | **Das Finale der ersten Sitzung** — die emotionale Antwort auf dieselben Daten und die sichtbare Belohnung für Kapitel 2: die Stadt ist eine reine Projektion der *kategorisierten* Ausgaben (Details unten). | ≥ 1 kategorisierter Monat, WebGL |
+| 5 | `coach` | `/coach` | Der tägliche Startpunkt — erst sinnvoll, wenn es etwas zu raten gibt. Übernimmt ab hier die Rolle „dein nächster Schritt". | Kern-Kapitel 1–3 durchlaufen |
+| 6 | `accounts` | `/accounts` | Salden verankern die Buchungen in der Wirklichkeit; Voraussetzung für jede Vorschau. | ≥ 1 Konto |
 | **Teil 2 — Der Euro durch den Monat** (je nach Bereichsauswahl) |
-| 6 | `income` | `/income` | Woher kommt es. | `detectSalarySeries`: **3 Monate** |
-| 7 | `contracts` | `/contracts` | Was ohne Zutun weggeht. Wird *gefunden*, nicht eingegeben — hoher Ertrag ohne Arbeit. | `detectRecurringTransactions`: **3 gleiche Buchungen** je Zahlungsempfänger |
-| 8 | `budgets` | `/budgets` | Erst wenn die Fixkosten stehen, ist der Rest steuerbar. Vorher wäre jedes Limit geraten. | `buildAdaptiveBaseLimit`: **3 Monate**, sonst „lernend" |
-| 9 | `liquidity` | `/liquidity` | Die Vorschau lebt von 6–8: Wiederkehrendes plus Saldo. | Saldo + ≥ 1 Wiederkehrendes |
-| 10 | `milestones` | `/milestones` | Worauf es hinausläuft — das Ziel nach dem Überblick, nicht davor. | Kapitel 8 durchlaufen |
+| 7 | `income` | `/income` | Woher kommt es. | `detectSalarySeries`: **3 Monate** |
+| 8 | `contracts` | `/contracts` | Was ohne Zutun weggeht. Wird *gefunden*, nicht eingegeben — hoher Ertrag ohne Arbeit. | `detectRecurringTransactions`: **3 gleiche Buchungen** je Zahlungsempfänger |
+| 9 | `budgets` | `/budgets` | Erst wenn die Fixkosten stehen, ist der Rest steuerbar. Vorher wäre jedes Limit geraten. | `buildAdaptiveBaseLimit`: **3 Monate**, sonst „lernend" |
+| 10 | `liquidity` | `/liquidity` | Die Vorschau lebt von 7–9: Wiederkehrendes plus Saldo. | Saldo + ≥ 1 Wiederkehrendes |
+| 11 | `milestones` | `/milestones` | Worauf es hinausläuft — das Ziel nach dem Überblick, nicht davor. | Kapitel 9 durchlaufen |
 | **Teil 3 — Sonderlagen** (nur wenn gewählt) |
-| 11 | `debts` | `/debts` | Eigene Rechenwelt (Tilgung, Strategie), kein Spezialfall der Ausgaben. | ≥ 1 Schuld oder erkannte Rate |
-| 12 | `occasions` | `/occasions` | Klammert Buchungen quer zur Kategorie — setzt Kategorien voraus. | ≥ 1 Anlass oder erkannter Block |
+| 12 | `debts` | `/debts` | Eigene Rechenwelt (Tilgung, Strategie), kein Spezialfall der Ausgaben. | ≥ 1 Schuld oder erkannte Rate |
+| 13 | `occasions` | `/occasions` | Klammert Buchungen quer zur Kategorie — setzt Kategorien voraus. | ≥ 1 Anlass oder erkannter Block |
 | **Teil 4 — Vermögen & Pflicht** |
-| 13 | `netWorth` | `/net-worth` | Bestand statt Fluss — der erste Perspektivwechsel. | ≥ 2 Konten oder ein Vermögenswert |
-| 14 | `tax` | `/tax` | Baut auf Kategorien und Anlässen auf. | ≥ 1 absetzbare Kategorie erkannt |
-| 15 | `euer` | `/euer` | Setzt Steuer und die Trennung Privat/Geschäft voraus. | `isBusinessModeEnabled` |
+| 14 | `netWorth` | `/net-worth` | Bestand statt Fluss — der erste Perspektivwechsel. | ≥ 2 Konten oder ein Vermögenswert |
+| 15 | `tax` | `/tax` | Baut auf Kategorien und Anlässen auf. | ≥ 1 absetzbare Kategorie erkannt |
+| 16 | `euer` | `/euer` | Setzt Steuer und die Trennung Privat/Geschäft voraus. | `isBusinessModeEnabled` |
 | **Teil 5 — Vertiefung** |
-| 16 | `premiumReports` | `/premium` | Vergleiche über Zeit brauchen Zeit. | Tier + 3 Monate |
-| 17 | `trading` | `/trading` | Eigene Datenquelle, eigener Rhythmus — hängt an keinem vorherigen Kapitel. | Depot verknüpft |
-| 18 | `city` | `/city` | Spielerische Belohnung. Bewusst zuletzt: als Erstes wäre sie eine Spielerei, als Letztes eine Belohnung. | 1 voller Monat |
+| 17 | `premiumReports` | `/premium` | Vergleiche über Zeit brauchen Zeit. | Tier + 3 Monate |
+| 18 | `trading` | `/trading` | Eigene Datenquelle, eigener Rhythmus — hängt an keinem vorherigen Kapitel. | Depot verknüpft |
 | **Abschluss** (immer) |
 | 19 | `export` | `/export` | „Deine Daten gehören dir" — die Aussage wirkt erst, wenn man Daten hat. | — |
 | 20 | `settings` | `/settings` | Der Ausgang: alles freischalten, Bereiche, Sprache. Muss das Letzte sein, was man gesehen hat. | — |
@@ -120,8 +120,67 @@ sichtbar sein").
 
 2–4 Schritte, nie mehr. Ein Kapitel = ein Modul = ein Bildschirm. Jedes Kapitel
 endet mit **einer echten Handlung** des Nutzers (eine Buchung kategorisieren,
-ein Budget setzen), nicht mit „Weiter". Wer nur gelesen hat, hat nichts gelernt
-— und die Handlung ist zugleich das Signal, dass das Kapitel getragen hat.
+ein Budget setzen, in einen Distrikt der Stadt zoomen), nicht mit „Weiter".
+Wer nur gelesen hat, hat nichts gelernt — und die Handlung ist zugleich das
+Signal, dass das Kapitel getragen hat.
+
+## Die Finanzstadt: früher Anker statt späte Belohnung
+
+Die Stadt steht als Kapitel 4 im Kern — als **Finale der ersten Sitzung**,
+nicht am Ende des Lehrplans. Das ist keine Geschmacksfrage, sondern folgt aus
+dem, was die Stadt laut `src/features/finance-city/README.md` *ist*: eine
+**reine Projektion** der kategorisierten Ausgaben und erkannten Verträge
+(`buildSunburstTree`, `computeContracts`) — Distrikte sind Hauptkategorien,
+Gebäude sind Unterkategorien, Etagen sind Händler. Daraus folgt dreierlei:
+
+1. **Sie braucht genau das, was Kapitel 1–2 herstellen — und nicht mehr.**
+   Ein einziger kategorisierter Monat reicht für Distrikte und Gebäude; die
+   3-Monats-Schwellen von Teil 2 gelten hier nicht. Die Stadt ist damit das
+   früheste „Wow", das der Datenstand hergibt — auch auf dem CSV-Weg mit nur
+   einem Monat Historie.
+2. **Sie macht das mühsamste Kapitel belohnbar.** Kategorisieren ist die
+   unattraktivste Pflicht des Onboardings. Mit der Stadt direkt dahinter hat
+   die Pflicht ein sichtbares Ergebnis: *deine Zuordnung baut deine Stadt.*
+   Kapitel 2 sät, Kapitel 4 erntet — deshalb liegt zwischen beiden nur das
+   Dashboard (auf dem der CSV-Import ohnehin landet).
+3. **Sie trägt die Rückkehr.** Die Stadt verändert sich mit den Daten weiter:
+   nach Kapitel 8 tauchen erkannte Verträge als Gebäude auf, mit jedem Monat
+   wachsen Etagen dazu. Das ist der natürliche Grund, wiederzukommen —
+   eine Belohnung am Lehrplan-Ende hätte genau diesen Effekt verschenkt.
+
+Dramaturgisch gilt der Peak-End-Effekt: Die erste Sitzung endet mit ihrem
+stärksten Bild. Sankey (Kapitel 3) ist die analytische Antwort auf „wohin
+fließt mein Geld", die Stadt die emotionale — dieselben Daten, zwei Register,
+und das stärkere schließt.
+
+### Stadt-Momente (optionale Ausbaustufe)
+
+An den Teil-Grenzen des Lehrplans kann ein kurzer Rückblick in die Stadt
+zeigen, was der abgeschlossene Teil sichtbar verändert hat (nach Teil 2 etwa:
+die Abo-Gebäude sind neu). Das ist bewusst **Ausbaustufe, nicht Baseline**:
+erst das Kern-Overlay, dann die Momente. Umsetzung als gewöhnlicher
+Tutorial-Schritt mit Navigation nach `/city` — three.js bleibt ausschließlich
+im `finance-city`-Slice (AGENTS.md §7), das Tutorial bettet nichts ein.
+
+### Zwei Bedingungen, die das Kapitel trägt
+
+- **Bereich gewählt.** Kapitel 4 ist das einzige Kern-Kapitel mit Bedingung —
+  die Regel „Vorziehen darf nie hinzufügen" gilt auch hier. Daraus folgt die
+  eigentliche Konsequenz dieser Entscheidung: `city` steht heute nur in den
+  Vorauswahlen von `student_school` und `student_university`
+  (`src/lib/life-situations.ts`). Soll die Stadt das Highlight der ersten
+  Sitzung für alle sein, **gehört sie in die Vorauswahl (fast) jeder
+  Lebenssituation** — abwählbar bleibt sie ohnehin. Das ist eine Änderung an
+  den `features`-Listen, kein neuer Mechanismus. Bestandsnutzer mit
+  gespeicherter Auswahl bleiben unberührt (ihre `enabled_nav_features` werden
+  nie stillschweigend erweitert); wer die Stadt nicht gewählt hat, bekommt
+  das Kapitel nicht — die erste Sitzung endet dann mit Kapitel 3.
+- **WebGL verfügbar.** Die Anker-Regel („fehlender Anker überspringt den
+  Schritt, nie blockieren") wird zur Fähigkeits-Regel verallgemeinert: kein
+  WebGL, zu schwaches Gerät → Kapitel vertagen, Sitzung endet mit dem
+  Sankey. Ein Highlight, das auf Altgeräten den Einstieg blockiert, wäre
+  keins. `prefers-reduced-motion` dämpft die Kamerafahrt, streicht aber das
+  Kapitel nicht — die Stadt ist auch als Standbild eine Antwort.
 
 ## Datenreife statt Schrittzähler
 
@@ -154,7 +213,7 @@ Karte, sobald seine Voraussetzung eintritt. Keine zweite Benachrichtigungswelt.
 |---|---|---|
 | `demo` | **exakt 3 Monate** (`buildDemoDataset(now, months = 3)`) | Alle Voraussetzungen erfüllt. Als einziger Weg **komplett am Stück durchlaufbar** — genau dafür ist er da. |
 | `bank` | in der Regel am meisten (`gocardless-sync-service` fragt bis zu 730 Tage an, die Bank liefert meist 90) | Meist vollständig; Teil 2 ist ab Tag 1 echt. |
-| `csv` | was in der Datei steht — oft ein einziger Monat | Teil 1 läuft, Teil 2 vertagt sich größtenteils. Ehrlich benennen: *„Das kommt zurück, sobald du drei Monate beisammen hast."* |
+| `csv` | was in der Datei steht — oft ein einziger Monat | Teil 1 läuft vollständig, **inklusive Stadt** (ein kategorisierter Monat reicht). Teil 2 vertagt sich größtenteils — ehrlich benennen: *„Das kommt zurück, sobald du drei Monate beisammen hast."* |
 
 Der Demo-Weg ist damit nicht der Weg für Ungeduldige, sondern der einzige, auf
 dem der Lehrplan garantiert vollständig zeigbar ist. Das ist ein Argument
