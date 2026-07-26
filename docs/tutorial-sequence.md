@@ -519,18 +519,32 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    in der Service-Schicht aus den echten Daten erhebt, und die Kopplung an den
    Demo-Datensatz (`buildDemoDataset(now, months = 3)` — sinkt `months` unter
    3, fallen Einkommen, Verträge und Budgets im Demo-Tutorial still aus).
-3. ⏳ **Kapitel 0 und die Verschiebung des Onboarding-Auslösers.** Die Weiche
-   steht (`DataSourceDialog`) und `OnboardingDialog` wartet jetzt auf sie.
-   Offen ist der zweite Teil: die **datengestützte Vorbelegung** der
-   Lebenssituation (erkanntes Gehalt, laufende Raten → Kachel und Umstände
-   vorschlagen). Erst sie löst das Versprechen ein, für das die Reihenfolge
-   überhaupt gedreht wurde.
+3. ✅ **Kapitel 0 und die Verschiebung des Onboarding-Auslösers.** Die Weiche
+   steht (`DataSourceDialog`), `OnboardingDialog` wartet auf sie, und die
+   Vorbelegung aus den Daten löst das Versprechen ein
+   (`onboarding-proposal.ts` + `onboarding-signals-service.ts`).
 
    Nebenbefund beim Bauen: Die Weiche gab es faktisch schon zweimal und
    unvollständig — „Demo ansehen" auf der Anmeldeseite und CSV/Beispieldaten
    im `FinanceEmptyState`; der Bankweg fehlte an beiden Stellen. Der Dialog ist
    jetzt die eine Stelle. Wer über den Demo-Knopf hereinkam, wird nicht erneut
    gefragt: `isDemoDataActive()` notiert den Weg still.
+
+   **Was der Vorschlag bewusst nicht tut.** Aus Buchungen lässt sich mehr
+   ablesen, als man jemandem vorsetzen darf. `NEVER_PROPOSED_SITUATIONS`
+   schließt `debt_focus`, `single_parent`, `family`, beide Studien-Kacheln,
+   `career_starter` und `creator` aus. Die Begründung ist dieselbe, aus der es
+   keine Status-Kacheln gibt (`onboarding-life-situations.md`): Ein
+   automatisch gesetztes Etikett ist dieselbe Zuschreibung wie ein
+   anzuklickendes, nur ungefragt. Schulden erscheinen deshalb als Umstand
+   `repaying_debt` — als Tun formuliert, nicht als Lage. Vorgeschlagen werden
+   nur `employed_stable`, `self_employed` und `retired`, und auch die nur bei
+   eindeutigem Signal; sonst wird normal gefragt.
+
+   Eine Feinheit, die sich beim Bauen ergab: Selbstständigen-Einnahmen *neben*
+   einem Gehalt sind ein Nebenerwerb (Modifikator `side_business`), *ohne*
+   Gehalt die Lebensgrundlage (`self_employed`). Derselbe Befund, zwei
+   Bedeutungen — die Unterscheidung macht das Gehalt.
 4. **Overlay und Kapitelinhalte**, Kern zuerst (Kapitel 1–5), dann Teil 2.
 5. **Vertagte Kapitel an den Coach** anschließen.
 

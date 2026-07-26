@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -8,6 +8,18 @@ import OnboardingDialog from '../OnboardingDialog';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
 import { isBusinessModeEnabled, resolveFeatureSelection } from '@/lib/life-situations';
+import { collectOnboardingSignals } from '@/services/onboarding-signals-service';
+
+vi.mock('@/services/onboarding-signals-service', () => ({
+  collectOnboardingSignals: vi.fn().mockResolvedValue({
+    hasRegularSalary: false,
+    hasSelfEmployedIncome: false,
+    hasPensionIncome: false,
+    incomeVaries: false,
+    hasDebts: false,
+    hasInvestments: false,
+  }),
+}));
 
 beforeEach(async () => {
   localStorage.clear();
@@ -182,5 +194,54 @@ describe('OnboardingDialog — Reihenfolge nach der Datenquellen-Weiche', () => 
     expect(
       await screen.findByText('Welche Situation beschreibt dich am ehesten?'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('OnboardingDialog — Vorbelegung aus den Daten', () => {
+  it('sollte die Situation aus erkannten Daten vorbelegen und das kenntlich machen', async () => {
+    vi.mocked(collectOnboardingSignals).mockResolvedValue({
+      hasRegularSalary: true,
+      hasSelfEmployedIncome: false,
+      hasPensionIncome: false,
+      incomeVaries: false,
+      hasDebts: true,
+      hasInvestments: false,
+    });
+    renderDialog();
+    // Eine unerklärte Vorauswahl wirkt wie Überwachung; erst der Hinweis macht
+    // sie zu einem Angebot.
+    expect(await screen.findByText(/Aus deinen Daten geschätzt/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Weiter/ })).toBeEnabled();
+    });
+  });
+
+  it('sollte ohne belastbares Signal nichts vorbelegen', async () => {
+    vi.mocked(collectOnboardingSignals).mockResolvedValue({
+      hasRegularSalary: false,
+      hasSelfEmployedIncome: false,
+      hasPensionIncome: false,
+      incomeVaries: false,
+      hasDebts: false,
+      hasInvestments: false,
+    });
+    renderDialog();
+    await screen.findByText('Welche Situation beschreibt dich am ehesten?');
+    expect(screen.queryByText(/Aus deinen Daten geschätzt/)).not.toBeInTheDocument();
+    // „Weiter" bleibt gesperrt, solange nichts gewählt ist.
+    expect(screen.getByRole('button', { name: /Weiter/ })).toBeDisabled();
+  });
+
+  it('sollte auf Englisch denselben Hinweis geben', async () => {
+    vi.mocked(collectOnboardingSignals).mockResolvedValue({
+      hasRegularSalary: true,
+      hasSelfEmployedIncome: false,
+      hasPensionIncome: false,
+      incomeVaries: false,
+      hasDebts: false,
+      hasInvestments: false,
+    });
+    renderDialog('en');
+    expect(await screen.findByText(/Estimated from your data/)).toBeInTheDocument();
   });
 });
