@@ -507,8 +507,11 @@ fällt bei der Tutorial-Planung auf und wäre danach teurer:
 Ergänzt die Reihenfolge aus `tutorial-progressive-disclosure.md` („zuerst die
 Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
 
-1. **Freischaltungs-Achse** (`unlocked_features`, Sichtbarkeitsregel,
-   Einstellungen-Schalter „Alles freischalten", Tests) — unverändert zuerst.
+1. ✅ **Freischaltungs-Achse** (`unlocked_features`, Sichtbarkeitsregel,
+   Einstellungen-Schalter „Alles freischalten", Tests). Steht: sichtbar ist,
+   was *gewählt UND freigeschaltet* ist; `null` heißt in beiden Achsen „nicht
+   in Gebrauch". Scharf wird die Achse erst, wenn das Tutorial sie schreibt —
+   bis dahin ändert sich für Bestandsnutzer nichts.
 2. ✅ **`src/lib/tutorial-sequence.ts`**: Reihenfolge, `DataReadiness`,
    `buildCurriculum`. Rein, ohne UI vollständig testbar. Steht — die
    Zusicherung, dass ein vollständig reifer Datenstand jedes Kapitel erreicht,

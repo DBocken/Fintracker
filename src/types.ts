@@ -265,6 +265,17 @@ export interface UserSettings {
    * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
    */
   enabled_nav_features?: NavFeatureId[] | null;
+  /**
+   * Freigeschaltete Nav-Bereiche — die Tempo-Achse des Tutorials, additiv neben
+   * {@link enabled_nav_features}. Sichtbar ist ein Bereich, wenn er *gewählt
+   * UND freigeschaltet* ist (`isNavPathVisible`).
+   *
+   * `null`/undefined = Freischaltung nicht in Gebrauch ⇒ alles freigeschaltet.
+   * Bestandsnutzer haben das Feld nicht und dürfen dadurch nichts verlieren;
+   * scharf wird die Achse erst, wenn das Tutorial sie ausdrücklich setzt.
+   * „Alles freischalten" in den Einstellungen setzt sie wieder auf `null`.
+   */
+  unlocked_features?: NavFeatureId[] | null;
 }
 
 /**

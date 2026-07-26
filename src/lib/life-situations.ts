@@ -142,6 +142,48 @@ export function isBusinessModeEnabled(
   return isFeatureEnabled('euer', enabledFeatures);
 }
 
+/**
+ * Freischaltung — die zweite Achse neben der Relevanz
+ * (`docs/tutorial-progressive-disclosure.md`).
+ *
+ * Sie beantwortet „bin ich schon so weit?", während `enabled_nav_features`
+ * „passt das zu mir?" beantwortet. Zwei Achsen statt einer, weil ein
+ * gemeinsames Feld zwei falsche Botschaften erzeugte: eine Freischaltung sähe
+ * aus, als schalte die App etwas wieder ein, das der Nutzer bewusst abgewählt
+ * hat — und ein Abwählen sähe aus, als hätte er etwas „noch nicht gelernt".
+ *
+ * `null`/`undefined` heißt „Achse nicht in Gebrauch" ⇒ alles freigeschaltet.
+ * Das ist keine Bequemlichkeit, sondern Pflicht: Bestandsnutzer haben das Feld
+ * nicht, und ein Update darf niemandem stillschweigend Navigation wegnehmen.
+ * Die Achse wird erst scharf, wenn das Tutorial sie ausdrücklich schreibt.
+ */
+export function isFeatureUnlocked(
+  feature: NavFeatureId,
+  unlockedFeatures?: readonly NavFeatureId[] | null,
+): boolean {
+  if (unlockedFeatures == null) return true;
+  return unlockedFeatures.includes(feature);
+}
+
+/**
+ * Schaltet einen Bereich frei und hält die kanonische Reihenfolge ein.
+ *
+ * `null` bleibt `null`: „alles freigeschaltet" darf durch das Freischalten
+ * eines einzelnen Bereichs nicht zu einer einelementigen Liste verengt werden
+ * — der Nutzer verlöre schlagartig fast seine ganze Navigation. Der einzige
+ * Weg von `null` in einen begrenzten Zustand führt über den Tutorialstart,
+ * der die Achse bewusst setzt.
+ */
+export function withFeatureUnlocked(
+  unlockedFeatures: readonly NavFeatureId[] | null | undefined,
+  feature: NavFeatureId,
+): NavFeatureId[] | null {
+  if (unlockedFeatures == null) return null;
+  if (unlockedFeatures.includes(feature)) return [...unlockedFeatures];
+  const next = new Set([...unlockedFeatures, feature]);
+  return FEATURE_ORDER.filter((f) => next.has(f));
+}
+
 const PATH_TO_FEATURE = new Map<string, NavFeatureId>(
   FEATURE_ORDER.map((feature) => [NAV_FEATURE_PATHS[feature], feature]),
 );
@@ -152,22 +194,30 @@ export function navFeatureForPath(path: string): NavFeatureId | null {
 }
 
 /**
- * Darf ein Nav-Ziel angezeigt werden?
+ * Darf ein Nav-Ziel angezeigt werden? Sichtbar ist, was **gewählt UND
+ * freigeschaltet** ist.
  *
  * `enabledFeatures == null` bedeutet „keine Auswahl getroffen" (Bestandsnutzer,
  * Onboarding übersprungen) — dann bleibt alles sichtbar außer den
- * Opt-in-Bereichen ({@link DEFAULT_OFF_FEATURES}). Kernpfade und Pfade ohne
- * Feature-Zuordnung bleiben immer sichtbar: Ausblenden ist eine bewusste
- * Entscheidung, kein Nebeneffekt einer fehlenden Zuordnung.
+ * Opt-in-Bereichen ({@link DEFAULT_OFF_FEATURES}). `unlockedFeatures == null`
+ * bedeutet „Freischaltung nicht in Gebrauch" ⇒ alles freigeschaltet
+ * ({@link isFeatureUnlocked}). Kernpfade und Pfade ohne Feature-Zuordnung
+ * bleiben immer sichtbar: Ausblenden ist eine bewusste Entscheidung, kein
+ * Nebeneffekt einer fehlenden Zuordnung.
+ *
+ * Beide Achsen sind optional, und ein Aufrufer, der die Freischaltung nicht
+ * mitgibt, bekommt „alles freigeschaltet". Die Fehlerrichtung ist Absicht: im
+ * Zweifel lieber zu viel Navigation als eine leere App.
  */
 export function isNavPathVisible(
   path: string,
   enabledFeatures?: readonly NavFeatureId[] | null,
+  unlockedFeatures?: readonly NavFeatureId[] | null,
 ): boolean {
   if (ALWAYS_VISIBLE_NAV_PATHS.includes(path)) return true;
   const feature = navFeatureForPath(path);
   if (!feature) return true;
-  return isFeatureEnabled(feature, enabledFeatures);
+  return isFeatureEnabled(feature, enabledFeatures) && isFeatureUnlocked(feature, unlockedFeatures);
 }
 
 /** Einstellungen, die eine Lebenssituation mit vorbelegt (bestehende `UserSettings`-Felder). */

@@ -7,6 +7,9 @@ import {
   NAV_FEATURE_PATHS,
   isBusinessModeEnabled,
   isFeatureEnabled,
+  isFeatureUnlocked,
+  isNavPathVisible,
+  withFeatureUnlocked,
   DEFAULT_OFF_FEATURES,
   resolveFeatureSelection,
   type LifeSituationId,
@@ -230,5 +233,76 @@ describe('Situationsspezifische Vorauswahl', () => {
     expect(resolveFeatureSelection('debt_focus', []).settings.gentle_mode).toBe(true);
     expect(resolveFeatureSelection('single_parent', []).settings.gentle_mode).toBe(true);
     expect(resolveFeatureSelection('employed_stable', []).settings.gentle_mode).toBeFalsy();
+  });
+});
+
+describe('Freischaltungs-Achse (unlocked_features)', () => {
+  it('sollte ohne gesetzte Achse alles als freigeschaltet behandeln', () => {
+    // Bestandsnutzer haben das Feld nicht. Ein Update darf ihnen niemals
+    // stillschweigend Navigation wegnehmen — dieselbe Regel wie bei
+    // `enabled_nav_features`.
+    expect(isFeatureUnlocked('budgets', null)).toBe(true);
+    expect(isFeatureUnlocked('budgets', undefined)).toBe(true);
+  });
+
+  it('sollte bei gesetzter Achse nur Enthaltenes freischalten', () => {
+    expect(isFeatureUnlocked('budgets', ['budgets'])).toBe(true);
+    expect(isFeatureUnlocked('trading', ['budgets'])).toBe(false);
+  });
+
+  it('sollte eine leere Achse als „noch nichts freigeschaltet" lesen', () => {
+    // Genau der Zustand beim Tutorialstart: gewählt ist schon etwas,
+    // freigeschaltet noch nichts.
+    expect(isFeatureUnlocked('budgets', [])).toBe(false);
+  });
+});
+
+describe('isNavPathVisible mit beiden Achsen', () => {
+  it('sollte nur zeigen, was gewählt UND freigeschaltet ist', () => {
+    expect(isNavPathVisible('/budgets', ['budgets'], ['budgets'])).toBe(true);
+    expect(isNavPathVisible('/budgets', ['budgets'], [])).toBe(false);
+    expect(isNavPathVisible('/budgets', [], ['budgets'])).toBe(false);
+  });
+
+  it('sollte Kernbereiche von beiden Achsen ausnehmen', () => {
+    // Wären sie sperrbar, verlöre die mobile Bottom-Nav stillschweigend Tabs
+    // und die Einstellungen als Rückweg wären verriegelt.
+    for (const path of ALWAYS_VISIBLE_NAV_PATHS) {
+      expect(isNavPathVisible(path, [], [])).toBe(true);
+    }
+  });
+
+  it('[REGRESSION] sollte Bestandsnutzern ohne beide Felder alles zeigen', () => {
+    expect(isNavPathVisible('/budgets', null, null)).toBe(true);
+    expect(isNavPathVisible('/trading', undefined, undefined)).toBe(true);
+  });
+
+  it('sollte ohne Freischaltungs-Argument wie bisher entscheiden', () => {
+    // Ein vergessener Aufrufer bekommt „alles freigeschaltet" — im Zweifel
+    // lieber zu viel Navigation als eine leere App.
+    expect(isNavPathVisible('/budgets', ['budgets'])).toBe(true);
+    expect(isNavPathVisible('/budgets', [])).toBe(false);
+  });
+});
+
+describe('withFeatureUnlocked', () => {
+  it('sollte einen Bereich zur Achse hinzufügen', () => {
+    expect(withFeatureUnlocked([], 'budgets')).toEqual(['budgets']);
+  });
+
+  it('sollte in der kanonischen Reihenfolge einsortieren statt anzuhängen', () => {
+    expect(withFeatureUnlocked(['budgets'], 'debts')).toEqual(['debts', 'budgets']);
+  });
+
+  it('sollte einen bereits freigeschalteten Bereich nicht doppeln', () => {
+    expect(withFeatureUnlocked(['budgets'], 'budgets')).toEqual(['budgets']);
+  });
+
+  it('sollte „alles freigeschaltet" nicht versehentlich zu einer Liste verengen', () => {
+    // `null` heißt „Achse nicht in Gebrauch". Würde ein Freischalten daraus
+    // eine einelementige Liste machen, verlöre der Nutzer schlagartig fast
+    // seine ganze Navigation.
+    expect(withFeatureUnlocked(null, 'budgets')).toBeNull();
+    expect(withFeatureUnlocked(undefined, 'budgets')).toBeNull();
   });
 });
