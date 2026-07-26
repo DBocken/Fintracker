@@ -109,6 +109,174 @@ export const translations = {
       },
     },
     tutorial: {
+      coach: {
+        today: {
+          title: 'Heute für dich',
+          body: 'Was hier steht, richtet sich nach deinen Daten und ändert sich mit ihnen. Ein Blick am Tag reicht.',
+        },
+        rhythm: {
+          title: 'Nichts davon ist Pflicht',
+          body: 'Vorschläge sind Angebote. Was nicht passt, klickst du weg — es kommt nur wieder, wenn es wirklich wichtig wird.',
+        },
+      },
+      accounts: {
+        balances: {
+          title: 'Deine Konten',
+          body: 'Jede Buchung gehört zu einem Konto. Erst der Saldo macht aus einer Liste einen echten Kontostand.',
+        },
+        realBalance: {
+          title: 'Einmal den echten Stand eintragen',
+          body: 'Danach rechnet die App von dort aus weiter. Ohne diesen Startpunkt kann keine Vorschau stimmen.',
+        },
+      },
+      income: {
+        sources: {
+          title: 'Woher dein Geld kommt',
+          body: 'Nicht nur wie viel, sondern aus wie vielen Quellen. Eine einzige Quelle ist bequem und riskant zugleich.',
+        },
+        stability: {
+          title: 'Wie verlässlich es kommt',
+          body: 'Gleiche Beträge zur gleichen Zeit lassen sich planen. Schwankendes Einkommen braucht mehr Puffer.',
+        },
+      },
+      contracts: {
+        found: {
+          title: 'Das haben wir gefunden',
+          body: 'Wiederkehrende Abbuchungen beim selben Empfänger — die App erkennt sie, du musst nichts eintippen.',
+        },
+        price: {
+          title: 'Preiserhöhungen fallen auf',
+          body: 'Wird ein Vertrag teurer, siehst du es hier. Genau das übersieht man auf dem Kontoauszug.',
+        },
+        decide: {
+          title: 'Was brauchst du wirklich?',
+          body: 'Der schnellste Weg zu mehr Luft im Monat führt über die Verträge, die niemandem fehlen.',
+        },
+      },
+      budgets: {
+        tanks: {
+          title: 'Budgets sind Tanks',
+          body: 'Nicht Verbote, sondern Füllstände: Du siehst, wie viel für den Rest des Monats noch da ist.',
+        },
+        learning: {
+          title: 'Am Anfang lernen sie noch',
+          body: 'Aus deinen bisherigen Ausgaben schlägt die App Grenzen vor. Nach drei Monaten sitzen sie.',
+        },
+      },
+      liquidity: {
+        forecast: {
+          title: 'Wann wird es knapp?',
+          body: 'Aus wiederkehrenden Einnahmen und Ausgaben ergibt sich der Verlauf. Engpässe siehst du, bevor sie da sind.',
+        },
+        buffer: {
+          title: 'Der Puffer',
+          body: 'Ein Betrag, den du nicht anfasst. Er entscheidet, ob eine kaputte Waschmaschine ein Ärgernis oder ein Problem ist.',
+        },
+      },
+      milestones: {
+        goals: {
+          title: 'Ziele statt Verzicht',
+          body: 'Sparen fällt leichter, wenn es wofür ist. Ein Ziel mit Betrag und Datum ist konkreter als „weniger ausgeben".',
+        },
+        progress: {
+          title: 'Fortschritt sehen',
+          body: 'Jeder Beitrag rückt die Anzeige weiter. Das ist der Unterschied zwischen Vorsatz und Gewohnheit.',
+        },
+      },
+      debts: {
+        overview: {
+          title: 'Alle Raten an einem Ort',
+          body: 'Zusammen statt verstreut. Erst so siehst du, was monatlich wirklich gebunden ist.',
+        },
+        strategy: {
+          title: 'Die Reihenfolge macht den Unterschied',
+          body: 'Teuerste Zinsen zuerst spart Geld, kleinste Schuld zuerst spart Nerven. Beide Wege sind richtig.',
+        },
+      },
+      occasions: {
+        crosscut: {
+          title: 'Quer zur Kategorie',
+          body: 'Ein Urlaub besteht aus Tanken, Essen und Hotel. Ein Anlass klammert diese Buchungen zusammen.',
+        },
+        total: {
+          title: 'Was hat es wirklich gekostet?',
+          body: 'Am Ende steht eine Zahl statt eines Gefühls — und die trägt beim nächsten Mal die Planung.',
+        },
+      },
+      netWorth: {
+        stock: {
+          title: 'Bestand statt Fluss',
+          body: 'Bisher ging es um Bewegungen. Hier geht es darum, was übrig bleibt: Besitz minus Schulden.',
+        },
+        direction: {
+          title: 'Die Richtung zählt',
+          body: 'Der absolute Betrag sagt wenig. Ob er über die Monate steigt oder fällt, sagt alles.',
+        },
+      },
+      tax: {
+        deductible: {
+          title: 'Was du absetzen kannst',
+          body: 'Arbeitsweg, Homeoffice, Fortbildung — vieles davon steht schon in deinen Buchungen.',
+        },
+        collect: {
+          title: 'Sammeln statt suchen',
+          body: 'Einmal markiert, ist es im nächsten Frühjahr da. Das ist der ganze Trick.',
+        },
+      },
+      euer: {
+        profit: {
+          title: 'Einnahmen minus Ausgaben',
+          body: 'Die einfachste Form der Gewinnermittlung. Was reinkommt, was rausgeht, was übrig bleibt.',
+        },
+        reserve: {
+          title: 'Die Steuerrücklage',
+          body: 'Vom Gewinn gehört ein Teil dem Finanzamt — nur eben später. Leg ihn weg, bevor er sich wie deiner anfühlt.',
+        },
+      },
+      premiumReports: {
+        trends: {
+          title: 'Über die Zeit',
+          body: 'Ein Monat ist eine Momentaufnahme. Erst mehrere Monate nebeneinander zeigen, was sich verändert.',
+        },
+        insights: {
+          title: 'Was auffällt',
+          body: 'Ungewöhnliche Ausgaben, stille Preissteigerungen, Muster. Die App zeigt sie, du entscheidest.',
+        },
+      },
+      trading: {
+        portfolio: {
+          title: 'Dein Depot',
+          body: 'Wertpapiere haben einen eigenen Rhythmus. Sie gehören zum Vermögen, nicht zum Monatsbudget.',
+        },
+        valuation: {
+          title: 'Kurse und Wert',
+          body: 'Was du bezahlt hast und was es heute wert ist, sind zwei verschiedene Zahlen. Beide zählen.',
+        },
+      },
+      export: {
+        ownership: {
+          title: 'Deine Daten gehören dir',
+          body: 'Alles liegt auf deinem Gerät. Von hier nimmst du es mit — in eine Tabelle oder in eine andere App.',
+        },
+        backup: {
+          title: 'Eine Sicherung anlegen',
+          body: 'Ein Gerät geht verloren, ein Browser wird geleert. Eine Sicherung dauert eine Minute.',
+        },
+      },
+      settings: {
+        areas: {
+          title: 'Bereiche ein- und ausblenden',
+          body: 'Was du nicht brauchst, muss nicht zu sehen sein. Ausgeblendetes bleibt über Links erreichbar.',
+        },
+        unlockAll: {
+          title: 'Alles auf einmal freischalten',
+          body: 'Wenn dir die schrittweise Heranführung zu langsam ist: hier geht alles auf. Jederzeit.',
+        },
+        language: {
+          title: 'Sprache und Sprachstil',
+          body: 'Neben der Sprache kannst du wählen, ob die App Alltagssprache oder Fachbegriffe verwendet.',
+        },
+      },
       invitationTitle: 'Soll ich es dir zeigen?',
       invitationBody: 'Eine kurze Führung durch diesen Bereich.',
       invitationStart: 'Zeig es mir',
@@ -4295,6 +4463,174 @@ export const translations = {
       },
     },
     tutorial: {
+      coach: {
+        today: {
+          title: 'Today for you',
+          body: 'What appears here follows your data and changes with it. One look a day is enough.',
+        },
+        rhythm: {
+          title: 'None of it is mandatory',
+          body: 'Suggestions are offers. Dismiss what does not fit — it only returns when it really matters.',
+        },
+      },
+      accounts: {
+        balances: {
+          title: 'Your accounts',
+          body: 'Every entry belongs to an account. Only the balance turns a list into a real account state.',
+        },
+        realBalance: {
+          title: 'Enter the real balance once',
+          body: 'From then on the app calculates forward from there. Without that starting point no forecast can be right.',
+        },
+      },
+      income: {
+        sources: {
+          title: 'Where your money comes from',
+          body: 'Not just how much, but from how many sources. A single source is convenient and risky at once.',
+        },
+        stability: {
+          title: 'How reliably it arrives',
+          body: 'Equal amounts at equal times can be planned. Fluctuating income needs a larger buffer.',
+        },
+      },
+      contracts: {
+        found: {
+          title: 'This is what we found',
+          body: 'Recurring charges from the same payee — the app spots them, you type nothing.',
+        },
+        price: {
+          title: 'Price increases stand out',
+          body: 'When a contract gets more expensive you see it here. That is exactly what a statement hides.',
+        },
+        decide: {
+          title: 'What do you actually need?',
+          body: 'The quickest route to more room in a month runs through the contracts nobody would miss.',
+        },
+      },
+      budgets: {
+        tanks: {
+          title: 'Budgets are tanks',
+          body: 'Not prohibitions but fill levels: you see how much is left for the rest of the month.',
+        },
+        learning: {
+          title: 'They are still learning at first',
+          body: 'The app proposes limits from your past spending. After three months they fit.',
+        },
+      },
+      liquidity: {
+        forecast: {
+          title: 'When will it get tight?',
+          body: 'Recurring income and spending produce the curve. You see shortfalls before they arrive.',
+        },
+        buffer: {
+          title: 'The buffer',
+          body: 'An amount you do not touch. It decides whether a broken washing machine is an annoyance or a problem.',
+        },
+      },
+      milestones: {
+        goals: {
+          title: 'Goals instead of going without',
+          body: 'Saving is easier when it is for something. A goal with an amount and a date beats "spend less".',
+        },
+        progress: {
+          title: 'Seeing progress',
+          body: 'Every contribution moves the bar. That is the difference between an intention and a habit.',
+        },
+      },
+      debts: {
+        overview: {
+          title: 'All instalments in one place',
+          body: 'Together instead of scattered. Only then do you see what is really committed each month.',
+        },
+        strategy: {
+          title: 'The order makes the difference',
+          body: 'Highest interest first saves money, smallest debt first saves nerves. Both are valid.',
+        },
+      },
+      occasions: {
+        crosscut: {
+          title: 'Across categories',
+          body: 'A holiday is fuel, food and a hotel. An occasion brackets those entries together.',
+        },
+        total: {
+          title: 'What did it really cost?',
+          body: 'In the end there is a number instead of a feeling — and it carries the planning next time.',
+        },
+      },
+      netWorth: {
+        stock: {
+          title: 'Stock instead of flow',
+          body: 'So far this was about movement. Here it is about what remains: what you own minus what you owe.',
+        },
+        direction: {
+          title: 'The direction matters',
+          body: 'The absolute figure says little. Whether it rises or falls across months says everything.',
+        },
+      },
+      tax: {
+        deductible: {
+          title: 'What you can deduct',
+          body: 'Commuting, home office, training — much of it is already in your entries.',
+        },
+        collect: {
+          title: 'Collect instead of search',
+          body: 'Marked once, it is there next spring. That is the whole trick.',
+        },
+      },
+      euer: {
+        profit: {
+          title: 'Income minus expenses',
+          body: 'The simplest form of profit calculation. What comes in, what goes out, what remains.',
+        },
+        reserve: {
+          title: 'The tax reserve',
+          body: 'Part of the profit belongs to the tax office — just later. Set it aside before it starts to feel like yours.',
+        },
+      },
+      premiumReports: {
+        trends: {
+          title: 'Over time',
+          body: 'One month is a snapshot. Only several months side by side show what is changing.',
+        },
+        insights: {
+          title: 'What stands out',
+          body: 'Unusual spending, quiet price rises, patterns. The app points them out, you decide.',
+        },
+      },
+      trading: {
+        portfolio: {
+          title: 'Your portfolio',
+          body: 'Securities have their own rhythm. They belong to your wealth, not to the monthly budget.',
+        },
+        valuation: {
+          title: 'Prices and value',
+          body: 'What you paid and what it is worth today are two different numbers. Both count.',
+        },
+      },
+      export: {
+        ownership: {
+          title: 'Your data belongs to you',
+          body: 'Everything sits on your device. From here you take it with you — into a spreadsheet or another app.',
+        },
+        backup: {
+          title: 'Create a backup',
+          body: 'A device gets lost, a browser gets cleared. A backup takes a minute.',
+        },
+      },
+      settings: {
+        areas: {
+          title: 'Show and hide areas',
+          body: 'What you do not need does not have to be visible. Hidden areas stay reachable via links.',
+        },
+        unlockAll: {
+          title: 'Unlock everything at once',
+          body: 'If the step-by-step approach is too slow for you: everything opens up here. At any time.',
+        },
+        language: {
+          title: 'Language and wording',
+          body: 'Besides the language you can choose whether the app uses everyday words or technical terms.',
+        },
+      },
       invitationTitle: 'Shall I show you around?',
       invitationBody: 'A short guided tour of this area.',
       invitationStart: 'Show me',
@@ -8481,6 +8817,174 @@ export const translations = {
       },
     },
     tutorial: {
+      coach: {
+        today: {
+          title: 'DaHjaj SoHvaD',
+          body: 'naDev De\'lIj tlha\'. wa\'logh jaj yIlegh; \'oH yap.',
+        },
+        rhythm: {
+          title: 'ra\'be\'',
+          body: 'qeSmey bIH. DuQochchugh, yIteq. potlhchugh neH cheghtaH.',
+        },
+      },
+      accounts: {
+        balances: {
+          title: 'Huch qellIj',
+          body: 'Hoch Huch vIH wa\' qel ghaj. ratlhbogh mI\' neH qel teH chenmoH.',
+        },
+        realBalance: {
+          title: 'teH mI\' yIghItlh',
+          body: 'vaj pa\' vo\' juS jInmol. mI\'vam Hutlhchugh, pIH lughbe\'.',
+        },
+      },
+      income: {
+        sources: {
+          title: 'Huchlij Daq vo\'',
+          body: 'toH law\' neH ghobe\'; Daqmey mI\' je. wa\' Daq neH: QaQ \'ej Qob.',
+        },
+        stability: {
+          title: 'chIch chol\'a\'?',
+          body: 'mI\' rap poH rap: laH nab. mI\' choH: \'aD tIn poQ.',
+        },
+      },
+      contracts: {
+        found: {
+          title: 'wIsammoH',
+          body: 'wa\' Suqwl\'vaD Huch chegh. juHDaq De\' Sam; SoH yIghItlhQo\'.',
+        },
+        price: {
+          title: 'wagh chen \'e\' Dalegh',
+          body: 'nID wagh law\' chenchugh, naDev Dalegh. nav SoQmoH.',
+        },
+        decide: {
+          title: 'nuq DaneH\'a\'?',
+          body: 'jar tIn chenmoHmeH He nom: nIDmey pagh qan.',
+        },
+      },
+      budgets: {
+        tanks: {
+          title: 'nIDmey bIH nItlh',
+          body: 'qIl ghobe\'; teb \'oH. jar ratlhbogh Dalegh.',
+        },
+        learning: {
+          title: 'wa\'DIch ghoj',
+          body: 'Huchlij ret vo\' veH qeS. wej jar ghIq lugh.',
+        },
+      },
+      liquidity: {
+        forecast: {
+          title: 'ghorgh puj?',
+          body: 'Huch chegh \'ej mej: He chen. puj DaSov pa\'.',
+        },
+        buffer: {
+          title: '\'aD',
+          body: 'mI\' DaHotbe\'. Sech Qaw\'lu\'chugh, Qay\' pagh Qob \'e\' wuq.',
+        },
+      },
+      milestones: {
+        goals: {
+          title: 'ngoQ, chIlbe\'',
+          body: 'meq tu\'lu\'chugh, Qatlhbe\' Sav. mI\' \'ej jaj ghaj ngoQ.',
+        },
+        progress: {
+          title: 'Dujmey yIlegh',
+          body: 'Hoch nob \'oH vI\'. ngoQ \'ej tIgh joj HuS.',
+        },
+      },
+      debts: {
+        overview: {
+          title: 'Hoch DIl wa\' DaqDaq',
+          body: 'boS, chIlbe\'. vaj jar Huch bIt Dalegh.',
+        },
+        strategy: {
+          title: 'QIt potlh',
+          body: 'wagh law\' wa\'DIch: Huch Sav. mach wa\'DIch: qa\' Sav. cha\' lugh.',
+        },
+      },
+      occasions: {
+        crosscut: {
+          title: 'Segh HeH',
+          body: 'leng: chuch, Soj, juH. wanI\' boS.',
+        },
+        total: {
+          title: 'nuq wagh teH?',
+          body: 'mI\' Dalegh, Qub ghobe\' — \'ej latlh nab qeng.',
+        },
+      },
+      netWorth: {
+        stock: {
+          title: 'ratlh, vIHbe\'',
+          body: 'vIH wIqel ret. DaH ratlhbogh: Doch \'ej DIl joj.',
+        },
+        direction: {
+          title: 'He potlh',
+          body: 'mI\' tIn jatlhbe\' law\'. jarmey chep pagh Sub: jatlh Hoch.',
+        },
+      },
+      tax: {
+        deductible: {
+          title: 'nuq DateqlaH',
+          body: 'He, juH vum, ghojmoH — Huchlij De\'Daq tu\'lu\' law\'.',
+        },
+        collect: {
+          title: 'yIboS, yISammoH',
+          body: 'wa\'logh yIper: DIS veb pa\'. Hoch \'oH.',
+        },
+      },
+      euer: {
+        profit: {
+          title: 'chegh \'ej mej joj',
+          body: 'Huch nap chen. chol, mej, ratlh.',
+        },
+        reserve: {
+          title: 'Huch nob \'aD',
+          body: 'chen \'ay\' Huch nob ghaj — tugh. Daghajlaw\' pa\' yIlan.',
+        },
+      },
+      premiumReports: {
+        trends: {
+          title: 'poH tIq',
+          body: 'wa\' jar mIllogh neH. jarmey law\' choH cha\'.',
+        },
+        insights: {
+          title: 'nuq Sar?',
+          body: 'Huch Sar, wagh chen tam, tIgh. cha\'; SoH yIwuq.',
+        },
+      },
+      trading: {
+        portfolio: {
+          title: 'qellIj',
+          body: 'Doch ghaj tIgh pIm. Doch bIH, jar nID ghobe\'.',
+        },
+        valuation: {
+          title: 'wagh \'ej lI\'',
+          body: 'DaDIlta\'bogh \'ej DaHjaj lI\': cha\' mI\' pIm. cha\' potlh.',
+        },
+      },
+      export: {
+        ownership: {
+          title: 'De\'lIj Daghaj',
+          body: 'Hoch jantaHghach lI\'Daq. naDev vo\' yIqeng.',
+        },
+        backup: {
+          title: 'Qaw\'be\' yIchenmoH',
+          body: 'jantaHghach chIl; leng nIH teq. tup wa\' neH poQ.',
+        },
+      },
+      settings: {
+        areas: {
+          title: 'Sengmey cha\' pagh So\'',
+          body: 'DaneHbe\'bogh So\'lu\'. So\'taHvIS, He vIQeq.',
+        },
+        unlockAll: {
+          title: 'Hoch yIpoSmoH',
+          body: 'QIt law\'chugh: naDev Hoch poS. reH.',
+        },
+        language: {
+          title: 'Hol \'ej mu\' tIgh',
+          body: 'Hol \'ej mu\'mey nap pagh QeD: DawIvlaH.',
+        },
+      },
       invitationTitle: "qaDev'a'?",
       invitationBody: "Dochvam qaDevmeH mach.",
       invitationStart: 'HIcha\'',
@@ -12339,6 +12843,174 @@ export const translations = {
       },
     },
     tutorial: {
+      coach: {
+        today: {
+          title: 'Сегодня для вас',
+          body: 'То, что здесь появляется, следует за вашими данными и меняется вместе с ними. Достаточно заглядывать раз в день.',
+        },
+        rhythm: {
+          title: 'Ничего из этого не обязательно',
+          body: 'Подсказки — это предложения. Что не подходит, уберите: вернётся, только если станет действительно важным.',
+        },
+      },
+      accounts: {
+        balances: {
+          title: 'Ваши счета',
+          body: 'Каждая операция принадлежит счёту. Только остаток превращает список в настоящее состояние счёта.',
+        },
+        realBalance: {
+          title: 'Введите реальный остаток один раз',
+          body: 'Дальше приложение считает от него. Без этой отправной точки прогноз не может быть верным.',
+        },
+      },
+      income: {
+        sources: {
+          title: 'Откуда приходят деньги',
+          body: 'Важно не только сколько, но и из скольких источников. Единственный источник удобен и рискован одновременно.',
+        },
+        stability: {
+          title: 'Насколько надёжно они приходят',
+          body: 'Одинаковые суммы в одинаковое время можно планировать. Плавающему доходу нужен запас побольше.',
+        },
+      },
+      contracts: {
+        found: {
+          title: 'Вот что мы нашли',
+          body: 'Повторяющиеся списания одному и тому же получателю — приложение находит их само.',
+        },
+        price: {
+          title: 'Повышение цены заметно',
+          body: 'Если договор дорожает, вы увидите это здесь. Именно это теряется в выписке.',
+        },
+        decide: {
+          title: 'Что вам действительно нужно?',
+          body: 'Самый быстрый путь к свободным деньгам в месяце — через договоры, которых никто не хватится.',
+        },
+      },
+      budgets: {
+        tanks: {
+          title: 'Бюджеты — это баки',
+          body: 'Не запреты, а уровни: видно, сколько осталось до конца месяца.',
+        },
+        learning: {
+          title: 'Сначала они ещё учатся',
+          body: 'Приложение предлагает границы по вашим прошлым тратам. Через три месяца они становятся точными.',
+        },
+      },
+      liquidity: {
+        forecast: {
+          title: 'Когда станет туго?',
+          body: 'Из повторяющихся доходов и расходов складывается кривая. Просадки видно заранее.',
+        },
+        buffer: {
+          title: 'Запас',
+          body: 'Сумма, которую вы не трогаете. От неё зависит, будет сломанная стиральная машина досадой или проблемой.',
+        },
+      },
+      milestones: {
+        goals: {
+          title: 'Цели вместо отказа',
+          body: 'Копить легче, когда есть ради чего. Цель с суммой и датой конкретнее, чем «тратить меньше».',
+        },
+        progress: {
+          title: 'Видеть продвижение',
+          body: 'Каждый взнос двигает шкалу. В этом разница между намерением и привычкой.',
+        },
+      },
+      debts: {
+        overview: {
+          title: 'Все платежи в одном месте',
+          body: 'Вместе, а не вразброс. Только так видно, что реально занято каждый месяц.',
+        },
+        strategy: {
+          title: 'Порядок решает',
+          body: 'Сначала дорогие проценты — экономит деньги, сначала маленький долг — экономит нервы. Оба пути верны.',
+        },
+      },
+      occasions: {
+        crosscut: {
+          title: 'Поперёк категорий',
+          body: 'Отпуск — это бензин, еда и отель. Повод объединяет такие операции.',
+        },
+        total: {
+          title: 'Сколько это стоило на самом деле?',
+          body: 'В итоге получается число вместо ощущения — и на нём строится следующее планирование.',
+        },
+      },
+      netWorth: {
+        stock: {
+          title: 'Остаток вместо потока',
+          body: 'До сих пор речь шла о движении. Здесь — о том, что остаётся: имущество минус долги.',
+        },
+        direction: {
+          title: 'Важно направление',
+          body: 'Абсолютная цифра говорит мало. Растёт она или падает по месяцам — говорит всё.',
+        },
+      },
+      tax: {
+        deductible: {
+          title: 'Что можно вычесть',
+          body: 'Дорога на работу, домашний офис, обучение — многое уже есть в ваших операциях.',
+        },
+        collect: {
+          title: 'Собирать, а не искать',
+          body: 'Отметили один раз — весной оно уже на месте. В этом весь приём.',
+        },
+      },
+      euer: {
+        profit: {
+          title: 'Доходы минус расходы',
+          body: 'Простейшая форма расчёта прибыли. Что пришло, что ушло, что осталось.',
+        },
+        reserve: {
+          title: 'Налоговый резерв',
+          body: 'Часть прибыли принадлежит налоговой — просто позже. Отложите её, пока она не начала казаться вашей.',
+        },
+      },
+      premiumReports: {
+        trends: {
+          title: 'Со временем',
+          body: 'Один месяц — это снимок. Только несколько месяцев рядом показывают, что меняется.',
+        },
+        insights: {
+          title: 'Что бросается в глаза',
+          body: 'Необычные траты, тихое подорожание, закономерности. Приложение показывает, решаете вы.',
+        },
+      },
+      trading: {
+        portfolio: {
+          title: 'Ваш портфель',
+          body: 'У бумаг свой ритм. Они относятся к капиталу, а не к месячному бюджету.',
+        },
+        valuation: {
+          title: 'Цены и стоимость',
+          body: 'Сколько вы заплатили и сколько это стоит сегодня — два разных числа. Важны оба.',
+        },
+      },
+      export: {
+        ownership: {
+          title: 'Ваши данные принадлежат вам',
+          body: 'Всё лежит на вашем устройстве. Отсюда вы забираете это с собой — в таблицу или другое приложение.',
+        },
+        backup: {
+          title: 'Создать резервную копию',
+          body: 'Устройство теряется, браузер очищается. Копия занимает минуту.',
+        },
+      },
+      settings: {
+        areas: {
+          title: 'Показать и скрыть разделы',
+          body: 'То, что вам не нужно, не обязано быть на виду. Скрытое остаётся доступным по ссылкам.',
+        },
+        unlockAll: {
+          title: 'Открыть всё сразу',
+          body: 'Если пошаговое знакомство идёт слишком медленно — здесь открывается всё. В любой момент.',
+        },
+        language: {
+          title: 'Язык и стиль речи',
+          body: 'Кроме языка можно выбрать, использует ли приложение обиходные слова или профессиональные термины.',
+        },
+      },
       invitationTitle: 'Показать, как это работает?',
       invitationBody: 'Короткое знакомство с этим разделом.',
       invitationStart: 'Покажите',

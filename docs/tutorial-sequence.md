@@ -554,10 +554,18 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    Dialog. Der Reifegrad-Adapter aus Schritt 2 ist nachgeliefert
    (`data-readiness-service.ts`).
 
-   **Ausformuliert sind vier Kapitel** — `transactions`, `categories`,
-   `dashboard`, `city`, also genau die erste Sitzung. Die übrigen 17 haben
-   noch keinen Text; `hasSteps()` überspringt sie, ohne dass etwas bricht. Ein
-   Kapitel ohne Text ist kein Fehler, sondern noch nicht geschriebener Text.
+   **Alle Kapitel sind ausformuliert** — 20 Kapitel mit 39 Schritten in allen
+   vier Sprachen. `source` bleibt bewusst ohne Schritte: Kapitel 0 *ist* der
+   `DataSourceDialog`, und ein Overlay über einem modalen Dialog wäre eine
+   Führung durch eine Führung.
+
+   Anker (`data-tour-id`) hat vorerst nur die erste Sitzung — `transactions`,
+   `categories`, `dashboard`, `city`. Die übrigen Kapitel dunkeln ab und
+   erklären den Bereich als Ganzes. Für den ersten Auftritt eines gerade
+   freigeschalteten Bereichs ist das auch das Richtige („das gibt es jetzt,
+   dafür ist es da"); einzelne Elemente einzurahmen lohnt erst, wenn die Texte
+   stehen. Ein Anker ist billig nachzurüsten, ein falsch gesetzter kostet
+   einen Refactor.
 
    Zwei Entscheidungen beim Bauen:
    - **Der Lauf ist nicht auf Schritt-Ebene persistent.** Gespeichert werden

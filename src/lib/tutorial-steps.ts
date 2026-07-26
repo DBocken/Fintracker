@@ -35,9 +35,21 @@ function step(id: string, route: string, anchor?: string): TutorialStep {
 }
 
 /**
- * Schritte je Kapitel. Kapitel ohne Eintrag sind noch nicht ausformuliert und
- * werden im Lauf **übersprungen** — ein leeres Kapitel ist kein Fehler,
- * sondern noch nicht geschriebener Text.
+ * Schritte je Kapitel. Kapitel ohne Eintrag werden im Lauf **übersprungen** —
+ * ein leeres Kapitel ist kein Fehler, sondern noch nicht geschriebener Text.
+ *
+ * Zwei Dinge, die hier bewusst so sind und sonst wie Lücken aussehen:
+ *
+ * - **`source` hat keine Schritte.** Kapitel 0 ist der `DataSourceDialog`
+ *   selbst; ein Overlay über einem modalen Dialog wäre eine Führung durch eine
+ *   Führung. Das Kapitel gilt als erledigt, sobald die Weiche beantwortet ist.
+ * - **Nur die erste Sitzung hat Anker.** `transactions`, `categories`,
+ *   `dashboard` und `city` rahmen ein konkretes Element ein; die übrigen
+ *   Kapitel dunkeln ab und erklären den Bereich als Ganzes. Das ist für den
+ *   ersten Auftritt eines gerade freigeschalteten Bereichs auch das Richtige —
+ *   „das gibt es jetzt, dafür ist es da". Einzelne Elemente einzurahmen lohnt
+ *   sich erst, wenn die Texte stehen; ein Anker ist billig nachzurüsten, ein
+ *   falsch gesetzter kostet einen Refactor.
  */
 export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly TutorialStep[]>> = {
   transactions: [
@@ -56,6 +68,72 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
     step('arrival', '/city', 'city-canvas'),
     step('districts', '/city', 'city-canvas'),
     step('growth', '/city', 'city-canvas'),
+  ],
+  coach: [
+    step('today', '/coach'),
+    step('rhythm', '/coach'),
+  ],
+  accounts: [
+    step('balances', '/accounts'),
+    step('realBalance', '/accounts'),
+  ],
+  income: [
+    step('sources', '/income'),
+    step('stability', '/income'),
+  ],
+  contracts: [
+    step('found', '/contracts'),
+    step('price', '/contracts'),
+    step('decide', '/contracts'),
+  ],
+  budgets: [
+    step('tanks', '/budgets'),
+    step('learning', '/budgets'),
+  ],
+  liquidity: [
+    step('forecast', '/liquidity'),
+    step('buffer', '/liquidity'),
+  ],
+  milestones: [
+    step('goals', '/milestones'),
+    step('progress', '/milestones'),
+  ],
+  debts: [
+    step('overview', '/debts'),
+    step('strategy', '/debts'),
+  ],
+  occasions: [
+    step('crosscut', '/occasions'),
+    step('total', '/occasions'),
+  ],
+  netWorth: [
+    step('stock', '/net-worth'),
+    step('direction', '/net-worth'),
+  ],
+  tax: [
+    step('deductible', '/tax'),
+    step('collect', '/tax'),
+  ],
+  euer: [
+    step('profit', '/euer'),
+    step('reserve', '/euer'),
+  ],
+  premiumReports: [
+    step('trends', '/premium'),
+    step('insights', '/premium'),
+  ],
+  trading: [
+    step('portfolio', '/trading'),
+    step('valuation', '/trading'),
+  ],
+  export: [
+    step('ownership', '/export'),
+    step('backup', '/export'),
+  ],
+  settings: [
+    step('areas', '/settings'),
+    step('unlockAll', '/settings'),
+    step('language', '/settings'),
   ],
 };
 
