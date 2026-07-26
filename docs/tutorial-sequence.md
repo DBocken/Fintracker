@@ -1,6 +1,8 @@
 # Tutorial-Reihenfolge & Datenquellen-Weiche — Vorüberlegungen
 
-Status: **noch nicht implementiert.** Diese Datei beantwortet die Frage, die
+Status: **umgesetzt.** Die Umsetzungsreihenfolge am Ende dieser Datei ist
+abgearbeitet; die Begründungen bleiben stehen, weil sie erklären, warum der
+Code so aussieht, wie er aussieht. Diese Datei beantwortet die Frage, die
 `docs/tutorial-progressive-disclosure.md` unter „Vor dem Bauen zu entscheiden"
 Punkt 1 offen gelassen hat: **in welcher Reihenfolge** die Module erklärt
 werden — und wie sich die Auswahl der Datenquelle (Datei, Bank, Beispieldaten)
@@ -218,17 +220,20 @@ Die Migration ist der Punkt, an dem es unangenehm werden kann. Zwei Fälle:
 - **Das Bundle trägt es.** `CityPage` ist in `App.tsx` bereits `lazy()`
   geladen; three.js kommt erst beim Öffnen. „Immer sichtbar" heißt nicht
   „immer geladen" — der Kernbereich kostet nichts, solange niemand hingeht.
-- **Zwei offene Punkte, die jetzt billig sind:**
-  1. **Das Beta-Etikett.** `/city` trägt heute den Untertitel „Beta"
-     (`city.betaBadge`, zugleich Badge auf der Seite). Zentrale Darstellung
-     und Beta-Kennzeichnung widersprechen sich — entweder trägt der Kern das
-     Etikett zu Recht, dann ist er noch kein Kern, oder es fällt mit dieser
-     Änderung.
-  2. **Die Bottom-Nav.** Auf 375 px ist ein Bereich, der nur über „Mehr" →
-     Scrollen erreichbar ist, nicht zentral. Empfehlung: die Stadt wird
-     vierter Tab (`BOTTOM_NAV_TARGETS`), Reihenfolge Heute · Übersicht ·
-     Stadt · Buchungen · Mehr. Preis, der dazugehört: fünf Tabs sind das
-     Maximum — danach ist die Leiste zu.
+- **Beide Folgepunkte sind umgesetzt:**
+  1. ✅ **Das Beta-Etikett ist gefallen.** Zentrale Darstellung und
+     Beta-Kennzeichnung widersprechen sich; wer das Finale des Onboardings
+     mit einem Vorbehalt beschriftet, entwertet es. `city.betaBadge` ist aus
+     allen Sprachbäumen entfernt.
+  2. ✅ **Die Stadt ist vierter Bottom-Nav-Tab** — Heute · Übersicht · Stadt ·
+     Buchungen · Mehr. Vier plus „Mehr" ist damit das Maximum.
+
+     Dass dafür die Kernbereichs-Änderung nötig war, hat ein bestehender
+     `[REGRESSION]`-Test bewiesen: Er sichert zu, dass die Bottom-Nav **nie**
+     ein Ziel verliert — und das ist nur für Kernbereiche haltbar. „Stadt in
+     die Leiste" ohne „Stadt ist Kernbereich" war also gar nicht baubar.
+     `getBottomNavItems` prüft jetzt trotzdem beide Achsen: für die heutigen
+     Ziele wirkungslos, aber Vorsorge für jeden künftigen Eintrag.
 - **Sanfter Ton bleibt möglich.** Die Stadt zeigt *Ausgaben*, nicht Vermögen —
   anders als das Nettovermögen ist sie in `debt_focus` und `gentle_mode` kein
   Hohn, sondern die verständlichste Antwort auf „wo ist mein Geld

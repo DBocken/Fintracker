@@ -35,8 +35,9 @@ describe("NAV_GROUPS (Issue #42)", () => {
 });
 
 describe("getBottomNavItems (Issue #42)", () => {
-  it("liefert die 3 mobilen Kernziele (vor dem Mehr-Tab)", () => {
-    expect(getBottomNavItems()).toHaveLength(3);
+  it("liefert die 4 mobilen Kernziele (vor dem Mehr-Tab)", () => {
+    // Vier plus „Mehr" ist das Maximum — danach ist die Leiste auf 375 px zu.
+    expect(getBottomNavItems()).toHaveLength(4);
   });
 
   it("speist sich aus NAV_GROUPS (eine Quelle für Nav, Palette und Bottom-Nav)", () => {
@@ -46,9 +47,18 @@ describe("getBottomNavItems (Issue #42)", () => {
     }
   });
 
-  it("deckt die Kernziele Heute, Übersicht, Buchungen ab", () => {
+  it("deckt die Kernziele Heute, Übersicht, Stadt, Buchungen ab", () => {
     const paths = getBottomNavItems().map((i) => i.path);
-    expect(paths).toEqual(["/coach", "/dashboard", "/transactions"]);
+    expect(paths).toEqual(["/coach", "/dashboard", "/city", "/transactions"]);
+  });
+
+  it("[REGRESSION] verliert kein Ziel, egal wie eng beide Achsen stehen", () => {
+    // Alle Ziele der Leiste sind Kernbereiche — genau deshalb darf keine
+    // Bereichsauswahl und keine Freischaltung sie antasten. Die Pruefung im
+    // Filter ist Vorsorge fuer kuenftige Eintraege, nicht fuer die heutigen.
+    const expected = ["/coach", "/dashboard", "/city", "/transactions"];
+    expect(getBottomNavItems([], []).map((i) => i.path)).toEqual(expected);
+    expect(getBottomNavItems(null, null).map((i) => i.path)).toEqual(expected);
   });
 
   it("trägt kompakte Tab-Beschriftungen", () => {

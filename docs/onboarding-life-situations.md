@@ -50,7 +50,7 @@ Deshalb:
 
 | ID | Kachel | Situation | Vorausgewählt |
 |---|---|---|---|
-| `student_school` | Schüler:in oder Azubi | Taschengeld, Nebenjob, Ausbildungsvergütung. Kaum Fixkosten, erste Abo-Fallen. | Budgets, Meilensteine, Verträge, Finanzstadt |
+| `student_school` | Schüler:in oder Azubi | Taschengeld, Nebenjob, Ausbildungsvergütung. Kaum Fixkosten, erste Abo-Fallen. | Budgets, Meilensteine, Verträge |
 | `student_university` | Studium | BAföG, Werkstudentenjob, Eltern — unregelmäßig. Ausgaben in Blöcken (Semesterbeitrag, Kaution). | + Liquidität, Einkommen |
 | `career_starter` | Berufseinstieg | Erstes volles Gehalt, erste eigene Wohnung, erste Steuererklärung, Pendelweg. | Liquidität, Budgets, Meilensteine, Einkommen, Steuer, Nettovermögen, Verträge |
 | `employed_stable` | Angestellt, Haushalt läuft | Fixkosten im Griff; Frage ist Optimierung und Vermögensaufbau. | + Anlässe, Trends & Berichte, Trading |
@@ -103,25 +103,19 @@ Aufzählung (kein dauerhaft deaktivierter Schalter, der das Gegenteil
 suggerieren würde):
 
 `/coach`, `/dashboard`, `/transactions`, `/accounts`, `/csv`, `/export`,
-`/settings`
+`/settings`, `/city`
 
 Gründe:
 
-- `/coach`, `/dashboard`, `/transactions` speisen die mobile Bottom-Nav
-  (`getBottomNavItems`). Fehlt eines, verliert die Bottom-Nav stillschweigend
-  einen Tab.
+- `/coach`, `/dashboard`, `/city`, `/transactions` speisen die mobile
+  Bottom-Nav (`getBottomNavItems`). Fehlt eines, verliert die Bottom-Nav
+  stillschweigend einen Tab.
 - `/settings` ist der Rückweg — dort schaltet man Bereiche wieder frei. Wäre es
   ausblendbar, könnte man sich selbst aussperren.
 - `/accounts`, `/csv`, `/export` sind Dateneingang und -ausgang.
-
-> **Beschlossen, noch nicht umgesetzt:** `/city` (Finanzstadt) kommt als
-> Kernbereich dazu — sie ist die zentrale Darstellung und damit nicht
-> abwählbar. `city` entfällt dann als `NavFeatureId`, fällt aus den
-> `features`-Listen von `student_school`/`student_university` heraus, und
-> gespeicherte `enabled_nav_features` mit `'city'` werden einmalig
-> aufgeräumt. Begründung und vollständige Folgenliste:
-> `docs/tutorial-sequence.md` („Die Stadt ist Kernbereich, nicht wählbarer
-> Bereich"). Bis dahin gilt der Code.
+- `/city` ist die **zentrale Darstellung** — zentral und abwählbar zugleich
+  gibt es nicht. Begründung: `docs/tutorial-sequence.md` („Die Stadt ist
+  Kernbereich, nicht wählbarer Bereich").
 
 ## Opt-in-Bereiche
 

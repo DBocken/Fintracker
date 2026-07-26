@@ -764,6 +764,31 @@ function migrateLegacyBusinessMode(settings: UserSettings): UserSettings | null 
   return migrated;
 }
 
+/**
+ * Räumt Bereiche aus der gespeicherten Auswahl, die es nicht mehr gibt.
+ *
+ * Anlass ist die Finanzstadt: Sie war ein wählbarer Bereich und ist heute
+ * Kernbereich (`docs/tutorial-sequence.md`). Wirkungslos ist der Altwert schon
+ * — `isNavPathVisible` prüft `ALWAYS_VISIBLE_NAV_PATHS` vor der
+ * Feature-Zuordnung —, aber ein Fremdwert in einem typisierten Array gehört
+ * weggeräumt, bevor ihn jemand für gültig hält.
+ *
+ * Bewusst allgemein statt auf `'city'` verdrahtet: Der nächste entfallende
+ * Bereich braucht dann keine zweite Migration.
+ *
+ * Gibt `null` zurück, wenn nichts zu räumen war.
+ */
+function migrateRemovedNavFeatures(settings: UserSettings): UserSettings | null {
+  const stored = settings.enabled_nav_features;
+  if (stored == null) return null;
+
+  const known = new Set(Object.keys(NAV_FEATURE_PATHS));
+  const cleaned = stored.filter((f) => known.has(f));
+  if (cleaned.length === stored.length) return null;
+
+  return { ...settings, enabled_nav_features: cleaned };
+}
+
 export async function getLocalUserSettings(): Promise<UserSettings> {
   assertClient();
   assertUnlocked();
@@ -771,7 +796,11 @@ export async function getLocalUserSettings(): Promise<UserSettings> {
   const stored = await localEncryption.loadAndMaybeDecrypt<UserSettings>(LOCAL_SETTINGS_KEY);
   if (stored && typeof stored === "object") {
     const merged = { ...buildDefaultLocalSettings(), ...stored, user_id: LOCAL_USER_ID };
-    const migrated = migrateLegacyBusinessMode(merged);
+    // Beide Migrationen nacheinander: die erste kann eine Auswahl erst
+    // anlegen, die die zweite dann räumt.
+    const afterBusinessMode = migrateLegacyBusinessMode(merged);
+    const afterRemoved = migrateRemovedNavFeatures(afterBusinessMode ?? merged);
+    const migrated = afterRemoved ?? afterBusinessMode;
     if (migrated) {
       await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, migrated);
       return migrated;

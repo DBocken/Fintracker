@@ -4,6 +4,7 @@ import { getBottomNavItems } from "@/components/layout/nav-config";
 import { OPEN_NAV_SHEET_EVENT } from "@/components/layout/MobileNav";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
+import { useNavVisibility } from "@/hooks/useNavVisibility";
 
 /**
  * Mobile Bottom-Nav (Audit P1.3): Heute · Übersicht · Buchungen + „Mehr"-Tab.
@@ -13,7 +14,8 @@ import { useI18n } from "@/i18n/useI18n";
  */
 export default function BottomNav() {
   const { t } = useI18n();
-  const items = getBottomNavItems();
+  const { enabled, unlocked } = useNavVisibility();
+  const items = getBottomNavItems(enabled, unlocked);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

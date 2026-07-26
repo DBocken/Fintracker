@@ -34,7 +34,6 @@ export type NavFeatureId =
   | 'euer'
   | 'premiumReports'
   | 'trading'
-  | 'city'
   | 'contracts';
 
 export type LifeSituationId =
@@ -62,9 +61,9 @@ export type ModifierId =
  * Nav-Ziele, die IMMER sichtbar bleiben — unabhängig von der Lebenssituation.
  *
  * Drei Gründe, warum das kein „nice to have" ist:
- * - `/coach`, `/dashboard`, `/transactions` speisen die mobile Bottom-Nav
- *   (`getBottomNavItems`). Würde eine Lebenssituation eines davon verstecken, verlöre
- *   die Bottom-Nav stillschweigend einen Tab.
+ * - `/coach`, `/dashboard`, `/city`, `/transactions` speisen die mobile
+ *   Bottom-Nav (`getBottomNavItems`). Würde eine Lebenssituation eines davon
+ *   verstecken, verlöre die Bottom-Nav stillschweigend einen Tab.
  * - `/settings` ist der Rückweg: dort schaltet man Bereiche wieder frei. Wäre
  *   es ausblendbar, könnte sich ein Nutzer selbst aussperren.
  * - `/accounts`, `/csv`, `/export` sind der Dateneingang bzw. -ausgang und
@@ -78,6 +77,10 @@ export const ALWAYS_VISIBLE_NAV_PATHS: readonly string[] = [
   '/csv',
   '/export',
   '/settings',
+  // Die Finanzstadt ist die zentrale Darstellung und deshalb nicht abwählbar
+  // (`docs/tutorial-sequence.md`). Zentral und optional zugleich gibt es
+  // nicht — und mobil ist sie ein Bottom-Nav-Ziel, das nie verschwinden darf.
+  '/city',
 ];
 
 /**
@@ -98,7 +101,6 @@ export const NAV_FEATURE_PATHS: Record<NavFeatureId, string> = {
   euer: '/euer',
   premiumReports: '/premium',
   trading: '/trading',
-  city: '/city',
   contracts: '/contracts',
 };
 
@@ -272,14 +274,14 @@ function lifeSituation(
 export const LIFE_SITUATIONS: readonly LifeSituation[] = [
   // Taschengeld/Ausbildungsvergütung, kaum Fixkosten, erste Abo-Fallen.
   // Bewusst die schlankste Lebenssituation — Steuer und Depot wären hier nur Ballast.
-  lifeSituation('student_school', ['budgets', 'milestones', 'contracts', 'city'], {
+  lifeSituation('student_school', ['budgets', 'milestones', 'contracts'], {
     gentle_mode: true,
     enable_subcategories: false,
   }),
 
   // Einkommensmix (BAföG, Werkstudentenjob, Eltern) und Ausgaben in Blöcken:
   // der Semesterbeitrag ist genau der Fall, für den die Liquiditätsvorschau da ist.
-  lifeSituation('student_university', ['liquidity', 'budgets', 'milestones', 'income', 'contracts', 'city'], {
+  lifeSituation('student_university', ['liquidity', 'budgets', 'milestones', 'income', 'contracts'], {
     gentle_mode: true,
   }),
 
