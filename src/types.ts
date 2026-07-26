@@ -1,4 +1,5 @@
 import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
+import type { TutorialChapterId, TutorialSource } from '@/lib/tutorial-sequence';
 
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 
@@ -276,6 +277,18 @@ export interface UserSettings {
    * „Alles freischalten" in den Einstellungen setzt sie wieder auf `null`.
    */
   unlocked_features?: NavFeatureId[] | null;
+  /**
+   * In der Datenquellen-Weiche (Kapitel 0) gewählter Weg.
+   *
+   * `undefined` = nie gefragt (die Weiche erscheint), `null` = gefragt und
+   * übersprungen. Gespeichert wird der **gewählte Weg**, nicht was tatsächlich
+   * an Daten vorliegt: Wer „Bank" wählt und abbricht, soll das unterbrochene
+   * Tutorial an derselben Stelle fortsetzen. Über Sichtbarkeit entscheiden
+   * weiterhin die echten Daten.
+   */
+  tutorial_source?: TutorialSource | null;
+  /** Abgeschlossene Tutorial-Kapitel. Unbekannte IDs werden ignoriert. */
+  tutorial_completed_chapters?: TutorialChapterId[];
 }
 
 /**

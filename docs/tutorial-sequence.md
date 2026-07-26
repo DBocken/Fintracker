@@ -519,8 +519,18 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    in der Service-Schicht aus den echten Daten erhebt, und die Kopplung an den
    Demo-Datensatz (`buildDemoDataset(now, months = 3)` — sinkt `months` unter
    3, fallen Einkommen, Verträge und Budgets im Demo-Tutorial still aus).
-3. **Kapitel 0 und die Verschiebung des Onboarding-Auslösers**, mit der
-   datengestützten Vorbelegung der Lebenssituation.
+3. ⏳ **Kapitel 0 und die Verschiebung des Onboarding-Auslösers.** Die Weiche
+   steht (`DataSourceDialog`) und `OnboardingDialog` wartet jetzt auf sie.
+   Offen ist der zweite Teil: die **datengestützte Vorbelegung** der
+   Lebenssituation (erkanntes Gehalt, laufende Raten → Kachel und Umstände
+   vorschlagen). Erst sie löst das Versprechen ein, für das die Reihenfolge
+   überhaupt gedreht wurde.
+
+   Nebenbefund beim Bauen: Die Weiche gab es faktisch schon zweimal und
+   unvollständig — „Demo ansehen" auf der Anmeldeseite und CSV/Beispieldaten
+   im `FinanceEmptyState`; der Bankweg fehlte an beiden Stellen. Der Dialog ist
+   jetzt die eine Stelle. Wer über den Demo-Knopf hereinkam, wird nicht erneut
+   gefragt: `isDemoDataActive()` notiert den Weg still.
 4. **Overlay und Kapitelinhalte**, Kern zuerst (Kapitel 1–5), dann Teil 2.
 5. **Vertagte Kapitel an den Coach** anschließen.
 

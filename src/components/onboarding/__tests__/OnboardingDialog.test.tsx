@@ -9,9 +9,13 @@ import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-
 import { localEncryption } from '@/services/local-crypto';
 import { isBusinessModeEnabled, resolveFeatureSelection } from '@/lib/life-situations';
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear();
   localEncryption.lock();
+  // Der Dialog wartet seit der Datenquellen-Weiche (Kapitel 0) darauf, dass
+  // dort entschieden ist. Diese Suite prueft die Situationswahl, nicht die
+  // Weiche — deshalb die Vorbedingung hier einmal setzen.
+  await updateLocalUserSettings({ tutorial_source: 'csv' });
 });
 
 function renderDialog(locale: 'de' | 'en' = 'de') {
@@ -148,5 +152,35 @@ describe('OnboardingDialog', () => {
     await user.click(screen.getByRole('radio', { name: /Retired/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Here is what we suggest')).toBeInTheDocument();
+  });
+});
+
+describe('OnboardingDialog — Reihenfolge nach der Datenquellen-Weiche', () => {
+  it('sollte warten, solange die Datenquelle noch nicht entschieden ist', async () => {
+    // Zwei offene Dialoge gleichzeitig wären eine Zumutung — und die
+    // Lebenssituation lässt sich erst aus vorhandenen Daten vorschlagen.
+    localStorage.clear(); // Vorbedingung aus beforeEach zuruecknehmen
+    renderWithProviders(<OnboardingDialog />, { locale: 'de', query: true });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Welche Situation beschreibt dich am ehesten?'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('sollte nach entschiedener Datenquelle nach der Lebenssituation fragen', async () => {
+    await updateLocalUserSettings({ tutorial_source: 'csv' });
+    renderWithProviders(<OnboardingDialog />, { locale: 'de', query: true });
+    expect(
+      await screen.findByText('Welche Situation beschreibt dich am ehesten?'),
+    ).toBeInTheDocument();
+  });
+
+  it('sollte auch nach übersprungener Datenquelle weitermachen', async () => {
+    await updateLocalUserSettings({ tutorial_source: null });
+    renderWithProviders(<OnboardingDialog />, { locale: 'de', query: true });
+    expect(
+      await screen.findByText('Welche Situation beschreibt dich am ehesten?'),
+    ).toBeInTheDocument();
   });
 });

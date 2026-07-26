@@ -40,7 +40,15 @@ export default function OnboardingDialog() {
   });
 
   // `undefined` = nie gefragt. `null` = gefragt und übersprungen.
-  const open = settings !== undefined && settings.onboarding_life_situation === undefined;
+  //
+  // Zusätzlich wartet der Dialog auf die Datenquellen-Weiche (Kapitel 0,
+  // `DataSourceDialog`): erst wenn dort entschieden ist, kann die
+  // Lebenssituation aus den importierten Daten *vorgeschlagen* statt erfragt
+  // werden. Zwei Dialoge gleichzeitig wären ohnehin eine Zumutung.
+  const open =
+    settings !== undefined &&
+    settings.tutorial_source !== undefined &&
+    settings.onboarding_life_situation === undefined;
 
   const suggestion = useMemo(
     () => (lifeSituation ? resolveFeatureSelection(lifeSituation, modifiers) : null),

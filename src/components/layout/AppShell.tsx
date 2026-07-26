@@ -4,6 +4,7 @@ import SideNav from "@/components/layout/SideNav";
 import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
+import DataSourceDialog from "@/components/onboarding/DataSourceDialog";
 import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -38,6 +39,9 @@ export default function AppShell() {
     // (Sidebar, Header, Bottom-Nav) unberührt.
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
       <CommandPalette />
+      {/* Reihenfolge ist Inhalt: erst woher die Daten kommen (Kapitel 0),
+          dann die Lebenssituation — siehe docs/tutorial-sequence.md. */}
+      <DataSourceDialog />
       <OnboardingDialog />
       <div className="flex min-h-screen">
         {/* h-[100dvh] statt h-screen (100vh): An die *sichtbare* Viewport-Höhe
