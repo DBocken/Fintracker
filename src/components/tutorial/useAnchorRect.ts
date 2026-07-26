@@ -9,19 +9,35 @@ export interface AnchorRect {
 }
 
 /**
- * Verfolgt die Bildschirmposition eines `data-tour-id`-Ankers.
- *
- * `null` heißt: Anker (noch) nicht im DOM. Die Aufrufstelle **überspringt**
- * den Schritt dann — ein fehlender Anker darf nie blockieren
- * (`docs/tutorial-progressive-disclosure.md`). Genau dieser Fall tritt nach
- * jedem Refactor auf, der einen Marker verliert, und nach jeder Navigation,
- * bevor die Zielseite gerendert hat.
- *
- * Neu gemessen wird bei Scrollen und Größenänderung, weil die Position aus
- * `getBoundingClientRect()` viewport-relativ ist und das Loch sonst
- * stehenbliebe, während die Seite darunter wegläuft.
+ * Wartezeit, bis eine weiche Scrollbewegung steht. `scrollend` ist noch nicht
+ * überall verfügbar; deshalb wird zusätzlich nachgemessen, statt sich darauf
+ * zu verlassen.
  */
-export function useAnchorRect(anchor: string | undefined, active: boolean): AnchorRect | null {
+const SCROLL_SETTLE_MS = 400;
+
+/** Wie oft nach dem Erscheinen eines Schrittes nach dem Anker gesucht wird. */
+const ANCHOR_RETRIES = 20;
+const ANCHOR_RETRY_MS = 50;
+
+/**
+ * Verfolgt die Bildschirmposition eines `data-tour-id`-Ankers — und **scrollt
+ * ihn ins Bild**, bevor der Schritt erklärt wird.
+ *
+ * Das Scrollen ist nicht Komfort, sondern Voraussetzung: Eine Führung, die auf
+ * etwas außerhalb des sichtbaren Bereichs zeigt, zeigt auf nichts. Vorher
+ * konnte genau das passieren, sobald ein Anker weiter unten auf der Seite lag.
+ *
+ * `null` heißt: Anker (noch) nicht im DOM. Die Aufrufstelle erklärt dann
+ * trotzdem, blockiert aber nie (`docs/tutorial-progressive-disclosure.md`).
+ * Gesucht wird kurz wiederholt, weil ein Schritt oft direkt nach einer
+ * Navigation oder dem Öffnen eines Dialogs beginnt und das Ziel dann noch
+ * nicht steht.
+ */
+export function useAnchorRect(
+  anchor: string | undefined,
+  active: boolean,
+  reduceMotion: boolean,
+): AnchorRect | null {
   const [rect, setRect] = useState<AnchorRect | null>(null);
 
   useEffect(() => {
@@ -30,29 +46,57 @@ export function useAnchorRect(anchor: string | undefined, active: boolean): Anch
       return;
     }
 
-    let frame = 0;
+    let cancelled = false;
+    const timers: number[] = [];
+
     const measure = () => {
       const el = document.querySelector(anchorSelector(anchor));
       if (!el) {
         setRect(null);
-        return;
+        return null;
       }
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      return el;
     };
 
-    // Erste Messung im nächsten Frame: direkt nach einer Navigation steht das
-    // Ziel noch nicht, und eine sofortige Messung ergäbe „Anker fehlt".
-    frame = requestAnimationFrame(measure);
+    /**
+     * Sucht den Anker, scrollt ihn mittig ins Bild und misst danach erneut.
+     * Ohne die zweite Messung stünde das Loch dort, wo das Ziel *vor* dem
+     * Scrollen war.
+     */
+    const findAndReveal = (attempt: number) => {
+      if (cancelled) return;
+      const el = document.querySelector(anchorSelector(anchor));
+      if (!el) {
+        if (attempt < ANCHOR_RETRIES) {
+          timers.push(window.setTimeout(() => findAndReveal(attempt + 1), ANCHOR_RETRY_MS));
+        } else {
+          setRect(null);
+        }
+        return;
+      }
+
+      el.scrollIntoView({
+        block: 'center',
+        inline: 'nearest',
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+      measure();
+      timers.push(window.setTimeout(measure, reduceMotion ? 0 : SCROLL_SETTLE_MS));
+    };
+
+    findAndReveal(0);
 
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelled = true;
+      for (const id of timers) window.clearTimeout(id);
       window.removeEventListener('scroll', measure, true);
       window.removeEventListener('resize', measure);
     };
-  }, [anchor, active]);
+  }, [anchor, active, reduceMotion]);
 
   return rect;
 }

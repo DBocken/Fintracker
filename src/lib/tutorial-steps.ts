@@ -28,6 +28,16 @@ export interface TutorialStep {
   anchor?: string;
   /** Route, auf der dieser Schritt spielt. Der Lauf navigiert vorher dorthin. */
   route?: string;
+  /**
+   * `data-tour-id` eines Elements, das die Führung **anklickt**, bevor der
+   * Schritt erscheint — für Bereiche, die es vorher gar nicht gibt
+   * (Detailansicht, Aufteilen-Panel).
+   *
+   * Die Führung öffnet selbst, statt „bitte klicke jetzt auf …" zu sagen:
+   * Sonst hinge die Folge davon ab, ob der Nutzer im richtigen Moment das
+   * Richtige trifft, und bräche beim ersten Fehlklick ab.
+   */
+  openAnchor?: string;
 }
 
 function step(id: string, route: string, anchor?: string): TutorialStep {
