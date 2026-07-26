@@ -545,8 +545,53 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    einem Gehalt sind ein Nebenerwerb (Modifikator `side_business`), *ohne*
    Gehalt die Lebensgrundlage (`self_employed`). Derselbe Befund, zwei
    Bedeutungen — die Unterscheidung macht das Gehalt.
-4. **Overlay und Kapitelinhalte**, Kern zuerst (Kapitel 1–5), dann Teil 2.
-5. **Vertagte Kapitel an den Coach** anschließen.
+4. ⏳ **Overlay und Kapitelinhalte.** Die Mechanik steht vollständig:
+   `TutorialOverlay` (Abdunkeln mit ausgeschnittenem Loch über `box-shadow`,
+   Popover auf Desktop / Bottom Sheet auf Mobil), `useAnchorRect`
+   (`data-tour-id`, misst bei Scroll und Resize nach, fehlender Anker
+   überspringt), `useTutorialRun` (Kapitel- und Schrittzustand, schaltet beim
+   Abschluss den Bereich frei) und `TutorialInvitation` als Einladung statt
+   Dialog. Der Reifegrad-Adapter aus Schritt 2 ist nachgeliefert
+   (`data-readiness-service.ts`).
+
+   **Alle Kapitel sind ausformuliert** — 20 Kapitel mit 39 Schritten in allen
+   vier Sprachen. `source` bleibt bewusst ohne Schritte: Kapitel 0 *ist* der
+   `DataSourceDialog`, und ein Overlay über einem modalen Dialog wäre eine
+   Führung durch eine Führung.
+
+   Anker (`data-tour-id`) hat vorerst nur die erste Sitzung — `transactions`,
+   `categories`, `dashboard`, `city`. Die übrigen Kapitel dunkeln ab und
+   erklären den Bereich als Ganzes. Für den ersten Auftritt eines gerade
+   freigeschalteten Bereichs ist das auch das Richtige („das gibt es jetzt,
+   dafür ist es da"); einzelne Elemente einzurahmen lohnt erst, wenn die Texte
+   stehen. Ein Anker ist billig nachzurüsten, ein falsch gesetzter kostet
+   einen Refactor.
+
+   Zwei Entscheidungen beim Bauen:
+   - **Der Lauf ist nicht auf Schritt-Ebene persistent.** Gespeichert werden
+     abgeschlossene Kapitel, nicht die Position im Kapitel. Zwei bis vier
+     Schritte noch einmal zu sehen kostet Sekunden; eine halb gespeicherte
+     Position erzeugt Zustände, die niemand nachvollziehen kann.
+   - **Das Loch bleibt bedienbar** (`pointer-events-none` auf dem Overlay).
+     Eine Führung, die das Gezeigte sperrt, kann nicht zum Mitmachen
+     auffordern — und Mitmachen ist laut „Kapitelgröße" der Abschluss jedes
+     Kapitels.
+5. ✅ **Vertagte Kapitel an den Coach angeschlossen** (`tutorial-coach.ts`).
+   Ein Kapitel, dessen Voraussetzung eingetreten ist, wird zur
+   Coach-Empfehlung — kein eigener Posteingang fürs Tutorial.
+
+   Drei Entscheidungen dabei:
+   - **Was noch vertagt ist, wird nicht angekündigt.** „17 Dinge kommen noch"
+     wäre genau die Fülle, die die behutsame Heranführung vermeiden soll. Ein
+     Kapitel meldet sich, wenn es so weit ist, und vorher nicht.
+   - **Die Karte steht am Ende der Empfehlungsliste.** Eine Führung ist Hilfe,
+     kein Finanzbefund, und darf keine Liquiditätswarnung verdrängen. Hat der
+     Coach sonst nichts zu sagen — der Fall beim frischen Start —, rückt sie
+     von selbst an die erste Stelle.
+   - **Der Coach erhebt die Datenreife nicht selbst.** Das Kapitel kommt von
+     der Aufrufstelle, die es über `useTutorialRun` ohnehin kennt. Sonst läse
+     `getCoachOverview` Buchungen, Kategorien und Schulden ein zweites Mal und
+     hinge an acht weiteren Services — für eine einzige Karte.
 
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;
 ein Lehrplan ohne Overlay ist bereits nutzbar — er speist den Coach mit „das
