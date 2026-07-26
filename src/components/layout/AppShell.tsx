@@ -5,7 +5,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
 import CommandPalette from "@/components/CommandPalette";
 import DataSourceDialog from "@/components/onboarding/DataSourceDialog";
-import TutorialHost from "@/components/tutorial/TutorialHost";
+import TutorialHost from "@/features/tutorial/presentation/TutorialHost";
 import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";

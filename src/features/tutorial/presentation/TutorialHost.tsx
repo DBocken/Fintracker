@@ -1,4 +1,4 @@
-import { useTutorialRun } from '@/hooks/useTutorialRun';
+import { useTutorialRun } from '../application/useTutorialRun';
 import TutorialOverlay from './TutorialOverlay';
 import TutorialInvitation from './TutorialInvitation';
 

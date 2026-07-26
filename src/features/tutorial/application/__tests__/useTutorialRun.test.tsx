@@ -5,8 +5,8 @@ import { createHookWrapper } from '@/test-utils/render';
 import { useTutorialRun } from '../useTutorialRun';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
-import { collectDataReadiness } from '@/services/data-readiness-service';
-import type { DataReadiness } from '@/lib/tutorial-sequence';
+import { collectDataReadiness } from '@/features/tutorial/data/data-readiness-service';
+import type { DataReadiness } from '@/features/tutorial/domain/tutorial-sequence';
 
 const ready: DataReadiness = {
   transactionCount: 180,
@@ -25,7 +25,7 @@ const ready: DataReadiness = {
   hasPremiumAccess: false,
 };
 
-vi.mock('@/services/data-readiness-service', () => ({
+vi.mock('@/features/tutorial/data/data-readiness-service', () => ({
   collectDataReadiness: vi.fn(),
 }));
 

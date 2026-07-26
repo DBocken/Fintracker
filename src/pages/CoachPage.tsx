@@ -24,7 +24,7 @@ import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useTier } from "@/hooks/useTier";
-import { useTutorialRun } from "@/hooks/useTutorialRun";
+import { useTutorialRun } from "@/features/tutorial/application/useTutorialRun";
 import { hasFeatureAccess } from "@/lib/tier";
 import { useI18n } from "@/i18n/useI18n";
 

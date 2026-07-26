@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '@/test-utils/render';
 import TutorialOverlay from '../TutorialOverlay';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
-import { stepsFor } from '@/lib/tutorial-steps';
+import type { TutorialRun } from '@/features/tutorial/application/useTutorialRun';
+import { stepsFor } from '@/features/tutorial/domain/tutorial-steps';
 
 const navigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -164,5 +164,60 @@ describe('TutorialOverlay — zum Ziel führen', () => {
     renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
     const text = await screen.findByText('Wohin dein Geld fließt');
     expect(text.closest('[data-side]')).not.toBeNull();
+  });
+});
+
+describe('TutorialOverlay — [REGRESSION] Fehler aus dem Praxistest', () => {
+  it('sollte die Erklärung über das Ziel legen, wenn dieses unten steht', async () => {
+    // Auf schmalen Geräten legte sich das Popup genau über das Element, von
+    // dem der Schritt sprach — in der Detailansicht waren die Kategorien
+    // dadurch verdeckt. Radix weicht dem Bildschirmrand aus, kennt aber das
+    // Loch nicht; die Seite muss deshalb aus der Ankerlage kommen.
+    const el = withAnchor('dashboard-flow');
+    el.getBoundingClientRect = () =>
+      ({ top: window.innerHeight - 60, left: 0, width: 300, height: 40 }) as DOMRect;
+
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+    const text = await screen.findByText('Wohin dein Geld fließt');
+    await waitFor(() => {
+      expect(text.closest('[data-side]')?.getAttribute('data-side')).toBe('top');
+    });
+  });
+
+  it('sollte darunter bleiben, wenn das Ziel oben steht', async () => {
+    const el = withAnchor('dashboard-flow');
+    el.getBoundingClientRect = () => ({ top: 20, left: 0, width: 300, height: 40 }) as DOMRect;
+
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+    const text = await screen.findByText('Wohin dein Geld fließt');
+    expect(text.closest('[data-side]')?.getAttribute('data-side')).toBe('bottom');
+  });
+
+  it('sollte einen geschlossenen Bereich wieder öffnen statt weiterzumachen', async () => {
+    // Schließt der Nutzer die Detailansicht mittendrin, verschwindet das Ziel.
+    // Vorher lief die Führung stumpf weiter und zeigte auf nichts.
+    const opener = withAnchor('transactions-first-row');
+    const detail = withAnchor('detail-category');
+    const click = vi.fn(() => {
+      // Der Klick stellt das Ziel wieder her.
+      detail.setAttribute('data-tour-id', 'detail-category');
+    });
+    opener.addEventListener('click', click);
+
+    const steps = stepsFor('transactionDetails');
+    const categoryStep = steps.find((st) => st.id === 'category');
+    expect(categoryStep?.openAnchor).toBeDefined();
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionDetails', step: categoryStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+    await screen.findByText('Kategorie und Unterkategorie sind schon gesetzt');
+
+    // Nutzer schließt die Detailansicht.
+    detail.remove();
+    await waitFor(() => expect(click).toHaveBeenCalled(), { timeout: 2000 });
   });
 });

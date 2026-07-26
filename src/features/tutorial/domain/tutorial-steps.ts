@@ -40,6 +40,13 @@ export interface TutorialStep {
   openAnchor?: string;
 }
 
+/**
+ * Der Klick, der die Detailansicht einer Buchung aufmacht. Als Konstante,
+ * weil ihn 17 Schritte teilen — und weil eine Umbenennung des Ankers sonst
+ * an 17 Stellen nachgezogen werden müsste.
+ */
+const OPEN_DETAIL = 'transactions-first-row';
+
 function step(id: string, route: string, anchor?: string, openAnchor?: string): TutorialStep {
   return {
     id,
@@ -95,30 +102,35 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
     step('reset', '/transactions', 'filter-reset'),
   ],
 
-  // Akt III — eine Buchung verstehen und korrigieren. Schritt 2 oeffnet die
-  // Detailansicht selbst; alles Weitere spielt darin.
+  // Akt III — eine Buchung verstehen und korrigieren.
+  //
+  // JEDER Schritt ab `panel` traegt denselben `openAnchor`. Nicht nur der
+  // erste: Schliesst der Nutzer die Detailansicht mittendrin, ist das Ziel
+  // weg — und nur mit dem Oeffner am Schritt selbst kann die Fuehrung sie
+  // wieder aufmachen, statt ins Leere zu zeigen.
   transactionDetails: [
     step('open', '/transactions', 'transactions-first-row'),
-    step('panel', '/transactions', 'transaction-detail', 'transactions-first-row'),
-    step('basics', '/transactions', 'detail-basics'),
-    step('payee', '/transactions', 'detail-payee'),
-    step('category', '/transactions', 'detail-category'),
-    step('applySimilar', '/transactions', 'detail-apply-similar'),
-    step('expenseClass', '/transactions', 'detail-expense-class'),
-    step('tax', '/transactions', 'detail-tax'),
-    step('transfer', '/transactions', 'detail-transfer'),
-    step('contract', '/transactions', 'detail-contract'),
-    step('visibility', '/transactions', 'detail-visibility'),
+    step('panel', '/transactions', 'transaction-detail', OPEN_DETAIL),
+    step('basics', '/transactions', 'detail-basics', OPEN_DETAIL),
+    step('payee', '/transactions', 'detail-payee', OPEN_DETAIL),
+    step('category', '/transactions', 'detail-category', OPEN_DETAIL),
+    step('applySimilar', '/transactions', 'detail-apply-similar', OPEN_DETAIL),
+    step('expenseClass', '/transactions', 'detail-expense-class', OPEN_DETAIL),
+    step('tax', '/transactions', 'detail-tax', OPEN_DETAIL),
+    step('transfer', '/transactions', 'detail-transfer', OPEN_DETAIL),
+    step('contract', '/transactions', 'detail-contract', OPEN_DETAIL),
+    step('visibility', '/transactions', 'detail-visibility', OPEN_DETAIL),
   ],
 
-  // Akt IV — aufteilen. Schritt 1 oeffnet das Panel selbst.
+  // Akt IV — aufteilen. Das Panel steckt in der Detailansicht, also gilt
+  // derselbe Oeffner fuer jeden Schritt.
   transactionSplit: [
-    step('why', '/transactions', 'split-panel', 'transactions-first-row'),
-    step('row', '/transactions', 'split-row'),
-    step('addRow', '/transactions', 'split-add-row'),
-    step('remaining', '/transactions', 'split-remaining'),
-    step('fillRemaining', '/transactions', 'split-fill-remaining'),
-    step('save', '/transactions', 'split-save'),
+    step('why', '/transactions', 'split-panel', OPEN_DETAIL),
+    step('row', '/transactions', 'split-row', OPEN_DETAIL),
+    step('addRow', '/transactions', 'split-add-row', OPEN_DETAIL),
+    step('remaining', '/transactions', 'split-remaining', OPEN_DETAIL),
+    step('fillRemaining', '/transactions', 'split-fill-remaining', OPEN_DETAIL),
+    step('save', '/transactions', 'split-save', OPEN_DETAIL),
   ],
   dashboard: [
     step('flow', '/dashboard', 'dashboard-flow'),

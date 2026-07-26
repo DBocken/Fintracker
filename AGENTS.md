@@ -123,6 +123,7 @@ versehentlich untergraben und Überlegungen nicht neu erarbeitet werden:
 | Onboarding, Lebenssituationen, Bereichs-Vorauswahl, Einzelunternehmer-Modus | `docs/onboarding-life-situations.md` |
 | Tutorial, Freischaltung von Funktionen, behutsame Heranführung | `docs/tutorial-progressive-disclosure.md` |
 | Reihenfolge der Tutorial-Kapitel, Datenquellen-Weiche (Datei/Bank/Beispieldaten) | `docs/tutorial-sequence.md` |
+| **Ein Tutorial erstellen** (Anker setzen, Schritte schneiden, Texte schreiben) | `src/features/tutorial/README.md` |
 
 ## 4. Plattform-Prinzip (verbindlich)
 

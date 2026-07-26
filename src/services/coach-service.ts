@@ -6,8 +6,8 @@ import { getLocalUserSettings } from "./local-settings-service";
 import { deriveIncomeStreams, type IncomeStream } from "../lib/income-streams";
 import { computeTaxReserve, resolveTaxReservePercent } from "../lib/tax-reserve";
 import { t } from "../i18n/serviceT";
-import type { TutorialChapterId } from "../lib/tutorial-sequence";
-import { buildTutorialRecommendation } from "../lib/tutorial-coach";
+import type { TutorialChapterId } from "@/features/tutorial/domain/tutorial-sequence";
+import { buildTutorialRecommendation } from "@/features/tutorial/domain/tutorial-coach";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });

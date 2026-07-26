@@ -24,7 +24,7 @@ import {
   isFeatureEnabled,
   type LifeSituationId,
   type NavFeatureId,
-} from './life-situations';
+} from '@/lib/life-situations';
 
 /** Die drei Wege, auf denen Daten in die App kommen (Kapitel 0, die Weiche). */
 export const TUTORIAL_SOURCES = ['csv', 'bank', 'demo'] as const;

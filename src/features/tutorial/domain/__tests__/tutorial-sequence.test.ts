@@ -8,7 +8,7 @@ import {
   type DataReadiness,
   type TutorialChapterId,
 } from '../tutorial-sequence';
-import { NAV_FEATURE_PATHS, type NavFeatureId } from '../life-situations';
+import { NAV_FEATURE_PATHS, type NavFeatureId } from '@/lib/life-situations';
 
 /**
  * Lehrplan des Tutorials (`docs/tutorial-sequence.md`).

@@ -19,7 +19,7 @@ import type { CoachRecommendation } from '@/types';
 import { t } from '@/i18n/serviceT';
 import type { Curriculum, TutorialChapterId } from './tutorial-sequence';
 import { chapterNameKey, hasSteps } from './tutorial-steps';
-import { NAV_FEATURE_PATHS } from './life-situations';
+import { NAV_FEATURE_PATHS } from '@/lib/life-situations';
 import { chapterById } from './tutorial-sequence';
 
 /** Stabile ID der Coach-Karte — der Coach führt seine Empfehlungen darüber. */

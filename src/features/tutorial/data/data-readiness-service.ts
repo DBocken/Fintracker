@@ -1,14 +1,14 @@
 import type { Category, Transaction } from '@/types';
-import { getTransactions, getCategories } from './transaction-service';
-import { getAccounts } from './account-service';
-import { getDebts } from './debt-service';
-import { getBudgets } from './budget-service';
-import { getPortfolios } from './portfolio-service';
-import { getSpecialCategories } from './special-category-service';
+import { getTransactions, getCategories } from '@/services/transaction-service';
+import { getAccounts } from '@/services/account-service';
+import { getDebts } from '@/services/debt-service';
+import { getBudgets } from '@/services/budget-service';
+import { getPortfolios } from '@/services/portfolio-service';
+import { getSpecialCategories } from '@/services/special-category-service';
 import { detectSalarySeries } from '@/lib/salary-detection';
 import { isBusinessModeEnabled } from '@/lib/life-situations';
-import { getUserSettings } from './user-settings-service';
-import type { DataReadiness } from '@/lib/tutorial-sequence';
+import { getUserSettings } from '@/services/user-settings-service';
+import type { DataReadiness } from '../domain/tutorial-sequence';
 
 /**
  * Erhebt die Datenreife, aus der `buildCurriculum` entscheidet, welche

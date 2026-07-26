@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { renderWithI18n } from '@/test-utils/render';
 import TutorialInvitation from '../TutorialInvitation';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
+import type { TutorialRun } from '@/features/tutorial/application/useTutorialRun';
 
 function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
   return {

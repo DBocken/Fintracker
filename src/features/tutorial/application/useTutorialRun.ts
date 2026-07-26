@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
-import { collectDataReadiness } from '@/services/data-readiness-service';
-import { buildCurriculum, chapterById, type TutorialChapterId } from '@/lib/tutorial-sequence';
-import { hasSteps, stepsFor, type TutorialStep } from '@/lib/tutorial-steps';
-import { nextTeachableChapter } from '@/lib/tutorial-coach';
+import { collectDataReadiness } from '../data/data-readiness-service';
+import { buildCurriculum, chapterById, type TutorialChapterId } from '../domain/tutorial-sequence';
+import { hasSteps, stepsFor, type TutorialStep } from '../domain/tutorial-steps';
+import { nextTeachableChapter } from '../domain/tutorial-coach';
 import { withFeatureUnlocked } from '@/lib/life-situations';
 import { useTier } from '@/hooks/useTier';
 import type { UserSettings } from '@/types';

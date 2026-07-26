@@ -1,5 +1,5 @@
 import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
-import type { TutorialChapterId, TutorialSource } from '@/lib/tutorial-sequence';
+import type { TutorialChapterId, TutorialSource } from '@/features/tutorial/domain/tutorial-sequence';
 
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 

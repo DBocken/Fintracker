@@ -6,8 +6,10 @@ Ausformuliertes Beispiel für den Detailgrad, den eine Führung haben soll:
 **jede Option erklärt, jede Interaktion nachvollziehbar.** Gilt als Vorlage für
 die übrigen Bereiche.
 
-Vorher lesen: `docs/tutorial-sequence.md` (Reihenfolge der Kapitel, Datenreife)
-und `docs/tutorial-progressive-disclosure.md` (Overlay-Mechanik).
+Vorher lesen: **`src/features/tutorial/README.md`** — die verbindliche
+Anleitung, wie ein Tutorial entsteht. Dieses Drehbuch ist ihr ausgearbeitetes
+Beispiel. Dazu `docs/tutorial-sequence.md` (Reihenfolge der Kapitel,
+Datenreife) und `docs/tutorial-progressive-disclosure.md` (Overlay-Mechanik).
 
 ## Was dieses Drehbuch an den Vorgaben ändert
 

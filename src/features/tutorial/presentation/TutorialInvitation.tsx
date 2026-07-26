@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { GraduationCap, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
+import type { TutorialRun } from '../application/useTutorialRun';
 
 /**
  * Die Einladung zum nächsten Kapitel — bewusst ein Angebot, kein Dialog.

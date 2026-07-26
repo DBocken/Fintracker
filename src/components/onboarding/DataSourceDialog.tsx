@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import { isDemoDataActive, loadDemoData } from '@/services/demo-data-service';
-import type { TutorialSource } from '@/lib/tutorial-sequence';
+import type { TutorialSource } from '@/features/tutorial/domain/tutorial-sequence';
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';

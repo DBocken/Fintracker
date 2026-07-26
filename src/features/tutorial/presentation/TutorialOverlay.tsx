@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useI18n } from '@/i18n/useI18n';
-import { anchorSelector, stepBodyKey, stepTitleKey } from '@/lib/tutorial-steps';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
+import { anchorSelector, stepBodyKey, stepTitleKey } from '../domain/tutorial-steps';
+import type { TutorialRun } from '../application/useTutorialRun';
 import { useAnchorRect } from './useAnchorRect';
 
 /**
@@ -35,6 +35,16 @@ const HOLE_PADDING = 6;
 /** Abstand zum Bildschirmrand, den der Popover einhält. */
 const COLLISION_PADDING = 12;
 
+/** Abstand zwischen Loch und Erklärung — der Rahmen soll frei bleiben. */
+const SIDE_OFFSET = 12;
+
+/**
+ * Wie oft die Führung versucht, einen verschwundenen Bereich wieder zu öffnen,
+ * bevor sie aufgibt. Ohne Deckel liefe sie in eine Schleife, wenn der Klick
+ * den Anker gar nicht herstellt.
+ */
+const MAX_REOPEN_ATTEMPTS = 3;
+
 export default function TutorialOverlay({ run }: { run: TutorialRun }) {
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
@@ -52,28 +62,44 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
   }, [run.active, step, location.pathname, navigate]);
 
   // Schritte, die in einem erst zu öffnenden Bereich spielen (Detailansicht,
-  // Aufteilung), öffnen ihn selbst. Genau einmal je Schritt — sonst würde ein
-  // erneutes Rendern das Ziel wieder zuklappen.
-  const openedFor = useRef<string | null>(null);
+  // Aufteilung), öffnen ihn selbst — und zwar IMMER DANN, wenn ihr Ziel fehlt.
+  //
+  // Das ist der Unterschied zu „einmal beim Betreten": Schließt der Nutzer die
+  // Detailansicht mittendrin, ist der Anker weg, und die Führung lief vorher
+  // stumpf weiter. Jetzt merkt sie es und macht wieder auf. Der Zähler
+  // verhindert die Schleife, falls der Klick das Ziel gar nicht herstellt.
+  const reopenAttempts = useRef(0);
+  const attemptsFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!run.active || !step?.openAnchor) return;
+    if (!run.active || !step?.openAnchor || !step.anchor) return;
     const marker = `${run.chapter}:${step.id}`;
-    if (openedFor.current === marker) return;
+    if (attemptsFor.current !== marker) {
+      attemptsFor.current = marker;
+      reopenAttempts.current = 0;
+    }
+    if (rect !== null) {
+      reopenAttempts.current = 0;
+      return;
+    }
+    if (reopenAttempts.current >= MAX_REOPEN_ATTEMPTS) return;
     const el = document.querySelector<HTMLElement>(anchorSelector(step.openAnchor));
     if (!el) return;
-    openedFor.current = marker;
+    reopenAttempts.current += 1;
     el.click();
-  }, [run.active, run.chapter, step]);
-
-  useEffect(() => {
-    if (!run.active) openedFor.current = null;
-  }, [run.active]);
+  }, [run.active, run.chapter, step, rect]);
 
   if (!run.active || !step || !run.chapter) return null;
 
   const title = t(stepTitleKey(run.chapter, step), '');
   const body = t(stepBodyKey(run.chapter, step), '');
   const isLast = run.stepIndex >= run.stepCount - 1;
+
+  // Radix weicht dem Bildschirmrand aus, kennt aber das ausgeschnittene Loch
+  // nicht — auf schmalen Geräten legte es sich deshalb genau über das Element,
+  // von dem der Schritt spricht. Die Seite wird darum aus der Lage des Ankers
+  // bestimmt: Ziel in der oberen Hälfte ⇒ Erklärung darunter, sonst darüber.
+  const side: 'top' | 'bottom' =
+    rect && rect.top + rect.height / 2 > window.innerHeight / 2 ? 'top' : 'bottom';
 
   const progress = t('tutorial.progress', 'Schritt {current} von {total}')
     .replace('{current}', String(run.stepIndex + 1))
@@ -121,9 +147,10 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
         </PopoverAnchor>
         <PopoverContent
           className="z-[60] w-[min(20rem,calc(100vw-2rem))]"
-          side="bottom"
+          side={side}
           align="start"
           avoidCollisions
+          sideOffset={SIDE_OFFSET}
           collisionPadding={COLLISION_PADDING}
           // Kein Fokus-Klau auf das Popup: Das Gezeigte soll bedienbar
           // bleiben, und ein Sprung in den Erklärtext nähme dem Nutzer die
