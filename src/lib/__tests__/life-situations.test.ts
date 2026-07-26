@@ -306,3 +306,30 @@ describe('withFeatureUnlocked', () => {
     expect(withFeatureUnlocked(undefined, 'budgets')).toBeNull();
   });
 });
+
+describe('Finanzstadt als Kernbereich', () => {
+  it('sollte die Stadt nicht mehr als wählbaren Bereich führen', () => {
+    // Zentral und abwählbar zugleich gibt es nicht.
+    expect(Object.keys(NAV_FEATURE_PATHS)).not.toContain('city');
+  });
+
+  it('sollte die Stadt immer sichtbar halten', () => {
+    expect(ALWAYS_VISIBLE_NAV_PATHS).toContain('/city');
+    expect(isNavPathVisible('/city', [], [])).toBe(true);
+  });
+
+  it('sollte die Stadt in keiner Lebenssituation mehr vorauswählen', () => {
+    // Kernbereiche stehen in keiner Vorauswahl — sonst gäbe es sie zweimal.
+    for (const situation of LIFE_SITUATIONS) {
+      expect(situation.features as string[], situation.id).not.toContain('city');
+    }
+  });
+
+  it('[REGRESSION] sollte einen gespeicherten Altwert wirkungslos lassen', () => {
+    // Wer die Stadt frueher abgewaehlt hatte, hat `city` noch in seiner
+    // gespeicherten Auswahl — bzw. eben nicht. Beides darf die Sichtbarkeit
+    // nicht mehr beeinflussen.
+    expect(isNavPathVisible('/city', ['budgets'] as NavFeatureId[])).toBe(true);
+    expect(isNavPathVisible('/city', ['city'] as unknown as NavFeatureId[])).toBe(true);
+  });
+});

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
 import { ArrowRight, Building2, ChevronLeft, ChevronRight, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -579,7 +578,6 @@ export default function CityPage() {
 
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold text-foreground">{t("city.title")}</h1>
-              <Badge variant="secondary">{t("city.betaBadge")}</Badge>
             </div>
           </header>
 

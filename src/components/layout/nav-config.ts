@@ -140,18 +140,14 @@ export const NAV_GROUPS: NavGroup[] = [
         subtitleKey: "nav.subtitles.trading",
       },
       {
+        // Kein Beta-Etikett mehr: Die Finanzstadt ist die zentrale Darstellung
+        // (docs/tutorial-sequence.md) und Ziel der ersten Sitzung. Zentral und
+        // „noch im Versuch" widersprechen sich — wer das Finale des
+        // Onboardings mit einem Vorbehalt beschriftet, entwertet es.
         label: "Finanzstadt",
         labelKey: "nav.items.city",
         path: "/city",
         icon: Building2,
-        // Beta-Hinweis über das bestehende subtitle-Feld (kein neues
-        // Badge-Rendering in SideNav/MobileNav nötig — Präzedenzfall:
-        // Nachbar-Einträge nutzen subtitle bereits für kurze Teaser).
-        // subtitleKey zeigt bewusst auf `city.betaBadge` statt auf einen
-        // neuen `nav.subtitles.city`-Key — derselbe "Beta"-String wird auch
-        // als Badge auf der Seite selbst wiederverwendet (CityPage.tsx).
-        subtitle: "Beta",
-        subtitleKey: "city.betaBadge",
       },
     ],
   },
@@ -213,22 +209,40 @@ export function getVisibleNavGroups(
 }
 
 /**
- * Bottom-Nav (mobil): 4 Kernziele + „Mehr"-Tab (Issue #42).
+ * Bottom-Nav (mobil): Kernziele + „Mehr"-Tab (Issue #42).
  * Die Einträge referenzieren NAV_GROUPS über den Pfad, damit Nav-Konfiguration,
  * Command-Palette und Bottom-Nav aus derselben Quelle gespeist werden.
  * `shortLabel` ist die platzsparende Beschriftung für den Tab.
+ *
+ * Die Finanzstadt steht hier, weil „zentrale Darstellung" und „nur über Mehr →
+ * Scrollen erreichbar" sich widersprechen. Vier Tabs plus „Mehr" sind damit
+ * das Maximum — danach ist die Leiste auf 375 px zu.
  */
 const BOTTOM_NAV_TARGETS: { path: string; shortLabel: string; shortLabelKey: string }[] = [
   { path: "/coach", shortLabel: "Heute", shortLabelKey: "nav.short.coach" },
   { path: "/dashboard", shortLabel: "Übersicht", shortLabelKey: "nav.short.dashboard" },
+  { path: "/city", shortLabel: "Stadt", shortLabelKey: "nav.short.city" },
   { path: "/transactions", shortLabel: "Buchungen", shortLabelKey: "nav.short.transactions" },
 ];
 
 export type BottomNavItem = NavItem & { shortLabel: string; shortLabelKey: string };
 
-export function getBottomNavItems(): BottomNavItem[] {
+/**
+ * Bislang brauchte die Bottom-Nav keine Sichtbarkeitsprüfung: Ihre drei Ziele
+ * waren durchweg Kernbereiche. Die Finanzstadt ist der erste Eintrag, der
+ * (noch) abwählbar ist — ohne Filter erschiene sie hier auch dem, der sie in
+ * den Einstellungen ausgeblendet hat, während die Seitenleiste sie versteckt.
+ *
+ * Sobald `/city` Kernbereich ist (`docs/tutorial-sequence.md`), ist der Filter
+ * für sie wirkungslos — und bleibt als Schutz für jeden künftigen Eintrag.
+ */
+export function getBottomNavItems(
+  enabledFeatures?: readonly NavFeatureId[] | null,
+  unlockedFeatures?: readonly NavFeatureId[] | null,
+): BottomNavItem[] {
   const allItems = NAV_GROUPS.flatMap((group) => group.items);
   return BOTTOM_NAV_TARGETS.flatMap(({ path, shortLabel, shortLabelKey }) => {
+    if (!isNavPathVisible(path, enabledFeatures, unlockedFeatures)) return [];
     const item = allItems.find((i) => i.path === path);
     return item ? [{ ...item, shortLabel, shortLabelKey }] : [];
   });

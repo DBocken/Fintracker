@@ -509,6 +509,7 @@ export const translations = {
         euer: 'Einnahmen − Ausgaben = Gewinn',
       },
       short: {
+        city: 'Stadt',
         coach: 'Heute',
         dashboard: 'Übersicht',
         transactions: 'Buchungen',
@@ -522,7 +523,6 @@ export const translations = {
       tabGoals: 'Ziele',
       breadcrumbCity: 'Stadt',
       breadcrumbNavLabel: 'Stadt-Navigation',
-      betaBadge: 'Beta',
       a11yListToggle: 'Zur Listenansicht wechseln',
       canvasPlaceholder: '3D-Ansicht folgt in Kürze',
       canvasAriaLabel: '3D-Ansicht der Finanzstadt',
@@ -4870,6 +4870,7 @@ export const translations = {
         euer: 'Income − expenses = profit',
       },
       short: {
+        city: 'City',
         coach: 'Today',
         dashboard: 'Overview',
         transactions: 'Transactions',
@@ -4883,7 +4884,6 @@ export const translations = {
       tabGoals: 'Goals',
       breadcrumbCity: 'City',
       breadcrumbNavLabel: 'City navigation',
-      betaBadge: 'Beta',
       a11yListToggle: 'Switch to list view',
       canvasPlaceholder: '3D view coming soon',
       canvasAriaLabel: '3D view of the finance city',
@@ -9222,6 +9222,7 @@ export const translations = {
         euer: "Suq − Huch = Suq chuv",
       },
       short: {
+        city: 'veng',
         coach: "DaHjaj",
         dashboard: "Hoch legh",
         transactions: "Huch mIwmey",
@@ -9235,7 +9236,6 @@ export const translations = {
       tabGoals: "ngoQmey",
       breadcrumbCity: "veng",
       breadcrumbNavLabel: "veng mIw",
-      betaBadge: "Beta",
       a11yListToggle: "tetlh legh yIchoH",
       canvasPlaceholder: "3D legh: wa'leS",
       canvasAriaLabel: "veng 3D legh",
@@ -13264,6 +13264,7 @@ export const translations = {
         euer: 'Доходы − расходы = прибыль',
       },
       short: {
+        city: 'Город',
         coach: 'Сегодня',
         dashboard: 'Обзор',
         transactions: 'Транзакции',
@@ -13277,7 +13278,6 @@ export const translations = {
       tabGoals: 'Цели',
       breadcrumbCity: 'Город',
       breadcrumbNavLabel: 'Навигация по городу',
-      betaBadge: 'Бета',
       a11yListToggle: 'Переключить на список',
       canvasPlaceholder: '3D-вид скоро появится',
       canvasAriaLabel: '3D-вид финансового города',
