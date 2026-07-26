@@ -141,6 +141,43 @@ export function stepsFor(chapter: TutorialChapterId): readonly TutorialStep[] {
   return TUTORIAL_STEPS[chapter] ?? [];
 }
 
+/**
+ * Name eines Kapitels — bewusst der **vorhandene Navigations-Schlüssel** statt
+ * eines eigenen Textes.
+ *
+ * Damit gibt es das Wort nur einmal: Wird „Abos & Verträge" morgen umbenannt,
+ * heißt das Kapitel automatisch mit. Ein eigener Satz Kapitelnamen wäre eine
+ * zweite Wahrheit, die beim ersten Umbenennen auseinanderläuft.
+ *
+ * Nur `categories` hat kein Nav-Ziel und deshalb einen eigenen Schlüssel.
+ */
+const CHAPTER_NAME_KEYS: Partial<Record<TutorialChapterId, string>> = {
+  transactions: 'nav.items.transactions',
+  categories: 'tutorial.categories.name',
+  dashboard: 'nav.items.dashboard',
+  city: 'nav.items.city',
+  coach: 'nav.items.coach',
+  accounts: 'nav.items.accounts',
+  income: 'nav.items.income',
+  contracts: 'nav.items.contracts',
+  budgets: 'nav.items.budgets',
+  liquidity: 'nav.items.liquidity',
+  milestones: 'nav.items.milestones',
+  debts: 'nav.items.debts',
+  occasions: 'specialCategories.title',
+  netWorth: 'nav.items.netWorth',
+  tax: 'nav.items.tax',
+  euer: 'nav.items.euer',
+  premiumReports: 'nav.items.premium',
+  trading: 'nav.items.trading',
+  export: 'nav.items.export',
+  settings: 'nav.items.settings',
+};
+
+export function chapterNameKey(chapter: TutorialChapterId): string | null {
+  return CHAPTER_NAME_KEYS[chapter] ?? null;
+}
+
 /** Kapitel, für die es schon Text gibt — in der Reihenfolge des Lehrplans. */
 export function hasSteps(chapter: TutorialChapterId): boolean {
   return stepsFor(chapter).length > 0;

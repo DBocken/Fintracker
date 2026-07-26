@@ -576,7 +576,22 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
      Eine Führung, die das Gezeigte sperrt, kann nicht zum Mitmachen
      auffordern — und Mitmachen ist laut „Kapitelgröße" der Abschluss jedes
      Kapitels.
-5. **Vertagte Kapitel an den Coach** anschließen.
+5. ✅ **Vertagte Kapitel an den Coach angeschlossen** (`tutorial-coach.ts`).
+   Ein Kapitel, dessen Voraussetzung eingetreten ist, wird zur
+   Coach-Empfehlung — kein eigener Posteingang fürs Tutorial.
+
+   Drei Entscheidungen dabei:
+   - **Was noch vertagt ist, wird nicht angekündigt.** „17 Dinge kommen noch"
+     wäre genau die Fülle, die die behutsame Heranführung vermeiden soll. Ein
+     Kapitel meldet sich, wenn es so weit ist, und vorher nicht.
+   - **Die Karte steht am Ende der Empfehlungsliste.** Eine Führung ist Hilfe,
+     kein Finanzbefund, und darf keine Liquiditätswarnung verdrängen. Hat der
+     Coach sonst nichts zu sagen — der Fall beim frischen Start —, rückt sie
+     von selbst an die erste Stelle.
+   - **Der Coach erhebt die Datenreife nicht selbst.** Das Kapitel kommt von
+     der Aufrufstelle, die es über `useTutorialRun` ohnehin kennt. Sonst läse
+     `getCoachOverview` Buchungen, Kategorien und Schulden ein zweites Mal und
+     hinge an acht weiteren Services — für eine einzige Karte.
 
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;
 ein Lehrplan ohne Overlay ist bereits nutzbar — er speist den Coach mit „das

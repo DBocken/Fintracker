@@ -6,6 +6,8 @@ import { getLocalUserSettings } from "./local-settings-service";
 import { deriveIncomeStreams, type IncomeStream } from "../lib/income-streams";
 import { computeTaxReserve, resolveTaxReservePercent } from "../lib/tax-reserve";
 import { t } from "../i18n/serviceT";
+import type { TutorialChapterId } from "../lib/tutorial-sequence";
+import { buildTutorialRecommendation } from "../lib/tutorial-coach";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -75,7 +77,15 @@ function buildStage(key: RoadmapStageKey, totalDebt: number, emergencyBufferMont
   return { ...config[key], progress, status: progress >= 1 ? "completed" : key === currentStageKey(totalDebt, emergencyBufferMonths) ? "active" : "locked" };
 }
 
-export async function getCoachOverview(options?: { includeTaxReserve?: boolean }): Promise<CoachOverview> {
+export async function getCoachOverview(options?: {
+  includeTaxReserve?: boolean;
+  /**
+   * Naechstes Tutorial-Kapitel, das etwas zu zeigen hat. Kommt von der
+   * Aufrufstelle (`useTutorialRun`), damit der Coach die Datenreife nicht ein
+   * zweites Mal erhebt.
+   */
+  tutorialChapter?: TutorialChapterId | null;
+}): Promise<CoachOverview> {
   const [transactions, debts, health, categories] = await Promise.all([
     getTransactions(10000),
     getDebts(),
@@ -168,6 +178,23 @@ export async function getCoachOverview(options?: { includeTaxReserve?: boolean }
     const taxRec = buildTaxReserveRecommendation(streams, resolveTaxReservePercent(settings));
     if (taxRec) recommendations.push(taxRec);
   }
+
+  // Vertagte Tutorial-Kapitel melden sich hier, sobald ihre Voraussetzung
+  // eingetreten ist (`docs/tutorial-sequence.md`, Schritt 5). Bewusst KEIN
+  // eigener Posteingang fuers Tutorial: der Coach ist bereits der Ort fuer
+  // „das waere jetzt dein naechster Schritt".
+  //
+  // Das Kapitel kommt von der Aufrufstelle, die es ueber `useTutorialRun`
+  // ohnehin schon kennt — genau wie die Tarif-Berechtigung. Wuerde der Coach
+  // die Datenreife selbst erheben, laese er Buchungen, Kategorien und Schulden
+  // ein zweites Mal und haenge an acht weiteren Services.
+  //
+  // Bewusst ans ENDE der Liste: eine Fuehrung ist Hilfe, kein Finanzbefund,
+  // und darf eine Liquiditaetswarnung nicht verdraengen. Hat der Coach sonst
+  // nichts zu sagen — der Fall beim frischen Start —, rueckt sie von selbst
+  // an die erste Stelle.
+  const tutorialRec = buildTutorialRecommendation(options?.tutorialChapter ?? null);
+  if (tutorialRec) recommendations.push(tutorialRec);
 
   // Geschuetzte Grundbedarfs-Kategorien, adressiert ueber die stabile ID.
   // Vorher stand hier eine Liste ENGLISCHER Woerter, die gegen die deutschen

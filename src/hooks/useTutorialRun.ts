@@ -4,6 +4,7 @@ import { getUserSettings, updateUserSettings } from '@/services/user-settings-se
 import { collectDataReadiness } from '@/services/data-readiness-service';
 import { buildCurriculum, chapterById, type TutorialChapterId } from '@/lib/tutorial-sequence';
 import { hasSteps, stepsFor, type TutorialStep } from '@/lib/tutorial-steps';
+import { nextTeachableChapter } from '@/lib/tutorial-coach';
 import { withFeatureUnlocked } from '@/lib/life-situations';
 import { useTier } from '@/hooks/useTier';
 import type { UserSettings } from '@/types';
@@ -64,11 +65,9 @@ export function useTutorialRun(): TutorialRun {
   }, [readiness, settings]);
 
   // Ein Kapitel ohne ausformulierte Schritte ist kein Fehler, sondern noch
-  // nicht geschriebener Text — es wird übersprungen, nicht angehalten.
-  const upcoming = useMemo(
-    () => curriculum?.next.find((id) => hasSteps(id)) ?? null,
-    [curriculum],
-  );
+  // nicht geschriebener Text — es wird übersprungen, nicht angehalten. Die
+  // Regel steht in `tutorial-coach`, weil der Coach dieselbe Frage stellt.
+  const upcoming = useMemo(() => nextTeachableChapter(curriculum), [curriculum]);
 
   const steps = chapter ? stepsFor(chapter) : [];
 

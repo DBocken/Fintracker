@@ -297,6 +297,7 @@ export const translations = {
         },
       },
       categories: {
+        name: 'Kategorien',
         why: {
           title: 'Kategorien machen aus einer Liste eine Antwort',
           body: 'Ohne Zuordnung bleibt es eine Aufzählung. Mit Zuordnung wird sichtbar, wohin dein Geld geht.',
@@ -330,6 +331,12 @@ export const translations = {
           body: 'Jeder Monat baut weiter. Kommen später Abos dazu, bekommen sie eigene Gebäude.',
         },
       },
+    },
+    tutorialCoach: {
+      title: 'Dein nächster Schritt',
+      message: 'Jetzt lohnt sich ein Blick auf {chapter}. Zeigen dauert eine Minute.',
+      reason: 'Deine Daten reichen inzwischen aus, damit dieser Bereich etwas aussagt.',
+      cta: 'Zeig es mir',
     },
     tutorialSource: {
       title: 'Womit möchtest du anfangen?',
@@ -4651,6 +4658,7 @@ export const translations = {
         },
       },
       categories: {
+        name: 'Categories',
         why: {
           title: 'Categories turn a list into an answer',
           body: 'Without them it stays an enumeration. With them you can see where your money actually goes.',
@@ -4684,6 +4692,12 @@ export const translations = {
           body: 'Every month builds on. When subscriptions are detected later, they get their own buildings.',
         },
       },
+    },
+    tutorialCoach: {
+      title: 'Your next step',
+      message: '{chapter} is worth a look now. Showing you takes a minute.',
+      reason: 'Your data is now sufficient for this area to say something.',
+      cta: 'Show me',
     },
     tutorialSource: {
       title: 'Where would you like to start?',
@@ -9005,6 +9019,7 @@ export const translations = {
         },
       },
       categories: {
+        name: 'Seghmey',
         why: {
           title: "Segh De' jang",
           body: "Seghbe'chugh, tetlh neH 'oH. Seghchugh, Huchlij Daq Dalegh.",
@@ -9038,6 +9053,12 @@ export const translations = {
           body: "Hoch jar chen. ghIq nID chelchugh, qachmey chu' luSuq.",
         },
       },
+    },
+    tutorialCoach: {
+      title: "veb Do'",
+      message: "DaH {chapter} yIlegh. tup wa' neH poQ.",
+      reason: "DaH De'lIj yap; Dochvam jatlhlaH.",
+      cta: "HIcha'",
     },
     tutorialSource: {
       title: "nuqDaq bIta'taH'a'?",
@@ -13031,6 +13052,7 @@ export const translations = {
         },
       },
       categories: {
+        name: 'Категории',
         why: {
           title: 'Категории превращают список в ответ',
           body: 'Без них это просто перечень. С ними видно, куда на самом деле уходят деньги.',
@@ -13064,6 +13086,12 @@ export const translations = {
           body: 'Каждый месяц достраивает его. Когда найдутся подписки, у них появятся свои здания.',
         },
       },
+    },
+    tutorialCoach: {
+      title: 'Ваш следующий шаг',
+      message: 'Теперь стоит взглянуть на раздел «{chapter}». Показать — минута.',
+      reason: 'Данных уже достаточно, чтобы этот раздел что-то говорил.',
+      cta: 'Покажите',
     },
     tutorialSource: {
       title: 'С чего хотите начать?',
