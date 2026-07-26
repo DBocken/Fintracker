@@ -108,8 +108,9 @@ describe('useTutorialRun', () => {
   it('sollte ein Kapitel ohne ausformulierte Schritte gar nicht erst starten', async () => {
     const { result } = renderRun();
     await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
-    // `euer` hat noch keinen Text — kein Fehler, nur nichts zu zeigen.
-    act(() => result.current.start('euer'));
+    // `source` hat bewusst keine Schritte (der Dialog IST das Kapitel) —
+    // kein Fehler, nur nichts zu zeigen.
+    act(() => result.current.start('source'));
     expect(result.current.active).toBe(false);
   });
 

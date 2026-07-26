@@ -41,9 +41,13 @@ describe('TUTORIAL_STEPS', () => {
     }
   });
 
-  it('sollte für ein noch nicht ausformuliertes Kapitel leer liefern statt zu werfen', () => {
-    expect(stepsFor('euer')).toEqual([]);
-    expect(hasSteps('euer')).toBe(false);
+  it('sollte für ein Kapitel ohne Schritte leer liefern statt zu werfen', () => {
+    // `source` ist der dauerhafte Fall: Kapitel 0 IST der DataSourceDialog,
+    // ein Overlay darüber wäre eine Führung durch eine Führung. Bewusst nicht
+    // an einem noch untexteten Kapitel festgemacht — das wäre ein Test auf
+    // einen Zwischenstand statt auf eine Zusicherung.
+    expect(stepsFor('source')).toEqual([]);
+    expect(hasSteps('source')).toBe(false);
     expect(hasSteps('dashboard')).toBe(true);
   });
 });
