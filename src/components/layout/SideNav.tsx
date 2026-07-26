@@ -4,11 +4,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
-import { useNavFeatures } from "@/hooks/useNavFeatures";
+import { useNavVisibility } from "@/hooks/useNavVisibility";
 
 export default function SideNav() {
   const { t } = useI18n();
-  const navGroups = getVisibleNavGroups(useNavFeatures());
+  const { enabled, unlocked } = useNavVisibility();
+  const navGroups = getVisibleNavGroups(enabled, unlocked);
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 py-5">

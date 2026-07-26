@@ -38,6 +38,10 @@ export default function NavFeatureSettings() {
   const stored = settings?.enabled_nav_features ?? null;
   const selected = stored ?? ALL_FEATURES;
 
+  // `unlocked_features == null` heißt „Freischaltung nicht in Gebrauch" — dann
+  // ist nichts gesperrt und es gibt auch nichts freizuschalten.
+  const locked = (settings?.unlocked_features ?? null) !== null;
+
   const lifeSituation = LIFE_SITUATIONS.find((a) => a.id === settings?.onboarding_life_situation);
 
   return (
@@ -86,6 +90,19 @@ export default function NavFeatureSettings() {
           </p>
         )}
 
+        {locked && (
+          // Der Ausgang aus der behutsamen Heranführung. Er erscheint nur,
+          // solange es etwas freizuschalten gibt: ein Knopf ohne Wirkung wäre
+          // schlimmer als keiner. Ohne diesen Ausgang kippt Behutsamkeit in
+          // Bevormundung (`docs/tutorial-progressive-disclosure.md`).
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'onboarding.manage.unlockHint',
+              'Manche Bereiche schaltet das Tutorial nach und nach frei. Du kannst das jederzeit überspringen.',
+            )}
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -95,6 +112,18 @@ export default function NavFeatureSettings() {
           >
             {t('onboarding.manage.showAll', 'Alle Bereiche anzeigen')}
           </Button>
+          {locked && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={mutation.isPending}
+              // `null` = Achse nicht in Gebrauch. Bewusst nicht „alle Bereiche
+              // aufzählen": eine Liste würde bei jedem neuen Bereich veralten.
+              onClick={() => mutation.mutate({ unlocked_features: null })}
+            >
+              {t('onboarding.manage.unlockAll', 'Alles freischalten')}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

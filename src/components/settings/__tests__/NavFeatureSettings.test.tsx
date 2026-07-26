@@ -101,3 +101,41 @@ describe('NavFeatureSettings', () => {
     expect(screen.getByRole('button', { name: 'Show all areas' })).toBeInTheDocument();
   });
 });
+
+describe('NavFeatureSettings — Freischaltung', () => {
+  it('sollte den Ausgang nicht anbieten, solange nichts gesperrt ist', async () => {
+    renderSettings();
+    await screen.findAllByRole('switch');
+    // Ohne laufendes Tutorial ist alles freigeschaltet — ein Knopf, der nichts
+    // tut, wäre schlimmer als keiner.
+    expect(screen.queryByRole('button', { name: /Alles freischalten/ })).not.toBeInTheDocument();
+  });
+
+  it('sollte den Ausgang anbieten, sobald das Tutorial Bereiche sperrt', async () => {
+    await updateLocalUserSettings({ unlocked_features: [] });
+    renderSettings();
+    expect(
+      await screen.findByRole('button', { name: /Alles freischalten/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/nach und nach frei/)).toBeInTheDocument();
+  });
+
+  it('sollte auf Englisch denselben Ausgang anbieten', async () => {
+    await updateLocalUserSettings({ unlocked_features: [] });
+    renderSettings('en');
+    expect(
+      await screen.findByRole('button', { name: /Unlock everything/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('sollte mit einem Klick die Freischaltungs-Achse abschalten', async () => {
+    await updateLocalUserSettings({ unlocked_features: ['budgets'] });
+    renderSettings();
+    await userEvent.click(await screen.findByRole('button', { name: /Alles freischalten/ }));
+    await waitFor(async () => {
+      // `null` heißt „Achse nicht in Gebrauch" — nicht „alle Bereiche
+      // aufzählen". Eine Liste würde bei jedem neuen Bereich veralten.
+      expect((await getLocalUserSettings()).unlocked_features).toBeNull();
+    });
+  });
+});

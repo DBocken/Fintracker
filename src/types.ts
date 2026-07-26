@@ -1,4 +1,5 @@
 import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
+import type { TutorialChapterId, TutorialSource } from '@/lib/tutorial-sequence';
 
 export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
 
@@ -265,6 +266,29 @@ export interface UserSettings {
    * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
    */
   enabled_nav_features?: NavFeatureId[] | null;
+  /**
+   * Freigeschaltete Nav-Bereiche — die Tempo-Achse des Tutorials, additiv neben
+   * {@link enabled_nav_features}. Sichtbar ist ein Bereich, wenn er *gewählt
+   * UND freigeschaltet* ist (`isNavPathVisible`).
+   *
+   * `null`/undefined = Freischaltung nicht in Gebrauch ⇒ alles freigeschaltet.
+   * Bestandsnutzer haben das Feld nicht und dürfen dadurch nichts verlieren;
+   * scharf wird die Achse erst, wenn das Tutorial sie ausdrücklich setzt.
+   * „Alles freischalten" in den Einstellungen setzt sie wieder auf `null`.
+   */
+  unlocked_features?: NavFeatureId[] | null;
+  /**
+   * In der Datenquellen-Weiche (Kapitel 0) gewählter Weg.
+   *
+   * `undefined` = nie gefragt (die Weiche erscheint), `null` = gefragt und
+   * übersprungen. Gespeichert wird der **gewählte Weg**, nicht was tatsächlich
+   * an Daten vorliegt: Wer „Bank" wählt und abbricht, soll das unterbrochene
+   * Tutorial an derselben Stelle fortsetzen. Über Sichtbarkeit entscheiden
+   * weiterhin die echten Daten.
+   */
+  tutorial_source?: TutorialSource | null;
+  /** Abgeschlossene Tutorial-Kapitel. Unbekannte IDs werden ignoriert. */
+  tutorial_completed_chapters?: TutorialChapterId[];
 }
 
 /**

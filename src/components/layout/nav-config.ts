@@ -204,10 +204,11 @@ export const ROUTE_GUARDS: Record<string, FeatureKey> = {
  */
 export function getVisibleNavGroups(
   enabledFeatures?: readonly NavFeatureId[] | null,
+  unlockedFeatures?: readonly NavFeatureId[] | null,
 ): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => isNavPathVisible(item.path, enabledFeatures)),
+    items: group.items.filter((item) => isNavPathVisible(item.path, enabledFeatures, unlockedFeatures)),
   })).filter((group) => group.items.length > 0);
 }
 

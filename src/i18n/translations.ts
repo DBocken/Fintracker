@@ -31,6 +31,7 @@ export const DEFAULT_LOCALE: Locale = 'de';
 export const translations = {
   de: {
     onboarding: {
+      proposalHint: 'Aus deinen Daten geschätzt. Stimmt das nicht, ändere es einfach.',
       title: 'Welche Situation beschreibt dich am ehesten?',
       subtitle: 'Wir blenden dann nur die Bereiche ein, die dazu passen. Ändern kannst du das jederzeit.',
       modifiersTitle: 'Trifft davon etwas zu?',
@@ -50,6 +51,8 @@ export const translations = {
         description: 'Welche Bereiche in der Navigation erscheinen. Ausgeblendetes bleibt über Links und Lesezeichen erreichbar.',
         restart: 'Situation neu wählen',
         showAll: 'Alle Bereiche anzeigen',
+        unlockHint: 'Manche Bereiche schaltet das Tutorial nach und nach frei. Du kannst das jederzeit überspringen.',
+        unlockAll: 'Alles freischalten',
         current: 'Gewählte Situation — {situation}',
         none: 'Keine Situation gewählt — es ist alles sichtbar.',
       },
@@ -104,6 +107,18 @@ export const translations = {
         side_business: { label: 'Ich habe Nebeneinkünfte oder ein Kleingewerbe' },
         property: { label: 'Ich besitze oder vermiete eine Immobilie' },
       },
+    },
+    tutorialSource: {
+      title: 'Womit möchtest du anfangen?',
+      subtitle: 'Danach zeigen wir dir Schritt für Schritt, wie es weitergeht. Ändern kannst du das jederzeit.',
+      csvLabel: 'Ich habe eine Datei von meiner Bank',
+      csvDescription: 'Kontoauszug zum Hochladen. Wir ordnen die Spalten zu und finden doppelte Buchungen.',
+      bankLabel: 'Meine Bank direkt verbinden',
+      bankDescription: 'Buchungen kommen von allein. Vorher siehst du, was dein Gerät verlässt.',
+      demoLabel: 'Erst mal umsehen',
+      demoDescription: 'Beispieldaten eines Musterhaushalts — jederzeit rückstandslos entfernbar.',
+      demoLoading: 'Beispieldaten werden geladen…',
+      skip: 'Später entscheiden',
     },
     schemaBoundary: {
       rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
@@ -4147,6 +4162,7 @@ export const translations = {
   },
   en: {
     onboarding: {
+      proposalHint: 'Estimated from your data. If it does not fit, just change it.',
       title: 'Which situation describes you best?',
       subtitle: 'We will only show the areas that fit. You can change this at any time.',
       modifiersTitle: 'Does any of this apply?',
@@ -4166,6 +4182,8 @@ export const translations = {
         description: 'Choose which areas appear in the navigation. Hidden areas stay reachable via links and bookmarks.',
         restart: 'Choose situation again',
         showAll: 'Show all areas',
+        unlockHint: 'The tutorial unlocks some areas step by step. You can skip that at any time.',
+        unlockAll: 'Unlock everything',
         current: 'Selected situation — {situation}',
         none: 'No situation selected — everything is visible.',
       },
@@ -4220,6 +4238,18 @@ export const translations = {
         side_business: { label: 'I have side income or a small business' },
         property: { label: 'I own or rent out property' },
       },
+    },
+    tutorialSource: {
+      title: 'Where would you like to start?',
+      subtitle: 'We will then walk you through it step by step. You can change this at any time.',
+      csvLabel: 'I have a file from my bank',
+      csvDescription: 'A statement to upload. We map the columns and catch duplicate entries.',
+      bankLabel: 'Connect my bank directly',
+      bankDescription: 'Entries arrive on their own. You see what leaves your device beforehand.',
+      demoLabel: 'Just have a look around',
+      demoDescription: 'Sample data from an example household — removable without a trace at any time.',
+      demoLoading: 'Loading sample data…',
+      skip: 'Decide later',
     },
     schemaBoundary: {
       rejected: 'Invalid data at the "{resource}" boundary was rejected.',
@@ -8263,6 +8293,7 @@ export const translations = {
   },
   tlh: {
     onboarding: {
+      proposalHint: "De'lIj vIlaD 'ej vIqel. QaghlaHbe' 'e' DaSov'a'? yIchoH.",
       title: "nuq ghaH SoH'e'?",
       subtitle: 'sengmey potlh neH DaleghlaH. reH DacherlaH.',
       modifiersTitle: "chIch DaSov'a'?",
@@ -8282,6 +8313,8 @@ export const translations = {
         description: "nuq legh nav. So'bogh sengmey reH chelaH.",
         restart: "wIv chu'",
         showAll: "Hoch sengmey cha'",
+        unlockHint: "paq'batlh sengmey poSmoH. DaHjaj yImev net chaw'.",
+        unlockAll: "Hoch yIpoSmoH",
         current: 'wIvbogh — {situation}',
         none: "wIvbe'lu' — Hoch leghlu'.",
       },
@@ -8336,6 +8369,18 @@ export const translations = {
         side_business: { label: "Huch chu' mach vIghaj" },
         property: { label: 'juH vIghaj' },
       },
+    },
+    tutorialSource: {
+      title: "nuqDaq bIta'taH'a'?",
+      subtitle: "ghIq Hoch DuQaHmeH maSov. reH DaChoHlaH.",
+      csvLabel: "DIvI' HuchQeD nav vIghaj",
+      csvDescription: "nav yIlan. mIllogh DIchel 'ej cha'logh De' DISam.",
+      bankLabel: "HuchQeD vIrar",
+      bankDescription: "De' Sagh. wa'DIch nuqDaq De' mej Dalegh.",
+      demoLabel: "wa'DIch yIbej",
+      demoDescription: "chovnatlh De' — reH DateqlaH 'ej pagh ratlh.",
+      demoLoading: "chovnatlh De' lanlu'taH…",
+      skip: "tugh vIwuq",
     },
     schemaBoundary: {
       rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
@@ -12051,6 +12096,7 @@ export const translations = {
   },
   ru: {
     onboarding: {
+      proposalHint: 'Определено по вашим данным. Если не совпадает — просто измените.',
       title: 'Какая ситуация описывает вас лучше всего?',
       subtitle: 'Мы покажем только подходящие разделы. Изменить можно в любой момент.',
       modifiersTitle: 'Что-то из этого вам подходит?',
@@ -12070,6 +12116,8 @@ export const translations = {
         description: 'Выберите, какие разделы отображаются в навигации. Скрытые разделы остаются доступны по ссылкам и закладкам.',
         restart: 'Выбрать ситуацию заново',
         showAll: 'Показать все разделы',
+        unlockHint: 'Некоторые разделы обучение открывает постепенно. Это можно пропустить в любой момент.',
+        unlockAll: 'Открыть все разделы',
         current: 'Выбранная ситуация — {situation}',
         none: 'Ситуация не выбрана — видно всё.',
       },
@@ -12124,6 +12172,18 @@ export const translations = {
         side_business: { label: 'У меня есть подработка или своё небольшое дело' },
         property: { label: 'У меня есть недвижимость или я её сдаю' },
       },
+    },
+    tutorialSource: {
+      title: 'С чего хотите начать?',
+      subtitle: 'Дальше мы шаг за шагом покажем, что делать. Изменить это можно в любой момент.',
+      csvLabel: 'У меня есть файл из банка',
+      csvDescription: 'Выписка для загрузки. Мы сопоставим столбцы и найдём повторяющиеся операции.',
+      bankLabel: 'Подключить банк напрямую',
+      bankDescription: 'Операции приходят сами. Сначала вы увидите, что уходит с устройства.',
+      demoLabel: 'Сначала осмотреться',
+      demoDescription: 'Данные примерного домохозяйства — в любой момент удаляются без следа.',
+      demoLoading: 'Загрузка демо-данных…',
+      skip: 'Решить позже',
     },
     schemaBoundary: {
       rejected: 'Недопустимые данные на границе «{resource}» отклонены.',

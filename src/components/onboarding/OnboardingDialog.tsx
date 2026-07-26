@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -7,6 +7,8 @@ import { resolveFeatureSelection, type LifeSituationId, type ModifierId, type Na
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import { collectOnboardingSignals } from '@/services/onboarding-signals-service';
+import { proposeOnboarding } from '@/lib/onboarding-proposal';
 import LifeSituationPicker from './LifeSituationPicker';
 import FeatureSelection from './FeatureSelection';
 
@@ -31,6 +33,25 @@ export default function OnboardingDialog() {
   const [lifeSituation, setLifeSituation] = useState<LifeSituationId | null>(null);
   const [modifiers, setModifiers] = useState<ModifierId[]>([]);
   const [features, setFeatures] = useState<NavFeatureId[] | null>(null);
+  /** Vorbelegung übernommen? Danach gewinnt immer die Hand des Nutzers. */
+  const [proposalApplied, setProposalApplied] = useState(false);
+
+  // Der Ertrag der Datenquellen-Weiche: Sind Buchungen da, muss die App nicht
+  // mehr fragen, was sie ablesen kann. Der Vorschlag belegt nur vor — bestätigt
+  // wird weiterhin von Hand, und ab der ersten eigenen Änderung rührt ihn
+  // niemand mehr an.
+  const { data: signals } = useQuery({
+    queryKey: ['onboardingSignals'],
+    queryFn: () => collectOnboardingSignals(),
+  });
+  const proposal = useMemo(() => (signals ? proposeOnboarding(signals) : null), [signals]);
+
+  useEffect(() => {
+    if (proposalApplied || !proposal?.lifeSituation) return;
+    setLifeSituation(proposal.lifeSituation);
+    setModifiers(proposal.modifiers);
+    setProposalApplied(true);
+  }, [proposal, proposalApplied]);
 
   const mutation = useMutation({
     mutationFn: (updates: Partial<UserSettings>) => updateUserSettings(updates),
@@ -40,7 +61,15 @@ export default function OnboardingDialog() {
   });
 
   // `undefined` = nie gefragt. `null` = gefragt und übersprungen.
-  const open = settings !== undefined && settings.onboarding_life_situation === undefined;
+  //
+  // Zusätzlich wartet der Dialog auf die Datenquellen-Weiche (Kapitel 0,
+  // `DataSourceDialog`): erst wenn dort entschieden ist, kann die
+  // Lebenssituation aus den importierten Daten *vorgeschlagen* statt erfragt
+  // werden. Zwei Dialoge gleichzeitig wären ohnehin eine Zumutung.
+  const open =
+    settings !== undefined &&
+    settings.tutorial_source !== undefined &&
+    settings.onboarding_life_situation === undefined;
 
   const suggestion = useMemo(
     () => (lifeSituation ? resolveFeatureSelection(lifeSituation, modifiers) : null),
@@ -79,6 +108,12 @@ export default function OnboardingDialog() {
         onInteractOutside={(e) => e.preventDefault()}
       >
         {step === 'lifeSituation' ? (
+          <>
+          {proposalApplied && (
+            <p className="text-xs text-muted-foreground">
+              {t('onboarding.proposalHint', 'Aus deinen Daten geschätzt. Stimmt das nicht, ändere es einfach.')}
+            </p>
+          )}
           <LifeSituationPicker
             value={lifeSituation}
             modifiers={modifiers}
@@ -89,6 +124,7 @@ export default function OnboardingDialog() {
               )
             }
           />
+          </>
         ) : (
           <FeatureSelection
             selected={shownFeatures}

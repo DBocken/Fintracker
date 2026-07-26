@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Plus, Settings } from "lucide-react";
 import { getVisibleNavGroups } from "@/components/layout/nav-config";
 import { useI18n } from "@/i18n/useI18n";
-import { useNavFeatures } from "@/hooks/useNavFeatures";
+import { useNavVisibility } from "@/hooks/useNavVisibility";
 import {
   Command,
   CommandDialog,
@@ -27,7 +27,7 @@ type QuickAction = {
 export default function CommandPalette() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const navFeatures = useNavFeatures();
+  const navVisibility = useNavVisibility();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function CommandPalette() {
 
           <CommandSeparator />
 
-          {getVisibleNavGroups(navFeatures).map((g) => (
+          {getVisibleNavGroups(navVisibility.enabled, navVisibility.unlocked).map((g) => (
             <CommandGroup key={g.id} heading={t(g.labelKey ?? "", g.label)}>
               {g.items.map((item) => {
                 const Icon = item.icon;
