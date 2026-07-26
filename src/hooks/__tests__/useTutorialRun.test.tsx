@@ -39,6 +39,16 @@ function renderRun() {
   return renderHook(() => useTutorialRun(), { wrapper: createHookWrapper().wrapper });
 }
 
+/**
+ * Klickt das laufende Kapitel bis zum Ende durch. Bewusst über `stepCount`
+ * statt mit fester Zahl: Wächst ein Kapitel, soll der Test das Verhalten
+ * prüfen und nicht die Schrittzahl von gestern.
+ */
+function finishChapter(result: { current: { stepCount: number; next: () => void } }) {
+  const total = result.current.stepCount;
+  for (let i = 0; i < total; i += 1) act(() => result.current.next());
+}
+
 describe('useTutorialRun', () => {
   it('sollte das erste ausformulierte Kapitel als nächstes anbieten', async () => {
     const { result } = renderRun();
@@ -83,8 +93,7 @@ describe('useTutorialRun', () => {
     await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
 
     act(() => result.current.start());
-    act(() => result.current.next());
-    act(() => result.current.next()); // letzter Schritt → Kapitel fertig
+    finishChapter(result);
 
     await waitFor(async () => {
       expect((await getLocalUserSettings()).tutorial_completed_chapters).toContain('transactions');
@@ -121,8 +130,7 @@ describe('useTutorialRun', () => {
     await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
 
     act(() => result.current.start());
-    act(() => result.current.next());
-    act(() => result.current.next());
+    finishChapter(result);
 
     await waitFor(async () => {
       expect((await getLocalUserSettings()).tutorial_completed_chapters).toContain('transactions');

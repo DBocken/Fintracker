@@ -35,6 +35,9 @@ export type TutorialChapterId =
   | 'source'
   | 'transactions'
   | 'categories'
+  | 'transactionsFilter'
+  | 'transactionDetails'
+  | 'transactionSplit'
   | 'dashboard'
   | 'city'
   | 'coach'
@@ -152,6 +155,27 @@ export const TUTORIAL_ORDER: readonly TutorialChapter[] = [
   chapter('city', 'core', null, (r) => r.categorizedMonths >= 1),
   chapter('coach', 'core', null, (r) => r.transactionCount >= 1),
   chapter('accounts', 'core', null, (r) => r.accountCount >= 1),
+
+  // Vertiefung der Buchungsseite (`docs/tutorial-script-transactions.md`).
+  // Bewusst NACH der ersten Sitzung: Erst kommt der Ertrag (Flussdiagramm,
+  // Stadt), dann das Handwerk. Vorgezogen wäre es Pflichtstoff vor der
+  // Belohnung — und genau das soll die behutsame Heranführung vermeiden.
+  chapter(
+    'transactionsFilter',
+    'core',
+    null,
+    (r) => r.transactionCount >= MIN_TRANSACTIONS_FOR_FLOW,
+  ),
+  chapter('transactionDetails', 'core', null, (r) => r.transactionCount >= 1),
+  // Das Aufteilen steht hinter einer Tarif-Schranke (`FeatureGate
+  // splitTransactions`). Eine Fuehrung, die auf ein Schloss zeigt, verkauft
+  // statt zu erklaeren — deshalb laeuft dieses Kapitel nur mit Zugang.
+  chapter(
+    'transactionSplit',
+    'core',
+    null,
+    (r) => r.hasPremiumAccess && r.transactionCount >= 1,
+  ),
 
   // Teil 2 — der Euro durch den Monat.
   chapter('income', 'optional', 'income', (r) => r.hasSalaryDetected),

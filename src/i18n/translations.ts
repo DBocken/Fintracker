@@ -287,13 +287,134 @@ export const translations = {
       end: 'Führung beenden',
       progress: 'Schritt {current} von {total}',
       transactions: {
-        list: {
-          title: 'Hier stehen deine Buchungen',
-          body: 'Jede Zeile ist eine Bewegung auf deinem Konto. Alles Weitere in der App rechnet mit genau diesen Zeilen.',
+        overview: {
+          title: 'Hier stehen alle deine Buchungen',
+          body: 'Jede Zeile ist eine Bewegung auf einem deiner Konten. Alles Weitere in der App rechnet mit genau diesen Zeilen.',
         },
-        check: {
-          title: 'Kurz prüfen lohnt sich',
-          body: 'Stimmen Beträge und Daten? Was hier falsch steht, steht später in jeder Auswertung falsch.',
+        row: {
+          title: 'Eine Zeile, vier Angaben',
+          body: 'Links das Symbol der Kategorie, daneben der Zahlungsempfänger, rechts der Betrag — rot für Ausgaben, grün für Einnahmen.',
+        },
+        day: {
+          title: 'Sortiert nach Tag',
+          body: 'Buchungen desselben Tages stehen zusammen, der neueste Tag oben. So siehst du auf einen Blick, was an einem Tag zusammenkam.',
+        },
+        balance: {
+          title: 'Der laufende Kontostand',
+          body: 'Rechts steht, wie viel nach diesem Tag noch da war. So findest du den Tag, an dem es eng wurde — ohne zu rechnen.',
+        },
+        stats: {
+          title: 'Die Summe über dem, was du siehst',
+          body: 'Einnahmen, Ausgaben und Saldo beziehen sich immer auf die aktuelle Filterung — nicht auf alles. Änderst du den Zeitraum, ändern sich diese Zahlen mit.',
+        },
+        add: {
+          title: 'Bar bezahlt?',
+          body: 'Was nicht über ein Konto lief, trägst du hier von Hand nach. Alles andere kommt aus Import oder Bankverbindung.',
+        },
+      },
+      transactionsFilter: {
+        name: 'Suchen & Filtern',
+        search: {
+          title: 'Suchen statt scrollen',
+          body: 'Tippe einen Zahlungsempfänger oder einen Begriff aus dem Verwendungszweck — die Liste filtert sofort mit.',
+        },
+        timerange: {
+          title: 'Der Zeitraum ist der wichtigste Filter',
+          body: 'Er entscheidet, worüber die Kennzahlen oben reden. „Benutzerdefiniert" öffnet Tage, Wochen oder Monate.',
+        },
+        category: {
+          title: 'Nach Kategorie einschränken',
+          body: 'Zeigt nur Buchungen einer Kategorie — nützlich, wenn du prüfen willst, was wirklich unter „Freizeit" gelandet ist.',
+        },
+        account: {
+          title: 'Nach Konto einschränken',
+          body: 'Bei mehreren Konten siehst du so nur eines, etwa das Geschäftskonto.',
+        },
+        contract: {
+          title: 'Verträge ein- oder ausblenden',
+          body: '„Nur Verträge" zeigt, was monatlich ohne dein Zutun abgeht. „Ohne Verträge" zeigt den Rest — den, den du tatsächlich steuern kannst.',
+        },
+        essential: {
+          title: 'Notwendig oder nicht',
+          body: 'Miete und Strom sind unvermeidbar, das Kino nicht. Der Filter trennt beides; die Einstufung kommt aus der Kategorie.',
+        },
+        reset: {
+          title: 'Zurücksetzen',
+          body: 'Sobald ein Filter aktiv ist, erscheint dieser Knopf. Er räumt alle auf einmal weg — praktisch, wenn du dich verlaufen hast.',
+        },
+      },
+      transactionDetails: {
+        name: 'Buchung bearbeiten',
+        open: {
+          title: 'Klick auf eine Zeile öffnet die Details',
+          body: 'Dort steht alles, was zu dieser Buchung bekannt ist — und dort korrigierst du sie. Wir machen das gleich für dich auf.',
+        },
+        panel: {
+          title: 'Die Detailansicht',
+          body: 'Auf dem Desktop rechts neben der Liste, auf dem Handy als Blatt von unten. Die Liste bleibt daneben sichtbar.',
+        },
+        basics: {
+          title: 'Datum, Beschreibung, Betrag, Konto',
+          body: 'Das kommt aus dem Import und stimmt fast immer. Ändern kannst du es trotzdem — etwa wenn dein Kontoauszug kryptisch ist.',
+        },
+        payee: {
+          title: 'Zahlungsempfänger',
+          body: 'Daran erkennt die App Wiederholungen. Ein aufgeräumter Name hilft der automatischen Zuordnung später.',
+        },
+        category: {
+          title: 'Kategorie und Unterkategorie sind schon gesetzt',
+          body: 'Die App hat sie aus dem Text geraten. Stimmt das nicht, stell es hier um — erst zwei Ebenen ergeben eine brauchbare Auswertung.',
+        },
+        applySimilar: {
+          title: 'Auf ähnliche anwenden',
+          body: 'Damit gilt deine Korrektur für alle Buchungen desselben Empfängers, auch für künftige. Aus einer Korrektur wird eine Regel.',
+        },
+        expenseClass: {
+          title: 'Ausgabenklasse',
+          body: 'Sagt, wie fest die Ausgabe ist — davon lebt die Budget-Planung. Fixkosten kannst du nicht kürzen, den Rest schon.',
+        },
+        tax: {
+          title: 'Steuer-Rubrik',
+          body: 'Was absetzbar ist, markierst du hier einmal und findest es im Frühjahr wieder — statt Belege zu suchen.',
+        },
+        transfer: {
+          title: 'Umbuchung',
+          body: 'Geld vom Giro- aufs Sparkonto ist keine Ausgabe. So markiert, zählt es in keiner Auswertung mehr als Ausgabe mit.',
+        },
+        contract: {
+          title: 'Verhält sich wie ein Vertrag',
+          body: 'Erkennt die App eine Wiederholung nicht selbst, sagst du es ihr hier — samt Rhythmus. Danach taucht sie unter „Abos & Verträge" auf.',
+        },
+        visibility: {
+          title: 'Ausblenden statt löschen',
+          body: 'Eine ausgeblendete Buchung bleibt erhalten, zählt aber nicht mehr mit. Löschen steht daneben — und ist endgültig.',
+        },
+      },
+      transactionSplit: {
+        name: 'Buchung aufteilen',
+        why: {
+          title: 'Eine Buchung, mehrere Kategorien',
+          body: 'Beim Discounter landen Lebensmittel und eine Jeans auf demselben Beleg. Hier trennst du sie.',
+        },
+        row: {
+          title: 'Eine Zeile je Teil',
+          body: 'Kategorie wählen, Betrag eintragen, bei Bedarf eine Notiz dazu.',
+        },
+        addRow: {
+          title: 'Weitere Teile hinzufügen',
+          body: 'So viele, wie der Beleg hergibt.',
+        },
+        remaining: {
+          title: 'Achte auf den Rest',
+          body: 'Hier steht der Gesamtbetrag und was davon noch nicht zugeordnet ist. Passt die Summe nicht, warnt die App — eine halb aufgeteilte Buchung verfälscht sonst jede Auswertung.',
+        },
+        fillRemaining: {
+          title: 'Rest zuweisen',
+          body: 'Nimmt dir das Rechnen ab: Der offene Betrag wandert in diese Zeile.',
+        },
+        save: {
+          title: 'Speichern',
+          body: 'Danach steht die Buchung in der Liste mit ihren Teilen eingerückt darunter — aufklappbar über den Pfeil rechts.',
         },
       },
       categories: {
@@ -4648,13 +4769,134 @@ export const translations = {
       end: 'End the tour',
       progress: 'Step {current} of {total}',
       transactions: {
-        list: {
-          title: 'These are your entries',
-          body: 'Every row is one movement on your account. Everything else in the app is calculated from exactly these rows.',
+        overview: {
+          title: 'All your entries live here',
+          body: 'Every row is one movement on one of your accounts. Everything else in the app is calculated from exactly these rows.',
         },
-        check: {
-          title: 'A quick check pays off',
-          body: 'Do the amounts and dates match? Whatever is wrong here will be wrong in every later report.',
+        row: {
+          title: 'One row, four facts',
+          body: 'The category symbol on the left, the payee next to it, the amount on the right — red for spending, green for income.',
+        },
+        day: {
+          title: 'Sorted by day',
+          body: 'Entries from the same day stay together, the newest day on top. You see at a glance what added up on one day.',
+        },
+        balance: {
+          title: 'The running balance',
+          body: 'On the right you see how much was left after that day. That is how you find the day it got tight — without doing the maths.',
+        },
+        stats: {
+          title: 'The total for what you are seeing',
+          body: 'Income, spending and balance always refer to the current filter, not to everything. Change the period and these numbers change with it.',
+        },
+        add: {
+          title: 'Paid in cash?',
+          body: 'Whatever did not go through an account you add here by hand. Everything else comes from an import or your bank.',
+        },
+      },
+      transactionsFilter: {
+        name: 'Search & filter',
+        search: {
+          title: 'Search instead of scroll',
+          body: 'Type a payee or a word from the reference — the list filters as you type.',
+        },
+        timerange: {
+          title: 'The period is the most important filter',
+          body: 'It decides what the figures above are talking about. "Custom" opens days, weeks or months.',
+        },
+        category: {
+          title: 'Narrow down by category',
+          body: 'Shows only entries of one category — useful when you want to check what really ended up under "Leisure".',
+        },
+        account: {
+          title: 'Narrow down by account',
+          body: 'With several accounts you can look at just one, the business account for instance.',
+        },
+        contract: {
+          title: 'Show or hide contracts',
+          body: '"Contracts only" shows what leaves every month without your doing. "Without contracts" shows the rest — the part you can actually steer.',
+        },
+        essential: {
+          title: 'Necessary or not',
+          body: 'Rent and electricity are unavoidable, the cinema is not. The filter separates the two; the rating comes from the category.',
+        },
+        reset: {
+          title: 'Reset',
+          body: 'This button appears as soon as a filter is active. It clears them all at once — handy when you have lost your way.',
+        },
+      },
+      transactionDetails: {
+        name: 'Editing an entry',
+        open: {
+          title: 'Clicking a row opens the details',
+          body: 'That is where everything known about this entry lives — and where you correct it. We will open it for you now.',
+        },
+        panel: {
+          title: 'The detail view',
+          body: 'On the desktop beside the list, on the phone as a sheet from the bottom. The list stays visible next to it.',
+        },
+        basics: {
+          title: 'Date, description, amount, account',
+          body: 'This comes from the import and is almost always right. You can still change it — for instance when your statement is cryptic.',
+        },
+        payee: {
+          title: 'Payee',
+          body: 'This is how the app recognises repetitions. A tidy name here helps the automatic matching later.',
+        },
+        category: {
+          title: 'Category and subcategory are already set',
+          body: 'The app guessed them from the text. If that is wrong, change it here — only two levels make a report useful.',
+        },
+        applySimilar: {
+          title: 'Apply to similar',
+          body: 'Your correction then applies to every entry from the same payee, future ones included. A correction becomes a rule.',
+        },
+        expenseClass: {
+          title: 'Spending class',
+          body: 'Says how fixed the expense is — budget planning lives on that. Fixed costs you cannot cut, the rest you can.',
+        },
+        tax: {
+          title: 'Tax category',
+          body: 'Mark what is deductible once and find it again next spring — instead of hunting for receipts.',
+        },
+        transfer: {
+          title: 'Internal transfer',
+          body: 'Money from your current to your savings account is not spending. Marked like this, no report counts it as an expense any more.',
+        },
+        contract: {
+          title: 'Behaves like a contract',
+          body: 'If the app does not spot a repetition itself, you tell it here — including the rhythm. It then appears under "Subscriptions & contracts".',
+        },
+        visibility: {
+          title: 'Hide instead of delete',
+          body: 'A hidden entry is kept but no longer counted. Delete sits next to it — and is final.',
+        },
+      },
+      transactionSplit: {
+        name: 'Splitting an entry',
+        why: {
+          title: 'One entry, several categories',
+          body: 'At the supermarket groceries and a pair of jeans end up on the same receipt. Here you separate them.',
+        },
+        row: {
+          title: 'One row per part',
+          body: 'Pick a category, enter the amount, add a note if you need one.',
+        },
+        addRow: {
+          title: 'Add more parts',
+          body: 'As many as the receipt calls for.',
+        },
+        remaining: {
+          title: 'Mind the remainder',
+          body: 'Here you see the total and how much of it is still unassigned. If the sum does not match, the app warns you — a half-split entry distorts every report.',
+        },
+        fillRemaining: {
+          title: 'Assign the remainder',
+          body: 'Takes the arithmetic off your hands: the open amount moves into this row.',
+        },
+        save: {
+          title: 'Save',
+          body: 'The entry then sits in the list with its parts indented below it — expandable via the arrow on the right.',
         },
       },
       categories: {
@@ -9009,13 +9251,134 @@ export const translations = {
       end: "ghojmoHwI' yImev",
       progress: '{current} vo\' {total}',
       transactions: {
-        list: {
-          title: "naDev Huch vIttlhegh tu'lu'",
-          body: "Hoch vIttlhegh wa' Huch vIH. Hoch latlh De' vIttlheghmeyvam lo'.",
+        overview: {
+          title: 'naDev Hoch Huch vIttlheghmey',
+          body: 'Hoch vIttlhegh wa\' Huch vIH \'oH. Hoch latlh De\' vIttlheghmeyvam lo\'.',
         },
-        check: {
-          title: 'yIlegh',
-          body: "muj naDev? vaj muj Hoch latlh.",
+        row: {
+          title: 'wa\' vIttlhegh, loS De\'',
+          body: 'poS: Segh degh. tlhoy\': Suqwl\'. nIH: mI\' — Doq mej, SuD chol.',
+        },
+        day: {
+          title: 'jaj lugh',
+          body: 'wa\' jaj Huch boS. jaj chu\' Dung. wa\'logh yIlegh \'ej jaj yISov.',
+        },
+        balance: {
+          title: 'ratlhtaHbogh Huch',
+          body: 'nIH: jajvam ghIq Huch ratlh. vaj jaj puj DaSam — mI\' Dabophbe\'.',
+        },
+        stats: {
+          title: 'Dalegh\'bogh mI\'',
+          body: 'chol, mej, ratlh: reH DaH wIv lo\'. poH DachoHchugh, mI\'mey choH.',
+        },
+        add: {
+          title: 'Huch nap DaDIlta\'a\'?',
+          body: 'qel Hutlhbogh Huch naDev yIghItlh. latlh: lan pagh HuchQeD vo\' chol.',
+        },
+      },
+      transactionsFilter: {
+        name: 'nej',
+        search: {
+          title: 'yInej, yISIQQo\'',
+          body: 'Suqwl\' pagh mu\' yIghItlh — tetlh nom wIv.',
+        },
+        timerange: {
+          title: 'poH: wIv potlh law\'',
+          body: 'Dung mI\'mey qel \'e\' wuq. pIm: jaj, Hogh, jar poSmoH.',
+        },
+        category: {
+          title: 'Segh yIwIv',
+          body: 'wa\' Segh Huch neH cha\'. lI\'qu\'chugh: nuq teH tIv Daq.',
+        },
+        account: {
+          title: 'qel yIwIv',
+          body: 'qelmey law\'chugh, wa\' neH yIlegh — vaj vum qel.',
+        },
+        contract: {
+          title: 'nIDmey cha\' pagh So\'',
+          body: 'nIDmey neH: jar Hoch mej. nIDmey Hutlh: latlh — DaSeH\'laHbogh.',
+        },
+        essential: {
+          title: 'poQlu\' pagh poQbe\'lu\'',
+          body: 'juH DIl \'ej HoS: mevlaHbe\'. tIv qach: mevlaH. Segh vo\' potlh chen.',
+        },
+        reset: {
+          title: 'yIteq',
+          body: 'wIv tu\'lu\'chugh, naDev qeng chen. Hoch wa\'logh teq — bIchIlchugh lI\'.',
+        },
+      },
+      transactionDetails: {
+        name: 'Huch vIttlhegh choH',
+        open: {
+          title: 'vIttlhegh yI\'uy \'ej De\' poSmoH',
+          body: 'naDev Hoch De\' tu\'lu\' \'ej naDev DachoH. DaH maH wIpoSmoH.',
+        },
+        panel: {
+          title: 'De\' Hol',
+          body: 'jonta\': tetlh retlh. jan mach: bIng vo\' chen. tetlh ratlh \'ej Dalegh.',
+        },
+        basics: {
+          title: 'jaj, mu\'tlhegh, mI\', qel',
+          body: 'lan vo\' chol \'ej motlh lugh. \'ach DachoHlaH — nav Qatlhchugh.',
+        },
+        payee: {
+          title: 'Suqwl\'',
+          body: 'vaj De\' Sagh Sam. pong QaQ QaH.',
+        },
+        category: {
+          title: 'Segh \'ej Segh puqloD lan',
+          body: 'mu\'tlhegh vo\' De\' loy. lughbe\'chugh, naDev yIchoH — cha\' patlh neH lI\'.',
+        },
+        applySimilar: {
+          title: 'rurbogh yIlo\'',
+          body: 'vaj DachoHta\'bogh Hoch Suqwl\' rap Huch lo\'. choH chen chut.',
+        },
+        expenseClass: {
+          title: 'mej Segh',
+          body: 'mej Hong \'e\' cha\' — nIDmey nab lo\'. Hong mejmey DamevlaHbe\'; latlh DamevlaH.',
+        },
+        tax: {
+          title: 'Huch nob Segh',
+          body: 'DateqlaHbogh wa\'logh yIper \'ej DIS veb yISam.',
+        },
+        transfer: {
+          title: 'qel joj Huch',
+          body: 'wa\' qellIj vo\' latlh qellIj: mejbe\'. vaj per, mej rurbe\'.',
+        },
+        contract: {
+          title: 'nID rur',
+          body: 'Sagh Sambe\'chugh, naDev yIja\' — tIgh je. ghIq nIDmey Daq chen.',
+        },
+        visibility: {
+          title: 'yISo\', yIteqQo\'',
+          body: 'So\'bogh Huch ratlh \'ach toghbe\'. teq: retlh \'ej ruch\'a\'.',
+        },
+      },
+      transactionSplit: {
+        name: 'Huch vIttlhegh pe\'',
+        why: {
+          title: 'wa\' Huch, Segh law\'',
+          body: 'malja\'Daq Soj \'ej yopwaH wa\' nav Daq chen. naDev yIpe\'.',
+        },
+        row: {
+          title: 'wa\' \'ay\' wa\' vIttlhegh',
+          body: 'Segh yIwIv, mI\' yIghItlh, DaneHchugh QIn yIchel.',
+        },
+        addRow: {
+          title: '\'ay\' latlh yIchel',
+          body: 'nav poQbogh HochHom.',
+        },
+        remaining: {
+          title: 'ratlhbogh yIqIm',
+          body: 'naDev Hoch mI\' \'ej ratlhbogh tu\'lu\'. mI\' rurbe\'chugh, ghuHmoH — pe\'lu\'ta\'bogh Huch Hoch De\' Qaw\'.',
+        },
+        fillRemaining: {
+          title: 'ratlhbogh yInob',
+          body: 'toghmeH DuQaH: poSbogh mI\' vIttlheghvamDaq jaH.',
+        },
+        save: {
+          title: 'yIpol',
+          body: 'ghIq tetlhDaq Huch \'ej \'ay\'meyDaj bIng chen — nIH naQjejDaq poSmoH.',
         },
       },
       categories: {
@@ -13042,13 +13405,134 @@ export const translations = {
       end: 'Завершить обучение',
       progress: 'Шаг {current} из {total}',
       transactions: {
-        list: {
-          title: 'Здесь ваши операции',
-          body: 'Каждая строка — одно движение по счёту. Всё остальное в приложении считается именно по этим строкам.',
+        overview: {
+          title: 'Здесь все ваши операции',
+          body: 'Каждая строка — одно движение по одному из ваших счетов. Всё остальное в приложении считается именно по этим строкам.',
         },
-        check: {
-          title: 'Быструю проверку стоит сделать',
-          body: 'Сходятся ли суммы и даты? Что неверно здесь, будет неверно в каждом отчёте.',
+        row: {
+          title: 'Одна строка, четыре факта',
+          body: 'Слева значок категории, рядом получатель, справа сумма — красная для расходов, зелёная для доходов.',
+        },
+        day: {
+          title: 'Сортировка по дням',
+          body: 'Операции одного дня стоят вместе, самый свежий день сверху. Сразу видно, что набралось за день.',
+        },
+        balance: {
+          title: 'Текущий остаток',
+          body: 'Справа видно, сколько осталось после этого дня. Так вы находите день, когда стало туго, — без подсчётов.',
+        },
+        stats: {
+          title: 'Итог по тому, что вы видите',
+          body: 'Доходы, расходы и сальдо всегда относятся к текущему фильтру, а не ко всему. Смените период — изменятся и эти числа.',
+        },
+        add: {
+          title: 'Заплатили наличными?',
+          body: 'То, что не прошло по счёту, вносите здесь вручную. Остальное приходит из импорта или из банка.',
+        },
+      },
+      transactionsFilter: {
+        name: 'Поиск и фильтры',
+        search: {
+          title: 'Искать, а не листать',
+          body: 'Введите получателя или слово из назначения платежа — список фильтруется сразу.',
+        },
+        timerange: {
+          title: 'Период — самый важный фильтр',
+          body: 'Он решает, о чём говорят числа сверху. «Свой период» открывает дни, недели или месяцы.',
+        },
+        category: {
+          title: 'Ограничить по категории',
+          body: 'Показывает операции только одной категории — удобно проверить, что действительно попало в «Досуг».',
+        },
+        account: {
+          title: 'Ограничить по счёту',
+          body: 'При нескольких счетах можно смотреть только один, например рабочий.',
+        },
+        contract: {
+          title: 'Показать или скрыть договоры',
+          body: '«Только договоры» показывает, что уходит каждый месяц само. «Без договоров» — остальное, то, чем вы действительно управляете.',
+        },
+        essential: {
+          title: 'Обязательное или нет',
+          body: 'Аренда и электричество неизбежны, кино — нет. Фильтр разделяет их; оценка берётся из категории.',
+        },
+        reset: {
+          title: 'Сбросить',
+          body: 'Кнопка появляется, как только активен хотя бы один фильтр. Убирает все разом — удобно, если запутались.',
+        },
+      },
+      transactionDetails: {
+        name: 'Правка операции',
+        open: {
+          title: 'Клик по строке открывает детали',
+          body: 'Там всё, что известно об операции, — и там же вы её исправляете. Сейчас мы откроем это за вас.',
+        },
+        panel: {
+          title: 'Детальный вид',
+          body: 'На компьютере — рядом со списком, на телефоне — панелью снизу. Список остаётся виден.',
+        },
+        basics: {
+          title: 'Дата, описание, сумма, счёт',
+          body: 'Это приходит из импорта и почти всегда верно. Изменить всё равно можно — например, если выписка непонятная.',
+        },
+        payee: {
+          title: 'Получатель',
+          body: 'По нему приложение узнаёт повторы. Аккуратное имя здесь помогает автоматическому распознаванию позже.',
+        },
+        category: {
+          title: 'Категория и подкатегория уже заданы',
+          body: 'Приложение угадало их по тексту. Если неверно — поменяйте здесь: только два уровня дают полезный отчёт.',
+        },
+        applySimilar: {
+          title: 'Применить к похожим',
+          body: 'Ваша правка распространится на все операции того же получателя, включая будущие. Правка становится правилом.',
+        },
+        expenseClass: {
+          title: 'Класс расхода',
+          body: 'Показывает, насколько расход обязателен, — на этом держится планирование бюджета. Постоянные не сократить, остальные можно.',
+        },
+        tax: {
+          title: 'Налоговая рубрика',
+          body: 'Отметьте вычитаемое один раз и найдёте это весной — вместо поиска чеков.',
+        },
+        transfer: {
+          title: 'Перевод между своими счетами',
+          body: 'Деньги с текущего счёта на накопительный — не расход. С такой отметкой ни один отчёт больше не считает это тратой.',
+        },
+        contract: {
+          title: 'Ведёт себя как договор',
+          body: 'Если приложение не распознало повтор само, скажите ему здесь — вместе с ритмом. Дальше операция появится в «Подписках и договорах».',
+        },
+        visibility: {
+          title: 'Скрыть, а не удалить',
+          body: 'Скрытая операция сохраняется, но больше не учитывается. Удаление рядом — и оно окончательно.',
+        },
+      },
+      transactionSplit: {
+        name: 'Разделение операции',
+        why: {
+          title: 'Одна операция, несколько категорий',
+          body: 'В магазине продукты и джинсы попадают в один чек. Здесь вы их разделяете.',
+        },
+        row: {
+          title: 'По строке на часть',
+          body: 'Выберите категорию, впишите сумму, при желании добавьте заметку.',
+        },
+        addRow: {
+          title: 'Добавить ещё части',
+          body: 'Столько, сколько требует чек.',
+        },
+        remaining: {
+          title: 'Следите за остатком',
+          body: 'Здесь общая сумма и то, что ещё не распределено. Если сумма не сходится, приложение предупредит — наполовину разделённая операция искажает любой отчёт.',
+        },
+        fillRemaining: {
+          title: 'Назначить остаток',
+          body: 'Избавляет от подсчётов: открытая сумма переходит в эту строку.',
+        },
+        save: {
+          title: 'Сохранить',
+          body: 'После этого операция стоит в списке, а её части — с отступом под ней, раскрываются стрелкой справа.',
         },
       },
       categories: {

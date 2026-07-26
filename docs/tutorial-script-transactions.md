@@ -1,5 +1,7 @@
 # Drehbuch: Buchungen — vollständige Führung
 
+Status: **umgesetzt.** Alle 30 Schritte laufen, alle Anker sind gesetzt.
+
 Ausformuliertes Beispiel für den Detailgrad, den eine Führung haben soll:
 **jede Option erklärt, jede Interaktion nachvollziehbar.** Gilt als Vorlage für
 die übrigen Bereiche.
@@ -120,7 +122,10 @@ darf die Führung nie brechen.
    der Schritt übersprungen — nie blockiert.
 4. **Was der Schritt braucht, öffnet er selbst.** Kein „bitte klicke jetzt
    auf …", das die Führung dem Zufall überlässt.
-5. **Zwei Bedienelemente mit Tarif-Schranke** (Haushalts-Aufteilung, Anlässe)
-   bekommen bewusst **keinen** Schritt: Eine Führung, die auf ein Schloss
-   zeigt, verkauft, statt zu erklären. Sie tauchen auf, wenn der Bereich
-   freigeschaltet ist.
+5. **Kein Schritt zeigt auf ein Schloss.** Eine Führung, die auf eine
+   Tarif-Schranke zeigt, verkauft, statt zu erklären. Haushalts-Aufteilung und
+   Anlässe bekommen deshalb keinen Schritt — und beim Bauen kam heraus, dass
+   auch das **Aufteilen selbst** hinter `FeatureGate splitTransactions` liegt:
+   Akt IV läuft daher nur mit Zugang (`hasPremiumAccess` in der
+   Kapitel-Voraussetzung). Ohne diesen Fund hätte die Führung Freinutzer vor
+   ein Schloss geführt.

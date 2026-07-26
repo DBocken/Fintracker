@@ -34,10 +34,31 @@ describe('TUTORIAL_STEPS', () => {
     }
   });
 
-  it('sollte höchstens vier Schritte je Kapitel führen', () => {
-    // Ein Kapitel ist ein Bildschirm, keine Vorlesung.
+  it('sollte höchstens elf Schritte je Kapitel führen', () => {
+    // Ein Kapitel ist ein Arbeitsschritt, kein Bildschirm — die Buchungsseite
+    // hat allein 30 erklärbare Bedienelemente und zerfällt deshalb in vier
+    // Kapitel (`docs/tutorial-script-transactions.md`). Die Grenze bleibt,
+    // damit niemand daraus wieder eine Vorlesung macht.
     for (const [chapter, steps] of Object.entries(TUTORIAL_STEPS)) {
-      expect((steps ?? []).length, `Kapitel ${chapter}`).toBeLessThanOrEqual(4);
+      expect((steps ?? []).length, `Kapitel ${chapter}`).toBeLessThanOrEqual(11);
+    }
+  });
+
+  it('sollte für jeden öffnenden Schritt auch den Anker kennen, den er klickt', () => {
+    // `openAnchor` zeigt auf ein Element, das die Führung selbst anklickt.
+    // Zeigt es ins Leere, bliebe der Schritt ohne den Bereich, von dem er
+    // spricht — und niemand merkte es.
+    const known = new Set(
+      Object.values(TUTORIAL_STEPS)
+        .flatMap((steps) => steps ?? [])
+        .flatMap((s) => (s.anchor ? [s.anchor] : [])),
+    );
+    for (const [chapter, steps] of Object.entries(TUTORIAL_STEPS)) {
+      for (const step of steps ?? []) {
+        if (step.openAnchor) {
+          expect(known, `${chapter}.${step.id}`).toContain(step.openAnchor);
+        }
+      }
     }
   });
 

@@ -239,7 +239,10 @@ export function TransactionDetailsPanel({
   // über CSS-Columns). So bleibt keine Spalte halbleer, die Gesamthöhe halbiert
   // sich und der Dialog passt meist ohne Scrollbalken. Stacked (Mobil): eine Spalte.
   return (
-    <div className="py-2">
+    // Ein Anker fuer Desktop UND Mobil: Das Panel steckt in beiden Faellen
+    // hier drin (Aside bzw. Modal) — ein zweiter Marker waere eine zweite
+    // Wahrheit.
+    <div data-tour-id="transaction-detail" className="py-2">
       <div
         className={
           isSplit
@@ -248,7 +251,7 @@ export function TransactionDetailsPanel({
         }
       >
       {/* Stammdaten (read-only) */}
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div data-tour-id="detail-basics" className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <Label className="text-xs text-muted-foreground">{t('dashboard.date')}</Label>
           <p className="font-medium">{format(parseISO(transaction.date), 'dd. MMMM yyyy', { locale: de })}</p>
@@ -259,7 +262,7 @@ export function TransactionDetailsPanel({
             {currencyFormatter.format(transaction.amount)}
           </p>
         </div>
-        <div className="col-span-2">
+        <div data-tour-id="detail-payee" className="col-span-2">
           <Label className="text-xs text-muted-foreground">{t('transactionDetails.payeeLabel')}</Label>
           <p className="font-medium">{transaction.payee || t('common.unknown')}</p>
         </div>
@@ -288,7 +291,7 @@ export function TransactionDetailsPanel({
       </div>
 
       {/* Kategorisierung */}
-      <div className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
+      <div data-tour-id="detail-category" className={cn('space-y-2 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">{t('dashboard.transactionDetailsPanel.categorization')}</h3>
 
         {categorySuggestion && !suggestionDismissed && (
@@ -326,7 +329,7 @@ export function TransactionDetailsPanel({
             onChange={handleCategoryChange}
           />
         </div>
-        <div className="flex items-center justify-between pt-1">
+        <div data-tour-id="detail-expense-class" className="flex items-center justify-between pt-1">
           <span className="text-sm text-muted-foreground">{t('transactionFilters.ausgabenklasseLabel')}</span>
           <Badge variant={ausgabenklasse ? 'default' : 'secondary'}>{ausgabenklasseLabel(ausgabenklasse)}</Badge>
         </div>
@@ -342,7 +345,7 @@ export function TransactionDetailsPanel({
               disabled={isLoading}
               onCheckedChange={(checked) => setApplyToSimilar(checked === true)}
             />
-            <div className="flex-1">
+            <div data-tour-id="detail-apply-similar" className="flex-1">
               <Label htmlFor="apply-similar" className="flex cursor-pointer items-center gap-1.5 text-sm font-medium">
                 <Users className="h-4 w-4" aria-hidden="true" />
                 {t('transactionDetails.applyToSimilar')}
@@ -391,7 +394,7 @@ export function TransactionDetailsPanel({
       </div>
 
       {/* Vertrag */}
-      <div className={cn('space-y-3 pt-4', !isSplit && 'border-t')}>
+      <div data-tour-id="detail-contract" className={cn('space-y-3 pt-4', !isSplit && 'border-t')}>
         <h3 className="text-sm font-semibold text-muted-foreground">{t('dashboard.transactionDetailsPanel.contractSection')}</h3>
 
         {contractHint && (
@@ -449,7 +452,7 @@ export function TransactionDetailsPanel({
             disabled={isLoading}
             onCheckedChange={(checked) => setDraft((d) => (d ? { ...d, is_transfer: checked === true } : d))}
           />
-          <div className="flex-1">
+          <div data-tour-id="detail-transfer" className="flex-1">
             <Label htmlFor="is-transfer" className="flex cursor-pointer items-center gap-1.5 text-sm font-normal">
               <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
               {t('transactionDetails.markAsTransferLabel')}
@@ -510,7 +513,7 @@ export function TransactionDetailsPanel({
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
+          <div data-tour-id="detail-tax" className="flex flex-col gap-1.5">
             <Label htmlFor="tax-category-select" className="text-xs text-muted-foreground">
               {t('tax.form.rubricLabel', 'Steuer-Rubrik')}
             </Label>
@@ -586,6 +589,7 @@ export function TransactionDetailsPanel({
               variant="outline"
               size="sm"
               className="flex-1"
+              data-tour-id="detail-visibility"
               disabled={isLoading || !transaction.id}
               onClick={() => transaction.id && onToggleVisibility(transaction.id)}
             >

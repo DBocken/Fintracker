@@ -159,7 +159,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
   const isSaved = savedAllocations.length > 0;
 
   return (
-    <div className="space-y-3">
+    <div data-tour-id="split-panel" className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <SplitSquareHorizontal className="h-4 w-4" />
@@ -179,7 +179,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
         )}
       </div>
 
-      <div className="text-xs text-muted-foreground">
+      <div data-tour-id="split-remaining" className="text-xs text-muted-foreground">
         {t("transactionSplit.totalLabel")} <span className="font-mono font-semibold">{formatSplitAmountInput(totalMinor)} €</span>
         {!isBalanced && (
           <span className="ml-2 text-warning">
@@ -190,7 +190,11 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
 
       <div className="space-y-2">
         {rows.map((row, idx) => (
-          <div key={row.key} className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/30 p-2.5">
+          <div
+            key={row.key}
+            data-tour-id={idx === 0 ? 'split-row' : undefined}
+            className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted/30 p-2.5"
+          >
             <div className="flex items-center gap-2">
               <Label className="w-4 shrink-0 text-xs text-muted-foreground">{idx + 1}.</Label>
               <div className="relative w-28 shrink-0">
@@ -207,6 +211,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
               {openMinor !== 0 && (
                 <button
                   type="button"
+                  data-tour-id={idx === 0 ? 'split-fill-remaining' : undefined}
                   onClick={() => distributeRemaining(row.key)}
                   className="text-xs text-brand hover:underline"
                   title={t("transactionSplit.fillRemainingTitle")}
@@ -253,6 +258,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
         variant="ghost"
         size="sm"
         className="h-7 w-full border border-dashed border-border text-xs"
+        data-tour-id="split-add-row"
         onClick={addRow}
       >
         <Plus className="mr-1 h-3.5 w-3.5" />
@@ -272,6 +278,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
       <Button
         size="sm"
         className="w-full"
+        data-tour-id="split-save"
         disabled={!isBalanced || saveMutation.isPending || !validation.valid}
         onClick={() => saveMutation.mutate()}
       >

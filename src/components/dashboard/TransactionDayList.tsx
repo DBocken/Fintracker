@@ -159,12 +159,21 @@ export function TransactionDayList({
     const heading = formatDayHeading(group.key, now);
     const balanceLabel = gentleModeEnabled ? '***' : currencyFormatter.format(group.runningBalance);
     const deltaLabel = gentleModeEnabled ? '' : deltaFormatter.format(group.delta);
+    // Tutorial-Anker nur am ERSTEN Tag: Die Fuehrung braucht ein eindeutiges
+    // Ziel, und `document.querySelector` naehme ohnehin das erste.
+    const isFirstDay = group.key === groups[0]?.key;
 
     return (
-      <div className={cn('flex items-baseline justify-between gap-3 px-1 pb-1', withTopSpacing && 'pt-6')}>
+      <div
+        data-tour-id={isFirstDay ? 'transactions-day-header' : undefined}
+        className={cn('flex items-baseline justify-between gap-3 px-1 pb-1', withTopSpacing && 'pt-6')}
+      >
         <h3 className="text-sm font-medium text-muted-foreground">{heading}</h3>
         {showRunningBalance && (
-          <div className="flex items-baseline gap-2 text-right tabular-nums">
+          <div
+            data-tour-id={isFirstDay ? 'transactions-running-balance' : undefined}
+            className="flex items-baseline gap-2 text-right tabular-nums"
+          >
             <span className="text-sm font-semibold text-foreground">{balanceLabel}</span>
             {deltaLabel && (
               <span
@@ -195,9 +204,11 @@ export function TransactionDayList({
 
     const splitCount = (allocationsByTransaction.get(rowId) ?? []).length;
     const splitsOpen = visibleSplits.has(rowId);
+    const isFirstRow = rowId !== '' && rowId === transactions[0]?.id;
 
     return (
       <div
+        data-tour-id={isFirstRow ? 'transactions-first-row' : undefined}
         className={cn(
           'rounded-lg px-1 py-1',
           hidden && 'opacity-50',

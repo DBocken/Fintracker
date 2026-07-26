@@ -99,7 +99,7 @@ export function TransactionFilters({
     <div className={cn(stacked ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'flex flex-wrap items-center gap-2')}>
       <Field label={t('transactionFilters.accountLabel')}>
         <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger aria-label={t('transactionFilters.accountAriaLabel')} className={triggerClass('w-48')}>
+          <SelectTrigger data-tour-id="filter-account" aria-label={t('transactionFilters.accountAriaLabel')} className={triggerClass('w-48')}>
             <SelectValue placeholder={t('transactionFilters.accountPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
@@ -124,7 +124,7 @@ export function TransactionFilters({
 
       <Field label={t('transactionFilters.categoryLabel')}>
         <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger aria-label={t('transactionFilters.categoryAriaLabel')} className={triggerClass('w-48')}>
+          <SelectTrigger data-tour-id="filter-category" aria-label={t('transactionFilters.categoryAriaLabel')} className={triggerClass('w-48')}>
             <SelectValue placeholder={t('transactionFilters.categoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
@@ -138,7 +138,7 @@ export function TransactionFilters({
 
       <Field label={t('transactionFilters.contractLabel')}>
         <Select value={filterContract} onValueChange={setFilterContract}>
-          <SelectTrigger aria-label={t('transactionFilters.contractAriaLabel')} className={triggerClass('w-40')}>
+          <SelectTrigger data-tour-id="filter-contract" aria-label={t('transactionFilters.contractAriaLabel')} className={triggerClass('w-40')}>
             <SelectValue placeholder={t('transactionFilters.contractPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
@@ -151,7 +151,7 @@ export function TransactionFilters({
 
       <Field label={t('transactionFilters.essentialLabel')}>
         <Select value={filterEssential} onValueChange={setFilterEssential}>
-          <SelectTrigger aria-label={t('transactionFilters.essentialAriaLabel')} className={triggerClass('w-44')}>
+          <SelectTrigger data-tour-id="filter-essential" aria-label={t('transactionFilters.essentialAriaLabel')} className={triggerClass('w-44')}>
             <SelectValue placeholder={t('transactionFilters.essentialPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
@@ -173,7 +173,7 @@ export function TransactionFilters({
 
       <Field label={t('transactionFilters.timeRangeLabel')}>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger aria-label={t('transactionFilters.timeRangeAriaLabel')} className={triggerClass('w-40')}>
+          <SelectTrigger data-tour-id="filter-timerange" aria-label={t('transactionFilters.timeRangeAriaLabel')} className={triggerClass('w-40')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
