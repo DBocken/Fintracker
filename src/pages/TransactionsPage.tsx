@@ -124,7 +124,7 @@ export default function TransactionsPage() {
       ) : model.isEmpty ? (
         <FinanceEmptyState />
       ) : (
-        <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+        <div data-tour-id="transactions-list" className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
           <TransactionsListPane model={model} detailsTransaction={detailsTransaction} onOpenDetails={openDetails} />
           {isWide ? (
             <TransactionsDetailAside

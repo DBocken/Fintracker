@@ -145,7 +145,11 @@ export default function DashboardMobileStory({ className, model }: Props) {
             isLoading={model.loading}
           />
         )}
-        {current === "fluss" && <SankeyChart data={sankeyData} enableDrilldown={false} />}
+        {current === "fluss" && (
+          <div data-tour-id="dashboard-flow">
+            <SankeyChart data={sankeyData} enableDrilldown={false} />
+          </div>
+        )}
         {current === "kategorien" && <SpendingBreakdownCard sunburst={sunburst} tree={sunburstTree} />}
         {current === "landschaft" && <LandscapeView />}
         {current === "ausgaben" && <ExpensesOverTimeCard series={series} />}

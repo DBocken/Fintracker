@@ -545,7 +545,29 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    einem Gehalt sind ein Nebenerwerb (Modifikator `side_business`), *ohne*
    Gehalt die Lebensgrundlage (`self_employed`). Derselbe Befund, zwei
    Bedeutungen — die Unterscheidung macht das Gehalt.
-4. **Overlay und Kapitelinhalte**, Kern zuerst (Kapitel 1–5), dann Teil 2.
+4. ⏳ **Overlay und Kapitelinhalte.** Die Mechanik steht vollständig:
+   `TutorialOverlay` (Abdunkeln mit ausgeschnittenem Loch über `box-shadow`,
+   Popover auf Desktop / Bottom Sheet auf Mobil), `useAnchorRect`
+   (`data-tour-id`, misst bei Scroll und Resize nach, fehlender Anker
+   überspringt), `useTutorialRun` (Kapitel- und Schrittzustand, schaltet beim
+   Abschluss den Bereich frei) und `TutorialInvitation` als Einladung statt
+   Dialog. Der Reifegrad-Adapter aus Schritt 2 ist nachgeliefert
+   (`data-readiness-service.ts`).
+
+   **Ausformuliert sind vier Kapitel** — `transactions`, `categories`,
+   `dashboard`, `city`, also genau die erste Sitzung. Die übrigen 17 haben
+   noch keinen Text; `hasSteps()` überspringt sie, ohne dass etwas bricht. Ein
+   Kapitel ohne Text ist kein Fehler, sondern noch nicht geschriebener Text.
+
+   Zwei Entscheidungen beim Bauen:
+   - **Der Lauf ist nicht auf Schritt-Ebene persistent.** Gespeichert werden
+     abgeschlossene Kapitel, nicht die Position im Kapitel. Zwei bis vier
+     Schritte noch einmal zu sehen kostet Sekunden; eine halb gespeicherte
+     Position erzeugt Zustände, die niemand nachvollziehen kann.
+   - **Das Loch bleibt bedienbar** (`pointer-events-none` auf dem Overlay).
+     Eine Führung, die das Gezeigte sperrt, kann nicht zum Mitmachen
+     auffordern — und Mitmachen ist laut „Kapitelgröße" der Abschluss jedes
+     Kapitels.
 5. **Vertagte Kapitel an den Coach** anschließen.
 
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;

@@ -108,6 +108,61 @@ export const translations = {
         property: { label: 'Ich besitze oder vermiete eine Immobilie' },
       },
     },
+    tutorial: {
+      invitationTitle: 'Soll ich es dir zeigen?',
+      invitationBody: 'Eine kurze Führung durch diesen Bereich.',
+      invitationStart: 'Zeig es mir',
+      invitationDismiss: 'Nicht jetzt',
+      next: 'Weiter',
+      back: 'Zurück',
+      done: 'Fertig',
+      end: 'Führung beenden',
+      progress: 'Schritt {current} von {total}',
+      transactions: {
+        list: {
+          title: 'Hier stehen deine Buchungen',
+          body: 'Jede Zeile ist eine Bewegung auf deinem Konto. Alles Weitere in der App rechnet mit genau diesen Zeilen.',
+        },
+        check: {
+          title: 'Kurz prüfen lohnt sich',
+          body: 'Stimmen Beträge und Daten? Was hier falsch steht, steht später in jeder Auswertung falsch.',
+        },
+      },
+      categories: {
+        why: {
+          title: 'Kategorien machen aus einer Liste eine Antwort',
+          body: 'Ohne Zuordnung bleibt es eine Aufzählung. Mit Zuordnung wird sichtbar, wohin dein Geld geht.',
+        },
+        assign: {
+          title: 'Ordne eine Buchung zu',
+          body: 'Such dir eine Zeile aus und gib ihr eine Kategorie. Den Rest schlägt die App dir künftig selbst vor.',
+        },
+      },
+      dashboard: {
+        flow: {
+          title: 'Wohin dein Geld fließt',
+          body: 'Von links kommen die Einnahmen, nach rechts gehen die Ausgaben. Die Breite eines Strangs ist sein Betrag.',
+        },
+        period: {
+          title: 'Zeitraum umstellen',
+          body: 'Alles hier bezieht sich auf einen Zeitraum. Änderst du ihn, ändert sich das ganze Bild.',
+        },
+      },
+      city: {
+        arrival: {
+          title: 'Deine Ausgaben als Stadt',
+          body: 'Das hier sind dieselben Zahlen wie eben — nur begehbar. Jedes Gebäude ist eine Ausgabe von dir.',
+        },
+        districts: {
+          title: 'Viertel sind Kategorien',
+          body: 'Wohnen, Lebenshaltung, Freizeit, Mobilität. Je höher ein Gebäude, desto mehr Geld steckt darin.',
+        },
+        growth: {
+          title: 'Die Stadt wächst mit dir',
+          body: 'Jeder Monat baut weiter. Kommen später Abos dazu, bekommen sie eigene Gebäude.',
+        },
+      },
+    },
     tutorialSource: {
       title: 'Womit möchtest du anfangen?',
       subtitle: 'Danach zeigen wir dir Schritt für Schritt, wie es weitergeht. Ändern kannst du das jederzeit.',
@@ -4237,6 +4292,61 @@ export const translations = {
         commute: { label: 'I commute or work from home' },
         side_business: { label: 'I have side income or a small business' },
         property: { label: 'I own or rent out property' },
+      },
+    },
+    tutorial: {
+      invitationTitle: 'Shall I show you around?',
+      invitationBody: 'A short guided tour of this area.',
+      invitationStart: 'Show me',
+      invitationDismiss: 'Not now',
+      next: 'Next',
+      back: 'Back',
+      done: 'Done',
+      end: 'End the tour',
+      progress: 'Step {current} of {total}',
+      transactions: {
+        list: {
+          title: 'These are your entries',
+          body: 'Every row is one movement on your account. Everything else in the app is calculated from exactly these rows.',
+        },
+        check: {
+          title: 'A quick check pays off',
+          body: 'Do the amounts and dates match? Whatever is wrong here will be wrong in every later report.',
+        },
+      },
+      categories: {
+        why: {
+          title: 'Categories turn a list into an answer',
+          body: 'Without them it stays an enumeration. With them you can see where your money actually goes.',
+        },
+        assign: {
+          title: 'Assign one entry',
+          body: 'Pick a row and give it a category. From then on the app will suggest the rest itself.',
+        },
+      },
+      dashboard: {
+        flow: {
+          title: 'Where your money flows',
+          body: 'Income enters from the left, spending leaves to the right. The width of a strand is its amount.',
+        },
+        period: {
+          title: 'Change the period',
+          body: 'Everything here refers to a period of time. Change it and the whole picture changes with it.',
+        },
+      },
+      city: {
+        arrival: {
+          title: 'Your spending as a city',
+          body: 'These are the same numbers as before — just walkable. Every building is something you spent money on.',
+        },
+        districts: {
+          title: 'Districts are categories',
+          body: 'Housing, living, leisure, mobility. The taller a building, the more money is in it.',
+        },
+        growth: {
+          title: 'The city grows with you',
+          body: 'Every month builds on. When subscriptions are detected later, they get their own buildings.',
+        },
       },
     },
     tutorialSource: {
@@ -8370,6 +8480,61 @@ export const translations = {
         property: { label: 'juH vIghaj' },
       },
     },
+    tutorial: {
+      invitationTitle: "qaDev'a'?",
+      invitationBody: "Dochvam qaDevmeH mach.",
+      invitationStart: 'HIcha\'',
+      invitationDismiss: 'DaH ghobe\'',
+      next: "'ej",
+      back: 'chegh',
+      done: 'rIn',
+      end: "ghojmoHwI' yImev",
+      progress: '{current} vo\' {total}',
+      transactions: {
+        list: {
+          title: "naDev Huch vIttlhegh tu'lu'",
+          body: "Hoch vIttlhegh wa' Huch vIH. Hoch latlh De' vIttlheghmeyvam lo'.",
+        },
+        check: {
+          title: 'yIlegh',
+          body: "muj naDev? vaj muj Hoch latlh.",
+        },
+      },
+      categories: {
+        why: {
+          title: "Segh De' jang",
+          body: "Seghbe'chugh, tetlh neH 'oH. Seghchugh, Huchlij Daq Dalegh.",
+        },
+        assign: {
+          title: "wa' Huch vIttlhegh yISegh",
+          body: "wa' vIttlhegh yIwIv 'ej Segh yInob. latlh De' 'oH ghItlh.",
+        },
+      },
+      dashboard: {
+        flow: {
+          title: 'Huchlij Daq',
+          body: "poS vo' Huch chol, nIH Daq Huch mej. 'ay' 'aD 'oH mI'.",
+        },
+        period: {
+          title: 'poH yIchoH',
+          body: "Hoch naDev poH lo'. poH DachoHchugh, Hoch choH.",
+        },
+      },
+      city: {
+        arrival: {
+          title: "Huch veng",
+          body: "mI'mey rap bIH — 'ach DayIt. Hoch qach wa' Huchlij 'oH.",
+        },
+        districts: {
+          title: "veng 'ay'mey Segh bIH",
+          body: "juH, yIn, tIv, lIng. qach jen law', Huch law'.",
+        },
+        growth: {
+          title: 'veng chep',
+          body: "Hoch jar chen. ghIq nID chelchugh, qachmey chu' luSuq.",
+        },
+      },
+    },
     tutorialSource: {
       title: "nuqDaq bIta'taH'a'?",
       subtitle: "ghIq Hoch DuQaHmeH maSov. reH DaChoHlaH.",
@@ -12171,6 +12336,61 @@ export const translations = {
         commute: { label: 'Я езжу на работу или работаю из дома' },
         side_business: { label: 'У меня есть подработка или своё небольшое дело' },
         property: { label: 'У меня есть недвижимость или я её сдаю' },
+      },
+    },
+    tutorial: {
+      invitationTitle: 'Показать, как это работает?',
+      invitationBody: 'Короткое знакомство с этим разделом.',
+      invitationStart: 'Покажите',
+      invitationDismiss: 'Не сейчас',
+      next: 'Дальше',
+      back: 'Назад',
+      done: 'Готово',
+      end: 'Завершить обучение',
+      progress: 'Шаг {current} из {total}',
+      transactions: {
+        list: {
+          title: 'Здесь ваши операции',
+          body: 'Каждая строка — одно движение по счёту. Всё остальное в приложении считается именно по этим строкам.',
+        },
+        check: {
+          title: 'Быструю проверку стоит сделать',
+          body: 'Сходятся ли суммы и даты? Что неверно здесь, будет неверно в каждом отчёте.',
+        },
+      },
+      categories: {
+        why: {
+          title: 'Категории превращают список в ответ',
+          body: 'Без них это просто перечень. С ними видно, куда на самом деле уходят деньги.',
+        },
+        assign: {
+          title: 'Назначьте категорию одной операции',
+          body: 'Выберите строку и задайте категорию. Дальше приложение будет предлагать само.',
+        },
+      },
+      dashboard: {
+        flow: {
+          title: 'Куда текут ваши деньги',
+          body: 'Слева приходят доходы, направо уходят расходы. Ширина потока — это сумма.',
+        },
+        period: {
+          title: 'Смена периода',
+          body: 'Всё здесь относится к периоду. Измените его — изменится вся картина.',
+        },
+      },
+      city: {
+        arrival: {
+          title: 'Ваши расходы как город',
+          body: 'Это те же числа, что и раньше, — только по ним можно пройтись. Каждое здание — ваша трата.',
+        },
+        districts: {
+          title: 'Кварталы — это категории',
+          body: 'Жильё, быт, досуг, транспорт. Чем выше здание, тем больше в нём денег.',
+        },
+        growth: {
+          title: 'Город растёт вместе с вами',
+          body: 'Каждый месяц достраивает его. Когда найдутся подписки, у них появятся свои здания.',
+        },
       },
     },
     tutorialSource: {

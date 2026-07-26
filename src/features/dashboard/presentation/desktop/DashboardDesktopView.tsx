@@ -53,7 +53,9 @@ export function DashboardDesktopView({ model, className }: Props) {
             {t("dashboard.cashflowDescription")}
           </p>
         </div>
-        <SankeyChart data={model.sankeyData} enableDrilldown={false} />
+        <div data-tour-id="dashboard-flow">
+          <SankeyChart data={model.sankeyData} enableDrilldown={false} />
+        </div>
       </section>
     </div>
   );

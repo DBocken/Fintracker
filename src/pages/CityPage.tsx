@@ -641,6 +641,7 @@ export default function CityPage() {
                   konkurrierende Ansichten sehen. */}
               <div
                 ref={canvasContainerRef}
+                data-tour-id="city-canvas"
                 aria-hidden={showList}
                 role={showList ? undefined : "img"}
                 aria-label={showList ? undefined : t("city.canvasAriaLabel")}
