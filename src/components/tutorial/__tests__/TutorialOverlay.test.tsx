@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '@/test-utils/render';
@@ -116,5 +116,53 @@ describe('TutorialOverlay', () => {
     );
     await screen.findByText('Deine Ausgaben als Stadt');
     expect(navigate).toHaveBeenCalledWith('/city');
+  });
+});
+
+
+describe('TutorialOverlay — zum Ziel führen', () => {
+  it('sollte das Ziel ins Bild scrollen, bevor es erklärt wird', async () => {
+    const el = withAnchor('dashboard-flow');
+    const scrollIntoView = vi.fn();
+    el.scrollIntoView = scrollIntoView;
+
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+
+    // Worauf gezeigt wird, muss sichtbar sein — sonst zeigt die Führung ins
+    // Nichts, sobald der Anker weiter unten auf der Seite liegt.
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    expect(scrollIntoView.mock.calls[0][0]).toMatchObject({ block: 'center' });
+  });
+
+  it('sollte öffnen, was der Schritt braucht, statt darum zu bitten', async () => {
+    const opener = withAnchor('transactions-first-row');
+    const click = vi.fn();
+    opener.addEventListener('click', click);
+    withAnchor('transaction-detail');
+
+    const steps = stepsFor('transactionDetails');
+    const panelStep = steps.find((st) => st.openAnchor);
+    expect(panelStep).toBeDefined();
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionDetails', step: panelStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+
+    // Die Führung klickt selbst — sonst hinge die Folge daran, ob der Nutzer
+    // im richtigen Moment das Richtige trifft.
+    await waitFor(() => expect(click).toHaveBeenCalled());
+  });
+
+  it('sollte am Ziel hängen statt als Blatt von unten zu erscheinen', async () => {
+    // Ein Bottom Sheet nähme die untere Bildschirmhälfte — also oft genau das
+    // Element, von dem der Schritt spricht. `data-side` beweist, dass die
+    // Erklärung an einem Anker positioniert ist und nicht am Bildschirmrand.
+    withAnchor('dashboard-flow');
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+    const text = await screen.findByText('Wohin dein Geld fließt');
+    expect(text.closest('[data-side]')).not.toBeNull();
   });
 });

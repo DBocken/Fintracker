@@ -28,10 +28,25 @@ export interface TutorialStep {
   anchor?: string;
   /** Route, auf der dieser Schritt spielt. Der Lauf navigiert vorher dorthin. */
   route?: string;
+  /**
+   * `data-tour-id` eines Elements, das die Führung **anklickt**, bevor der
+   * Schritt erscheint — für Bereiche, die es vorher gar nicht gibt
+   * (Detailansicht, Aufteilen-Panel).
+   *
+   * Die Führung öffnet selbst, statt „bitte klicke jetzt auf …" zu sagen:
+   * Sonst hinge die Folge davon ab, ob der Nutzer im richtigen Moment das
+   * Richtige trifft, und bräche beim ersten Fehlklick ab.
+   */
+  openAnchor?: string;
 }
 
-function step(id: string, route: string, anchor?: string): TutorialStep {
-  return anchor ? { id, route, anchor } : { id, route };
+function step(id: string, route: string, anchor?: string, openAnchor?: string): TutorialStep {
+  return {
+    id,
+    route,
+    ...(anchor ? { anchor } : {}),
+    ...(openAnchor ? { openAnchor } : {}),
+  };
 }
 
 /**
@@ -43,6 +58,9 @@ function step(id: string, route: string, anchor?: string): TutorialStep {
  * - **`source` hat keine Schritte.** Kapitel 0 ist der `DataSourceDialog`
  *   selbst; ein Overlay über einem modalen Dialog wäre eine Führung durch eine
  *   Führung. Das Kapitel gilt als erledigt, sobald die Weiche beantwortet ist.
+ * - **Ein Kapitel ist ein Arbeitsschritt, kein Bildschirm.** Die
+ *   Buchungsseite hat allein 30 erklaerbare Bedienelemente; sie zerfaellt
+ *   deshalb in vier Kapitel (`docs/tutorial-script-transactions.md`).
  * - **Nur die erste Sitzung hat Anker.** `transactions`, `categories`,
  *   `dashboard` und `city` rahmen ein konkretes Element ein; die übrigen
  *   Kapitel dunkeln ab und erklären den Bereich als Ganzes. Das ist für den
@@ -52,13 +70,55 @@ function step(id: string, route: string, anchor?: string): TutorialStep {
  *   falsch gesetzter kostet einen Refactor.
  */
 export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly TutorialStep[]>> = {
+  // Akt I — die Liste lesen (`docs/tutorial-script-transactions.md`).
   transactions: [
-    step('list', '/transactions', 'transactions-list'),
-    step('check', '/transactions', 'transactions-list'),
+    step('overview', '/transactions', 'transactions-list'),
+    step('row', '/transactions', 'transactions-first-row'),
+    step('day', '/transactions', 'transactions-day-header'),
+    step('balance', '/transactions', 'transactions-running-balance'),
+    step('stats', '/transactions', 'transactions-stats'),
+    step('add', '/transactions', 'transactions-add'),
   ],
   categories: [
-    step('why', '/transactions', 'transactions-list'),
-    step('assign', '/transactions', 'transactions-list'),
+    step('why', '/transactions', 'transactions-first-row'),
+    step('assign', '/transactions', 'transactions-first-row'),
+  ],
+
+  // Akt II — finden.
+  transactionsFilter: [
+    step('search', '/transactions', 'transactions-search'),
+    step('timerange', '/transactions', 'filter-timerange'),
+    step('category', '/transactions', 'filter-category'),
+    step('account', '/transactions', 'filter-account'),
+    step('contract', '/transactions', 'filter-contract'),
+    step('essential', '/transactions', 'filter-essential'),
+    step('reset', '/transactions', 'filter-reset'),
+  ],
+
+  // Akt III — eine Buchung verstehen und korrigieren. Schritt 2 oeffnet die
+  // Detailansicht selbst; alles Weitere spielt darin.
+  transactionDetails: [
+    step('open', '/transactions', 'transactions-first-row'),
+    step('panel', '/transactions', 'transaction-detail', 'transactions-first-row'),
+    step('basics', '/transactions', 'detail-basics'),
+    step('payee', '/transactions', 'detail-payee'),
+    step('category', '/transactions', 'detail-category'),
+    step('applySimilar', '/transactions', 'detail-apply-similar'),
+    step('expenseClass', '/transactions', 'detail-expense-class'),
+    step('tax', '/transactions', 'detail-tax'),
+    step('transfer', '/transactions', 'detail-transfer'),
+    step('contract', '/transactions', 'detail-contract'),
+    step('visibility', '/transactions', 'detail-visibility'),
+  ],
+
+  // Akt IV — aufteilen. Schritt 1 oeffnet das Panel selbst.
+  transactionSplit: [
+    step('why', '/transactions', 'split-panel', 'transactions-first-row'),
+    step('row', '/transactions', 'split-row'),
+    step('addRow', '/transactions', 'split-add-row'),
+    step('remaining', '/transactions', 'split-remaining'),
+    step('fillRemaining', '/transactions', 'split-fill-remaining'),
+    step('save', '/transactions', 'split-save'),
   ],
   dashboard: [
     step('flow', '/dashboard', 'dashboard-flow'),
@@ -154,6 +214,9 @@ export function stepsFor(chapter: TutorialChapterId): readonly TutorialStep[] {
 const CHAPTER_NAME_KEYS: Partial<Record<TutorialChapterId, string>> = {
   transactions: 'nav.items.transactions',
   categories: 'tutorial.categories.name',
+  transactionsFilter: 'tutorial.transactionsFilter.name',
+  transactionDetails: 'tutorial.transactionDetails.name',
+  transactionSplit: 'tutorial.transactionSplit.name',
   dashboard: 'nav.items.dashboard',
   city: 'nav.items.city',
   coach: 'nav.items.coach',

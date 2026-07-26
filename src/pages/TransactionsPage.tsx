@@ -109,7 +109,7 @@ export default function TransactionsPage() {
         title={t("transactions.title")}
         description={t("transactions.description")}
         actions={
-          <Button size="sm" onClick={() => setAddOpen(true)}>
+          <Button size="sm" data-tour-id="transactions-add" onClick={() => setAddOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             {t("forms.addTransaction")}
           </Button>

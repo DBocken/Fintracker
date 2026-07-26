@@ -56,6 +56,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             type="search"
+            data-tour-id="transactions-search"
             aria-label={t('transactions.search')}
             placeholder={t('transactions.search')}
             value={filters.values.search}
@@ -91,7 +92,14 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
             showSearch={false}
           />
           {filters.activeCount > 0 && (
-            <Button type="button" variant="ghost" size="sm" className="h-9 gap-1" onClick={filters.reset}>
+            <Button
+              type="button"
+              data-tour-id="filter-reset"
+              variant="ghost"
+              size="sm"
+              className="h-9 gap-1"
+              onClick={filters.reset}
+            >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               {t('transactions.reset')}
             </Button>
@@ -99,6 +107,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
         </div>
       </div>
 
+      <div data-tour-id="transactions-stats">
       <TransactionStats
         income={model.stats.income}
         expenses={model.stats.expenses}
@@ -107,6 +116,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
         totalTransactions={model.transactions.all.length}
         currentBalance={formatCurrency(model.balances.scopedCurrent)}
       />
+      </div>
 
       {model.transactions.visible.length === 0 ? (
         emptyList

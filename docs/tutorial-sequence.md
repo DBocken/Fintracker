@@ -120,7 +120,10 @@ sichtbar sein").
 
 ### Kapitelgröße
 
-2–4 Schritte, nie mehr. Ein Kapitel = ein Modul = ein Bildschirm. Jedes Kapitel
+Ein Kapitel = **ein Arbeitsschritt**, nicht ein Bildschirm. Zwei bis acht
+Schritte; wo eine Seite mehr Bedienelemente hat, zerfällt sie in mehrere
+Kapitel statt in ein langes (Vorbild: `docs/tutorial-script-transactions.md`,
+vier Akte über die Buchungsseite). Jedes Kapitel
 endet mit **einer echten Handlung** des Nutzers (eine Buchung kategorisieren,
 ein Budget setzen, in einen Distrikt der Stadt zoomen), nicht mit „Weiter".
 Wer nur gelesen hat, hat nichts gelernt — und die Handlung ist zugleich das
