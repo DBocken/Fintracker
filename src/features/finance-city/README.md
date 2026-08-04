@@ -137,6 +137,56 @@ dvh-Höhe plus `absolute inset-0` für die Canvas-Fläche — keine negativen
 Margins (fragil bei künftigen AppShell-Änderungen), kein Eingriff in
 AppShell. Details im Code-Kommentar von `src/pages/CityPage.tsx`.
 
+## Visual-Polish (WP-E1): Himmel, Boden & Tiefe
+
+Ziel: Die Stadt soll ein *Ort* wirken statt farbiger Boxen auf grauer Platte
+vor leerem Hintergrund — zurückhaltend ("Ruhe vor Fülle"), **strikt
+Render-on-Demand** (keine Ambient-Animation, **keine Schatten-Maps**,
+DPR-Cap unverändert). Alle Texturen sind prozedurale Canvas-Texturen
+(≤ 256 px), einmalig erzeugt und gecacht; alle Konstanten liegen zentral in
+`presentation/city-scene.ts` bzw. `domain/city-layout.ts` (ein-Pass-Tuning).
+
+- **Himmel**: vertikale 1×256-Gradient-`CanvasTexture` je Theme als
+  `scene.background` (Palette `skyTop`/`skyHorizon` in `THEME_PALETTES`).
+  Fog-Farbe = **Horizontton** (`setFog`/`setTheme`), damit der Stadtrand in
+  den Himmel übergeht. `setTheme` tauscht nur Textur-Referenzen + Fog — kein
+  Material-Registry-Rebuild.
+- **Boden**: Straßen-Raster-Textur (je Theme: dark = asphalt-betonter,
+  light = neutraler) als `map` NUR auf dem `ground`-Material; die Textur-Art
+  steht im Registry-Schlüssel (`color|opacity|bucket|texture`), damit sie nie
+  mit gleichfarbigen Balken geteilt wird. `material.color` multipliziert
+  weiterhin die Domain-Farbe (1:1-Farbmapping bleibt). Repeat folgt der
+  Bodengröße (`GROUND_TILE_WORLD_SIZE` = 3) — gleiche Straßen-Dichte auf
+  jeder Ebene. Grundstücke tragen seit WP-E1 `edges: true` (Domain) und
+  bekommen ihre Farbkante über den bestehenden Kanten-Pfad.
+- **Kontaktschatten** (fake Grounding, kein Shadow-Pass): EINE geteilte
+  Radial-Gradient-Textur + EINE geteilte `PlaneGeometry(1,1)`; eine Ebene pro
+  Grundstück (× `CONTACT_SHADOW_PLOT_SCALE` = 1.15) und pro Balken-/
+  Etagen-Stapel-Fuß (Footprint + `CONTACT_SHADOW_BAR_MARGIN` = 0.25; nur Fuß
+  auf Bodenhöhe — ein Schatten je Stapel, nicht je Etage; Caps/Hüllen
+  werfen keinen). `depthWrite: false`, Render-Order 0.5 (zwischen plot 0 und
+  bar 1), y-Staffelung 0.058/0.072 gegen Z-Fighting. Lebenszyklus = der der
+  Box (`applyLayout`-Diff, `dispose()`).
+- **Fassade**: EINE geteilte Graustufen-Textur (vertikaler AO-Gradient,
+  `FACADE_AO_MAX_ALPHA` = 0.3, streckungs-tolerant + zartes Fenster-Raster,
+  `FACADE_WINDOW_ALPHA` = 0.07) als `map` auf allen `solid`-Materialien —
+  Albedo-only, Distrikt-Tint bleibt `material.color`. Bewusst **keine**
+  Emissive-"Nachtfenster" in v1 (würde Material-Updates bei Theme-Wechsel
+  erzwingen).
+- **Setback-Caps** (Domain-Geometrie): Balken über `CAP_HEIGHT_THRESHOLD_RATIO`
+  (0.6) der Stadt-Höchsthöhe bekommen einen Aufsatz (`CAP_FOOTPRINT_RATIO`
+  0.55, `CAP_HEIGHT_RATIO` 0.08, `adjustHexLightness(color, -8)`), id
+  `<barId>:cap`, nicht pickbar. Caps wachsen im Höhen-Tween (Fuß =
+  Balken-Oberkante) und werden weder von `computeFocusBounds` noch von den
+  Stadt-Kamera-Bounds gerahmt (Kamera-Framing unverändert,
+  REGRESSION-Tests).
+- **Aufbau-Kaskade**: Höhen-Tweens starten gestaffelt (`BUILD_STAGGER_MS` =
+  50 ms je Baukörper in Layout-Reihenfolge; Zusatzzeit < 1 s) — läuft im
+  bestehenden Tween-Loop, keine neue Animation; bei
+  `prefers-reduced-motion` unverändert Sofort-Verhalten.
+- **Licht**: Key-Light warm (`dirColor` je Theme), Rim-Light bleibt kühl —
+  bessere Modellierung der Box-Flächen ohne Mehrkosten.
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
-import { createCityScene, type CitySceneHandle } from '../city-scene';
+import { createCityScene, THEME_PALETTES, type CitySceneHandle } from '../city-scene';
 import { buildCityLayout, type CityLayout, type LayoutBox } from '../../domain/city-layout';
 import { cityDemoModel } from '../../data/city-demo-data';
 
@@ -20,6 +20,24 @@ function createFakeRenderer() {
   } as unknown as THREE.WebGLRenderer;
 }
 
+/**
+ * jsdom liefert ohne node-canvas `null` für `getContext('2d')` — die WP-E1-
+ * Canvas-Texturen (Himmel/Boden/Fassade/Kontaktschatten) brauchen aber einen
+ * minimalen 2D-Kontext. Dieser Stub bildet exakt die API ab, die
+ * `city-scene.ts` nutzt (`fillRect`, `create*Gradient` mit `addColorStop`,
+ * `fillStyle`); die Szene selbst degradiert ohne ihn still auf un-texturierte
+ * Materialien/Farben.
+ */
+function createFake2dContext(): CanvasRenderingContext2D {
+  const makeGradient = () => ({ addColorStop: vi.fn() });
+  return {
+    fillStyle: '',
+    fillRect: vi.fn(),
+    createLinearGradient: vi.fn(makeGradient),
+    createRadialGradient: vi.fn(makeGradient),
+  } as unknown as CanvasRenderingContext2D;
+}
+
 function createHandle() {
   const canvas = document.createElement('canvas');
   const renderer = createFakeRenderer();
@@ -32,12 +50,31 @@ function createHandle() {
 }
 
 function meshesOf(scene: THREE.Scene): THREE.Mesh[] {
-  return scene.children.filter((child): child is THREE.Mesh => child instanceof THREE.Mesh);
+  // WP-E1: Kontaktschatten-Ebenen sind ebenfalls Mesh-Kinder der Szene (sie
+  // nutzen als einzige die PlaneGeometry) — für die Layout-Box-Assertions
+  // dieser Suite zählen nur die Box-Meshes (geteilte Einheits-BoxGeometry).
+  return scene.children.filter(
+    (child): child is THREE.Mesh => child instanceof THREE.Mesh && !(child.geometry instanceof THREE.PlaneGeometry),
+  );
+}
+
+/** WP-E1: die Kontaktschatten-Ebenen (einzige PlaneGeometry-Meshes der Szene). */
+function shadowPlanesOf(scene: THREE.Scene): THREE.Mesh[] {
+  return scene.children.filter(
+    (child): child is THREE.Mesh => child instanceof THREE.Mesh && child.geometry instanceof THREE.PlaneGeometry,
+  );
 }
 
 function lineSegmentsOf(scene: THREE.Scene): THREE.LineSegments[] {
   return scene.children.filter((child): child is THREE.LineSegments => child instanceof THREE.LineSegments);
 }
+
+beforeEach(() => {
+  // Siehe Kommentar an `createFake2dContext` — ohne diesen Stub hätten die
+  // WP-E1-Texturen in jsdom keinen 2D-Kontext.
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() =>
+    createFake2dContext()) as unknown as HTMLCanvasElement['getContext']);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -66,15 +103,15 @@ describe('createCityScene', () => {
       expect(rentMesh.userData.pickable).toBe(rentBox.pickable);
     });
 
-    it('sollte nur für Boxen mit edges=true eine LineSegments-Kante anlegen (Hüllen)', () => {
+    it('sollte nur für Boxen mit edges=true eine LineSegments-Kante anlegen (Hüllen und seit WP-E1 Grundstücke)', () => {
       const { handle, scene } = createHandle();
       const layout = buildCityLayout(cityDemoModel, { level: 'city' });
 
       handle.applyLayout(layout);
 
-      const hullCount = layout.boxes.filter((b) => b.edges).length;
-      expect(hullCount).toBeGreaterThan(0);
-      expect(lineSegmentsOf(scene)).toHaveLength(hullCount);
+      const edgedCount = layout.boxes.filter((b) => b.edges).length;
+      expect(edgedCount).toBeGreaterThan(0);
+      expect(lineSegmentsOf(scene)).toHaveLength(edgedCount);
     });
 
     it('sollte bei zweitem applyLayout mit denselben ids dieselbe Mesh-Instanz wiederverwenden (Object.is)', () => {
@@ -261,23 +298,26 @@ describe('createCityScene', () => {
     });
   });
 
-  describe('setTheme (WP-C9)', () => {
-    it('sollte Hintergrund und Fog-Farbe auf das gewählte Theme umstellen', () => {
+  describe('setTheme (WP-C9/WP-E1)', () => {
+    it('sollte Himmel-Textur und Fog-Farbe auf das gewählte Theme umstellen', () => {
+      // WP-E1 (bewusste Visual-Contract-Änderung): der Hintergrund ist keine
+      // flache Farbe mehr, sondern eine je Theme vorgebaute Himmel-Textur;
+      // der Fog trägt den HORIZONT-Ton (nicht mehr die alte Flächenfarbe).
       // jsdom hat keine `dark`-Klasse -> Szene startet im Light-Theme.
       const { handle, scene } = createHandle();
-      const lightBg = (scene.background as THREE.Color).getHex();
+      const lightBackground = scene.background;
 
       handle.setTheme('dark');
-      const darkBg = (scene.background as THREE.Color).getHex();
-      expect(darkBg).not.toBe(lightBg);
+      expect(Object.is(scene.background, lightBackground)).toBe(false);
 
-      // Fog trägt die Hintergrundfarbe des aktiven Themes.
+      // Fog trägt den Horizontton des aktiven Themes.
       handle.setFog(10, 20);
-      expect((scene.fog as THREE.Fog).color.getHex()).toBe(darkBg);
+      expect((scene.fog as THREE.Fog).color.getHex()).toBe(THEME_PALETTES.dark.skyHorizon);
 
-      // Zurück auf Light stellt den Ausgangston wieder her (idempotent).
+      // Zurück auf Light stellt Ausgangs-Textur und -ton wieder her (idempotent).
       handle.setTheme('light');
-      expect((scene.background as THREE.Color).getHex()).toBe(lightBg);
+      expect(Object.is(scene.background, lightBackground)).toBe(true);
+      expect((scene.fog as THREE.Fog).color.getHex()).toBe(THEME_PALETTES.light.skyHorizon);
     });
 
     it('sollte die Beleuchtungs-Intensität je Theme anpassen', () => {
@@ -484,6 +524,329 @@ describe('createCityScene', () => {
       expect(material.emissiveIntensity).toBeGreaterThan(0);
       // Emissive == Grundfarbe (Tint), nicht Weiß — Weiß ist dem Hover-Highlight vorbehalten.
       expect(material.emissive.getHex()).toBe(material.color.getHex());
+    });
+  });
+
+  describe('Himmel & Horizont (WP-E1)', () => {
+    it('sollte den Szenen-Hintergrund als vertikale Himmel-Textur (CanvasTexture) statt einer flachen Farbe anlegen', () => {
+      const { scene } = createHandle();
+      expect(scene.background).toBeInstanceOf(THREE.CanvasTexture);
+    });
+
+    it('sollte je Theme eine eigene, vorgebaute Himmel-Textur bereithalten (setTheme tauscht nur die Referenz)', () => {
+      // jsdom hat keine `dark`-Klasse -> Szene startet im Light-Theme.
+      const { handle, scene } = createHandle();
+      const lightSky = scene.background;
+      expect(lightSky).toBeInstanceOf(THREE.CanvasTexture);
+
+      handle.setTheme('dark');
+      const darkSky = scene.background;
+      expect(darkSky).toBeInstanceOf(THREE.CanvasTexture);
+      expect(Object.is(darkSky, lightSky)).toBe(false);
+
+      // Idempotent zurück — dieselbe Instanz, kein Neuaufbau.
+      handle.setTheme('light');
+      expect(Object.is(scene.background, lightSky)).toBe(true);
+    });
+
+    it('sollte Fog auf den Horizontton des aktiven Themes einfärben (Stadtrand löst sich in den Himmel auf)', () => {
+      const { handle, scene } = createHandle();
+      handle.setFog(10, 20);
+      expect((scene.fog as THREE.Fog).color.getHex()).toBe(THEME_PALETTES.light.skyHorizon);
+      handle.setTheme('dark');
+      expect((scene.fog as THREE.Fog).color.getHex()).toBe(THEME_PALETTES.dark.skyHorizon);
+    });
+
+    it('sollte bei nicht-endlichen Fog-Werten weiterhin keinen Fog setzen (Off-Pfad unverändert)', () => {
+      const { handle, scene } = createHandle();
+      handle.setFog(10, 20);
+      expect(scene.fog).not.toBeNull();
+      handle.setFog(NaN, Infinity);
+      expect(scene.fog).toBeNull();
+    });
+
+    it('sollte das Hauptlicht warm einfärben und das Gegenlicht kühl belassen (WP-E1)', () => {
+      const { scene } = createHandle();
+      const directionals = scene.children.filter(
+        (c): c is THREE.DirectionalLight => c instanceof THREE.DirectionalLight,
+      );
+      expect(directionals).toHaveLength(2);
+      const [keyLight, rimLight] = directionals;
+      expect(keyLight.color.getHex()).toBe(THEME_PALETTES.light.dirColor);
+      // Bewusst KEIN neutrales Weiß mehr (warmes Key-Light), Rim bleibt kühl.
+      expect(keyLight.color.getHex()).not.toBe(0xffffff);
+      expect(rimLight.color.getHex()).toBe(0xbfd8ff);
+    });
+  });
+
+  describe('Boden- & Fassaden-Texturen (WP-E1)', () => {
+    it('sollte dem Boden-Material eine Straßen-Raster-Textur (map) geben — Grundstücke/Hüllen bleiben un-texturiert, Farbmapping bleibt 1:1', () => {
+      const { handle, scene } = createHandle();
+      const layout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(layout);
+
+      const groundMesh = meshesOf(scene).find((m) => m.userData.kind === 'ground')!;
+      const groundMaterial = groundMesh.material as THREE.MeshLambertMaterial;
+      expect(groundMaterial.map).toBeInstanceOf(THREE.CanvasTexture);
+      // material.color trägt weiterhin exakt die Domain-Farbe (Textur multipliziert nur).
+      const groundBox = layout.boxes.find((b) => b.kind === 'ground')!;
+      expect(groundMaterial.color.getHexString()).toBe(groundBox.color.replace('#', ''));
+
+      const plotMesh = meshesOf(scene).find((m) => m.userData.kind === 'plot')!;
+      expect((plotMesh.material as THREE.MeshBasicMaterial).map).toBeNull();
+      const hullMesh = meshesOf(scene).find((m) => m.userData.kind === 'hull')!;
+      expect((hullMesh.material as THREE.MeshBasicMaterial).map).toBeNull();
+    });
+
+    it('sollte die Boden-Textur-Repeat an die Bodengröße koppeln (kleinere Ebene -> weniger Kacheln, gleiche Straßen-Dichte)', () => {
+      const { handle, scene } = createHandle();
+      const cityLayout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(cityLayout);
+      const groundMesh = meshesOf(scene).find((m) => m.userData.kind === 'ground')!;
+      const map = (groundMesh.material as THREE.MeshLambertMaterial).map!;
+      const cityRepeatX = map.repeat.x;
+      expect(cityRepeatX).toBeGreaterThanOrEqual(1);
+
+      const districtLayout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+      handle.applyLayout(districtLayout);
+      const districtGroundBox = districtLayout.boxes.find((b) => b.kind === 'ground')!;
+      const cityGroundBox = cityLayout.boxes.find((b) => b.kind === 'ground')!;
+      // Voraussetzung: der Boden der district-Ebene ist wirklich kleiner.
+      expect(districtGroundBox.size.x).toBeLessThan(cityGroundBox.size.x);
+      expect(map.repeat.x).toBeLessThan(cityRepeatX);
+    });
+
+    it('sollte bei setTheme NUR die Boden-Textur-Referenz tauschen (gleiche Material-Instanz, kein Registry-Neuaufbau)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+      const groundMesh = meshesOf(scene).find((m) => m.userData.kind === 'ground')!;
+      const materialBefore = groundMesh.material as THREE.MeshLambertMaterial;
+      const lightMap = materialBefore.map;
+
+      handle.setTheme('dark');
+      const materialAfter = groundMesh.material as THREE.MeshLambertMaterial;
+      expect(Object.is(materialAfter, materialBefore)).toBe(true);
+      expect(Object.is(materialAfter.map, lightMap)).toBe(false);
+
+      handle.setTheme('light');
+      expect(Object.is((groundMesh.material as THREE.MeshLambertMaterial).map, lightMap)).toBe(true);
+    });
+
+    it('sollte allen soliden Baukörpern (Balken, Caps) über alle Distriktfarben hinweg dieselbe Fassaden-Textur-Instanz geben (Tint via material.color)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+
+      const solidMeshes = meshesOf(scene).filter((m) => m.userData.kind === 'bar' || m.userData.kind === 'cap');
+      expect(solidMeshes.length).toBeGreaterThan(2);
+      const materials = [...new Set(solidMeshes.map((m) => m.material as THREE.MeshLambertMaterial))];
+      // Verschiedene Distriktfarben -> verschiedene Material-Instanzen (Registry-Sharing unverändert) ...
+      expect(materials.length).toBeGreaterThan(1);
+      // ... aber genau EINE geteilte Fassaden-Textur über alle Farben.
+      const maps = new Set(materials.map((m) => m.map));
+      expect(maps.size).toBe(1);
+      expect(materials[0].map).toBeInstanceOf(THREE.CanvasTexture);
+    });
+
+    it('sollte auch Etagen mit derselben Fassaden-Textur-Instanz wie die Balken belegen', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(
+        buildCityLayout(cityDemoModel, {
+          level: 'subcategory',
+          focusDistrictId: 'leisure',
+          focusSubcategoryId: 'streaming',
+        }),
+      );
+
+      const floorMaterials = meshesOf(scene)
+        .filter((m) => m.userData.kind === 'floor')
+        .map((m) => m.material as THREE.MeshLambertMaterial);
+      expect(floorMaterials.length).toBeGreaterThan(1);
+      for (const material of floorMaterials) {
+        expect(material.map).toBeInstanceOf(THREE.CanvasTexture);
+      }
+      const barMaterial = meshesOf(scene).find((m) => m.userData.kind === 'bar')!
+        .material as THREE.MeshLambertMaterial;
+      expect(Object.is(floorMaterials[0].map, barMaterial.map)).toBe(true);
+    });
+  });
+
+  describe('Kontaktschatten (WP-E1)', () => {
+    it('sollte je Grundstück und je Balkenfuß genau eine Schatten-Ebene anlegen (Hüllen/Caps/Boden ohne eigenen Schatten)', () => {
+      const { handle, scene } = createHandle();
+      const layout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(layout);
+
+      const expected = layout.boxes.filter((b) => b.kind === 'plot' || b.kind === 'bar').length;
+      expect(expected).toBeGreaterThan(0);
+      expect(shadowPlanesOf(scene)).toHaveLength(expected);
+    });
+
+    it('sollte die Schatten knapp ÜBER den Grundstücken staffeln (Plot-Schatten tiefer als Balken-Schatten), transparent und ohne depthWrite', () => {
+      const { handle, scene } = createHandle();
+      const layout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(layout);
+
+      const plotBox = layout.boxes.find((b) => b.kind === 'plot')!;
+      const plotShadow = shadowPlanesOf(scene).find(
+        (s) => s.position.x === plotBox.center.x && s.position.z === plotBox.center.z,
+      )!;
+      expect(plotShadow).toBeDefined();
+      const barBox = layout.boxes.find((b) => b.kind === 'bar')!;
+      const barShadow = shadowPlanesOf(scene).find(
+        (s) => s.position.x === barBox.center.x && s.position.z === barBox.center.z,
+      )!;
+      expect(barShadow).toBeDefined();
+
+      // Grundstücks-Oberkante liegt bei 0.05 (PLOT_THICKNESS, city-layout.ts).
+      expect(plotShadow.position.y).toBeGreaterThan(0.05);
+      expect(barShadow.position.y).toBeGreaterThan(plotShadow.position.y);
+
+      // Weiche Ausdehnung: Plot-Schatten ~15 % größer als das Grundstück,
+      // Balken-Schatten mit festem Margin um den Footprint.
+      expect(plotShadow.scale.x).toBeCloseTo(plotBox.size.x * 1.15, 10);
+      expect(barShadow.scale.x).toBeCloseTo(barBox.size.x + 0.5, 10);
+
+      const material = plotShadow.material as THREE.MeshBasicMaterial;
+      expect(material.transparent).toBe(true);
+      expect(material.depthWrite).toBe(false);
+      expect(material.map).toBeInstanceOf(THREE.CanvasTexture);
+
+      // Zeichenreihenfolge zwischen Grundstück (0) und Balken (1).
+      expect(plotShadow.renderOrder).toBeGreaterThan(0);
+      expect(plotShadow.renderOrder).toBeLessThan(1);
+    });
+
+    it('sollte auf subcategory-Ebene nur EINEN Schatten je Etagen-Stapel anlegen (unterste Etage), nicht je Etage', () => {
+      const { handle, scene } = createHandle();
+      const layout = buildCityLayout(cityDemoModel, {
+        level: 'subcategory',
+        focusDistrictId: 'leisure',
+        focusSubcategoryId: 'streaming',
+      });
+      handle.applyLayout(layout);
+
+      const plots = layout.boxes.filter((b) => b.kind === 'plot').length; // 1
+      const bars = layout.boxes.filter((b) => b.kind === 'bar').length; // 4 gedimmte Nachbarn
+      const floorStacks = 1; // der aufgelöste streaming-Stapel = genau 1 Schatten
+      expect(shadowPlanesOf(scene)).toHaveLength(plots + bars + floorStacks);
+    });
+
+    it('sollte Schatten-Ebenen beim Ebenenwechsel mit ihren Boxen entsorgen (Diff-Lebenszyklus)', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+      expect(shadowPlanesOf(scene).length).toBeGreaterThan(0);
+
+      const districtLayout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'leisure' });
+      handle.applyLayout(districtLayout);
+      const expected = districtLayout.boxes.filter((b) => b.kind === 'plot' || b.kind === 'bar').length;
+      expect(shadowPlanesOf(scene)).toHaveLength(expected);
+    });
+
+    it('sollte geteilte Schatten-/Textur-Ressourcen bei dispose() aufräumen und alle Ebenen aus der Szene entfernen', () => {
+      const planeDisposeSpy = vi.spyOn(THREE.PlaneGeometry.prototype, 'dispose');
+      const textureDisposeSpy = vi.spyOn(THREE.Texture.prototype, 'dispose');
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+      expect(shadowPlanesOf(scene).length).toBeGreaterThan(0);
+
+      handle.dispose();
+
+      expect(shadowPlanesOf(scene)).toHaveLength(0);
+      expect(planeDisposeSpy).toHaveBeenCalledTimes(1);
+      // Himmel (2) + Boden (2) + Fassade (1) + Kontaktschatten (1) = 6 CanvasTexturen.
+      expect(textureDisposeSpy).toHaveBeenCalledTimes(6);
+    });
+  });
+
+  describe('Setback-Caps in der Szene (WP-E1)', () => {
+    it('sollte Caps als solide, nicht-pickbare Lambert-Meshes mit Balken-Zeichenreihenfolge und geteilter Fassaden-Textur abbilden', () => {
+      const { handle, scene } = createHandle();
+      handle.applyLayout(buildCityLayout(cityDemoModel, { level: 'city' }));
+
+      const capMesh = meshesOf(scene).find((m) => m.userData.id === 'housing/rent:cap');
+      expect(capMesh).toBeDefined();
+      expect(capMesh!.userData.kind).toBe('cap');
+      expect(capMesh!.userData.pickable).toBe(false);
+
+      const barMesh = meshesOf(scene).find((m) => m.userData.id === 'housing/rent')!;
+      expect(capMesh!.renderOrder).toBe(barMesh.renderOrder);
+
+      const capMaterial = capMesh!.material as THREE.MeshLambertMaterial;
+      expect(capMaterial).toBeInstanceOf(THREE.MeshLambertMaterial);
+      const barMaterial = barMesh.material as THREE.MeshLambertMaterial;
+      expect(Object.is(capMaterial.map, barMaterial.map)).toBe(true);
+      // Eigene Material-Instanz (abgedunkelte Cap-Farbe), aber geteilte Textur.
+      expect(Object.is(capMaterial, barMaterial)).toBe(false);
+    });
+
+    it('sollte Caps in das Höhen-Wachstums-Tween einbeziehen (Fußpunkt auf der Balken-Oberkante)', () => {
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const layout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(layout);
+
+      const capBox = layout.boxes.find((b) => b.id === 'housing/rent:cap')!;
+      const barBox = layout.boxes.find((b) => b.id === 'housing/rent')!;
+      const capMesh = meshesOf(scene).find((m) => m.userData.id === 'housing/rent:cap')!;
+
+      // Vor dem ersten Tick: Höhe 0, Fuß auf der Balken-Oberkante.
+      expect(capMesh.scale.y).toBeCloseTo(0, 10);
+      const barTop = barBox.center.y + barBox.size.y / 2;
+      expect(capMesh.position.y).toBeCloseTo(barTop, 10);
+
+      // Nach Abschluss aller Tweens: volle Höhe, Mitte auf Ziel.
+      handle.advanceAnimations(1000);
+      expect(handle.advanceAnimations(5000)).toBe(false);
+      expect(capMesh.scale.y).toBeCloseTo(capBox.size.y, 10);
+      expect(capMesh.position.y).toBeCloseTo(capBox.center.y, 10);
+    });
+  });
+
+  describe('Staffel-Kaskade des Aufbaus (WP-E1)', () => {
+    it('sollte Höhen-Tweens gestaffelt starten (jeder weitere Baukörper wächst einen Staffelschritt später)', () => {
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const layout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+      handle.applyLayout(layout);
+
+      const meshOf = (id: string) => meshesOf(scene).find((m) => m.userData.id === id)!;
+
+      // Erster Tick definiert die Startzeitpunkte (Reihenfolge = Layout-
+      // Reihenfolge: rent, rent:cap, utilities, insurance, furniture).
+      expect(handle.advanceAnimations(1000)).toBe(true);
+      // rent (Index 0) startet sofort; utilities (Index 2) und furniture
+      // (Index 4) stehen 100 ms nach dem Basistick noch bei Höhe 0.
+      expect(handle.advanceAnimations(1100)).toBe(true);
+      expect(meshOf('housing/rent').scale.y).toBeGreaterThan(0);
+      expect(meshOf('housing/utilities').scale.y).toBe(0);
+      expect(meshOf('housing/furniture').scale.y).toBe(0);
+
+      // Weitere 100 ms: Cap (Index 1) und utilities (Index 2) wachsen bereits,
+      // furniture (Index 4 -> Start genau jetzt) noch nicht.
+      expect(handle.advanceAnimations(1200)).toBe(true);
+      expect(meshOf('housing/rent:cap').scale.y).toBeGreaterThan(0);
+      expect(meshOf('housing/utilities').scale.y).toBeGreaterThan(0);
+      expect(meshOf('housing/furniture').scale.y).toBe(0);
+
+      // Nach genügend Zeit: alle exakt am Ziel, kein Tween mehr aktiv.
+      expect(handle.advanceAnimations(3000)).toBe(false);
+      for (const box of layout.boxes.filter((b) => b.kind === 'bar' || b.kind === 'cap')) {
+        expect(meshOf(box.id).scale.y).toBeCloseTo(box.size.y, 10);
+        expect(meshOf(box.id).position.y).toBeCloseTo(box.center.y, 10);
+      }
+    });
+
+    it('sollte bei deaktivierten Animationen (reduced-motion) weiterhin alles sofort setzen — die Staffelung greift nie im Sofort-Pfad', () => {
+      const { handle, scene } = createHandle();
+      const layout = buildCityLayout(cityDemoModel, { level: 'district', focusDistrictId: 'housing' });
+      handle.applyLayout(layout);
+
+      for (const box of layout.boxes.filter((b) => b.kind === 'bar' || b.kind === 'cap')) {
+        const mesh = meshesOf(scene).find((m) => m.userData.id === box.id)!;
+        expect(mesh.scale.y).toBeCloseTo(box.size.y, 10);
+        expect(mesh.position.y).toBeCloseTo(box.center.y, 10);
+      }
+      expect(handle.advanceAnimations(0)).toBe(false);
     });
   });
 

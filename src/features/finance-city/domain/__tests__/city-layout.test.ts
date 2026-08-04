@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCityLayout, computeFocusBounds } from '../city-layout';
+import { adjustHexLightness, buildCityLayout, computeBounds, computeFocusBounds } from '../city-layout';
 import type { CityModel } from '../city-model';
 
 function makeModel(): CityModel {
@@ -466,12 +466,15 @@ describe('buildCityLayout', () => {
     });
   });
 
-  describe('Kanten nur für Hüllen', () => {
-    it('sollte edges nur bei kind "hull" auf true setzen', () => {
+  describe('Kanten für Hüllen und Grundstücke', () => {
+    it('sollte edges nur bei kind "hull" und "plot" auf true setzen (WP-E1: Grundstücke bekommen eine feine Farbkante als "Block"-Begrenzung)', () => {
+      // WP-E1 Visual-Polish: Grundstücke tragen jetzt ebenfalls edges=true
+      // (bewusste Visual-Contract-Änderung — vorher nur Hüllen), damit jeder
+      // Distrikt als eigener "Block" lesbar wird.
       const model = makeModel();
       const layout = buildCityLayout(model, { level: 'city' });
       for (const box of layout.boxes) {
-        if (box.kind === 'hull') {
+        if (box.kind === 'hull' || box.kind === 'plot') {
           expect(box.edges).toBe(true);
         } else {
           expect(box.edges).toBe(false);
@@ -580,6 +583,139 @@ describe('Etagen-Shading (WP-C8)', () => {
       .boxes.filter((b) => b.kind === 'floor')
       .map((b) => b.color);
     expect(colors1).toEqual(colors2);
+  });
+});
+
+describe('Setback-Caps / Dach-Aufsätze (WP-E1)', () => {
+  /**
+   * Modell mit frei wählbaren Unterkategorien-Beträgen. Höhen sind
+   * wurzelskaliert (`scaleHeight`), Referenz ist der Stadt-Maximalbetrag:
+   * der größte Balken wird 6.0 hoch (MAX_BAR_HEIGHT), die Cap-Schwelle
+   * liegt damit bei 0.6 * 6.0 = 3.6 ≙ Beträgen > 36 % des Maximums.
+   */
+  const capModel = (...amounts: number[]): CityModel => ({
+    districts: [
+      {
+        id: 'alpha',
+        label: 'Alpha',
+        color: '#336699',
+        total: amounts.reduce((sum, a) => sum + a, 0),
+        subcategories: amounts.map((a, i) => ({ id: `a${i}`, label: `A${i}`, amount: a })),
+      },
+    ],
+  });
+
+  it('sollte für Balken ÜBER 60 % der Stadt-Höchsthöhe einen Cap emittieren, für niedrigere nicht', () => {
+    const layout = buildCityLayout(capModel(100, 20), { level: 'city' });
+    const caps = layout.boxes.filter((b) => b.kind === 'cap');
+    // Nur der Höchstbalken (100 → 6.0 > 3.6) bekommt einen Aufsatz;
+    // der kleine (20 → ≈2.68) bleibt ohne.
+    expect(caps).toHaveLength(1);
+    expect(caps[0].id).toBe('alpha/a0:cap');
+  });
+
+  it('sollte exakt an der 60-%-Schwelle KEINEN Cap emittieren (strenges Größer-als)', () => {
+    // 36/100 -> sqrt(0.36) * 6 = 3.6 == Schwelle -> kein Cap.
+    const layout = buildCityLayout(capModel(100, 36), { level: 'city' });
+    const barAtThreshold = layout.boxes.find((b) => b.id === 'alpha/a1')!;
+    expect(barAtThreshold.size.y).toBeCloseTo(0.6 * 6, 10);
+    expect(layout.boxes.some((b) => b.id === 'alpha/a1:cap')).toBe(false);
+    expect(layout.boxes.filter((b) => b.kind === 'cap')).toHaveLength(1); // nur alpha/a0
+  });
+
+  it('sollte die Cap-Geometrie ableiten (Footprint 55 %, Höhe 8 % der Balkenhöhe, Fuß auf der Balken-Oberkante)', () => {
+    const layout = buildCityLayout(capModel(100), { level: 'city' });
+    const bar = layout.boxes.find((b) => b.id === 'alpha/a0')!;
+    const cap = layout.boxes.find((b) => b.id === 'alpha/a0:cap')!;
+    expect(cap.size.x).toBeCloseTo(bar.size.x * 0.55, 10);
+    expect(cap.size.z).toBeCloseTo(bar.size.z * 0.55, 10);
+    expect(cap.size.y).toBeCloseTo(bar.size.y * 0.08, 10);
+    // Fußpunkt des Caps = OBERKANTE des Balkens (steht auf dem Dach).
+    const barTop = bar.center.y + bar.size.y / 2;
+    expect(cap.center.y - cap.size.y / 2).toBeCloseTo(barTop, 10);
+    expect(cap.center.x).toBeCloseTo(bar.center.x, 10);
+    expect(cap.center.z).toBeCloseTo(bar.center.z, 10);
+  });
+
+  it('sollte Caps als nicht-pickbare Hilfsboxen ohne Kanten und mit der Opazität ihres Balkens emittieren', () => {
+    const cityLayout = buildCityLayout(capModel(100), { level: 'city' });
+    const cityBar = cityLayout.boxes.find((b) => b.id === 'alpha/a0')!;
+    const cityCap = cityLayout.boxes.find((b) => b.id === 'alpha/a0:cap')!;
+    expect(cityCap.pickable).toBe(false);
+    expect(cityCap.edges).toBe(false);
+    expect(cityCap.labelAnchor).toBeUndefined();
+    expect(cityCap.opacity).toBe(cityBar.opacity);
+
+    // Opazitäts-Stufen folgen dem Balken auch auf district-Ebene.
+    const districtLayout = buildCityLayout(capModel(100), { level: 'district', focusDistrictId: 'alpha' });
+    const districtBar = districtLayout.boxes.find((b) => b.id === 'alpha/a0')!;
+    const districtCap = districtLayout.boxes.find((b) => b.id === 'alpha/a0:cap')!;
+    expect(districtCap.opacity).toBe(districtBar.opacity);
+  });
+
+  it('sollte Caps gegenüber der Distriktfarbe abdunkeln (adjustHexLightness −8)', () => {
+    const layout = buildCityLayout(capModel(100), { level: 'city' });
+    const cap = layout.boxes.find((b) => b.id === 'alpha/a0:cap')!;
+    expect(cap.color).toBe(adjustHexLightness('#336699', -8));
+  });
+
+  it('sollte für fokussierte Gebäude OHNE Etagen (subcategory-Ebene) ebenfalls einen Cap emittieren', () => {
+    const layout = buildCityLayout(capModel(100, 20), {
+      level: 'subcategory',
+      focusDistrictId: 'alpha',
+      focusSubcategoryId: 'a0',
+    });
+    const cap = layout.boxes.find((b) => b.id === 'alpha/a0:cap')!;
+    expect(cap).toBeDefined();
+    const bar = layout.boxes.find((b) => b.id === 'alpha/a0')!;
+    expect(cap.opacity).toBe(bar.opacity);
+  });
+
+  it('[REGRESSION] sollte Caps aus computeFocusBounds ausschließen (Kamera-Rahmung beim Eintauchen bleibt unverändert)', () => {
+    // Cap-Boxen sitzen ÜBER der Balken-Oberkante — würden sie mitgerahmt,
+    // blähte sich die Fokus-Distanz auf und der Balken wirkte kleiner.
+    const layout = buildCityLayout(capModel(100), { level: 'city' });
+    expect(layout.boxes.some((b) => b.kind === 'cap')).toBe(true); // Voraussetzung
+    const bar = layout.boxes.find((b) => b.id === 'alpha/a0')!;
+    const bounds = computeFocusBounds(layout, 'alpha');
+    expect(bounds).not.toBeNull();
+    // Bounds entsprechen EXAKT der Balken-Box allein.
+    const barOnly = computeBounds([bar]);
+    expect(bounds!.center).toEqual(barOnly.center);
+    expect(bounds!.radius).toBeCloseTo(barOnly.boundingRadius, 10);
+  });
+
+  it('[REGRESSION] sollte Caps aus den Stadt-Kamera-Bounds heraushalten (Ziel-Hülle ohne Kopffreiheit: Cap ragt nachweislich über die Stadt hinaus)', () => {
+    // Ziel-Modell (WP-D7): die Hülle ist EXAKT so hoch wie der volle Balken
+    // (kein Kopffreiheits-Aufschlag) — der Cap (8 % über der Balken-Oberkante)
+    // ist hier die EINZIGE Box, die über alles andere hinausragt. Würde er in
+    // die Kamera-Bounds einfließen, wüchse die Fit-Distanz ohne Nutzen.
+    const goalModel: CityModel = {
+      valueKind: 'progress',
+      districts: [
+        {
+          id: 'goal',
+          label: 'Ziel',
+          color: '#f0b429',
+          total: 1,
+          targetAmount: 1,
+          subcategories: [{ id: 'bar', label: 'Ziel', amount: 1 }],
+        },
+      ],
+    };
+    const layout = buildCityLayout(goalModel, { level: 'city' });
+    const cap = layout.boxes.find((b) => b.kind === 'cap');
+    expect(cap).toBeDefined(); // Voraussetzung: voller Ziel-Balken (6.0) liegt über der Schwelle.
+
+    const framed = layout.boxes.filter((b) => b.kind !== 'ground' && b.kind !== 'cap');
+    const expected = computeBounds(framed);
+    expect(layout.center).toEqual(expected.center);
+    expect(layout.boundingRadius).toBeCloseTo(expected.boundingRadius, 10);
+
+    // Der Cap ragt nachweislich ÜBER alle gerahmten Boxen hinaus — sonst
+    // wären die Gleichheits-Assertions oben wirkungslos.
+    const framedMaxY = Math.max(...framed.map((b) => b.center.y + b.size.y / 2));
+    expect(cap!.center.y + cap!.size.y / 2).toBeGreaterThan(framedMaxY);
   });
 });
 

@@ -14,12 +14,35 @@
  * Default `false`) pro Box einen IST→ZIEL-Tween, den `advanceAnimations(nowMs)`
  * pro Frame fortschreibt — getickt vom BESTEHENDEN Render-Loop in
  * `CityCanvas.tsx` (Single-rAF-Invariante, siehe dortiger Kommentar), kein
- * eigener Timer. Zwei Tween-Arten: Höhen-Wachstum (`bar`/`floor`, fußpunkt-
- * verankert über `scale.y`/`position.y`) und Opazitäts-Fade (alle Kinds,
- * IMMER über eine PRO-MESH-Materialklon-Instanz — die geteilte
+ * eigener Timer. Zwei Tween-Arten: Höhen-Wachstum (`bar`/`floor`/`cap`,
+ * fußpunkt-verankert über `scale.y`/`position.y`) und Opazitäts-Fade (alle
+ * Kinds, IMMER über eine PRO-MESH-Materialklon-Instanz — die geteilte
  * `materialRegistry`-Instanz darf während eines Tweens nie mutiert werden,
- * sonst faden alle anderen Boxen mit demselben `${color}|${opacity}|${bucket}`-
- * Schlüssel unbeabsichtigt mit).
+ * sonst faden alle anderen Boxen mit demselben
+ * `${color}|${opacity}|${bucket}|${texture}`-Schlüssel unbeabsichtigt mit).
+ *
+ * WP-E1 (Visual-Polish: Himmel/Boden/Tiefe) — alles statisch, strikt
+ * Render-on-Demand, KEINE Schatten-Maps, DPR-Cap unverändert:
+ * - Himmel: vertikale Gradient-`CanvasTexture` je Theme als `scene.background`
+ *   (Palette `skyTop`/`skyHorizon`); der Fog trägt den HORIZONT-Ton, damit
+ *   der Stadtrand in den Himmel übergeht statt gegen eine Wand aus Farbe.
+ * - Boden: prozedurale Straßen-Raster-Textur (je Theme) als `map` NUR auf dem
+ *   `ground`-Material; Repeat folgt der Bodengröße (gleiche Straßen-Dichte
+ *   auf jeder Ebene). Grundstücke bekommen ihre Farbkante aus der Domain
+ *   (`edges: true`, generischer Kanten-Pfad).
+ * - Kontaktschatten: EINE geteilte Radial-Gradient-Textur + EINE geteilte
+ *   PlaneGeometry; pro Grundstück und pro Balken-/Etagen-Stapel-Fuß eine
+ *   Ebene (`depthWrite: false`, Render-Order zwischen plot und bar) — fake
+ *   Grounding ohne Shadow-Pass. Lebenszyklus folgt dem `applyLayout`-Diff.
+ * - Fassade: EINE geteilte Graustufen-Textur (vertikaler AO-Gradient +
+ *   zartes Fenster-Raster, albedo-only) als `map` auf allen `solid`-
+ *   Materialien — Distrikt-Tint bleibt `material.color`, eine Textur für
+ *   alle Farben. Bewusst KEINE Emissive-Fenster in v1 (Theme-Wechsel bleibt
+ *   billig: Himmel/Boden-Textur + Fog tauschen, kein Registry-Rebuild).
+ * - Caps: `cap`-Boxen (Domain) laufen im `solid`-Bucket mit Balken-Render-
+ *   Order und wachsen im Höhen-Tween (Fuß = Balken-Oberkante).
+ * - Aufbau: gestaffelte Kaskade (`BUILD_STAGGER_MS` je höhenanimierter Box,
+ *   deaktiviert bei reduced-motion, da dort ohnehin sofort angewendet wird).
  */
 
 import * as THREE from 'three';
@@ -48,7 +71,9 @@ export type CitySceneHandle = {
    * an. Liefert `true`, solange mindestens ein Tween noch läuft (Aufrufer
    * ORt das in `changed`/hält den Loop wach), sonst `false`. Der erste Aufruf
    * NACH dem Start eines Tweens definiert dessen `t=0` (Tween-lokal, nicht
-   * global — mehrere zeitlich versetzt gestartete Tweens laufen unabhängig).
+   * global — mehrere zeitlich versetzt gestartete Tweens laufen unabhängig);
+   * WP-E1: bei Höhen-Tweens kommt der Kaskaden-Startversatz
+   * (`staggerIndex × BUILD_STAGGER_MS`) auf diesen ersten Tick obendrauf.
    */
   advanceAnimations(nowMs: number): boolean;
   /**
@@ -118,31 +143,36 @@ export const CAMERA_FOV_Y_DEG = 50;
 type CityTheme = 'light' | 'dark';
 
 type ThemePalette = {
-  background: number;
+  /** WP-E1 Himmel-Verlauf: `skyTop` = tiefer Ton oben, `skyHorizon` = helles Horizontband (zugleich Fog-Farbe). */
+  skyTop: number;
+  skyHorizon: number;
   /** Hemisphären-Licht (Himmel/Boden) + Intensität. */
   hemiSky: number;
   hemiGround: number;
   hemiIntensity: number;
-  /** Gerichtetes Licht (Modellierung/Schattierung der Baukörper). */
+  /** Gerichtetes Licht (Modellierung/Schattierung der Baukörper) — WP-E1 warm eingefärbt (Gegenlicht bleibt kühl). */
   dirColor: number;
   dirIntensity: number;
 };
 
-const THEME_PALETTES: Record<CityTheme, ThemePalette> = {
+/** Exportiert für die Szenen-Tests (Fog-/Licht-Assertions gegen die kanonischen Töne statt duplizierter Literale). */
+export const THEME_PALETTES: Record<CityTheme, ThemePalette> = {
   dark: {
-    background: 0x101719,
+    skyTop: 0x0a1013,
+    skyHorizon: 0x1c2a30,
     hemiSky: 0xdfe8ea,
     hemiGround: 0x14181b,
     hemiIntensity: 1.15,
-    dirColor: 0xffffff,
+    dirColor: 0xfff2e2,
     dirIntensity: 0.85,
   },
   light: {
-    background: 0xeef2f4,
+    skyTop: 0xc8dae4,
+    skyHorizon: 0xf3f7f8,
     hemiSky: 0xffffff,
     hemiGround: 0xd3dce0,
     hemiIntensity: 1.0,
-    dirColor: 0xffffff,
+    dirColor: 0xfff8ec,
     dirIntensity: 0.55, // schwächer: auf hellem Hintergrund würde starkes Direktlicht die Baukörper ausbleichen.
   },
 };
@@ -164,6 +194,178 @@ const EDGE_OPACITY = 0.35;
  */
 const SOLID_EMISSIVE_INTENSITY = 0.16;
 
+// ---------------------------------------------------------------------------
+// WP-E1: Prozedurale Canvas-Texturen (alle ≤ 256 px, EINMAL erzeugt und
+// gecacht, keine Render-Passes). jsdom-Sicherheit: ohne 2D-Canvas-Kontext
+// (jsdom ohne node-canvas) liefern die Fabriken `null` und die Szene fällt
+// still auf un-texturierte Materialien/Farben zurück — gleiche Degradation
+// wie der WebGL-Fallback in `CityCanvas.tsx`.
+// ---------------------------------------------------------------------------
+
+/** 2D-Canvas + Kontext, oder `null` wo kein 2D-Kontext existiert (jsdom). */
+function createCanvas2d(width: number, height: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  return { canvas, ctx };
+}
+
+function hexCss(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
+/** Himmel: 1×256 vertikaler Verlauf (als Hintergrund-Textur bildschirmfüllend gestreckt). */
+const SKY_TEXTURE_HEIGHT = 256;
+
+function createSkyGradientTexture(palette: ThemePalette): THREE.CanvasTexture | null {
+  const target = createCanvas2d(1, SKY_TEXTURE_HEIGHT);
+  if (!target) return null;
+  const { canvas, ctx } = target;
+  // Canvas-y=0 ist der BILDSCHIRM-Oben: tiefer Ton oben, helles Horizontband unten.
+  const gradient = ctx.createLinearGradient(0, 0, 0, SKY_TEXTURE_HEIGHT);
+  gradient.addColorStop(0, hexCss(palette.skyTop));
+  gradient.addColorStop(1, hexCss(palette.skyHorizon));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1, SKY_TEXTURE_HEIGHT);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Boden: 256×256 "Stadtblock"-Kachel (feines Raster + kräftigere Straßenlinien), RepeatWrapping. */
+const GROUND_TEXTURE_SIZE = 256;
+/** Feine Rasterzellen pro Kachel; jede N-te Linie ist eine (kräftigere) Straße. */
+const GROUND_GRID_LINES = 8;
+const GROUND_STREET_EVERY = 4;
+/** Weltgröße einer Boden-Kachel — Repeat wird aus der Bodengröße abgeleitet, damit die Straßen-Dichte auf jeder Ebene gleich bleibt. */
+const GROUND_TILE_WORLD_SIZE = 3;
+
+/**
+ * Kachel-Farbwerte je Theme: die Basis ist nahezu weiß, weil `material.color`
+ * (Domain-`GROUND_COLOR`) weiterhin multipliziert — die Theme-Führung liegt
+ * nur im Linien-Kontrast (dark = asphalt-betonter, light = feiner/neutraler).
+ */
+const GROUND_TEXTURE_STYLES: Record<CityTheme, { base: string; fineLine: string; streetLine: string }> = {
+  dark: { base: '#e9e9e9', fineLine: 'rgba(0,0,0,0.16)', streetLine: 'rgba(0,0,0,0.30)' },
+  light: { base: '#ffffff', fineLine: 'rgba(0,0,0,0.08)', streetLine: 'rgba(0,0,0,0.16)' },
+};
+
+function createGroundTexture(theme: CityTheme): THREE.CanvasTexture | null {
+  const target = createCanvas2d(GROUND_TEXTURE_SIZE, GROUND_TEXTURE_SIZE);
+  if (!target) return null;
+  const { canvas, ctx } = target;
+  const style = GROUND_TEXTURE_STYLES[theme];
+  ctx.fillStyle = style.base;
+  ctx.fillRect(0, 0, GROUND_TEXTURE_SIZE, GROUND_TEXTURE_SIZE);
+
+  const cell = GROUND_TEXTURE_SIZE / GROUND_GRID_LINES;
+  // Feine Rasterlinien: je Zellgrenze 1 px (am Kachelrand nur INNEN zeichnen,
+  // die nächste Kachel setzt nahtlos fort).
+  ctx.fillStyle = style.fineLine;
+  for (let i = 0; i < GROUND_GRID_LINES; i += 1) {
+    const p = Math.round(i * cell);
+    ctx.fillRect(p, 0, 1, GROUND_TEXTURE_SIZE);
+    ctx.fillRect(0, p, GROUND_TEXTURE_SIZE, 1);
+  }
+  // Straßenlinien: 3 px, mittig auf jeder N-ten Zellgrenze — an beiden
+  // Kachelrändern gezeichnet, damit sie nahtlos über den Kachelübergang laufen.
+  ctx.fillStyle = style.streetLine;
+  for (let i = 0; i <= GROUND_GRID_LINES; i += GROUND_STREET_EVERY) {
+    const p = Math.round(i * cell);
+    ctx.fillRect(p - 1, 0, 3, GROUND_TEXTURE_SIZE);
+    ctx.fillRect(0, p - 1, GROUND_TEXTURE_SIZE, 3);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Fassade: 256×256 Graustufen — dominanter vertikaler AO-Gradient (streckungs-tolerant) + zartes Fenster-Raster (Textur-Charakter, keine wörtlichen Fenster). */
+const FACADE_TEXTURE_SIZE = 256;
+const FACADE_AO_MAX_ALPHA = 0.3;
+/** Anteil der Texturhöhe (von unten), über den der AO-Gradient abklingt. */
+const FACADE_AO_FADE_HEIGHT_RATIO = 0.55;
+const FACADE_WINDOW_COLS = 6;
+const FACADE_WINDOW_ROWS = 12;
+const FACADE_WINDOW_ALPHA = 0.07;
+
+function createFacadeTexture(): THREE.CanvasTexture | null {
+  const target = createCanvas2d(FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
+  if (!target) return null;
+  const { canvas, ctx } = target;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
+
+  // AO-Gradient: dunkler Sockel -> nach ~55 % Höhe transparent. Canvas-y=0
+  // ist über `flipY` (three.js-Standard) der Gebäude-OBERKANTE zugeordnet,
+  // der dunkle Anteil liegt also am UNTEREN Canvas-Rand.
+  const ao = ctx.createLinearGradient(
+    0,
+    FACADE_TEXTURE_SIZE,
+    0,
+    FACADE_TEXTURE_SIZE * (1 - FACADE_AO_FADE_HEIGHT_RATIO),
+  );
+  ao.addColorStop(0, `rgba(0,0,0,${FACADE_AO_MAX_ALPHA})`);
+  ao.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ao;
+  ctx.fillRect(0, 0, FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
+
+  const cellW = FACADE_TEXTURE_SIZE / FACADE_WINDOW_COLS;
+  const cellH = FACADE_TEXTURE_SIZE / FACADE_WINDOW_ROWS;
+  ctx.fillStyle = `rgba(0,0,0,${FACADE_WINDOW_ALPHA})`;
+  for (let row = 0; row < FACADE_WINDOW_ROWS; row += 1) {
+    for (let col = 0; col < FACADE_WINDOW_COLS; col += 1) {
+      ctx.fillRect(col * cellW + cellW * 0.25, row * cellH + cellH * 0.3, cellW * 0.5, cellH * 0.45);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Kontaktschatten: 256×256 radialer Alpha-Verlauf (weicher Kern -> transparent). */
+const CONTACT_SHADOW_TEXTURE_SIZE = 256;
+const CONTACT_SHADOW_CORE_ALPHA = 0.42;
+const CONTACT_SHADOW_MID_ALPHA = 0.18;
+/** Radiale Position des Übergangs zum Auslaufen (0..1). */
+const CONTACT_SHADOW_MID_STOP = 0.55;
+
+function createContactShadowTexture(): THREE.CanvasTexture | null {
+  const target = createCanvas2d(CONTACT_SHADOW_TEXTURE_SIZE, CONTACT_SHADOW_TEXTURE_SIZE);
+  if (!target) return null;
+  const { canvas, ctx } = target;
+  const center = CONTACT_SHADOW_TEXTURE_SIZE / 2;
+  const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
+  gradient.addColorStop(0, `rgba(0,0,0,${CONTACT_SHADOW_CORE_ALPHA})`);
+  gradient.addColorStop(CONTACT_SHADOW_MID_STOP, `rgba(0,0,0,${CONTACT_SHADOW_MID_ALPHA})`);
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, CONTACT_SHADOW_TEXTURE_SIZE, CONTACT_SHADOW_TEXTURE_SIZE);
+  return new THREE.CanvasTexture(canvas);
+}
+
+/** Kontaktschatten-Ausdehnung: Grundstück × Faktor, Balken-Footprint + fester Margin. */
+const CONTACT_SHADOW_PLOT_SCALE = 1.15;
+const CONTACT_SHADOW_BAR_MARGIN = 0.25;
+/**
+ * y-Offsets knapp ÜBER der Grundstücks-Oberkante (PLOT_THICKNESS = 0.05,
+ * `city-layout.ts`) — gestaffelt (Balken-Schatten über Plot-Schatten), damit
+ * sich überlappende Ebenen nicht beißen (kein Z-Fighting trotz `depthWrite: false`).
+ */
+const CONTACT_SHADOW_PLOT_Y = 0.058;
+const CONTACT_SHADOW_BAR_Y = 0.072;
+/** Zeichenreihenfolge zwischen Grundstück (0) und Balken (1). */
+const CONTACT_SHADOW_RENDER_ORDER = 0.5;
+/** Fußpunkt-Toleranz: nur Baukörper, die auf dem Boden stehen (nicht Etagen auf Etagen oder Caps auf Dächern), werfen einen Schatten. */
+const CONTACT_SHADOW_FOOT_EPSILON = 0.001;
+
 /**
  * Zwei Material-„Buckets": undurchsichtige Baukörper (Balken/Etagen/Boden)
  * nutzen `MeshLambertMaterial` (reagiert auf Licht, `flatShading` bewusst
@@ -175,9 +377,9 @@ function materialBucketFor(kind: LayoutBoxKind): 'solid' | 'transparent' {
 }
 
 /**
- * Zeichenreihenfolge: Boden zuerst, dann Grundstücke, dann Balken/Etagen,
- * Hüllen zuletzt ("Hüllen NACH Balken" — sonst würde die transparente Hülle
- * Balken dahinter beim Alpha-Blending verdecken können).
+ * Zeichenreihenfolge: Boden zuerst, dann Grundstücke, dann Balken/Etagen/
+ * Caps, Hüllen zuletzt ("Hüllen NACH Balken" — sonst würde die transparente
+ * Hülle Balken dahinter beim Alpha-Blending verdecken können).
  */
 function renderOrderFor(kind: LayoutBoxKind): number {
   switch (kind) {
@@ -187,6 +389,7 @@ function renderOrderFor(kind: LayoutBoxKind): number {
       return 0;
     case 'bar':
     case 'floor':
+    case 'cap':
       return 1;
     case 'hull':
       return 2;
@@ -200,11 +403,25 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   let theme: CityTheme = initialTheme();
   let palette = THEME_PALETTES[theme];
-  /** Aktuelle Hintergrundfarbe — auch von `setFog` genutzt (Fog-Farbe == Hintergrund), damit der Ausklang am Stadtrand nicht gegen einen fremden Ton läuft. */
-  let backgroundColor = palette.background;
+  /** Horizontton des aktiven Themes — Fog-Farbe (WP-E1: der Stadtrand löst sich im Himmel-Horizontband auf statt gegen eine flache Wand aus Farbe). */
+  let horizonColor = palette.skyHorizon;
+
+  // WP-E1: alle Texturen EINMALIG bei Szenen-Erstellung erzeugen (prozedural,
+  // ≤ 256 px) — `setTheme` tauscht danach nur noch Referenzen, kein Neuaufbau.
+  // `null` in Umgebungen ohne 2D-Canvas (jsdom) → stiller Farb-/Basis-Fallback.
+  const skyTextures: Record<CityTheme, THREE.CanvasTexture | null> = {
+    dark: createSkyGradientTexture(THEME_PALETTES.dark),
+    light: createSkyGradientTexture(THEME_PALETTES.light),
+  };
+  const groundTextures: Record<CityTheme, THREE.CanvasTexture | null> = {
+    dark: createGroundTexture('dark'),
+    light: createGroundTexture('light'),
+  };
+  const facadeTexture = createFacadeTexture(); // theme-tolerant (Graustufen-Albedo), kein Swap nötig.
+  const contactShadowTexture = createContactShadowTexture(); // theme-tolerant (Alpha-Matte), kein Swap nötig.
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(backgroundColor);
+  scene.background = skyTextures[theme] ?? new THREE.Color(horizonColor);
 
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV_Y_DEG, 1, CAMERA_NEAR, CAMERA_FAR);
   camera.position.set(0, 10, 16);
@@ -274,6 +491,60 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const meshesById = new Map<string, THREE.Mesh>();
   const edgesById = new Map<string, THREE.LineSegments>();
 
+  // --- WP-E1: Kontaktschatten (fake Grounding, KEINE Schatten-Maps) --------
+  // EINE geteilte Geometrie/Material/Textur für alle Schatten-Ebenen; der
+  // Lebenszyklus der Ebenen folgt dem `applyLayout`-Diff (mit der Box
+  // entfernt, in `dispose()` komplett geräumt). Statisch — null Loop-Kosten.
+  const contactShadowGeometry = new THREE.PlaneGeometry(1, 1);
+  const contactShadowMaterial = contactShadowTexture
+    ? new THREE.MeshBasicMaterial({ map: contactShadowTexture, transparent: true, depthWrite: false })
+    : null; // jsdom-Fallback ohne 2D-Canvas: keine Schatten, Rest unverändert.
+  const contactShadowsById = new Map<string, THREE.Mesh>();
+
+  type ContactShadowSpec = { width: number; depth: number; y: number };
+
+  /**
+   * Welche Box bekommt eine Schatten-Ebene und in welcher Ausdehnung/Höhe?
+   * - Grundstück: × `CONTACT_SHADOW_PLOT_SCALE`, tiefer gestaffelt.
+   * - Balken / UNTERSTE Etage eines Stapels (Fuß auf Bodenhöhe): Footprint +
+   *   Margin, über dem Grundstücks-Schatten. Obere Etagen und Caps (Fuß auf
+   *   einer Box darunter) werfen keinen eigenen Schatten — ein Schatten je
+   *   Stapel, nicht je Etage.
+   */
+  function contactShadowSpecFor(box: LayoutBox): ContactShadowSpec | null {
+    if (box.kind === 'plot') {
+      return {
+        width: box.size.x * CONTACT_SHADOW_PLOT_SCALE,
+        depth: box.size.z * CONTACT_SHADOW_PLOT_SCALE,
+        y: CONTACT_SHADOW_PLOT_Y,
+      };
+    }
+    if (box.kind === 'bar' || box.kind === 'floor') {
+      const foot = box.center.y - box.size.y / 2;
+      if (foot > CONTACT_SHADOW_FOOT_EPSILON) return null;
+      return {
+        width: box.size.x + 2 * CONTACT_SHADOW_BAR_MARGIN,
+        depth: box.size.z + 2 * CONTACT_SHADOW_BAR_MARGIN,
+        y: CONTACT_SHADOW_BAR_Y,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Boden-Textur-Repeat: die Straßen-Dichte soll auf jeder Ebene gleich
+   * bleiben (eine Kachel = `GROUND_TILE_WORLD_SIZE` Welt-Einheiten) — Repeat
+   * folgt der aktuellen Bodengröße. Beide Theme-Texturen werden synchron
+   * gehalten, damit ein Theme-Wechsel die Dichte nicht zurücksetzt.
+   */
+  function syncGroundTextureRepeat(groundBox: LayoutBox): void {
+    const repeatX = Math.max(1, Math.round(groundBox.size.x / GROUND_TILE_WORLD_SIZE));
+    const repeatY = Math.max(1, Math.round(groundBox.size.z / GROUND_TILE_WORLD_SIZE));
+    for (const texture of [groundTextures.light, groundTextures.dark]) {
+      texture?.repeat.set(repeatX, repeatY);
+    }
+  }
+
   // --- WP-C6: Aufbau-Animationen ------------------------------------------
   // Default `false`: bewusst dasselbe Sofort-Verhalten wie vor WP-C6, bis
   // `CityCanvas` explizit `setAnimationsEnabled(!reducedMotion)` aufruft
@@ -282,19 +553,31 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   // Änderung gültig.
   let animationsEnabled = false;
 
-  /** Balken-/Etagen-Wachstum: `scale.y`/`position.y` fußpunkt-verankert. */
+  /** Balken-/Etagen-/Cap-Wachstum: `scale.y`/`position.y` fußpunkt-verankert. */
   const BAR_GROWTH_DURATION_MS = 500;
   /** Opazitäts-Fade (Hüllen-Ebenenwechsel, Balken-Opazitätsstufen etc.). */
   const OPACITY_FADE_DURATION_MS = 400;
+  /**
+   * WP-E1: Staffel-Schritt der Aufbau-Kaskade — der n-te höhenanimierte
+   * Baukörper eines `applyLayout`-Batchs startet `n × BUILD_STAGGER_MS`
+   * später (kurze Settle-Kaskade statt All-at-once). Bei ≤ ~20 Höhen-Tweens
+   * bleibt die Zusatzzeit < 1 s; bei deaktivierten Animationen
+   * (`prefers-reduced-motion`) greift sie nie, weil dort sofort angewendet
+   * wird. KEINE Ambient-/Idle-Animation — die Tweens laufen im bestehenden
+   * Render-on-Demand-Loop und enden dort.
+   */
+  const BUILD_STAGGER_MS = 50;
 
   type HeightTween = {
-    /** `null` = noch nicht getickt — der ERSTE `advanceAnimations`-Aufruf danach definiert `t=0` (wie `city-camera-controller.ts#tick`). */
+    /** `null` = noch nicht getickt — der ERSTE `advanceAnimations`-Aufruf danach definiert `t=0` (wie `city-camera-controller.ts#tick`), zzgl. `staggerIndex × BUILD_STAGGER_MS` (WP-E1-Kaskade). */
     startMs: number | null;
     durationMs: number;
     fromHeight: number;
     toHeight: number;
-    /** Fixer Ziel-Fußpunkt (`box.center.y - box.size.y / 2`) — bei einem Balken auf Bodenebene ist das exakt 0 ("Fuß bleibt bei y=0"), bei einer Etage die kumulierte Stapelhöhe darunter. NICHT selbst interpoliert (Scope-Cut, siehe Report): ändert sich der Fußpunkt zwischen zwei Layouts ausnahmsweise (z. B. Etagen-Reihenfolge), springt die Box beim Tween-Start auf den neuen Fuß. */
+    /** Fixer Ziel-Fußpunkt (`box.center.y - box.size.y / 2`) — bei einem Balken auf Bodenebene ist das exakt 0 ("Fuß bleibt bei y=0"), bei einer Etage die kumulierte Stapelhöhe darunter, bei einem Cap die Balken-Oberkante. NICHT selbst interpoliert (Scope-Cut, siehe Report): ändert sich der Fußpunkt zwischen zwei Layouts ausnahmsweise (z. B. Etagen-Reihenfolge), springt die Box beim Tween-Start auf den neuen Fuß. */
     foot: number;
+    /** WP-E1: Position im `applyLayout`-Batch — Startversatz der Kaskade. */
+    staggerIndex: number;
   };
   const heightTweensById = new Map<string, HeightTween>();
 
@@ -311,7 +594,8 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const opacityTweensById = new Map<string, OpacityTween>();
 
   function isHeightAnimatableKind(kind: LayoutBoxKind): boolean {
-    return kind === 'bar' || kind === 'floor';
+    // WP-E1: Caps wachsen wie ihre Balken (Fuß = Balken-Oberkante).
+    return kind === 'bar' || kind === 'floor' || kind === 'cap';
   }
 
   /** `mesh.material` ist typisiert als `Material | Material[]` (three.js-Generics-Default) — hier werden aber nie Material-Arrays zugewiesen, nur einzelne Instanzen. */
@@ -321,7 +605,14 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   function getMaterial(box: LayoutBox): THREE.Material {
     const bucket = materialBucketFor(box.kind);
-    const key = `${box.color}|${box.opacity}|${bucket}`;
+    // WP-E1: Boden bekommt die (theme-abhängige) Straßen-Textur, alle anderen
+    // soliden Baukörper die (theme-tolerante) Fassaden-Textur — beide
+    // multiplizieren `material.color`, das 1:1-Farbmapping aus der Domain
+    // bleibt erhalten. Die Textur-Art ist Teil des Registry-Schlüssels, damit
+    // Boden und ein zufällig gleichfarbiger Balken nie dieselbe Instanz
+    // teilen (und `setTheme` gezielt NUR Boden-Materialien ummappen kann).
+    const textureKey = box.kind === 'ground' ? 'ground' : bucket === 'solid' ? 'facade' : 'none';
+    const key = `${box.color}|${box.opacity}|${bucket}|${textureKey}`;
     const cached = materialRegistry.get(key);
     if (cached) return cached;
 
@@ -335,6 +626,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
           })
         : new THREE.MeshLambertMaterial({
             color: box.color,
+            map: box.kind === 'ground' ? groundTextures[theme] : facadeTexture,
             // WP-D6: Eigenleuchten in der Boxfarbe (siehe SOLID_EMISSIVE_INTENSITY)
             // — das Hover-Highlight (`setHighlight`) glüht dagegen WEISS und
             // bleibt dadurch klar unterscheidbar.
@@ -357,22 +649,26 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   }
 
   /**
-   * Höhen-/Fußpunkt-Anteil von `applyLayout` (WP-C6). Nur `bar`/`floor`
+   * Höhen-/Fußpunkt-Anteil von `applyLayout` (WP-C6). Nur `bar`/`floor`/`cap`
    * wachsen fußpunkt-verankert; alle anderen Kinds (Hülle/Grundstück/Boden
    * haben ohnehin keine Höhen-Semantik) UND jeder Fall mit deaktivierten
    * Animationen setzen weiterhin sofort die Zielwerte (Alt-Verhalten).
    * x/z sind NIE Teil des Wachstums-Tweens (bewusster Scope-Cut, Report) —
    * Grid-Position/Footprint ändern sich für eine gegebene `box.id` in der
    * Praxis ohnehin nicht zwischen zwei Layouts derselben Box-Art.
+   *
+   * Rückgabe: der frisch registrierte Tween (WP-E1: `applyLayout` vergibt
+   * darauf den `staggerIndex` der Kaskade) oder `null` (Sofort-Pfad/kein
+   * Tween nötig).
    */
-  function applyBoxHeight(mesh: THREE.Mesh, box: LayoutBox, isNewMesh: boolean): void {
+  function applyBoxHeight(mesh: THREE.Mesh, box: LayoutBox, isNewMesh: boolean): HeightTween | null {
     const targetFoot = box.center.y - box.size.y / 2;
 
     if (!animationsEnabled || !isHeightAnimatableKind(box.kind)) {
       mesh.position.set(box.center.x, box.center.y, box.center.z);
       mesh.scale.set(box.size.x, box.size.y, box.size.z);
       heightTweensById.delete(box.id);
-      return;
+      return null;
     }
 
     mesh.scale.x = box.size.x;
@@ -401,16 +697,19 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       // applyLayout (Refetch/Re-Render, gleiche Höhe) um die halbe Höhe unter
       // die Bodenplatte.
       mesh.position.y = targetFoot + box.size.y / 2;
-      return;
+      return null;
     }
 
-    heightTweensById.set(box.id, {
+    const tween: HeightTween = {
       startMs: null,
       durationMs: BAR_GROWTH_DURATION_MS,
       fromHeight,
       toHeight: box.size.y,
       foot: targetFoot,
-    });
+      staggerIndex: 0, // wird von `applyLayout` vergeben (Kaskaden-Reihenfolge).
+    };
+    heightTweensById.set(box.id, tween);
+    return tween;
   }
 
   /**
@@ -483,6 +782,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   function applyLayout(layout: CityLayout): void {
     const seenIds = new Set<string>();
+    // WP-E1: Kaskaden-Zähler — vergibt die Startversatz-Position für jeden in
+    // DIESEM Batch frisch gestarteten Höhen-Tween (Layout-Reihenfolge).
+    let staggerCursor = 0;
 
     for (const box of layout.boxes) {
       seenIds.add(box.id);
@@ -500,7 +802,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       mesh.userData.kind = box.kind;
       mesh.renderOrder = renderOrderFor(box.kind);
 
-      applyBoxHeight(mesh, box, isNewMesh);
+      const startedTween = applyBoxHeight(mesh, box, isNewMesh);
+      if (startedTween) {
+        startedTween.staggerIndex = staggerCursor;
+        staggerCursor += 1;
+      }
       applyBoxOpacity(mesh, box, isNewMesh);
 
       // Degenerierte Nullbox (Distrikt ohne Unterkategorien, city-layout.ts
@@ -510,6 +816,32 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       // animierten `mesh.scale` (ein wachsender Balken mit `scale.y===0` im
       // ersten Frame bleibt trotzdem sichtbar, sein Ziel ist ja > 0).
       mesh.visible = box.size.x > 0 && box.size.y > 0 && box.size.z > 0;
+
+      // WP-E1: Boden-Textur-Kachelung folgt der aktuellen Bodengröße.
+      if (box.kind === 'ground') syncGroundTextureRepeat(box);
+
+      // WP-E1: Kontaktschatten-Ebene (geteilte Geometrie/Material/Textur —
+      // hier wird nur positioniert/skalaliert, nichts neu erzeugt außer dem
+      // einen Mesh pro Box).
+      let contactShadow = contactShadowsById.get(box.id);
+      const shadowSpec = contactShadowMaterial ? contactShadowSpecFor(box) : null;
+      if (shadowSpec && contactShadowMaterial) {
+        if (!contactShadow) {
+          contactShadow = new THREE.Mesh(contactShadowGeometry, contactShadowMaterial);
+          // PlaneGeometry liegt in der XY-Ebene -> auf den Boden (XZ) drehen;
+          // Skalierung wirkt in lokalem Raum: x -> Welt-X, y -> Welt-Z.
+          contactShadow.rotation.x = -Math.PI / 2;
+          contactShadow.renderOrder = CONTACT_SHADOW_RENDER_ORDER;
+          scene.add(contactShadow);
+          contactShadowsById.set(box.id, contactShadow);
+        }
+        contactShadow.position.set(box.center.x, shadowSpec.y, box.center.z);
+        contactShadow.scale.set(shadowSpec.width, shadowSpec.depth, 1);
+        contactShadow.visible = mesh.visible;
+      } else if (contactShadow) {
+        scene.remove(contactShadow);
+        contactShadowsById.delete(box.id);
+      }
 
       let edgeLine = edgesById.get(box.id);
       if (box.edges) {
@@ -551,6 +883,13 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
         scene.remove(edgeLine);
         edgesById.delete(id);
       }
+      // WP-E1: Kontaktschatten-Ebene folgt dem Box-Lebenszyklus (geteilte
+      // Ressourcen bleiben — geräumt wird nur das eine Mesh).
+      const contactShadow = contactShadowsById.get(id);
+      if (contactShadow) {
+        scene.remove(contactShadow);
+        contactShadowsById.delete(id);
+      }
       heightTweensById.delete(id);
       const opacityTween = opacityTweensById.get(id);
       if (opacityTween) {
@@ -569,7 +908,10 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
         heightTweensById.delete(id);
         continue;
       }
-      if (tween.startMs === null) tween.startMs = nowMs;
+      // WP-E1-Kaskade: t=0 des Tweens ist der erste Tick + Staffelversatz.
+      // Bis dahin ist `elapsed` negativ -> rawT 0 -> die Box bleibt auf ihrer
+      // Starthöhe stehen, `stillAnimating` hält den Loop aber wach.
+      if (tween.startMs === null) tween.startMs = nowMs + tween.staggerIndex * BUILD_STAGGER_MS;
 
       const elapsed = nowMs - tween.startMs;
       const rawT = tween.durationMs <= 0 ? 1 : Math.min(1, Math.max(0, elapsed / tween.durationMs));
@@ -727,23 +1069,34 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       return;
     }
     fogRange = { near, far };
-    scene.fog = new THREE.Fog(backgroundColor, near, far);
+    // WP-E1: Fog-Farbe = Horizontton — der Stadtrand löst sich im Himmel auf.
+    scene.fog = new THREE.Fog(horizonColor, near, far);
   }
 
   function setTheme(next: CityTheme): void {
     if (next === theme) return;
     theme = next;
     palette = THEME_PALETTES[theme];
-    backgroundColor = palette.background;
+    horizonColor = palette.skyHorizon;
 
-    (scene.background as THREE.Color).set(backgroundColor);
+    // WP-E1: Himmel-Textur tauschen (Referenz auf die vorgebaute Textur des
+    // Themes — kein Neuaufbau, kein Registry-Rebuild).
+    scene.background = skyTextures[theme] ?? new THREE.Color(horizonColor);
+    // WP-E1: Boden-Textur ist theme-spezifisch — gezielt NUR die map-Referenz
+    // der Boden-Materialien tauschen (Textur-Art steht im Registry-Schlüssel).
+    const groundTexture = groundTextures[theme];
+    for (const [key, material] of materialRegistry) {
+      if (!key.endsWith('|ground')) continue;
+      (material as THREE.MeshLambertMaterial).map = groundTexture;
+      material.needsUpdate = true;
+    }
     hemisphereLight.color.set(palette.hemiSky);
     hemisphereLight.groundColor.set(palette.hemiGround);
     hemisphereLight.intensity = palette.hemiIntensity;
     directionalLight.color.set(palette.dirColor);
     directionalLight.intensity = palette.dirIntensity;
-    // Fog trägt die Hintergrundfarbe — bei Theme-Wechsel mit denselben Grenzen neu setzen.
-    if (fogRange) scene.fog = new THREE.Fog(backgroundColor, fogRange.near, fogRange.far);
+    // Fog trägt den Horizontton — bei Theme-Wechsel mit denselben Grenzen neu setzen.
+    if (fogRange) scene.fog = new THREE.Fog(horizonColor, fogRange.near, fogRange.far);
   }
 
   function render(): void {
@@ -774,6 +1127,19 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
     sharedBoxGeometry.dispose();
     sharedEdgesGeometry.dispose();
+
+    // WP-E1: Kontaktschatten-Ebenen + deren geteilte Ressourcen.
+    for (const contactShadow of contactShadowsById.values()) scene.remove(contactShadow);
+    contactShadowsById.clear();
+    contactShadowGeometry.dispose();
+    contactShadowMaterial?.dispose();
+
+    // WP-E1: prozedurale Texturen (Himmel/Boden je Theme + Fassade/Schatten).
+    contactShadowTexture?.dispose();
+    facadeTexture?.dispose();
+    for (const texture of [skyTextures.light, skyTextures.dark, groundTextures.light, groundTextures.dark]) {
+      texture?.dispose();
+    }
 
     for (const material of materialRegistry.values()) material.dispose();
     materialRegistry.clear();

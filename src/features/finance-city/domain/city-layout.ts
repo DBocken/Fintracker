@@ -11,18 +11,18 @@ import type { CityDistrict, CityModel, CitySubcategory, Vec3 } from './city-mode
 import { scaleHeight, scaleFloors } from './city-scaling';
 
 export type CityLevel = 'city' | 'district' | 'subcategory';
-export type LayoutBoxKind = 'plot' | 'hull' | 'bar' | 'floor' | 'ground';
+export type LayoutBoxKind = 'plot' | 'hull' | 'bar' | 'floor' | 'ground' | 'cap';
 
 export type LayoutBox = {
-  /** Stabil: `districtId` (Hülle) | `districtId/subId` (Balken) | `districtId/subId/contractId` (Etage). Nicht-pickable Hilfsboxen (plot/ground) hängen einen `:kind`-Suffix an. */
+  /** Stabil: `districtId` (Hülle) | `districtId/subId` (Balken) | `districtId/subId/contractId` (Etage). Nicht-pickable Hilfsboxen (plot/ground/cap) hängen einen `:kind`-Suffix an. */
   id: string;
   kind: LayoutBoxKind;
-  /** Mittelpunkt der Box (y = Boden(0) + Höhe/2 — Fußpunkt auf dem Grundstück). */
+  /** Mittelpunkt der Box (y = Boden(0) + Höhe/2 — Fußpunkt auf dem Grundstück; bei `cap` = Balken-Oberkante + halbe Cap-Höhe). */
   center: Vec3;
   size: Vec3;
   color: string;
   opacity: number;
-  /** Dezente Kanten nur für Hüllen. */
+  /** Dezente Kanten für Hüllen und (WP-E1) Grundstücke. */
   edges: boolean;
   /** Raycast-Ziel: Hüllen in city-Level, Balken in district-Level, Etagen in subcategory-Level. */
   pickable: boolean;
@@ -79,6 +79,24 @@ const GROUND_THICKNESS = 0.1;
 const GROUND_MARGIN = 2;
 /** Neutrale Bodenfarbe (Domain kennt keine Theming-Palette, bewusst ein fester Ton). */
 const GROUND_COLOR = '#94a3b8';
+
+// ---------------------------------------------------------------------------
+// Setback-Caps / Dach-Aufsätze (WP-E1): Balken oberhalb eines Schwellwerts
+// der Stadt-Höchsthöhe bekommen einen kleinen, etwas dunkleren Aufsatz —
+// billige Silhouetten-Vielfalt, weiterhin reine Boxen. Caps sind dekorative
+// Hilfsboxen (`:cap`-Suffix, nicht pickbar, keine Kanten, kein Label) und
+// werden weder von `computeFocusBounds` noch von den Stadt-Kamera-Bounds
+// gerahmt (die Rahmung bleibt exakt wie vor WP-E1, REGRESSION-Tests).
+// ---------------------------------------------------------------------------
+
+/** Cap nur für Balken oberhalb dieses Anteils der Stadt-Höchsthöhe (0.6 = 60 %, strenges Größer-als). */
+const CAP_HEIGHT_THRESHOLD_RATIO = 0.6;
+/** Cap-Footprint relativ zum Balken-Footprint (schmalerer "Setback"-Aufsatz). */
+const CAP_FOOTPRINT_RATIO = 0.55;
+/** Cap-Höhe als Anteil der Balkenhöhe (kurzer Aufsatz, keine zweite Etage). */
+const CAP_HEIGHT_RATIO = 0.08;
+/** Cap-Schattierung: etwas dunkler als die Distriktfarbe (Dach wirkt abgesetzt). */
+const CAP_SHADE_DELTA_PERCENT = -8;
 
 // ---------------------------------------------------------------------------
 // Etagen-Shading (WP-C8): reine Hex->HSL->Hex-Arithmetik (kein three.js
@@ -386,7 +404,9 @@ function buildPlotBox(district: CityDistrict, geometry: DistrictGeometry, opacit
     size,
     color: district.color,
     opacity,
-    edges: false,
+    // WP-E1: feine Farbkante ums Grundstück — jeder Distrikt liest sich als
+    // eigener "Block" (bewusste Visual-Contract-Änderung, vorher nur Hüllen).
+    edges: true,
     pickable: false,
   };
 }
@@ -471,6 +491,30 @@ function buildBarBox(
     edges: false,
     pickable,
     labelAnchor: { x: bar.center.x, y: bar.center.y + size.y / 2, z: bar.center.z },
+  };
+}
+
+/**
+ * WP-E1: dekorativer Dach-Aufsatz (Setback-Cap) für hohe Balken. Fußpunkt =
+ * Balken-OBERKANTE (der Cap steht auf dem Dach, nicht auf dem Grundstück) —
+ * dadurch wächst er in der Aufbau-Animation direkt aus dem fertigen Balken.
+ * Nicht pickbar (`:cap`-Suffix, Helferbox-Konvention), keine Kanten, kein
+ * Label; die Opazität folgt der seines Balkens (City-/District-/Dim-Stufen
+ * bleiben visuell konsistent).
+ */
+function buildCapBox(district: CityDistrict, bar: PositionedBar, opacity: number): LayoutBox {
+  const capHeight = bar.height * CAP_HEIGHT_RATIO;
+  const capFootprint = bar.footprint * CAP_FOOTPRINT_RATIO;
+  const barTop = GROUND_LEVEL + bar.height;
+  return {
+    id: `${district.id}/${bar.subcategory.id}:cap`,
+    kind: 'cap',
+    center: { x: bar.center.x, y: barTop + capHeight / 2, z: bar.center.z },
+    size: { x: capFootprint, y: capHeight, z: capFootprint },
+    color: adjustHexLightness(district.color, CAP_SHADE_DELTA_PERCENT),
+    opacity,
+    edges: false,
+    pickable: false,
   };
 }
 
@@ -592,13 +636,16 @@ export function computeBounds(boxes: LayoutBox[]): { center: Vec3; boundingRadiu
  * `${districtId}/${subcategoryId}`) ab, OHNE die Layout-Ebene zu kennen.
  *
  * Gerahmt werden die SICHTBAREN Baukörper (`bar`/`floor`) — NICHT die Hülle
- * (`hull`) und nicht `plot`/`ground` (reine Hilfsgeometrie). Grund
- * (Nutzer-Befund): Die Distrikt-Hülle ist so breit wie das ganze Grundstück,
- * aber beim Eintauchen nahezu unsichtbar (Opazität ~0.04). Rahmte die Kamera
- * sie mit, würde sie das breite, leere Grundstück einfangen und die Balken
- * wirkten viel zu klein. Fallback auf hüllen-inklusive Bounds nur, wenn
- * ausnahmsweise gar kein Baukörper existiert (degenerierter Distrikt).
- * `null`, wenn keine passende Box existiert.
+ * (`hull`) und nicht `plot`/`ground`/`cap` (reine Hilfs-/Dekorgeometrie).
+ * Grund (Nutzer-Befund): Die Distrikt-Hülle ist so breit wie das ganze
+ * Grundstück, aber beim Eintauchen nahezu unsichtbar (Opazität ~0.04).
+ * Rahmte die Kamera sie mit, würde sie das breite, leere Grundstück
+ * einfangen und die Balken wirkten viel zu klein. Derselbe Effekt gilt für
+ * die WP-E1-Caps: sie sitzen ÜBER der Balken-Oberkante und würden die
+ * Fokus-Distanz ohne Nutzen aufblähen (REGRESSION-Test). Fallback auf
+ * hüllen-inklusive Bounds nur, wenn ausnahmsweise gar kein Baukörper
+ * existiert (degenerierter Distrikt). `null`, wenn keine passende Box
+ * existiert.
  */
 export function computeFocusBounds(layout: CityLayout, focusId: string): { center: Vec3; radius: number } | null {
   const matchesFocus = (box: LayoutBox) => box.id === focusId || box.id.startsWith(`${focusId}/`);
@@ -606,7 +653,9 @@ export function computeFocusBounds(layout: CityLayout, focusId: string): { cente
   const boxes =
     solidBoxes.length > 0
       ? solidBoxes
-      : layout.boxes.filter((box) => matchesFocus(box) && box.kind !== 'plot' && box.kind !== 'ground');
+      : layout.boxes.filter(
+          (box) => matchesFocus(box) && box.kind !== 'plot' && box.kind !== 'ground' && box.kind !== 'cap',
+        );
   if (boxes.length === 0) return null;
 
   const { center, boundingRadius } = computeBounds(boxes);
@@ -619,6 +668,11 @@ export function computeFocusBounds(layout: CityLayout, focusId: string): { cente
  */
 export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
   const cityWideMaxAmount = computeCityWideMaxSubcategoryAmount(model);
+  // Stadt-Höchsthöhe (== MAX_BAR_HEIGHT, sobald es positive Beträge gibt) —
+  // Bezugsgröße der WP-E1-Cap-Schwelle, NICHT das Maximum pro Distrikt:
+  // Caps sollen über die ganze Stadt hinweg dasselbe "hohes Gebäude"-
+  // Kriterium bedeuten.
+  const cityWideMaxHeight = scaleHeight(cityWideMaxAmount, cityWideMaxAmount, MAX_BAR_HEIGHT);
 
   const districtsToRender =
     view.level === 'city'
@@ -629,6 +683,14 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
 
   const boxes: LayoutBox[] = [];
   const plotBoxes: LayoutBox[] = [];
+
+  /** Balken pushen inkl. optionalem WP-E1-Setback-Cap (nur oberhalb der Stadt-Höchsthöhen-Schwelle). */
+  const pushBarWithOptionalCap = (district: CityDistrict, bar: PositionedBar, barBox: LayoutBox): void => {
+    boxes.push(barBox);
+    if (bar.height > CAP_HEIGHT_THRESHOLD_RATIO * cityWideMaxHeight) {
+      boxes.push(buildCapBox(district, bar, barBox.opacity));
+    }
+  };
 
   for (const district of districtsToRender) {
     const geometry = geometryByDistrict.get(district.id);
@@ -669,7 +731,7 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
         // BAR_OPACITY_DIMMED_SUBCATEGORY auszuwaschen — sonst wirkt das
         // Eintauchen wie eine tote, verwaschene Sackgasse. Nicht pickbar (es gibt
         // nichts, in das man weiter eintauchen könnte).
-        boxes.push(buildBarBox(district, bar, BAR_OPACITY_DISTRICT, false));
+        pushBarWithOptionalCap(district, bar, buildBarBox(district, bar, BAR_OPACITY_DISTRICT, false));
         continue;
       }
 
@@ -683,7 +745,7 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
             : BAR_OPACITY_DIMMED_SUBCATEGORY;
       const barPickable = view.level === 'district';
 
-      boxes.push(buildBarBox(district, bar, barOpacity, barPickable));
+      pushBarWithOptionalCap(district, bar, buildBarBox(district, bar, barOpacity, barPickable));
     }
   }
 
@@ -694,7 +756,10 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
   // GROUND_MARGIN-Rand gehört nicht zur Stadt — rahmte die Kamera ihn mit,
   // wuchs die Fit-Distanz (v. a. im schmalen Portrait-Viewport) und die
   // Stadt wirkte winzig. Der Boden wird weiterhin gerendert, nur nicht gerahmt.
-  const framedBoxes = boxes.filter((b) => b.kind !== 'ground');
+  // WP-E1: Gleiches gilt für die dekorativen Setback-Caps — sie ragen über
+  // die Balken-Oberkante hinaus (bei Ziel-Hüllen ohne Kopffreiheit sogar über
+  // die Hülle) und dürfen die Fit-Distanz nicht aufblähen (REGRESSION-Test).
+  const framedBoxes = boxes.filter((b) => b.kind !== 'ground' && b.kind !== 'cap');
   const { center, boundingRadius } = computeBounds(framedBoxes.length > 0 ? framedBoxes : boxes);
 
   return { boxes, center, boundingRadius };
