@@ -16,10 +16,18 @@ type Props = {
  * verschachteltes Icon-Kästchen, das fälschlich klickbar wirkt. Stattdessen ein
  * ruhig hinterlegter Block mit großer Zahl. Auswahl/Sortierung passiert zentral
  * über „Dashboard anpassen".
+ *
+ * Kein `shadow-*`: WP-3.5 (Material Token System) hatte hier
+ * `shadow-[var(--shadow-ambient)]` ergänzt und damit dem Readout wieder
+ * Karten-Chrome gegeben — entgegen AGENTS.md §9 und dem Zweck dieser
+ * Komponente. Der `[REGRESSION]`-Test in
+ * `src/components/common/__tests__/decard-regression.test.tsx` war seither rot.
+ * Tiefe entsteht allein aus der Hintergrund-Tönung, die dort ausdrücklich
+ * nicht als Karte zählt.
  */
 export function KpiCard({ label, value, icon: Icon, hint, className }: Props) {
   return (
-    <div {...dyadProps("KpiCard")} className={cn("rounded-xl bg-muted/30 p-4 md:p-5 shadow-[var(--shadow-ambient)]", className)}>
+    <div {...dyadProps("KpiCard")} className={cn("rounded-xl bg-muted/30 p-4 md:p-5", className)}>
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
         <span className="truncate">{label}</span>
