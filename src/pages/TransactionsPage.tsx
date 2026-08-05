@@ -117,12 +117,16 @@ export default function TransactionsPage() {
       />
 
       {model.loading ? (
+        // WP-3.4: Liquid Loading statt klassischem Pulse — dieselbe Sprache wie
+        // im Dashboard.
         <div className="space-y-3">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-64 w-full" />
+          <Skeleton variant="shimmer" className="h-10 w-full" />
+          <Skeleton variant="shimmer" className="h-64 w-full" />
         </div>
       ) : model.isEmpty ? (
-        <FinanceEmptyState />
+        // WP-3.3: Die buchungsspezifische Variante sagt, WAS fehlt, statt den
+        // allgemeinen "noch keine Daten"-Text zu zeigen.
+        <FinanceEmptyState variant="no-transactions" />
       ) : (
         <div data-tour-id="transactions-list" className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
           <TransactionsListPane model={model} detailsTransaction={detailsTransaction} onOpenDetails={openDetails} />

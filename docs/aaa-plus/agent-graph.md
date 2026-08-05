@@ -232,6 +232,54 @@ Der Graph **ersetzt** Plan §10 (Loop-Topologie) und **präzisiert** §11
 - §12 Teststrategie, §15 Definition of Done
 - §16 Ablageorte, Fortschritts- und Commit-Regeln
 
+## 4a. Was der erste echte Lauf offengelegt hat
+
+Der Graph wurde auf die Recharts-Migration angesetzt (25 Serien, 11 Dateien,
+5 Builder). Ergebnis: Gate `bestanden`, keine bestätigten Befunde, 10 Agenten,
+0 Fehler. Zwei Dinge daran sind wichtiger als das Ergebnis.
+
+### Der Router hat den relevantesten Prüfer verfehlt
+
+Aktiviert wurden `a11y`, `regression` (beide immer) und `dataviz`. **`motion`
+nicht** — bei einer Änderung, die ausschließlich aus Motion-Tokens besteht.
+
+Ursache: `routeCritics` prüfte die Trigger gegen die **Dateipfade**. Kein Pfad
+enthält `motion-tokens`, `framer-motion` oder `transition`. `dataviz` griff nur
+zufällig, weil Dateien wie `TransactionCharts.tsx` das Wort „Chart" im Namen
+tragen.
+
+> Ein Pfad sagt, **wo** etwas liegt, nicht **was** sich geändert hat.
+
+Behoben: Der Router bekommt zusätzlich den Auftragstext (und, wo vorhanden, den
+Diff). Der Befund bleibt hier stehen, weil er die Grenze der Konstruktion zeigt
+— der deterministische Boden ist nur so gut wie seine Trigger, und ein zu
+enger Trigger ist unsichtbar: er meldet nichts, er *wählt* nur nichts aus.
+
+### Ein leerer Auftrag lief sauber durch
+
+Beim allerersten Start kam `args` als JSON-String an. `groups` war undefined,
+`parallel([])` lieferte sofort eine leere Liste, **kein Builder startete** — und
+der Graph lief bis zum Maschinen-Gate durch, das eine leere Dateiliste prüfte
+und grün meldete.
+
+Aufgefallen ist das nur beim Lesen des Transkripts, nicht durch ein rotes
+Signal.
+
+> **Das Evidenz-Gate (§3.4) schützt gegen Befunde ohne Beleg. Es schützt nicht
+> gegen eine Prüfung, die nichts findet, weil sie nichts sieht.**
+
+Dagegen hilft nur eine **Korpus-Zusicherung**: „ich habe N Dinge geprüft, und
+N > 0". Dieselbe Fehlerklasse trat am selben Tag im Testcode auf: der
+Duplikat-Wächter in `locale-parity.test.ts` fand wegen CRLF null statt vier
+Locale-Blöcke — und fiel *ausschließlich* deshalb auf, weil er eine solche
+Zusicherung besitzt (`expect(localeStarts.length).toBe(4)`). Die drei anderen
+blinden Prüfungen hatten keine und wurden nur durch gezieltes Nachlesen
+gefunden.
+
+**Regel, die daraus folgt:** Jeder Knoten und jeder Test, der über einen Korpus
+läuft, sichert dessen Größe zu. Im Graphen erzwungen durch den Abbruch bei
+leeren `groups`.
+
 ## 5. Was der Graph nicht kann
 
 - **Er ersetzt kein menschliches Geschmacksurteil.** Der Blind-Benchmark-Knoten
