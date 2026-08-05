@@ -811,22 +811,39 @@ describe('createCityScene', () => {
 
       const meshOf = (id: string) => meshesOf(scene).find((m) => m.userData.id === id)!;
 
-      // Erster Tick definiert die Startzeitpunkte (Reihenfolge = Layout-
-      // Reihenfolge: rent, rent:cap, utilities, insurance, furniture).
-      expect(handle.advanceAnimations(1000)).toBe(true);
-      // rent (Index 0) startet sofort; utilities (Index 2) und furniture
-      // (Index 4) stehen 100 ms nach dem Basistick noch bei Höhe 0.
-      expect(handle.advanceAnimations(1100)).toBe(true);
-      expect(meshOf('housing/rent').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBe(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      // Die Kaskade folgt der LAYOUT-Reihenfolge — und die sortiert die Balken
+      // nach Höhe absteigend, nicht nach der Reihenfolge im Modell. Für
+      // „Wohnen" heißt das rent, rent:cap, utilities, furniture, insurance:
+      // Möbel (45 €) stehen vor der Hausratversicherung (28,50 €). Die
+      // Reihenfolge wird deshalb aus dem Layout abgeleitet statt hier
+      // festgeschrieben; nur höhenanimierte Kinder bekommen einen Staffelplatz.
+      const cascade = layout.boxes
+        .filter((b) => b.kind === 'bar' || b.kind === 'cap' || b.kind === 'floor')
+        .map((b) => b.id);
+      expect(cascade).toEqual([
+        'housing/rent',
+        'housing/rent:cap',
+        'housing/utilities',
+        'housing/furniture',
+        'housing/insurance',
+      ]);
 
-      // Weitere 100 ms: Cap (Index 1) und utilities (Index 2) wachsen bereits,
-      // furniture (Index 4 -> Start genau jetzt) noch nicht.
+      // Erster Tick definiert die Startzeitpunkte, Staffelschritt 50 ms.
+      expect(handle.advanceAnimations(1000)).toBe(true);
+      // 100 ms nach dem Basistick: Index 0 wächst, Index 2 startet genau jetzt
+      // (Höhe noch exakt 0), alles dahinter hat noch gar nicht begonnen.
+      expect(handle.advanceAnimations(1100)).toBe(true);
+      expect(meshOf(cascade[0]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[2]).scale.y).toBe(0);
+      expect(meshOf(cascade[3]).scale.y).toBe(0);
+      expect(meshOf(cascade[4]).scale.y).toBe(0);
+
+      // Weitere 100 ms: Index 1–3 wachsen bereits, Index 4 startet genau jetzt.
       expect(handle.advanceAnimations(1200)).toBe(true);
-      expect(meshOf('housing/rent:cap').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      expect(meshOf(cascade[1]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[2]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[3]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[4]).scale.y).toBe(0);
 
       // Nach genügend Zeit: alle exakt am Ziel, kein Tween mehr aktiv.
       expect(handle.advanceAnimations(3000)).toBe(false);
