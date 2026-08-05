@@ -98,13 +98,17 @@ export function deriveAtmosphere(input: AtmosphereInput): AtmosphereState {
  */
 export function useAtmosphereState(input: AtmosphereInput): AtmosphereState {
   const reduce = useReducedMotion();
+  // Die Felder werden einzeln destrukturiert, damit der Memo-Vergleich an den
+  // WERTEN hängt und nicht an der Objekt-Identität: Aufrufer bauen das
+  // `input`-Objekt typischerweise inline, es ist also bei jedem Render neu.
+  const { monthlyIncome, monthlyExpenses, hasData, budgetOvercount } = input;
 
   return useMemo(() => {
-    const state = deriveAtmosphere(input);
+    const state = deriveAtmosphere({ monthlyIncome, monthlyExpenses, hasData, budgetOvercount });
     // Reduced Motion deaktiviert pulse
     if (reduce) {
       return { ...state, pulse: 'steady' as const };
     }
     return state;
-  }, [input.monthlyIncome, input.monthlyExpenses, input.hasData, input.budgetOvercount, reduce]);
+  }, [monthlyIncome, monthlyExpenses, hasData, budgetOvercount, reduce]);
 }
