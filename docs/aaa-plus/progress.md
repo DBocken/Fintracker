@@ -7,8 +7,10 @@
 
 ## 2026-07 — WP-4.6 Vertical Slice Integration Test + Gate
 
-**Status:** Test-Suite erstellt, 3/4 Dimensionen grün, Visual-Regression-Baselines
-im Bestätigungslauf. **Gate: vorläufig BESTANDEN** (Details unten).
+**Status:** Test-Suite erstellt, alle 4 automatisierten Dimensionen grün.
+**Gate: BESTANDEN** — mit Ausnahme der manuellen Critic-Reviews
+(Art Director / UX / Motion), die nicht automatisierbar sind und als offener
+Restpunkt unten stehen.
 
 ### Ausgeführte Nachweise (`e2e-tests/`)
 
@@ -17,7 +19,7 @@ im Bestätigungslauf. **Gate: vorläufig BESTANDEN** (Details unten).
 | E2E: Onboarding → Dashboard → Stadt → Budget → Detail → Zurück | ✅ grün | `vertical-slice.spec.ts` |
 | Accessibility: 0 Critical axe-core Violations | ✅ grün (nach 2 App-Fixes, siehe unten) | `vertical-slice-a11y.spec.ts` |
 | Performance: LCP < 2.5 s Desktop / < 4 s Mobile, CLS | ✅ grün gegen Dev-Budgets (LCP < 4 s, CLS < 0.1, warme Interaktion < 1 s); Prod-Messung (2.5 s) gehört in CI mit Build-Preview | `vertical-slice-performance.spec.ts` |
-| Visual Regression: < 5 % Pixelabweichung, 3 Viewports (375/768/1440) | ⏳ Alle 9 Baselines geschrieben und verifiziert (deterministisch: eingefrorene Zeit, reduced-motion, WebGL-Canvas maskiert); ein reiner Vergleichslauf steht noch aus | `vertical-slice-visual.spec.ts` |
+| Visual Regression: < 5 % Pixelabweichung, 3 Viewports (375/768/1440) | ✅ grün — Vergleichslauf gegen alle 9 Baselines bestanden, Renderdeterministik bestätigt (eingefrorene Zeit, reduced-motion, WebGL-Canvas maskiert) | `vertical-slice-visual.spec.ts` |
 | Art Director ≥ 3/5, UX Critic ≥ 3/5, Motion Director ≥ 3/5 | ⏳ manuelle Reviews, nicht automatisierbar | — |
 
 ### Durch das Gate gefundene und behobene Mängel
@@ -84,7 +86,8 @@ erhalten, keine bestehenden Tests gelöscht/abgeschwächt.
 
 ### Offen (nächste Programm-Schritte)
 
-- WP-4.6 Rest: Visual-Baseline-Bestätigung + manuelle Critic-Reviews.
+- WP-4.6 Rest: manuelle Critic-Reviews (Art Director/UX/Motion ≥ 3/5 — nicht
+  automatisierbar, Orchestrator-Entscheid).
 - Phase 5: WP-5.1–5.4, 5.6–5.8 (City-Erweiterungen).
 - Phase 6: WP-6.1–6.4, 6.6, 6.8–6.10 (DataViz).
 - Phase 7: WP-7.3–7.5, 7.7–7.8 (Motion).
