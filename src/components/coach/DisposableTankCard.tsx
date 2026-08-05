@@ -51,7 +51,7 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
     return disposable;
   }, [input, fromISO]);
 
-  if (isLoading) return <Skeleton className="h-28 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton variant="shimmer" className="h-28 w-full rounded-2xl" />;
 
   // Ohne erkannten regelmäßigen Eingang lässt sich „bis zum Gehalt" nicht
   // bestimmen → ruhiger Hinweis statt einer leeren Karte (Karten-Regel).

@@ -38,7 +38,7 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
     return expenseCharges(getUpcomingCharges(flows, { fromISO, horizonDays }));
   }, [input, fromISO, horizonDays]);
 
-  if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  if (isLoading) return <Skeleton variant="shimmer" className="h-32 w-full rounded-2xl" />;
 
   if (charges.length === 0) {
     return (
