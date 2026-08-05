@@ -124,7 +124,9 @@ export const everydayRu: TranslationOverlay = {
       'Цифры и графики следуют выбранному фильтру периода. Переключитесь на «Типичный месяц» для усреднённых значений или на «Тренд» для сравнения с предыдущим периодом.',
   },
   transactionStats: {
-    balance: 'Остаток на счёте',
+    // Nicht 'Остаток на счёте' (= Stand auf dem Konto): gemeint ist der Saldo
+    // eines Zeitraums, ein Fluss. Siehe Kommentar in de.ts.
+    balance: 'Осталось за период',
   },
   balanceChart: {
     balance: 'Остаток на счёте',

@@ -91,15 +91,21 @@ export function Dashboard() {
       </InteractiveCard>
 
       {/* WP-4.1: Hero-Hierarchie — ein dominantes Element pro Screen.
-          Der verfügbare Saldo als primäre Kennzahl, deutlich größer als
-          alle anderen Informationen auf diesem Screen. */}
+          Der AKTUELLE KONTOSTAND ist die Hauptaussage (Entscheidung des
+          Auftraggebers, siehe critic-reports/wp-4.6-art-ux-motion.md A-1).
+          Vorher stand hier der Zeitraum-Saldo, den TransactionStats direkt
+          darunter als Kontostand noch einmal ebenso gross wiederholte — in den
+          Demodaten dieselbe Zahl. Zwei konkurrierende Hauptaussagen nehmen dem
+          Hero genau die Dominanz, fuer die er gebaut wurde.
+          Die Bildunterschrift traegt weiterhin die Zeitraum-Aussage: die grosse
+          Zahl sagt, was da IST, die Unterschrift, wohin es sich bewegt. */}
       <StatHero
-        label={t('dashboard.heroBalanceLabel')}
-        value={formatBalance(model.stats.balance)}
+        label={t('dashboard.heroCurrentBalanceLabel')}
+        value={formatBalance(model.stats.currentBalance)}
         caption={model.stats.balance >= 0
           ? t('dashboard.heroBalancePositive')
           : t('dashboard.heroBalanceNegative')}
-        tone={model.stats.balance >= 0 ? 'positive' : 'warning'}
+        tone={model.stats.currentBalance >= 0 ? 'positive' : 'warning'}
       />
 
       {/* WP-4.5: Dashboard → City Transition — Finanzstadt als visuell
@@ -184,7 +190,8 @@ export function Dashboard() {
         balance={model.stats.balance}
         count={model.stats.count}
         totalTransactions={model.transactions.all.length}
-        currentBalance={formatBalance(model.stats.currentBalance)}
+        /* Kein currentBalance: der Hero oben fuehrt ihn bereits. Zweimal
+           dieselbe Zahl gross auf einem Screen war Befund A-1. */
       />
 
       <AnalysisModePanel

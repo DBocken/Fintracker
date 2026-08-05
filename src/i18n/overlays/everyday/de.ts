@@ -126,7 +126,12 @@ export const everydayDe: TranslationOverlay = {
     timeRangeDesc: 'Zahlen und Diagramme folgen dem gewählten Zeitraum-Filter. Wechsle auf „Typischer Monat" für gemittelte Werte oder „Tendenz" für den Vergleich mit dem Vorzeitraum.',
   },
   transactionStats: {
-    balance: 'Kontostand',
+    // NICHT 'Kontostand': das ist der Saldo EINES ZEITRAUMS (Einnahmen minus
+    // Ausgaben), also ein Fluss, kein Stand — und auf dem Dashboard stand
+    // damit dieselbe Bezeichnung an zwei Stellen fuer zwei verschiedene
+    // Groessen. Genau der Fall, den die Faustregel oben meint: falsch-einfach
+    // ist schlimmer als der Fachbegriff.
+    balance: 'Übrig geblieben',
   },
   balanceChart: {
     balance: 'Kontostand',
