@@ -148,6 +148,30 @@ describe('cloud-mcp-sync-service', () => {
 
       expect(snap.cashflow?.month).toBe('2026-06');
     });
+
+    it('[PRIVACY][REGRESSION] sollte selbstvergebene Kategorie- und Budgetnamen als Freitext mitschicken', () => {
+      // Die Zustimmung versprach lange „Freitexte bleiben lokal" (F-MCP-4),
+      // obwohl selbstvergebene Namen mitgehen. Dieser Test hält fest, WAS das
+      // Gerät verlässt — der Zustimmungstext muss dazu passen, nicht umgekehrt.
+      const status = {
+        budget: { name: 'Urlaubskasse Japan' },
+        spent: 10,
+        remaining: 5,
+        ratio: 0.5,
+        health: 'ok',
+      } as unknown as BudgetStatus;
+
+      const snap = buildMcpAggregateSnapshot(
+        baseInput({
+          budgetStatuses: [status],
+          transactions: [tx({ amount: -30, category_id: 'food', date: '2026-06-02' })],
+        }),
+      );
+
+      expect(snap.budget_status[0].name).toBe('Urlaubskasse Japan');
+      const june = snap.monthly_spending.find((m) => m.month === '2026-06')!;
+      expect(june.by_category.map((c) => c.name)).toContain('Lebensmittel');
+    });
   });
 
   describe('Edge Cases', () => {
