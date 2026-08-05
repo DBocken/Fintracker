@@ -79,7 +79,7 @@ export default function CoachPage() {
       <section className="space-y-4">
         <SectionHeader icon={<Sparkles className="h-4 w-4" />} title={t("coach.priorityNow")} />
         {coachLoading ? (
-          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton variant="shimmer" className="h-32 w-full rounded-2xl" />
         ) : focusCard ? (
           <CoachFeedCard card={focusCard} index={0} featured />
         ) : (
@@ -95,7 +95,7 @@ export default function CoachPage() {
         {health ? (
           <CoachStatusGrid health={health} gentle={gentleModeEnabled} />
         ) : (
-          <Skeleton className="h-44 w-full rounded-2xl" />
+          <Skeleton variant="shimmer" className="h-44 w-full rounded-2xl" />
         )}
       </section>
 
@@ -126,7 +126,7 @@ export default function CoachPage() {
         </div>
         <div className="min-w-0 lg:flex-1">
           {coachLoading ? (
-            <Skeleton className="h-36 w-full rounded-2xl" />
+            <Skeleton variant="shimmer" className="h-36 w-full rounded-2xl" />
           ) : coach && health ? (
             <HealthScoreCard health={health} />
           ) : null}
@@ -192,7 +192,7 @@ export default function CoachPage() {
             </Button>
           }
         />
-        {milestonesLoading ? <Skeleton className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} variant="compact" /> : null}
+        {milestonesLoading ? <Skeleton variant="shimmer" className="h-24 w-full rounded-2xl" /> : milestones ? <MilestonesStrip milestones={milestones} variant="compact" /> : null}
       </section>
 
       <section className="space-y-2">

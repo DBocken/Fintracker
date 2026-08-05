@@ -207,8 +207,8 @@ export function ReceivablesPanel() {
 
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
+          <Skeleton variant="shimmer" className="h-20 w-full" />
+          <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
       ) : receivables.length === 0 ? (
         <EmptyState

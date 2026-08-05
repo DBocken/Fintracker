@@ -104,7 +104,7 @@ export default function BudgetsPage() {
       {isLoading ? (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+            <Skeleton variant="shimmer" key={i} className="h-28 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
