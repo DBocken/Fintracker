@@ -14,6 +14,7 @@ import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
 import { AtmosphereLayer } from "@/components/common/AtmosphereLayer";
+import { useGlobalAtmosphere } from "@/hooks/useGlobalAtmosphere";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { useI18n } from "@/i18n/useI18n";
@@ -34,13 +35,18 @@ export default function AppShell() {
   const location = useLocation();
   const { t } = useI18n();
   const title = getTitle(location.pathname, t);
+  // Datengetriebene Grundstimmung. Vorher stand hier ein festes
+  // `{ temperature: 'neutral', intensity: 0, pulse: 'steady' }` — die Schicht
+  // war eingebaut, aber dauerhaft unsichtbar. Der Hook laedt nichts nach,
+  // sondern liest den vorhandenen Query-Cache mit (siehe useGlobalAtmosphere).
+  const atmosphere = useGlobalAtmosphere();
 
   return (
     // overflow-x-clip: globaler Schutz gegen horizontales Seiten-Scrollen. Clip
     // (statt hidden) auf nur einer Achse lässt Sticky-/Fixed-Positionierung
     // (Sidebar, Header, Bottom-Nav) unberührt.
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
-      <AtmosphereLayer state={{ temperature: 'neutral', intensity: 0, pulse: 'steady' }} />
+      <AtmosphereLayer state={atmosphere} />
       <CommandPalette />
       {/* Reihenfolge ist Inhalt: erst woher die Daten kommen (Kapitel 0),
           dann die Lebenssituation — siehe docs/tutorial-sequence.md. */}

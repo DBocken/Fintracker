@@ -98,13 +98,20 @@ export function deriveAtmosphere(input: AtmosphereInput): AtmosphereState {
  */
 export function useAtmosphereState(input: AtmosphereInput): AtmosphereState {
   const reduce = useReducedMotion();
+  // Felder einzeln herausziehen statt `input` als Ganzes in die Abhaengigkeiten:
+  // verhaltensgleich zur bisherigen Fassung (die dieselben vier Felder
+  // auflistete), aber ohne die exhaustive-deps-Warnung. `input` selbst als
+  // Abhaengigkeit waere schlechter — Aufrufer, die ein Objektliteral inline
+  // bauen, wuerden bei jedem Render eine neue Identitaet liefern und das Memo
+  // sowie das nachgelagerte memo() des AtmosphereLayer wirkungslos machen.
+  const { monthlyIncome, monthlyExpenses, hasData, budgetOvercount } = input;
 
   return useMemo(() => {
-    const state = deriveAtmosphere(input);
+    const state = deriveAtmosphere({ monthlyIncome, monthlyExpenses, hasData, budgetOvercount });
     // Reduced Motion deaktiviert pulse
     if (reduce) {
       return { ...state, pulse: 'steady' as const };
     }
     return state;
-  }, [input.monthlyIncome, input.monthlyExpenses, input.hasData, input.budgetOvercount, reduce]);
+  }, [monthlyIncome, monthlyExpenses, hasData, budgetOvercount, reduce]);
 }
