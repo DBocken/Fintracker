@@ -231,9 +231,18 @@ export function buildMcpAggregateSnapshot(input: SnapshotInput): McpAggregateSna
   const allocated = (key: 'savings' | 'essentials' | 'discretionary'): number =>
     input.waterfall?.steps.find((s) => s.key === key)?.allocated ?? 0;
 
+  // Der Wasserfall-Plan beschreibt den LAUFENDEN Monat. `months` ist laut Typ in
+  // beliebiger Richtung sortiert (`lastNMonths()` liefert aufsteigend), deshalb
+  // wird der jüngste Key gesucht statt der erste genommen — `months[0]` hat den
+  // aktuellen Cashflow sonst mit dem ältesten Monat des Fensters etikettiert.
+  const latestMonth = input.months.reduce<string | null>(
+    (newest, month) => (newest === null || month > newest ? month : newest),
+    null,
+  );
+
   const cashflow: McpCashflow | null = input.waterfall
     ? {
-        month: input.months[0] ?? input.now.slice(0, 7),
+        month: latestMonth ?? input.now.slice(0, 7),
         expected_income: round2(input.waterfall.income),
         expected_expenses: round2(allocated('essentials') + allocated('discretionary')),
         expected_savings: round2(allocated('savings')),

@@ -118,6 +118,36 @@ describe('cloud-mcp-sync-service', () => {
         months_analyzed: 6,
       });
     });
+
+    it('[REGRESSION] sollte den Cashflow mit dem jüngsten Monat etikettieren, egal wie months sortiert ist', () => {
+      // Der Produktionsaufrufer speist `lastNMonths()` ein — das liefert
+      // AUFSTEIGEND. `months[0]` war damit der ÄLTESTE Monat des Fensters:
+      // Die KI las den aktuellen Cashflow unter einem Monate alten Datum.
+      const waterfall = {
+        income: 3000,
+        surplus: 400,
+        monthsAnalyzed: 6,
+        steps: [{ key: 'savings', allocated: 300 }],
+      } as unknown as WaterfallPlan;
+
+      const ascending = buildMcpAggregateSnapshot(
+        baseInput({ waterfall, months: ['2026-04', '2026-05', '2026-06'] }),
+      );
+      const descending = buildMcpAggregateSnapshot(
+        baseInput({ waterfall, months: ['2026-06', '2026-05', '2026-04'] }),
+      );
+
+      expect(ascending.cashflow?.month).toBe('2026-06');
+      expect(descending.cashflow?.month).toBe('2026-06');
+    });
+
+    it('[REGRESSION] sollte ohne months auf den Monat aus now zurückfallen', () => {
+      const waterfall = { income: 0, surplus: 0, steps: [] } as unknown as WaterfallPlan;
+
+      const snap = buildMcpAggregateSnapshot(baseInput({ waterfall, months: [] }));
+
+      expect(snap.cashflow?.month).toBe('2026-06');
+    });
   });
 
   describe('Edge Cases', () => {
