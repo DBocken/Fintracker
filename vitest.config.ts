@@ -1,5 +1,5 @@
 import path from "path"
-import { defineConfig } from "vitest/config"
+import { configDefaults, defineConfig } from "vitest/config"
 
 export default defineConfig({
   resolve: {
@@ -11,6 +11,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     css: false,
+    // `e2e-tests/` enthält Playwright-Specs (WP-4.6). Vitests Standard-Glob
+    // greift auch `*.spec.ts` und lud sie mit — Playwright bricht dann beim
+    // ersten `test.describe()` ab („did not expect test.describe() to be
+    // called here"). Die Specs gehören einem eigenen Runner, nicht dieser Suite.
+    exclude: [...configDefaults.exclude, "e2e-tests/**"],
     // v8-Coverage-Instrumentierung verdoppelt grob die Laufzeit; rechenintensive
     // Tests (Monte-Carlo-Forecast, PBKDF2/AES) reißen sonst die 5s-Standardgrenze
     // auf langsameren CI-Runnern. 20s gibt Puffer, ohne echte Hänger zu verstecken.
