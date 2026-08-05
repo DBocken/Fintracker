@@ -103,6 +103,8 @@ export type CitySceneHandle = {
   setFog(near: number, far: number): void;
   /** WP-C9: Light/Dark umschalten (Hintergrund, Beleuchtung, Fog-Farbe). Initial aus der `dark`-Klasse am `<html>` abgeleitet; `CityCanvas` spiegelt spätere Theme-Wechsel per `subscribeToDarkModeChanges`. */
   setTheme(theme: 'light' | 'dark'): void;
+  /** WP-4.3: Atmosphäre-Preset — subtile Lichtmodulation basierend auf Finanzzustand. */
+  setAtmospherePreset(preset: 'stable' | 'neutral' | 'risk'): void;
   render(): void;
   /** Räumt ALLES auf: geteilte Geometrien, Material-/Edge-Material-Registry, Renderer. */
   dispose(): void;
@@ -950,6 +952,18 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       }
     }
 
+    // WP-4.3: Light-intensity tween (Atmosphäre-Preset)
+    if (lightTween) {
+      if (lightTween.startMs === null) lightTween.startMs = nowMs;
+      const elapsed = nowMs - lightTween.startMs;
+      const rawT = lightTween.durationMs <= 0 ? 1 : Math.min(1, Math.max(0, elapsed / lightTween.durationMs));
+      const eased = easeInOutCubic(rawT);
+      hemisphereLight.intensity = lightTween.fromHemiIntensity + (lightTween.toHemiIntensity - lightTween.fromHemiIntensity) * eased;
+      directionalLight.intensity = lightTween.fromDirIntensity + (lightTween.toDirIntensity - lightTween.fromDirIntensity) * eased;
+      if (rawT >= 1) lightTween = null;
+      else stillAnimating = true;
+    }
+
     return stillAnimating;
   }
 
@@ -1100,6 +1114,63 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     if (fogRange) scene.fog = new THREE.Fog(horizonColor, fogRange.near, fogRange.far);
   }
 
+  // --- WP-4.3: Atmosphäre-Preset (subtile Lichtmodulation) ----------------
+  /** Lichtintensitäts-Multiplikatoren je Preset — ≤ 5% Abweichung vom Default. */
+  const ATMOSPHERE_LIGHT_MULTIPLIER: Record<'stable' | 'neutral' | 'risk', number> = {
+    stable: 1.03,
+    neutral: 1.0,
+    risk: 0.97,
+  };
+
+  let currentPreset: 'stable' | 'neutral' | 'risk' = 'neutral';
+
+  /** Light-intensity tween (WP-4.3). */
+  type LightTween = {
+    startMs: number | null;
+    durationMs: number;
+    fromHemiIntensity: number;
+    toHemiIntensity: number;
+    fromDirIntensity: number;
+    toDirIntensity: number;
+  };
+  let lightTween: LightTween | null = null;
+
+  function atmosphereTargetIntensities(preset: 'stable' | 'neutral' | 'risk') {
+    const mult = ATMOSPHERE_LIGHT_MULTIPLIER[preset];
+    return {
+      hemi: palette.hemiIntensity * mult,
+      dir: palette.dirIntensity * mult,
+    };
+  }
+
+  function setAtmospherePreset(preset: 'stable' | 'neutral' | 'risk'): void {
+    if (preset === currentPreset && lightTween === null) return;
+
+    const targets = atmosphereTargetIntensities(preset);
+    const currentHemi = hemisphereLight.intensity;
+    const currentDir = directionalLight.intensity;
+
+    // Bei deaktivierten Animationen: sofort anwenden (reduced-motion).
+    if (!animationsEnabled) {
+      hemisphereLight.intensity = targets.hemi;
+      directionalLight.intensity = targets.dir;
+      currentPreset = preset;
+      lightTween = null;
+      return;
+    }
+
+    // Animation starten
+    lightTween = {
+      startMs: null,
+      durationMs: MOTION_DURATIONS.slow,
+      fromHemiIntensity: currentHemi,
+      toHemiIntensity: targets.hemi,
+      fromDirIntensity: currentDir,
+      toDirIntensity: targets.dir,
+    };
+    currentPreset = preset;
+  }
+
   function render(): void {
     renderer.render(scene, camera);
   }
@@ -1159,6 +1230,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     setSize,
     setFog,
     setTheme,
+    setAtmospherePreset,
     render,
     dispose,
     applyCameraPose,

@@ -73,6 +73,7 @@ export default function BudgetDetailDialog({
             size={150}
             animate
             warnThreshold={budget.warn_threshold ?? 80}
+            layoutId={`budget-tank-${budget.id}`}
           />
 
           <Badge variant="outline" className={cn("text-xs", badge.className)}>

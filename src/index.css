@@ -337,3 +337,36 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }
 }
+
+/*
+ * WP-3.4: Liquid Loading — brand-farbige Shimmer-Welle statt generischem
+ * Pulse. Die Welle wandert horizontal durch das Element und suggeriert
+ * Flüssigkeit/Material. Wird durch die globale reduced-motion-Policy
+ * neutralisiert (animation-duration: 0.001ms).
+ */
+@keyframes skeleton-shimmer-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsla(var(--brand), 0.15),
+    hsla(var(--brand), 0.25),
+    hsla(var(--brand), 0.15),
+    transparent
+  );
+  animation: skeleton-shimmer-wave 1.8s var(--motion-easing-build, ease-in-out) infinite;
+  will-change: transform;
+}

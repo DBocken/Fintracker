@@ -54,6 +54,7 @@ function makeSceneStub(): CitySceneHandle {
     advanceAnimations: vi.fn(() => false),
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),
+    setAtmospherePreset: vi.fn(),
     pick: vi.fn(() => null),
     setHighlight: vi.fn(),
     setSize: vi.fn(),

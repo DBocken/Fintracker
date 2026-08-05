@@ -30,6 +30,7 @@ import {
 } from "@/features/finance-city/presentation/city-camera-controller";
 import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
+import { deriveAtmosphere } from "@/hooks/useAtmosphereState";
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
 const MAX_VISIBLE_LABELS_MOBILE = 6;
@@ -226,6 +227,31 @@ export default function CityPage() {
   useEffect(() => {
     setHoveredBoxId(null);
   }, [nav.level]);
+
+  // WP-4.3: Atmosphäre-Preset aus den Stadt-Daten ableiten und auf die Szene
+  // anwenden. Die Stadt zeigt subtil ihre "Stimmung" basierend auf den
+  // Finanzzahlen, die sie visualisiert.
+  const atmospherePreset = useMemo(() => {
+    if (activeTab === 'overview' && overview) {
+      const state = deriveAtmosphere({
+        monthlyIncome: overview.incomeTotal,
+        monthlyExpenses: overview.expensesTotal,
+        hasData: true,
+        budgetOvercount: 0, // Overview doesn't track budget overruns
+      });
+      if (state.temperature === 'warm') return 'stable';
+      if (state.temperature === 'cool') return 'risk';
+      return 'neutral';
+    }
+    if (model.valueKind === 'progress') return 'neutral'; // Goals: no monetary atmosphere
+    // For income/expenses tabs: neutral atmosphere (single-sided data)
+    return 'neutral';
+  }, [activeTab, overview, model.valueKind]);
+
+  useEffect(() => {
+    sceneRef.current?.setAtmospherePreset(atmospherePreset);
+    controlsApiRef.current?.invalidate();
+  }, [atmospherePreset]);
 
   // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
   // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)

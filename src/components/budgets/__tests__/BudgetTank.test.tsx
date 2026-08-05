@@ -1,6 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import BudgetTank from "../BudgetTank";
+
+const reduceMock = vi.fn(() => false);
+vi.mock("@/hooks/useReducedMotion", () => ({
+  useReducedMotion: () => reduceMock(),
+}));
+
+afterEach(() => reduceMock.mockReturnValue(false));
 
 // Der Tank ist ein reines SVG (kein Canvas/Lottie), daher in jsdom direkt
 // renderbar. Wir prüfen die datengetriebene Füllung über das data-fill-Attribut
@@ -40,7 +47,33 @@ describe("BudgetTank", () => {
     expect(ids.size).toBe(grads.length);
   });
 
-  describe("Mikroreaktionen (WP-4.2)", () => {
+  it("sollte mit layoutId einen Framer-Motion-Wrapper rendern (WP-4.4)", () => {
+    const { container } = render(
+      <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
+    );
+    const wrapper = container.querySelector('[data-framer-name]');
+    expect(wrapper).not.toBeNull();
+  });
+
+  it("sollte ohne layoutId keinen Framer-Motion-Wrapper rendern (WP-4.4)", () => {
+    const { container } = render(
+      <BudgetTank fillPercent={50} health="ok" />,
+    );
+    const wrapper = container.querySelector('[data-framer-name]');
+    expect(wrapper).toBeNull();
+  });
+
+  it("sollte bei reduced-motion keinen layoutId-Wrapper rendern (WP-4.4)", () => {
+    reduceMock.mockReturnValue(true);
+    const { container } = render(
+      <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
+    );
+    const wrapper = container.querySelector('[data-framer-name]');
+    expect(wrapper).toBeNull();
+    expect(container.querySelector("svg")).toBeTruthy();
+  });
+
+describe("Mikroreaktionen (WP-4.2)", () => {
     it("sollte bei Initial-Mount mit health=over keinen Shake auslösen", () => {
       const { container } = render(<BudgetTank fillPercent={110} health="over" animate={false} />);
       const svg = container.querySelector("svg");

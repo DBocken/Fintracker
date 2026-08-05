@@ -57,7 +57,12 @@ export default function BudgetTile({ status, onClick }: BudgetTileProps) {
         {budget.icon || "💧"}
         <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[health])} />
       </span>
-      <BudgetTank fillPercent={fillPercent} health={health} size={56} />
+      <BudgetTank
+        fillPercent={fillPercent}
+        health={health}
+        size={56}
+        layoutId={`budget-tank-${budget.id}`}
+      />
     </button>
   );
 }

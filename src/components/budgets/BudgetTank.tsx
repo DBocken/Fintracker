@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { smoothstep, hexToRgb, lerpRgb, rgbStr, type RgbTuple } from "@/lib/color-mix";
 import { MOTION_DURATIONS } from "@/lib/motion-tokens";
@@ -82,6 +83,8 @@ interface BudgetTankProps {
   animate?: boolean;
   /** Warnschwelle in Prozent (Default 80) – steuert den Farbumschlag. */
   warnThreshold?: number;
+  /** WP-4.4: Framer Motion layoutId für Shared-Element-Transitions zwischen Kachel und Detail. */
+  layoutId?: string;
 }
 
 /**
@@ -97,6 +100,7 @@ export default function BudgetTank({
   className,
   animate = false,
   warnThreshold = 80,
+  layoutId,
 }: BudgetTankProps) {
   const uid = useId().replace(/:/g, "");
   const reduce = useReducedMotion();
@@ -163,7 +167,7 @@ export default function BudgetTank({
   const clipId = `tank-clip-${uid}`;
   const glossId = `tank-gloss-${uid}`;
 
-  return (
+  const svg = (
     <svg
       viewBox="0 0 100 130"
       width={size}
@@ -255,4 +259,20 @@ export default function BudgetTank({
       />
     </svg>
   );
+
+  // WP-4.4: Bei layoutId wird das SVG in eine motion.div mit Layout-Animation
+  // gewrappt, damit Framer Motion den Übergang zwischen Kachel und Detail
+  // animieren kann. Bei reduced-motion wird kein Wrapper gerendert.
+  if (layoutId && !reduce) {
+    return (
+      <motion.div
+        layoutId={layoutId}
+        transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {svg}
+      </motion.div>
+    );
+  }
+
+  return svg;
 }

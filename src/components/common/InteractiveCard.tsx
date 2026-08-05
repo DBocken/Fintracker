@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_DURATIONS } from "@/lib/motion-tokens";
 
 type Indicator = "arrow" | "expand" | "none";
 
@@ -24,6 +26,8 @@ interface InteractiveCardProps {
   "aria-label"?: string;
   disabled?: boolean;
   className?: string;
+  /** WP-3.2: Framer Motion layoutId für Shared-Element-Transitions. */
+  layoutId?: string;
   children: React.ReactNode;
 }
 
@@ -50,6 +54,7 @@ export default function InteractiveCard({
   "aria-label": ariaLabel,
   disabled,
   className,
+  layoutId,
   children,
 }: InteractiveCardProps) {
   const which: Indicator = indicator ?? (expanded !== undefined ? "expand" : "arrow");
@@ -80,11 +85,25 @@ export default function InteractiveCard({
       />
     ) : null;
 
-  const content = (
+  const inner = (
     <>
       <div className="min-w-0 flex-1">{children}</div>
       {indicatorEl}
     </>
+  );
+
+  // WP-3.2: Bei layoutId wird der Inhalt in eine motion.div mit
+  // Layout-Animation gewrappt, damit Framer Motion den Übergang zur
+  // Detailansicht animieren kann.
+  const content = layoutId ? (
+    <motion.div
+      layoutId={layoutId}
+      transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {inner}
+    </motion.div>
+  ) : (
+    inner
   );
 
   if (to && !disabled) {

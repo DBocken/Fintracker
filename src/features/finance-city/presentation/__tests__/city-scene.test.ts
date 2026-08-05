@@ -941,4 +941,103 @@ describe('createCityScene', () => {
       expect(handle[key]).toBeDefined();
     }
   });
+
+  describe('Atmosphäre-Preset (WP-4.3)', () => {
+    it('sollte setAtmospherePreset auf dem Handle verfügbar haben', () => {
+      const { handle } = createHandle();
+      expect(typeof handle.setAtmospherePreset).toBe('function');
+    });
+
+    it('sollte nach setAtmospherePreset("risk") advanceAnimations true liefern (Animation läuft)', () => {
+      const { handle } = createHandle();
+      handle.setAnimationsEnabled(true);
+      handle.setAtmospherePreset('risk');
+
+      // Erster Tick: definiert Startzeit, Tween läuft → true
+      expect(handle.advanceAnimations(1000)).toBe(true);
+
+      // Nach ausreichend Zeit: Tween abgeschlossen → false
+      expect(handle.advanceAnimations(5000)).toBe(false);
+    });
+
+    it('sollte bei "risk" die Lichtintensität subtil verringern (≤ 5%)', () => {
+      const { handle } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const scene = handle.camera.parent as THREE.Scene;
+      const hemiLight = scene.children.find((c) => c instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
+
+      const baseIntensity = hemiLight.intensity;
+      handle.setAtmospherePreset('risk');
+      // Animation abschließen
+      handle.advanceAnimations(1000);
+      handle.advanceAnimations(5000);
+
+      // Intensität sollte leicht verringert sein
+      expect(hemiLight.intensity).toBeLessThan(baseIntensity);
+      // Aber nicht drastisch (≤ 5% Abweichung)
+      const deviation = Math.abs(hemiLight.intensity - baseIntensity) / baseIntensity;
+      expect(deviation).toBeLessThanOrEqual(0.05);
+    });
+
+    it('sollte bei "stable" die Lichtintensität subtil erhöhen (≤ 5%)', () => {
+      const { handle } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const scene = handle.camera.parent as THREE.Scene;
+      const hemiLight = scene.children.find((c) => c instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
+
+      const baseIntensity = hemiLight.intensity;
+      handle.setAtmospherePreset('stable');
+      handle.advanceAnimations(1000);
+      handle.advanceAnimations(5000);
+
+      expect(hemiLight.intensity).toBeGreaterThan(baseIntensity);
+      const deviation = Math.abs(hemiLight.intensity - baseIntensity) / baseIntensity;
+      expect(deviation).toBeLessThanOrEqual(0.05);
+    });
+
+    it('sollte bei "neutral" die Standard-Intensität beibehalten', () => {
+      const { handle } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const scene = handle.camera.parent as THREE.Scene;
+      const hemiLight = scene.children.find((c) => c instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
+
+      const baseIntensity = hemiLight.intensity;
+      handle.setAtmospherePreset('neutral');
+      handle.advanceAnimations(1000);
+      handle.advanceAnimations(5000);
+
+      expect(hemiLight.intensity).toBeCloseTo(baseIntensity, 5);
+    });
+
+    it('[VB-2] sollte die Geometrie nicht verändern', () => {
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+      const layout = buildCityLayout(cityDemoModel, { level: 'city' });
+      handle.applyLayout(layout);
+
+      // Positionen/Höhen vor dem Preset-Wechsel
+      const bars = meshesOf(scene).filter((m) => m.userData.kind === 'bar');
+      const positionsBefore = bars.map((m) => ({ x: m.position.x, y: m.position.y, z: m.position.z, sy: m.scale.y }));
+
+      handle.setAtmospherePreset('risk');
+      handle.advanceAnimations(5000);
+
+      const positionsAfter = bars.map((m) => ({ x: m.position.x, y: m.position.y, z: m.position.z, sy: m.scale.y }));
+      expect(positionsAfter).toEqual(positionsBefore);
+    });
+
+    it('sollte bei deaktivierten Animationen sofort angewendet werden (reduced-motion)', () => {
+      const { handle } = createHandle();
+      // animationsEnabled bleibt false (default)
+      const scene = handle.camera.parent as THREE.Scene;
+      const hemiLight = scene.children.find((c) => c instanceof THREE.HemisphereLight) as THREE.HemisphereLight;
+
+      const baseIntensity = hemiLight.intensity;
+      handle.setAtmospherePreset('risk');
+
+      // Ohne advanceAnimations-Aufruf sollte die Intensität sofort angepasst sein
+      expect(hemiLight.intensity).toBeLessThan(baseIntensity);
+      expect(handle.advanceAnimations(0)).toBe(false);
+    });
+  });
 });
