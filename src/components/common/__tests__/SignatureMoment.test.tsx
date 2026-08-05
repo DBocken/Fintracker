@@ -63,10 +63,26 @@ describe('SignatureMoment (WP-6.5)', () => {
     const { container } = render(
       <SignatureMoment title="Test" icon="🎯" />,
     );
-    const el = container.querySelector('[data-testid="signature-moment"]');
+    const el = container.querySelector('[data-testid="signature-moment"]') as HTMLElement;
     expect(el).toBeInTheDocument();
-    // Should not have animation styles on the container
-    expect(el?.getAttribute('style')).toBeFalsy();
+    // Framer Motion schreibt das `style`-Attribut auch im Ruhezustand — sein
+    // bloßes Vorhandensein belegt deshalb keine Bewegung. Der Nachweis ist der
+    // Zustand selbst: sofort am Ziel, also keine Transformation und volle
+    // Deckkraft ab dem ersten Frame.
+    expect(['', 'none']).toContain(el.style.transform);
+    expect(['', '1']).toContain(el.style.opacity);
+  });
+
+  it('[REGRESSION] sollte ohne reduced-motion NICHT sofort im Endzustand starten', () => {
+    // Gegenprobe zum Test darüber: ohne sie wäre „statisch" nicht von „animiert"
+    // zu unterscheiden und der Reduced-Motion-Nachweis wertlos.
+    reduceMock.mockReturnValue(false);
+    const { container } = render(
+      <SignatureMoment title="Test" icon="🎯" />,
+    );
+    const el = container.querySelector('[data-testid="signature-moment"]') as HTMLElement;
+    expect(el.style.opacity).toBe('0');
+    expect(el.style.transform).toContain('scale');
   });
 
   it('sollte einen dezenten Glow-Effekt haben', () => {

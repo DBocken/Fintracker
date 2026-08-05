@@ -16,6 +16,21 @@ function fillOf(container: HTMLElement): number {
   return Number(container.querySelector("svg")?.getAttribute("data-fill"));
 }
 
+/**
+ * Ob der Tank in die `motion.div` für die Shared-Element-Transition gewrappt ist.
+ *
+ * Geprüft wird die Struktur, nicht ein Attribut: framer-motion setzt KEIN
+ * `data-framer-name` (das stammt aus dem Framer-Design-Tool, nicht aus der
+ * Bibliothek). Die Vorgängerfassung suchte danach — der Positiv-Test konnte
+ * deshalb nie bestehen, und die beiden Negativ-Tests bestanden immer, ganz
+ * gleich was gerendert wurde. Beobachtbar ist: mit Wrapper ist die Wurzel ein
+ * `div` um das SVG, ohne Wrapper ist das SVG selbst die Wurzel.
+ */
+function hasMotionWrapper(container: HTMLElement): boolean {
+  const root = container.firstElementChild;
+  return root?.tagName.toLowerCase() === "div" && root.querySelector("svg") !== null;
+}
+
 describe("BudgetTank", () => {
   it("sollte ein SVG mit dem Füllstand als data-fill rendern", () => {
     const { container } = render(<BudgetTank fillPercent={42} health="ok" />);
@@ -51,16 +66,15 @@ describe("BudgetTank", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).not.toBeNull();
+    expect(hasMotionWrapper(container)).toBe(true);
   });
 
   it("sollte ohne layoutId keinen Framer-Motion-Wrapper rendern (WP-4.4)", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).toBeNull();
+    expect(hasMotionWrapper(container)).toBe(false);
+    expect(container.firstElementChild?.tagName.toLowerCase()).toBe("svg");
   });
 
   it("sollte bei reduced-motion keinen layoutId-Wrapper rendern (WP-4.4)", () => {
@@ -68,8 +82,7 @@ describe("BudgetTank", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).toBeNull();
+    expect(hasMotionWrapper(container)).toBe(false);
     expect(container.querySelector("svg")).toBeTruthy();
   });
 
