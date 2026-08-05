@@ -1,6 +1,6 @@
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { useI18n } from '@/i18n/useI18n';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';
 import type { CandlePoint } from '@/services/etoro-discover';
 
@@ -78,12 +78,12 @@ function Candle(props: unknown) {
  * OHLC-Candlestick-Chart für die Instrument-Detailansicht im Discover-Tab.
  * Nutzt einen Range-Bar (dataKey → [low, high]) mit eigenem Shape, damit
  * Docht+Körper aus echten OHLC-Daten gezeichnet werden (kein Recharts-
- * Candlestick-Preset vorhanden). Aufbau-Animation bleibt aktiv (Recharts-
- * Default), außer bei prefers-reduced-motion.
+ * Candlestick-Preset vorhanden). Aufbau-Animation nutzt die zentralen
+ * Motion-Tokens (WP-6.7), außer bei prefers-reduced-motion.
  */
 export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCandlestickChartProps) {
   const { t, locale } = useI18n();
-  const animate = !useReducedMotion();
+  const chartAnimation = useChartAnimation();
 
   const chartData = candles.map((candle) => ({
     ...candle,
@@ -107,7 +107,13 @@ export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCa
             ];
           }}
         />
-        <Bar dataKey="range" shape={Candle} isAnimationActive={animate} />
+        <Bar
+          dataKey="range"
+          shape={Candle}
+          isAnimationActive={chartAnimation.animate}
+          animationDuration={chartAnimation.animationDuration}
+          animationEasing={chartAnimation.animationEasing}
+        />
       </ComposedChart>
     </ResponsiveContainer>
   );

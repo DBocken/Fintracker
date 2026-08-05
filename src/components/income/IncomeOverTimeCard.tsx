@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { chartRamp } from '@/lib/chart-colors';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeOverTimePoint } from '@/lib/analysis-data';
 import { chartNumber } from '@/lib/chart-tooltip';
@@ -14,7 +14,7 @@ const formatCurrencyInt = (v: number) =>
 export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimePoint[] }) {
   const { t } = useI18n();
   // Baseline: Balken bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
-  const animate = !useReducedMotion();
+  const chartAnimation = useChartAnimation();
 
   // Hauptkategorien, die irgendwo im Zeitraum vorkommen — nach Gesamtbetrag
   // absteigend, damit die größten Ströme zuunterst (am stabilsten) liegen.
@@ -83,7 +83,9 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
                     fill={colors[idx]}
                     radius={idx === mainIds.length - 1 ? [4, 4, 0, 0] : undefined}
                     maxBarSize={48}
-                    isAnimationActive={animate}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
                   />
                 ))}
               </BarChart>

@@ -1,6 +1,7 @@
 import { TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useI18n } from '@/i18n/useI18n';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';
 import EmptyState from '@/components/common/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,10 +37,12 @@ function formatAxisDate(date: string, locale: string): string {
  * Echter Performance-Chart für eToro-Portfolios (/balances/history) — ersetzt
  * den bisherigen synthetischen Mock (Issue: Performance-Tab zeigte nie echte
  * Daten). Linienfarbe datengetrieben nach Trend (positive/warning/neutral,
- * siehe selectPerformanceTrend); Aufbau-Animation bleibt aktiv (Recharts-Default).
+ * siehe selectPerformanceTrend); Aufbau-Animation nutzt die zentralen
+ * Motion-Tokens (WP-6.7).
  */
 export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetry, series }: EtoroPerformanceTabProps) {
   const { t, locale } = useI18n();
+  const chartAnimation = useChartAnimation();
   const trend = selectPerformanceTrend(series);
 
   const chartData = series.map((point) => ({
@@ -67,7 +70,16 @@ export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetr
                 <XAxis dataKey="label" />
                 <YAxis />
                 <Tooltip formatter={(value) => [formatCurrency(chartNumber(value), USD), t('trading.etoro.performance.valueLabel')]} />
-                <Line type="monotone" dataKey="value" stroke={trendColor[trend]} strokeWidth={2} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={trendColor[trend]}
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={chartAnimation.animate}
+                  animationDuration={chartAnimation.animationDuration}
+                  animationEasing={chartAnimation.animationEasing}
+                />
               </LineChart>
             </ResponsiveContainer>
             <p className="mt-4 text-center text-xs text-muted-foreground">{t('trading.etoro.performance.disclaimer')}</p>

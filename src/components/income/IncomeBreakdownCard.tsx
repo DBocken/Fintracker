@@ -7,6 +7,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { chartRamp, CHART_INCOME } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
@@ -156,7 +157,7 @@ function IncomeBreakdownList({ breakdown, colorMap, showPercent }: BreakdownList
 /** Donut: Anteil je Einkommens-Hauptkategorie. Spiegelbild von SpendingBreakdownCard. */
 export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBreakdown }) {
   const { t } = useI18n();
-  const animate = !useReducedMotion();
+  const chartAnimation = useChartAnimation();
   const [showPercent, setShowPercent] = useState(false);
   const navigate = useNavigate();
 
@@ -203,7 +204,9 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
                   innerRadius="55%"
                   outerRadius="90%"
                   paddingAngle={1}
-                  isAnimationActive={animate}
+                  isAnimationActive={chartAnimation.animate}
+                  animationDuration={chartAnimation.animationDuration}
+                  animationEasing={chartAnimation.animationEasing}
                 >
                   {breakdown.groups.map((g) => (
                     <Cell

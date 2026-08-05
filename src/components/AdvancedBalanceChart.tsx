@@ -16,6 +16,7 @@ import type { Transaction } from '../types';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -27,6 +28,7 @@ interface AdvancedBalanceChartProps {
 export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isLoading = false }: AdvancedBalanceChartProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const chartAnimation = useChartAnimation();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -196,6 +198,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 5, stroke: CHART_INCOME, strokeWidth: 2 }}
                 name="income"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
 
               <Area
@@ -207,6 +212,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 5, stroke: CHART_EXPENSE, strokeWidth: 2 }}
                 name="expenses"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
 
               <Area
@@ -218,6 +226,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 6, stroke: CHART_NET, strokeWidth: 2 }}
                 name="balance"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
             </AreaChart>
           </ResponsiveContainer>
