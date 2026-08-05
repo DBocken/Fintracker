@@ -65,8 +65,24 @@ describe('SignatureMoment (WP-6.5)', () => {
     );
     const el = container.querySelector('[data-testid="signature-moment"]');
     expect(el).toBeInTheDocument();
-    // Should not have animation styles on the container
-    expect(el?.getAttribute('style')).toBeFalsy();
+    // Geprueft wird der Endzustand, nicht die Abwesenheit eines style-Attributs:
+    // Framer Motion schreibt auch im statischen Fall den aufgeloesten Stil
+    // ('opacity: 1; transform: none;'). Genau das IST der statische Zustand —
+    // kein Rest-Transform, volle Deckkraft.
+    const style = el?.getAttribute('style') ?? '';
+    expect(style).toMatch(/transform:\s*none/);
+    expect(style).not.toMatch(/scale/);
+  });
+
+  it('sollte ohne reduced-motion mit einem Skalierungs-Transform starten', () => {
+    // Gegenprobe zum Test darueber: ohne Reduced Motion ist der Startzustand
+    // `scale: 0.95` — ohne diese Probe wuerde der Test oben auch dann bestehen,
+    // wenn die Bewegung generell fehlte.
+    const { container } = render(
+      <SignatureMoment title="Test" icon="🎯" />,
+    );
+    const el = container.querySelector('[data-testid="signature-moment"]');
+    expect(el?.getAttribute('style') ?? '').toMatch(/scale|matrix/);
   });
 
   it('sollte einen dezenten Glow-Effekt haben', () => {

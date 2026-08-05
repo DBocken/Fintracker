@@ -811,22 +811,33 @@ describe('createCityScene', () => {
 
       const meshOf = (id: string) => meshesOf(scene).find((m) => m.userData.id === id)!;
 
-      // Erster Tick definiert die Startzeitpunkte (Reihenfolge = Layout-
-      // Reihenfolge: rent, rent:cap, utilities, insurance, furniture).
-      expect(handle.advanceAnimations(1000)).toBe(true);
-      // rent (Index 0) startet sofort; utilities (Index 2) und furniture
-      // (Index 4) stehen 100 ms nach dem Basistick noch bei Höhe 0.
-      expect(handle.advanceAnimations(1100)).toBe(true);
-      expect(meshOf('housing/rent').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBe(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      // Geprüft wird die Kaskaden-EIGENSCHAFT, nicht eine hartkodierte
+      // Index-Annahme: welcher Baukörper welchen Staffelindex bekommt, hängt
+      // davon ab, welche Boxen überhaupt einen Höhen-Tween erhalten. Die
+      // frühere Fassung rechnete mit festen Indizes ('furniture' = 4) und war
+      // deshalb rot, sobald sich die Reihenfolge um einen Schritt verschob.
+      // Verglichen wird der RELATIVE Fortschritt (Höhe / Zielhöhe) — sonst
+      // wäre die Reihenfolge von den sehr unterschiedlichen Beträgen
+      // (Miete 980 € vs. Möbel 45 €) überlagert.
+      const BUILD_STAGGER_MS = 50; // Spiegelt city-scene.ts (dort modul-privat).
+      const cascade = layout.boxes.filter((b) => b.kind === 'bar' || b.kind === 'cap');
+      expect(cascade.length).toBeGreaterThan(2); // sonst prüft die Kaskade nichts
 
-      // Weitere 100 ms: Cap (Index 1) und utilities (Index 2) wachsen bereits,
-      // furniture (Index 4 -> Start genau jetzt) noch nicht.
-      expect(handle.advanceAnimations(1200)).toBe(true);
-      expect(meshOf('housing/rent:cap').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      // Erster Tick definiert t=0; die Startzeitpunkte sind t0 + n × 50 ms.
+      expect(handle.advanceAnimations(1000)).toBe(true);
+
+      // Eine Millisekunde bevor der LETZTE startet: alle davor wachsen bereits,
+      // der letzte steht exakt auf 0.
+      const justBeforeLast = 1000 + BUILD_STAGGER_MS * (cascade.length - 1) - 1;
+      expect(handle.advanceAnimations(justBeforeLast)).toBe(true);
+
+      const progress = cascade.map((box) => meshOf(box.id).scale.y / box.size.y);
+      expect(progress[0]).toBeGreaterThan(0);
+      expect(progress[progress.length - 1]).toBe(0);
+      for (let i = 1; i < progress.length; i++) {
+        // Streng fallend: jeder weitere Baukörper startete einen Schritt später.
+        expect(progress[i]).toBeLessThan(progress[i - 1]);
+      }
 
       // Nach genügend Zeit: alle exakt am Ziel, kein Tween mehr aktiv.
       expect(handle.advanceAnimations(3000)).toBe(false);

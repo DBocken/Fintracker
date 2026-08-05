@@ -47,20 +47,27 @@ describe("BudgetTank", () => {
     expect(ids.size).toBe(grads.length);
   });
 
+  // Geprueft wird die DOM-Struktur, nicht '[data-framer-name]': dieses Attribut
+  // setzt das Figma-Plugin "Framer", nicht die Bibliothek framer-motion. Der
+  // Selektor griff daher nie — der positive Test war rot, die beiden negativen
+  // bestanden trivial (null === null) und haetten einen fehlenden Wrapper nie
+  // bemerkt. Beobachtbar ist allein, dass BudgetTank das SVG bei aktiver
+  // Transition in ein zusaetzliches <div> huellt.
   it("sollte mit layoutId einen Framer-Motion-Wrapper rendern (WP-4.4)", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).not.toBeNull();
+    const root = container.firstElementChild;
+    expect(root?.tagName).toBe("DIV");
+    expect(root?.querySelector("svg")).toBeTruthy();
   });
 
   it("sollte ohne layoutId keinen Framer-Motion-Wrapper rendern (WP-4.4)", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).toBeNull();
+    // Ohne Transition steht das SVG direkt in der Wurzel, ohne Huelle.
+    expect(container.firstElementChild?.tagName.toLowerCase()).toBe("svg");
   });
 
   it("sollte bei reduced-motion keinen layoutId-Wrapper rendern (WP-4.4)", () => {
@@ -68,9 +75,7 @@ describe("BudgetTank", () => {
     const { container } = render(
       <BudgetTank fillPercent={50} health="ok" layoutId="budget-tank-1" />,
     );
-    const wrapper = container.querySelector('[data-framer-name]');
-    expect(wrapper).toBeNull();
-    expect(container.querySelector("svg")).toBeTruthy();
+    expect(container.firstElementChild?.tagName.toLowerCase()).toBe("svg");
   });
 
 describe("Mikroreaktionen (WP-4.2)", () => {
