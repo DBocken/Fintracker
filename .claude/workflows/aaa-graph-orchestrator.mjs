@@ -76,9 +76,21 @@ const CRITIC_BRIEF = {
 /**
  * Der Router. Deterministischer Boden aus der Trigger-Matrix; die Modellstufe
  * haengt am Knotentyp, nicht am Zufall.
+ *
+ * `signals` ist bewusst mehr als die Dateiliste. Der erste echte Lauf
+ * (Recharts-Migration, 25 Serien) hat gezeigt, warum: die Trigger wurden nur
+ * gegen die PFADE geprueft, und kein Pfad enthaelt 'motion-tokens' oder
+ * 'transition'. Der Motion Director wurde deshalb NICHT aktiviert — bei einer
+ * Aenderung, die ausschliesslich aus Motion-Tokens besteht. `dataviz` griff nur
+ * zufaellig, weil Dateien wie TransactionCharts.tsx das Wort 'Chart' im Namen
+ * tragen.
+ *
+ * Ein Pfad sagt, WO etwas liegt, nicht WAS sich geaendert hat. Deshalb fliesst
+ * jetzt auch der Auftragstext (goal/spec) und, sofern uebergeben, der Diff in
+ * die Entscheidung ein.
  */
-function routeCritics(files) {
-  const blob = files.join('\n')
+function routeCritics(files, ...extraSignals) {
+  const blob = [...files, ...extraSignals.filter(Boolean)].join('\n')
   return TRIGGERS.filter((t) => t.always || t.match.test(blob)).map((t) => t.critic)
 }
 
@@ -183,7 +195,8 @@ if (GROUPS.length === 0) throw new Error('Keine Baugruppen uebergeben (args.grou
 if (!GOAL || !SPEC) throw new Error('args.goal und args.spec sind Pflicht — ohne sie erfinden die Builder die Aufgabe.')
 
 const allFiles = GROUPS.flatMap((g) => g.files)
-const critics = routeCritics(allFiles)
+// Auftragstext mitgeben, nicht nur Pfade — siehe Kommentar bei routeCritics.
+const critics = routeCritics(allFiles, GOAL, SPEC)
 
 log(`Graph: ${GROUPS.length} Baugruppen, ${allFiles.length} Dateien.`)
 log(`Router waehlt ${critics.length} Pruefer: ${critics.join(', ')} (Pflichtmenge aus der Trigger-Matrix).`)
