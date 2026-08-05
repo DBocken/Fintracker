@@ -107,7 +107,11 @@ describe('Doppelte Namespaces', () => {
     // Pfad ueber cwd statt import.meta.url: unter vitest/jsdom ist letzteres
     // keine file:-URL.
     const source = readFileSync(`${process.cwd()}/src/i18n/translations.ts`, 'utf8');
-    const lines = source.split('\n');
+    // An /\r?\n/ trennen, nicht an '\n': translations.ts hat CRLF-Zeilenenden.
+    // Bei einem reinen '\n'-Split endet jede Zeile auf '\r', wodurch die unten
+    // auf `\{$` verankerte Regex NIE greift — der Wächter fand dann null
+    // Locale-Blöcke und prüfte faktisch nichts mehr. Genau das war der Fall.
+    const lines = source.split(/\r?\n/);
 
     const localeStarts: Array<{ locale: string; line: number }> = [];
     lines.forEach((line, index) => {
