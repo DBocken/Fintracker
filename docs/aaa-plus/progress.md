@@ -5,6 +5,66 @@
 
 ---
 
+## 2026-08-05 — Korrektur des Protokolls + Sichtbarkeits-Paket
+
+**Anlass:** Beobachtung des Auftraggebers, außerhalb der Finanzstadt sei kein
+Unterschied spürbar. Vollständiger Befund:
+[`audits/2026-08-05-ist-zustand-ausserhalb-der-stadt.md`](audits/2026-08-05-ist-zustand-ausserhalb-der-stadt.md).
+
+### Korrektur früherer Einträge
+
+Die Einträge unten führen Pakete als ✅, deren Tests zum Zeitpunkt der
+Eintragung **rot** waren. Auf `main` fielen 8 Tests in 10 Dateien durch —
+überwiegend AAA+-eigene:
+
+| WP | Eintrag war | tatsächlich |
+|---|---|---|
+| WP-3.3 Enhanced Empty State | ✅ | 3 Tests rot; Varianten repoweit ungenutzt |
+| WP-3.4 Enhanced Loading State | ✅ | Shimmer-Variante nirgends verwendet |
+| WP-3.5 Material Token System | ✅ | verursachte eine Regression gegen AGENTS.md §9 (`KpiCard`) |
+| WP-4.4 Shared-Element-Transition | ✅ | Test prüfte einen Selektor, den es nicht gibt |
+| WP-6.5 Signature Moment | ✅ | 1 Test rot |
+| WP-6.7 Chart-Animation | ✅ | Hook importiert, aber nur `animate` benutzt |
+
+**Regel daraus:** Ein Paket, dessen Test rot ist oder dessen Ergebnis nirgends
+verdrahtet wurde, ist nicht abgeschlossen. ✅ setzt einen grünen Lauf voraus.
+
+### Erledigt
+
+| WP | Titel | Nachweis |
+|---|---|---|
+| — | CI-Reparatur (Lockfile, 13 OSV-Advisories) | `evidence/2026-08-05-nachweise.md` |
+| — | 8 rote Tests behoben, jeweils mit Gegenprobe | ebd. |
+| WP-3.1 | Atmosphäre **global** verdrahtet (`useGlobalAtmosphere`) | 13 neue Tests, davon 1 `[PERF]` |
+| WP-3.3/3.4 | Varianten auf der Buchungsseite angewandt | `TransactionsPage.aaa.test.tsx` |
+| WP-6.7 | 25 Recharts-Serien in 11 Dateien migriert | Graph-Lauf, Gate bestanden |
+| — | Ablageorte `audits/`, `decisions/`, `evidence/`, `critic-reports/` | §16 erfüllt |
+
+Testsuite: **3843 grün, 0 rot** (vorher 3816 mit 8 rot).
+
+### WP-4.6 Rest — Gate **eskaliert**, nicht bestanden
+
+[`critic-reports/wp-4.6-art-ux-motion.md`](critic-reports/wp-4.6-art-ux-motion.md)
+
+Visuelle Hierarchie **2/5**, unter dem Mindestwert der Kategorie (3, §11).
+Grund: derselbe Betrag erscheint drei- bis viermal auf dem Dashboard, der Hero
+aus WP-4.1 konkurriert mit einer identischen Zahl direkt darunter.
+
+**Offene Entscheidung für den Auftraggeber:** Welche Zahl ist die Hauptaussage
+des Dashboards — Saldo im Zeitraum oder Kontostand? Eine muss zurücktreten.
+Das ist keine Umsetzungsfrage.
+
+### Weiterhin offen
+
+- Motion-Bewertung: aus statischen Baselines nicht möglich.
+- Visual-Regression-Baselines neu setzen — die vorhandenen entstanden unter
+  `intensity: 0` und kennen die datengetriebene Atmosphäre nicht.
+- Phase 5 (City), Phase 6 (Rest DataViz), Phase 7 (Motion), Phase 8–11.
+- Leerzustände für Budgets/Ziele: die Varianten `no-budgets`/`no-goals` haben
+  kein Zuhause, weil beide Seiten gar keinen Leerzustand haben.
+
+---
+
 ## 2026-07 — WP-4.6 Vertical Slice Integration Test + Gate
 
 **Status:** Test-Suite erstellt, alle 4 automatisierten Dimensionen grün.
