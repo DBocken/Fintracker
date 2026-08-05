@@ -160,10 +160,27 @@ const GATE_SCHEMA = {
 // ---------------------------------------------------------------------------
 // Auftrag
 // ---------------------------------------------------------------------------
-const task = args ?? {}
+// `args` kommt je nach Aufrufweg als Objekt ODER als JSON-String an. Beides
+// annehmen statt am Transportformat zu scheitern.
+//
+// Die Pruefungen darunter sind wichtiger als sie aussehen: ohne sie laeuft der
+// Graph mit null Baugruppen bis zum Gate durch und meldet ein sauberes Ergebnis
+// ueber eine leere Menge — dieselbe Fehlerklasse wie ein Test, der nichts prueft
+// und trotzdem gruen ist. Genau das ist beim ersten Lauf passiert.
+let task = args ?? {}
+if (typeof task === 'string') {
+  try {
+    task = JSON.parse(task)
+  } catch {
+    throw new Error('args kam als String an, liess sich aber nicht als JSON lesen.')
+  }
+}
 const GROUPS = task.groups ?? []
 const GOAL = task.goal ?? ''
 const SPEC = task.spec ?? ''
+
+if (GROUPS.length === 0) throw new Error('Keine Baugruppen uebergeben (args.groups ist leer).')
+if (!GOAL || !SPEC) throw new Error('args.goal und args.spec sind Pflicht — ohne sie erfinden die Builder die Aufgabe.')
 
 const allFiles = GROUPS.flatMap((g) => g.files)
 const critics = routeCritics(allFiles)
