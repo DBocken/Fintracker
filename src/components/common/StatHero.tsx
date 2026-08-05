@@ -61,7 +61,10 @@ export default function StatHero({
         </div>
         {badge && <div className="shrink-0">{badge}</div>}
       </div>
-      <div className={cn("mt-1 text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl", toneClass[tone])}>
+      <div
+        className={cn("hero-value mt-1 font-bold tracking-tight tabular-nums", toneClass[tone])}
+        data-testid="stat-hero-value"
+      >
         {value}
       </div>
       {caption && <div className="mt-1 text-sm text-muted-foreground">{caption}</div>}

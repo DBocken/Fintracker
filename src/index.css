@@ -87,6 +87,51 @@
      */
     --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    /*
+     * Motion-Tokens (WP-2.1) — die universelle Bewegungssprache von FinTracker.
+     * 5 Easing-Kurven für verschiedene Bewegungscharaktere, 4 Dauer-Stufen.
+     * @see src/lib/motion-tokens.ts
+     */
+    --motion-easing-precision: cubic-bezier(0.22, 1, 0.36, 1);
+    --motion-easing-build: cubic-bezier(0.33, 1, 0.68, 1);
+    --motion-easing-spatial: cubic-bezier(0.65, 0, 0.35, 1);
+    --motion-easing-confirm: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --motion-easing-warn: cubic-bezier(0.87, 0, 0.13, 1);
+    --motion-duration-fast: 150ms;
+    --motion-duration-default: 300ms;
+    --motion-duration-slow: 600ms;
+    --motion-duration-signature: 1200ms;
+
+    /*
+     * Typografie-Token (WP-2.3) — aggressive Hierarchie:
+     * Hero-Kennzahlen dominieren (56px), alles andere untergeordnet.
+     * @see src/lib/typography-tokens.ts
+     */
+    --font-size-hero: 3.5rem;
+    --font-size-hero-mobile: 2.25rem;
+    --font-size-display: 1.875rem;
+    --font-size-headline: 1.25rem;
+    --font-size-body: 0.9375rem;
+    --font-size-caption: 0.75rem;
+    --font-weight-display: 700;
+    --font-weight-value: 700;
+    --font-weight-label: 500;
+    --font-weight-body: 400;
+  }
+
+  /*
+   * Hero-Kennzahl: responsive Schriftgröße über CSS-Variablen.
+   * Mobile: var(--font-size-hero-mobile), Desktop: var(--font-size-hero).
+   */
+  .hero-value {
+    font-size: var(--font-size-hero-mobile);
+    line-height: 1.1;
+  }
+  @media (min-width: 640px) {
+    .hero-value {
+      font-size: var(--font-size-hero);
+    }
   }
 
   .dark {
@@ -272,4 +317,23 @@
 /* Erfolgs-Haken: zeichnet sich beim Mount via stroke-dashoffset. */
 @keyframes check-draw {
   to { stroke-dashoffset: 0; }
+}
+
+/*
+ * WP-4.2: Budget-Tank Mikroreaktionen.
+ * Shake: einmaliges horizontales Zucken bei Budgetüberschreitung.
+ * Breathe: einmaliges Pulsieren der Wellenamplitude bei Budgetrettung.
+ * Beide werden durch die globale reduced-motion-Policy neutralisiert.
+ */
+@keyframes budget-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+@keyframes budget-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }

@@ -24,7 +24,11 @@ export function KpiCard({ label, value, icon: Icon, hint, className }: Props) {
         {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
         <span className="truncate">{label}</span>
       </div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
+      <div
+        data-testid="kpi-value"
+        className="mt-2 font-semibold tracking-tight tabular-nums"
+        style={{ fontSize: 'var(--font-size-headline, 1.25rem)' }}
+      >
         {value}
       </div>
       {hint ? <div className="mt-2 text-xs text-muted-foreground">{hint}</div> : null}

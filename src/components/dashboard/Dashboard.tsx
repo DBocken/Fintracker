@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { SlidersHorizontal, Sparkles, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { TransactionStats } from './TransactionStats';
+import StatHero from '@/components/common/StatHero';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -88,6 +89,18 @@ export function Dashboard() {
           {t("dashboard.coachPreview")}
         </div>
       </InteractiveCard>
+
+      {/* WP-4.1: Hero-Hierarchie — ein dominantes Element pro Screen.
+          Der verfügbare Saldo als primäre Kennzahl, deutlich größer als
+          alle anderen Informationen auf diesem Screen. */}
+      <StatHero
+        label={t('dashboard.heroBalanceLabel')}
+        value={formatBalance(model.stats.balance)}
+        caption={model.stats.balance >= 0
+          ? t('dashboard.heroBalancePositive')
+          : t('dashboard.heroBalanceNegative')}
+        tone={model.stats.balance >= 0 ? 'positive' : 'warning'}
+      />
 
       {/* Zeitraum/Filter steuern die ganze Seite (Kennzahlen, Charts, Vorschau) –
           deshalb hier oben, statt versteckt in der Buchungen-Vorschau. */}

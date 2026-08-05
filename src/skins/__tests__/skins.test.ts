@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { SKINS, getSkin, normalizeSkinId } from '../skins';
+import {
+  SKINS,
+  getSkin,
+  normalizeSkinId,
+  ACTIVE_SKINS,
+  INACTIVE_SKIN_IDS,
+  getActiveSkinId,
+} from '../skins';
 
 describe('Skins Registry', () => {
   describe('Normal Behavior', () => {
@@ -84,6 +91,62 @@ describe('Skins Registry', () => {
     it('sollte bei unbekannter id in getSkin auf die erste Skin zurückfallen', () => {
       // @ts-expect-error absichtlich ungültige id für Robustheits-Test
       expect(getSkin('nope').id).toBe(SKINS[0].id);
+    });
+  });
+
+  describe('Skin-Konsolidierung (WP-2.2)', () => {
+    it('sollte ACTIVE_SKINS mit genau 3 aktiven Skins definieren', () => {
+      expect(ACTIVE_SKINS).toHaveLength(3);
+      const ids = ACTIVE_SKINS.map((s) => s.id);
+      expect(ids).toContain('ruhe');
+      expect(ids).toContain('legacy');
+    });
+
+    it('sollte INACTIVE_SKIN_IDS 6 inaktive Skins enthalten', () => {
+      expect(INACTIVE_SKIN_IDS).toHaveLength(6);
+      // Die aktiven Skins dürfen nicht in INACTIVE_SKIN_IDS sein
+      for (const active of ACTIVE_SKINS) {
+        expect(INACTIVE_SKIN_IDS).not.toContain(active.id);
+      }
+    });
+
+    it('sollte ACTIVE_SKINS + INACTIVE_SKINS = SKINS ergeben', () => {
+      const activeIds = new Set(ACTIVE_SKINS.map((s) => s.id));
+      const inactiveIds = new Set(INACTIVE_SKIN_IDS);
+      const allIds = new Set([...activeIds, ...inactiveIds]);
+      expect(allIds.size).toBe(SKINS.length);
+    });
+
+    it('sollte getActiveSkinId für aktive Skins unverändert liefern', () => {
+      expect(getActiveSkinId('ruhe')).toBe('ruhe');
+      expect(getActiveSkinId('legacy')).toBe('legacy');
+    });
+
+    it('sollte getActiveSkinId für inaktive Skins auf ruhe normalisieren', () => {
+      expect(getActiveSkinId('cyberpunk')).toBe('ruhe');
+      expect(getActiveSkinId('neon')).toBe('ruhe');
+      expect(getActiveSkinId('imperium')).toBe('ruhe');
+      expect(getActiveSkinId('sakura')).toBe('ruhe');
+      expect(getActiveSkinId('iron-man')).toBe('ruhe');
+      expect(getActiveSkinId('liquid-holo')).toBe('ruhe');
+    });
+
+    it('sollte getActiveSkinId für unbekannte/null auf ruhe liefern', () => {
+      expect(getActiveSkinId('does-not-exist')).toBe('ruhe');
+      expect(getActiveSkinId(null)).toBe('ruhe');
+      expect(getActiveSkinId(undefined)).toBe('ruhe');
+    });
+
+    it('[VB-1] sollte getSkin für inaktive Skins weiterhin die Definition liefern', () => {
+      const cyber = getSkin('cyberpunk');
+      expect(cyber).toBeDefined();
+      expect(cyber.id).toBe('cyberpunk');
+      expect(cyber.className).toBe('theme-cyberpunk');
+    });
+
+    it('[VB-1] sollte normalizeSkinId für inaktive Skins unverändert bleiben', () => {
+      expect(normalizeSkinId('cyberpunk')).toBe('cyberpunk');
+      expect(normalizeSkinId('sakura')).toBe('sakura');
     });
   });
 });

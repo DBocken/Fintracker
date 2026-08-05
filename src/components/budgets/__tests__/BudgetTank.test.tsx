@@ -39,4 +39,42 @@ describe("BudgetTank", () => {
     const ids = new Set(Array.from(grads).map((g) => g.id));
     expect(ids.size).toBe(grads.length);
   });
+
+  describe("Mikroreaktionen (WP-4.2)", () => {
+    it("sollte bei Initial-Mount mit health=over keinen Shake auslösen", () => {
+      const { container } = render(<BudgetTank fillPercent={110} health="over" animate={false} />);
+      const svg = container.querySelector("svg");
+      // Kein data-shake Attribut bei Initial-Mount
+      expect(svg?.getAttribute("data-shake")).toBeFalsy();
+    });
+
+    it("sollte bei Wechsel warn→over data-shake aktivieren", () => {
+      const { container, rerender } = render(<BudgetTank fillPercent={70} health="warn" animate={false} />);
+      rerender(<BudgetTank fillPercent={110} health="over" animate={false} />);
+      const svg = container.querySelector("svg");
+      expect(svg?.getAttribute("data-shake")).toBe("true");
+    });
+
+    it("sollte Shake bei Re-Render ohne Health-Wechsel nicht wiederholen", () => {
+      const { container, rerender } = render(<BudgetTank fillPercent={110} health="over" animate={false} />);
+      // Re-Render mit gleichen health=over → kein neuer Shake
+      rerender(<BudgetTank fillPercent={115} health="over" animate={false} />);
+      const svg = container.querySelector("svg");
+      expect(svg?.getAttribute("data-shake")).toBeFalsy();
+    });
+
+    it("sollte bei Wechsel over→ok data-breathe aktivieren", () => {
+      const { container, rerender } = render(<BudgetTank fillPercent={110} health="over" animate={false} />);
+      rerender(<BudgetTank fillPercent={60} health="ok" animate={false} />);
+      const svg = container.querySelector("svg");
+      expect(svg?.getAttribute("data-breathe")).toBe("true");
+    });
+
+    it("sollte bei Wechsel warn→ok data-breathe nicht aktivieren (nur von over)", () => {
+      const { container, rerender } = render(<BudgetTank fillPercent={70} health="warn" animate={false} />);
+      rerender(<BudgetTank fillPercent={60} health="ok" animate={false} />);
+      const svg = container.querySelector("svg");
+      expect(svg?.getAttribute("data-breathe")).toBeFalsy();
+    });
+  });
 });

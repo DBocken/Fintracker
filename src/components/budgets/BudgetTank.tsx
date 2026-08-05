@@ -1,6 +1,7 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { smoothstep, hexToRgb, lerpRgb, rgbStr, type RgbTuple } from "@/lib/color-mix";
+import { MOTION_DURATIONS } from "@/lib/motion-tokens";
 import type { BudgetHealth } from "@/types";
 
 type Rgb = { top: string; bottom: string; surface: string };
@@ -121,6 +122,34 @@ export default function BudgetTank({
     return () => cancelAnimationFrame(raf);
   }, [animate, target, reduce]);
 
+  // WP-4.2: Mikroreaktionen — Shake bei Überschreitung, Atmen bei Rettung.
+  const prevHealthRef = useRef<BudgetHealth>(health);
+  const [shake, setShake] = useState(false);
+  const [breathe, setBreathe] = useState(false);
+
+  useEffect(() => {
+    const prev = prevHealthRef.current;
+    if (prev === health) return;
+
+    // Shake: nur beim Wechsel von nicht-over → over
+    if (prev !== 'over' && health === 'over' && !reduce) {
+      setShake(true);
+      const t = setTimeout(() => setShake(false), 200);
+      prevHealthRef.current = health;
+      return () => clearTimeout(t);
+    }
+
+    // Atmen: nur beim Wechsel von over → nicht-over (Rettung)
+    if (prev === 'over' && health !== 'over' && !reduce) {
+      setBreathe(true);
+      const t = setTimeout(() => setBreathe(false), MOTION_DURATIONS.slow);
+      prevHealthRef.current = health;
+      return () => clearTimeout(t);
+    }
+
+    prevHealthRef.current = health;
+  }, [health, reduce]);
+
   const fill = displayed / 100;
   // Beim Animieren folgt die Farbe dem Live-Füllstand, sonst dem festen Status.
   const colors = animate
@@ -143,6 +172,9 @@ export default function BudgetTank({
       role="img"
       aria-hidden
       data-fill={Math.round(target)}
+      data-shake={shake ? "true" : undefined}
+      data-breathe={breathe ? "true" : undefined}
+      style={shake ? { animation: 'budget-shake 200ms var(--motion-easing-warn)' } : undefined}
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

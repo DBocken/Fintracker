@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "./useReducedMotion";
+import { MOTION_DURATIONS } from "@/lib/motion-tokens";
 
 /** Kubisches Auslaufen (easeOutCubic) – schneller Start, sanftes Ende. */
 function easeOutCubic(p: number): number {
@@ -7,7 +8,7 @@ function easeOutCubic(p: number): number {
 }
 
 interface AnimatedNumberOptions {
-  /** Dauer der Tween-Animation in ms (Default 1300, wie der Budget-Tank). */
+  /** Dauer der Tween-Animation in ms (Default: MOTION_DURATIONS.default = 300ms). */
   durationMs?: number;
   /** Animation aktiv? Bei false (oder reduced-motion) sofort der Zielwert. */
   enabled?: boolean;
@@ -23,7 +24,7 @@ interface AnimatedNumberOptions {
  */
 export function useAnimatedNumber(
   target: number,
-  { durationMs = 1300, enabled = true }: AnimatedNumberOptions = {},
+  { durationMs = MOTION_DURATIONS.default, enabled = true }: AnimatedNumberOptions = {},
 ): number {
   const reduce = useReducedMotion();
   const safeTarget = Number.isFinite(target) ? target : 0;

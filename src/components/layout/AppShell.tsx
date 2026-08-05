@@ -13,6 +13,7 @@ import PrivacyIndicator from "@/components/PrivacyIndicator";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
+import { AtmosphereLayer } from "@/components/common/AtmosphereLayer";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { useI18n } from "@/i18n/useI18n";
@@ -39,6 +40,7 @@ export default function AppShell() {
     // (statt hidden) auf nur einer Achse lässt Sticky-/Fixed-Positionierung
     // (Sidebar, Header, Bottom-Nav) unberührt.
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
+      <AtmosphereLayer state={{ temperature: 'neutral', intensity: 0, pulse: 'steady' }} />
       <CommandPalette />
       {/* Reihenfolge ist Inhalt: erst woher die Daten kommen (Kapitel 0),
           dann die Lebenssituation — siehe docs/tutorial-sequence.md. */}

@@ -145,6 +145,37 @@ export function normalizeSkinId(raw?: string | null): SkinId {
   return 'ruhe';
 }
 
+/**
+ * WP-2.2 (Skin-Konsolidierung): Aktive Skins sind diejenigen, die in der
+ * Auswahl-UI sichtbar sind. Inaktive Skins bleiben in SKINS definiert (kein
+ * Breaking Change für gespeicherte Präferenzen), sind aber nicht mehr
+ * auswählbar.
+ */
+const ACTIVE_SKIN_IDS: ReadonlySet<SkinId> = new Set<SkinId>([
+  'ruhe',
+  'legacy',
+  'clean',
+]);
+
+/** Inaktive Skin-Ids — definiert, aber nicht in der Auswahl-UI sichtbar. */
+export const INACTIVE_SKIN_IDS: SkinId[] = SKINS.map((s) => s.id).filter(
+  (id) => !ACTIVE_SKIN_IDS.has(id),
+);
+
+/** Nur die aktiven Skins (für Auswahl-UI). */
+export const ACTIVE_SKINS: SkinDef[] = SKINS.filter((s) => ACTIVE_SKIN_IDS.has(s.id));
+
+/**
+ * Normalisiert eine Skin-Id auf eine AKTIVE Skin-Id.
+ * Inaktive (aber weiterhin definierte) Skins werden auf 'ruhe' abgebildet.
+ * Dies ist ein anderes Verhalten als `normalizeSkinId`, das inaktive Skins
+ * weiterhin gültig lässt (für persistierte Präferenzen ohne Breaking Change).
+ */
+export function getActiveSkinId(raw?: string | null): SkinId {
+  const normalized = normalizeSkinId(raw);
+  return ACTIVE_SKIN_IDS.has(normalized) ? normalized : 'ruhe';
+}
+
 export function getSkin(skinId: SkinId): SkinDef {
   return SKINS.find((s) => s.id === skinId) || SKINS[0];
 }

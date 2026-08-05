@@ -49,6 +49,7 @@ import * as THREE from 'three';
 import type { CityLayout, LayoutBox, LayoutBoxKind } from '../domain/city-layout';
 import type { Vec3 } from '../domain/city-model';
 import { easeInOutCubic } from '../domain/camera-math';
+import { MOTION_DURATIONS } from '@/lib/motion-tokens';
 
 export type CityCameraPose = { position: Vec3; target: Vec3 };
 
@@ -554,9 +555,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   let animationsEnabled = false;
 
   /** Balken-/Etagen-/Cap-Wachstum: `scale.y`/`position.y` fußpunkt-verankert. */
-  const BAR_GROWTH_DURATION_MS = 500;
+  const BAR_GROWTH_DURATION_MS = MOTION_DURATIONS.slow;
   /** Opazitäts-Fade (Hüllen-Ebenenwechsel, Balken-Opazitätsstufen etc.). */
-  const OPACITY_FADE_DURATION_MS = 400;
+  const OPACITY_FADE_DURATION_MS = MOTION_DURATIONS.default;
   /**
    * WP-E1: Staffel-Schritt der Aufbau-Kaskade — der n-te höhenanimierte
    * Baukörper eines `applyLayout`-Batchs startet `n × BUILD_STAGGER_MS`
