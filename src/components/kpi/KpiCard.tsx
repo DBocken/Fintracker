@@ -19,7 +19,7 @@ type Props = {
  */
 export function KpiCard({ label, value, icon: Icon, hint, className }: Props) {
   return (
-    <div {...dyadProps("KpiCard")} className={cn("rounded-xl bg-muted/30 p-4 md:p-5", className)}>
+    <div {...dyadProps("KpiCard")} className={cn("rounded-xl bg-muted/30 p-4 md:p-5 shadow-[var(--shadow-ambient)]", className)}>
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
         <span className="truncate">{label}</span>

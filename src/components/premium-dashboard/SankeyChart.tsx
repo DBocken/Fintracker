@@ -159,7 +159,11 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         <div className="flex flex-col gap-3 mb-3">
           <div className="flex items-center gap-3 justify-between">
             <div className="flex items-center gap-2">
-              <Switch checked={percentMode} onCheckedChange={(v) => setPercentMode(Boolean(v))} />
+              <Switch
+                checked={percentMode}
+                onCheckedChange={(v) => setPercentMode(Boolean(v))}
+                aria-label={t("premium.sankey.percentMode")}
+              />
               <span className="text-sm text-muted-foreground">{t("premium.sankey.percentMode")}</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">

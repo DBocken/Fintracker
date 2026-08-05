@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SlidersHorizontal, Sparkles, ArrowRight } from 'lucide-react';
+import { SlidersHorizontal, Sparkles, ArrowRight, Building2 } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { TransactionStats } from './TransactionStats';
 import StatHero from '@/components/common/StatHero';
@@ -101,6 +101,15 @@ export function Dashboard() {
           : t('dashboard.heroBalanceNegative')}
         tone={model.stats.balance >= 0 ? 'positive' : 'warning'}
       />
+
+      {/* WP-4.5: Dashboard → City Transition — Finanzstadt als visuell
+          verbundenes Element. layoutId verbindet mit der City-Seite. */}
+      <InteractiveCard to="/city" layoutId="dashboard-city-link" aria-label={t('dashboard.cityLink')}>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Building2 className="h-4 w-4 text-brand" />
+          {t('dashboard.cityLink')}
+        </div>
+      </InteractiveCard>
 
       {/* Zeitraum/Filter steuern die ganze Seite (Kennzahlen, Charts, Vorschau) –
           deshalb hier oben, statt versteckt in der Buchungen-Vorschau. */}

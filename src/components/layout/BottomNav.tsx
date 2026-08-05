@@ -28,7 +28,7 @@ export default function BottomNav() {
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors",
+                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors motion-safe:duration-[var(--motion-duration-fast)] motion-safe:ease-[var(--motion-easing-precision)]",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )
               }
@@ -42,7 +42,7 @@ export default function BottomNav() {
         <button
           type="button"
           onClick={() => window.dispatchEvent(new Event(OPEN_NAV_SHEET_EVENT))}
-          className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors"
+          className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors motion-safe:duration-[var(--motion-duration-fast)] motion-safe:ease-[var(--motion-easing-precision)]"
           aria-label={t("shell.openMore")}
         >
           <MoreHorizontal className="h-5 w-5" />

@@ -62,9 +62,12 @@ export default function InteractiveCard({
   const baseClass = cn(
     // Karten-Chrome identisch zu .ds-section, damit klickbare Karten wie Abschnitte wirken
     "ds-section group relative flex w-full items-center gap-3 text-left",
-    "min-h-[44px] cursor-pointer transition-colors transition-shadow",
-    "hover:bg-muted/40 hover:shadow-md",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "min-h-[44px] cursor-pointer transition-[background-color,box-shadow]",
+    // WP-3.5: Material-Tokens für konsistente Interaktionszustände
+    "hover:bg-[var(--surface-hover)] hover:shadow-[var(--shadow-key)]",
+    "active:bg-[var(--surface-press)] active:shadow-[var(--shadow-contact)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:bg-[var(--surface-focus)]",
+    "motion-safe:duration-[var(--motion-duration-fast)] motion-safe:ease-[var(--motion-easing-precision)]",
     disabled && "pointer-events-none cursor-default opacity-60",
     className,
   );

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import type { MilestoneStatus } from "@/services/milestones-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import CelebrationBurst from "@/components/common/CelebrationBurst";
+import { SignatureMoment } from "@/components/common/SignatureMoment";
 
 /**
  * Meilenstein-Anzeige. `variant="compact"` (Coach) zeigt nur den letzten Erfolg
@@ -32,27 +32,16 @@ export default function MilestonesStrip({
     return (
       <div className="space-y-4">
         {justAchieved.length > 0 && (
-          <motion.div
-            initial={reduce ? false : { scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
-          >
-            <div className="flex items-center gap-2 text-sm font-semibold text-positive">
-            <CelebrationBurst size={26} />
-            {t("milestones.justAchieved")}
-          </div>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {justAchieved.map((m) => (
-                <span key={m.definition.key} className="text-sm">
-                  {m.definition.icon} {m.definition.title}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {cards.map((m) => (
+            <SignatureMoment
+              title={t("milestones.justAchieved")}
+              icon={justAchieved[0].definition.icon}
+              subtitle={justAchieved.map((m) => m.definition.title).join(", ")}
+              variant="default"
+            />
+          )}
+  
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {cards.map((m) => (
             <div
               key={m.definition.key}
               className={cn(
@@ -83,23 +72,12 @@ export default function MilestonesStrip({
   return (
     <div className="space-y-4">
       {justAchieved.length > 0 && (
-        <motion.div
-          initial={reduce ? false : { scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="rounded-xl border border-positive/50 bg-gradient-to-r from-positive/15 to-transparent p-4"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold text-positive">
-            <CelebrationBurst size={26} />
-            {t("milestones.justAchieved")}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-2">
-            {justAchieved.map((m) => (
-              <span key={m.definition.key} className="text-sm">
-                {m.definition.icon} {m.definition.title}
-              </span>
-            ))}
-          </div>
-        </motion.div>
+        <SignatureMoment
+          title={t("milestones.justAchieved")}
+          icon={justAchieved[0].definition.icon}
+          subtitle={justAchieved.map((m) => m.definition.title).join(", ")}
+          variant="large"
+        />
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">

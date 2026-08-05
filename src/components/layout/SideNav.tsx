@@ -38,7 +38,7 @@ export default function SideNav() {
                         to={item.path}
                         className={({ isActive }) =>
                           cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors motion-safe:duration-[var(--motion-duration-fast)] motion-safe:ease-[var(--motion-easing-precision)]",
                             isActive
                               ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                               : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"

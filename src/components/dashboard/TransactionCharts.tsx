@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -50,8 +50,7 @@ const baseEndAngle = -270;
 /** Balkendiagramm: Ausgaben im Zeitverlauf. */
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
   const { t } = useI18n();
-  // Baseline: Balken bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
-  const animate = !useReducedMotion();
+  const { animate } = useChartAnimation();
   return (
     <Card className="card-premium h-full">
       <CardHeader>
@@ -147,7 +146,8 @@ function SpendingBreakdownList({
   onNavigateKlasse,
   onNavigateCategory,
 }: BreakdownListProps) {
-  const reduce = useReducedMotion();
+  const { animate } = useChartAnimation();
+  const reduce = !animate;
   const groups = useMemo(() => buildSunburstBreakdown(sunburst), [sunburst]);
   // Größte Klasse initial offen — eine Hauptaussage sofort sichtbar (Ruhe vor Fülle).
   const [expanded, setExpanded] = useState<Set<string>>(() =>
@@ -254,9 +254,7 @@ function SpendingBreakdownList({
 /** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
 export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstData; tree?: SunburstTree }) {
   const { t } = useI18n();
-  // Baseline: Ringe bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
-  // Daten sind via useMemo stabil → Hover (Dimming) löst keine Re-Animation aus.
-  const animate = !useReducedMotion();
+  const { animate } = useChartAnimation();
   // Umschalter zwischen Euro und Prozent
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Ausgabenklasse- oder Hauptkategorie-ID sein)
@@ -354,7 +352,11 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle>{t("spendingBreakdown.title")}</CardTitle>
         <div className="flex shrink-0 items-center gap-2">
-          <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
+          <Switch
+            checked={showPercent}
+            onCheckedChange={(v) => setShowPercent(Boolean(v))}
+            aria-label={t("spendingBreakdown.percent")}
+          />
           <span className="text-sm text-muted-foreground">{t("spendingBreakdown.percent")}</span>
         </div>
       </CardHeader>

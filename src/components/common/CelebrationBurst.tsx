@@ -33,7 +33,7 @@ export default function CelebrationBurst({ size = 32, className, rays = 12 }: Ce
         style={
           reduce
             ? undefined
-            : { animation: "celebration-burst 900ms cubic-bezier(0.22,1,0.36,1) both", transformOrigin: "50% 50%" }
+            : { animation: "celebration-burst 900ms var(--motion-easing-confirm, cubic-bezier(0.34,1.56,0.64,1)) both", transformOrigin: "50% 50%" }
         }
       >
         {spokes.map((_, i) => {

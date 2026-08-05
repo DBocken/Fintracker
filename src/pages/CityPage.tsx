@@ -31,6 +31,7 @@ import {
 import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { deriveAtmosphere } from "@/hooks/useAtmosphereState";
+import { isFirstVisit, markVisited } from "@/features/finance-city/presentation/first-visit";
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
 const MAX_VISIBLE_LABELS_MOBILE = 6;
@@ -252,6 +253,23 @@ export default function CityPage() {
     sceneRef.current?.setAtmospherePreset(atmospherePreset);
     controlsApiRef.current?.invalidate();
   }, [atmospherePreset]);
+
+  // WP-5.5: Signature Moment — Erstmaliger Aufbau.
+  // Zeigt einen Text-Overlay, nachdem die Stadt aufgebaut ist.
+  const [showSignatureMoment, setShowSignatureMoment] = useState(false);
+
+  useEffect(() => {
+    if (!canvasMounted || !isFirstVisit()) return;
+    // Signature Moment nach dem Aufbau der Stadt zeigen (BUILD_STAGGER_MS + Höhen-Tweens)
+    const timer = setTimeout(() => {
+      setShowSignatureMoment(true);
+      markVisited();
+      // Nach 3s ausblenden
+      const hideTimer = setTimeout(() => setShowSignatureMoment(false), 3000);
+      return () => clearTimeout(hideTimer);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [canvasMounted]);
 
   // WP-D5: Tab-Wechsel = Weltwechsel — Navigation auf die Stadt-Ebene
   // zurücksetzen (Fokus-Ids der alten Welt existieren im neuen Modell nicht)
@@ -555,7 +573,10 @@ export default function CityPage() {
         <div ref={chromeRef} className="flex shrink-0 flex-col gap-3">
           <header className="flex shrink-0 flex-col gap-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <motion.div
+                layoutId="dashboard-city-link"
+                className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
                 <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {/* Breadcrumb der 3 Ebenen (Stadt → Distrikt → Unterkategorie,
                     siehe README) — jeder Eintrag ist per `goTo` direkt anspringbar. */}
@@ -584,7 +605,7 @@ export default function CityPage() {
                     );
                   })}
                 </nav>
-              </div>
+              </motion.div>
 
               {/* A11y-Fallback für die 3D-Ansicht (README, Akzeptanzkriterium
                   zur nicht-visuellen Alternative): Listenansicht-Toggle
@@ -623,6 +644,11 @@ export default function CityPage() {
                     value={tab.value}
                     disabled={!enabled}
                     aria-disabled={!enabled}
+                    // Kein TabsContent im Stadt-Tab-Chrome (die Tabs schalten das
+                    // Datenmodell der einen Canvas-Fläche) — ohne Panel ist
+                    // Radix' automatisches aria-controls eine dangling IDREF
+                    // (axe critical). Explizit entfernen statt tote Referenz.
+                    aria-controls={undefined}
                   >
                     {t(tab.labelKey)}
                   </TabsTrigger>
@@ -872,6 +898,23 @@ export default function CityPage() {
                   />
                 </div>
               )}
+                {/* WP-5.5: Signature Moment — "Das ist Ihre finanzielle Welt"
+                    erscheint nach dem initialen Aufbau der Stadt. */}
+                {showSignatureMoment && (
+                  <motion.div
+                    initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center"
+                  >
+                    <div className="rounded-2xl bg-background/90 px-8 py-4 text-center shadow-lg backdrop-blur-sm">
+                      <p className="text-lg font-semibold text-foreground">
+                        {t("city.signatureMoment")}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
             </>
           )}
         </div>

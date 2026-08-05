@@ -87,7 +87,11 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           </CardTitle>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Switch checked={axisFromZero} onCheckedChange={(v) => setAxisFromZero(Boolean(v))} />
+              <Switch
+                checked={axisFromZero}
+                onCheckedChange={(v) => setAxisFromZero(Boolean(v))}
+                aria-label={t('balanceChart.zeroAxisLabel')}
+              />
               <span className="text-sm text-muted-foreground">{t('balanceChart.zeroAxisLabel')}</span>
             </div>
             <Button
