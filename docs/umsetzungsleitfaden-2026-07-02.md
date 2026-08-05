@@ -604,10 +604,15 @@ Kompakte Cards (Detailtiefe wie oben on demand):
   `advancedForecast`, `receiptLineItems`) an echte Gates binden oder aus der
   Matrix entfernen (F-GATE-2); Trading-Route reaktiv lesen (F-GATE-1,
   `App.tsx:116` → `useFeatureFlag`).
-- **T2.7 MCP-Korrektheit:** `cashflow.month` = aktueller Monat (F-MCP-1);
-  `generated_at` in jede Tool-Antwort (F-MCP-2); Klartext-Token nicht dauerhaft
-  in localStorage (F-MCP-3); Consent-Text um „Kategorie-/Budgetnamen" ergänzen
-  (F-MCP-4).
+- **T2.7 MCP-Korrektheit:** ✅ **erledigt (2026-08-05).** `cashflow.month` nimmt
+  jetzt den jüngsten Monat statt `months[0]` — der Produktionsaufrufer speist
+  `lastNMonths()` ein, das AUFSTEIGEND liefert, der aktuelle Cashflow trug also
+  das älteste Datum des Fensters (F-MCP-1, zwei [REGRESSION]-Tests).
+  `generated_at` steht im Snapshot (F-MCP-2), das Klartext-Token liegt nicht
+  mehr in `localStorage` — nur noch ein Aktiv-Marker, der Legacy-Key wird
+  gelöscht (F-MCP-3). Der Zustimmungstext benennt die Kategorie- und
+  Budgetnamen und behauptet nicht mehr, Freitexte blieben lokal (F-MCP-4,
+  [PRIVACY][REGRESSION]-Test auf den tatsächlichen Snapshot-Inhalt).
 - **T2.8 God-Components entflechten:** `DebtsPage` (681), `LiquidityReport` (1009)
   in Präsentation + Logik-Hooks aufteilen; Logik nach `lib/`.
 

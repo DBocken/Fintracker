@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-08-05 — CI-Reparatur: Suite und Installationsschritt wieder grün
+
+**Status:** `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm exec tsc
+--noEmit` und `pnpm test` (385 Dateien / 3823 Tests) laufen wieder durch. Kein
+Test wurde deaktiviert, übersprungen oder abgeschwächt.
+
+Der Programmstand war nicht nur rot, sondern an mehreren Stellen **blind**:
+Zusicherungen, die nie greifen konnten, sahen wie Abdeckung aus.
+
+| Befund | Wirkung | Behoben durch |
+|---|---|---|
+| `pnpm-lock.yaml` ohne die neun `pnpm.overrides` aus `package.json` | `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` — der **erste** CI-Schritt brach ab, alle folgenden Gates liefen nie | Lockfile synchronisiert |
+| Playwright-Specs aus WP-4.6 lagen im Vitest-Glob | 4 Suiten scheiterten schon beim Einsammeln („did not expect `test.describe()`") | `e2e-tests/**` aus dem Vitest-Glob |
+| `translations.ts` mit CRLF im Baum | Der `$`-verankerte Wächter gegen doppelte Namespaces fand **null** Locales statt vier und lief blind durch | Zeilenenden im Test normalisiert + `.gitattributes` (`eol=lf`) |
+| `[data-framer-name]` in drei BudgetTank-Tests | framer-motion setzt das Attribut nicht: Positiv-Test unmöglich, beide Negativ-Tests vakuum-grün | Prüfung auf die gerenderte Struktur |
+| Lokaler `useI18n`-Mock in `FinanceEmptyState.test.tsx` | Lieferte Schlüssel statt Texte; „visuell dominante primäre Aktion" prüfte zudem `buttons[0]`, obwohl die primäre Aktion als `<a>` rendert, und suchte „outline" in einer Basisklasse, die `focus-visible:outline-none` enthält | `renderWithProviders`, zweisprachig (AGENTS.md §6) |
+| „statisch bei reduced-motion" prüfte das Fehlen eines `style`-Attributs | Framer Motion schreibt auch im Ruhezustand eines | Prüfung des Zustands + Gegenprobe mit Bewegung |
+| WP-E1-Kaskadentest nahm Modell- statt Layout-Reihenfolge an | Balken sind nach Höhe absteigend sortiert; geprüft wurde die falsche Kachel | Reihenfolge aus dem Layout abgeleitet |
+| `KpiCard` trug seit WP-3.5 `shadow-[var(--shadow-ambient)]` | Widerspruch zu Prinzip 8 und zum eigenen Doc-Kommentar der Komponente | Schatten entfernt |
+
+**Offen aus diesem Lauf:** `e2e-tests/` enthält Specs, Fixtures und
+Visual-Baselines, aber **keine `playwright.config.ts` und kein npm-Skript** —
+die im Gate unten dokumentierten E2E-Nachweise sind mit dem Repo-Stand allein
+nicht reproduzierbar. Wer die Suite wieder braucht, muss Runner-Konfiguration
+und `test:e2e` nachziehen; erst dann gehört sie in CI.
+
+---
+
 ## 2026-07 — WP-4.6 Vertical Slice Integration Test + Gate
 
 **Status:** Test-Suite erstellt, alle 4 automatisierten Dimensionen grün.
