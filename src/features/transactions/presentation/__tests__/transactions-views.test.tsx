@@ -150,18 +150,34 @@ describe('Views – keine eigenen Service-Queries', () => {
   });
 });
 
-describe('Leerer Zustand (i18n)', () => {
+describe('Gefiltert-leerer Zustand (i18n)', () => {
+  // Die Fixture trifft genau den Fall: Buchungen SIND da (`all`), nur sichtbar
+  // ist keine. Seit WP-9.4 ist das ein eigener Zustand mit eigener Aussage —
+  // vorher stand hier derselbe Text wie bei "gar nichts erfasst".
   const emptyModel = buildModel({ transactions: { all: FIXTURE_TRANSACTIONS, visible: [] } });
 
-  it('sollte den leeren Zustand der ListPane bilingual (de) rendern', () => {
+  it('sollte den gefiltert-leeren Zustand der ListPane bilingual (de) rendern', () => {
     renderWithI18n(<TransactionsListPane model={emptyModel} {...listPaneProps} />, 'de');
-    expect(screen.getByText('Keine Buchungen gefunden')).toBeTruthy();
-    expect(screen.getByText('Passe Filter oder Suchbegriff an.')).toBeTruthy();
+    expect(screen.getByText('Kein Treffer für diese Auswahl')).toBeTruthy();
+    // Der entscheidende Satz: Er trennt diesen Zustand von "du hast noch
+    // nichts erfasst".
+    expect(screen.getByText(/Es gibt Buchungen/)).toBeTruthy();
   });
 
-  it('sollte den leeren Zustand der ListPane bilingual (en) rendern', () => {
+  it('sollte den gefiltert-leeren Zustand der ListPane bilingual (en) rendern', () => {
     renderWithI18n(<TransactionsListPane model={emptyModel} {...listPaneProps} />, 'en');
-    expect(screen.getByText('No transactions found')).toBeTruthy();
-    expect(screen.getByText('Adjust filter or search term.')).toBeTruthy();
+    expect(screen.getByText('No match for this selection')).toBeTruthy();
+    expect(screen.getByText(/There are transactions/)).toBeTruthy();
+  });
+
+  it('sollte den wirkenden Suchbegriff benennen', () => {
+    // Ohne diese Zusicherung waere der neue Text nur eine andere Formulierung
+    // desselben unbrauchbaren Hinweises.
+    const searched = buildModel({
+      transactions: { all: FIXTURE_TRANSACTIONS, visible: [] },
+      filters: { ...emptyModel.filters, values: { ...emptyModel.filters.values, search: 'Miete' } },
+    });
+    renderWithI18n(<TransactionsListPane model={searched} {...listPaneProps} />, 'de');
+    expect(screen.getByText('Suche „Miete“')).toBeTruthy();
   });
 });

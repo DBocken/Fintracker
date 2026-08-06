@@ -4,6 +4,8 @@ import { TransactionDayList } from '@/components/dashboard/TransactionDayList';
 import { TransactionStats } from '@/components/dashboard/TransactionStats';
 import { TransactionFilters } from '@/components/dashboard/TransactionFilters';
 import { useI18n } from '@/i18n/useI18n';
+import FilteredEmptyState from '@/components/common/FilteredEmptyState';
+import { describeActiveFilters } from '@/features/shared/domain/active-filters';
 import { formatCurrency } from '@/lib/utils';
 import type {
   ContractFilter,
@@ -34,18 +36,26 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
   const { t } = useI18n();
   const { filters } = model;
 
+  /*
+   * WP-9.4: Diese Pane rendert NUR, wenn es ueberhaupt Buchungen gibt — den
+   * Fall ohne jede Erfassung faengt die Page mit `FinanceEmptyState` ab, den
+   * Fall eines Lesefehlers mit `FinanceErrorState`. Null sichtbare Zeilen
+   * heisst hier also immer: Die Filter treffen nichts.
+   *
+   * Der frueher hier stehende Hinweis auf Filter und Suchbegriff war richtig,
+   * aber unbrauchbar — er sagte nicht, WELCHER Filter zu eng ist. Bei sieben
+   * moeglichen Dimensionen ist das der Unterschied zwischen einem Hinweis und
+   * einem Ratespiel.
+   */
+  const activeFilters = describeActiveFilters(filters.values);
+
   const emptyList = (
-    <div className="space-y-4 py-8 text-center text-muted-foreground">
-      <div>
-        <div className="font-medium text-foreground">{t('transactions.emptyTitle')}</div>
-        <div className="text-sm">{t('transactions.emptyHint')}</div>
-      </div>
-      {filters.activeCount > 0 && (
-        <Button type="button" variant="outline" size="sm" onClick={filters.reset}>
-          {t('dashboard.resetFilters')}
-        </Button>
-      )}
-    </div>
+    <FilteredEmptyState
+      active={activeFilters}
+      categories={model.categories}
+      accounts={model.accounts}
+      onReset={filters.reset}
+    />
   );
 
   return (

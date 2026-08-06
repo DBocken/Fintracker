@@ -59,9 +59,9 @@ erheben gibt:
 - **offline** — bei der Erhebung gab es im gesamten Quelltext **keine**
   Behandlung; der einzige `navigator.onLine`-Treffer stand dienst-intern in
   `category-template-service.ts`. Mit WP-9.3 erledigt, siehe unten.
-- **gefiltert-leer** — bisher nur auf der Buchungsseite unterscheidbar;
-  überall sonst fällt „kein Ergebnis für diesen Filter" mit „keine Daten"
-  zusammen.
+- **gefiltert-leer** — bei der Erhebung nur auf der Buchungsseite überhaupt
+  unterscheidbar, und auch dort nur als Gattung („Passe Filter oder
+  Suchbegriff an"). Mit WP-9.4 benannt, siehe unten.
 
 ## Der Kernbefund
 
@@ -132,12 +132,37 @@ nicht. Die Buchungen kommen aus IndexedDB; kein Netz erklärt einen lokalen
 Lesefehler nicht. Ein „du bist offline" an dieser Stelle wäre eine plausibel
 klingende Falschauskunft.
 
+## Stand nach WP-9.4 — der dritte Fall
+
+Neben „nichts erfasst" und „nicht ladbar" gibt es den Fall, in dem Daten da
+sind und nur der Filter nichts trifft. Bis hierher stand dort „Keine Buchungen
+gefunden — Passe Filter oder Suchbegriff an": richtig, aber unbrauchbar. Bei
+**sieben** Filterdimensionen ist das der Unterschied zwischen einem Hinweis
+und einem Ratespiel.
+
+Jetzt werden die wirkenden Filter einzeln benannt (Suchbegriff wörtlich,
+Kategorie und Konto mit ihrem Namen statt ihrer ID). Der wichtigste Satz ist
+aber der Hinweis darunter: **„Es gibt Buchungen — nur keine, die zu allen
+gesetzten Filtern passt."** Er trennt diesen Zustand von „du hast noch nichts
+erfasst".
+
+Zwei Dinge, die dabei mitliefen:
+
+- `describeActiveFilters()` und `countActiveFilters()` müssen dieselben sieben
+  Dimensionen kennen. Ein Test prüft deshalb **alle 128 Kombinationen**
+  gegeneinander, nicht ein Beispiel: Wird künftig eine Dimension ergänzt und
+  nur eine der beiden Funktionen nachgezogen, zählt der Knopf „3 Filter aktiv",
+  die Meldung nennt zwei — und der dritte bleibt unsichtbar wirksam.
+- Die vier alten Schlüssel `transactions.emptyTitle`/`emptyHint` sind entfernt.
+  Ungenutzte Übersetzungen bleiben sonst als Karteileichen stehen und werden
+  bei der nächsten Sprache mitübersetzt.
+
 ## Ableitung für Phase 9
 
 | WP | Inhalt |
 |---|---|
 | **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
-| **WP-9.4** | „gefiltert-leer" von „leer" trennen: „Kein Treffer für *Miete* im gewählten Zeitraum" statt „Noch keine Buchungen" |
+| **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
 | **WP-9.5** | Sanfter Modus über alle Screens statt der heutigen vier |
 | **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |
