@@ -196,6 +196,31 @@ Im Sweep sind damit: die immer sichtbaren Screens (Coach, Dashboard,
 Buchungen, Konten, CSV, Export, Einstellungen, Finanzstadt) sowie Budgets,
 Meilensteine, Verträge, Liquidität, Einkommen, Schulden, Anlässe und Steuer.
 
+### Was nach dem ersten Sweep offen bleibt — und warum
+
+23 Dateien in Reichweite des Modus sind noch nicht gezogen. Das ist kein
+Vergessen, sondern der Punkt, an dem das mechanische Vorgehen an seine Grenze
+kam:
+
+| Grund | Dateien |
+|---|---|
+| **Mehrere Komponenten je Datei.** Der Hook muss in *jede* gehen, die einen Betrag ausgibt — ein Skript, das nur die exportierte trifft, erzeugt `Cannot find name 'money'` | `AnalysisModePanel`, `BudgetOptimizerPanel`, `ForecastPlanner`, `LiquidityReport`, `AskYourMoney`, `CellDetailBody`, `ClaimImportDialog` |
+| **Formatierung im Modulraum**, außerhalb jeder Komponente — dort ist kein Hook erlaubt, der maskierte Wert muss hereingereicht werden | `CityLabels` |
+| **Diagramm-interne Formatierer** (Achsen-Ticks, Tooltips), die als Funktion durchgereicht werden | `SankeyChart`, `TimelineChart`, `HeatmapCalendar`, `WeeklyPatternCharts`, `SmartInsightsPanel`, `SpendingSunburstChart`, `TransactionCharts`, `IncomeBreakdownCard`, `IncomeOverTimeCard`, `ContractsDashboard` u. a. |
+
+Zwei Dateien sind **bewusst** ausgenommen:
+
+- `AnalyticsTransparencyPreview` zeigt, was die App senden *würde*. Wer das
+  prüft, will genau die echten Werte sehen — eine Maske wäre hier das
+  Gegenteil von Transparenz.
+- `BankCallbackPage` ist eine Durchgangsseite der Bankanbindung, kein Screen,
+  auf dem man verweilt.
+
+Ein Versuch, den Rest per Skript nachzuziehen, hat beim ersten Anlauf sieben
+Dateien zerschossen (die Destrukturierungs-Klammer `function X({` wurde für den
+Funktionsrumpf gehalten). Die Änderungen sind zurückgenommen worden; der Rest
+gehört von Hand gemacht.
+
 ## Ableitung für Phase 9
 
 | WP | Inhalt |
@@ -203,5 +228,5 @@ Meilensteine, Verträge, Liquidität, Einkommen, Schulden, Anlässe und Steuer.
 | **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
-| **WP-9.5** | ⏳ **Grundlage steht** (`useMoneyFormat()`, tote CSS entfernt, acht Altstellen vereinheitlicht). Der Screen-Sweep folgt — Zuschnitt siehe unten |
+| **WP-9.5** | ⏳ **Grundlage + erster Sweep.** Abdeckung 8/78 → **34/78**. 23 Dateien in Reichweite bleiben offen, Gründe unten |
 | **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |

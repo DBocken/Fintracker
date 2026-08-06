@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { InfoGroup } from '@/components/common/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { buildPayoutRadar, type IncomeStream } from '@/lib/income-streams';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -20,6 +21,7 @@ function confidenceLabel(t: (k: string) => string, confidence: number): string {
  * Auszahlungen je Strom (reines Readout, kein Karten-Chrome).
  */
 export default function IncomePayoutRadar({ streams }: { streams: IncomeStream[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const radar = useMemo(() => buildPayoutRadar(streams), [streams]);
 
@@ -44,7 +46,7 @@ export default function IncomePayoutRadar({ streams }: { streams: IncomeStream[]
                 </div>
               </div>
               <div className="shrink-0 text-sm font-semibold tabular-nums">
-                {formatCurrency(entry.nextAmount)}
+                {money.mask(formatCurrency(entry.nextAmount))}
               </div>
             </li>
           ))}

@@ -13,10 +13,12 @@ import { TransactionFormDialog } from "@/components/transactions/TransactionForm
 import { ReceiptScanDialog } from "@/components/transactions/ReceiptScanDialog";
 import { CashWithdrawalDialog } from "./CashWithdrawalDialog";
 import type { Account, Transaction } from "@/types";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
 
 export function CashSection() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -80,7 +82,7 @@ export function CashSection() {
             </CardTitle>
             <CardDescription>
               {cashAccount
-                ? t('accounts.cashSection.currentBalance').replace('{amount}', eur.format(cashBalance))
+                ? t('accounts.cashSection.currentBalance').replace('{amount}', money.mask(eur.format(cashBalance)))
                 : t('accounts.cashSection.emptyDesc')}
             </CardDescription>
           </div>
@@ -128,7 +130,7 @@ export function CashSection() {
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{suggestion.payee || suggestion.description}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {new Date(suggestion.date).toLocaleDateString("de-DE")} · {eur.format(Math.abs(suggestion.amount))}
+                      {new Date(suggestion.date).toLocaleDateString("de-DE")} · {money.mask(eur.format(Math.abs(suggestion.amount)))}
                     </span>
                   </span>
                   <Button

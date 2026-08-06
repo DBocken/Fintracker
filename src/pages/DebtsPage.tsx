@@ -59,10 +59,12 @@ import {
   getExistentialPriorityExplanation,
 } from "@/services/debt-service";
 import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export default function DebtsPage() {
+  const money = useMoneyFormat();
   const { t, locale } = useI18n();
   const debtTypeLabels = getDebtTypeLabels();
   const queryClient = useQueryClient();
@@ -346,8 +348,8 @@ export default function DebtsPage() {
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: t('debts.debtsPage.totalDebtStat'), value: eur.format(totalDebt) },
-              { label: t('debts.debtsPage.minPaymentsStat'), value: eur.format(totalMin) },
+              { label: t('debts.debtsPage.totalDebtStat'), value: money.mask(eur.format(totalDebt)) },
+              { label: t('debts.debtsPage.minPaymentsStat'), value: money.mask(eur.format(totalMin)) },
               { label: t('debts.debtsPage.openDebtsStat'), value: debts.filter((d) => !d.is_paid_off).length },
             ]}
           />
@@ -386,13 +388,13 @@ export default function DebtsPage() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {debtTypeLabels[d.type]} · {d.interest_rate}% · {t('debts.debtCard.rateLabel')} {eur.format(d.min_payment)}
+                      {debtTypeLabels[d.type]} · {d.interest_rate}% · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(d.min_payment))}
                       {d.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(d.due_day))}` : ""}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:shrink-0 sm:justify-end">
-                  <div className="font-semibold">{eur.format(d.balance)}</div>
+                  <div className="font-semibold">{money.mask(eur.format(d.balance))}</div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={d.is_paid_off ? "secondary" : "outline"}
@@ -440,7 +442,7 @@ export default function DebtsPage() {
                       <div className="flex justify-between text-sm">
                         <span>{c.label}</span>
                         <span className="text-muted-foreground">
-                          {c.pct}% · {eur.format(c.amount)}
+                          {c.pct}% · {money.mask(eur.format(c.amount))}
                         </span>
                       </div>
                       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -477,11 +479,11 @@ export default function DebtsPage() {
                       <div className="rounded-lg bg-muted/50 p-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('debts.debtsPage.currentBalance')}</span>
-                          <span className="font-medium">{eur.format(selectedDebt.balance)}</span>
+                          <span className="font-medium">{money.mask(eur.format(selectedDebt.balance))}</span>
                         </div>
                         <div className="mt-1 flex justify-between">
                           <span className="text-muted-foreground">{t('debts.debtsPage.assignedPayments')}</span>
-                          <span className="font-medium">{eur.format(totalAssignedToSelectedDebt)}</span>
+                          <span className="font-medium">{money.mask(eur.format(totalAssignedToSelectedDebt))}</span>
                         </div>
                       </div>
                     )}
@@ -524,7 +526,7 @@ export default function DebtsPage() {
                                   {assigned && !assignedHere && assignedDebt ? t('debts.debtsPage.alreadyAssignedTo').replace('{name}', assignedDebt.name) : ""}
                                 </span>
                               </span>
-                              <span className="shrink-0 font-semibold">{eur.format(Math.abs(transaction.amount))}</span>
+                              <span className="shrink-0 font-semibold">{money.mask(eur.format(Math.abs(transaction.amount)))}</span>
                             </label>
                           );
                         })}
@@ -578,7 +580,7 @@ export default function DebtsPage() {
                       placeholder="0"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {t('debts.debtsPage.extraBudgetHint').replace('{amount}', eur.format(totalMin))}
+                      {t('debts.debtsPage.extraBudgetHint').replace('{amount}', money.mask(eur.format(totalMin)))}
                     </p>
                   </div>
                 </div>
@@ -596,7 +598,7 @@ export default function DebtsPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('debts.debtsPage.totalInterest')}</span>
-                        <span className="font-semibold">{eur.format(payoffPlan.totalInterestPaid)}</span>
+                        <span className="font-semibold">{money.mask(eur.format(payoffPlan.totalInterestPaid))}</span>
                       </div>
                     </div>
                     <div className="grid gap-4 lg:grid-cols-2">
@@ -615,7 +617,7 @@ export default function DebtsPage() {
                                 {s.name}
                               </span>
                               <span className="text-muted-foreground">
-                                {strategy === "avalanche" ? `${s.interestRate}%` : eur.format(s.balance)}
+                                {strategy === "avalanche" ? `${s.interestRate}%` : money.mask(eur.format(s.balance))}
                               </span>
                             </li>
                           ))}

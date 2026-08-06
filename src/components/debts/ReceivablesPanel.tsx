@@ -40,10 +40,12 @@ import {
   type ReceivableTransactionAssignment,
 } from "@/services/receivable-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export function ReceivablesPanel() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const receivableTypeLabels = getReceivableTypeLabels();
   const queryClient = useQueryClient();
@@ -233,7 +235,7 @@ export function ReceivablesPanel() {
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: t('debts.receivablesPanel.totalLabel'), value: eur.format(totalReceivables) },
+              { label: t('debts.receivablesPanel.totalLabel'), value: money.mask(eur.format(totalReceivables)) },
               { label: t('debts.receivablesPanel.openLabel'), value: openCount },
             ]}
           />
@@ -262,7 +264,7 @@ export function ReceivablesPanel() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:shrink-0 sm:justify-end">
-                  <div className="font-semibold">{eur.format(r.amount)}</div>
+                  <div className="font-semibold">{money.mask(eur.format(r.amount))}</div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={r.is_settled ? "secondary" : "outline"}
@@ -327,11 +329,11 @@ export function ReceivablesPanel() {
                     <div className="rounded-lg bg-muted/50 p-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{t('debts.receivablesPanel.openAmountLabel')}</span>
-                        <span className="font-medium">{eur.format(selectedReceivable.amount)}</span>
+                        <span className="font-medium">{money.mask(eur.format(selectedReceivable.amount))}</span>
                       </div>
                       <div className="mt-1 flex justify-between">
                         <span className="text-muted-foreground">{t('debts.receivablesPanel.assignedLabel')}</span>
-                        <span className="font-medium">{eur.format(totalAssignedToSelected)}</span>
+                        <span className="font-medium">{money.mask(eur.format(totalAssignedToSelected))}</span>
                       </div>
                     </div>
                   )}
@@ -390,7 +392,7 @@ export function ReceivablesPanel() {
                               </span>
                             </span>
                             <span className="shrink-0 font-semibold text-positive">
-                              +{eur.format(Math.abs(transaction.amount))}
+                              +{money.mask(eur.format(Math.abs(transaction.amount)))}
                             </span>
                           </label>
                         );

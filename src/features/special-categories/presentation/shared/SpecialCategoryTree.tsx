@@ -6,6 +6,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types';
 import type { SpecialCategoryTreeNode } from '../../application/special-categories-view-model';
 import { EventTotalAmount } from './EventTotalAmount';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface SpecialCategoryTreeProps {
   nodes: SpecialCategoryTreeNode[];
@@ -35,6 +36,7 @@ export function SpecialCategoryTree({
   onDelete,
   variant = 'desktop',
 }: SpecialCategoryTreeProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -117,7 +119,7 @@ export function SpecialCategoryTree({
                               <Plus className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                               <span className="truncate">{tx.payee}</span>
                             </span>
-                            <span className="tabular-nums text-muted-foreground">{formatCurrency(tx.amount)}</span>
+                            <span className="tabular-nums text-muted-foreground">{money.mask(formatCurrency(tx.amount))}</span>
                           </button>
                         </li>
                       ))}

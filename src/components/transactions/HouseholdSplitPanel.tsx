@@ -18,6 +18,7 @@ import {
 } from "@/services/household-service";
 import type { Transaction } from "@/types";
 import { parseGermanNumber } from "@/lib/money";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
 // Zentraler Parser (money.ts): korrekter Tausenderpunkt (F-MONEY-1/-6).
@@ -30,6 +31,7 @@ const parseAmount = (v: string) => parseGermanNumber(v) ?? 0;
  * Mitglied (Default gleichmäßig) → speichern/entfernen.
  */
 export function HouseholdSplitPanel({ transaction }: { transaction: Transaction }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const qc = useQueryClient();
   const txId = transaction.id ?? "";
@@ -153,7 +155,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
           <div className={`flex justify-between text-xs ${balanced ? "text-muted-foreground" : "text-warning"}`}>
             <span>{t("household.sumLabel")}</span>
             <span className="tabular-nums">
-              {eur.format(sum)} / {eur.format(total)}
+              {money.mask(eur.format(sum))} / {money.mask(eur.format(total))}
             </span>
           </div>
 

@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { getWaterfallPlan } from "@/services/waterfall-service";
 import type { WaterfallStep, WaterfallStepKey } from "@/lib/budget-waterfall";
 import { cn } from "@/lib/utils";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -21,6 +22,8 @@ const STEP_FILL: Record<WaterfallStepKey, string> = {
 
 /** Eine Wasserfall-Stufe: Betrag zählt hoch, Balken baut sich auf (baseline-konform). */
 function StepRow({ step, income, animate, stepHints }: { step: WaterfallStep; income: number; animate: boolean; stepHints: Record<WaterfallStepKey, string> }) {
+  const money = useMoneyFormat();
+  const { t } = useI18n();
   const targetPct = income > 0 ? Math.min(100, (step.allocated / income) * 100) : 0;
   const [width, setWidth] = useState(animate ? 0 : targetPct);
   const shownAmount = useAnimatedNumber(step.allocated, { enabled: animate });
@@ -42,7 +45,7 @@ function StepRow({ step, income, animate, stepHints }: { step: WaterfallStep; in
           {step.label}
           <span className="ml-2 text-xs font-normal text-muted-foreground">{stepHints[step.key]}</span>
         </span>
-        <span className="tabular-nums font-semibold">{eur.format(shownAmount)}</span>
+        <span className="tabular-nums font-semibold">{money.mask(eur.format(shownAmount))}</span>
       </div>
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -52,7 +55,7 @@ function StepRow({ step, income, animate, stepHints }: { step: WaterfallStep; in
       </div>
       {!step.funded && step.shortfall > 0 && (
         <div className="text-xs text-red-600 dark:text-red-400">
-          {eur.format(step.shortfall)} nicht gedeckt
+          {money.mask(eur.format(step.shortfall))} {t('budgets.waterfall.notCovered')}
         </div>
       )}
     </div>
@@ -66,6 +69,7 @@ function StepRow({ step, income, animate, stepHints }: { step: WaterfallStep; in
  * Aufbau-Animation; bei prefers-reduced-motion direkt im Zielzustand.
  */
 export default function WaterfallPanel() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const animate = !useReducedMotion();
   const { data: plan, isLoading } = useQuery({ queryKey: ["waterfall-plan"], queryFn: () => getWaterfallPlan() });
@@ -103,7 +107,7 @@ export default function WaterfallPanel() {
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
           <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> {t('budgets.waterfall.title')}
           <span className="text-xs font-normal text-muted-foreground">
-            {t('budgets.waterfall.income')} {eur.format(plan.income)} · {t('budgets.waterfall.savingsRate')} {Math.round(plan.savingsRate * 100)}%
+            {t('budgets.waterfall.income')} {money.mask(eur.format(plan.income))} · {t('budgets.waterfall.savingsRate')} {Math.round(plan.savingsRate * 100)}%
           </span>
         </span>
       }

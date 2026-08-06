@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/useI18n";
 import type { BudgetSuggestion } from "@/types";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -21,6 +22,7 @@ interface SuggestedBudgetsProps {
  * letzten Monate). Ein Klick legt das Budget mit dem vorgeschlagenen Limit an.
  */
 export default function SuggestedBudgets({ suggestions, onAdd, isLoading }: SuggestedBudgetsProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   if (suggestions.length === 0) return null;
 
@@ -50,7 +52,7 @@ export default function SuggestedBudgets({ suggestions, onAdd, isLoading }: Sugg
               {s.icon ? `${s.icon} ` : ""}
               {s.name}
             </span>
-            <span className="ml-1.5 text-muted-foreground">{eur.format(s.limit)}{t('budgets.suggestedBudgets.perMonth')}</span>
+            <span className="ml-1.5 text-muted-foreground">{money.mask(eur.format(s.limit))}{t('budgets.suggestedBudgets.perMonth')}</span>
           </Button>
         ))}
       </CardContent>

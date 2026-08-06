@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { getUserSettings } from '@/services/transaction-service';
 import { computeTaxReserve, resolveTaxReservePercent } from '@/lib/tax-reserve';
 import type { IncomeStream } from '@/lib/income-streams';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -15,6 +16,7 @@ const formatCurrency = (v: number) =>
  * der Prozentsatz auf 0 steht oder kein steuerrelevantes Einkommen vorliegt.
  */
 export default function IncomeTaxReserveHint({ streams }: { streams: IncomeStream[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
 
@@ -29,14 +31,14 @@ export default function IncomeTaxReserveHint({ streams }: { streams: IncomeStrea
           <li key={entry.mainCategoryId} className="flex items-center justify-between gap-2 text-sm">
             <span className="truncate text-muted-foreground">{entry.mainCategoryName}</span>
             <span className="shrink-0 tabular-nums">
-              {formatCurrency(entry.incomeTotal)} → {formatCurrency(entry.reserveAmount)}
+              {money.mask(formatCurrency(entry.incomeTotal))} → {money.mask(formatCurrency(entry.reserveAmount))}
             </span>
           </li>
         ))}
       </ul>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/60 pt-2 text-sm font-semibold">
         <span>{t('income.tax.reserveTotalLabel')}</span>
-        <span className="tabular-nums">{formatCurrency(result.reserveTotal)}</span>
+        <span className="tabular-nums">{money.mask(formatCurrency(result.reserveTotal))}</span>
       </div>
       <p className="mt-2 text-sm">{t('income.tax.hintLine').replace('{percent}', String(result.percent))}</p>
       <p className="mt-1 text-xs text-muted-foreground">{t('income.tax.disclaimer')}</p>

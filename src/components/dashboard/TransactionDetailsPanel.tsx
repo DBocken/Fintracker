@@ -28,6 +28,7 @@ import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPan
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { FeatureGate } from '@/components/FeatureGate';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import {
   getRhythmusOptions,
   ausgabenklasseLabel,
@@ -95,6 +96,7 @@ export function TransactionDetailsPanel({
   closeLabel = 'Abbrechen',
   layout = 'stacked',
 }: TransactionDetailsPanelProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -259,7 +261,7 @@ export function TransactionDetailsPanel({
         <div>
           <Label className="text-xs text-muted-foreground">{t('dashboard.amount')}</Label>
           <p className={`font-medium tabular-nums ${transaction.amount < 0 ? 'text-warning' : 'text-positive'}`}>
-            {currencyFormatter.format(transaction.amount)}
+            {money.mask(currencyFormatter.format(transaction.amount))}
           </p>
         </div>
         <div data-tour-id="detail-payee" className="col-span-2">

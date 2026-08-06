@@ -7,6 +7,7 @@ import { projectMonthlyInvestment } from "@/lib/budget-sweep";
 import { getBudgetSweepPlan } from "@/services/budget-sweep-service";
 import { renderGirocodeDataUrl } from "@/services/girocode-service";
 import { cn } from "@/lib/utils";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -31,6 +32,7 @@ function GiroImage({ payload, alt }: { payload: string; alt: string }) {
  * nichts, wenn das Budget keinen Sweep konfiguriert hat oder nichts angespart ist.
  */
 export default function SweepCard({ status }: { status: BudgetStatus }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const action = resolveRolloverConfig(status.budget).surplusAction;
   const applicable = (action === "sweep_savings" || action === "sweep_invest") && (status.swept ?? 0) >= 1;
@@ -57,7 +59,7 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
 
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground">{t('budgets.sweep.desiredAmount')}</span>
-        <span className="font-semibold tabular-nums">{eur.format(plan.desiredAmount)}</span>
+        <span className="font-semibold tabular-nums">{money.mask(eur.format(plan.desiredAmount))}</span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground">{t('budgets.sweep.safeAmount')}</span>
@@ -67,7 +69,7 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
             gate.safe ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",
           )}
         >
-          {eur.format(gate.safeAmount)}
+          {money.mask(eur.format(gate.safeAmount))}
         </span>
       </div>
       <p className="text-xs text-muted-foreground">{gate.reason}</p>
@@ -77,7 +79,7 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
           <GiroImage payload={plan.giroPayload} alt={t('budgets.sweep.girocodeAlt')} />
           <p className="text-center text-xs text-muted-foreground">
             {t('budgets.sweep.girocodeInstructions')
-              .replace('{amount}', eur.format(plan.giroDisplay.amount))
+              .replace('{amount}', money.mask(eur.format(plan.giroDisplay.amount)))
               .replace('{name}', plan.giroDisplay.name)}
           </p>
         </div>
@@ -96,8 +98,8 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
           </div>
           <p className="text-xs text-muted-foreground">
             {t('budgets.sweep.etfProjection')
-              .replace('{amount}', eur.format(gate.safeAmount))
-              .replace('{projection}', eur.format(projectMonthlyInvestment(gate.safeAmount, 10, 5)))}
+              .replace('{amount}', money.mask(eur.format(gate.safeAmount)))
+              .replace('{projection}', money.mask(eur.format(projectMonthlyInvestment(gate.safeAmount, 10, 5))))}
           </p>
         </div>
       )}

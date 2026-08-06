@@ -8,6 +8,7 @@ import {
   getExistentialPriorityExplanation,
 } from "@/services/debt-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -25,6 +26,7 @@ export function DebtCard({
   onTogglePaid: (d: Debt) => void;
   onOpenDetails: (d: Debt) => void;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const debtTypeLabels = getDebtTypeLabels();
   const original = debt.original_amount ?? 0;
@@ -57,13 +59,13 @@ export function DebtCard({
               {debt.is_paid_off && <Badge className="shrink-0 bg-positive/20 text-positive">{t('debts.debtCard.paid')}</Badge>}
             </div>
             <div className="mt-0.5 truncate text-xs text-muted-foreground">
-              {debtTypeLabels[debt.type]} · {t('debts.debtCard.rateLabel')} {eur.format(debt.min_payment)}
+              {debtTypeLabels[debt.type]} · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(debt.min_payment))}
               {debt.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(debt.due_day))}` : ""}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1 text-right">
             <div>
-              <div className="text-lg font-bold">{eur.format(debt.balance)}</div>
+              <div className="text-lg font-bold">{money.mask(eur.format(debt.balance))}</div>
               <div className="text-[11px] text-muted-foreground">{t('debts.debtCard.balance')}</div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5" aria-hidden />

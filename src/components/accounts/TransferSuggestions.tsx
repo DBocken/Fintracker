@@ -10,11 +10,13 @@ import { getAccounts } from '../../services/account-service';
 import { getTransactions, markTransferPair, unmarkTransfer } from '../../services/transaction-service';
 import { findTransferCandidates, type TransferCandidate } from '../../services/transfer-service';
 import type { Transaction } from '../../types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const dateFmt = new Intl.DateTimeFormat('de-DE');
 
 export function TransferSuggestions() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -97,7 +99,7 @@ export function TransferSuggestions() {
               >
                 <div>
                   <div>
-                    {dateFmt.format(new Date(c.outgoing.date))} · {eur.format(Math.abs(c.outgoing.amount))}
+                    {dateFmt.format(new Date(c.outgoing.date))} · {money.mask(eur.format(Math.abs(c.outgoing.amount)))}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {accountName(c.outgoing.account_id)} → {accountName(c.incoming.account_id)}
@@ -128,7 +130,7 @@ export function TransferSuggestions() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    {dateFmt.format(new Date(pair[0].date))} · {eur.format(Math.abs(pair[0].amount))}
+                    {dateFmt.format(new Date(pair[0].date))} · {money.mask(eur.format(Math.abs(pair[0].amount)))}
                     <Badge variant="secondary">{t('accounts.transferSuggestions.transferBadge')}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">

@@ -11,6 +11,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import type { CityModel } from '../domain/city-model';
 import type { CityNavigationViewModel } from '../application/city-view-model';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 export type CityAccessibleListProps = {
   model: CityModel;
@@ -63,6 +64,7 @@ function buildRows(model: CityModel, nav: CityNavigationViewModel): { headingKey
 }
 
 export function CityAccessibleList({ model, nav, onBackToCanvas, className }: CityAccessibleListProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const pathLabel = nav.breadcrumb.map((entry) => entry.label).join(' → ');
   const { headingKey, rows } = buildRows(model, nav);
@@ -105,14 +107,14 @@ export function CityAccessibleList({ model, nav, onBackToCanvas, className }: Ci
               aria-label={`${row.label} · ${
                 model.valueKind === 'progress'
                   ? t('city.listView.progressAmount').replace('{amount}', formatPercent(row.amount, 0))
-                  : t('city.listView.monthlyAmount').replace('{amount}', formatCurrency(row.amount))
+                  : t('city.listView.monthlyAmount').replace('{amount}', money.mask(formatCurrency(row.amount)))
               }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium text-foreground">{row.label}</span>
                 {/* WP-D7: Ziele-Modell trägt Fortschritts-Brüche, keine Euros. */}
                 <span className="text-muted-foreground">
-                  {model.valueKind === 'progress' ? formatPercent(row.amount, 0) : formatCurrency(row.amount)}
+                  {model.valueKind === 'progress' ? formatPercent(row.amount, 0) : money.mask(formatCurrency(row.amount))}
                 </span>
               </div>
             </InteractiveCard>

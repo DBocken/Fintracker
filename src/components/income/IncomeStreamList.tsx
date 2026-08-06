@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
 import type { IncomeStream } from '@/lib/income-streams';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -19,6 +20,7 @@ function trendIcon(trend: IncomeStream['trend']) {
 
 /** Liste der erkannten Einkommensströme — jede Karte navigiert zu den gefilterten Buchungen. */
 export default function IncomeStreamList({ streams }: { streams: IncomeStream[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [showAll, setShowAll] = useState(false);
 
@@ -42,7 +44,7 @@ export default function IncomeStreamList({ streams }: { streams: IncomeStream[] 
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-sm font-medium">{stream.label}</span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">
-                  {formatCurrency(stream.monthlyAverage)}
+                  {money.mask(formatCurrency(stream.monthlyAverage))}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">{t('income.monthlyAvg')}</span>
                 </span>
               </div>

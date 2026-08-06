@@ -14,6 +14,7 @@ import type {
 } from '@/components/dashboard/filter-constants';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import type { TransactionsViewInteractionProps } from '../transactions-view-props';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransaction' | 'onOpenDetails'> {
   model: TransactionsOverviewViewModel;
@@ -33,6 +34,7 @@ interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransacti
  * am Seiten-Scroll (siehe README dieser Slice).
  */
 export function TransactionsListPane({ model, detailsTransaction, onOpenDetails }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { filters } = model;
 
@@ -124,7 +126,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
         balance={model.stats.balance}
         count={model.stats.count}
         totalTransactions={model.transactions.all.length}
-        currentBalance={formatCurrency(model.balances.scopedCurrent)}
+        currentBalance={money.mask(formatCurrency(model.balances.scopedCurrent))}
       />
       </div>
 

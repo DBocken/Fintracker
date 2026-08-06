@@ -3440,6 +3440,7 @@ export const translations = {
         savingsRate: 'Sparquote',
         highSavingsRateWarning: 'Sparquote zu hoch: Nach dem Sparen bleiben die Fixkosten unterdeckt. Reduziere die Sparquote oder senke Fixkosten.',
         insufficientData: 'Basis: erst {months} Monat(e) Daten – die Schätzung wird mit der Zeit genauer.',
+        notCovered: 'nicht gedeckt',
         stepHints: {
           taxReserve: 'Steuern sind fremdes Geld',
           savings: 'Pay-yourself-first',
@@ -8034,6 +8035,7 @@ export const translations = {
         savingsRate: 'Savings rate',
         highSavingsRateWarning: 'Savings rate too high: After saving, fixed costs remain underfunded. Reduce the savings rate or lower fixed costs.',
         insufficientData: 'Based on only {months} month(s) of data – the estimate will improve over time.',
+        notCovered: 'not covered',
         stepHints: {
           taxReserve: 'Taxes are not your money',
           savings: 'Pay yourself first',
@@ -12313,6 +12315,7 @@ export const translations = {
         savingsRate: "polghach patlh",
         highSavingsRateWarning: "polghach patlh tlhoy law': polDI', Huch poQbogh tebHa'taH. polghach patlh yImachmoH, pagh Huch poQbogh yImachmoH.",
         insufficientData: "jar {months} De' neH lo'lu' – poH law'DI', wIHaDbogh nIvqa'.",
+        notCovered: "SopmoHbe'",
         stepHints: {
           taxReserve: "tamey Huch SoHvaD ghobe'",
           savings: "wa'DIch SoHvaD yInob",
@@ -16858,6 +16861,7 @@ export const translations = {
         savingsRate: 'Норма сбережений',
         highSavingsRateWarning: 'Норма сбережений слишком высока: после откладывания фиксированные расходы остаются недофинансированными. Снизьте норму сбережений или уменьшите фиксированные расходы.',
         insufficientData: 'На основе данных лишь за {months} мес. – оценка будет уточняться со временем.',
+        notCovered: 'не покрыто',
         stepHints: {
           taxReserve: 'Налоги – это не ваши деньги',
           savings: 'Сначала заплатите себе',
