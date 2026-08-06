@@ -1,0 +1,103 @@
+# Zustandsabdeckung je Screen (WP-9.1)
+
+> Erhebung vom 2026-08-06, Grundlage für Phase 9 des
+> [Implementierungsplans](../implementation-plan.md) („Vollständige
+> State-Coverage-Matrix für jeden Screen").
+
+## Wie gemessen wurde — und was die Zahlen NICHT sagen
+
+Statische Auswertung der Importkette je Route bis Tiefe 3, weil Seiten in
+diesem Repo dünne Routen-Einstiege sind (AGENTS.md §3) und die Zustände in den
+Komponenten darunter liegen. Ein `x` heißt: **irgendwo im Teilbaum dieses
+Screens** kommt der jeweilige Zustand vor.
+
+Das ist eine **Untergrenze, kein Gütesiegel.** Ein Screen mit `x` bei „fehler"
+behandelt mindestens eine Abfrage; ob er alle behandelt, sagt die Spalte nicht.
+Die schärfere Zahl steht deshalb unten.
+
+Zwei Irrtümer bei der Erhebung selbst sind hier vermerkt, weil sie die Zahlen
+verfälscht hatten und beim Wiederholen erneut zuschlagen würden:
+
+1. Ein Regex nur auf `from '…'` übersieht jeden Import mit **doppelten**
+   Anführungszeichen — `DashboardPage` fiel dadurch komplett durch und stand
+   fälschlich auf „nichts abgedeckt".
+2. Tiefe 2 reicht nicht: `DashboardPage → Dashboard → DesktopView →
+   AccountCards` sind bereits drei Sprünge bis zum Fehlerzustand.
+
+## Matrix
+
+| Screen | leer | lädt | fehler | Sanfter Modus |
+|---|:--:|:--:|:--:|:--:|
+| AccountsPage | · | x | · | · |
+| AnalysisPage | · | x | · | · |
+| BudgetsPage | · | x | · | · |
+| CityPage | x | x | · | x |
+| CoachPage | x | x | x | x |
+| ContractsPage | · | · | · | · |
+| CsvPage | · | x | · | · |
+| DashboardPage | x | x | x | x |
+| DebtsPage | x | x | · | · |
+| EuerPage | x | · | · | · |
+| ExportPage | · | x | · | · |
+| IncomePage | x | x | · | · |
+| IncomeWrappedPage | x | · | · | · |
+| LiquidityPage | · | x | x | · |
+| MilestonesPage | · | x | · | · |
+| NetWorthPage | x | x | · | · |
+| PrivacyPage | · | x | · | · |
+| SettingsPage | · | · | · | · |
+| SimulationPage | · | · | · | · |
+| SpecialCategoriesPage | x | x | · | · |
+| TaxReportPage | x | · | · | · |
+| TradingPage | · | x | · | · |
+| TransactionsPage | x | x | · | x |
+| **Summe** | **11/23** | **17/23** | **3/23** | **4/23** |
+
+Zwei Zustände aus dem Plan fehlen in der Tabelle, weil es zu ihnen nichts zu
+erheben gibt:
+
+- **offline** — im gesamten Quelltext gibt es **keine** Behandlung. Ein
+  einziger Treffer auf `navigator.onLine` steht in
+  `category-template-service.ts` und ist Dienst-intern, nicht Oberfläche.
+- **gefiltert-leer** — bisher nur auf der Buchungsseite unterscheidbar;
+  überall sonst fällt „kein Ergebnis für diesen Filter" mit „keine Daten"
+  zusammen.
+
+## Der Kernbefund
+
+**122 `useQuery`-Aufrufe, 5 Stellen, die den Fehlerzustand lesen.**
+
+Das Muster lautet fast überall:
+
+```ts
+const { data: txs = [], isLoading } = useQuery({ … });
+```
+
+Scheitert die Abfrage, greift der Fallback `[]`. `isEmpty` wird wahr. Der
+Screen zeigt seinen **Leerzustand**.
+
+Nachgestellt auf der Buchungsseite (Abfrage abgewiesen, sonst nichts verändert)
+steht dann auf dem Bildschirm:
+
+> 🧾 **Noch keine Buchungen**
+> Importiere eine CSV deiner Bank, um deine Buchungen zu sehen und auszuwerten.
+
+Das ist keine fehlende Rückmeldung, sondern eine **falsche Auskunft**, und zwar
+die teuerste, die eine Finanz-App geben kann: Der eine Satz lädt zum Neuladen
+ein, der andere zum Neuanlegen von Daten, die längst da sind. In einer
+local-first App mit verschlüsseltem Speicher ist ein Lesefehler zudem
+kein exotischer Fall — ein gesperrter Tresor oder ein abgewiesener
+IndexedDB-Zugriff reicht.
+
+Ein `[REGRESSION]`-Test dazu wird **nicht** hier abgelegt, sondern eröffnet
+WP-9.2: Ein Test, der den Ist-Zustand grün festschreibt, zementiert den Fehler.
+
+## Ableitung für Phase 9
+
+| WP | Inhalt |
+|---|---|
+| **WP-9.2** | Fehlerzustand als Baustein (`FinanceErrorState` analog zu `FinanceEmptyState`) und Trennung „leer" ≠ „nicht ladbar" in den ViewModels. Erst der Baustein, dann die Aufrufstellen — sonst entstehen 23 Eigenbauten |
+| **WP-9.3** | Offline: erkennen, benennen, und local-first ehrlich abbilden (das meiste FUNKTIONIERT offline — das ist eine Stärke, die derzeit niemand erfährt) |
+| **WP-9.4** | „gefiltert-leer" von „leer" trennen: „Kein Treffer für *Miete* im gewählten Zeitraum" statt „Noch keine Buchungen" |
+| **WP-9.5** | Sanfter Modus über alle Screens statt der heutigen vier |
+| **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |
