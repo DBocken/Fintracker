@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, ChevronLeft, ChevronRight, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, ChevronLeft, ChevronRight, HelpCircle, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { buildFlowLines } from "@/features/finance-city/domain/city-flow-lines";
+import { CityLegend } from "@/features/finance-city/presentation/CityLegend";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
 import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
@@ -124,6 +125,13 @@ export default function CityPage() {
   // WebGL-Kontext, und den bekommt man nur über ein neues `<canvas>`-Element.
   const [canvasUnavailable, setCanvasUnavailable] = useState<CityCanvasUnavailableReason | null>(null);
   const [canvasGeneration, setCanvasGeneration] = useState(0);
+
+  // WP-5.8: Legende der visuellen Sprache. Bewusst NUR auf Abruf — kein
+  // Tutorial, kein automatisches Overlay: `docs/tutorial-progressive-disclosure.md`
+  // legt dafür eine eigene Architektur fest (Freischaltungs-Achse zuerst), die
+  // hier nicht vorweggenommen wird. Der Erst-Besuch-Hinweis (`city.tapHint`)
+  // bleibt der einzige ungefragte Wortbeitrag der Seite.
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const handleRebuildCity = useCallback(() => {
     setCanvasUnavailable(null);
@@ -648,6 +656,15 @@ export default function CityPage() {
               >
                 <List className="h-4 w-4" aria-hidden="true" />
               </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.legend.open")}
+                onClick={() => setLegendOpen(true)}
+              >
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -995,6 +1012,14 @@ export default function CityPage() {
           )}
         </div>
       </div>
+
+      <CityLegend
+        open={legendOpen}
+        onOpenChange={setLegendOpen}
+        model={model}
+        level={nav.level}
+        hasFlowLines={flowLines.length > 0}
+      />
 
       <Sheet
         open={selectedContract !== null}

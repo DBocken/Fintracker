@@ -376,6 +376,40 @@ Zwei Dinge, die die Umsetzung tragen:
 Drei Stufen bewusst grob: auf einer Fassade aus Kameradistanz sind drei
 unterscheidbar, fünf nicht. Wer die genaue Zahl braucht, taucht in die Etagen.
 
+## Legende der visuellen Sprache (WP-5.8)
+
+Die Stadt kodiert inzwischen fünf Dinge gleichzeitig: Höhe (Betrag bzw.
+Fortschritt), Distriktfarbe (Bereich bzw. Ziel-Stufe), Hülle (Soll bzw.
+Kopffreiheit), Flusslinien (Wiederkehr, WP-5.1) und Fassaden-Fenster
+(Aktivität, WP-5.4). Nichts davon erklärt sich von selbst — und ein Kanal, den
+niemand liest, ist kein Kanal, sondern Dekoration mit Extraschritten.
+
+`domain/city-legend.ts` + `presentation/CityLegend.tsx` liefern deshalb eine
+Legende, erreichbar über den Fragezeichen-Knopf in der Kopfzeile.
+
+**Der Kern ist eine Auswahl, keine Liste.** Erklärt wird nur, was gerade
+tatsächlich zu sehen ist. Eine feste Aufzählung wäre in drei von vier Tabs
+falsch: im Ziele-Tab bedeutet Höhe Fortschritt und nicht Euro, dort trägt die
+Farbe die Fortschritts-Stufe statt des Bereichs, Flusslinien gibt es nur auf
+Stadt-Ebene (und nicht auf der Sparstufe), Etagen erst ab der Distrikt-Ebene.
+Eine Erklärung für etwas, das nicht auf dem Schirm ist, ist schlimmer als
+keine — sie schickt den Blick auf die Suche.
+
+**Was das ausdrücklich NICHT ist: ein Tutorial.**
+`docs/tutorial-progressive-disclosure.md` hält dafür bereits eine Architektur
+fest — eigene Freischaltungs-Achse (`unlocked_features`, getrennt von
+`enabled_nav_features`), `data-tour-id`-Anker, und die dort festgelegte
+Reihenfolge „**zuerst die Achse, danach das Overlay**". Die Legende nimmt davon
+nichts vorweg: sie ist eine in sich geschlossene Erklärfläche, auf die eine
+spätere Führung über `data-tour-id="city-legend"` zeigen kann, statt sie zu
+ersetzen. Der Erst-Besuch-Hinweis (`city.tapHint`) bleibt der einzige
+ungefragte Wortbeitrag der Seite.
+
+Die Schlüssel stehen in `LEGEND_KEYS` **ausgeschrieben** statt per Template
+zusammengesetzt: ein `city.legend.${item}Title` wäre für
+`src/i18n/__tests__/call-site-keys.test.ts` unsichtbar, und ein Tippfehler
+landete als roher Punkt-String auf dem Bildschirm (AGENTS.md §6).
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)
