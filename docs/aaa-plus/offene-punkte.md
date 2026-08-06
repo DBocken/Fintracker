@@ -35,9 +35,44 @@ Was daraus als Baustein für Phase 8 bereitsteht:
 | `<SignatureMoment>` (WP-6.5) | Erfolgsmomente inkl. Haptik — nicht je Screen neu bauen |
 | `volumeSegments()` (WP-6.4) | Flächenproportionale Größendarstellung |
 
-## 4. Phasen 8–11 (noch unberührt)
+## 3. Phase 8 — Feature-Screen-Migration (begonnen)
 
-- **Phase 8 — Feature-Screen-Migration**, pro Screen ein WP. Dashboard und
+**WP-8.0 ist erledigt: die Karten-Regel ist maschinell prüfbar.** Bis dahin gab
+es dazu nur einen advisory Claude-Hook — CI sah nie einen Verstoß, Agenten ohne
+`.claude/`-Hooks auch nicht. `pnpm check:card-rule` prüft jetzt repo-weit, in
+Pre-Commit und CI.
+
+**`card-rule-allowlist.json` IST das Backlog.** Sie hält die acht Altfälle
+fest, die vor der Regel entstanden sind; der Check ist dadurch heute grün und
+blockiert ab sofort **neue** Verstöße. Jede Screen-Migration streicht ihre
+Einträge — und ein Eintrag, der nicht mehr verletzt, wird als veraltet gemeldet
+und muss weg, sonst versteckt die Liste künftige Verstöße.
+
+| Datei | Naheliegender Screen |
+|---|---|
+| `components/settings/LanguageSettings.tsx` | Einstellungen |
+| `components/settings/WordingSettings.tsx` | Einstellungen |
+| `components/settings/TimeRangeSettings.tsx` | Einstellungen |
+| `components/settings/AutoCategorizationSettings.tsx` | Einstellungen |
+| `components/accounts/AccountCards.tsx` | Konten |
+| `components/budgets/WaterfallPanel.tsx` | Budgets |
+| `components/premium-dashboard/HeatmapCalendar.tsx` | Analyse |
+| `components/dashboard/finrisk/AdaptiveSpendingToggle.tsx` | Liquidität |
+
+Vier der acht liegen in den **Einstellungen** — das ist der naheliegende erste
+Screen.
+
+**Grenze der Prüfung, bewusst so:** Ob eine Karte „als Ganzes" klickbar ist,
+entscheidet sich im Layout und nicht im Text; statisch entscheidbar ist nur die
+schwächere Aussage „hier steht Karten-Chrome und es gibt überhaupt kein
+Interaktions-Signal". Alles Weitere bleibt Sache des Reviews. Eine Prüfung, die
+mehr behauptet, als sie wissen kann, erzeugt Fehlalarme — und eine Regel mit
+Fehlalarmen wird abgeschaltet.
+
+## 4. Phasen 8–11 (überwiegend unberührt)
+
+- **Phase 8 — Feature-Screen-Migration**, pro Screen ein WP. WP-8.0
+  (Grundlage) ist erledigt, siehe oben. Dashboard und
   Transaktionen sind faktisch bereits auf der AAA+-Produktsprache; die übrigen
   Screens (Coach, Budgets, Konten, Schulden, Meilensteine, Vermögen, Einkommen,
   Verträge, Einstellungen …) stehen aus. Beim Migrieren jeweils mitziehen: die

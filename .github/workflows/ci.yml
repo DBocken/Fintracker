@@ -53,6 +53,9 @@ jobs:
       - name: Test-Struktur-Check
         run: pnpm check:test-structure
 
+      - name: Karten-Regel-Check
+        run: pnpm check:card-rule
+
       - name: i18n-Check
         run: |
           git fetch origin main

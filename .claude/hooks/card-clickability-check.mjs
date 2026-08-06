@@ -16,6 +16,9 @@
 // die karten-lose Readout-Variante genutzt wird). Rein hinweisend (Exit 0).
 
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { analyzeCardRule } from "../../scripts/card-rule-core.mjs";
 
 function main() {
   let raw = "";
@@ -45,44 +48,20 @@ function main() {
     return;
   }
 
-  // Karten-Chrome erkennen: <Card>-Komponente, .ds-section/.ds-summary-card,
-  // oder ad-hoc „rounded-* … border … bg-card“-Boxen mit Schatten.
-  const usesCardComponent = /<Card(\s|>|\/)/.test(content) || /<CardContent(\s|>)/.test(content);
-  const usesDsSection = /\bds-section\b|\bds-summary-card\b/.test(content);
-  const adHocCard =
-    /className="[^"]*\brounded-(?:lg|xl|2xl)\b[^"]*\bborder\b[^"]*\bbg-card\b[^"]*"/.test(content) ||
-    /className="[^"]*\bbg-card\b[^"]*\bborder\b[^"]*\bshadow/.test(content);
-  const hasCardChrome = usesCardComponent || usesDsSection || adHocCard;
-  if (!hasCardChrome) return;
+  // Dieselbe Prueflogik wie `pnpm check:card-rule` — WP-8.0 hat sie nach
+  // `scripts/card-rule-core.mjs` gezogen. Vorher stand sie hier ein zweites
+  // Mal; zwei Fassungen derselben Regel waeren auseinandergelaufen, und die
+  // maschinelle Pruefung haette dann etwas anderes gemeint als der Hinweis.
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const relative = path.relative(repoRoot, fp).split(path.sep).join("/");
+  const { violates, reason } = analyzeCardRule(relative, content);
 
-  // Interaktivitäts-Signale (irgendwo in der Datei).
-  const hasInteractivity =
-    /\bInteractiveCard\b/.test(content) ||
-    /\bonClick=/.test(content) ||
-    /<Link\b/.test(content) ||
-    /\bto=|\bhref=/.test(content) ||
-    /\bSheetTrigger\b|\bDialogTrigger\b|\bPopoverTrigger\b|\bAccordionTrigger\b/.test(content) ||
-    /role="button"/.test(content) ||
-    /\buseNavigate\b/.test(content);
-
-  // Karten-lose Readout-Variante genutzt?
-  const usesInfoGroup = /\bInfoGroup\b|\bInfoStatStrip\b/.test(content);
-
-  let msg = "";
-  if (!hasInteractivity && !usesInfoGroup) {
-    msg =
-      `Karten-Regel: ${fp} enthält Karten-Chrome (Rahmen/Hintergrund/Schatten), aber keine ` +
-      `Klick-Aktion. Karten müssen als Ganzes klickbar sein (Link/Popup/Akkordion) → ` +
-      `<InteractiveCard to|href|onClick …>. Reine Info OHNE Follow-up gehört ohne Karte ` +
-      `dargestellt → <InfoGroup>/<InfoStatStrip>. (Falls es ein Dialog-/Formular-/Chart-` +
-      `Container ist: ok, dann bewusst ignorieren.)`;
-  } else {
-    msg =
-      `Karten-Regel: In ${fp} bitte sicherstellen, dass die GANZE Kartenfläche das ` +
+  const msg = violates
+    ? `Karten-Regel: ${relative} — ${reason}`
+    : `Karten-Regel: In ${relative} bitte sicherstellen, dass die GANZE Kartenflaeche das ` +
       `Klick-Ziel ist (nicht nur ein verschachtelter Button/Link) und eine Affordanz ` +
-      `zeigt (Chevron, Hover, Fokusring, Touch-Ziel ≥ 44px). Baustein: <InteractiveCard>. ` +
+      `zeigt (Chevron, Hover, Fokusring, Touch-Ziel >= 44px). Baustein: <InteractiveCard>. ` +
       `Reine Anzeige-Info ohne Follow-up → <InfoGroup>/<InfoStatStrip> (ohne Karte).`;
-  }
 
   process.stdout.write(
     JSON.stringify({
