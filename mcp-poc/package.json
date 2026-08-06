@@ -19,7 +19,7 @@
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
-    "tsx": "^4.19.0",
+    "tsx": "^4.23.5",
     "typescript": "^5.9.0"
   },
   "pnpm": {
