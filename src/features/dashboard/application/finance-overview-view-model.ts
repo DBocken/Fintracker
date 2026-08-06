@@ -34,7 +34,15 @@ export type SortConfig = { key: keyof Transaction; direction: 'asc' | 'desc' };
  */
 export type FinanceOverviewViewModel = {
   loading: boolean;
+  /**
+   * Ohne Buchungen NACH Ladeende — **und nur, wenn das Laden gelungen ist**
+   * (WP-9.2). Schliesst `hasError` aus: „keine Buchungen" und „Buchungen
+   * nicht ladbar" sind verschiedene Aussagen und brauchen verschiedene
+   * Darstellungen.
+   */
   isEmpty: boolean;
+  /** Die Transaktions-Query ist gescheitert (WP-9.2). */
+  hasError: boolean;
   /** Konten-Query lädt/scheitert unabhängig von der Transaktions-Query — eigene Flags statt `loading` mitzubenutzen. */
   accountsLoading: boolean;
   accountsError: boolean;

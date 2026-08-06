@@ -67,6 +67,7 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
   return {
     loading: false,
     isEmpty: false,
+    hasError: false,
     transactions: { all: FIXTURE_TRANSACTIONS, visible: FIXTURE_TRANSACTIONS },
     categories: FIXTURE_CATEGORIES,
     accounts: FIXTURE_ACCOUNTS,
@@ -86,6 +87,7 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
       deleteTransaction: noop,
       saveDetails: noop as unknown as TransactionsOverviewViewModel['actions']['saveDetails'],
       detailsSaving: false,
+      retry: noop,
     },
     ...overrides,
   };

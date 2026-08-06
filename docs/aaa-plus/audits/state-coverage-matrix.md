@@ -92,11 +92,29 @@ IndexedDB-Zugriff reicht.
 Ein `[REGRESSION]`-Test dazu wird **nicht** hier abgelegt, sondern eröffnet
 WP-9.2: Ein Test, der den Ist-Zustand grün festschreibt, zementiert den Fehler.
 
+## Stand nach WP-9.2
+
+Die beiden meistbesuchten Screens unterscheiden „leer" jetzt von „nicht
+ladbar". Der Fehlerzustand sagt drei Dinge, in dieser Reihenfolge: **was**
+nicht geladen werden konnte (nicht „ein Fehler ist aufgetreten"), dass die
+Daten **nicht verloren** sind, und den **nächsten Schritt**. Der mittlere Satz
+ist der wichtigste — ein Lesefehler liest sich sonst wie ein Datenverlust.
+
+Bewusst **keine** technische Fehlermeldung: `err.message` lautet hier
+„IndexedDB nicht erreichbar" und hilft niemandem, der die App benutzt statt
+sie zu bauen.
+
+Nebenbei behoben: `vitest.setup.ts` hatte keinen `matchMedia`-Shim, weshalb
+jede Komponente mit eigener Breakpoint-Abfrage im Test schon beim Mounten
+warf. Der Shim meldet konsequent `matches: false` — die mobile Annahme, weil
+alle Abfragen `min-width`-Abfragen sind. Ein Shim mit `true` würde still den
+jeweils anderen Zweig testen, ohne dass es auffiele.
+
 ## Ableitung für Phase 9
 
 | WP | Inhalt |
 |---|---|
-| **WP-9.2** | Fehlerzustand als Baustein (`FinanceErrorState` analog zu `FinanceEmptyState`) und Trennung „leer" ≠ „nicht ladbar" in den ViewModels. Erst der Baustein, dann die Aufrufstellen — sonst entstehen 23 Eigenbauten |
+| **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
 | **WP-9.3** | Offline: erkennen, benennen, und local-first ehrlich abbilden (das meiste FUNKTIONIERT offline — das ist eine Stärke, die derzeit niemand erfährt) |
 | **WP-9.4** | „gefiltert-leer" von „leer" trennen: „Kein Treffer für *Miete* im gewählten Zeitraum" statt „Noch keine Buchungen" |
 | **WP-9.5** | Sanfter Modus über alle Screens statt der heutigen vier |

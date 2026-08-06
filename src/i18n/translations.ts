@@ -4058,6 +4058,12 @@ export const translations = {
       transactions: 'Transaktionen',
       of: 'von',
     },
+    financeErrorState: {
+      transactionsTitle: 'Deine Buchungen konnten nicht geladen werden',
+      dataTitle: 'Deine Daten konnten nicht geladen werden',
+      reassurance: 'Sie sind nicht verloren — sie liegen weiterhin auf diesem Gerät. Meist genügt ein zweiter Versuch.',
+      retryButton: 'Erneut versuchen',
+    },
     financeEmptyState: {
       title: 'Noch keine Transaktionen',
       description: 'Importiere eine CSV deiner Bank — oder schau dir die App erst mal mit Beispieldaten an. Beides bleibt komplett auf deinem Gerät.',
@@ -8626,6 +8632,12 @@ export const translations = {
       transactions: 'Transactions',
       of: 'of',
     },
+    financeErrorState: {
+      transactionsTitle: 'Your transactions could not be loaded',
+      dataTitle: 'Your data could not be loaded',
+      reassurance: 'Nothing is lost — it is still stored on this device. A second attempt usually does the trick.',
+      retryButton: 'Try again',
+    },
     financeEmptyState: {
       title: 'No transactions yet',
       description: 'Import a CSV from your bank — or check out the app with sample data first. Both stay completely on your device.',
@@ -12830,6 +12842,12 @@ export const translations = {
       balance: "Huch mI'",
       transactions: "Huch wanI'mey",
       of: "vo'",
+    },
+    financeErrorState: {
+      transactionsTitle: "HuchmeywI' luq lo'laHbe'",
+      dataTitle: "De' luq lo'laHbe'",
+      reassurance: "chIlbe'; jan Daq ratlh. yImaS.",
+      retryButton: "yInID je",
     },
     financeEmptyState: {
       title: "Huch wanI' pagh, wej",
@@ -17397,6 +17415,12 @@ export const translations = {
       balance: 'Баланс',
       transactions: 'Транзакции',
       of: 'из',
+    },
+    financeErrorState: {
+      transactionsTitle: 'Не удалось загрузить ваши операции',
+      dataTitle: 'Не удалось загрузить ваши данные',
+      reassurance: 'Они не потеряны — они по-прежнему хранятся на этом устройстве. Обычно достаточно повторить попытку.',
+      retryButton: 'Повторить',
     },
     financeEmptyState: {
       title: 'Пока нет транзакций',

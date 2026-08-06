@@ -81,7 +81,12 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
   const { t } = useI18n();
   const qc = useQueryClient();
 
-  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[]>({
+  const {
+    data: txs = [],
+    isLoading: txsLoading,
+    isError: txsError,
+    refetch: refetchTxs,
+  } = useQuery<Transaction[]>({
     queryKey: transactionsKeys.transactions(FINANCE_TRANSACTION_LIMIT),
     queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
   });
@@ -240,11 +245,16 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     [hiddenTransactions, toggleHiddenTransaction],
   );
 
+  const retry = useCallback(() => {
+    void refetchTxs();
+  }, [refetchTxs]);
+
   const actions = useMemo(() => ({
     deleteTransaction: deleteTransactionAction,
     saveDetails,
     detailsSaving,
-  }), [deleteTransactionAction, saveDetails, detailsSaving]);
+    retry,
+  }), [deleteTransactionAction, saveDetails, detailsSaving, retry]);
 
   const transactions = useMemo(() => ({ all: txs, visible }), [txs, visible]);
 
@@ -263,7 +273,11 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   return useMemo<TransactionsOverviewViewModel>(() => ({
     loading: txsLoading,
-    isEmpty: !txsLoading && txs.length === 0,
+    // WP-9.2: `!txsError` ist der Kern. Ohne ihn bedeutet `txs.length === 0`
+    // zweierlei — "keine Buchungen" und "Buchungen nicht ladbar" — und der
+    // Screen behauptet im zweiten Fall das Erste.
+    isEmpty: !txsLoading && !txsError && txs.length === 0,
+    hasError: txsError,
     transactions,
     categories: cats,
     accounts,
@@ -273,5 +287,5 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     filters: filtersVM,
     hidden,
     actions,
-  }), [txsLoading, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
+  }), [txsLoading, txsError, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
 }

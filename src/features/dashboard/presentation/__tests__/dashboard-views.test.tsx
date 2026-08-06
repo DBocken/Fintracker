@@ -74,6 +74,7 @@ function buildModel(overrides: Partial<FinanceOverviewViewModel> = {}): FinanceO
   return {
     loading: false,
     isEmpty: false,
+    hasError: false,
     accountsLoading: false,
     accountsError: false,
     transactions: {

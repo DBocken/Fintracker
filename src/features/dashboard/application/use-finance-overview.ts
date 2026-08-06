@@ -54,7 +54,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   const { t } = useI18n();
   const qc = useQueryClient();
 
-  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
+  const { data: txs = [], isLoading: txsLoading, isError: txsError } = useQuery<Transaction[], Error>({
     // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
     // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
     queryKey: dashboardKeys.transactions(DASHBOARD_TRANSACTION_LIMIT),
@@ -368,7 +368,10 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
 
   return useMemo<FinanceOverviewViewModel>(() => ({
     loading: txsLoading,
-    isEmpty: !txsLoading && txs.length === 0,
+    // WP-9.2: `!txsError` trennt "keine Buchungen" von "Buchungen nicht
+    // ladbar". Ohne ihn behauptet der Screen bei einem Lesefehler das Erste.
+    isEmpty: !txsLoading && !txsError && txs.length === 0,
+    hasError: txsError,
     accountsLoading,
     accountsError,
     transactions,
@@ -381,5 +384,5 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     sort,
     hidden,
     actions,
-  }), [txsLoading, txs, accountsLoading, accountsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+  }), [txsLoading, txsError, txs, accountsLoading, accountsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
 }

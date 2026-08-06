@@ -94,6 +94,31 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   } as unknown as typeof ResizeObserver
 }
 
+// jsdom implementiert `matchMedia` nicht. Komponenten, die ihren Breakpoint
+// selbst abfragen (z. B. KpiGrid), werfen deshalb schon beim Mounten.
+//
+// Der Shim meldet konsequent `matches: false` — das ist die MOBILE Annahme,
+// weil die Abfragen hier durchweg `min-width`-Abfragen sind. Tests, die den
+// Desktop-Zweig brauchen, setzen `window.matchMedia` selbst; ein Shim, der
+// `true` liefert, wuerde dagegen still den jeweils anderen Zweig testen, ohne
+// dass es jemandem auffiele.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
+}
+
 // Radix-Primitives (Popover/Dialog/Select) rufen Pointer-/Scroll-APIs auf, die
 // jsdom nicht implementiert. Ohne diese Shims wirft das Öffnen im Test.
 if (typeof Element !== "undefined") {
