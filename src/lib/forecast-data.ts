@@ -130,6 +130,10 @@ export function buildRecurringFlows(
       anchorDate: anchorDate.slice(0, 10),
       accountId: '', // wird unten an ein operatives Konto gebunden
       category: contract.categoryName,
+      // WP-5.2: Die stabile ID lag hier schon vor und wurde verworfen —
+      // Konsumenten mussten über den Anzeigenamen verknüpfen (AGENTS.md §6,
+      // dokumentierte Falle). `categoryName` bleibt für Labels unverändert.
+      categoryId: contract.categoryId ?? undefined,
       confidence: contract.confirmed ? 1 : 0.6,
       endDate: flowOverride?.endDate,
     });
@@ -287,6 +291,11 @@ export function buildVariableExpenseBaselines(
   // Pro Kategorie die Ausgaben je Monat sammeln – Basis für Mittelwert *und*
   // Streuung (Variationskoeffizient).
   const perCategoryMonth = new Map<string, Map<string, number>>();
+  // WP-5.2: Welche Kategorie-IDs sind in einen (namensbasierten) Eintrag
+  // eingeflossen? Gruppiert wird weiterhin über den Namen — Summen und
+  // Monte-Carlo-Verhalten bleiben damit unverändert. Nur wenn genau EINE ID
+  // beigetragen hat, ist die Zuordnung eindeutig und wird weitergereicht.
+  const idsPerCategory = new Map<string, Set<string>>();
   let earliestIncludedMonth: string | null = null;
 
   for (const t of transactions) {
@@ -306,6 +315,14 @@ export function buildVariableExpenseBaselines(
     if (!byMonth) {
       byMonth = new Map<string, number>();
       perCategoryMonth.set(category, byMonth);
+    }
+    if (labelId) {
+      let ids = idsPerCategory.get(category);
+      if (!ids) {
+        ids = new Set<string>();
+        idsPerCategory.set(category, ids);
+      }
+      ids.add(labelId);
     }
     byMonth.set(month, (byMonth.get(month) ?? 0) + Math.abs(t.amount));
   }
@@ -355,8 +372,16 @@ export function buildVariableExpenseBaselines(
     const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / denom;
     const volatility = mean > 0 ? Math.round((Math.sqrt(variance) / mean) * 100) / 100 : 0;
 
+    // WP-5.2: Nur bei EINDEUTIGER Zuordnung. Tragen zwei verschiedene
+    // Kategorien denselben Namen, sind ihre Beträge hier bereits verschmolzen —
+    // eine der beiden IDs zu nennen wäre dann eine Behauptung, die nicht
+    // stimmt.
+    const ids = idsPerCategory.get(category);
+    const categoryId = ids?.size === 1 ? [...ids][0] : undefined;
+
     baselines.push({
       category,
+      ...(categoryId ? { categoryId } : {}),
       monthlyAmount,
       confidence,
       volatility,

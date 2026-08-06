@@ -59,7 +59,9 @@ describe('buildVariableExpenseBaselines', () => {
     // 3 Monate beobachtet, Summe 600 -> 200/Monat. Streuung [100,200,300]:
     // sd = sqrt(20000/3) ≈ 81.65 -> cv ≈ 0.41.
     expect(result).toEqual([
-      { category: 'Lebensmittel', monthlyAmount: 200, confidence: 0.75, volatility: 0.41 },
+      // WP-5.2: `categoryId` kommt dazu, weil hier genau EINE Kategorie-ID zum
+      // Namen „Lebensmittel" beigetragen hat (die Fixture kennt zwei).
+      { category: 'Lebensmittel', categoryId: 'lebensmittel', monthlyAmount: 200, confidence: 0.75, volatility: 0.41 },
     ]);
   });
 
@@ -75,8 +77,28 @@ describe('buildVariableExpenseBaselines', () => {
     const result = buildVariableExpenseBaselines(txns, { now: NOW, categoriesById: CATS });
     // Zwei Monate beobachtet (Mai+Juni), je 40 -> 40/Monat, keine Streuung.
     expect(result).toEqual([
-      { category: 'Restaurant', monthlyAmount: 40, confidence: 0.5, volatility: 0 },
+      { category: 'Restaurant', categoryId: 'restaurant', monthlyAmount: 40, confidence: 0.5, volatility: 0 },
     ]);
+  });
+
+  it('[REGRESSION] lässt die Kategorie-ID weg, wenn zwei Kategorien denselben Namen tragen (WP-5.2)', () => {
+    // Die Fixture kennt zwei Kategorien namens „Lebensmittel" (`lebensmittel`
+    // und `food`). Gruppiert wird weiterhin über den Namen — die Summe bleibt
+    // also unverändert richtig. Aber welcher ID der Betrag gehört, ist dann
+    // nicht mehr auflösbar: eine der beiden zu nennen wäre eine Behauptung,
+    // die nicht stimmt. Konsumenten (Finanzstadt) überspringen den Eintrag
+    // lieber, als ihn dem falschen Gebäude zuzuschlagen.
+    const txns: Transaction[] = [
+      tx({ date: '2026-05-10', amount: -100, category_id: 'lebensmittel' }),
+      tx({ date: '2026-06-10', amount: -100, category_id: 'food' }),
+    ];
+
+    const result = buildVariableExpenseBaselines(txns, { now: NOW, monthsBack: 6, categoriesById: CATS });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].category).toBe('Lebensmittel');
+    expect(result[0].monthlyAmount).toBeGreaterThan(0); // Summe unverändert vorhanden …
+    expect(result[0].categoryId).toBeUndefined(); // … aber nicht zuordenbar.
   });
 
   it('blendet Transaktionen außerhalb des Fensters aus', () => {
