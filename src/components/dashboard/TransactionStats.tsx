@@ -116,7 +116,11 @@ export function TransactionStats({
               <dt className="text-xs text-muted-foreground">{t("transactionStats.balance")}</dt>
               <dd
                 data-testid="stat-period-balance"
-                className={`mt-1 text-2xl font-semibold tracking-tight ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
+                // `leading-7`: Die Zeilenhoehe bleibt damit exakt die der
+                // frueheren `text-lg`-Zeile. Die Rangfolge kostet so keine
+                // zusaetzliche Bloeckhoehe — sonst waechst die Kennzahlenzeile
+                // und alles darunter verschiebt sich beim Einblenden (CLS).
+                className={`mt-1 text-2xl font-semibold leading-7 tracking-tight ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
               >
                 {/* Vorzeichen aus dem ZIELwert, nicht aus dem Zaehlerstand:
                     sonst flackerte es beim Nulldurchgang waehrend des

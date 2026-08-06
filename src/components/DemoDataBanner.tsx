@@ -17,9 +17,17 @@ export default function DemoDataBanner() {
   const queryClient = useQueryClient();
   // Über react-query, damit der Banner auch erscheint, wenn die Demo nach
   // dem Mount geladen wird (EmptyState ruft invalidateQueries auf).
+  //
+  // `initialData` ist hier keine Schätzung, sondern derselbe synchrone Aufruf:
+  // `isDemoDataActive()` liest den localStorage, nicht IndexedDB. Ohne ihn
+  // liefert `useQuery` im ERSTEN Render `undefined`, der Banner bleibt einen
+  // Durchlauf lang leer und schiebt danach die ganze Seite um seine Höhe nach
+  // unten — auf `/dashboard` gemessene 41 px und rund ein Viertel des
+  // CLS-Budgets, für nichts.
   const { data: active = false } = useQuery({
     queryKey: ["demo-data-active"],
     queryFn: () => isDemoDataActive(),
+    initialData: isDemoDataActive,
   });
   const [removing, setRemoving] = useState(false);
 

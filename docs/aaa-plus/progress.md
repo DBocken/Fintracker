@@ -51,6 +51,29 @@ Zuordnung inline ↔ Detail-Sheet (Schulden).
 **Ausserdem migriert:** der Ladezustand des `PortfolioManager` (Trading), der
 in WP-8.2 noch bewusst offen geblieben war.
 
+### Ein Befund, den erst die Messung sichtbar gemacht hat
+
+Die Hierarchie-Aenderung liess den Performance-Lauf kippen: CLS `/dashboard`
+0,1002 gegen ein Budget von 0,1 — vorher 0,096. Die vier zusaetzlichen Pixel
+Zeilenhoehe waren also nicht die Ursache, sondern der letzte Tropfen.
+
+Statt das Budget zu lockern (es haette dann nichts mehr gemessen) wurden die
+`layout-shift`-Eintraege aufgeschluesselt. Ergebnis: zwei nachtraeglich
+eingeschobene Streifen von je 41 px. Der `DemoDataBanner` war einer davon —
+und das ohne Grund: `isDemoDataActive()` liest **synchron** aus dem
+localStorage, `useQuery` lieferte im ersten Render trotzdem `undefined`. Mit
+`initialData` steht der Banner sofort. Die Rangfolge kostet ausserdem jetzt
+keine Blockhoehe mehr (`leading-7` haelt die Zeilenhoehe der frueheren
+`text-lg`-Zeile).
+
+`/dashboard` liegt damit bei **0,077**. Der groessere Posten — die
+Tutorial-Einladung ueber der gesamten Huelle, 0,073 — ist gemessen, benannt
+und bewusst offen; Begruendung in [`offene-punkte.md`](offene-punkte.md).
+
+**Nachweis:** 433 Test-Dateien / 4247 Tests gruen, E2E 4/4 (zwei
+Dashboard-Baselines neu erzeugt, die Aenderung ist beabsichtigt), `tsc` und
+`lint` fehlerfrei, alle fuenf Waechter gruen.
+
 **Grenze, bewusst so:** Paritaet ist eine Aussage ueber Bedeutung, nicht ueber
 Code — es gibt dafuer keinen Waechter und kann keinen geben. Was pruefbar war,
 ist geprueft: jede `hidden <bp>:*`- und `<bp>:hidden`-Weiche im Quelltext

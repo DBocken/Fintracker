@@ -100,6 +100,32 @@ Alle übrigen Breakpoint-Weichen sind paarig; Aufstellung im
 | **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
 | **`EtoroScopeGate`** ohne Choreografie | Kein Ladezustand, sondern eine Berechtigungsschranke — die Skeleton-Regel aus WP-7.3 passt darauf nicht |
 | **Parität bleibt ohne Wächter** | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code. Geprüft wurde, was prüfbar ist: jede Breakpoint-Weiche im Quelltext gegen ihr Gegenstück. Neue Weichen fallen dabei durch, bis das jemand wieder von Hand tut |
+| **Tutorial-Einladung verschiebt die ganze Seite** | Gemessen, siehe unten — gehört zu Phase 10 |
+
+### Gemessen, nicht behoben: CLS der Tutorial-Einladung
+
+Der Performance-Lauf schlug in dieser Runde erstmals fehl (CLS `/dashboard`
+0,1002 gegen ein Budget von 0,1). Die Aufschlüsselung der
+`layout-shift`-Einträge zeigte zwei nachträglich eingeschobene Streifen von je
+41 px:
+
+| Quelle | Anteil | Stand |
+|---|---|---|
+| `DemoDataBanner` zwischen Kopfzeile und `main` | 0,023 | **behoben** (WP-8.3): `isDemoDataActive()` liest synchron aus dem localStorage, `useQuery` lieferte im ersten Render trotzdem `undefined`. `initialData` schließt die Lücke — geraten wird nichts |
+| `TutorialInvitation` **über** der gesamten Hülle | **0,073** | offen |
+| Rest (Chart-Aufbau) | 0,004 | unkritisch |
+
+Nach der Korrektur liegt `/dashboard` bei **0,077**. Die Einladung bleibt damit
+der mit Abstand größte Einzelposten des Budgets — sie schiebt die Seite
+inklusive Kopfzeile und Navigation nach unten.
+
+Warum hier nicht mitbehoben: Ihre Sichtbarkeit hängt an `getUserSettings` und
+der Kapitel-Bereitschaft, beides aus IndexedDB und damit **echt** asynchron.
+Ein synchroner Merker dafür wäre eine zweite Quelle der Wahrheit; ist er
+veraltet, blitzt die Einladung auf und verschwindet wieder — das ist schlechter
+als die heutige Verschiebung. Die tragfähigen Wege sind, den Platz zu
+reservieren oder die Einladung unterhalb der Kopfzeile zu platzieren; beides
+ist eine Gestaltungsentscheidung und gehört in Phase 10.
 
 ## 4. Phasen 9–11 (unberührt)
 
