@@ -159,6 +159,7 @@ export function ProfileDialogContent() {
           <Switch
             checked={gentleModeEnabled}
             onCheckedChange={() => toggleGentleMode()}
+            aria-label={t("profile.gentleModeLabel")}
           />
         </div>
         <div className="text-[11px] text-muted-foreground">

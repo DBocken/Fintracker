@@ -320,7 +320,11 @@ export function ContractsDashboard() {
                 {rescanMutation.isPending ? t("contracts.rescanInProgress", "Einlesen…") : t("contracts.rescanButton", "Verträge neu einlesen")}
               </Button>
               <div className="flex items-center gap-2">
-                <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
+                <Switch
+                  checked={onlyChanges}
+                  onCheckedChange={(v) => setOnlyChanges(Boolean(v))}
+                  aria-label={t("contracts.changeFilterLabel", "Nur Veränderungen zeigen")}
+                />
                 <span className="text-sm text-muted-foreground">{t("contracts.changeFilterLabel", "Nur Veränderungen zeigen")}</span>
               </div>
             </div>

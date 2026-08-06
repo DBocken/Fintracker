@@ -180,7 +180,11 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle>{t('income.breakdownTitle')}</CardTitle>
         <div className="flex shrink-0 items-center gap-2">
-          <Switch checked={showPercent} onCheckedChange={(v) => setShowPercent(Boolean(v))} />
+          <Switch
+            checked={showPercent}
+            onCheckedChange={(v) => setShowPercent(Boolean(v))}
+            aria-label={t('spendingBreakdown.percent')}
+          />
           <span className="text-sm text-muted-foreground">{t('spendingBreakdown.percent')}</span>
         </div>
       </CardHeader>

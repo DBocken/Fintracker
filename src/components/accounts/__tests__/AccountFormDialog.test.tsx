@@ -45,6 +45,21 @@ function makeAccount(overrides: Partial<Account>): Account {
   };
 }
 
+describe('AccountFormDialog – Budget-Pool-Switch', () => {
+  // Gleiche Fehlerklasse wie die axe-critical `button-name`-Befunde aus dem
+  // WP-4.6-Gate: das Label stand daneben, war aber nicht via htmlFor/id mit
+  // dem Switch verknüpft — der Switch hatte keinen zugänglichen Namen.
+  it('[REGRESSION] sollte den Budget-Pool-Switch über sein Label benennen (Deutsch)', () => {
+    renderDialog({}, 'de');
+    expect(screen.getByRole('switch', { name: 'Budget-Pool Mitglied' })).toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte den Budget-Pool-Switch über sein Label benennen (Englisch)', () => {
+    renderDialog({}, 'en');
+    expect(screen.getByRole('switch', { name: 'Budget pool member' })).toBeInTheDocument();
+  });
+});
+
 describe('AccountFormDialog – Geschäftskonto-Switch', () => {
   describe('Normal Behavior', () => {
     it('sollte den Geschäftskonto-Switch anzeigen (Deutsch)', () => {

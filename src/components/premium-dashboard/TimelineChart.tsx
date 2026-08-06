@@ -147,7 +147,11 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Switch checked={showIncome} onCheckedChange={(v) => setShowIncome(Boolean(v))} />
+              <Switch
+                checked={showIncome}
+                onCheckedChange={(v) => setShowIncome(Boolean(v))}
+                aria-label={t("premium.timeline.showIncome")}
+              />
               <span className="text-sm text-muted-foreground">{t("premium.timeline.showIncome")}</span>
             </div>
           </div>
