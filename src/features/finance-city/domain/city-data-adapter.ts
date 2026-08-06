@@ -39,6 +39,7 @@
 import { type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
 import type { Category } from '@/types';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
+import { activityLevel } from './city-activity';
 
 /**
  * Distrikt-Farben der Stadt: eine EIGENE, hue-gespreizte Palette statt
@@ -98,8 +99,30 @@ function mergeSubcategories(target: CitySubcategory[], incoming: CitySubcategory
   }
 }
 
+/**
+ * WP-5.4: Länge des Datenfensters in Kalendermonaten — Bezugsgröße der
+ * Aktivitäts-FREQUENZ. Bewusst über ALLE Gebäude gebildet und nicht je
+ * Gebäude: sonst käme ein Gebäude mit einer einzigen Buchung in einem
+ * einzigen Monat auf „1 Buchung / 1 Monat" und damit auf dieselbe Stufe wie
+ * ein echtes monatliches Abo.
+ */
+function dataWindowMonths(floorsByBuilding: Map<string, CityContract[]>): number {
+  const months = new Set<string>();
+  for (const floors of floorsByBuilding.values()) {
+    for (const floor of floors) {
+      for (const booking of floor.bookings ?? []) {
+        const match = /^(\d{4}-\d{2})/.exec(booking.date);
+        if (match) months.add(match[1]);
+      }
+    }
+  }
+  return months.size;
+}
+
 /** Hängt die vorab aggregierten Händler-Etagen an ihr Gebäude — mutiert die frisch gebauten (noch nicht nach außen sichtbaren) `districts`. */
 function attachFloors(districts: CityDistrict[], floorsByBuilding: Map<string, CityContract[]>): void {
+  const windowMonths = dataWindowMonths(floorsByBuilding);
+
   for (const district of districts) {
     for (const building of district.subcategories) {
       const floors = floorsByBuilding.get(building.id);
@@ -113,6 +136,12 @@ function attachFloors(districts: CityDistrict[], floorsByBuilding: Map<string, C
           .filter((floor) => floor.recurring)
           .reduce((sum, floor) => sum + floor.amount, 0);
         if (recurringAmount > 0) building.recurringAmount = recurringAmount;
+
+        // WP-5.4: Wie oft passiert hier etwas? Zeigt den Unterschied zwischen
+        // EINER großen Zahlung und vielen kleinen — den die Gebäudehöhe
+        // grundsätzlich nicht zeigen kann.
+        const bookingCount = floors.reduce((sum, floor) => sum + (floor.bookings?.length ?? 0), 0);
+        building.activity = activityLevel(bookingCount, windowMonths);
       }
     }
   }

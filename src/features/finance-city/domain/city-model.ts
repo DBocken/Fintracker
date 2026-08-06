@@ -18,6 +18,7 @@
  */
 
 import type { GoalProgressStage } from './city-goal-progress';
+import type { CityActivityLevel } from './city-activity';
 
 /**
  * Eine einzelne Buchung hinter einer Etage (WP-D4, Vertrags-Sheet als
@@ -71,6 +72,13 @@ export type CitySubcategory = {
    * es schlicht keine Linie (kein Sonderfall in der Presentation).
    */
   recurringAmount?: number;
+  /**
+   * WP-5.4: Wie oft in diesem Gebäude gebucht wird (`city-activity.ts`).
+   * Steuert die Dichte des Fenster-Rasters auf der Fassade — der Kanal zeigt,
+   * was die HÖHE nicht kann: ob ein Betrag aus EINER großen Zahlung besteht
+   * oder aus vielen kleinen.
+   */
+  activity?: CityActivityLevel;
 };
 
 /** Ein Distrikt (Hauptkategorie-Gruppe) — ein räumlich getrenntes Gebäude-Cluster. */

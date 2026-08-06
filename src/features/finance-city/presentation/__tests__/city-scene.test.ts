@@ -810,8 +810,11 @@ describe('createCityScene', () => {
 
       expect(shadowPlanesOf(scene)).toHaveLength(0);
       expect(planeDisposeSpy).toHaveBeenCalledTimes(1);
-      // Himmel (2) + Boden (2) + Fassade (1) + Kontaktschatten (1) = 6 CanvasTexturen.
-      expect(textureDisposeSpy).toHaveBeenCalledTimes(6);
+      // Himmel (2) + Boden (2) + Fassade (3, WP-5.4: eine je Aktivitätsstufe)
+      // + Kontaktschatten (1) = 8 CanvasTexturen. Die Zahl ist bewusst hart
+      // geprüft: sie ist die Obergrenze, ab der aus „Textur je STUFE" ein
+      // „Textur je GEBÄUDE" geworden wäre.
+      expect(textureDisposeSpy).toHaveBeenCalledTimes(8);
     });
   });
 

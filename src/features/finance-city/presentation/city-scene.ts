@@ -51,6 +51,7 @@ import type { Vec3 } from '../domain/city-model';
 import { easeInOutCubic } from '../domain/camera-math';
 import { deriveCityQuality, type CityQualitySettings } from '../domain/city-quality';
 import type { CityFlowLine } from '../domain/city-flow-lines';
+import type { CityActivityLevel } from '../domain/city-activity';
 import { MOTION_DURATIONS } from '@/lib/motion-tokens';
 
 export type CityCameraPose = { position: Vec3; target: Vec3 };
@@ -313,8 +314,20 @@ const FACADE_AO_FADE_HEIGHT_RATIO = 0.55;
 const FACADE_WINDOW_COLS = 6;
 const FACADE_WINDOW_ROWS = 12;
 const FACADE_WINDOW_ALPHA = 0.07;
+/**
+ * WP-5.4: Fenster-Dichte und -Deutlichkeit je Aktivitätsstufe.
+ * `fillEvery: 1` = jede Zelle trägt ein Fenster (das bisherige Verhalten),
+ * höhere Werte lassen entsprechend Zellen aus. `steady` ist bewusst identisch
+ * zum Zustand vor WP-5.4 — die mittlere Stufe ist der Bezugspunkt, nach oben
+ * und unten wird abgewichen.
+ */
+const FACADE_WINDOW_ACTIVITY: Record<CityActivityLevel, { alpha: number; fillEvery: number }> = {
+  quiet: { alpha: FACADE_WINDOW_ALPHA * 0.6, fillEvery: 3 },
+  steady: { alpha: FACADE_WINDOW_ALPHA, fillEvery: 1 },
+  busy: { alpha: FACADE_WINDOW_ALPHA * 1.8, fillEvery: 1 },
+};
 
-function createFacadeTexture(): THREE.CanvasTexture | null {
+function createFacadeTexture(activity: CityActivityLevel = 'steady'): THREE.CanvasTexture | null {
   const target = createCanvas2d(FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
   if (!target) return null;
   const { canvas, ctx } = target;
@@ -335,11 +348,23 @@ function createFacadeTexture(): THREE.CanvasTexture | null {
   ctx.fillStyle = ao;
   ctx.fillRect(0, 0, FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
 
+  // WP-5.4: Das Fenster-Raster ist datengetrieben statt dekorativ. Ein
+  // belebtes Gebäude (viele Buchungen pro Monat) bekommt mehr und deutlichere
+  // Fenster als eines mit einer einzigen Zahlung im Jahr — der Kanal zeigt
+  // damit, was die HÖHE nicht kann: ob ein Betrag aus EINER großen Zahlung
+  // besteht oder aus vielen kleinen.
+  //
+  // Der Rasterdurchmesser bleibt derselbe; variiert wird, WIE VIELE Zellen ein
+  // Fenster tragen (deterministisch nach einem festen Muster, nicht zufällig —
+  // sonst flackerte die Fassade bei jedem Texturaufbau) und wie deutlich sie
+  // sind. So bleibt es EINE Textur je Stufe statt einer je Gebäude.
+  const { alpha, fillEvery } = FACADE_WINDOW_ACTIVITY[activity];
   const cellW = FACADE_TEXTURE_SIZE / FACADE_WINDOW_COLS;
   const cellH = FACADE_TEXTURE_SIZE / FACADE_WINDOW_ROWS;
-  ctx.fillStyle = `rgba(0,0,0,${FACADE_WINDOW_ALPHA})`;
+  ctx.fillStyle = `rgba(0,0,0,${alpha})`;
   for (let row = 0; row < FACADE_WINDOW_ROWS; row += 1) {
     for (let col = 0; col < FACADE_WINDOW_COLS; col += 1) {
+      if ((row * FACADE_WINDOW_COLS + col) % fillEvery !== 0) continue;
       ctx.fillRect(col * cellW + cellW * 0.25, row * cellH + cellH * 0.3, cellW * 0.5, cellH * 0.45);
     }
   }
@@ -447,7 +472,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   // bereits der etablierte Weg (jsdom ohne 2D-Kontext), der Rest der Datei
   // degradiert darauf still auf un-texturierte Materialien bzw. keine
   // Schatten-Ebenen. Kein zweiter Sonderfall nötig.
-  const facadeTexture = quality.facadeTexture ? createFacadeTexture() : null; // theme-tolerant (Graustufen-Albedo), kein Swap nötig.
+  // WP-5.4: EINE Textur je Aktivitätsstufe (drei), nicht eine je Gebäude —
+  // theme-tolerant (Graustufen-Albedo), kein Swap bei Theme-Wechsel nötig.
+  const facadeTextures: Record<CityActivityLevel, THREE.CanvasTexture | null> = quality.facadeTexture
+    ? { quiet: createFacadeTexture('quiet'), steady: createFacadeTexture('steady'), busy: createFacadeTexture('busy') }
+    : { quiet: null, steady: null, busy: null };
   const contactShadowTexture = quality.contactShadows ? createContactShadowTexture() : null; // theme-tolerant (Alpha-Matte), kein Swap nötig.
 
   const scene = new THREE.Scene();
@@ -646,7 +675,12 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // bleibt erhalten. Die Textur-Art ist Teil des Registry-Schlüssels, damit
     // Boden und ein zufällig gleichfarbiger Balken nie dieselbe Instanz
     // teilen (und `setTheme` gezielt NUR Boden-Materialien ummappen kann).
-    const textureKey = box.kind === 'ground' ? 'ground' : bucket === 'solid' ? 'facade' : 'none';
+    // WP-5.4: Die Aktivitätsstufe gehört in den Schlüssel — sonst teilten sich
+    // ein ruhiges und ein belebtes Gebäude derselben Farbe eine Materialinstanz
+    // und damit dieselbe Fassade.
+    const activity = box.activity ?? 'steady';
+    const textureKey =
+      box.kind === 'ground' ? 'ground' : bucket === 'solid' ? `facade:${activity}` : 'none';
     const key = `${box.color}|${box.opacity}|${bucket}|${textureKey}`;
     const cached = materialRegistry.get(key);
     if (cached) return cached;
@@ -661,7 +695,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
           })
         : new THREE.MeshLambertMaterial({
             color: box.color,
-            map: box.kind === 'ground' ? groundTextures[theme] : facadeTexture,
+            map: box.kind === 'ground' ? groundTextures[theme] : facadeTextures[activity],
             // WP-D6: Eigenleuchten in der Boxfarbe (siehe SOLID_EMISSIVE_INTENSITY)
             // — das Hover-Highlight (`setHighlight`) glüht dagegen WEISS und
             // bleibt dadurch klar unterscheidbar.
@@ -1309,7 +1343,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
     // WP-E1: prozedurale Texturen (Himmel/Boden je Theme + Fassade/Schatten).
     contactShadowTexture?.dispose();
-    facadeTexture?.dispose();
+    for (const texture of Object.values(facadeTextures)) texture?.dispose();
     for (const texture of [skyTextures.light, skyTextures.dark, groundTextures.light, groundTextures.dark]) {
       texture?.dispose();
     }

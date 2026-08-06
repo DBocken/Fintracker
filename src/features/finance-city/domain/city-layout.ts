@@ -8,6 +8,7 @@
  */
 
 import type { CityDistrict, CityModel, CitySubcategory, Vec3 } from './city-model';
+import type { CityActivityLevel } from './city-activity';
 import { scaleHeight, scaleFloors } from './city-scaling';
 
 export type CityLevel = 'city' | 'district' | 'subcategory';
@@ -28,6 +29,12 @@ export type LayoutBox = {
   pickable: boolean;
   /** Oberkante der Box, für HTML-Label-Projektion (README: Labels sind DOM-Overlays, keine 3D-Sprites). */
   labelAnchor?: Vec3;
+  /**
+   * WP-5.4: Buchungs-Aktivität des Gebäudes (`city-activity.ts`) — steuert die
+   * Fassaden-Textur. Nur an `bar`-Boxen gesetzt: Hüllen, Grundstücke, Boden
+   * und Caps tragen keine Fassade.
+   */
+  activity?: CityActivityLevel;
 };
 
 export type CityLayout = { boxes: LayoutBox[]; center: Vec3; boundingRadius: number };
@@ -491,6 +498,9 @@ function buildBarBox(
     edges: false,
     pickable,
     labelAnchor: { x: bar.center.x, y: bar.center.y + size.y / 2, z: bar.center.z },
+    // WP-5.4: reicht die Aktivitätsstufe des Gebäudes an die Presentation
+    // durch — die Geometrie selbst ändert sich dadurch nicht.
+    activity: bar.subcategory.activity,
   };
 }
 

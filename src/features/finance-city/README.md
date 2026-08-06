@@ -339,6 +339,43 @@ Nur auf **Stadt-Ebene**: beim Eintauchen beantworten die Etagen dieselbe Frage
 genauer, dort würden die Linien nur die Baukörper verstellen. Auf der Stufe
 `lean` entfallen sie (`quality.flowLines`).
 
+## Fensteraktivität als Datenkanal (WP-5.4)
+
+Das Fenster-Raster der Fassade (WP-E1) war reine Dekoration: **eine** geteilte
+Textur auf allen Baukörpern, überall gleich viele Fenster. Ein Gebäude sah
+belebt aus, weil es ein Gebäude ist — nicht, weil dort etwas passiert.
+
+Damit lag ein Kanal brach, der etwas zeigen kann, das die **Höhe grundsätzlich
+nicht kann**: ob ein Betrag aus einer großen Zahlung besteht oder aus vielen
+kleinen. Miete und Restaurantbesuche können denselben Monatsbetrag haben und
+sind völlig verschiedene Dinge — das eine ist ein Dauerauftrag, das andere sind
+dreißig Entscheidungen.
+
+Maß ist die Buchungs-**Frequenz** (`domain/city-activity.ts`), nicht die
+Buchungszahl: absolute Zahlen hingen am geladenen Datenfenster (wer zwei Jahre
+importiert, hätte überall „viel Aktivität").
+
+| Stufe | Buchungen/Monat | Beispiel | Fenster |
+|---|---|---|---|
+| `quiet` | < 1 | Miete, Jahresbeitrag | jede 3. Zelle, blasser |
+| `steady` | 1–4 | Großeinkauf, Tanken | jede Zelle (Stand vor WP-5.4) |
+| `busy` | > 4 | Bäcker, Mittagessen | jede Zelle, deutlicher |
+
+Zwei Dinge, die die Umsetzung tragen:
+
+- **Bezug ist das gesamte Datenfenster**, nicht die Monate *dieses* Gebäudes.
+  Sonst käme ein Gebäude mit einer einzigen Buchung in einem einzigen Monat auf
+  „1 Buchung / 1 Monat" und damit auf dieselbe Stufe wie ein echtes monatliches
+  Abo (`[REGRESSION]` in `city-activity.test.ts`).
+- **Eine Textur je Stufe, nicht je Gebäude.** Die Aktivität gehört in den
+  Material-Registry-Schlüssel (`color|opacity|bucket|texture`), sonst teilten
+  sich ein ruhiges und ein belebtes Gebäude derselben Farbe eine Instanz. Der
+  dispose-Test prüft die Texturzahl deshalb hart auf 8 — sie ist die
+  Obergrenze, ab der aus „je Stufe" ein „je Gebäude" geworden wäre.
+
+Drei Stufen bewusst grob: auf einer Fassade aus Kameradistanz sind drei
+unterscheidbar, fünf nicht. Wer die genaue Zahl braucht, taucht in die Etagen.
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)
