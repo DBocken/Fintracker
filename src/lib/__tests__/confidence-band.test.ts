@@ -72,6 +72,29 @@ describe('Konfidenzwolke der Prognose (WP-6.1)', () => {
     }
   });
 
+  it('sollte die Ferne ausduennen lassen (WP-6.2)', () => {
+    // Eine Prognose ist am Tag 1 fast eine Tatsache und am Tag 365 eine
+    // Vermutung. Bisher sah beides gleich aus — dieselbe Deckkraft ueber die
+    // gesamte Breite behauptete die Ferne so fest wie die Naehe.
+    expect(SOURCE).toContain('horizonMask');
+    // Der Verlauf muss WAAGERECHT laufen (x1->x2). Senkrecht waere er eine
+    // Aussage ueber den Betrag statt ueber die Zeit.
+    expect(SOURCE).toMatch(/id=\{`\$\{horizonMaskId\}-gradient`\} x1="0" y1="0" x2="1" y2="0"/);
+  });
+
+  it('sollte die naechste Zeit voll darstellen (WP-6.2)', () => {
+    // Der naechste Monat ist die Aussage, mit der man plant. Ihn vorzeitig
+    // auszublenden waere Effekt statt Information.
+    expect(SOURCE).toMatch(/offset="50%"[^>]*stopOpacity=\{1\}/);
+  });
+
+  it('sollte die Horizont-Maske auf alle Konfidenz-Ebenen legen (WP-6.2)', () => {
+    // Als Maske und nicht als zweite Farbe: sonst verrechnete sie sich mit
+    // der eigenen Deckkraft jeder Ebene, und die Ebenen duennten
+    // unterschiedlich stark aus.
+    expect(SOURCE).toContain('mask={`url(#${horizonMaskId})`}');
+  });
+
   it('sollte den erklärenden Text übersetzt beziehen', () => {
     // Der Satz stand vorher hartkodiert auf Deutsch im JSX.
     expect(SOURCE).toContain("t(\"liquidityReport.bandCaption\")");

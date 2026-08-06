@@ -648,6 +648,7 @@ function ChartLinesView({
   const reactId = useId().replace(/:/g, '');
   const gradientId = `liqFill-${reactId}`;
   const mcBandGradientId = `mcBandFill-${reactId}`;
+  const horizonMaskId = `horizonMask-${reactId}`;
 
   // Serien-Namen uebersetzt statt hartkodiert (AGENTS.md Paragraf 6). Die
   // Zuordnung steht in der Komponente und nicht als Modul-Konstante: eine
@@ -709,6 +710,30 @@ function ChartLinesView({
             {/* WP-6.1: Drei Fuellungen derselben Farbe, nach aussen schwaecher.
                 Weil die Flaechen einander ueberlagern, addiert sich die Deckkraft
                 zur Mitte hin — der Rand franst aus, statt zu schneiden. */}
+            {/*
+              WP-6.2 — Horizont-Perspektive.
+
+              Eine Prognose ist am Tag 1 fast eine Tatsache und am Tag 365 eine
+              Vermutung. Bisher sah beides gleich aus: dieselbe Deckkraft ueber
+              die gesamte Breite, die Ferne also genauso behauptet wie die Naehe.
+
+              Dieser Verlauf laeuft WAAGERECHT ueber die Zeitachse und laesst
+              die spaeten Tage ausduennen. Als Maske und nicht als zweite
+              Farbe, damit er auf alle drei Konfidenz-Ebenen gleich wirkt und
+              sich nicht mit deren eigener Deckkraft verrechnet.
+
+              Bis zur Haelfte des Horizonts bleibt die Darstellung voll: der
+              naechste Monat ist die Aussage, mit der man plant, und ihn
+              vorzeitig auszublenden waere Effekt statt Information.
+            */}
+            <linearGradient id={`${horizonMaskId}-gradient`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="white" stopOpacity={1} />
+              <stop offset="50%" stopColor="white" stopOpacity={1} />
+              <stop offset="100%" stopColor="white" stopOpacity={0.35} />
+            </linearGradient>
+            <mask id={horizonMaskId} maskUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+              <rect x="0" y="0" width="1" height="1" fill={`url(#${horizonMaskId}-gradient)`} />
+            </mask>
             {BAND_LAYERS.map((layer) => (
               <linearGradient key={layer.key} id={`${mcBandGradientId}-${layer.key}`} x1="0" y1="0" x2="0" y2="1">
                 <stop
@@ -777,6 +802,8 @@ function ChartLinesView({
                 stackId={layer.key}
                 stroke="none"
                 fill={`url(#${mcBandGradientId}-${layer.key})`}
+                // WP-6.2: laesst die Flaeche zum Horizont hin ausduennen.
+                mask={`url(#${horizonMaskId})`}
                 isAnimationActive={chartAnimation.animate}
                 animationDuration={chartAnimation.animationDuration}
                 animationEasing={chartAnimation.animationEasing}
