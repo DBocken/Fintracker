@@ -8,6 +8,71 @@
 
 ---
 
+## 2026-08-06 — Phase 6/7 zu grossen Teilen abgearbeitet, WP-4.6-Gate bestanden
+
+**Status:** Elf Arbeitspakete aus Phase 6 und 7 sind umgesetzt, das
+WP-4.6-Gate ist **bestanden** (Addendum in
+[`critic-reports/wp-4.6-art-ux-motion.md`](critic-reports/wp-4.6-art-ux-motion.md)),
+die E2E-Suite laeuft in CI. Drei Arbeitspakete stehen noch aus und sind in
+[`offene-punkte.md`](offene-punkte.md) benannt.
+
+### Umgesetzt
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-7.7** | Bewegungsstufe **vor** dem ersten Frame aus dem Geraeteprofil. Die Einstufung „stark / Telefon / schwach" wandert aus der Finanzstadt nach `lib/device-profile.ts` und wird geteilt — kein zweites Degradations-System, das auseinanderdriften koennte |
+| **WP-6.8** | Zwoelf Charts trugen je eine eigene Abschrift von `contentStyle` und den Achsen-Attributen; sie waren bereits auseinandergelaufen. Jetzt Props-Fabriken (Recharts erkennt Kinder am Komponententyp — ein Wrapper waere unsichtbar). `niceTicks()` (D-1) gilt jetzt auf **allen** Achsen |
+| **WP-6.10** | `<ChartFigure>`: ein Satz zur Aussage, SVG fuer Hilfstechnik ausgeblendet, Werte als aufklappbare Tabelle. Zwei Charts hatten eine Liste als Alternative — die war aber `md:hidden`, auf Desktop war der Donut also der einzige Zugriffsweg |
+| **WP-6.1** | Prognose: drei verschachtelte Konfidenzflaechen statt einer harten Kante. Eine harte Kante liest sich als Zusage, obwohl P10 heisst, dass jeder zehnte Durchlauf tiefer faellt. Aus echten Quantilen (sieben statt drei), nicht aus Interpolation |
+| **WP-6.2** | Prognose duennt zum Horizont hin aus. Als Maske, nicht als zweite Farbe — sonst verrechnete sie sich mit der Deckkraft der drei Ebenen |
+| **WP-6.6** | Transaktionsliste sortiert sich beim Filtern sichtbar um. Drei Lagen, in denen NICHT animiert wird, als Rangfolge modelliert — darunter die Virtualisierung ab 150 Eintraegen, eine echte Grenze |
+| **WP-6.9** | Kennzahlen zaehlen beim Zeitraumwechsel vom alten auf den neuen Wert. `animateOnMount: false` — das WP heisst „zwischen Zeitraeumen", nicht „beim Aufbau" |
+| **WP-7.3** | Ladezustaende: kein Skeleton unter 150 ms (das waere ein Blinzeln), ein gezeigtes bleibt mindestens 300 ms |
+| **WP-7.4** | Signature Moment „Schuldenfrei" mit Gedaechtnis: „Summe ist null" traefe auch auf jeden zu, der nie Schulden erfasst hat |
+| **WP-7.8** | Haptik ueber `navigator.vibrate` statt einer neuen Abhaengigkeit; schweigt bei reduzierter Bewegung und auf Geraeten ohne Vibration |
+| **Infra** | E2E-Job in CI (funktional, a11y, Visual, Performance), Browser-Cache, Prod-Budget **LCP < 2,5 s erstmals gemessen und eingehalten**; Radix-`DialogTitle`-Warnung behoben |
+
+### Nebenbei behoben (nicht beauftragt, aber im Weg)
+
+- **`CHART_SERIES_LABELS`** in `LiquidityReport` war eine hartkodierte
+  Modul-Konstante mit UI-Text; ebenso der Satz unter dem Prognose-Chart.
+  Beides Verstoesse gegen AGENTS.md §6, jetzt uebersetzt in allen vier
+  Baeumen mit `everyday`-Overlay.
+- **Gradient-IDs aus `Date.now()`** — neue ID bei jedem Render, alte `<defs>`
+  bleiben stehen, Kollision bei zwei Charts in derselben Millisekunde.
+- **`ease: [0.22, 1, 0.36, 1]`** stand an fuenf Stellen von Hand abgeschrieben
+  — genau die Drift, gegen die das Token-System angetreten ist.
+- **`vitest.setup.ts` pinnt `hardwareConcurrency`**: sonst haenge jede
+  Zusicherung auf eine Animationsdauer an der Kernanzahl des Runners.
+
+### Waechter statt Einmal-Aufraeumung
+
+`chart-standardization.test.ts` prueft die Quelle: kein eigenhaendiges
+`contentStyle`, jeder Tooltip ueber die Fabrik, jeder Chart mit
+nicht-visueller Entsprechung, keine Zeitstempel als SVG-ID. Ohne diesen
+Waechter waere die Aufraeumung in drei Monaten wieder zerfallen — genau so
+sind die bisherigen Abweichungen entstanden.
+
+### Zwei Befunde, die Tests aufgedeckt haben
+
+- Die aeussere Konfidenzflaeche rechnete `p90 - p05` statt `p95 - p05`; der
+  Kommentar sagte P05–P95, der Code nicht.
+- Der erste CI-Lauf der E2E-Suite meldete zwei Snapshots rot, ohne
+  Code-Aenderung. Ursache war die **Browser-Version** (lokal Chromium 141, CI
+  151), nicht die Plattform — siehe `decisions/decision-log.md` F-2.
+
+### Nachweise
+
+- Volle Suite gruen; `pnpm lint`, `pnpm exec tsc --noEmit`, `check:i18n`,
+  `check:i18n-module-consts`, `check:test-structure` fehlerfrei.
+- E2E lokal 4/4 gruen gegen erneuerte Baselines, im Folgelauf stabil
+  bestaetigt; a11y 0 Critical.
+- Performance gegen den **Produktions-Build** gruen — das Gate-Budget
+  LCP < 2,5 s ist damit erstmals belegt und nicht mehr nur behauptet.
+- Motion-Review als Videoaufzeichnung, ausgewertet als 4-fps-Frames.
+
+---
+
 ## 2026-08-06 — Critic-Befunde behoben, Offene-Punkte-Liste angelegt
 
 **Status:** Die vier inhaltlichen Befunde des WP-4.6-Critic-Reviews sind

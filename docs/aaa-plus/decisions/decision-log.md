@@ -191,3 +191,56 @@ als CI denselben Fehler zeigte.
 Prosa und im Workflow. Ein Pin würde diese Klasse von Lockfile-Drift maschinell
 verhindern — gehört getrennt geprüft, weil `pnpm/action-setup` bei gleichzeitig
 gesetztem `version:`-Input eigenes Verhalten hat.
+
+## 2026-08-06 — F-1: Telemetrie (Phase 11) wird Opt-in mit Versand
+
+**Kontext:** Der Implementierungsplan sieht in Phase 11 Telemetrie vor.
+Fintracker ist local-first (AGENTS.md §1) — Telemetrie ist dort keine
+Implementierungsdetailfrage, sondern eine Grundsatzentscheidung über das
+Produktversprechen. Phase 11 lag nicht im Umfang dieses Durchgangs; die Frage
+wurde trotzdem gestellt, weil eine später getroffene Entscheidung die dann
+schon gebaute Architektur teuer korrigieren müsste.
+
+**Entscheidung des Auftraggebers:** **Opt-in-Telemetrie mit Versand.**
+Standardmäßig aus, ausdrückliches Opt-in, anonymisiert.
+
+**Was daraus folgt und beim Phase-11-Durchgang nicht neu zu verhandeln ist:**
+
+- Es braucht einen Backend-Endpunkt und einen Datenschutz-Text. Beides ist
+  Teil von Phase 11, nicht optional.
+- Der Opt-in-Schalter gehört in den Einstellungen-Screen und damit in die
+  Phase-8-Migration dieses Screens — dort ist der Platz dafür vorzusehen.
+- „Anonymisiert" ist zu präzisieren: Beträge dürfen das Gerät nicht verlassen.
+  Zu klären ist, welche Ereignisse überhaupt gesendet werden (Bereichsaufrufe,
+  Fehler, Performance) — nicht, ob Finanzdaten gesendet werden. Das sind sie
+  nicht.
+
+**Nicht gebaut in diesem Durchgang.** Der Eintrag hält die Entscheidung fest,
+damit sie beim Phase-11-Durchgang vorliegt.
+
+## 2026-08-06 — F-2: Linux ist die verbindliche Plattform für Visual-Baselines
+
+**Kontext:** Die Visual-Baselines lagen für **win32 und linux** im Repository.
+Die win32-Fassungen waren nach dem Hero- und Karten-Umbau veraltet und hätten
+auf einem Windows-Rechner falsch rot gemeldet — ohne dass irgendein Lauf sie
+je wieder erneuert hätte, weil kein Windows-Runner existiert.
+
+**Entscheidung des Auftraggebers:** CI-Job anlegen, **Linux** ist die
+verbindliche Plattform, die win32-Baselines entfallen.
+
+**Was der erste CI-Lauf danach lehrte — und was daraus folgt:** Der Job meldete
+zwei der neun Snapshots rot, ohne dass sich am Code etwas geändert hatte.
+Ursache war nicht die Plattform, sondern die **Browser-Version**: die Baselines
+entstanden lokal mit dem vorinstallierten Chromium 141, CI bezieht über
+`playwright install` Chromium 151. Andere Font-Metriken heißen anderer
+Textumbruch und damit andere Seitenhöhen; auf 375 px schlägt das stärker durch
+als auf 768/1440.
+
+**Regel daraus:** „Linux" allein genügt als Baseline-Zusage nicht. Verbindlich
+ist **der Playwright-eigene Browser auf Linux**. `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
+darf beim Erzeugen von Snapshots nicht gesetzt sein — als Falle in
+`playwright.config.ts` dokumentiert.
+
+**Verworfen:** Die Toleranz anzuheben. Bei den ohnehin erlaubten 5 %
+Pixelabweichung scheiterte der Vergleich bereits; ein höherer Wert hätte den
+Test entwertet, statt das Problem zu lösen.
