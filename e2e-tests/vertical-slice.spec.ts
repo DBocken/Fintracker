@@ -26,11 +26,13 @@ test.describe("Vertical Slice (WP-4.6)", () => {
     ).toBeVisible();
     await startDemo(page);
 
-    // ── 2. Dashboard: Hero-Hierarchie (WP-4.1) ──
-    // Genau ein dominantes Element: der Saldo-Hero (56px ab sm-Breakpoint).
+    // ── 2. Dashboard: Hero-Hierarchie (WP-4.1, Befund A-1) ──
+    // Genau ein dominantes Element: der Kontostand-Hero (56px ab sm-Breakpoint).
+    // Entscheidung des Auftraggebers (2026-08-06): Hero = aktueller Kontostand,
+    // der Zeitraum-Saldo ist Nebenkennzahl (Dashboard.hero.test.tsx).
     const hero = page.getByTestId("stat-hero-value");
     await expect(hero).toBeVisible();
-    await expect(page.getByText("Saldo in diesem Zeitraum")).toBeVisible();
+    await expect(page.getByText("Aktueller Kontostand", { exact: true })).toBeVisible();
     const heroFontSize = await hero.evaluate((el) =>
       Number.parseFloat(getComputedStyle(el).fontSize),
     );
