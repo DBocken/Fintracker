@@ -38,6 +38,7 @@ import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { deriveAtmosphere } from "@/hooks/useAtmosphereState";
 import { isFirstVisit, markVisited } from "@/features/finance-city/presentation/first-visit";
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
 const MAX_VISIBLE_LABELS_MOBILE = 6;
@@ -1077,7 +1078,7 @@ export default function CityPage() {
                     initial={reducedMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={reducedMotion ? {} : { opacity: 0, y: -10 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.6, ease: MOTION_EASINGS_BEZIER.precision }}
                     className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center"
                   >
                     <div className="rounded-2xl bg-background/90 px-8 py-4 text-center shadow-lg backdrop-blur-sm">

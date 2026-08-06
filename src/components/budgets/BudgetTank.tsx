@@ -4,6 +4,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { smoothstep, hexToRgb, lerpRgb, rgbStr, type RgbTuple } from "@/lib/color-mix";
 import { MOTION_DURATIONS } from "@/lib/motion-tokens";
 import type { BudgetHealth } from "@/types";
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 
 type Rgb = { top: string; bottom: string; surface: string };
 
@@ -267,7 +268,7 @@ export default function BudgetTank({
     return (
       <motion.div
         layoutId={layoutId}
-        transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: MOTION_EASINGS_BEZIER.precision }}
       >
         {svg}
       </motion.div>

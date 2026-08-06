@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   MOTION_EASINGS,
   MOTION_EASINGS_CHART,
+  MOTION_EASINGS_BEZIER,
   MOTION_DURATIONS,
   resolveDuration,
 } from '../motion-tokens';
@@ -20,6 +21,30 @@ describe('MOTION_EASINGS_CHART', () => {
   it('sollte der Recharts-Schreibweise ohne Leerzeichen entsprechen', () => {
     expect(MOTION_EASINGS_CHART.build).toMatch(/^cubic-bezier\((-?[\d.]+,){3}-?[\d.]+\)$/);
     expect(MOTION_EASINGS_CHART.build).not.toContain(' ');
+  });
+});
+
+describe('MOTION_EASINGS_BEZIER', () => {
+  /**
+   * Framer Motion nimmt keine CSS-Strings, sondern das Bezier-Tupel. Vor
+   * WP-6.6 stand dieses Tupel an fuenf Stellen von Hand abgeschrieben im Code
+   * — eine Aenderung an MOTION_EASINGS haette sie nicht erreicht.
+   */
+  it('[REGRESSION] sollte fuer jede Kurve dieselben Kontrollpunkte wie MOTION_EASINGS tragen', () => {
+    for (const [name, css] of Object.entries(MOTION_EASINGS)) {
+      const fromCss = css
+        .replace(/^cubic-bezier\(|\)$/g, '')
+        .split(',')
+        .map((part) => Number(part.trim()));
+      expect(fromCss, name).toHaveLength(4);
+      expect([...MOTION_EASINGS_BEZIER[name as keyof typeof MOTION_EASINGS_BEZIER]], name).toEqual(
+        fromCss,
+      );
+    }
+  });
+
+  it('sollte genau dieselben Kurvennamen fuehren wie MOTION_EASINGS', () => {
+    expect(Object.keys(MOTION_EASINGS_BEZIER).sort()).toEqual(Object.keys(MOTION_EASINGS).sort());
   });
 });
 

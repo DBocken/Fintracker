@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import CelebrationBurst from './CelebrationBurst';
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 
 type SignatureMomentVariant = 'small' | 'default' | 'large';
 
@@ -61,7 +62,7 @@ export function SignatureMoment({
       )}
       initial={reduce ? false : { scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={reduce ? { duration: 0 } : { duration: 0.4, ease: MOTION_EASINGS_BEZIER.precision }}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-positive">
         <CelebrationBurst size={burstSize} />
@@ -70,7 +71,7 @@ export function SignatureMoment({
           data-testid="signature-title"
           initial={reduce ? false : { scale: 1 }}
           animate={reduce ? {} : { scale: [1, 1.08, 1] }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{ duration: 0.6, delay: 0.3, ease: MOTION_EASINGS_BEZIER.confirm }}
         >
           {title}
         </motion.span>

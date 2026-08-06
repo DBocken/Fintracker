@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, Repeat, SplitSquareHorizontal } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
@@ -7,6 +8,9 @@ import type { Account, Category, Transaction, TransactionAllocation } from '@/ty
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import ListRow from '@/components/common/ListRow';
 import { cn } from '@/lib/utils';
+import { useMotionQuality } from '@/hooks/useMotionQuality';
+import { planListReorganization } from '@/lib/list-reorganization';
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 import {
   buildDayGroups,
   flattenDayGroups,
@@ -141,6 +145,17 @@ export function TransactionDayList({
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const virtualize = flatItems.length > VIRTUALIZE_THRESHOLD;
+
+  // WP-6.6: Entscheidet, ob sich die Liste bei einem Filterwechsel sichtbar
+  // umsortieren darf. Die Begruendung (`reason`) ist bewusst Teil des
+  // Ergebnisses — sie macht in Tests und beim Nachlesen unterscheidbar, ob
+  // gerade die Nutzereinstellung, die Virtualisierung oder die Menge greift.
+  const motionQuality = useMotionQuality();
+  const reorganization = planListReorganization({
+    itemCount: flatItems.length,
+    virtualized: virtualize,
+    settings: motionQuality,
+  });
 
   const virtualizer = useWindowVirtualizer({
     count: virtualize ? flatItems.length : 0,
@@ -346,28 +361,59 @@ export function TransactionDayList({
     );
   }
 
+  // WP-6.6: Greift ein Filter, sortiert sich die Liste sichtbar um, statt neu
+  // aufzupoppen — der Nutzer sieht, dass „die Aldi-Buchung noch da ist, nur
+  // weiter oben". Das `layout`-Prop von Framer Motion misst Vorher/Nachher und
+  // interpoliert dazwischen (FLIP); die Zuordnung laeuft ueber den React-Key,
+  // also ueber die stabile Transaktions-ID und nicht ueber die Position.
+  //
+  // Ob ueberhaupt animiert wird, entscheidet `planListReorganization` — es gibt
+  // drei Lagen, in denen es falsch waere (reduzierte Bewegung, Virtualisierung,
+  // zu viele Elemente fuer die Bewegungsstufe des Geraets).
+  const rowTransition = {
+    duration: reorganization.durationMs / 1000,
+    ease: MOTION_EASINGS_BEZIER.precision,
+  };
+
   return (
     <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.key} className="space-y-1">
-          {renderDayHeader(group, false)}
-          <ul className="divide-y divide-border/70">
-            {group.items.map((transaction) => {
-              const splits = transaction.id ? visibleSplits.get(transaction.id) ?? [] : [];
-              return (
-                <li key={transaction.id || ''}>
-                  {renderTransactionRow(transaction)}
-                  {splits.map((allocation, index) => (
-                    <div key={allocation.id}>
-                      {renderSplitRow(transaction, allocation, index === splits.length - 1)}
-                    </div>
-                  ))}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+      <AnimatePresence initial={false}>
+        {groups.map((group) => (
+          <motion.section
+            key={group.key}
+            layout={reorganization.animate}
+            // `exit` nur, wenn ueberhaupt animiert wird: sonst haenge ein
+            // weggefilterter Tag sichtbar nach, ohne dass etwas passiert.
+            exit={reorganization.animate ? { opacity: 0 } : undefined}
+            transition={rowTransition}
+            className="space-y-1"
+          >
+            {renderDayHeader(group, false)}
+            <ul className="divide-y divide-border/70">
+              <AnimatePresence initial={false}>
+                {group.items.map((transaction) => {
+                  const splits = transaction.id ? visibleSplits.get(transaction.id) ?? [] : [];
+                  return (
+                    <motion.li
+                      key={transaction.id || ''}
+                      layout={reorganization.animate}
+                      exit={reorganization.animate ? { opacity: 0 } : undefined}
+                      transition={rowTransition}
+                    >
+                      {renderTransactionRow(transaction)}
+                      {splits.map((allocation, index) => (
+                        <div key={allocation.id}>
+                          {renderSplitRow(transaction, allocation, index === splits.length - 1)}
+                        </div>
+                      ))}
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
+          </motion.section>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

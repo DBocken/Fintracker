@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_DURATIONS } from "@/lib/motion-tokens";
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 
 type Indicator = "arrow" | "expand" | "none";
 
@@ -101,7 +102,7 @@ export default function InteractiveCard({
   const content = layoutId ? (
     <motion.div
       layoutId={layoutId}
-      transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: MOTION_DURATIONS.slow / 1000, ease: MOTION_EASINGS_BEZIER.precision }}
     >
       {inner}
     </motion.div>

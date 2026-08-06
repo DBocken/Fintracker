@@ -52,6 +52,26 @@ export const MOTION_EASINGS_CHART = {
   build: 'cubic-bezier(0.33,1,0.68,1)',
 } as const;
 
+/**
+ * Framer-Motion-taugliche Schreibweise derselben Kurven.
+ *
+ * Framer Motion nimmt keine CSS-Strings, sondern das Bezier-Tupel
+ * `[x1, y1, x2, y2]`. Bis WP-6.6 stand dieses Tupel an fünf Stellen von Hand
+ * abgeschrieben im Code (`ease: [0.22, 1, 0.36, 1]`) — also genau die Drift,
+ * gegen die dieses Token-System angetreten ist: eine Änderung an
+ * `MOTION_EASINGS.precision` hätte die fünf Abschriften nicht erreicht.
+ *
+ * `motion-tokens.test.ts` hält beide Fassungen synchron, wie schon bei
+ * {@link MOTION_EASINGS_CHART}.
+ */
+export const MOTION_EASINGS_BEZIER = {
+  precision: [0.22, 1, 0.36, 1],
+  build: [0.33, 1, 0.68, 1],
+  spatial: [0.65, 0, 0.35, 1],
+  confirm: [0.34, 1.56, 0.64, 1],
+  warn: [0.87, 0, 0.13, 1],
+} as const satisfies Record<keyof typeof MOTION_EASINGS, readonly [number, number, number, number]>;
+
 /** Die vier Dauer-Stufen in Millisekunden. */
 export const MOTION_DURATIONS = {
   /** 150ms — Hover, Press, Mikrointeraktionen. */
