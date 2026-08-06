@@ -5,6 +5,63 @@
 
 ---
 
+## 2026-08-06 — Phase 5 (Finanzstadt): 6 von 7 offenen WPs
+
+**Status:** WP-5.1, 5.3, 5.4, 5.6, 5.7, 5.8 abgeschlossen. WP-5.2 offen
+(Entscheidung erforderlich, siehe unten). Volle Suite grün.
+
+Phase 5 hat in `tdd-specs.md` **keine** Spezifikationen — die decken WP-2.1 bis
+WP-4.3 ab. Für die hier umgesetzten WPs lagen nur Titel und Priorität aus dem
+Katalog in `implementation-plan.md` vor; die Akzeptanzkriterien sind je WP im
+Slice-README (`src/features/finance-city/README.md`) dokumentiert.
+
+| WP | Prio | Kern der Umsetzung |
+|---|---|---|
+| WP-5.6 | P1 | Qualitätsstufen (`high`/`balanced`/`lean`) aus dem Geräteprofil, **vor** dem ersten Frame. Die FPS-Kaskade greift erst nach sichtbarem Ruckeln — auf schwachen Telefonen war der erste Eindruck systematisch der schlechteste. |
+| WP-5.7 | P1 | Grafikausfall benennen. Der **Kontextverlust** war gar nicht behandelt: der Canvas fror auf dem letzten Frame ein und zeigte weiter veraltete Zahlen. |
+| WP-5.3 | P2 | Fortschritt auch an der Farbe ablesbar. Die kam vorher aus dem **Sortier-Index** und sagte über den Fortschritt nichts. |
+| WP-5.1 | P2 | Wiederkehrende Zahlungen als Flusslinien; Wiederkehr aus vorhandenen Buchungsdaten abgeleitet statt über eine zurückgeholte Query. |
+| WP-5.4 | P3 | Fassaden-Fenster datengetrieben statt dekorativ — zeigt, was die Höhe nicht kann: eine große Zahlung vs. viele kleine. |
+| WP-5.8 | P2 | Legende der visuellen Sprache. Erklärt **nur, was gerade zu sehen ist**. |
+
+### Ein durchgehendes Muster
+
+Vier der sechs Befunde waren nicht „Feature fehlt", sondern **Kanal ohne
+Aussage**: Die Zielfarbe kam aus dem Sortier-Index, die Fassaden-Fenster waren
+überall gleich, die Qualitätsstufe existierte nur reaktiv, und die visuelle
+Sprache war nirgends erklärt. Jedes für sich sah fertig aus.
+
+### Bewusste Abweichungen
+
+- **Flusslinien fließen nicht.** Eine Animation liefe endlos und widerspräche
+  der Render-on-Demand-Vorgabe (Akku) — ohne eine einzige zusätzliche Zahl zu
+  zeigen.
+- **WP-5.8 ist kein Tutorial.** `docs/tutorial-progressive-disclosure.md` legt
+  die Reihenfolge „zuerst die Freischaltungs-Achse, danach das Overlay" fest.
+  Die Legende nimmt davon nichts vorweg; eine spätere Führung kann über
+  `data-tour-id="city-legend"` darauf zeigen.
+- **WP-5.1 holt `computeContracts` nicht zurück.** WP-E2 hatte es bewusst
+  entfernt; die Wiederkehr wird stattdessen aus den Daten abgeleitet, die
+  ohnehin durch die Etagen-Aggregation laufen.
+
+### Offen: WP-5.2 (Zeitachse) — Entscheidung erforderlich
+
+Die Stadt hat **keine Zeitdimension**: alle Adapter aggregieren über *alle*
+geladenen Buchungen, es gibt keinen Monatsfilter und keine Prognose im Modell.
+„Vergangenheit/Gegenwart/Zukunft" hat deshalb zwei tragfähige Lesarten:
+
+1. **Monatsnavigation** über die letzten N Monate; die Stadt baut beim Wechsel
+   um (Höhen-Tween statt Neuaufbau). Rein aus vorhandenen Daten.
+2. **Zusätzlich Zukunft** aus den wiederkehrenden Zahlungen (WP-5.1)
+   fortgeschrieben, visuell als Prognose unterscheidbar.
+
+Lesart 2 entspricht dem WP-Titel, erzeugt aber Zahlen, die es so noch nirgends
+gibt — eine zweite Prognose neben dem Cashflow-Forecast kann diesem
+widersprechen. Empfehlung: mit 1 beginnen; 2 nur, wenn die Fortschreibung
+dieselbe Quelle nutzt wie der bestehende Forecast.
+
+---
+
 ## 2026-08-06 — F-SEC-3: Das Tageslimit begrenzte den, der es zurücksetzen konnte
 
 **Status:** behoben. Migration `20260806120000_harden_balance_refresh_limits.sql`,
@@ -157,7 +214,8 @@ erhalten, keine bestehenden Tests gelöscht/abgeschwächt.
 
 - WP-4.6 Rest: manuelle Critic-Reviews (Art Director/UX/Motion ≥ 3/5 — nicht
   automatisierbar, Orchestrator-Entscheid).
-- Phase 5: WP-5.1–5.4, 5.6–5.8 (City-Erweiterungen).
+- Phase 5: nur noch **WP-5.2** (Zeitachse) — Entscheidung erforderlich, siehe
+  den Eintrag vom 2026-08-06 oben. WP-5.1/5.3/5.4/5.6/5.7/5.8 sind erledigt.
 - Phase 6: WP-6.1–6.4, 6.6, 6.8–6.10 (DataViz).
 - Phase 7: WP-7.3–7.5, 7.7–7.8 (Motion).
 - Phase 8–11: Feature Migration, State Coverage, QA, Rollout.
