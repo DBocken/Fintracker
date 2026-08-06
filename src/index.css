@@ -384,3 +384,34 @@
   animation: skeleton-shimmer-wave 1.8s var(--motion-easing-build, ease-in-out) infinite;
   will-change: transform;
 }
+
+/*
+ * WP-6.3 — Sankey: Fluss-Animation & Textur.
+ *
+ * Ein Sankey zeigt Geldströme, stand aber völlig still. Die Richtung war nur
+ * aus der Anordnung zu erschließen, nicht zu sehen.
+ *
+ * Die Bewegung liegt als gestricheltes Band ÜBER dem vollen Band, nicht im
+ * Band selbst: Ein `stroke-dasharray` direkt auf dem Link würde den Strom in
+ * Stücke schneiden — das sähe nach Unterbrechung aus, nicht nach Fluss.
+ * Darüber gelegt und schwach deckend ergibt dasselbe Muster eine Textur, die
+ * wandert.
+ *
+ * Die Verschiebung ist exakt eine Musterlänge (12 + 20 = 32), damit die
+ * Schleife nahtlos schließt. `linear` statt einer Easing-Kurve: ein Strom, der
+ * beschleunigt und abbremst, wäre kein Strom.
+ *
+ * Wird von der globalen reduced-motion-Policy oben automatisch gestoppt; die
+ * Bewegungsstufe des Geräts entscheidet zusätzlich in `SankeyChart`, ob die
+ * Schicht überhaupt gerendert wird (WP-7.7).
+ */
+@keyframes sankey-flow-drift {
+  to { stroke-dashoffset: -32; }
+}
+
+.sankey-flow {
+  stroke-dasharray: 12 20;
+  animation: sankey-flow-drift 1.6s linear infinite;
+  /* Der Strom ist Beiwerk: Klicks und Tooltips gehören dem Band darunter. */
+  pointer-events: none;
+}

@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useMotionQuality } from "@/hooks/useMotionQuality";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -40,6 +41,14 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   const [percentMode, setPercentMode] = useState<boolean>(false);
   const [chartHeight, setChartHeight] = useState<number>(500);
   const reduce = useReducedMotion();
+
+  // WP-6.3/7.7: Die Fluss-Textur laeuft endlos. Genau das ist auf schwacher
+  // Hardware der teuerste Dauerposten — eine Animation ohne Ende hat keinen
+  // Moment, in dem sie fertig waere. Auf der sparsamsten Stufe entfaellt sie
+  // deshalb ganz; das Band bleibt, nur die Bewegung geht. Bei reduzierter
+  // Bewegung ebenso (durationScale === 0).
+  const motionQuality = useMotionQuality();
+  const showFlow = motionQuality.durationScale > 0 && motionQuality.tier !== 'minimal';
   const isMobile = useIsMobile();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -260,7 +269,38 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               data={sankeyData}
               nodePadding={40}
               margin={{ top: 20, right: 40, bottom: 20, left: 20 }}
-              link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
+              // WP-6.3: Eigener Link-Renderer statt eines reinen Props-Objekts.
+              // Nur so lassen sich ZWEI Pfade je Strom zeichnen: das volle Band
+              // und die wandernde Textur darueber. Ein `stroke-dasharray` auf
+              // dem Band selbst wuerde den Strom zerschneiden — das saehe nach
+              // Unterbrechung aus, nicht nach Fluss.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              link={(linkProps: any) => {
+                const { sourceX, sourceY, sourceControlX, targetX, targetY, targetControlX, linkWidth, index } = linkProps;
+                const d = `M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`;
+                return (
+                  <g key={`link-${index}`}>
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeOpacity={0.35}
+                      strokeWidth={linkWidth}
+                    />
+                    {showFlow && (
+                      <path
+                        className="sankey-flow"
+                        d={d}
+                        fill="none"
+                        stroke="hsl(var(--brand))"
+                        strokeOpacity={0.28}
+                        strokeWidth={linkWidth}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </g>
+                );
+              }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               node={({ x, y, width, height, payload }: any) => {
                 const MIN_HEIGHT_FOR_LABELS = 36;
