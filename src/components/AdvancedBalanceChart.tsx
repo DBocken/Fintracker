@@ -19,6 +19,8 @@ import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } fro
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
 import { ChartFigure } from '@/components/common/ChartFigure';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -84,18 +86,23 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
     setTempBalance(autoStartingBalance.toFixed(2));
   };
 
-  if (isLoading) {
-    return (
-      <Card className="card-premium">
-        <CardContent className="py-8 text-center">
-          <div className="animate-pulse">{t('balanceChart.loading')}</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // WP-7.3: Der Wechsel Ladezustand -> Inhalt laeuft ueber LoadingSwap statt
+  // ueber einen fruehen `return`. Damit gelten hier dieselben Regeln wie
+  // ueberall: kein Skeleton unter der Wahrnehmungsschwelle, und ein einmal
+  // gezeigtes bleibt lange genug, um gelesen zu werden.
   return (
-    <>
+    <LoadingSwap
+      loading={isLoading}
+      skeleton={
+        <Card className="card-premium">
+          <CardContent className="space-y-3 py-8">
+            <Skeleton variant="shimmer" className="h-6 w-48" />
+            <Skeleton variant="shimmer" className="h-72 w-full md:h-96" />
+            <span className="sr-only">{t('balanceChart.loading')}</span>
+          </CardContent>
+        </Card>
+      }
+    >
       <Card className="card-premium h-full">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -338,6 +345,6 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </LoadingSwap>
   );
 }

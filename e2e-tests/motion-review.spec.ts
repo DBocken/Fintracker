@@ -10,14 +10,13 @@ import { startDemo, createBudgetFromSuggestion } from "./fixtures/vertical-slice
  * Übergänge des Slice mit **echter Zeit** ab und zeichnet sie auf; ausgewertet
  * werden anschließend die Frames um die Übergänge herum.
  *
- * Bewusst KEIN Teil der regulären Suite (Dateiname außerhalb des
- * `vertical-slice-`-Präfixes, per `--grep` gezielt zu starten): Der Lauf
- * erzeugt Videos von einigen Megabyte und prüft nichts — er ist ein
- * Erhebungsinstrument, kein Test. Ein Erhebungslauf, der bei jedem Commit
- * mitläuft, kostet nur Zeit.
+ * Bewusst KEIN Teil der regulären Suite: Der Lauf erzeugt Videos von einigen
+ * Megabyte und prüft nichts — er ist ein Erhebungsinstrument, kein Test. Ein
+ * Erhebungslauf, der bei jedem Commit mitläuft, kostet nur Zeit und
+ * Speicherplatz. `playwright.config.ts` blendet die Datei deshalb aus.
  *
  * Aufruf:
- *   pnpm exec playwright test motion-review.spec.ts
+ *   E2E_MOTION_REVIEW=1 pnpm exec playwright test motion-review.spec.ts
  * Die Videos liegen danach unter `test-results/`.
  *
  * Ausdrücklich NICHT eingefrorene Zeit: `page.clock` würde genau das
