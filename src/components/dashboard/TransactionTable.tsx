@@ -9,7 +9,7 @@ import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Account, Category } from '../../types';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -50,7 +50,7 @@ export function TransactionTable({
   onOpenDetails,
 }: TransactionTableProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
     if (!accountId) return undefined;
@@ -107,7 +107,7 @@ export function TransactionTable({
           const account = getAccountById(transaction.account_id);
           const rowId = transaction.id || '';
           const hidden = hiddenTransactions.has(rowId);
-          const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
+          const amountLabel = money.mask(currencyFormatter.format(transaction.amount));
 
           return (
             <TableRow

@@ -23,6 +23,7 @@ import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useTier } from "@/hooks/useTier";
 import { useTutorialRun } from "@/hooks/useTutorialRun";
 import { hasFeatureAccess } from "@/lib/tier";
@@ -31,6 +32,7 @@ import { useI18n } from "@/i18n/useI18n";
 export default function CoachPage() {
   const { t, locale } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
   const tier = useTier();
   const tutorialRun = useTutorialRun();
   const includeTaxReserve = hasFeatureAccess(tier, "creatorPack");
@@ -158,10 +160,10 @@ export default function CoachPage() {
           <InteractiveCard to="/debts" aria-label={t("coach.debtContextAction")}>
             <div className="text-sm text-muted-foreground">{t("coach.debtContext")}</div>
             <div className="mt-2 text-xl font-semibold">
-              {gentleModeEnabled ? "*** " + t("coach.openDebt") : `${coach.debtSummary.totalDebt.toFixed(0)} ` + t("coach.openDebt")}
+              {money.mask(coach.debtSummary.totalDebt.toFixed(0))} {t("coach.openDebt")}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              {t("coach.minimumPayment")}: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} {t("coach.perMonth")}
+              {t("coach.minimumPayment")}: {money.mask(coach.debtSummary.minimumMonthlyBurden.toFixed(0))} {t("coach.perMonth")}
             </p>
             <p className="mt-3 text-sm">{t("coach.fasterStrategy")}: {coach.debtSummary.preferredStrategy === "avalanche" ? t("coach.avalanche") : t("coach.snowball")}</p>
           </InteractiveCard>

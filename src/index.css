@@ -217,24 +217,23 @@
 }
 
 /*
- * Sanfter Modus (Issue #48) — Finanzielle Daten verbergen, Fortschritt zeigen
- * Aktiviert bei .gentle-mode auf document root.
+ * Sanfter Modus (Issue #48).
+ *
+ * Hier standen bis WP-9.5 drei Regeln fuer `[data-amount]`,
+ * `[data-gentle-hide]` und `[data-gentle-placeholder]`. Sie hatten im ganzen
+ * Repo NULL Aufrufstellen — ein Mechanismus, der Abdeckung vortaeuschte, wo
+ * keine war, und der den naechsten Entwickler ein Attribut setzen liess in dem
+ * Glauben, damit fertig zu sein.
+ *
+ * Maskiert wird jetzt in `useMoneyFormat()`. Zwei Gruende gegen den CSS-Weg:
+ * `text-transparent` laesst den Betrag im DOM stehen (markierbar, kopierbar,
+ * von der Sprachausgabe vorgelesen), und in SVG-Diagrammen wirkt es gar nicht,
+ * weil dort `fill` faerbt und nicht `color`.
+ *
+ * Die Klasse `.gentle-mode` am Wurzelelement bleibt: Sie ist der Haken fuer
+ * kuenftige rein visuelle Abschwaechungen, die keinen Betrag betreffen.
  */
 @layer utilities {
-  .gentle-mode [data-gentle-hide] {
-    @apply invisible;
-  }
-
-  .gentle-mode [data-gentle-placeholder]::before {
-    content: attr(data-gentle-placeholder);
-    @apply text-muted-foreground font-medium;
-  }
-
-  /* Text-basierte Beträge verbergen (z.B. "1.234,56 €") */
-  .gentle-mode [data-amount] {
-    @apply text-transparent;
-  }
-
   /*
    * Dezenter, themebewusster Scrollbalken statt der weißen Standard-Leiste
    * (für Scroll-Container wie das Detail-Panel). Firefox via scrollbar-*,

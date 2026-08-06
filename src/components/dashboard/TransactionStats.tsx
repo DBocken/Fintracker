@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { useI18n } from '@/i18n/useI18n';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
@@ -37,6 +38,7 @@ export function TransactionStats({
   currentBalance,
 }: TransactionStatsProps) {
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
   const { t } = useI18n();
 
   // WP-6.9: Beim Zeitraumwechsel zaehlen die Kennzahlen vom alten auf den
@@ -75,7 +77,7 @@ export function TransactionStats({
                 {t("transactionStats.accountBalance")}
               </div>
               <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
-                {gentleModeEnabled ? '***' : currentBalance}
+                {money.mask(currentBalance)}
               </div>
             </div>
           )}
@@ -103,14 +105,14 @@ export function TransactionStats({
                 <ArrowUpRight className="h-3.5 w-3.5 text-positive" />
                 {t("transactionStats.income")}
               </dt>
-              <dd className="mt-1 text-base font-medium">{gentleModeEnabled ? '***' : eur.format(animatedIncome)}</dd>
+              <dd className="mt-1 text-base font-medium">{money.mask(eur.format(animatedIncome))}</dd>
             </div>
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowDownRight className="h-3.5 w-3.5" />
                 {t("transactionStats.expenses")}
               </dt>
-              <dd className="mt-1 text-base font-medium">{gentleModeEnabled ? '***' : eur.format(animatedExpenses)}</dd>
+              <dd className="mt-1 text-base font-medium">{money.mask(eur.format(animatedExpenses))}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">{t("transactionStats.balance")}</dt>
@@ -125,7 +127,7 @@ export function TransactionStats({
                 {/* Vorzeichen aus dem ZIELwert, nicht aus dem Zaehlerstand:
                     sonst flackerte es beim Nulldurchgang waehrend des
                     Uebergangs zwischen + und -. */}
-                {gentleModeEnabled ? '***' : (balance >= 0 ? '+' : '') + eur.format(animatedBalance)}
+                {money.mask((balance >= 0 ? '+' : '') + eur.format(animatedBalance))}
               </dd>
             </div>
             <div>

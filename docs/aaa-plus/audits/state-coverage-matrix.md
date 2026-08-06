@@ -157,6 +157,45 @@ Zwei Dinge, die dabei mitliefen:
   Ungenutzte Übersetzungen bleiben sonst als Karteileichen stehen und werden
   bei der nächsten Sprache mitübersetzt.
 
+## Stand nach WP-9.5 (Grundlage) — Maskieren als Eigenschaft
+
+Die Erhebung war hier deutlich schlechter als die Matrix-Spalte nahelegte:
+**78 Dateien geben Beträge aus, acht berücksichtigen den Sanften Modus** — und
+diese acht mit **drei verschiedenen Masken** (`***`, `••`, leer). Das ist kein
+Schludern der Aufrufstellen, sondern die Folge davon, dass Maskieren dort
+überhaupt eine Entscheidung war.
+
+Zwei Funde bei der Bestandsaufnahme:
+
+- **Es gab einen zweiten, toten Mechanismus.** `src/index.css` trug Regeln für
+  `[data-amount]`, `[data-gentle-hide]` und `[data-gentle-placeholder]` — mit
+  **null** Aufrufstellen im ganzen Repo. Das ist schlimmer als gar nichts: Es
+  täuscht Abdeckung vor und lässt den nächsten Entwickler ein Attribut setzen
+  in dem Glauben, fertig zu sein. Entfernt, mit Begründung an Ort und Stelle.
+- **Der CSS-Weg wäre auch inhaltlich falsch gewesen.** `text-transparent`
+  lässt den Betrag im DOM stehen (markierbar, kopierbar, von der Sprachausgabe
+  vorgelesen) und wirkt in SVG-Diagrammen gar nicht, weil dort `fill` färbt
+  und nicht `color`.
+
+`useMoneyFormat()` maskiert jetzt beim Formatieren. `mask()` gibt es zusätzlich
+für Stellen mit eigenem Formatierer — Recharts-Achsen bekommen eine Funktion
+hereingereicht und sollen nicht umgestellt werden müssen, nur um verdeckt zu
+werden.
+
+### Zuschnitt des verbleibenden Sweeps
+
+Nicht alle 70 offenen Dateien gehören dazu, und das ist keine Bequemlichkeit,
+sondern steht in `docs/onboarding-life-situations.md`: Der Sanfte Modus wird
+für **vier** Lebenssituationen vorgeschlagen (`student_school`,
+`student_university`, `single_parent`, `debt_focus`). Deren Bereichsfreigaben
+enthalten **nie** Trading, EÜR, Nettovermögen oder Premium-Reports — allein
+das sind rund 25 Dateien, die ein Nutzer im Sanften Modus gar nicht zu sehen
+bekommt.
+
+Im Sweep sind damit: die immer sichtbaren Screens (Coach, Dashboard,
+Buchungen, Konten, CSV, Export, Einstellungen, Finanzstadt) sowie Budgets,
+Meilensteine, Verträge, Liquidität, Einkommen, Schulden, Anlässe und Steuer.
+
 ## Ableitung für Phase 9
 
 | WP | Inhalt |
@@ -164,5 +203,5 @@ Zwei Dinge, die dabei mitliefen:
 | **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
-| **WP-9.5** | Sanfter Modus über alle Screens statt der heutigen vier |
+| **WP-9.5** | ⏳ **Grundlage steht** (`useMoneyFormat()`, tote CSS entfernt, acht Altstellen vereinheitlicht). Der Screen-Sweep folgt — Zuschnitt siehe unten |
 | **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |

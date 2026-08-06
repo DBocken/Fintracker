@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { toMajor } from '@/lib/money';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import ListRow from '@/components/common/ListRow';
 import { cn } from '@/lib/utils';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
@@ -100,6 +101,7 @@ export function TransactionDayList({
 }: TransactionDayListProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
@@ -172,7 +174,7 @@ export function TransactionDayList({
   // Heading selbst — im klassischen Pfad übernimmt das space-y-6 des Containers.
   const renderDayHeader = (group: DayGroup, withTopSpacing: boolean) => {
     const heading = formatDayHeading(group.key, now);
-    const balanceLabel = gentleModeEnabled ? '***' : currencyFormatter.format(group.runningBalance);
+    const balanceLabel = money.mask(currencyFormatter.format(group.runningBalance));
     const deltaLabel = gentleModeEnabled ? '' : deltaFormatter.format(group.delta);
     // Tutorial-Anker nur am ERSTEN Tag: Die Fuehrung braucht ein eindeutiges
     // Ziel, und `document.querySelector` naehme ohnehin das erste.
@@ -210,7 +212,7 @@ export function TransactionDayList({
     const rowId = transaction.id || '';
     const hidden = hiddenTransactions.has(rowId);
     const isSelected = !!rowId && rowId === selectedId;
-    const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
+    const amountLabel = money.mask(currencyFormatter.format(transaction.amount));
     const payee = transaction.payee || transaction.description || '–';
 
     const leaf = categoriesById.get(transaction.subcategory_id || transaction.category_id || '');
@@ -300,7 +302,7 @@ export function TransactionDayList({
   const renderSplitRow = (transaction: Transaction, allocation: TransactionAllocation, isLastSplit: boolean) => {
     const category = categoriesById.get(allocation.subcategory_id || allocation.category_id || '');
     const name = category?.name || t('transactions.splitUncategorized');
-    const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(toMajor(allocation.amount_minor));
+    const amountLabel = money.mask(currencyFormatter.format(toMajor(allocation.amount_minor)));
 
     return (
       <button

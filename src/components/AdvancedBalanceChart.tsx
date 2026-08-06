@@ -14,7 +14,7 @@ import {
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction } from '../types';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
@@ -31,7 +31,7 @@ interface AdvancedBalanceChartProps {
 
 export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isLoading = false }: AdvancedBalanceChartProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
   const chartAnimation = useChartAnimation();
   const seriesSummary = useSeriesSummary();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
@@ -136,17 +136,17 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           <div className="mb-4 text-sm text-muted-foreground">
             {t('balanceChart.endBalance')}{' '}
             <span className="font-semibold text-foreground">
-              {gentleModeEnabled ? '***' : formatCurrency(endBalanceFromAccounts)}
+              {money.mask(formatCurrency(endBalanceFromAccounts))}
             </span>
             {' • '}{t('balanceChart.startingBalanceLabel')}{' '}
             <span className="font-semibold text-foreground">
-              {gentleModeEnabled ? '***' : formatCurrency(effectiveStartingBalance)}
+              {money.mask(formatCurrency(effectiveStartingBalance))}
             </span>
             {chartData.length > 0 && (
               <>
                 {' • '}{t('balanceChart.currentBalance')}{' '}
                 <span className="font-semibold text-foreground">
-                  {gentleModeEnabled ? '***' : formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0)}
+                  {money.mask(formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0))}
                 </span>
               </>
             )}
@@ -159,7 +159,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
             summary={seriesSummary({
               title: t('balanceChart.title'),
               values: chartData.map((point) => point.cumulative),
-              formatValue: (value) => (gentleModeEnabled ? '***' : formatCurrency(value)),
+              formatValue: (value) => (money.mask(formatCurrency(value))),
               labelAt: (index) => chartData[index]?.label ?? '',
             })}
             columns={[
@@ -168,19 +168,19 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 key: 'income',
                 label: t('balanceChart.income'),
                 numeric: true,
-                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.income)),
+                format: (row) => (money.mask(formatCurrency(row.income))),
               },
               {
                 key: 'expenses',
                 label: t('balanceChart.expenses'),
                 numeric: true,
-                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.expenses)),
+                format: (row) => (money.mask(formatCurrency(row.expenses))),
               },
               {
                 key: 'cumulative',
                 label: t('balanceChart.balance'),
                 numeric: true,
-                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.cumulative)),
+                format: (row) => (money.mask(formatCurrency(row.cumulative))),
               },
             ]}
             rows={chartData}
@@ -217,12 +217,12 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 {...valueAxisProps({
                   ticks: yTicks,
                   width: 64,
-                  tickFormatter: (value) => (gentleModeEnabled ? '••' : `${value.toFixed(0)} €`),
+                  tickFormatter: (value) => money.mask(`${value.toFixed(0)} €`),
                 })}
               />
               <Tooltip
                 {...chartTooltipProps({
-                  formatValue: (value) => (gentleModeEnabled ? '***' : `${value.toFixed(2)}€`),
+                  formatValue: (value) => money.mask(`${value.toFixed(2)}€`),
                   formatLabel: (label) => t('balanceChart.dateLabel').replace('{label}', label),
                   seriesLabels: {
                     income: t('balanceChart.income'),
@@ -321,7 +321,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 variant="outline"
                 className="w-full btn-secondary-premium"
               >
-                {t('balanceChart.calculateFromBalance').replace('{amount}', gentleModeEnabled ? '***' : formatCurrency(autoStartingBalance))}
+                {t('balanceChart.calculateFromBalance').replace('{amount}', money.mask(formatCurrency(autoStartingBalance)))}
               </Button>
             </div>
 
