@@ -80,7 +80,11 @@ export function SignatureMoment({
           className="mt-1 text-xs text-muted-foreground"
           initial={reduce ? false : { opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
+          // Wie beim Container an `reduce` gekoppelt. Heute traegt schon
+          // `initial={false}` den statischen Fall; ohne die Kopplung bliebe
+          // aber eine 0.3s-Bewegung mit 0.5s Verzoegerung stehen, sobald hier
+          // jemals ein Wert animiert wird.
+          transition={reduce ? { duration: 0 } : { duration: 0.3, delay: 0.5 }}
         >
           {subtitle}
         </motion.div>
