@@ -31,6 +31,7 @@ const model = {
     income: 5000,
     expenses: 3765.44,
     count: 12,
+    sunburst: { inner: [], outer: [], total: 0 },
   },
   transactions: { all: [], preview: [], sorted: [], visible: [] },
   accounts: [],

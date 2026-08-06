@@ -24,6 +24,9 @@ import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
 import AnalysisModePanel from './AnalysisModePanel';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
+import { useTutorialPresence } from '@/components/tutorial/tutorial-presence';
+import { useGlobalAtmosphere } from '@/hooks/useGlobalAtmosphere';
+import { ATMOSPHERE_ACCENTS } from '@/components/common/AtmosphereLayer';
 
 // Die Buchungen-Vorschau auf dem Dashboard ist reine Vorschau ohne Sammelbearbeitung
 // (die lebt vollständig auf /transactions) – Auswahl bleibt hier bewusst inert.
@@ -32,6 +35,8 @@ const noop = () => {};
 
 export function Dashboard() {
   const { t } = useI18n();
+  const { hintVisible: tutorialHintVisible } = useTutorialPresence();
+  const atmosphere = useGlobalAtmosphere();
 
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -73,6 +78,17 @@ export function Dashboard() {
     }).format(amount);
   };
 
+  // Viertel = Hauptkategorien mit Ausgaben im gewählten Zeitraum — exakt die
+  // Menge, aus der die Stadt ihre Distrikte baut (Außenring des Sunburst).
+  const cityDistrictCount = model.stats.sunburst.outer.length;
+  const cityPreviewLine =
+    cityDistrictCount === 0
+      ? t('dashboard.cityLinkPreviewEmpty')
+      : cityDistrictCount === 1
+        ? t('dashboard.cityLinkPreviewOne')
+        : t('dashboard.cityLinkPreview').replace('{count}', String(cityDistrictCount));
+  const cityMoodAccent = ATMOSPHERE_ACCENTS[atmosphere.temperature];
+
   // Nie eine leere Seite: ohne Transaktionen klare nächste Aktionen (Issue #39).
   if (model.isEmpty) {
     return <FinanceEmptyState />;
@@ -82,13 +98,19 @@ export function Dashboard() {
     <div {...dyadProps("Dashboard")} className="space-y-6 md:space-y-8">
       {/* Das Dashboard ist Analyse-Support; die Handlung lebt im Coach
           (Audit C-P1). Ganze Karte ist klickbar → Coach (Usability-Audit
-          „Karten sind Aktionen"). */}
-      <InteractiveCard to="/coach" aria-label={t("dashboard.coachPreview")}>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="h-4 w-4 text-brand" />
-          {t("dashboard.coachPreview")}
-        </div>
-      </InteractiveCard>
+          „Karten sind Aktionen").
+          Befund A-2: höchstens eine Hinweisebene gleichzeitig — solange die
+          Tutorial-Einladung (oder die laufende Führung) sichtbar ist, wartet
+          dieser nachrangige Hinweis. Der Demodaten-Banner zählt bewusst
+          nicht dazu: Datenherkunft ist Integritätsanzeige. */}
+      {!tutorialHintVisible && (
+        <InteractiveCard to="/coach" aria-label={t("dashboard.coachPreview")}>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Sparkles className="h-4 w-4 text-brand" />
+            {t("dashboard.coachPreview")}
+          </div>
+        </InteractiveCard>
+      )}
 
       {/* WP-4.1: Hero-Hierarchie — ein dominantes Element pro Screen.
           Der AKTUELLE KONTOSTAND ist die Hauptaussage (Entscheidung des
@@ -109,11 +131,23 @@ export function Dashboard() {
       />
 
       {/* WP-4.5: Dashboard → City Transition — Finanzstadt als visuell
-          verbundenes Element. layoutId verbindet mit der City-Seite. */}
+          verbundenes Element. layoutId verbindet mit der City-Seite.
+          Befund A-3: die Karte trägt eine Vorschau statt leerer Fläche —
+          Stimmungsfarbe (dieselbe Sprache wie die Atmosphäre-Schicht) und
+          eine Kennzahl (Viertel = Hauptkategorien mit Ausgaben, dieselbe
+          Quelle wie die Stadt-Distrikte). */}
       <InteractiveCard to="/city" layoutId="dashboard-city-link" aria-label={t('dashboard.cityLink')}>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Building2 className="h-4 w-4 text-brand" />
-          {t('dashboard.cityLink')}
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
+            style={cityMoodAccent ?? undefined}
+          >
+            <Building2 className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">{t('dashboard.cityLink')}</div>
+            <p className="truncate text-xs text-muted-foreground">{cityPreviewLine}</p>
+          </div>
         </div>
       </InteractiveCard>
 

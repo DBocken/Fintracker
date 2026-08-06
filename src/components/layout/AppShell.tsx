@@ -52,7 +52,11 @@ export default function AppShell() {
           dann die Lebenssituation — siehe docs/tutorial-sequence.md. */}
       <DataSourceDialog />
       <OnboardingDialog />
-      <TutorialHost />
+      {/* Der Host umschließt den Seiteninhalt als Provider: nachrangige
+          Hinweise (Coach-Streifen) lesen darüber, ob gerade eine Tutorial-
+          Hinweisebene sichtbar ist (Befund A-2). Sein Einladungs-Banner
+          rendert weiterhin an genau dieser Stelle, vor dem Flex-Container. */}
+      <TutorialHost>
       <div className="flex min-h-screen">
         {/* h-[100dvh] statt h-screen (100vh): An die *sichtbare* Viewport-Höhe
             koppeln, damit die ein-/ausblendende Browser-Leiste (Adressleiste/
@@ -122,6 +126,7 @@ export default function AppShell() {
       </div>
 
       <BottomNav />
+      </TutorialHost>
     </div>
   );
 }

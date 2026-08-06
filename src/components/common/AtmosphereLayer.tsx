@@ -15,7 +15,22 @@
  */
 
 import { memo } from 'react';
-import type { AtmosphereState } from '@/hooks/useAtmosphereState';
+import type { AtmosphereState, AtmosphereTemperature } from '@/hooks/useAtmosphereState';
+
+/**
+ * Akzentfarben je Temperatur für kleine Stimmungs-Hinweise außerhalb der
+ * Schicht selbst (z. B. die Stadt-Karte auf dem Dashboard, Befund A-3).
+ * Dieselben Farbtöne wie die Gradients unten — eine Stimmungssprache, zwei
+ * Intensitäten. `neutral` ist bewusst `null`: keine Aussage, keine Färbung.
+ */
+export const ATMOSPHERE_ACCENTS: Record<
+  AtmosphereTemperature,
+  { background: string; color: string } | null
+> = {
+  warm: { background: 'hsla(38, 70%, 55%, 0.16)', color: 'hsl(38, 65%, 45%)' },
+  cool: { background: 'hsla(210, 60%, 50%, 0.16)', color: 'hsl(210, 60%, 50%)' },
+  neutral: null,
+};
 
 type AtmosphereLayerProps = {
   state: AtmosphereState;

@@ -63,6 +63,69 @@ export function yAxisDomain(options: AxisDomainOptions = {}) {
   ] as [(dataMin: number) => number, (dataMax: number) => number];
 }
 
+export interface AxisTickOptions {
+  /** Erzwingt, dass die Ticks die 0 einschließen (Default: false). */
+  includeZero?: boolean;
+  /** Ziel-Anzahl der Intervalle zwischen den Ticks (Default: 4). */
+  targetIntervals?: number;
+}
+
+/**
+ * Explizite, runde Tick-Werte für eine Y-Achse (Befund D-1, WP-4.6-Review):
+ * Recharts verteilt seine Ticks gleichmäßig über die Domain und erzeugt damit
+ * krumme Zwischenwerte (895 €, 1795 €, …). Diese Funktion wählt stattdessen
+ * eine runde Schrittweite (1/2/5 × 10^n) nahe an `span / targetIntervals` und
+ * legt Anfang und Ende auf Vielfache davon — die Achse wird ablesbar statt
+ * nur korrekt. Verwendung: `<YAxis ticks={ticks} domain={[ticks[0],
+ * ticks[ticks.length - 1]]} />`.
+ */
+export function niceTicks(
+  dataMin: number,
+  dataMax: number,
+  options: AxisTickOptions = {}
+): number[] {
+  const { includeZero = false, targetIntervals = 4 } = options;
+
+  if (!Number.isFinite(dataMin) || !Number.isFinite(dataMax)) return [0, 1];
+  if (dataMin > dataMax) [dataMin, dataMax] = [dataMax, dataMin];
+
+  if (includeZero) {
+    dataMin = Math.min(0, dataMin);
+    dataMax = Math.max(0, dataMax);
+  }
+
+  if (dataMin === dataMax) {
+    // Flache Serie: symmetrisch aufspannen, damit überhaupt Intervalle entstehen.
+    const pad = Math.max(Math.abs(dataMax) * 0.05, 1);
+    dataMin -= pad;
+    dataMax += pad;
+  }
+
+  const ideal = (dataMax - dataMin) / targetIntervals;
+  const exponent = Math.floor(Math.log10(ideal));
+  let step = Math.pow(10, exponent);
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const exp of [exponent, exponent + 1]) {
+    for (const mantissa of [1, 2, 5]) {
+      const candidate = mantissa * Math.pow(10, exp);
+      const distance = Math.abs(Math.log(candidate / ideal));
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        step = candidate;
+      }
+    }
+  }
+
+  const first = Math.floor(dataMin / step) * step;
+  const count = Math.round((Math.ceil(dataMax / step) * step - first) / step);
+  const ticks: number[] = [];
+  for (let i = 0; i <= count; i++) {
+    // Über Indizes statt Aufsummieren, sonst driftet Fließkomma (0.1-Schritte).
+    ticks.push(Number((first + i * step).toFixed(10)));
+  }
+  return ticks;
+}
+
 /** Rundet auf eine „runde" Schrittweite ab (1/2/2.5/5 × 10^n). */
 function niceFloor(value: number): number {
   if (value === 0) return 0;

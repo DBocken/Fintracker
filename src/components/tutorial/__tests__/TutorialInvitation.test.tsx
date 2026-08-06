@@ -24,32 +24,35 @@ function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
 
 describe('TutorialInvitation', () => {
   it('sollte einladen, wenn ein Kapitel bereitsteht', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun()} />, 'de');
+    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'de');
     expect(screen.getByText('Soll ich es dir zeigen?')).toBeInTheDocument();
   });
 
   it('sollte auf Englisch dieselbe Einladung zeigen', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun()} />, 'en');
+    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'en');
     expect(screen.getByText('Shall I show you around?')).toBeInTheDocument();
   });
 
   it('sollte schweigen, wenn kein Kapitel bereitsteht', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun({ upcoming: null })} />, 'de');
+    renderWithI18n(<TutorialInvitation run={makeRun({ upcoming: null })} onDismiss={vi.fn()} />, 'de');
     expect(screen.queryByText('Soll ich es dir zeigen?')).not.toBeInTheDocument();
   });
 
   it('sollte die Führung starten', async () => {
     const run = makeRun();
-    renderWithI18n(<TutorialInvitation run={run} />, 'de');
+    renderWithI18n(<TutorialInvitation run={run} onDismiss={vi.fn()} />, 'de');
     await userEvent.click(screen.getByRole('button', { name: 'Zeig es mir' }));
     expect(run.start).toHaveBeenCalled();
   });
 
-  it('sollte sich wegklicken lassen, ohne die Führung zu starten', async () => {
+  it('sollte das Wegklicken dem Host melden, ohne die Führung zu starten', async () => {
+    // Das Verbergen selbst gehört dem Host (Befund A-2, Hinweisebenen-Präsenz)
+    // und ist in TutorialHost.test.tsx abgesichert.
     const run = makeRun();
-    renderWithI18n(<TutorialInvitation run={run} />, 'de');
+    const onDismiss = vi.fn();
+    renderWithI18n(<TutorialInvitation run={run} onDismiss={onDismiss} />, 'de');
     await userEvent.click(screen.getByRole('button', { name: 'Nicht jetzt' }));
     expect(run.start).not.toHaveBeenCalled();
-    expect(screen.queryByText('Soll ich es dir zeigen?')).not.toBeInTheDocument();
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });

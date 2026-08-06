@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { yAxisDomain } from '@/lib/chart-axis';
+import { niceTicks, yAxisDomain } from '@/lib/chart-axis';
 import { chartNumber, chartText } from '@/lib/chart-tooltip';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
@@ -50,6 +50,21 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
     () => buildBalanceHistory(transactions, effectiveStartingBalance),
     [transactions, effectiveStartingBalance],
   );
+
+  // Runde Achsen-Ticks statt Recharts-Interpolation (Befund D-1, WP-4.6-Review):
+  // über alle drei geplotteten Serien, damit keine aus der Achse fällt.
+  const yTicks = useMemo(() => {
+    if (chartData.length === 0) return null;
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const point of chartData) {
+      for (const value of [point.income, point.expenses, point.cumulative]) {
+        if (value < min) min = value;
+        if (value > max) max = value;
+      }
+    }
+    return niceTicks(min, max, { includeZero: axisFromZero });
+  }, [chartData, axisFromZero]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -163,7 +178,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 tickLine={false}
                 axisLine={false}
                 width={64}
-                domain={yAxisDomain({ includeZero: axisFromZero })}
+                ticks={yTicks ?? undefined}
+                domain={yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : yAxisDomain({ includeZero: axisFromZero })}
                 tickFormatter={(value) => gentleModeEnabled ? '••' : `${(value as number).toFixed(0)} €`}
               />
               <Tooltip
