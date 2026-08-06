@@ -8,6 +8,22 @@
 
 ---
 
+## 2026-08-06 (Nachtrag) — Phase 6 und 7 vollstaendig
+
+**Status:** Die drei verbliebenen Arbeitspakete sind umgesetzt. Phase 6
+(10 WPs) und Phase 7 (8 WPs) sind damit **vollstaendig**.
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-6.3** | Sankey: Die Fluss-Textur liegt UEBER dem Band, nicht darin. Ein `stroke-dasharray` auf dem Band selbst wuerde den Strom zerschneiden — das saehe nach Unterbrechung aus, nicht nach Fluss. Verschiebung exakt eine Musterlaenge, sonst springt die Schleife; `linear`, weil ein Strom nicht beschleunigt. Auf der sparsamsten Bewegungsstufe entfaellt sie: eine endlose Animation hat keinen Moment, in dem sie fertig waere |
+| **WP-6.4** | Vermoegen als Volumen. Der bisherige 2,5-px-Balken zeigte Anteile korrekt, aber keine Groessenordnung — 2.000 EUR und 200.000 EUR sahen identisch aus. Jetzt Kreise, deren **Flaeche** proportional zum Betrag ist (Radius ueber die Wurzel; linear skaliert saehe der doppelte Betrag viermal so gross aus) |
+| **WP-7.5** | Jahresrueckblick laeuft auf einen Signature Moment zu statt auf eine Share-Karte mit Ueberschrift. Dieselbe Choreografie und Haptik wie alle anderen Erfolgsmomente, statt einer zweiten Fassung. Feste Uebergangsdauern durch Tokens ersetzt |
+
+**Nachweis:** 430 Test-Dateien / 4223 Tests gruen, `pnpm lint` und
+`pnpm exec tsc --noEmit` fehlerfrei, alle i18n- und Struktur-Waechter gruen.
+
+---
+
 ## 2026-08-06 — Phase 6/7 zu grossen Teilen abgearbeitet, WP-4.6-Gate bestanden
 
 **Status:** Elf Arbeitspakete aus Phase 6 und 7 sind umgesetzt, das

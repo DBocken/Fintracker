@@ -19,39 +19,21 @@ Beide Punkte konnten im Container nicht erledigt werden: kein Produktionszugang,
 und ein Deployment ist ohnehin nichts, was ein unbeaufsichtigter Lauf auslösen
 sollte.
 
-## 2. Phase 6 — Datenvisualisierung (2 von 10 offen)
+## 2. Phase 6 und Phase 7 — vollständig
 
-| WP | Titel | Prio |
-|---|---|---|
-| WP-6.3 | Sankey: Fluss-Animation & Textur | P2 |
-| WP-6.4 | Vermögen: Volumen-Visualisierung | P2 |
+Alle 18 Arbeitspakete sind umgesetzt (WP-6.1 bis WP-6.10, WP-7.1 bis WP-7.8).
+Details im [Fortschrittsprotokoll](progress.md).
 
-Erledigt: WP-6.1, WP-6.2, WP-6.5, WP-6.6, WP-6.7, WP-6.8, WP-6.9, WP-6.10.
+Was daraus als Baustein für Phase 8 bereitsteht:
 
-**Anschlussfähig:** Beide können `useMotionQuality()` (WP-7.7) für die
-Degradation und `<ChartFigure>` (WP-6.10) für die nicht-visuelle Entsprechung
-übernehmen — der Wächter `chart-standardization.test.ts` verlangt Letzteres
-ohnehin, sobald ein neuer Recharts-`<Tooltip>` dazukommt.
-
-**Zu WP-6.3 vorab geklärt:** Eine Fluss-Animation im Sankey braucht
-CSS-Keyframes (`stroke-dashoffset`). AGENTS.md §7 erlaubt nur
-Tailwind-Utilities — der Keyframe gehört also nach `index.css` neben
-`skeleton-shimmer`, nicht als Inline-Style in die Komponente. Und `index.css`
-steht in Plan §8 auf der Liste der Dateien, die nie parallel angefasst werden
-dürfen.
-
-## 3. Phase 7 — Motion (1 von 8 offen)
-
-| WP | Titel | Prio |
-|---|---|---|
-| WP-7.5 | Motion: Signature Moment — Jahresrückblick | P2 |
-
-Erledigt: WP-7.1, WP-7.2, WP-7.3, WP-7.4, WP-7.6, WP-7.7, WP-7.8.
-
-**Anschlussfähig:** `src/components/income/wrapped/WrappedSlides.tsx` und
-`src/lib/income-wrapped.ts` existieren bereits — WP-7.5 ist eher eine
-Überarbeitung als ein Neubau. `SignatureMoment` (WP-6.5) und die Haptik aus
-WP-7.8 sind die Bausteine.
+| Baustein | Wofür |
+|---|---|
+| `useMotionQuality()` (WP-7.7) | Bewegungsstufe des Geräts — jede neue Animation holt ihre Dauer hierüber, nicht direkt aus `MOTION_DURATIONS` |
+| `<ChartFigure>` (WP-6.10) | Nicht-visuelle Entsprechung. Der Wächter `chart-standardization.test.ts` verlangt sie, sobald ein neuer Recharts-`<Tooltip>` dazukommt |
+| `chartTooltipProps()` / `valueAxisProps()` (WP-6.8) | Einheitliche Tooltips und runde Achsen |
+| `<LoadingSwap>` (WP-7.3) | Skeleton-Choreografie: kein Blinzeln, keine zu kurze Anzeige |
+| `<SignatureMoment>` (WP-6.5) | Erfolgsmomente inkl. Haptik — nicht je Screen neu bauen |
+| `volumeSegments()` (WP-6.4) | Flächenproportionale Größendarstellung |
 
 ## 4. Phasen 8–11 (noch unberührt)
 
