@@ -1,5 +1,6 @@
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';
@@ -93,6 +94,19 @@ export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCa
   }));
 
   return (
+    // WP-6.10: OHLC-Werte auch ohne Diagramm zugaenglich.
+    <ChartFigure
+      caption={t('trading.etoro.discover.candlesTooltipLabel')}
+      columns={[
+        { key: 'label', label: t('balanceChart.dateColumn'), format: (row) => row.label },
+        { key: 'open', label: 'O', numeric: true, format: (row) => formatCurrency(row.open, 'USD') },
+        { key: 'high', label: 'H', numeric: true, format: (row) => formatCurrency(row.high, 'USD') },
+        { key: 'low', label: 'L', numeric: true, format: (row) => formatCurrency(row.low, 'USD') },
+        { key: 'close', label: 'C', numeric: true, format: (row) => formatCurrency(row.close, 'USD') },
+      ]}
+      rows={chartData}
+      rowKey={(row, index) => `${row.label}-${index}`}
+    >
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" />
@@ -118,5 +132,6 @@ export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCa
         />
       </ComposedChart>
     </ResponsiveContainer>
+    </ChartFigure>
   );
 }

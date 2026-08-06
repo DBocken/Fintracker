@@ -63,6 +63,17 @@ describe('Chart-Standardisierung (WP-6.8)', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('sollte jedem Chart eine nicht-visuelle Entsprechung geben (WP-6.10)', () => {
+    // Ein Recharts-SVG ist für Screenreader ein Haufen <path>-Elemente. Ohne
+    // diesen Wächter bekäme der nächste per Copy-Paste entstandene Chart
+    // wieder keine — und das fiele niemandem auf, weil nichts rot wird.
+    const offenders = chartFiles()
+      .filter(({ source }) => !source.includes('ChartFigure'))
+      .map(({ path }) => path.replace(SRC, 'src'));
+
+    expect(offenders).toEqual([]);
+  });
+
   it('sollte keine Zeitstempel als SVG-Gradient-ID verwenden', () => {
     // `id={`fill-${Date.now()}`}` erzeugt bei JEDEM Render eine neue ID — die
     // alten `<defs>` bleiben im Dokument stehen — und kollidiert, sobald zwei

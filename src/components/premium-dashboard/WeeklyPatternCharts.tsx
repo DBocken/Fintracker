@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Toolti
 import { useI18n } from '@/i18n/useI18n';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface WeeklyPatternChartsProps {
@@ -29,6 +30,21 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
           <CardTitle>{t("premium.weekly.incomeTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* WP-6.10: Wochentagswerte auch ohne Diagramm zugaenglich. */}
+          <ChartFigure
+            caption={t("premium.weekly.incomeTitle")}
+            columns={[
+              { key: "day", label: t("premium.weekly.weekdayColumn"), format: (row) => row.day },
+              {
+                key: "income",
+                label: t("premium.weekly.incomeLabel"),
+                numeric: true,
+                format: (row) => row.income.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+              },
+            ]}
+            rows={weeklyData}
+            rowKey={(row) => row.day}
+          >
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={weeklyData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -58,6 +74,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
               />
             </BarChart>
           </ResponsiveContainer>
+          </ChartFigure>
         </CardContent>
       </Card>
 
@@ -66,6 +83,21 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
           <CardTitle>{t("premium.weekly.expensesTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* WP-6.10: Wochentagswerte auch ohne Diagramm zugaenglich. */}
+          <ChartFigure
+            caption={t("premium.weekly.expensesTitle")}
+            columns={[
+              { key: "day", label: t("premium.weekly.weekdayColumn"), format: (row) => row.day },
+              {
+                key: "expenses",
+                label: t("premium.weekly.expensesLabel"),
+                numeric: true,
+                format: (row) => row.expenses.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+              },
+            ]}
+            rows={weeklyData}
+            rowKey={(row) => row.day}
+          >
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={weeklyData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -95,6 +127,7 @@ export function WeeklyPatternCharts({ weeklyData }: WeeklyPatternChartsProps) {
               />
             </BarChart>
           </ResponsiveContainer>
+          </ChartFigure>
         </CardContent>
       </Card>
     </div>

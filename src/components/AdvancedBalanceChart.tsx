@@ -17,6 +17,8 @@ import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -29,6 +31,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -142,6 +145,40 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
             )}
           </div>
 
+          {/* WP-6.10: Das SVG ist für Hilfstechnik ausgeblendet; Aussage und
+              Werte stehen als Satz und als Tabelle daneben. */}
+          <ChartFigure
+            caption={t('balanceChart.title')}
+            summary={seriesSummary({
+              title: t('balanceChart.title'),
+              values: chartData.map((point) => point.cumulative),
+              formatValue: (value) => (gentleModeEnabled ? '***' : formatCurrency(value)),
+              labelAt: (index) => chartData[index]?.label ?? '',
+            })}
+            columns={[
+              { key: 'label', label: t('balanceChart.dateColumn'), format: (row) => row.label },
+              {
+                key: 'income',
+                label: t('balanceChart.income'),
+                numeric: true,
+                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.income)),
+              },
+              {
+                key: 'expenses',
+                label: t('balanceChart.expenses'),
+                numeric: true,
+                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.expenses)),
+              },
+              {
+                key: 'cumulative',
+                label: t('balanceChart.balance'),
+                numeric: true,
+                format: (row) => (gentleModeEnabled ? '***' : formatCurrency(row.cumulative)),
+              },
+            ]}
+            rows={chartData}
+            rowKey={(row, index) => `${row.label}-${index}`}
+          >
           <div className="h-72 md:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
@@ -241,6 +278,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
             </AreaChart>
           </ResponsiveContainer>
           </div>
+          </ChartFigure>
 
           {chartData.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">

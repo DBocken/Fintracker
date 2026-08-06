@@ -12,6 +12,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -194,7 +195,27 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
           <IncomeBreakdownList breakdown={breakdown} colorMap={colorMap} showPercent={showPercent} />
         </div>
 
-        <div className="hidden min-h-0 flex-1 md:block md:h-72">
+        {/* WP-6.10: Mobil traegt die antippbare Liste oben die Zahlen; die ist
+            hier `md:hidden`, deshalb bekommt Desktop eine eigene Tabelle. */}
+        <ChartFigure
+          className="hidden min-h-0 flex-1 md:flex md:h-72"
+          caption={t('income.breakdownTitle')}
+          columns={[
+            { key: 'name', label: t('income.sourceColumn'), format: (row) => row.name },
+            {
+              key: 'value',
+              label: t('income.totalColumn'),
+              numeric: true,
+              format: (row) =>
+                showPercent && breakdown.total > 0
+                  ? formatPercentInt((row.value / breakdown.total) * 100)
+                  : formatCurrencyInt(Math.round(row.value)),
+            },
+          ]}
+          rows={breakdown.groups}
+          rowKey={(row) => row.id}
+        >
+        <div className="min-h-0 flex-1">
           {breakdown.groups.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">{t('income.noIncome')}</p>
           ) : (
@@ -225,6 +246,7 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
             </ResponsiveContainer>
           )}
         </div>
+        </ChartFigure>
 
         <div className="hidden flex-wrap gap-1.5 md:flex">
           {breakdown.groups.map((g) => (

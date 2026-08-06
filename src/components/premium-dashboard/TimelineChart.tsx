@@ -10,6 +10,8 @@ import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 import { useI18n } from '@/i18n/useI18n';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface TimelineChartProps {
@@ -26,6 +28,7 @@ interface TimelineChartProps {
 export function TimelineChart({ data, flowTransactions, categories }: TimelineChartProps) {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
   // Hilfsmap für Kategorien
   const categoryMap = useMemo(() => {
     const m = new Map<string, Category>();
@@ -184,6 +187,24 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
           </div>
         </div>
 
+        {/* WP-6.10: nicht-visuelle Entsprechung des Monatsverlaufs. */}
+        <ChartFigure
+          caption={t("premium.timeline.title")}
+          summary={seriesSummary({
+            title: t("premium.timeline.title"),
+            values: chartData.map((row) => Number(row.net) || 0),
+            formatValue: (value) => value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+            labelAt: (index) => String(chartData[index]?.formattedDate ?? ''),
+          })}
+          columns={[
+            { key: 'formattedDate', label: t("income.monthColumn"), format: (row) => String(row.formattedDate) },
+            { key: 'income', label: t("premium.timeline.incomeLabel"), numeric: true, format: (row) => (Number(row.income) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+            { key: 'expenses', label: t("premium.timeline.expensesLabel"), numeric: true, format: (row) => (Number(row.expenses) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+            { key: 'net', label: t("contracts.chartNetLabel"), numeric: true, format: (row) => (Number(row.net) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+          ]}
+          rows={chartData}
+          rowKey={(row, index) => `${String(row.formattedDate)}-${index}`}
+        >
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <defs>
@@ -275,6 +296,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             />
           </ComposedChart>
         </ResponsiveContainer>
+        </ChartFigure>
       </CardContent>
     </Card>
   );

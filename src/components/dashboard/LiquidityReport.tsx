@@ -59,6 +59,8 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
@@ -597,6 +599,7 @@ function ChartLinesView({
   safetyBuffer: number;
 }) {
   const { t } = useI18n();
+  const seriesSummary = useSeriesSummary();
   const colors = getChartColors();
   // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   const chartAnimation = useChartAnimation();
@@ -618,6 +621,34 @@ function ChartLinesView({
   };
 
   return (
+    // WP-6.10: Der Verlauf ist die Kernaussage der Prognose — ohne
+    // nicht-visuelle Fassung waere sie fuer Screenreader gar nicht vorhanden.
+    <ChartFigure
+      caption={t('liquidityReport.liquidityChartCaption')}
+      summary={seriesSummary({
+        title: t('liquidityReport.liquidityChartCaption'),
+        values: chartData.map((point) => point.operating),
+        formatValue: (value) => eur.format(value),
+        labelAt: (index) => fmtDate(chartData[index]?.date ?? ''),
+      })}
+      columns={[
+        { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => fmtDate(row.date) },
+        {
+          key: 'operating',
+          label: t('liquidityReport.seriesOperating'),
+          numeric: true,
+          format: (row) => eur.format(row.operating),
+        },
+        {
+          key: 'median',
+          label: t('liquidityReport.seriesMedian'),
+          numeric: true,
+          format: (row) => (row.median === undefined ? '—' : eur.format(row.median)),
+        },
+      ]}
+      rows={chartData}
+      rowKey={(row) => row.date}
+    >
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -723,6 +754,7 @@ function ChartLinesView({
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+    </ChartFigure>
   );
 }
 

@@ -15,6 +15,8 @@ import { buildTransactionsHref } from './filter-utils';
 import type { AusgabenklasseFilter } from './filter-constants';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 interface SunburstInner {
   id: string;
@@ -52,6 +54,7 @@ const baseEndAngle = -270;
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
   // WP-6.8: Runde Achsenwerte statt Recharts-Interpolation (Befund D-1).
   const expenseTicks = useMemo(() => niceTicksForData(series, ['expenses']), [series]);
   return (
@@ -60,6 +63,27 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
         <CardTitle>{t("expensesOverTime.title")}</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* WP-6.10: nicht-visuelle Entsprechung neben dem Diagramm. */}
+        <ChartFigure
+          caption={t("expensesOverTime.title")}
+          summary={seriesSummary({
+            title: t("expensesOverTime.title"),
+            values: series.map((point) => point.expenses),
+            formatValue: formatCurrencyInt,
+            labelAt: (index) => series[index]?.date ?? '',
+          })}
+          columns={[
+            { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => row.date },
+            {
+              key: 'expenses',
+              label: t("expensesOverTime.expensesLabel"),
+              numeric: true,
+              format: (row) => formatCurrencyInt(Math.round(row.expenses)),
+            },
+          ]}
+          rows={series}
+          rowKey={(row) => row.date}
+        >
         <div className="h-44 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -97,6 +121,7 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        </ChartFigure>
       </CardContent>
     </Card>
   );
@@ -392,7 +417,29 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
         </div>
 
         {/* Desktop: Sunburst — zwei konzentrische Pie-Ringe, Radien relativ zur Kartengröße */}
-        <div className="hidden min-h-0 flex-1 md:block md:h-72">
+        {/* WP-6.10: Auf Mobil ist die antippbare Liste oben die nicht-visuelle
+            Entsprechung — die ist hier aber `md:hidden`. Desktop bekommt sie
+            deshalb ueber ChartFigure, sonst waere der Donut dort der einzige
+            Zugriffsweg auf die Zahlen. */}
+        <ChartFigure
+          className="hidden min-h-0 flex-1 md:flex md:h-72"
+          caption={t("spendingBreakdown.title")}
+          columns={[
+            { key: 'name', label: t("spendingBreakdown.categoryColumn"), format: (row) => row.name },
+            {
+              key: 'value',
+              label: t("spendingBreakdown.shareColumn"),
+              numeric: true,
+              format: (row) =>
+                showPercent && totalExpenses > 0
+                  ? formatPercentInt((row.value / totalExpenses) * 100)
+                  : formatCurrencyInt(Math.round(row.value)),
+            },
+          ]}
+          rows={[...sunburst.inner, ...sunburst.outer]}
+          rowKey={(row) => row.id}
+        >
+        <div className="min-h-0 flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip {...chartTooltipProps()} formatter={tooltipFormatter} />
@@ -477,6 +524,7 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
             </PieChart>
           </ResponsiveContainer>
         </div>
+        </ChartFigure>
 
         {/* Legende (Ausgabenklassen) — nur Desktop; mobil übernimmt die Liste oben. */}
         <div className="hidden flex-wrap gap-1.5 md:flex">

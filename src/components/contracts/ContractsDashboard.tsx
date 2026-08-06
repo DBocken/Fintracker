@@ -28,6 +28,7 @@ import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 function euro(n: number) {
@@ -299,7 +300,20 @@ export function ContractsDashboard() {
               </div>
             }
           >
-            <div className="w-full h-64 mb-4 rounded-lg border bg-card">
+            {/* WP-6.10: nicht-visuelle Entsprechung des Vertragsverlaufs. */}
+            <ChartFigure
+              className="mb-4"
+              caption={t("contracts.chartCaption", "Verlauf von Vertraegen und Einnahmen")}
+              columns={[
+                { key: "label", label: t("income.monthColumn"), format: (row) => row.label },
+                { key: "income", label: t("contracts.chartIncomeLabel"), numeric: true, format: (row) => euro(row.income) },
+                { key: "expenses", label: t("contracts.chartExpenseLabel"), numeric: true, format: (row) => euro(row.expenses) },
+                { key: "net", label: t("contracts.chartNetLabel"), numeric: true, format: (row) => euro(row.net) },
+              ]}
+              rows={chartData}
+              rowKey={(row) => row.label}
+            >
+            <div className="w-full h-64 rounded-lg border bg-card">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -349,6 +363,7 @@ export function ContractsDashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            </ChartFigure>
           </FeatureGate>
 
           <ContractSuggestionsBanner rows={candidateRows} />

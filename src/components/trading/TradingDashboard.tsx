@@ -60,6 +60,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import PositionTable from './PositionTable';
 import PortfolioManager from './PortfolioManager';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import EtoroConnectDialog from './EtoroConnectDialog';
 import AddPositionDialog from './AddPositionDialog';
 import OcrImportDialog from './OcrImportDialog';
@@ -1211,6 +1212,21 @@ export default function TradingDashboard() {
                 <CardTitle>{t('trading.dashboard.performanceChart.title')}</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* WP-6.10: Werte auch ohne Diagramm zugaenglich. */}
+                <ChartFigure
+                  caption={t('trading.dashboard.performanceChart.valueLabel')}
+                  columns={[
+                    { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => row.date },
+                    {
+                      key: 'value',
+                      label: t('trading.dashboard.performanceChart.valueLabel'),
+                      numeric: true,
+                      format: (row) => formatCurrency(row.value, 'EUR'),
+                    },
+                  ]}
+                  rows={generatePerformanceData()}
+                  rowKey={(row, index) => `${row.date}-${index}`}
+                >
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={generatePerformanceData()}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -1234,6 +1250,7 @@ export default function TradingDashboard() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                </ChartFigure>
                 <p className="text-xs text-muted-foreground mt-4 text-center">
                   {t('trading.dashboard.performanceChart.disclaimer')}
                 </p>

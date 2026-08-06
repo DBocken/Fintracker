@@ -16,6 +16,7 @@ import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
 import { chartNumber, chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -228,6 +229,32 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="h-full w-full"
             >
+            {/* WP-6.10: Ein Sankey ist fuer Hilfstechnik reine Geometrie.
+                Die Fluesse stehen daneben als Tabelle Quelle/Ziel/Betrag. */}
+            <ChartFigure
+              className="h-full w-full"
+              caption={t("premium.sankey.title")}
+              columns={[
+                {
+                  key: "source",
+                  label: t("premium.sankey.sourceColumn"),
+                  format: (link) => sankeyData.nodes[link.source]?.name ?? "",
+                },
+                {
+                  key: "target",
+                  label: t("premium.sankey.targetColumn"),
+                  format: (link) => sankeyData.nodes[link.target]?.name ?? "",
+                },
+                {
+                  key: "value",
+                  label: t("income.totalColumn"),
+                  numeric: true,
+                  format: (link) => link.value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+                },
+              ]}
+              rows={sankeyData.links}
+              rowKey={(link, index) => `${link.source}-${link.target}-${index}`}
+            >
             <ResponsiveContainer width="100%" height="100%">
             <Sankey
               data={sankeyData}
@@ -416,6 +443,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               />
             </Sankey>
           </ResponsiveContainer>
+            </ChartFigure>
             </motion.div>
           </div>
         </div>
