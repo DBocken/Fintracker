@@ -133,6 +133,12 @@ export default function CityPage() {
   // bleibt der einzige ungefragte Wortbeitrag der Seite.
   const [legendOpen, setLegendOpen] = useState(false);
 
+  // WP-5.2 (Zeitachse): `null` = der Vorgabe-Ausschnitt (alle geladenen
+  // Buchungen), so wie die Stadt vor WP-5.2 aussah. Erst ein Klick auf die
+  // Monatsleiste wählt einen konkreten Monat — die Seite startet also nicht in
+  // einem Zustand, den niemand gewählt hat.
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
   const handleRebuildCity = useCallback(() => {
     setCanvasUnavailable(null);
     setCanvasGeneration((generation) => generation + 1);
@@ -154,7 +160,10 @@ export default function CityPage() {
   // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
   // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
-  const { model, isLoading, isEmpty, overview } = useCityModel(activeTab);
+  const { model, isLoading, isEmpty, overview, timeline } = useCityModel(
+    activeTab,
+    selectedMonth ?? undefined,
+  );
   // WP-D8 (Übersicht → Welt-Sprung): beim zweiten Tap auf ein Viertel der
   // Übersicht wird in dessen Welt gewechselt UND direkt der Distrikt betreten
   // — der Tab-Reset-Effekt liest dieses Ziel statt auf die Stadt-Ebene zu gehen.
@@ -199,6 +208,38 @@ export default function CityPage() {
   // Beim Eintauchen in einen Distrikt oder ein Gebäude ist die Aussage „das
   // hier fließt jeden Monat ab" bereits durch die Etagen beantwortet; die
   // Linien würden dort nur die Sicht auf die Baukörper verstellen.
+  // WP-5.2: Position in der Monatsleiste. Ohne gewählten Monat steht der
+  // Zeiger auf dem laufenden Monat — der Vorgabe-Ausschnitt zeigt zwar ALLE
+  // Buchungen, aber „jetzt" ist der ehrlichste Ankerpunkt für den nächsten
+  // Schritt in beide Richtungen.
+  const timelineIndex = useMemo(() => {
+    if (timeline.length === 0) return -1;
+    const target = selectedMonth ?? timeline.find((month) => month.kind === "current")?.key;
+    const index = timeline.findIndex((month) => month.key === target);
+    return index === -1 ? 0 : index;
+  }, [timeline, selectedMonth]);
+
+  const stepMonth = useCallback(
+    (delta: number) => {
+      const next = timeline[timelineIndex + delta];
+      if (next) setSelectedMonth(next.key);
+    },
+    [timeline, timelineIndex],
+  );
+
+  const activeMonth = timelineIndex >= 0 ? timeline[timelineIndex] : undefined;
+  const activeMonthIsForecast = activeMonth?.kind === "future";
+  const activeMonthLabel = useMemo(() => {
+    if (!activeMonth) return "";
+    // `toLocaleDateString` ist die bestehende Konvention der Seite (siehe
+    // DATE_LOCALE_BY_APP_LOCALE) — kein eigenes Monatsnamen-Verzeichnis.
+    const date = new Date(`${activeMonth.key}-01T12:00:00`);
+    return date.toLocaleDateString(DATE_LOCALE_BY_APP_LOCALE[locale] ?? "de-DE", {
+      month: "long",
+      year: "numeric",
+    });
+  }, [activeMonth, locale]);
+
   const flowLines = useMemo(
     () => (nav.level === "city" ? buildFlowLines(model, layout) : []),
     [model, layout, nav.level],
@@ -700,6 +741,44 @@ export default function CityPage() {
               })}
             </TabsList>
           </Tabs>
+
+          {/* WP-5.2 (Zeitachse): Schrittweise durch die Monate. Bewusst
+              Schritte statt eines Reglers — ein Regler suggeriert stufenlose
+              Zeit, tatsächlich sind es diskrete Monate. Nur im Ausgaben-Tab
+              vorhanden (`timeline` ist sonst leer): nur dort liefert der
+              Forecast eine Prognose je Kategorie. */}
+          {timeline.length > 0 && (
+            <div className="flex shrink-0 items-center gap-1" data-testid="city-timeline">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.timeline.previous")}
+                disabled={timelineIndex <= 0}
+                onClick={() => stepMonth(-1)}
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <span className="min-w-[9rem] text-center text-sm tabular-nums" aria-live="polite">
+                {activeMonthLabel}
+                {activeMonthIsForecast && (
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {t("city.timeline.forecastBadge")}
+                  </span>
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.timeline.next")}
+                disabled={timelineIndex >= timeline.length - 1}
+                onClick={() => stepMonth(1)}
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">

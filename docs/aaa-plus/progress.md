@@ -5,10 +5,28 @@
 
 ---
 
-## 2026-08-06 — Phase 5 (Finanzstadt): 6 von 7 offenen WPs
+## 2026-08-06 — Phase 5 (Finanzstadt): abgeschlossen
 
-**Status:** WP-5.1, 5.3, 5.4, 5.6, 5.7, 5.8 abgeschlossen. WP-5.2 offen
-(Entscheidung erforderlich, siehe unten). Volle Suite grün.
+**Status:** alle sieben offenen WPs erledigt (5.1, 5.2, 5.3, 5.4, 5.6, 5.7,
+5.8). Volle Suite grün: 400 Dateien / 3990 Tests.
+
+WP-5.2 (Zeitachse) ist nach der Entscheidung des Auftraggebers in der zweiten
+Lesart umgesetzt — **mit** Zukunft, aber ohne eigene Prognose: die Stadt liest
+`['forecast-input']` (derselbe Query-Key wie `useForecast`, geteilter Cache)
+und lässt `projectCategorySpend` daraus die erwarteten Beträge je Kategorie
+bilden.
+
+Dabei kam ein Befund heraus, der über die Stadt hinausgeht: **`buildRecurringFlows`
+und `buildVariableExpenseBaselines` verschlüsselten die Kategorie über den
+ANZEIGENAMEN**, obwohl die stabile ID in beiden Fällen direkt danebenstand und
+verworfen wurde (AGENTS.md §6, dokumentierte Falle). Beide tragen sie jetzt mit
+— additiv, Summen und Monte-Carlo-Verhalten unverändert. Tragen zwei
+Kategorien denselben Namen, bleibt die ID bewusst leer, statt eine der beiden
+zu behaupten.
+
+Zweiter Fallstrick, mitbehoben: die **Distriktfarbe kam aus dem Index nach
+Betrag** — beim Monatswechsel hätte die Stadt bei jedem Schritt umgefärbt und
+wäre nicht mehr als dieselbe erkennbar gewesen.
 
 Phase 5 hat in `tdd-specs.md` **keine** Spezifikationen — die decken WP-2.1 bis
 WP-4.3 ab. Für die hier umgesetzten WPs lagen nur Titel und Priorität aus dem
@@ -44,21 +62,24 @@ Sprache war nirgends erklärt. Jedes für sich sah fertig aus.
   entfernt; die Wiederkehr wird stattdessen aus den Daten abgeleitet, die
   ohnehin durch die Etagen-Aggregation laufen.
 
-### Offen: WP-5.2 (Zeitachse) — Entscheidung erforderlich
+### WP-5.2 (Zeitachse) — umgesetzt
 
-Die Stadt hat **keine Zeitdimension**: alle Adapter aggregieren über *alle*
-geladenen Buchungen, es gibt keinen Monatsfilter und keine Prognose im Modell.
-„Vergangenheit/Gegenwart/Zukunft" hat deshalb zwei tragfähige Lesarten:
+Monatsleiste nur im Ausgaben-Tab (nur dort gibt es eine Prognose je Kategorie;
+ein Regler, der in drei von vier Tabs nichts tut, wäre schlimmer als keiner).
+Vergangenheit nur, wo Daten existieren; Zukunft immer die nächsten drei Monate.
 
-1. **Monatsnavigation** über die letzten N Monate; die Stadt baut beim Wechsel
-   um (Höhen-Tween statt Neuaufbau). Rein aus vorhandenen Daten.
-2. **Zusätzlich Zukunft** aus den wiederkehrenden Zahlungen (WP-5.1)
-   fortgeschrieben, visuell als Prognose unterscheidbar.
+Vier Zusicherungen, je eigen getestet:
 
-Lesart 2 entspricht dem WP-Titel, erzeugt aber Zahlen, die es so noch nirgends
-gibt — eine zweite Prognose neben dem Cashflow-Forecast kann diesem
-widersprechen. Empfehlung: mit 1 beginnen; 2 nur, wenn die Fortschreibung
-dieselbe Quelle nutzt wie der bestehende Forecast.
+- **Stabile Distriktfarben** über alle Monate.
+- **Prognose ist sichtbar Prognose**: durchscheinend mit Kante, „Prognose"-Chip,
+  eigener Legenden-Eintrag. Deckkraft wird nur gesenkt, nie angehoben.
+- **Kein Mischmonat**: vordatierte Buchungen begründen keinen
+  Vergangenheitsmonat — sonst wäre nicht sagbar, welche Zahl woher kommt.
+- **Keine erfundene Genauigkeit**: Prognosemonate haben keine Etagen, keine
+  Fassaden-Aktivität und keine Flusslinien.
+
+Ohne Auswahl bleibt der Vorgabe-Ausschnitt (alle Buchungen) wie vor WP-5.2 —
+die Seite startet nicht in einem Zustand, den niemand gewählt hat.
 
 ---
 
@@ -214,8 +235,7 @@ erhalten, keine bestehenden Tests gelöscht/abgeschwächt.
 
 - WP-4.6 Rest: manuelle Critic-Reviews (Art Director/UX/Motion ≥ 3/5 — nicht
   automatisierbar, Orchestrator-Entscheid).
-- Phase 5: nur noch **WP-5.2** (Zeitachse) — Entscheidung erforderlich, siehe
-  den Eintrag vom 2026-08-06 oben. WP-5.1/5.3/5.4/5.6/5.7/5.8 sind erledigt.
+- Phase 5: **abgeschlossen** (alle sieben WPs, siehe Eintrag vom 2026-08-06).
 - Phase 6: WP-6.1–6.4, 6.6, 6.8–6.10 (DataViz).
 - Phase 7: WP-7.3–7.5, 7.7–7.8 (Motion).
 - Phase 8–11: Feature Migration, State Coverage, QA, Rollout.

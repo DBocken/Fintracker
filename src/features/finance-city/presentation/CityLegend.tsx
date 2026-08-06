@@ -41,6 +41,7 @@ const LEGEND_KEYS: Record<CityLegendItem, { title: string; body: string }> = {
   floors: { title: 'city.legend.floorsTitle', body: 'city.legend.floorsBody' },
   flowLines: { title: 'city.legend.flowLinesTitle', body: 'city.legend.flowLinesBody' },
   activity: { title: 'city.legend.activityTitle', body: 'city.legend.activityBody' },
+  projected: { title: 'city.legend.projectedTitle', body: 'city.legend.projectedBody' },
 };
 
 export function CityLegend({ open, onOpenChange, ...input }: CityLegendProps) {

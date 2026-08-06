@@ -410,6 +410,50 @@ zusammengesetzt: ein `city.legend.${item}Title` wäre für
 `src/i18n/__tests__/call-site-keys.test.ts` unsichtbar, und ein Tippfehler
 landete als roher Punkt-String auf dem Bildschirm (AGENTS.md §6).
 
+## Zeitachse (WP-5.2)
+
+Die Stadt zeigte immer denselben Ausschnitt — alle geladenen Buchungen auf
+einmal. „Wie sah der letzte Monat aus" und „was kommt auf mich zu" waren beide
+nicht beantwortbar.
+
+Die Monatsleiste (nur im **Ausgaben-Tab**) schaltet schrittweise durch:
+
+| Bereich | Quelle | Auswahl |
+|---|---|---|
+| Vergangenheit | echte Buchungen, auf den Monat gefiltert | nur Monate, in denen es Daten gibt |
+| Laufender Monat | echte Buchungen | immer vorhanden |
+| Zukunft | **Prognose des bestehenden Forecasts** | immer die nächsten 3 |
+
+**Die Stadt prognostiziert nichts.** Sie liest `['forecast-input']` — denselben
+Query-Key wie `useForecast`, also geteilter Cache und kein Duplikat — und lässt
+`@/lib/forecast-category-projection#projectCategorySpend` daraus die erwarteten
+Beträge je Kategorie bilden. Die Query ist nur im Prognosemonat aktiviert; der
+Normalfall lädt keinen Byte mehr als vorher. Eine zweite Prognose neben dem
+Cashflow-Forecast, die diesem widersprechen könnte, gibt es nicht.
+
+Vier Entscheidungen tragen das:
+
+- **Stabile Distriktfarben.** Die Farbe kam aus dem *Index nach Betrag*. Beim
+  Monatswechsel ändern sich die Beträge — die Stadt hätte bei jedem Schritt
+  umgefärbt und wäre nicht mehr als dieselbe erkennbar. `buildCityModelFromData`
+  nimmt jetzt eine feste Farbe je Distrikt-ID (`districtColorMap` des
+  Gesamtmodells).
+- **Prognose ist sichtbar Prognose.** Durchscheinende Baukörper mit Kante —
+  dieselbe Bildsprache, die die Stadt schon für „noch nicht erreicht" nutzt
+  (Ziel-Hülle). Die Deckkraft wird nur *gesenkt*, nie angehoben. Dazu ein
+  „Prognose"-Chip an der Monatsanzeige und ein eigener Legenden-Eintrag.
+- **Kein Mischmonat.** Vordatierte Buchungen begründen keinen
+  Vergangenheitsmonat. Ein Monat mit Ist- *und* Prognosewerten wäre nicht
+  erklärbar — man könnte nicht sagen, welche Zahl woher kommt.
+- **Keine erfundene Genauigkeit.** Ein Prognosemonat hat keine Etagen, keine
+  Fassaden-Aktivität und keine Flusslinien: die Prognose kennt Kategorien, keine
+  Händler und keine Buchungsfrequenz.
+
+Nur im Ausgaben-Tab, weil nur dort eine Prognose je Kategorie existiert — ein
+Monatsregler, der in drei von vier Tabs nichts tut, wäre schlimmer als keiner.
+Ohne Auswahl bleibt der Vorgabe-Ausschnitt (alle Buchungen) wie vor WP-5.2; die
+Seite startet nicht in einem Zustand, den niemand gewählt hat.
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)

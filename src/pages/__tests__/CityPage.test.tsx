@@ -317,6 +317,56 @@ afterEach(() => {
   capturedDeclutter = undefined;
 });
 
+describe.each(['de', 'en'] as const)('CityPage — Zeitachse (WP-5.2) (%s)', (locale) => {
+  it('sollte im Ausgaben-Tab eine Monatsleiste anbieten', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(await screen.findByTestId('city-timeline')).toBeInTheDocument();
+  });
+
+  it('sollte den laufenden Monat als Ausgangspunkt zeigen', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+
+    const nowLabel = new Date().toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', {
+      month: 'long',
+      year: 'numeric',
+    });
+    expect(timeline).toHaveTextContent(nowLabel);
+  });
+
+  it('sollte einen Zukunftsmonat als Prognose kennzeichnen', async () => {
+    // Der Nutzer muss sehen, dass die Zahlen dieses Monats noch nicht passiert
+    // sind — sonst liest er eine Prognose wie einen Kontoauszug.
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+
+    await user.click(
+      within(timeline).getByRole('button', { name: locale === 'de' ? /nächster monat/i : /next month/i }),
+    );
+
+    expect(timeline).toHaveTextContent(locale === 'de' ? /Prognose/i : /Forecast/i);
+  });
+
+  it('[REGRESSION] sollte am Rand der Leiste nicht weiterschalten', async () => {
+    // Ohne Deckel liefe der Zeiger aus der Liste heraus und die Seite zeigte
+    // einen Monat, für den es weder Daten noch Prognose gibt.
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+    const next = within(timeline).getByRole('button', { name: locale === 'de' ? /nächster monat/i : /next month/i });
+
+    // Drei Zukunftsmonate -> nach drei Schritten ist Schluss.
+    await user.click(next);
+    await user.click(next);
+    await user.click(next);
+
+    expect(next).toBeDisabled();
+  });
+});
+
 describe.each(['de', 'en'] as const)('CityPage — 3D-Ausfall (WP-5.7) (%s)', (locale) => {
   it('sollte einen Kontextverlust benennen statt die Fläche stumm stehen zu lassen', async () => {
     renderWithProviders(<CityPage />, { query: true, locale });

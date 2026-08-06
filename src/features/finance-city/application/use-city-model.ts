@@ -31,6 +31,11 @@ import { buildCityModelFromIncomeStreams } from '../domain/city-income-adapter';
 import { buildCityModelFromMilestones } from '../domain/city-goals-adapter';
 import { buildCityOverviewModel, type CityOverviewInfo } from '../domain/city-overview-adapter';
 import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
+import { districtColorMap } from '../domain/city-data-adapter';
+import { buildCityModelFromProjection } from '../domain/city-projection-adapter';
+import { buildCityTimeline, monthKind, type CityMonth } from '../domain/city-timeline';
+import { buildForecastInput } from '@/lib/forecast-data';
+import { projectCategorySpend } from '@/lib/forecast-category-projection';
 import type { CityModel } from '../domain/city-model';
 import type { GoalProgressStage } from '../domain/city-goal-progress';
 import type { Category } from '@/types';
@@ -44,9 +49,18 @@ export type UseCityModelResult = {
   isEmpty: boolean;
   /** Nur im Übersicht-Tab gesetzt: Welt-Zuordnung der Distrikte + Summen/Saldo für Chip und Welt-Sprung. */
   overview?: CityOverviewInfo;
+  /** WP-5.2: Wählbare Monate (Vergangenheit mit Daten, laufender Monat, Prognose). Leer außerhalb des Ausgaben-Tabs. */
+  timeline: CityMonth[];
 };
 
-export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult {
+/**
+ * WP-5.2: Der angezeigte Monat (`yyyy-MM`). Ohne Angabe unverändert das
+ * bisherige Verhalten — ALLE geladenen Buchungen auf einmal, kein Zeitfilter.
+ * Die Zeitachse gibt es nur im Ausgaben-Tab: nur dort liefert der Forecast eine
+ * Prognose je Kategorie, und ein Monatsregler, der in drei von vier Tabs nichts
+ * tut, wäre schlimmer als keiner.
+ */
+export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string): UseCityModelResult {
   // WP-D7: Meilenstein-Titel sind zur Laufzeit lokalisiert (serviceT) —
   // derselbe locale-abhängige Query-Key wie `MilestonesPage` (geteilter
   // Cache, kein Duplikat). `enabled` nur im Ziele-Tab: `evaluateMilestones`
@@ -82,6 +96,35 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     return map;
   }, [categories]);
 
+  // WP-5.2: Zeitachse nur im Ausgaben-Tab (siehe Kommentar an `monthKey`).
+  const timelineActive = tab === 'expenses';
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  const selectedMonth = timelineActive ? monthKey : undefined;
+  const selectedKind = selectedMonth ? monthKind(selectedMonth, nowMonth) : undefined;
+  const isProjection = selectedKind === 'future';
+
+  // WP-5.2: DIESELBE Query wie `useForecast` (`['forecast-input']`) — geteilter
+  // Cache, kein Duplikat (AGENTS.md §4/§7). Damit greift die Stadt buchstäblich
+  // die Eingaben der bestehenden Simulation ab, statt eine zweite Prognose zu
+  // bauen, die der ersten widersprechen könnte. `enabled` nur im
+  // Prognosemonat: der Normalfall lädt dadurch keinen Byte mehr als bisher.
+  const { data: forecastInput, isLoading: forecastLoading } = useQuery({
+    queryKey: ['forecast-input'],
+    queryFn: buildForecastInput,
+    staleTime: 5 * 60 * 1000,
+    enabled: isProjection,
+  });
+
+  const timeline = useMemo(() => {
+    if (!timelineActive) return [];
+    const monthsWithData = new Set<string>();
+    for (const transaction of transactions) {
+      const month = transaction.date?.slice(0, 7);
+      if (month) monthsWithData.add(month);
+    }
+    return buildCityTimeline({ monthsWithData: [...monthsWithData], nowMonth });
+  }, [timelineActive, transactions, nowMonth]);
+
   // WP-5.3: Zuletzt gezeigte Fortschritts-Stufe je Bauprojekt. Die Hysterese
   // in `goalProgressStage` braucht diesen Vorzustand, damit ein Ziel, das um
   // eine Schwelle pendelt, nicht bei jedem Datenrefresh die Farbe wechselt.
@@ -107,9 +150,47 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
       };
     }
 
-    const sunburst = buildSunburstTree(transactions, categories, allocations);
-    const floorsByBuilding = buildMerchantFloorsByBuilding(transactions, categoriesById, allocations);
-    const expensesModel = buildCityModelFromData(sunburst, categoriesById, floorsByBuilding);
+    // WP-5.2: Die Farben kommen IMMER aus dem Gesamtmodell über alle Monate.
+    // Ohne diesen festen Bezug änderte sich mit den Monatsbeträgen die
+    // Sortierung und damit die Farbe jedes Viertels bei jedem Monatsschritt —
+    // die Stadt wäre nicht mehr als dieselbe erkennbar.
+    const allTimeSunburst = buildSunburstTree(transactions, categories, allocations);
+    const allTimeFloors = buildMerchantFloorsByBuilding(transactions, categoriesById, allocations);
+    const colorByDistrictId = districtColorMap(
+      buildCityModelFromData(allTimeSunburst, categoriesById, allTimeFloors),
+    );
+
+    if (isProjection && selectedMonth) {
+      // Zukunftsmonat: Beträge kommen fertig aus der Simulation.
+      const projection = forecastInput
+        ? projectCategorySpend(
+            {
+              recurringFlows: forecastInput.recurringFlows ?? [],
+              variableExpenses: forecastInput.variableExpenses ?? [],
+            },
+            selectedMonth,
+          )
+        : new Map<string, number>();
+      return {
+        model: buildCityModelFromProjection(projection, categoriesById, { colorByDistrictId }),
+        overview: undefined,
+      };
+    }
+
+    // Vergangenheit/laufender Monat: echte Buchungen, auf den Monat gefiltert.
+    const monthTransactions = selectedMonth
+      ? transactions.filter((transaction) => transaction.date?.slice(0, 7) === selectedMonth)
+      : transactions;
+
+    const sunburst = selectedMonth
+      ? buildSunburstTree(monthTransactions, categories, allocations)
+      : allTimeSunburst;
+    const floorsByBuilding = selectedMonth
+      ? buildMerchantFloorsByBuilding(monthTransactions, categoriesById, allocations)
+      : allTimeFloors;
+    const expensesModel = buildCityModelFromData(sunburst, categoriesById, floorsByBuilding, {
+      colorByDistrictId,
+    });
     if (tab !== 'overview') return { model: expensesModel, overview: undefined };
 
     // Übersicht (WP-D8): beide Geld-Welten auf einer Platte + Spar-Turm.
@@ -122,13 +203,26 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     );
     const result = buildCityOverviewModel(expensesModel, incomeModel);
     return { model: result.model, overview: result.info };
-  }, [tab, transactions, categories, categoriesById, milestones, allocations]);
+  }, [
+    tab,
+    transactions,
+    categories,
+    categoriesById,
+    milestones,
+    allocations,
+    isProjection,
+    selectedMonth,
+    forecastInput,
+  ]);
 
   return {
     model,
     overview,
+    timeline,
     isLoading:
-      tab === 'goals' ? milestonesPending : transactionsLoading || categoriesLoading,
+      tab === 'goals'
+        ? milestonesPending
+        : transactionsLoading || categoriesLoading || (isProjection && forecastLoading),
     isEmpty: model.districts.length === 0,
   };
 }

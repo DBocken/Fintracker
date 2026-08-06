@@ -35,6 +35,7 @@ export const CITY_LEGEND_ITEMS = [
   'floors',
   'flowLines',
   'activity',
+  'projected',
 ] as const;
 
 export type CityLegendItem = (typeof CITY_LEGEND_ITEMS)[number];
@@ -83,6 +84,11 @@ export function cityLegendItems(input: CityLegendInput): CityLegendItem[] {
   if (model.districts.some((d) => d.subcategories.some((s) => s.activity !== undefined))) {
     items.push('activity');
   }
+
+  // WP-5.2: Der auffälligste Unterschied überhaupt — durchscheinende Gebäude —
+  // braucht die Erklärung am dringendsten, steht aber zuletzt: er gilt für die
+  // ganze Ansicht, während die anderen Einträge einzelne Kanäle erklären.
+  if (model.projected) items.push('projected');
 
   // Anzeigereihenfolge festschreiben, unabhängig davon, in welcher Reihenfolge
   // die Regeln oben zugeschlagen haben.
