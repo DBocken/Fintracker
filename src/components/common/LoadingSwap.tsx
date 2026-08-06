@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useI18n } from '@/i18n/useI18n';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
 import { MOTION_DURATIONS, MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 import {
@@ -84,6 +85,7 @@ function useLoadingPhase(loading: boolean): LoadingPhase {
 export function LoadingSwap({ loading, skeleton, children, className }: LoadingSwapProps) {
   const phase = useLoadingPhase(loading);
   const motionQuality = useMotionQuality();
+  const { t } = useI18n();
   const duration = motionQuality.seconds(MOTION_DURATIONS.fast);
 
   return (
@@ -99,6 +101,15 @@ export function LoadingSwap({ loading, skeleton, children, className }: LoadingS
             transition={{ duration, ease: MOTION_EASINGS_BEZIER.precision }}
           >
             {skeleton}
+            {/*
+              WP-8.4: Ein Skelett ist rein visuell — eine Sprachausgabe sieht
+              nur leere Kästen. Die Entsprechung steht bewusst HIER und nicht
+              in den Aufrufstellen: sonst hat sie, wer daran denkt, und wer
+              nicht daran denkt, liefert einen stummen Ladezustand aus.
+            */}
+            <span className="sr-only" role="status">
+              {t('common.loading')}
+            </span>
           </motion.div>
         )}
         {phase === 'content' && (

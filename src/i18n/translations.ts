@@ -510,6 +510,7 @@ export const translations = {
       unassign: 'Entfernen',
     },
     common: {
+      loading: 'Wird geladen…',
       save: 'Speichern',
       cancel: 'Abbrechen',
       close: 'Schließen',
@@ -5077,6 +5078,7 @@ export const translations = {
       unassign: 'Remove',
     },
     common: {
+      loading: 'Loading…',
       save: 'Save',
       cancel: 'Cancel',
       close: 'Close',
@@ -9644,6 +9646,7 @@ export const translations = {
       unassign: "yIteq",
     },
     common: {
+      loading: "loS",
       save: "yIpol",
       cancel: "yIlajQo'",
       close: "yISoQmoH",
@@ -13847,6 +13850,7 @@ export const translations = {
       unassign: 'Убрать',
     },
     common: {
+      loading: 'Загрузка…',
       save: 'Сохранить',
       cancel: 'Отмена',
       close: 'Закрыть',

@@ -53,6 +53,8 @@ import EtoroNewsTab, { type EtoroNewsFilter } from './EtoroNewsTab';
 import EtoroDiscoverTab, { type EtoroDiscoverInstrumentOption } from './EtoroDiscoverTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -73,7 +75,6 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2,
   Upload,
   Shield,
   FileText,
@@ -789,10 +790,26 @@ export default function TradingDashboard() {
   };
 
   if (isInitializing || isLoadingPortfolio) {
+    // WP-8.4: Choreografie aus WP-7.3. Der Platzhalter zeichnet vor, was
+    // kommt — Kopfzeile, Kennzahlenreihe, Positionsliste — statt nur zu
+    // sagen, dass etwas passiert.
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div data-testid="trading-dashboard-skeleton" className="space-y-6">
+            <Skeleton variant="shimmer" className="h-8 w-56" />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} variant="shimmer" className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+            <Skeleton variant="shimmer" className="h-64 w-full rounded-lg" />
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 
@@ -1182,9 +1199,20 @@ export default function TradingDashboard() {
 
         <TabsContent value="positions" className="space-y-4">
           {isLoadingPositions ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            // WP-8.4: Zeilen in der Form der Positionstabelle statt eines
+            // kreisenden Symbols.
+            <LoadingSwap
+              loading
+              skeleton={
+                <div data-testid="trading-positions-skeleton" className="space-y-2">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} variant="shimmer" className="h-12 w-full" />
+                  ))}
+                </div>
+              }
+            >
+              {null}
+            </LoadingSwap>
           ) : (
             <PositionTable
               positions={positions || []}

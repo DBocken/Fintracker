@@ -51,6 +51,35 @@ Zuordnung inline ↔ Detail-Sheet (Schulden).
 **Ausserdem migriert:** der Ladezustand des `PortfolioManager` (Trading), der
 in WP-8.2 noch bewusst offen geblieben war.
 
+### WP-8.4 — Restmigration, gefunden durch Nachprüfen der eigenen Behauptung
+
+Die Aussage „die Migrationskriterien sind repo-weit durchgesetzt" wurde nicht
+geglaubt, sondern geprüft: ein Sweep über feste Farbwerte, Zeigefinger ohne
+Ziel, willkürliche Bewegungsdauern und inhaltsersetzende Spinner. Vier
+Befunde, alle behoben; drei Verdachtsfälle lösten sich als Fehlalarm auf
+(`cursor-pointer` stand jedes Mal auf einem `<label>` — das IST klickbar).
+
+| Befund | Was daran falsch war |
+|---|---|
+| `TradingDashboard`, zwei Stellen | Als einziger Screen noch inhaltsersetzende Spinner — einer für den ganzen Screen, einer für die Positionsliste |
+| `BackupManager` | Dito für die Kennzahlen-Übersicht |
+| `ReviewTable` | `#000` als Rückfall, wenn eine Kategorie keine Farbe hat: schwarze Schrift auf schwarzem Grund im Dunkelmodus. Jetzt bleibt der Badge ohne Farbe bei seinen Token-Vorgaben |
+| `CloudMcpSyncCard`, zwei Stellen | `bg-amber-600` aus der Roh-Palette statt `bg-warning` — die Fläche wechselt mit dem Thema nicht mit |
+
+**Die Sprachausgabe-Entsprechung sitzt jetzt in `LoadingSwap` selbst.** Vorher
+hatte sie genau ein Ladezustand, weil ich beim Bauen daran gedacht hatte — die
+vier aus WP-8.2 nicht. Ein Skelett ist rein visuell; ohne Textentsprechung
+sieht eine Sprachausgabe leere Kästen und schweigt. In der Aufrufstelle ist das
+eine Frage der Aufmerksamkeit, im Baustein eine Eigenschaft. Neuer Schlüssel
+`common.loading` in allen vier Sprachbäumen.
+
+Dabei fiel auf, dass `LoadingSwap.test.tsx` mit dem rohen `render` arbeitete
+statt mit den zentralen Helfern (AGENTS.md §5). Das ist mitgezogen — und der
+Zustandswechsel läuft dort jetzt über **Zustand** statt über `rerender`:
+`rerender` ersetzt den ganzen Baum und wirft den Provider weg, und es ist
+ohnehin der unechte Hergang. In der App bleibt der Baum stehen, nur das Flag
+kippt.
+
 ### Ein Befund, den erst die Messung sichtbar gemacht hat
 
 Die Hierarchie-Aenderung liess den Performance-Lauf kippen: CLS `/dashboard`

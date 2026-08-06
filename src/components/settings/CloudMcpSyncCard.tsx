@@ -164,7 +164,7 @@ export function CloudMcpSyncCard() {
                 </>
               ) : (
                 <Button
-                  className="bg-amber-600 text-white hover:bg-amber-700"
+                  className="bg-warning text-white hover:bg-warning/90"
                   onClick={() => setDialogOpen(true)}
                   disabled={busy}
                 >
@@ -262,7 +262,7 @@ export function CloudMcpSyncCard() {
               {t('settings.cloudMcpSync.cancelButton')}
             </Button>
             <Button
-              className="bg-amber-600 text-white hover:bg-amber-700"
+              className="bg-warning text-white hover:bg-warning/90"
               onClick={handleEnable}
               disabled={!consentOk || busy}
             >

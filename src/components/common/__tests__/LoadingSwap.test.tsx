@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
+import { renderWithI18n } from '@/test-utils/render';
 import { LoadingSwap } from '../LoadingSwap';
 import { SKELETON_MIN_VISIBLE_MS } from '@/lib/loading-choreography';
 
@@ -23,12 +25,34 @@ vi.mock('@/hooks/useReducedMotion', () => ({
   useReducedMotion: () => reduceMock(),
 }));
 
-function setup(loading: boolean) {
-  return render(
+/**
+ * Zentraler Helfer statt `render` (AGENTS.md §5): Die Komponente benennt ihren
+ * Ladezustand seit WP-8.4 selbst und braucht dafür den I18n-Kontext.
+ *
+ * Der Wechsel läuft über ZUSTAND und nicht über `rerender`. `renderWithI18n`
+ * setzt den Provider innerhalb des Aufrufs; ein `rerender(<LoadingSwap …/>)`
+ * ersetzt den ganzen Baum und wirft ihn damit weg — die Komponente stünde
+ * ohne Kontext da. Ausserdem ist das der echte Hergang: In der App bleibt der
+ * Baum stehen und nur das Flag kippt.
+ */
+let setLoadingExternally: ((value: boolean) => void) | null = null;
+
+function Harness({ initial }: { initial: boolean }) {
+  const [loading, setLoading] = useState(initial);
+  setLoadingExternally = setLoading;
+  return (
     <LoadingSwap loading={loading} skeleton={<span>Lädt</span>}>
       <span>Inhalt</span>
-    </LoadingSwap>,
+    </LoadingSwap>
   );
+}
+
+function setup(loading: boolean, locale: 'de' | 'en' = 'de') {
+  const view = renderWithI18n(<Harness initial={loading} />, locale);
+  return {
+    ...view,
+    setLoading: (value: boolean) => act(() => setLoadingExternally?.(value)),
+  };
 }
 
 beforeEach(() => {
@@ -57,15 +81,11 @@ describe('LoadingSwap (WP-7.3)', () => {
   });
 
   it('sollte ein gezeigtes Skeleton die Mindestdauer stehen lassen', async () => {
-    const { rerender } = setup(true);
+    const { setLoading } = setup(true);
     await screen.findByText('Lädt');
 
     // Daten treffen unmittelbar nach dem Skeleton ein.
-    rerender(
-      <LoadingSwap loading={false} skeleton={<span>Lädt</span>}>
-        <span>Inhalt</span>
-      </LoadingSwap>,
-    );
+    setLoading(false);
     // Es bleibt zunächst stehen — sonst entstünde dasselbe Zucken am anderen Ende.
     expect(screen.getByText('Lädt')).toBeInTheDocument();
 
@@ -80,14 +100,10 @@ describe('LoadingSwap (WP-7.3)', () => {
   it('sollte Skeleton und Inhalt nie gleichzeitig zeigen', async () => {
     // `mode="wait"`: beide gleichzeitig ergäben eine doppelte Darstellung
     // derselben Sache — genau das Flimmern, das hier beseitigt wird.
-    const { rerender } = setup(true);
+    const { setLoading } = setup(true);
     await screen.findByText('Lädt');
 
-    rerender(
-      <LoadingSwap loading={false} skeleton={<span>Lädt</span>}>
-        <span>Inhalt</span>
-      </LoadingSwap>,
-    );
+    setLoading(false);
 
     // Ueber den gesamten Uebergang hinweg pruefen, nicht nur einmal.
     await waitFor(
@@ -95,6 +111,27 @@ describe('LoadingSwap (WP-7.3)', () => {
       { timeout: SKELETON_MIN_VISIBLE_MS + 1000 },
     );
     expect(screen.queryByText('Lädt')).not.toBeInTheDocument();
+  });
+
+  it('sollte das Skelett für die Sprachausgabe benennen (WP-8.4)', async () => {
+    // Ein Skelett ist rein visuell — eine Sprachausgabe sieht nur leere
+    // Kästen. Die Entsprechung steht in LoadingSwap selbst und nicht in den
+    // Aufrufstellen: sonst hat sie, wer daran denkt.
+    setup(true);
+    await screen.findByText('Lädt');
+    expect(screen.getByText('Wird geladen…')).toBeInTheDocument();
+  });
+
+  it('should name the skeleton for screen readers in English (WP-8.4)', async () => {
+    setup(true, 'en');
+    await screen.findByText('Lädt');
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+  });
+
+  it('sollte im Inhaltszustand nichts mehr ansagen (WP-8.4)', () => {
+    // Gegenprobe: Eine Dauer-Ansage "wird geladen" waere schlimmer als keine.
+    setup(false);
+    expect(screen.queryByText('Wird geladen…')).not.toBeInTheDocument();
   });
 
   it('sollte bei reduced-motion denselben Inhalt liefern', () => {

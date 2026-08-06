@@ -321,7 +321,25 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                     <TableCell>
                       {autoCategory ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <Badge variant="outline" className="bg-opacity-20" style={{ backgroundColor: (autoCategory.category.color || '#000') + '20', color: autoCategory.category.color || '#000' }}>
+                          {/*
+                            WP-8.4: Ohne hinterlegte Farbe bleibt der Badge bei
+                            seinen Token-Vorgaben. Vorher stand hier `#000` als
+                            Rückfall — schwarze Schrift auf schwarzem Grund im
+                            Dunkelmodus, also unlesbar genau dann, wenn die
+                            Kategorie noch keine Farbe hat.
+                          */}
+                          <Badge
+                            variant="outline"
+                            className="bg-opacity-20"
+                            style={
+                              autoCategory.category.color
+                                ? {
+                                    backgroundColor: autoCategory.category.color + '20',
+                                    color: autoCategory.category.color,
+                                  }
+                                : undefined
+                            }
+                          >
                             {(autoCategory.category.icon || '')} {autoCategory.category.name}
                           </Badge>
                           <span className="text-[11px] text-muted-foreground">

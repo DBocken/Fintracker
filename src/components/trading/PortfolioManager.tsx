@@ -151,7 +151,6 @@ export default function PortfolioManager({
             <Skeleton variant="shimmer" className="h-5 w-40" />
             <Skeleton variant="shimmer" className="h-14 w-full" />
             <Skeleton variant="shimmer" className="h-14 w-full" />
-            <span className="sr-only">{t('trading.portfolioManager.loadingMessage')}</span>
           </div>
         }
       >

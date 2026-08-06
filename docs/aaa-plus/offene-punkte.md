@@ -93,12 +93,20 @@ Alle übrigen Breakpoint-Weichen sind paarig; Aufstellung im
 
 `PortfolioManager` ist damit ebenfalls auf `LoadingSwap` gezogen.
 
+**WP-8.4 — Restmigration.** Ein Sweep gegen die eigene Behauptung förderte vier
+Befunde zutage: die letzten beiden inhaltsersetzenden Spinner (Trading,
+Backup), ein `#000`-Rückfall in `ReviewTable` (schwarz auf schwarz im
+Dunkelmodus) und `bg-amber-600` statt `bg-warning`. Die
+Sprachausgabe-Entsprechung für Skelette sitzt jetzt in `LoadingSwap` selbst
+statt in den Aufrufstellen.
+
 ### Was in Phase 8 noch offen ist
 
 | Punkt | Warum offen |
 |---|---|
 | **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
 | **`EtoroScopeGate`** ohne Choreografie | Kein Ladezustand, sondern eine Berechtigungsschranke — die Skeleton-Regel aus WP-7.3 passt darauf nicht |
+| **Spinner in Verarbeitungs-Dialogen** (OCR-Import, Belegscan, Forderungs-Import) | Bewusst gelassen: Dort verarbeitet die App eine gerade übergebene Datei. Die Form des Ergebnisses ist noch unbekannt, ein Skelett würde etwas vorzeichnen, was so nicht kommen muss |
 | **Parität bleibt ohne Wächter** | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code. Geprüft wurde, was prüfbar ist: jede Breakpoint-Weiche im Quelltext gegen ihr Gegenstück. Neue Weichen fallen dabei durch, bis das jemand wieder von Hand tut |
 | **Tutorial-Einladung verschiebt die ganze Seite** | Gemessen, siehe unten — gehört zu Phase 10 |
 
