@@ -62,3 +62,81 @@ jobs:
 
       - name: Secret scan
         run: pnpm security:secrets
+
+  # E2E-Suite (WP-4.6-Slice). Bisher lief sie nur lokal — die im Gate
+  # dokumentierten Nachweise waren damit nicht reproduzierbar.
+  #
+  # Bewusst ein EIGENER Job und nicht ein Schritt in `quality`: der Lauf
+  # braucht einen Browser und einen Server, dauert um ein Vielfaches länger,
+  # und ein Fehlschlag hier soll die schnelle Rückmeldung aus Lint/Typecheck/
+  # Unit-Tests nicht verzögern. `needs:` fehlt aus demselben Grund — beide
+  # Jobs laufen parallel.
+  e2e:
+    name: E2E (Slice, a11y, Visual, Performance)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.12.4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Der Browser-Download ist der teuerste Einzelschritt des Jobs und
+      # ändert sich nur mit der Playwright-Version — deshalb über sie
+      # geschlüsselt und nicht über die Lockdatei.
+      - name: Playwright-Version ermitteln
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Browser-Cache
+        id: browser-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # `--with-deps` nur beim Cache-Miss: die Systembibliotheken landen unter
+      # /usr/lib und werden vom Cache oben nicht erfasst, sind auf dem
+      # GitHub-Runner-Image aber ohnehin vorhanden.
+      - name: Chromium installieren
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Funktional, Accessibility und Visual Regression gegen den Dev-Server.
+      # Die eingecheckten Visual-Baselines sind linux-Baselines und damit
+      # genau für diesen Runner erzeugt.
+      - name: E2E gegen Dev-Server
+        env:
+          # Der Runner hat keine GPU; WebGL rendert in Software. Die
+          # Warm-Navigation in die Finanzstadt ist damit nicht aussagekräftig
+          # und wird als Test-Info statt als Fehlschlag berichtet — die
+          # gemessene Zahl steht trotzdem im Bericht.
+          E2E_SOFTWARE_WEBGL: "1"
+        run: pnpm test:e2e
+
+      # Zweiter Lauf gegen den Produktions-Build: NUR dort gilt das
+      # LCP-Budget des Plans (< 2.5 s, Plan §5/§7). Der Dev-Lauf oben misst
+      # gegen ein aufgeweichtes Budget, weil Vite on-the-fly transformiert.
+      - name: Performance gegen Produktions-Build
+        env:
+          E2E_TARGET: preview
+          E2E_SOFTWARE_WEBGL: "1"
+        run: pnpm test:e2e vertical-slice-performance.spec.ts
+
+      - name: Bericht bei Fehlschlag sichern
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

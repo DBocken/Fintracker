@@ -31,6 +31,7 @@ export const DEFAULT_LOCALE: Locale = 'de';
 export const translations = {
   de: {
     onboarding: {
+      dialogLabel: 'Einrichtung',
       proposalHint: 'Aus deinen Daten geschätzt. Stimmt das nicht, ändere es einfach.',
       title: 'Welche Situation beschreibt dich am ehesten?',
       subtitle: 'Wir blenden dann nur die Bereiche ein, die dazu passen. Ändern kannst du das jederzeit.',
@@ -4592,6 +4593,7 @@ export const translations = {
   },
   en: {
     onboarding: {
+      dialogLabel: 'Setup',
       proposalHint: 'Estimated from your data. If it does not fit, just change it.',
       title: 'Which situation describes you best?',
       subtitle: 'We will only show the areas that fit. You can change this at any time.',
@@ -9153,6 +9155,7 @@ export const translations = {
   },
   tlh: {
     onboarding: {
+      dialogLabel: "taghmoH",
       proposalHint: "De'lIj vIlaD 'ej vIqel. QaghlaHbe' 'e' DaSov'a'? yIchoH.",
       title: "nuq ghaH SoH'e'?",
       subtitle: 'sengmey potlh neH DaleghlaH. reH DacherlaH.',
@@ -13350,6 +13353,7 @@ export const translations = {
   },
   ru: {
     onboarding: {
+      dialogLabel: 'Настройка',
       proposalHint: 'Определено по вашим данным. Если не совпадает — просто измените.',
       title: 'Какая ситуация описывает вас лучше всего?',
       subtitle: 'Мы покажем только подходящие разделы. Изменить можно в любой момент.',
