@@ -2,6 +2,54 @@
 
 > Format gemäß Implementierungsplan §16: WP-ID, Status, Datum, Gate-Ergebnis.
 > Neueste Einträge oben.
+>
+> Die Gegenrichtung — was noch **aussteht** — steht gesammelt in
+> [`offene-punkte.md`](offene-punkte.md).
+
+---
+
+## 2026-08-06 — Critic-Befunde behoben, Offene-Punkte-Liste angelegt
+
+**Status:** Die vier inhaltlichen Befunde des WP-4.6-Critic-Reviews sind
+behoben; ein Befund war ein Artefakt der Aufnahmemethode. Die Bewertung
+selbst (Hierarchie-Neubewertung, Motion-Review) steht noch aus und ist
+zusammen mit allem anderen Offenen in [`offene-punkte.md`](offene-punkte.md)
+festgehalten.
+
+| Befund | Schwere | Umsetzung |
+|---|---|---|
+| **D-1** — Achsenbeschriftungen nicht gerundet | Minor | `niceTicks()` in `src/lib/chart-axis.ts` wählt eine runde Schrittweite (1/2/5 × 10^n) nahe an `span / 4` und legt Anfang und Ende auf Vielfache davon. Recharts interpolierte bisher aus der Domain und erzeugte 895/1795/2695 €. Im Kontostand-Verlauf über **alle drei** geplotteten Serien gerechnet, damit keine aus der Achse fällt. 6 Lib-Tests, davon einer `[REGRESSION]` mit den Werten aus dem Review |
+| **A-3** — „Zur Finanzstadt" ist ein leerer Kartenstreifen | Minor | Die Karte trägt jetzt eine Vorschau: Stimmungsfarbe (dieselben Akzente wie die Atmosphäre-Schicht, `ATMOSPHERE_ACCENTS`) und die Viertel-Kennzahl aus dem **Sunburst-Außenring** — derselben Quelle, aus der die Stadt ihre Distrikte baut. Ohne Ausgaben steht dort eine Entstehen-Zeile statt „0 Viertel" |
+| **A-2** — drei Hinweisebenen vor dem Inhalt | Major (Mobil) | Höchstens eine **echte** Hinweisebene gleichzeitig: `TutorialHost` umschließt die App als Präsenz-Provider (`useTutorialPresence`), der nachrangige Coach-Streifen wartet, bis Einladung oder Führung beendet ist. Der Wegklick-Zustand wanderte dafür aus der Einladung in den Host |
+| **A-1** — dieselbe Zahl drei- bis viermal | Major | Bereits behoben (Eintrag „Divergenz aufgelöst") |
+
+**Der Demodaten-Banner ist bewusst keine dieser Ebenen.** Datenherkunft ist
+Integritätsanzeige, keine aufschiebbare Meta-Kommunikation: Wer Beispieldaten
+sieht, muss das jederzeit wissen — auch während einer Führung.
+
+### Befund U-1 ist ein Artefakt, kein Fehler
+
+„Zwei Navigationsebenen im Inhalt" (Mobil) entstand durch die
+**Full-Page-Screenshots** des Reviews: Die Bottom-Nav ist
+`fixed inset-x-0 bottom-0` und erscheint dort mitten im Dokumentfluss, im
+echten Viewport dagegen als Leiste über dem Inhalt. Es stehen also nie drei
+Orientierungsangebote übereinander. Festgehalten, damit der Befund nicht in
+einer späteren Runde erneut als offen gilt — und als Warnung: aus
+Full-Page-Screenshots lassen sich Aussagen über `fixed`-Elemente nicht
+ableiten.
+
+### Nachweise
+
+- Volle Suite grün (409 Test-Dateien), `pnpm lint` und `pnpm exec tsc
+  --noEmit` fehlerfrei, `pnpm test:security` und `pnpm security:secrets` grün.
+- E2E (Linux): funktionaler Slice, Accessibility (0 Critical) und Visual
+  Regression grün — Baselines nach dem Hero- und Karten-Umbau neu erzeugt und
+  im Folgelauf als stabil bestätigt.
+- **Performance weiterhin der bekannte Container-Effekt:** LCP und CLS grün,
+  die Warm-Navigation Dashboard → Stadt misst **1460 ms** gegen das
+  1000-ms-Dev-Budget (vorher 1657 ms). In diesem Container rendert WebGL in
+  Software; das Budget bleibt unverändert und ist auf echter Hardware
+  nachzumessen.
 
 ---
 
