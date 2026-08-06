@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@supabase/supabase-js": "^2.108.1",
+    "@supabase/supabase-js": "^2.112.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "zod": "^3.25.0"
