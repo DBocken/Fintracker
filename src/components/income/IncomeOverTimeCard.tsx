@@ -5,7 +5,8 @@ import { chartRamp } from '@/lib/chart-colors';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeOverTimePoint } from '@/lib/analysis-data';
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForStackedData, valueAxisProps } from '@/lib/chart-axis';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -35,6 +36,10 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
     [points],
   );
 
+  // WP-6.8: Runde Achsenwerte. Gestapelt gerechnet — die Achse muss die Summe
+  // aller Kategorien eines Monats abdecken, nicht die größte Einzelkategorie.
+  const yTicks = useMemo(() => niceTicksForStackedData(series, mainIds), [series, mainIds]);
+
   return (
     <Card className="card-premium h-full">
       <CardHeader>
@@ -59,21 +64,16 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  width={56}
-                  tickFormatter={(v: number) => `${Math.round(v)} €`}
+                  {...valueAxisProps({
+                    ticks: yTicks,
+                    width: 56,
+                    tickFormatter: (v) => `${Math.round(v)} €`,
+                  })}
                 />
                 <Tooltip
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                  }}
-                  formatter={(v) => formatCurrencyInt(Math.round(chartNumber(v)))}
+                  {...chartTooltipProps({
+                    formatValue: (v) => formatCurrencyInt(Math.round(v)),
+                  })}
                 />
                 {mainIds.map((id, idx) => (
                   <Bar

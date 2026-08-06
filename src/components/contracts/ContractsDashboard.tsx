@@ -26,7 +26,8 @@ import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 function euro(n: number) {
@@ -179,6 +180,14 @@ export function ContractsDashboard() {
     return data;
   }, [totalsIncome, totalsExpenses]);
 
+  // WP-6.8: Runde Achsenwerte über alle drei geplotteten Serien, damit keine
+  // aus der Achse fällt. Die Nulllinie ist hier Pflicht — Ausgaben sind negativ
+  // und der Chart trägt eine ReferenceLine bei 0.
+  const contractsYTicks = useMemo(
+    () => niceTicksForData(chartData, ["income", "expenses", "net"], { includeZero: true }),
+    [chartData],
+  );
+
   const openDetail = (row: ContractRow) => {
     setDetailRow(row);
     setDetailOpen(true);
@@ -295,8 +304,13 @@ export function ContractsDashboard() {
                 <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" />
-                  <YAxis tickFormatter={(v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 })} />
-                  <Tooltip formatter={(value) => euro(chartNumber(value))} />
+                  <YAxis
+                    {...valueAxisProps({
+                      ticks: contractsYTicks,
+                      tickFormatter: (v) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 }),
+                    })}
+                  />
+                  <Tooltip {...chartTooltipProps({ formatValue: (value) => euro(value) })} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
                   <Area

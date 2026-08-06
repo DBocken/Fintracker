@@ -126,6 +126,137 @@ export function niceTicks(
   return ticks;
 }
 
+/**
+ * `niceTicks` über mehrere Serien eines Datensatzes (WP-6.8).
+ *
+ * Die Handrechnung dafür stand bisher nur in `AdvancedBalanceChart` — und war
+ * dort schon nötig, weil eine Achse, die nur die erste Serie kennt, jede
+ * weitere abschneidet. Jede Abschrift hätte denselben Fehler neu riskiert.
+ *
+ * Liefert `null`, wenn kein einziger brauchbarer Wert vorkommt; die
+ * Aufrufstelle setzt dann gar keine Ticks, statt eine NaN-Achse zu bauen.
+ */
+export function niceTicksForData<T extends object>(
+  data: readonly T[],
+  keys: readonly (keyof T)[],
+  options: AxisTickOptions = {}
+): number[] | null {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+
+  for (const point of data) {
+    for (const key of keys) {
+      const value = point[key];
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+      if (value < min) min = value;
+      if (value > max) max = value;
+    }
+  }
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return niceTicks(min, max, options);
+}
+
+/**
+ * `niceTicks` für **gestapelte** Serien (WP-6.8).
+ *
+ * Der Unterschied ist keine Feinheit: bei einem Stapel zeigt die Achse die
+ * Summe der Segmente, nicht das größte Einzelsegment. Wer hier
+ * {@link niceTicksForData} nähme, bekäme eine Achse, die bei drei Kategorien
+ * à 400 € bei 400 € endet — die Balken ragten dann sichtbar über ihr eigenes
+ * Diagramm hinaus.
+ *
+ * Negative und positive Segmente werden getrennt aufsummiert, damit ein
+ * Stapel mit beiden Vorzeichen nicht fälschlich zu null verrechnet wird.
+ *
+ * Die Schlüssel sind hier bewusst `string[]` und nicht `keyof T` wie bei
+ * {@link niceTicksForData}: Stapel-Serien entstehen aus Daten (Kategorie-IDs,
+ * Konto-IDs), ihre Schlüssel stehen zur Übersetzungszeit nicht fest. Nicht
+ * vorhandene Schlüssel werden übersprungen — das ist derselbe Fall wie ein
+ * Monat, in dem eine Kategorie nicht vorkommt.
+ */
+export function niceTicksForStackedData(
+  data: readonly Record<string, unknown>[],
+  keys: readonly string[],
+  options: AxisTickOptions = {}
+): number[] | null {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  let sawValue = false;
+
+  for (const point of data) {
+    let positiveSum = 0;
+    let negativeSum = 0;
+    for (const key of keys) {
+      const value = point[key];
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+      sawValue = true;
+      if (value >= 0) positiveSum += value;
+      else negativeSum += value;
+    }
+    if (positiveSum > max) max = positiveSum;
+    if (negativeSum < min) min = negativeSum;
+  }
+
+  if (!sawValue) return null;
+  return niceTicks(Math.min(min, 0), Math.max(max, 0), options);
+}
+
+/**
+ * Einheitliche Optik einer Wert-Achse. Ausschließlich Design-Tokens, damit der
+ * Dunkelmodus mitwandert.
+ */
+export const VALUE_AXIS_STYLE = {
+  stroke: 'hsl(var(--muted-foreground))',
+  fontSize: 12,
+  tickLine: false as const,
+  axisLine: false as const,
+};
+
+export interface ValueAxisOptions {
+  /** Ergebnis von {@link niceTicksForData}; `null` bedeutet „Recharts entscheiden lassen". */
+  ticks: number[] | null;
+  tickFormatter?: (value: number, index: number) => string;
+  /** Achsenbreite in Pixeln — hängt an der Stelligkeit der Beträge. */
+  width?: number;
+}
+
+export interface ValueAxisProps {
+  stroke: string;
+  fontSize: number;
+  tickLine: false;
+  axisLine: false;
+  width?: number;
+  ticks?: number[];
+  domain?: [number, number];
+  tickFormatter?: (value: number, index: number) => string;
+}
+
+/**
+ * Props für eine `<YAxis>` mit runden Ticks (WP-6.8, Befund D-1).
+ *
+ * Setzt Ticks **und** Domain gemeinsam: Recharts skaliert nach `domain`, nicht
+ * nach `ticks`. Wer nur Ticks setzt, verliert die äußeren Beschriftungen —
+ * genau deshalb gehört die Kopplung hierher und nicht an 13 Aufrufstellen.
+ *
+ * ```tsx
+ * const ticks = niceTicksForData(data, ['income', 'expenses']);
+ * <YAxis {...valueAxisProps({ ticks, tickFormatter: (v) => `${v} €` })} />
+ * ```
+ */
+export function valueAxisProps({ ticks, tickFormatter, width }: ValueAxisOptions): ValueAxisProps {
+  const props: ValueAxisProps = { ...VALUE_AXIS_STYLE };
+
+  if (width !== undefined) props.width = width;
+  if (tickFormatter) props.tickFormatter = tickFormatter;
+  if (ticks && ticks.length > 0) {
+    props.ticks = ticks;
+    props.domain = [ticks[0], ticks[ticks.length - 1]];
+  }
+
+  return props;
+}
+
 /** Rundet auf eine „runde" Schrittweite ab (1/2/2.5/5 × 10^n). */
 function niceFloor(value: number): number {
   if (value === 0) return 0;

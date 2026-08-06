@@ -8,7 +8,8 @@ import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
 import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 import { useI18n } from '@/i18n/useI18n';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface TimelineChartProps {
@@ -139,6 +140,16 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
 
   const hasSelection = selectedCats.size > 0;
 
+  // WP-6.8: Runde Achsenwerte. Über `income`/`expenses`/`net` gerechnet und
+  // NICHT über die gestapelten Kategorien: deren Summe ist per Konstruktion
+  // genau `expenses` (die ausgewählten Kategorien plus `Rest`), sie kann die
+  // Achse also nicht sprengen. Balken wachsen aus der Null, deshalb
+  // `includeZero` — sonst wäre ihre Länge nicht mehr proportional lesbar.
+  const timelineYTicks = useMemo(
+    () => niceTicksForData(chartData, ['income', 'expenses', 'net'], { includeZero: true }),
+    [chartData],
+  );
+
   return (
     <Card {...dyadProps("TimelineChart")}>
       <CardHeader>
@@ -184,13 +195,19 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="formattedDate" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={64} tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
+            <YAxis
+              {...valueAxisProps({
+                ticks: timelineYTicks,
+                width: 64,
+                tickFormatter: (value) => `${value.toFixed(0)}€`,
+              })}
+            />
             <Tooltip
-              formatter={(value, name) => [
-                chartNumber(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
-                chartText(name)
-              ]}
-              labelFormatter={(label) => t("premium.timeline.monthTooltip").replace('{label}', String(label))}
+              {...chartTooltipProps({
+                formatValue: (value) =>
+                  value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
+                formatLabel: (label) => t("premium.timeline.monthTooltip").replace('{label}', label),
+              })}
             />
             <Legend />
 

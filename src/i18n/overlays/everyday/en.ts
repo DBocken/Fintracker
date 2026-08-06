@@ -177,6 +177,9 @@ export const everydayEn: TranslationOverlay = {
     cashflowTitle: 'Money in, money out',
   },
   liquidityReport: {
+    // "Median (P50)" is the technical term in the base tree; this is what it
+    // actually says — the middle one of many simulated paths.
+    seriesMedian: 'Middle path',
     liquidityChart: 'How your available money develops ({basis})',
     firstBreachLabel: 'First time below your buffer',
     // `bufferReference`, `belowBufferLabel` and `daysUnderBuffer` stay:

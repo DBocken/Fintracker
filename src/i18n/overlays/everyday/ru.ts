@@ -236,6 +236,9 @@ export const everydayRu: TranslationOverlay = {
   },
   liquidityReport: {
     fixedExpensesLabel: 'Обязательные расходы',
+    // «Медиана (P50)» — термин из базового дерева; здесь то, что он означает:
+    // средний из множества просчитанных путей.
+    seriesMedian: 'Средний путь',
     liquidityChart: 'Как меняются ваши доступные деньги ({basis})',
     firstBreachLabel: 'Первый день ниже запаса',
   },

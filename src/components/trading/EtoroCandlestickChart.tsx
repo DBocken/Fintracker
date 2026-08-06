@@ -1,4 +1,5 @@
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';
@@ -98,6 +99,7 @@ export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCa
         <XAxis dataKey="label" />
         <YAxis domain={['auto', 'auto']} />
         <Tooltip
+          {...chartTooltipProps()}
           formatter={(_value, _name, item) => {
             const point = item?.payload as CandlePoint | undefined;
             if (!point) return ['—', ''];

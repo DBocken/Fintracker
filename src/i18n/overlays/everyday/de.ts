@@ -247,6 +247,9 @@ export const everydayDe: TranslationOverlay = {
   },
   liquidityReport: {
     fixedExpensesLabel: 'Feste Kosten',
+    // „Median (P50)" ist die Fachsprache im Basisbaum; hier die Aussage, die
+    // sie trifft — der mittlere von vielen durchgerechneten Verläufen.
+    seriesMedian: 'Mittlerer Verlauf',
     liquidityChart: 'Verlauf deines verfügbaren Geldes ({basis})',
     firstBreachLabel: 'Zum ersten Mal unter dem Puffer',
     // `bufferReference` („Puffer"), `belowBufferLabel` („unter Puffer") und

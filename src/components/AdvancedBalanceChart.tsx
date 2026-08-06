@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { niceTicks, yAxisDomain } from '@/lib/chart-axis';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
@@ -53,18 +53,15 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
 
   // Runde Achsen-Ticks statt Recharts-Interpolation (Befund D-1, WP-4.6-Review):
   // über alle drei geplotteten Serien, damit keine aus der Achse fällt.
-  const yTicks = useMemo(() => {
-    if (chartData.length === 0) return null;
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-    for (const point of chartData) {
-      for (const value of [point.income, point.expenses, point.cumulative]) {
-        if (value < min) min = value;
-        if (value > max) max = value;
-      }
-    }
-    return niceTicks(min, max, { includeZero: axisFromZero });
-  }, [chartData, axisFromZero]);
+  // WP-6.8: Die Rechnung dafür steht jetzt in `niceTicksForData` und gilt für
+  // alle Charts — vorher stand sie nur hier.
+  const yTicks = useMemo(
+    () =>
+      niceTicksForData(chartData, ['income', 'expenses', 'cumulative'], {
+        includeZero: axisFromZero,
+      }),
+    [chartData, axisFromZero],
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -173,27 +170,22 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 interval="preserveStartEnd"
               />
               <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={64}
-                ticks={yTicks ?? undefined}
-                domain={yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : yAxisDomain({ includeZero: axisFromZero })}
-                tickFormatter={(value) => gentleModeEnabled ? '••' : `${(value as number).toFixed(0)} €`}
+                {...valueAxisProps({
+                  ticks: yTicks,
+                  width: 64,
+                  tickFormatter: (value) => (gentleModeEnabled ? '••' : `${value.toFixed(0)} €`),
+                })}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 'var(--radius)'
-                }}
-                formatter={(value, name) => [
-                  gentleModeEnabled ? '***' : `${chartNumber(value).toFixed(2)}€`,
-                  name === 'income' ? t('balanceChart.income') :
-                  name === 'expenses' ? t('balanceChart.expenses') : t('balanceChart.balance')
-                ]}
-                labelFormatter={(label) => t('balanceChart.dateLabel').replace('{label}', chartText(label))}
+                {...chartTooltipProps({
+                  formatValue: (value) => (gentleModeEnabled ? '***' : `${value.toFixed(2)}€`),
+                  formatLabel: (label) => t('balanceChart.dateLabel').replace('{label}', label),
+                  seriesLabels: {
+                    income: t('balanceChart.income'),
+                    expenses: t('balanceChart.expenses'),
+                    balance: t('balanceChart.balance'),
+                  },
+                })}
               />
               <Legend
                 wrapperStyle={{ paddingTop: '20px' }}

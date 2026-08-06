@@ -11,7 +11,7 @@ import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
-import { chartText } from '@/lib/chart-tooltip';
+import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -200,7 +200,7 @@ export default function IncomeBreakdownCard({ breakdown }: { breakdown: IncomeBr
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Tooltip formatter={tooltipFormatter} />
+                <Tooltip {...chartTooltipProps()} formatter={tooltipFormatter} />
                 <Pie
                   data={breakdown.groups}
                   dataKey="value"

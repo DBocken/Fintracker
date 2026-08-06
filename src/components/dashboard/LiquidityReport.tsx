@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useId } from 'react';
 import {
   ResponsiveContainer,
   Area,
@@ -58,7 +58,7 @@ import type { BufferBasis, ForecastMonthlySummary } from '@/lib/forecast-types';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
@@ -69,10 +69,6 @@ const eur = new Intl.NumberFormat('de-DE', {
   maximumFractionDigits: 0,
 });
 
-const CHART_SERIES_LABELS: Record<string, string> = {
-  operating: 'Plan',
-  median: 'Median (P50)',
-};
 
 /** Ein Datenpunkt der Linien-Ansicht (Plan + optionales P10–P90-Band + Median). */
 interface ChartPoint {
@@ -600,11 +596,26 @@ function ChartLinesView({
   hasBand: boolean;
   safetyBuffer: number;
 }) {
+  const { t } = useI18n();
   const colors = getChartColors();
   // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   const chartAnimation = useChartAnimation();
-  const gradientId = `liqFill-${Date.now()}`;
-  const mcBandGradientId = `mcBandFill-${Date.now()}`;
+  // WP-6.8: Gradient-IDs aus `useId()`. Vorher `Date.now()` — das erzeugte bei
+  // JEDEM Render eine neue ID (der Browser behaelt die alten `<defs>` im
+  // Dokument) und kollidierte, sobald zwei Charts in derselben Millisekunde
+  // montieren. `useId()` ist stabil und je Instanz eindeutig.
+  const reactId = useId().replace(/:/g, '');
+  const gradientId = `liqFill-${reactId}`;
+  const mcBandGradientId = `mcBandFill-${reactId}`;
+
+  // Serien-Namen uebersetzt statt hartkodiert (AGENTS.md Paragraf 6). Die
+  // Zuordnung steht in der Komponente und nicht als Modul-Konstante: eine
+  // Modul-`const` mit `t()` friert beim Import ein und ignoriert jeden
+  // spaeteren Sprachwechsel (AGENTS.md Paragraf 6, Fallen-Tabelle).
+  const seriesLabels = {
+    operating: t('liquidityReport.seriesOperating'),
+    median: t('liquidityReport.seriesMedian'),
+  };
 
   return (
     <div className="h-72 w-full">
@@ -635,13 +646,11 @@ function ChartLinesView({
             axisLine={{ stroke: colors.axisStroke }}
           />
           <Tooltip
-            formatter={(v, name) => [eur.format(chartNumber(v)), CHART_SERIES_LABELS[chartText(name)] ?? chartText(name)]}
-            labelFormatter={(l) => fmtDate(chartText(l))}
-            contentStyle={{
-              backgroundColor: 'var(--background)',
-              borderColor: 'var(--border)',
-              color: 'var(--foreground)',
-            }}
+            {...chartTooltipProps({
+              formatValue: (v) => eur.format(v),
+              formatLabel: (l) => fmtDate(l),
+              seriesLabels,
+            })}
           />
           {hasBand && (
             <>

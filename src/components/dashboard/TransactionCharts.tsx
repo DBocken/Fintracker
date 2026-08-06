@@ -13,7 +13,8 @@ import type { SunburstTree } from '@/lib/analysis-data';
 import { SpendingSunburstChart } from './SpendingSunburstChart';
 import { buildTransactionsHref } from './filter-utils';
 import type { AusgabenklasseFilter } from './filter-constants';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 
 interface SunburstInner {
   id: string;
@@ -51,6 +52,8 @@ const baseEndAngle = -270;
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
+  // WP-6.8: Runde Achsenwerte statt Recharts-Interpolation (Befund D-1).
+  const expenseTicks = useMemo(() => niceTicksForData(series, ['expenses']), [series]);
   return (
     <Card className="card-premium h-full">
       <CardHeader>
@@ -70,21 +73,17 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
                 interval="preserveStartEnd"
               />
               <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={56}
-                tickFormatter={(v: number) => `${Math.round(v)} €`}
+                {...valueAxisProps({
+                  ticks: expenseTicks,
+                  width: 56,
+                  tickFormatter: (v) => `${Math.round(v)} €`,
+                })}
               />
               <Tooltip
-                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 'var(--radius)',
-                }}
-                formatter={(v) => [formatCurrencyInt(Math.round(chartNumber(v))), t("expensesOverTime.expensesLabel")]}
+                {...chartTooltipProps({
+                  formatValue: (v) => formatCurrencyInt(Math.round(v)),
+                  seriesLabels: { expenses: t("expensesOverTime.expensesLabel") },
+                })}
               />
               <Bar
                 dataKey="expenses"
@@ -396,7 +395,7 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
         <div className="hidden min-h-0 flex-1 md:block md:h-72">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Tooltip formatter={tooltipFormatter} />
+              <Tooltip {...chartTooltipProps()} formatter={tooltipFormatter} />
               {/* Innerer Ring: Ausgabenklassen */}
               <Pie
                 data={sunburst.inner}
