@@ -73,6 +73,20 @@ const CITY_DISTRICT_PALETTE = [
   '#84cc16', // Limette
 ] as const;
 
+export type BuildCityModelOptions = {
+  /**
+   * WP-5.2: Feste Farbe je Distrikt-ID. Ohne sie wird wie bisher nach dem
+   * Betrags-Rang gefärbt — was beim Monatswechsel zu wechselnden Farben führt,
+   * sobald sich die Reihenfolge ändert.
+   */
+  colorByDistrictId?: ReadonlyMap<string, string>;
+};
+
+/** Farbe je Distrikt-ID aus einem Referenz-Modell (üblicherweise das Gesamt-Modell über alle Monate). */
+export function districtColorMap(model: CityModel): Map<string, string> {
+  return new Map(model.districts.map((district) => [district.id, district.color]));
+}
+
 function districtColor(index: number): string {
   return CITY_DISTRICT_PALETTE[index % CITY_DISTRICT_PALETTE.length];
 }
@@ -163,6 +177,7 @@ export function buildCityModelFromData(
   // Argument-Layout umgestellt werden müssen.
   _categoriesById: Map<string, Category>,
   floorsByBuilding: Map<string, CityContract[]>,
+  options: BuildCityModelOptions = {},
 ): CityModel {
   const mainNodes = sunburst.children
     .flatMap((klasse) => klasse.children)
@@ -195,10 +210,16 @@ export function buildCityModelFromData(
   }
 
   // Global nach Betrag absteigend, Farbe deterministisch je Distrikt-Index.
+  //
+  // WP-5.2: `colorByDistrictId` überschreibt das. Die Zeitachse baut dasselbe
+  // Modell für verschiedene Monate — ohne feste Zuordnung änderte sich mit den
+  // Beträgen die Sortierung und damit die FARBE jedes Viertels bei jedem
+  // Monatsschritt. Die Stadt soll aber erkennbar dieselbe Stadt bleiben, in der
+  // sich nur die Höhen ändern.
   const districts: CityDistrict[] = order
     .map((id) => merged.get(id) as Omit<CityDistrict, 'color'>)
     .sort((a, b) => b.total - a.total)
-    .map((d, index) => ({ ...d, color: districtColor(index) }));
+    .map((d, index) => ({ ...d, color: options.colorByDistrictId?.get(d.id) ?? districtColor(index) }));
 
   attachFloors(districts, floorsByBuilding);
 

@@ -130,6 +130,18 @@ export type CityModel = {
    * Distrikte, eine „Gesamt"-Bezugsgröße darüber wäre irreführend.
    */
   hideShares?: boolean;
+  /**
+   * WP-5.2 (Zeitachse): Dieses Modell zeigt einen PROGNOSEMONAT — jede Zahl
+   * darin stammt aus dem Forecast, keine aus gebuchten Daten. Die Presentation
+   * stellt solche Baukörper erkennbar anders dar (Hülle statt gefülltem
+   * Balken) und die Legende erklärt es.
+   *
+   * Bewusst am Modell und nicht am einzelnen Gebäude: eine Mischung aus Ist
+   * und Prognose in EINER Ansicht wäre nicht erklärbar — der Nutzer könnte
+   * nicht sagen, welche Zahl woher kommt. Die Zeitachse trennt die Monate
+   * deshalb sauber.
+   */
+  projected?: boolean;
 };
 
 /**
