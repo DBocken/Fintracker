@@ -1,9 +1,10 @@
 import { InfoGroup } from '@/components/common/InfoGroup'
 import type { Account } from '@/types'
 import type { EffectiveBalance } from '@/features/dashboard/domain/overview-types'
-import { RefreshCw } from 'lucide-react'
 import { useGentleMode } from '@/components/providers/GentleModeProvider'
 import { useI18n } from '@/i18n/useI18n'
+import { LoadingSwap } from '@/components/common/LoadingSwap'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface AccountCardsProps {
   accounts: Account[]
@@ -26,10 +27,23 @@ export function AccountCards({ accounts, balances, totalBalance, isLoading = fal
   }
 
   if (isLoading) {
+    // WP-8.2: Choreografie aus WP-7.3 statt eines fruehen Returns. Der
+    // Platzhalter hat die Form der spaeteren Liste statt eines kreisenden
+    // Symbols — ein Spinner sagt "es passiert etwas", ein Skelett sagt
+    // "hier kommt eine Liste".
     return (
-      <div className="flex h-full items-center justify-center py-12">
-        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div className="space-y-3 py-2">
+            <Skeleton variant="shimmer" className="h-5 w-40" />
+            <Skeleton variant="shimmer" className="h-12 w-full" />
+            <Skeleton variant="shimmer" className="h-12 w-full" />
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     )
   }
 

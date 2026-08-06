@@ -33,6 +33,8 @@ import {
   type RefreshBalancesResponse,
   type RefreshMode,
 } from '../../services/live-balance-service';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   checking: <Building2 className="h-5 w-5" />,
@@ -271,12 +273,24 @@ export function AccountManager() {
   };
 
   if (isLoading) {
+    // WP-8.2: Choreografie aus WP-7.3 statt eines fruehen Returns — kein
+    // Skeleton unter 150 ms, ein gezeigtes bleibt mindestens 300 ms. Der
+    // Platzhalter hat die Form des spaeteren Inhalts statt eines pulsierenden
+    // Satzes; sein Text bleibt fuer die Sprachausgabe erhalten.
     return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground animate-pulse">{t('accounts.manager.loadingText')}</p>
-        </CardContent>
-      </Card>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div className="space-y-3 py-2">
+            <Skeleton variant="shimmer" className="h-6 w-48" />
+            <Skeleton variant="shimmer" className="h-16 w-full" />
+            <Skeleton variant="shimmer" className="h-16 w-full" />
+            <span className="sr-only">{t('accounts.manager.loadingText')}</span>
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 

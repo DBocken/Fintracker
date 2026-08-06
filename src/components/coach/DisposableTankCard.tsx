@@ -5,6 +5,7 @@ import { getNextIncomeCharge } from "@/lib/upcoming-charges";
 import { computeDisposableUntilPayday } from "@/lib/disposable-budget";
 import BudgetTank from "@/components/budgets/BudgetTank";
 import InteractiveCard from "@/components/common/InteractiveCard";
+import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { InfoGroup } from "@/components/common/InfoGroup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -51,7 +52,19 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
     return disposable;
   }, [input, fromISO]);
 
-  if (isLoading) return <Skeleton variant="shimmer" className="h-28 w-full rounded-2xl" />;
+  // WP-8.2: Der Ladezustand laeuft ueber die Choreografie aus WP-7.3 statt
+  // ueber einen fruehen Return — kein Skeleton unter 150 ms (das waere ein
+  // Blinzeln), ein gezeigtes bleibt mindestens 300 ms stehen.
+  if (isLoading) {
+    return (
+      <LoadingSwap
+        loading
+        skeleton={<Skeleton variant="shimmer" className="h-28 w-full rounded-2xl" />}
+      >
+        {null}
+      </LoadingSwap>
+    );
+  }
 
   // Ohne erkannten regelmäßigen Eingang lässt sich „bis zum Gehalt" nicht
   // bestimmen → ruhiger Hinweis statt einer leeren Karte (Karten-Regel).

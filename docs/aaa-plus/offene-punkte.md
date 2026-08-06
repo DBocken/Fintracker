@@ -64,6 +64,15 @@ schwächere Aussage „hier steht Karten-Chrome und es gibt überhaupt kein
 Interaktions-Signal". Eine Prüfung, die mehr behauptet, als sie wissen kann,
 erzeugt Fehlalarme — und eine Regel mit Fehlalarmen wird abgeschaltet.
 
+**WP-8.2 — Ladezustände auf die Choreografie aus WP-7.3 gezogen.** Fünf
+Komponenten hatten einen frühen `return` mit Spinner oder pulsierendem Text:
+`DisposableTankCard`, `UpcomingChargesList`, `AccountCards`, `AccountManager`
+und (bereits in WP-7.3) `AdvancedBalanceChart`. Damit gilt dort jetzt: kein
+Skeleton unter 150 ms — das wäre ein Blinzeln —, und ein gezeigtes bleibt
+mindestens 300 ms stehen. Die Platzhalter haben die Form des späteren Inhalts
+statt eines kreisenden Symbols: Ein Spinner sagt „es passiert etwas", ein
+Skelett sagt „hier kommt eine Liste".
+
 ### Was in Phase 8 noch offen ist
 
 Die maschinell prüfbaren Punkte sind grün. Was bleibt, ist **nicht**
@@ -72,9 +81,14 @@ automatisiert prüfbar und gehört pro Screen durchgesehen:
 | Punkt | Warum kein Wächter |
 |---|---|
 | **Mobile/Desktop-Parität** (AGENTS.md §4) | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code |
-| **`<LoadingSwap>`-Übernahme je Screen** | Ein früher `return` mit Spinner ist syntaktisch nicht von einem legitimen Frühausstieg zu unterscheiden |
 | **Hierarchie je Screen** | Offen aus der Gate-Neubewertung: die Kennzahlenzeile des Dashboards stellt vier gleichgewichtige Größen nebeneinander; welche die zweitwichtigste ist, sagt die Gestaltung nicht |
 | **Telemetrie-Schalter** | Gehört in den Einstellungen-Screen, sobald Phase 11 gebaut wird (`decision-log` F-1) |
+
+**Zwei Ladezustände bewusst gelassen:** `PortfolioManager` und
+`EtoroScopeGate` im Trading-Bereich. Letzteres ist kein Ladezustand, sondern
+eine Berechtigungsschranke; Ersteres gehört zu einem Nebenbereich, der noch
+keine eigene Migration hatte. Beide sind Kandidaten, wenn Trading an der Reihe
+ist.
 
 ## 4. Phasen 8–11 (überwiegend unberührt)
 

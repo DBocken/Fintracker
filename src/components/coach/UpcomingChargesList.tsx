@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { useForecast } from "@/hooks/useForecast";
 import { getUpcomingCharges, expenseCharges } from "@/lib/upcoming-charges";
+import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { InfoGroup } from "@/components/common/InfoGroup";
 import ListRow from "@/components/common/ListRow";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +39,17 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
     return expenseCharges(getUpcomingCharges(flows, { fromISO, horizonDays }));
   }, [input, fromISO, horizonDays]);
 
-  if (isLoading) return <Skeleton variant="shimmer" className="h-32 w-full rounded-2xl" />;
+  // WP-8.2: siehe DisposableTankCard — Choreografie statt fruehem Return.
+  if (isLoading) {
+    return (
+      <LoadingSwap
+        loading
+        skeleton={<Skeleton variant="shimmer" className="h-32 w-full rounded-2xl" />}
+      >
+        {null}
+      </LoadingSwap>
+    );
+  }
 
   if (charges.length === 0) {
     return (
