@@ -8,6 +8,56 @@
 
 ---
 
+## 2026-08-06 — Phase 8: Grundlage, Altfaelle, Ladezustaende, Hierarchie/Paritaet
+
+**Status:** Phase 8 ist in dem Umfang abgeschlossen, den ein unbeaufsichtigter
+Lauf verantworten kann. Was bleibt, ist benannt (siehe
+[`offene-punkte.md`](offene-punkte.md)) und nicht stillschweigend uebersprungen.
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-8.0** | Die Karten-Regel (AGENTS.md §9) ist maschinell pruefbar. Vorher gab es dazu **nur** einen advisory Claude-Hook: CI sah nie einen Verstoss, Agenten ohne `.claude/`-Hooks auch nicht. `pnpm check:card-rule` prueft jetzt repo-weit, in Pre-Commit und CI. Bewusst die **schwaechere** Aussage („Karten-Chrome ohne jedes Interaktions-Signal"), denn eine Regel mit Fehlalarmen wird abgeschaltet |
+| **WP-8.1** | Alle acht Altfaelle behoben, `card-rule-allowlist.json` ist **leer**. Jeder neue Verstoss bricht ab jetzt den Build. Mitbehoben: `HeatmapCalendar` trug feste Graustufen statt Design-Tokens (im Hellmodus ein dunkelgrauer Block) und zeigte `cursor-pointer` ohne klickbar zu sein |
+| **WP-8.2** | Fuenf Ladezustaende auf die Choreografie aus WP-7.3 gezogen. Kein Skeleton unter 150 ms (das waere ein Blinzeln), ein gezeigtes bleibt mindestens 300 ms. Platzhalter in der Form des spaeteren Inhalts: ein Spinner sagt „es passiert etwas", ein Skelett sagt „hier kommt eine Liste" |
+| **WP-8.3** | Die beiden nicht maschinell pruefbaren Restpunkte, je Screen durchgesehen — siehe unten |
+
+### WP-8.3 im Einzelnen
+
+**Hierarchie (Befund aus der Gate-Neubewertung).** Die Kennzahlenzeile des
+Dashboards stellte vier Groessen in derselben Schriftgroesse und demselben
+Gewicht nebeneinander — eine Aufzaehlung, keine Aussage. Jetzt abgestuft nach
+der Frage, die der Nutzer als naechste stellt: Zeitraum-Saldo (`text-2xl`,
+„wie lief dieser Zeitraum") ueber Einnahmen/Ausgaben (`text-base`) ueber der
+Anzahl (`text-sm`, gedaempft). Der Hero bleibt darueber — die Abstufung darf
+keine zweite Hauptaussage erzeugen (Befund A-1). Der Test vergleicht dafuer
+nicht Klassennamen, sondern den in `src/index.css` deklarierten Wert von
+`--font-size-hero-mobile` gegen `text-2xl`; ein reiner Namensvergleich wuerde
+nicht rot, wenn jemand die Variable absenkt.
+
+**Paritaet (AGENTS.md §4), je Breakpoint-Weiche durchgesehen.** Ein Befund:
+Die Export-Reihe der Geldfluss-Visualisierung trug `hidden sm:flex` **ohne
+Gegenstueck** — auf dem Telefon fehlte der Export damit ganz. Das ist kein
+Dichte-Unterschied, sondern ein fehlendes Feature. Desktop zeigt die drei Wege
+weiterhin offen, Mobil buendelt sie hinter einem Ausloeser (progressive
+Offenlegung, ein Ziel statt drei in einer Zeile, die schon den Regler traegt).
+
+Alle uebrigen Weichen sind paarig und im Quelltext als solche begruendet:
+Seitennavigation ↔ `MobileNav`/`BottomNav`, Suchleiste ↔ Suchknopf,
+Theme-Umschalter ↔ Einstellungen/Darstellung, Tabelle ↔ Kartenliste
+(Transaktionen, Vertraege), Desktop-View ↔ Mobile-Story (Dashboard,
+Sonderkategorien), Illustration ↔ kompakte Illustration (Coach),
+Zuordnung inline ↔ Detail-Sheet (Schulden).
+
+**Ausserdem migriert:** der Ladezustand des `PortfolioManager` (Trading), der
+in WP-8.2 noch bewusst offen geblieben war.
+
+**Grenze, bewusst so:** Paritaet ist eine Aussage ueber Bedeutung, nicht ueber
+Code — es gibt dafuer keinen Waechter und kann keinen geben. Was pruefbar war,
+ist geprueft: jede `hidden <bp>:*`- und `<bp>:hidden`-Weiche im Quelltext
+einzeln gegen ihr Gegenstueck.
+
+---
+
 ## 2026-08-06 (Nachtrag) — Phase 6 und 7 vollstaendig
 
 **Status:** Die drei verbliebenen Arbeitspakete sind umgesetzt. Phase 6

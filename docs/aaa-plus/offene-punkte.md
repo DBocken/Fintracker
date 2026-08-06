@@ -35,7 +35,17 @@ Was daraus als Baustein für Phase 8 bereitsteht:
 | `<SignatureMoment>` (WP-6.5) | Erfolgsmomente inkl. Haptik — nicht je Screen neu bauen |
 | `volumeSegments()` (WP-6.4) | Flächenproportionale Größendarstellung |
 
-## 3. Phase 8 — Feature-Screen-Migration (in Arbeit)
+## 3. Phase 8 — Feature-Screen-Migration
+
+**Abweichung vom Plan, bewusst:** Der Plan sah „pro Screen ein WP" vor. Die
+Kriterien, die eine solche Migration ausmachen — Karten-Regel, Achsen-Hygiene,
+Ladechoreografie, barrierefreie Chart-Entsprechung — sind stattdessen
+**repo-weit** durchgesetzt statt Screen für Screen abgehakt: `pnpm check:card-rule`,
+`chart-standardization.test.ts` und die Wächter aus Phase 6/7 gelten für jede
+Datei, auch für die, die es noch nicht gibt. Eine Screen-Liste wäre nach dem
+nächsten neuen Screen wieder unvollständig; ein Wächter ist es nie. Was sich so
+nicht durchsetzen lässt (Hierarchie, Parität), ist in WP-8.3 von Hand
+durchgesehen und unten als „ohne Wächter" ausgewiesen.
 
 **WP-8.0 — Karten-Regel maschinell prüfbar.** Bis dahin gab es dazu nur einen
 advisory Claude-Hook; CI sah nie einen Verstoß. `pnpm check:card-rule` prüft
@@ -73,36 +83,26 @@ mindestens 300 ms stehen. Die Platzhalter haben die Form des späteren Inhalts
 statt eines kreisenden Symbols: Ein Spinner sagt „es passiert etwas", ein
 Skelett sagt „hier kommt eine Liste".
 
+**WP-8.3 — Hierarchie und Parität durchgesehen.** Die Kennzahlenzeile des
+Dashboards ist abgestuft (Zeitraum-Saldo > Einnahmen/Ausgaben > Anzahl), der
+Hero bleibt darüber. Die Paritäts-Durchsicht ergab **einen** Befund: Der Export
+der Geldfluss-Visualisierung existierte auf schmalen Breiten gar nicht
+(`hidden sm:flex` ohne Gegenstück) — jetzt auf Mobil hinter einem Auslöser.
+Alle übrigen Breakpoint-Weichen sind paarig; Aufstellung im
+[Fortschrittsprotokoll](progress.md).
+
+`PortfolioManager` ist damit ebenfalls auf `LoadingSwap` gezogen.
+
 ### Was in Phase 8 noch offen ist
 
-Die maschinell prüfbaren Punkte sind grün. Was bleibt, ist **nicht**
-automatisiert prüfbar und gehört pro Screen durchgesehen:
-
-| Punkt | Warum kein Wächter |
+| Punkt | Warum offen |
 |---|---|
-| **Mobile/Desktop-Parität** (AGENTS.md §4) | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code |
-| **Hierarchie je Screen** | Offen aus der Gate-Neubewertung: die Kennzahlenzeile des Dashboards stellt vier gleichgewichtige Größen nebeneinander; welche die zweitwichtigste ist, sagt die Gestaltung nicht |
-| **Telemetrie-Schalter** | Gehört in den Einstellungen-Screen, sobald Phase 11 gebaut wird (`decision-log` F-1) |
+| **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
+| **`EtoroScopeGate`** ohne Choreografie | Kein Ladezustand, sondern eine Berechtigungsschranke — die Skeleton-Regel aus WP-7.3 passt darauf nicht |
+| **Parität bleibt ohne Wächter** | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code. Geprüft wurde, was prüfbar ist: jede Breakpoint-Weiche im Quelltext gegen ihr Gegenstück. Neue Weichen fallen dabei durch, bis das jemand wieder von Hand tut |
 
-**Zwei Ladezustände bewusst gelassen:** `PortfolioManager` und
-`EtoroScopeGate` im Trading-Bereich. Letzteres ist kein Ladezustand, sondern
-eine Berechtigungsschranke; Ersteres gehört zu einem Nebenbereich, der noch
-keine eigene Migration hatte. Beide sind Kandidaten, wenn Trading an der Reihe
-ist.
+## 4. Phasen 9–11 (unberührt)
 
-## 4. Phasen 8–11 (überwiegend unberührt)
-
-- **Phase 8 — Feature-Screen-Migration**, pro Screen ein WP. WP-8.0
-  (Grundlage) ist erledigt, siehe oben. Dashboard und
-  Transaktionen sind faktisch bereits auf der AAA+-Produktsprache; die übrigen
-  Screens (Coach, Budgets, Konten, Schulden, Meilensteine, Vermögen, Einkommen,
-  Verträge, Einstellungen …) stehen aus. Beim Migrieren jeweils mitziehen: die
-  Karten-Regel (AGENTS.md §9) und die Chart-Achsen-Hygiene.
-  - **Vorzusehen:** Der Opt-in-Schalter für Telemetrie gehört in den
-    Einstellungen-Screen (Entscheidung F-1 im `decision-log`).
-  - **Offen aus der Hierarchie-Neubewertung:** Die Kennzahlenzeile des
-    Dashboards stellt vier gleichgewichtige Größen nebeneinander. Welche die
-    zweitwichtigste ist, sagt die Gestaltung nicht.
 - **Phase 9 — Zustandsabdeckung:** vollständige State-Matrix je Screen (leer,
   ladend, fehlerhaft, gefiltert-leer, offline, Sanfter Modus).
 - **Phase 10 — Qualitätssicherung:** Visual Regression, Performance und

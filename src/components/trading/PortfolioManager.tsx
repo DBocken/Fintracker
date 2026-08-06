@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, CheckCircle2, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PortfolioManagerProps {
   activePortfolioId?: string;
@@ -138,10 +140,23 @@ export default function PortfolioManager({
   };
 
   if (isLoading) {
+    // WP-8.3: Choreografie aus WP-7.3 statt eines fruehen Returns mit
+    // Ladetext. Der Platzhalter hat die Form der spaeteren Liste; der Text
+    // bleibt fuer die Sprachausgabe erhalten.
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-sm text-muted-foreground">{t('trading.portfolioManager.loadingMessage')}</div>
-      </div>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div className="space-y-3 py-2">
+            <Skeleton variant="shimmer" className="h-5 w-40" />
+            <Skeleton variant="shimmer" className="h-14 w-full" />
+            <Skeleton variant="shimmer" className="h-14 w-full" />
+            <span className="sr-only">{t('trading.portfolioManager.loadingMessage')}</span>
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 

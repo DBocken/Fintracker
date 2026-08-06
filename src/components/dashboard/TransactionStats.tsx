@@ -80,25 +80,43 @@ export function TransactionStats({
             </div>
           )}
 
+          {/*
+            WP-8.3 — Rangfolge innerhalb der Kennzahlenzeile.
+
+            Befund aus der Gate-Neubewertung: Alle vier Groessen standen auf
+            derselben Schriftgroesse und demselben Gewicht. Welche die
+            zweitwichtigste ist, sagte die Gestaltung damit nicht — die Zeile
+            war eine Aufzaehlung, keine Aussage.
+
+            Die Staffelung folgt der Frage, die der Nutzer nach dem Hero als
+            naechste stellt:
+            1. Hero: "Wie viel habe ich?" (aktueller Kontostand)
+            2. `balance`: "Wie lief dieser Zeitraum?" — die eine Zahl, die das
+               beantwortet. Groesser und farbig abgesetzt.
+            3. Einnahmen/Ausgaben: ihre Bestandteile. Kleiner.
+            4. Buchungsanzahl: kein Geldbetrag, sondern Auskunft ueber den
+               Umfang der Auswahl. Am leisesten.
+          */}
           <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4 lg:text-right">
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowUpRight className="h-3.5 w-3.5 text-positive" />
                 {t("transactionStats.income")}
               </dt>
-              <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(animatedIncome)}</dd>
+              <dd className="mt-1 text-base font-medium">{gentleModeEnabled ? '***' : eur.format(animatedIncome)}</dd>
             </div>
             <div>
               <dt className="flex items-center gap-1 text-xs text-muted-foreground lg:justify-end">
                 <ArrowDownRight className="h-3.5 w-3.5" />
                 {t("transactionStats.expenses")}
               </dt>
-              <dd className="mt-1 text-lg font-semibold">{gentleModeEnabled ? '***' : eur.format(animatedExpenses)}</dd>
+              <dd className="mt-1 text-base font-medium">{gentleModeEnabled ? '***' : eur.format(animatedExpenses)}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">{t("transactionStats.balance")}</dt>
               <dd
-                className={`mt-1 text-lg font-semibold ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
+                data-testid="stat-period-balance"
+                className={`mt-1 text-2xl font-semibold tracking-tight ${balance >= 0 ? 'text-positive' : 'text-warning'}`}
               >
                 {/* Vorzeichen aus dem ZIELwert, nicht aus dem Zaehlerstand:
                     sonst flackerte es beim Nulldurchgang waehrend des
@@ -108,7 +126,7 @@ export function TransactionStats({
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">{t("transactionStats.transactions")}</dt>
-              <dd className="mt-1 text-lg font-semibold">
+              <dd className="mt-1 text-sm font-medium text-muted-foreground">
                 {/* Bewusst NICHT animiert: Ein Stueckzaehler, der bei jedem
                     Tastendruck der Live-Suche von 12 ueber 9, 5, 3 auf 1
                     laeuft, liest sich als Stoerung, nicht als Aufbau. Das

@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
-import { Network } from "lucide-react";
+import { Network, Download } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
@@ -189,11 +195,33 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               className="flex-1 sm:w-40"
             />
             <span className="text-xs text-muted-foreground w-12 text-right">{chartHeight}px</span>
+            {/*
+             * Export, beide Plattformen (WP-8.3, AGENTS.md §4).
+             *
+             * Vorher trug die Reihe `hidden sm:flex`: Auf dem Telefon gab es
+             * den Export gar nicht — kein Dichte-Unterschied, sondern ein
+             * fehlendes Feature. Desktop zeigt die drei Wege weiterhin offen
+             * (der Platz ist da), Mobil bündelt sie hinter einem Auslöser
+             * (progressive Offenlegung, ein Ziel statt drei in einer Zeile,
+             * die ohnehin schon den Regler trägt).
+             */}
             <div className="hidden sm:flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={handleExportPNG}>{t("premium.sankey.exportPNG")}</Button>
               <Button size="sm" variant="outline" onClick={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</Button>
               <Button size="sm" variant="outline" onClick={handleExportPDF}>{t("premium.sankey.exportPDF")}</Button>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="sm:hidden">
+                <Button size="sm" variant="outline" aria-label={t("premium.sankey.exportMenu")}>
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={handleExportPNG}>{t("premium.sankey.exportPNG")}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportPDF}>{t("premium.sankey.exportPDF")}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
