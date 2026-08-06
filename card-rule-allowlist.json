@@ -1,13 +1,4 @@
 {
   "_comment": "Phase-8-Backlog: Dateien mit Karten-Chrome ohne Klick-Aktion, entstanden vor WP-8.0. Jede Screen-Migration streicht ihre Eintraege. Neue Eintraege gehoeren NICHT hierher — dann ist der Code zu aendern, nicht die Liste. Erzeugt mit pnpm check:card-rule --update.",
-  "files": [
-    "src/components/accounts/AccountCards.tsx",
-    "src/components/budgets/WaterfallPanel.tsx",
-    "src/components/dashboard/finrisk/AdaptiveSpendingToggle.tsx",
-    "src/components/premium-dashboard/HeatmapCalendar.tsx",
-    "src/components/settings/AutoCategorizationSettings.tsx",
-    "src/components/settings/LanguageSettings.tsx",
-    "src/components/settings/TimeRangeSettings.tsx",
-    "src/components/settings/WordingSettings.tsx"
-  ]
+  "files": []
 }

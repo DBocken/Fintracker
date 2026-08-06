@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Waves } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InfoGroup } from "@/components/common/InfoGroup";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { useI18n } from "@/i18n/useI18n";
@@ -73,16 +73,15 @@ export default function WaterfallPanel() {
   if (isLoading || !plan) return null;
   if (plan.income <= 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+      <InfoGroup
+        title={
+          <span className="flex items-center gap-2 text-base">
             <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> {t('budgets.waterfall.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t('budgets.waterfall.noIncome')}
-        </CardContent>
-      </Card>
+          </span>
+        }
+      >
+        <p className="text-sm text-muted-foreground">{t('budgets.waterfall.noIncome')}</p>
+      </InfoGroup>
     );
   }
 
@@ -95,16 +94,20 @@ export default function WaterfallPanel() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
+    // WP-8.1: Karten-los (AGENTS.md Paragraf 9). Der Wasserfall erklaert, wie
+    // sich das Einkommen verteilt — ein Readout ohne Follow-up, in dem nichts
+    // anklickbar ist.
+    <InfoGroup
+      className="space-y-4"
+      title={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
           <Waves className="h-4 w-4 text-[hsl(var(--brand))]" /> {t('budgets.waterfall.title')}
           <span className="text-xs font-normal text-muted-foreground">
             {t('budgets.waterfall.income')} {eur.format(plan.income)} · {t('budgets.waterfall.savingsRate')} {Math.round(plan.savingsRate * 100)}%
           </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </span>
+      }
+    >
         {!plan.feasible && (
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -125,7 +128,6 @@ export default function WaterfallPanel() {
             {t('budgets.waterfall.insufficientData').replace('{months}', String(plan.monthsAnalyzed))}
           </p>
         )}
-      </CardContent>
-    </Card>
+    </InfoGroup>
   );
 }

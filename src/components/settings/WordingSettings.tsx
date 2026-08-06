@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -6,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { lookupTranslation, lookupWorded } from '@/i18n/I18nProvider';
 import { SUPPORTED_WORDINGS, type Wording } from '@/i18n/wording';
@@ -26,17 +26,17 @@ export function WordingSettings() {
   // Ohne Overlay für diese Sprache wäre der Schalter eine leere Zusage.
   const hasOverlay = SUPPORTED_WORDINGS.some((w) => overlayFor(w, locale) !== undefined);
 
+  // WP-8.1: karten-los, siehe LanguageSettings.
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t('settings.wording.title')}</CardTitle>
-        <CardDescription>
-          {hasOverlay
-            ? t('settings.wording.description')
-            : t('settings.wording.unavailableForLocale')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <InfoGroup
+      className="mt-6 space-y-6"
+      title={t('settings.wording.title')}
+      description={
+        hasOverlay
+          ? t('settings.wording.description')
+          : t('settings.wording.unavailableForLocale')
+      }
+    >
         <Select
           value={wording}
           onValueChange={(value) => setWording(value as Wording)}
@@ -83,8 +83,7 @@ export function WordingSettings() {
             })}
           </dl>
         </div>
-      </CardContent>
-    </Card>
+    </InfoGroup>
   );
 }
 

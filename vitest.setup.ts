@@ -82,6 +82,18 @@ if (typeof Blob !== "undefined" && !Blob.prototype.text) {
   }
 }
 
+// Radix-Slider misst seinen Track über ResizeObserver — jsdom kennt die API
+// nicht und der Test wirft schon beim Rendern. Ein No-op-Shim genügt: gemessen
+// wird in jsdom ohnehin nichts (alle Elemente haben die Größe 0), geprüft wird
+// die Struktur.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
+
 // Radix-Primitives (Popover/Dialog/Select) rufen Pointer-/Scroll-APIs auf, die
 // jsdom nicht implementiert. Ohne diese Shims wirft das Öffnen im Test.
 if (typeof Element !== "undefined") {
