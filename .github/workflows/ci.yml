@@ -18,8 +18,12 @@ permissions:
 # behalten — sonst faehrt ein schneller Folge-Commit den Nachweis fuer seinen
 # Vorgaenger weg.
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.run_id || 'branch' }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Auf `main` NICHT abbrechen: dort soll jeder Commit sein eigenes,
+  # vollstaendiges Ergebnis behalten. Auf Feature-Branches schon — sonst
+  # bleibt fuer jeden Push ein ueberholter Lauf in der Warteschlange stehen und
+  # verzoegert genau den, auf den es ankommt.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   quality:
