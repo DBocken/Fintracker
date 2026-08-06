@@ -102,12 +102,16 @@ describe('Dashboard — Hero-Hierarchie', () => {
     expect(screen.getAllByText(/9\.876,54/)).toHaveLength(1);
   });
 
-  it('sollte den Zeitraum-Saldo weiterhin als Nebenkennzahl zeigen', () => {
+  it('sollte den Zeitraum-Saldo weiterhin als Nebenkennzahl zeigen', async () => {
     renderWithProviders(<Dashboard />, { query: true });
 
     // Er verschwindet nicht — er tritt nur zurueck in die Kennzahlenzeile,
     // die auf ganze Euro rundet (1234,56 -> "+1.235 €").
-    expect(screen.getByText(/1\.235/)).toBeInTheDocument();
+    //
+    // `findByText` statt `getByText` seit WP-6.9: die Kennzahlen zaehlen auf
+    // ihren Wert hoch, statt ihn zu setzen. Der Endwert steht also erst nach
+    // dem Tween da — genau die sichtbare Aussage des Arbeitspakets.
+    expect(await screen.findByText(/1\.235/)).toBeInTheDocument();
   });
 
   it('sollte den Hero mit dem Kontostand-Label beschriften', () => {
