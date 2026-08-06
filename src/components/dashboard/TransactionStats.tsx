@@ -62,7 +62,6 @@ export function TransactionStats({
   const animatedIncome = useAnimatedNumber(income, tween);
   const animatedExpenses = useAnimatedNumber(expenses, tween);
   const animatedBalance = useAnimatedNumber(balance, tween);
-  const animatedCount = useAnimatedNumber(count, tween);
 
   // Karten-los (Usability-Audit „Karten sind Aktionen"): reines Kennzahlen-
   // Readout ohne Rahmen → wirkt nicht antippbar.
@@ -110,7 +109,12 @@ export function TransactionStats({
             <div>
               <dt className="text-xs text-muted-foreground">{t("transactionStats.transactions")}</dt>
               <dd className="mt-1 text-lg font-semibold">
-                {Math.round(animatedCount)}
+                {/* Bewusst NICHT animiert: Ein Stueckzaehler, der bei jedem
+                    Tastendruck der Live-Suche von 12 ueber 9, 5, 3 auf 1
+                    laeuft, liest sich als Stoerung, nicht als Aufbau. Das
+                    Zaehlen gilt den Geldbetraegen — dort ist die Zwischenzahl
+                    eine Groesse, hier waere sie eine falsche Stueckzahl. */}
+                {count}
                 <span className="text-sm font-normal text-muted-foreground"> {t("transactionStats.of", "von")} {totalTransactions}</span>
               </dd>
             </div>
