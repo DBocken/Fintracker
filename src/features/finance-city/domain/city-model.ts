@@ -17,6 +17,8 @@
  * Summen-Invariante).
  */
 
+import type { GoalProgressStage } from './city-goal-progress';
+
 /**
  * Eine einzelne Buchung hinter einer Etage (WP-D4, Vertrags-Sheet als
  * Absprungpunkt): Referenz auf die echte Transaktion (`txId` für den
@@ -77,6 +79,14 @@ export type CityDistrict = {
   targetAmount?: number;
   /** WP-D7 (Ziele-Tab): true, wenn das Bauprojekt fertiggestellt (Meilenstein erreicht) ist — Basis für die Chip-Zusammenfassung „X von Y erreicht". */
   achieved?: boolean;
+  /**
+   * WP-5.3 (Ziele-Tab): Fortschritts-Stufe des Bauprojekts
+   * (`city-goal-progress.ts`). Sie bestimmt die `color` — vorher kam die aus
+   * dem Sortier-Index und sagte über den Fortschritt nichts aus. Hier
+   * mitgeführt, damit die Application-Schicht den Stand für die Hysterese
+   * merken kann, ohne die Farbe rückwärts interpretieren zu müssen.
+   */
+  stage?: GoalProgressStage;
   /**
    * WP-D8 (Übersicht): Platzierungs-Gruppe auf der Platte. Ist sie bei
    * mindestens einem Distrikt gesetzt, layoutet `city-layout.ts` drei

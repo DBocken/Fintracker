@@ -17,7 +17,7 @@
  * keine `contractDecisions`-Query mehr (Etage = Händler, unabhängig von
  * einer Nutzer-Vertragsentscheidung).
  */
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { evaluateMilestones } from '@/services/milestones-service';
@@ -32,6 +32,7 @@ import { buildCityModelFromMilestones } from '../domain/city-goals-adapter';
 import { buildCityOverviewModel, type CityOverviewInfo } from '../domain/city-overview-adapter';
 import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import type { CityModel } from '../domain/city-model';
+import type { GoalProgressStage } from '../domain/city-goal-progress';
 import type { Category } from '@/types';
 
 /** Welt der Stadt — Ausgaben (Default), Einnahmen (WP-D5), Ziele (WP-D7) oder Übersicht (WP-D8, kombiniert beide Geld-Welten). Ausgaben/Einnahmen/Übersicht teilen dieselben Queries, Ziele nutzen die Meilenstein-Auswertung der Milestones-Seite (gleicher Query-Key, geteilter Cache). */
@@ -81,10 +82,21 @@ export function useCityModel(tab: CityModelTab = 'expenses'): UseCityModelResult
     return map;
   }, [categories]);
 
+  // WP-5.3: Zuletzt gezeigte Fortschritts-Stufe je Bauprojekt. Die Hysterese
+  // in `goalProgressStage` braucht diesen Vorzustand, damit ein Ziel, das um
+  // eine Schwelle pendelt, nicht bei jedem Datenrefresh die Farbe wechselt.
+  // Ein Ref (kein State): der Wert löst nie selbst ein Rendern aus, er
+  // beeinflusst nur die nächste Ableitung.
+  const goalStagesRef = useRef<Map<string, GoalProgressStage>>(new Map());
+
   const { model, overview } = useMemo(() => {
     if (tab === 'goals') {
       // Ziele-Welt (WP-D7): Bauprojekte aus der Meilenstein-Auswertung.
-      return { model: buildCityModelFromMilestones(milestones), overview: undefined };
+      const goalsModel = buildCityModelFromMilestones(milestones, goalStagesRef.current);
+      goalStagesRef.current = new Map(
+        goalsModel.districts.flatMap((district) => (district.stage ? [[district.id, district.stage]] : [])),
+      );
+      return { model: goalsModel, overview: undefined };
     }
     if (tab === 'income') {
       // Einnahmen-Welt (WP-D5): geteilte Strom-Ableitung (Income-Seite nutzt

@@ -260,6 +260,42 @@ nur sie kennt die Listenansicht als vollwertige Alternative auf dieselben
 Daten. Genau das ist der Grund, warum die Listenansicht kein Zugeständnis an
 die Barrierefreiheit allein ist, sondern der Rückfallweg für jeden Grafikausfall.
 
+## Zielfortschritt: Wachstum UND Farbe (WP-5.3)
+
+Der Balken eines Bauprojekts wuchs schon vorher datengetrieben — eine Änderung
+des Ist-Werts läuft als Höhen-Tween über den `applyLayout`-Diff, das Gebäude
+*wächst* also, statt aufzupoppen (`docs/design-principles.md`, Prinzip 2).
+
+Die zweite Hälfte derselben Aussage fehlte: die **Farbe** kam aus dem
+Sortier-Index (`GOAL_IN_PROGRESS_PALETTE[i]`). Ein Ziel bei 5 % und eines bei
+95 % sahen unterschiedlich aus — aber der Unterschied bedeutete nur „steht
+weiter oben in der Liste". Ein ganzer Wahrnehmungskanal lag auf einer
+Zufallsgröße, während der Fortschritt allein an der Füllhöhe hing.
+
+`domain/city-goal-progress.ts` ordnet den Fortschritts-Bruch jetzt einer Stufe
+zu, und die Stufe bestimmt die Farbe:
+
+| Stufe | ab | Farbe |
+|---|---|---|
+| `started` | 0 % | Blau |
+| `underway` | 33 % | Cyan |
+| `nearly` | 75 % | Violett |
+| `achieved` | 100 % (oder persistiert erreicht) | Gold |
+
+Zwei Ziele in derselben Stufe teilen sich bewusst eine Farbe: sie sagt
+**„wie weit"**, nicht „welches" — dafür gibt es Position und Label.
+
+**Hysterese** (`GOAL_STAGE_HYSTERESIS` = 0.04): Ein Ziel bei 74,9 %, das mit
+jeder Buchung die 75-%-Marke streift, würde sonst bei jedem Datenrefresh die
+Farbe wechseln — genau das Flackern, das Prinzip 2 mit „schwellwertbewusst"
+ausschließt. Sie wirkt **nur gegen das Zurückfallen**: wer die nächste Stufe
+erreicht, sieht es sofort. Eine Glättung, die den Moment verzögert, auf den
+das ganze Feature hinarbeitet, wäre der falsche Kompromiss.
+
+Den Vorzustand hält `use-city-model.ts` in einem Ref — der Adapter bleibt rein.
+Ein persistiert erreichtes Ziel wird nie zurückgestuft (Trophäe, kein Rückbau)
+— dieselbe Zusicherung, die der Balken schon gibt.
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)

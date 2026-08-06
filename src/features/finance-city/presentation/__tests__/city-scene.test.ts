@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { createCityScene, THEME_PALETTES, type CitySceneHandle } from '../city-scene';
 import { buildCityLayout, type CityLayout, type LayoutBox } from '../../domain/city-layout';
 import { cityDemoModel } from '../../data/city-demo-data';
+import type { CityModel } from '../../domain/city-model';
 
 /**
  * `city-scene.ts` ist reiner Szenengraph-Code (three.js braucht dafür KEINEN
@@ -369,6 +370,62 @@ describe('createCityScene', () => {
       expect(barMesh.scale.y).toBeCloseTo(barBox.size.y, 10);
       expect(barMesh.position.y).toBeCloseTo(barBox.size.y / 2, 10);
       expect(stillAnimating).toBe(false);
+    });
+
+    it('sollte fortgeschrittenen Zielfortschritt von der ALTEN Höhe aus wachsen lassen (WP-5.3)', () => {
+      // WP-5.3: „Gebäudewachstum bei Zielfortschritt" heißt nicht nur, dass
+      // ein neues Gebäude von 0 hochwächst (das prüft der Test darüber),
+      // sondern dass ein FORTSCHRITT am bestehenden Gebäude ebenfalls ein
+      // Wachstum ist — von der bisherigen Höhe auf die neue. Ein Sprung wäre
+      // genau das „Aufpoppen", das `docs/design-principles.md` Prinzip 2
+      // ausschließt: die Bewegung IST die Aussage „du bist weitergekommen".
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+
+      const goalModel = (amount: number): CityModel => ({
+        valueKind: 'progress',
+        districts: [
+          {
+            id: 'goal:puffer',
+            label: 'Puffer',
+            color: '#3b82f6',
+            total: amount,
+            targetAmount: 1,
+            subcategories: [{ id: 'progress', label: 'Puffer', amount }],
+          },
+        ],
+      });
+
+      const view = { level: 'district', focusDistrictId: 'goal:puffer' } as const;
+      handle.applyLayout(buildCityLayout(goalModel(0.4), view));
+      handle.advanceAnimations(0);
+      handle.advanceAnimations(10_000); // Erst-Aufbau abschließen.
+
+      const barBox = buildCityLayout(goalModel(0.4), view).boxes.find((b) => b.kind === 'bar')!;
+      const barMesh = meshesOf(scene).find((m) => m.userData.id === barBox.id)!;
+      const heightBefore = barMesh.scale.y;
+      expect(heightBefore).toBeGreaterThan(0);
+
+      // Fortschritt: 40 % -> 80 %.
+      const grownLayout = buildCityLayout(goalModel(0.8), view);
+      handle.applyLayout(grownLayout);
+      const grownBox = grownLayout.boxes.find((b) => b.kind === 'bar')!;
+
+      // Kein Sprung: unmittelbar nach applyLayout steht der Balken noch auf
+      // der alten Höhe und ist noch nicht am Ziel.
+      expect(barMesh.scale.y).toBeCloseTo(heightBefore, 10);
+      expect(barMesh.scale.y).toBeLessThan(grownBox.size.y);
+
+      handle.advanceAnimations(20_000);
+      handle.advanceAnimations(20_100);
+      // Mittendrin: echtes Wachstum zwischen alter und neuer Höhe.
+      expect(barMesh.scale.y).toBeGreaterThan(heightBefore);
+      expect(barMesh.scale.y).toBeLessThan(grownBox.size.y);
+      // Fußpunkt bleibt verankert (wächst nach oben, nicht aus der Mitte).
+      expect(barMesh.position.y).toBeCloseTo(barMesh.scale.y / 2, 10);
+
+      handle.advanceAnimations(30_000);
+      expect(barMesh.scale.y).toBeCloseTo(grownBox.size.y, 10);
     });
 
     it('[REGRESSION] sollte einen Balken bei erneutem applyLayout mit unveränderter Höhe (Refetch/Re-Render) fußpunkt-verankert auf der Bodenplatte lassen (nicht zur Balkenmitte absinken)', () => {
