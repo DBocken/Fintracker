@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Wallet, LineChart, CreditCard, HandCoins, Info, ChevronRight, Plus } from "lucide-react";
+import AssetVolume from "@/components/networth/AssetVolume";
 import PageHeader from "@/components/common/PageHeader";
 import StatHero from "@/components/common/StatHero";
 import { Badge } from "@/components/ui/badge";
@@ -92,22 +93,42 @@ function SourceRow({ title, subtitle, value, badge }: { title: string; subtitle?
   );
 }
 
-/** Kompakter Zusammensetzungsbalken: Anteile der Aktiva (Liquidität, Investitionen, Forderungen). */
-function CompositionBar({ data }: { data: NetWorthBreakdown }) {
-  const assets = data.cash + data.investments + data.receivables;
-  if (assets <= 0) return null;
-  const segments = [
-    { key: "cash", value: data.cash, className: "bg-brand" },
-    { key: "investments", value: data.investments, className: "bg-premium" },
-    { key: "receivables", value: data.receivables, className: "bg-positive" },
-  ].filter((s) => s.value > 0);
-
+/**
+ * WP-6.4: Zusammensetzung der Aktiva als Volumen statt als 2,5-px-Balken.
+ *
+ * Der Balken zeigte Anteile korrekt, aber keine Groessenordnung — ein
+ * Vermoegen aus 2.000 Euro und eines aus 200.000 Euro sahen identisch aus,
+ * solange die Aufteilung dieselbe war. Jeder Posten ist jetzt ein Kreis,
+ * dessen FLAECHE proportional zum Betrag ist.
+ */
+function CompositionVolume({ data }: { data: NetWorthBreakdown }) {
+  const { t } = useI18n();
   return (
-    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
-      {segments.map((s) => (
-        <div key={s.key} className={s.className} style={{ width: `${(s.value / assets) * 100}%` }} />
-      ))}
-    </div>
+    <AssetVolume
+      items={[
+        {
+          key: "cash",
+          value: data.cash,
+          label: t("netWorth.liquidity"),
+          colorClass: "bg-brand",
+          formattedValue: eur.format(data.cash),
+        },
+        {
+          key: "investments",
+          value: data.investments,
+          label: t("netWorth.investments"),
+          colorClass: "bg-premium",
+          formattedValue: eur.format(data.investments),
+        },
+        {
+          key: "receivables",
+          value: data.receivables,
+          label: t("netWorth.receivables"),
+          colorClass: "bg-positive",
+          formattedValue: eur.format(data.receivables),
+        },
+      ]}
+    />
   );
 }
 
@@ -161,7 +182,7 @@ export default function NetWorthPage() {
             tone={data.netWorth >= 0 ? "positive" : "warning"}
             caption={t("netWorth.composition")}
           >
-            <CompositionBar data={data} />
+            <CompositionVolume data={data} />
           </StatHero>
 
           {/* Antippbare Zeilen mit Detail-Sheets */}

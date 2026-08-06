@@ -1616,6 +1616,7 @@ export const translations = {
       debtFreeDescription: 'Du hast alle deine Schulden zurückgezahlt. Riesiger Meilenstein!',
     },
     netWorth: {
+      volumeShare: '{label}: {value} — {percent} % des Vermögens',
       title: 'Nettovermögen',
       description: 'Konten und Investitionen abzüglich deiner Schulden – dein wahres Vermögen.',
       netWorth: 'Nettovermögen',
@@ -6180,6 +6181,7 @@ export const translations = {
       debtFreeDescription: 'You have paid off all your debts. Huge milestone!',
     },
     netWorth: {
+      volumeShare: '{label}: {value} — {percent}% of net worth',
       title: 'Net worth',
       description: 'Accounts and investments minus your debts – your true wealth.',
       netWorth: 'Net worth',
@@ -10489,6 +10491,7 @@ export const translations = {
       debtFreeDescription: "DIlnISghachlIj Hoch bIDIlpu'. chav tInqu'!",
     },
     netWorth: {
+      volumeShare: "{label}: {value} — {percent}% Huch naQ",
       title: "Huch Hoch",
       description: "Huch patmey je boSghachmey, DIlnISghachlIj Hutlh — Huch Hochlij 'oH.",
       netWorth: "Huch Hoch",
@@ -14944,6 +14947,7 @@ export const translations = {
       debtFreeDescription: 'Вы погасили все свои долги. Огромное достижение!',
     },
     netWorth: {
+      volumeShare: '{label}: {value} — {percent}% состояния',
       title: 'Собственный капитал',
       description: 'Счета и инвестиции минус ваши долги – ваше истинное состояние.',
       netWorth: 'Собственный капитал',
