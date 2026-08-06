@@ -30,6 +30,8 @@ import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner"
 import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
+import { SignatureMoment } from "@/components/common/SignatureMoment";
+import { useDebtFreedom } from "@/hooks/useDebtFreedom";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
 import { CounselingBridgeCard } from "@/components/debts/CounselingBridgeCard";
 import { SchufaSelfCheckCard } from "@/components/debts/SchufaSelfCheckCard";
@@ -163,6 +165,12 @@ export default function DebtsPage() {
   });
 
   const totalDebt = getTotalDebt(debts);
+
+  // WP-7.4: Der Erfolgsmoment erscheint genau einmal je Schuldenfreiheit — und
+  // NICHT bei jemandem, der nie Schulden erfasst hat (dort waere er albern bis
+  // verletzend). `isLoading` sperrt den Fehlalarm ab, waehrend die Summe noch
+  // 0 ist, weil die Daten fehlen.
+  const celebrateDebtFreedom = useDebtFreedom(totalDebt, isLoading);
 
   const totalMin = getTotalMinPayment(debts);
 
@@ -325,6 +333,15 @@ export default function DebtsPage() {
         />
       ) : (
         <div className="space-y-6">
+          {celebrateDebtFreedom && (
+            <SignatureMoment
+              title={t('debts.debtsPage.debtFreeTitle')}
+              icon="🕊️"
+              subtitle={t('debts.debtsPage.debtFreeSubtitle')}
+              variant="large"
+            />
+          )}
+
           {/* Reine Kennzahlen ohne Follow-up → gebündeltes Readout statt Karten
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip

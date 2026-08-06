@@ -43,6 +43,16 @@ export default defineConfig({
     // Umgebungen mit vorinstalliertem Chromium (z. B. Remote-Runner ohne
     // Download-Erlaubnis) geben das Binary hierüber vor; ohne die Variable
     // gilt die normale Playwright-Browser-Auflösung.
+    //
+    // ACHTUNG bei Visual-Baselines: Diese Variable darf NICHT gesetzt sein,
+    // wenn Snapshots erzeugt werden. Ein vorinstalliertes Chromium ist in
+    // aller Regel eine andere Version als die, die `@playwright/test` selbst
+    // mitbringt — und andere Font-Metriken bedeuten anderen Textumbruch und
+    // damit andere Seitenhöhen. Genau das ist hier passiert: lokal
+    // Chromium 141, in CI 151; die 375-px-Snapshots von Dashboard und Budgets
+    // wichen daraufhin um mehr als die erlaubten 5 % ab, obwohl sich am Code
+    // nichts geändert hatte. Die Baselines gehören zum Playwright-eigenen
+    // Browser — dem, den der CI-Job über `playwright install` bezieht.
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
       : {},

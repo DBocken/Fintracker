@@ -1442,6 +1442,8 @@ export const translations = {
         detailsAriaLabel: 'Details zu {name}',
       },
       debtsPage: {
+        debtFreeTitle: 'Schuldenfrei',
+        debtFreeSubtitle: 'Deine letzte Schuld ist getilgt. Was bisher in Raten ging, gehört ab jetzt dir.',
         scanLetters: 'Briefe scannen',
         emptyTitle: 'Noch keine Schulden erfasst',
         emptyDescription: 'Erfasse Kreditkarten, Klarna, Ratenkäufe & Co., damit dein Coach dir beim Abbau helfen kann.',
@@ -6004,6 +6006,8 @@ export const translations = {
         detailsAriaLabel: 'Details for {name}',
       },
       debtsPage: {
+        debtFreeTitle: 'Debt-free',
+        debtFreeSubtitle: 'Your last debt is paid off. What used to go into instalments is yours from now on.',
         scanLetters: 'Scan letters',
         emptyTitle: 'No debts recorded yet',
         emptyDescription: 'Add credit cards, Klarna, installment purchases & more, so your coach can help you pay them down.',
@@ -10315,6 +10319,8 @@ export const translations = {
         detailsAriaLabel: "{name} De'",
       },
       debtsPage: {
+        debtFreeTitle: "Huch bIH'be'",
+        debtFreeSubtitle: "Huch Qav DaDIlta'. DaH SoHvaD chaq Huch.",
         scanLetters: "ngeHmey yIlegh",
         emptyTitle: "SubmeH Huch ghItlhlu'pu' pagh, DaH",
         emptyDescription: "credit card, Klarna, jar DIl je yIchel, vaj qeqwI'lI' Sub DilmeH QaH laH.",
@@ -14764,6 +14770,8 @@ export const translations = {
         detailsAriaLabel: 'Подробности для {name}',
       },
       debtsPage: {
+        debtFreeTitle: 'Без долгов',
+        debtFreeSubtitle: 'Последний долг погашен. То, что уходило на платежи, теперь ваше.',
         scanLetters: 'Сканировать письма',
         emptyTitle: 'Долги пока не зафиксированы',
         emptyDescription: 'Добавьте кредитные карты, Klarna, покупки в рассрочку и другое, чтобы коуч мог помочь вам их погасить.',
