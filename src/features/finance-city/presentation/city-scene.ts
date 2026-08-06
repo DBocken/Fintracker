@@ -49,6 +49,7 @@ import * as THREE from 'three';
 import type { CityLayout, LayoutBox, LayoutBoxKind } from '../domain/city-layout';
 import type { Vec3 } from '../domain/city-model';
 import { easeInOutCubic } from '../domain/camera-math';
+import { deriveCityQuality, type CityQualitySettings } from '../domain/city-quality';
 import { MOTION_DURATIONS } from '@/lib/motion-tokens';
 
 export type CityCameraPose = { position: Vec3; target: Vec3 };
@@ -130,6 +131,14 @@ export type CreateCitySceneOptions = {
   canvas: HTMLCanvasElement;
   /** Tests injizieren einen Fake-Renderer (setSize/render/dispose/domElement-Stubs), damit der Szenengraph ohne echten WebGL-Kontext (jsdom) testbar bleibt. */
   createRenderer?: (canvas: HTMLCanvasElement) => THREE.WebGLRenderer;
+  /**
+   * WP-5.6: Qualitätsstufe. Fehlt sie, läuft die Szene unverändert auf der
+   * höchsten Stufe — alle Aufrufer und Tests von vor WP-5.6 verhalten sich
+   * damit exakt wie zuvor. `CityCanvas` leitet sie aus dem Gerät ab
+   * (`domain/city-quality.ts`) und stuft bei anhaltend niedriger Bildrate
+   * herunter.
+   */
+  quality?: CityQualitySettings;
 };
 
 /** Vertikales FOV der Stadt-Kamera — von `CityCanvas`/`CityPage` für `fitCameraDistance` wiederverwendet, damit Kamera-FOV und Distanz-Mathematik nie auseinanderlaufen. */
@@ -404,6 +413,13 @@ function renderOrderFor(kind: LayoutBoxKind): number {
 export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const { canvas } = opts;
 
+  // WP-5.6: Ohne Angabe die höchste Stufe — der Zustand vor WP-5.6. Die Stufe
+  // wird bei der Erstellung EINMAL ausgewertet und danach nicht mehr geändert:
+  // ein Stufenwechsel zur Laufzeit hieße Materialien/Texturen austauschen,
+  // während Tweens laufen (Invariante 2 im Kopf dieser Datei). `CityCanvas`
+  // baut die Szene beim Herunterstufen deshalb neu auf, statt sie zu mutieren.
+  const quality = opts.quality ?? deriveCityQuality({ devicePixelRatio: 2, viewportWidth: 1920 }, 'high');
+
   let theme: CityTheme = initialTheme();
   let palette = THEME_PALETTES[theme];
   /** Horizontton des aktiven Themes — Fog-Farbe (WP-E1: der Stadtrand löst sich im Himmel-Horizontband auf statt gegen eine flache Wand aus Farbe). */
@@ -420,8 +436,12 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     dark: createGroundTexture('dark'),
     light: createGroundTexture('light'),
   };
-  const facadeTexture = createFacadeTexture(); // theme-tolerant (Graustufen-Albedo), kein Swap nötig.
-  const contactShadowTexture = createContactShadowTexture(); // theme-tolerant (Alpha-Matte), kein Swap nötig.
+  // WP-5.6: Auf sparsamen Stufen gar nicht erst erzeugen — `null` ist hier
+  // bereits der etablierte Weg (jsdom ohne 2D-Kontext), der Rest der Datei
+  // degradiert darauf still auf un-texturierte Materialien bzw. keine
+  // Schatten-Ebenen. Kein zweiter Sonderfall nötig.
+  const facadeTexture = quality.facadeTexture ? createFacadeTexture() : null; // theme-tolerant (Graustufen-Albedo), kein Swap nötig.
+  const contactShadowTexture = quality.contactShadows ? createContactShadowTexture() : null; // theme-tolerant (Alpha-Matte), kein Swap nötig.
 
   const scene = new THREE.Scene();
   scene.background = skyTextures[theme] ?? new THREE.Color(horizonColor);
@@ -448,23 +468,24 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   // modelliert die dem Hauptlicht abgewandten Baukörper-Kanten (mehr Tiefe),
   // bewusst OHNE Schatten-Maps (README-Akzeptanzkriterium: Render-on-Demand/
   // Akku). Fester, themenneutraler Stil-Wert wie `EDGE_OPACITY`.
-  const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
-  rimLight.position.set(-8, 10, -10);
-  scene.add(rimLight);
+  // WP-5.6: Eine dritte Lichtquelle kostet Fragment-Last auf JEDEM Material —
+  // der erste Effekt, der beim Sparen fällt.
+  if (quality.rimLight) {
+    const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
+    rimLight.position.set(-8, 10, -10);
+    scene.add(rimLight);
+  }
 
-  // DPR bei Renderer-Erstellung: Antialiasing nur, wenn der (gedeckelte)
-  // Device-Pixel-Ratio niedrig genug ist (hohe DPR + MSAA verdoppelt die
-  // Fragment-Last unnötig, das eigentliche Downsampling durch die Pixeldichte
-  // übernimmt dort schon einen Teil der Kantenglättung).
-  const initialDpr =
-    typeof window !== 'undefined' && typeof window.devicePixelRatio === 'number'
-      ? Math.min(window.devicePixelRatio, 2)
-      : 1;
+  // Antialiasing nur, wenn der (gedeckelte) Device-Pixel-Ratio niedrig genug
+  // ist — hohe DPR + MSAA verdoppelt die Fragment-Last unnötig, das
+  // Downsampling durch die Pixeldichte übernimmt dort schon einen Teil der
+  // Kantenglättung. Seit WP-5.6 entscheidet das die Qualitätsstufe, die genau
+  // diese Regel enthält (`city-quality.ts#ANTIALIAS_MAX_PIXEL_RATIO`).
   const renderer =
     opts.createRenderer?.(canvas) ??
     new THREE.WebGLRenderer({
       canvas,
-      antialias: initialDpr <= 1.5,
+      antialias: quality.antialias,
       alpha: false,
       // 'high-performance': die Stadt ist eine dedizierte 3D-Vollflächen-
       // Ansicht — auf Dual-GPU-Geräten soll der schnelle Chip ran. Den
@@ -569,7 +590,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
    * wird. KEINE Ambient-/Idle-Animation — die Tweens laufen im bestehenden
    * Render-on-Demand-Loop und enden dort.
    */
-  const BUILD_STAGGER_MS = 50;
+  // WP-5.6: Auf der sparsamsten Stufe 0 — die Kaskade selbst ist billig, aber
+  // sie verlängert die Zeitspanne, in der GERENDERT wird (jeder Tween-Frame
+  // ist ein Frame). Auf einem Gerät, das schon am Limit läuft, ist das genau
+  // die Zeit, in der es sichtbar ruckelt.
+  const BUILD_STAGGER_MS = quality.buildCascade ? 50 : 0;
 
   type HeightTween = {
     /** `null` = noch nicht getickt — der ERSTE `advanceAnimations`-Aufruf danach definiert `t=0` (wie `city-camera-controller.ts#tick`), zzgl. `staggerIndex × BUILD_STAGGER_MS` (WP-E1-Kaskade). */
@@ -847,7 +872,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       }
 
       let edgeLine = edgesById.get(box.id);
-      if (box.edges) {
+      // WP-5.6: Kantenlinien sind ein zusätzlicher Draw-Call JE Box — auf der
+      // sparsamsten Stufe der größte Posten bei vielen Baukörpern.
+      if (box.edges && quality.edges) {
         if (!edgeLine) {
           edgeLine = new THREE.LineSegments(sharedEdgesGeometry, getEdgeMaterial(box.color));
           scene.add(edgeLine);
@@ -1066,7 +1093,10 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   function setSize(width: number, height: number, dpr: number): void {
     if (width <= 0 || height <= 0) return; // ResizeObserver kann während Layout-Übergängen kurzzeitig 0 liefern.
-    renderer.setPixelRatio(dpr);
+    // WP-5.6: Die Stufe ist eine Obergrenze, kein Vorschlag — nach unten darf
+    // der Aufrufer (FPS-Kaskade in `CityCanvas`) weiter nachjustieren, nach
+    // oben nicht. Sonst hinge die Zusicherung an genau einem Aufrufer.
+    renderer.setPixelRatio(Math.min(dpr, quality.maxPixelRatio));
     renderer.setSize(width, height, false); // false: kein CSS-Style-Override — der Container steuert die Canvas-Größe.
     camera.aspect = width / height;
     camera.updateProjectionMatrix();

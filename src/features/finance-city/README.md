@@ -187,6 +187,45 @@ DPR-Cap unverändert). Alle Texturen sind prozedurale Canvas-Texturen
 - **Licht**: Key-Light warm (`dirColor` je Theme), Rim-Light bleibt kühl —
   bessere Modellierung der Box-Flächen ohne Mehrkosten.
 
+## Qualitätsstufen (WP-5.6)
+
+Die Stadt lief bis WP-5.6 auf jedem Gerät mit demselben Effektumfang; die
+einzige Anpassung war die FPS-getriebene DPR-Kaskade in `CityCanvas`. Die
+greift aber erst, **nachdem** der Nutzer das Ruckeln gesehen hat — auf einem
+schwachen Telefon war der erste Eindruck damit systematisch der schlechteste.
+
+`domain/city-quality.ts` leitet die Stufe deshalb **vor dem ersten Frame** aus
+dem Geräteprofil ab (`deriveCityQuality`). Rein und browserfrei nach der
+Architekturtabelle oben: `CityCanvas.readDeviceProfile()` liest
+`window`/`navigator`, die Domain bekommt nur das fertige Profil — genau deshalb
+ist die Ableitung ohne DOM testbar.
+
+| Stufe | Wann | DPR | Kontaktschatten | Fassadentextur | Gegenlicht | Kanten | Aufbau-Kaskade |
+|---|---|---|---|---|---|---|---|
+| `high` | Desktop | ≤ 2 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `balanced` | Telefon (`pointer: coarse` + < 768 px) | ≤ 1.5 | ✅ | ✅ | — | ✅ | ✅ |
+| `lean` | ≤ 4 Kerne, ≤ 2 GB, oder `saveData` | 1 | — | — | — | — | — |
+
+Drei Eigenschaften sind verbindlich und testgesichert:
+
+- **Monotonie.** Was auf einer sparsameren Stufe aus ist, ist auf jeder noch
+  sparsameren ebenfalls aus. Sonst wäre „eine Stufe runter" keine verlässliche
+  Entlastung (`city-quality.test.ts`).
+- **Gleiche Daten.** Sparen kostet Effekte, nie Baukörper — jede
+  Unterkategorie bleibt auf jeder Stufe ein Gebäude
+  (`[REGRESSION]` in `city-scene-quality.test.ts`).
+- **Deckel statt Vorschlag.** `setSize` kappt einen zu hohen DPR selbst; die
+  FPS-Kaskade darf weiter nach unten nachjustieren, nach oben nicht.
+
+Die Stufe wird **einmal beim Mount** ausgewertet. Ein Wechsel zur Laufzeit
+hieße, Materialien und Texturen auszutauschen, während Höhen-Tweens laufen
+(Invariante 2 im Kopf von `city-scene.ts`) — die reaktive Nachsteuerung bleibt
+deshalb allein bei der DPR-Kaskade, die ohne Szenen-Umbau auskommt.
+
+Die Straßentextur des Bodens bleibt auf **allen** Stufen: eine Textur auf einem
+Material, kein Overdraw — und ohne sie steht die Stadt auf einer leeren grauen
+Platte statt an einem Ort (WP-E1-Ziel).
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)

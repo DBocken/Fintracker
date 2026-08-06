@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCityScene, type CitySceneHandle } from './city-scene';
 import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
+import { deriveCityQuality, type CityDeviceProfile } from '../domain/city-quality';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { isDarkMode, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 
@@ -80,10 +81,44 @@ const FPS_MIN_SAMPLES = 10;
 const TAP_MAX_DISTANCE_PX = 8;
 const TAP_MAX_DURATION_MS = 300;
 
-function initialDprStepIndex(): number {
-  const capped = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-  const index = DPR_STEPS.findIndex((step) => step <= capped);
+/**
+ * WP-5.6: Die Kaskade startet auf dem Deckel der Qualitätsstufe statt immer bei
+ * `min(devicePixelRatio, 2)`. Vorher fiel sie erst NACH gemessenem Ruckeln —
+ * auf einem schwachen Telefon war der erste Eindruck der Stadt damit
+ * systematisch der schlechteste.
+ */
+function initialDprStepIndex(maxPixelRatio: number): number {
+  const index = DPR_STEPS.findIndex((step) => step <= maxPixelRatio);
   return index === -1 ? DPR_STEPS.length - 1 : index;
+}
+
+/**
+ * Liest die Geräte-Signale für `deriveCityQuality`. Bewusst HIER und nicht in
+ * der Domain: `window`/`navigator` sind Browser-APIs, die Architekturtabelle in
+ * `../README.md` hält `domain/` davon frei — genau deshalb ist die Ableitung
+ * selbst ohne DOM testbar.
+ *
+ * `deviceMemory` und `connection` sind nicht standardisiert verfügbar (Safari
+ * und Firefox liefern beide nicht); fehlende Werte bleiben `undefined` und
+ * werden von `deriveCityQuality` ausdrücklich NICHT als „schwach" gewertet.
+ */
+function readDeviceProfile(): CityDeviceProfile {
+  if (typeof window === 'undefined') return { devicePixelRatio: 1, viewportWidth: 1920 };
+
+  const nav = window.navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { saveData?: boolean };
+  };
+
+  return {
+    devicePixelRatio: window.devicePixelRatio || 1,
+    viewportWidth: window.innerWidth,
+    hardwareConcurrency: nav.hardwareConcurrency,
+    deviceMemoryGb: nav.deviceMemory,
+    coarsePointer:
+      typeof window.matchMedia === 'function' ? window.matchMedia('(pointer: coarse)').matches : undefined,
+    saveData: nav.connection?.saveData,
+  };
 }
 
 /**
@@ -138,9 +173,16 @@ export function CityCanvas({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
+    // WP-5.6: EINMAL beim Mount ableiten. Ein Stufenwechsel zur Laufzeit hieße,
+    // Materialien und Texturen auszutauschen, während Höhen-Tweens laufen
+    // (Invariante 2 im Kopf von `city-scene.ts`) — die reaktive Nachsteuerung
+    // übernimmt deshalb weiterhin allein die DPR-Kaskade unten, die ohne
+    // Szenen-Umbau auskommt.
+    const quality = deriveCityQuality(readDeviceProfile());
+
     let handle: CitySceneHandle;
     try {
-      handle = createCityScene({ canvas });
+      handle = createCityScene({ canvas, quality });
     } catch (error) {
       // jsdom-Guard / echte Grafiktreiber-Fehler: leerer Fallback-Container
       // statt eines geworfenen Fehlers, der die ganze Seite abreißt.
@@ -202,7 +244,7 @@ export function CityCanvas({
     let needsRender = true;
     let isInteracting = false;
     const fpsSamples: number[] = [];
-    let dprStepIndex = initialDprStepIndex();
+    let dprStepIndex = initialDprStepIndex(quality.maxPixelRatio);
     let lastWidth = 0;
     let lastHeight = 0;
 
