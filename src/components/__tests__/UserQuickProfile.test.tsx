@@ -19,13 +19,13 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 
 import UserQuickProfile from "@/components/UserQuickProfile";
 
-function renderProfile() {
+function renderProfile(locale: "de" | "en" = "de") {
   // Der zusammengeführte Profil-Dialog lädt Einstellungen (Theme/Sanfter Modus)
   // über React Query → QueryClientProvider ist Pflicht.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <I18nProvider initialLocale="de">
+      <I18nProvider initialLocale={locale}>
         <MemoryRouter>
           <UserQuickProfile />
         </MemoryRouter>
@@ -45,6 +45,27 @@ describe("UserQuickProfile (zusammengeführtes Profil)", () => {
 
       const link = await screen.findByRole("link", { name: /Einstellungen|Settings/i });
       expect(link).toHaveAttribute("href", "/settings");
+    });
+  });
+
+  describe("Sanfter-Modus-Schalter", () => {
+    // Gleiche Fehlerklasse wie die axe-critical `button-name`-Befunde aus dem
+    // WP-4.6-Gate: Radix-Switch ohne zugänglichen Namen, Nachbartext nicht
+    // programmatisch verknüpft.
+    it("[REGRESSION] sollte den Sanfter-Modus-Schalter zugänglich benennen (Deutsch)", async () => {
+      renderProfile("de");
+
+      fireEvent.click(screen.getByRole("button", { name: "Profil öffnen" }));
+
+      expect(await screen.findByRole("switch", { name: "Sanfter Modus" })).toBeInTheDocument();
+    });
+
+    it("[REGRESSION] sollte den Sanfter-Modus-Schalter zugänglich benennen (Englisch)", async () => {
+      renderProfile("en");
+
+      fireEvent.click(screen.getByRole("button", { name: "Open profile" }));
+
+      expect(await screen.findByRole("switch", { name: "Gentle mode" })).toBeInTheDocument();
     });
   });
 

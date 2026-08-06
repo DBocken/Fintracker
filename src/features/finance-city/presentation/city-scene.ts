@@ -49,6 +49,9 @@ import * as THREE from 'three';
 import type { CityLayout, LayoutBox, LayoutBoxKind } from '../domain/city-layout';
 import type { Vec3 } from '../domain/city-model';
 import { easeInOutCubic } from '../domain/camera-math';
+import { deriveCityQuality, type CityQualitySettings } from '../domain/city-quality';
+import type { CityFlowLine } from '../domain/city-flow-lines';
+import type { CityActivityLevel } from '../domain/city-activity';
 import { MOTION_DURATIONS } from '@/lib/motion-tokens';
 
 export type CityCameraPose = { position: Vec3; target: Vec3 };
@@ -97,6 +100,12 @@ export type CitySceneHandle = {
    * demselben Material-Schlüssel mit). Aufrufer muss danach einen Frame
    * anfordern (`invalidate`) — diese Methode rendert nicht selbst.
    */
+  /**
+   * WP-5.1: Flusslinien für wiederkehrende Zahlungen (`domain/city-flow-lines.ts`).
+   * Leere Liste räumt sie ab. Auf Stufen ohne `quality.flowLines` ein No-op —
+   * die Aufrufer brauchen dafür keine Fallunterscheidung.
+   */
+  applyFlowLines(lines: CityFlowLine[]): void;
   setHighlight(id: string | null): void;
   setSize(width: number, height: number, dpr: number): void;
   /** Erst ab WP-C4 mit echten Werten befüllt — hier no-op-fähig (near/far nicht endlich → Fog aus). */
@@ -130,6 +139,14 @@ export type CreateCitySceneOptions = {
   canvas: HTMLCanvasElement;
   /** Tests injizieren einen Fake-Renderer (setSize/render/dispose/domElement-Stubs), damit der Szenengraph ohne echten WebGL-Kontext (jsdom) testbar bleibt. */
   createRenderer?: (canvas: HTMLCanvasElement) => THREE.WebGLRenderer;
+  /**
+   * WP-5.6: Qualitätsstufe. Fehlt sie, läuft die Szene unverändert auf der
+   * höchsten Stufe — alle Aufrufer und Tests von vor WP-5.6 verhalten sich
+   * damit exakt wie zuvor. `CityCanvas` leitet sie aus dem Gerät ab
+   * (`domain/city-quality.ts`) und stuft bei anhaltend niedriger Bildrate
+   * herunter.
+   */
+  quality?: CityQualitySettings;
 };
 
 /** Vertikales FOV der Stadt-Kamera — von `CityCanvas`/`CityPage` für `fitCameraDistance` wiederverwendet, damit Kamera-FOV und Distanz-Mathematik nie auseinanderlaufen. */
@@ -297,8 +314,20 @@ const FACADE_AO_FADE_HEIGHT_RATIO = 0.55;
 const FACADE_WINDOW_COLS = 6;
 const FACADE_WINDOW_ROWS = 12;
 const FACADE_WINDOW_ALPHA = 0.07;
+/**
+ * WP-5.4: Fenster-Dichte und -Deutlichkeit je Aktivitätsstufe.
+ * `fillEvery: 1` = jede Zelle trägt ein Fenster (das bisherige Verhalten),
+ * höhere Werte lassen entsprechend Zellen aus. `steady` ist bewusst identisch
+ * zum Zustand vor WP-5.4 — die mittlere Stufe ist der Bezugspunkt, nach oben
+ * und unten wird abgewichen.
+ */
+const FACADE_WINDOW_ACTIVITY: Record<CityActivityLevel, { alpha: number; fillEvery: number }> = {
+  quiet: { alpha: FACADE_WINDOW_ALPHA * 0.6, fillEvery: 3 },
+  steady: { alpha: FACADE_WINDOW_ALPHA, fillEvery: 1 },
+  busy: { alpha: FACADE_WINDOW_ALPHA * 1.8, fillEvery: 1 },
+};
 
-function createFacadeTexture(): THREE.CanvasTexture | null {
+function createFacadeTexture(activity: CityActivityLevel = 'steady'): THREE.CanvasTexture | null {
   const target = createCanvas2d(FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
   if (!target) return null;
   const { canvas, ctx } = target;
@@ -319,11 +348,23 @@ function createFacadeTexture(): THREE.CanvasTexture | null {
   ctx.fillStyle = ao;
   ctx.fillRect(0, 0, FACADE_TEXTURE_SIZE, FACADE_TEXTURE_SIZE);
 
+  // WP-5.4: Das Fenster-Raster ist datengetrieben statt dekorativ. Ein
+  // belebtes Gebäude (viele Buchungen pro Monat) bekommt mehr und deutlichere
+  // Fenster als eines mit einer einzigen Zahlung im Jahr — der Kanal zeigt
+  // damit, was die HÖHE nicht kann: ob ein Betrag aus EINER großen Zahlung
+  // besteht oder aus vielen kleinen.
+  //
+  // Der Rasterdurchmesser bleibt derselbe; variiert wird, WIE VIELE Zellen ein
+  // Fenster tragen (deterministisch nach einem festen Muster, nicht zufällig —
+  // sonst flackerte die Fassade bei jedem Texturaufbau) und wie deutlich sie
+  // sind. So bleibt es EINE Textur je Stufe statt einer je Gebäude.
+  const { alpha, fillEvery } = FACADE_WINDOW_ACTIVITY[activity];
   const cellW = FACADE_TEXTURE_SIZE / FACADE_WINDOW_COLS;
   const cellH = FACADE_TEXTURE_SIZE / FACADE_WINDOW_ROWS;
-  ctx.fillStyle = `rgba(0,0,0,${FACADE_WINDOW_ALPHA})`;
+  ctx.fillStyle = `rgba(0,0,0,${alpha})`;
   for (let row = 0; row < FACADE_WINDOW_ROWS; row += 1) {
     for (let col = 0; col < FACADE_WINDOW_COLS; col += 1) {
+      if ((row * FACADE_WINDOW_COLS + col) % fillEvery !== 0) continue;
       ctx.fillRect(col * cellW + cellW * 0.25, row * cellH + cellH * 0.3, cellW * 0.5, cellH * 0.45);
     }
   }
@@ -404,6 +445,13 @@ function renderOrderFor(kind: LayoutBoxKind): number {
 export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   const { canvas } = opts;
 
+  // WP-5.6: Ohne Angabe die höchste Stufe — der Zustand vor WP-5.6. Die Stufe
+  // wird bei der Erstellung EINMAL ausgewertet und danach nicht mehr geändert:
+  // ein Stufenwechsel zur Laufzeit hieße Materialien/Texturen austauschen,
+  // während Tweens laufen (Invariante 2 im Kopf dieser Datei). `CityCanvas`
+  // baut die Szene beim Herunterstufen deshalb neu auf, statt sie zu mutieren.
+  const quality = opts.quality ?? deriveCityQuality({ devicePixelRatio: 2, viewportWidth: 1920 }, 'high');
+
   let theme: CityTheme = initialTheme();
   let palette = THEME_PALETTES[theme];
   /** Horizontton des aktiven Themes — Fog-Farbe (WP-E1: der Stadtrand löst sich im Himmel-Horizontband auf statt gegen eine flache Wand aus Farbe). */
@@ -420,8 +468,16 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     dark: createGroundTexture('dark'),
     light: createGroundTexture('light'),
   };
-  const facadeTexture = createFacadeTexture(); // theme-tolerant (Graustufen-Albedo), kein Swap nötig.
-  const contactShadowTexture = createContactShadowTexture(); // theme-tolerant (Alpha-Matte), kein Swap nötig.
+  // WP-5.6: Auf sparsamen Stufen gar nicht erst erzeugen — `null` ist hier
+  // bereits der etablierte Weg (jsdom ohne 2D-Kontext), der Rest der Datei
+  // degradiert darauf still auf un-texturierte Materialien bzw. keine
+  // Schatten-Ebenen. Kein zweiter Sonderfall nötig.
+  // WP-5.4: EINE Textur je Aktivitätsstufe (drei), nicht eine je Gebäude —
+  // theme-tolerant (Graustufen-Albedo), kein Swap bei Theme-Wechsel nötig.
+  const facadeTextures: Record<CityActivityLevel, THREE.CanvasTexture | null> = quality.facadeTexture
+    ? { quiet: createFacadeTexture('quiet'), steady: createFacadeTexture('steady'), busy: createFacadeTexture('busy') }
+    : { quiet: null, steady: null, busy: null };
+  const contactShadowTexture = quality.contactShadows ? createContactShadowTexture() : null; // theme-tolerant (Alpha-Matte), kein Swap nötig.
 
   const scene = new THREE.Scene();
   scene.background = skyTextures[theme] ?? new THREE.Color(horizonColor);
@@ -448,23 +504,24 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
   // modelliert die dem Hauptlicht abgewandten Baukörper-Kanten (mehr Tiefe),
   // bewusst OHNE Schatten-Maps (README-Akzeptanzkriterium: Render-on-Demand/
   // Akku). Fester, themenneutraler Stil-Wert wie `EDGE_OPACITY`.
-  const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
-  rimLight.position.set(-8, 10, -10);
-  scene.add(rimLight);
+  // WP-5.6: Eine dritte Lichtquelle kostet Fragment-Last auf JEDEM Material —
+  // der erste Effekt, der beim Sparen fällt.
+  if (quality.rimLight) {
+    const rimLight = new THREE.DirectionalLight(0xbfd8ff, 0.35);
+    rimLight.position.set(-8, 10, -10);
+    scene.add(rimLight);
+  }
 
-  // DPR bei Renderer-Erstellung: Antialiasing nur, wenn der (gedeckelte)
-  // Device-Pixel-Ratio niedrig genug ist (hohe DPR + MSAA verdoppelt die
-  // Fragment-Last unnötig, das eigentliche Downsampling durch die Pixeldichte
-  // übernimmt dort schon einen Teil der Kantenglättung).
-  const initialDpr =
-    typeof window !== 'undefined' && typeof window.devicePixelRatio === 'number'
-      ? Math.min(window.devicePixelRatio, 2)
-      : 1;
+  // Antialiasing nur, wenn der (gedeckelte) Device-Pixel-Ratio niedrig genug
+  // ist — hohe DPR + MSAA verdoppelt die Fragment-Last unnötig, das
+  // Downsampling durch die Pixeldichte übernimmt dort schon einen Teil der
+  // Kantenglättung. Seit WP-5.6 entscheidet das die Qualitätsstufe, die genau
+  // diese Regel enthält (`city-quality.ts#ANTIALIAS_MAX_PIXEL_RATIO`).
   const renderer =
     opts.createRenderer?.(canvas) ??
     new THREE.WebGLRenderer({
       canvas,
-      antialias: initialDpr <= 1.5,
+      antialias: quality.antialias,
       alpha: false,
       // 'high-performance': die Stadt ist eine dedizierte 3D-Vollflächen-
       // Ansicht — auf Dual-GPU-Geräten soll der schnelle Chip ran. Den
@@ -569,7 +626,11 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
    * wird. KEINE Ambient-/Idle-Animation — die Tweens laufen im bestehenden
    * Render-on-Demand-Loop und enden dort.
    */
-  const BUILD_STAGGER_MS = 50;
+  // WP-5.6: Auf der sparsamsten Stufe 0 — die Kaskade selbst ist billig, aber
+  // sie verlängert die Zeitspanne, in der GERENDERT wird (jeder Tween-Frame
+  // ist ein Frame). Auf einem Gerät, das schon am Limit läuft, ist das genau
+  // die Zeit, in der es sichtbar ruckelt.
+  const BUILD_STAGGER_MS = quality.buildCascade ? 50 : 0;
 
   type HeightTween = {
     /** `null` = noch nicht getickt — der ERSTE `advanceAnimations`-Aufruf danach definiert `t=0` (wie `city-camera-controller.ts#tick`), zzgl. `staggerIndex × BUILD_STAGGER_MS` (WP-E1-Kaskade). */
@@ -614,7 +675,12 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // bleibt erhalten. Die Textur-Art ist Teil des Registry-Schlüssels, damit
     // Boden und ein zufällig gleichfarbiger Balken nie dieselbe Instanz
     // teilen (und `setTheme` gezielt NUR Boden-Materialien ummappen kann).
-    const textureKey = box.kind === 'ground' ? 'ground' : bucket === 'solid' ? 'facade' : 'none';
+    // WP-5.4: Die Aktivitätsstufe gehört in den Schlüssel — sonst teilten sich
+    // ein ruhiges und ein belebtes Gebäude derselben Farbe eine Materialinstanz
+    // und damit dieselbe Fassade.
+    const activity = box.activity ?? 'steady';
+    const textureKey =
+      box.kind === 'ground' ? 'ground' : bucket === 'solid' ? `facade:${activity}` : 'none';
     const key = `${box.color}|${box.opacity}|${bucket}|${textureKey}`;
     const cached = materialRegistry.get(key);
     if (cached) return cached;
@@ -629,7 +695,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
           })
         : new THREE.MeshLambertMaterial({
             color: box.color,
-            map: box.kind === 'ground' ? groundTextures[theme] : facadeTexture,
+            map: box.kind === 'ground' ? groundTextures[theme] : facadeTextures[activity],
             // WP-D6: Eigenleuchten in der Boxfarbe (siehe SOLID_EMISSIVE_INTENSITY)
             // — das Hover-Highlight (`setHighlight`) glüht dagegen WEISS und
             // bleibt dadurch klar unterscheidbar.
@@ -847,7 +913,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
       }
 
       let edgeLine = edgesById.get(box.id);
-      if (box.edges) {
+      // WP-5.6: Kantenlinien sind ein zusätzlicher Draw-Call JE Box — auf der
+      // sparsamsten Stufe der größte Posten bei vielen Baukörpern.
+      if (box.edges && quality.edges) {
         if (!edgeLine) {
           edgeLine = new THREE.LineSegments(sharedEdgesGeometry, getEdgeMaterial(box.color));
           scene.add(edgeLine);
@@ -1020,6 +1088,67 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     highlightMaterial = null;
   }
 
+  // --- WP-5.1: Flusslinien -------------------------------------------------
+  // Eine `THREE.Line` je Linie, Deckkraft nach Anteil. Statisch: KEINE
+  // „fließende" Animation — die liefe endlos und widerspräche der
+  // Render-on-Demand-Vorgabe (README), ohne eine einzige zusätzliche Zahl zu
+  // zeigen. Lebenszyklus wie bei den Boxen: Diff über die id, `dispose()`
+  // räumt komplett ab.
+  const flowLinesById = new Map<string, THREE.Line>();
+
+  /** Deckkraft-Fenster: auch die schwächste Linie bleibt sichtbar, die stärkste sticht nicht heraus wie eine Kante. */
+  const FLOW_LINE_MIN_OPACITY = 0.25;
+  const FLOW_LINE_MAX_OPACITY = 0.75;
+
+  function applyFlowLines(lines: CityFlowLine[]): void {
+    if (!quality.flowLines) {
+      // Stufe kann sie nicht tragen: eventuell vorhandene abräumen (die Stufe
+      // steht zwar fest, aber ein Aufrufer darf sich darauf nicht verlassen).
+      if (flowLinesById.size > 0) disposeFlowLines();
+      return;
+    }
+
+    const seen = new Set<string>();
+    for (const line of lines) {
+      seen.add(line.id);
+      let object = flowLinesById.get(line.id);
+      if (!object) {
+        const geometry = new THREE.BufferGeometry();
+        const material = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
+        object = new THREE.Line(geometry, material);
+        object.renderOrder = CONTACT_SHADOW_RENDER_ORDER; // unter den Baukörpern, über dem Boden.
+        scene.add(object);
+        flowLinesById.set(line.id, object);
+      }
+
+      (object.geometry as THREE.BufferGeometry).setFromPoints([
+        new THREE.Vector3(line.from.x, line.from.y, line.from.z),
+        new THREE.Vector3(line.to.x, line.to.y, line.to.z),
+      ]);
+      const material = object.material as THREE.LineBasicMaterial;
+      material.color.set(line.color);
+      material.opacity =
+        FLOW_LINE_MIN_OPACITY + (FLOW_LINE_MAX_OPACITY - FLOW_LINE_MIN_OPACITY) * Math.min(1, Math.max(0, line.share));
+    }
+
+    for (const [id, object] of flowLinesById) {
+      if (seen.has(id)) continue;
+      scene.remove(object);
+      object.geometry.dispose();
+      (object.material as THREE.Material).dispose();
+      flowLinesById.delete(id);
+    }
+  }
+
+  function disposeFlowLines(): void {
+    for (const object of flowLinesById.values()) {
+      scene.remove(object);
+      object.geometry.dispose();
+      (object.material as THREE.Material).dispose();
+    }
+    flowLinesById.clear();
+  }
+
   function setHighlight(id: string | null): void {
     if (id === highlightedId) return;
     clearHighlight();
@@ -1066,7 +1195,10 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   function setSize(width: number, height: number, dpr: number): void {
     if (width <= 0 || height <= 0) return; // ResizeObserver kann während Layout-Übergängen kurzzeitig 0 liefern.
-    renderer.setPixelRatio(dpr);
+    // WP-5.6: Die Stufe ist eine Obergrenze, kein Vorschlag — nach unten darf
+    // der Aufrufer (FPS-Kaskade in `CityCanvas`) weiter nachjustieren, nach
+    // oben nicht. Sonst hinge die Zusicherung an genau einem Aufrufer.
+    renderer.setPixelRatio(Math.min(dpr, quality.maxPixelRatio));
     renderer.setSize(width, height, false); // false: kein CSS-Style-Override — der Container steuert die Canvas-Größe.
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -1185,6 +1317,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // WP-D3: Highlight-Klon gehört (wie die Tween-Klone) NICHT der Registry —
     // ohne diesen Schritt würde er im Registry-Loop unten übersehen/geleakt.
     clearHighlight();
+    // WP-5.1: Flusslinien haben eigene Geometrie/Materialien je Linie (nicht
+    // aus der geteilten Registry) — sie müssen hier einzeln freigegeben werden.
+    disposeFlowLines();
     for (const mesh of meshesById.values()) scene.remove(mesh);
     meshesById.clear();
     for (const edgeLine of edgesById.values()) scene.remove(edgeLine);
@@ -1208,7 +1343,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
     // WP-E1: prozedurale Texturen (Himmel/Boden je Theme + Fassade/Schatten).
     contactShadowTexture?.dispose();
-    facadeTexture?.dispose();
+    for (const texture of Object.values(facadeTextures)) texture?.dispose();
     for (const texture of [skyTextures.light, skyTextures.dark, groundTextures.light, groundTextures.dark]) {
       texture?.dispose();
     }
@@ -1223,6 +1358,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   return {
     applyLayout,
+    applyFlowLines,
     advanceAnimations,
     setAnimationsEnabled,
     pick,

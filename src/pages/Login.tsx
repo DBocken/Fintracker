@@ -30,15 +30,17 @@ function Login({ onStartAnonymous }: LoginProps) {
     onStartAnonymous?.();
   };
 
-  // Erststart mit Beispieldaten (Issue #39): Demo laden, anonym starten und
-  // direkt auf dem gefüllten Dashboard landen (Aha-Moment < 30 Sekunden).
+  // Erststart mit Beispieldaten (Issue #39): Demo laden, anonym starten — die
+  // App landet mit gefüllten Daten auf der Startseite /coach (Aha-Moment
+  // < 30 Sekunden). Bewusst ohne history-Eingriff: eine hier gesetzte Ziel-URL
+  // übernimmt der langlebige App-Router nicht (WP-4.6-Gate, verifiziert) — sie
+  // erzeugte nur einen kurzen URL/Inhalt-Widerspruch. Navigation gehört dem
+  // Router.
   const handleStartDemo = async () => {
     setDemoLoading(true);
     try {
       await loadDemoData();
       startAnonymousMode();
-      // Ziel-URL vor dem Router-Wechsel setzen — der App-Router übernimmt sie.
-      window.history.replaceState(null, "", "/dashboard");
       onStartAnonymous?.();
     } finally {
       setDemoLoading(false);

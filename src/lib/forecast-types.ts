@@ -81,6 +81,14 @@ export interface RecurringFlow {
   intervalDays?: number;
   accountId: string;
   category?: string;
+  /**
+   * Stabile Kategorie-ID (WP-5.2). `category` ist der ANZEIGENAME und taugt
+   * nicht zum Verknüpfen — AGENTS.md §6 führt das Namens-Matching als
+   * dokumentierte Falle (bricht bei Umbenennung und in jeder anderen Sprache).
+   * Konsumenten, die einer Kategorie etwas zuordnen wollen (z. B. die
+   * Finanzstadt), nutzen ausschließlich dieses Feld.
+   */
+  categoryId?: string;
   /** Frühestens ab diesem Datum buchen (ISO yyyy-mm-dd). */
   startDate?: string;
   /** Spätestens bis zu diesem Datum buchen (ISO yyyy-mm-dd). */
@@ -147,6 +155,15 @@ export interface OccurrenceModel {
  */
 export interface VariableExpenseBaseline {
   category: string;
+  /**
+   * Stabile Kategorie-ID (WP-5.2), sofern EINDEUTIG. Die Baselines werden
+   * weiterhin über den Anzeigenamen gruppiert (Summen und Monte-Carlo-Verhalten
+   * bleiben unverändert); tragen zwei verschiedene Kategorien denselben Namen,
+   * ist die Zuordnung nicht auflösbar und dieses Feld bleibt `undefined`.
+   * Konsumenten überspringen solche Einträge dann lieber, statt den Betrag dem
+   * falschen Gebäude zuzuschlagen.
+   */
+  categoryId?: string;
   /** Erwartete Ausgabe pro Monat (positive Zahl). */
   monthlyAmount: number;
   /** Erkennungsqualität 0..1 (Metadatum). */

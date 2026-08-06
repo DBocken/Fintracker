@@ -1,9 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import {
   MOTION_EASINGS,
+  MOTION_EASINGS_CHART,
   MOTION_DURATIONS,
   resolveDuration,
 } from '../motion-tokens';
+
+describe('MOTION_EASINGS_CHART', () => {
+  /**
+   * Recharts typisiert `animationEasing` als Template-Literal OHNE Leerzeichen
+   * (`cubic-bezier(${number},${number},${number},${number})`), die CSS-Fassung
+   * in MOTION_EASINGS traegt sie mit. Beide beschreiben dieselbe Kurve — dieser
+   * Test verhindert, dass daraus zwei driftende Wahrheiten werden.
+   */
+  it('[REGRESSION] sollte dieselbe Kurve wie MOTION_EASINGS beschreiben, nur ohne Leerzeichen', () => {
+    expect(MOTION_EASINGS_CHART.build).toBe(MOTION_EASINGS.build.replace(/\s+/g, ''));
+  });
+
+  it('sollte der Recharts-Schreibweise ohne Leerzeichen entsprechen', () => {
+    expect(MOTION_EASINGS_CHART.build).toMatch(/^cubic-bezier\((-?[\d.]+,){3}-?[\d.]+\)$/);
+    expect(MOTION_EASINGS_CHART.build).not.toContain(' ');
+  });
+});
 
 describe('MOTION_EASINGS', () => {
   it('sollte genau 5 Kurven mit korrekten Namen definieren', () => {

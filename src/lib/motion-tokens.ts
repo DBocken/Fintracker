@@ -35,6 +35,23 @@ export const MOTION_EASINGS = {
   warn: 'cubic-bezier(0.87, 0, 0.13, 1)',
 } as const;
 
+/**
+ * Chart-taugliche Schreibweise derselben Kurven.
+ *
+ * Recharts typisiert `animationEasing` als Template-Literal
+ * `cubic-bezier(${number},${number},${number},${number})` — **ohne**
+ * Leerzeichen. `MOTION_EASINGS` trägt die CSS-übliche Schreibweise mit
+ * Leerzeichen (so auch in `index.css` gespiegelt) und lässt sich deshalb nicht
+ * an Recharts durchreichen: der Typecheck bricht.
+ *
+ * Beide Formen beschreiben dieselbe Kurve. `motion-tokens.test.ts` hält sie
+ * synchron, damit hier keine zweite, driftende Wahrheit entsteht.
+ */
+export const MOTION_EASINGS_CHART = {
+  /** Entspricht `MOTION_EASINGS.build`. */
+  build: 'cubic-bezier(0.33,1,0.68,1)',
+} as const;
+
 /** Die vier Dauer-Stufen in Millisekunden. */
 export const MOTION_DURATIONS = {
   /** 150ms — Hover, Press, Mikrointeraktionen. */

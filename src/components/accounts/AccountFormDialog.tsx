@@ -303,12 +303,13 @@ export function AccountFormDialog({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>{t('accounts.formDialog.budgetPoolLabel')}</Label>
+              <Label htmlFor="isBudgetPool">{t('accounts.formDialog.budgetPoolLabel')}</Label>
               <p className="text-xs text-muted-foreground">
                 {t('accounts.formDialog.budgetPoolHint')}
               </p>
             </div>
             <Switch
+              id="isBudgetPool"
               checked={isBudgetPoolMember}
               onCheckedChange={setIsBudgetPoolMember}
             />

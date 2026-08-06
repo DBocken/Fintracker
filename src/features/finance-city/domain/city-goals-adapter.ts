@@ -23,15 +23,7 @@
 
 import type { MilestoneStatus } from '@/services/milestones-service';
 import type { CityDistrict, CityModel } from './city-model';
-
-/** Fertiggestellte Ziele (persistiert erreicht) — Gold, unabhängig vom aktuellen Bruch. */
-const GOAL_ACHIEVED_COLOR = '#f0b429';
-/** Laufende Bauprojekte: kühle Blau-/Violett-Familie (Index nach Sortierung). */
-const GOAL_IN_PROGRESS_PALETTE = ['#3b82f6', '#6366f1', '#a855f7', '#06b6d4', '#0ea5e9', '#8b5cf6'] as const;
-
-function inProgressColor(index: number): string {
-  return GOAL_IN_PROGRESS_PALETTE[index % GOAL_IN_PROGRESS_PALETTE.length];
-}
+import { goalProgressStage, goalStageColor, type GoalProgressStage } from './city-goal-progress';
 
 /**
  * Baut das `CityModel` des Ziele-Tabs. Nicht quantifizierbare Meilensteine
@@ -39,8 +31,21 @@ function inProgressColor(index: number): string {
  * übersprungen — keine leeren Bauprojekte. Sortierung: laufende Ziele nach
  * Fortschritt absteigend (das fast fertige Projekt zuerst — Motivation),
  * erreichte Ziele dahinter (Trophäen-Reihe); Tie-Breaker Meilenstein-Key.
+ *
+ * WP-5.3: Die Farbe kam bis dahin aus dem SORTIER-INDEX — ein Ziel bei 5 % und
+ * eines bei 95 % unterschieden sich in der Farbe, aber der Unterschied bedeutete
+ * nur „steht weiter oben in der Liste". Jetzt trägt sie die Fortschritts-Stufe
+ * (`city-goal-progress.ts`), damit der Blick über die Bauprojekte dieselbe
+ * Aussage macht wie die Füllhöhe.
+ *
+ * `previousStages` ist der Stufen-Stand des letzten Aufrufs (die Application-
+ * Schicht hält ihn) — nötig für die Hysterese, damit ein Ziel, das um eine
+ * Schwelle pendelt, nicht bei jedem Datenrefresh die Farbe wechselt.
  */
-export function buildCityModelFromMilestones(statuses: MilestoneStatus[]): CityModel {
+export function buildCityModelFromMilestones(
+  statuses: MilestoneStatus[],
+  previousStages?: ReadonlyMap<string, GoalProgressStage>,
+): CityModel {
   const quantifiable = statuses.filter(
     (s): s is MilestoneStatus & { progress: NonNullable<MilestoneStatus['progress']> } =>
       s.progress !== null && s.progress !== undefined && s.progress.target > 0,
@@ -53,16 +58,20 @@ export function buildCityModelFromMilestones(statuses: MilestoneStatus[]): CityM
     return ratioB - ratioA || a.definition.key.localeCompare(b.definition.key);
   });
 
-  let inProgressIndex = 0;
   const districts: CityDistrict[] = sorted.map((status) => {
     const ratio = status.progress.amount / status.progress.target;
     const label = `${status.definition.icon} ${status.definition.title}`;
-    const color = status.achieved ? GOAL_ACHIEVED_COLOR : inProgressColor(inProgressIndex++);
+    const id = `goal:${status.definition.key}`;
+    const stage = goalProgressStage(ratio, {
+      achieved: status.achieved,
+      previous: previousStages?.get(id),
+    });
 
     return {
-      id: `goal:${status.definition.key}`,
+      id,
+      stage,
+      color: goalStageColor(stage),
       label,
-      color,
       // Anzeige-Wert = echter Bruch (kann das Ziel übertreffen, z. B. „112 %").
       total: ratio,
       // Hülle = SOLL (normiert 1), Balken = IST (auf die Hülle gedeckelt) —

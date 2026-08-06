@@ -38,6 +38,21 @@ function mobileList(container: HTMLElement): HTMLElement {
   return list as HTMLElement;
 }
 
+describe('IncomeBreakdownCard – Prozent-Schalter', () => {
+  // Gleiche Fehlerklasse wie die axe-critical `button-name`-Befunde aus dem
+  // WP-4.6-Gate: Radix-Switch ohne zugänglichen Namen, Nachbartext nicht
+  // programmatisch verknüpft.
+  it('[REGRESSION] sollte den Prozent-Schalter zugänglich benennen (Deutsch)', () => {
+    renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />, { locale: 'de' });
+    expect(screen.getByRole('switch', { name: 'Prozent' })).toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte den Prozent-Schalter zugänglich benennen (Englisch)', () => {
+    renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />, { locale: 'en' });
+    expect(screen.getByRole('switch', { name: 'Percent' })).toBeInTheDocument();
+  });
+});
+
 describe('IncomeBreakdownCard – mobile Aufschlüsselung', () => {
   it('listet alle Einkommens-Hauptkategorien als Gruppen (Deutsch)', () => {
     const { container } = renderWithProviders(<IncomeBreakdownCard breakdown={breakdown} />, { locale: 'de' });

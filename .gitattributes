@@ -1,0 +1,25 @@
+# Zeilenenden im Baum immer LF.
+#
+# Anlass: Ein Teil der Quellen lag zeitweise mit CRLF im Repository. Sichtbar
+# wurde das nicht am Bildschirm, sondern daran, dass der Wächter gegen doppelte
+# Namespaces (`src/i18n/__tests__/locale-parity.test.ts`) die QUELLE von
+# `translations.ts` zeilenweise mit `$`-Ankern liest — mit angehängtem `\r`
+# fand er keine einzige Locale und lief blind durch, statt rot zu werden.
+# Dieselbe Klasse trifft `scripts/check-i18n*.mjs` und jeden `grep`-gestützten
+# Audit (vgl. AGENTS.md §6, „Rohe Steuerbytes im Quelltext").
+* text=auto eol=lf
+
+# Binärdateien nie anfassen.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.keystore binary
+*.jar binary

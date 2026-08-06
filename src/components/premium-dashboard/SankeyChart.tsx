@@ -166,11 +166,6 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               />
               <span className="text-sm text-muted-foreground">{t("premium.sankey.percentMode")}</span>
             </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={handleExportPNG}>{t("premium.sankey.exportPNG")}</Button>
-              <Button size="sm" variant="outline" onClick={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</Button>
-              <Button size="sm" variant="outline" onClick={handleExportPDF}>{t("premium.sankey.exportPDF")}</Button>
-            </div>
           </div>
           {/* Höhen-Slider: auf Mobile kompakt, auf SM+ in Reihe mit Export */}
           <div className="flex items-center gap-2">

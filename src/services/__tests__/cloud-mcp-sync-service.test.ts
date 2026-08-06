@@ -118,6 +118,60 @@ describe('cloud-mcp-sync-service', () => {
         months_analyzed: 6,
       });
     });
+
+    it('[REGRESSION] sollte den Cashflow mit dem jüngsten Monat etikettieren, egal wie months sortiert ist', () => {
+      // Der Produktionsaufrufer speist `lastNMonths()` ein — das liefert
+      // AUFSTEIGEND. `months[0]` war damit der ÄLTESTE Monat des Fensters:
+      // Die KI las den aktuellen Cashflow unter einem Monate alten Datum.
+      const waterfall = {
+        income: 3000,
+        surplus: 400,
+        monthsAnalyzed: 6,
+        steps: [{ key: 'savings', allocated: 300 }],
+      } as unknown as WaterfallPlan;
+
+      const ascending = buildMcpAggregateSnapshot(
+        baseInput({ waterfall, months: ['2026-04', '2026-05', '2026-06'] }),
+      );
+      const descending = buildMcpAggregateSnapshot(
+        baseInput({ waterfall, months: ['2026-06', '2026-05', '2026-04'] }),
+      );
+
+      expect(ascending.cashflow?.month).toBe('2026-06');
+      expect(descending.cashflow?.month).toBe('2026-06');
+    });
+
+    it('[REGRESSION] sollte ohne months auf den Monat aus now zurückfallen', () => {
+      const waterfall = { income: 0, surplus: 0, steps: [] } as unknown as WaterfallPlan;
+
+      const snap = buildMcpAggregateSnapshot(baseInput({ waterfall, months: [] }));
+
+      expect(snap.cashflow?.month).toBe('2026-06');
+    });
+
+    it('[PRIVACY][REGRESSION] sollte selbstvergebene Kategorie- und Budgetnamen als Freitext mitschicken', () => {
+      // Die Zustimmung versprach lange „Freitexte bleiben lokal" (F-MCP-4),
+      // obwohl selbstvergebene Namen mitgehen. Dieser Test hält fest, WAS das
+      // Gerät verlässt — der Zustimmungstext muss dazu passen, nicht umgekehrt.
+      const status = {
+        budget: { name: 'Urlaubskasse Japan' },
+        spent: 10,
+        remaining: 5,
+        ratio: 0.5,
+        health: 'ok',
+      } as unknown as BudgetStatus;
+
+      const snap = buildMcpAggregateSnapshot(
+        baseInput({
+          budgetStatuses: [status],
+          transactions: [tx({ amount: -30, category_id: 'food', date: '2026-06-02' })],
+        }),
+      );
+
+      expect(snap.budget_status[0].name).toBe('Urlaubskasse Japan');
+      const june = snap.monthly_spending.find((m) => m.month === '2026-06')!;
+      expect(june.by_category.map((c) => c.name)).toContain('Lebensmittel');
+    });
   });
 
   describe('Edge Cases', () => {

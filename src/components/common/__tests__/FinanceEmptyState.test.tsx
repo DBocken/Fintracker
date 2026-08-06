@@ -1,93 +1,98 @@
+import type { ReactElement } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import FinanceEmptyState from '../FinanceEmptyState';
+import { renderWithProviders } from '@/test-utils/render';
 
 const reduceMock = vi.fn(() => false);
 vi.mock('@/hooks/useReducedMotion', () => ({
   useReducedMotion: () => reduceMock(),
 }));
 
-afterEach(() => reduceMock.mockReturnValue(false));
-
-// i18n mock — FinanceEmptyState uses useI18n, we need to provide a mock
-vi.mock('@/i18n/useI18n', () => ({
-  useI18n: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
-    locale: 'de',
-  }),
-}));
-
-vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
-  }),
-}));
-
+// Nur das I/O gegen den Demo-Datensatz wird gemockt — Sprache, Router und
+// QueryClient kommen aus `@/test-utils/render`. Ein lokaler `useI18n`-Mock
+// (die Vorgängerfassung) liefert die Schlüssel statt der Texte zurück und
+// prüft damit genau das nicht, was auf dem Bildschirm steht (AGENTS.md §6).
 vi.mock('@/services/demo-data-service', () => ({
   loadDemoData: vi.fn(),
 }));
 
-vi.mock('react-router-dom', () => ({
-  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
-  ),
-}));
+afterEach(() => reduceMock.mockReturnValue(false));
+
+/** Die Komponente braucht Router (`Link`) und QueryClient (`useQueryClient`). */
+function renderEmptyState(ui: ReactElement, locale: 'de' | 'en' = 'de') {
+  return renderWithProviders(ui, { locale, router: true, query: true });
+}
 
 describe('FinanceEmptyState (WP-3.3)', () => {
-  it('sollte den Standard-Zustand mit CSV-Import und Demo-Daten rendern', () => {
-    render(<FinanceEmptyState />);
-    expect(screen.getByText(/CSV/)).toBeInTheDocument();
+  it.each([
+    ['de', 'CSV importieren', 'Beispieldaten ansehen'],
+    ['en', 'Import CSV', 'View sample data'],
+  ] as const)(
+    'sollte den Standard-Zustand in %s mit CSV-Import und Beispieldaten rendern',
+    (locale, csvLabel, demoLabel) => {
+      renderEmptyState(<FinanceEmptyState />, locale);
+      expect(screen.getByRole('link', { name: csvLabel })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: demoLabel })).toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    ['de', 'Budget'],
+    ['en', 'budget'],
+  ] as const)('sollte mit variant="no-budgets" in %s einen budgetspezifischen Text zeigen', (locale, needle) => {
+    renderEmptyState(<FinanceEmptyState variant="no-budgets" />, locale);
+    expect(screen.getByRole('heading').textContent?.toLowerCase()).toContain(needle.toLowerCase());
   });
 
-  it('sollte mit variant="no-budgets" einen budgetspezifischen Text zeigen', () => {
-    render(<FinanceEmptyState variant="no-budgets" />);
-    // The variant should produce different content than the default
-    const title = screen.getByRole('heading');
-    expect(title.textContent).toContain('Budget');
-  });
-
-  it('sollte mit variant="no-goals" einen zielbezogenen Text zeigen', () => {
-    render(<FinanceEmptyState variant="no-goals" />);
-    const title = screen.getByRole('heading');
-    expect(title.textContent).toContain('Ziel');
+  it.each([
+    ['de', 'Ziele'],
+    ['en', 'goals'],
+  ] as const)('sollte mit variant="no-goals" in %s einen zielbezogenen Text zeigen', (locale, needle) => {
+    renderEmptyState(<FinanceEmptyState variant="no-goals" />, locale);
+    expect(screen.getByRole('heading').textContent?.toLowerCase()).toContain(needle.toLowerCase());
   });
 
   it('[VB-2] sollte keine destruktiven Farben verwenden', () => {
-    const { container } = render(<FinanceEmptyState />);
-    // Check for destructive classes in the container
-    const destructive = container.querySelector('[class*="destructive"]');
-    expect(destructive).toBeNull();
+    const { container } = renderEmptyState(<FinanceEmptyState />);
+    expect(container.querySelector('[class*="destructive"]')).toBeNull();
   });
 
   it('[VB-1] sollte nie generischen "Keine Daten"-Text ohne Kontext zeigen', () => {
-    render(<FinanceEmptyState />);
-    // The component should have at least one action button
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
+    renderEmptyState(<FinanceEmptyState />);
+    // Mindestens eine konkrete Folgeaktion — der CSV-Import ist ein `Link`,
+    // die Beispieldaten ein `button`; beide Rollen zusammen zählen.
+    const actions = [...screen.queryAllByRole('link'), ...screen.queryAllByRole('button')];
+    expect(actions.length).toBeGreaterThanOrEqual(1);
   });
 
   it('sollte eine visuell dominante primäre Aktion haben', () => {
-    render(<FinanceEmptyState />);
-    // Primary action (CSV import) should be a default Button (not outline)
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
-    // First button should be the primary (not variant="outline")
-    const primaryButton = buttons[0];
-    expect(primaryButton.className).not.toContain('outline');
+    renderEmptyState(<FinanceEmptyState />);
+    // Die primäre Aktion (CSV-Import) ist `Button asChild` um einen `Link` und
+    // rendert deshalb als `<a>`, nicht als `<button>` — sie trägt die
+    // Default-Variante (`bg-primary`). Die Beispieldaten daneben sind bewusst
+    // `variant="outline"` (`border-input`) und damit optisch zurückgenommen.
+    // NICHT auf das Fehlen von "outline" prüfen: die Button-Basisklasse
+    // enthält `focus-visible:outline-none`, ein solcher Test kann nie bestehen.
+    const primary = screen.getByRole('link', { name: 'CSV importieren' });
+    const secondary = screen.getByRole('button', { name: 'Beispieldaten ansehen' });
+
+    expect(primary.className).toContain('bg-primary');
+    expect(primary.className).not.toContain('border-input');
+    expect(secondary.className).toContain('border-input');
+    expect(secondary.className).not.toContain('bg-primary');
   });
 
   it('sollte einen Hintergrund-Layer mit data-testid rendern', () => {
-    const { container } = render(<FinanceEmptyState />);
-    const bgLayer = container.querySelector('[data-testid="empty-state-bg"]');
-    expect(bgLayer).toBeInTheDocument();
+    const { container } = renderEmptyState(<FinanceEmptyState />);
+    expect(container.querySelector('[data-testid="empty-state-bg"]')).toBeInTheDocument();
   });
 
   it('sollte bei prefers-reduced-motion statisch sein', () => {
     reduceMock.mockReturnValue(true);
-    const { container } = render(<FinanceEmptyState animated />);
+    const { container } = renderEmptyState(<FinanceEmptyState animated />);
     const bgLayer = container.querySelector('[data-testid="empty-state-bg"]');
     expect(bgLayer).toBeInTheDocument();
-    // Background layer should not have animation style
     expect(bgLayer?.getAttribute('style')).toBeFalsy();
   });
 });

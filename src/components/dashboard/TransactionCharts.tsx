@@ -50,7 +50,7 @@ const baseEndAngle = -270;
 /** Balkendiagramm: Ausgaben im Zeitverlauf. */
 export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
   const { t } = useI18n();
-  const { animate } = useChartAnimation();
+  const chartAnimation = useChartAnimation();
   return (
     <Card className="card-premium h-full">
       <CardHeader>
@@ -86,7 +86,15 @@ export function ExpensesOverTimeCard({ series }: { series: SeriesPoint[] }) {
                 }}
                 formatter={(v) => [formatCurrencyInt(Math.round(chartNumber(v))), t("expensesOverTime.expensesLabel")]}
               />
-              <Bar dataKey="expenses" fill={CHART_BRAND} radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={animate} />
+              <Bar
+                dataKey="expenses"
+                fill={CHART_BRAND}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={48}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -254,7 +262,7 @@ function SpendingBreakdownList({
 /** Sunburst (zwei konzentrische Ringe): Ausgabenklasse (innen) -> Hauptkategorie (außen). */
 export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstData; tree?: SunburstTree }) {
   const { t } = useI18n();
-  const { animate } = useChartAnimation();
+  const chartAnimation = useChartAnimation();
   // Umschalter zwischen Euro und Prozent
   const [showPercent, setShowPercent] = useState(false);
   // Hover-State (kann eine Ausgabenklasse- oder Hauptkategorie-ID sein)
@@ -399,7 +407,9 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
                 paddingAngle={1}
                 startAngle={baseStartAngle}
                 endAngle={baseEndAngle}
-                isAnimationActive={animate}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               >
                 {sunburst.inner.map((entry) => {
                   const col = colorMap.get(entry.id) || CHART_BRAND;
@@ -441,7 +451,9 @@ export function SpendingBreakdownCard({ sunburst, tree }: { sunburst: SunburstDa
                     startAngle={angles.startAngle}
                     endAngle={angles.endAngle}
                     paddingAngle={0}
-                    isAnimationActive={animate}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
                   >
                     {children.map((entry) => {
                       const parentColor = colorMap.get(entry.parentId) || CHART_BRAND;

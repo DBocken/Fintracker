@@ -27,6 +27,7 @@ import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 import { chartNumber } from '@/lib/chart-tooltip';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -34,6 +35,7 @@ function euro(n: number) {
 
 export function ContractsDashboard() {
   const { t } = useI18n();
+  const chartAnimation = useChartAnimation();
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["transactions", "contracts"],
     queryFn: () => getTransactions(2000),
@@ -297,9 +299,39 @@ export function ContractsDashboard() {
                   <Tooltip formatter={(value) => euro(chartNumber(value))} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
-                  <Area type="monotone" dataKey="income" name={t("contracts.chartIncomeLabel")} stroke="hsl(var(--positive))" fill="hsl(var(--positive))" fillOpacity={0.2} />
-                  <Area type="monotone" dataKey="expenses" name={t("contracts.contractsLabel", "Verträge")} stroke="hsl(var(--brand))" fill="hsl(var(--brand))" fillOpacity={0.2} />
-                  <Area type="monotone" dataKey="net" name={t("contracts.incomesMinusContracts", "Einnahmen − Verträge (Saldo)")} stroke="hsl(var(--foreground))" fill="hsl(var(--foreground))" fillOpacity={0.1} />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    name={t("contracts.chartIncomeLabel")}
+                    stroke="hsl(var(--positive))"
+                    fill="hsl(var(--positive))"
+                    fillOpacity={0.2}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expenses"
+                    name={t("contracts.contractsLabel", "Verträge")}
+                    stroke="hsl(var(--brand))"
+                    fill="hsl(var(--brand))"
+                    fillOpacity={0.2}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="net"
+                    name={t("contracts.incomesMinusContracts", "Einnahmen − Verträge (Saldo)")}
+                    stroke="hsl(var(--foreground))"
+                    fill="hsl(var(--foreground))"
+                    fillOpacity={0.1}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -320,7 +352,11 @@ export function ContractsDashboard() {
                 {rescanMutation.isPending ? t("contracts.rescanInProgress", "Einlesen…") : t("contracts.rescanButton", "Verträge neu einlesen")}
               </Button>
               <div className="flex items-center gap-2">
-                <Switch checked={onlyChanges} onCheckedChange={(v) => setOnlyChanges(Boolean(v))} />
+                <Switch
+                  checked={onlyChanges}
+                  onCheckedChange={(v) => setOnlyChanges(Boolean(v))}
+                  aria-label={t("contracts.changeFilterLabel", "Nur Veränderungen zeigen")}
+                />
                 <span className="text-sm text-muted-foreground">{t("contracts.changeFilterLabel", "Nur Veränderungen zeigen")}</span>
               </div>
             </div>

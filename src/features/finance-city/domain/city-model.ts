@@ -17,6 +17,9 @@
  * Summen-Invariante).
  */
 
+import type { GoalProgressStage } from './city-goal-progress';
+import type { CityActivityLevel } from './city-activity';
+
 /**
  * Eine einzelne Buchung hinter einer Etage (WP-D4, Vertrags-Sheet als
  * Absprungpunkt): Referenz auf die echte Transaktion (`txId` für den
@@ -36,6 +39,8 @@ export type CityContract = {
   label: string;
   amount: number;
   bookings?: CityBooking[];
+  /** WP-5.1: Diese Etage kommt regelmäßig wieder (`city-recurrence.ts`) — zählt in den `recurringAmount` ihres Gebäudes. */
+  recurring?: boolean;
   /**
    * Deep-Link-Semantik dieser Etage für die Buchungsseite (WP-D5): der
    * jeweilige Adapter entscheidet, wie „alle Buchungen dieser Etage" gefiltert
@@ -59,6 +64,21 @@ export type CitySubcategory = {
   contracts?: CityContract[];
   /** Nächste erwartete Zahlung (nur Einnahmen-Stadt, regelmäßige Ströme) — im Vertrags-Sheet angezeigt. */
   nextPayment?: { dateISO: string; amount: number };
+  /**
+   * WP-5.1: Anteil von `amount`, der WIEDERKEHRT (Summe der wiederkehrenden
+   * Etagen, `city-recurrence.ts`). Grundlage der Flusslinien: sie betonen den
+   * Teil der Ausgaben, der jeden Monat ohne weiteres Zutun abfließt. Fehlt der
+   * Wert, hat der jeweilige Adapter keine Wiederkehr-Information — dann gibt
+   * es schlicht keine Linie (kein Sonderfall in der Presentation).
+   */
+  recurringAmount?: number;
+  /**
+   * WP-5.4: Wie oft in diesem Gebäude gebucht wird (`city-activity.ts`).
+   * Steuert die Dichte des Fenster-Rasters auf der Fassade — der Kanal zeigt,
+   * was die HÖHE nicht kann: ob ein Betrag aus EINER großen Zahlung besteht
+   * oder aus vielen kleinen.
+   */
+  activity?: CityActivityLevel;
 };
 
 /** Ein Distrikt (Hauptkategorie-Gruppe) — ein räumlich getrenntes Gebäude-Cluster. */
@@ -77,6 +97,14 @@ export type CityDistrict = {
   targetAmount?: number;
   /** WP-D7 (Ziele-Tab): true, wenn das Bauprojekt fertiggestellt (Meilenstein erreicht) ist — Basis für die Chip-Zusammenfassung „X von Y erreicht". */
   achieved?: boolean;
+  /**
+   * WP-5.3 (Ziele-Tab): Fortschritts-Stufe des Bauprojekts
+   * (`city-goal-progress.ts`). Sie bestimmt die `color` — vorher kam die aus
+   * dem Sortier-Index und sagte über den Fortschritt nichts aus. Hier
+   * mitgeführt, damit die Application-Schicht den Stand für die Hysterese
+   * merken kann, ohne die Farbe rückwärts interpretieren zu müssen.
+   */
+  stage?: GoalProgressStage;
   /**
    * WP-D8 (Übersicht): Platzierungs-Gruppe auf der Platte. Ist sie bei
    * mindestens einem Distrikt gesetzt, layoutet `city-layout.ts` drei
@@ -102,6 +130,18 @@ export type CityModel = {
    * Distrikte, eine „Gesamt"-Bezugsgröße darüber wäre irreführend.
    */
   hideShares?: boolean;
+  /**
+   * WP-5.2 (Zeitachse): Dieses Modell zeigt einen PROGNOSEMONAT — jede Zahl
+   * darin stammt aus dem Forecast, keine aus gebuchten Daten. Die Presentation
+   * stellt solche Baukörper erkennbar anders dar (Hülle statt gefülltem
+   * Balken) und die Legende erklärt es.
+   *
+   * Bewusst am Modell und nicht am einzelnen Gebäude: eine Mischung aus Ist
+   * und Prognose in EINER Ansicht wäre nicht erklärbar — der Nutzer könnte
+   * nicht sagen, welche Zahl woher kommt. Die Zeitachse trennt die Monate
+   * deshalb sauber.
+   */
+  projected?: boolean;
 };
 
 /**

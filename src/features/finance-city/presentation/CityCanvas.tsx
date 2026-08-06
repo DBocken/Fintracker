@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCityScene, type CitySceneHandle } from './city-scene';
 import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
+import { deriveCityQuality, type CityDeviceProfile } from '../domain/city-quality';
+import type { CityFlowLine } from '../domain/city-flow-lines';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { isDarkMode, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 
@@ -18,6 +20,18 @@ export type CityControlsApi = {
   setLimits(minDistance: number, maxDistance: number): void;
   invalidate(): void;
 };
+
+/**
+ * WP-5.7: Warum die 3D-Fläche gerade nichts zeigt. `null` = alles in Ordnung
+ * (auch: Kontext wiederhergestellt).
+ *
+ * - `unsupported`: Der WebGL-Kontext ließ sich gar nicht erst erzeugen (alter
+ *   Browser, deaktivierte Hardwarebeschleunigung, Grafiktreiber-Fehler).
+ * - `context-lost`: Der Treiber hat einen laufenden Kontext eingezogen. Auf
+ *   Mobilgeräten Alltag (Speicherdruck, App im Hintergrund, GPU-Reset) und
+ *   grundsätzlich behebbar — deshalb ein eigener Zustand und kein `unsupported`.
+ */
+export type CityCanvasUnavailableReason = 'unsupported' | 'context-lost';
 
 export type CityCanvasProps = {
   /** Aus `useMemo(() => buildCityLayout(...), [...])` der Page — die EINZIGE Geometrie-Quelle (README). */
@@ -51,6 +65,21 @@ export type CityCanvasProps = {
   controlsApiRef?: MutableRefObject<CityControlsApi | null>;
   /** WP-C4/Debug-Zugriff auf das rohe Szenen-Handle (`applyCameraPose`, `camera`, `target`, …) ohne `CityCanvas` selbst umzubauen. */
   sceneRef?: MutableRefObject<CitySceneHandle | null>;
+  /**
+   * WP-5.7: Meldet, warum die 3D-Fläche gerade nichts zeigt — bzw. `null`,
+   * sobald der Kontext wieder da ist. `CityCanvas` meldet nur; WAS der Nutzer
+   * stattdessen sieht, entscheidet die Seite: nur sie kennt die Listenansicht
+   * als vollwertige Alternative auf dieselben Daten.
+   */
+  onUnavailable?: (reason: CityCanvasUnavailableReason | null) => void;
+  /**
+   * WP-5.1: Flusslinien für wiederkehrende Zahlungen
+   * (`domain/city-flow-lines.ts`). Werden im selben Effekt wie `layout`
+   * angewendet — sie hängen an derselben Geometrie. Auf Qualitätsstufen ohne
+   * `flowLines` verwirft die Szene sie selbst; hier braucht es keine
+   * Fallunterscheidung.
+   */
+  flowLines?: CityFlowLine[];
   className?: string;
 };
 
@@ -80,10 +109,44 @@ const FPS_MIN_SAMPLES = 10;
 const TAP_MAX_DISTANCE_PX = 8;
 const TAP_MAX_DURATION_MS = 300;
 
-function initialDprStepIndex(): number {
-  const capped = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-  const index = DPR_STEPS.findIndex((step) => step <= capped);
+/**
+ * WP-5.6: Die Kaskade startet auf dem Deckel der Qualitätsstufe statt immer bei
+ * `min(devicePixelRatio, 2)`. Vorher fiel sie erst NACH gemessenem Ruckeln —
+ * auf einem schwachen Telefon war der erste Eindruck der Stadt damit
+ * systematisch der schlechteste.
+ */
+function initialDprStepIndex(maxPixelRatio: number): number {
+  const index = DPR_STEPS.findIndex((step) => step <= maxPixelRatio);
   return index === -1 ? DPR_STEPS.length - 1 : index;
+}
+
+/**
+ * Liest die Geräte-Signale für `deriveCityQuality`. Bewusst HIER und nicht in
+ * der Domain: `window`/`navigator` sind Browser-APIs, die Architekturtabelle in
+ * `../README.md` hält `domain/` davon frei — genau deshalb ist die Ableitung
+ * selbst ohne DOM testbar.
+ *
+ * `deviceMemory` und `connection` sind nicht standardisiert verfügbar (Safari
+ * und Firefox liefern beide nicht); fehlende Werte bleiben `undefined` und
+ * werden von `deriveCityQuality` ausdrücklich NICHT als „schwach" gewertet.
+ */
+function readDeviceProfile(): CityDeviceProfile {
+  if (typeof window === 'undefined') return { devicePixelRatio: 1, viewportWidth: 1920 };
+
+  const nav = window.navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { saveData?: boolean };
+  };
+
+  return {
+    devicePixelRatio: window.devicePixelRatio || 1,
+    viewportWidth: window.innerWidth,
+    hardwareConcurrency: nav.hardwareConcurrency,
+    deviceMemoryGb: nav.deviceMemory,
+    coarsePointer:
+      typeof window.matchMedia === 'function' ? window.matchMedia('(pointer: coarse)').matches : undefined,
+    saveData: nav.connection?.saveData,
+  };
 }
 
 /**
@@ -103,6 +166,8 @@ export function CityCanvas({
   onFrame,
   controlsApiRef,
   sceneRef,
+  onUnavailable,
+  flowLines,
   className,
 }: CityCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +188,8 @@ export function CityCanvas({
   onTapBoxRef.current = onTapBox;
   const onHoverBoxRef = useRef(onHoverBox);
   onHoverBoxRef.current = onHoverBox;
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
   const onControlsStartRef = useRef(onControlsStart);
   onControlsStartRef.current = onControlsStart;
   const onControlsChangeRef = useRef(onControlsChange);
@@ -138,14 +205,22 @@ export function CityCanvas({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
+    // WP-5.6: EINMAL beim Mount ableiten. Ein Stufenwechsel zur Laufzeit hieße,
+    // Materialien und Texturen auszutauschen, während Höhen-Tweens laufen
+    // (Invariante 2 im Kopf von `city-scene.ts`) — die reaktive Nachsteuerung
+    // übernimmt deshalb weiterhin allein die DPR-Kaskade unten, die ohne
+    // Szenen-Umbau auskommt.
+    const quality = deriveCityQuality(readDeviceProfile());
+
     let handle: CitySceneHandle;
     try {
-      handle = createCityScene({ canvas });
+      handle = createCityScene({ canvas, quality });
     } catch (error) {
       // jsdom-Guard / echte Grafiktreiber-Fehler: leerer Fallback-Container
       // statt eines geworfenen Fehlers, der die ganze Seite abreißt.
       console.error('[CityCanvas] WebGL-Kontext konnte nicht erstellt werden.', error);
       setWebglUnavailable(true);
+      onUnavailableRef.current?.('unsupported');
       return;
     }
 
@@ -201,8 +276,10 @@ export function CityCanvas({
     let rafHandle: number | null = null;
     let needsRender = true;
     let isInteracting = false;
+    /** WP-5.7: Der Treiber hat den Kontext eingezogen — der Loop pausiert, bis er zurück ist. */
+    let contextLost = false;
     const fpsSamples: number[] = [];
-    let dprStepIndex = initialDprStepIndex();
+    let dprStepIndex = initialDprStepIndex(quality.maxPixelRatio);
     let lastWidth = 0;
     let lastHeight = 0;
 
@@ -237,6 +314,10 @@ export function CityCanvas({
     function startLoopIfNeeded() {
       if (rafHandle !== null) return;
       if (typeof document !== 'undefined' && document.hidden) return;
+      // WP-5.7: Auf einem verlorenen Kontext ist jeder Frame verlorene Arbeit
+      // (und je nach Treiber eine Fehlerflut in der Konsole). Der Loop bleibt
+      // stehen, bis `webglcontextrestored` ihn wieder freigibt.
+      if (contextLost) return;
       rafHandle = requestAnimationFrame(tick);
     }
 
@@ -371,6 +452,36 @@ export function CityCanvas({
       }
     };
 
+    // --- WP-5.7: Kontextverlust ---------------------------------------------
+    // Auf Mobilgeräten Alltag: der Treiber zieht den WebGL-Kontext ein, wenn
+    // der Speicher knapp wird oder die App länger im Hintergrund war. Ohne
+    // Behandlung friert der Canvas auf dem letzten Frame ein und zeigt
+    // unbegrenzt weiter veraltete Zahlen — schlimmer als ein sichtbarer
+    // Fehler, weil nichts darauf hindeutet.
+    const handleContextLost = (event: Event) => {
+      // MUSS unterdrückt werden: sonst gibt der Browser den Kontext endgültig
+      // auf und feuert nie ein `webglcontextrestored`.
+      event.preventDefault();
+      contextLost = true;
+      if (rafHandle !== null) {
+        cancelAnimationFrame(rafHandle);
+        rafHandle = null;
+      }
+      onUnavailableRef.current?.('context-lost');
+    };
+
+    const handleContextRestored = () => {
+      contextLost = false;
+      onUnavailableRef.current?.(null);
+      // Der Szenengraph hat den Verlust überlebt (er lebt im JS-Heap, nicht im
+      // Treiber); three.js lädt Geometrien/Texturen beim nächsten `render()`
+      // von selbst neu hoch. Ein voller Neuaufbau wäre unnötig — und würde die
+      // Kameraposition des Nutzers verwerfen.
+      invalidate();
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointerup', handlePointerUp);
     canvas.addEventListener('pointercancel', handlePointerCancel);
@@ -383,6 +494,8 @@ export function CityCanvas({
       if (rafHandle !== null) cancelAnimationFrame(rafHandle);
       resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointercancel', handlePointerCancel);
@@ -409,6 +522,10 @@ export function CityCanvas({
     const handle = handleRef.current;
     if (!handle) return;
     handle.applyLayout(layout);
+    // WP-5.1: Flusslinien hängen an derselben Geometrie wie das Layout und
+    // werden deshalb im selben Effekt gesetzt — sonst könnten sie einen Frame
+    // lang auf Gebäude zeigen, die es im neuen Layout nicht mehr gibt.
+    handle.applyFlowLines(flowLines ?? []);
     // Einen Frame anfordern: der Render-on-Demand-Loop schläft nach Flugende/
     // ohne Interaktion (rafHandle===null). Ändert sich `layout` durch einen
     // Hintergrund-Refetch (neue Model-Identität) STATT durch Navigation (die
@@ -422,7 +539,7 @@ export function CityCanvas({
     // Aufrufer hält sie via `useRef`), taucht aber als Prop in den Deps auf,
     // damit exhaustive-deps zufrieden ist — effektiv läuft der Effekt weiterhin
     // nur bei `layout`-Wechsel.
-  }, [layout, controlsApiRef]);
+  }, [layout, flowLines, controlsApiRef]);
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern (System-Setting) —
   // ohne den ganzen Mount-Effekt neu zu triggern, einfach auf den Controls

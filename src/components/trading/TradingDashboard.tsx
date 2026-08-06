@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import type { Portfolio, PortfolioPosition } from '@/types';
 import {
   getActivePortfolio,
@@ -90,6 +91,7 @@ import {
 
 export default function TradingDashboard() {
   const { t } = useI18n();
+  const chartAnimation = useChartAnimation();
   const queryClient = useQueryClient();
   const [activePortfolio, setActivePortfolio] = useState<Portfolio | null>(null);
   const [isEtoroDialogOpen, setIsEtoroDialogOpen] = useState(false);
@@ -1226,6 +1228,9 @@ export default function TradingDashboard() {
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={false}
+                      isAnimationActive={chartAnimation.animate}
+                      animationDuration={chartAnimation.animationDuration}
+                      animationEasing={chartAnimation.animationEasing}
                     />
                   </LineChart>
                 </ResponsiveContainer>

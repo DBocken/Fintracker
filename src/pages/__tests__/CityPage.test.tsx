@@ -38,6 +38,7 @@ if (typeof globalThis.requestAnimationFrame !== 'function') {
 let capturedOnFrame: ((camera: THREE.PerspectiveCamera) => void) | undefined;
 let capturedOnTapBox: ((id: string | null) => void) | undefined;
 let capturedControlsApiRef: MutableRefObject<CityControlsApi | null> | undefined;
+let capturedOnUnavailable: ((reason: 'unsupported' | 'context-lost' | null) => void) | undefined;
 
 /** Loop-API-Stub mit signaturtreuen Mocks — strukturell kompatibel zu `CityControlsApi`, Assertions über `.mock.calls`. */
 function makeControlsApiStub() {
@@ -51,6 +52,7 @@ let stubControlsApi: ReturnType<typeof makeControlsApiStub> | undefined;
 function makeSceneStub(): CitySceneHandle {
   return {
     applyLayout: vi.fn(),
+    applyFlowLines: vi.fn(),
     advanceAnimations: vi.fn(() => false),
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),
@@ -74,10 +76,14 @@ vi.mock('@/features/finance-city/presentation/CityCanvas', () => ({
     onTapBox?: (id: string | null) => void;
     controlsApiRef?: MutableRefObject<CityControlsApi | null>;
     sceneRef?: MutableRefObject<CitySceneHandle | null>;
+    onUnavailable?: (reason: 'unsupported' | 'context-lost' | null) => void;
   }) => {
     capturedOnFrame = props.onFrame;
     capturedOnTapBox = props.onTapBox;
     capturedControlsApiRef = props.controlsApiRef;
+    // WP-5.7: Der Stub meldet den Ausfall nicht von selbst — die Tests lösen
+    // ihn gezielt aus, sonst hinge das Ergebnis an jsdoms WebGL-Verhalten.
+    capturedOnUnavailable = props.onUnavailable;
     useEffect(() => {
       stubControlsApi = makeControlsApiStub();
       if (props.controlsApiRef) props.controlsApiRef.current = stubControlsApi;
@@ -307,7 +313,120 @@ afterEach(() => {
   vi.restoreAllMocks();
   capturedOnFrame = undefined;
   capturedOnTapBox = undefined;
+  capturedOnUnavailable = undefined;
   capturedDeclutter = undefined;
+});
+
+describe.each(['de', 'en'] as const)('CityPage — Zeitachse (WP-5.2) (%s)', (locale) => {
+  it('sollte im Ausgaben-Tab eine Monatsleiste anbieten', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    expect(await screen.findByTestId('city-timeline')).toBeInTheDocument();
+  });
+
+  it('sollte den laufenden Monat als Ausgangspunkt zeigen', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+
+    const nowLabel = new Date().toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', {
+      month: 'long',
+      year: 'numeric',
+    });
+    expect(timeline).toHaveTextContent(nowLabel);
+  });
+
+  it('sollte einen Zukunftsmonat als Prognose kennzeichnen', async () => {
+    // Der Nutzer muss sehen, dass die Zahlen dieses Monats noch nicht passiert
+    // sind — sonst liest er eine Prognose wie einen Kontoauszug.
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+
+    await user.click(
+      within(timeline).getByRole('button', { name: locale === 'de' ? /nächster monat/i : /next month/i }),
+    );
+
+    expect(timeline).toHaveTextContent(locale === 'de' ? /Prognose/i : /Forecast/i);
+  });
+
+  it('[REGRESSION] sollte am Rand der Leiste nicht weiterschalten', async () => {
+    // Ohne Deckel liefe der Zeiger aus der Liste heraus und die Seite zeigte
+    // einen Monat, für den es weder Daten noch Prognose gibt.
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    const timeline = await screen.findByTestId('city-timeline');
+    const next = within(timeline).getByRole('button', { name: locale === 'de' ? /nächster monat/i : /next month/i });
+
+    // Drei Zukunftsmonate -> nach drei Schritten ist Schluss.
+    await user.click(next);
+    await user.click(next);
+    await user.click(next);
+
+    expect(next).toBeDisabled();
+  });
+});
+
+describe.each(['de', 'en'] as const)('CityPage — 3D-Ausfall (WP-5.7) (%s)', (locale) => {
+  it('sollte einen Kontextverlust benennen statt die Fläche stumm stehen zu lassen', async () => {
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+    expect(screen.queryByTestId('city-canvas-unavailable-notice')).not.toBeInTheDocument();
+
+    act(() => capturedOnUnavailable?.('context-lost'));
+
+    const notice = await screen.findByTestId('city-canvas-unavailable-notice');
+    expect(notice).toHaveTextContent(locale === 'de' ? /unterbrochen/i : /interrupted/i);
+  });
+
+  it('sollte den Weg zur Listenansicht anbieten — dieselben Daten ohne 3D', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+    act(() => capturedOnUnavailable?.('unsupported'));
+
+    // Innerhalb des Hinweises suchen: der Kopfzeilen-Toggle trägt dasselbe
+    // Wort ("Zur Listenansicht wechseln") und wäre sonst mehrdeutig.
+    const notice = await screen.findByTestId('city-canvas-unavailable-notice');
+    await user.click(
+      within(notice).getByRole('button', { name: locale === 'de' ? /zur listenansicht/i : /go to list view/i }),
+    );
+
+    expect(screen.getByTestId('city-accessible-list')).toBeInTheDocument();
+    // Hinweis verschwindet im Listen-Modus: die Alternative ist ja offen.
+    expect(screen.queryByTestId('city-canvas-unavailable-notice')).not.toBeInTheDocument();
+  });
+
+  it('sollte den Neuaufbau nur beim (behebbaren) Kontextverlust anbieten', async () => {
+    // Fehlt WebGL ganz, wäre der Knopf ein Versprechen, das das Gerät nicht
+    // halten kann — dort bleibt nur der Weg zur Liste.
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    act(() => capturedOnUnavailable?.('unsupported'));
+    await screen.findByTestId('city-canvas-unavailable-notice');
+    const rebuildName = locale === 'de' ? /stadt neu aufbauen/i : /rebuild city/i;
+    expect(screen.queryByRole('button', { name: rebuildName })).not.toBeInTheDocument();
+
+    act(() => capturedOnUnavailable?.('context-lost'));
+    expect(await screen.findByRole('button', { name: rebuildName })).toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte den Hinweis zurücknehmen, sobald der Kontext wieder da ist', async () => {
+    // `CityCanvas` meldet `null` bei `webglcontextrestored`. Bliebe der Hinweis
+    // stehen, verdeckte er eine wieder funktionierende Stadt.
+    renderWithProviders(<CityPage />, { query: true, locale });
+    await screen.findByTestId('city-canvas-stub');
+
+    act(() => capturedOnUnavailable?.('context-lost'));
+    await screen.findByTestId('city-canvas-unavailable-notice');
+
+    act(() => capturedOnUnavailable?.(null));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('city-canvas-unavailable-notice')).not.toBeInTheDocument(),
+    );
+  });
 });
 
 describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {

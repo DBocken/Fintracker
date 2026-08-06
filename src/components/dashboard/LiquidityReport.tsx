@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/i18n/useI18n';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
@@ -273,13 +273,13 @@ export default function LiquidityReport() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
+        <Skeleton variant="shimmer" className="h-8 w-48" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24" />
+            <Skeleton variant="shimmer" key={i} className="h-24" />
           ))}
         </div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton variant="shimmer" className="h-64 w-full" />
       </div>
     );
   }
@@ -602,7 +602,7 @@ function ChartLinesView({
 }) {
   const colors = getChartColors();
   // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
-  const animate = !useReducedMotion();
+  const chartAnimation = useChartAnimation();
   const gradientId = `liqFill-${Date.now()}`;
   const mcBandGradientId = `mcBandFill-${Date.now()}`;
 
@@ -652,7 +652,9 @@ function ChartLinesView({
                 stackId="mc"
                 stroke="none"
                 fill="transparent"
-                isAnimationActive={animate}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
                 legendType="none"
                 tooltipType="none"
               />
@@ -663,7 +665,9 @@ function ChartLinesView({
                 stackId="mc"
                 stroke="none"
                 fill={`url(#${mcBandGradientId})`}
-                isAnimationActive={animate}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
                 legendType="none"
                 tooltipType="none"
               />
@@ -676,7 +680,9 @@ function ChartLinesView({
             stroke={colors.operatingStroke}
             strokeWidth={2}
             fill={hasBand ? 'transparent' : `url(#${gradientId})`}
-            isAnimationActive={animate}
+            isAnimationActive={chartAnimation.animate}
+            animationDuration={chartAnimation.animationDuration}
+            animationEasing={chartAnimation.animationEasing}
           />
           {hasBand && (
             <Line
@@ -686,7 +692,9 @@ function ChartLinesView({
               stroke={colors.medianStroke}
               strokeWidth={1.5}
               dot={false}
-              isAnimationActive={animate}
+              isAnimationActive={chartAnimation.animate}
+              animationDuration={chartAnimation.animationDuration}
+              animationEasing={chartAnimation.animationEasing}
             />
           )}
           {safetyBuffer > 0 && (

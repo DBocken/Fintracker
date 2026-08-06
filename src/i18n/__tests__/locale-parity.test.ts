@@ -107,7 +107,11 @@ describe('Doppelte Namespaces', () => {
     // Pfad ueber cwd statt import.meta.url: unter vitest/jsdom ist letzteres
     // keine file:-URL.
     const source = readFileSync(`${process.cwd()}/src/i18n/translations.ts`, 'utf8');
-    const lines = source.split('\n');
+    // Zeilenenden normalisieren: Die Datei lag zeitweise mit CRLF im Baum, und
+    // das `$`-Anker-Muster unten fand dann KEINE einzige Locale — der Wächter
+    // lief blind durch, statt rot zu werden. Ein Schutz, den ein unsichtbares
+    // Steuerzeichen aushebelt, ist kein Schutz.
+    const lines = source.split('\n').map((line) => line.replace(/\r$/, ''));
 
     const localeStarts: Array<{ locale: string; line: number }> = [];
     lines.forEach((line, index) => {

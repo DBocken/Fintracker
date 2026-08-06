@@ -149,8 +149,8 @@ export default function NetWorthPage() {
         <FinanceEmptyState />
       ) : isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton variant="shimmer" className="h-32 w-full" />
+          <Skeleton variant="shimmer" className="h-24 w-full" />
         </div>
       ) : data ? (
         <div className="mx-auto max-w-2xl space-y-4">

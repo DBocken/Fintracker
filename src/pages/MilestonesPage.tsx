@@ -28,8 +28,8 @@ export default function MilestonesPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
+          <Skeleton variant="shimmer" className="h-24 w-full" />
+          <Skeleton variant="shimmer" className="h-64 w-full" />
         </div>
       ) : milestones ? (
         <div className="mx-auto max-w-2xl space-y-6">

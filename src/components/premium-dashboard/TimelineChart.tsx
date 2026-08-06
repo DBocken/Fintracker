@@ -9,6 +9,7 @@ import { dyadProps } from '@/lib/dyad';
 import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 import { useI18n } from '@/i18n/useI18n';
 import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface TimelineChartProps {
   data: Array<{
@@ -23,6 +24,7 @@ interface TimelineChartProps {
 
 export function TimelineChart({ data, flowTransactions, categories }: TimelineChartProps) {
   const { t } = useI18n();
+  const chartAnimation = useChartAnimation();
   // Hilfsmap für Kategorien
   const categoryMap = useMemo(() => {
     const m = new Map<string, Category>();
@@ -147,7 +149,11 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Switch checked={showIncome} onCheckedChange={(v) => setShowIncome(Boolean(v))} />
+              <Switch
+                checked={showIncome}
+                onCheckedChange={(v) => setShowIncome(Boolean(v))}
+                aria-label={t("premium.timeline.showIncome")}
+              />
               <span className="text-sm text-muted-foreground">{t("premium.timeline.showIncome")}</span>
             </div>
           </div>
@@ -190,12 +196,26 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
 
             {/* Einnahmen (optional) */}
             {showIncome && (
-              <Bar dataKey="income" fill="hsl(var(--positive))" name={t("premium.timeline.incomeLabel")} />
+              <Bar
+                dataKey="income"
+                fill="hsl(var(--positive))"
+                name={t("premium.timeline.incomeLabel")}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
+              />
             )}
 
             {/* Ausgaben: ein Brand-Balken oder gestapelte Kategorien (Monochrom-Rampe) + Rest */}
             {!hasSelection ? (
-              <Bar dataKey="expenses" fill="hsl(var(--brand))" name={t("premium.timeline.expensesLabel")} />
+              <Bar
+                dataKey="expenses"
+                fill="hsl(var(--brand))"
+                name={t("premium.timeline.expensesLabel")}
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
+              />
             ) : (
               <>
                 {Array.from(selectedCats).map((name) => (
@@ -205,9 +225,20 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
                     stackId="expenses"
                     fill={colorMap[name]}
                     name={name}
+                    isAnimationActive={chartAnimation.animate}
+                    animationDuration={chartAnimation.animationDuration}
+                    animationEasing={chartAnimation.animationEasing}
                   />
                 ))}
-                <Bar dataKey="Rest" stackId="expenses" fill="hsl(var(--muted-foreground))" name={t("premium.timeline.restLabel")} />
+                <Bar
+                  dataKey="Rest"
+                  stackId="expenses"
+                  fill="hsl(var(--muted-foreground))"
+                  name={t("premium.timeline.restLabel")}
+                  isAnimationActive={chartAnimation.animate}
+                  animationDuration={chartAnimation.animationDuration}
+                  animationEasing={chartAnimation.animationEasing}
+                />
               </>
             )}
 
@@ -221,6 +252,9 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
               dot={false}
               activeDot={{ r: 5, stroke: CHART_NET, strokeWidth: 2 }}
               name={t("premium.timeline.netBalanceLabel")}
+              isAnimationActive={chartAnimation.animate}
+              animationDuration={chartAnimation.animationDuration}
+              animationEasing={chartAnimation.animationEasing}
             />
           </ComposedChart>
         </ResponsiveContainer>

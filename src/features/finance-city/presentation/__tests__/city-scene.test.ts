@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { createCityScene, THEME_PALETTES, type CitySceneHandle } from '../city-scene';
 import { buildCityLayout, type CityLayout, type LayoutBox } from '../../domain/city-layout';
 import { cityDemoModel } from '../../data/city-demo-data';
+import type { CityModel } from '../../domain/city-model';
 
 /**
  * `city-scene.ts` ist reiner Szenengraph-Code (three.js braucht dafür KEINEN
@@ -369,6 +370,62 @@ describe('createCityScene', () => {
       expect(barMesh.scale.y).toBeCloseTo(barBox.size.y, 10);
       expect(barMesh.position.y).toBeCloseTo(barBox.size.y / 2, 10);
       expect(stillAnimating).toBe(false);
+    });
+
+    it('sollte fortgeschrittenen Zielfortschritt von der ALTEN Höhe aus wachsen lassen (WP-5.3)', () => {
+      // WP-5.3: „Gebäudewachstum bei Zielfortschritt" heißt nicht nur, dass
+      // ein neues Gebäude von 0 hochwächst (das prüft der Test darüber),
+      // sondern dass ein FORTSCHRITT am bestehenden Gebäude ebenfalls ein
+      // Wachstum ist — von der bisherigen Höhe auf die neue. Ein Sprung wäre
+      // genau das „Aufpoppen", das `docs/design-principles.md` Prinzip 2
+      // ausschließt: die Bewegung IST die Aussage „du bist weitergekommen".
+      const { handle, scene } = createHandle();
+      handle.setAnimationsEnabled(true);
+
+      const goalModel = (amount: number): CityModel => ({
+        valueKind: 'progress',
+        districts: [
+          {
+            id: 'goal:puffer',
+            label: 'Puffer',
+            color: '#3b82f6',
+            total: amount,
+            targetAmount: 1,
+            subcategories: [{ id: 'progress', label: 'Puffer', amount }],
+          },
+        ],
+      });
+
+      const view = { level: 'district', focusDistrictId: 'goal:puffer' } as const;
+      handle.applyLayout(buildCityLayout(goalModel(0.4), view));
+      handle.advanceAnimations(0);
+      handle.advanceAnimations(10_000); // Erst-Aufbau abschließen.
+
+      const barBox = buildCityLayout(goalModel(0.4), view).boxes.find((b) => b.kind === 'bar')!;
+      const barMesh = meshesOf(scene).find((m) => m.userData.id === barBox.id)!;
+      const heightBefore = barMesh.scale.y;
+      expect(heightBefore).toBeGreaterThan(0);
+
+      // Fortschritt: 40 % -> 80 %.
+      const grownLayout = buildCityLayout(goalModel(0.8), view);
+      handle.applyLayout(grownLayout);
+      const grownBox = grownLayout.boxes.find((b) => b.kind === 'bar')!;
+
+      // Kein Sprung: unmittelbar nach applyLayout steht der Balken noch auf
+      // der alten Höhe und ist noch nicht am Ziel.
+      expect(barMesh.scale.y).toBeCloseTo(heightBefore, 10);
+      expect(barMesh.scale.y).toBeLessThan(grownBox.size.y);
+
+      handle.advanceAnimations(20_000);
+      handle.advanceAnimations(20_100);
+      // Mittendrin: echtes Wachstum zwischen alter und neuer Höhe.
+      expect(barMesh.scale.y).toBeGreaterThan(heightBefore);
+      expect(barMesh.scale.y).toBeLessThan(grownBox.size.y);
+      // Fußpunkt bleibt verankert (wächst nach oben, nicht aus der Mitte).
+      expect(barMesh.position.y).toBeCloseTo(barMesh.scale.y / 2, 10);
+
+      handle.advanceAnimations(30_000);
+      expect(barMesh.scale.y).toBeCloseTo(grownBox.size.y, 10);
     });
 
     it('[REGRESSION] sollte einen Balken bei erneutem applyLayout mit unveränderter Höhe (Refetch/Re-Render) fußpunkt-verankert auf der Bodenplatte lassen (nicht zur Balkenmitte absinken)', () => {
@@ -753,8 +810,11 @@ describe('createCityScene', () => {
 
       expect(shadowPlanesOf(scene)).toHaveLength(0);
       expect(planeDisposeSpy).toHaveBeenCalledTimes(1);
-      // Himmel (2) + Boden (2) + Fassade (1) + Kontaktschatten (1) = 6 CanvasTexturen.
-      expect(textureDisposeSpy).toHaveBeenCalledTimes(6);
+      // Himmel (2) + Boden (2) + Fassade (3, WP-5.4: eine je Aktivitätsstufe)
+      // + Kontaktschatten (1) = 8 CanvasTexturen. Die Zahl ist bewusst hart
+      // geprüft: sie ist die Obergrenze, ab der aus „Textur je STUFE" ein
+      // „Textur je GEBÄUDE" geworden wäre.
+      expect(textureDisposeSpy).toHaveBeenCalledTimes(8);
     });
   });
 
@@ -811,22 +871,39 @@ describe('createCityScene', () => {
 
       const meshOf = (id: string) => meshesOf(scene).find((m) => m.userData.id === id)!;
 
-      // Erster Tick definiert die Startzeitpunkte (Reihenfolge = Layout-
-      // Reihenfolge: rent, rent:cap, utilities, insurance, furniture).
-      expect(handle.advanceAnimations(1000)).toBe(true);
-      // rent (Index 0) startet sofort; utilities (Index 2) und furniture
-      // (Index 4) stehen 100 ms nach dem Basistick noch bei Höhe 0.
-      expect(handle.advanceAnimations(1100)).toBe(true);
-      expect(meshOf('housing/rent').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBe(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      // Die Kaskade folgt der LAYOUT-Reihenfolge — und die sortiert die Balken
+      // nach Höhe absteigend, nicht nach der Reihenfolge im Modell. Für
+      // „Wohnen" heißt das rent, rent:cap, utilities, furniture, insurance:
+      // Möbel (45 €) stehen vor der Hausratversicherung (28,50 €). Die
+      // Reihenfolge wird deshalb aus dem Layout abgeleitet statt hier
+      // festgeschrieben; nur höhenanimierte Kinder bekommen einen Staffelplatz.
+      const cascade = layout.boxes
+        .filter((b) => b.kind === 'bar' || b.kind === 'cap' || b.kind === 'floor')
+        .map((b) => b.id);
+      expect(cascade).toEqual([
+        'housing/rent',
+        'housing/rent:cap',
+        'housing/utilities',
+        'housing/furniture',
+        'housing/insurance',
+      ]);
 
-      // Weitere 100 ms: Cap (Index 1) und utilities (Index 2) wachsen bereits,
-      // furniture (Index 4 -> Start genau jetzt) noch nicht.
+      // Erster Tick definiert die Startzeitpunkte, Staffelschritt 50 ms.
+      expect(handle.advanceAnimations(1000)).toBe(true);
+      // 100 ms nach dem Basistick: Index 0 wächst, Index 2 startet genau jetzt
+      // (Höhe noch exakt 0), alles dahinter hat noch gar nicht begonnen.
+      expect(handle.advanceAnimations(1100)).toBe(true);
+      expect(meshOf(cascade[0]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[2]).scale.y).toBe(0);
+      expect(meshOf(cascade[3]).scale.y).toBe(0);
+      expect(meshOf(cascade[4]).scale.y).toBe(0);
+
+      // Weitere 100 ms: Index 1–3 wachsen bereits, Index 4 startet genau jetzt.
       expect(handle.advanceAnimations(1200)).toBe(true);
-      expect(meshOf('housing/rent:cap').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/utilities').scale.y).toBeGreaterThan(0);
-      expect(meshOf('housing/furniture').scale.y).toBe(0);
+      expect(meshOf(cascade[1]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[2]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[3]).scale.y).toBeGreaterThan(0);
+      expect(meshOf(cascade[4]).scale.y).toBe(0);
 
       // Nach genügend Zeit: alle exakt am Ziel, kein Tween mehr aktiv.
       expect(handle.advanceAnimations(3000)).toBe(false);

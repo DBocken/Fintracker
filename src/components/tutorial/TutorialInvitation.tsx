@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { GraduationCap, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
@@ -16,11 +15,18 @@ import type { TutorialRun } from '@/hooks/useTutorialRun';
  * zwei gleichberechtigte Ziele — starten und wegklicken —, und „Nicht jetzt"
  * darf niemals versehentlich die Führung starten.
  */
-export default function TutorialInvitation({ run }: { run: TutorialRun }) {
+export default function TutorialInvitation({
+  run,
+  onDismiss,
+}: {
+  run: TutorialRun;
+  /** Das Wegklicken gehört dem Host: er hält die Präsenz der Hinweisebene
+   *  (Befund A-2), damit nachrangige Hinweise nachrücken können. */
+  onDismiss: () => void;
+}) {
   const { t } = useI18n();
-  const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed || !run.upcoming) return null;
+  if (!run.upcoming) return null;
 
   return (
     <div className="border-b border-brand/30 bg-brand/10">
@@ -40,7 +46,7 @@ export default function TutorialInvitation({ run }: { run: TutorialRun }) {
           size="icon"
           className="h-7 w-7 shrink-0"
           aria-label={t('tutorial.invitationDismiss', 'Nicht jetzt')}
-          onClick={() => setDismissed(true)}
+          onClick={onDismiss}
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </Button>

@@ -39,6 +39,7 @@
 import { type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
 import type { Category } from '@/types';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
+import { activityLevel } from './city-activity';
 
 /**
  * Distrikt-Farben der Stadt: eine EIGENE, hue-gespreizte Palette statt
@@ -72,6 +73,20 @@ const CITY_DISTRICT_PALETTE = [
   '#84cc16', // Limette
 ] as const;
 
+export type BuildCityModelOptions = {
+  /**
+   * WP-5.2: Feste Farbe je Distrikt-ID. Ohne sie wird wie bisher nach dem
+   * Betrags-Rang gefärbt — was beim Monatswechsel zu wechselnden Farben führt,
+   * sobald sich die Reihenfolge ändert.
+   */
+  colorByDistrictId?: ReadonlyMap<string, string>;
+};
+
+/** Farbe je Distrikt-ID aus einem Referenz-Modell (üblicherweise das Gesamt-Modell über alle Monate). */
+export function districtColorMap(model: CityModel): Map<string, string> {
+  return new Map(model.districts.map((district) => [district.id, district.color]));
+}
+
 function districtColor(index: number): string {
   return CITY_DISTRICT_PALETTE[index % CITY_DISTRICT_PALETTE.length];
 }
@@ -98,12 +113,50 @@ function mergeSubcategories(target: CitySubcategory[], incoming: CitySubcategory
   }
 }
 
+/**
+ * WP-5.4: Länge des Datenfensters in Kalendermonaten — Bezugsgröße der
+ * Aktivitäts-FREQUENZ. Bewusst über ALLE Gebäude gebildet und nicht je
+ * Gebäude: sonst käme ein Gebäude mit einer einzigen Buchung in einem
+ * einzigen Monat auf „1 Buchung / 1 Monat" und damit auf dieselbe Stufe wie
+ * ein echtes monatliches Abo.
+ */
+function dataWindowMonths(floorsByBuilding: Map<string, CityContract[]>): number {
+  const months = new Set<string>();
+  for (const floors of floorsByBuilding.values()) {
+    for (const floor of floors) {
+      for (const booking of floor.bookings ?? []) {
+        const match = /^(\d{4}-\d{2})/.exec(booking.date);
+        if (match) months.add(match[1]);
+      }
+    }
+  }
+  return months.size;
+}
+
 /** Hängt die vorab aggregierten Händler-Etagen an ihr Gebäude — mutiert die frisch gebauten (noch nicht nach außen sichtbaren) `districts`. */
 function attachFloors(districts: CityDistrict[], floorsByBuilding: Map<string, CityContract[]>): void {
+  const windowMonths = dataWindowMonths(floorsByBuilding);
+
   for (const district of districts) {
     for (const building of district.subcategories) {
       const floors = floorsByBuilding.get(building.id);
-      if (floors && floors.length > 0) building.contracts = floors;
+      if (floors && floors.length > 0) {
+        building.contracts = floors;
+        // WP-5.1: Wiederkehrender Anteil des Gebäudes = Summe der Etagen, die
+        // regelmäßig wiederkommen. Grundlage der Flusslinien. Nur setzen, wenn
+        // es tatsächlich etwas gibt — sonst behauptete ein `0` eine geprüfte
+        // Aussage, wo gar keine Etagen-Information vorlag.
+        const recurringAmount = floors
+          .filter((floor) => floor.recurring)
+          .reduce((sum, floor) => sum + floor.amount, 0);
+        if (recurringAmount > 0) building.recurringAmount = recurringAmount;
+
+        // WP-5.4: Wie oft passiert hier etwas? Zeigt den Unterschied zwischen
+        // EINER großen Zahlung und vielen kleinen — den die Gebäudehöhe
+        // grundsätzlich nicht zeigen kann.
+        const bookingCount = floors.reduce((sum, floor) => sum + (floor.bookings?.length ?? 0), 0);
+        building.activity = activityLevel(bookingCount, windowMonths);
+      }
     }
   }
 }
@@ -124,6 +177,7 @@ export function buildCityModelFromData(
   // Argument-Layout umgestellt werden müssen.
   _categoriesById: Map<string, Category>,
   floorsByBuilding: Map<string, CityContract[]>,
+  options: BuildCityModelOptions = {},
 ): CityModel {
   const mainNodes = sunburst.children
     .flatMap((klasse) => klasse.children)
@@ -156,10 +210,16 @@ export function buildCityModelFromData(
   }
 
   // Global nach Betrag absteigend, Farbe deterministisch je Distrikt-Index.
+  //
+  // WP-5.2: `colorByDistrictId` überschreibt das. Die Zeitachse baut dasselbe
+  // Modell für verschiedene Monate — ohne feste Zuordnung änderte sich mit den
+  // Beträgen die Sortierung und damit die FARBE jedes Viertels bei jedem
+  // Monatsschritt. Die Stadt soll aber erkennbar dieselbe Stadt bleiben, in der
+  // sich nur die Höhen ändern.
   const districts: CityDistrict[] = order
     .map((id) => merged.get(id) as Omit<CityDistrict, 'color'>)
     .sort((a, b) => b.total - a.total)
-    .map((d, index) => ({ ...d, color: districtColor(index) }));
+    .map((d, index) => ({ ...d, color: options.colorByDistrictId?.get(d.id) ?? districtColor(index) }));
 
   attachFloors(districts, floorsByBuilding);
 

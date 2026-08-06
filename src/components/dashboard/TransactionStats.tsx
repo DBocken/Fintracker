@@ -8,7 +8,15 @@ interface TransactionStatsProps {
   balance: number;
   count: number;
   totalTransactions: number;
-  currentBalance: string;
+  /**
+   * Kontostand als dominante Zahl links. **Optional**: Screens, die den
+   * Kontostand bereits als Hero fuehren (Dashboard), lassen ihn hier weg,
+   * damit dieselbe Zahl nicht zweimal gross erscheint und dem Hero die
+   * Dominanz nimmt. Die Buchungsseite hat keinen Hero und uebergibt ihn.
+   *
+   * @see docs/aaa-plus/critic-reports/wp-4.6-art-ux-motion.md — Befund A-1
+   */
+  currentBalance?: string;
 }
 
 const eur = new Intl.NumberFormat('de-DE', {
@@ -33,15 +41,17 @@ export function TransactionStats({
   return (
     <div className="overflow-hidden rounded-xl bg-gradient-to-br from-brand/10 via-premium/15 to-transparent p-5 md:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Wallet className="h-4 w-4" />
-              {t("transactionStats.accountBalance")}
+          {currentBalance !== undefined && (
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                {t("transactionStats.accountBalance")}
+              </div>
+              <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
+                {gentleModeEnabled ? '***' : currentBalance}
+              </div>
             </div>
-            <div className="mt-1 truncate text-4xl font-semibold tracking-tight md:text-5xl">
-              {gentleModeEnabled ? '***' : currentBalance}
-            </div>
-          </div>
+          )}
 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4 lg:text-right">
             <div>

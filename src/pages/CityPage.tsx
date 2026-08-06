@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as THREE from "three";
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, ChevronLeft, ChevronRight, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, ChevronLeft, ChevronRight, HelpCircle, List, Maximize2, Minimize2, RotateCcw, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -11,6 +11,8 @@ import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
+import { buildFlowLines } from "@/features/finance-city/domain/city-flow-lines";
+import { CityLegend } from "@/features/finance-city/presentation/CityLegend";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
 import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
@@ -19,7 +21,11 @@ import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-me
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
 import { useCityModel, type CityModelTab } from "@/features/finance-city/application/use-city-model";
-import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
+import {
+  CityCanvas,
+  type CityControlsApi,
+  type CityCanvasUnavailableReason,
+} from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
 import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
 import { CAMERA_FOV_Y_DEG, type CitySceneHandle } from "@/features/finance-city/presentation/city-scene";
@@ -112,6 +118,32 @@ export default function CityPage() {
   // WebGL-Kontext-Neuaufbau bei jedem Toggle) — im Listen-Modus wird er nur
   // visuell ausgeblendet + `aria-hidden`, siehe JSX unten.
   const [showList, setShowList] = useState(false);
+
+  // WP-5.7: Warum die 3D-Fläche gerade nichts zeigt (`null` = alles in
+  // Ordnung). `canvasGeneration` ist der Remount-Schlüssel des Canvas: ein
+  // Neuaufbau nach hartem Kontextverlust braucht einen frischen
+  // WebGL-Kontext, und den bekommt man nur über ein neues `<canvas>`-Element.
+  const [canvasUnavailable, setCanvasUnavailable] = useState<CityCanvasUnavailableReason | null>(null);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
+
+  // WP-5.8: Legende der visuellen Sprache. Bewusst NUR auf Abruf — kein
+  // Tutorial, kein automatisches Overlay: `docs/tutorial-progressive-disclosure.md`
+  // legt dafür eine eigene Architektur fest (Freischaltungs-Achse zuerst), die
+  // hier nicht vorweggenommen wird. Der Erst-Besuch-Hinweis (`city.tapHint`)
+  // bleibt der einzige ungefragte Wortbeitrag der Seite.
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  // WP-5.2 (Zeitachse): `null` = der Vorgabe-Ausschnitt (alle geladenen
+  // Buchungen), so wie die Stadt vor WP-5.2 aussah. Erst ein Klick auf die
+  // Monatsleiste wählt einen konkreten Monat — die Seite startet also nicht in
+  // einem Zustand, den niemand gewählt hat.
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  const handleRebuildCity = useCallback(() => {
+    setCanvasUnavailable(null);
+    setCanvasGeneration((generation) => generation + 1);
+  }, []);
+
   const cityLabelsRef = useRef<CityLabelsHandle | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -128,7 +160,10 @@ export default function CityPage() {
   // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
   // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
-  const { model, isLoading, isEmpty, overview } = useCityModel(activeTab);
+  const { model, isLoading, isEmpty, overview, timeline } = useCityModel(
+    activeTab,
+    selectedMonth ?? undefined,
+  );
   // WP-D8 (Übersicht → Welt-Sprung): beim zweiten Tap auf ein Viertel der
   // Übersicht wird in dessen Welt gewechselt UND direkt der Distrikt betreten
   // — der Tab-Reset-Effekt liest dieses Ziel statt auf die Stadt-Ebene zu gehen.
@@ -168,6 +203,47 @@ export default function CityPage() {
     const focusSubcategoryId = nav.activeSubcategoryId ?? undefined;
     return buildCityLayout(model, { level: nav.level, focusDistrictId, focusSubcategoryId });
   }, [model, nav.level, nav.focusDistrictId, nav.activeDistrictId, nav.activeSubcategoryId]);
+
+  // WP-5.1: Flusslinien für wiederkehrende Zahlungen — nur auf STADT-Ebene.
+  // Beim Eintauchen in einen Distrikt oder ein Gebäude ist die Aussage „das
+  // hier fließt jeden Monat ab" bereits durch die Etagen beantwortet; die
+  // Linien würden dort nur die Sicht auf die Baukörper verstellen.
+  // WP-5.2: Position in der Monatsleiste. Ohne gewählten Monat steht der
+  // Zeiger auf dem laufenden Monat — der Vorgabe-Ausschnitt zeigt zwar ALLE
+  // Buchungen, aber „jetzt" ist der ehrlichste Ankerpunkt für den nächsten
+  // Schritt in beide Richtungen.
+  const timelineIndex = useMemo(() => {
+    if (timeline.length === 0) return -1;
+    const target = selectedMonth ?? timeline.find((month) => month.kind === "current")?.key;
+    const index = timeline.findIndex((month) => month.key === target);
+    return index === -1 ? 0 : index;
+  }, [timeline, selectedMonth]);
+
+  const stepMonth = useCallback(
+    (delta: number) => {
+      const next = timeline[timelineIndex + delta];
+      if (next) setSelectedMonth(next.key);
+    },
+    [timeline, timelineIndex],
+  );
+
+  const activeMonth = timelineIndex >= 0 ? timeline[timelineIndex] : undefined;
+  const activeMonthIsForecast = activeMonth?.kind === "future";
+  const activeMonthLabel = useMemo(() => {
+    if (!activeMonth) return "";
+    // `toLocaleDateString` ist die bestehende Konvention der Seite (siehe
+    // DATE_LOCALE_BY_APP_LOCALE) — kein eigenes Monatsnamen-Verzeichnis.
+    const date = new Date(`${activeMonth.key}-01T12:00:00`);
+    return date.toLocaleDateString(DATE_LOCALE_BY_APP_LOCALE[locale] ?? "de-DE", {
+      month: "long",
+      year: "numeric",
+    });
+  }, [activeMonth, locale]);
+
+  const flowLines = useMemo(
+    () => (nav.level === "city" ? buildFlowLines(model, layout) : []),
+    [model, layout, nav.level],
+  );
 
   // WP-C4: Fokus-Bounding-Sphere für den Kamera-Controller (Distrikt-Fokus/
   // -Eintauchen bzw. Unterkategorie-Eintauchen) — `computeFocusBounds` liest
@@ -621,6 +697,15 @@ export default function CityPage() {
               >
                 <List className="h-4 w-4" aria-hidden="true" />
               </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.legend.open")}
+                onClick={() => setLegendOpen(true)}
+              >
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -656,6 +741,44 @@ export default function CityPage() {
               })}
             </TabsList>
           </Tabs>
+
+          {/* WP-5.2 (Zeitachse): Schrittweise durch die Monate. Bewusst
+              Schritte statt eines Reglers — ein Regler suggeriert stufenlose
+              Zeit, tatsächlich sind es diskrete Monate. Nur im Ausgaben-Tab
+              vorhanden (`timeline` ist sonst leer): nur dort liefert der
+              Forecast eine Prognose je Kategorie. */}
+          {timeline.length > 0 && (
+            <div className="flex shrink-0 items-center gap-1" data-testid="city-timeline">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.timeline.previous")}
+                disabled={timelineIndex <= 0}
+                onClick={() => stepMonth(-1)}
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <span className="min-w-[9rem] text-center text-sm tabular-nums" aria-live="polite">
+                {activeMonthLabel}
+                {activeMonthIsForecast && (
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {t("city.timeline.forecastBadge")}
+                  </span>
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("city.timeline.next")}
+                disabled={timelineIndex >= timeline.length - 1}
+                onClick={() => stepMonth(1)}
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30">
@@ -698,6 +821,7 @@ export default function CityPage() {
                 className={cn("absolute inset-0", showList && "invisible")}
               >
                 <CityCanvas
+                  key={canvasGeneration}
                   layout={layout}
                   onTapBox={handleTapBox}
                   onHoverBox={handleHoverBox}
@@ -707,8 +831,56 @@ export default function CityPage() {
                   onFrame={handleFrame}
                   controlsApiRef={controlsApiRef}
                   sceneRef={sceneRef}
+                  onUnavailable={setCanvasUnavailable}
+                  flowLines={flowLines}
                   className="absolute inset-0"
                 />
+                {/* WP-5.7: Die 3D-Fläche kann leer/tot sein, ohne dass die
+                    DATEN fehlen — kein WebGL-Kontext, oder der Treiber hat
+                    einen laufenden eingezogen. Vorher blieb dann eine stumme
+                    Fläche stehen (beim Kontextverlust sogar mit eingefrorenen,
+                    veralteten Zahlen). Jetzt: benennen, was los ist, und den
+                    Weg zur Listenansicht zeigen — dieselben Daten, nur ohne
+                    3D. Im Listen-Modus unterdrückt, dort ist die Alternative
+                    ja schon offen. */}
+                {canvasUnavailable && !showList && (
+                  <div
+                    role="alert"
+                    data-testid="city-canvas-unavailable-notice"
+                    className="absolute inset-0 z-20 flex items-center justify-center bg-background/95 p-6"
+                  >
+                    <div className="max-w-sm space-y-3 text-center">
+                      <h2 className="text-base font-semibold">
+                        {t(
+                          canvasUnavailable === "context-lost"
+                            ? "city.unavailable.contextLostTitle"
+                            : "city.unavailable.unsupportedTitle",
+                        )}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t(
+                          canvasUnavailable === "context-lost"
+                            ? "city.unavailable.contextLostBody"
+                            : "city.unavailable.unsupportedBody",
+                        )}
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 pt-1">
+                        {/* Neuaufbau nur beim Kontextverlust: der ist behebbar
+                            (Speicherdruck vergeht). Fehlt WebGL ganz, wäre der
+                            Knopf ein Versprechen, das das Gerät nicht halten
+                            kann. */}
+                        {canvasUnavailable === "context-lost" && (
+                          <Button size="sm" onClick={handleRebuildCity}>
+                            {t("city.unavailable.retry")}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => setShowList(true)}>
+                          {t("city.unavailable.toList")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* WP-D6 (Premium-Look): dezente Vignette rahmt die Szene und
                     zieht den Blick zur Stadt — reines CSS-Overlay (kein
                     Post-Processing/GPU-Pass), liegt UNTER den Labels. */}
@@ -919,6 +1091,14 @@ export default function CityPage() {
           )}
         </div>
       </div>
+
+      <CityLegend
+        open={legendOpen}
+        onOpenChange={setLegendOpen}
+        model={model}
+        level={nav.level}
+        hasFlowLines={flowLines.length > 0}
+      />
 
       <Sheet
         open={selectedContract !== null}

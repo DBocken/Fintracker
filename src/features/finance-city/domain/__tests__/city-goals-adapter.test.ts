@@ -60,9 +60,54 @@ describe('buildCityModelFromMilestones', () => {
     const achievedGoal = model.districts[2];
     expect(achievedGoal.achieved).toBe(true);
     expect(achievedGoal.color).toBe('#f0b429'); // Gold.
-    // Laufende Ziele: Nicht-Gold, untereinander verschieden.
+    // WP-5.3: Die Farbe der laufenden Ziele kommt aus der FORTSCHRITTS-STUFE,
+    // nicht mehr aus dem Sortier-Index. „fast" (90 %) und „anfang" (10 %)
+    // liegen in verschiedenen Stufen und unterscheiden sich deshalb — zwei
+    // Ziele in derselben Stufe teilen sich dagegen bewusst eine Farbe (die
+    // Farbe sagt „wie weit", nicht „welches").
     expect(model.districts[0].color).not.toBe('#f0b429');
+    expect(model.districts[0].stage).toBe('nearly');
+    expect(model.districts[1].stage).toBe('started');
     expect(model.districts[0].color).not.toBe(model.districts[1].color);
+  });
+
+  it('sollte zwei gleich weit fortgeschrittenen Zielen dieselbe Farbe geben (WP-5.3)', () => {
+    // Die Umkehrung der Regel oben, ausdrücklich festgehalten: Farbe = Stufe.
+    // Vorher hätte der Sortier-Index hier zwei verschiedene Farben erzeugt und
+    // damit einen Unterschied behauptet, den es in den Daten nicht gibt.
+    const model = buildCityModelFromMilestones([
+      status('a', { progress: { amount: 500, target: 1000, unit: 'euro' } }),
+      status('b', { progress: { amount: 550, target: 1000, unit: 'euro' } }),
+    ]);
+
+    expect(model.districts.map((d) => d.stage)).toEqual(['underway', 'underway']);
+    expect(model.districts[0].color).toBe(model.districts[1].color);
+  });
+
+  it('sollte die Stufe bei leichtem Rückfall halten (Hysterese, WP-5.3)', () => {
+    const before = buildCityModelFromMilestones([
+      status('puffer', { progress: { amount: 760, target: 1000, unit: 'euro' } }),
+    ]);
+    expect(before.districts[0].stage).toBe('nearly');
+
+    const previousStages = new Map([['goal:puffer', before.districts[0].stage!]]);
+    const after = buildCityModelFromMilestones(
+      [status('puffer', { progress: { amount: 745, target: 1000, unit: 'euro' } })],
+      previousStages,
+    );
+
+    // 74,5 % liegt unter der 75-%-Schwelle, aber im Hysterese-Band — ohne das
+    // würde die Farbe bei jeder Buchung hin- und herspringen.
+    expect(after.districts[0].stage).toBe('nearly');
+    expect(after.districts[0].color).toBe(before.districts[0].color);
+  });
+
+  it('sollte die Stufe bei echtem Rückfall doch senken (WP-5.3)', () => {
+    const after = buildCityModelFromMilestones(
+      [status('puffer', { progress: { amount: 600, target: 1000, unit: 'euro' } })],
+      new Map([['goal:puffer', 'nearly' as const]]),
+    );
+    expect(after.districts[0].stage).toBe('underway');
   });
 
   it('sollte den Balken auf die Hülle deckeln (Übererfüllung), den Anzeige-Bruch aber ungedeckelt lassen', () => {

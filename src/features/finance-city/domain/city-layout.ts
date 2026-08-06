@@ -8,6 +8,7 @@
  */
 
 import type { CityDistrict, CityModel, CitySubcategory, Vec3 } from './city-model';
+import type { CityActivityLevel } from './city-activity';
 import { scaleHeight, scaleFloors } from './city-scaling';
 
 export type CityLevel = 'city' | 'district' | 'subcategory';
@@ -28,6 +29,12 @@ export type LayoutBox = {
   pickable: boolean;
   /** Oberkante der Box, für HTML-Label-Projektion (README: Labels sind DOM-Overlays, keine 3D-Sprites). */
   labelAnchor?: Vec3;
+  /**
+   * WP-5.4: Buchungs-Aktivität des Gebäudes (`city-activity.ts`) — steuert die
+   * Fassaden-Textur. Nur an `bar`-Boxen gesetzt: Hüllen, Grundstücke, Boden
+   * und Caps tragen keine Fassade.
+   */
+  activity?: CityActivityLevel;
 };
 
 export type CityLayout = { boxes: LayoutBox[]; center: Vec3; boundingRadius: number };
@@ -208,6 +215,15 @@ const BAR_OPACITY_DISTRICT = 1.0;
 /** Andere Balken im selben Viertel, während einer in Etagen aufgelöst ist. */
 const BAR_OPACITY_DIMMED_SUBCATEGORY = 0.35;
 const FLOOR_OPACITY = 1.0;
+
+/**
+ * WP-5.2 (Zeitachse): Deckkraft der Baukörper in einem PROGNOSEMONAT.
+ * Bewusst durchscheinend + mit Kante — dieselbe Bildsprache, die die Stadt
+ * schon für „noch nicht erreicht" nutzt (die Ziel-Hülle im Ziele-Tab). Ein
+ * Prognosegebäude soll auf den ersten Blick als „noch nicht passiert"
+ * erkennbar sein, ohne dass man erst das Datum lesen muss.
+ */
+const BAR_OPACITY_PROJECTED = 0.45;
 /** Eigene Ergänzung (Spec nennt keinen Wert für "plot"): Boden-Einfärbung je Distrikt — seit WP-D6 etwas kräftiger (0.14), wirkt wie ein dezentes "Distrikt-Leuchten" auf der Platte. */
 const PLOT_OPACITY = 0.14;
 const GROUND_OPACITY = 1.0;
@@ -479,6 +495,7 @@ function buildBarBox(
   bar: PositionedBar,
   opacity: number,
   pickable: boolean,
+  projected = false,
 ): LayoutBox {
   const size: Vec3 = { x: bar.footprint, y: bar.height, z: bar.footprint };
   return {
@@ -488,9 +505,12 @@ function buildBarBox(
     size,
     color: district.color,
     opacity,
-    edges: false,
+    edges: projected, // WP-5.2: Prognose = Kante sichtbar (wie die Ziel-Hülle).
     pickable,
     labelAnchor: { x: bar.center.x, y: bar.center.y + size.y / 2, z: bar.center.z },
+    // WP-5.4: reicht die Aktivitätsstufe des Gebäudes an die Presentation
+    // durch — die Geometrie selbst ändert sich dadurch nicht.
+    activity: bar.subcategory.activity,
   };
 }
 
@@ -667,6 +687,11 @@ export function computeFocusBounds(layout: CityLayout, focusId: string): { cente
  * der Szenen-Geometrie — `presentation/` liest nur `LayoutBox[]`.
  */
 export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
+  // WP-5.2: Prognosemonat — Baukörper durchscheinend und mit Kante, damit sie
+  // auf den ersten Blick als „noch nicht passiert" lesbar sind, ohne dass man
+  // erst das Datum lesen muss. Gilt für das GANZE Modell (siehe
+  // `CityModel.projected`), nicht je Gebäude.
+  const projected = model.projected === true;
   const cityWideMaxAmount = computeCityWideMaxSubcategoryAmount(model);
   // Stadt-Höchsthöhe (== MAX_BAR_HEIGHT, sobald es positive Beträge gibt) —
   // Bezugsgröße der WP-E1-Cap-Schwelle, NICHT das Maximum pro Distrikt:
@@ -731,11 +756,15 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
         // BAR_OPACITY_DIMMED_SUBCATEGORY auszuwaschen — sonst wirkt das
         // Eintauchen wie eine tote, verwaschene Sackgasse. Nicht pickbar (es gibt
         // nichts, in das man weiter eintauchen könnte).
-        pushBarWithOptionalCap(district, bar, buildBarBox(district, bar, BAR_OPACITY_DISTRICT, false));
+        pushBarWithOptionalCap(
+          district,
+          bar,
+          buildBarBox(district, bar, projected ? BAR_OPACITY_PROJECTED : BAR_OPACITY_DISTRICT, false, projected),
+        );
         continue;
       }
 
-      const barOpacity =
+      const baseOpacity =
         view.level === 'city'
           ? isCityFocused
             ? BAR_OPACITY_CITY_FOCUSED
@@ -743,9 +772,13 @@ export function buildCityLayout(model: CityModel, view: CityView): CityLayout {
           : view.level === 'district'
             ? BAR_OPACITY_DISTRICT
             : BAR_OPACITY_DIMMED_SUBCATEGORY;
+      // WP-5.2: In einem Prognosemonat wird ABGESENKT, nie angehoben — sonst
+      // wäre ein gedimmter Nachbar in der Prognose plötzlich präsenter als im
+      // Ist-Monat.
+      const barOpacity = projected ? Math.min(baseOpacity, BAR_OPACITY_PROJECTED) : baseOpacity;
       const barPickable = view.level === 'district';
 
-      pushBarWithOptionalCap(district, bar, buildBarBox(district, bar, barOpacity, barPickable));
+      pushBarWithOptionalCap(district, bar, buildBarBox(district, bar, barOpacity, barPickable, projected));
     }
   }
 

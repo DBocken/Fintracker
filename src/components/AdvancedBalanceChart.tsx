@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { yAxisDomain } from '@/lib/chart-axis';
+import { niceTicks, yAxisDomain } from '@/lib/chart-axis';
 import { chartNumber, chartText } from '@/lib/chart-tooltip';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
@@ -16,6 +16,7 @@ import type { Transaction } from '../types';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
+import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -27,6 +28,7 @@ interface AdvancedBalanceChartProps {
 export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isLoading = false }: AdvancedBalanceChartProps) {
   const { t } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const chartAnimation = useChartAnimation();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -48,6 +50,21 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
     () => buildBalanceHistory(transactions, effectiveStartingBalance),
     [transactions, effectiveStartingBalance],
   );
+
+  // Runde Achsen-Ticks statt Recharts-Interpolation (Befund D-1, WP-4.6-Review):
+  // über alle drei geplotteten Serien, damit keine aus der Achse fällt.
+  const yTicks = useMemo(() => {
+    if (chartData.length === 0) return null;
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const point of chartData) {
+      for (const value of [point.income, point.expenses, point.cumulative]) {
+        if (value < min) min = value;
+        if (value > max) max = value;
+      }
+    }
+    return niceTicks(min, max, { includeZero: axisFromZero });
+  }, [chartData, axisFromZero]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -161,7 +178,8 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 tickLine={false}
                 axisLine={false}
                 width={64}
-                domain={yAxisDomain({ includeZero: axisFromZero })}
+                ticks={yTicks ?? undefined}
+                domain={yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : yAxisDomain({ includeZero: axisFromZero })}
                 tickFormatter={(value) => gentleModeEnabled ? '••' : `${(value as number).toFixed(0)} €`}
               />
               <Tooltip
@@ -196,6 +214,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 5, stroke: CHART_INCOME, strokeWidth: 2 }}
                 name="income"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
 
               <Area
@@ -207,6 +228,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 5, stroke: CHART_EXPENSE, strokeWidth: 2 }}
                 name="expenses"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
 
               <Area
@@ -218,6 +242,9 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 dot={false}
                 activeDot={{ r: 6, stroke: CHART_NET, strokeWidth: 2 }}
                 name="balance"
+                isAnimationActive={chartAnimation.animate}
+                animationDuration={chartAnimation.animationDuration}
+                animationEasing={chartAnimation.animationEasing}
               />
             </AreaChart>
           </ResponsiveContainer>

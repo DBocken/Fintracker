@@ -1,5 +1,57 @@
 import { describe, it, expect } from 'vitest';
-import { niceDomain, yAxisDomain } from '../chart-axis';
+import { niceDomain, niceTicks, yAxisDomain } from '../chart-axis';
+
+describe('niceTicks', () => {
+  // Befund D-1 aus dem WP-4.6-Critic-Review: Die Y-Achse des
+  // Kontostand-Verlaufs zeigte 3500/2695/1795/895/-5 — Recharts errechnet
+  // innere Ticks aus dem Datenbereich, statt sie auf runde Schritte zu legen.
+  it('[REGRESSION] legt die Ticks des Kontostand-Verlaufs auf runde Schritte', () => {
+    expect(niceTicks(0, 3500)).toEqual([0, 1000, 2000, 3000, 4000]);
+  });
+
+  it('deckt den Datenbereich vollständig ab, alle Ticks auf der Schrittweite', () => {
+    const ticks = niceTicks(-250, 3500);
+    expect(ticks[0]).toBeLessThanOrEqual(-250);
+    expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(3500);
+    const step = ticks[1] - ticks[0];
+    for (const tick of ticks) {
+      expect(Math.abs(tick % step)).toBe(0);
+    }
+  });
+
+  it('hält die Tick-Anzahl im Leserahmen', () => {
+    const ranges: Array<[number, number]> = [
+      [0, 37],
+      [0, 3500],
+      [-1200, 900],
+      [12, 18],
+      [0, 999999],
+    ];
+    for (const [min, max] of ranges) {
+      const ticks = niceTicks(min, max);
+      expect(ticks.length).toBeGreaterThanOrEqual(3);
+      expect(ticks.length).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it('erzwingt die 0 mit includeZero', () => {
+    expect(niceTicks(500, 3500, { includeZero: true })).toContain(0);
+  });
+
+  it('behandelt ungültige und flache Bereiche defensiv', () => {
+    expect(niceTicks(NaN, 100)).toEqual([0, 1]);
+    expect(niceTicks(0, Infinity)).toEqual([0, 1]);
+    const flat = niceTicks(1200, 1200);
+    expect(flat.length).toBeGreaterThanOrEqual(2);
+    expect(flat[0]).toBeLessThanOrEqual(1200);
+    expect(flat[flat.length - 1]).toBeGreaterThanOrEqual(1200);
+  });
+
+  it('sortiert vertauschte Grenzen', () => {
+    const ticks = niceTicks(3500, 0);
+    expect(ticks[0]).toBeLessThan(ticks[ticks.length - 1]);
+  });
+});
 
 describe('niceDomain', () => {
   it('beginnt nicht zwingend bei 0, wenn Werte eng beieinander liegen', () => {
