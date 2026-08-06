@@ -44,11 +44,15 @@ function logError(message: string, data?: unknown) {
   }
 }
 
-interface BalanceRefreshLimit {
-  user_id: string;
-  last_refresh_date: string;
-  daily_count: number;
-  updated_at: string;
+// Rueckgabe von public.balance_refresh_status() / consume_balance_refresh().
+// Wie hoch das Tageslimit ist, entscheidet die Datenbank — hier steht dazu
+// bewusst keine Konstante mehr (F-SEC-3): eine zweite Zahl im Client waere
+// genau die Art stiller Drift, die das Limit vorher unwirksam gemacht hat.
+interface RefreshStatusRow {
+  used_today?: number;
+  allowed?: boolean;
+  remaining: number;
+  daily_limit: number;
 }
 
 interface AccountRow {
@@ -83,8 +87,6 @@ interface GoCardlessAccountsResponse {
   accounts?: GoCardlessAccount[];
   error?: string;
 }
-
-const MAX_DAILY_REFRESHES = 1;
 
 type RefreshMode = "automatic" | "manual";
 
@@ -153,16 +155,15 @@ serve(async (req) => {
   }
 
   const userId = user.id;
-  const today = new Date().toISOString().split("T")[0];
 
-  const { data: limitRow, error: limitError } = await supabaseClient
-    .from("balance_refresh_limits")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
+  // Vorabblick, nicht die Durchsetzung: erspart die Kontenabfrage, wenn das
+  // Kontingent ohnehin erschoepft ist. Verbindlich entscheidet erst
+  // consume_balance_refresh() weiter unten — in einem Statement, unmittelbar
+  // vor dem externen Abruf.
+  const { data: statusData, error: statusError } = await supabaseClient.rpc("balance_refresh_status");
 
-  if (limitError && limitError.code !== "PGRST116") {
-    logError("Error fetching limit row", limitError);
+  if (statusError) {
+    logError("Error fetching refresh status", statusError);
     return jsonResponse(origin, 500, {
       success: false,
       error: "db_error",
@@ -170,11 +171,10 @@ serve(async (req) => {
     });
   }
 
-  const currentCount = limitRow && (limitRow as BalanceRefreshLimit).last_refresh_date === today
-    ? (limitRow as BalanceRefreshLimit).daily_count || 0
-    : 0;
+  const status = (statusData as RefreshStatusRow[] | null)?.[0];
+  const remainingBefore = status?.remaining ?? 0;
 
-  if (currentCount >= MAX_DAILY_REFRESHES) {
+  if (remainingBefore <= 0) {
     return jsonResponse(origin, 429, {
       success: false,
       error: "rate_limit_exceeded",
@@ -204,7 +204,7 @@ serve(async (req) => {
     return jsonResponse(origin, 200, {
       success: true,
       mode: refreshMode,
-      remaining_today: MAX_DAILY_REFRESHES - currentCount,
+      remaining_today: remainingBefore,
       updated_accounts: 0,
       message: "Keine verbundenen Bankkonten gefunden.",
     });
@@ -248,11 +248,40 @@ serve(async (req) => {
     return jsonResponse(origin, 200, {
       success: true,
       mode: refreshMode,
-      remaining_today: MAX_DAILY_REFRESHES - currentCount,
+      remaining_today: remainingBefore,
       updated_accounts: 0,
       message: "Keine aktiv synchronisierten Bankkonten gefunden.",
     });
   }
+
+  // Ab hier wird die externe Quote beansprucht — also jetzt verbuchen, nicht
+  // erst am Ende. Pruefen und Hochzaehlen passieren in einem Statement
+  // (F-SEC-3): sonst kommen gleichzeitige Anfragen alle an derselben, noch
+  // nicht fortgeschriebenen Zahl vorbei.
+  const { data: consumeData, error: consumeError } = await supabaseClient.rpc("consume_balance_refresh");
+
+  if (consumeError) {
+    logError("Failed to consume refresh quota", consumeError);
+    return jsonResponse(origin, 500, {
+      success: false,
+      error: "db_error",
+      message: "Das Tageslimit konnte nicht geprüft werden.",
+    });
+  }
+
+  const consumed = (consumeData as RefreshStatusRow[] | null)?.[0];
+
+  if (!consumed?.allowed) {
+    return jsonResponse(origin, 429, {
+      success: false,
+      error: "rate_limit_exceeded",
+      mode: refreshMode,
+      remaining_today: 0,
+      message: "Kontostände wurden heute bereits aktualisiert. Bitte morgen erneut versuchen.",
+    });
+  }
+
+  const remaining = consumed.remaining;
 
   const syncUrl = `${supabaseUrl}/functions/v1/gocardless-sync`;
   const fetchedBalances = new Map<string, { amount: number; currency: string; balanceType: string }>();
@@ -331,38 +360,6 @@ serve(async (req) => {
     updatedAccounts += 1;
   }
 
-  const nextCount = currentCount + 1;
-  let limitWriteError = null;
-
-  if (!limitRow) {
-    const { error } = await supabaseClient.from("balance_refresh_limits").insert({
-      user_id: userId,
-      last_refresh_date: today,
-      daily_count: nextCount,
-    });
-    limitWriteError = error;
-  } else {
-    const { error } = await supabaseClient
-      .from("balance_refresh_limits")
-      .update({
-        last_refresh_date: today,
-        daily_count: nextCount,
-        updated_at: nowIso,
-      })
-      .eq("user_id", userId);
-    limitWriteError = error;
-  }
-
-  if (limitWriteError) {
-    logError("Failed to store refresh limit", limitWriteError);
-    return jsonResponse(origin, 500, {
-      success: false,
-      error: "db_error",
-      message: "Aktualisierung wurde durchgeführt, aber das Tageslimit konnte nicht gespeichert werden.",
-    });
-  }
-
-  const remaining = Math.max(0, MAX_DAILY_REFRESHES - nextCount);
   const message = updatedAccounts > 0
     ? `Kontostände aktualisiert (${updatedAccounts} Konto${updatedAccounts === 1 ? "" : "en"}).`
     : errors.length > 0

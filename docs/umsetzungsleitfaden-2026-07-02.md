@@ -463,12 +463,24 @@ der Product Owner das kurz absegnen — es ist die einzige echte Produktentschei
   1. `get-balances`: vor `getAccountBalances` dieselbe Ownership-Prüfung wie
      `get-transactions` (`assertRequisitionBoundToUser` + `allowedAccounts.includes`)
      — oder die ungenutzte Aktion entfernen.
-  2. `balance_refresh_limits`: Zähler mit `service_role`-Client schreiben und das
-     RLS-Schreibrecht des Nutzers auf `SELECT` der eigenen Zeile reduzieren
-     (Migration + Function).
-- **Tests:** `[SECURITY]` Nutzer B → `get-balances` mit A's `account_id` → 403;
-  Nutzer kann `daily_count` nicht per anon-Client zurücksetzen.
-- **DoD:** Kein IDOR; Rate-Limit nicht mehr umgehbar.
+  2. ✅ **erledigt (2026-08-06)** — `balance_refresh_limits`: Schreibrecht des
+     Nutzers entzogen (nur noch `SELECT` der eigenen Zeile, zusätzlich `REVOKE
+     INSERT, UPDATE, DELETE`), geschrieben wird über
+     `public.consume_balance_refresh()` — SECURITY DEFINER, ohne Parameter,
+     Nutzer aus `auth.uid()`. Migration `20260806120000_harden_balance_refresh_limits.sql`.
+     **Abweichung vom Vorschlag:** kein `service_role`-Client. Der Key umgeht
+     RLS für *alle* Tabellen, und `refresh-balances` ist nutzergetrieben — die
+     Allowlist in `src/security/edge-functions-service-role.security.test.ts`
+     (nur `delete-account`) bleibt damit unangetastet. Mitbehoben: Prüfen und
+     Hochzählen waren zwei Statements mit dem externen Abruf dazwischen, bei
+     Limit 1/Tag also durch zwei gleichzeitige Anfragen passierbar (TOCTOU);
+     jetzt ein `INSERT … ON CONFLICT DO UPDATE … WHERE` **vor** dem Abruf.
+- **Tests:** `[SECURITY]` Nutzer B → `get-balances` mit A's `account_id` → 403
+  (offen); `src/security/balance-refresh-rate-limit.security.test.ts` prüft
+  statisch, dass keine schreibende Policy überlebt, die Funktion weder Nutzer
+  noch Limit als Parameter nimmt und die Edge Function vor dem externen Abruf
+  verbucht (✅).
+- **DoD:** Kein IDOR (offen, Schritt 1); Rate-Limit nicht mehr umgehbar (✅).
 - **Abhängigkeiten:** T1.13.
 
 #### T1.15 — CSP härten (F-SEC-1) · Aufwand S · High

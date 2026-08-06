@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-08-06 — F-SEC-3: Das Tageslimit begrenzte den, der es zurücksetzen konnte
+
+**Status:** behoben. Migration `20260806120000_harden_balance_refresh_limits.sql`,
+Edge Function `refresh-balances`, Wächter
+`src/security/balance-refresh-rate-limit.security.test.ts` (14 Zusicherungen,
+vor dem Fix 11 rot).
+
+`balance_refresh_limits` begrenzt Abrufe gegen die **externe** GoCardless-Quote
+auf einen pro Tag. Die ursprüngliche Migration gab dem Nutzer auf seine eigene
+Zeile `FOR INSERT`, `FOR UPDATE` **und** `FOR ALL`: ein `UPDATE … SET
+daily_count = 0` mit dem anon-Key — der public by design ist — stellte das
+Kontingent beliebig oft wieder her. Das Limit war vorhanden, aber wirkungslos.
+
+Zwei unabhängige Lücken, beide geschlossen:
+
+| # | Lücke | Behoben durch |
+|---|---|---|
+| 1 | Nutzer konnte den Zähler selbst schreiben | Schreib-Policies entfernt (`SELECT` bleibt), zusätzlich `REVOKE INSERT, UPDATE, DELETE`; geschrieben wird nur noch über `public.consume_balance_refresh()` — SECURITY DEFINER, **ohne Parameter**, Nutzer aus `auth.uid()`, Limit aus `public.balance_refresh_daily_limit()` |
+| 2 | Prüfen (SELECT) und Hochzählen (UPDATE) waren zwei Statements mit dem externen Abruf dazwischen — bei Limit 1/Tag passierten zwei gleichzeitige Anfragen beide die Prüfung (TOCTOU) | Ein `INSERT … ON CONFLICT DO UPDATE … WHERE` (nimmt die Zeilensperre), ausgeführt **vor** dem Abruf statt danach |
+
+**Abweichung vom Audit-Vorschlag.** Der Audit empfahl einen
+`service_role`-Client in der Edge Function. Das verlegt die Schwachstelle nur:
+`refresh-balances` ist nutzergetrieben, und der Key umgeht RLS für *alle*
+Tabellen — nicht nur für diese eine Spalte. Die SECURITY-DEFINER-Funktion kann
+genau eine Operation und lässt die Allowlist in
+`src/security/edge-functions-service-role.security.test.ts` (nur
+`delete-account`) unangetastet.
+
+`MAX_DAILY_REFRESHES` ist aus der Edge Function verschwunden. Die Höhe des
+Limits steht jetzt nur noch in der Datenbank, die es durchsetzt; eine zweite
+Zahl im Client wäre genau die stille Drift, die den Wächter vorher blind
+gemacht hat.
+
+**Nicht automatisiert prüfbar:** `supabase/functions/**` wird weder von `tsc`
+(`tsconfig.json` → `include: ["src", …]`) noch von ESLint (`ignores:
+['supabase/**']`) erfasst, und Deno steht in dieser Umgebung nicht bereit. Der
+Wächter-Test prüft die Datei deshalb statisch als Text — Deployment und
+Laufzeitverhalten bleiben manuell zu verifizieren.
+
+---
+
 ## 2026-08-05 — CI-Reparatur: Suite und Installationsschritt wieder grün
 
 **Status:** `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm exec tsc
