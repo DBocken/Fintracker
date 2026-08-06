@@ -4058,6 +4058,15 @@ export const translations = {
       transactions: 'Transaktionen',
       of: 'von',
     },
+    offlineState: {
+      label: 'Offline',
+      title: 'Keine Verbindung — die App läuft weiter',
+      body: 'Deine Finanzdaten liegen auf diesem Gerät. Eintragen, auswerten und ändern funktioniert ohne Netz genauso.',
+      pausedTitle: 'Das ruht, bis du wieder online bist:',
+      pausedMarketData: 'Kurse und Marktdaten',
+      pausedBankSync: 'Bankabgleich',
+      pausedCloudSync: 'Cloud-Abgleich',
+    },
     financeErrorState: {
       transactionsTitle: 'Deine Buchungen konnten nicht geladen werden',
       dataTitle: 'Deine Daten konnten nicht geladen werden',
@@ -8632,6 +8641,15 @@ export const translations = {
       transactions: 'Transactions',
       of: 'of',
     },
+    offlineState: {
+      label: 'Offline',
+      title: 'No connection — the app keeps working',
+      body: 'Your financial data lives on this device. Adding, reviewing and editing works exactly the same without a network.',
+      pausedTitle: 'These wait until you are back online:',
+      pausedMarketData: 'Prices and market data',
+      pausedBankSync: 'Bank sync',
+      pausedCloudSync: 'Cloud sync',
+    },
     financeErrorState: {
       transactionsTitle: 'Your transactions could not be loaded',
       dataTitle: 'Your data could not be loaded',
@@ -12842,6 +12860,15 @@ export const translations = {
       balance: "Huch mI'",
       transactions: "Huch wanI'mey",
       of: "vo'",
+    },
+    offlineState: {
+      label: "pat Hutlh",
+      title: "pat Hutlh; qorDu' Huch pat taH",
+      body: "jan Daq Huch De' ratlh. Damaq, DanuD, DaSeH je.",
+      pausedTitle: "loS 'e' Dochmey:",
+      pausedMarketData: "malja' De'",
+      pausedBankSync: "banq rar",
+      pausedCloudSync: "'engmey rar",
     },
     financeErrorState: {
       transactionsTitle: "HuchmeywI' luq lo'laHbe'",
@@ -17415,6 +17442,15 @@ export const translations = {
       balance: 'Баланс',
       transactions: 'Транзакции',
       of: 'из',
+    },
+    offlineState: {
+      label: 'Офлайн',
+      title: 'Нет соединения — приложение продолжает работать',
+      body: 'Ваши финансовые данные хранятся на этом устройстве. Ввод, анализ и правки работают без сети так же.',
+      pausedTitle: 'Это подождёт до восстановления связи:',
+      pausedMarketData: 'Котировки и рыночные данные',
+      pausedBankSync: 'Синхронизация с банком',
+      pausedCloudSync: 'Облачная синхронизация',
     },
     financeErrorState: {
       transactionsTitle: 'Не удалось загрузить ваши операции',

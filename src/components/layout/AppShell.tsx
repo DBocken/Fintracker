@@ -10,6 +10,7 @@ import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
+import OfflineIndicator from "@/components/common/OfflineIndicator";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
@@ -95,6 +96,13 @@ export default function AppShell() {
                 >
                   <Search className="h-4 w-4" />
                 </Button>
+
+                {/* WP-9.3: Neben den anderen Statusanzeigen und bewusst NICHT
+                    als Streifen ueber dem Inhalt — ein eingeschobener Streifen
+                    verschiebt beim Auftauchen die ganze Seite nach unten
+                    (Befund aus WP-8.3). Rendert nichts, solange Verbindung
+                    besteht. */}
+                <OfflineIndicator />
 
                 <PrivacyIndicator />
 

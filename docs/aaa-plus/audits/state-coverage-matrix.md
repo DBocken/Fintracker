@@ -56,9 +56,9 @@ verfälscht hatten und beim Wiederholen erneut zuschlagen würden:
 Zwei Zustände aus dem Plan fehlen in der Tabelle, weil es zu ihnen nichts zu
 erheben gibt:
 
-- **offline** — im gesamten Quelltext gibt es **keine** Behandlung. Ein
-  einziger Treffer auf `navigator.onLine` steht in
-  `category-template-service.ts` und ist Dienst-intern, nicht Oberfläche.
+- **offline** — bei der Erhebung gab es im gesamten Quelltext **keine**
+  Behandlung; der einzige `navigator.onLine`-Treffer stand dienst-intern in
+  `category-template-service.ts`. Mit WP-9.3 erledigt, siehe unten.
 - **gefiltert-leer** — bisher nur auf der Buchungsseite unterscheidbar;
   überall sonst fällt „kein Ergebnis für diesen Filter" mit „keine Daten"
   zusammen.
@@ -110,12 +110,34 @@ warf. Der Shim meldet konsequent `matches: false` — die mobile Annahme, weil
 alle Abfragen `min-width`-Abfragen sind. Ein Shim mit `true` würde still den
 jeweils anderen Zweig testen, ohne dass es auffiele.
 
+## Stand nach WP-9.3 — offline ist kein Ausfall
+
+Die naheliegende Lösung wäre ein roter Balken „Keine Internetverbindung"
+gewesen. Für diese App ist das schlicht falsch: Die Finanzdaten liegen in
+IndexedDB auf dem Gerät, Eintragen und Auswerten funktionieren ohne Netz
+vollständig. Ein Alarm würde einen Ausfall behaupten, den es nicht gibt — und
+nebenbei die beste Eigenschaft des Produkts als Mangel darstellen.
+
+Stattdessen ein ruhiges Zeichen neben den anderen Statusanzeigen, das auf
+Antippen sagt, was weiterläuft (fast alles) und was ruht (Kurse, Bankabgleich,
+Cloud-Abgleich — die drei Funktionen, die echten Netzzugang brauchen). Online
+rendert es **gar nichts**: Ein dauerhaftes „online"-Abzeichen wäre Rauschen.
+
+Im Header und nicht als Streifen über dem Inhalt — ein eingeschobener Streifen
+verschiebt beim Auftauchen die ganze Seite nach unten, genau der Befund, der
+in WP-8.3 das CLS-Budget gerissen hat. Der Header hat feste Höhe.
+
+**Bewusst nicht verknüpft:** `FinanceErrorState` erwähnt den Offline-Zustand
+nicht. Die Buchungen kommen aus IndexedDB; kein Netz erklärt einen lokalen
+Lesefehler nicht. Ein „du bist offline" an dieser Stelle wäre eine plausibel
+klingende Falschauskunft.
+
 ## Ableitung für Phase 9
 
 | WP | Inhalt |
 |---|---|
 | **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
-| **WP-9.3** | Offline: erkennen, benennen, und local-first ehrlich abbilden (das meiste FUNKTIONIERT offline — das ist eine Stärke, die derzeit niemand erfährt) |
+| **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | „gefiltert-leer" von „leer" trennen: „Kein Treffer für *Miete* im gewählten Zeitraum" statt „Noch keine Buchungen" |
 | **WP-9.5** | Sanfter Modus über alle Screens statt der heutigen vier |
 | **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |
