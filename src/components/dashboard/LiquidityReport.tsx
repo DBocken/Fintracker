@@ -72,12 +72,36 @@ const eur = new Intl.NumberFormat('de-DE', {
 });
 
 
+/**
+ * Die drei Konfidenz-Ebenen der Prognose (WP-6.1), von aussen nach innen.
+ *
+ * Reihenfolge IST die Zeichenreihenfolge: die aeussere Flaeche liegt unten,
+ * die innere oben. Weil sich die Flaechen ueberlagern, addiert sich die
+ * Deckkraft zur Mitte hin — genau das macht den Rand diffus.
+ *
+ * Bewusst eine Modul-Konstante: sie enthaelt nur Datenschluessel und Zahlen,
+ * keinen uebersetzten Text. Ein `t()` im Initializer wuerde beim Import
+ * einfrieren (AGENTS.md Paragraf 6, Fallen-Tabelle).
+ */
+const BAND_LAYERS = [
+  /** P05–P95: das Moeglichkeitsfeld. */
+  { key: 'outer', floorKey: 'outerFloor', heightKey: 'outerHeight', opacityFactor: 0.45 },
+  /** P10–P90: die fachlich benannte Bandbreite. */
+  { key: 'band', floorKey: 'bandFloor', heightKey: 'bandHeight', opacityFactor: 0.7 },
+  /** P25–P75: wo die Haelfte aller Durchlaeufe landet. */
+  { key: 'core', floorKey: 'coreFloor', heightKey: 'coreHeight', opacityFactor: 1 },
+] as const;
+
 /** Ein Datenpunkt der Linien-Ansicht (Plan + optionales P10–P90-Band + Median). */
 interface ChartPoint {
   date: string;
   operating: number;
+  outerFloor?: number;
+  outerHeight?: number;
   bandFloor?: number;
   bandHeight?: number;
+  coreFloor?: number;
+  coreHeight?: number;
   median?: number;
 }
 
@@ -253,16 +277,30 @@ export default function LiquidityReport() {
     if (!forecast) return [];
     const pick = (d: { availableCash: number; operatingCash: number }) =>
       bufferBasis === 'available' ? d.availableCash : d.operatingCash;
-    // Das Wahrscheinlichkeitsband (P10–P90) der EINEN Simulation wird auf
-    // dieselbe Zeitachse gelegt – als Gradient hinter der Plan-Linie.
+    // Das Wahrscheinlichkeitsband der EINEN Simulation wird auf dieselbe
+    // Zeitachse gelegt.
+    //
+    // WP-6.1: DREI verschachtelte Flächen statt einer. Vorher gab es genau
+    // eine Fläche von P10 bis P90 mit harter Kante — und eine harte Kante
+    // liest sich als Zusage („darunter geht es nicht"), obwohl P10 gerade
+    // heißt, dass jeder zehnte Durchlauf tiefer fällt. Gestapelt gerechnet
+    // (Recharts kennt keine Fläche zwischen zwei Kurven): je Ebene ein
+    // unsichtbarer Sockel plus die sichtbare Höhe darüber.
     const bandByDate = new Map((risk?.daily ?? []).map((d) => [d.date, d]));
     return forecast.daily.map((d) => {
       const band = bandByDate.get(d.date);
       return {
         date: d.date,
         operating: pick(d),
+        // Äußere Ebene P05–P95: das Möglichkeitsfeld, am schwächsten.
+        outerFloor: band?.p05,
+        outerHeight: band ? band.p95 - band.p05 : undefined,
+        // Mittlere Ebene P10–P90: die bisherige, fachlich benannte Bandbreite.
         bandFloor: band?.p10,
         bandHeight: band ? band.p90 - band.p10 : undefined,
+        // Innere Ebene P25–P75: wo die Hälfte aller Durchläufe landet.
+        coreFloor: band?.p25,
+        coreHeight: band ? band.p75 - band.p25 : undefined,
         median: band?.p50,
       };
     });
@@ -416,7 +454,7 @@ export default function LiquidityReport() {
               )}
               {hasBand && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Wahrscheinlichkeitsband P10–P90 aus {risk!.horizonDays} Tagen ·{' '}
+                  {t("liquidityReport.bandCaption").replace('{days}', String(risk!.horizonDays))}{' '}
                   {chartView === 'lines' ? t("liquidityReport.asHeatmap") : t("liquidityReport.asLines")}.
                 </p>
               )}
@@ -645,6 +683,17 @@ function ChartLinesView({
           numeric: true,
           format: (row) => (row.median === undefined ? '—' : eur.format(row.median)),
         },
+        {
+          // WP-6.1/6.10: Die Unsicherheit gehoert auch in die nicht-visuelle
+          // Fassung. Ohne sie laese sich der Median wie eine Zusage.
+          key: 'range',
+          label: t('liquidityReport.rangeColumn'),
+          numeric: true,
+          format: (row) =>
+            row.outerFloor === undefined || row.outerHeight === undefined
+              ? '—'
+              : `${eur.format(row.outerFloor)} – ${eur.format(row.outerFloor + row.outerHeight)}`,
+        },
       ]}
       rows={chartData}
       rowKey={(row) => row.date}
@@ -657,10 +706,23 @@ function ChartLinesView({
               <stop offset="5%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillStartOpacity} />
               <stop offset="95%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillEndOpacity} />
             </linearGradient>
-            <linearGradient id={mcBandGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandStartOpacity} />
-              <stop offset="95%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandEndOpacity} />
-            </linearGradient>
+            {/* WP-6.1: Drei Fuellungen derselben Farbe, nach aussen schwaecher.
+                Weil die Flaechen einander ueberlagern, addiert sich die Deckkraft
+                zur Mitte hin — der Rand franst aus, statt zu schneiden. */}
+            {BAND_LAYERS.map((layer) => (
+              <linearGradient key={layer.key} id={`${mcBandGradientId}-${layer.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor={colors.mcBandStart}
+                  stopOpacity={colors.mcBandStartOpacity * layer.opacityFactor}
+                />
+                <stop
+                  offset="95%"
+                  stopColor={colors.mcBandStart}
+                  stopOpacity={colors.mcBandEndOpacity * layer.opacityFactor}
+                />
+              </linearGradient>
+            ))}
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
           <XAxis
@@ -683,13 +745,19 @@ function ChartLinesView({
               seriesLabels,
             })}
           />
-          {hasBand && (
-            <>
+          {/* WP-6.1: Von aussen nach innen gezeichnet. Je Ebene ein
+              unsichtbarer Sockel plus die sichtbare Hoehe darueber — Recharts
+              kennt keine Flaeche zwischen zwei Kurven, nur Stapel. Jede Ebene
+              braucht ihre EIGENE stackId, sonst stapelten sich die drei
+              Baender uebereinander statt ineinander. */}
+          {hasBand &&
+            BAND_LAYERS.map((layer) => (
               <Area
+                key={`${layer.key}-floor`}
                 type="monotone"
-                dataKey="bandFloor"
-                name="bandFloor"
-                stackId="mc"
+                dataKey={layer.floorKey}
+                name={layer.floorKey}
+                stackId={layer.key}
                 stroke="none"
                 fill="transparent"
                 isAnimationActive={chartAnimation.animate}
@@ -698,21 +766,24 @@ function ChartLinesView({
                 legendType="none"
                 tooltipType="none"
               />
+            ))}
+          {hasBand &&
+            BAND_LAYERS.map((layer) => (
               <Area
+                key={`${layer.key}-height`}
                 type="monotone"
-                dataKey="bandHeight"
-                name="bandHeight"
-                stackId="mc"
+                dataKey={layer.heightKey}
+                name={layer.heightKey}
+                stackId={layer.key}
                 stroke="none"
-                fill={`url(#${mcBandGradientId})`}
+                fill={`url(#${mcBandGradientId}-${layer.key})`}
                 isAnimationActive={chartAnimation.animate}
                 animationDuration={chartAnimation.animationDuration}
                 animationEasing={chartAnimation.animationEasing}
                 legendType="none"
                 tooltipType="none"
               />
-            </>
-          )}
+            ))}
           <Area
             type="monotone"
             dataKey="operating"

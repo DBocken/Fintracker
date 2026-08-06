@@ -180,6 +180,8 @@ export const everydayEn: TranslationOverlay = {
     // "Median (P50)" is the technical term in the base tree; this is what it
     // actually says — the middle one of many simulated paths.
     seriesMedian: 'Middle path',
+    // Percentile notation is technical and stays in the base tree.
+    bandCaption: 'How the next {days} days could go — the dense middle is the most likely, and it thins out towards the edges. The soft edge is deliberate: nothing about a forecast is certain. ·',
     liquidityChart: 'How your available money develops ({basis})',
     firstBreachLabel: 'First time below your buffer',
     // `bufferReference`, `belowBufferLabel` and `daysUnderBuffer` stay:

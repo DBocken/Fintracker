@@ -106,8 +106,23 @@ export interface ScenarioResult {
   diagnosis: string;
   /** Hinweise (z. B. dünne Datenlage, Annahmen). */
   warnings: string[];
-  /** Tagesgenaue P10/P50/P90-Bandbreite nach Szenario. */
-  daily: Array<{ date: string; p10: number; p50: number; p90: number }>;
+  /**
+   * Tagesgenaue Bandbreite nach Szenario.
+   *
+   * WP-6.1: sieben Perzentile statt drei — Grundlage der verschachtelten
+   * Konfidenzflächen, deren Rand ausfranst statt zu schneiden. P10/P50/P90
+   * bleiben unverändert die fachliche Aussage.
+   */
+  daily: Array<{
+    date: string;
+    p05: number;
+    p10: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p90: number;
+    p95: number;
+  }>;
   /**
    * Wert×Tag-Dichtefeld der gemischten Pfade – die Datengrundlage der
    * Wahrscheinlichkeits-Heatmap. Bildet multimodale Verteilungen ab, die ein

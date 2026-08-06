@@ -250,6 +250,9 @@ export const everydayDe: TranslationOverlay = {
     // „Median (P50)" ist die Fachsprache im Basisbaum; hier die Aussage, die
     // sie trifft — der mittlere von vielen durchgerechneten Verläufen.
     seriesMedian: 'Mittlerer Verlauf',
+    // Perzentil-Schreibweise ist Fachsprache und steht so im Basisbaum.
+    // Alltagssprachlich zaehlt die Aussage, nicht die Notation.
+    bandCaption: 'So koennte es in den naechsten {days} Tagen laufen — der dichte Bereich in der Mitte ist das Wahrscheinlichste, nach aussen wird es unwahrscheinlicher. Der Rand ist absichtlich weich: sicher ist an einer Vorhersage nichts. ·',
     liquidityChart: 'Verlauf deines verfügbaren Geldes ({basis})',
     firstBreachLabel: 'Zum ersten Mal unter dem Puffer',
     // `bufferReference` („Puffer"), `belowBufferLabel` („unter Puffer") und

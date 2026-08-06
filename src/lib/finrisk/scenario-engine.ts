@@ -136,15 +136,36 @@ function buildCompositionSchedule(input: ForecastInput, dates: string[]): Compos
   return items;
 }
 
-/** Median einer Tagesspalte über alle Pfade. */
-function dailyBand(paths: number[][], dates: string[]) {
+/**
+ * Perzentile einer Tagesspalte über alle Pfade.
+ *
+ * WP-6.1: Sieben statt drei Perzentile. Das Prognoseband zeigte bisher genau
+ * eine Fläche von P10 bis P90 mit harter Kante — und eine harte Kante liest
+ * sich als Zusage („darunter geht es nicht"), obwohl P10 gerade heißt, dass
+ * jeder zehnte Durchlauf tiefer fällt. Aus P05/P10/P25 nach innen und
+ * P75/P90/P95 nach außen lassen sich verschachtelte Flächen zeichnen, deren
+ * Rand ausfranst statt zu schneiden.
+ *
+ * Die Spalte wird für den Median ohnehin sortiert; jedes weitere Perzentil
+ * ist danach ein Array-Zugriff und kein zweiter Durchlauf. Die Wolke besteht
+ * damit aus echten Quantilen und nicht aus interpolierter Deko.
+ *
+ * Exportiert für `__tests__/scenario-engine.quantiles.test.ts`: die
+ * Monotonie der sieben Werte ist die Voraussetzung dafür, dass sich die
+ * Flächen überhaupt verschachteln lassen.
+ */
+export function dailyBand(paths: number[][], dates: string[]) {
   return dates.map((date, day) => {
     const column = paths.map((p) => p[day]).sort((a, b) => a - b);
     return {
       date,
+      p05: round2(percentile(column, 5)),
       p10: round2(percentile(column, 10)),
+      p25: round2(percentile(column, 25)),
       p50: round2(percentile(column, 50)),
+      p75: round2(percentile(column, 75)),
       p90: round2(percentile(column, 90)),
+      p95: round2(percentile(column, 95)),
     };
   });
 }
