@@ -5,6 +5,60 @@
 
 ---
 
+## 2026-08-06 — Protokollierte Restpunkte geschlossen (E2E-Runner, Switch-Namen, Login-Demo)
+
+**Status:** die drei offenen Restpunkte außerhalb des WP-Katalogs sind
+geschlossen; `pnpm test:e2e` ist erstmals ausführbar.
+
+| Restpunkt (Herkunft) | Umsetzung |
+|---|---|
+| `e2e-tests/` ohne Runner-Konfiguration und npm-Skript (CI-Reparatur, 2026-08-05) | `playwright.config.ts` + `pnpm test:e2e`. Bewusst **ohne** benannte `projects` — die eingecheckten Baselines heißen `<name>-<platform>.png`, ein Projektname änderte jeden Dateinamen. `workers: 1`, weil sich alle Specs einen Dev-Server teilen und die Perf-Spec LCP/CLS misst. Vorinstallierte Browser via `PLAYWRIGHT_CHROMIUM_EXECUTABLE` (optionaler Env-Override, kein Umgebungspfad im Repo) |
+| „Bekannte Gleichklasse": Radix-Switches ohne zugänglichen Namen (WP-4.6-Gate) | Sweep über alle 15 `<Switch>`-Aufrufstellen: die drei protokollierten (ContractsDashboard, TimelineChart, IncomeBreakdownCard) **plus zwei unprotokollierte** — AccountFormDialog (Budget-Pool: Label stand daneben, war aber nicht via `htmlFor`/`id` verknüpft) und ProfileDialogContent (Sanfter Modus). 10 bilinguale `[REGRESSION]`-Tests über `getByRole('switch', { name })`, vor dem Fix rot |
+| Login.tsx: Kommentar versprach /dashboard-Landung (verifizierte Ist-Abweichung, WP-4.6-Gate) | Das wirkungslose `history.replaceState('/dashboard')` ist entfernt (der langlebige App-Router übernimmt es nicht; es erzeugte nur einen kurzen URL/Inhalt-Widerspruch), der Kommentar beschreibt jetzt die echte Landung auf `/coach`. 3 Tests, davon 2 `[REGRESSION]` bilingual |
+
+### E2E-Verifikationslauf (Linux-Container, `pnpm test:e2e`)
+
+- **Funktional** (`vertical-slice.spec.ts`): grün.
+- **Accessibility**: grün — 0 Critical Violations, inklusive der fünf neu
+  benannten Switches.
+- **Visual Regression**: Erstlauf schreibt erwartungsgemäß die 9
+  Linux-Baselines (jetzt eingecheckt, gleiche Mechanik wie win32); der
+  Vergleichslauf danach ist grün — Renderdeterministik bestätigt.
+- **Performance**: LCP < 4 s und CLS < 0.1 grün auf Dashboard und Stadt.
+  Die Warm-Navigation Dashboard → Stadt misst **1657 ms** gegen das
+  1000-ms-Dev-Budget: in diesem Container rendert WebGL in Software
+  (SwiftShader). Das Budget bleibt unverändert — es beschreibt eine echte
+  Dev-Maschine; auf ihr ist der Wert erneut zu messen, nicht hier zu lockern.
+
+### Zwei Arbeitslinien laufen auseinander — Entscheidung des Auftraggebers
+
+PR #279 (`claude/agent-selection-graphs-hczfxc`, 18 Commits) und PR #280
+(`claude/aktuelle-fehler-docs-p9l7h0`, 22 Commits) zweigen vom selben
+main-Stand ab; dieser Branch setzt die #280-Linie fort. #279 enthält Arbeit,
+die auf dieser Linie **fehlt**:
+
+- WP-6.7 vollständig (alle 25 Recharts-Serien auf Motion-Tokens — hier ist
+  nur TransactionCharts migriert),
+- Transaktionen-Screen auf AAA+-Produktsprache,
+- Shimmer-Ladezustände flächendeckend,
+- Kontostand als Dashboard-Hauptaussage (Befund A-1 behoben),
+- Sankey: doppelte Export-Schaltflächen entfernt (mit `[REGRESSION]`-Test),
+- Agenten-Graph (Workflow-Skript + Doku) und die Ablageorte
+  `audits/`/`decisions/`/`evidence/`,
+- **Critic-Review WP-4.6** (`critic-reports/wp-4.6-art-ux-motion.md`):
+  eskaliert das Gate — Visuelle Hierarchie 2/5 wegen Befund A-1 — im
+  Widerspruch zum „BESTANDEN"-Eintrag dieser Linie (2026-07, unten).
+
+Die Überschneidungen (Lockfile-Sync, KpiCard-Schatten, blinde Tests) wurden
+auf beiden Linien **unterschiedlich** behoben; ein Merge beider PRs
+konfligiert. Empfehlung: die #280-Linie (bzw. deren Fortsetzungs-PR) mergen,
+danach die einzigartigen #279-Commits gezielt cherry-picken und #279
+schließen. Bis zu dieser Entscheidung wurde hier bewusst **keine**
+Phase-6-Arbeit begonnen — sie kollidierte mit dem #279-Bestand (WP-6.7,
+Transaktionen).
+
+---
+
 ## 2026-08-06 — Phase 5 (Finanzstadt): abgeschlossen
 
 **Status:** alle sieben offenen WPs erledigt (5.1, 5.2, 5.3, 5.4, 5.6, 5.7,
@@ -144,11 +198,10 @@ Zusicherungen, die nie greifen konnten, sahen wie Abdeckung aus.
 | WP-E1-Kaskadentest nahm Modell- statt Layout-Reihenfolge an | Balken sind nach Höhe absteigend sortiert; geprüft wurde die falsche Kachel | Reihenfolge aus dem Layout abgeleitet |
 | `KpiCard` trug seit WP-3.5 `shadow-[var(--shadow-ambient)]` | Widerspruch zu Prinzip 8 und zum eigenen Doc-Kommentar der Komponente | Schatten entfernt |
 
-**Offen aus diesem Lauf:** `e2e-tests/` enthält Specs, Fixtures und
-Visual-Baselines, aber **keine `playwright.config.ts` und kein npm-Skript** —
-die im Gate unten dokumentierten E2E-Nachweise sind mit dem Repo-Stand allein
-nicht reproduzierbar. Wer die Suite wieder braucht, muss Runner-Konfiguration
-und `test:e2e` nachziehen; erst dann gehört sie in CI.
+**Offen aus diesem Lauf:** ~~`e2e-tests/` enthält Specs, Fixtures und
+Visual-Baselines, aber keine `playwright.config.ts` und kein npm-Skript~~ —
+**geschlossen** (Runner-Konfiguration + `pnpm test:e2e`, siehe Eintrag vom
+2026-08-06). CI-Verdrahtung weiterhin bewusst offen.
 
 ---
 
@@ -234,11 +287,14 @@ erhalten, keine bestehenden Tests gelöscht/abgeschwächt.
 ### Offen (nächste Programm-Schritte)
 
 - WP-4.6 Rest: manuelle Critic-Reviews (Art Director/UX/Motion ≥ 3/5 — nicht
-  automatisierbar, Orchestrator-Entscheid).
+  automatisierbar, Orchestrator-Entscheid). Achtung: Auf PR #279 liegt ein
+  Modell-Critic-Review (`docs/aaa-plus/critic-reports/wp-4.6-art-ux-motion.md`),
+  das das Gate **eskaliert** (Visuelle Hierarchie 2/5, Befund A-1) — siehe
+  Divergenz-Abschnitt im Eintrag vom 2026-08-06.
 - Phase 5: **abgeschlossen** (alle sieben WPs, siehe Eintrag vom 2026-08-06).
 - Phase 6: WP-6.1–6.4, 6.6, 6.8–6.10 (DataViz).
 - Phase 7: WP-7.3–7.5, 7.7–7.8 (Motion).
 - Phase 8–11: Feature Migration, State Coverage, QA, Rollout.
-- Bekannte Gleichklasse außerhalb des Slice: weitere Radix-Switches ohne
-  `aria-label` (z. B. ContractsDashboard, TimelineChart, IncomeBreakdownCard)
-  — bei Migration der jeweiligen Screens mitziehen.
+- ~~Bekannte Gleichklasse außerhalb des Slice: weitere Radix-Switches ohne
+  `aria-label`~~ — **geschlossen** (alle 15 Aufrufstellen geprüft, fünf nackte
+  benannt, siehe Eintrag vom 2026-08-06).
