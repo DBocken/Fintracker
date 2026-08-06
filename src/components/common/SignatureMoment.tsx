@@ -16,11 +16,13 @@
  * @see docs/aaa-plus/tdd-specs.md — WP-6.5
  */
 
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import CelebrationBurst from './CelebrationBurst';
 import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
+import { useHaptics } from '@/hooks/useHaptics';
 
 type SignatureMomentVariant = 'small' | 'default' | 'large';
 
@@ -52,6 +54,20 @@ export function SignatureMoment({
 }: SignatureMomentProps) {
   const reduce = useReducedMotion();
   const burstSize = BURST_SIZES[variant];
+
+  // WP-7.8: Ein erreichtes Ziel wird auch gefuehlt, nicht nur gesehen. Genau
+  // EINMAL beim Erscheinen — `useEffect` ohne Abhaengigkeiten, sonst summte es
+  // bei jedem Re-Render der Karte erneut. `useHaptics` schweigt von sich aus
+  // bei reduzierter Bewegung und auf Geraeten ohne Vibration.
+  const haptic = useHaptics();
+  useEffect(() => {
+    haptic('confirm');
+    // Absichtlich ohne `haptic` in den Abhaengigkeiten: der Callback wechselt
+    // die Identitaet, wenn sich `prefers-reduced-motion` aendert — und eine
+    // Systemeinstellung mitten in der Sitzung umzustellen darf keine zweite
+    // Vibration ausloesen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <motion.div
