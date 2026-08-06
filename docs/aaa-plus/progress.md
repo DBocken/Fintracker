@@ -5,6 +5,72 @@
 
 ---
 
+## 2026-08-06 — Divergenz aufgelöst: #279-Bestand übernommen, A-1 entschieden
+
+**Status:** Beide offenen Auftraggeber-Entscheidungen sind gefallen und
+umgesetzt. WP-6.7 ist damit **vollständig** (alle 25 Recharts-Serien),
+Befund A-1 ist behoben, Phase 6 ist entsperrt.
+
+**Entscheidung 1 — PR #279:** Übernahme der einzigartigen Commits per
+Cherry-Pick auf die Fortsetzungslinie (PR #281), danach Schließung von #279.
+Abweichung zur ursprünglichen Empfehlung („nach dem Merge"): die Übernahme
+erfolgte **vor** dem Merge direkt auf den PR-Branch — ein Merge statt zwei,
+F-SEC-3 kommt mit demselben Zug live.
+
+**Entscheidung 2 — Dashboard-Hauptaussage (Befund A-1):** Der **aktuelle
+Kontostand** ist die Hero-Aussage; der Zeitraum-Saldo wandert in die
+Kennzahlenzeile. Deckungsgleich mit dem übernommenen Fix (`Dashboard.tsx`,
+`TransactionStats.tsx`, `dashboard.heroCurrentBalanceLabel` in de/en/ru/tlh).
+
+### Übernommen (12 Commits + 1 Einzel-Hunk)
+
+Agenten-Graph (Skript + Leer-Auftrag-Fix + Doku), Ablageorte
+`audits/`/`decisions/`/`evidence/`, Critic-Review WP-4.6, Motion-Easing-
+Grundlage, WP-6.7 (25 Recharts-Serien), globale Atmosphäre aus echten
+Finanzdaten, Shimmer-Ladezustände, Kontostand-Hero (A-1), Transaktionen-Screen
+(AAA+-Produktsprache), Sankey-Export-Fix. Aus `4ba0099` nur die
+Komponentenkorrektur (SignatureMoment: Untertitel-Transition an `reduce`
+gekoppelt) — die Testfixes des Commits existieren hier in eigener Fassung.
+
+### Bewusst nicht übernommen
+
+`5930797` (Lockfile-Overrides), `a894fb7` (OSV), `e3be3d5` (KpiCard-Schatten),
+`ae85e28`/`4ba0099` (Testfixes), `3c3…` (Protokoll-Korrektur der #279-Linie) —
+alle auf dieser Linie bereits in anderer, teils weitergehender Fassung behoben.
+
+### Konflikte der Übernahme (2, beide erklärbar)
+
+- `useAtmosphereState.ts`: beide Linien hatten denselben Memoization-Fix mit
+  je eigenem Kommentar — HEAD-Fassung behalten.
+- `translations.ts`: Ganzdatei-Konflikt durch **CRLF auf der #279-Seite**
+  (diese Linie hatte auf LF normalisiert — exakt die im CI-Reparatur-Eintrag
+  dokumentierte Falle). LF-Fassung behalten, den einen neuen Key
+  (`heroCurrentBalanceLabel`) von Hand in alle vier Bäume eingefügt; `tsc`,
+  Locale-Parität, Call-Site-Keys und Overlay-Coverage danach grün.
+
+### Konsequenzen
+
+- **WP-4.6-Gate-Rest:** A-1 (der 2/5-Blocker der Kategorie Visuelle
+  Hierarchie) ist behoben; die Neubewertung der Hierarchie und die übrigen
+  manuellen Reviews (Motion braucht Bewegtbild) bleiben offen.
+- **Visual-Baselines:** Der Hero-Umbau ändert das Dashboard sichtbar — die
+  drei `dashboard-*`-Linux-Baselines wurden neu erzeugt (Stadt/Budgets
+  unverändert). Die eingecheckten **win32-Baselines sind für `dashboard-*`
+  veraltet** und beim nächsten win32-Lauf mit `--update-snapshots` zu erneuern.
+- **E2E-Slice-Spec nachgezogen:** `vertical-slice.spec.ts` prüfte das alte
+  Hero-Label „Saldo in diesem Zeitraum" — auf #279 konnte das nie auffallen,
+  weil dort kein Runner existierte. Jetzt: „Aktueller Kontostand"
+  (`exact: true`, der Text kommt als Substring auch im Chart-Untertitel vor).
+- **#279** ist nach dem Push geschlossen; die Branch-Historie bleibt erhalten.
+
+Gate-Nachweis dieser Übernahme: volle Suite **409 Dateien / 4031 Tests grün**
+(kein Bestandstest gebrochen), `pnpm lint`, `pnpm exec tsc --noEmit`,
+`pnpm test:security` und `pnpm security:secrets` grün; E2E-Lauf mit
+erneuerten Linux-Baselines grün (Funktional/a11y/Visual; Perf wie im Eintrag
+unten: Warm-Navigation im Software-WebGL-Container über Budget).
+
+---
+
 ## 2026-08-06 — Protokollierte Restpunkte geschlossen (E2E-Runner, Switch-Namen, Login-Demo)
 
 **Status:** die drei offenen Restpunkte außerhalb des WP-Katalogs sind
@@ -51,11 +117,11 @@ die auf dieser Linie **fehlt**:
 
 Die Überschneidungen (Lockfile-Sync, KpiCard-Schatten, blinde Tests) wurden
 auf beiden Linien **unterschiedlich** behoben; ein Merge beider PRs
-konfligiert. Empfehlung: die #280-Linie (bzw. deren Fortsetzungs-PR) mergen,
+konfligiert. ~~Empfehlung: die #280-Linie (bzw. deren Fortsetzungs-PR) mergen,
 danach die einzigartigen #279-Commits gezielt cherry-picken und #279
-schließen. Bis zu dieser Entscheidung wurde hier bewusst **keine**
-Phase-6-Arbeit begonnen — sie kollidierte mit dem #279-Bestand (WP-6.7,
-Transaktionen).
+schließen.~~ **Entschieden und umgesetzt** — der Auftraggeber hat der
+Cherry-Pick-Übernahme zugestimmt; Details im Eintrag „Divergenz aufgelöst"
+(2026-08-06, oben). Phase 6 ist damit entsperrt.
 
 ---
 
