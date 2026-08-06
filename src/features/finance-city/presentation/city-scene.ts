@@ -50,6 +50,7 @@ import type { CityLayout, LayoutBox, LayoutBoxKind } from '../domain/city-layout
 import type { Vec3 } from '../domain/city-model';
 import { easeInOutCubic } from '../domain/camera-math';
 import { deriveCityQuality, type CityQualitySettings } from '../domain/city-quality';
+import type { CityFlowLine } from '../domain/city-flow-lines';
 import { MOTION_DURATIONS } from '@/lib/motion-tokens';
 
 export type CityCameraPose = { position: Vec3; target: Vec3 };
@@ -98,6 +99,12 @@ export type CitySceneHandle = {
    * demselben Material-Schlüssel mit). Aufrufer muss danach einen Frame
    * anfordern (`invalidate`) — diese Methode rendert nicht selbst.
    */
+  /**
+   * WP-5.1: Flusslinien für wiederkehrende Zahlungen (`domain/city-flow-lines.ts`).
+   * Leere Liste räumt sie ab. Auf Stufen ohne `quality.flowLines` ein No-op —
+   * die Aufrufer brauchen dafür keine Fallunterscheidung.
+   */
+  applyFlowLines(lines: CityFlowLine[]): void;
   setHighlight(id: string | null): void;
   setSize(width: number, height: number, dpr: number): void;
   /** Erst ab WP-C4 mit echten Werten befüllt — hier no-op-fähig (near/far nicht endlich → Fog aus). */
@@ -1047,6 +1054,67 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     highlightMaterial = null;
   }
 
+  // --- WP-5.1: Flusslinien -------------------------------------------------
+  // Eine `THREE.Line` je Linie, Deckkraft nach Anteil. Statisch: KEINE
+  // „fließende" Animation — die liefe endlos und widerspräche der
+  // Render-on-Demand-Vorgabe (README), ohne eine einzige zusätzliche Zahl zu
+  // zeigen. Lebenszyklus wie bei den Boxen: Diff über die id, `dispose()`
+  // räumt komplett ab.
+  const flowLinesById = new Map<string, THREE.Line>();
+
+  /** Deckkraft-Fenster: auch die schwächste Linie bleibt sichtbar, die stärkste sticht nicht heraus wie eine Kante. */
+  const FLOW_LINE_MIN_OPACITY = 0.25;
+  const FLOW_LINE_MAX_OPACITY = 0.75;
+
+  function applyFlowLines(lines: CityFlowLine[]): void {
+    if (!quality.flowLines) {
+      // Stufe kann sie nicht tragen: eventuell vorhandene abräumen (die Stufe
+      // steht zwar fest, aber ein Aufrufer darf sich darauf nicht verlassen).
+      if (flowLinesById.size > 0) disposeFlowLines();
+      return;
+    }
+
+    const seen = new Set<string>();
+    for (const line of lines) {
+      seen.add(line.id);
+      let object = flowLinesById.get(line.id);
+      if (!object) {
+        const geometry = new THREE.BufferGeometry();
+        const material = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
+        object = new THREE.Line(geometry, material);
+        object.renderOrder = CONTACT_SHADOW_RENDER_ORDER; // unter den Baukörpern, über dem Boden.
+        scene.add(object);
+        flowLinesById.set(line.id, object);
+      }
+
+      (object.geometry as THREE.BufferGeometry).setFromPoints([
+        new THREE.Vector3(line.from.x, line.from.y, line.from.z),
+        new THREE.Vector3(line.to.x, line.to.y, line.to.z),
+      ]);
+      const material = object.material as THREE.LineBasicMaterial;
+      material.color.set(line.color);
+      material.opacity =
+        FLOW_LINE_MIN_OPACITY + (FLOW_LINE_MAX_OPACITY - FLOW_LINE_MIN_OPACITY) * Math.min(1, Math.max(0, line.share));
+    }
+
+    for (const [id, object] of flowLinesById) {
+      if (seen.has(id)) continue;
+      scene.remove(object);
+      object.geometry.dispose();
+      (object.material as THREE.Material).dispose();
+      flowLinesById.delete(id);
+    }
+  }
+
+  function disposeFlowLines(): void {
+    for (const object of flowLinesById.values()) {
+      scene.remove(object);
+      object.geometry.dispose();
+      (object.material as THREE.Material).dispose();
+    }
+    flowLinesById.clear();
+  }
+
   function setHighlight(id: string | null): void {
     if (id === highlightedId) return;
     clearHighlight();
@@ -1215,6 +1283,9 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
     // WP-D3: Highlight-Klon gehört (wie die Tween-Klone) NICHT der Registry —
     // ohne diesen Schritt würde er im Registry-Loop unten übersehen/geleakt.
     clearHighlight();
+    // WP-5.1: Flusslinien haben eigene Geometrie/Materialien je Linie (nicht
+    // aus der geteilten Registry) — sie müssen hier einzeln freigegeben werden.
+    disposeFlowLines();
     for (const mesh of meshesById.values()) scene.remove(mesh);
     meshesById.clear();
     for (const edgeLine of edgesById.values()) scene.remove(edgeLine);
@@ -1253,6 +1324,7 @@ export function createCityScene(opts: CreateCitySceneOptions): CitySceneHandle {
 
   return {
     applyLayout,
+    applyFlowLines,
     advanceAnimations,
     setAnimationsEnabled,
     pick,

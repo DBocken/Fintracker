@@ -37,6 +37,7 @@ vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: useReducedMotionM
 function createFakeHandle(canvas: HTMLCanvasElement, overrides: Partial<CitySceneHandle> = {}): CitySceneHandle {
   return {
     applyLayout: vi.fn(),
+    applyFlowLines: vi.fn(),
     // WP-C6: Default `false` — der Fake verhält sich wie eine Szene ohne
     // laufende Aufbau-Animation, damit bestehende Tests (die nur Kamera-
     // Controller-Aktivität prüfen) unverändert bleiben.

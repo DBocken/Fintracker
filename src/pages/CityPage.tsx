@@ -11,6 +11,7 @@ import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import EmptyState from "@/components/common/EmptyState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
+import { buildFlowLines } from "@/features/finance-city/domain/city-flow-lines";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
 import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
@@ -185,6 +186,15 @@ export default function CityPage() {
     const focusSubcategoryId = nav.activeSubcategoryId ?? undefined;
     return buildCityLayout(model, { level: nav.level, focusDistrictId, focusSubcategoryId });
   }, [model, nav.level, nav.focusDistrictId, nav.activeDistrictId, nav.activeSubcategoryId]);
+
+  // WP-5.1: Flusslinien für wiederkehrende Zahlungen — nur auf STADT-Ebene.
+  // Beim Eintauchen in einen Distrikt oder ein Gebäude ist die Aussage „das
+  // hier fließt jeden Monat ab" bereits durch die Etagen beantwortet; die
+  // Linien würden dort nur die Sicht auf die Baukörper verstellen.
+  const flowLines = useMemo(
+    () => (nav.level === "city" ? buildFlowLines(model, layout) : []),
+    [model, layout, nav.level],
+  );
 
   // WP-C4: Fokus-Bounding-Sphere für den Kamera-Controller (Distrikt-Fokus/
   // -Eintauchen bzw. Unterkategorie-Eintauchen) — `computeFocusBounds` liest
@@ -726,6 +736,7 @@ export default function CityPage() {
                   controlsApiRef={controlsApiRef}
                   sceneRef={sceneRef}
                   onUnavailable={setCanvasUnavailable}
+                  flowLines={flowLines}
                   className="absolute inset-0"
                 />
                 {/* WP-5.7: Die 3D-Fläche kann leer/tot sein, ohne dass die

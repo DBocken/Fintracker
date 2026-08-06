@@ -38,6 +38,8 @@ export type CityContract = {
   label: string;
   amount: number;
   bookings?: CityBooking[];
+  /** WP-5.1: Diese Etage kommt regelmäßig wieder (`city-recurrence.ts`) — zählt in den `recurringAmount` ihres Gebäudes. */
+  recurring?: boolean;
   /**
    * Deep-Link-Semantik dieser Etage für die Buchungsseite (WP-D5): der
    * jeweilige Adapter entscheidet, wie „alle Buchungen dieser Etage" gefiltert
@@ -61,6 +63,14 @@ export type CitySubcategory = {
   contracts?: CityContract[];
   /** Nächste erwartete Zahlung (nur Einnahmen-Stadt, regelmäßige Ströme) — im Vertrags-Sheet angezeigt. */
   nextPayment?: { dateISO: string; amount: number };
+  /**
+   * WP-5.1: Anteil von `amount`, der WIEDERKEHRT (Summe der wiederkehrenden
+   * Etagen, `city-recurrence.ts`). Grundlage der Flusslinien: sie betonen den
+   * Teil der Ausgaben, der jeden Monat ohne weiteres Zutun abfließt. Fehlt der
+   * Wert, hat der jeweilige Adapter keine Wiederkehr-Information — dann gibt
+   * es schlicht keine Linie (kein Sonderfall in der Presentation).
+   */
+  recurringAmount?: number;
 };
 
 /** Ein Distrikt (Hauptkategorie-Gruppe) — ein räumlich getrenntes Gebäude-Cluster. */

@@ -23,6 +23,7 @@ import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { toMinor, toMajor, sumMinor } from '@/lib/money';
 import { t } from '@/i18n/serviceT';
 import type { Transaction, Category, TransactionAllocation } from '@/types';
+import { isRecurring } from './city-recurrence';
 import type { CityContract } from './city-model';
 
 /** Ab dieser Händleranzahl (exklusive) wird gedeckelt: Top 5 + EINE "Sonstige"-Etage (maximal 6 Etagen). */
@@ -142,6 +143,13 @@ export function buildMerchantFloorsByBuilding(
           id: f.id,
           label: f.label,
           amount: toMajor(f.totalMinor),
+          // WP-5.1: Wiederkehr aus den Buchungsdaten ableiten, die hier
+          // ohnehin schon vorliegen — keine zusätzliche Query und keine
+          // Rücknahme der WP-E2-Entscheidung gegen `computeContracts`.
+          // Die "Sonstige"-Etage bündelt viele Händler; ihre gemischten
+          // Datumsangaben ergäben eine Wiederkehr, die keinem Zahlungsstrom
+          // entspricht — sie bleibt deshalb bewusst ohne Markierung.
+          recurring: f.id === OTHER_MERCHANTS_FLOOR_ID ? false : isRecurring(f.bookings.map((b) => b.date)),
           // WP-D5: Deep-Link-Semantik der Ausgaben-Etage — Kategorie (Gebäude)
           // + Händler-Suche; die "Sonstige"-Etage bündelt viele Händler und
           // filtert deshalb nur nach Kategorie.

@@ -5,6 +5,7 @@ import { createCityScene, type CitySceneHandle } from './city-scene';
 import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
 import { deriveCityQuality, type CityDeviceProfile } from '../domain/city-quality';
+import type { CityFlowLine } from '../domain/city-flow-lines';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { isDarkMode, subscribeToDarkModeChanges } from '@/lib/chart-theme';
 
@@ -71,6 +72,14 @@ export type CityCanvasProps = {
    * als vollwertige Alternative auf dieselben Daten.
    */
   onUnavailable?: (reason: CityCanvasUnavailableReason | null) => void;
+  /**
+   * WP-5.1: Flusslinien für wiederkehrende Zahlungen
+   * (`domain/city-flow-lines.ts`). Werden im selben Effekt wie `layout`
+   * angewendet — sie hängen an derselben Geometrie. Auf Qualitätsstufen ohne
+   * `flowLines` verwirft die Szene sie selbst; hier braucht es keine
+   * Fallunterscheidung.
+   */
+  flowLines?: CityFlowLine[];
   className?: string;
 };
 
@@ -158,6 +167,7 @@ export function CityCanvas({
   controlsApiRef,
   sceneRef,
   onUnavailable,
+  flowLines,
   className,
 }: CityCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -512,6 +522,10 @@ export function CityCanvas({
     const handle = handleRef.current;
     if (!handle) return;
     handle.applyLayout(layout);
+    // WP-5.1: Flusslinien hängen an derselben Geometrie wie das Layout und
+    // werden deshalb im selben Effekt gesetzt — sonst könnten sie einen Frame
+    // lang auf Gebäude zeigen, die es im neuen Layout nicht mehr gibt.
+    handle.applyFlowLines(flowLines ?? []);
     // Einen Frame anfordern: der Render-on-Demand-Loop schläft nach Flugende/
     // ohne Interaktion (rafHandle===null). Ändert sich `layout` durch einen
     // Hintergrund-Refetch (neue Model-Identität) STATT durch Navigation (die
@@ -525,7 +539,7 @@ export function CityCanvas({
     // Aufrufer hält sie via `useRef`), taucht aber als Prop in den Deps auf,
     // damit exhaustive-deps zufrieden ist — effektiv läuft der Effekt weiterhin
     // nur bei `layout`-Wechsel.
-  }, [layout, controlsApiRef]);
+  }, [layout, flowLines, controlsApiRef]);
 
   // `prefers-reduced-motion` kann sich zur Laufzeit ändern (System-Setting) —
   // ohne den ganzen Mount-Effekt neu zu triggern, einfach auf den Controls

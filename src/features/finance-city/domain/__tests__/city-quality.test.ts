@@ -91,7 +91,7 @@ describe('Stufen-Reihenfolge', () => {
     // sparsameren Stufe aus ist, darf auf keiner noch sparsameren wieder an
     // sein — sonst ist „eine Stufe runter" keine verlässliche Entlastung.
     const settings = QUALITY_TIERS.map((tier) => deriveCityQuality({ ...DESKTOP, devicePixelRatio: 4 }, tier));
-    const effects = ['contactShadows', 'facadeTexture', 'rimLight', 'edges', 'buildCascade'] as const;
+    const effects = ['contactShadows', 'facadeTexture', 'rimLight', 'edges', 'buildCascade', 'flowLines'] as const;
 
     for (const effect of effects) {
       const enabled = settings.map((s) => s[effect]);
@@ -112,6 +112,7 @@ describe('Stufen-Reihenfolge', () => {
     expect(lean.facadeTexture).toBe(false);
     expect(lean.rimLight).toBe(false);
     expect(lean.buildCascade).toBe(false);
+    expect(lean.flowLines).toBe(false);
   });
 
   it('sollte Antialiasing nur bei niedrigem Pixel-Ratio zulassen', () => {

@@ -296,6 +296,49 @@ Den Vorzustand hält `use-city-model.ts` in einem Ref — der Adapter bleibt rei
 Ein persistiert erreichtes Ziel wird nie zurückgestuft (Trophäe, kein Rückbau)
 — dieselbe Zusicherung, die der Balken schon gibt.
 
+## Flusslinien für wiederkehrende Zahlungen (WP-5.1)
+
+Die Stadt zeigte, **wohin** das Geld geht (Gebäudehöhe je Unterkategorie), aber
+nicht, welcher Teil davon jeden Monat ohne weiteres Zutun abfließt. Genau der
+ist der interessante: Fixkosten kann man kündigen, einmalige Ausgaben nur
+bereuen.
+
+**Woher die Wiederkehr kommt.** Das Modell wusste sie nicht — WP-E2 hatte
+`computeContracts` bewusst aus der Etagen-Ableitung entfernt, weil es Händler
+mit zu wenigen Buchungen überspringt und dadurch ganze Etagen verschwanden.
+Diese Entscheidung wird **nicht** zurückgenommen. Stattdessen leitet
+`domain/city-recurrence.ts` die Wiederkehr aus den Buchungsdaten ab, die ohnehin
+schon durch die Etagen-Aggregation laufen: **in mindestens drei verschiedenen
+Kalendermonaten gebucht**. Keine zusätzliche Query, keine Rücknahme.
+
+Drei ist die kleinste Zahl, die einen Rhythmus von einem Zufall trennt — bei
+zwei Monaten in Folge ist ein Kauf mit Nachbestellung genauso wahrscheinlich wie
+ein Abo. Höher anzusetzen würde vierteljährliche Zahlungen (Versicherungen!) aus
+kurzen Datenfenstern verschwinden lassen, und genau die sind Fixkosten.
+
+Bewusst **nicht** dasselbe wie ein „Vertrag" im Sinne von
+`contract-derivation.ts`: dort geht es um eine nutzerbestätigte Entscheidung
+samt Zyklus und Preisänderung. Hier reicht die schwächere Aussage „das kommt
+regelmäßig wieder", weil die Linie nur eine Betonung ist und keine Zahl
+behauptet, die anderswo anders lautet.
+
+**Die Linie** verbindet die Mitte der Platte mit dem Fuß des Gebäudes. Die Mitte
+steht für das Konto — kein erfundener Ort, `layout.center` ist derselbe Punkt,
+um den die Kamera die Stadt rahmt. Deckkraft nach Anteil am sichtbaren
+Gesamtbetrag; höchstens `MAX_FLOW_LINES` (6), sonst wird aus der Betonung ein
+Netz, in dem man nur noch sieht, *dass* es viele gibt.
+
+**Ohne Bewegung — und das ist die eigentliche Entscheidung.** „Fluss" legt eine
+fließende Animation nahe. Die liefe endlos und widerspräche der
+Render-on-Demand-Vorgabe (siehe oben: der Loop steht bei Stillstand still); sie
+kostete auf einem Telefon dauerhaft Akku, ohne eine einzige zusätzliche Zahl zu
+zeigen. Die Linien bauen sich mit der Stadt auf und stehen dann — die Aussage
+steckt in Vorhandensein und Stärke.
+
+Nur auf **Stadt-Ebene**: beim Eintauchen beantworten die Etagen dieselbe Frage
+genauer, dort würden die Linien nur die Baukörper verstellen. Auf der Stufe
+`lean` entfallen sie (`quality.flowLines`).
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)

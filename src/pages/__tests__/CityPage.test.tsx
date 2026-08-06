@@ -52,6 +52,7 @@ let stubControlsApi: ReturnType<typeof makeControlsApiStub> | undefined;
 function makeSceneStub(): CitySceneHandle {
   return {
     applyLayout: vi.fn(),
+    applyFlowLines: vi.fn(),
     advanceAnimations: vi.fn(() => false),
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),

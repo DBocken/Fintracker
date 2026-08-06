@@ -103,7 +103,17 @@ function attachFloors(districts: CityDistrict[], floorsByBuilding: Map<string, C
   for (const district of districts) {
     for (const building of district.subcategories) {
       const floors = floorsByBuilding.get(building.id);
-      if (floors && floors.length > 0) building.contracts = floors;
+      if (floors && floors.length > 0) {
+        building.contracts = floors;
+        // WP-5.1: Wiederkehrender Anteil des Gebäudes = Summe der Etagen, die
+        // regelmäßig wiederkommen. Grundlage der Flusslinien. Nur setzen, wenn
+        // es tatsächlich etwas gibt — sonst behauptete ein `0` eine geprüfte
+        // Aussage, wo gar keine Etagen-Information vorlag.
+        const recurringAmount = floors
+          .filter((floor) => floor.recurring)
+          .reduce((sum, floor) => sum + floor.amount, 0);
+        if (recurringAmount > 0) building.recurringAmount = recurringAmount;
+      }
     }
   }
 }

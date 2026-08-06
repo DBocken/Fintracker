@@ -35,6 +35,7 @@ vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => false }));
 function createFakeHandle(canvas: HTMLCanvasElement): CitySceneHandle {
   return {
     applyLayout: vi.fn(),
+    applyFlowLines: vi.fn(),
     advanceAnimations: vi.fn(() => false),
     setAnimationsEnabled: vi.fn(),
     setTheme: vi.fn(),

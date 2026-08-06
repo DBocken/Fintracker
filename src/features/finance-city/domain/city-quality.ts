@@ -53,6 +53,8 @@ export type CityQualitySettings = {
   edges: boolean;
   /** WP-E1-Aufbau-Kaskade (`BUILD_STAGGER_MS`) — gestaffelter Aufbau statt gleichzeitig. */
   buildCascade: boolean;
+  /** WP-5.1-Flusslinien: je Linie ein eigener Draw-Call mit Transparenz. */
+  flowLines: boolean;
 };
 
 /** Schwellen, ab denen ein Gerät als schwach gilt. Bewusst großzügig: lieber eine Stufe zu spät sparen als eine zu früh entwerten. */
@@ -75,9 +77,9 @@ const TIER_PIXEL_RATIO: Record<CityQualityTier, number> = {
  * eine Stufe wählen, die an anderer Stelle wieder teurer ist.
  */
 const TIER_EFFECTS: Record<CityQualityTier, Omit<CityQualitySettings, 'tier' | 'maxPixelRatio' | 'antialias'>> = {
-  high: { contactShadows: true, facadeTexture: true, rimLight: true, edges: true, buildCascade: true },
-  balanced: { contactShadows: true, facadeTexture: true, rimLight: false, edges: true, buildCascade: true },
-  lean: { contactShadows: false, facadeTexture: false, rimLight: false, edges: false, buildCascade: false },
+  high: { contactShadows: true, facadeTexture: true, rimLight: true, edges: true, buildCascade: true, flowLines: true },
+  balanced: { contactShadows: true, facadeTexture: true, rimLight: false, edges: true, buildCascade: true, flowLines: true },
+  lean: { contactShadows: false, facadeTexture: false, rimLight: false, edges: false, buildCascade: false, flowLines: false },
 };
 
 /**
