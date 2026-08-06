@@ -7,6 +7,20 @@ on:
 permissions:
   contents: read
 
+# Ueberholte Laeufe abbrechen, statt sie mitlaufen zu lassen. Ohne diese Gruppe
+# bleibt fuer JEDEN Push eines Branches ein vollstaendiger Lauf in der
+# Warteschlange stehen — auch fuer laengst ueberschriebene Commits. Bei einer
+# Serie von Commits belegen die alten Laeufe dann die Runner-Kontingente und
+# verzoegern genau den Lauf, auf den es ankommt: den aktuellen.
+#
+# `main` ist ausgenommen (`github.run_id` macht die Gruppe dort eindeutig):
+# Auf dem Hauptbranch soll jeder Commit sein eigenes, vollstaendiges Ergebnis
+# behalten — sonst faehrt ein schneller Folge-Commit den Nachweis fuer seinen
+# Vorgaenger weg.
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.run_id || 'branch' }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Lint, Typecheck & Tests
