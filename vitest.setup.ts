@@ -49,6 +49,26 @@ if (typeof window !== "undefined" && window.navigator) {
   })
 }
 
+// Geräteeinstufung deterministisch machen (WP-7.7).
+//
+// `classifyDevice()` (src/lib/device-profile.ts) liest `hardwareConcurrency`,
+// um die Bewegungsstufe zu wählen. Unter jsdom kommt dort die echte Kernanzahl
+// der Maschine an — auf einem 4-Kern-CI-Runner gilt die App damit als schwaches
+// Gerät und kürzt jede Animationsdauer, auf einem 12-Kern-Entwicklungsrechner
+// nicht. Jede Zusicherung auf eine konkrete Dauer wäre dann maschinenabhängig
+// und je nach Runner rot oder grün.
+//
+// Deshalb hier ein fester Desktop-Wert, analog zum `navigator.language`-Pin
+// darüber und mit derselben Begründung: der Standardfall wird festgenagelt,
+// abweichende Geräte setzen Tests ausdrücklich selbst
+// (`resetDeviceProfileCache()` aus `@/hooks/useDeviceProfile`).
+if (typeof window !== "undefined" && window.navigator) {
+  Object.defineProperty(window.navigator, "hardwareConcurrency", {
+    value: 12,
+    configurable: true,
+  })
+}
+
 // jsdom's Blob/File lack the `text()` instance method that the CSV import
 // uses (`await file.text()`). Bridge it via FileReader, which jsdom supports.
 if (typeof Blob !== "undefined" && !Blob.prototype.text) {

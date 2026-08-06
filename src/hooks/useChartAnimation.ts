@@ -16,8 +16,8 @@
  */
 
 import { useMemo } from 'react';
-import { useReducedMotion } from './useReducedMotion';
-import { MOTION_DURATIONS, MOTION_EASINGS_CHART, resolveDuration } from '@/lib/motion-tokens';
+import { useMotionQuality } from './useMotionQuality';
+import { MOTION_DURATIONS, MOTION_EASINGS_CHART } from '@/lib/motion-tokens';
 
 export type ChartAnimationConfig = {
   /** Ob die Chart-Aufbau-Animation aktiv ist. */
@@ -38,11 +38,21 @@ export type ChartAnimationConfig = {
 };
 
 export function useChartAnimation(): ChartAnimationConfig {
-  const reduce = useReducedMotion();
+  // WP-7.7: Die Dauer kommt aus der Bewegungsstufe des Geräts statt fest aus
+  // dem Token. Recharts interpoliert jeden Pfad in JavaScript — bei 25 Serien
+  // ist das der teuerste Dauerposten der App und damit der erste, der auf
+  // schwacher Hardware kürzer werden muss. `animate` bleibt an: eine gekürzte
+  // Aufbau-Animation ist immer noch ein Aufbau, ein abgeschalteter wäre das
+  // „Aufpoppen", das Design-Prinzip 2 gerade verbietet. Nur reduced-motion
+  // (durationScale === 0) schaltet wirklich ab.
+  const motion = useMotionQuality();
 
-  return useMemo(() => ({
-    animate: !reduce,
-    animationDuration: resolveDuration(MOTION_DURATIONS.slow, reduce),
-    animationEasing: MOTION_EASINGS_CHART.build,
-  }), [reduce]);
+  return useMemo(() => {
+    const animationDuration = motion.duration(MOTION_DURATIONS.slow);
+    return {
+      animate: animationDuration > 0,
+      animationDuration,
+      animationEasing: MOTION_EASINGS_CHART.build,
+    };
+  }, [motion]);
 }
