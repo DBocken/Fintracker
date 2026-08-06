@@ -674,6 +674,14 @@ export const translations = {
       controlReset: 'Ansicht zurücksetzen',
       controlFullscreen: 'Vollbild',
       controlExitFullscreen: 'Vollbild beenden',
+      unavailable: {
+        unsupportedTitle: '3D-Ansicht auf diesem Gerät nicht verfügbar',
+        unsupportedBody: 'Der Browser konnte keine 3D-Grafik starten. Deine Daten sind vollständig — die Listenansicht zeigt dieselben Zahlen.',
+        contextLostTitle: '3D-Ansicht unterbrochen',
+        contextLostBody: 'Das Gerät hat die Grafikressourcen anderweitig gebraucht. Du kannst die Stadt neu aufbauen oder mit der Listenansicht weiterarbeiten.',
+        retry: 'Stadt neu aufbauen',
+        toList: 'Zur Listenansicht',
+      },
       listView: {
         title: 'Listenansicht',
         pathAnnouncement: 'Aktuelle Ansicht: {path}',
@@ -5169,6 +5177,14 @@ export const translations = {
       controlReset: 'Reset view',
       controlFullscreen: 'Fullscreen',
       controlExitFullscreen: 'Exit fullscreen',
+      unavailable: {
+        unsupportedTitle: '3D view unavailable on this device',
+        unsupportedBody: 'Your browser could not start 3D graphics. Your data is complete — the list view shows the same numbers.',
+        contextLostTitle: '3D view interrupted',
+        contextLostBody: 'The device needed its graphics resources elsewhere. You can rebuild the city or carry on in the list view.',
+        retry: 'Rebuild city',
+        toList: 'Go to list view',
+      },
       listView: {
         title: 'List view',
         pathAnnouncement: 'Current view: {path}',
@@ -13833,6 +13849,14 @@ export const translations = {
       controlReset: 'Сбросить вид',
       controlFullscreen: 'Во весь экран',
       controlExitFullscreen: 'Выйти из полноэкранного режима',
+      unavailable: {
+        unsupportedTitle: '3D-вид недоступен на этом устройстве',
+        unsupportedBody: 'Браузер не смог запустить 3D-графику. Данные не потеряны — в списке те же цифры.',
+        contextLostTitle: '3D-вид прерван',
+        contextLostBody: 'Устройству понадобились графические ресурсы для другого. Можно перестроить город или продолжить в списке.',
+        retry: 'Перестроить город',
+        toList: 'Перейти к списку',
+      },
       listView: {
         title: 'Вид списком',
         pathAnnouncement: 'Текущий вид: {path}',

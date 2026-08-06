@@ -19,7 +19,11 @@ import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-me
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";
 import { useCityModel, type CityModelTab } from "@/features/finance-city/application/use-city-model";
-import { CityCanvas, type CityControlsApi } from "@/features/finance-city/presentation/CityCanvas";
+import {
+  CityCanvas,
+  type CityControlsApi,
+  type CityCanvasUnavailableReason,
+} from "@/features/finance-city/presentation/CityCanvas";
 import { CityLabels, type CityLabelsHandle } from "@/features/finance-city/presentation/CityLabels";
 import { CityAccessibleList } from "@/features/finance-city/presentation/CityAccessibleList";
 import { CAMERA_FOV_Y_DEG, type CitySceneHandle } from "@/features/finance-city/presentation/city-scene";
@@ -112,6 +116,19 @@ export default function CityPage() {
   // WebGL-Kontext-Neuaufbau bei jedem Toggle) — im Listen-Modus wird er nur
   // visuell ausgeblendet + `aria-hidden`, siehe JSX unten.
   const [showList, setShowList] = useState(false);
+
+  // WP-5.7: Warum die 3D-Fläche gerade nichts zeigt (`null` = alles in
+  // Ordnung). `canvasGeneration` ist der Remount-Schlüssel des Canvas: ein
+  // Neuaufbau nach hartem Kontextverlust braucht einen frischen
+  // WebGL-Kontext, und den bekommt man nur über ein neues `<canvas>`-Element.
+  const [canvasUnavailable, setCanvasUnavailable] = useState<CityCanvasUnavailableReason | null>(null);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
+
+  const handleRebuildCity = useCallback(() => {
+    setCanvasUnavailable(null);
+    setCanvasGeneration((generation) => generation + 1);
+  }, []);
+
   const cityLabelsRef = useRef<CityLabelsHandle | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -698,6 +715,7 @@ export default function CityPage() {
                 className={cn("absolute inset-0", showList && "invisible")}
               >
                 <CityCanvas
+                  key={canvasGeneration}
                   layout={layout}
                   onTapBox={handleTapBox}
                   onHoverBox={handleHoverBox}
@@ -707,8 +725,55 @@ export default function CityPage() {
                   onFrame={handleFrame}
                   controlsApiRef={controlsApiRef}
                   sceneRef={sceneRef}
+                  onUnavailable={setCanvasUnavailable}
                   className="absolute inset-0"
                 />
+                {/* WP-5.7: Die 3D-Fläche kann leer/tot sein, ohne dass die
+                    DATEN fehlen — kein WebGL-Kontext, oder der Treiber hat
+                    einen laufenden eingezogen. Vorher blieb dann eine stumme
+                    Fläche stehen (beim Kontextverlust sogar mit eingefrorenen,
+                    veralteten Zahlen). Jetzt: benennen, was los ist, und den
+                    Weg zur Listenansicht zeigen — dieselben Daten, nur ohne
+                    3D. Im Listen-Modus unterdrückt, dort ist die Alternative
+                    ja schon offen. */}
+                {canvasUnavailable && !showList && (
+                  <div
+                    role="alert"
+                    data-testid="city-canvas-unavailable-notice"
+                    className="absolute inset-0 z-20 flex items-center justify-center bg-background/95 p-6"
+                  >
+                    <div className="max-w-sm space-y-3 text-center">
+                      <h2 className="text-base font-semibold">
+                        {t(
+                          canvasUnavailable === "context-lost"
+                            ? "city.unavailable.contextLostTitle"
+                            : "city.unavailable.unsupportedTitle",
+                        )}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t(
+                          canvasUnavailable === "context-lost"
+                            ? "city.unavailable.contextLostBody"
+                            : "city.unavailable.unsupportedBody",
+                        )}
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 pt-1">
+                        {/* Neuaufbau nur beim Kontextverlust: der ist behebbar
+                            (Speicherdruck vergeht). Fehlt WebGL ganz, wäre der
+                            Knopf ein Versprechen, das das Gerät nicht halten
+                            kann. */}
+                        {canvasUnavailable === "context-lost" && (
+                          <Button size="sm" onClick={handleRebuildCity}>
+                            {t("city.unavailable.retry")}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => setShowList(true)}>
+                          {t("city.unavailable.toList")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* WP-D6 (Premium-Look): dezente Vignette rahmt die Szene und
                     zieht den Blick zur Stadt — reines CSS-Overlay (kein
                     Post-Processing/GPU-Pass), liegt UNTER den Labels. */}

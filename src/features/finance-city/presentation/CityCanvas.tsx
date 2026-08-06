@@ -20,6 +20,18 @@ export type CityControlsApi = {
   invalidate(): void;
 };
 
+/**
+ * WP-5.7: Warum die 3D-Fläche gerade nichts zeigt. `null` = alles in Ordnung
+ * (auch: Kontext wiederhergestellt).
+ *
+ * - `unsupported`: Der WebGL-Kontext ließ sich gar nicht erst erzeugen (alter
+ *   Browser, deaktivierte Hardwarebeschleunigung, Grafiktreiber-Fehler).
+ * - `context-lost`: Der Treiber hat einen laufenden Kontext eingezogen. Auf
+ *   Mobilgeräten Alltag (Speicherdruck, App im Hintergrund, GPU-Reset) und
+ *   grundsätzlich behebbar — deshalb ein eigener Zustand und kein `unsupported`.
+ */
+export type CityCanvasUnavailableReason = 'unsupported' | 'context-lost';
+
 export type CityCanvasProps = {
   /** Aus `useMemo(() => buildCityLayout(...), [...])` der Page — die EINZIGE Geometrie-Quelle (README). */
   layout: CityLayout;
@@ -52,6 +64,13 @@ export type CityCanvasProps = {
   controlsApiRef?: MutableRefObject<CityControlsApi | null>;
   /** WP-C4/Debug-Zugriff auf das rohe Szenen-Handle (`applyCameraPose`, `camera`, `target`, …) ohne `CityCanvas` selbst umzubauen. */
   sceneRef?: MutableRefObject<CitySceneHandle | null>;
+  /**
+   * WP-5.7: Meldet, warum die 3D-Fläche gerade nichts zeigt — bzw. `null`,
+   * sobald der Kontext wieder da ist. `CityCanvas` meldet nur; WAS der Nutzer
+   * stattdessen sieht, entscheidet die Seite: nur sie kennt die Listenansicht
+   * als vollwertige Alternative auf dieselben Daten.
+   */
+  onUnavailable?: (reason: CityCanvasUnavailableReason | null) => void;
   className?: string;
 };
 
@@ -138,6 +157,7 @@ export function CityCanvas({
   onFrame,
   controlsApiRef,
   sceneRef,
+  onUnavailable,
   className,
 }: CityCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -158,6 +178,8 @@ export function CityCanvas({
   onTapBoxRef.current = onTapBox;
   const onHoverBoxRef = useRef(onHoverBox);
   onHoverBoxRef.current = onHoverBox;
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
   const onControlsStartRef = useRef(onControlsStart);
   onControlsStartRef.current = onControlsStart;
   const onControlsChangeRef = useRef(onControlsChange);
@@ -188,6 +210,7 @@ export function CityCanvas({
       // statt eines geworfenen Fehlers, der die ganze Seite abreißt.
       console.error('[CityCanvas] WebGL-Kontext konnte nicht erstellt werden.', error);
       setWebglUnavailable(true);
+      onUnavailableRef.current?.('unsupported');
       return;
     }
 
@@ -243,6 +266,8 @@ export function CityCanvas({
     let rafHandle: number | null = null;
     let needsRender = true;
     let isInteracting = false;
+    /** WP-5.7: Der Treiber hat den Kontext eingezogen — der Loop pausiert, bis er zurück ist. */
+    let contextLost = false;
     const fpsSamples: number[] = [];
     let dprStepIndex = initialDprStepIndex(quality.maxPixelRatio);
     let lastWidth = 0;
@@ -279,6 +304,10 @@ export function CityCanvas({
     function startLoopIfNeeded() {
       if (rafHandle !== null) return;
       if (typeof document !== 'undefined' && document.hidden) return;
+      // WP-5.7: Auf einem verlorenen Kontext ist jeder Frame verlorene Arbeit
+      // (und je nach Treiber eine Fehlerflut in der Konsole). Der Loop bleibt
+      // stehen, bis `webglcontextrestored` ihn wieder freigibt.
+      if (contextLost) return;
       rafHandle = requestAnimationFrame(tick);
     }
 
@@ -413,6 +442,36 @@ export function CityCanvas({
       }
     };
 
+    // --- WP-5.7: Kontextverlust ---------------------------------------------
+    // Auf Mobilgeräten Alltag: der Treiber zieht den WebGL-Kontext ein, wenn
+    // der Speicher knapp wird oder die App länger im Hintergrund war. Ohne
+    // Behandlung friert der Canvas auf dem letzten Frame ein und zeigt
+    // unbegrenzt weiter veraltete Zahlen — schlimmer als ein sichtbarer
+    // Fehler, weil nichts darauf hindeutet.
+    const handleContextLost = (event: Event) => {
+      // MUSS unterdrückt werden: sonst gibt der Browser den Kontext endgültig
+      // auf und feuert nie ein `webglcontextrestored`.
+      event.preventDefault();
+      contextLost = true;
+      if (rafHandle !== null) {
+        cancelAnimationFrame(rafHandle);
+        rafHandle = null;
+      }
+      onUnavailableRef.current?.('context-lost');
+    };
+
+    const handleContextRestored = () => {
+      contextLost = false;
+      onUnavailableRef.current?.(null);
+      // Der Szenengraph hat den Verlust überlebt (er lebt im JS-Heap, nicht im
+      // Treiber); three.js lädt Geometrien/Texturen beim nächsten `render()`
+      // von selbst neu hoch. Ein voller Neuaufbau wäre unnötig — und würde die
+      // Kameraposition des Nutzers verwerfen.
+      invalidate();
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointerup', handlePointerUp);
     canvas.addEventListener('pointercancel', handlePointerCancel);
@@ -425,6 +484,8 @@ export function CityCanvas({
       if (rafHandle !== null) cancelAnimationFrame(rafHandle);
       resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointercancel', handlePointerCancel);

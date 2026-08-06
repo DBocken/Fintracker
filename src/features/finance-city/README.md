@@ -226,6 +226,40 @@ Die Straßentextur des Bodens bleibt auf **allen** Stufen: eine Textur auf einem
 Material, kein Overdraw — und ohne sie steht die Stadt auf einer leeren grauen
 Platte statt an einem Ort (WP-E1-Ziel).
 
+## Leere und Fehlerzustände (WP-5.7)
+
+Drei Wege, auf denen die 3D-Fläche nichts zeigt — sie sind **nicht** dasselbe
+und werden deshalb getrennt behandelt:
+
+| Fall | Erkannt an | Verhalten |
+|---|---|---|
+| **Keine Daten** | `useCityModel().isEmpty` | `EmptyState` je Tab; Canvas wird gar nicht erst gemountet (spart den WebGL-Kontext) — bestand schon vor WP-5.7 |
+| **Kein WebGL** | `createCityScene` wirft → `onUnavailable('unsupported')` | Erklärung + Weg zur Listenansicht. **Kein** Neuaufbau-Knopf: fehlt WebGL ganz, wäre er ein Versprechen, das das Gerät nicht halten kann |
+| **Kontextverlust** | `webglcontextlost` → `onUnavailable('context-lost')` | Erklärung + Neuaufbau-Knopf + Weg zur Liste; Render-Loop pausiert |
+
+Der Kontextverlust war vor WP-5.7 **gar nicht** behandelt. Auf Mobilgeräten ist
+er Alltag (Speicherdruck, App länger im Hintergrund, GPU-Reset): der Canvas
+fror auf dem letzten Frame ein und zeigte unbegrenzt weiter **veraltete
+Zahlen** — schlimmer als ein sichtbarer Fehler, weil nichts darauf hindeutete.
+
+Drei Details, die leicht falsch gemacht werden:
+
+- `event.preventDefault()` im `webglcontextlost`-Handler ist **Pflicht**. Ohne
+  ihn gibt der Browser den Kontext endgültig auf und feuert nie ein
+  `webglcontextrestored` — die Fläche bliebe auch nach einem Neuaufbau tot.
+- Bei `webglcontextrestored` wird die Szene **nicht** neu gebaut. Der
+  Szenengraph lebt im JS-Heap, three.js lädt Geometrien und Texturen beim
+  nächsten `render()` von selbst wieder hoch; ein Neuaufbau würde nur die
+  Kameraposition des Nutzers verwerfen.
+- Der Neuaufbau-Knopf remountet den Canvas über einen Schlüssel
+  (`canvasGeneration`), nicht über einen Szenen-Reset: einen frischen
+  WebGL-Kontext bekommt man nur mit einem neuen `<canvas>`-Element.
+
+`CityCanvas` **meldet** nur; was der Nutzer sieht, entscheidet `CityPage` —
+nur sie kennt die Listenansicht als vollwertige Alternative auf dieselben
+Daten. Genau das ist der Grund, warum die Listenansicht kein Zugeständnis an
+die Barrierefreiheit allein ist, sondern der Rückfallweg für jeden Grafikausfall.
+
 ## Folgeschritte
 
 - **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)
