@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLine } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import EmptyState from "@/components/common/EmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +84,16 @@ export default function DebtsPage() {
   const [detailDebtId, setDetailDebtId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: debts = [], isLoading } = useQuery({
+  // WP-9.6: `isError` UND `refetch` — ohne den Fehlerzustand wuerde ein
+  // Lesefehler unten als „Noch keine Schulden erfasst" erscheinen, und das ist
+  // ausgerechnet hier die unbarmherzigste Verwechslung, die die App anbieten
+  // kann.
+  const {
+    data: debts = [],
+    isLoading,
+    isError: debtsError,
+    refetch: refetchDebts,
+  } = useQuery({
     queryKey: ["debts"],
     queryFn: getDebts,
   });
@@ -316,6 +326,10 @@ export default function DebtsPage() {
           <Skeleton variant="shimmer" className="h-20 w-full" />
           <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
+      ) : debtsError ? (
+        // VOR dem Leerzustand: „nicht ladbar" ist eine andere Aussage als
+        // „noch nichts erfasst" (WP-9.2).
+        <FinanceErrorState onRetry={() => void refetchDebts()} />
       ) : debts.length === 0 ? (
         <EmptyState
           emoji="💸"

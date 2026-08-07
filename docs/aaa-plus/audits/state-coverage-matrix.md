@@ -253,4 +253,48 @@ eine Durchgangsseite, kein Screen, auf dem man verweilt.
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
 | **WP-9.5** | ⏳ **Grundlage + zwei Sweeps.** Abdeckung 8/78 → **41/78** direkt, plus alle Chart-Tabellen und -Zusammenfassungen zentral. Offen bleibt nur die SICHTBARE Achsen-/Tooltip-Beschriftung in Diagrammen — das ist eine Gestaltungsfrage, siehe unten |
-| **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |
+| **WP-9.6** | ✅ **erledigt.** `pnpm check:query-errors` mit Ausnahmeliste als Backlog. Stand: **21/150** Aufrufe behandelt, 129 im Backlog — die Zahl je Datei darf nur sinken |
+
+
+## Stand nach WP-9.6 — der Fehlerfall bekommt einen Wächter
+
+Der Kernbefund oben nannte 122 Aufrufe; die genauere Zählung des Wächters
+(inklusive der generischen Schreibweise `useQuery<T>()`, die ein einfacher
+Regex übersieht) ergibt **150 Aufrufe, 21 behandelt**.
+
+`pnpm check:query-errors` verlangt ab sofort, dass jede neue Aufrufstelle den
+Fehlerfall **in die Hand nimmt** — ihn destrukturiert (`isError`, `error`,
+`status`) oder ihn per `throwOnError` bewusst an eine Error Boundary abgibt.
+Was sie damit anfängt, kann eine statische Prüfung nicht wissen; sie sorgt nur
+dafür, dass die Frage überhaupt gestellt wird.
+
+**Die Ausnahmeliste führt eine ZAHL je Datei, nicht nur den Dateinamen.** Ohne
+sie könnte eine Datei mit drei offenen Aufrufen einen vierten dazubekommen,
+ohne dass etwas rot wird. Die Zahl darf nur sinken; steht sie zu hoch, meldet
+der Check das ebenfalls und erzwingt das Nachziehen.
+
+Drei Screens sind in diesem Zug migriert, ausgewählt nach dem Schaden, den ein
+falscher Leerzustand dort anrichtet:
+
+| Screen | Warum zuerst |
+|---|---|
+| **Schulden** | Ein leerer Schulden-Screen liest sich wie **Entwarnung**. Die darf ein Lesefehler nicht geben |
+| **Vermögen** | Ein leerer Vermögens-Screen liest sich wie **Verlust** |
+| **Coach** | Scheitert dort die eine Datenabfrage, bleibt `hasData` `undefined` — der Screen zeigte dann weder Leerzustand noch Inhalt, sondern eine halb gefüllte Seite ohne jede Erklärung. Noch undurchsichtiger als eine falsche Auskunft |
+
+## Nebenbefund für Phase 10: die E2E-Suite ist nicht stabil
+
+Zweimal in dieser Runde ist ein E2E-Spec **im Gesamtlauf** rot geworden und
+**allein grün** — einmal der Performance-Lauf (CLS 0,1002 gegen 0,1), einmal
+die Visual Regression. Grobe Rate: 2 Fehlschläge auf rund 12 Gesamtläufe.
+
+Was es **nicht** ist: `playwright.config.ts` fährt `workers: 1`, es gibt keine
+Parallelität, und der Container hat 16 GB frei. Beide Fehlschläge trafen
+zeitkritische Zusicherungen im späten Teil eines Laufs, in dem alle Specs sich
+einen langlebigen Dev-Server teilen.
+
+**Bewusst nicht mit `retries` übertüncht.** Ein Retry würde genau diese
+Fehlschläge verschwinden lassen — und mit ihnen die echten. Eine Suite, die
+gelegentlich grundlos rot ist, verliert ihre Autorität; eine Suite, die
+Fehlschläge wegwiederholt, hat sie schon verloren. Die Ursache gehört
+gemessen, nicht weggeschaltet: Phase 10.

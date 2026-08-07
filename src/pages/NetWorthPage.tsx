@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "@/services/net-worth-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -134,7 +135,10 @@ function CompositionVolume({ data }: { data: NetWorthBreakdown }) {
 
 export default function NetWorthPage() {
   const { t } = useI18n();
-  const { data, isLoading } = useQuery({
+  // WP-9.6: Ohne `isError` wuerde ein Lesefehler hier als „noch keine Daten"
+  // erscheinen — auf einem Vermoegens-Screen die denkbar beunruhigendste
+  // Falschauskunft.
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["net-worth"],
     queryFn: getNetWorthBreakdown,
   });
@@ -166,7 +170,10 @@ export default function NetWorthPage() {
         description={t("netWorth.description")}
       />
 
-      {isEmpty ? (
+      {isError ? (
+        // VOR dem Leerzustand geprueft (WP-9.2).
+        <FinanceErrorState onRetry={() => void refetch()} />
+      ) : isEmpty ? (
         <FinanceEmptyState />
       ) : isLoading ? (
         <div className="space-y-3">

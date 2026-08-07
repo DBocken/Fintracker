@@ -94,6 +94,7 @@ verwenden**.
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
 | `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings im Diff auftauchen — läuft in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
 | `pnpm check:i18n-module-consts` | Findet `t()`-Aufrufe im Initializer einer Modul-`const` — die frieren beim Import ein und ignorieren jeden späteren Sprachwechsel. Ganzbaumig über die TypeScript-AST, läuft in Pre-Commit und CI |
+| `pnpm check:query-errors` | Verlangt, dass jeder `useQuery`-Aufruf den Fehlerfall in die Hand nimmt (`isError`/`error`/`status` destrukturieren oder `throwOnError`). Sonst macht der übliche Fallback `data = []` einen Ladefehler unsichtbar und der Screen behauptet „du hast noch nichts“. Die Ausnahmeliste `query-error-allowlist.json` führt die ANZAHL je Datei — sie darf nur sinken. Läuft in Pre-Commit und CI |
 | `pnpm check:platform-parity` | Prüft den maschinell fassbaren Teil von §4: Eine Fläche mit `hidden <bp>:*` ohne Gegenstück (`<bp>:hidden`) fehlt auf schmalen Breiten ganz — das ist kein Dichte-Unterschied, sondern ein fehlendes Feature. Legitime Paare über Dateigrenzen stehen mit **Nennung des Partners** in `platform-parity-allowlist.json`. Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
@@ -321,8 +322,9 @@ Mal — kein Vorgang wird stillschweigend übersprungen.
 
 Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
 (`pnpm check:i18n`), Teststruktur (`pnpm check:test-structure`), die
-Karten-Regel (`pnpm check:card-rule`) und die Plattform-Parität
-(`pnpm check:platform-parity`). Claude
+Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
+(`pnpm check:platform-parity`) und den Fehlerzustand jeder Abfrage
+(`pnpm check:query-errors`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.

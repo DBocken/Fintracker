@@ -63,6 +63,9 @@ jobs:
       - name: Plattform-Paritaets-Check
         run: pnpm check:platform-parity
 
+      - name: Fehlerzustands-Check (useQuery)
+        run: pnpm check:query-errors
+
       - name: i18n-Check
         run: |
           git fetch origin main

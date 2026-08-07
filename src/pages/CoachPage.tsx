@@ -22,6 +22,7 @@ import { getTransactions } from "@/services/transaction-service";
 import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useTier } from "@/hooks/useTier";
@@ -46,7 +47,11 @@ export default function CoachPage() {
   // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
   // klare nächste Aktion statt leerer Karten. Eigener queryKey, damit der
   // Transactions-Cache des Dashboards (Limit 5000) nicht verfälscht wird.
-  const { data: hasData } = useQuery({
+  // WP-9.6: `isError` ist hier besonders wichtig — scheitert diese eine
+  // Abfrage, bleibt `hasData` `undefined` und der Screen zeigt weder
+  // Leerzustand noch Inhalt, sondern eine halb gefuellte Seite ohne jede
+  // Erklaerung. Das ist noch undurchsichtiger als eine falsche Auskunft.
+  const { data: hasData, isError: hasDataError, refetch: refetchHasData } = useQuery({
     queryKey: ["has-finance-data"],
     queryFn: async () => {
       const [txs, debts, receivables] = await Promise.all([
@@ -57,6 +62,15 @@ export default function CoachPage() {
       return txs.length > 0 || debts.length > 0 || receivables.length > 0;
     },
   });
+
+  if (hasDataError) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title={t("coach.title")} description={t("coach.description")} />
+        <FinanceErrorState onRetry={() => void refetchHasData()} />
+      </div>
+    );
+  }
 
   if (hasData === false) {
     return (
