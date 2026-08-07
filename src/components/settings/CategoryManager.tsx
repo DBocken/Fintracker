@@ -46,7 +46,10 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
   const handleCategoryFormSave = () => onCategorySave({ id: selectedCategory?.id, name: formName, color: formColor, icon: formIcon, filters: formFilters, parent_id: selectedCategory ? selectedCategory.parent_id : newCategoryParentId, attributes: formAttributes });
   const handleCategoryFormReset = () => { setSelectedCategory(null); setFormName(''); setFormColor('#2e7d72'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(null); };
   const handleEditCategoryClick = (category: HierarchicalCategory) => { setSelectedCategory(category); setNewCategoryParentId(category.parent_id ?? null); setActiveTab('create'); onCategoryEdit(category); };
-  const { data: suggestion } = useQuery<CategorySuggestion | null>({ queryKey: ['category-suggestion'], queryFn: getTopCategorySuggestion });
+  const { data: suggestion } = useQuery<CategorySuggestion | null>({
+    queryKey: ['category-suggestion'],
+    queryFn: getTopCategorySuggestion,
+  });
 
   return (
     <div className="space-y-6">

@@ -46,7 +46,11 @@ export default function TaxReportPage() {
     queryKey: ['transactions', locale],
     queryFn: () => getTransactions(5000),
   });
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ['categories', locale],
     queryFn: getCategories,
   });
@@ -61,7 +65,11 @@ export default function TaxReportPage() {
   const paramYear = Number(searchParams.get('year'));
   const year = years.includes(paramYear) ? paramYear : years[0] ?? FALLBACK_YEAR;
 
-  const { data: profile = null } = useQuery({
+  const {
+    data: profile = null,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: ['taxYearProfile', year],
     queryFn: () => getTaxYearProfile(year),
   });
@@ -109,8 +117,15 @@ export default function TaxReportPage() {
 
       <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
 
-      {transactionsError ? (
-        <FinanceErrorState variant="transactions" onRetry={() => void refetchTransactions()} />
+      {transactionsError || categoriesError || profileError ? (
+        <FinanceErrorState
+          variant="transactions"
+          onRetry={() => {
+            void refetchTransactions();
+            void refetchCategories();
+            void refetchProfile();
+          }}
+        />
       ) : (
         // Der Ladezustand umschliesst ALLES ab hier, nicht nur die Rubriken.
         // Wie viele Rubriken es gibt, weiss erst die Antwort — jede vorher

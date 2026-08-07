@@ -31,15 +31,28 @@ const EMPTY_TX: Transaction[] = [];
 export function useSpecialCategoriesOverview(): SpecialCategoriesOverviewViewModel {
   const qc = useQueryClient();
 
-  const { data: cats = EMPTY_CATS, isLoading: catsLoading } = useQuery({
+  const {
+    data: cats = EMPTY_CATS,
+    isLoading: catsLoading,
+    isError: catsError,
+    refetch: refetchCats,
+  } = useQuery({
     queryKey: specialCategoriesKeys.categories,
     queryFn: getSpecialCategories,
   });
-  const { data: assignments = EMPTY_ASSIGNMENTS } = useQuery({
+  const {
+    data: assignments = EMPTY_ASSIGNMENTS,
+    isError: assignmentsError,
+    refetch: refetchAssignments,
+  } = useQuery({
     queryKey: specialCategoriesKeys.assignments,
     queryFn: getSpecialCategoryAssignments,
   });
-  const { data: transactions = EMPTY_TX } = useQuery({
+  const {
+    data: transactions = EMPTY_TX,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
     // Geteilter Key mit Dashboard/Buchungen – kein zweiter 5000er-Load.
     queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
     queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
@@ -107,14 +120,24 @@ export function useSpecialCategoriesOverview(): SpecialCategoriesOverviewViewMod
     [saveMutation, removeMutation, assignMutation, unassignMutation, saving],
   );
 
+  const isError = catsError || assignmentsError || transactionsError;
+
+  const refetch = useCallback(() => {
+    void refetchCats();
+    void refetchAssignments();
+    void refetchTransactions();
+  }, [refetchCats, refetchAssignments, refetchTransactions]);
+
   return useMemo<SpecialCategoriesOverviewViewModel>(
     () => ({
       ...data,
       loading: catsLoading,
       isEmpty: !catsLoading && cats.length === 0,
+      isError,
+      refetch,
       suggestionsFor,
       actions,
     }),
-    [data, catsLoading, cats.length, suggestionsFor, actions],
+    [data, catsLoading, cats.length, isError, refetch, suggestionsFor, actions],
   );
 }

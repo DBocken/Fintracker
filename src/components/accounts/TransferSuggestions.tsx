@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { getAccounts } from '../../services/account-service';
 import { getTransactions, markTransferPair, unmarkTransfer } from '../../services/transaction-service';
 import { findTransferCandidates, type TransferCandidate } from '../../services/transfer-service';
@@ -20,12 +21,20 @@ export function TransferSuggestions() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
-  const { data: transactions = [] } = useQuery({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
     queryKey: ['transactions', 'all-for-transfers'],
     queryFn: () => getTransactions(10000),
   });
@@ -73,6 +82,12 @@ export function TransferSuggestions() {
     onError: (err: Error) => showError(err.message),
   });
 
+  const hasLoadError = accountsError || transactionsError;
+  const retryAll = () => {
+    void refetchAccounts();
+    void refetchTransactions();
+  };
+
   if (candidates.length === 0 && linkedPairs.length === 0) {
     return null;
   }
@@ -89,6 +104,7 @@ export function TransferSuggestions() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
         {candidates.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium">{t('accounts.transferSuggestions.suggestionsTitle')}</p>

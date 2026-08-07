@@ -30,6 +30,7 @@ import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -38,17 +39,29 @@ function euro(n: number) {
 export function ContractsDashboard() {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "contracts"],
     queryFn: () => getTransactions(2000),
   });
 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
 
-  const { data: decisions = new Map<string, ContractDecision>() } = useQuery({
+  const {
+    data: decisions = new Map<string, ContractDecision>(),
+    isError: decisionsError,
+    refetch: refetchDecisions,
+  } = useQuery({
     queryKey: ["contract-decisions"],
     queryFn: getContractDecisionMap,
   });
@@ -257,6 +270,13 @@ export function ContractsDashboard() {
     </TableHeader>
   );
 
+  const hasLoadError = transactionsError || categoriesError || decisionsError;
+  const retryAll = () => {
+    void refetchTransactions();
+    void refetchCategories();
+    void refetchDecisions();
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -267,6 +287,8 @@ export function ContractsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
+
           <div className="mb-4 space-y-3 rounded-lg border bg-muted p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>

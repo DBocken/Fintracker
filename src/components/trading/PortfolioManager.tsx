@@ -36,6 +36,7 @@ import { Plus, Trash2, CheckCircle2, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 interface PortfolioManagerProps {
   activePortfolioId?: string;
@@ -52,7 +53,12 @@ export default function PortfolioManager({
   const [newPortfolioName, setNewPortfolioName] = useState('');
   const [newPortfolioCurrency, setNewPortfolioCurrency] = useState('EUR');
 
-  const { data: portfolios, isLoading } = useQuery({
+  const {
+    data: portfolios,
+    isLoading,
+    isError: portfoliosError,
+    refetch: refetchPortfolios,
+  } = useQuery({
     queryKey: ['portfolios'],
     queryFn: getPortfolios,
   });
@@ -161,6 +167,8 @@ export default function PortfolioManager({
 
   return (
     <div className="space-y-4">
+      {portfoliosError && <FinanceErrorState variant="data" onRetry={refetchPortfolios} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">{t('trading.portfolioManager.title')}</h3>

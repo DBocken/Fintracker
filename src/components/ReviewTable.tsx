@@ -30,6 +30,7 @@ import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -47,19 +48,31 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  const { data: hierarchicalCategories = [] } = useQuery<HierarchicalCategory[]>({
+  const {
+    data: hierarchicalCategories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<HierarchicalCategory[]>({
     queryKey: ['hierarchical-categories'],
     queryFn: getHierarchicalCategories,
   });
 
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
   // Bereits gespeicherte Transaktionen (z.B. aus PSD2-Sync) für die
   // Duplikat-Erkennung beim CSV-Import
-  const { data: existingTransactions = [] } = useQuery({
+  const {
+    data: existingTransactions = [],
+    isError: existingTxError,
+    refetch: refetchExistingTx,
+  } = useQuery({
     queryKey: ['transactions', 'all-for-duplicate-check'],
     queryFn: () => getTransactions(10000),
   });
@@ -196,7 +209,11 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     [hierarchicalCategories, flattenCategories]
   );
 
-  const { data: learnedRules = [] } = useQuery({
+  const {
+    data: learnedRules = [],
+    isError: rulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ['merchant-rules'],
     queryFn: getMerchantRules,
     staleTime: 5 * 60 * 1000,
@@ -222,6 +239,14 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     setCurrentPage(1);
   }, [rows.length]);
 
+  const hasLoadError = categoriesError || accountsError || existingTxError || rulesError;
+  const retryAll = () => {
+    void refetchCategories();
+    void refetchAccounts();
+    void refetchExistingTx();
+    void refetchRules();
+  };
+
   if (!transactions || transactions.length === 0) {
     return (
       <Card className="ui-card">
@@ -234,6 +259,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
 
   return (
     <Card className="ui-card">
+      {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
       <CardHeader>
         <CardTitle>{t('reviewTable.title')}</CardTitle>
         {importAccount && (

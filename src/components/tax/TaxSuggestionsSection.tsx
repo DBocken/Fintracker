@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { Category, Transaction } from '@/types';
 import { updateTransaction } from '@/services/transaction-service';
 import {
@@ -26,11 +27,23 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
   const queryClient = useQueryClient();
   const businessMode = useBusinessMode();
 
-  const { data: decided = [] } = useQuery({
+  // WP-9.6: Der Fallback `= []` ist hier besonders heikel. `decided` sind die
+  // bereits entschiedenen Vorschlaege — faellt die Abfrage aus, gilt jeder
+  // davon wieder als offen, und laengst weggeklickte Vorschlaege stehen erneut
+  // da. Das ist keine leere Liste, das ist eine falsche.
+  const {
+    data: decided = [],
+    isError: decidedError,
+    refetch: refetchDecided,
+  } = useQuery({
     queryKey: ['automationSuggestions'],
     queryFn: getAutomationSuggestions,
   });
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
 
   // EÜR-Blätter nur im Business-Modus und nur auf Geschäftskonten vorschlagen.
   const businessAccountIds = useMemo(
@@ -86,6 +99,20 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
     },
     onSuccess: invalidate,
   });
+
+  // Vor dem Leer-Fall: Ohne die Entscheidungen waeren die Vorschlaege unten
+  // schlicht falsch, deshalb wird hier gar nichts vorgeschlagen.
+  if (decidedError || accountsError) {
+    return (
+      <FinanceErrorState
+        variant="data"
+        onRetry={() => {
+          void refetchDecided();
+          void refetchAccounts();
+        }}
+      />
+    );
+  }
 
   if (pending.length === 0) return null;
 

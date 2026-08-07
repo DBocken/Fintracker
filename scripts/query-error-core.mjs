@@ -127,12 +127,52 @@ export function findQueryCalls(rawContent) {
   return calls;
 }
 
-/** Nimmt diese Aufrufstelle den Fehlerfall in die Hand? */
-export function handlesError(call) {
+/**
+ * Der lokale Name, unter dem ein Fehlerfeld gebunden wurde.
+ *
+ * `{ isError: txError }` → `txError`, `{ isError }` → `isError`.
+ */
+function errorAliases(destructured) {
+  const aliases = [];
+  for (const field of ERROR_AWARE) {
+    const renamed = destructured.match(new RegExp(`\\b${field}\\s*:\\s*([A-Za-z_$][\\w$]*)`));
+    if (renamed) { aliases.push(renamed[1]); continue; }
+    if (new RegExp(`\\b${field}\\b`).test(destructured)) aliases.push(field);
+  }
+  return aliases;
+}
+
+/**
+ * Nimmt diese Aufrufstelle den Fehlerfall in die Hand?
+ *
+ * `content` ist optional, aber wichtig: Ohne den Dateiinhalt kann nicht
+ * geprüft werden, ob der gebundene Name je BENUTZT wird.
+ *
+ * [REGRESSION] Genau daran ist der Wächter einmal vorbeigelaufen. Eine
+ * Destrukturierung `isError: _providerError`, die nirgends gelesen wird,
+ * erfüllte die alte Prüfung — und legte damit die Meldung still, ohne dass
+ * ein Fehler behandelt worden wäre. Dreizehn Aufrufe waren so „behoben".
+ * Ein Wächter, der sich mit dem Vorhandensein eines Namens zufriedengibt,
+ * misst die Absicht nicht, sondern nur die Schreibweise.
+ */
+export function handlesError(call, content) {
   if (/throwOnError/.test(call.options)) return true;
   if (call.passthrough) return true;
   if (!call.destructured) return false;
-  return ERROR_AWARE.some((field) => new RegExp(`\\b${field}\\b`).test(call.destructured));
+
+  const aliases = errorAliases(call.destructured);
+  if (aliases.length === 0) return false;
+  if (content === undefined) return true;
+
+  return aliases.some((alias) => {
+    // Ein Name, der mit `_` beginnt, ist die uebliche Kennzeichnung fuer
+    // „absichtlich ungenutzt" — die zaehlt hier nie.
+    if (alias.startsWith('_')) return false;
+    // Mindestens ein Vorkommen ausserhalb der Destrukturierung selbst.
+    const uses = content.match(new RegExp(`\\b${alias}\\b`, 'g')) ?? [];
+    const inBinding = call.destructured.match(new RegExp(`\\b${alias}\\b`, 'g')) ?? [];
+    return uses.length > inBinding.length;
+  });
 }
 
 /**
@@ -177,7 +217,7 @@ export function analyzeQueryErrors(relativePath, content) {
   const calls = findQueryCalls(content);
   return {
     violations: calls
-      .filter((call) => !handlesError(call) && !readsErrorFromBinding(call, content))
+      .filter((call) => !handlesError(call, content) && !readsErrorFromBinding(call, content))
       .map((call) => call.line),
     total: calls.length,
   };

@@ -102,7 +102,12 @@ describe('analyzeQueryErrors', () => {
   });
 
   it('sollte den Fix durchlassen', () => {
-    const content = "const { data: txs = [], isError } = useQuery({ queryKey: k, queryFn: f });";
+    // Der Fehlerzustand muss auch GELESEN werden. Bloss zu destrukturieren
+    // legt nur die Meldung stumm — siehe „Destrukturiert, aber nie benutzt".
+    const content = [
+      "const { data: txs = [], isError } = useQuery({ queryKey: k, queryFn: f });",
+      'if (isError) return <FinanceErrorState onRetry={r} />;',
+    ].join('\n');
     expect(analyze('src/features/x/use-y.ts', content).violations).toEqual([]);
   });
 
@@ -197,5 +202,32 @@ describe('Kommentare (WP-9.6, Nachtrag)', () => {
   it('sollte echten Code neben Kommentaren weiter finden', () => {
     const content = '// useQuery im Kommentar\nconst { data } = useQuery({});';
     expect(analyze('src/pages/X.tsx', content).violations).toEqual([2]);
+  });
+});
+
+describe('[REGRESSION] Destrukturiert, aber nie benutzt (WP-9.6, Nachtrag 2)', () => {
+  it('sollte einen ungenutzten Fehlerzustand NICHT als Behandlung durchgehen lassen', () => {
+    // Der Waechter misst sonst die Schreibweise statt der Absicht: Ein
+    // `isError`, das nirgends gelesen wird, legt die Meldung still, ohne dass
+    // irgendein Fehler behandelt waere.
+    const content = 'const { data = [], isError, refetch } = useQuery({});\nreturn <Liste items={data} />;';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([1]);
+  });
+
+  it('sollte den Unterstrich-Namen nie anerkennen', () => {
+    // `_providerError` ist die uebliche Kennzeichnung fuer „absichtlich
+    // ungenutzt" — sie ist ein Eingestaendnis, keine Behandlung.
+    const content = 'const { data, isError: _providerError, refetch: _refetch } = useQuery({});\nconsole.log(data);';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([1]);
+  });
+
+  it('sollte den benutzten Fehlerzustand weiterhin anerkennen', () => {
+    const content = 'const { data = [], isError: txError } = useQuery({});\nif (txError) return <Fehler />;';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([]);
+  });
+
+  it('sollte auch die unbenannte Form anerkennen, wenn sie gelesen wird', () => {
+    const content = 'const { data, isError } = useQuery({});\nif (isError) return null;';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([]);
   });
 });
