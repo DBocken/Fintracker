@@ -118,12 +118,13 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     queryFn: getContractDecisionMap,
   });
 
-  // EINE Aussage fuer die ganze Seite (siehe DebtsPage): Vier getrennte
-  // Meldungen fuer dieselbe Ursache waeren vier Raetsel statt eines Hinweises.
-  const hasLoadError = txsError || catsError || accountsError || contractDecisionsError;
   // Aufteilungen speisen Suche (Split-Notizen), Kategorie-Filter, die
   // aufklappbaren Split-Zeilen und die anteilsgenauen Kennzahlen.
-  const allocations = useAllocationMap();
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
+
+  // EINE Aussage fuer die ganze Seite (siehe DebtsPage): Fuenf getrennte
+  // Meldungen fuer dieselbe Ursache waeren fuenf Raetsel statt eines Hinweises.
+  const hasLoadError = txsError || catsError || accountsError || contractDecisionsError || allocError;
 
   const [filters, setFilters] = useState<DashboardFilterState>(() => options?.initialFilters ?? DEFAULT_FILTERS);
   const [customGranularity, setCustomGranularity] = useState<DashboardGranularity>(DEFAULT_CUSTOM_GRANULARITY);
@@ -269,7 +270,8 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     void refetchCats();
     void refetchAccounts();
     void refetchContractDecisions();
-  }, [refetchTxs, refetchCats, refetchAccounts, refetchContractDecisions]);
+    refetchAllocations();
+  }, [refetchTxs, refetchCats, refetchAccounts, refetchContractDecisions, refetchAllocations]);
 
   const actions = useMemo(() => ({
     deleteTransaction: deleteTransactionAction,

@@ -78,7 +78,12 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
 
   // Aufteilungen speisen zweierlei: die Suche (Split-Notizen) und die
   // anteilsgenaue Aggregation der Charts weiter unten.
-  const allocations = useAllocationMap();
+  // Kein `refetch` von hier: Dieses ViewModel bietet fuer KEINE seiner
+  // Abfragen einen Wiederholversuch an — `hasError` wird von den Views bis
+  // heute nicht gelesen, sie zeigen nur `accountsError`. Diese Luecke ist
+  // aelter als WP-9.6 und wird getrennt behoben; sie hier halb zu schliessen
+  // waere ein Wiederholversuch fuer ein Fuenftel der Ursachen.
+  const { allocations, isError: allocError } = useAllocationMap();
 
   const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
   const effectiveBalances = useMemo(
@@ -371,7 +376,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     // WP-9.2: `!txsError` trennt "keine Buchungen" von "Buchungen nicht
     // ladbar". Ohne ihn behauptet der Screen bei einem Lesefehler das Erste.
     isEmpty: !txsLoading && !txsError && txs.length === 0,
-    hasError: txsError || catsError || accountsError || contractDecisionsError,
+    hasError: txsError || catsError || accountsError || contractDecisionsError || allocError,
     accountsLoading,
     accountsError,
     transactions,
@@ -384,5 +389,5 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     sort,
     hidden,
     actions,
-  }), [txsLoading, txsError, txs, accountsLoading, accountsError, catsError, contractDecisionsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+  }), [txsLoading, txsError, txs, accountsLoading, accountsError, catsError, contractDecisionsError, allocError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
 }

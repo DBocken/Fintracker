@@ -115,7 +115,7 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
   // Aufteilungen (Split-Buchungen): Gebäude UND Etagen rechnen damit
   // anteilsgenau — der Kleidungs-Anteil einer Aldi-Buchung baut am
   // Kleidungs-Gebäude mit, nicht am Lebensmittel-Gebäude.
-  const allocations = useAllocationMap();
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
 
   const categoriesById = useMemo(() => {
     const map = new Map<string, Category>();
@@ -260,11 +260,12 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
     isError:
       tab === 'goals'
         ? milestonesError
-        : transactionsError || categoriesError || (isProjection && forecastError),
+        : transactionsError || categoriesError || allocError || (isProjection && forecastError),
     refetch: () => {
       void refetchMilestones();
       void refetchTransactions();
       void refetchCategories();
+      void refetchAllocations();
       void refetchForecast();
     },
     isEmpty: model.districts.length === 0,

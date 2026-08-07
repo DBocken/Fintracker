@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 // @ts-expect-error — reines JS-Skript ohne Typen; hier bewusst so eingebunden,
 // statt scripts/ in die tsconfig zu ziehen.
 import { analyzeQueryErrors, handlesError, findQueryCalls } from '../../../scripts/query-error-core.mjs';
+// @ts-expect-error — reines JS-Wächterskript ohne Typen
+import { budgetOf, reasonOf, malformedEntries } from '../../../scripts/check-query-errors.mjs';
 
 /**
  * WP-9.6 — Kein `useQuery` ohne Aussage zum Fehlerfall.
@@ -120,7 +122,7 @@ describe('analyzeQueryErrors', () => {
 describe('Ausnahmeliste als Phase-9-Backlog', () => {
   const allowlist = JSON.parse(
     readFileSync(resolve(__dirname, '../../../query-error-allowlist.json'), 'utf8'),
-  ) as { files: Record<string, number> };
+  ) as { files: Record<string, number | { count: number; reason: string }> };
 
   it('sollte nur bestehende Dateien auflisten', () => {
     for (const file of Object.keys(allowlist.files)) {
@@ -132,7 +134,8 @@ describe('Ausnahmeliste als Phase-9-Backlog', () => {
     // Die ANZAHL statt nur des Dateinamens ist der Kern: Sonst koennte eine
     // Datei mit drei offenen Aufrufen einen vierten dazubekommen, ohne dass
     // der Check etwas merkt.
-    for (const [file, count] of Object.entries(allowlist.files)) {
+    for (const [file, entry] of Object.entries(allowlist.files)) {
+      const count = budgetOf(entry);
       expect(Number.isInteger(count), file).toBe(true);
       expect(count, file).toBeGreaterThan(0);
     }
@@ -229,5 +232,48 @@ describe('[REGRESSION] Destrukturiert, aber nie benutzt (WP-9.6, Nachtrag 2)', (
   it('sollte auch die unbenannte Form anerkennen, wenn sie gelesen wird', () => {
     const content = 'const { data, isError } = useQuery({});\nif (isError) return null;';
     expect(analyze('src/pages/X.tsx', content).violations).toEqual([]);
+  });
+});
+
+/**
+ * Die Ausnahmeliste unterscheidet seit dem Ende des Backlogs ZWEI Dinge, die
+ * eine blosse Zahl nicht auseinanderhalten kann: „noch nicht gemacht" und
+ * „bewusst so entschieden". Ohne diese Unterscheidung liest der Naechste jeden
+ * Rest als Schuld — und baut dann Fehlerzustaende, die nachweislich toter Code
+ * sind (AGENTS.md, „Absicht vor Auftrag").
+ */
+describe('Ausnahmeliste: Zahl vs. begruendeter Eintrag (WP-9.6)', () => {
+  it('sollte beide Formen als Budget lesen', () => {
+    expect(budgetOf(3)).toBe(3);
+    expect(budgetOf({ count: 2, reason: 'weil das der Standard ist' })).toBe(2);
+    expect(budgetOf(undefined)).toBe(0);
+  });
+
+  it('sollte den Grund nur bei der Objektform melden', () => {
+    expect(reasonOf(3)).toBeNull();
+    expect(reasonOf({ count: 1, reason: 'Voreinstellung mit Standard' })).toBe('Voreinstellung mit Standard');
+  });
+
+  it('sollte einen Objekt-Eintrag ohne tragfaehigen Grund abweisen', () => {
+    // Sonst waere die neue Form nur eine Zahl mit Verkleidung: Wer „TODO"
+    // hineinschreibt, hat nichts entschieden, sondern nur laenger getippt.
+    const files = {
+      'a.tsx': 1,
+      'b.tsx': { count: 1, reason: 'ein hinreichend ausformulierter Grund' },
+      'c.tsx': { count: 1, reason: 'TODO' },
+      'd.tsx': { count: 1 },
+    };
+    expect(malformedEntries(files)).toEqual(['c.tsx', 'd.tsx']);
+  });
+
+  it('[REGRESSION] sollte fuer jeden Eintrag der echten Liste einen Grund haben', () => {
+    // Das Backlog ist abgearbeitet: Was heute noch in der Liste steht, steht
+    // dort mit Absicht. Faellt diese Zusage, ist eine Stelle durchgerutscht.
+    const liste = JSON.parse(readFileSync(resolve(process.cwd(), 'query-error-allowlist.json'), 'utf8'));
+    expect(malformedEntries(liste.files)).toEqual([]);
+    const ohneGrund = Object.entries(liste.files as Record<string, unknown>)
+      .filter(([, entry]) => typeof entry === 'number')
+      .map(([file]) => file);
+    expect(ohneGrund).toEqual([]);
   });
 });

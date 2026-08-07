@@ -57,7 +57,7 @@ export default function IncomeStreamsPanel() {
     queryFn: () => getCategories(),
   });
 
-  const allocations = useAllocationMap();
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
 
   const periodTxs = useMemo(() => {
     if (period === 'all') return txs;
@@ -74,10 +74,11 @@ export default function IncomeStreamsPanel() {
   const streams = useMemo(() => deriveIncomeStreams(txs, cats, { windowMonths: WINDOW_MONTHS }), [txs, cats]);
   const wrappedYear = useMemo(() => pickWrappedYear(txs, cats), [txs, cats]);
 
-  const hasLoadError = txsError || catsError;
+  const hasLoadError = txsError || catsError || allocError;
   const retryAll = () => {
     void refetchTxs();
     void refetchCats();
+    void refetchAllocations();
   };
 
   if (!txsLoading && txs.length === 0) {

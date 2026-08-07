@@ -56,15 +56,16 @@ export function ResponsivePremiumDashboard() {
     queryFn: () => getAccounts(),
   });
 
-  const hasLoadError = transactionsError || categoriesError || accountsError;
+  // Aufteilungen: Split-Anteile zählen in ihrer eigenen Kategorie.
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
+
+  const hasLoadError = transactionsError || categoriesError || accountsError || allocError;
   const retryAll = () => {
     void refetchTransactions();
     void refetchCategories();
     void refetchAccounts();
+    void refetchAllocations();
   };
-
-  // Aufteilungen: Split-Anteile zählen in ihrer eigenen Kategorie.
-  const allocations = useAllocationMap();
 
   const flowTransactions = useMemo(() => {
     if (!transactions.length) return [];

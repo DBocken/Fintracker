@@ -18,6 +18,19 @@
  * Datei mit drei offenen Aufrufen einen vierten dazubekommen, ohne dass der
  * Check etwas merkt.
  *
+ * **Zwei Arten von Eintrag.** Als das Backlog abgearbeitet war, blieb ein Rest,
+ * der nicht unerledigt ist, sondern ENTSCHIEDEN: Voreinstellungen, deren
+ * Standard bereits die richtige Antwort ist; Vorschläge, die nichts behaupten,
+ * wenn sie ausbleiben; Abfragen, deren `queryFn` den Fehler selbst abfängt und
+ * eine dokumentierte Ersatzantwort liefert. Eine blosse Zahl kann das nicht
+ * sagen — sie liest sich wie „noch nicht gemacht".
+ *
+ *   "pfad/datei.tsx": 3                             ← offen, Backlog
+ *   "pfad/datei.tsx": { "count": 1, "reason": "…" } ← entschieden, mit Grund
+ *
+ * `--update` zieht nur die Zahlen nach und lässt die Gründe stehen. Ein Objekt
+ * ohne `reason` wird abgewiesen: Der Grund ist der ganze Zweck dieser Form.
+ *
  * Aufruf:
  *   pnpm check:query-errors            # prüft
  *   pnpm check:query-errors --update   # schreibt die Ausnahmeliste neu
@@ -55,6 +68,28 @@ function readAllowlist() {
   }
 }
 
+/** Zahl oder `{ count, reason }` — beides ergibt ein Budget. */
+export function budgetOf(entry) {
+  return typeof entry === 'number' ? entry : entry?.count ?? 0;
+}
+
+/** Der Grund, falls der Eintrag als entschieden gekennzeichnet ist. */
+export function reasonOf(entry) {
+  return typeof entry === 'number' ? null : (entry?.reason ?? null);
+}
+
+/**
+ * Ein Objekt-Eintrag ohne tragfähigen Grund ist eine Zahl mit Verkleidung.
+ * Zehn Zeichen sind keine Qualitätsprüfung, aber sie schliessen „TODO" und
+ * „später" aus.
+ */
+export function malformedEntries(files) {
+  return Object.entries(files)
+    .filter(([, entry]) => typeof entry !== 'number')
+    .filter(([, entry]) => typeof entry?.count !== 'number' || (entry?.reason ?? '').trim().length < 10)
+    .map(([file]) => file);
+}
+
 function main() {
   const update = process.argv.includes('--update');
 
@@ -74,16 +109,29 @@ function main() {
   }
 
   if (update) {
-    const sorted = Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
+    // Gründe überleben ein `--update`: Sie sind Handarbeit, die Zahl daneben
+    // nicht. Verschwindet der letzte Aufruf einer Datei, faellt der Eintrag
+    // samt Grund weg — er beschreibt dann nichts mehr.
+    const bisher = readAllowlist().files ?? {};
+    const sorted = Object.fromEntries(
+      Object.entries(counts)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([file, count]) => {
+          const reason = reasonOf(bisher[file]);
+          return [file, reason ? { count, reason } : count];
+        }),
+    );
     fs.writeFileSync(
       ALLOWLIST_PATH,
       `${JSON.stringify(
         {
           _comment:
-            'Phase-9-Backlog: useQuery-Aufrufe, die den Fehlerfall nicht in die Hand nehmen — ' +
-            'entstanden, bevor die Regel galt. Der Wert ist die ANZAHL offener Aufrufe je Datei; ' +
-            'sie darf nur SINKEN. Neue Stellen gehoeren NICHT hierher — dann ist der Code zu ' +
-            'aendern, nicht die Liste. Erzeugt mit pnpm check:query-errors --update.',
+            'useQuery-Aufrufe ohne eigene Aussage zum Fehlerfall. ZWEI Formen: eine blosse ZAHL ' +
+            'ist offenes Phase-9-Backlog und darf nur sinken; ein Objekt { count, reason } ist ' +
+            'ENTSCHIEDEN - dort ist der Fallback bereits die richtige Antwort (Voreinstellung, ' +
+            'Vorschlag, oder eine queryFn, die den Fehler selbst abfaengt). Neue Stellen gehoeren ' +
+            'in KEINE der beiden Formen - dann ist der Code zu aendern, nicht die Liste. Zahlen ' +
+            'zieht `pnpm check:query-errors --update` nach, die Gruende bleiben stehen.',
           files: sorted,
         },
         null,
@@ -98,18 +146,33 @@ function main() {
   const problems = [];
 
   for (const [file, count] of Object.entries(counts)) {
-    const budget = allowed[file];
-    if (budget === undefined) {
+    const entry = allowed[file];
+    if (entry === undefined) {
       problems.push(`   ${file}: ${count} Aufruf(e) ohne Aussage zum Fehlerfall (neu)`);
-    } else if (count > budget) {
+      continue;
+    }
+    const budget = budgetOf(entry);
+    if (count > budget) {
       problems.push(`   ${file}: ${count} statt bisher ${budget} — die Zahl darf nur sinken`);
     }
   }
 
   // Gegenrichtung: Ein Eintrag, der zu hoch steht, versteckt neue Stellen.
   const stale = Object.entries(allowed)
-    .filter(([file, budget]) => (counts[file] ?? 0) < budget)
-    .map(([file, budget]) => `   ${file}: nur noch ${counts[file] ?? 0} statt ${budget} — bitte nachziehen`);
+    .filter(([file, entry]) => (counts[file] ?? 0) < budgetOf(entry))
+    .map(([file, entry]) => `   ${file}: nur noch ${counts[file] ?? 0} statt ${budgetOf(entry)} — bitte nachziehen`);
+
+  const malformed = malformedEntries(allowed).map(
+    (file) => `   ${file}: als entschieden gekennzeichnet, aber ohne tragfaehigen "reason"`,
+  );
+  if (malformed.length > 0) {
+    console.error(`❌ ${malformed.length} Eintrag/Eintraege ohne Begruendung:\n`);
+    for (const line of malformed) console.error(line);
+    console.error(
+      '\n   Die Objekt-Form ist fuer ENTSCHIEDENE Faelle da. Ohne Grund ist sie\n' +
+        '   eine Zahl mit Verkleidung — dann bitte die blosse Zahl schreiben.\n',
+    );
+  }
 
   if (problems.length > 0) {
     console.error(`❌ ${problems.length} Datei(en) mit unbehandeltem Fehlerfall:\n`);
@@ -128,13 +191,16 @@ function main() {
     console.error('\n   Bitte mit --update nachziehen — sonst versteckt die Liste neue Stellen.\n');
   }
 
-  if (problems.length > 0 || stale.length > 0) process.exit(1);
+  if (problems.length > 0 || stale.length > 0 || malformed.length > 0) process.exit(1);
 
   const handled = totalCalls - openCalls;
+  const decided = Object.entries(allowed)
+    .filter(([, entry]) => reasonOf(entry))
+    .reduce((sum, [, entry]) => sum + budgetOf(entry), 0);
   console.log(
     `✅ Fehlerzustand OK (${handled}/${totalCalls} Aufrufe behandelt, ` +
-      `${openCalls} im Phase-9-Backlog)\n`,
+      `${decided} begruendet ausgenommen, ${openCalls - decided} im Phase-9-Backlog)\n`,
   );
 }
 
-main();
+if (process.argv[1] && process.argv[1].endsWith('check-query-errors.mjs')) main();
