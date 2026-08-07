@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Befunde der Red-Team-Tranche RT-01 bis RT-08 (21.06.2026), alle behoben. Die daraus abgeleiteten Regeln stehen in `docs/security-guidelines.md` und `AGENTS.md` §10.
+
 # Red-Team-Ergebnisse
 
 Datum: 21.06.2026  

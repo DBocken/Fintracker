@@ -2,8 +2,15 @@
 
 Kanonische Regelquelle für **alle** KI-Agenten (Claude, Codex, Copilot, …), die an
 diesem Repository arbeiten. Diese Datei ist in sich vollständig; Details stehen
-verweisend in `docs/`. Bei Widerspruch zu älteren/tool-spezifischen Dateien
-(`CLAUDE.md`, `AI_RULES.md`) gilt **diese Datei**.
+verweisend in `docs/`. Bei Widerspruch zu jedem anderen Dokument gilt **diese
+Datei** — `CLAUDE.md` enthält nur noch Claude-Code-Mechanik, `AI_RULES.md` nur
+noch einen Wegweiser hierher (der Dateiname wird von manchen Werkzeugen
+erwartet).
+
+**Landkarte der Dokumentation: [`docs/README.md`](docs/README.md).** Sie trennt
+geltende Regeln von Protokollen (Audits, Berichte, Momentaufnahmen). Alles unter
+`docs/archive/` ist Beleg, keine Vorgabe — es wird nicht nachgeführt und darf
+nicht als Grundlage für Entscheidungen dienen.
 
 ## Arbeitsweise: Absicht vor Auftrag (verbindlich, übergreifend)
 
@@ -70,7 +77,8 @@ Fintracker ist eine **local-first** Finanz-App. **IndexedDB ist der primäre
 Speicher** (optional AES-GCM-verschlüsselt) — Finanzdaten bleiben standardmäßig
 auf dem Gerät. **Supabase ist NUR für Auth und explizite Opt-in-Features**
 (Cloud-Sync, Markt-Daten) im Einsatz, nicht als primärer Datenspeicher. Das
-korrigiert das veraltete Cloud-first-Framing älterer Dokumente (`AI_RULES.md`).
+korrigiert das Cloud-first-Framing älterer Berichte, die deshalb unter
+`docs/archive/` liegen (u. a. `technical-improvements-2026-06.md`).
 Stack: React 18 + TypeScript (`strict`), Vite, Tailwind CSS, Capacitor für
 Android. Details: `docs/coding-guide.md` §1, `docs/security-boundaries.md`.
 

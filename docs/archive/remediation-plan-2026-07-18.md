@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Behebungsplan zum Pentest vom 18.07.2026, abgearbeitet. Nachbericht: `pentest-after-report-2026-07-18.md`.
+
 # Fintracker Remediation-Plan aus Pentest-Bericht 2026-07-18
 
 Stand: 18.07.2026

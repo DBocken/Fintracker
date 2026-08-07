@@ -2,7 +2,7 @@
 
 Verbindliche Konventionen für dieses Projekt. Ergänzt `CLAUDE.md` (TDD-Workflow,
 Design-/Animationsregeln) und setzt die Vorentscheidungen aus dem Audit um
-(`docs/codequalitaet-audit-2026-07-02.md`, `docs/umsetzungsleitfaden-2026-07-02.md`).
+(`docs/archive/codequalitaet-audit-2026-07-02.md`, `docs/archive/umsetzungsleitfaden-2026-07-02.md`).
 Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 
 ## 1. Grundprinzipien

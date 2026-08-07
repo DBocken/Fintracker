@@ -1,10 +1,10 @@
 # FinTracker AAA+ — Offene Punkte
 
-> Stand: 2026-08-06, nach dem Durchgang „Phase 6/7 + Gate + Infrastruktur".
-> Ergänzt das [Fortschrittsprotokoll](progress.md) um die Gegenrichtung: dort
-> steht, was erledigt ist, hier, was noch aussteht. Erledigtes wird von hier
-> **entfernt** und im Protokoll vermerkt — diese Datei bleibt kurz genug, um
-> sie ganz zu lesen.
+> Stand: 2026-08-07, nach PR #285 (Zustands-Abdeckung) und PR #286 (Sanfter
+> Modus). Ergänzt das [Fortschrittsprotokoll](progress.md) um die Gegenrichtung:
+> dort steht, was erledigt ist, hier, was noch aussteht. Erledigtes wird von
+> hier **entfernt** und im Protokoll vermerkt — diese Datei bleibt kurz genug,
+> um sie ganz zu lesen.
 
 ---
 
@@ -163,10 +163,18 @@ Zwei Folgen, die der Umbau selbst erst erzeugt hat und die mitbehoben sind:
   Inhalte. Die Aufnahmen klicken ihn jetzt weg (`dismissTourInvitation`) — sie
   zeigen den Screen, und die Einladung hat eigene Tests.
 
-## 4. Phasen 9–11 (unberührt)
+## 4. Phasen 9–11
 
-- **Phase 9 — Zustandsabdeckung:** vollständige State-Matrix je Screen (leer,
-  ladend, fehlerhaft, gefiltert-leer, offline, Sanfter Modus).
+- **Phase 9 — Zustandsabdeckung: abgeschlossen** (PR #284/#285). Die Matrix ist
+  nicht nur gefüllt, sie wird gezählt: `pnpm check:state-coverage` verlangt je
+  Fläche einen Test zum **Leer-** und zum **Fehlerzustand** und meldet heute
+  37/37 Pflichtzustände, 0 offen, 7 begründet entfallen. Angemeldet wird ein
+  Zustand über `[ZUSTAND /route:zustand]` im Testtitel.
+
+  Der Grund für einen eigenen Wächter statt einer Prozentzahl: Die
+  Zeilenabdeckung lag bei 71 %, und `/debts` behauptete nach einem Lesefehler
+  trotzdem „Noch keine Schulden". Es gab Tests, sie waren grün — sie prüften,
+  DASS gerendert wird, nicht WAS behauptet wird.
 - **Phase 10 — Qualitätssicherung:** Accessibility (WP-10.2) und Performance
   (WP-10.4) laufen jetzt über **alle 22 Routen** statt über drei —
   `e2e-tests/all-screens-a11y.spec.ts` und

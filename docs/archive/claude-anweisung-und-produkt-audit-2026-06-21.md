@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Produkt-Audit vom 21.06.2026 gegen Commit `087067c`. Festgehalten, um die damaligen Entscheidungen nachvollziehbar zu halten. Was heute gilt, steht in `AGENTS.md` und `docs/coding-guide.md`.
+
 # Vollständige Umsetzungsanweisung und Produkt-Audit
 
 Datum: 21.06.2026  

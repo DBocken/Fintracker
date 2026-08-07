@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Sammelbericht der Umbauten bis Juni 2026, englisch verfasst und noch im Cloud-first-Rahmen („Supabase Transactions Table"). Diese Ausrichtung gilt nicht mehr: Fintracker ist local-first, IndexedDB ist der primäre Speicher (`AGENTS.md` §1). Lag bis dahin als `TECHNICAL_IMPROVEMENTS.md` im Wurzelverzeichnis.
+
 # Technical Improvements Documentation
 
 ## Overview

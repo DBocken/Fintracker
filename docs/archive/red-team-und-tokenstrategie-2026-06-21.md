@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Plan des Red-Team-Laufs vom 21.06.2026. Die Ergebnisse stehen in `red-team-ergebnisse-2026-06-21.md`, die geltenden Sicherheitsregeln in `docs/security-guidelines.md`.
+
 # Red-Team-Plan und tokensparende Arbeitsstrategie
 
 Datum: 21.06.2026  

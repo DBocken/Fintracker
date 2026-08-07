@@ -1,3 +1,5 @@
+> **Archiv — Momentaufnahme, keine geltende Regel.** Test-Inventar mit 783 Tests in 84 Dateien. Der Baum enthält heute 4634 Tests in 488 Dateien — die Zahlen hier sind historisch. Welche Kategorien es gibt und was sie bedeuten, steht in `AGENTS.md` §5; die Zahlen liefert `pnpm test`. Lag bis dahin als `TEST_CATEGORIES.md` im Wurzelverzeichnis.
+
 # 🧪 Fintracker Test-Kategorien Übersicht
 
 ## Gesamt-Statistik

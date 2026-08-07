@@ -92,7 +92,7 @@ export interface TransactionFilterOptions {
 /**
  * In-Memory-Filter + Slice über den voll entschlüsselten Transaktionsbestand —
  * KEIN Storage-Level-Paging: die Storage-Schicht lädt/entschlüsselt immer den
- * gesamten Blob (siehe PERFORMANCE_OPTIMIZATIONS.md, Phase B für echtes
+ * gesamten Blob (siehe docs/performance.md, Phase B für echtes
  * Cursor-Paging über Monats-Chunks). Nützlich bleibt die Funktion für
  * Filterung + seitenweise UI-Anzeige, nicht als IO-Optimierung.
  */

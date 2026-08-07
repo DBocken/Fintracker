@@ -14,10 +14,10 @@ Privater Finanz-Copilot: Ausgaben, Budgets, Schulden, Vermögen und finanzieller
 |---|---|
 | Frontend | React 18, TypeScript, Vite |
 | Styling | Tailwind CSS 4, shadcn/Radix UI |
-| State | TanStack Query 5, Framer Motion |
-| Visualisierung | Recharts 2 |
+| State | TanStack Query 5 (ausschließlich — kein Redux/Zustand), Framer Motion 12 |
+| Visualisierung | Recharts 3 |
 | Tests | Vitest 4, React Testing Library |
-| Mobile | Capacitor 8, Android 34+ |
+| Mobile | Capacitor 8, Android 7+ (minSdk 24, targetSdk 36) |
 | Auth | Supabase Auth |
 
 ## Voraussetzungen
@@ -50,8 +50,26 @@ pnpm build && npx cap sync android  # Android app
 | `pnpm test:privacy` | [PRIVACY]-Tests (Datengrenzen) |
 | `pnpm test:mobile` | [MOBILE]-Tests (Touch, Swipe, Gesten) |
 | `pnpm security:secrets` | Secret-Scan (Credentials, Keys) |
-| `pnpm check:i18n` | i18n-Compliance (hardcodierte Strings, fehlende Keys) |
-| `pnpm check:test-structure` | Test-Struktur validieren (`__tests__/`-Konvention) |
+
+### Struktur-Wächter
+
+Alle laufen in Pre-Commit **und** CI. Sie prüfen Regeln, die weder Compiler noch
+Test rot machen würden — jeder einzelne existiert wegen eines Fehlers, der
+genau deshalb durchgerutscht ist. Was er im Detail prüft und warum, steht in
+[AGENTS.md](AGENTS.md) §2.
+
+| Befehl | Prüft |
+|---|---|
+| `pnpm check:i18n` | Hardcodierte UI-Strings (`--staged`/`--range` für den Diff, `--all` für den Bestand) |
+| `pnpm check:i18n-module-consts` | `t()` im Initializer einer Modul-`const` — friert beim Import ein |
+| `pnpm check:layers` | Import-**Richtung** zwischen den Schichten (AGENTS.md §3) |
+| `pnpm check:test-structure` | Testdatei-Platzierung (`__tests__/`-Konvention) |
+| `pnpm check:card-rule` | Karten-Chrome ohne Interaktions-Signal |
+| `pnpm check:platform-parity` | Fläche, die auf schmalen Breiten ganz fehlt |
+| `pnpm check:query-errors` | `useQuery`-Aufruf ohne behandelten Fehlerfall |
+| `pnpm check:a11y-names` | Bedienelement ohne zugänglichen Namen |
+| `pnpm check:state-coverage` | Test für Leer- **und** Fehlerzustand je Fläche |
+| `pnpm check:bundle-size` | gzip-Größen gegen `bundle-size-budget.json` (nur CI, setzt `pnpm build` voraus) |
 
 ## Tests
 
@@ -89,13 +107,22 @@ App-ID: `de.finanz.copilot`, Config: `capacitor.config.ts`
 
 ## Internationalisierung
 
-Unterstützte Sprachen: `de` (Deutsch), `en` (English), `tlh` (Klingon)  
-Translations: `src/i18n/translations.ts`
+Aktive Sprachen (`SUPPORTED_LOCALES`): `de` (Deutsch), `en` (English), `ru` (Русский).
+Klingonisch (`tlh`) steht in `INACTIVE_LOCALES` — die Übersetzungen bleiben im
+Baum, die Sprache ist nicht wählbar und **nicht** paritätspflichtig.
 
-Neue Strings: Zentral in `translations.ts` (beide Sprachen), via `useI18n()`/`t()` in Komponenten.  
-Tests: Bilingual mit `renderWithI18n(..., 'de')` und `renderWithI18n(..., 'en')`.
+Zweite Achse: der **Sprachstil** (`wording`). `everyday` (Alltagssprache,
+Standard) und `technical` (Fachsprache). Der Basisbaum in `translations.ts`
+*ist* die Fachsprache; `src/i18n/overlays/everyday/<locale>.ts` enthält nur die
+Abweichungen. Aufgelöst wird das in `t()` — Aufrufstellen ändern sich nie.
 
-Siehe [AGENTS.md](AGENTS.md) §6 „i18n (verbindlich)".
+- Translations: `src/i18n/translations.ts`
+- Neue Strings: zentral dort eintragen, in **allen** aktiven Sprachen, via
+  `useI18n()`/`t()` in Komponenten bzw. `serviceT` in `services`/`lib`.
+- Tests: bilingual mit `renderWithI18n(..., 'de')` und `renderWithI18n(..., 'en')`.
+
+Siehe [AGENTS.md](AGENTS.md) §6 „i18n (verbindlich)" und den ausführlichen
+Workflow in [.claude/i18n-workflow.md](.claude/i18n-workflow.md).
 
 ## Für KI-Agenten
 
@@ -104,7 +131,13 @@ Zusätzlich: Entwickler-Guidelines in [docs/coding-guide.md](docs/coding-guide.m
 
 ## Dokumentation
 
-- [docs/FEATURES.md](docs/FEATURES.md) — aktuelle Features
+**Landkarte: [docs/README.md](docs/README.md)** — trennt geltende Regeln von
+Protokollen (Audits, Berichte, Momentaufnahmen). Wer wissen will, was *jetzt*
+gilt, fängt dort an; alles unter `docs/archive/` ist Beleg, keine Vorgabe.
+
+Die meistgebrauchten:
+
+- [docs/FEATURES.md](docs/FEATURES.md) — versteckte und experimentelle Features
 - [docs/domain-invariants.md](docs/domain-invariants.md) — Geschäftslogik-Grenzen
 - [docs/security-guidelines.md](docs/security-guidelines.md) — Schwachstellen-Klassen
 - [docs/design-principles.md](docs/design-principles.md) — UI/Animation-Regeln

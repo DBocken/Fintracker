@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Task-Cards zum Audit vom 02.07.2026. Abgearbeitet; festgehalten wegen der darin vorab getroffenen Entscheidungen (Abschnitt C).
+
 # Umsetzungsleitfaden zum Audit (2026-07-02)
 
 Begleitdokument zu `docs/codequalitaet-audit-2026-07-02.md`. Ziel: Jedes Finding
