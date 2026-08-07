@@ -45,13 +45,13 @@
       "count": 1,
       "reason": "Entschieden. Zeitpunkt der letzten Synchronisation. Ist er nicht lesbar, steht dort nichts statt eines falschen Datums."
     },
-    "src/components/trading/TradingDashboard.tsx": {
-      "count": 1,
-      "reason": "Entschieden. Die Voreinstellung des Kursanbieters mit Standard 'yahoo'. Die uebrigen fuenf Aufrufe sind mit dem eToro-ViewModel nach features/trading/application/use-etoro-account.ts gewandert und dort begruendet."
-    },
     "src/features/trading/application/use-etoro-account.ts": {
       "count": 5,
       "reason": "Entschieden. eToro-Instrument-Meta, Branchennamen und Watchlist-Kurse fangen den Fehler in ihrer eigenen queryFn ab und liefern eine dokumentierte Ersatzantwort (leere Map); die Anzeige faellt dann auf 'Instrument #<id>' zurueck. Sie koennen isError nie erreichen - ein Fehlerzustand dort waere toter Code. Die Tabs selbst haben ihren eigenen Fehlerzustand ueber die tragenden Abfragen."
+    },
+    "src/features/trading/application/use-trading-portfolio.ts": {
+      "count": 1,
+      "reason": "Entschieden. Die Voreinstellung des Kursanbieters mit Standard 'yahoo'. Ohne gelesene Einstellung gilt genau der Wert, mit dem jeder neue Nutzer startet - keine Aussage ueber Bestand. Die vier tragenden Abfragen dieses ViewModels (Initialisierung, Depot, Positionen, Kennzahlen) haben ihren Fehlerzustand gemeinsam in `hasLoadError`. Lag zuvor in TradingDashboard.tsx."
     },
     "src/hooks/useBusinessMode.ts": {
       "count": 1,

@@ -1,18 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
-import type { Portfolio, PortfolioPosition } from '@/types';
-import {
-  getActivePortfolio,
-  getPositions,
-  getPortfolioSummary,
-  initializeDemoPortfolio,
-  batchUpdatePrices,
-  deletePosition,
-} from '@/services/portfolio-service';
-import { fetchQuotesCached, normalizeSymbol, mapQuotesToPriceUpdates, isEtoroPosition } from '@/services/quote-service';
-import { syncEtoroPortfolio } from '@/services/etoro-service';
 import {
   selectInstrumentSearchResults,
   selectCuratedLists,
@@ -28,7 +16,6 @@ import EtoroAnalysisTab from './EtoroAnalysisTab';
 import EtoroWatchlistsTab from './EtoroWatchlistsTab';
 import EtoroNewsTab from './EtoroNewsTab';
 import EtoroDiscoverTab from './EtoroDiscoverTab';
-import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingSwap } from '@/components/common/LoadingSwap';
@@ -47,6 +34,8 @@ import OcrImportDialog from './OcrImportDialog';
 import ProviderSelector from './ProviderSelector';
 import { sumMirrorLiquidationValue } from '@/services/etoro-mirrors';
 import { useEtoroAccount } from '@/features/trading/application/use-etoro-account';
+import { buildPerformancePreview } from '@/features/trading/domain/performance-preview';
+import { useTradingPortfolio } from '@/features/trading/application/use-trading-portfolio';
 import {
   TrendingUp,
   RefreshCw,
@@ -74,84 +63,35 @@ import {
 export default function TradingDashboard() {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
-  const queryClient = useQueryClient();
-  const [activePortfolio, setActivePortfolio] = useState<Portfolio | null>(null);
-  const [isEtoroDialogOpen, setIsEtoroDialogOpen] = useState(false);
-  const [isAddPositionDialogOpen, setIsAddPositionDialogOpen] = useState(false);
-  const [isOcrImportDialogOpen, setIsOcrImportDialogOpen] = useState(false);
-  const [editPosition, setEditPosition] = useState<PortfolioPosition | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  
-  // Load preferred market provider from user settings
-  const { data: preferredProvider = 'yahoo' } = useQuery({
-    queryKey: ['preferred-market-provider'],
-    queryFn: getPreferredMarketProvider,
-    staleTime: Infinity,
-  });
-  
-  const [quoteProvider, setQuoteProvider] = useState<'yahoo' | 'stooq'>(preferredProvider || 'yahoo');
-
-  // Update quote provider when preferred provider changes
-  useEffect(() => {
-    setQuoteProvider(preferredProvider);
-  }, [preferredProvider]);
-
-  // Initialize demo portfolio if none exists
+  // Depot-Kern: Depot, Positionen, Kennzahlen, Kursaktualisierung und die
+  // Mutationen dazu. Liegt in `features/trading`.
   const {
-    data: hasInitialized,
-    isLoading: isInitializing,
-    isError: initializationError,
-    refetch: refetchInitialization,
-  } = useQuery({
-    queryKey: ['portfolio-initialization'],
-    queryFn: async () => {
-      const portfolio = await initializeDemoPortfolio();
-      return portfolio;
-    },
-    staleTime: Infinity,
-  });
-
-  // Get active portfolio
-  const {
-    data: portfolio,
-    isLoading: isLoadingPortfolio,
-    isError: portfolioError,
-    refetch: refetchPortfolio,
-  } = useQuery({
-    queryKey: ['active-portfolio'],
-    queryFn: getActivePortfolio,
-    enabled: !!hasInitialized,
-  });
-
-  // Update active portfolio when portfolio data changes
-  useEffect(() => {
-    if (portfolio) {
-      setActivePortfolio(portfolio);
-    }
-  }, [portfolio]);
-
-  // Get positions for active portfolio
-  const {
-    data: positions,
-    isLoading: isLoadingPositions,
-    isError: positionsError,
-    refetch: refetchPositions,
-  } = useQuery({
-    queryKey: ['portfolio-positions', activePortfolio?.id],
-    queryFn: () => getPositions(activePortfolio!.id),
-    enabled: !!activePortfolio?.id,
-  });
-
-  // Get portfolio summary
-  const {
-    data: summary,
-    isError: summaryError,
-    refetch: refetchSummary,
-  } = useQuery({
-    queryKey: ['portfolio-summary', activePortfolio?.id],
-    queryFn: () => getPortfolioSummary(activePortfolio!.id),
-    enabled: !!activePortfolio?.id,
-  });
+    activePortfolio,
+    positions,
+    summary,
+    isInitializing,
+    isLoadingPortfolio,
+    isLoadingPositions,
+    hasLoadError,
+    retryAll,
+    quoteProvider,
+    handleProviderChange,
+    refreshQuotesMutation,
+    lastUpdate,
+    etoroSyncMutation,
+    isEtoroDialogOpen,
+    setIsEtoroDialogOpen,
+    isAddPositionDialogOpen,
+    startAddPosition,
+    handleAddPositionDialogClose,
+    isOcrImportDialogOpen,
+    setIsOcrImportDialogOpen,
+    editPosition,
+    handleDeletePosition,
+    handleEditPosition,
+    handleEtoroSuccess,
+    handlePortfolioChange,
+  } = useTradingPortfolio();
 
   // eToro-Bereiche: zwanzig Abfragen über sieben Tabs, samt Tab-, Watchlist-,
   // News- und Discover-Zustand. Liegt in `features/trading` — siehe dort, warum
@@ -247,167 +187,22 @@ export default function TradingDashboard() {
     refetchPublicUserInfo,
   } = useEtoroAccount({ portfolio: activePortfolio, positions });
 
+  // Simulierter Verlauf fuer Depots ohne echte Kurshistorie. EINMAL berechnet
+  // und deterministisch — die fruehere Fassung wuerfelte je Aufruf neu und
+  // wurde zweimal pro Render gerufen, sodass Tabelle und Diagramm verschiedene
+  // Zahlen zeigten (siehe features/trading/domain/performance-preview.ts).
+  const performancePreview = useMemo(
+    () =>
+      buildPerformancePreview(
+        summary ? { totalCost: summary.total_cost, totalValue: summary.total_value } : null,
+      ),
+    [summary],
+  );
 
-  // Refresh quotes mutation
-  const refreshQuotesMutation = useMutation({
-    mutationFn: async () => {
-      if (!positions || positions.length === 0) return;
-
-      // Börsennormalisierte Symbole anfragen (XETRA → .DE usw.) — nur so
-      // liefern Yahoo/Stooq für europäische Papiere überhaupt Kurse.
-      // eToro-Positionen ausgenommen: deren Symbole kollidieren mit
-      // US-Tickern (DASH = DoorDash statt Krypto Dash) und werden über
-      // die eToro-instrumentID bepreist, nicht über Yahoo.
-      const quotablePositions = positions.filter(p => !isEtoroPosition(p));
-      const symbols = quotablePositions.map(p => normalizeSymbol(p.symbol, p.exchange));
-      const quotes = symbols.length > 0 ? await fetchQuotesCached(symbols, quoteProvider) : [];
-
-      // Check if mock data was used
-      const usingMockData = quotes.some(q => q.name?.includes('Mock'));
-
-      const updates = mapQuotesToPriceUpdates(positions, quotes);
-      await batchUpdatePrices(updates);
-
-      return { quotes, updates, usingMockData };
-    },
-    onSuccess: (result) => {
-      if (!result) return;
-
-      const { updates, usingMockData } = result;
-
-      queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
-      queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
-      setLastUpdate(new Date());
-
-      if (usingMockData) {
-        toast(t('trading.dashboard.messages.pricesUpdatedMock').replace('{count}', String(updates.length)), {
-          duration: 5000,
-        });
-      } else if (updates.length === 0) {
-        toast(t('trading.dashboard.messages.noQuotesFound'), { duration: 5000 });
-      } else {
-        toast.success(t('trading.dashboard.messages.pricesUpdated').replace('{count}', String(updates.length)));
-      }
-    },
-    onError: (error: Error) => {
-      console.error('[TradingDashboard] Error refreshing quotes:', error);
-      toast.error(t('trading.dashboard.messages.pricesUpdateError').replace('{error}', error.message));
-    },
-  });
-
-  // eToro-Portfolio mit dem Live-Stand abgleichen (persistiert lokal)
-  const etoroSyncMutation = useMutation({
-    mutationFn: () => syncEtoroPortfolio(activePortfolio!.id),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
-      queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
-      toast.success(
-        t('trading.dashboard.messages.etoroSyncSuccess')
-          .replace('{created}', String(result.created))
-          .replace('{updated}', String(result.updated))
-          .replace('{removed}', String(result.removed))
-      );
-    },
-    onError: (error: Error) => {
-      toast.error(t('trading.dashboard.messages.etoroSyncError').replace('{error}', error.message));
-    },
-  });
-
-  // Auto-refresh quotes every 60 seconds
-  useEffect(() => {
-    if (!positions || positions.length === 0) return;
-
-    const interval = setInterval(() => {
-      if (!refreshQuotesMutation.isPending) {
-        refreshQuotesMutation.mutate();
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positions]);
-
-  // Handle position deletion
-  const handleDeletePosition = (id: string) => {
-    deletePosition(id)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
-        queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
-        toast.success(t('common.deleteSuccess'));
-      })
-      .catch((error: Error) => {
-        toast.error(t('common.deleteError').replace(': ', ': ' + error.message));
-      });
-  };
-
-  // Handle position editing
-  const handleEditPosition = (position: PortfolioPosition) => {
-    setEditPosition(position);
-    setIsAddPositionDialogOpen(true);
-  };
-
-  const handleAddPositionDialogClose = (open: boolean) => {
-    setIsAddPositionDialogOpen(open);
-    if (!open) {
-      setEditPosition(null); // Clear edit position when dialog closes
-    }
-  };
-
-  // Handle eToro connection success
-  const handleEtoroSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-    queryClient.invalidateQueries({ queryKey: ['active-portfolio'] });
-  };
-
-  // Handle portfolio change
-  const handlePortfolioChange = (portfolio: Portfolio) => {
-    setActivePortfolio(portfolio);
-    queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
-    queryClient.invalidateQueries({ queryKey: ['portfolio-summary'] });
-  };
-
-  // Handle provider change
-  const handleProviderChange = (provider: 'yahoo' | 'stooq') => {
-    setQuoteProvider(provider);
-  };
-
-  // Generate mock performance data for chart
-  const generatePerformanceData = () => {
-    if (!summary) return [];
-    
-    const data = [];
-    const days = 30;
-    const baseValue = summary.total_cost;
-    const currentValue = summary.total_value;
-    const step = (currentValue - baseValue) / days;
-    
-    for (let i = 0; i <= days; i++) {
-      const value = baseValue + (step * i) + (Math.random() - 0.5) * (baseValue * 0.02);
-      data.push({
-        date: i === 0 ? 'Start' : `Tag ${i}`,
-        value: Math.max(value, baseValue * 0.8),
-      });
-    }
-    
-    return data;
-  };
-
-  // WP-9.6: Depot, Positionen und Kennzahlen sind Bestandsdaten. Faellt ihr
-  // Lesevorgang aus, zeigt der Fallback ein LEERES Depot — „du besitzt nichts"
-  // ist hier die teuerste Falschaussage der App. Eine Aussage fuer alle vier
-  // Abfragen: Sie haben dieselbe Quelle, vier Meldungen waeren vier Raetsel.
-  //
-  // Die eToro-Zusatzabfragen weiter unten stehen bewusst NICHT hier: Ihre
-  // `queryFn` faengt den Fehler selbst ab und liefert eine dokumentierte
-  // Ersatzantwort (leere Map, Anzeige faellt auf „Instrument #<id>" zurueck).
-  // Sie koennen den Fehlerzustand gar nicht erreichen.
-  const hasLoadError = initializationError || portfolioError || positionsError || summaryError;
-  const retryAll = () => {
-    void refetchInitialization();
-    void refetchPortfolio();
-    void refetchPositions();
-    void refetchSummary();
-  };
+  const performancePreviewLabel = (day: number | null) =>
+    day === null
+      ? t('trading.dashboard.performanceChart.startLabel')
+      : t('trading.dashboard.performanceChart.dayLabel').replace('{n}', String(day));
 
   if (hasLoadError) {
     return <FinanceErrorState variant="data" onRetry={retryAll} />;
@@ -479,10 +274,7 @@ export default function TradingDashboard() {
           </Button>
           <Button
             size="sm"
-            onClick={() => {
-              setEditPosition(null);
-              setIsAddPositionDialogOpen(true);
-            }}
+            onClick={startAddPosition}
           >
             <Plus className="h-4 w-4 mr-2" />
             {t('trading.dashboard.addPosition')}
@@ -842,7 +634,7 @@ export default function TradingDashboard() {
               positions={positions || []}
               onEdit={handleEditPosition}
               onDelete={handleDeletePosition}
-              currency={portfolio?.currency || 'EUR'}
+              currency={activePortfolio?.currency || 'EUR'}
             />
           )}
         </TabsContent>
@@ -868,7 +660,7 @@ export default function TradingDashboard() {
                 <ChartFigure
                   caption={t('trading.dashboard.performanceChart.valueLabel')}
                   columns={[
-                    { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => row.date },
+                    { key: 'day', label: t('balanceChart.dateColumn'), format: (row) => performancePreviewLabel(row.day) },
                     {
                       key: 'value',
                       label: t('trading.dashboard.performanceChart.valueLabel'),
@@ -876,13 +668,13 @@ export default function TradingDashboard() {
                       format: (row) => formatCurrency(row.value, 'EUR'),
                     },
                   ]}
-                  rows={generatePerformanceData()}
-                  rowKey={(row, index) => `${row.date}-${index}`}
+                  rows={performancePreview}
+                  rowKey={(row, index) => `${row.day ?? 'start'}-${index}`}
                 >
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={generatePerformanceData()}>
+                  <LineChart data={performancePreview.map((point) => ({ ...point, label: performancePreviewLabel(point.day) }))}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis dataKey="label" />
                     <YAxis />
                     <Tooltip
                       {...chartTooltipProps({
