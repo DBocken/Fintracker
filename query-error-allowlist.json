@@ -1,21 +1,9 @@
 {
   "_comment": "useQuery-Aufrufe ohne eigene Aussage zum Fehlerfall. ZWEI Formen: eine blosse ZAHL ist offenes Phase-9-Backlog und darf nur sinken; ein Objekt { count, reason } ist ENTSCHIEDEN - dort ist der Fallback bereits die richtige Antwort (Voreinstellung, Vorschlag, oder eine queryFn, die den Fehler selbst abfaengt). Neue Stellen gehoeren in KEINE der beiden Formen - dann ist der Code zu aendern, nicht die Liste. Zahlen zieht `pnpm check:query-errors --update` nach, die Gruende bleiben stehen.",
   "files": {
-    "src/components/debts/DebtSuggestionsBanner.tsx": {
-      "count": 1,
-      "reason": "Entschieden. Ein Vorschlagsbanner. Was nicht erscheint, behauptet nichts - und die Seite darunter benennt den Lesefehler bereits. Ein zweiter Fehlerblock daneben waere zweimal dieselbe Aussage (siehe AccountsPage/TaxReportPage)."
-    },
     "src/components/DemoDataBanner.tsx": {
       "count": 1,
       "reason": "Entschieden. Ein Flag, ob Beispieldaten aktiv sind. Ist es nicht lesbar, erscheint das Banner nicht - es behauptet dann nichts, statt etwas Falsches zu behaupten."
-    },
-    "src/components/onboarding/DataSourceDialog.tsx": {
-      "count": 1,
-      "reason": "Entschieden. Voreinstellung, die nur die Vorauswahl der Datenquelle steuert. Bestaetigt wird weiterhin von Hand."
-    },
-    "src/components/onboarding/OnboardingDialog.tsx": {
-      "count": 2,
-      "reason": "Entschieden. Die Signale belegen den Onboarding-Vorschlag nur VOR; ab der ersten eigenen Aenderung ruehrt sie niemand mehr an. Ohne sie waehlt der Nutzer von Hand - genau das Verhalten, das ohne Bestandsdaten ohnehin gilt."
     },
     "src/components/PrivacyIndicator.tsx": {
       "count": 1,
@@ -24,6 +12,18 @@
     "src/components/ProfileDialogContent.tsx": {
       "count": 1,
       "reason": "Entschieden. Voreinstellungen im Profil-Dialog; ohne sie stehen die Standardwerte da."
+    },
+    "src/components/debts/DebtSuggestionsBanner.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Ein Vorschlagsbanner. Was nicht erscheint, behauptet nichts - und die Seite darunter benennt den Lesefehler bereits. Ein zweiter Fehlerblock daneben waere zweimal dieselbe Aussage (siehe AccountsPage/TaxReportPage)."
+    },
+    "src/components/onboarding/DataSourceDialog.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Voreinstellung, die nur die Vorauswahl der Datenquelle steuert. Bestaetigt wird weiterhin von Hand."
+    },
+    "src/components/onboarding/OnboardingDialog.tsx": {
+      "count": 2,
+      "reason": "Entschieden. Die Signale belegen den Onboarding-Vorschlag nur VOR; ab der ersten eigenen Aenderung ruehrt sie niemand mehr an. Ohne sie waehlt der Nutzer von Hand - genau das Verhalten, das ohne Bestandsdaten ohnehin gilt."
     },
     "src/components/providers/GentleModeProvider.tsx": {
       "count": 1,
@@ -46,8 +46,12 @@
       "reason": "Entschieden. Zeitpunkt der letzten Synchronisation. Ist er nicht lesbar, steht dort nichts statt eines falschen Datums."
     },
     "src/components/trading/TradingDashboard.tsx": {
-      "count": 6,
-      "reason": "Entschieden. Fuenf der sechs Aufrufe (eToro-Instrument-Meta, Branchen, Kurse) fangen den Fehler in ihrer eigenen queryFn ab und liefern eine dokumentierte Ersatzantwort; die Anzeige faellt dann auf 'Instrument #<id>' zurueck. Sie koennen isError nie erreichen, ein Fehlerzustand dort waere toter Code. Der sechste ist die Voreinstellung des Kursanbieters mit Standard 'yahoo'."
+      "count": 1,
+      "reason": "Entschieden. Die Voreinstellung des Kursanbieters mit Standard 'yahoo'. Die uebrigen fuenf Aufrufe sind mit dem eToro-ViewModel nach features/trading/application/use-etoro-account.ts gewandert und dort begruendet."
+    },
+    "src/features/trading/application/use-etoro-account.ts": {
+      "count": 5,
+      "reason": "Entschieden. eToro-Instrument-Meta, Branchennamen und Watchlist-Kurse fangen den Fehler in ihrer eigenen queryFn ab und liefern eine dokumentierte Ersatzantwort (leere Map); die Anzeige faellt dann auf 'Instrument #<id>' zurueck. Sie koennen isError nie erreichen - ein Fehlerzustand dort waere toter Code. Die Tabs selbst haben ihren eigenen Fehlerzustand ueber die tragenden Abfragen."
     },
     "src/hooks/useBusinessMode.ts": {
       "count": 1,
