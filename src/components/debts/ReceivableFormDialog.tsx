@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -27,7 +28,7 @@ const emptyForm = {
   name: "",
   debtor: "",
   type: "private_loan" as ReceivableType,
-  amount: "",
+  amount: null as number | null,
   due_date: "",
   is_cash: false,
   notes: "",
@@ -50,7 +51,7 @@ export function ReceivableFormDialog({
         name: receivable.name ?? "",
         debtor: receivable.debtor ?? "",
         type: receivable.type ?? "private_loan",
-        amount: String(receivable.amount ?? ""),
+        amount: receivable.amount ?? null,
         due_date: receivable.due_date ?? "",
         is_cash: receivable.is_cash ?? false,
         notes: receivable.notes ?? "",
@@ -65,7 +66,7 @@ export function ReceivableFormDialog({
       name: form.name.trim() || t('debtService.defaultReceivableName'),
       debtor: form.debtor.trim() || null,
       type: form.type,
-      amount: parseFloat(form.amount) || 0,
+      amount: form.amount ?? 0,
       due_date: form.due_date || null,
       is_cash: form.is_cash,
       notes: form.notes.trim() || null,
@@ -125,12 +126,10 @@ export function ReceivableFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="rec-amount">{t('debts.receivableForm.amountLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="rec-amount"
-                type="number"
-                inputMode="decimal"
                 value={form.amount}
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                onChange={(value) => setForm((f) => ({ ...f, amount: value }))}
                 placeholder="0"
               />
             </div>

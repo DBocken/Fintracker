@@ -71,6 +71,11 @@ jobs:
       - name: Schicht-Waechter
         run: pnpm check:layers
 
+      # Ein type="number"-Feld verstuemmelt deutsche Dezimaleingaben, BEVOR
+      # ein Parser sie sieht: "12,50" wird zu 1250, ein Zinssatz "5,5" zu 55 %.
+      - name: Dezimal-Eingabe-Check
+        run: pnpm check:decimal-inputs
+
       - name: Karten-Regel-Check
         run: pnpm check:card-rule
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,9 +32,9 @@ interface DebtFormDialogProps {
 const emptyForm = {
   name: "",
   type: "credit_card" as DebtType,
-  balance: "",
-  interest_rate: "",
-  min_payment: "",
+  balance: null as number | null,
+  interest_rate: null as number | null,
+  min_payment: null as number | null,
   due_day: "",
   provider: "",
   is_bnpl: false,
@@ -51,9 +52,9 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
       setForm({
         name: debt.name ?? "",
         type: debt.type ?? "credit_card",
-        balance: String(debt.balance ?? ""),
-        interest_rate: String(debt.interest_rate ?? ""),
-        min_payment: String(debt.min_payment ?? ""),
+        balance: debt.balance ?? null,
+        interest_rate: debt.interest_rate ?? null,
+        min_payment: debt.min_payment ?? null,
         due_day: debt.due_day != null ? String(debt.due_day) : "",
         provider: debt.provider ?? "",
         is_bnpl: debt.is_bnpl ?? false,
@@ -68,9 +69,9 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
     onSave({
       name: form.name.trim() || t('debtService.defaultDebtName'),
       type: form.type,
-      balance: parseFloat(form.balance) || 0,
-      interest_rate: parseFloat(form.interest_rate) || 0,
-      min_payment: parseFloat(form.min_payment) || 0,
+      balance: form.balance ?? 0,
+      interest_rate: form.interest_rate ?? 0,
+      min_payment: form.min_payment ?? 0,
       due_day: form.due_day ? Math.min(31, Math.max(1, parseInt(form.due_day, 10))) : null,
       provider: form.provider.trim() || null,
       is_bnpl: form.is_bnpl || form.type === "bnpl",
@@ -131,23 +132,19 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="debt-balance">{t('debts.debtForm.balanceLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="debt-balance"
-                type="number"
-                inputMode="decimal"
                 value={form.balance}
-                onChange={(e) => setForm((f) => ({ ...f, balance: e.target.value }))}
+                onChange={(value) => setForm((f) => ({ ...f, balance: value }))}
                 placeholder="0"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="debt-rate">{t('debts.debtForm.interestLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="debt-rate"
-                type="number"
-                inputMode="decimal"
                 value={form.interest_rate}
-                onChange={(e) => setForm((f) => ({ ...f, interest_rate: e.target.value }))}
+                onChange={(value) => setForm((f) => ({ ...f, interest_rate: value }))}
                 placeholder="0"
               />
             </div>
@@ -156,12 +153,10 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="debt-min">{t('debts.debtForm.minPaymentLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="debt-min"
-                type="number"
-                inputMode="decimal"
                 value={form.min_payment}
-                onChange={(e) => setForm((f) => ({ ...f, min_payment: e.target.value }))}
+                onChange={(value) => setForm((f) => ({ ...f, min_payment: value }))}
                 placeholder="0"
               />
             </div>

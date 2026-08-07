@@ -109,6 +109,7 @@ verwenden**.
 | `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm check:layers` | Erzwingt die Import**richtung** aus §3 — beide Schichtungen (`lib → services → hooks → components → pages` und `domain → data → application → presentation`). TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie einer nach unten, und genau so sind 30 umgedrehte Abhängigkeiten in 14 `lib`-Dateien entstanden, ohne dass je etwas rot wurde. Der Auslöser war nie Absicht, sondern **Ort**: ein fachlicher Typ (`ContractRow`, `ForecastOverrides`, `MerchantRule`) oder eine reine Funktion (`explainCategorization`, `normalizeIban`) lag im I/O-Service oder in der Komponente, weil sie dort zuerst gebraucht wurde — wer sie danach von unten brauchte, hatte nur den Weg nach oben. Der Wächter löst Alias- (`@/…`) **und** Relativpfade auf; Tests sind ausgenommen (ein `lib/__tests__/`-Test darf einen Service heranziehen, das ist seine Absicht). Ausnahmen stehen in `layer-allowlist.json` und brauchen je Datei `imports` **und** `reason` — die Datei ist heute leer und sollte es bleiben. Läuft in Pre-Commit und CI |
+| `pnpm check:decimal-inputs` | Verbietet `<input type="number">` für **Dezimalfelder**. Im Browser gemessen (Chromium, `de-DE`): getipptes „12,50" ergibt den Wert `"1250"`, „1.200" ergibt `"1.200"` (→ `parseFloat` liest 1,2), ein Zinssatz „5,5" wird zu **55 %**. Der Browser verstümmelt die Eingabe, **bevor** irgendein Parser sie sieht — `parseGermanNumber` repariert das nicht mehr. Ersatz ist `<DecimalInput>` (`@/components/common/DecimalInput`); es gibt eine **Zahl** nach außen, keinen Text, damit die Aufrufstelle gar nicht erst falsch parsen kann. Ganzzahlige Felder (Tag im Monat, Anzahl, Jahr) sind mit `type="number"` richtig. Die Ausnahmeliste `decimal-input-allowlist.json` kennt wie die Query-Liste zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken, ein Objekt **`{ count, reason }`** ist entschieden. Läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
 ## 3. Architektur
@@ -297,6 +298,13 @@ Zwei Arbeitsregeln dazu:
 
 ## 8. Geld & Domäne
 
+**Eingabe:** Geldbeträge und andere Dezimalzahlen werden über
+`<DecimalInput>` erfasst, **nie** über `<input type="number">`. Ein
+`type="number"`-Feld macht in einem deutschen Browser aus getipptem „12,50" den
+Wert `"1250"` und aus einem Zinssatz „5,5" die Zahl `55` — es verstümmelt die
+Eingabe, bevor sie irgendein Parser sieht. Erzwungen durch
+`pnpm check:decimal-inputs` (§2).
+
 Beträge intern **immer Integer-Cent** über `src/lib/money.ts`
 (`toMinor`/`sumMinor`); nie roher Float-Vergleich, nie `toFixed` für
 Berechnungen, nie roher `parseFloat`-Ersatz für Geldeingaben (nur
@@ -383,8 +391,9 @@ Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
 (`pnpm check:platform-parity`), den Fehlerzustand jeder Abfrage
 (`pnpm check:query-errors`) die Namen der Bedienelemente
 (`pnpm check:a11y-names`), die Zustands-Abdeckung je Fläche
-(`pnpm check:state-coverage`) und die Import-Richtung zwischen den Schichten
-(`pnpm check:layers`). Claude
+(`pnpm check:state-coverage`), die Import-Richtung zwischen den Schichten
+(`pnpm check:layers`) und die Dezimal-Eingabefelder
+(`pnpm check:decimal-inputs`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.
