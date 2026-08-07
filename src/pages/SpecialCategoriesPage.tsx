@@ -107,7 +107,7 @@ export default function SpecialCategoriesPage() {
             <div className="space-y-1.5">
               <Label htmlFor="special-category-parent">{t('specialCategories.parentLabel')}</Label>
               <Select value={parentId} onValueChange={setParentId}>
-                <SelectTrigger id="special-category-parent">
+                <SelectTrigger id="special-category-parent" aria-label={t('specialCategories.parentLabel')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -22,7 +22,9 @@ import { getTransactions } from "@/services/transaction-service";
 import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useTier } from "@/hooks/useTier";
 import { useTutorialRun } from "@/hooks/useTutorialRun";
 import { hasFeatureAccess } from "@/lib/tier";
@@ -31,20 +33,47 @@ import { useI18n } from "@/i18n/useI18n";
 export default function CoachPage() {
   const { t, locale } = useI18n();
   const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
   const tier = useTier();
   const tutorialRun = useTutorialRun();
   const includeTaxReserve = hasFeatureAccess(tier, "creatorPack");
-  const { data: coach, isLoading: coachLoading } = useQuery({
+  const {
+    data: coach,
+    isLoading: coachLoading,
+    isError: coachError,
+    refetch: refetchCoach,
+  } = useQuery({
     queryKey: ["coach-overview", locale, includeTaxReserve, tutorialRun.upcoming],
     queryFn: () => getCoachOverview({ includeTaxReserve, tutorialChapter: tutorialRun.upcoming }),
   });
-  const { data: health } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
-  const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones", locale], queryFn: evaluateMilestones });
+
+  const {
+    data: health,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
+    queryKey: ["financial-health", locale],
+    queryFn: getFinancialHealth,
+  });
+
+  const {
+    data: milestones,
+    isLoading: milestonesLoading,
+    isError: milestonesError,
+    refetch: refetchMilestones,
+  } = useQuery({
+    queryKey: ["milestones", locale],
+    queryFn: evaluateMilestones,
+  });
 
   // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
   // klare nächste Aktion statt leerer Karten. Eigener queryKey, damit der
   // Transactions-Cache des Dashboards (Limit 5000) nicht verfälscht wird.
-  const { data: hasData } = useQuery({
+  // WP-9.6: `isError` ist hier besonders wichtig — scheitert diese eine
+  // Abfrage, bleibt `hasData` `undefined` und der Screen zeigt weder
+  // Leerzustand noch Inhalt, sondern eine halb gefuellte Seite ohne jede
+  // Erklaerung. Das ist noch undurchsichtiger als eine falsche Auskunft.
+  const { data: hasData, isError: hasDataError, refetch: refetchHasData } = useQuery({
     queryKey: ["has-finance-data"],
     queryFn: async () => {
       const [txs, debts, receivables] = await Promise.all([
@@ -55,6 +84,23 @@ export default function CoachPage() {
       return txs.length > 0 || debts.length > 0 || receivables.length > 0;
     },
   });
+
+  const hasLoadError = coachError || healthError || milestonesError || hasDataError;
+  const retryAll = () => {
+    void refetchCoach();
+    void refetchHealth();
+    void refetchMilestones();
+    void refetchHasData();
+  };
+
+  if (hasLoadError) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title={t("coach.title")} description={t("coach.description")} />
+        <FinanceErrorState onRetry={retryAll} />
+      </div>
+    );
+  }
 
   if (hasData === false) {
     return (
@@ -158,10 +204,10 @@ export default function CoachPage() {
           <InteractiveCard to="/debts" aria-label={t("coach.debtContextAction")}>
             <div className="text-sm text-muted-foreground">{t("coach.debtContext")}</div>
             <div className="mt-2 text-xl font-semibold">
-              {gentleModeEnabled ? "*** " + t("coach.openDebt") : `${coach.debtSummary.totalDebt.toFixed(0)} ` + t("coach.openDebt")}
+              {money.mask(coach.debtSummary.totalDebt.toFixed(0))} {t("coach.openDebt")}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              {t("coach.minimumPayment")}: {gentleModeEnabled ? "***" : `${coach.debtSummary.minimumMonthlyBurden.toFixed(0)}`} {t("coach.perMonth")}
+              {t("coach.minimumPayment")}: {money.mask(coach.debtSummary.minimumMonthlyBurden.toFixed(0))} {t("coach.perMonth")}
             </p>
             <p className="mt-3 text-sm">{t("coach.fasterStrategy")}: {coach.debtSummary.preferredStrategy === "avalanche" ? t("coach.avalanche") : t("coach.snowball")}</p>
           </InteractiveCard>

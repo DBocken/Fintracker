@@ -2,6 +2,7 @@ import { toMajor } from '@/lib/money';
 import { formatCurrency } from '@/lib/utils';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { cn } from '@/lib/utils';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface EventTotalAmountProps {
   /** Betrag in Integer-Cent (vorzeichenbehaftet). */
@@ -18,11 +19,12 @@ interface EventTotalAmountProps {
  * Anzeige.
  */
 export function EventTotalAmount({ minor, className, animate = true }: EventTotalAmountProps) {
+  const money = useMoneyFormat();
   const euro = toMajor(minor);
   const shown = useAnimatedNumber(euro, { enabled: animate });
   return (
-    <span className={cn('tabular-nums', className)} aria-label={formatCurrency(euro)}>
-      {formatCurrency(shown)}
+    <span className={cn('tabular-nums', className)} aria-label={money.mask(formatCurrency(euro))}>
+      {money.mask(formatCurrency(shown))}
     </span>
   );
 }

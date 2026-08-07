@@ -4,6 +4,7 @@ import { Check, Dot, Lock } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useI18n } from "@/i18n/useI18n";
 import { getFinanceFoundation } from "@/services/finance-foundation-service";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import type { FoundationStage } from "@/lib/finance-foundation";
 import { cn } from "@/lib/utils";
 
@@ -71,9 +72,11 @@ function StageRow({ stage, animate }: { stage: FoundationStage; animate: boolean
 export default function FoundationLadder() {
   const animate = !useReducedMotion();
   const { t, locale } = useI18n();
-  const { data, isLoading } = useQuery({ queryKey: ["finance-foundation", locale], queryFn: () => getFinanceFoundation() });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["finance-foundation", locale], queryFn: () => getFinanceFoundation() });
 
-  if (isLoading || !data) return null;
+  if (isLoading) return null;
+  if (isError) return <FinanceErrorState variant="data" onRetry={() => void refetch()} />;
+  if (!data) return null;
   const overall = Math.round(data.overallProgress * 100);
 
   // Karten-los (Usability-Audit „Karten sind Aktionen"): ein titulierter

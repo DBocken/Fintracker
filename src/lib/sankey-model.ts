@@ -44,7 +44,10 @@ export interface BuildSankeyOptions {
 
 /** Schwelle (EUR), ab der ein "Übrig"-Knoten überhaupt gezeichnet wird. */
 const SAVINGS_MIN = 0.5;
-const REST_LABEL = "Weitere / ohne Unterkategorie";
+// Bewusst eine FUNKTION und keine Modul-`const`: Ein `t()` im Initializer
+// einer Konstante wird EINMAL beim Import aufgeloest und ignoriert jeden
+// spaeteren Sprachwechsel (AGENTS.md Paragraf 6, Fallen-Tabelle).
+const restLabel = () => t("common.restCategory");
 
 function accountsWithFallback(data: SankeyData, totalExpenses: number) {
   return data.accounts && data.accounts.length > 0
@@ -94,8 +97,8 @@ export function buildSankeyModel(data: SankeyData, opts: BuildSankeyOptions = {}
     const subsRounded = shownSubs.reduce((s, x) => s + Math.round(x.amount), 0);
     const restRounded = Math.round(mainAmount) - subsRounded;
     if (restRounded > 0) {
-      const ri = push({ name: REST_LABEL, id: `__rest_${mainId}`, type: "expense-sub", amount: restRounded });
-      links.push({ source: mainIndex, target: ri, value: restRounded, label: `${mainName} → ${REST_LABEL}` });
+      const ri = push({ name: restLabel(), id: `__rest_${mainId}`, type: "expense-sub", amount: restRounded });
+      links.push({ source: mainIndex, target: ri, value: restRounded, label: `${mainName} → ${restLabel()}` });
     }
   };
 

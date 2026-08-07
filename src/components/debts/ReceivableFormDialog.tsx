@@ -109,7 +109,7 @@ export function ReceivableFormDialog({
               value={form.type}
               onValueChange={(v) => setForm((f) => ({ ...f, type: v as ReceivableType }))}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('debts.receivableForm.typeLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

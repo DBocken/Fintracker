@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useId } from 'react';
 import {
   ResponsiveContainer,
   Area,
@@ -58,10 +58,13 @@ import type { BufferBasis, ForecastMonthlySummary } from '@/lib/forecast-types';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/services/transaction-service';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -69,17 +72,37 @@ const eur = new Intl.NumberFormat('de-DE', {
   maximumFractionDigits: 0,
 });
 
-const CHART_SERIES_LABELS: Record<string, string> = {
-  operating: 'Plan',
-  median: 'Median (P50)',
-};
+
+/**
+ * Die drei Konfidenz-Ebenen der Prognose (WP-6.1), von aussen nach innen.
+ *
+ * Reihenfolge IST die Zeichenreihenfolge: die aeussere Flaeche liegt unten,
+ * die innere oben. Weil sich die Flaechen ueberlagern, addiert sich die
+ * Deckkraft zur Mitte hin — genau das macht den Rand diffus.
+ *
+ * Bewusst eine Modul-Konstante: sie enthaelt nur Datenschluessel und Zahlen,
+ * keinen uebersetzten Text. Ein `t()` im Initializer wuerde beim Import
+ * einfrieren (AGENTS.md Paragraf 6, Fallen-Tabelle).
+ */
+const BAND_LAYERS = [
+  /** P05–P95: das Moeglichkeitsfeld. */
+  { key: 'outer', floorKey: 'outerFloor', heightKey: 'outerHeight', opacityFactor: 0.45 },
+  /** P10–P90: die fachlich benannte Bandbreite. */
+  { key: 'band', floorKey: 'bandFloor', heightKey: 'bandHeight', opacityFactor: 0.7 },
+  /** P25–P75: wo die Haelfte aller Durchlaeufe landet. */
+  { key: 'core', floorKey: 'coreFloor', heightKey: 'coreHeight', opacityFactor: 1 },
+] as const;
 
 /** Ein Datenpunkt der Linien-Ansicht (Plan + optionales P10–P90-Band + Median). */
 interface ChartPoint {
   date: string;
   operating: number;
+  outerFloor?: number;
+  outerHeight?: number;
   bandFloor?: number;
   bandHeight?: number;
+  coreFloor?: number;
+  coreHeight?: number;
   median?: number;
 }
 
@@ -125,6 +148,7 @@ type ChartView = 'lines' | 'heatmap';
  * eintragen. Keine zweite, davon getrennte Szenario-Eingabe mehr.
  */
 export default function LiquidityReport() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
   const { months, safetyBuffer, bufferBasis } = overrides;
@@ -140,7 +164,7 @@ export default function LiquidityReport() {
 
   // Kategorie-Prioritäten (vom Nutzer gesetzt) → steuern den Spar-Wasserfall
   // im BudgetOptimizer: niedrige Priorität wird zuerst gekürzt.
-  const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
+  const { data: categories = [], isError: categoriesError } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
   const priorityByCategory = useMemo(() => {
     const map = new Map<string, Prioritaet>();
     for (const c of categories) {
@@ -255,20 +279,36 @@ export default function LiquidityReport() {
     if (!forecast) return [];
     const pick = (d: { availableCash: number; operatingCash: number }) =>
       bufferBasis === 'available' ? d.availableCash : d.operatingCash;
-    // Das Wahrscheinlichkeitsband (P10–P90) der EINEN Simulation wird auf
-    // dieselbe Zeitachse gelegt – als Gradient hinter der Plan-Linie.
+    // Das Wahrscheinlichkeitsband der EINEN Simulation wird auf dieselbe
+    // Zeitachse gelegt.
+    //
+    // WP-6.1: DREI verschachtelte Flächen statt einer. Vorher gab es genau
+    // eine Fläche von P10 bis P90 mit harter Kante — und eine harte Kante
+    // liest sich als Zusage („darunter geht es nicht"), obwohl P10 gerade
+    // heißt, dass jeder zehnte Durchlauf tiefer fällt. Gestapelt gerechnet
+    // (Recharts kennt keine Fläche zwischen zwei Kurven): je Ebene ein
+    // unsichtbarer Sockel plus die sichtbare Höhe darüber.
     const bandByDate = new Map((risk?.daily ?? []).map((d) => [d.date, d]));
     return forecast.daily.map((d) => {
       const band = bandByDate.get(d.date);
       return {
         date: d.date,
         operating: pick(d),
+        // Äußere Ebene P05–P95: das Möglichkeitsfeld, am schwächsten.
+        outerFloor: band?.p05,
+        outerHeight: band ? band.p95 - band.p05 : undefined,
+        // Mittlere Ebene P10–P90: die bisherige, fachlich benannte Bandbreite.
         bandFloor: band?.p10,
         bandHeight: band ? band.p90 - band.p10 : undefined,
+        // Innere Ebene P25–P75: wo die Hälfte aller Durchläufe landet.
+        coreFloor: band?.p25,
+        coreHeight: band ? band.p75 - band.p25 : undefined,
         median: band?.p50,
       };
     });
   }, [forecast, bufferBasis, risk]);
+
+  const hasLoadError = isError || categoriesError;
 
   if (isLoading) {
     return (
@@ -284,7 +324,7 @@ export default function LiquidityReport() {
     );
   }
 
-  if (isError) {
+  if (hasLoadError) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -327,7 +367,7 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.horizonLabel")}</span>
           <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
-            <SelectTrigger className="h-10 w-full">
+            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.horizonLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -343,13 +383,13 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.bufferLabel")}</span>
           <Select value={String(safetyBuffer)} onValueChange={(v) => setSafetyBuffer(Number(v))}>
-            <SelectTrigger className="h-10 w-full">
+            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.bufferLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {[0, 500, 1000, 2000, 5000].map((b) => (
                 <SelectItem key={b} value={String(b)}>
-                  {eur.format(b)}
+                  {money.mask(eur.format(b))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -359,7 +399,7 @@ export default function LiquidityReport() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">{t("liquidityReport.basisLabel")}</span>
           <Select value={bufferBasis} onValueChange={(v) => setBufferBasis(v as BufferBasis)}>
-            <SelectTrigger className="h-10 w-full">
+            <SelectTrigger className="h-10 w-full" aria-label={t("liquidityReport.basisLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -418,7 +458,7 @@ export default function LiquidityReport() {
               )}
               {hasBand && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Wahrscheinlichkeitsband P10–P90 aus {risk!.horizonDays} Tagen ·{' '}
+                  {t("liquidityReport.bandCaption").replace('{days}', String(risk!.horizonDays))}{' '}
                   {chartView === 'lines' ? t("liquidityReport.asHeatmap") : t("liquidityReport.asLines")}.
                 </p>
               )}
@@ -431,7 +471,7 @@ export default function LiquidityReport() {
             items={[
               {
                 label: t("liquidityReport.lowestBalanceLabel"),
-                value: eur.format(liqRisk.lowestBalance),
+                value: money.mask(eur.format(liqRisk.lowestBalance)),
                 hint: fmtDate(liqRisk.lowestBalanceDate),
                 tone: lowestTone,
               },
@@ -443,12 +483,12 @@ export default function LiquidityReport() {
               },
               {
                 label: t("liquidityReport.minOperatingLabel"),
-                value: eur.format(liqRisk.minimumOperatingCash),
+                value: money.mask(eur.format(liqRisk.minimumOperatingCash)),
                 hint: t("liquidityReport.operatingAvailable"),
               },
               {
                 label: t("liquidityReport.minAvailableLabel"),
-                value: eur.format(liqRisk.minimumAvailableCash),
+                value: money.mask(eur.format(liqRisk.minimumAvailableCash)),
                 hint: t("liquidityReport.includingReserve"),
               },
             ]}
@@ -474,7 +514,7 @@ export default function LiquidityReport() {
                           )}
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          −{eur.format(d.amount)}
+                          −{money.mask(eur.format(d.amount))}
                         </span>
                       </li>
                     ))}
@@ -600,13 +640,70 @@ function ChartLinesView({
   hasBand: boolean;
   safetyBuffer: number;
 }) {
+  const money = useMoneyFormat();
+  const { t } = useI18n();
+  const seriesSummary = useSeriesSummary();
   const colors = getChartColors();
   // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   const chartAnimation = useChartAnimation();
-  const gradientId = `liqFill-${Date.now()}`;
-  const mcBandGradientId = `mcBandFill-${Date.now()}`;
+  // WP-6.8: Gradient-IDs aus `useId()`. Vorher `Date.now()` — das erzeugte bei
+  // JEDEM Render eine neue ID (der Browser behaelt die alten `<defs>` im
+  // Dokument) und kollidierte, sobald zwei Charts in derselben Millisekunde
+  // montieren. `useId()` ist stabil und je Instanz eindeutig.
+  const reactId = useId().replace(/:/g, '');
+  const gradientId = `liqFill-${reactId}`;
+  const mcBandGradientId = `mcBandFill-${reactId}`;
+  const horizonMaskId = `horizonMask-${reactId}`;
+
+  // Serien-Namen uebersetzt statt hartkodiert (AGENTS.md Paragraf 6). Die
+  // Zuordnung steht in der Komponente und nicht als Modul-Konstante: eine
+  // Modul-`const` mit `t()` friert beim Import ein und ignoriert jeden
+  // spaeteren Sprachwechsel (AGENTS.md Paragraf 6, Fallen-Tabelle).
+  const seriesLabels = {
+    operating: t('liquidityReport.seriesOperating'),
+    median: t('liquidityReport.seriesMedian'),
+  };
 
   return (
+    // WP-6.10: Der Verlauf ist die Kernaussage der Prognose — ohne
+    // nicht-visuelle Fassung waere sie fuer Screenreader gar nicht vorhanden.
+    <ChartFigure
+      caption={t('liquidityReport.liquidityChartCaption')}
+      summary={seriesSummary({
+        title: t('liquidityReport.liquidityChartCaption'),
+        values: chartData.map((point) => point.operating),
+        formatValue: (value) => money.mask(eur.format(value)),
+        labelAt: (index) => fmtDate(chartData[index]?.date ?? ''),
+      })}
+      columns={[
+        { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => fmtDate(row.date) },
+        {
+          key: 'operating',
+          label: t('liquidityReport.seriesOperating'),
+          numeric: true,
+          format: (row) => money.mask(eur.format(row.operating)),
+        },
+        {
+          key: 'median',
+          label: t('liquidityReport.seriesMedian'),
+          numeric: true,
+          format: (row) => (row.median === undefined ? '—' : money.mask(eur.format(row.median))),
+        },
+        {
+          // WP-6.1/6.10: Die Unsicherheit gehoert auch in die nicht-visuelle
+          // Fassung. Ohne sie laese sich der Median wie eine Zusage.
+          key: 'range',
+          label: t('liquidityReport.rangeColumn'),
+          numeric: true,
+          format: (row) =>
+            row.outerFloor === undefined || row.outerHeight === undefined
+              ? '—'
+              : `${money.mask(eur.format(row.outerFloor))} – ${money.mask(eur.format(row.outerFloor + row.outerHeight))}`,
+        },
+      ]}
+      rows={chartData}
+      rowKey={(row) => row.date}
+    >
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -615,10 +712,47 @@ function ChartLinesView({
               <stop offset="5%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillStartOpacity} />
               <stop offset="95%" stopColor={colors.operatingFillStart} stopOpacity={colors.operatingFillEndOpacity} />
             </linearGradient>
-            <linearGradient id={mcBandGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandStartOpacity} />
-              <stop offset="95%" stopColor={colors.mcBandStart} stopOpacity={colors.mcBandEndOpacity} />
+            {/* WP-6.1: Drei Fuellungen derselben Farbe, nach aussen schwaecher.
+                Weil die Flaechen einander ueberlagern, addiert sich die Deckkraft
+                zur Mitte hin — der Rand franst aus, statt zu schneiden. */}
+            {/*
+              WP-6.2 — Horizont-Perspektive.
+
+              Eine Prognose ist am Tag 1 fast eine Tatsache und am Tag 365 eine
+              Vermutung. Bisher sah beides gleich aus: dieselbe Deckkraft ueber
+              die gesamte Breite, die Ferne also genauso behauptet wie die Naehe.
+
+              Dieser Verlauf laeuft WAAGERECHT ueber die Zeitachse und laesst
+              die spaeten Tage ausduennen. Als Maske und nicht als zweite
+              Farbe, damit er auf alle drei Konfidenz-Ebenen gleich wirkt und
+              sich nicht mit deren eigener Deckkraft verrechnet.
+
+              Bis zur Haelfte des Horizonts bleibt die Darstellung voll: der
+              naechste Monat ist die Aussage, mit der man plant, und ihn
+              vorzeitig auszublenden waere Effekt statt Information.
+            */}
+            <linearGradient id={`${horizonMaskId}-gradient`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="white" stopOpacity={1} />
+              <stop offset="50%" stopColor="white" stopOpacity={1} />
+              <stop offset="100%" stopColor="white" stopOpacity={0.35} />
             </linearGradient>
+            <mask id={horizonMaskId} maskUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+              <rect x="0" y="0" width="1" height="1" fill={`url(#${horizonMaskId}-gradient)`} />
+            </mask>
+            {BAND_LAYERS.map((layer) => (
+              <linearGradient key={layer.key} id={`${mcBandGradientId}-${layer.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor={colors.mcBandStart}
+                  stopOpacity={colors.mcBandStartOpacity * layer.opacityFactor}
+                />
+                <stop
+                  offset="95%"
+                  stopColor={colors.mcBandStart}
+                  stopOpacity={colors.mcBandEndOpacity * layer.opacityFactor}
+                />
+              </linearGradient>
+            ))}
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
           <XAxis
@@ -629,27 +763,31 @@ function ChartLinesView({
             axisLine={{ stroke: colors.axisStroke }}
           />
           <YAxis
-            tickFormatter={(v: number) => eur.format(v)}
+            tickFormatter={(v: number) => money.mask(eur.format(v))}
             width={72}
             tick={{ fontSize: 12, fill: colors.axisText }}
             axisLine={{ stroke: colors.axisStroke }}
           />
           <Tooltip
-            formatter={(v, name) => [eur.format(chartNumber(v)), CHART_SERIES_LABELS[chartText(name)] ?? chartText(name)]}
-            labelFormatter={(l) => fmtDate(chartText(l))}
-            contentStyle={{
-              backgroundColor: 'var(--background)',
-              borderColor: 'var(--border)',
-              color: 'var(--foreground)',
-            }}
+            {...chartTooltipProps({
+              formatValue: (v) => money.mask(eur.format(v)),
+              formatLabel: (l) => fmtDate(l),
+              seriesLabels,
+            })}
           />
-          {hasBand && (
-            <>
+          {/* WP-6.1: Von aussen nach innen gezeichnet. Je Ebene ein
+              unsichtbarer Sockel plus die sichtbare Hoehe darueber — Recharts
+              kennt keine Flaeche zwischen zwei Kurven, nur Stapel. Jede Ebene
+              braucht ihre EIGENE stackId, sonst stapelten sich die drei
+              Baender uebereinander statt ineinander. */}
+          {hasBand &&
+            BAND_LAYERS.map((layer) => (
               <Area
+                key={`${layer.key}-floor`}
                 type="monotone"
-                dataKey="bandFloor"
-                name="bandFloor"
-                stackId="mc"
+                dataKey={layer.floorKey}
+                name={layer.floorKey}
+                stackId={layer.key}
                 stroke="none"
                 fill="transparent"
                 isAnimationActive={chartAnimation.animate}
@@ -658,21 +796,26 @@ function ChartLinesView({
                 legendType="none"
                 tooltipType="none"
               />
+            ))}
+          {hasBand &&
+            BAND_LAYERS.map((layer) => (
               <Area
+                key={`${layer.key}-height`}
                 type="monotone"
-                dataKey="bandHeight"
-                name="bandHeight"
-                stackId="mc"
+                dataKey={layer.heightKey}
+                name={layer.heightKey}
+                stackId={layer.key}
                 stroke="none"
-                fill={`url(#${mcBandGradientId})`}
+                fill={`url(#${mcBandGradientId}-${layer.key})`}
+                // WP-6.2: laesst die Flaeche zum Horizont hin ausduennen.
+                mask={`url(#${horizonMaskId})`}
                 isAnimationActive={chartAnimation.animate}
                 animationDuration={chartAnimation.animationDuration}
                 animationEasing={chartAnimation.animationEasing}
                 legendType="none"
                 tooltipType="none"
               />
-            </>
-          )}
+            ))}
           <Area
             type="monotone"
             dataKey="operating"
@@ -714,6 +857,7 @@ function ChartLinesView({
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+    </ChartFigure>
   );
 }
 
@@ -749,6 +893,7 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
  * über eine dezente Zeilentönung + Badge signalisiert (kein Karten-Rahmen).
  */
 export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummary[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const hasTransfers = months.some((m) => m.transfersOut > 0);
   const hasInterest = months.some((m) => m.interest > 0);
@@ -789,18 +934,18 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
                 </span>
               </td>
               <td className="text-right text-emerald-600 dark:text-emerald-400">
-                {eur.format(m.income)}
+                {money.mask(eur.format(m.income))}
               </td>
-              <td className="text-right">−{eur.format(m.fixedExpenses)}</td>
-              <td className="text-right">−{eur.format(m.variableExpenses)}</td>
+              <td className="text-right">−{money.mask(eur.format(m.fixedExpenses))}</td>
+              <td className="text-right">−{money.mask(eur.format(m.variableExpenses))}</td>
               {hasTransfers && (
                 <td className="text-right">
-                  {m.transfersOut > 0 ? `−${eur.format(m.transfersOut)}` : '—'}
+                  {m.transfersOut > 0 ? `−${money.mask(eur.format(m.transfersOut))}` : '—'}
                 </td>
               )}
               {hasInterest && (
                 <td className="text-right text-emerald-600 dark:text-emerald-400">
-                  {m.interest > 0 ? `+${eur.format(m.interest)}` : '—'}
+                  {m.interest > 0 ? `+${money.mask(eur.format(m.interest))}` : '—'}
                 </td>
               )}
               <td className="text-right">
@@ -809,11 +954,11 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
                   {i > 0 && (
                     <DeltaBadge current={m.closingBalance} previous={months[i - 1].closingBalance} />
                   )}
-                  <span className="font-semibold">{eur.format(m.closingBalance)}</span>
+                  <span className="font-semibold">{money.mask(eur.format(m.closingBalance))}</span>
                 </span>
               </td>
               <td className="text-right text-xs text-muted-foreground">
-                {eur.format(m.lowestBalance)} · {shortDate(m.lowestBalanceDate)}
+                {money.mask(eur.format(m.lowestBalance))} · {shortDate(m.lowestBalanceDate)}
               </td>
             </tr>
           ))}
@@ -855,7 +1000,7 @@ function SimulationControls({
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">{t("liquidityReport.trialsLabel")}</span>
             <Select value={String(trials)} onValueChange={(v) => onTrials(Number(v))}>
-              <SelectTrigger className="h-9 w-24">
+              <SelectTrigger className="h-9 w-24" aria-label={t("liquidityReport.trialsLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

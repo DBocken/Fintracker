@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { freezeTime, dismissOnboarding, createBudgetFromSuggestion } from "./fixtures/vertical-slice";
+import {
+  freezeTime,
+  dismissOnboarding,
+  createBudgetFromSuggestion,
+  dismissTourInvitation,
+} from "./fixtures/vertical-slice";
 
 /**
  * WP-4.6: Vertical Slice Integration Test — Visual Regression.
@@ -70,11 +75,18 @@ test.describe("Vertical Slice Visual Regression (WP-4.6)", () => {
 
       await page.goto("/dashboard");
       await expect(page.getByTestId("stat-hero-value")).toBeVisible();
+      // WP-10.3: Die Tutorial-Einladung schwebt seit dem CLS-Umbau ueber dem
+      // Inhalt statt in ihm. In einer Ganzseiten-Aufnahme legt sie sich damit
+      // ueber echte Inhalte — die Baseline zeigte an dieser Stelle nicht mehr
+      // die Seite, sondern ein Angebot, das jeder sofort wegklickt. Es hat
+      // eigene Tests; hier geht es um den Screen.
+      await dismissTourInvitation(page);
       await page.clock.runFor(500);
       await shot(`dashboard-${viewport.name}.png`, { fullPage: true });
 
       await page.goto("/city");
       await expect(page.getByRole("heading", { name: "Finanzstadt" })).toBeVisible();
+      await dismissTourInvitation(page);
       // Signature-Moment-Timer (1.5 s + 3 s) komplett abspielen, damit das
       // Overlay auf keinem Snapshot halb sichtbar hängt.
       await page.clock.runFor(6000);
@@ -84,6 +96,7 @@ test.describe("Vertical Slice Visual Regression (WP-4.6)", () => {
 
       await page.goto("/budgets");
       await expect(page.getByRole("button", { name: /ausgeschöpft/ }).first()).toBeVisible();
+      await dismissTourInvitation(page);
       await page.clock.runFor(500);
       await shot(`budgets-${viewport.name}.png`, { fullPage: true });
     }

@@ -2,6 +2,7 @@ import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { LumpyRiskProfile } from '@/lib/finrisk/lumpy-risk';
 import type { StressCapacityLevel } from '@/lib/finrisk/scenario-payload-types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -42,6 +43,7 @@ interface Props {
  * Stress-Tragfähigkeit als Ampel – die drei Kernaussagen der Risikoanalyse.
  */
 export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
 
   const alltagTone: Tone =
@@ -68,7 +70,7 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
   const lumpyValue =
     lumpy == null || lumpy.lumpyCount === 0
       ? t('finrisk.noLumpyRisk')
-      : t('finrisk.lumpyRiskLevel').replace('{frequency}', lumpy.lumpyRateAnnual.toFixed(1)).replace('{amount}', eur.format(lumpy.lumpySeverityP90));
+      : t('finrisk.lumpyRiskLevel').replace('{frequency}', lumpy.lumpyRateAnnual.toFixed(1)).replace('{amount}', money.mask(eur.format(lumpy.lumpySeverityP90)));
 
   const stressTone: Tone =
     stress90 == null
@@ -81,7 +83,7 @@ export default function RiskSummaryCard({ lumpy, stress90, baseBreachProbability
   const stressValue =
     stress90 == null
       ? t('finrisk.checking')
-      : `${eur.format(stress90.maxAffordableShock)} ${t('finrisk.atConfidence').replace('{confidence}', '90')}`;
+      : `${money.mask(eur.format(stress90.maxAffordableShock))} ${t('finrisk.atConfidence').replace('{confidence}', '90')}`;
 
   // Karten-los (Usability-Audit „Karten sind Aktionen"): reine Diagnose-Anzeige
   // ohne Rahmen → wirkt nicht antippbar.

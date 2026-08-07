@@ -16,7 +16,7 @@ export function TaxYearPicker({ years, value, onChange }: TaxYearPickerProps) {
         {t('tax.page.yearLabel', 'Steuerjahr')}
       </Label>
       <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-        <SelectTrigger id="tax-year" className="w-32">
+        <SelectTrigger id="tax-year" className="w-32" aria-label={t('tax.page.yearLabel', 'Steuerjahr')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

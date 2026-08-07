@@ -17,11 +17,27 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 
 const PERIOD_BALANCE = 1234.56;
 const CURRENT_BALANCE = 9876.54;
+
+/** Tailwind `text-2xl` = 1.5rem — die Groesse der Nebenkennzahl. */
+const TEXT_2XL_REM = 1.5;
+
+/**
+ * Kleinster deklarierter Hero-Wert (mobil) aus `src/index.css`. Bewusst der
+ * KLEINERE der beiden Breakpoints: gilt die Abstufung dort, gilt sie ueberall.
+ */
+function heroFontSizeRem(): number {
+  const css = readFileSync(resolve(__dirname, '../../../index.css'), 'utf8');
+  const match = css.match(/--font-size-hero-mobile:\s*([\d.]+)rem/);
+  if (!match) throw new Error('--font-size-hero-mobile nicht in src/index.css gefunden');
+  return Number.parseFloat(match[1]);
+}
 
 const model = {
   isEmpty: false,
@@ -102,12 +118,42 @@ describe('Dashboard — Hero-Hierarchie', () => {
     expect(screen.getAllByText(/9\.876,54/)).toHaveLength(1);
   });
 
-  it('sollte den Zeitraum-Saldo weiterhin als Nebenkennzahl zeigen', () => {
+  it('sollte den Zeitraum-Saldo weiterhin als Nebenkennzahl zeigen', async () => {
     renderWithProviders(<Dashboard />, { query: true });
 
     // Er verschwindet nicht — er tritt nur zurueck in die Kennzahlenzeile,
     // die auf ganze Euro rundet (1234,56 -> "+1.235 €").
-    expect(screen.getByText(/1\.235/)).toBeInTheDocument();
+    //
+    // `findByText` statt `getByText` seit WP-6.9: die Kennzahlen zaehlen auf
+    // ihren Wert hoch, statt ihn zu setzen. Der Endwert steht also erst nach
+    // dem Tween da — genau die sichtbare Aussage des Arbeitspakets.
+    expect(await screen.findByText(/1\.235/)).toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte die Kennzahlenzeile abstufen statt vier gleiche Groessen zu zeigen', async () => {
+    // Befund aus der Gate-Neubewertung: Alle vier Groessen standen auf
+    // derselben Schriftgroesse und demselben Gewicht — die Zeile war eine
+    // Aufzaehlung, keine Aussage. Der Zeitraum-Saldo beantwortet die Frage
+    // "wie lief dieser Zeitraum" und traegt sie jetzt sichtbar.
+    renderWithProviders(<Dashboard />, { query: true });
+    await screen.findByText(/1\.235/);
+
+    const periodBalance = screen.getByTestId('stat-period-balance');
+    expect(periodBalance.className).toContain('text-2xl');
+
+    // Gegenprobe: Der Hero bleibt trotzdem groesser — sonst haette die
+    // Abstufung eine zweite Hauptaussage erzeugt (Befund A-1).
+    //
+    // Der Hero traegt keine Tailwind-Groessenklasse, sondern `.hero-value`
+    // (src/index.css) mit responsiven CSS-Variablen. jsdom laedt das
+    // Stylesheet nicht, `getComputedStyle` liefert also nichts Brauchbares —
+    // deshalb wird der deklarierte Wert aus der Quelle gelesen und
+    // verglichen. Ein Namensvergleich allein wuerde nicht rot, wenn jemand
+    // die Variable unter die Nebenkennzahl absenkt.
+    const hero = screen.getByTestId('stat-hero-value');
+    expect(hero.className).toContain('hero-value');
+    expect(hero.className).not.toMatch(/\btext-(xs|sm|base|lg|xl|2xl)\b/);
+    expect(heroFontSizeRem()).toBeGreaterThan(TEXT_2XL_REM);
   });
 
   it('sollte den Hero mit dem Kontostand-Label beschriften', () => {

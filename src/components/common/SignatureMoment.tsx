@@ -16,10 +16,13 @@
  * @see docs/aaa-plus/tdd-specs.md — WP-6.5
  */
 
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import CelebrationBurst from './CelebrationBurst';
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
+import { useHaptics } from '@/hooks/useHaptics';
 
 type SignatureMomentVariant = 'small' | 'default' | 'large';
 
@@ -52,6 +55,20 @@ export function SignatureMoment({
   const reduce = useReducedMotion();
   const burstSize = BURST_SIZES[variant];
 
+  // WP-7.8: Ein erreichtes Ziel wird auch gefuehlt, nicht nur gesehen. Genau
+  // EINMAL beim Erscheinen — `useEffect` ohne Abhaengigkeiten, sonst summte es
+  // bei jedem Re-Render der Karte erneut. `useHaptics` schweigt von sich aus
+  // bei reduzierter Bewegung und auf Geraeten ohne Vibration.
+  const haptic = useHaptics();
+  useEffect(() => {
+    haptic('confirm');
+    // Absichtlich ohne `haptic` in den Abhaengigkeiten: der Callback wechselt
+    // die Identitaet, wenn sich `prefers-reduced-motion` aendert — und eine
+    // Systemeinstellung mitten in der Sitzung umzustellen darf keine zweite
+    // Vibration ausloesen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <motion.div
       data-testid="signature-moment"
@@ -61,7 +78,7 @@ export function SignatureMoment({
       )}
       initial={reduce ? false : { scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={reduce ? { duration: 0 } : { duration: 0.4, ease: MOTION_EASINGS_BEZIER.precision }}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-positive">
         <CelebrationBurst size={burstSize} />
@@ -70,7 +87,7 @@ export function SignatureMoment({
           data-testid="signature-title"
           initial={reduce ? false : { scale: 1 }}
           animate={reduce ? {} : { scale: [1, 1.08, 1] }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{ duration: 0.6, delay: 0.3, ease: MOTION_EASINGS_BEZIER.confirm }}
         >
           {title}
         </motion.span>

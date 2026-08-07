@@ -14,6 +14,7 @@ import {
   type DebtTransactionAssignment,
 } from "@/services/debt-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
@@ -44,6 +45,7 @@ export function DebtDetailSheet({
   onToggleAssignment: (debtId: string, transaction: Transaction, checked: boolean) => void;
   assignBusy: boolean;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const debtTypeLabels = getDebtTypeLabels();
 
@@ -58,13 +60,13 @@ export function DebtDetailSheet({
                 {debt.name}
               </SheetTitle>
               <SheetDescription>
-                {debtTypeLabels[debt.type]} · {debt.interest_rate}% · {t('debts.debtCard.rateLabel')} {eur.format(debt.min_payment)}
+                {debtTypeLabels[debt.type]} · {debt.interest_rate}% · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(debt.min_payment))}
               </SheetDescription>
             </SheetHeader>
 
             <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
               <span className="text-muted-foreground">{t('debts.detailSheet.currentBalance')}</span>
-              <span className="font-semibold">{eur.format(debt.balance)}</span>
+              <span className="font-semibold">{money.mask(eur.format(debt.balance))}</span>
             </div>
 
             <div className="mt-3 flex gap-2">
@@ -113,7 +115,7 @@ export function DebtDetailSheet({
                             {new Date(transaction.date).toLocaleDateString("de-DE")}
                           </span>
                         </span>
-                        <span className="shrink-0 font-semibold">{eur.format(Math.abs(transaction.amount))}</span>
+                        <span className="shrink-0 font-semibold">{money.mask(eur.format(Math.abs(transaction.amount)))}</span>
                       </label>
                     );
                   })}

@@ -16,6 +16,7 @@
 
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test-utils/render';
 import type { SankeyData } from '@/lib/analysis-data';
 import { SankeyChart } from '../SankeyChart';
@@ -61,5 +62,38 @@ describe('SankeyChart — Export-Schaltflächen', () => {
     // Gegenprobe: der Fix darf sie nicht ersatzlos entfernt haben.
     renderWithProviders(<SankeyChart data={DATA} />, { query: true });
     expect(screen.getByRole('button', { name: /PNG/i })).toBeInTheDocument();
+  });
+});
+
+describe('SankeyChart — Export auf beiden Plattformen (WP-8.3)', () => {
+  /**
+   * Befund der Paritäts-Durchsicht (AGENTS.md §4): Die Export-Reihe trug
+   * `hidden sm:flex` OHNE Gegenstück. Auf dem Telefon fehlte der Export damit
+   * ganz — das ist kein Dichte-Unterschied, sondern ein fehlendes Feature.
+   *
+   * jsdom wertet Media Queries nicht aus, beide Zweige stehen also gleichzeitig
+   * im Baum. Geprüft wird deshalb die Weiche selbst: dass es zur
+   * Desktop-Reihe ein `sm:hidden`-Gegenstück gibt und dass dieses zu denselben
+   * drei Aktionen führt.
+   */
+  it('[REGRESSION] sollte den Export auch auf schmalen Breiten erreichbar halten', async () => {
+    const user = userEvent.setup();
+    const { container } = renderWithProviders(<SankeyChart data={DATA} />, { query: true });
+
+    const desktopRow = container.querySelector('.hidden.sm\\:flex');
+    expect(desktopRow, 'Desktop-Reihe vorhanden').not.toBeNull();
+
+    const trigger = screen.getByRole('button', { name: 'Exportieren' });
+    expect(trigger.className).toContain('sm:hidden');
+
+    await user.click(trigger);
+
+    // Jetzt stehen die drei Wege doppelt im Baum (Desktop-Reihe + offenes
+    // Menue) — genau deshalb zaehlt dieser Test auf 2 statt auf 1. Waere das
+    // Gegenstueck eine zweite immer sichtbare Reihe, faellt der Test darueber
+    // oben („genau einmal") um.
+    expect(await screen.findAllByText(/PNG/i)).toHaveLength(2);
+    expect(screen.getAllByText(/JPEG/i)).toHaveLength(2);
+    expect(screen.getAllByText(/PDF/i)).toHaveLength(2);
   });
 });

@@ -204,7 +204,7 @@ export default function BudgetFormDialog({
           <div className="space-y-1.5">
             <Label htmlFor="budget-category">{t('budgets.formDialog.categoryLabel')}</Label>
             <Select value={categoryId} onValueChange={handleCategoryChange}>
-              <SelectTrigger id="budget-category">
+              <SelectTrigger id="budget-category" aria-label={t('budgets.formDialog.categoryLabel')}>
                 <SelectValue placeholder={t('budgets.formDialog.categoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -294,7 +294,7 @@ export default function BudgetFormDialog({
           <div className="space-y-1.5">
             <Label htmlFor="budget-period">{t('budgets.formDialog.periodLabel')}</Label>
             <Select value={period} onValueChange={(v) => setPeriod(v as BudgetPeriod)}>
-              <SelectTrigger id="budget-period">
+              <SelectTrigger id="budget-period" aria-label={t('budgets.formDialog.periodLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

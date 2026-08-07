@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { Check } from 'lucide-react';
 import { getUserSettings, updateUserSettings } from '@/services/transaction-service';
 import { SKINS, normalizeSkinId, type SkinId } from '@/skins/skins';
@@ -13,7 +14,14 @@ export function AppearanceSettings() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const { data: settings } = useQuery({
+  // WP-9.6: Ohne den Fehlerfall zeigt der Screen die Standardwerte, als
+  // waeren es die gespeicherten. Wer dann etwas umstellt, ueberschreibt seine
+  // echte Einstellung mit einer, die er nie gesehen hat.
+  const {
+    data: settings,
+    isError: settingsError,
+    refetch: refetchSettings,
+  } = useQuery({
     queryKey: ['userSettings'],
     queryFn: getUserSettings,
   });
@@ -33,6 +41,11 @@ export function AppearanceSettings() {
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {settingsError && (
+        <div className="xl:col-span-2">
+          <FinanceErrorState variant="data" onRetry={() => void refetchSettings()} />
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">{t('settings.appearance.title')}</CardTitle>

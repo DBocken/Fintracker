@@ -6,17 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { niceTicks, yAxisDomain } from '@/lib/chart-axis';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
 import {
   AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction } from '../types';
 import { CHART_EXPENSE, CHART_INCOME, CHART_NET } from '@/lib/chart-colors';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AdvancedBalanceChartProps {
   className?: string;
@@ -27,8 +31,9 @@ interface AdvancedBalanceChartProps {
 
 export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isLoading = false }: AdvancedBalanceChartProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -53,18 +58,15 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
 
   // Runde Achsen-Ticks statt Recharts-Interpolation (Befund D-1, WP-4.6-Review):
   // über alle drei geplotteten Serien, damit keine aus der Achse fällt.
-  const yTicks = useMemo(() => {
-    if (chartData.length === 0) return null;
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-    for (const point of chartData) {
-      for (const value of [point.income, point.expenses, point.cumulative]) {
-        if (value < min) min = value;
-        if (value > max) max = value;
-      }
-    }
-    return niceTicks(min, max, { includeZero: axisFromZero });
-  }, [chartData, axisFromZero]);
+  // WP-6.8: Die Rechnung dafür steht jetzt in `niceTicksForData` und gilt für
+  // alle Charts — vorher stand sie nur hier.
+  const yTicks = useMemo(
+    () =>
+      niceTicksForData(chartData, ['income', 'expenses', 'cumulative'], {
+        includeZero: axisFromZero,
+      }),
+    [chartData, axisFromZero],
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -84,18 +86,23 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
     setTempBalance(autoStartingBalance.toFixed(2));
   };
 
-  if (isLoading) {
-    return (
-      <Card className="card-premium">
-        <CardContent className="py-8 text-center">
-          <div className="animate-pulse">{t('balanceChart.loading')}</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // WP-7.3: Der Wechsel Ladezustand -> Inhalt laeuft ueber LoadingSwap statt
+  // ueber einen fruehen `return`. Damit gelten hier dieselben Regeln wie
+  // ueberall: kein Skeleton unter der Wahrnehmungsschwelle, und ein einmal
+  // gezeigtes bleibt lange genug, um gelesen zu werden.
   return (
-    <>
+    <LoadingSwap
+      loading={isLoading}
+      skeleton={
+        <Card className="card-premium">
+          <CardContent className="space-y-3 py-8">
+            <Skeleton variant="shimmer" className="h-6 w-48" />
+            <Skeleton variant="shimmer" className="h-72 w-full md:h-96" />
+            <span className="sr-only">{t('balanceChart.loading')}</span>
+          </CardContent>
+        </Card>
+      }
+    >
       <Card className="card-premium h-full">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -129,22 +136,56 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           <div className="mb-4 text-sm text-muted-foreground">
             {t('balanceChart.endBalance')}{' '}
             <span className="font-semibold text-foreground">
-              {gentleModeEnabled ? '***' : formatCurrency(endBalanceFromAccounts)}
+              {money.mask(formatCurrency(endBalanceFromAccounts))}
             </span>
             {' • '}{t('balanceChart.startingBalanceLabel')}{' '}
             <span className="font-semibold text-foreground">
-              {gentleModeEnabled ? '***' : formatCurrency(effectiveStartingBalance)}
+              {money.mask(formatCurrency(effectiveStartingBalance))}
             </span>
             {chartData.length > 0 && (
               <>
                 {' • '}{t('balanceChart.currentBalance')}{' '}
                 <span className="font-semibold text-foreground">
-                  {gentleModeEnabled ? '***' : formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0)}
+                  {money.mask(formatCurrency(chartData[chartData.length - 1]?.cumulative ?? 0))}
                 </span>
               </>
             )}
           </div>
 
+          {/* WP-6.10: Das SVG ist für Hilfstechnik ausgeblendet; Aussage und
+              Werte stehen als Satz und als Tabelle daneben. */}
+          <ChartFigure
+            caption={t('balanceChart.title')}
+            summary={seriesSummary({
+              title: t('balanceChart.title'),
+              values: chartData.map((point) => point.cumulative),
+              formatValue: (value) => (money.mask(formatCurrency(value))),
+              labelAt: (index) => chartData[index]?.label ?? '',
+            })}
+            columns={[
+              { key: 'label', label: t('balanceChart.dateColumn'), format: (row) => row.label },
+              {
+                key: 'income',
+                label: t('balanceChart.income'),
+                numeric: true,
+                format: (row) => (money.mask(formatCurrency(row.income))),
+              },
+              {
+                key: 'expenses',
+                label: t('balanceChart.expenses'),
+                numeric: true,
+                format: (row) => (money.mask(formatCurrency(row.expenses))),
+              },
+              {
+                key: 'cumulative',
+                label: t('balanceChart.balance'),
+                numeric: true,
+                format: (row) => (money.mask(formatCurrency(row.cumulative))),
+              },
+            ]}
+            rows={chartData}
+            rowKey={(row, index) => `${row.label}-${index}`}
+          >
           <div className="h-72 md:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
@@ -173,27 +214,22 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 interval="preserveStartEnd"
               />
               <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                width={64}
-                ticks={yTicks ?? undefined}
-                domain={yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : yAxisDomain({ includeZero: axisFromZero })}
-                tickFormatter={(value) => gentleModeEnabled ? '••' : `${(value as number).toFixed(0)} €`}
+                {...valueAxisProps({
+                  ticks: yTicks,
+                  width: 64,
+                  tickFormatter: (value) => money.mask(`${value.toFixed(0)} €`),
+                })}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 'var(--radius)'
-                }}
-                formatter={(value, name) => [
-                  gentleModeEnabled ? '***' : `${chartNumber(value).toFixed(2)}€`,
-                  name === 'income' ? t('balanceChart.income') :
-                  name === 'expenses' ? t('balanceChart.expenses') : t('balanceChart.balance')
-                ]}
-                labelFormatter={(label) => t('balanceChart.dateLabel').replace('{label}', chartText(label))}
+                {...chartTooltipProps({
+                  formatValue: (value) => money.mask(`${value.toFixed(2)}€`),
+                  formatLabel: (label) => t('balanceChart.dateLabel').replace('{label}', label),
+                  seriesLabels: {
+                    income: t('balanceChart.income'),
+                    expenses: t('balanceChart.expenses'),
+                    balance: t('balanceChart.balance'),
+                  },
+                })}
               />
               <Legend
                 wrapperStyle={{ paddingTop: '20px' }}
@@ -249,6 +285,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
             </AreaChart>
           </ResponsiveContainer>
           </div>
+          </ChartFigure>
 
           {chartData.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
@@ -284,7 +321,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
                 variant="outline"
                 className="w-full btn-secondary-premium"
               >
-                {t('balanceChart.calculateFromBalance').replace('{amount}', gentleModeEnabled ? '***' : formatCurrency(autoStartingBalance))}
+                {t('balanceChart.calculateFromBalance').replace('{amount}', money.mask(formatCurrency(autoStartingBalance)))}
               </Button>
             </div>
 
@@ -308,6 +345,6 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </LoadingSwap>
   );
 }

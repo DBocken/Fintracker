@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/services/household-service";
 import type { Transaction } from "@/types";
 import { parseGermanNumber } from "@/lib/money";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
 // Zentraler Parser (money.ts): korrekter Tausenderpunkt (F-MONEY-1/-6).
@@ -30,13 +32,23 @@ const parseAmount = (v: string) => parseGermanNumber(v) ?? 0;
  * Mitglied (Default gleichmäßig) → speichern/entfernen.
  */
 export function HouseholdSplitPanel({ transaction }: { transaction: Transaction }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const qc = useQueryClient();
   const txId = transaction.id ?? "";
   const total = Math.abs(transaction.amount);
 
-  const { data: households = [] } = useQuery({ queryKey: ["households"], queryFn: getHouseholds });
-  const { data: existing } = useQuery({
+  const {
+    data: households = [],
+    isError: householdsError,
+    refetch: refetchHouseholds,
+  } = useQuery({ queryKey: ["households"], queryFn: getHouseholds });
+
+  const {
+    data: existing,
+    isError: existingError,
+    refetch: refetchExisting,
+  } = useQuery({
     queryKey: ["shared-split", txId],
     queryFn: () => getSharedExpenseSplit(txId),
     enabled: !!txId,
@@ -47,11 +59,22 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
     if (existing?.household_id) setHouseholdId(existing.household_id);
   }, [existing]);
 
-  const { data: members = [] } = useQuery({
+  const {
+    data: members = [],
+    isError: membersError,
+    refetch: refetchMembers,
+  } = useQuery({
     queryKey: ["household-members", householdId],
     queryFn: () => getHouseholdMembers(householdId),
     enabled: !!householdId,
   });
+
+  const hasLoadError = householdsError || existingError || membersError;
+  const retryAll = () => {
+    void refetchHouseholds();
+    void refetchExisting();
+    void refetchMembers();
+  };
 
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -98,6 +121,10 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
     },
   });
 
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
+
   if (households.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
@@ -114,7 +141,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
       <label className="block">
         <span className="mb-1 block text-xs text-muted-foreground">{t("household.householdLabel")}</span>
         <Select value={householdId} onValueChange={setHouseholdId}>
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9" aria-label={t("household.householdLabel")}>
             <SelectValue placeholder={t("household.selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
@@ -153,7 +180,7 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
           <div className={`flex justify-between text-xs ${balanced ? "text-muted-foreground" : "text-warning"}`}>
             <span>{t("household.sumLabel")}</span>
             <span className="tabular-nums">
-              {eur.format(sum)} / {eur.format(total)}
+              {money.mask(eur.format(sum))} / {money.mask(eur.format(total))}
             </span>
           </div>
 

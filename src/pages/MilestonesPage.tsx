@@ -6,10 +6,11 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { evaluateMilestones } from "@/services/milestones-service";
 import { useI18n } from "@/i18n/useI18n";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 
 export default function MilestonesPage() {
   const { t, locale } = useI18n();
-  const { data: milestones, isLoading } = useQuery({
+  const { data: milestones, isLoading, isError, refetch } = useQuery({
     queryKey: ["milestones", locale],
     queryFn: evaluateMilestones,
   });
@@ -31,6 +32,8 @@ export default function MilestonesPage() {
           <Skeleton variant="shimmer" className="h-24 w-full" />
           <Skeleton variant="shimmer" className="h-64 w-full" />
         </div>
+      ) : isError ? (
+        <FinanceErrorState onRetry={() => void refetch()} />
       ) : milestones ? (
         <div className="mx-auto max-w-2xl space-y-6">
           {/* Fortschritts-Readout ohne Karte (Usability-Audit „Karten sind
@@ -47,7 +50,7 @@ export default function MilestonesPage() {
               </div>
               <div className="text-2xl font-semibold tabular-nums text-primary">{pct}%</div>
             </div>
-            <Progress value={pct} className="mt-3" />
+            <Progress value={pct} className="mt-3" aria-label={t("milestones.achieved")} />
           </div>
 
           {/* Fortschrittspfad */}

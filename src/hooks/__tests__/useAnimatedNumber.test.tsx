@@ -13,6 +13,55 @@ afterEach(() => {
 });
 
 describe("useAnimatedNumber", () => {
+  describe("animateOnMount (WP-6.9)", () => {
+    it("sollte standardmaessig beim ersten Rendern bei 0 beginnen", () => {
+      // Bisheriges Verhalten, auf das Budget-Tank und Health-Score bauen.
+      const { result } = renderHook(() => useAnimatedNumber(500));
+      expect(result.current).toBe(0);
+    });
+
+    it("sollte mit animateOnMount=false sofort den Zielwert zeigen", () => {
+      // Fuer Kennzahlen, die nur BEI EINER AENDERUNG zaehlen sollen: der
+      // Aufbau ist dort schon anderweitig erzaehlt (die Charts daneben bauen
+      // sich ohnehin auf), ein zweiter Zaehler waere Doppelung.
+      const { result } = renderHook(() => useAnimatedNumber(500, { animateOnMount: false }));
+      expect(result.current).toBe(500);
+    });
+
+    it("sollte mit animateOnMount=false bei einer Aenderung trotzdem zaehlen", () => {
+      // Gegenprobe: ohne sie waere "false" von "Animation ganz aus" nicht zu
+      // unterscheiden — und WP-6.9 haette gar nichts bewirkt.
+      let now = 1000;
+      const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => now);
+      const rafSpy = vi
+        .spyOn(globalThis, "requestAnimationFrame")
+        .mockImplementation(() => 0);
+      try {
+        const { result, rerender } = renderHook(
+          ({ target }) => useAnimatedNumber(target, { animateOnMount: false }),
+          { initialProps: { target: 500 } },
+        );
+        expect(result.current).toBe(500);
+
+        rerender({ target: 900 });
+        // Der Tween laeuft (rAF ist gestubbt und liefert keinen Frame), der
+        // Wert steht also noch auf dem Ausgangspunkt statt auf dem Ziel.
+        expect(result.current).toBe(500);
+        expect(rafSpy).toHaveBeenCalled();
+      } finally {
+        rafSpy.mockRestore();
+        nowSpy.mockRestore();
+      }
+    });
+
+    it("sollte animateOnMount=false bei reduced-motion nicht widersprechen", () => {
+      reduceMock.mockReturnValue(true);
+      const { result } = renderHook(() => useAnimatedNumber(500, { animateOnMount: false }));
+      expect(result.current).toBe(500);
+    });
+  });
+
+
   describe("Normal Behavior", () => {
     // rAF/performance.now deterministisch stubben statt auf echte Frames zu
     // warten — sonst feuert rAF in headless-CI throttled und der finale Frame

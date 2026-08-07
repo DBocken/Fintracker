@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { Slider } from '@/components/ui/slider';
 import { Clock } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
@@ -17,17 +17,21 @@ export function TimeRangeSettings({ retentionMonths, onRetentionChange }: TimeRa
     return t('settings.timeRange.years').replace('{years}', String(months / 12));
   };
 
+  // WP-8.1: karten-los (AGENTS.md Paragraf 9). Der Rahmen versprach eine
+  // Aktion auf der ganzen Flaeche, die es nie gab — bedienbar war nur der
+  // Schieberegler.
   return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+    <InfoGroup
+      title={
+        <span className="flex items-center gap-2">
+          <Clock className="h-4 w-4" />
           {t('settings.timeRange.title')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </span>
+      }
+    >
         <div className="space-y-2">
           <Slider
+            aria-label={t('settings.timeRange.title')}
             value={[retentionMonths]}
             onValueChange={([value]: number[]) => onRetentionChange(value)}
             min={1}
@@ -38,7 +42,6 @@ export function TimeRangeSettings({ retentionMonths, onRetentionChange }: TimeRa
             {getRetentionLabel(retentionMonths)}
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </InfoGroup>
   );
 }

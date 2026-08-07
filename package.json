@@ -20,6 +20,11 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:i18n-module-consts": "node scripts/check-i18n-module-consts.mjs",
     "check:test-structure": "node scripts/check-test-structure.mjs",
+    "check:card-rule": "node scripts/check-card-rule.mjs",
+    "check:platform-parity": "node scripts/check-platform-parity.mjs",
+    "check:query-errors": "node scripts/check-query-errors.mjs",
+    "check:a11y-names": "node scripts/check-a11y-names.mjs",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },
   "dependencies": {
@@ -72,7 +77,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.395.0",
     "papaparse": "^5.5.3",
-    "pdfjs-dist": "^6.0.227",
+    "pdfjs-dist": "^6.2.108",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -118,7 +123,7 @@
       "undici": ">=7.29.0 <8",
       "dompurify": ">=3.4.12 <4",
       "tar@>=7 <8": ">=7.5.21 <8",
-      "js-yaml@>=4 <5": ">=4.3.0 <5",
+      "js-yaml@>=4 <5": ">=4.3.1 <5",
       "postcss@>=8 <9": ">=8.5.23 <9",
       "brace-expansion@>=1 <2": ">=1.1.18 <2",
       "brace-expansion@>=5 <6": ">=5.0.9 <6"

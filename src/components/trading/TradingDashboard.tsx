@@ -53,13 +53,17 @@ import EtoroNewsTab, { type EtoroNewsFilter } from './EtoroNewsTab';
 import EtoroDiscoverTab, { type EtoroDiscoverInstrumentOption } from './EtoroDiscoverTab';
 import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PositionTable from './PositionTable';
 import PortfolioManager from './PortfolioManager';
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import EtoroConnectDialog from './EtoroConnectDialog';
 import AddPositionDialog from './AddPositionDialog';
 import OcrImportDialog from './OcrImportDialog';
@@ -72,7 +76,6 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2,
   Upload,
   Shield,
   FileText,
@@ -115,7 +118,12 @@ export default function TradingDashboard() {
   }, [preferredProvider]);
 
   // Initialize demo portfolio if none exists
-  const { data: hasInitialized, isLoading: isInitializing } = useQuery({
+  const {
+    data: hasInitialized,
+    isLoading: isInitializing,
+    isError: initializationError,
+    refetch: refetchInitialization,
+  } = useQuery({
     queryKey: ['portfolio-initialization'],
     queryFn: async () => {
       const portfolio = await initializeDemoPortfolio();
@@ -125,7 +133,12 @@ export default function TradingDashboard() {
   });
 
   // Get active portfolio
-  const { data: portfolio, isLoading: isLoadingPortfolio } = useQuery({
+  const {
+    data: portfolio,
+    isLoading: isLoadingPortfolio,
+    isError: portfolioError,
+    refetch: refetchPortfolio,
+  } = useQuery({
     queryKey: ['active-portfolio'],
     queryFn: getActivePortfolio,
     enabled: !!hasInitialized,
@@ -139,14 +152,23 @@ export default function TradingDashboard() {
   }, [portfolio]);
 
   // Get positions for active portfolio
-  const { data: positions, isLoading: isLoadingPositions } = useQuery({
+  const {
+    data: positions,
+    isLoading: isLoadingPositions,
+    isError: positionsError,
+    refetch: refetchPositions,
+  } = useQuery({
     queryKey: ['portfolio-positions', activePortfolio?.id],
     queryFn: () => getPositions(activePortfolio!.id),
     enabled: !!activePortfolio?.id,
   });
 
   // Get portfolio summary
-  const { data: summary } = useQuery({
+  const {
+    data: summary,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ['portfolio-summary', activePortfolio?.id],
     queryFn: () => getPortfolioSummary(activePortfolio!.id),
     enabled: !!activePortfolio?.id,
@@ -787,11 +809,48 @@ export default function TradingDashboard() {
     return data;
   };
 
+  // WP-9.6: Depot, Positionen und Kennzahlen sind Bestandsdaten. Faellt ihr
+  // Lesevorgang aus, zeigt der Fallback ein LEERES Depot — „du besitzt nichts"
+  // ist hier die teuerste Falschaussage der App. Eine Aussage fuer alle vier
+  // Abfragen: Sie haben dieselbe Quelle, vier Meldungen waeren vier Raetsel.
+  //
+  // Die eToro-Zusatzabfragen weiter unten stehen bewusst NICHT hier: Ihre
+  // `queryFn` faengt den Fehler selbst ab und liefert eine dokumentierte
+  // Ersatzantwort (leere Map, Anzeige faellt auf „Instrument #<id>" zurueck).
+  // Sie koennen den Fehlerzustand gar nicht erreichen.
+  const hasLoadError = initializationError || portfolioError || positionsError || summaryError;
+  const retryAll = () => {
+    void refetchInitialization();
+    void refetchPortfolio();
+    void refetchPositions();
+    void refetchSummary();
+  };
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
+
   if (isInitializing || isLoadingPortfolio) {
+    // WP-8.4: Choreografie aus WP-7.3. Der Platzhalter zeichnet vor, was
+    // kommt — Kopfzeile, Kennzahlenreihe, Positionsliste — statt nur zu
+    // sagen, dass etwas passiert.
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div data-testid="trading-dashboard-skeleton" className="space-y-6">
+            <Skeleton variant="shimmer" className="h-8 w-56" />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} variant="shimmer" className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+            <Skeleton variant="shimmer" className="h-64 w-full rounded-lg" />
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 
@@ -1181,9 +1240,20 @@ export default function TradingDashboard() {
 
         <TabsContent value="positions" className="space-y-4">
           {isLoadingPositions ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            // WP-8.4: Zeilen in der Form der Positionstabelle statt eines
+            // kreisenden Symbols.
+            <LoadingSwap
+              loading
+              skeleton={
+                <div data-testid="trading-positions-skeleton" className="space-y-2">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} variant="shimmer" className="h-12 w-full" />
+                  ))}
+                </div>
+              }
+            >
+              {null}
+            </LoadingSwap>
           ) : (
             <PositionTable
               positions={positions || []}
@@ -1211,16 +1281,31 @@ export default function TradingDashboard() {
                 <CardTitle>{t('trading.dashboard.performanceChart.title')}</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* WP-6.10: Werte auch ohne Diagramm zugaenglich. */}
+                <ChartFigure
+                  caption={t('trading.dashboard.performanceChart.valueLabel')}
+                  columns={[
+                    { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => row.date },
+                    {
+                      key: 'value',
+                      label: t('trading.dashboard.performanceChart.valueLabel'),
+                      numeric: true,
+                      format: (row) => formatCurrency(row.value, 'EUR'),
+                    },
+                  ]}
+                  rows={generatePerformanceData()}
+                  rowKey={(row, index) => `${row.date}-${index}`}
+                >
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={generatePerformanceData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value) => [
-                        formatCurrency(chartNumber(value), 'EUR'),
-                        t('trading.dashboard.performanceChart.valueLabel')
-                      ]}
+                      {...chartTooltipProps({
+                        formatValue: (value) => formatCurrency(value, 'EUR'),
+                        seriesLabels: { value: t('trading.dashboard.performanceChart.valueLabel') },
+                      })}
                     />
                     <Line
                       type="monotone"
@@ -1234,6 +1319,7 @@ export default function TradingDashboard() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                </ChartFigure>
                 <p className="text-xs text-muted-foreground mt-4 text-center">
                   {t('trading.dashboard.performanceChart.disclaimer')}
                 </p>

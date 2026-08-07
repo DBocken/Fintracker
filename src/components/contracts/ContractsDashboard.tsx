@@ -26,8 +26,11 @@ import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "./contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -36,17 +39,29 @@ function euro(n: number) {
 export function ContractsDashboard() {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "contracts"],
     queryFn: () => getTransactions(2000),
   });
 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
 
-  const { data: decisions = new Map<string, ContractDecision>() } = useQuery({
+  const {
+    data: decisions = new Map<string, ContractDecision>(),
+    isError: decisionsError,
+    refetch: refetchDecisions,
+  } = useQuery({
     queryKey: ["contract-decisions"],
     queryFn: getContractDecisionMap,
   });
@@ -179,6 +194,14 @@ export function ContractsDashboard() {
     return data;
   }, [totalsIncome, totalsExpenses]);
 
+  // WP-6.8: Runde Achsenwerte über alle drei geplotteten Serien, damit keine
+  // aus der Achse fällt. Die Nulllinie ist hier Pflicht — Ausgaben sind negativ
+  // und der Chart trägt eine ReferenceLine bei 0.
+  const contractsYTicks = useMemo(
+    () => niceTicksForData(chartData, ["income", "expenses", "net"], { includeZero: true }),
+    [chartData],
+  );
+
   const openDetail = (row: ContractRow) => {
     setDetailRow(row);
     setDetailOpen(true);
@@ -247,6 +270,13 @@ export function ContractsDashboard() {
     </TableHeader>
   );
 
+  const hasLoadError = transactionsError || categoriesError || decisionsError;
+  const retryAll = () => {
+    void refetchTransactions();
+    void refetchCategories();
+    void refetchDecisions();
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -257,6 +287,8 @@ export function ContractsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
+
           <div className="mb-4 space-y-3 rounded-lg border bg-muted p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -269,7 +301,7 @@ export function ContractsDashboard() {
               </div>
             </div>
             <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
-              <SelectTrigger className="h-10 w-full sm:w-64"><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-64" aria-label={t("contracts.viewPlaceholder")}><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
                 <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>
@@ -290,13 +322,31 @@ export function ContractsDashboard() {
               </div>
             }
           >
-            <div className="w-full h-64 mb-4 rounded-lg border bg-card">
+            {/* WP-6.10: nicht-visuelle Entsprechung des Vertragsverlaufs. */}
+            <ChartFigure
+              className="mb-4"
+              caption={t("contracts.chartCaption", "Verlauf von Vertraegen und Einnahmen")}
+              columns={[
+                { key: "label", label: t("income.monthColumn"), format: (row) => row.label },
+                { key: "income", label: t("contracts.chartIncomeLabel"), numeric: true, format: (row) => euro(row.income) },
+                { key: "expenses", label: t("contracts.chartExpenseLabel"), numeric: true, format: (row) => euro(row.expenses) },
+                { key: "net", label: t("contracts.chartNetLabel"), numeric: true, format: (row) => euro(row.net) },
+              ]}
+              rows={chartData}
+              rowKey={(row) => row.label}
+            >
+            <div className="w-full h-64 rounded-lg border bg-card">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" />
-                  <YAxis tickFormatter={(v: number) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 })} />
-                  <Tooltip formatter={(value) => euro(chartNumber(value))} />
+                  <YAxis
+                    {...valueAxisProps({
+                      ticks: contractsYTicks,
+                      tickFormatter: (v) => v.toLocaleString("de-DE", { maximumFractionDigits: 0 }),
+                    })}
+                  />
+                  <Tooltip {...chartTooltipProps({ formatValue: (value) => euro(value) })} />
                   <Legend />
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
                   <Area
@@ -335,6 +385,7 @@ export function ContractsDashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            </ChartFigure>
           </FeatureGate>
 
           <ContractSuggestionsBanner rows={candidateRows} />

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, UserPlus, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import {
   getHouseholds,
   getHouseholdMembers,
@@ -25,14 +26,28 @@ export function HouseholdSettings() {
   const [householdName, setHouseholdName] = useState('');
   const [memberName, setMemberName] = useState('');
 
-  const { data: households = [] } = useQuery({ queryKey: ['households'], queryFn: getHouseholds });
+  const {
+    data: households = [],
+    isError: householdsError,
+    refetch: refetchHouseholds,
+  } = useQuery({ queryKey: ['households'], queryFn: getHouseholds });
   const household = households[0] ?? null;
 
-  const { data: members = [] } = useQuery({
+  const {
+    data: members = [],
+    isError: membersError,
+    refetch: refetchMembers,
+  } = useQuery({
     queryKey: ['household-members', household?.id],
     queryFn: () => getHouseholdMembers(household?.id),
     enabled: !!household,
   });
+
+  const hasLoadError = householdsError || membersError;
+  const retryAll = () => {
+    void refetchHouseholds();
+    void refetchMembers();
+  };
 
   const createHousehold = useMutation({
     mutationFn: (name: string) => upsertHousehold({ name }),
@@ -72,6 +87,7 @@ export function HouseholdSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
         {!household ? (
           <form
             className="flex gap-2"
@@ -112,6 +128,7 @@ export function HouseholdSettings() {
                     size="sm"
                     className="text-warning hover:text-warning"
                     onClick={() => removeMember.mutate(member.id)}
+                    aria-label={t('householdSettings.removeMemberLabel').replace('{name}', member.name)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

@@ -1,0 +1,4 @@
+{
+  "_comment": "Phase-8-Backlog: Dateien mit Karten-Chrome ohne Klick-Aktion, entstanden vor WP-8.0. Jede Screen-Migration streicht ihre Eintraege. Neue Eintraege gehoeren NICHT hierher — dann ist der Code zu aendern, nicht die Liste. Erzeugt mit pnpm check:card-rule --update.",
+  "files": []
+}

@@ -46,6 +46,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
 
@@ -78,7 +81,12 @@ export function BackupManager() {
   const [foreignPending, setForeignPending] = useState<BackupData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: backupInfo, isLoading: isLoadingInfo } = useQuery({
+  const {
+    data: backupInfo,
+    isLoading: isLoadingInfo,
+    isError: backupInfoError,
+    refetch: refetchBackupInfo,
+  } = useQuery({
     queryKey: ['backup-info'],
     queryFn: () => backupService.getBackupInfo(),
     refetchInterval: false,
@@ -187,10 +195,27 @@ export function BackupManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {backupInfoError && <FinanceErrorState variant="data" onRetry={() => void refetchBackupInfo()} />}
           {isLoadingInfo ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            // WP-8.4: Choreografie aus WP-7.3 statt eines kreisenden Symbols.
+            // Der Platzhalter hat die Form der spaeteren Kennzahlen-Kacheln —
+            // dieselbe Anzahl, dieselbe Rasterung, deshalb springt beim
+            // Umschalten nichts.
+            <LoadingSwap
+              loading
+              skeleton={
+                <div
+                  data-testid="backup-info-skeleton"
+                  className="grid grid-cols-2 gap-4 md:grid-cols-4"
+                >
+                  {[0, 1, 2, 3].map((i) => (
+                    <Skeleton key={i} variant="shimmer" className="h-24 w-full rounded-lg" />
+                  ))}
+                </div>
+              }
+            >
+              {null}
+            </LoadingSwap>
           ) : backupInfo ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-lg bg-card space-y-2">

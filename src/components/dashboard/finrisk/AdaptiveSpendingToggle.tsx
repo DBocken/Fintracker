@@ -30,7 +30,11 @@ export default function AdaptiveSpendingToggle({
   const { t } = useI18n();
 
   return (
-    <div className="rounded-xl border bg-card p-3 sm:p-4">
+    // WP-8.1: Karten-Chrome entfernt (AGENTS.md Paragraf 9). Bedienbar sind
+    // Beschriftung und Schalter, nicht die Flaeche — der Rahmen mit
+    // Kartenhintergrund versprach mehr, als er einloest. Die Abgrenzung
+    // uebernimmt eine ruhige Trennlinie.
+    <div className="border-t py-3 first:border-t-0 first:pt-0 sm:py-4">
       <div className="flex items-center justify-between gap-3">
         <label htmlFor="liq-discipline" className="flex cursor-pointer items-start gap-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--brand))]" />

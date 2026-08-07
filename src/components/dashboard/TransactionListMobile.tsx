@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account, Category, Transaction } from '../../types';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import ListRow from '@/components/common/ListRow';
 
 interface TransactionListMobileProps {
@@ -44,7 +44,7 @@ export function TransactionListMobile({
   onOpenDetails,
 }: TransactionListMobileProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -80,7 +80,7 @@ export function TransactionListMobile({
             {group.items.map((transaction) => {
               const rowId = transaction.id || '';
               const hidden = hiddenTransactions.has(rowId);
-              const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
+              const amountLabel = money.mask(currencyFormatter.format(transaction.amount));
               const payee = transaction.payee || transaction.description || '–';
 
               // Blattkategorie (Unterkategorie bevorzugt) für Icon + Name auflösen.

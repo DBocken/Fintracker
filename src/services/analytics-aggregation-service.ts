@@ -1,5 +1,6 @@
 import type { Category, Transaction } from '@/types';
 import { getCategories, getTransactions } from './transaction-service';
+import { sumMinor, toMajor, toMinor } from '@/lib/money';
 
 export type AnalyticsAggregationRecord = {
   schema_version: 1;
@@ -54,7 +55,12 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
   const [transactions, categories] = await Promise.all([getTransactions(10000), getCategories()]);
   const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
   const expenses = transactions.filter((tx) => Number(tx.amount) < 0);
-  const totalExpenses = expenses.reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
+  // AGENTS.md §8: Aggregation in Integer-Cent, nicht in Float-Euro. Vorher
+  // summierte diese Funktion Floats und rundete das Ergebnis mit `toFixed(2)`
+  // zurecht — die Rundung versteckt den Fehler, sie behebt ihn nicht. Bei 500
+  // Buchungen liegt die Drift zuverlaessig im Cent-Bereich, und diese Zahlen
+  // gehen als Kennzahlen aus dem Haus (Phase 11).
+  const totalExpensesMinor = sumMinor(expenses.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0))));
   const buckets = new Map<string, Transaction[]>();
 
   for (const tx of expenses) {
@@ -75,16 +81,21 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
     }
 
     const [period, categoryGroup] = key.split('|');
-    const expenseSum = rows.reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
+    const expenseSumMinor = sumMinor(rows.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0))));
     records.push({
       schema_version: 1,
       period,
       dimensions: { category_group: categoryGroup },
       measures: {
-        expense_sum: Number(expenseSum.toFixed(2)),
-        expense_average: Number((expenseSum / rows.length).toFixed(2)),
+        // `toMajor` ist der Uebergang zur Anzeige-/Exportform — hier endet die
+        // Cent-Rechnung, sie beginnt nicht erst danach.
+        expense_sum: toMajor(expenseSumMinor),
+        expense_average: toMajor(Math.round(expenseSumMinor / rows.length)),
         transaction_count: rows.length,
-        category_share_of_expenses: totalExpenses > 0 ? Number((expenseSum / totalExpenses).toFixed(4)) : 0,
+        // Ein Anteil ist kein Geldbetrag: Er wird aus den Cent-Summen
+        // gebildet (exakt) und erst zur Ausgabe auf vier Stellen gekuerzt.
+        category_share_of_expenses:
+          totalExpensesMinor > 0 ? Number((expenseSumMinor / totalExpensesMinor).toFixed(4)) : 0,
       },
       cohort_size: rows.length,
       generated_at: generatedAt,

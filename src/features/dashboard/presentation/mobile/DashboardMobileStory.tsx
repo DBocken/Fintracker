@@ -13,16 +13,20 @@ import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 import type { FinanceOverviewViewModel } from "../../application/finance-overview-view-model";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
-const VIEWS: { key: StoryView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "verlauf", label: "Verlauf", icon: Activity },
-  { key: "fluss", label: "Fluss", icon: Waypoints },
-  { key: "kategorien", label: "Kategorien", icon: PieChart },
-  { key: "landschaft", label: "Landschaft", icon: Mountain },
-  { key: "ausgaben", label: "Ausgaben", icon: Wallet },
-  { key: "konten", label: "Konten", icon: CreditCard },
+// `labelKey` statt `label`: Eine Modul-Konstante mit fertigem Text friert die
+// Sprache beim Import ein (AGENTS.md Paragraf 6). Aufgeloest wird erst beim
+// Rendern.
+const VIEWS: { key: StoryView; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "verlauf", labelKey: "common.storyHistory", icon: Activity },
+  { key: "fluss", labelKey: "common.storyFlow", icon: Waypoints },
+  { key: "kategorien", labelKey: "common.categoriesLabel", icon: PieChart },
+  { key: "landschaft", labelKey: "common.storyLandscape", icon: Mountain },
+  { key: "ausgaben", labelKey: "common.storyExpenses", icon: Wallet },
+  { key: "konten", labelKey: "common.storyAccounts", icon: CreditCard },
 ];
 
 const isStoryView = (value: string | null): value is StoryView =>
@@ -42,9 +46,12 @@ export function resolveSwipeTarget(
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
 function LandscapeView() {
   const { t, locale } = useI18n();
-  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
+  const { data: health, isLoading, isError, refetch } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
   if (isLoading) {
     return <div className="h-40 animate-pulse rounded-xl bg-muted" aria-busy />;
+  }
+  if (isError) {
+    return <FinanceErrorState variant="data" onRetry={() => void refetch()} />;
   }
   if (!health || health.subScores.length === 0) {
     return (
@@ -130,7 +137,7 @@ export default function DashboardMobileStory({ className, model }: Props) {
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="truncate">{v.label}</span>
+              <span className="truncate">{t(v.labelKey)}</span>
             </button>
           );
         })}

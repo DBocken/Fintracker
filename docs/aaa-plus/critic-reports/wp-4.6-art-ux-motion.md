@@ -144,3 +144,95 @@ erreicht 2** und liegt damit unter dem Mindestwert der Kategorie (3, §11).
   Linear. Ich habe deren Oberflächen nicht vorliegen, nur ihre Beschreibung.
   Ein „blinder A/B-Vergleich" gegen eine Beschreibung ist kein blinder
   Vergleich.
+
+---
+
+# Addendum 2026-08-06 — Neubewertung nach den Korrekturen
+
+> Ergänzt das Review oben, ersetzt es nicht. Grundlage: die am 2026-08-06
+> erneuerten Linux-Baselines (1440/768/375) sowie eine **Videoaufzeichnung**
+> der drei Slice-Übergänge in Echtzeit (`e2e-tests/motion-review.spec.ts`,
+> ausgewertet als 4-fps-Frames). Damit ist erstmals auch der Motion-Teil
+> beurteilbar — aus statischen PNGs war er es grundsätzlich nicht.
+
+## Visuelle Hierarchie: 2/5 → 4/5
+
+Der Blocker war Befund A-1: dieselbe Zahl drei- bis viermal, die dominante
+Kennzahl in Konkurrenz zu einer identischen direkt darunter.
+
+Was die Frames jetzt zeigen (Dashboard, 1280 px):
+
+- **Eine** dominante Zahl — „Aktueller Kontostand 2.781,74 €", groß, farblich
+  abgesetzt, mit erklärendem Untertitel. Nichts daneben tritt in Konkurrenz.
+- Die Zeitraum-Größen (Einnahmen, Ausgaben, Übrig geblieben, Transaktionen)
+  stehen deutlich kleiner in einer Kennzahlenzeile darunter. Sie sind
+  vorhanden und lesbar, aber sie ordnen sich unter.
+- Die Abstufung ist über drei Ebenen durchgehalten: Hero → Kennzahlenzeile →
+  Karten. Ein Blick genügt, um die Hauptaussage zu finden.
+
+**Kein 5/5**, weil die Kennzahlenzeile vier gleichgewichtige Größen
+nebeneinanderstellt. Welche davon die zweitwichtigste ist, sagt die
+Gestaltung nicht — das ist eine offene Frage für Phase 8, keine für dieses
+Gate.
+
+## Art Direction: 3/5 → 4/5
+
+Die beiden Abzüge sind weg:
+
+- **A-3** (Flächenverschwendung): „Zur Finanzstadt" trägt jetzt eine
+  Vorschauzeile („Deine Ausgaben als Stadt — 10 Viertel") und eine
+  Stimmungsfarbe. Der Streifen sagt etwas, statt nur Platz zu belegen.
+- **A-2** (Hinweisdichte): Auf den Frames steht zu jedem Zeitpunkt höchstens
+  **eine** aufschiebbare Hinweisebene. Der Demodaten-Banner ist die zweite,
+  aber bewusst — Datenherkunft ist Integritätsanzeige, keine aufschiebbare
+  Meta-Kommunikation.
+
+## Datenvisualisierung: 3/5 → 4/5
+
+- **D-1** (krumme Achsen) ist behoben und seit WP-6.8 nicht mehr nur im
+  Kontostand-Verlauf, sondern auf **allen** Achsen.
+- Neu hinzugekommen: die Prognose zeigt Unsicherheit als diffuse Wolke statt
+  als harte Bandkante (WP-6.1) und dünnt zum Horizont hin aus (WP-6.2). Beide
+  korrigieren eine inhaltliche Fehlaussage — die bisherige Darstellung
+  versprach mehr Sicherheit, als die Simulation hergibt.
+- Jede Visualisierung hat eine nicht-visuelle Entsprechung (WP-6.10).
+
+**Kein 5/5**, weil Sankey (WP-6.3) und Vermögen (WP-6.4) noch nicht
+überarbeitet sind.
+
+## Motion: erstmals beurteilbar — 3/5
+
+Ausgewertet wurden die Frames um die drei Übergänge:
+
+| Übergang | Befund |
+|---|---|
+| Coach → Dashboard | Der Aufbau ist als Aufbau erkennbar: die Kennzahlen stehen nicht sofort, die Karten erscheinen gestaffelt. Kein Aufpoppen. |
+| Dashboard → Stadt | Der Signature Moment („Das ist Ihre finanzielle Welt.") liegt über der noch entstehenden Stadt; die Distrikte bauen sich sichtbar auf, statt fertig dazustehen. Objektkontinuität über den Routenwechsel ist gegeben. |
+| Budget-Detail auf/zu | Öffnen und Schließen laufen symmetrisch; das Schließen per Escape bricht sauber ab und lässt keinen Zwischenzustand stehen. |
+
+**Kein 4/5 oder mehr**, aus einem methodischen Grund: Eine Aufzeichnung mit
+4 fps belegt, **dass** etwas aufgebaut wird, aber nicht, ob das Timing gut
+gewählt ist. Ob 600 ms für den Stadtaufbau richtig sind oder 450 besser
+wären, ist aus Einzelbildern nicht zu entscheiden. Das bleibt ein
+menschliches Urteil.
+
+## Bewertung nach der Rubrik (Stand 2026-08-06)
+
+| Kategorie | vorher | jetzt |
+|---|---|---|
+| Visuelle Hierarchie | 2/5 | **4/5** |
+| Art Direction | 3/5 | **4/5** |
+| Informationsklarheit | 3/5 | **4/5** |
+| Datenvisualisierung | 3/5 | **4/5** |
+| Motion | nicht beurteilbar | **3/5** |
+
+**Gate-Konsequenz:** Der Plan fordert Art Director ≥ 3, UX ≥ 3, Motion ≥ 3.
+Alle drei sind erreicht. **Der WP-4.6-Gate-Rest ist damit bestanden.**
+
+## Was auch dieses Addendum nicht leistet
+
+Unverändert gültig: Das sind Modellurteile gegen die im Plan beschriebenen
+Referenzen. „Inkonsistent" und „redundant" sind so zuverlässig erkennbar,
+„schön" und „fühlt sich gut an" nicht. Ein menschliches Geschmacksurteil
+ersetzt das nicht — und die Motion-Bewertung ist, wie oben begründet, die
+unsicherste der fünf.

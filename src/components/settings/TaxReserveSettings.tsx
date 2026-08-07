@@ -8,6 +8,7 @@ import { getUserSettings, updateUserSettings } from '@/services/transaction-serv
 import { resolveTaxReservePercent } from '@/lib/tax-reserve';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 /**
  * Einstellung für den Steuer-Puffer-Prozentsatz (0 = deaktiviert). Reine
@@ -16,7 +17,11 @@ import { useI18n } from '@/i18n/useI18n';
 export default function TaxReserveSettings() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  const {
+    data: settings,
+    isError: settingsError,
+    refetch: refetchSettings,
+  } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
 
   const [value, setValue] = useState<string | null>(null);
   const current = value ?? String(resolveTaxReservePercent(settings));
@@ -35,6 +40,12 @@ export default function TaxReserveSettings() {
     mutation.mutate(n);
     setValue(String(n));
   };
+
+  // Nicht wortlos verschwinden: Wer die Einstellungen oeffnet, sucht genau
+  // diese Karte. Schlimmer noch waere, sie zu zeigen — `resolveTaxReservePercent`
+  // liefert ohne Einstellungen den STANDARD, und ein Speichern darauf wuerde
+  // den echten Wert des Nutzers ueberschreiben.
+  if (settingsError) return <FinanceErrorState variant="data" onRetry={() => void refetchSettings()} />;
 
   return (
     <Card>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { decodeDashboardFilters, encodeDashboardFilters } from "@/components/dashboard/filter-utils";
@@ -123,6 +124,12 @@ export default function TransactionsPage() {
           <Skeleton variant="shimmer" className="h-10 w-full" />
           <Skeleton variant="shimmer" className="h-64 w-full" />
         </div>
+      ) : model.hasError ? (
+        // WP-9.2: VOR dem Leerzustand geprueft. Beide gleichzeitig kann es
+        // nicht geben (`isEmpty` schliesst `hasError` aus), die Reihenfolge
+        // macht die Rangfolge trotzdem im Quelltext sichtbar: Ein Ladefehler
+        // ist eine andere Aussage als "du hast noch nichts".
+        <FinanceErrorState variant="transactions" onRetry={model.actions.retry} />
       ) : model.isEmpty ? (
         // WP-3.3: Die buchungsspezifische Variante sagt, WAS fehlt, statt den
         // allgemeinen "noch keine Daten"-Text zu zeigen.

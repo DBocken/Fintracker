@@ -9,7 +9,7 @@ import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
 import type { Transaction, Account, Category } from '../../types';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -50,7 +50,7 @@ export function TransactionTable({
   onOpenDetails,
 }: TransactionTableProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
+  const money = useMoneyFormat();
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
     if (!accountId) return undefined;
@@ -107,7 +107,7 @@ export function TransactionTable({
           const account = getAccountById(transaction.account_id);
           const rowId = transaction.id || '';
           const hidden = hiddenTransactions.has(rowId);
-          const amountLabel = gentleModeEnabled ? '***' : currencyFormatter.format(transaction.amount);
+          const amountLabel = money.mask(currencyFormatter.format(transaction.amount));
 
           return (
             <TableRow
@@ -126,15 +126,24 @@ export function TransactionTable({
               <TableCell>{format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: de })}</TableCell>
               <TableCell>
                 {account ? (
+                  // Die Kontofarbe traegt der Rahmen und der Punkt, NICHT die
+                  // Schrift: Sie kommt aus den Nutzerdaten, also kann kein
+                  // Token ihre Lesbarkeit garantieren — gemessen 3.92:1 auf der
+                  // eigenen 6-%-Tönung. Als Rahmen bleibt die Zuordnung auf
+                  // einen Blick erhalten, die Beschriftung wird lesbar.
                   <Badge
                     variant="outline"
-                    className="text-xs whitespace-nowrap"
+                    className="whitespace-nowrap gap-1.5 text-xs text-foreground"
                     style={{
                       borderColor: account.color,
-                      color: account.color,
                       backgroundColor: account.color + '10',
                     }}
                   >
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: account.color }}
+                    />
                     <span aria-hidden="true">{account.icon}</span> {account.name}
                   </Badge>
                 ) : (

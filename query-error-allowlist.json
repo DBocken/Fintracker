@@ -1,0 +1,73 @@
+{
+  "_comment": "useQuery-Aufrufe ohne eigene Aussage zum Fehlerfall. ZWEI Formen: eine blosse ZAHL ist offenes Phase-9-Backlog und darf nur sinken; ein Objekt { count, reason } ist ENTSCHIEDEN - dort ist der Fallback bereits die richtige Antwort (Voreinstellung, Vorschlag, oder eine queryFn, die den Fehler selbst abfaengt). Neue Stellen gehoeren in KEINE der beiden Formen - dann ist der Code zu aendern, nicht die Liste. Zahlen zieht `pnpm check:query-errors --update` nach, die Gruende bleiben stehen.",
+  "files": {
+    "src/components/debts/DebtSuggestionsBanner.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Ein Vorschlagsbanner. Was nicht erscheint, behauptet nichts - und die Seite darunter benennt den Lesefehler bereits. Ein zweiter Fehlerblock daneben waere zweimal dieselbe Aussage (siehe AccountsPage/TaxReportPage)."
+    },
+    "src/components/DemoDataBanner.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Ein Flag, ob Beispieldaten aktiv sind. Ist es nicht lesbar, erscheint das Banner nicht - es behauptet dann nichts, statt etwas Falsches zu behaupten."
+    },
+    "src/components/onboarding/DataSourceDialog.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Voreinstellung, die nur die Vorauswahl der Datenquelle steuert. Bestaetigt wird weiterhin von Hand."
+    },
+    "src/components/onboarding/OnboardingDialog.tsx": {
+      "count": 2,
+      "reason": "Entschieden. Die Signale belegen den Onboarding-Vorschlag nur VOR; ab der ersten eigenen Aenderung ruehrt sie niemand mehr an. Ohne sie waehlt der Nutzer von Hand - genau das Verhalten, das ohne Bestandsdaten ohnehin gilt."
+    },
+    "src/components/PrivacyIndicator.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Einwilligungsstand fuer Analytik. Der Fallback ist 'keine Einwilligung' - der Lesefehler irrt hier auf der sicheren Seite, und das ist die einzige Richtung, in die er irren darf."
+    },
+    "src/components/ProfileDialogContent.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Voreinstellungen im Profil-Dialog; ohne sie stehen die Standardwerte da."
+    },
+    "src/components/providers/GentleModeProvider.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Liest eine Voreinstellung. Faellt der Lesevorgang aus, gilt der dokumentierte Standard - keine falsche Auskunft ueber die Finanzen, sondern genau der Zustand, in dem jeder neue Nutzer startet."
+    },
+    "src/components/providers/SkinProvider.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Wie GentleModeProvider: Ohne gelesene Einstellung greift das Standard-Erscheinungsbild. Ein Fehlerblock anstelle der App waere hier die groessere Stoerung."
+    },
+    "src/components/settings/CategoryManager.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Ein Kategorie-Vorschlag. Bleibt er aus, fehlt eine Anregung; die Kategorienliste selbst kommt von aussen und hat ihren eigenen Fehlerzustand."
+    },
+    "src/components/settings/NavFeatureSettings.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Voreinstellung; ohne sie zeigt die App ihren Standard-Funktionsumfang."
+    },
+    "src/components/settings/PrivacySyncAnalyticsSettings.tsx": {
+      "count": 1,
+      "reason": "Entschieden. Zeitpunkt der letzten Synchronisation. Ist er nicht lesbar, steht dort nichts statt eines falschen Datums."
+    },
+    "src/components/trading/TradingDashboard.tsx": {
+      "count": 6,
+      "reason": "Entschieden. Fuenf der sechs Aufrufe (eToro-Instrument-Meta, Branchen, Kurse) fangen den Fehler in ihrer eigenen queryFn ab und liefern eine dokumentierte Ersatzantwort; die Anzeige faellt dann auf 'Instrument #<id>' zurueck. Sie koennen isError nie erreichen, ein Fehlerzustand dort waere toter Code. Der sechste ist die Voreinstellung des Kursanbieters mit Standard 'yahoo'."
+    },
+    "src/hooks/useBusinessMode.ts": {
+      "count": 1,
+      "reason": "Entschieden. Gibt einen Wahrheitswert zurueck; ohne gelesene Einstellung ist die Antwort 'aus' - die Voreinstellung fuer jeden neuen Nutzer."
+    },
+    "src/hooks/useGlobalAtmosphere.ts": {
+      "count": 2,
+      "reason": "Entschieden. Speist ausschliesslich die visuelle Stimmung (Farbe, Bewegung) der Oberflaeche. Eine Stimmung kann unpassend sein, aber sie behauptet keine Zahl - die Flaechen, die dieselben Daten als Zahl zeigen, benennen den Lesefehler."
+    },
+    "src/hooks/useNavVisibility.ts": {
+      "count": 1,
+      "reason": "Entschieden. Wie useBusinessMode: Der Standard-Funktionsumfang ist die richtige Antwort, wenn nichts anderes gelesen werden konnte."
+    },
+    "src/hooks/useSchufareminder.ts": {
+      "count": 1,
+      "reason": "Entschieden. Eine Erinnerung. Bleibt sie aus, fehlt ein Anstoss; sie ersetzt keine Angabe ueber vorhandene Daten."
+    },
+    "src/hooks/useTutorialRun.ts": {
+      "count": 2,
+      "reason": "Entschieden. Tutorial-Fortschritt und Datenbereitschaft. Ohne sie beginnt das Tutorial von vorn statt in der Mitte - unbequem, aber keine Falschaussage ueber Geld."
+    }
+  }
+}

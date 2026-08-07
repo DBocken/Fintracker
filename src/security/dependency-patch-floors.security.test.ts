@@ -37,12 +37,15 @@ const PATCH_FLOORS: Array<{ pkg: string; major: number; floor: string; advisory:
   { pkg: 'react-router-dom', major: 7, floor: '7.18.0', advisory: 'GHSA-chx6-hx7r-mcp5' },
   { pkg: 'postcss', major: 8, floor: '8.5.18', advisory: 'GHSA-r28c-9q8g-f849' },
   { pkg: 'tar', major: 7, floor: '7.5.21', advisory: 'GHSA-r292-9mhp-454m' },
-  { pkg: 'js-yaml', major: 4, floor: '4.3.0', advisory: 'GHSA-52cp-r559-cp3m' },
+  { pkg: 'js-yaml', major: 4, floor: '4.3.1', advisory: 'GHSA-5p4m-2wfm-xmqj' },
   { pkg: 'brace-expansion', major: 1, floor: '1.1.16', advisory: 'GHSA-3jxr-9vmj-r5cp' },
   { pkg: 'brace-expansion', major: 5, floor: '5.0.8', advisory: 'GHSA-mh99-v99m-4gvg' },
   { pkg: 'dompurify', major: 3, floor: '3.4.12', advisory: 'GHSA-c2j3-45gr-mqc4' },
   { pkg: 'undici', major: 7, floor: '7.28.0', advisory: 'GHSA-c76r-2h9x-mqrr' },
   { pkg: 'yaml', major: 2, floor: '2.8.3', advisory: 'GHSA-288g-9pw2-6h3h' },
+  // Direkte Abhaengigkeit (kein Override): der Floor steht in package.json.
+  // Hier trotzdem gefuehrt, damit ein Downgrade nicht unbemerkt durchgeht.
+  { pkg: 'pdfjs-dist', major: 6, floor: '6.2.108', advisory: 'GHSA-hq66-cqwq-w95j' },
 ];
 
 function compareVersions(a: string, b: string): number {
@@ -142,9 +145,13 @@ describe('[SECURITY] Abhängigkeits-Patchstände', () => {
       // Positivliste: jeder Eintrag ist im Review begründet worden. Ein neuer
       // Eintrag muss hier bewusst ergänzt werden — das erzwingt die Diskussion.
       const ignoredIds = entries.map((entry) => entry.match(/id = "([^"]+)"/)?.[1]);
+      // GHSA-mh99-v99m-4gvg ist hier ENTFALLEN: Der OSV-Scanner meldete den
+      // Eintrag als `unused ignore` — der Fund taucht nicht mehr auf, weil das
+      // brace-expansion-Override greift. Ein Ignore, der nichts mehr
+      // unterdrueckt, ist toter Ballast und verdeckt beim naechsten Lesen den
+      // Blick auf die echten Ausnahmen.
       expect(ignoredIds.sort()).toEqual([
         'GHSA-frvp-7c67-39w9',
-        'GHSA-mh99-v99m-4gvg',
         'GHSA-qwww-vcr4-c8h2',
       ]);
     });

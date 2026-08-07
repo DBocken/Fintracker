@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FeatureGate } from '@/components/FeatureGate';
 import EmptyState from '@/components/common/EmptyState';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { Button } from '@/components/ui/button';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { pickWrappedYear, buildWrappedStats } from '@/lib/income-wrapped';
@@ -18,11 +19,22 @@ export default function IncomeWrappedPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  const { data: txs = [] } = useQuery<Transaction[], Error>({
+  // WP-9.6: `stats === null` heisst „zu wenig Daten fuer den Rueckblick".
+  // Bei einem Lesefehler waere das eine Aussage ueber Daten, die gar nicht
+  // gelesen werden konnten.
+  const {
+    data: txs = [],
+    isError: txError,
+    refetch: refetchTx,
+  } = useQuery<Transaction[], Error>({
     queryKey: ['transactions', 5000],
     queryFn: () => getTransactions(5000),
   });
-  const { data: cats = [] } = useQuery<Category[], Error>({
+  const {
+    data: cats = [],
+    isError: catsError,
+    refetch: refetchCats,
+  } = useQuery<Category[], Error>({
     queryKey: ['categories'],
     queryFn: () => getCategories(),
   });
@@ -34,7 +46,17 @@ export default function IncomeWrappedPage() {
 
   return (
     <FeatureGate feature="creatorPack">
-      {stats === null ? (
+      {txError || catsError ? (
+        <div className="mx-auto max-w-md p-8">
+          <FinanceErrorState
+            variant="transactions"
+            onRetry={() => {
+              void refetchTx();
+              void refetchCats();
+            }}
+          />
+        </div>
+      ) : stats === null ? (
         <div className="mx-auto max-w-md p-8">
           <EmptyState
             emoji="💶"

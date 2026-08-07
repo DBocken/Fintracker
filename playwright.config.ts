@@ -14,15 +14,28 @@ import { defineConfig } from "@playwright/test";
  * - `workers: 1`: Alle Specs teilen sich einen Dev-Server, und die
  *   Performance-Spec misst LCP/CLS — parallel laufende Visual-/a11y-Specs
  *   würden die Messwerte verfälschen.
- * - Dev-Server, nicht Preview-Build: Die Performance-Budgets der Spec sind
- *   ausdrücklich Dev-Budgets (LCP < 4 s); die Prod-Messung (< 2.5 s) gehört
- *   in CI mit Build-Preview und ist dort noch nicht verdrahtet.
- * - Visual-Baselines sind plattformgebunden (aktuell nur win32 eingecheckt).
- *   Auf anderen Plattformen schreibt der erste Lauf neue Baselines, statt zu
- *   scheitern — das regelt die Spec selbst, nicht diese Konfiguration.
+ * - Standardziel ist der Dev-Server. `E2E_TARGET=preview` schaltet auf den
+ *   Produktions-Build um: nur dort gelten die Prod-Budgets des Plans
+ *   (LCP < 2.5 s). Beide Ziele in EINEM Lauf zu messen ginge nicht — die
+ *   Budgets unterscheiden sich um den Faktor, den Vites On-the-fly-Transform
+ *   kostet.
+ * - Visual-Baselines sind plattformgebunden. Verbindlich ist **linux**, weil
+ *   dort der CI-Job läuft; die früher zusätzlich eingecheckten
+ *   win32-Baselines sind entfallen. Sie waren nach dem Hero- und Karten-Umbau
+ *   veraltet und hätten auf einem Windows-Rechner falsch rot gemeldet, ohne
+ *   dass irgendein Lauf sie je wieder erneuert hätte. Ein lokaler Lauf auf
+ *   einer anderen Plattform schreibt dort neue Baselines, statt zu scheitern —
+ *   diese sind lokal und gehören NICHT ins Repository.
  */
+
+/** `preview` misst gegen den Produktions-Build, sonst gilt der Dev-Server. */
+const target = process.env.E2E_TARGET === "preview" ? "preview" : "dev";
 export default defineConfig({
   testDir: "./e2e-tests",
+  // Der Motion-Review ist ein Erhebungslauf, kein Test: er zeichnet Videos auf
+  // und prüft nichts. In der regulären Suite kostet er nur Zeit und
+  // Speicherplatz. `E2E_MOTION_REVIEW=1` schaltet ihn gezielt frei.
+  testIgnore: process.env.E2E_MOTION_REVIEW === "1" ? [] : ["**/motion-review.spec.ts"],
   workers: 1,
   // Demo-Seeding durchs reale UI + 9 Full-Page-Screenshots in einem Test —
   // die Playwright-Vorgabe (30 s) reicht dafür nicht.
@@ -34,6 +47,16 @@ export default defineConfig({
     // Umgebungen mit vorinstalliertem Chromium (z. B. Remote-Runner ohne
     // Download-Erlaubnis) geben das Binary hierüber vor; ohne die Variable
     // gilt die normale Playwright-Browser-Auflösung.
+    //
+    // ACHTUNG bei Visual-Baselines: Diese Variable darf NICHT gesetzt sein,
+    // wenn Snapshots erzeugt werden. Ein vorinstalliertes Chromium ist in
+    // aller Regel eine andere Version als die, die `@playwright/test` selbst
+    // mitbringt — und andere Font-Metriken bedeuten anderen Textumbruch und
+    // damit andere Seitenhöhen. Genau das ist hier passiert: lokal
+    // Chromium 141, in CI 151; die 375-px-Snapshots von Dashboard und Budgets
+    // wichen daraufhin um mehr als die erlaubten 5 % ab, obwohl sich am Code
+    // nichts geändert hatte. Die Baselines gehören zum Playwright-eigenen
+    // Browser — dem, den der CI-Job über `playwright install` bezieht.
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
       : {},
@@ -41,9 +64,14 @@ export default defineConfig({
   webServer: {
     // --strictPort: lieber scheitern als still auf einen anderen Port
     // ausweichen, auf dem baseURL dann ins Leere zeigt.
-    command: "pnpm dev --port 5173 --strictPort",
+    command:
+      target === "preview"
+        ? "pnpm build && pnpm preview --port 5173 --strictPort"
+        : "pnpm dev --port 5173 --strictPort",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    // Der Preview-Pfad baut zuerst — Typecheck plus Vite-Build brauchen
+    // deutlich länger als ein Dev-Serverstart.
+    timeout: target === "preview" ? 300_000 : 120_000,
   },
 });

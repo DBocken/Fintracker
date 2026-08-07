@@ -27,7 +27,7 @@
     --muted-foreground: 185 8% 40%;
     --accent: 174 26% 85%;
     --accent-foreground: 174 65% 16%;
-    --destructive: 4 72% 50%;
+    --destructive: 4 72% 46%;
     --destructive-foreground: 40 20% 97%;
     --border: 38 22% 82%;
     --input: 38 22% 82%;
@@ -40,7 +40,12 @@
     --premium: 262 55% 52%;
     --premium-foreground: 40 20% 97%;
     --positive: 152 55% 33%;
-    --warning: 4 72% 50%;
+    --warning: 4 72% 46%;
+    /* Lesbarer Text AUF den Akzentflaechen. Ohne eigenes Token raet jede
+       Aufrufstelle — `text-white` auf `bg-positive` war im Dark Mode bei
+       2.46:1 unlesbar (WP-10.2). */
+    --positive-foreground: 0 0% 100%;
+    --warning-foreground: 40 20% 97%;
 
     /*
      * Status-Skala (5 Stufen, Produkt-Audit Abschnitt G/C-P2):
@@ -60,7 +65,7 @@
      */
     --sidebar: 180 42% 11%;
     --sidebar-foreground: 40 20% 96%;
-    --sidebar-muted: 174 10% 60%;
+    --sidebar-muted: 174 10% 70%;
     --sidebar-accent: 174 35% 22%;
     --sidebar-accent-foreground: 40 20% 97%;
     --sidebar-border: 180 30% 16%;
@@ -161,8 +166,8 @@
     --muted-foreground: 185 10% 62%;
     --accent: 174 30% 18%;
     --accent-foreground: 174 40% 80%;
-    --destructive: 4 65% 55%;
-    --destructive-foreground: 40 15% 92%;
+    --destructive: 4 70% 62%;
+    --destructive-foreground: 190 22% 8%;
     --border: 190 14% 19%;
     --input: 190 14% 19%;
     --ring: 174 45% 52%;
@@ -172,7 +177,9 @@
     --premium: 262 60% 68%;
     --premium-foreground: 190 22% 8%;
     --positive: 152 45% 50%;
-    --warning: 4 65% 55%;
+    --warning: 4 70% 62%;
+    --positive-foreground: 190 22% 8%;
+    --warning-foreground: 190 22% 8%;
 
     /* Status-Skala im Dark Mode leicht aufgehellt/entsättigt. */
     --status-critical: 4 65% 60%;
@@ -184,7 +191,7 @@
     /* Sidebar im Dark Mode: noch eine Stufe dunkler als der Content. */
     --sidebar: 190 26% 6%;
     --sidebar-foreground: 40 15% 92%;
-    --sidebar-muted: 185 10% 55%;
+    --sidebar-muted: 185 10% 62%;
     --sidebar-accent: 174 30% 18%;
     --sidebar-accent-foreground: 174 40% 85%;
     --sidebar-border: 190 18% 12%;
@@ -217,24 +224,23 @@
 }
 
 /*
- * Sanfter Modus (Issue #48) — Finanzielle Daten verbergen, Fortschritt zeigen
- * Aktiviert bei .gentle-mode auf document root.
+ * Sanfter Modus (Issue #48).
+ *
+ * Hier standen bis WP-9.5 drei Regeln fuer `[data-amount]`,
+ * `[data-gentle-hide]` und `[data-gentle-placeholder]`. Sie hatten im ganzen
+ * Repo NULL Aufrufstellen — ein Mechanismus, der Abdeckung vortaeuschte, wo
+ * keine war, und der den naechsten Entwickler ein Attribut setzen liess in dem
+ * Glauben, damit fertig zu sein.
+ *
+ * Maskiert wird jetzt in `useMoneyFormat()`. Zwei Gruende gegen den CSS-Weg:
+ * `text-transparent` laesst den Betrag im DOM stehen (markierbar, kopierbar,
+ * von der Sprachausgabe vorgelesen), und in SVG-Diagrammen wirkt es gar nicht,
+ * weil dort `fill` faerbt und nicht `color`.
+ *
+ * Die Klasse `.gentle-mode` am Wurzelelement bleibt: Sie ist der Haken fuer
+ * kuenftige rein visuelle Abschwaechungen, die keinen Betrag betreffen.
  */
 @layer utilities {
-  .gentle-mode [data-gentle-hide] {
-    @apply invisible;
-  }
-
-  .gentle-mode [data-gentle-placeholder]::before {
-    content: attr(data-gentle-placeholder);
-    @apply text-muted-foreground font-medium;
-  }
-
-  /* Text-basierte Beträge verbergen (z.B. "1.234,56 €") */
-  .gentle-mode [data-amount] {
-    @apply text-transparent;
-  }
-
   /*
    * Dezenter, themebewusster Scrollbalken statt der weißen Standard-Leiste
    * (für Scroll-Container wie das Detail-Panel). Firefox via scrollbar-*,
@@ -383,4 +389,35 @@
   );
   animation: skeleton-shimmer-wave 1.8s var(--motion-easing-build, ease-in-out) infinite;
   will-change: transform;
+}
+
+/*
+ * WP-6.3 — Sankey: Fluss-Animation & Textur.
+ *
+ * Ein Sankey zeigt Geldströme, stand aber völlig still. Die Richtung war nur
+ * aus der Anordnung zu erschließen, nicht zu sehen.
+ *
+ * Die Bewegung liegt als gestricheltes Band ÜBER dem vollen Band, nicht im
+ * Band selbst: Ein `stroke-dasharray` direkt auf dem Link würde den Strom in
+ * Stücke schneiden — das sähe nach Unterbrechung aus, nicht nach Fluss.
+ * Darüber gelegt und schwach deckend ergibt dasselbe Muster eine Textur, die
+ * wandert.
+ *
+ * Die Verschiebung ist exakt eine Musterlänge (12 + 20 = 32), damit die
+ * Schleife nahtlos schließt. `linear` statt einer Easing-Kurve: ein Strom, der
+ * beschleunigt und abbremst, wäre kein Strom.
+ *
+ * Wird von der globalen reduced-motion-Policy oben automatisch gestoppt; die
+ * Bewegungsstufe des Geräts entscheidet zusätzlich in `SankeyChart`, ob die
+ * Schicht überhaupt gerendert wird (WP-7.7).
+ */
+@keyframes sankey-flow-drift {
+  to { stroke-dashoffset: -32; }
+}
+
+.sankey-flow {
+  stroke-dasharray: 12 20;
+  animation: sankey-flow-drift 1.6s linear infinite;
+  /* Der Strom ist Beiwerk: Klicks und Tooltips gehören dem Band darunter. */
+  pointer-events: none;
 }

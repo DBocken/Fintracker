@@ -9,6 +9,7 @@ import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { runScenarioComparison } from '@/lib/forecast-scenario';
 import { buildStreamLossScenario } from '@/lib/income-stress';
 import type { IncomeStream } from '@/lib/income-streams';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -25,6 +26,7 @@ export default function IncomeStressTestDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { overrides } = useForecastOverrides();
   const { input, isLoading } = useForecast({
@@ -57,7 +59,7 @@ export default function IncomeStressTestDialog({
       ? [
           {
             label: t('income.stress.lowestBalance'),
-            value: formatCurrency(comparison.lowestBalance.scenario),
+            value: money.mask(formatCurrency(comparison.lowestBalance.scenario)),
             hint: formatDelta(comparison.lowestBalance.delta),
             tone: comparison.lowestBalance.delta < 0 ? 'critical' : 'default',
           },

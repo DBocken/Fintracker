@@ -6,24 +6,35 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { getAccounts } from '../../services/account-service';
 import { getTransactions, markTransferPair, unmarkTransfer } from '../../services/transaction-service';
 import { findTransferCandidates, type TransferCandidate } from '../../services/transfer-service';
 import type { Transaction } from '../../types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const dateFmt = new Intl.DateTimeFormat('de-DE');
 
 export function TransferSuggestions() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
-  const { data: transactions = [] } = useQuery({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
     queryKey: ['transactions', 'all-for-transfers'],
     queryFn: () => getTransactions(10000),
   });
@@ -71,6 +82,12 @@ export function TransferSuggestions() {
     onError: (err: Error) => showError(err.message),
   });
 
+  const hasLoadError = accountsError || transactionsError;
+  const retryAll = () => {
+    void refetchAccounts();
+    void refetchTransactions();
+  };
+
   if (candidates.length === 0 && linkedPairs.length === 0) {
     return null;
   }
@@ -87,6 +104,7 @@ export function TransferSuggestions() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
         {candidates.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium">{t('accounts.transferSuggestions.suggestionsTitle')}</p>
@@ -97,7 +115,7 @@ export function TransferSuggestions() {
               >
                 <div>
                   <div>
-                    {dateFmt.format(new Date(c.outgoing.date))} · {eur.format(Math.abs(c.outgoing.amount))}
+                    {dateFmt.format(new Date(c.outgoing.date))} · {money.mask(eur.format(Math.abs(c.outgoing.amount)))}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {accountName(c.outgoing.account_id)} → {accountName(c.incoming.account_id)}
@@ -128,7 +146,7 @@ export function TransferSuggestions() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    {dateFmt.format(new Date(pair[0].date))} · {eur.format(Math.abs(pair[0].amount))}
+                    {dateFmt.format(new Date(pair[0].date))} · {money.mask(eur.format(Math.abs(pair[0].amount)))}
                     <Badge variant="secondary">{t('accounts.transferSuggestions.transferBadge')}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">

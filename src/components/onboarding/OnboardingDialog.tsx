@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import { resolveFeatureSelection, type LifeSituationId, type ModifierId, type NavFeatureId } from '@/lib/life-situations';
 import type { UserSettings } from '@/types';
@@ -107,6 +107,25 @@ export default function OnboardingDialog() {
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
+        {/*
+          Radix verlangt in jedem DialogContent einen DialogTitle — ohne ihn
+          hat der Dialog kein zugaengliches Label und die Konsole warnt (der
+          Befund aus dem E2E-Lauf).
+
+          Der Titel benennt bewusst den DIALOG und nicht den aktuellen Schritt.
+          Beide Schritte tragen bereits eine sichtbare <h2>; haette der
+          DialogTitle denselben Wortlaut, laese ein Screenreader den Text
+          zweimal — einmal als Dialogname, einmal als Ueberschrift. Die <h2>
+          selbst als DialogTitle auszuweisen geht nicht: sie steckt in
+          Kindkomponenten, und FeatureSelection wird ausserdem in den
+          Einstellungen ohne Dialog verwendet.
+
+          sr-only, weil der Dialog seinen Namen ansagt, aber keine zweite
+          sichtbare Ueberschrift braucht.
+        */}
+        <DialogTitle className="sr-only">
+          {t('onboarding.dialogLabel', 'Einrichtung')}
+        </DialogTitle>
         {step === 'lifeSituation' ? (
           <>
           {proposalApplied && (

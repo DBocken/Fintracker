@@ -65,7 +65,7 @@ export function CategoryPreview({
           <Button
             onClick={onApply}
             disabled={isProcessing}
-            className="bg-positive text-white hover:bg-positive"
+            className="bg-positive text-positive-foreground hover:bg-positive"
           >
             <Play className="mr-2 h-4 w-4" />
             {isProcessing ? t('settings.categoryPreview.applyingLabel') : t('settings.categoryPreview.applyButton')}

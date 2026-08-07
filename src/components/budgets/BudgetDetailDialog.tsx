@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { BudgetStatus } from "@/types";
 import BudgetTank from "./BudgetTank";
 import SweepCard from "./SweepCard";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -38,6 +39,7 @@ export default function BudgetDetailDialog({
   onEdit,
   onDelete,
 }: BudgetDetailDialogProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   if (!status) return null;
   const { budget, spent, remaining, fillPercent, health, carryIn, effectiveLimit, carryOut, swept } = status;
@@ -83,7 +85,7 @@ export default function BudgetDetailDialog({
           <div className="w-full space-y-2 rounded-xl border bg-muted/20 p-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t('budgets.detailDialog.spent')}</span>
-              <span className="font-semibold tabular-nums">{eur.format(spent)}</span>
+              <span className="font-semibold tabular-nums">{money.mask(eur.format(spent))}</span>
             </div>
             {hasCarryIn && (
               <div className="flex items-center justify-between">
@@ -97,13 +99,13 @@ export default function BudgetDetailDialog({
                   )}
                 >
                   {carryIn! >= 0 ? "+" : "−"}
-                  {eur.format(Math.abs(carryIn!))}
+                  {money.mask(eur.format(Math.abs(carryIn!)))}
                 </span>
               </div>
             )}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{hasCarryIn ? t('budgets.detailDialog.limitEffective') : t('budgets.detailDialog.limitLabel')}</span>
-              <span className="font-semibold tabular-nums">{eur.format(limitShown)}</span>
+              <span className="font-semibold tabular-nums">{money.mask(eur.format(limitShown))}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="text-muted-foreground">{remaining >= 0 ? t('budgets.detailDialog.remaining') : t('budgets.detailDialog.overBudget')}</span>
@@ -113,14 +115,14 @@ export default function BudgetDetailDialog({
                   remaining < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
                 )}
               >
-                {eur.format(Math.abs(remaining))}
+                {money.mask(eur.format(Math.abs(remaining)))}
               </span>
             </div>
             {hasSwept && (
               <div className="flex items-center justify-between border-t pt-2">
                 <span className="text-muted-foreground">{t('budgets.detailDialog.swept')}</span>
                 <span className="font-semibold tabular-nums text-sky-600 dark:text-sky-400">
-                  {eur.format(swept!)}
+                  {money.mask(eur.format(swept!))}
                 </span>
               </div>
             )}
@@ -134,7 +136,7 @@ export default function BudgetDetailDialog({
                   )}
                 >
                   {carryOut! >= 0 ? "+" : "−"}
-                  {eur.format(Math.abs(carryOut!))}
+                  {money.mask(eur.format(Math.abs(carryOut!)))}
                 </span>
               </div>
             )}
@@ -155,9 +157,9 @@ export default function BudgetDetailDialog({
                 {status.drift.direction === "over" ? t('budgets.detailDialog.driftOver') : t('budgets.detailDialog.driftUnder')}
               </span>{" "}
               · {t('budgets.detailDialog.driftMedian')
-                .replace('{median}', eur.format(status.drift.median))
-                .replace('{limit}', eur.format(status.drift.limit))
-                .replace('{suggested}', eur.format(status.drift.suggestedLimit))}
+                .replace('{median}', money.mask(eur.format(status.drift.median)))
+                .replace('{limit}', money.mask(eur.format(status.drift.limit)))
+                .replace('{suggested}', money.mask(eur.format(status.drift.suggestedLimit)))}
             </button>
           )}
 

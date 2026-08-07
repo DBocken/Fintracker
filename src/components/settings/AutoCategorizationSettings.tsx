@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Shield } from 'lucide-react';
@@ -15,15 +15,17 @@ export function AutoCategorizationSettings({
 }: AutoCategorizationSettingsProps) {
   const { t } = useI18n();
 
+  // WP-8.1: karten-los (AGENTS.md Paragraf 9). Bedienbar war nur der Schalter,
+  // nicht die Flaeche.
   return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5" />
+    <InfoGroup
+      title={
+        <span className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
           {t('autoCategorization.title')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </span>
+      }
+    >
         <div className="flex items-center justify-between">
           <Label htmlFor="auto-confirm">{t('autoCategorization.autoConfirmLabel')}</Label>
           <Switch
@@ -35,7 +37,6 @@ export function AutoCategorizationSettings({
         <p className="text-sm text-muted-foreground mt-2">
           {t('autoCategorization.description')}
         </p>
-      </CardContent>
-    </Card>
+    </InfoGroup>
   );
 }

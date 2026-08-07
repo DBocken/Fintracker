@@ -19,19 +19,6 @@ ignoreUntil = 2026-10-31
 reason = "RSC-only CSRF; Fintracker ist Client-SPA ohne SSR/RSC. Fix nur in react-router 8 (Major-Migration)."
 
 [[IgnoredVulns]]
-id = "GHSA-mh99-v99m-4gvg"
-ignoreUntil = 2026-10-31
-# brace-expansion: OOM-Crash durch unbegrenzte Expansionslänge.
-# Betroffener Pfad ist ausschließlich die Dev-Toolchain
-# (eslint > minimatch@3 > brace-expansion@1); Laufzeit-Code der App und der
-# Edge Functions ist nicht betroffen. Die 1.x-Linie hat keinen Patch: 1.1.16
-# schließt nur GHSA-3jxr-9vmj-r5cp. Ein Override auf 5.0.8 ist nicht möglich —
-# brace-expansion 5 exportiert `exports.expand` statt einer aufrufbaren
-# `module.exports`, minimatch@3 macht `require('brace-expansion')()` und würde
-# brechen. Entfällt mit eslint 10 (nutzt minimatch@10, kein @eslint/eslintrc).
-reason = "Nur Dev-Toolchain (eslint>minimatch@3); 1.x hat keinen Patch, 5.x ist mit minimatch@3 nicht require-kompatibel."
-
-[[IgnoredVulns]]
 id = "GHSA-frvp-7c67-39w9"
 ignoreUntil = 2026-10-31
 # @hono/node-server (nur mcp-poc/pnpm-lock.yaml): Path-Traversal in

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Lock, ShieldCheck, ShieldAlert, Server, EyeOff, BarChart3, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvider";
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
@@ -22,7 +23,14 @@ export default function PrivacyPage() {
   const { t } = useI18n();
 
   // Anonym: keine Consent-Abfrage (wäre selbst ein Server-Call).
-  const { data: consent } = useQuery({
+  // WP-9.6: `consent?.opted_in ?? false` liest sich bei einem Lesefehler als
+  // „nicht zugestimmt". Damit behauptet ausgerechnet der Datenschutz-Screen
+  // einen Zustand, den er gar nicht kennt.
+  const {
+    data: consent,
+    isError: consentError,
+    refetch: refetchConsent,
+  } = useQuery({
     queryKey: ["analyticsConsent"],
     queryFn: getAnalyticsConsent,
     enabled: tier !== "anonymous",
@@ -46,6 +54,8 @@ export default function PrivacyPage() {
         <h1 className="text-2xl font-bold tracking-tight">{t("privacy.title")}</h1>
         <p className="mt-2 text-muted-foreground">{t("privacy.intro")}</p>
       </div>
+
+      {consentError && <FinanceErrorState variant="data" onRetry={() => void refetchConsent()} />}
 
       {/* Aktueller Status der lokalen Verschlüsselung — prominent mit CTA */}
       <Card className={enabled ? "border-positive/40" : "border-warning/40"}>

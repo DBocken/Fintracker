@@ -6,6 +6,7 @@ import { Share2, Sparkles } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import SegmentedControl from '@/components/common/SegmentedControl';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { getTransactions, getCategories } from '@/services/transaction-service';
@@ -37,17 +38,26 @@ export default function IncomeStreamsPanel() {
   const [period, setPeriod] = useState<PeriodMode>('12m');
   const [shareOpen, setShareOpen] = useState(false);
 
-  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
+  const {
+    data: txs = [],
+    isLoading: txsLoading,
+    isError: txsError,
+    refetch: refetchTxs,
+  } = useQuery<Transaction[], Error>({
     queryKey: ['transactions', 5000],
     queryFn: () => getTransactions(5000),
   });
 
-  const { data: cats = [] } = useQuery<Category[], Error>({
+  const {
+    data: cats = [],
+    isError: catsError,
+    refetch: refetchCats,
+  } = useQuery<Category[], Error>({
     queryKey: ['categories'],
     queryFn: () => getCategories(),
   });
 
-  const allocations = useAllocationMap();
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
 
   const periodTxs = useMemo(() => {
     if (period === 'all') return txs;
@@ -64,12 +74,21 @@ export default function IncomeStreamsPanel() {
   const streams = useMemo(() => deriveIncomeStreams(txs, cats, { windowMonths: WINDOW_MONTHS }), [txs, cats]);
   const wrappedYear = useMemo(() => pickWrappedYear(txs, cats), [txs, cats]);
 
+  const hasLoadError = txsError || catsError || allocError;
+  const retryAll = () => {
+    void refetchTxs();
+    void refetchCats();
+    void refetchAllocations();
+  };
+
   if (!txsLoading && txs.length === 0) {
     return <FinanceEmptyState />;
   }
 
   return (
     <div className="space-y-6">
+      {hasLoadError && <FinanceErrorState variant="transactions" onRetry={retryAll} />}
+
       <div className="max-w-xs">
         <SegmentedControl
           options={[

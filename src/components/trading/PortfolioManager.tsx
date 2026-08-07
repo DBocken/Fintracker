@@ -34,6 +34,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, CheckCircle2, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 interface PortfolioManagerProps {
   activePortfolioId?: string;
@@ -50,7 +53,12 @@ export default function PortfolioManager({
   const [newPortfolioName, setNewPortfolioName] = useState('');
   const [newPortfolioCurrency, setNewPortfolioCurrency] = useState('EUR');
 
-  const { data: portfolios, isLoading } = useQuery({
+  const {
+    data: portfolios,
+    isLoading,
+    isError: portfoliosError,
+    refetch: refetchPortfolios,
+  } = useQuery({
     queryKey: ['portfolios'],
     queryFn: getPortfolios,
   });
@@ -138,15 +146,29 @@ export default function PortfolioManager({
   };
 
   if (isLoading) {
+    // WP-8.3: Choreografie aus WP-7.3 statt eines fruehen Returns mit
+    // Ladetext. Der Platzhalter hat die Form der spaeteren Liste; der Text
+    // bleibt fuer die Sprachausgabe erhalten.
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-sm text-muted-foreground">{t('trading.portfolioManager.loadingMessage')}</div>
-      </div>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div className="space-y-3 py-2">
+            <Skeleton variant="shimmer" className="h-5 w-40" />
+            <Skeleton variant="shimmer" className="h-14 w-full" />
+            <Skeleton variant="shimmer" className="h-14 w-full" />
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 
   return (
     <div className="space-y-4">
+      {portfoliosError && <FinanceErrorState variant="data" onRetry={refetchPortfolios} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">{t('trading.portfolioManager.title')}</h3>
@@ -253,6 +275,7 @@ export default function PortfolioManager({
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      aria-label={t('trading.portfolioManager.deleteLabel').replace('{name}', portfolio.name)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

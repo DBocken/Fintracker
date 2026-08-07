@@ -24,6 +24,7 @@ import { confirmClaim, type Claim } from "@/services/claim-service";
 import { getLetterDocTypeLabels } from "@/services/letter-parser-service";
 import { getScanGuidance, type OcrProgress } from "@/services/letter-ocr-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface ClaimImportDialogProps {
   open: boolean;
@@ -155,7 +156,10 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
             <p className="text-lg font-medium">{t('debts.claimImport.processing')}</p>
             {progress && (
               <div className="w-full space-y-1">
-                <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
+                <Progress
+                  value={(progress.done / Math.max(progress.total, 1)) * 100}
+                  aria-label={t('debts.claimImport.processing')}
+                />
                 <p className="text-center text-sm text-muted-foreground">{progress.label}</p>
               </div>
             )}
@@ -211,6 +215,7 @@ function ClaimReviewRow({
   onConfirm: () => void;
   isConfirming: boolean;
 }) {
+  const money = useMoneyFormat();
   const latest = claim.timeline[claim.timeline.length - 1];
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
@@ -221,7 +226,7 @@ function ClaimReviewRow({
             <span className="truncate">{claim.creditor}</span>
             {latest && <Badge variant="secondary">{getLetterDocTypeLabels()[latest.doc_type]}</Badge>}
           </div>
-          <div className="text-xs text-muted-foreground">{eur.format(claim.current_amount)}</div>
+          <div className="text-xs text-muted-foreground">{money.mask(eur.format(claim.current_amount))}</div>
         </div>
       </div>
       {claim.debt_id ? (

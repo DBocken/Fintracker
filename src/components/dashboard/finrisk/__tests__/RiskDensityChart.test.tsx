@@ -11,7 +11,17 @@ function makeResult(paths: number[][], dates: string[], withDetails = false): Sc
   const daily = dates.map((date, d) => {
     const col = paths.map((p) => p[d]).sort((a, b) => a - b);
     const at = (q: number) => col[Math.min(col.length - 1, Math.floor(q * (col.length - 1)))];
-    return { date, p10: at(0.1), p50: at(0.5), p90: at(0.9) };
+    // WP-6.1: sieben Perzentile — dieselbe Form wie `dailyBand` sie liefert.
+    return {
+      date,
+      p05: at(0.05),
+      p10: at(0.1),
+      p25: at(0.25),
+      p50: at(0.5),
+      p75: at(0.75),
+      p90: at(0.9),
+      p95: at(0.95),
+    };
   });
   return {
     scenarioId: 's1',

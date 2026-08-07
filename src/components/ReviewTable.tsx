@@ -30,6 +30,7 @@ import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -47,19 +48,31 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  const { data: hierarchicalCategories = [] } = useQuery<HierarchicalCategory[]>({
+  const {
+    data: hierarchicalCategories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<HierarchicalCategory[]>({
     queryKey: ['hierarchical-categories'],
     queryFn: getHierarchicalCategories,
   });
 
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
   // Bereits gespeicherte Transaktionen (z.B. aus PSD2-Sync) für die
   // Duplikat-Erkennung beim CSV-Import
-  const { data: existingTransactions = [] } = useQuery({
+  const {
+    data: existingTransactions = [],
+    isError: existingTxError,
+    refetch: refetchExistingTx,
+  } = useQuery({
     queryKey: ['transactions', 'all-for-duplicate-check'],
     queryFn: () => getTransactions(10000),
   });
@@ -196,7 +209,11 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     [hierarchicalCategories, flattenCategories]
   );
 
-  const { data: learnedRules = [] } = useQuery({
+  const {
+    data: learnedRules = [],
+    isError: rulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ['merchant-rules'],
     queryFn: getMerchantRules,
     staleTime: 5 * 60 * 1000,
@@ -222,6 +239,14 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     setCurrentPage(1);
   }, [rows.length]);
 
+  const hasLoadError = categoriesError || accountsError || existingTxError || rulesError;
+  const retryAll = () => {
+    void refetchCategories();
+    void refetchAccounts();
+    void refetchExistingTx();
+    void refetchRules();
+  };
+
   if (!transactions || transactions.length === 0) {
     return (
       <Card className="ui-card">
@@ -234,6 +259,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
 
   return (
     <Card className="ui-card">
+      {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
       <CardHeader>
         <CardTitle>{t('reviewTable.title')}</CardTitle>
         {importAccount && (
@@ -252,7 +278,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
             <Tag className="h-4 w-4" />
             <span>{t('reviewTable.selected').replace('{count}', selectedRows.size.toString())}</span>
             <Select value={bulkCategory} onValueChange={setBulkCategory}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48" aria-label={t('reviewTable.bulkCategoryLabel')}>
                 <SelectValue placeholder={t('reviewTable.categoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -321,7 +347,25 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                     <TableCell>
                       {autoCategory ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <Badge variant="outline" className="bg-opacity-20" style={{ backgroundColor: (autoCategory.category.color || '#000') + '20', color: autoCategory.category.color || '#000' }}>
+                          {/*
+                            WP-8.4: Ohne hinterlegte Farbe bleibt der Badge bei
+                            seinen Token-Vorgaben. Vorher stand hier `#000` als
+                            Rückfall — schwarze Schrift auf schwarzem Grund im
+                            Dunkelmodus, also unlesbar genau dann, wenn die
+                            Kategorie noch keine Farbe hat.
+                          */}
+                          <Badge
+                            variant="outline"
+                            className="bg-opacity-20"
+                            style={
+                              autoCategory.category.color
+                                ? {
+                                    backgroundColor: autoCategory.category.color + '20',
+                                    color: autoCategory.category.color,
+                                  }
+                                : undefined
+                            }
+                          >
                             {(autoCategory.category.icon || '')} {autoCategory.category.name}
                           </Badge>
                           <span className="text-[11px] text-muted-foreground">
@@ -347,7 +391,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                           )
                         }
                       >
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-32" aria-label={t('reviewTable.rowCategoryLabel')}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -400,6 +444,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.firstPage')}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -409,6 +454,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.previousPage')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -421,6 +467,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.nextPage')}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -430,6 +477,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.lastPage')}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>

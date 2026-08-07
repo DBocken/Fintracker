@@ -21,8 +21,10 @@ import {
 } from '@/components/ui/select';
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer, RecurringFlow } from '@/lib/forecast-types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -52,8 +54,13 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
  * Forecast-Overrides. Unterstützt Highlighting nach Stresstest-Preset-Anwendung.
  */
 export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete, activeSection }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
   const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
@@ -88,6 +95,8 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
     const pulse = activeHighlight === sectionId ? 'animate-[highlightPulse_2s_ease-out]' : '';
     return `${active} ${pulse}`.trim();
   };
+
+  if (accountsError) return <FinanceErrorState variant="data" onRetry={() => void refetchAccounts()} />;
 
   return (
     <>
@@ -238,7 +247,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                               : `${getCadenceLabel(t, transfer.cadence ?? '')}${transfer.anchorDate ? ` ab ${transfer.anchorDate}` : ''}`}
                           </td>
                           <td className="text-right font-semibold tabular-nums whitespace-nowrap">
-                            {eur.format(transfer.amount)}
+                            {money.mask(eur.format(transfer.amount))}
                           </td>
                           <td className="text-right">
                             <Button
@@ -308,7 +317,7 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                             className={`text-right font-semibold tabular-nums whitespace-nowrap ${ev.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
                           >
                             {ev.amount >= 0 ? '+' : '−'}
-                            {eur.format(Math.abs(ev.amount))}
+                            {money.mask(eur.format(Math.abs(ev.amount)))}
                           </td>
                           <td className="text-right">
                             <Button
@@ -370,13 +379,13 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                             <span className="block truncate font-medium">{f.name}</span>
                           </td>
                           <td className="text-right tabular-nums whitespace-nowrap">
-                            {eur.format(f.targetAmount)}
+                            {money.mask(eur.format(f.targetAmount))}
                           </td>
                           <td className="text-right text-xs text-muted-foreground whitespace-nowrap">
                             {f.dueDate}
                           </td>
                           <td className="text-right font-semibold tabular-nums whitespace-nowrap">
-                            {eur.format(calculateRequiredContribution(f, today()))}
+                            {money.mask(eur.format(calculateRequiredContribution(f, today())))}
                           </td>
                           <td className="text-right">
                             <Button
@@ -427,7 +436,7 @@ function AccountSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="h-9">
+      <SelectTrigger className="h-9" aria-label={placeholder}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -469,7 +478,7 @@ function EventForm({
       <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newItem')}</div>
       <Input placeholder={t('forecast.itemName')} value={name} onChange={(e) => setName(e.target.value)} />
       <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className="h-9" aria-label={t('forecast.kindLabel')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -486,7 +495,7 @@ function EventForm({
         onChange={(e) => setAmount(e.target.value)}
       />
       <Select value={direction} onValueChange={(v) => setDirection(v as 'out' | 'in')}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className="h-9" aria-label={t('forecast.directionLabel')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -502,7 +511,7 @@ function EventForm({
             <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9" aria-label={t('forecast.cadenceLabel')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -612,6 +621,7 @@ export function BudgetOverrideForm({
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
@@ -632,7 +642,7 @@ export function BudgetOverrideForm({
           <div className="min-w-0 flex-1">
             <Label className="block truncate text-sm font-medium">{expense.category}</Label>
             <div className="text-xs text-muted-foreground">
-              {t('forecast.baseline')} {eur.format(expense.monthlyAmount)}
+              {t('forecast.baseline')} {money.mask(eur.format(expense.monthlyAmount))}
               {expense.confidence != null && (
                 <span className={`ml-1.5 font-semibold ${getConfidenceBadge(expense.confidence)}`}>
                   {Math.round(expense.confidence * 100)}%
@@ -687,7 +697,7 @@ function TransferForm({
       <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newTransfer')}</div>
       <div className="col-span-2">
         <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9" aria-label={t('forecast.kindLabel')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -712,7 +722,7 @@ function TransferForm({
       {isRecurring ? (
         <>
           <Select value={cadence} onValueChange={(v) => setCadence(v as typeof cadence)}>
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-9" aria-label={t('forecast.cadenceLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -776,6 +786,7 @@ export function RecurringFlowOverrideForm({
   overrides: ForecastOverrides;
   onChange: (patch: Partial<ForecastOverrides>) => void;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
   const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
@@ -847,7 +858,7 @@ export function RecurringFlowOverrideForm({
                     className={`text-right font-semibold tabular-nums whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
                   >
                     {isIncome ? '+' : ''}
-                    {eur.format(displayAmount)}
+                    {money.mask(eur.format(displayAmount))}
                   </td>
                   <td className="text-right">
                     {!isAutoDisabled && (

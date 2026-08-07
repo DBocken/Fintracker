@@ -1,11 +1,37 @@
 name: CI
 
 on:
+  # `push` NUR auf main. Ohne Filter loest jeder Push auf einen PR-Branch ZWEI
+  # vollstaendige Laeufe aus — einen fuer `push`, einen fuer `pull_request` —
+  # mit identischem Ergebnis. Das ist die Haelfte der Warteschlange fuer nichts
+  # und verzoegert genau die Laeufe, auf die es ankommt.
+  #
+  # Ein Branch ohne offenen Pull Request bekommt damit keinen Lauf mehr. Das ist
+  # gewollt: Geprueft wird, was gemergt werden soll.
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
+
+# Ueberholte Laeufe abbrechen, statt sie mitlaufen zu lassen. Ohne diese Gruppe
+# bleibt fuer JEDEN Push eines Branches ein vollstaendiger Lauf in der
+# Warteschlange stehen — auch fuer laengst ueberschriebene Commits. Bei einer
+# Serie von Commits belegen die alten Laeufe dann die Runner-Kontingente und
+# verzoegern genau den Lauf, auf den es ankommt: den aktuellen.
+#
+# `main` ist ausgenommen (`github.run_id` macht die Gruppe dort eindeutig):
+# Auf dem Hauptbranch soll jeder Commit sein eigenes, vollstaendiges Ergebnis
+# behalten — sonst faehrt ein schneller Folge-Commit den Nachweis fuer seinen
+# Vorgaenger weg.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Auf `main` NICHT abbrechen: dort soll jeder Commit sein eigenes,
+  # vollstaendiges Ergebnis behalten. Auf Feature-Branches schon — sonst
+  # bleibt fuer jeden Push ein ueberholter Lauf in der Warteschlange stehen und
+  # verzoegert genau den, auf den es ankommt.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   quality:
@@ -39,16 +65,51 @@ jobs:
       - name: Test-Struktur-Check
         run: pnpm check:test-structure
 
-      - name: i18n-Check
+      - name: Karten-Regel-Check
+        run: pnpm check:card-rule
+
+      - name: Plattform-Paritaets-Check
+        run: pnpm check:platform-parity
+
+      - name: Fehlerzustands-Check (useQuery)
+        run: pnpm check:query-errors
+
+      # Statisch, weil der axe-Durchlauf nur sieht, was gerade gerendert ist:
+      # er fand acht namenlose Auswahlfelder, die Quelle enthielt 48. Der Rest
+      # steckt in Dialogen und Sheets ohne Klickpfad.
+      - name: Namens-Check (Bedienelemente)
+        run: pnpm check:a11y-names
+
+      - name: i18n-Check (Diff)
         run: |
           git fetch origin main
           pnpm check:i18n --range origin/main...HEAD
+
+      # Der Diff-Modus sieht Altbestand strukturell NIE. Genau daran sind in
+      # Phase 9 zweimal hartcodierte Strings vorbeigelaufen, bis jemand die
+      # Datei aus anderem Grund anfasste. Der Bestandsmodus prueft den ganzen
+      # Baum und ist seit WP-10.1 sauber — er darf es bleiben.
+      - name: i18n-Check (Bestand)
+        run: pnpm check:i18n --all
 
       - name: i18n-Waechter (eingefrorene Uebersetzungen)
         run: pnpm check:i18n-module-consts
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
+
+      # Bis WP-10.6 hatte CI ueberhaupt keinen Build-Schritt: Der
+      # Produktions-Build lief nur nebenbei im Performance-Job
+      # (E2E_TARGET=preview). Ein Build-Fehler waere dort als
+      # Performance-Fehlschlag erschienen — an der falschen Stelle gesucht.
+      - name: Produktions-Build
+        run: pnpm build
+
+      # Die Menge an JavaScript stand bisher nur als Warnung im Build-Protokoll.
+      # Eine Warnung, die bei jedem Build erscheint, liest nach der dritten
+      # Woche niemand mehr.
+      - name: Bundle-Budget
+        run: pnpm check:bundle-size
 
       - name: Tests & Coverage
         run: pnpm test:coverage
@@ -62,3 +123,81 @@ jobs:
 
       - name: Secret scan
         run: pnpm security:secrets
+
+  # E2E-Suite (WP-4.6-Slice). Bisher lief sie nur lokal — die im Gate
+  # dokumentierten Nachweise waren damit nicht reproduzierbar.
+  #
+  # Bewusst ein EIGENER Job und nicht ein Schritt in `quality`: der Lauf
+  # braucht einen Browser und einen Server, dauert um ein Vielfaches länger,
+  # und ein Fehlschlag hier soll die schnelle Rückmeldung aus Lint/Typecheck/
+  # Unit-Tests nicht verzögern. `needs:` fehlt aus demselben Grund — beide
+  # Jobs laufen parallel.
+  e2e:
+    name: E2E (Slice, a11y, Visual, Performance)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.12.4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Der Browser-Download ist der teuerste Einzelschritt des Jobs und
+      # ändert sich nur mit der Playwright-Version — deshalb über sie
+      # geschlüsselt und nicht über die Lockdatei.
+      - name: Playwright-Version ermitteln
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Browser-Cache
+        id: browser-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # `--with-deps` nur beim Cache-Miss: die Systembibliotheken landen unter
+      # /usr/lib und werden vom Cache oben nicht erfasst, sind auf dem
+      # GitHub-Runner-Image aber ohnehin vorhanden.
+      - name: Chromium installieren
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Funktional, Accessibility und Visual Regression gegen den Dev-Server.
+      # Die eingecheckten Visual-Baselines sind linux-Baselines und damit
+      # genau für diesen Runner erzeugt.
+      - name: E2E gegen Dev-Server
+        env:
+          # Der Runner hat keine GPU; WebGL rendert in Software. Die
+          # Warm-Navigation in die Finanzstadt ist damit nicht aussagekräftig
+          # und wird als Test-Info statt als Fehlschlag berichtet — die
+          # gemessene Zahl steht trotzdem im Bericht.
+          E2E_SOFTWARE_WEBGL: "1"
+        run: pnpm test:e2e
+
+      # Zweiter Lauf gegen den Produktions-Build: NUR dort gilt das
+      # LCP-Budget des Plans (< 2.5 s, Plan §5/§7). Der Dev-Lauf oben misst
+      # gegen ein aufgeweichtes Budget, weil Vite on-the-fly transformiert.
+      - name: Performance gegen Produktions-Build
+        env:
+          E2E_TARGET: preview
+          E2E_SOFTWARE_WEBGL: "1"
+        run: pnpm test:e2e vertical-slice-performance.spec.ts
+
+      - name: Bericht bei Fehlschlag sichern
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

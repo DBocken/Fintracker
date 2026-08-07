@@ -18,6 +18,7 @@ import { getAccounts } from "@/services/account-service";
 import { createTransaction, getCategories } from "@/services/transaction-service";
 import { useI18n } from "@/i18n/useI18n";
 import { TaxCategorySelect } from "@/components/tax/TaxCategorySelect";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import type { Account, Category } from "@/types";
 
 export interface TransactionPrefill {
@@ -57,12 +58,20 @@ export function TransactionFormDialog({
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const { data: accounts = [] } = useQuery<Account[]>({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery<Account[]>({
     queryKey: ["accounts"],
     queryFn: getAccounts,
     enabled: open,
   });
-  const { data: categories = [] } = useQuery<Category[]>({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: getCategories,
     enabled: open,
@@ -145,12 +154,20 @@ export function TransactionFormDialog({
     onError: (e: Error) => showError(e.message),
   });
 
+  const hasLoadError = accountsError || categoriesError;
+  const retryAll = () => {
+    void refetchAccounts();
+    void refetchCategories();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title ?? t("forms.addTransaction")}</DialogTitle>
         </DialogHeader>
+
+        {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
 
         <div className="space-y-4">
           <Tabs value={direction} onValueChange={(v) => setDirection(v as "expense" | "income")}>
@@ -163,7 +180,7 @@ export function TransactionFormDialog({
           <div className="space-y-1.5">
             <Label>{t("forms.accountLabel")}</Label>
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t("forms.accountLabel")}>
                 <SelectValue placeholder={t("forms.selectAccountPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -222,7 +239,7 @@ export function TransactionFormDialog({
           <div className="space-y-1.5">
             <Label>{t("forms.categoryLabel")}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t("forms.categoryLabel")}>
                 <SelectValue placeholder={t("forms.selectCategoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>

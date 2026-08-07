@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { ScenarioResult } from '@/lib/finrisk/scenario-payload-types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -65,6 +66,7 @@ interface HoverState {
  * mit Tagesdetails inkl. der Verteilungs-Moden.
  */
 export default function RiskDensityChart({ result, safetyBuffer }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { density, daily, breachProbabilities, stressCapacity } = result;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -435,7 +437,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         <p className="text-xs text-muted-foreground">
           {t('finrisk.withConfidence')} <span className="font-medium text-foreground">{Math.round(confidence * 100)} %</span>{' '}
           {t('finrisk.liquiditySafety')}{' '}
-          <span className="font-medium text-foreground">{eur.format(selectedStress.maxAffordableShock)}</span>
+          <span className="font-medium text-foreground">{money.mask(eur.format(selectedStress.maxAffordableShock))}</span>
           {criticalDay >= 0 && criticalDay < nDays && (
             <> – {t('finrisk.tightestOn')} <span className="font-medium text-foreground">{fmtDay(density.dates[criticalDay])}</span></>
           )}
@@ -456,7 +458,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         role="img"
         aria-label={`${t('finrisk.heatmapAriaLabel')
           .replace('{days}', String(nDays))
-          .replace('{balance}', eur.format(result.scenarioEndP50))}${
+          .replace('{balance}', money.mask(eur.format(result.scenarioEndP50)))}${
           canInspect ? ' ' + t('finrisk.tapToSeeAssumptions') : ''
         }`}
       >
@@ -468,11 +470,11 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             style={{ left: popLeft, top: popTop, bottom: popBottom }}
           >
             <div className="mb-1 font-medium">{fmtDay(density.dates[hover.day])}</div>
-            <Row label={t('finrisk.howToReadMedian')} value={eur.format(hoveredDaily.p50)} />
-            <Row label="P10 – P90" value={`${eur.format(hoveredDaily.p10)} … ${eur.format(hoveredDaily.p90)}`} />
+            <Row label={t('finrisk.howToReadMedian')} value={money.mask(eur.format(hoveredDaily.p50))} />
+            <Row label="P10 – P90" value={`${money.mask(eur.format(hoveredDaily.p10))} … ${money.mask(eur.format(hoveredDaily.p90))}`} />
             {breachZero != null && <Row label={t('finrisk.chartRiskBelowZero')} value={`${Math.round(breachZero * 100)} %`} />}
             {safetyBuffer > 0 && breachBuffer != null && (
-              <Row label={`< ${eur.format(safetyBuffer)}`} value={`${Math.round(breachBuffer * 100)} %`} />
+              <Row label={`< ${money.mask(eur.format(safetyBuffer))}`} value={`${Math.round(breachBuffer * 100)} %`} />
             )}
             {modes.length > 1 && (
               <div className="mt-1 border-t pt-1">
@@ -483,7 +485,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
                       className="inline-block h-2 w-2 rounded-full"
                       style={{ background: regionAccent(regionForValue(m.value, safetyBuffer)) }}
                     />
-                    <span className="tabular-nums">{eur.format(m.value)}</span>
+                    <span className="tabular-nums">{money.mask(eur.format(m.value))}</span>
                     <span className="text-muted-foreground">({Math.round(m.share * 100)} %)</span>
                   </div>
                 ))}
@@ -507,7 +509,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
               <DialogHeader>
                 <DialogTitle>{fmtDay(cellDetail.date)}</DialogTitle>
                 <DialogDescription>
-                  Saldo {eur.format(cellDetail.binLow)} – {eur.format(cellDetail.binHigh)} · ≈ P
+                  Saldo {money.mask(eur.format(cellDetail.binLow))} – {money.mask(eur.format(cellDetail.binHigh))} · ≈ P
                   {cellDetail.percentile} · {cellDetail.pathsInCell} von {cellDetail.totalPaths}{' '}
                   Pfaden ({Math.round(cellDetail.share * 100)} %)
                 </DialogDescription>

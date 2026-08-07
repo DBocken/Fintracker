@@ -5,7 +5,10 @@ import { chartRamp } from '@/lib/chart-colors';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeOverTimePoint } from '@/lib/analysis-data';
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForStackedData, valueAxisProps } from '@/lib/chart-axis';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -15,6 +18,7 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
   const { t } = useI18n();
   // Baseline: Balken bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
 
   // Hauptkategorien, die irgendwo im Zeitraum vorkommen — nach Gesamtbetrag
   // absteigend, damit die größten Ströme zuunterst (am stabilsten) liegen.
@@ -35,12 +39,40 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
     [points],
   );
 
+  // WP-6.8: Runde Achsenwerte. Gestapelt gerechnet — die Achse muss die Summe
+  // aller Kategorien eines Monats abdecken, nicht die größte Einzelkategorie.
+  const yTicks = useMemo(() => niceTicksForStackedData(series, mainIds), [series, mainIds]);
+
   return (
     <Card className="card-premium h-full">
       <CardHeader>
         <CardTitle>{t('income.overTimeTitle')}</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* WP-6.10: Monatssummen als Satz und Tabelle neben dem Diagramm. */}
+        <ChartFigure
+          caption={t('income.overTimeTitle')}
+          summary={seriesSummary({
+            title: t('income.overTimeTitle'),
+            values: points.map((p) => Object.values(p.byMain).reduce((sum, v) => sum + v, 0)),
+            formatValue: (value) => formatCurrencyInt(Math.round(value)),
+            labelAt: (index) => points[index]?.month ?? '',
+          })}
+          columns={[
+            { key: 'month', label: t('income.monthColumn'), format: (row) => row.month },
+            {
+              key: 'total',
+              label: t('income.totalColumn'),
+              numeric: true,
+              format: (row) =>
+                formatCurrencyInt(
+                  Math.round(Object.values(row.byMain).reduce((sum, v) => sum + v, 0)),
+                ),
+            },
+          ]}
+          rows={points}
+          rowKey={(row) => row.month}
+        >
         <div className="h-44 md:h-64">
           {points.length === 0 ? (
             <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -59,21 +91,16 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  width={56}
-                  tickFormatter={(v: number) => `${Math.round(v)} €`}
+                  {...valueAxisProps({
+                    ticks: yTicks,
+                    width: 56,
+                    tickFormatter: (v) => `${Math.round(v)} €`,
+                  })}
                 />
                 <Tooltip
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                  }}
-                  formatter={(v) => formatCurrencyInt(Math.round(chartNumber(v)))}
+                  {...chartTooltipProps({
+                    formatValue: (v) => formatCurrencyInt(Math.round(v)),
+                  })}
                 />
                 {mainIds.map((id, idx) => (
                   <Bar
@@ -92,6 +119,7 @@ export default function IncomeOverTimeCard({ points }: { points: IncomeOverTimeP
             </ResponsiveContainer>
           )}
         </div>
+        </ChartFigure>
       </CardContent>
     </Card>
   );

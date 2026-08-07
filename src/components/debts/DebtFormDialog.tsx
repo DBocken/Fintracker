@@ -115,7 +115,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
                 setForm((f) => ({ ...f, type: v as DebtType, is_bnpl: v === "bnpl" ? true : f.is_bnpl }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('debts.debtForm.typeLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -184,7 +184,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
               value={form.priority}
               onValueChange={(v) => setForm((f) => ({ ...f, priority: v as DebtPriority }))}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('debts.debtForm.priorityLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -4,7 +4,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCityScene, type CitySceneHandle } from './city-scene';
 import type { CityCameraController } from './city-camera-controller';
 import type { CityLayout } from '../domain/city-layout';
-import { deriveCityQuality, type CityDeviceProfile } from '../domain/city-quality';
+import { deriveCityQuality } from '../domain/city-quality';
+// WP-7.7: Das Auslesen der Geräte-Signale liegt zentral in `@/hooks/
+// useDeviceProfile` — dieselbe Quelle, aus der die Bewegungssprache der App
+// ihre Stufe zieht. Vorher stand hier eine stadt-eigene Kopie.
+import { readDeviceProfile } from '@/hooks/useDeviceProfile';
 import type { CityFlowLine } from '../domain/city-flow-lines';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { isDarkMode, subscribeToDarkModeChanges } from '@/lib/chart-theme';
@@ -118,35 +122,6 @@ const TAP_MAX_DURATION_MS = 300;
 function initialDprStepIndex(maxPixelRatio: number): number {
   const index = DPR_STEPS.findIndex((step) => step <= maxPixelRatio);
   return index === -1 ? DPR_STEPS.length - 1 : index;
-}
-
-/**
- * Liest die Geräte-Signale für `deriveCityQuality`. Bewusst HIER und nicht in
- * der Domain: `window`/`navigator` sind Browser-APIs, die Architekturtabelle in
- * `../README.md` hält `domain/` davon frei — genau deshalb ist die Ableitung
- * selbst ohne DOM testbar.
- *
- * `deviceMemory` und `connection` sind nicht standardisiert verfügbar (Safari
- * und Firefox liefern beide nicht); fehlende Werte bleiben `undefined` und
- * werden von `deriveCityQuality` ausdrücklich NICHT als „schwach" gewertet.
- */
-function readDeviceProfile(): CityDeviceProfile {
-  if (typeof window === 'undefined') return { devicePixelRatio: 1, viewportWidth: 1920 };
-
-  const nav = window.navigator as Navigator & {
-    deviceMemory?: number;
-    connection?: { saveData?: boolean };
-  };
-
-  return {
-    devicePixelRatio: window.devicePixelRatio || 1,
-    viewportWidth: window.innerWidth,
-    hardwareConcurrency: nav.hardwareConcurrency,
-    deviceMemoryGb: nav.deviceMemory,
-    coarsePointer:
-      typeof window.matchMedia === 'function' ? window.matchMedia('(pointer: coarse)').matches : undefined,
-    saveData: nav.connection?.saveData,
-  };
 }
 
 /**

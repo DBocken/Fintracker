@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import type { Transaction } from '../../types';
@@ -129,20 +129,27 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
   };
 
   return (
-    <Card className="border-0 bg-gradient-to-br from-gray-800 to-gray-900 shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">
+    // WP-8.1: Karten-los (AGENTS.md Paragraf 9) — die Flaeche traegt einen
+    // Regler und eine Heatmap, aber kein Klickversprechen.
+    //
+    // Nebenbei entfaellt `bg-gradient-to-br from-gray-800 to-gray-900`: Das
+    // waren feste Graustufen statt Design-Tokens, im Hellmodus also ein
+    // dunkelgrauer Block mitten auf heller Seite.
+    <InfoGroup
+      title={
+        <span className="flex items-center gap-2 text-base text-foreground">
           <Calendar className="h-5 w-5 text-brand" />
           {t("premium.heatmap.title")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </span>
+      }
+    >
+      <div>
         {/* Steuerung */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
             <div className="text-sm text-foreground">{t("premium.heatmap.timeRange")}</div>
             <Select value={String(daysRange)} onValueChange={(v) => setDaysRange(Number(v))}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px]" aria-label={t("premium.heatmap.timeRange")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -155,7 +162,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
           <div className="flex items-center gap-3">
             <div className="text-sm text-foreground">{t("premium.heatmap.aggregation")}</div>
             <Select value={aggregator} onValueChange={(v: Aggregator) => setAggregator(v)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px]" aria-label={t("premium.heatmap.aggregation")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -193,12 +200,16 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: Math.min(index * 0.01, 0.3) }}
-              className={`aspect-square rounded ${getColorClass(date)} hover:scale-110 transition-transform cursor-pointer`}
+              // `cursor-pointer` entfernt: Die Zellen tragen einen Titel zum
+              // Ueberfahren, aber keinen Klick. Ein Zeigefinger, der nichts
+              // ausloest, ist dieselbe Art falsches Versprechen wie ein toter
+              // Karten-Rahmen.
+              className={`aspect-square rounded ${getColorClass(date)} transition-transform hover:scale-110`}
               title={formatTitle(date)}
             />
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </InfoGroup>
   );
 }

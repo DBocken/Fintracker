@@ -68,8 +68,17 @@ module.exports = {
           DEFAULT: "hsl(var(--premium))",
           foreground: "hsl(var(--premium-foreground))",
         },
-        positive: "hsl(var(--positive))",
-        warning: "hsl(var(--warning))",
+        // `DEFAULT` + `foreground` wie bei primary/premium: Wer eine Flaeche
+        // einfaerbt, bekommt den dazu lesbaren Text mitgeliefert, statt ihn zu
+        // raten. `text-white` auf `bg-positive` lag im Dark Mode bei 2.46:1.
+        positive: {
+          DEFAULT: "hsl(var(--positive))",
+          foreground: "hsl(var(--positive-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         status: {
           critical: "hsl(var(--status-critical))",
           weak: "hsl(var(--status-weak))",

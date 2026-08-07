@@ -54,14 +54,14 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
   const { t } = useI18n();
   const qc = useQueryClient();
 
-  const { data: txs = [], isLoading: txsLoading } = useQuery<Transaction[], Error>({
+  const { data: txs = [], isLoading: txsLoading, isError: txsError } = useQuery<Transaction[], Error>({
     // Limit im Query-Key (F-PERF-3), sonst Cache-Kollision mit dem 1000er-Load
     // von useAutomationSuggestions. Prefix ["transactions"] invalidiert weiterhin.
     queryKey: dashboardKeys.transactions(DASHBOARD_TRANSACTION_LIMIT),
     queryFn: () => getTransactions(DASHBOARD_TRANSACTION_LIMIT),
   });
 
-  const { data: cats = [] } = useQuery({
+  const { data: cats = [], isError: catsError } = useQuery({
     queryKey: dashboardKeys.categories,
     queryFn: () => getCategories(),
   });
@@ -71,14 +71,19 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryFn: () => getAccounts(),
   });
 
-  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
+  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS, isError: contractDecisionsError } = useQuery({
     queryKey: dashboardKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
 
   // Aufteilungen speisen zweierlei: die Suche (Split-Notizen) und die
   // anteilsgenaue Aggregation der Charts weiter unten.
-  const allocations = useAllocationMap();
+  // Kein `refetch` von hier: Dieses ViewModel bietet fuer KEINE seiner
+  // Abfragen einen Wiederholversuch an — `hasError` wird von den Views bis
+  // heute nicht gelesen, sie zeigen nur `accountsError`. Diese Luecke ist
+  // aelter als WP-9.6 und wird getrennt behoben; sie hier halb zu schliessen
+  // waere ein Wiederholversuch fuer ein Fuenftel der Ursachen.
+  const { allocations, isError: allocError } = useAllocationMap();
 
   const localBalances = useMemo(() => computeLocalBalances(txs), [txs]);
   const effectiveBalances = useMemo(
@@ -368,7 +373,10 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
 
   return useMemo<FinanceOverviewViewModel>(() => ({
     loading: txsLoading,
-    isEmpty: !txsLoading && txs.length === 0,
+    // WP-9.2: `!txsError` trennt "keine Buchungen" von "Buchungen nicht
+    // ladbar". Ohne ihn behauptet der Screen bei einem Lesefehler das Erste.
+    isEmpty: !txsLoading && !txsError && txs.length === 0,
+    hasError: txsError || catsError || accountsError || contractDecisionsError || allocError,
     accountsLoading,
     accountsError,
     transactions,
@@ -381,5 +389,5 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     sort,
     hidden,
     actions,
-  }), [txsLoading, txs, accountsLoading, accountsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+  }), [txsLoading, txsError, txs, accountsLoading, accountsError, catsError, contractDecisionsError, allocError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
 }

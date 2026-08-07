@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { showSuccess, showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { Account, AccountType } from '../../types';
 import {
   getAccounts,
@@ -33,6 +34,8 @@ import {
   type RefreshBalancesResponse,
   type RefreshMode,
 } from '../../services/live-balance-service';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ACCOUNT_TYPE_ICONS: Record<AccountType, React.ReactNode> = {
   checking: <Building2 className="h-5 w-5" />,
@@ -52,17 +55,30 @@ export function AccountManager() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const {
+    data: accounts = [],
+    isLoading,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
-  const { data: limitInfo } = useQuery({
+  const {
+    data: limitInfo,
+    isError: limitError,
+    refetch: refetchLimit,
+  } = useQuery({
     queryKey: ['account-limit'],
     queryFn: canCreateAccount,
   });
 
-  const { data: consentStatuses = {} } = useQuery({
+  const {
+    data: consentStatuses = {},
+    isError: consentError,
+    refetch: refetchConsent,
+  } = useQuery({
     queryKey: ['account-consent-statuses', accounts.map((a) => a.id).join(',')],
     enabled: accounts.length > 0,
     queryFn: async () => {
@@ -72,6 +88,13 @@ export function AccountManager() {
       return Object.fromEntries(entries);
     },
   });
+
+  const hasLoadError = accountsError || limitError || consentError;
+  const retryAll = () => {
+    void refetchAccounts();
+    void refetchLimit();
+    void refetchConsent();
+  };
 
   const expiredConsentAccounts = useMemo(
     () => accounts.filter((account) => consentStatuses[account.id]?.expired),
@@ -271,12 +294,24 @@ export function AccountManager() {
   };
 
   if (isLoading) {
+    // WP-8.2: Choreografie aus WP-7.3 statt eines fruehen Returns — kein
+    // Skeleton unter 150 ms, ein gezeigtes bleibt mindestens 300 ms. Der
+    // Platzhalter hat die Form des spaeteren Inhalts statt eines pulsierenden
+    // Satzes; sein Text bleibt fuer die Sprachausgabe erhalten.
     return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground animate-pulse">{t('accounts.manager.loadingText')}</p>
-        </CardContent>
-      </Card>
+      <LoadingSwap
+        loading
+        skeleton={
+          <div className="space-y-3 py-2">
+            <Skeleton variant="shimmer" className="h-6 w-48" />
+            <Skeleton variant="shimmer" className="h-16 w-full" />
+            <Skeleton variant="shimmer" className="h-16 w-full" />
+            <span className="sr-only">{t('accounts.manager.loadingText')}</span>
+          </div>
+        }
+      >
+        {null}
+      </LoadingSwap>
     );
   }
 
@@ -285,6 +320,8 @@ export function AccountManager() {
       <RequireTier feature="bankSync">
         <GoCardlessConnect onConnectionSuccess={handleConnectionSuccess} />
       </RequireTier>
+
+      {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
 
       <Card>
         <CardHeader>

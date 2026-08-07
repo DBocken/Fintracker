@@ -282,6 +282,7 @@ export default function OcrImportDialog({
                     variant="ghost"
                     size="sm"
                     className="absolute top-2 right-2"
+                    aria-label={t('trading.ocrImportDialog.removeImageLabel')}
                     onClick={() => {
                       URL.revokeObjectURL(previewUrl);
                       setPreviewUrl(null);
@@ -326,6 +327,7 @@ export default function OcrImportDialog({
                         variant="ghost"
                         size="sm"
                         onClick={() => removePosition(index)}
+                        aria-label={t('trading.ocrImportDialog.removePositionLabel').replace('{index}', String(index + 1))}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -388,7 +390,7 @@ export default function OcrImportDialog({
                           value={position.currency || 'EUR'}
                           onValueChange={(value) => updatePosition(index, 'currency', value)}
                         >
-                          <SelectTrigger id={`currency-${index}`}>
+                          <SelectTrigger id={`currency-${index}`} aria-label={t('trading.ocrImportDialog.currencyLabel')}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

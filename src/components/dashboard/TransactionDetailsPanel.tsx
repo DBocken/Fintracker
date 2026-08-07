@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
 import { getAllocationsForTransaction } from '@/services/transaction-allocation-service';
@@ -28,6 +29,7 @@ import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPan
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { FeatureGate } from '@/components/FeatureGate';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import {
   getRhythmusOptions,
   ausgabenklasseLabel,
@@ -92,9 +94,10 @@ export function TransactionDetailsPanel({
   isHidden = false,
   isLoading = false,
   onClose,
-  closeLabel = 'Abbrechen',
+  closeLabel,
   layout = 'stacked',
 }: TransactionDetailsPanelProps) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -114,7 +117,11 @@ export function TransactionDetailsPanel({
     }
   }, [transaction]);
 
-  const { data: learnedRules = [] } = useQuery({
+  const {
+    data: learnedRules = [],
+    isError: rulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ['merchant-rules'],
     queryFn: getMerchantRules,
     enabled: !!transaction,
@@ -126,11 +133,21 @@ export function TransactionDetailsPanel({
   // AUSSERHALB der FeatureGate geladen: Aufteilungen überleben ein Tier-Downgrade,
   // der Steuer-Hinweis muss also auch ohne Premium sichtbar sein.
   const txIdForAllocations = transaction?.id ?? '';
-  const { data: taxAllocations = [] } = useQuery({
+  const {
+    data: taxAllocations = [],
+    isError: allocationsError,
+    refetch: refetchAllocations,
+  } = useQuery({
     queryKey: ['allocations', txIdForAllocations],
     queryFn: () => getAllocationsForTransaction(txIdForAllocations),
     enabled: !!txIdForAllocations,
   });
+
+  const hasLoadError = rulesError || allocationsError;
+  const retryAll = () => {
+    void refetchRules();
+    void refetchAllocations();
+  };
 
   const similar = useMemo(() => {
     if (!transaction) return { exact: [], probable: [], reason: 'merchant' as const };
@@ -149,6 +166,10 @@ export function TransactionDetailsPanel({
   }, [transaction, draft, allTransactions]);
 
   if (!transaction || !draft) return null;
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
 
   const similarIds = similar.exact.map((tx) => tx.id!).filter(Boolean);
   const similarCount = similarIds.length;
@@ -259,7 +280,7 @@ export function TransactionDetailsPanel({
         <div>
           <Label className="text-xs text-muted-foreground">{t('dashboard.amount')}</Label>
           <p className={`font-medium tabular-nums ${transaction.amount < 0 ? 'text-warning' : 'text-positive'}`}>
-            {currencyFormatter.format(transaction.amount)}
+            {money.mask(currencyFormatter.format(transaction.amount))}
           </p>
         </div>
         <div data-tour-id="detail-payee" className="col-span-2">
@@ -429,7 +450,7 @@ export function TransactionDetailsPanel({
               disabled={isLoading}
               onValueChange={(value) => setDraft((d) => (d ? { ...d, contract_cycle: (value as Rhythmus) || null } : d))}
             >
-              <SelectTrigger id="cycle-select">
+              <SelectTrigger id="cycle-select" aria-label={t('transactionDetails.cycleLabel')}>
                 <SelectValue placeholder={t('dashboard.selectCycle')} />
               </SelectTrigger>
               <SelectContent>
@@ -619,7 +640,9 @@ export function TransactionDetailsPanel({
       {/* Speichern / Schließen – volle Breite unter beiden Spalten */}
       <div className="mt-4 flex justify-end gap-2 border-t pt-4">
         <Button variant="outline" onClick={onClose} disabled={isLoading}>
-          {closeLabel}
+          {/* Der Standardtext kann nicht im Default-Parameter stehen — dort ist
+              kein Hook erlaubt. Aufgeloest wird er hier. */}
+          {closeLabel ?? t('common.cancel')}
         </Button>
         <Button onClick={handleSave} disabled={isLoading}>
           Speichern

@@ -83,7 +83,9 @@ export function LocalEncryptionSettings() {
 
       <CardContent className="space-y-4">
         <Alert className="border-warning bg-warning/30">
-          <AlertDescription className="text-sm text-warning">
+          {/* Auf der eingefaerbten Warnflaeche traegt die Flaeche das Signal —
+              Warnfarbe AUF Warnfarbe war nur noch schwer lesbar. */}
+          <AlertDescription className="text-sm text-foreground">
             {t('privacy.localEncryption.warning')}
           </AlertDescription>
         </Alert>
@@ -147,7 +149,7 @@ export function LocalEncryptionSettings() {
                     <span>{t('privacy.localEncryption.strengthLabel')}</span>
                     <span>{strength.label}</span>
                   </div>
-                  <Progress value={strength.score} />
+                  <Progress value={strength.score} aria-label={t('privacy.localEncryption.strengthLabel')} />
                 </div>
               </>
             )}
@@ -156,7 +158,7 @@ export function LocalEncryptionSettings() {
 
         {!enabled ? (
           <Button
-            className="w-full bg-positive text-white hover:bg-positive"
+            className="w-full bg-positive text-positive-foreground hover:bg-positive"
             onClick={handleEnable}
             disabled={busy || !password || password !== confirm}
           >
@@ -175,7 +177,7 @@ export function LocalEncryptionSettings() {
           </Button>
         ) : (
           <Button
-            className="w-full bg-positive text-white hover:bg-positive"
+            className="w-full bg-positive text-positive-foreground hover:bg-positive"
             onClick={handleUnlock}
             disabled={busy || !password}
           >

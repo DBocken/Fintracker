@@ -24,6 +24,7 @@ import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
 import AnalysisModePanel from './AnalysisModePanel';
 import FinanceEmptyState from '@/components/common/FinanceEmptyState';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { useTutorialPresence } from '@/components/tutorial/tutorial-presence';
 import { useGlobalAtmosphere } from '@/hooks/useGlobalAtmosphere';
 import { ATMOSPHERE_ACCENTS } from '@/components/common/AtmosphereLayer';
@@ -90,6 +91,13 @@ export function Dashboard() {
   const cityMoodAccent = ATMOSPHERE_ACCENTS[atmosphere.temperature];
 
   // Nie eine leere Seite: ohne Transaktionen klare nächste Aktionen (Issue #39).
+  // WP-9.2: VOR dem Leerzustand. Beide gleichzeitig kann es nicht geben
+  // (`isEmpty` schliesst `hasError` aus); die Reihenfolge macht die Rangfolge
+  // trotzdem im Quelltext sichtbar.
+  if (model.hasError) {
+    return <FinanceErrorState onRetry={model.actions.reload} />;
+  }
+
   if (model.isEmpty) {
     return <FinanceEmptyState />;
   }

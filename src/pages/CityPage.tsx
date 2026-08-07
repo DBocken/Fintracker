@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { useI18n } from "@/i18n/useI18n";
 import { cn, formatCurrency, formatPercent } from "@/lib/utils";
 import EmptyState from "@/components/common/EmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import type { CityModel } from "@/features/finance-city/domain/city-model";
 import { buildCityLayout, computeFocusBounds } from "@/features/finance-city/domain/city-layout";
 import { buildFlowLines } from "@/features/finance-city/domain/city-flow-lines";
@@ -38,6 +39,7 @@ import { useMotionSafe, useReducedMotion } from "@/hooks/useReducedMotion";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { deriveAtmosphere } from "@/hooks/useAtmosphereState";
 import { isFirstVisit, markVisited } from "@/features/finance-city/presentation/first-visit";
+import { MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
 
 /** WP-C5: Mobile 6 / Desktop 10 sichtbare Labels gleichzeitig (Kollisions-Cap, `CityLabels`/`resolveLabelCollisions`). */
 const MAX_VISIBLE_LABELS_MOBILE = 6;
@@ -160,7 +162,7 @@ export default function CityPage() {
   // WP-D5/D7: aktive Welt der Stadt (Ausgaben/Einnahmen/Ziele) — gleiche
   // Pipeline, anderer Adapter (`useCityModel(tab)`).
   const [activeTab, setActiveTab] = useState<CityModelTab>("expenses");
-  const { model, isLoading, isEmpty, overview, timeline } = useCityModel(
+  const { model, isLoading, isEmpty, isError, refetch, overview, timeline } = useCityModel(
     activeTab,
     selectedMonth ?? undefined,
   );
@@ -789,6 +791,13 @@ export default function CityPage() {
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <p className="text-sm text-muted-foreground">{t("city.loading")}</p>
             </div>
+          ) : isError ? (
+            // WP-9.6: VOR dem Leerzustand. Eine leere Stadt heisst „du hast
+            // noch nichts erfasst" — bei einem Lesefehler waere das die
+            // falscheste Aussage, die dieser Screen treffen kann.
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <FinanceErrorState variant="transactions" onRetry={refetch} />
+            </div>
           ) : isEmpty ? (
             // WP-C8: keine Ausgabendaten -> Hinweis-Karte statt Canvas (README/
             // Akzeptanzkriterium "nur echte Daten"). Canvas/Labels/Liste
@@ -816,7 +825,14 @@ export default function CityPage() {
                 ref={canvasContainerRef}
                 data-tour-id="city-canvas"
                 aria-hidden={showList}
-                role={showList ? undefined : "img"}
+                // `group`, nicht `img`: In dieser Fläche stecken die
+                // Distrikt-Labels und im Störfall die Knöpfe „erneut
+                // versuchen"/„zur Liste". `role="img"` erklärt all das zum
+                // Bildinhalt — Hilfstechnik reicht es dann nicht mehr durch,
+                // und die einzige Ausweichmöglichkeit aus einer toten
+                // 3D-Fläche wäre ausgerechnet für die unerreichbar, die sie am
+                // dringendsten brauchen (axe: nested-interactive).
+                role={showList ? undefined : "group"}
                 aria-label={showList ? undefined : t("city.canvasAriaLabel")}
                 className={cn("absolute inset-0", showList && "invisible")}
               >
@@ -1077,7 +1093,7 @@ export default function CityPage() {
                     initial={reducedMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={reducedMotion ? {} : { opacity: 0, y: -10 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.6, ease: MOTION_EASINGS_BEZIER.precision }}
                     className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center"
                   >
                     <div className="rounded-2xl bg-background/90 px-8 py-4 text-center shadow-lg backdrop-blur-sm">

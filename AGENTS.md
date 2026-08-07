@@ -92,8 +92,12 @@ verwenden**.
 | `pnpm test:integrity` | Integritäts-Tests (`[INTEGRITY]`) |
 | `pnpm test:privacy` | Privacy-Tests (`[PRIVACY]`) |
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
-| `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings im Diff auftauchen — läuft in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
+| `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings auftauchen. **Zwei Modi:** `--staged`/`--range` sehen den Diff, `--all` den ganzen Baum — der Diff-Modus kann Altbestand strukturell NIE sehen, und genau daran sind in Phase 9 zwei Verstöße vorbeigelaufen. Beide laufen in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
 | `pnpm check:i18n-module-consts` | Findet `t()`-Aufrufe im Initializer einer Modul-`const` — die frieren beim Import ein und ignorieren jeden späteren Sprachwechsel. Ganzbaumig über die TypeScript-AST, läuft in Pre-Commit und CI |
+| `pnpm check:query-errors` | Verlangt, dass jeder `useQuery`-Aufruf den Fehlerfall in die Hand nimmt. Sonst macht der übliche Fallback `data = []` einen Ladefehler unsichtbar und der Screen behauptet „du hast noch nichts“. **Vier anerkannte Formen:** `isError`/`error`/`status` destrukturieren · `throwOnError` · `return useQuery(…)` (ein Hook reicht durch, statt darzustellen — §3) · `const q = useQuery(…)` mit späterem `q.isError`, auch gesammelt über mehrere Abfragen einer Fläche. Kommentare werden ausgeblendet. Der destrukturierte Name muss auch BENUTZT werden — `isError: _fooError` ist ein Eingeständnis, keine Behandlung. Die Ausnahmeliste `query-error-allowlist.json` kennt zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken; ein Objekt **`{ count, reason }`** ist entschieden (Voreinstellung, deren Standard bereits die richtige Antwort ist · Vorschlag, der nichts behauptet, wenn er ausbleibt · `queryFn`, die den Fehler selbst abfängt). Ohne tragfähigen `reason` wird die Objektform abgewiesen. Läuft in Pre-Commit und CI |
+| `pnpm check:platform-parity` | Prüft den maschinell fassbaren Teil von §4: Eine Fläche mit `hidden <bp>:*` ohne Gegenstück (`<bp>:hidden`) fehlt auf schmalen Breiten ganz — das ist kein Dichte-Unterschied, sondern ein fehlendes Feature. Legitime Paare über Dateigrenzen stehen mit **Nennung des Partners** in `platform-parity-allowlist.json`. Läuft in Pre-Commit und CI |
+| `pnpm check:bundle-size` | Vergleicht die gzip-Grössen aus `dist/assets` gegen `bundle-size-budget.json` (Einzelbudget ab 20 kB, dazu eine Gesamtgrenze über **alle** Bündel). Setzt einen `pnpm build` voraus. Das Budget ist der heutige Stand plus 10 % — es soll Wachstum sichtbar machen, nicht die Vergangenheit verurteilen. Läuft in CI |
+| `pnpm check:a11y-names` | Verlangt für jedes `<SelectTrigger>` und jede Schaltfläche, deren einziger Inhalt ein Icon ist, einen zugänglichen Namen (`aria-label`/`aria-labelledby`/`title`). **Ohne Ausnahmeliste** — anders als die übrigen Wächter, weil ein namenloses Bedienelement mit Screenreader schlicht nicht bedienbar ist. Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
@@ -270,6 +274,15 @@ fachlichen Invarianten: `docs/coding-guide.md`, `docs/domain-invariants.md`.
   *aufgebaut* (hochzählen, füllen, wachsen, zeichnen); Farb-/Statuswechsel
   sind schwellwertbewusst. Kein `isAnimationActive={false}` ohne kurze
   Begründung. `prefers-reduced-motion` überall respektieren.
+- **Farbe ist nur gültig als Paar.** Wer eine Fläche einfärbt, benutzt das
+  zugehörige `*-foreground`-Token (`bg-positive text-positive-foreground`) —
+  nie `text-white` oder eine geratene Farbe. Nutzerdaten (Kontofarben,
+  Kategoriefarben) werden **nie** als Schriftfarbe verwendet, nur als Rahmen,
+  Punkt oder Fläche: Für einen frei gewählten Farbwert kann niemand Lesbarkeit
+  garantieren. Alle Tokenpaare müssen 4.5:1 erreichen — in **beiden** Themen
+  **und in jedem Skin** (`src/skins/skins.css`), geprüft durch
+  `src/lib/__tests__/color-contrast.test.ts`. Ein Skin, der eine Fläche
+  umfärbt, muss ihren Vordergrund mit umfärben.
 - Vollständige Prinzipien (7 Kernprinzipien + Karten- und Animationsregel im
   Detail): `docs/design-principles.md`.
 
@@ -319,7 +332,11 @@ Mal — kein Vorgang wird stillschweigend übersprungen.
 ## 12. Automatische Durchsetzung
 
 Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
-(`pnpm check:i18n`) und Teststruktur (`pnpm check:test-structure`). Claude
+(`pnpm check:i18n`), Teststruktur (`pnpm check:test-structure`), die
+Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
+(`pnpm check:platform-parity`), den Fehlerzustand jeder Abfrage
+(`pnpm check:query-errors`) und die Namen der Bedienelemente
+(`pnpm check:a11y-names`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.

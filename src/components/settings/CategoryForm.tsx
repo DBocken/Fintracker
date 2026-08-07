@@ -270,7 +270,7 @@ export function CategoryForm({
             <div>
               <Label htmlFor="category-rhythmus">{t('categoryForm.rhythmusLabel')}</Label>
               <Select value={attributes.rhythmus || ''} onValueChange={(value: Rhythmus) => onAttributesChange({ rhythmus: value })}>
-                <SelectTrigger id="category-rhythmus" className="w-full">
+                <SelectTrigger id="category-rhythmus" className="w-full" aria-label={t('categoryForm.rhythmusLabel')}>
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +284,7 @@ export function CategoryForm({
             <div>
               <Label htmlFor="category-prioritaet">{t('categoryForm.prioritaetLabel')}</Label>
               <Select value={attributes.prioritaet || ''} onValueChange={(value: Prioritaet) => onAttributesChange({ prioritaet: value })}>
-                <SelectTrigger id="category-prioritaet" className="w-full">
+                <SelectTrigger id="category-prioritaet" className="w-full" aria-label={t('categoryForm.prioritaetLabel')}>
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,7 +297,7 @@ export function CategoryForm({
             <div>
               <Label htmlFor="category-zahlungsweg">{t('categoryForm.zahlungswegLabel')}</Label>
               <Select value={attributes.zahlungsweg || ''} onValueChange={(value: Zahlungsweg) => onAttributesChange({ zahlungsweg: value })}>
-                <SelectTrigger id="category-zahlungsweg" className="w-full">
+                <SelectTrigger id="category-zahlungsweg" className="w-full" aria-label={t('categoryForm.zahlungswegLabel')}>
                   <SelectValue placeholder="–" />
                 </SelectTrigger>
                 <SelectContent>

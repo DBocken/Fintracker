@@ -8,6 +8,189 @@
 
 ---
 
+## 2026-08-06 — Phase 8: Grundlage, Altfaelle, Ladezustaende, Hierarchie/Paritaet
+
+**Status:** Phase 8 ist in dem Umfang abgeschlossen, den ein unbeaufsichtigter
+Lauf verantworten kann. Was bleibt, ist benannt (siehe
+[`offene-punkte.md`](offene-punkte.md)) und nicht stillschweigend uebersprungen.
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-8.0** | Die Karten-Regel (AGENTS.md §9) ist maschinell pruefbar. Vorher gab es dazu **nur** einen advisory Claude-Hook: CI sah nie einen Verstoss, Agenten ohne `.claude/`-Hooks auch nicht. `pnpm check:card-rule` prueft jetzt repo-weit, in Pre-Commit und CI. Bewusst die **schwaechere** Aussage („Karten-Chrome ohne jedes Interaktions-Signal"), denn eine Regel mit Fehlalarmen wird abgeschaltet |
+| **WP-8.1** | Alle acht Altfaelle behoben, `card-rule-allowlist.json` ist **leer**. Jeder neue Verstoss bricht ab jetzt den Build. Mitbehoben: `HeatmapCalendar` trug feste Graustufen statt Design-Tokens (im Hellmodus ein dunkelgrauer Block) und zeigte `cursor-pointer` ohne klickbar zu sein |
+| **WP-8.2** | Fuenf Ladezustaende auf die Choreografie aus WP-7.3 gezogen. Kein Skeleton unter 150 ms (das waere ein Blinzeln), ein gezeigtes bleibt mindestens 300 ms. Platzhalter in der Form des spaeteren Inhalts: ein Spinner sagt „es passiert etwas", ein Skelett sagt „hier kommt eine Liste" |
+| **WP-8.3** | Die beiden nicht maschinell pruefbaren Restpunkte, je Screen durchgesehen — siehe unten |
+
+### WP-8.3 im Einzelnen
+
+**Hierarchie (Befund aus der Gate-Neubewertung).** Die Kennzahlenzeile des
+Dashboards stellte vier Groessen in derselben Schriftgroesse und demselben
+Gewicht nebeneinander — eine Aufzaehlung, keine Aussage. Jetzt abgestuft nach
+der Frage, die der Nutzer als naechste stellt: Zeitraum-Saldo (`text-2xl`,
+„wie lief dieser Zeitraum") ueber Einnahmen/Ausgaben (`text-base`) ueber der
+Anzahl (`text-sm`, gedaempft). Der Hero bleibt darueber — die Abstufung darf
+keine zweite Hauptaussage erzeugen (Befund A-1). Der Test vergleicht dafuer
+nicht Klassennamen, sondern den in `src/index.css` deklarierten Wert von
+`--font-size-hero-mobile` gegen `text-2xl`; ein reiner Namensvergleich wuerde
+nicht rot, wenn jemand die Variable absenkt.
+
+**Paritaet (AGENTS.md §4), je Breakpoint-Weiche durchgesehen.** Ein Befund:
+Die Export-Reihe der Geldfluss-Visualisierung trug `hidden sm:flex` **ohne
+Gegenstueck** — auf dem Telefon fehlte der Export damit ganz. Das ist kein
+Dichte-Unterschied, sondern ein fehlendes Feature. Desktop zeigt die drei Wege
+weiterhin offen, Mobil buendelt sie hinter einem Ausloeser (progressive
+Offenlegung, ein Ziel statt drei in einer Zeile, die schon den Regler traegt).
+
+Alle uebrigen Weichen sind paarig und im Quelltext als solche begruendet:
+Seitennavigation ↔ `MobileNav`/`BottomNav`, Suchleiste ↔ Suchknopf,
+Theme-Umschalter ↔ Einstellungen/Darstellung, Tabelle ↔ Kartenliste
+(Transaktionen, Vertraege), Desktop-View ↔ Mobile-Story (Dashboard,
+Sonderkategorien), Illustration ↔ kompakte Illustration (Coach),
+Zuordnung inline ↔ Detail-Sheet (Schulden).
+
+**Ausserdem migriert:** der Ladezustand des `PortfolioManager` (Trading), der
+in WP-8.2 noch bewusst offen geblieben war.
+
+### WP-8.4 — Restmigration, gefunden durch Nachprüfen der eigenen Behauptung
+
+Die Aussage „die Migrationskriterien sind repo-weit durchgesetzt" wurde nicht
+geglaubt, sondern geprüft: ein Sweep über feste Farbwerte, Zeigefinger ohne
+Ziel, willkürliche Bewegungsdauern und inhaltsersetzende Spinner. Vier
+Befunde, alle behoben; drei Verdachtsfälle lösten sich als Fehlalarm auf
+(`cursor-pointer` stand jedes Mal auf einem `<label>` — das IST klickbar).
+
+| Befund | Was daran falsch war |
+|---|---|
+| `TradingDashboard`, zwei Stellen | Als einziger Screen noch inhaltsersetzende Spinner — einer für den ganzen Screen, einer für die Positionsliste |
+| `BackupManager` | Dito für die Kennzahlen-Übersicht |
+| `ReviewTable` | `#000` als Rückfall, wenn eine Kategorie keine Farbe hat: schwarze Schrift auf schwarzem Grund im Dunkelmodus. Jetzt bleibt der Badge ohne Farbe bei seinen Token-Vorgaben |
+| `CloudMcpSyncCard`, zwei Stellen | `bg-amber-600` aus der Roh-Palette statt `bg-warning` — die Fläche wechselt mit dem Thema nicht mit |
+
+**Die Sprachausgabe-Entsprechung sitzt jetzt in `LoadingSwap` selbst.** Vorher
+hatte sie genau ein Ladezustand, weil ich beim Bauen daran gedacht hatte — die
+vier aus WP-8.2 nicht. Ein Skelett ist rein visuell; ohne Textentsprechung
+sieht eine Sprachausgabe leere Kästen und schweigt. In der Aufrufstelle ist das
+eine Frage der Aufmerksamkeit, im Baustein eine Eigenschaft. Neuer Schlüssel
+`common.loading` in allen vier Sprachbäumen.
+
+Dabei fiel auf, dass `LoadingSwap.test.tsx` mit dem rohen `render` arbeitete
+statt mit den zentralen Helfern (AGENTS.md §5). Das ist mitgezogen — und der
+Zustandswechsel läuft dort jetzt über **Zustand** statt über `rerender`:
+`rerender` ersetzt den ganzen Baum und wirft den Provider weg, und es ist
+ohnehin der unechte Hergang. In der App bleibt der Baum stehen, nur das Flag
+kippt.
+
+### Ein Befund, den erst die Messung sichtbar gemacht hat
+
+Die Hierarchie-Aenderung liess den Performance-Lauf kippen: CLS `/dashboard`
+0,1002 gegen ein Budget von 0,1 — vorher 0,096. Die vier zusaetzlichen Pixel
+Zeilenhoehe waren also nicht die Ursache, sondern der letzte Tropfen.
+
+Statt das Budget zu lockern (es haette dann nichts mehr gemessen) wurden die
+`layout-shift`-Eintraege aufgeschluesselt. Ergebnis: zwei nachtraeglich
+eingeschobene Streifen von je 41 px. Der `DemoDataBanner` war einer davon —
+und das ohne Grund: `isDemoDataActive()` liest **synchron** aus dem
+localStorage, `useQuery` lieferte im ersten Render trotzdem `undefined`. Mit
+`initialData` steht der Banner sofort. Die Rangfolge kostet ausserdem jetzt
+keine Blockhoehe mehr (`leading-7` haelt die Zeilenhoehe der frueheren
+`text-lg`-Zeile).
+
+`/dashboard` liegt damit bei **0,077**. Der groessere Posten — die
+Tutorial-Einladung ueber der gesamten Huelle, 0,073 — ist gemessen, benannt
+und bewusst offen; Begruendung in [`offene-punkte.md`](offene-punkte.md).
+
+**Nachweis:** 433 Test-Dateien / 4247 Tests gruen, E2E 4/4 (zwei
+Dashboard-Baselines neu erzeugt, die Aenderung ist beabsichtigt), `tsc` und
+`lint` fehlerfrei, alle fuenf Waechter gruen.
+
+**Grenze, bewusst so:** Paritaet ist eine Aussage ueber Bedeutung, nicht ueber
+Code — es gibt dafuer keinen Waechter und kann keinen geben. Was pruefbar war,
+ist geprueft: jede `hidden <bp>:*`- und `<bp>:hidden`-Weiche im Quelltext
+einzeln gegen ihr Gegenstueck.
+
+---
+
+## 2026-08-06 (Nachtrag) — Phase 6 und 7 vollstaendig
+
+**Status:** Die drei verbliebenen Arbeitspakete sind umgesetzt. Phase 6
+(10 WPs) und Phase 7 (8 WPs) sind damit **vollstaendig**.
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-6.3** | Sankey: Die Fluss-Textur liegt UEBER dem Band, nicht darin. Ein `stroke-dasharray` auf dem Band selbst wuerde den Strom zerschneiden — das saehe nach Unterbrechung aus, nicht nach Fluss. Verschiebung exakt eine Musterlaenge, sonst springt die Schleife; `linear`, weil ein Strom nicht beschleunigt. Auf der sparsamsten Bewegungsstufe entfaellt sie: eine endlose Animation hat keinen Moment, in dem sie fertig waere |
+| **WP-6.4** | Vermoegen als Volumen. Der bisherige 2,5-px-Balken zeigte Anteile korrekt, aber keine Groessenordnung — 2.000 EUR und 200.000 EUR sahen identisch aus. Jetzt Kreise, deren **Flaeche** proportional zum Betrag ist (Radius ueber die Wurzel; linear skaliert saehe der doppelte Betrag viermal so gross aus) |
+| **WP-7.5** | Jahresrueckblick laeuft auf einen Signature Moment zu statt auf eine Share-Karte mit Ueberschrift. Dieselbe Choreografie und Haptik wie alle anderen Erfolgsmomente, statt einer zweiten Fassung. Feste Uebergangsdauern durch Tokens ersetzt |
+
+**Nachweis:** 430 Test-Dateien / 4223 Tests gruen, `pnpm lint` und
+`pnpm exec tsc --noEmit` fehlerfrei, alle i18n- und Struktur-Waechter gruen.
+
+---
+
+## 2026-08-06 — Phase 6/7 zu grossen Teilen abgearbeitet, WP-4.6-Gate bestanden
+
+**Status:** Elf Arbeitspakete aus Phase 6 und 7 sind umgesetzt, das
+WP-4.6-Gate ist **bestanden** (Addendum in
+[`critic-reports/wp-4.6-art-ux-motion.md`](critic-reports/wp-4.6-art-ux-motion.md)),
+die E2E-Suite laeuft in CI. Drei Arbeitspakete stehen noch aus und sind in
+[`offene-punkte.md`](offene-punkte.md) benannt.
+
+### Umgesetzt
+
+| WP | Kern der Aenderung |
+|---|---|
+| **WP-7.7** | Bewegungsstufe **vor** dem ersten Frame aus dem Geraeteprofil. Die Einstufung „stark / Telefon / schwach" wandert aus der Finanzstadt nach `lib/device-profile.ts` und wird geteilt — kein zweites Degradations-System, das auseinanderdriften koennte |
+| **WP-6.8** | Zwoelf Charts trugen je eine eigene Abschrift von `contentStyle` und den Achsen-Attributen; sie waren bereits auseinandergelaufen. Jetzt Props-Fabriken (Recharts erkennt Kinder am Komponententyp — ein Wrapper waere unsichtbar). `niceTicks()` (D-1) gilt jetzt auf **allen** Achsen |
+| **WP-6.10** | `<ChartFigure>`: ein Satz zur Aussage, SVG fuer Hilfstechnik ausgeblendet, Werte als aufklappbare Tabelle. Zwei Charts hatten eine Liste als Alternative — die war aber `md:hidden`, auf Desktop war der Donut also der einzige Zugriffsweg |
+| **WP-6.1** | Prognose: drei verschachtelte Konfidenzflaechen statt einer harten Kante. Eine harte Kante liest sich als Zusage, obwohl P10 heisst, dass jeder zehnte Durchlauf tiefer faellt. Aus echten Quantilen (sieben statt drei), nicht aus Interpolation |
+| **WP-6.2** | Prognose duennt zum Horizont hin aus. Als Maske, nicht als zweite Farbe — sonst verrechnete sie sich mit der Deckkraft der drei Ebenen |
+| **WP-6.6** | Transaktionsliste sortiert sich beim Filtern sichtbar um. Drei Lagen, in denen NICHT animiert wird, als Rangfolge modelliert — darunter die Virtualisierung ab 150 Eintraegen, eine echte Grenze |
+| **WP-6.9** | Kennzahlen zaehlen beim Zeitraumwechsel vom alten auf den neuen Wert. `animateOnMount: false` — das WP heisst „zwischen Zeitraeumen", nicht „beim Aufbau" |
+| **WP-7.3** | Ladezustaende: kein Skeleton unter 150 ms (das waere ein Blinzeln), ein gezeigtes bleibt mindestens 300 ms |
+| **WP-7.4** | Signature Moment „Schuldenfrei" mit Gedaechtnis: „Summe ist null" traefe auch auf jeden zu, der nie Schulden erfasst hat |
+| **WP-7.8** | Haptik ueber `navigator.vibrate` statt einer neuen Abhaengigkeit; schweigt bei reduzierter Bewegung und auf Geraeten ohne Vibration |
+| **Infra** | E2E-Job in CI (funktional, a11y, Visual, Performance), Browser-Cache, Prod-Budget **LCP < 2,5 s erstmals gemessen und eingehalten**; Radix-`DialogTitle`-Warnung behoben |
+
+### Nebenbei behoben (nicht beauftragt, aber im Weg)
+
+- **`CHART_SERIES_LABELS`** in `LiquidityReport` war eine hartkodierte
+  Modul-Konstante mit UI-Text; ebenso der Satz unter dem Prognose-Chart.
+  Beides Verstoesse gegen AGENTS.md §6, jetzt uebersetzt in allen vier
+  Baeumen mit `everyday`-Overlay.
+- **Gradient-IDs aus `Date.now()`** — neue ID bei jedem Render, alte `<defs>`
+  bleiben stehen, Kollision bei zwei Charts in derselben Millisekunde.
+- **`ease: [0.22, 1, 0.36, 1]`** stand an fuenf Stellen von Hand abgeschrieben
+  — genau die Drift, gegen die das Token-System angetreten ist.
+- **`vitest.setup.ts` pinnt `hardwareConcurrency`**: sonst haenge jede
+  Zusicherung auf eine Animationsdauer an der Kernanzahl des Runners.
+
+### Waechter statt Einmal-Aufraeumung
+
+`chart-standardization.test.ts` prueft die Quelle: kein eigenhaendiges
+`contentStyle`, jeder Tooltip ueber die Fabrik, jeder Chart mit
+nicht-visueller Entsprechung, keine Zeitstempel als SVG-ID. Ohne diesen
+Waechter waere die Aufraeumung in drei Monaten wieder zerfallen — genau so
+sind die bisherigen Abweichungen entstanden.
+
+### Zwei Befunde, die Tests aufgedeckt haben
+
+- Die aeussere Konfidenzflaeche rechnete `p90 - p05` statt `p95 - p05`; der
+  Kommentar sagte P05–P95, der Code nicht.
+- Der erste CI-Lauf der E2E-Suite meldete zwei Snapshots rot, ohne
+  Code-Aenderung. Ursache war die **Browser-Version** (lokal Chromium 141, CI
+  151), nicht die Plattform — siehe `decisions/decision-log.md` F-2.
+
+### Nachweise
+
+- Volle Suite gruen; `pnpm lint`, `pnpm exec tsc --noEmit`, `check:i18n`,
+  `check:i18n-module-consts`, `check:test-structure` fehlerfrei.
+- E2E lokal 4/4 gruen gegen erneuerte Baselines, im Folgelauf stabil
+  bestaetigt; a11y 0 Critical.
+- Performance gegen den **Produktions-Build** gruen — das Gate-Budget
+  LCP < 2,5 s ist damit erstmals belegt und nicht mehr nur behauptet.
+- Motion-Review als Videoaufzeichnung, ausgewertet als 4-fps-Frames.
+
+---
+
 ## 2026-08-06 — Critic-Befunde behoben, Offene-Punkte-Liste angelegt
 
 **Status:** Die vier inhaltlichen Befunde des WP-4.6-Critic-Reviews sind

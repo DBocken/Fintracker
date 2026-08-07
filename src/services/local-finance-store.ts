@@ -4,6 +4,7 @@ import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
 // Verschlüsselungs-Migration keine Kollektion übersehen kann. Re-Export hält
 // bestehende Importe (`from './local-finance-store'`) funktionsfähig.
 import { LOCAL_FINANCE_KEYS, type LocalFinanceKey } from './local-storage-keys';
+import { StoreVersionTooNewError, checkStoreCompatibility } from '@/lib/store-compatibility';
 
 export { LOCAL_FINANCE_KEYS };
 export type { LocalFinanceKey };
@@ -11,16 +12,49 @@ export type { LocalFinanceKey };
 /**
  * Schema-Version des lokalen Finanzspeichers. Wird erhöht, sobald bestehende
  * Datenstrukturen migrationsbedürftig erweitert werden. Reine Neuanlage weiterer
- * Collections braucht keine Migration. Der Wert wird lokal persistiert, damit ein
- * späterer Migrationshook erkennt, ob er laufen muss. Alles bleibt strikt lokal.
+ * Collections braucht keine Migration. Alles bleibt strikt lokal.
+ *
+ * **WP-11.3: Diese Konstante wird jetzt tatsächlich benutzt.** Bis dahin stand
+ * hier nur die Absicht („damit ein späterer Migrationshook erkennt, ob er
+ * laufen muss") — gelesen oder geschrieben hat sie niemand. Für Phase 11 ist
+ * das der Unterschied zwischen einem Rollback und einem Datenverlust: Wird eine
+ * Auslieferung zurückgenommen, trifft eine ältere App auf neuere Daten und
+ * schreibt beim Speichern alles weg, was sie nicht versteht.
  */
 export const LOCAL_STORE_SCHEMA_VERSION = 2;
 export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_version';
+
+/**
+ * Prüft vor JEDEM Zugriff, ob diese App die vorgefundene Ablage überhaupt
+ * verstehen darf — und schreibt die eigene Version fest, sobald sie es tut.
+ *
+ * Bewusst hier und nicht in einem einmaligen Start-Hook: Ein Rollback passiert
+ * nicht beim Start, sondern zwischen zwei Besuchen. Ein Hook, der beim letzten
+ * Start lief, hätte die Antwort von gestern.
+ */
+function assertCompatibleStore() {
+  const compatibility = checkStoreCompatibility(
+    localStorage.getItem(LOCAL_STORE_SCHEMA_VERSION_KEY),
+    LOCAL_STORE_SCHEMA_VERSION,
+  );
+
+  if (compatibility.status === 'refuse') {
+    throw new StoreVersionTooNewError(compatibility.stored, compatibility.supported);
+  }
+
+  // `migrate` und `ok` schreiben beide fest, was diese App versteht. Eine
+  // eigene Migrationsstufe gibt es (noch) nicht — sobald es sie gibt, ist das
+  // hier ihr Aufhänger, und der Zweig ist bereits benannt.
+  if (compatibility.status === 'migrate') {
+    localStorage.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION));
+  }
+}
 
 function assertClientStorage() {
   if (typeof window === 'undefined') {
     throw new Error(t('localFinanceStore.clientOnly', 'Lokale Finanzdaten können nur im Client verarbeitet werden.'));
   }
+  assertCompatibleStore();
 }
 
 export async function readLocalFinanceList<T>(key: LocalFinanceKey): Promise<T[]> {

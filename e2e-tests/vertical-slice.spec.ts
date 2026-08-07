@@ -53,9 +53,11 @@ test.describe("Vertical Slice (WP-4.6)", () => {
     await page.getByRole("link", { name: "Zur Finanzstadt" }).click();
     await expect(page).toHaveURL(/\/city$/);
     await expect(page.getByRole("heading", { name: "Finanzstadt" })).toBeVisible();
-    // 3D-Fläche mit echten Demo-Daten (barrierearmes role="img" + Label).
+    // 3D-Fläche mit echten Demo-Daten. `role="group"`, nicht `img`: In der
+    // Fläche liegen Distrikt-Labels und im Störfall die Ausweich-Knöpfe —
+    // als Bild deklariert wären die für Hilfstechnik unerreichbar (WP-10.2).
     await expect(
-      page.getByRole("img", { name: "3D-Ansicht der Finanzstadt" }),
+      page.getByRole("group", { name: "3D-Ansicht der Finanzstadt" }),
     ).toBeVisible({ timeout: 15000 });
 
     // Signature Moment (WP-5.5) beim ersten Besuch: Text-Overlay nach dem Aufbau.

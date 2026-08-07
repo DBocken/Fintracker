@@ -49,6 +49,26 @@ if (typeof window !== "undefined" && window.navigator) {
   })
 }
 
+// Geräteeinstufung deterministisch machen (WP-7.7).
+//
+// `classifyDevice()` (src/lib/device-profile.ts) liest `hardwareConcurrency`,
+// um die Bewegungsstufe zu wählen. Unter jsdom kommt dort die echte Kernanzahl
+// der Maschine an — auf einem 4-Kern-CI-Runner gilt die App damit als schwaches
+// Gerät und kürzt jede Animationsdauer, auf einem 12-Kern-Entwicklungsrechner
+// nicht. Jede Zusicherung auf eine konkrete Dauer wäre dann maschinenabhängig
+// und je nach Runner rot oder grün.
+//
+// Deshalb hier ein fester Desktop-Wert, analog zum `navigator.language`-Pin
+// darüber und mit derselben Begründung: der Standardfall wird festgenagelt,
+// abweichende Geräte setzen Tests ausdrücklich selbst
+// (`resetDeviceProfileCache()` aus `@/hooks/useDeviceProfile`).
+if (typeof window !== "undefined" && window.navigator) {
+  Object.defineProperty(window.navigator, "hardwareConcurrency", {
+    value: 12,
+    configurable: true,
+  })
+}
+
 // jsdom's Blob/File lack the `text()` instance method that the CSV import
 // uses (`await file.text()`). Bridge it via FileReader, which jsdom supports.
 if (typeof Blob !== "undefined" && !Blob.prototype.text) {
@@ -60,6 +80,43 @@ if (typeof Blob !== "undefined" && !Blob.prototype.text) {
       reader.readAsText(this)
     })
   }
+}
+
+// Radix-Slider misst seinen Track über ResizeObserver — jsdom kennt die API
+// nicht und der Test wirft schon beim Rendern. Ein No-op-Shim genügt: gemessen
+// wird in jsdom ohnehin nichts (alle Elemente haben die Größe 0), geprüft wird
+// die Struktur.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
+
+// jsdom implementiert `matchMedia` nicht. Komponenten, die ihren Breakpoint
+// selbst abfragen (z. B. KpiGrid), werfen deshalb schon beim Mounten.
+//
+// Der Shim meldet konsequent `matches: false` — das ist die MOBILE Annahme,
+// weil die Abfragen hier durchweg `min-width`-Abfragen sind. Tests, die den
+// Desktop-Zweig brauchen, setzen `window.matchMedia` selbst; ein Shim, der
+// `true` liefert, wuerde dagegen still den jeweils anderen Zweig testen, ohne
+// dass es jemandem auffiele.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
 }
 
 // Radix-Primitives (Popover/Dialog/Select) rufen Pointer-/Scroll-APIs auf, die

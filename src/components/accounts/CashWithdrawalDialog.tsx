@@ -15,6 +15,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
 import { getAccounts } from "@/services/account-service";
 import { recordCashWithdrawal } from "@/services/cash-service";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import type { Account } from "@/types";
 
 interface CashWithdrawalDialogProps {
@@ -34,7 +35,11 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
 
-  const { data: accounts = [] } = useQuery<Account[]>({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery<Account[]>({
     queryKey: ["accounts"],
     queryFn: getAccounts,
     enabled: open,
@@ -76,6 +81,8 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
           <DialogTitle>{t('accounts.cashWithdrawal.title')}</DialogTitle>
         </DialogHeader>
 
+        {accountsError && <FinanceErrorState variant="data" onRetry={() => void refetchAccounts()} />}
+
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             {t('accounts.cashWithdrawal.description')}
@@ -84,7 +91,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
           <div className="space-y-1.5">
             <Label>{t('accounts.cashWithdrawal.fromAccount')}</Label>
             <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('accounts.cashWithdrawal.fromAccount')}>
                 <SelectValue placeholder={t('accounts.cashWithdrawal.fromAccountPlaceholder')} />
               </SelectTrigger>
               <SelectContent>

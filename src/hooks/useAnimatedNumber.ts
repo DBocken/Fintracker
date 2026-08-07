@@ -12,6 +12,15 @@ interface AnimatedNumberOptions {
   durationMs?: number;
   /** Animation aktiv? Bei false (oder reduced-motion) sofort der Zielwert. */
   enabled?: boolean;
+  /**
+   * Ob beim ersten Rendern von 0 hochgezaehlt wird (Default: `true` — das
+   * bisherige Verhalten, das Budget-Tank und Health-Score brauchen).
+   *
+   * `false` fuer Kennzahlen, die nur BEI EINER AENDERUNG zaehlen sollen
+   * (WP-6.9, Zeitraumwechsel): dort ist der Aufbau schon anderweitig erzaehlt,
+   * und ein zweiter Zaehler daneben waere Doppelung statt Aussage.
+   */
+  animateOnMount?: boolean;
 }
 
 /**
@@ -24,15 +33,20 @@ interface AnimatedNumberOptions {
  */
 export function useAnimatedNumber(
   target: number,
-  { durationMs = MOTION_DURATIONS.default, enabled = true }: AnimatedNumberOptions = {},
+  {
+    durationMs = MOTION_DURATIONS.default,
+    enabled = true,
+    animateOnMount = true,
+  }: AnimatedNumberOptions = {},
 ): number {
   const reduce = useReducedMotion();
   const safeTarget = Number.isFinite(target) ? target : 0;
   const animate = enabled && !reduce;
 
-  const [value, setValue] = useState(animate ? 0 : safeTarget);
+  const startsAtZero = animate && animateOnMount;
+  const [value, setValue] = useState(startsAtZero ? 0 : safeTarget);
   // Startwert der laufenden Tween-Phase (zuletzt sichtbarer Wert).
-  const fromRef = useRef(animate ? 0 : safeTarget);
+  const fromRef = useRef(startsAtZero ? 0 : safeTarget);
 
   useEffect(() => {
     if (!animate) {

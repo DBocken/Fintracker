@@ -34,7 +34,7 @@ export function TaxCategorySelect({ value, onChange, id, className, noneLabel }:
       value={value || NONE_VALUE}
       onValueChange={(v) => onChange(v === NONE_VALUE ? null : v)}
     >
-      <SelectTrigger id={id} className={className}>
+      <SelectTrigger id={id} className={className} aria-label={t('tax.form.selectPlaceholder', 'Steuer-Rubrik wählen …')}>
         <SelectValue placeholder={t('tax.form.selectPlaceholder', 'Steuer-Rubrik wählen …')} />
       </SelectTrigger>
       <SelectContent>

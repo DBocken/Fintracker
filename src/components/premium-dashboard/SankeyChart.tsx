@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useMotionQuality } from "@/hooks/useMotionQuality";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -8,14 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ResponsiveContainer, Sankey, Tooltip } from "recharts";
-import { Network } from "lucide-react";
+import { Network, Download } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
 import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartNumber, chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -39,6 +47,14 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
   const [percentMode, setPercentMode] = useState<boolean>(false);
   const [chartHeight, setChartHeight] = useState<number>(500);
   const reduce = useReducedMotion();
+
+  // WP-6.3/7.7: Die Fluss-Textur laeuft endlos. Genau das ist auf schwacher
+  // Hardware der teuerste Dauerposten — eine Animation ohne Ende hat keinen
+  // Moment, in dem sie fertig waere. Auf der sparsamsten Stufe entfaellt sie
+  // deshalb ganz; das Band bleibt, nur die Bewegung geht. Bei reduzierter
+  // Bewegung ebenso (durationScale === 0).
+  const motionQuality = useMotionQuality();
+  const showFlow = motionQuality.durationScale > 0 && motionQuality.tier !== 'minimal';
   const isMobile = useIsMobile();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -171,6 +187,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">{t("premium.sankey.heightLabel")}</span>
             <Slider
+              aria-label={t("premium.sankey.heightLabel")}
               value={[chartHeight]}
               min={300}
               max={800}
@@ -179,11 +196,33 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               className="flex-1 sm:w-40"
             />
             <span className="text-xs text-muted-foreground w-12 text-right">{chartHeight}px</span>
+            {/*
+             * Export, beide Plattformen (WP-8.3, AGENTS.md §4).
+             *
+             * Vorher trug die Reihe `hidden sm:flex`: Auf dem Telefon gab es
+             * den Export gar nicht — kein Dichte-Unterschied, sondern ein
+             * fehlendes Feature. Desktop zeigt die drei Wege weiterhin offen
+             * (der Platz ist da), Mobil bündelt sie hinter einem Auslöser
+             * (progressive Offenlegung, ein Ziel statt drei in einer Zeile,
+             * die ohnehin schon den Regler trägt).
+             */}
             <div className="hidden sm:flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={handleExportPNG}>{t("premium.sankey.exportPNG")}</Button>
               <Button size="sm" variant="outline" onClick={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</Button>
               <Button size="sm" variant="outline" onClick={handleExportPDF}>{t("premium.sankey.exportPDF")}</Button>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="sm:hidden">
+                <Button size="sm" variant="outline" aria-label={t("premium.sankey.exportMenu")}>
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={handleExportPNG}>{t("premium.sankey.exportPNG")}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportJPEG}>{t("premium.sankey.exportJPEG")}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportPDF}>{t("premium.sankey.exportPDF")}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -228,12 +267,69 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="h-full w-full"
             >
+            {/* WP-6.10: Ein Sankey ist fuer Hilfstechnik reine Geometrie.
+                Die Fluesse stehen daneben als Tabelle Quelle/Ziel/Betrag. */}
+            <ChartFigure
+              className="h-full w-full"
+              caption={t("premium.sankey.title")}
+              columns={[
+                {
+                  key: "source",
+                  label: t("premium.sankey.sourceColumn"),
+                  format: (link) => sankeyData.nodes[link.source]?.name ?? "",
+                },
+                {
+                  key: "target",
+                  label: t("premium.sankey.targetColumn"),
+                  format: (link) => sankeyData.nodes[link.target]?.name ?? "",
+                },
+                {
+                  key: "value",
+                  label: t("income.totalColumn"),
+                  numeric: true,
+                  format: (link) => link.value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+                },
+              ]}
+              rows={sankeyData.links}
+              rowKey={(link, index) => `${link.source}-${link.target}-${index}`}
+            >
             <ResponsiveContainer width="100%" height="100%">
             <Sankey
               data={sankeyData}
               nodePadding={40}
               margin={{ top: 20, right: 40, bottom: 20, left: 20 }}
-              link={{ stroke: "hsl(var(--muted-foreground))", strokeOpacity: 0.35 }}
+              // WP-6.3: Eigener Link-Renderer statt eines reinen Props-Objekts.
+              // Nur so lassen sich ZWEI Pfade je Strom zeichnen: das volle Band
+              // und die wandernde Textur darueber. Ein `stroke-dasharray` auf
+              // dem Band selbst wuerde den Strom zerschneiden — das saehe nach
+              // Unterbrechung aus, nicht nach Fluss.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              link={(linkProps: any) => {
+                const { sourceX, sourceY, sourceControlX, targetX, targetY, targetControlX, linkWidth, index } = linkProps;
+                const d = `M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`;
+                return (
+                  <g key={`link-${index}`}>
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeOpacity={0.35}
+                      strokeWidth={linkWidth}
+                    />
+                    {showFlow && (
+                      <path
+                        className="sankey-flow"
+                        d={d}
+                        fill="none"
+                        stroke="hsl(var(--brand))"
+                        strokeOpacity={0.28}
+                        strokeWidth={linkWidth}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </g>
+                );
+              }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               node={({ x, y, width, height, payload }: any) => {
                 const MIN_HEIGHT_FOR_LABELS = 36;
@@ -398,12 +494,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               }}
             >
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "6px",
-                  padding: "8px 12px",
-                }}
+                {...chartTooltipProps()}
                 formatter={(value, name) => {
                   const formatted = chartNumber(value).toLocaleString("de-DE", {
                     style: "currency",
@@ -421,6 +512,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
               />
             </Sankey>
           </ResponsiveContainer>
+            </ChartFigure>
             </motion.div>
           </div>
         </div>

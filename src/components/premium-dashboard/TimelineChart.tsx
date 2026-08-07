@@ -8,7 +8,10 @@ import type { Transaction, Category } from '../../types';
 import { dyadProps } from '@/lib/dyad';
 import { chartRamp, CHART_NET } from '@/lib/chart-colors';
 import { useI18n } from '@/i18n/useI18n';
-import { chartNumber, chartText } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
+import { useSeriesSummary } from '@/hooks/useSeriesSummary';
+import { ChartFigure } from '@/components/common/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface TimelineChartProps {
@@ -25,6 +28,7 @@ interface TimelineChartProps {
 export function TimelineChart({ data, flowTransactions, categories }: TimelineChartProps) {
   const { t } = useI18n();
   const chartAnimation = useChartAnimation();
+  const seriesSummary = useSeriesSummary();
   // Hilfsmap für Kategorien
   const categoryMap = useMemo(() => {
     const m = new Map<string, Category>();
@@ -139,6 +143,16 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
 
   const hasSelection = selectedCats.size > 0;
 
+  // WP-6.8: Runde Achsenwerte. Über `income`/`expenses`/`net` gerechnet und
+  // NICHT über die gestapelten Kategorien: deren Summe ist per Konstruktion
+  // genau `expenses` (die ausgewählten Kategorien plus `Rest`), sie kann die
+  // Achse also nicht sprengen. Balken wachsen aus der Null, deshalb
+  // `includeZero` — sonst wäre ihre Länge nicht mehr proportional lesbar.
+  const timelineYTicks = useMemo(
+    () => niceTicksForData(chartData, ['income', 'expenses', 'net'], { includeZero: true }),
+    [chartData],
+  );
+
   return (
     <Card {...dyadProps("TimelineChart")}>
       <CardHeader>
@@ -173,6 +187,24 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
           </div>
         </div>
 
+        {/* WP-6.10: nicht-visuelle Entsprechung des Monatsverlaufs. */}
+        <ChartFigure
+          caption={t("premium.timeline.title")}
+          summary={seriesSummary({
+            title: t("premium.timeline.title"),
+            values: chartData.map((row) => Number(row.net) || 0),
+            formatValue: (value) => value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+            labelAt: (index) => String(chartData[index]?.formattedDate ?? ''),
+          })}
+          columns={[
+            { key: 'formattedDate', label: t("income.monthColumn"), format: (row) => String(row.formattedDate) },
+            { key: 'income', label: t("premium.timeline.incomeLabel"), numeric: true, format: (row) => (Number(row.income) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+            { key: 'expenses', label: t("premium.timeline.expensesLabel"), numeric: true, format: (row) => (Number(row.expenses) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+            { key: 'net', label: t("contracts.chartNetLabel"), numeric: true, format: (row) => (Number(row.net) || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) },
+          ]}
+          rows={chartData}
+          rowKey={(row, index) => `${String(row.formattedDate)}-${index}`}
+        >
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <defs>
@@ -184,13 +216,19 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="formattedDate" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={64} tickFormatter={(value) => `${(value as number).toFixed(0)}€`} />
+            <YAxis
+              {...valueAxisProps({
+                ticks: timelineYTicks,
+                width: 64,
+                tickFormatter: (value) => `${value.toFixed(0)}€`,
+              })}
+            />
             <Tooltip
-              formatter={(value, name) => [
-                chartNumber(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
-                chartText(name)
-              ]}
-              labelFormatter={(label) => t("premium.timeline.monthTooltip").replace('{label}', String(label))}
+              {...chartTooltipProps({
+                formatValue: (value) =>
+                  value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
+                formatLabel: (label) => t("premium.timeline.monthTooltip").replace('{label}', label),
+              })}
             />
             <Legend />
 
@@ -258,6 +296,7 @@ export function TimelineChart({ data, flowTransactions, categories }: TimelineCh
             />
           </ComposedChart>
         </ResponsiveContainer>
+        </ChartFigure>
       </CardContent>
     </Card>
   );

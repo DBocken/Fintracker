@@ -3,6 +3,9 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
+import { LoadingSwap } from '@/components/common/LoadingSwap';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getTaxYearProfile } from '@/services/tax-profile-service';
@@ -29,11 +32,25 @@ export default function TaxReportPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: transactions = [] } = useQuery({
+  // `isLoading`/`isError` sind hier nicht Kosmetik: Ohne sie rendert die Seite
+  // im ersten Durchgang mit `transactions = []`, zeigt „Noch nichts markiert"
+  // und ersetzt das Sekunden spaeter durch die Rubriken-Liste — eine Aussage,
+  // die sie noch gar nicht treffen konnte, und der groesste Layout-Sprung der
+  // App (CLS 0,123 gegen ein Budget von 0,1; WP-10.4).
+  const {
+    data: transactions = [],
+    isLoading: transactionsLoading,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
     queryKey: ['transactions', locale],
     queryFn: () => getTransactions(5000),
   });
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ['categories', locale],
     queryFn: getCategories,
   });
@@ -48,7 +65,11 @@ export default function TaxReportPage() {
   const paramYear = Number(searchParams.get('year'));
   const year = years.includes(paramYear) ? paramYear : years[0] ?? FALLBACK_YEAR;
 
-  const { data: profile = null } = useQuery({
+  const {
+    data: profile = null,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: ['taxYearProfile', year],
     queryFn: () => getTaxYearProfile(year),
   });
@@ -74,6 +95,13 @@ export default function TaxReportPage() {
 
   const hasMarked = report.txCount > 0;
 
+  // Eine Ursache, eine Aussage: Faellt der Speicher als Ganzes aus, scheitern
+  // die Abfragen der Seite UND die der Vorschlagsrubrik. Beide zeigten dann
+  // denselben Satz untereinander. Die Rubrik behaelt ihren eigenen
+  // Fehlerzustand — sie kann auch allein scheitern —, tritt hier aber zurueck
+  // ([REGRESSION] `TaxReportPage.error-state.test.tsx`, WP-9.6).
+  const hasLoadError = transactionsError || categoriesError || profileError;
+
   return (
     <div className="mx-auto w-full max-w-screen-lg space-y-6">
       <PageHeader
@@ -94,29 +122,59 @@ export default function TaxReportPage() {
 
       {showEuerPointer && <EuerPointerCard />}
 
-      <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
-
-      {hasMarked ? (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">{t('tax.page.rubrikenTitle', 'Nach Steuer-Rubrik')}</h2>
-          <div className="space-y-3">
-            {report.rubrics.map((r) => (
-              <TaxRubricCard key={r.rubricId} report={r} onOpenTransaction={openTransaction} />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <EmptyState title={t('tax.page.emptyTitle', 'Noch nichts markiert')} description={t('tax.page.emptyBody', '')} />
+      {!hasLoadError && (
+        <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
       )}
 
-      <TaxCommuteCard year={year} />
+      {hasLoadError ? (
+        <FinanceErrorState
+          variant="transactions"
+          onRetry={() => {
+            void refetchTransactions();
+            void refetchCategories();
+            void refetchProfile();
+          }}
+        />
+      ) : (
+        // Der Ladezustand umschliesst ALLES ab hier, nicht nur die Rubriken.
+        // Wie viele Rubriken es gibt, weiss erst die Antwort — jede vorher
+        // gerenderte Zeile darunter (Arbeitsweg-Karte, Export, Fussnote,
+        // Hinweis) muesste danach verrutschen. Genau das war der groesste
+        // Layout-Sprung der App (CLS 0,123; WP-10.4).
+        <LoadingSwap
+          loading={transactionsLoading}
+          skeleton={
+            <div className="space-y-6">
+              <Skeleton variant="shimmer" className="h-64 w-full rounded-2xl" />
+              <Skeleton variant="shimmer" className="h-48 w-full rounded-2xl" />
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            {hasMarked ? (
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">{t('tax.page.rubrikenTitle', 'Nach Steuer-Rubrik')}</h2>
+                <div className="space-y-3">
+                  {report.rubrics.map((r) => (
+                    <TaxRubricCard key={r.rubricId} report={r} onOpenTransaction={openTransaction} />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <EmptyState title={t('tax.page.emptyTitle', 'Noch nichts markiert')} description={t('tax.page.emptyBody', '')} />
+            )}
 
-      {hasMarked && <TaxExportCard report={report} transactions={transactions} />}
+            <TaxCommuteCard year={year} />
 
-      <p className="text-xs text-muted-foreground">
-        {t('tax.page.valuesForYear', 'Werte für Veranlagungszeitraum {year}').replace('{year}', String(report.paramsUsedYear))}
-      </p>
-      <TaxDisclaimer />
+            {hasMarked && <TaxExportCard report={report} transactions={transactions} />}
+
+            <p className="text-xs text-muted-foreground">
+              {t('tax.page.valuesForYear', 'Werte für Veranlagungszeitraum {year}').replace('{year}', String(report.paramsUsedYear))}
+            </p>
+            <TaxDisclaimer />
+          </div>
+        </LoadingSwap>
+      )}
     </div>
   );
 }

@@ -84,6 +84,8 @@ export function buildSpecialCategoriesData(
 export interface SpecialCategoriesOverviewViewModel extends SpecialCategoriesData {
   loading: boolean;
   isEmpty: boolean;
+  isError?: boolean;
+  refetch?: () => void;
   /** Zeitfenster-Vorschläge für einen Anlass (leer, wenn kein Startdatum). */
   suggestionsFor: (eventId: string) => Transaction[];
   actions: {

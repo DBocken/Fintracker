@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -6,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { InfoGroup } from '@/components/common/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { LOCALE_OPTIONS } from '@/i18n/locale-options';
 import type { Locale } from '@/i18n/translations';
@@ -18,15 +18,15 @@ import type { Locale } from '@/i18n/translations';
 export function LanguageSettings() {
   const { locale, setLocale, t } = useI18n();
 
+  // WP-8.1: Kein Karten-Chrome mehr (AGENTS.md Paragraf 9). Ein Rahmen mit
+  // Schatten verspricht in dieser App "tipp mich an, dann geht es weiter" —
+  // hier passiert beim Antippen der Flaeche aber nichts, nur das Auswahlfeld
+  // reagiert. Die Gliederung traegt der SectionHeader der Seite; die Karte
+  // wiederholte ihn nur (im Sprach-Abschnitt stand "Sprache" dadurch zweimal).
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{t('settings.language')}</CardTitle>
-        <CardDescription>{t('settings.languageDescription')}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <InfoGroup title={t('settings.language')} description={t('settings.languageDescription')}>
         <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-          <SelectTrigger className="w-full sm:w-64">
+          <SelectTrigger className="w-full sm:w-64" aria-label={t('settings.language')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -37,8 +37,7 @@ export function LanguageSettings() {
             ))}
           </SelectContent>
         </Select>
-      </CardContent>
-    </Card>
+    </InfoGroup>
   );
 }
 

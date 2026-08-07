@@ -26,6 +26,7 @@ import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
+import { TelemetrySettings } from './TelemetrySettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import DiagnosticsSettings from './DiagnosticsSettings';
 import { CloudMcpSyncCard } from './CloudMcpSyncCard';
@@ -39,6 +40,7 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { InfoStatStrip } from '@/components/common/InfoGroup';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 function SectionHeader({
   icon,
@@ -72,16 +74,35 @@ export function EnhancedSettings() {
   const [bulkStatus, setBulkStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   const [bulkResults, setBulkResults] = useState<{ total: number; assigned: number; unassigned: number } | null>(null);
 
-  const { data: settings } = useQuery({
+  const {
+    data: settings,
+    isError: settingsError,
+    refetch: refetchSettings,
+  } = useQuery({
     queryKey: ['userSettings'],
     queryFn: getUserSettings,
   });
   const businessMode = useBusinessMode();
 
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ['hierarchicalCategories'],
     queryFn: getHierarchicalCategories,
   });
+
+  // Der Fallback `[]` ist hier besonders teuer: Die Kennzahl zeigt dann „0
+  // Kategorien" und die Kategorieverwaltung eine leere Liste — wer daraufhin
+  // neu anlegt, erzeugt Duplikate zu Kategorien, die es laengst gibt. Eine
+  // Einstellungsseite ohne ihre Einstellungen ist ausserdem nicht bedienbar,
+  // deshalb EINE Aussage fuer die ganze Flaeche statt einer je Rubrik.
+  const hasLoadError = settingsError || categoriesError;
+  const retryAll = () => {
+    void refetchSettings();
+    void refetchCategories();
+  };
 
   const updateSettingsMutation = useMutation({
     mutationFn: updateUserSettings,
@@ -203,6 +224,10 @@ export function EnhancedSettings() {
     undoMutation.mutate(undoSnapshot);
   };
 
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
+
   return (
     <div className="bg-background">
       <div className="w-full">
@@ -225,7 +250,7 @@ export function EnhancedSettings() {
             <InfoStatStrip
               className="md:min-w-[280px]"
               items={[
-                { label: "Kategorien", value: categories.length },
+                { label: t('common.categoriesLabel'), value: categories.length },
                 { label: "Aufbewahrung", value: `${settings?.retention_months || 36} M` },
               ]}
             />
@@ -344,6 +369,12 @@ export function EnhancedSettings() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <LocalEncryptionSettings />
             <PrivacySyncAnalyticsSettings />
+          </div>
+          {/* WP-11.2: Der Opt-in-Schalter gehoert laut decision-log F-1 hierher
+              — in denselben Abschnitt wie Verschluesselung und Sync-Datei, weil
+              es dieselbe Frage ist: Was verlaesst dieses Geraet? */}
+          <div className="mt-6">
+            <TelemetrySettings />
           </div>
           <Link
             to="/privacy"

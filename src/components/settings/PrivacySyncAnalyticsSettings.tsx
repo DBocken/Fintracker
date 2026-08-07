@@ -34,7 +34,13 @@ import {
 
 function StatusBadge({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <Badge className={ok ? 'bg-positive hover:bg-positive' : 'bg-warning hover:bg-warning'}>
+    <Badge
+      className={
+        ok
+          ? 'bg-positive text-positive-foreground hover:bg-positive'
+          : 'bg-warning text-warning-foreground hover:bg-warning'
+      }
+    >
       {children}
     </Badge>
   );
@@ -239,8 +245,9 @@ export function PrivacySyncAnalyticsSettings() {
 
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <Label className="text-foreground">{t('privacy.privacySync.labelField')}</Label>
+              <Label htmlFor="sync-path-label" className="text-foreground">{t('privacy.privacySync.labelField')}</Label>
               <Input
+                id="sync-path-label"
                 value={pathLabel}
                 onChange={(e) => setPathLabel(e.target.value)}
                 className="border-border bg-card text-foreground"
@@ -248,8 +255,9 @@ export function PrivacySyncAnalyticsSettings() {
             </div>
 
             <div className="md:col-span-2">
-              <Label className="text-foreground">{t('privacy.privacySync.hintField')}</Label>
+              <Label htmlFor="sync-path-hint" className="text-foreground">{t('privacy.privacySync.hintField')}</Label>
               <Input
+                id="sync-path-hint"
                 value={pathHint}
                 onChange={(e) => setPathHint(e.target.value)}
                 placeholder={t('privacy.privacySync.hintPlaceholder')}
@@ -266,7 +274,7 @@ export function PrivacySyncAnalyticsSettings() {
             <Button
               onClick={() => snapshotMutation.mutate()}
               disabled={!encryption.unlocked || snapshotMutation.isPending}
-              className="bg-positive text-white hover:bg-positive"
+              className="bg-positive text-positive-foreground hover:bg-positive"
             >
               <FileLock2 className="mr-2 h-4 w-4" />
               {t('privacy.privacySync.downloadButton')}
@@ -299,6 +307,7 @@ export function PrivacySyncAnalyticsSettings() {
                     size="sm"
                     variant="ghost"
                     className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label={t('privacy.privacySync.removePathLabel').replace('{label}', path.label)}
                     onClick={() => {
                       removeSyncPath(path.id);
                       setPathsVersion((v) => v + 1);

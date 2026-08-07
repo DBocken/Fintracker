@@ -6,7 +6,10 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  // tabIndex: Ein Bereich, der scrollt, muss mit der Tastatur erreichbar sein —
+  // sonst kommt an die abgeschnittenen Spalten nur heran, wer eine Maus hat
+  // (axe: scrollable-region-focusable).
+  <div className="relative w-full overflow-auto" tabIndex={0}>
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}

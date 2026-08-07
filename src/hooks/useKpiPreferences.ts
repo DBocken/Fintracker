@@ -73,6 +73,8 @@ export function useKpiPreferences() {
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
+  const isError = query.isError;
+  const refetch = () => void query.refetch();
 
   const mutation = useMutation({
     mutationFn: async (next: KpiPrefs) => {
@@ -134,6 +136,8 @@ export function useKpiPreferences() {
   return {
     prefs,
     isLoading: isAuthed ? query.isLoading : false,
+    isError: isAuthed ? isError : false,
+    refetch,
     save: (next: KpiPrefs) => {
       const normalized = normalizePrefs(next);
       setLocalPrefs(normalized);

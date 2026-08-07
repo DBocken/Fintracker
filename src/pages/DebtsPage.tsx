@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLine } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import EmptyState from "@/components/common/EmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,8 @@ import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner"
 import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
+import { SignatureMoment } from "@/components/common/SignatureMoment";
+import { useDebtFreedom } from "@/hooks/useDebtFreedom";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
 import { CounselingBridgeCard } from "@/components/debts/CounselingBridgeCard";
 import { SchufaSelfCheckCard } from "@/components/debts/SchufaSelfCheckCard";
@@ -57,10 +60,12 @@ import {
   getExistentialPriorityExplanation,
 } from "@/services/debt-service";
 import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export default function DebtsPage() {
+  const money = useMoneyFormat();
   const { t, locale } = useI18n();
   const debtTypeLabels = getDebtTypeLabels();
   const queryClient = useQueryClient();
@@ -79,29 +84,63 @@ export default function DebtsPage() {
   const [detailDebtId, setDetailDebtId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const { data: debts = [], isLoading } = useQuery({
+  // WP-9.6: `isError` UND `refetch` — ohne den Fehlerzustand wuerde ein
+  // Lesefehler unten als „Noch keine Schulden erfasst" erscheinen, und das ist
+  // ausgerechnet hier die unbarmherzigste Verwechslung, die die App anbieten
+  // kann.
+  const {
+    data: debts = [],
+    isLoading,
+    isError: debtsError,
+    refetch: refetchDebts,
+  } = useQuery({
     queryKey: ["debts"],
     queryFn: getDebts,
   });
 
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "debt-assignment"],
     queryFn: () => getTransactions(500),
     enabled: debts.length > 0,
   });
 
-  const { data: assignments = [] } = useQuery<DebtTransactionAssignment[]>({
+  const {
+    data: assignments = [],
+    isError: assignmentsError,
+    refetch: refetchAssignments,
+  } = useQuery<DebtTransactionAssignment[]>({
     queryKey: ["debt-transaction-assignments"],
     queryFn: getDebtTransactionAssignments,
     enabled: debts.length > 0,
   });
 
   // Einkommens-/Ausgabenmittel speisen die Überschuldungs-Heuristik (Issue #50).
-  const { data: health } = useQuery({
+  const {
+    data: health,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
     queryKey: ["financial-health", locale],
     queryFn: getFinancialHealth,
     enabled: debts.length > 0,
   });
+
+  // EIN Fehlerblock fuer die ganze Seite, nicht vier. Alle vier Abfragen
+  // speisen dieselbe Aussage („was schuldest du und wie zahlst du es ab") —
+  // vier getrennte Meldungen waeren vier Raetsel statt eines Hinweises.
+  // Genau daran ist ein Versuch schon gescheitert: Der Test fand zwei Knoepfe
+  // „Erneut versuchen" auf einem Screen.
+  const hasLoadError = debtsError || transactionsError || assignmentsError || healthError;
+  const retryAll = () => {
+    void refetchDebts();
+    void refetchTransactions();
+    void refetchAssignments();
+    void refetchHealth();
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["debts"] });
@@ -163,6 +202,12 @@ export default function DebtsPage() {
   });
 
   const totalDebt = getTotalDebt(debts);
+
+  // WP-7.4: Der Erfolgsmoment erscheint genau einmal je Schuldenfreiheit — und
+  // NICHT bei jemandem, der nie Schulden erfasst hat (dort waere er albern bis
+  // verletzend). `isLoading` sperrt den Fehlalarm ab, waehrend die Summe noch
+  // 0 ist, weil die Daten fehlen.
+  const celebrateDebtFreedom = useDebtFreedom(totalDebt, isLoading);
 
   const totalMin = getTotalMinPayment(debts);
 
@@ -306,6 +351,10 @@ export default function DebtsPage() {
           <Skeleton variant="shimmer" className="h-20 w-full" />
           <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
+      ) : hasLoadError ? (
+        // VOR dem Leerzustand: „nicht ladbar" ist eine andere Aussage als
+        // „noch nichts erfasst" (WP-9.2).
+        <FinanceErrorState onRetry={retryAll} />
       ) : debts.length === 0 ? (
         <EmptyState
           emoji="💸"
@@ -325,12 +374,21 @@ export default function DebtsPage() {
         />
       ) : (
         <div className="space-y-6">
+          {celebrateDebtFreedom && (
+            <SignatureMoment
+              title={t('debts.debtsPage.debtFreeTitle')}
+              icon="🕊️"
+              subtitle={t('debts.debtsPage.debtFreeSubtitle')}
+              variant="large"
+            />
+          )}
+
           {/* Reine Kennzahlen ohne Follow-up → gebündeltes Readout statt Karten
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: t('debts.debtsPage.totalDebtStat'), value: eur.format(totalDebt) },
-              { label: t('debts.debtsPage.minPaymentsStat'), value: eur.format(totalMin) },
+              { label: t('debts.debtsPage.totalDebtStat'), value: money.mask(eur.format(totalDebt)) },
+              { label: t('debts.debtsPage.minPaymentsStat'), value: money.mask(eur.format(totalMin)) },
               { label: t('debts.debtsPage.openDebtsStat'), value: debts.filter((d) => !d.is_paid_off).length },
             ]}
           />
@@ -369,13 +427,13 @@ export default function DebtsPage() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {debtTypeLabels[d.type]} · {d.interest_rate}% · {t('debts.debtCard.rateLabel')} {eur.format(d.min_payment)}
+                      {debtTypeLabels[d.type]} · {d.interest_rate}% · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(d.min_payment))}
                       {d.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(d.due_day))}` : ""}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:shrink-0 sm:justify-end">
-                  <div className="font-semibold">{eur.format(d.balance)}</div>
+                  <div className="font-semibold">{money.mask(eur.format(d.balance))}</div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={d.is_paid_off ? "secondary" : "outline"}
@@ -423,7 +481,7 @@ export default function DebtsPage() {
                       <div className="flex justify-between text-sm">
                         <span>{c.label}</span>
                         <span className="text-muted-foreground">
-                          {c.pct}% · {eur.format(c.amount)}
+                          {c.pct}% · {money.mask(eur.format(c.amount))}
                         </span>
                       </div>
                       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -445,7 +503,7 @@ export default function DebtsPage() {
                   <div className="space-y-2">
                     <Label>{t('debts.debtsPage.debtLabel')}</Label>
                     <Select value={currentDebtId} onValueChange={setSelectedDebtId}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label={t('debts.debtsPage.debtLabel')}>
                         <SelectValue placeholder={t('debts.debtsPage.selectDebtPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -460,11 +518,11 @@ export default function DebtsPage() {
                       <div className="rounded-lg bg-muted/50 p-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('debts.debtsPage.currentBalance')}</span>
-                          <span className="font-medium">{eur.format(selectedDebt.balance)}</span>
+                          <span className="font-medium">{money.mask(eur.format(selectedDebt.balance))}</span>
                         </div>
                         <div className="mt-1 flex justify-between">
                           <span className="text-muted-foreground">{t('debts.debtsPage.assignedPayments')}</span>
-                          <span className="font-medium">{eur.format(totalAssignedToSelectedDebt)}</span>
+                          <span className="font-medium">{money.mask(eur.format(totalAssignedToSelectedDebt))}</span>
                         </div>
                       </div>
                     )}
@@ -507,7 +565,7 @@ export default function DebtsPage() {
                                   {assigned && !assignedHere && assignedDebt ? t('debts.debtsPage.alreadyAssignedTo').replace('{name}', assignedDebt.name) : ""}
                                 </span>
                               </span>
-                              <span className="shrink-0 font-semibold">{eur.format(Math.abs(transaction.amount))}</span>
+                              <span className="shrink-0 font-semibold">{money.mask(eur.format(Math.abs(transaction.amount)))}</span>
                             </label>
                           );
                         })}
@@ -561,7 +619,7 @@ export default function DebtsPage() {
                       placeholder="0"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {t('debts.debtsPage.extraBudgetHint').replace('{amount}', eur.format(totalMin))}
+                      {t('debts.debtsPage.extraBudgetHint').replace('{amount}', money.mask(eur.format(totalMin)))}
                     </p>
                   </div>
                 </div>
@@ -579,7 +637,7 @@ export default function DebtsPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('debts.debtsPage.totalInterest')}</span>
-                        <span className="font-semibold">{eur.format(payoffPlan.totalInterestPaid)}</span>
+                        <span className="font-semibold">{money.mask(eur.format(payoffPlan.totalInterestPaid))}</span>
                       </div>
                     </div>
                     <div className="grid gap-4 lg:grid-cols-2">
@@ -598,7 +656,7 @@ export default function DebtsPage() {
                                 {s.name}
                               </span>
                               <span className="text-muted-foreground">
-                                {strategy === "avalanche" ? `${s.interestRate}%` : eur.format(s.balance)}
+                                {strategy === "avalanche" ? `${s.interestRate}%` : money.mask(eur.format(s.balance))}
                               </span>
                             </li>
                           ))}

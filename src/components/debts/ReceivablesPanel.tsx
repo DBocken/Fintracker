@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, MoreVertical, Sparkles } from "lucide-react";
 import EmptyState from "@/components/common/EmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { InfoStatStrip } from "@/components/common/InfoGroup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,10 +41,12 @@ import {
   type ReceivableTransactionAssignment,
 } from "@/services/receivable-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
 export function ReceivablesPanel() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const receivableTypeLabels = getReceivableTypeLabels();
   const queryClient = useQueryClient();
@@ -51,22 +54,42 @@ export function ReceivablesPanel() {
   const [editing, setEditing] = useState<Partial<Receivable> | null>(null);
   const [selectedReceivableId, setSelectedReceivableId] = useState<string>("");
 
-  const { data: receivables = [], isLoading } = useQuery({
+  const {
+    data: receivables = [],
+    isLoading,
+    isError: receivablesError,
+    refetch: refetchReceivables,
+  } = useQuery({
     queryKey: ["receivables"],
     queryFn: getReceivables,
   });
 
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "receivable-assignment"],
     queryFn: () => getTransactions(500),
     enabled: receivables.length > 0,
   });
 
-  const { data: assignments = [] } = useQuery<ReceivableTransactionAssignment[]>({
+  const {
+    data: assignments = [],
+    isError: assignmentsError,
+    refetch: refetchAssignments,
+  } = useQuery<ReceivableTransactionAssignment[]>({
     queryKey: ["receivable-transaction-assignments"],
     queryFn: getReceivableTransactionAssignments,
     enabled: receivables.length > 0,
   });
+
+  const hasLoadError = receivablesError || transactionsError || assignmentsError;
+  const retryAll = () => {
+    void refetchReceivables();
+    void refetchTransactions();
+    void refetchAssignments();
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["receivables"] });
@@ -210,6 +233,8 @@ export function ReceivablesPanel() {
           <Skeleton variant="shimmer" className="h-20 w-full" />
           <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
+      ) : hasLoadError ? (
+        <FinanceErrorState variant="data" onRetry={retryAll} />
       ) : receivables.length === 0 ? (
         <EmptyState
           emoji="🤝"
@@ -233,7 +258,7 @@ export function ReceivablesPanel() {
               (Usability-Audit „Karten sind Aktionen"). */}
           <InfoStatStrip
             items={[
-              { label: t('debts.receivablesPanel.totalLabel'), value: eur.format(totalReceivables) },
+              { label: t('debts.receivablesPanel.totalLabel'), value: money.mask(eur.format(totalReceivables)) },
               { label: t('debts.receivablesPanel.openLabel'), value: openCount },
             ]}
           />
@@ -262,7 +287,7 @@ export function ReceivablesPanel() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 sm:shrink-0 sm:justify-end">
-                  <div className="font-semibold">{eur.format(r.amount)}</div>
+                  <div className="font-semibold">{money.mask(eur.format(r.amount))}</div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={r.is_settled ? "secondary" : "outline"}
@@ -312,7 +337,7 @@ export function ReceivablesPanel() {
                 <div className="space-y-2">
                   <Label>{t('debts.receivablesPanel.receivableLabel')}</Label>
                   <Select value={currentReceivableId} onValueChange={setSelectedReceivableId}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label={t('debts.receivablesPanel.receivableLabel')}>
                       <SelectValue placeholder={t('debts.receivablesPanel.selectPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -327,11 +352,11 @@ export function ReceivablesPanel() {
                     <div className="rounded-lg bg-muted/50 p-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{t('debts.receivablesPanel.openAmountLabel')}</span>
-                        <span className="font-medium">{eur.format(selectedReceivable.amount)}</span>
+                        <span className="font-medium">{money.mask(eur.format(selectedReceivable.amount))}</span>
                       </div>
                       <div className="mt-1 flex justify-between">
                         <span className="text-muted-foreground">{t('debts.receivablesPanel.assignedLabel')}</span>
-                        <span className="font-medium">{eur.format(totalAssignedToSelected)}</span>
+                        <span className="font-medium">{money.mask(eur.format(totalAssignedToSelected))}</span>
                       </div>
                     </div>
                   )}
@@ -390,7 +415,7 @@ export function ReceivablesPanel() {
                               </span>
                             </span>
                             <span className="shrink-0 font-semibold text-positive">
-                              +{eur.format(Math.abs(transaction.amount))}
+                              +{money.mask(eur.format(Math.abs(transaction.amount)))}
                             </span>
                           </label>
                         );

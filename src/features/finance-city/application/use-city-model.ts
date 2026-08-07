@@ -46,6 +46,13 @@ export type CityModelTab = 'expenses' | 'income' | 'goals' | 'overview';
 export type UseCityModelResult = {
   model: CityModel;
   isLoading: boolean;
+  /**
+   * WP-9.6: Getrennt von `isEmpty`. Eine leere Stadt heisst „du hast noch
+   * nichts erfasst" — bei einem Lesefehler waere das die falscheste Aussage,
+   * die dieser Screen treffen kann.
+   */
+  isError: boolean;
+  refetch: () => void;
   isEmpty: boolean;
   /** Nur im Übersicht-Tab gesetzt: Welt-Zuordnung der Distrikte + Summen/Saldo für Chip und Welt-Sprung. */
   overview?: CityOverviewInfo;
@@ -67,20 +74,40 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
   // wertet Financial-Health/Schulden aus und persistiert neu erreichte
   // Meilensteine — das soll nicht bei jedem Ausgaben-Besuch mitlaufen.
   const { locale } = useI18n();
-  const { data: milestones = [], isPending: milestonesPending } = useQuery({
+  // WP-9.6: `isEmpty: model.districts.length === 0` heisst „du hast noch nichts
+  // erfasst" — die Stadt zeigt dann eine leere Landschaft. Bei einem
+  // Lesefehler ist das die falscheste Aussage, die dieser Screen treffen kann.
+  // Das Modell stellt nichts dar (AGENTS.md §3), es reicht den Unterschied
+  // nach oben durch.
+  const {
+    data: milestones = [],
+    isPending: milestonesPending,
+    isError: milestonesError,
+    refetch: refetchMilestones,
+  } = useQuery({
     queryKey: ['milestones', locale],
     queryFn: evaluateMilestones,
     enabled: tab === 'goals',
   });
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+  const {
+    data: transactions = [],
+    isLoading: transactionsLoading,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
     // Limit im Query-Key (F-PERF-3-Muster) — identisch zum Dashboard, sonst
     // Cache-Kollision/-Duplikat statt geteiltem Cache.
     queryKey: financeKeys.transactions(FINANCE_TRANSACTION_LIMIT),
     queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
   });
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: financeKeys.categories,
     queryFn: () => getCategories(),
   });
@@ -88,7 +115,7 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
   // Aufteilungen (Split-Buchungen): Gebäude UND Etagen rechnen damit
   // anteilsgenau — der Kleidungs-Anteil einer Aldi-Buchung baut am
   // Kleidungs-Gebäude mit, nicht am Lebensmittel-Gebäude.
-  const allocations = useAllocationMap();
+  const { allocations, isError: allocError, refetch: refetchAllocations } = useAllocationMap();
 
   const categoriesById = useMemo(() => {
     const map = new Map<string, Category>();
@@ -108,7 +135,12 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
   // die Eingaben der bestehenden Simulation ab, statt eine zweite Prognose zu
   // bauen, die der ersten widersprechen könnte. `enabled` nur im
   // Prognosemonat: der Normalfall lädt dadurch keinen Byte mehr als bisher.
-  const { data: forecastInput, isLoading: forecastLoading } = useQuery({
+  const {
+    data: forecastInput,
+    isLoading: forecastLoading,
+    isError: forecastError,
+    refetch: refetchForecast,
+  } = useQuery({
     queryKey: ['forecast-input'],
     queryFn: buildForecastInput,
     staleTime: 5 * 60 * 1000,
@@ -223,6 +255,19 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
       tab === 'goals'
         ? milestonesPending
         : transactionsLoading || categoriesLoading || (isProjection && forecastLoading),
+    // Derselbe Zuschnitt wie bei `isLoading`: Im Ziele-Tab zaehlen die
+    // Meilensteine, sonst die Finanzdaten.
+    isError:
+      tab === 'goals'
+        ? milestonesError
+        : transactionsError || categoriesError || allocError || (isProjection && forecastError),
+    refetch: () => {
+      void refetchMilestones();
+      void refetchTransactions();
+      void refetchCategories();
+      void refetchAllocations();
+      void refetchForecast();
+    },
     isEmpty: model.districts.length === 0,
   };
 }

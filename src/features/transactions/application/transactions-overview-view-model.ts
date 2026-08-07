@@ -14,8 +14,21 @@ import type { PeriodOption } from '@/components/dashboard/period-utils';
 export type TransactionsOverviewViewModel = {
   /** Ladezustand der Transaktions-Query. */
   loading: boolean;
-  /** Nur ohne Buchungen NACH Ladeende true (kein Flackern während des Ladens). */
+  /**
+   * Nur ohne Buchungen NACH Ladeende true (kein Flackern während des Ladens)
+   * **und nur, wenn das Laden auch gelungen ist**.
+   *
+   * Der Zusatz ist WP-9.2 und kein Detail: Vorher hiess `data = []` sowohl
+   * „keine Buchungen vorhanden" als auch „Buchungen nicht ladbar", und der
+   * Screen behauptete im zweiten Fall das Erste.
+   */
   isEmpty: boolean;
+  /**
+   * Die Transaktions-Query ist gescheitert. Schliesst `isEmpty` aus — die
+   * beiden Zustaende sind verschiedene Aussagen und brauchen verschiedene
+   * Darstellungen (`FinanceEmptyState` vs. `FinanceErrorState`).
+   */
+  hasError: boolean;
   transactions: {
     all: Transaction[];
     /** `all`, gefiltert und um ausgeblendete Buchungen (`hidden`) bereinigt. */
@@ -90,5 +103,11 @@ export type TransactionsOverviewViewModel = {
     deleteTransaction(id: string): void;
     saveDetails: ReturnType<typeof useTransactionDetailEditing>['save'];
     detailsSaving: boolean;
+    /**
+     * Erneuter Ladeversuch nach `hasError` (WP-9.2). Gehoert ins ViewModel und
+     * nicht in die Page: Welche Abfrage zu wiederholen ist, weiss der Hook —
+     * die Page wuesste nur, dass irgendetwas schiefging.
+     */
+    retry(): void;
   };
 };

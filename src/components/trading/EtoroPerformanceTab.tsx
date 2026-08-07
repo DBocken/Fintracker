@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { PerformancePoint } from '@/services/etoro-performance';
 import { selectPerformanceTrend } from '@/services/etoro-performance';
 import EtoroScopeGate from './EtoroScopeGate';
-import { chartNumber } from '@/lib/chart-tooltip';
+import { chartTooltipProps } from '@/lib/chart-tooltip';
+import { ChartFigure } from '@/components/common/ChartFigure';
 
 interface EtoroPerformanceTabProps {
   isLocked: boolean;
@@ -64,12 +65,32 @@ export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetr
             <CardTitle>{t('trading.etoro.performance.title')}</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* WP-6.10: Werte auch ohne Diagramm zugaenglich. */}
+            <ChartFigure
+              caption={t('trading.etoro.performance.title')}
+              columns={[
+                { key: 'label', label: t('balanceChart.dateColumn'), format: (row) => row.label },
+                {
+                  key: 'value',
+                  label: t('trading.etoro.performance.valueLabel'),
+                  numeric: true,
+                  format: (row) => formatCurrency(row.value, USD),
+                },
+              ]}
+              rows={chartData}
+              rowKey={(row, index) => `${row.label}-${index}`}
+            >
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
                 <YAxis />
-                <Tooltip formatter={(value) => [formatCurrency(chartNumber(value), USD), t('trading.etoro.performance.valueLabel')]} />
+                <Tooltip
+                  {...chartTooltipProps({
+                    formatValue: (value) => formatCurrency(value, USD),
+                    seriesLabels: { value: t('trading.etoro.performance.valueLabel') },
+                  })}
+                />
                 <Line
                   type="monotone"
                   dataKey="value"
@@ -82,6 +103,7 @@ export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetr
                 />
               </LineChart>
             </ResponsiveContainer>
+            </ChartFigure>
             <p className="mt-4 text-center text-xs text-muted-foreground">{t('trading.etoro.performance.disclaimer')}</p>
           </CardContent>
         </Card>

@@ -8,7 +8,12 @@ import { buildLumpyRiskProfile, type LumpyRiskProfile } from '@/lib/finrisk/lump
  * (Frequency-Severity seltener Großausgaben). Reine lokale Berechnung – die
  * Transaktionen verlassen das Gerät nicht.
  */
-export function useLumpyRisk(): { lumpy: LumpyRiskProfile | null; isLoading: boolean } {
+export function useLumpyRisk(): {
+  lumpy: LumpyRiskProfile | null;
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+} {
   const query = useQuery({
     queryKey: ['transactions', 'lumpy-risk'],
     queryFn: () => getTransactions(5000),
@@ -20,5 +25,13 @@ export function useLumpyRisk(): { lumpy: LumpyRiskProfile | null; isLoading: boo
     [query.data],
   );
 
-  return { lumpy, isLoading: query.isLoading };
+  // WP-9.6: `lumpy: null` bedeutet sonst zweierlei — „keine Großausgaben
+  // gefunden" und „nicht geladen". Der Hook stellt nichts dar (AGENTS.md §3),
+  // also reicht er den Unterschied weiter, statt ihn einzuebnen.
+  return {
+    lumpy,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: () => void query.refetch(),
+  };
 }

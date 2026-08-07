@@ -4,6 +4,7 @@ import InteractiveCard from '@/components/common/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeStream } from '@/lib/income-streams';
 import IncomeStressTestDialog from './IncomeStressTestDialog';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -16,6 +17,7 @@ const MAX_ROWS = 6;
  * „Was, wenn dieser Strom wegfällt?"-Dialog öffnet.
  */
 export default function IncomeStressTestSection({ streams }: { streams: IncomeStream[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [active, setActive] = useState<IncomeStream | null>(null);
 
@@ -39,7 +41,7 @@ export default function IncomeStressTestSection({ streams }: { streams: IncomeSt
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-sm font-medium">{stream.label}</span>
                 <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                  {formatCurrency(stream.monthlyAverage)} · {Math.round(stream.share * 100)}%
+                  {money.mask(formatCurrency(stream.monthlyAverage))} · {Math.round(stream.share * 100)}%
                 </span>
               </div>
             </InteractiveCard>

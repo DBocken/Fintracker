@@ -10,6 +10,13 @@ on:
 permissions:
   contents: read
 
+# Gleiche Begruendung wie in ci.yml: ueberholte Laeufe belegen sonst die
+# Warteschlange. Eigener Gruppen-Praefix, damit sich die beiden Workflows nicht
+# gegenseitig abbrechen.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # Job-Key bewusst weiterhin "npm-audit": falls dieser Check in der
   # Branch-Protection als "required" hinterlegt ist, bliebe ein umbenannter Job
