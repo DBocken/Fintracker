@@ -150,9 +150,39 @@ export async function hasPlaintextFinanceStorage(): Promise<boolean> {
   for (const storageKey of Object.values(LOCAL_FINANCE_KEYS)) {
     const fromIdb = await idbGet(storageKey);
     if (isPlaintextRaw(fromIdb)) return true;
-    if (fromIdb == null && isPlaintextRaw(localStorage.getItem(storageKey))) return true;
+    if (fromIdb == null && isPlaintextRaw(readLegacyLocalStorage(storageKey))) return true;
   }
   return false;
+}
+
+/**
+ * [REGRESSION] Liest `localStorage` mit eigener Verfügbarkeitsprüfung.
+ *
+ * Die Prüfung am Anfang von {@link hasPlaintextFinanceStorage} ist nach dem
+ * ersten `await` nicht mehr gültig: Die Umgebung kann in der Zwischenzeit
+ * verschwunden sein. In der Testumgebung passiert genau das, wenn die Abfrage
+ * eine Testdatei überlebt — jsdom ist dann abgebaut, und der Zugriff wirft
+ * `ReferenceError: localStorage is not defined` als unbehandelte Rejection.
+ * Der Testlauf war dadurch rot, obwohl alle 4602 Tests grün waren.
+ *
+ * Dieselbe Klasse Fehler entsteht ausserhalb von Tests, wenn ein Tab während
+ * der Abfrage geschlossen wird. Die Antwort ist nicht, den Aufrufer zu
+ * disziplinieren, sondern die Prüfung dorthin zu ziehen, wo der Zugriff
+ * stattfindet — so wie `idb-kv.ts` es bereits tut.
+ */
+function readLegacyLocalStorage(storageKey: string): string | null {
+  // `try` und nicht nur `typeof`: Der Zugriff selbst kann werfen, wenn der
+  // Speicher gesperrt ist (Safari im privaten Modus, blockierte Cookies) — dort
+  // ist die Eigenschaft vorhanden und der Zugriff darauf ein `SecurityError`.
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(storageKey);
+  } catch {
+    // Kein Altbestand lesbar heisst hier „kein Klartext gefunden". Die Frage,
+    // die diese Funktion beantwortet, ist eine Warnung an den Nutzer — sie
+    // darf nicht die App anhalten.
+    return null;
+  }
 }
 
 export async function getLocalFinanceStorageStatus() {
