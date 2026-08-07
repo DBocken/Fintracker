@@ -43,9 +43,11 @@ Ladechoreografie, barrierefreie Chart-Entsprechung — sind stattdessen
 **repo-weit** durchgesetzt statt Screen für Screen abgehakt: `pnpm check:card-rule`,
 `chart-standardization.test.ts` und die Wächter aus Phase 6/7 gelten für jede
 Datei, auch für die, die es noch nicht gibt. Eine Screen-Liste wäre nach dem
-nächsten neuen Screen wieder unvollständig; ein Wächter ist es nie. Was sich so
-nicht durchsetzen lässt (Hierarchie, Parität), ist in WP-8.3 von Hand
-durchgesehen und unten als „ohne Wächter" ausgewiesen.
+nächsten neuen Screen wieder unvollständig; ein Wächter ist es nie. Für die
+Parität ist der prüfbare Teil seit WP-8.5 ebenfalls ein Wächter
+(`pnpm check:platform-parity`); allein die Hierarchie bleibt Sache des
+Selbst-Reviews, weil „welche Zahl ist die zweitwichtigste" keine Aussage über
+Code ist.
 
 **WP-8.0 — Karten-Regel maschinell prüfbar.** Bis dahin gab es dazu nur einen
 advisory Claude-Hook; CI sah nie einen Verstoß. `pnpm check:card-rule` prüft
@@ -100,15 +102,22 @@ Dunkelmodus) und `bg-amber-600` statt `bg-warning`. Die
 Sprachausgabe-Entsprechung für Skelette sitzt jetzt in `LoadingSwap` selbst
 statt in den Aufrufstellen.
 
-### Was in Phase 8 noch offen ist
+**WP-8.5 — die Restpunkte sauber geschlossen.** Beim genauen Hinsehen waren
+zwei der drei „offenen" Punkte **keine Mängel**; die Tabelle hatte sie
+überzeichnet. Das ist hier korrigiert statt stehen gelassen:
+
+| Punkt | Ergebnis |
+|---|---|
+| **Parität ohne Wächter** | **behoben.** `pnpm check:platform-parity` setzt den prüfbaren Teil von §4 durch: Eine Fläche mit `hidden <bp>:*` ohne Gegenstück ist kein Dichte-Unterschied, sondern ein fehlendes Feature. Läuft in Pre-Commit und CI |
+| **Spinner in Verarbeitungs-Dialogen** | **kein Mangel.** Alle drei zeigen längst sichtbaren Text, der Forderungs-Import zusätzlich einen Fortschrittsbalken. Die Skeleton-Regel passt hier nicht, weil die Form des Ergebnisses vor der Auswertung unbekannt ist |
+| **`EtoroScopeGate`** | **fast kein Mangel.** Es hatte bereits `role="status"` und einen Fehlerzustand mit Wiederholung. Eine echte Lücke gab es doch: Der Ladetext stand nur im `aria-label`, sehende Nutzer sahen ein nacktes Symbol. Jetzt sichtbar |
+
+### Was in Phase 8 offen bleibt
 
 | Punkt | Warum offen |
 |---|---|
 | **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
-| **`EtoroScopeGate`** ohne Choreografie | Kein Ladezustand, sondern eine Berechtigungsschranke — die Skeleton-Regel aus WP-7.3 passt darauf nicht |
-| **Spinner in Verarbeitungs-Dialogen** (OCR-Import, Belegscan, Forderungs-Import) | Bewusst gelassen: Dort verarbeitet die App eine gerade übergebene Datei. Die Form des Ergebnisses ist noch unbekannt, ein Skelett würde etwas vorzeichnen, was so nicht kommen muss |
-| **Parität bleibt ohne Wächter** | „Gleiche Features, andere Dichte" ist eine Aussage über Bedeutung, nicht über Code. Geprüft wurde, was prüfbar ist: jede Breakpoint-Weiche im Quelltext gegen ihr Gegenstück. Neue Weichen fallen dabei durch, bis das jemand wieder von Hand tut |
-| **Tutorial-Einladung verschiebt die ganze Seite** | Gemessen, siehe unten — gehört zu Phase 10 |
+| **Tutorial-Einladung verschiebt die ganze Seite** | Gemessen, siehe unten — gehört zu Phase 10, weil die tragfähigen Wege Gestaltungsentscheidungen sind |
 
 ### Gemessen, nicht behoben: CLS der Tutorial-Einladung
 

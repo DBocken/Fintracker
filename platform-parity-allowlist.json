@@ -1,0 +1,8 @@
+{
+  "_comment": "Legitime Plattform-Paare, deren Gegenstueck in einer NACHBARDATEI liegt (AGENTS.md Paragraf 4). Das ist KEIN Backlog: Jeder Eintrag nennt seinen Partner und bleibt dauerhaft stehen. Ein Eintrag OHNE nachweisbaren Partner ist ein verstecktes fehlendes Feature und gehoert nicht hierher — dann ist der Code zu aendern. Geprueft von pnpm check:platform-parity.",
+  "pairs": {
+    "src/components/layout/AppShell.tsx": "Seitennavigation (hidden md:block) ↔ MobileNav.tsx und BottomNav.tsx, beide md:hidden. Getrennte Bauteile, weil die Mobil-Navigation eine andere Struktur hat (Sheet + Bottom-Tabs) und nicht dieselbe Liste in schmal ist.",
+    "src/components/dashboard/TransactionTable.tsx": "Tabelle (hidden md:block) ↔ TransactionListMobile.tsx. Auf schmalen Breiten traegt eine Kartenliste dieselben Daten; eine horizontal scrollende Tabelle waere kein Dichte-Unterschied, sondern schlechtere Bedienung.",
+    "src/features/transactions/presentation/desktop/TransactionsDetailAside.tsx": "Detail-Spalte (hidden lg:block) ↔ TransactionsDetailSheet.tsx. Die Weiche liegt seit der Slice-Umstellung in der Page (useIsWideDesktop) und nicht mehr im CSS; die verbliebene Klasse schuetzt nur den Zwischenzustand beim Breakpoint-Wechsel."
+  }
+}

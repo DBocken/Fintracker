@@ -37,8 +37,17 @@ export default function EtoroScopeGate({ isLocked, isLoading, error, onRetry, ch
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12" role="status" aria-label={t('trading.etoro.gate.loading')}>
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      // Kein Skelett: Hier laedt kein Inhalt, sondern es wird geprueft, ob der
+      // Zugriff ueberhaupt erlaubt ist — es gibt keine Form, die man
+      // vorzeichnen koennte. Der Text steht aber SICHTBAR und nicht nur als
+      // aria-label: Ein kreisendes Symbol allein laesst auch sehende Nutzer
+      // raten, worauf sie warten.
+      <div
+        className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground"
+        role="status"
+      >
+        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+        {t('trading.etoro.gate.loading')}
       </div>
     );
   }

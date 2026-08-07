@@ -60,6 +60,9 @@ jobs:
       - name: Karten-Regel-Check
         run: pnpm check:card-rule
 
+      - name: Plattform-Paritaets-Check
+        run: pnpm check:platform-parity
+
       - name: i18n-Check
         run: |
           git fetch origin main
