@@ -16,6 +16,12 @@
  * der Befund: Maskiert wurde von Hand, an acht von 78 Dateien, mit drei
  * verschiedenen Masken (`***`, `••`, leer). In der Aufrufstelle ist das eine
  * Frage der Aufmerksamkeit; hier ist es eine Eigenschaft.
+ *
+ * **Vor Änderungen hier zuerst lesen:** `docs/debt-avoidance-recovery.md`. Dort
+ * steht, warum der Schalter nicht binär bleiben soll — eine Maske ohne Rückweg
+ * lehrt „ich kann Finanzen nur ertragen, solange ich die Zahlen nicht sehe" —
+ * und wie die ordinale Annäherungsleiter aussieht, die ihn ablösen soll. Der
+ * letzte günstige Zeitpunkt für diese Feldänderung ist vor deren Umsetzung.
  */
 
 /**
