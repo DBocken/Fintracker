@@ -133,3 +133,69 @@ describe('Ausnahmeliste als Phase-9-Backlog', () => {
     }
   });
 });
+
+describe('Durchreichende Aufrufe (WP-9.6, Nachtrag)', () => {
+  it('sollte `return useQuery(…)` anerkennen', () => {
+    // Ein Hook, der das vollstaendige Ergebnis zurueckgibt, nimmt den
+    // Fehlerfall nicht selbst in die Hand — er gibt ihn weiter, und das ist
+    // bei einem Hook das richtige Verhalten (AGENTS.md §3). Ohne diese
+    // Ausnahme haette der Waechter zu einer sinnlosen Destrukturierung
+    // gezwungen, die den Wert nur wieder zusammensetzt.
+    const content = "export const useThing = () => {\n  return useQuery({ queryKey: k, queryFn: f });\n};";
+    expect(analyze('src/services/thing-service.ts', content).violations).toEqual([]);
+  });
+
+  it('[REGRESSION] sollte kein Schlupfloch fuer „spaeter nur data" sein', () => {
+    // `const q = useQuery(…); return q.data;` reicht eben NICHT durch: Der
+    // Fehlerzustand geht dabei verloren.
+    const content = 'const q = useQuery({ queryKey: k, queryFn: f });\nreturn q.data;';
+    expect(analyze('src/hooks/useThing.ts', content).violations).toEqual([1]);
+  });
+});
+
+describe('Fehlerzustand ueber den gebundenen Namen (WP-9.6, Nachtrag)', () => {
+  it('sollte `const q = useQuery(…)` + `q.isError` anerkennen', () => {
+    const content = "const txQuery = useQuery({ queryKey: k, queryFn: f });\nif (txQuery.isError) return <Fehler />;";
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([]);
+  });
+
+  it('sollte die Zusammenfassung mehrerer Abfragen anerkennen', () => {
+    // Bei einer Seite mit vier Abfragen ist EINE Aussage („die Seite ist nicht
+    // rechenbar") die bessere Loesung als vier Fehlermeldungen fuer dieselbe
+    // Ursache. Der Waechter darf sie nicht verhindern.
+    const content = [
+      'const a = useQuery({});',
+      'const b = useQuery({});',
+      'const queries = [a, b];',
+      'const hasLoadError = queries.some((q) => q.isError);',
+    ].join('\n');
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([]);
+  });
+
+  it('[REGRESSION] sollte einen ungelesenen Namen weiter melden', () => {
+    // Nur zuweisen genuegt nicht — sonst waere die Regel durch Umbenennen
+    // aushebelbar.
+    const content = 'const txQuery = useQuery({});\nconst rows = txQuery.data ?? [];';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([1]);
+  });
+});
+
+describe('Kommentare (WP-9.6, Nachtrag)', () => {
+  it('[REGRESSION] sollte einen Aufruf im Blockkommentar nicht melden', () => {
+    // Gemeldet wurde ausgerechnet FinanceErrorState.tsx — dort steht das
+    // Muster im Kommentar, der erklaert, warum es den Baustein gibt. Ein
+    // Waechter, der seine eigene Begruendung als Verstoss liest, schickt jeden
+    // auf eine falsche Faehrte.
+    const content = '/**\n * Bis hierher: `const { data = [] } = useQuery(…)`.\n */\nexport const X = 1;';
+    expect(analyze('src/components/common/Y.tsx', content)).toEqual({ violations: [], total: 0 });
+  });
+
+  it('sollte einen Aufruf im Zeilenkommentar nicht melden', () => {
+    expect(analyze('src/pages/X.tsx', '// const { data } = useQuery({});').total).toBe(0);
+  });
+
+  it('sollte echten Code neben Kommentaren weiter finden', () => {
+    const content = '// useQuery im Kommentar\nconst { data } = useQuery({});';
+    expect(analyze('src/pages/X.tsx', content).violations).toEqual([2]);
+  });
+});

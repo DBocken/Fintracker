@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
@@ -33,13 +34,38 @@ export default function EuerPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: transactions = [] } = useQuery({
+  // WP-9.6: Der Fallback `= []` macht einen Ladefehler unsichtbar — die Seite
+  // rechnet dann eine EÜR aus null Buchungen und zeigt „Gewinn 0,00 €". Das
+  // ist keine leere Auskunft, das ist eine falsche.
+  //
+  // Die vier Abfragen werden zu EINER Aussage zusammengefasst: Wenn irgendeine
+  // von ihnen fehlt, ist der Bericht nicht rechenbar. Vier getrennte
+  // Fehlermeldungen für dieselbe Ursache wären für den Nutzer vier Rätsel
+  // statt eines Hinweises.
+  const {
+    data: transactions = [],
+    isError: txError,
+    refetch: refetchTx,
+  } = useQuery({
     queryKey: ['transactions', locale],
     queryFn: () => getTransactions(5000),
   });
-  const { data: categories = [] } = useQuery({ queryKey: ['categories', locale], queryFn: getCategories });
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
-  const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({ queryKey: ['categories', locale], queryFn: getCategories });
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
+  const {
+    data: settings,
+    isError: settingsError,
+    refetch: refetchSettings,
+  } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+
   const businessMode = useBusinessMode();
 
   const years = useMemo(() => {
@@ -52,10 +78,24 @@ export default function EuerPage() {
   const paramYear = Number(searchParams.get('year'));
   const year = years.includes(paramYear) ? paramYear : years[0] ?? FALLBACK_YEAR;
 
-  const { data: reserve = null } = useQuery({
+  const {
+    data: reserve = null,
+    isError: reserveError,
+    refetch: refetchReserve,
+  } = useQuery({
     queryKey: ['taxReserve', year],
     queryFn: () => getTaxReserveState(year),
   });
+
+  const hasLoadError =
+    txError || categoriesError || accountsError || settingsError || reserveError;
+  const retryAll = () => {
+    void refetchTx();
+    void refetchCategories();
+    void refetchAccounts();
+    void refetchSettings();
+    void refetchReserve();
+  };
 
   const report = useMemo(
     () => buildEuerReport(transactions, accounts, year),
@@ -85,6 +125,8 @@ export default function EuerPage() {
         description={t('euer.page.subtitle', 'Einnahmen − Ausgaben = Gewinn (Einnahmenüberschussrechnung)')}
         actions={<TaxYearPicker years={years} value={year} onChange={setYear} />}
       />
+
+      {hasLoadError && <FinanceErrorState variant="transactions" onRetry={retryAll} />}
 
       {!report.paramsExact && (
         <p className="text-xs text-warning">
