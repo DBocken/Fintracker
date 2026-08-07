@@ -230,9 +230,11 @@ describe('Situationsspezifische Vorauswahl', () => {
   });
 
   it('sollte den sanften Ton nur für belastende Situationen vorschlagen', () => {
-    expect(resolveFeatureSelection('debt_focus', []).settings.gentle_mode).toBe(true);
-    expect(resolveFeatureSelection('single_parent', []).settings.gentle_mode).toBe(true);
-    expect(resolveFeatureSelection('employed_stable', []).settings.gentle_mode).toBeFalsy();
+    // Stufe 3 und nicht eine mildere: Der Vorschlag soll entlasten, und wer ihn
+    // annimmt, steigt danach selbst herunter (`docs/debt-avoidance-recovery.md`).
+    expect(resolveFeatureSelection('debt_focus', []).settings.gentle_level).toBe(3);
+    expect(resolveFeatureSelection('single_parent', []).settings.gentle_level).toBe(3);
+    expect(resolveFeatureSelection('employed_stable', []).settings.gentle_level).toBeFalsy();
   });
 });
 

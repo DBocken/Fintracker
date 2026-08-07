@@ -1383,6 +1383,27 @@ export const translations = {
       removeAssumption: 'Annahme entfernen: {label}',
       incomeUncertaintyAriaLabel: 'Einnahmen pauschal mit acht Prozent Streuung berechnen',
     },
+    gentleMode: {
+      hiddenValue: 'verborgen',
+      level: {
+        arrival: {
+          label: 'Alles verdeckt',
+          hint: 'Kein Betrag ist zu sehen. Ein guter Anfang, wenn Hinsehen gerade schwerfällt.',
+        },
+        nextStep: {
+          label: 'Nur die nächste Rate',
+          hint: 'Du siehst den Betrag, der als Nächstes fällig ist — sonst nichts.',
+        },
+        progress: {
+          label: 'Rate und Fortschritt',
+          hint: 'Dazu, was du schon geschafft hast. Die Gesamtsumme bleibt verdeckt.',
+        },
+        off: {
+          label: 'Alles sichtbar',
+          hint: 'Alle Beträge werden angezeigt.',
+        },
+      },
+    },
     profile: {
       loggedInStatus: 'Angemeldet',
       statusLabel: 'Status',
@@ -1390,7 +1411,6 @@ export const translations = {
       selectSkinLabel: 'Theme wählen',
       hintsLight: 'Hinweis: Helles/Dunkles Erscheinungsbild schaltest du über den Schalter oben um.',
       gentleModeLabel: 'Sanfter Modus',
-      gentleModeHint: 'Versteckt Beträge und zeigt Fortschritt statt Salden.',
       betaPremiumAccess: 'Beta- & Premiumzugang',
       alphaLabel: 'Alpha',
       advancedAnalytics: 'Erweiterte Analysen',
@@ -1702,6 +1722,7 @@ export const translations = {
       accountsDesc: 'Verwalte deine Bankkonten und Finanzquellen.',
     },
     coach: {
+      upcomingChargesSummary: 'Nächste {days} Tage · {count} {transactions} · {total} gesamt',
       title: 'Heute für dich',
       description: 'Dein Finanzcoach zeigt dir die nächste beste Entscheidung zuerst.',
       topActionToday: 'Wichtigste Aktion heute',
@@ -6026,6 +6047,27 @@ export const translations = {
       removeAssumption: 'Remove assumption: {label}',
       incomeUncertaintyAriaLabel: 'Calculate income roughly with eight percent variance',
     },
+    gentleMode: {
+      hiddenValue: 'hidden',
+      level: {
+        arrival: {
+          label: 'Everything hidden',
+          hint: 'No amount is shown. A good place to start when looking is hard right now.',
+        },
+        nextStep: {
+          label: 'Next instalment only',
+          hint: 'You see the amount due next — nothing else.',
+        },
+        progress: {
+          label: 'Instalment and progress',
+          hint: 'Plus how far you have come. The total stays hidden.',
+        },
+        off: {
+          label: 'Everything visible',
+          hint: 'All amounts are shown.',
+        },
+      },
+    },
     profile: {
       loggedInStatus: 'Signed in',
       statusLabel: 'Status',
@@ -6033,7 +6075,6 @@ export const translations = {
       selectSkinLabel: 'Select theme',
       hintsLight: 'Note: Toggle between light/dark appearance using the switch above.',
       gentleModeLabel: 'Gentle mode',
-      gentleModeHint: 'Hides amounts and shows progress instead of balances.',
       betaPremiumAccess: 'Beta & Premium access',
       alphaLabel: 'Alpha',
       advancedAnalytics: 'Advanced analytics',
@@ -6345,6 +6386,7 @@ export const translations = {
       accountsDesc: 'Manage your bank accounts and financial sources.',
     },
     coach: {
+      upcomingChargesSummary: 'Next {days} days · {count} {transactions} · {total} total',
       title: 'Today for you',
       description: 'Your finance coach shows you the next best decision first.',
       topActionToday: 'Top action today',
@@ -10426,7 +10468,6 @@ export const translations = {
       selectSkinLabel: "rur yIwIv",
       hintsLight: "qan: Dung mIw yIlo' — wov joj Hurgh choHlu'.",
       gentleModeLabel: "roj mIw",
-      gentleModeHint: "mI' So'lu', 'ach chenmoHghach cha'lu'.",
       betaPremiumAccess: "Beta 'ej nIv chaw'",
       alphaLabel: "Alpha",
       advancedAnalytics: "chovnatlh nIvqu'",
@@ -14948,6 +14989,27 @@ export const translations = {
       removeAssumption: 'Удалить допущение: {label}',
       incomeUncertaintyAriaLabel: 'Рассчитать доход приблизительно с отклонением восемь процентов',
     },
+    gentleMode: {
+      hiddenValue: 'скрыто',
+      level: {
+        arrival: {
+          label: 'Всё скрыто',
+          hint: 'Суммы не показываются. Хорошее начало, если смотреть сейчас тяжело.',
+        },
+        nextStep: {
+          label: 'Только ближайший платёж',
+          hint: 'Виден только тот платёж, который нужно внести следующим.',
+        },
+        progress: {
+          label: 'Платёж и прогресс',
+          hint: 'И то, сколько уже пройдено. Общая сумма остаётся скрытой.',
+        },
+        off: {
+          label: 'Всё видно',
+          hint: 'Показываются все суммы.',
+        },
+      },
+    },
     profile: {
       loggedInStatus: 'Вы вошли в систему',
       statusLabel: 'Статус',
@@ -14955,7 +15017,6 @@ export const translations = {
       selectSkinLabel: 'Выбрать тему',
       hintsLight: 'Примечание: переключайтесь между светлым/тёмным оформлением с помощью переключателя выше.',
       gentleModeLabel: 'Щадящий режим',
-      gentleModeHint: 'Скрывает суммы и показывает прогресс вместо баланса.',
       betaPremiumAccess: 'Бета- и премиум-доступ',
       alphaLabel: 'Альфа',
       advancedAnalytics: 'Расширенная аналитика',
@@ -15267,6 +15328,7 @@ export const translations = {
       accountsDesc: 'Управляйте своими банковскими счетами и источниками средств.',
     },
     coach: {
+      upcomingChargesSummary: 'Ближайшие {days} дн. · {count} {transactions} · всего {total}',
       title: 'Сегодня для вас',
       description: 'Ваш финансовый коуч в первую очередь показывает вам следующее лучшее решение.',
       topActionToday: 'Главное действие сегодня',

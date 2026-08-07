@@ -1,7 +1,7 @@
 import { InfoGroup } from '@/components/common/InfoGroup'
 import type { Account } from '@/types'
 import type { EffectiveBalance } from '@/features/dashboard/domain/overview-types'
-import { useGentleMode } from '@/components/providers/GentleModeProvider'
+import { useMoneyFormat } from '@/hooks/useMoneyFormat'
 import { useI18n } from '@/i18n/useI18n'
 import { LoadingSwap } from '@/components/common/LoadingSwap'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,15 +16,7 @@ interface AccountCardsProps {
 
 export function AccountCards({ accounts, balances, totalBalance, isLoading = false, hasError = false }: AccountCardsProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
-
-  const formatBalance = (amount: number) => {
-    if (gentleModeEnabled) return '***'
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount)
-  }
+  const { format: formatBalance } = useMoneyFormat();
 
   if (isLoading) {
     // WP-8.2: Choreografie aus WP-7.3 statt eines fruehen Returns. Der

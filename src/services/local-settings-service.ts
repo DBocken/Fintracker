@@ -13,6 +13,7 @@ import { LocalEncryptionLockedError, localEncryption } from "./local-crypto";
 import { DEFAULT_LOCAL_CATEGORIES } from "./default-categories";
 import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
 import { NAV_FEATURE_PATHS, type NavFeatureId } from "@/lib/life-situations";
+import { gentleLevelFromLegacy } from "@/lib/gentle-mode";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 import { t } from "../i18n/serviceT";
@@ -765,6 +766,30 @@ function migrateLegacyBusinessMode(settings: UserSettings): UserSettings | null 
 }
 
 /**
+ * Einmalige Migration des abgelösten `gentle_mode`-Schalters auf die Stufe
+ * {@link UserSettings.gentle_level}.
+ *
+ * Der Sanfte Modus war ein Ja/Nein und ist heute eine Annäherungsleiter
+ * (`docs/debt-avoidance-recovery.md`). `true` wird zu Stufe 3 — wer den Modus
+ * an hatte, hat bisher ALLES verdeckt gesehen; eine Migration, die dabei
+ * Beträge aufdeckt, wäre genau der Schreck, den der Modus verhindern soll.
+ *
+ * Eine bereits gesetzte Stufe gewinnt: Sie ist die neuere Aussage.
+ *
+ * Gibt `null` zurück, wenn nichts zu migrieren war.
+ */
+function migrateLegacyGentleMode(settings: UserSettings): UserSettings | null {
+  if (settings.gentle_mode === undefined) return null;
+
+  const { gentle_mode: legacy, ...rest } = settings;
+  const migrated: UserSettings = { ...rest };
+  if (rest.gentle_level === undefined) {
+    migrated.gentle_level = gentleLevelFromLegacy(legacy);
+  }
+  return migrated;
+}
+
+/**
  * Räumt Bereiche aus der gespeicherten Auswahl, die es nicht mehr gibt.
  *
  * Anlass ist die Finanzstadt: Sie war ein wählbarer Bereich und ist heute
@@ -796,11 +821,12 @@ export async function getLocalUserSettings(): Promise<UserSettings> {
   const stored = await localEncryption.loadAndMaybeDecrypt<UserSettings>(LOCAL_SETTINGS_KEY);
   if (stored && typeof stored === "object") {
     const merged = { ...buildDefaultLocalSettings(), ...stored, user_id: LOCAL_USER_ID };
-    // Beide Migrationen nacheinander: die erste kann eine Auswahl erst
-    // anlegen, die die zweite dann räumt.
+    // Nacheinander, jede auf dem Ergebnis der vorigen: die erste kann eine
+    // Auswahl erst anlegen, die die zweite dann räumt.
     const afterBusinessMode = migrateLegacyBusinessMode(merged);
     const afterRemoved = migrateRemovedNavFeatures(afterBusinessMode ?? merged);
-    const migrated = afterRemoved ?? afterBusinessMode;
+    const afterGentleMode = migrateLegacyGentleMode(afterRemoved ?? afterBusinessMode ?? merged);
+    const migrated = afterGentleMode ?? afterRemoved ?? afterBusinessMode;
     if (migrated) {
       await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, migrated);
       return migrated;

@@ -9,7 +9,7 @@ import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { InfoGroup } from "@/components/common/InfoGroup";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, cn } from "@/lib/utils";
-import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useI18n } from "@/i18n/useI18n";
 import { formatCoachDaysUntil } from "@/i18n/format";
 
@@ -33,7 +33,7 @@ interface Props {
  */
 export default function DisposableTankCard({ now = new Date() }: Props) {
   const { input, isLoading } = useForecast();
-  const { enabled: gentle } = useGentleMode();
+  const { format: money, isMasked } = useMoneyFormat();
   const { t } = useI18n();
   const fromISO = format(now, ISO);
 
@@ -78,13 +78,14 @@ export default function DisposableTankCard({ now = new Date() }: Props) {
     );
   }
 
-  const money = (n: number) => (gentle ? "•••" : formatCurrency(n));
   const over = data.health === "over";
 
   return (
     <InteractiveCard
       to="/liquidity"
-      aria-label={`${t('coach.availableUntilPayday')}: ${gentle ? "verborgen" : formatCurrency(data.disposable)}. ${t('coach.openLiquidity')}.`}
+      aria-label={`${t('coach.availableUntilPayday')}: ${
+        isMasked() ? t('gentleMode.hiddenValue') : formatCurrency(data.disposable)
+      }. ${t('coach.openLiquidity')}.`}
     >
       <div className="flex items-center gap-4">
         <BudgetTank

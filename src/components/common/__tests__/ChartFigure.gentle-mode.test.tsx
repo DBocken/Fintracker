@@ -12,13 +12,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithI18n } from '@/test-utils/render';
-import { GENTLE_AMOUNT_MASK } from '@/lib/gentle-mode';
+import { GENTLE_AMOUNT_MASK, type GentleLevel } from '@/lib/gentle-mode';
 import { ChartFigure } from '../ChartFigure';
 
-const gentle = vi.fn(() => false);
+const gentleLevel = vi.fn<() => GentleLevel>(() => 0);
 
 vi.mock('@/components/providers/GentleModeProvider', () => ({
-  useGentleMode: () => ({ enabled: gentle(), toggle: vi.fn() }),
+  useGentleMode: () => ({ level: gentleLevel(), enabled: gentleLevel() > 0, setLevel: vi.fn() }),
 }));
 
 type Row = { monat: string; betrag: number };
@@ -51,13 +51,13 @@ async function openTable(locale: 'de' | 'en' = 'de') {
 
 describe('ChartFigure — Sanfter Modus (WP-9.5)', () => {
   it('sollte Betraege normal zeigen', async () => {
-    gentle.mockReturnValue(false);
+    gentleLevel.mockReturnValue(0);
     await openTable();
     expect(screen.getByText('1234 €')).toBeInTheDocument();
   });
 
   it('sollte Zahlenspalten im Sanften Modus maskieren', async () => {
-    gentle.mockReturnValue(true);
+    gentleLevel.mockReturnValue(3);
     await openTable();
     expect(screen.queryByText('1234 €')).toBeNull();
     expect(screen.getAllByText(GENTLE_AMOUNT_MASK)).toHaveLength(2);
@@ -66,7 +66,7 @@ describe('ChartFigure — Sanfter Modus (WP-9.5)', () => {
   it('sollte Nicht-Zahlenspalten unangetastet lassen', async () => {
     // Ein maskiertes Datum waere keine Schonung, sondern Datenverlust: Ohne
     // die Zeitachse ist die Tabelle nicht mehr lesbar, nur noch leer.
-    gentle.mockReturnValue(true);
+    gentleLevel.mockReturnValue(3);
     await openTable();
     expect(screen.getByText('Januar')).toBeInTheDocument();
     expect(screen.getByText('Februar')).toBeInTheDocument();

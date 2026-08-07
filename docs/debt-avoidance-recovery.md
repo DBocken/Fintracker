@@ -1,7 +1,10 @@
 # Schulden, Vermeidungsverhalten und der Sanfte Modus — Vorüberlegungen
 
-Status: **noch nicht implementiert.** Diese Datei hält die Vorüberlegungen fest,
-damit sie bei der Umsetzung nicht neu erarbeitet werden müssen und die bereits
+Status: **Schritt 1 der Umsetzungsreihenfolge ist gebaut** (die Leiter selbst:
+`gentle_level`, Betragsklassen, Stufenwahl im Profil). Alles Weitere — die
+Einladung, der nächste kleine Schritt, die Fortschrittsrückmeldung, die
+Befragung — steht noch aus. Diese Datei hält die Vorüberlegungen fest, damit
+sie bei der Umsetzung nicht neu erarbeitet werden müssen und die bereits
 getroffenen Entscheidungen nicht versehentlich untergraben werden.
 
 Vor jeder Arbeit am **Sanften Modus** (`src/lib/gentle-mode.ts`,
@@ -119,28 +122,35 @@ Vier Festlegungen dazu, die nicht verhandelbar sind:
    inzwischen 8 von 10 Forderungen erfasst — möchtest du deine Gesamtlage
    sehen?" ist eine Einladung. „Es sind 30 Tage vergangen" ist eine Mahnung.
 
-### Was das technisch heißt
+### Was das technisch heißt (gebaut)
 
-Heute ist `gentle_mode` ein persistiertes `boolean`. Der **letzte günstige
-Zeitpunkt**, das zu ändern, ist vor der Umsetzung der Leiter: danach hängt an
-dem Feld eine Bedeutungsskala, und jede Änderung ist eine Datenmigration statt
-einer Textersetzung.
-
-Empfehlung: **ein** ordinales Feld statt zweier Felder — ein Boolean *und* eine
-Stufe wären zwei Wahrheiten über denselben Sachverhalt und würden
-auseinanderlaufen.
+`gentle_mode` war ein persistiertes `boolean`. Der **letzte günstige
+Zeitpunkt**, das zu ändern, war vor der Umsetzung der Leiter — danach hätte an
+dem Feld eine Bedeutungsskala gehangen und jede Änderung wäre eine
+Datenmigration statt einer Textersetzung gewesen. Deshalb steht dort heute
+**ein** ordinales Feld und nicht zwei (ein Boolean *und* eine Stufe wären zwei
+Wahrheiten über denselben Sachverhalt und liefen auseinander):
 
 ```
-gentle_level: 0 | 1 | 2 | 3        // 0 = aus
-masked = gentle_level > 0          // ersetzt jede heutige Abfrage von gentle_mode
-Migration: true → 3, false/undefined → 0
+gentle_level: 0 | 1 | 2 | 3        // 0 = aus                 → src/lib/gentle-mode.ts
+enabled = gentle_level > 0         // nur noch für rein visuelle Abschwächungen
+Migration: true → 3, false → 0     → migrateLegacyGentleMode in local-settings-service.ts
 ```
 
-`maskAmount` bekommt dazu die **Klasse** des Betrags, den es verdeckt
+`maskAmount` kennt dazu die **Klasse** des Betrags, den es verdeckt
 (`'total' | 'installment' | 'progress'`). Die Voreinstellung ist die am
 stärksten geschützte Klasse: Eine Aufrufstelle, die nichts angibt, bleibt auf
 jeder Stufe > 0 maskiert. Ein vergessenes Argument darf nie zu einer
-unerwartet sichtbaren Zahl führen — der Fehler muss in Richtung Maske fallen.
+unerwartet sichtbaren Zahl führen — der Fehler fällt in Richtung Maske. Aus
+demselben Grund gibt es am Hook drei Formatierer (`format`,
+`formatInstallment`, `formatProgress`) statt eines mit Klassen-Argument: So
+bekommt man die geschützteste Klasse, ohne etwas zu tun.
+
+Mit der Leiter sind zugleich die drei letzten handgemachten Masken (`•••`,
+`'***'`) auf `useMoneyFormat` umgestellt worden — `UpcomingChargesList`,
+`DisposableTankCard`, `AccountCards`. Sie waren der Rest des Befundes von
+WP-9.5 und hätten die Leiter stumm ausgehebelt: Eine Rate, die von Hand
+maskiert wird, taucht auf Stufe 2 nicht wieder auf.
 
 Das Plattform-Prinzip (AGENTS.md §4) gilt unverändert: gleiche Stufe, gleiche
 Berechnung, gleiches ViewModel auf Mobile und Desktop.
@@ -251,9 +261,9 @@ ohnehin nur gemeint fühlen, solange sie sie nicht betrifft.
 
 ## Reihenfolge der Umsetzung
 
-1. **Die Leiter** (`gentle_level` statt `gentle_mode`, Betragsklassen in
-   `maskAmount`, Stufenwechsel in den Einstellungen). Hat für sich Wert, ohne
-   jede Erhebung, und ist der Punkt, an dem eine Feldänderung noch billig ist.
+1. ✅ **Die Leiter** (`gentle_level` statt `gentle_mode`, Betragsklassen in
+   `maskAmount`, Stufenwahl im Profil). Hat für sich Wert, ohne jede Erhebung,
+   und war der Punkt, an dem eine Feldänderung noch billig war.
 2. **Die Einladung** (Frage bei Ereignis, zweimal ablehnbar, nie automatisch).
 3. **Der nächste kleine Schritt** für `/debts` im `coach-service`.
 4. **Die Fortschrittsrückmeldung** (aufbauend animiert, schwellwertbewusst).

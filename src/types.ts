@@ -1,3 +1,4 @@
+import type { GentleLevel } from '@/lib/gentle-mode';
 import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
 import type { TutorialChapterId, TutorialSource } from '@/lib/tutorial-sequence';
 
@@ -244,6 +245,17 @@ export interface UserSettings {
     active: string[];
   };
   preferred_market_provider?: 'yahoo' | 'stooq';
+  /**
+   * Stufe des Sanften Modus (`@/lib/gentle-mode`). `0` ist aus, `3` verdeckt
+   * alles. Begründung der Reihenfolge: `docs/debt-avoidance-recovery.md`.
+   */
+  gentle_level?: GentleLevel;
+  /**
+   * @deprecated Abgelöst durch {@link UserSettings.gentle_level}. Das Feld
+   * existiert nur noch, damit die einmalige Migration in
+   * `local-settings-service` Altbestände lesen und räumen kann — es wird
+   * nirgends mehr geschrieben.
+   */
   gentle_mode?: boolean;
   /** Empfohlener Steuer-Rücklage-Prozentsatz für Creator-/Selbstständigen-Einnahmen (0 = aus). */
   tax_reserve_percent?: number;

@@ -59,7 +59,7 @@ export function DebtCard({
               {debt.is_paid_off && <Badge className="shrink-0 bg-positive/20 text-positive">{t('debts.debtCard.paid')}</Badge>}
             </div>
             <div className="mt-0.5 truncate text-xs text-muted-foreground">
-              {debtTypeLabels[debt.type]} · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(debt.min_payment))}
+              {debtTypeLabels[debt.type]} · {t('debts.debtCard.rateLabel')} {money.mask(eur.format(debt.min_payment), 'installment')}
               {debt.due_day ? ` · ${t('debts.debtCard.dueLabel').replace('{day}', String(debt.due_day))}` : ""}
             </div>
           </div>

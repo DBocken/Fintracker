@@ -18,9 +18,9 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { SKINS, type SkinId, applySkinClass } from "@/skins/skins";
 import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { GENTLE_LEVELS, GENTLE_LEVEL_IDS, type GentleLevel } from "@/lib/gentle-mode";
 import { useTier, TIER_OVERRIDE_EVENT } from "@/hooks/useTier";
 import { setTierOverride, clearTierOverride } from "@/lib/tier";
 import { useI18n } from "@/i18n/useI18n";
@@ -44,7 +44,7 @@ export function ProfileDialogContent() {
   const { t } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { enabled: gentleModeEnabled, toggle: toggleGentleMode } = useGentleMode();
+  const { level: gentleLevel, setLevel: setGentleLevel } = useGentleMode();
   const tier = useTier();
   const isPremium = tier === "premium";
   const [accessCode, setAccessCode] = useState("");
@@ -151,19 +151,35 @@ export function ProfileDialogContent() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        {/*
+         * Stufe statt Schalter: Der Sanfte Modus ist eine Leiter, kein
+         * Versteck (`docs/debt-avoidance-recovery.md`). Die Stufen stehen
+         * absteigend — verdeckt zuerst —, weil die Liste für jemanden gedacht
+         * ist, der oben steht und überlegt, ob er einen Schritt hinuntergeht.
+         */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <EyeOff className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">{t("profile.gentleModeLabel")}</span>
           </div>
-          <Switch
-            checked={gentleModeEnabled}
-            onCheckedChange={() => toggleGentleMode()}
-            aria-label={t("profile.gentleModeLabel")}
-          />
+          <Select
+            value={String(gentleLevel)}
+            onValueChange={(value) => setGentleLevel(Number(value) as GentleLevel)}
+          >
+            <SelectTrigger className="h-8 w-48" aria-label={t("profile.gentleModeLabel")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {GENTLE_LEVELS.map((level) => (
+                <SelectItem key={level} value={String(level)}>
+                  {t(`gentleMode.level.${GENTLE_LEVEL_IDS[level]}.label`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="text-[11px] text-muted-foreground">
-          {t("profile.gentleModeHint")}
+          {t(`gentleMode.level.${GENTLE_LEVEL_IDS[gentleLevel]}.hint`)}
         </div>
 
         <div className="rounded-lg border bg-muted/30 p-3">

@@ -1,15 +1,24 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
+import { gentleLevelFromLegacy, parseGentleLevel, type GentleLevel } from "@/lib/gentle-mode";
 
 type GentleModeContextValue = {
+  /** Wie viel gerade sichtbar ist. `0` ist aus, `3` verdeckt alles. */
+  level: GentleLevel;
+  /**
+   * Ist der Modus überhaupt an? Für rein visuelle Abschwächungen, die keinen
+   * Betrag betreffen (ruhigere Farben, weniger Alarm) — Beträge entscheiden
+   * über ihre Klasse, nicht über dieses Flag.
+   */
   enabled: boolean;
-  toggle: () => void;
+  setLevel: (level: GentleLevel) => void;
 };
 
 const GentleModeContext = createContext<GentleModeContextValue>({
+  level: 0,
   enabled: false,
-  toggle: () => {},
+  setLevel: () => {},
 });
 
 export default function GentleModeProvider({ children }: { children: React.ReactNode }) {
@@ -18,8 +27,7 @@ export default function GentleModeProvider({ children }: { children: React.React
   // Fast boot: apply last local setting immediately
   useEffect(() => {
     if (initialApplied.current) return;
-    const local = localStorage.getItem("gentleMode") === "true";
-    applyGentleMode(local);
+    applyGentleMode(parseGentleLevel(localStorage.getItem(FAST_BOOT_KEY)));
     initialApplied.current = true;
   }, []);
 
@@ -28,22 +36,28 @@ export default function GentleModeProvider({ children }: { children: React.React
     queryFn: getUserSettings,
   });
 
-  const enabled = settings?.gentle_mode ?? false;
+  // `gentle_mode` steht nur noch für den Fall hier, dass die Migration in
+  // `local-settings-service` noch nicht gelaufen ist (erster Start nach dem
+  // Update, Einstellungen aus einem Backup). Geschrieben wird das Feld nie mehr.
+  const level = settings?.gentle_level ?? gentleLevelFromLegacy(settings?.gentle_mode);
 
   useEffect(() => {
-    applyGentleMode(enabled);
-    localStorage.setItem("gentleMode", enabled ? "true" : "false");
-  }, [enabled]);
+    applyGentleMode(level);
+    localStorage.setItem(FAST_BOOT_KEY, String(level));
+  }, [level]);
 
-  const toggle = useCallback(async () => {
+  const setLevel = useCallback(async (next: GentleLevel) => {
     try {
-      await updateUserSettings({ gentle_mode: !enabled });
+      await updateUserSettings({ gentle_level: next });
     } catch (error) {
-      console.error("Failed to toggle gentle mode:", error);
+      console.error("Failed to change gentle mode level:", error);
     }
-  }, [enabled]);
+  }, []);
 
-  const value = useMemo(() => ({ enabled, toggle }), [enabled, toggle]);
+  const value = useMemo(
+    () => ({ level, enabled: level > 0, setLevel }),
+    [level, setLevel],
+  );
 
   return (
     <GentleModeContext.Provider value={value}>
@@ -54,10 +68,14 @@ export default function GentleModeProvider({ children }: { children: React.React
 
 export const useGentleMode = () => useContext(GentleModeContext);
 
-function applyGentleMode(enabled: boolean) {
-  if (enabled) {
-    document.documentElement.classList.add("gentle-mode");
-  } else {
-    document.documentElement.classList.remove("gentle-mode");
-  }
+/**
+ * Schnellstart-Wert. Der Schlüssel bleibt, obwohl er heute eine Stufe und
+ * keinen Schalter mehr hält: Ein neuer Schlüssel hiesse, dass jeder
+ * Bestandsnutzer beim ersten Start nach dem Update einen Wimpernschlag lang
+ * unverdeckte Beträge sähe. `parseGentleLevel` liest den alten Wert mit.
+ */
+const FAST_BOOT_KEY = "gentleMode";
+
+function applyGentleMode(level: GentleLevel) {
+  document.documentElement.classList.toggle("gentle-mode", level > 0);
 }
