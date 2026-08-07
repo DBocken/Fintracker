@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { BudgetOverrideForm } from '../ForecastPlanner';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 
 /** Karten-Chrome = sichtbarer Rahmen (`border`-Breiten-Utility) oder Schatten.
  * Hintergrund-Tönung zum Bündeln zählt NICHT als Karte (Usability-Audit). */

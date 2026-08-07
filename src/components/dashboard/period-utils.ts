@@ -11,7 +11,7 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction } from '@/types';
-import type { DashboardRange } from './filter-constants';
+import type { DashboardRange } from '@/features/shared/domain/dashboard-filters';
 
 export interface PeriodOption {
   /** Maschinen-Kennung, z.B. `2026`, `2026-Q2`, `2026-06`. */

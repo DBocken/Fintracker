@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n/useI18n";
 import type { Category, Transaction } from "@/types";
 import { computeTypicalMonth, computeTrend, computeMonthComparison, listMonths } from "@/lib/analysis-modes";
 import { getDashboardDateRange } from "./filter-utils";
-import type { DashboardRange } from "./filter-constants";
+import type { DashboardRange } from "@/features/shared/domain/dashboard-filters";
 import { useFeatureAccess } from "@/hooks/useTier";
 import { MonthPicker } from "./MonthPicker";
 import { cn } from "@/lib/utils";

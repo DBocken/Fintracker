@@ -1,0 +1,126 @@
+/**
+ * Vorschlags-Modell und die reinen Erzeuger dafür („Automatisch, aber nie
+ * bevormundend"): Automatik erzeugt Vorschläge, der Nutzer entscheidet.
+ *
+ * Lag zuvor zusammen mit der Persistenz im `automation-suggestion-service`;
+ * dadurch mussten `lib/tax-suggestions.ts` und `lib/automation-suggestions.ts`
+ * entgegen der Schichtrichtung nach oben importieren (AGENTS.md §3). Das
+ * Speichern bleibt im Service, die Form und das Erzeugen sind Domäne.
+ */
+import type { Transaction } from '@/types';
+import type { CategorizationResult } from '@/lib/categorization';
+import { t } from '@/i18n/serviceT';
+
+export type AutomationSuggestionKind =
+  | 'category'
+  | 'contract'
+  | 'transfer'
+  | 'salary'
+  | 'receipt'
+  | 'tax';
+
+export type AutomationSuggestionStatus =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'ignored';
+
+export type AutomationSuggestionActionId =
+  | 'accept_once'
+  | 'accept_always'
+  | 'reject_once'
+  | 'reject_always'
+  | 'edit';
+
+export interface AutomationSuggestionAction {
+  id: AutomationSuggestionActionId;
+  label: string;
+}
+
+export interface AutomationSuggestion {
+  id: string;
+  kind: AutomationSuggestionKind;
+  entityType: 'transaction' | 'contract' | 'account' | 'receipt';
+  entityId: string;
+  title: string;
+  description: string;
+  /** Heuristik (kein Wahrscheinlichkeitsmodell); UI zeigt Sicherheitsstufen. */
+  confidence: number;
+  reasons: string[];
+  proposedChange: Record<string, unknown>;
+  status: AutomationSuggestionStatus;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Brücke zwischen `explainCategorization` und dem Vorschlagsmodell: erzeugt aus einer
+ * erkannten (aber nicht hochsicheren) Kategorisierung einen Vorschlag statt einer
+ * stillen Änderung. `entityId` ist idempotent die Transaktions-ID, damit nicht
+ * mehrere Vorschläge für dieselbe Transaktion entstehen.
+ */
+export function buildCategorySuggestion(
+  transaction: Transaction,
+  categoryId: string,
+  reasons: string[],
+  confidence: number,
+): AutomationSuggestion {
+  return {
+    id: `category:${transaction.id ?? transaction.original_text}`,
+    kind: 'category',
+    entityType: 'transaction',
+    entityId: transaction.id ?? '',
+    title: `Kategorie-Vorschlag für ${transaction.payee || 'Buchung'}`,
+    description: reasons[0] ?? t('automationSuggestionServiceLib.defaultCategoryDescription', 'Automatisch erkannter Kategorievorschlag'),
+    confidence,
+    reasons,
+    proposedChange: { category_id: categoryId },
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
+}
+
+/** Convenience: erzeugt einen Vorschlag direkt aus einem CategorizationResult. */
+export function buildCategorySuggestionFromResult(
+  transaction: Transaction,
+  result: CategorizationResult,
+): AutomationSuggestion | null {
+  if (!result.categoryId) return null;
+  return buildCategorySuggestion(
+    transaction,
+    result.categoryId,
+    result.reasons,
+    result.confidence,
+  );
+}
+
+/**
+ * Erzeugt einen Steuer-Rubrik-Vorschlag für eine Buchung. `entityId`/ID sind
+ * idempotent an der Transaktion (`tax:<id>`), damit pro Buchung nur ein
+ * Vorschlag existiert und eine Ablehnung dauerhaft wirkt. `taxCategoryId` kann
+ * `null` sein (Kategorie ist steuerrelevant markiert, aber ohne Rubrik — der
+ * Nutzer wählt sie dann selbst).
+ */
+export function buildTaxSuggestion(
+  transaction: Transaction,
+  taxCategoryId: string | null,
+  reasons: string[],
+  confidence: number,
+): AutomationSuggestion {
+  return {
+    id: `tax:${transaction.id ?? transaction.original_text}`,
+    kind: 'tax',
+    entityType: 'transaction',
+    entityId: transaction.id ?? '',
+    title: t('automationSuggestionServiceLib.taxTitle', 'Steuer-Vorschlag für {payee}').replace(
+      '{payee}',
+      transaction.payee || t('automationSuggestionServiceLib.transactionFallback', 'Buchung'),
+    ),
+    description: reasons[0] ?? '',
+    confidence,
+    reasons,
+    proposedChange: { tax_category_id: taxCategoryId },
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
+}

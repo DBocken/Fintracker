@@ -5,8 +5,8 @@
 //
 // On-demand & rein: berechnet aus vorhandenen Daten ohne Import-Pipeline.
 
-import { buildTaxSuggestion } from '@/services/automation-suggestion-service';
-import type { AutomationSuggestion } from '@/services/automation-suggestion-service';
+import { buildTaxSuggestion } from '@/lib/automation-suggestion-model';
+import type { AutomationSuggestion } from '@/lib/automation-suggestion-model';
 import { TAX_CATEGORIES, taxCategoryById, getRubricForCategory } from '@/data/tax-catalog';
 import { matchesKeyword } from '@/lib/keyword-match';
 import type { Category, Transaction } from '@/types';

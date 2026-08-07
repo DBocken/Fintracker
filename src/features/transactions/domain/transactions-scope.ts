@@ -1,6 +1,6 @@
 import type { Account, Transaction } from '@/types';
 import type { EffectiveBalance } from '@/features/shared/domain/balance-calculations';
-import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
+import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**
  * Konto-Scope wie in TransactionsPage (Z. 172–179): 'all' zeigt alles,

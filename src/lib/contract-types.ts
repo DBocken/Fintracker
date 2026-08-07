@@ -1,8 +1,45 @@
+/**
+ * Fachliche Typen rund um wiederkehrende Zahlungen („Verträge").
+ *
+ * Diese Datei liegt bewusst in `src/lib/`: Verträge sind Domäne, nicht
+ * Darstellung und nicht Speicherung. `ContractRow` lag zuvor unter
+ * `components/contracts/`, `ContractStatus`/`ContractDecision` im
+ * IndexedDB-Service — beides zwang die reine Ableitungslogik
+ * (`contract-derivation.ts`, `forecast-data.ts`) dazu, entgegen der
+ * Schichtrichtung nach oben zu importieren (AGENTS.md §3).
+ */
 import type { Rhythmus } from "@/types";
-import type { ContractStatus } from "@/services/contract-decision-service";
 
 export type Cycle = "Wöchentlich" | "Monatlich" | "Vierteljährlich" | "Halbjährlich" | "Jährlich" | "Unbekannt";
 
+/**
+ * Dauerhafte Vertrags-Entscheidung des Nutzers, gebunden an einen normalisierten
+ * Händler-Fingerprint (siehe lib/merchant-fingerprint). Verträge selbst werden aus
+ * den Transaktionen abgeleitet; diese Entscheidung überschreibt nur den Status,
+ * damit beendete/abgelehnte Verträge die aktuellen Fixkosten nicht verfälschen.
+ */
+export type ContractStatus =
+  | 'candidate'
+  | 'active'
+  | 'ended'
+  | 'rejected'
+  | 'paused'
+  | 'archived';
+
+/** Persistierte Form einer Vertrags-Entscheidung (gespeichert über den Service). */
+export interface ContractDecision {
+  id: string;
+  user_id: string;
+  fingerprint: string;
+  status: ContractStatus;
+  cycle_override?: Rhythmus | null;
+  ended_at?: string | null;
+  note?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Abgeleitete Zeile einer wiederkehrenden Zahlung (Ergebnis von `computeContracts`). */
 export interface ContractRow {
   key: string;
   type: "Ausgabe" | "Einnahme";

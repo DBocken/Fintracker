@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { buildForecastInput } from '@/lib/forecast-data';
+import { buildForecastInput } from '@/services/forecast-data';
 import { calculateDeterministicForecast } from '@/lib/forecast';
 import { analyzeRisk, type RiskAnalysis } from '@/lib/forecast-insights';
 import type { ForecastConfig, ForecastResult, ForecastInput } from '@/lib/forecast-types';

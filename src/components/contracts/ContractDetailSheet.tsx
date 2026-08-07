@@ -8,9 +8,9 @@ import { useI18n } from "@/i18n/useI18n";
 import {
   upsertContractDecision,
   getContractStatusLabels,
-  type ContractStatus,
 } from "@/services/contract-decision-service";
-import type { ContractRow } from "./contract-types";
+import type { ContractStatus } from "@/lib/contract-types";
+import type { ContractRow } from "@/lib/contract-types";
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });

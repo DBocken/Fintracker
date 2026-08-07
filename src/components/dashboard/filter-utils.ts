@@ -1,27 +1,21 @@
 import { isWithinInterval, parseISO, subDays, subMonths, subYears } from 'date-fns';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
-import type { ContractFilter, DashboardGranularity, DashboardRange, EssentialFilter, AusgabenklasseFilter } from './filter-constants';
+import type {
+  AusgabenklasseFilter,
+  ContractFilter,
+  DashboardFilterState,
+  DashboardGranularity,
+  DashboardRange,
+  EssentialFilter,
+} from '@/features/shared/domain/dashboard-filters';
 import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-utils';
-import type { ContractDecision } from '@/services/contract-decision-service';
+import type { ContractDecision } from '@/lib/contract-types';
 
 interface DateRange {
   start: Date;
   end: Date;
-}
-
-export interface DashboardFilterState {
-  category: string;
-  account: string;
-  contract: ContractFilter;
-  essential: EssentialFilter;
-  ausgabenklasse: AusgabenklasseFilter;
-  search: string;
-  range: DashboardRange;
-  customDays: number;
-  /** Konkrete Periode für Jahr/Quartal/Monat (z.B. `2026-Q2`); sonst leer. */
-  customPeriod?: string;
 }
 
 export function getDashboardDateRange(

@@ -1,4 +1,4 @@
-import type { PayoffStrategy } from "@/services/debt-service";
+import type { PayoffStrategy } from "./debt-service";
 
 /**
  * Avalanche/Schneeball ist eine Portfolio-Strategie (#54, Korrektur 2):

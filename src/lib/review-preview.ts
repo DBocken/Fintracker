@@ -9,8 +9,8 @@
  * match ohne Regeln und konnte der echten Zuweisung widersprechen.)
  */
 import type { Category, Transaction } from '@/types';
-import type { MerchantRule } from '@/services/merchant-rules-service';
-import { explainCategorization, MIN_SILENT_ASSIGN_CONFIDENCE } from '@/services/transaction-service';
+import type { MerchantRule } from '@/lib/categorization';
+import { explainCategorization, MIN_SILENT_ASSIGN_CONFIDENCE } from '@/lib/categorization';
 import { suggestionConfidenceLevel, type SuggestionConfidenceLevel } from '@/lib/automation-suggestions';
 
 export interface AutoCategoryPreview {

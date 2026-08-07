@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { explainCategorization } from '../transaction-service';
+import { explainCategorization } from '@/lib/categorization';
 import type { Category, Transaction } from '../../types';
 
 function tx(overrides: Partial<Transaction>): Transaction {

@@ -6,7 +6,7 @@ import type {
 } from "../types";
 import { getCurrentUserId } from "./auth-service";
 import { getTransactions } from "./transaction-service";
-import { normalizeMerchantName } from "./merchant-normalization";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import {
   deleteLocalFinanceItem,
   readLocalFinanceList,

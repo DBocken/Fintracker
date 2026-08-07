@@ -34,7 +34,7 @@ import { buildMerchantFloorsByBuilding } from '../domain/city-merchant-floors';
 import { districtColorMap } from '../domain/city-data-adapter';
 import { buildCityModelFromProjection } from '../domain/city-projection-adapter';
 import { buildCityTimeline, monthKind, type CityMonth } from '../domain/city-timeline';
-import { buildForecastInput } from '@/lib/forecast-data';
+import { buildForecastInput } from '@/services/forecast-data';
 import { projectCategorySpend } from '@/lib/forecast-category-projection';
 import type { CityModel } from '../domain/city-model';
 import type { GoalProgressStage } from '../domain/city-goal-progress';

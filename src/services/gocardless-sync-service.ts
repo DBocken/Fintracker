@@ -1,6 +1,7 @@
 import { gocardlessService } from './gocardless-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
-import { createTransaction, getTransactions, getCategories, categorizeTransactionConfident, getUserSettings, markTransferPair } from './transaction-service';
+import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
+import { categorizeTransactionConfident } from '@/lib/categorization';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';

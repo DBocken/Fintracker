@@ -6,11 +6,8 @@ import {
   updateTransaction,
 } from "@/services/transaction-service";
 import { getMerchantRules } from "@/services/merchant-rules-service";
-import {
-  getAutomationSuggestions,
-  upsertAutomationSuggestion,
-  type AutomationSuggestion,
-} from "@/services/automation-suggestion-service";
+import { getAutomationSuggestions, upsertAutomationSuggestion } from "@/services/automation-suggestion-service";
+import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import { buildPendingCategorySuggestions } from "@/lib/automation-suggestions";
 
 /**

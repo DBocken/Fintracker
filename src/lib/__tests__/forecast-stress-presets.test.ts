@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildStressOverrides, type StressPresetContext } from '../forecast-stress-presets';
-import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { VariableExpenseBaseline } from '@/lib/forecast-types';
 
 const variableExpenses: VariableExpenseBaseline[] = [

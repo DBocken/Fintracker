@@ -1,7 +1,7 @@
 import { parseISO, differenceInDays, addMonths, addWeeks, addQuarters, addYears } from "date-fns";
 import type { Transaction, Rhythmus } from "@/types";
-import type { ContractRow, Cycle } from "@/components/contracts/contract-types";
-import { mapCycleToRhythmus } from "@/components/contracts/contract-types";
+import type { ContractRow, Cycle } from "@/lib/contract-types";
+import { mapCycleToRhythmus } from "@/lib/contract-types";
 import { getTransactions, getCategories, updateTransaction, type TransactionUpdate } from "./transaction-service";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import { computeContracts, computeIncomeContracts } from "@/lib/contract-derivation";

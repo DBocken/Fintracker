@@ -22,7 +22,7 @@ import {
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
 import FinanceErrorState from '@/components/common/FinanceErrorState';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer, RecurringFlow } from '@/lib/forecast-types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 

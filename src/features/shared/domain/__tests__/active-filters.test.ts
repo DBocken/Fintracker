@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
+import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 import { countActiveFilters } from '@/features/transactions/domain/transactions-scope';
 import { describeActiveFilters } from '../active-filters';
 

@@ -11,21 +11,20 @@
  */
 import { addMonths, format, startOfMonth, subMonths } from 'date-fns';
 import type { Account, AccountType, Category, Transaction } from '@/types';
-import type { ContractRow, Cycle } from '@/components/contracts/contract-types';
+import type { ContractRow, Cycle } from '@/lib/contract-types';
 import { getAccounts } from '@/services/account-service';
 import { getNetWorthBreakdown } from '@/services/net-worth-service';
 import { getCategories, getTransactions } from '@/services/transaction-service';
-import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
+import { getContractDecisionMap } from '@/services/contract-decision-service';
+import type { ContractDecision } from '@/lib/contract-types';
 import { computeContracts, isActiveForTotals } from '@/lib/contract-derivation';
 import { buildDailySpendingProfile } from '@/lib/forecast-profile';
 import { buildOccurrenceModel } from '@/lib/finrisk/occurrence-amount';
 import { classifyForecastTreatment } from '@/lib/forecast-treatment';
-import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { detectSalarySeries } from '@/lib/salary-detection';
-import {
-  getForecastOverrides,
-  type ForecastOverrides,
-} from '@/services/forecast-overrides-service';
+import { getForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import { getReplacementPlans } from '@/services/replacement-plan-service';
 import { expandReplacementPlans } from '@/features/replacement-planning/domain/forecast-expansion';
 import type { ReplacementPlan } from '@/lib/schemas/replacement-plan.schema';
@@ -36,7 +35,7 @@ import type {
   RecurringCadence,
   RecurringFlow,
   VariableExpenseBaseline,
-} from './forecast-types';
+} from '@/lib/forecast-types';
 
 /** Mappt die App-Kontoart auf die Forecast-Kontoart. */
 export function accountTypeToKind(type: AccountType): ForecastAccountKind {

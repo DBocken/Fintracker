@@ -2,7 +2,7 @@ import { screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderWithI18n } from "@/test-utils/render";
 import CategorySuggestionsInbox from "../CategorySuggestionsInbox";
-import type { AutomationSuggestion } from "@/services/automation-suggestion-service";
+import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 
 const accept = vi.fn();
 const reject = vi.fn();

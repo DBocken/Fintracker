@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildCityModelFromMilestones } from '../city-goals-adapter';
-import type { MilestoneStatus, MilestoneProgress } from '@/services/milestones-service';
+import type { MilestoneStatus, MilestoneProgress } from '@/lib/milestone-types';
 
 function status(
   key: string,

@@ -4,7 +4,7 @@ import {
   estimateAvailableIncome,
   payoffPlanToPlanMonths,
 } from "@/lib/debt-counseling";
-import { OVERINDEBTEDNESS_PLAN_MONTHS } from "@/services/debt-guardrails-service";
+import { OVERINDEBTEDNESS_PLAN_MONTHS } from "@/lib/debt-counseling-guardrails";
 
 beforeEach(() => {
   // Set locale for serviceT

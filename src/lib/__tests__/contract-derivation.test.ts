@@ -9,7 +9,7 @@ import {
   getCycleFromDays,
 } from "@/lib/contract-derivation";
 import type { Transaction, Category } from "@/types";
-import type { ContractDecision } from "@/services/contract-decision-service";
+import type { ContractDecision } from "@/lib/contract-types";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 
 const NOW = new Date("2024-06-01");

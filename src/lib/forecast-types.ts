@@ -14,6 +14,7 @@
  * Spätere Stufen (Monte Carlo, Szenarien, Rücklagen) docken an diesen Typen an,
  * ohne den Kern umzubauen.
  */
+import type { ForecastScenario } from './forecast-scenario-types';
 
 /**
  * Kontoarten aus Sicht der Forecast-Engine.
@@ -438,3 +439,43 @@ export interface ForecastResult {
   risk: LiquidityRisk;
   insights: ForecastInsight[];
 }
+
+/** Override für eine auto-erkannte wiederkehrende Zahlung. */
+export interface RecurringFlowOverride {
+  /** Ist die Zahlung aktiv? Default: true. */
+  enabled?: boolean;
+  /** Neuer Betrag (überschreibt den erkannten). */
+  amount?: number;
+  /** Neues End-Datum (ISO yyyy-mm-dd). */
+  endDate?: string;
+}
+
+export interface ForecastOverrides {
+  months: number;
+  safetyBuffer: number;
+  bufferBasis: BufferBasis;
+  /** accountId -> jährlicher Zinssatz in Prozent. */
+  accountInterest: Record<string, number>;
+  /** Kategorie -> monatliches Budget (ersetzt die historische Baseline). */
+  categoryBudgets: Record<string, number>;
+  plannedEvents: PlannedForecastEvent[];
+  sinkingFunds: SinkingFund[];
+  transfers: ForecastTransfer[];
+  /** flowId -> Overrides für auto-erkannte wiederkehrende Zahlungen. */
+  recurringFlowOverrides: Record<string, RecurringFlowOverride>;
+  /** Nutzerdefinierte Was-wäre-wenn-Szenarien (Stufe 3). */
+  scenarios: ForecastScenario[];
+}
+
+export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
+  months: 6,
+  safetyBuffer: 1000,
+  bufferBasis: 'operating',
+  accountInterest: {},
+  categoryBudgets: {},
+  plannedEvents: [],
+  sinkingFunds: [],
+  transfers: [],
+  recurringFlowOverrides: {},
+  scenarios: [],
+};

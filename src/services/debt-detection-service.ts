@@ -1,6 +1,6 @@
 import type { DebtPriority, DebtType, Transaction } from "../types";
 import { getTransactions } from "./transaction-service";
-import { normalizeMerchantName } from "./merchant-normalization";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import { BNPL_PROVIDERS, getDebts, suggestDebtPriority } from "./debt-service";
 import { t } from "../i18n/serviceT";
 

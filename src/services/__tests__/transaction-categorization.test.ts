@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { categorizeTransaction } from "../transaction-service";
+import { categorizeTransaction } from "@/lib/categorization";
 import type { Category, Transaction } from "../../types";
 
 beforeEach(() => {

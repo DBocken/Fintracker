@@ -53,7 +53,7 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import { summarizeOverrides, type OverrideChange } from '@/lib/forecast-overrides-summary';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { BufferBasis, ForecastMonthlySummary } from '@/lib/forecast-types';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';

@@ -12,7 +12,8 @@
 import { describe, it, expect } from 'vitest';
 import type { Transaction } from '../../types';
 import { excludeTransfers } from '../transaction-service';
-import { planInternalTransfers, normalizeIban, type AccountIbanRef } from '../transfer-service';
+import { planInternalTransfers, type AccountIbanRef } from '../transfer-service';
+import { normalizeIban } from '@/lib/iban';
 
 // ---------------------------------------------------------------------------
 // Helpers

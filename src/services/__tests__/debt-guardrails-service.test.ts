@@ -2,13 +2,15 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { Transaction } from "../../types";
 import {
   claimGuidance,
-  getCounselingServices,
-  counselingRecommendation,
   ibanChangeWarning,
   inkassoRegisterHint,
   matchPaymentsToClaims,
   RDG_REGISTER_URL,
 } from "../debt-guardrails-service";
+import {
+  getCounselingServices,
+  counselingRecommendation,
+} from "@/lib/debt-counseling-guardrails";
 import { applyLetterToClaim, claimFromLetter, type Claim } from "../claim-service";
 import { girocodeForClaim } from "../girocode-service";
 import { parseLetter } from "../letter-parser-service";

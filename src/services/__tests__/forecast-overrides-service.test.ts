@@ -1,12 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { clearLocalKvStore, idbGet } from '../idb-kv';
 import { localEncryption } from '../local-crypto';
-import {
-  DEFAULT_FORECAST_OVERRIDES,
-  FORECAST_OVERRIDES_STORAGE_KEY,
-  getForecastOverrides,
-  saveForecastOverrides,
-} from '../forecast-overrides-service';
+import { FORECAST_OVERRIDES_STORAGE_KEY, getForecastOverrides, saveForecastOverrides } from '../forecast-overrides-service';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
 
 describe('forecast-overrides-service', () => {
   beforeEach(async () => {

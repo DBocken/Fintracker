@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { summarizeOverrides } from '../forecast-overrides-summary';
-import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { RecurringFlow } from '@/lib/forecast-types';
 
 const flows: RecurringFlow[] = [

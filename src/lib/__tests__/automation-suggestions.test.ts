@@ -4,7 +4,7 @@ import {
   suggestionConfidenceLevel,
   MIN_SUGGEST_CONFIDENCE,
 } from "@/lib/automation-suggestions";
-import type { AutomationSuggestion } from "@/services/automation-suggestion-service";
+import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import type { Category, Transaction } from "@/types";
 
 function tx(partial: Partial<Transaction>): Transaction {

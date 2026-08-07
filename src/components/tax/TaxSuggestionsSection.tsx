@@ -6,11 +6,8 @@ import { useI18n } from '@/i18n/useI18n';
 import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { Category, Transaction } from '@/types';
 import { updateTransaction } from '@/services/transaction-service';
-import {
-  getAutomationSuggestions,
-  upsertAutomationSuggestion,
-  type AutomationSuggestion,
-} from '@/services/automation-suggestion-service';
+import { getAutomationSuggestions, upsertAutomationSuggestion } from '@/services/automation-suggestion-service';
+import type { AutomationSuggestion } from '@/lib/automation-suggestion-model';
 import { buildPendingTaxSuggestions } from '@/lib/tax-suggestions';
 import { suggestionConfidenceLevel } from '@/lib/automation-suggestions';
 import { getAccounts } from '@/services/account-service';

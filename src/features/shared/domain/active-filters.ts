@@ -1,4 +1,4 @@
-import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
+import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**
  * Eine gerade wirkende Filter-Dimension (WP-9.4).

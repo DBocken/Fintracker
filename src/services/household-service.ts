@@ -3,6 +3,12 @@ import {
   upsertLocalFinanceItem,
   deleteLocalFinanceItem,
 } from './local-finance-store';
+import type {
+  Household,
+  HouseholdMember,
+  SharedExpenseShare,
+  SharedExpenseSplit,
+} from '@/lib/household-types';
 
 /**
  * Lokales Haushalts-/Paarmodell für geteilte Ausgaben. Bewusst als vertikaler
@@ -10,43 +16,6 @@ import {
  * Transaktion), bevor es ausgebaut wird. Alles **strikt lokal** (IndexedDB via
  * local-finance-store, optional verschlüsselt) – kein Server, kein Teilen von Daten.
  */
-
-export interface Household {
-  id: string;
-  name: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface HouseholdMember {
-  id: string;
-  household_id: string;
-  name: string;
-  /** Optionaler Standard-Anteil (Gewicht) für Splits; Default gleichmäßig. */
-  share?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface SharedExpenseShare {
-  member_id: string;
-  amount: number;
-}
-
-export interface SharedExpenseSplit {
-  id: string;
-  transaction_id: string;
-  household_id: string;
-  shares: SharedExpenseShare[];
-  /**
-   * Wer die Ausgabe tatsächlich bezahlt hat (Ist-Zahler). Nur Splits mit
-   * `paid_by_member_id` gehen in die Salden-/Ausgleichsberechnung ein (#247);
-   * ohne diesen Wert ist der Split reine Kostenaufteilung ohne Schuldwirkung.
-   */
-  paid_by_member_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
 
 // --- Households ---------------------------------------------------------------
 

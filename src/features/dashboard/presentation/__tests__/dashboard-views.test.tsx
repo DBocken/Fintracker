@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
-import { DEFAULT_DASHBOARD_FILTERS } from '@/components/dashboard/filter-constants';
+import { DEFAULT_DASHBOARD_FILTERS } from '@/features/shared/domain/dashboard-filters';
 import type { FinanceOverviewViewModel } from '../../application/finance-overview-view-model';
 
 // Recharts' ResponsiveContainer braucht ResizeObserver, den jsdom nicht kennt

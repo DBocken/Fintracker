@@ -59,7 +59,7 @@ import {
   DEBT_TYPE_ICONS,
   getExistentialPriorityExplanation,
 } from "@/services/debt-service";
-import { getDebtStrategy, setDebtStrategy } from "@/lib/debt-strategy";
+import { getDebtStrategy, setDebtStrategy } from "@/services/debt-strategy-service";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });

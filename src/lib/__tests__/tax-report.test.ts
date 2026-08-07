@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildTaxYearReport, hasEuerMarkings } from '../tax-report';
 import type { Transaction } from '@/types';
-import type { TaxYearProfile } from '@/services/tax-profile-service';
+import type { TaxYearProfile } from '@/lib/tax-types';
 
 let seq = 0;
 function tx(overrides: Partial<Transaction>): Transaction {

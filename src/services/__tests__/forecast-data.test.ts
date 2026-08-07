@@ -8,13 +8,13 @@ import {
   cycleToCadence,
   accountTypeToKind,
   applyForecastOverrides,
-} from '@/lib/forecast-data';
-import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
+} from '@/services/forecast-data';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
 import type { Account, Ausgabenklasse, Category, Transaction } from '@/types';
 import type { ForecastInput } from '@/lib/forecast-types';
-import type { ContractRow } from '@/components/contracts/contract-types';
+import type { ContractRow } from '@/lib/contract-types';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
-import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { calculateDeterministicForecast } from '@/lib/forecast';
 
 const NOW = new Date('2026-06-15');

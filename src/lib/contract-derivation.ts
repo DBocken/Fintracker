@@ -1,9 +1,9 @@
 import { parseISO, format, differenceInDays } from "date-fns";
 import type { Transaction, Category, Rhythmus } from "@/types";
-import type { Cycle, ContractRow } from "@/components/contracts/contract-types";
-import type { ContractDecision, ContractStatus } from "@/services/contract-decision-service";
+import type { ContractDecision, ContractStatus, Cycle, ContractRow } from "@/lib/contract-types";
+
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
-import { normalizeMerchantName } from "@/services/merchant-normalization";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import { detectSalarySeries } from "@/lib/salary-detection";
 
 /**

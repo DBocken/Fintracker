@@ -14,7 +14,7 @@
  *  - Vertrags-Flows: `normalizeMerchantName(flow.name) === stream.counterparty`.
  */
 import { t } from "@/i18n/serviceT";
-import { normalizeMerchantName } from "@/services/merchant-normalization";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import type { RecurringFlow } from "./forecast-types";
 import type { ForecastScenario } from "./forecast-scenario-types";
 import type { IncomeStream } from "./income-streams";

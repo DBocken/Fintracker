@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import { renderWithI18n } from "@/test-utils/render";
 import { translations } from "@/i18n/translations";
 import MilestonesStrip from "../MilestonesStrip";
-import type { MilestoneStatus } from "@/services/milestones-service";
+import type { MilestoneStatus } from "@/lib/milestone-types";
 
 function milestone(over: Partial<MilestoneStatus> = {}): MilestoneStatus {
   return {

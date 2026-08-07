@@ -11,7 +11,7 @@ import { parseISO, format, subMonths, differenceInCalendarMonths } from "date-fn
 import type { Category, Transaction } from "@/types";
 import { resolveAusgabenklasse, resolveHierarchy } from "@/lib/analysis-data";
 import { detectSalarySeries, addOneMonthISO } from "@/lib/salary-detection";
-import { normalizeMerchantName } from "@/services/merchant-normalization";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
 
 export type StreamCadence = "regelmaessig" | "unregelmaessig";
 

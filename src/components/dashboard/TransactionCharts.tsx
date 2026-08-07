@@ -12,7 +12,7 @@ import { buildSunburstBreakdown } from '@/lib/analysis-data';
 import type { SunburstTree } from '@/lib/analysis-data';
 import { SpendingSunburstChart } from './SpendingSunburstChart';
 import { buildTransactionsHref } from './filter-utils';
-import type { AusgabenklasseFilter } from './filter-constants';
+import type { AusgabenklasseFilter } from '@/features/shared/domain/dashboard-filters';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';

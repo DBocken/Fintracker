@@ -3,7 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { RecurringFlowOverrideForm } from '../ForecastPlanner';
 import type { RecurringFlow } from '@/lib/forecast-types';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 
 const flow = (over: Partial<RecurringFlow> = {}): RecurringFlow => ({
   id: 'f1',

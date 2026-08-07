@@ -6,7 +6,7 @@ import {
   getCounselingServices,
   getCommercialRegulatorWarning,
   type CounselingRecommendation,
-} from "@/services/debt-guardrails-service";
+} from "@/lib/debt-counseling-guardrails";
 
 let recommended: CounselingRecommendation;
 

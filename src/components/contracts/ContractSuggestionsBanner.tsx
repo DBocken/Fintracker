@@ -8,8 +8,8 @@ import { useI18n } from "@/i18n/useI18n";
 import { updateTransaction } from "@/services/transaction-service";
 import { upsertContractDecision } from "@/services/contract-decision-service";
 import { showSuccess, showError } from "@/utils/toast";
-import type { ContractRow } from "./contract-types";
-import { mapCycleToRhythmus } from "./contract-types";
+import type { ContractRow } from "@/lib/contract-types";
+import { mapCycleToRhythmus } from "@/lib/contract-types";
 
 const DISMISS_PREFIX = "contract-suggestion-dismissed:";
 

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
-import type { MilestoneStatus } from "@/services/milestones-service";
+import type { MilestoneStatus } from "@/lib/milestone-types";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { SignatureMoment } from "@/components/common/SignatureMoment";
 

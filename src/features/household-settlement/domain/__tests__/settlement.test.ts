@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { settlementProgress, settlementTransactionIds } from '../balances';
-import { splitEqually, type SharedExpenseSplit } from '@/services/household-service';
+import { splitEqually } from '@/services/household-service';
+import type { SharedExpenseSplit } from '@/lib/household-types';
 import { sumExpenses } from '@/lib/analysis-data';
 import type { Transaction } from '@/types';
 

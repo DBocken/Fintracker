@@ -4,7 +4,7 @@ import { applyAutoCategorization } from '@/services/transaction-service';
 import { transactionStorage } from '@/services/transaction-storage-service';
 import { DEFAULT_LOCAL_CATEGORIES } from '@/services/default-categories';
 import type { Category, Transaction } from '@/types';
-import type { MerchantRule } from '@/services/merchant-rules-service';
+import type { MerchantRule } from '@/lib/categorization';
 
 beforeEach(async () => {
   localStorage.setItem('ausgabentracker_locale_v1', 'de');

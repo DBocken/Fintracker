@@ -11,52 +11,11 @@
  * gelöscht, damit finanzielle Planungsdaten nicht dauerhaft in localStorage
  * verbleiben.
  */
-import type { BufferBasis, PlannedForecastEvent, SinkingFund, ForecastTransfer } from '@/lib/forecast-types';
-import type { ForecastScenario } from '@/lib/forecast-scenario-types';
+import { DEFAULT_FORECAST_OVERRIDES, type ForecastOverrides } from '@/lib/forecast-types';
 import { localEncryption } from './local-crypto';
 import { LOCAL_FINANCE_KEYS } from './local-storage-keys';
 
 export const FORECAST_OVERRIDES_STORAGE_KEY = LOCAL_FINANCE_KEYS.forecastOverrides;
-
-/** Override für eine auto-erkannte wiederkehrende Zahlung. */
-export interface RecurringFlowOverride {
-  /** Ist die Zahlung aktiv? Default: true. */
-  enabled?: boolean;
-  /** Neuer Betrag (überschreibt den erkannten). */
-  amount?: number;
-  /** Neues End-Datum (ISO yyyy-mm-dd). */
-  endDate?: string;
-}
-
-export interface ForecastOverrides {
-  months: number;
-  safetyBuffer: number;
-  bufferBasis: BufferBasis;
-  /** accountId -> jährlicher Zinssatz in Prozent. */
-  accountInterest: Record<string, number>;
-  /** Kategorie -> monatliches Budget (ersetzt die historische Baseline). */
-  categoryBudgets: Record<string, number>;
-  plannedEvents: PlannedForecastEvent[];
-  sinkingFunds: SinkingFund[];
-  transfers: ForecastTransfer[];
-  /** flowId -> Overrides für auto-erkannte wiederkehrende Zahlungen. */
-  recurringFlowOverrides: Record<string, RecurringFlowOverride>;
-  /** Nutzerdefinierte Was-wäre-wenn-Szenarien (Stufe 3). */
-  scenarios: ForecastScenario[];
-}
-
-export const DEFAULT_FORECAST_OVERRIDES: ForecastOverrides = {
-  months: 6,
-  safetyBuffer: 1000,
-  bufferBasis: 'operating',
-  accountInterest: {},
-  categoryBudgets: {},
-  plannedEvents: [],
-  sinkingFunds: [],
-  transfers: [],
-  recurringFlowOverrides: {},
-  scenarios: [],
-};
 
 function cloneDefaults(): ForecastOverrides {
   return { ...DEFAULT_FORECAST_OVERRIDES };

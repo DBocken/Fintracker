@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { buildPendingTaxSuggestions } from '../tax-suggestions';
-import type { AutomationSuggestion } from '@/services/automation-suggestion-service';
+import type { AutomationSuggestion } from '@/lib/automation-suggestion-model';
 import type { Category, Transaction } from '@/types';
 
 beforeEach(() => {

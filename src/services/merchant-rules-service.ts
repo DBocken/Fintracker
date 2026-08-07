@@ -1,20 +1,7 @@
 import { t } from '../i18n/serviceT';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
 import { safeAudit, redactForAudit } from './audit-log-service';
-
-/**
- * Vom Nutzer gelernte Zuordnung: ein normalisierter Händlername wird beim
- * nächsten Mal automatisch der angegebenen Kategorie zugeordnet (Stufe 1 der
- * Kategorisierung, siehe categorizeTransaction).
- */
-export interface MerchantRule {
-  id: string;
-  user_id: string;
-  merchant_pattern: string;
-  category_id: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { MerchantRule } from '@/lib/categorization';
 
 export async function getMerchantRules(): Promise<MerchantRule[]> {
   return readLocalFinanceList<MerchantRule>('merchantRules');

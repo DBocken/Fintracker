@@ -1,17 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  getAutomationSuggestions,
-  getPendingAutomationSuggestions,
-  upsertAutomationSuggestion,
-  updateAutomationSuggestionStatus,
-  deleteAutomationSuggestion,
-  buildCategorySuggestion,
-  buildCategorySuggestionFromResult,
-  type AutomationSuggestion,
-} from '../automation-suggestion-service';
+import { getAutomationSuggestions, getPendingAutomationSuggestions, upsertAutomationSuggestion, updateAutomationSuggestionStatus, deleteAutomationSuggestion } from '../automation-suggestion-service';
+import { buildCategorySuggestion, buildCategorySuggestionFromResult, type AutomationSuggestion } from '@/lib/automation-suggestion-model';
 import { writeLocalFinanceList } from '../local-finance-store';
 import type { Transaction } from '@/types';
-import type { CategorizationResult } from '../transaction-service';
+import type { CategorizationResult } from '@/lib/categorization';
 
 beforeEach(async () => {
   await writeLocalFinanceList('automationSuggestions', []);
