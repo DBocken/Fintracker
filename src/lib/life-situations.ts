@@ -21,6 +21,8 @@
  * Reine Domänenschicht: kein React, kein I/O (AGENTS.md §3).
  */
 
+import type { GentleLevel } from './gentle-mode';
+
 /** Nav-Bereiche, die im Onboarding an-/abwählbar sind. */
 export type NavFeatureId =
   | 'debts'
@@ -225,7 +227,7 @@ export function isNavPathVisible(
 /** Einstellungen, die eine Lebenssituation mit vorbelegt (bestehende `UserSettings`-Felder). */
 export interface LifeSituationSettings {
   tax_reserve_percent?: number;
-  gentle_mode?: boolean;
+  gentle_level?: GentleLevel;
   enable_subcategories?: boolean;
 }
 
@@ -275,14 +277,14 @@ export const LIFE_SITUATIONS: readonly LifeSituation[] = [
   // Taschengeld/Ausbildungsvergütung, kaum Fixkosten, erste Abo-Fallen.
   // Bewusst die schlankste Lebenssituation — Steuer und Depot wären hier nur Ballast.
   lifeSituation('student_school', ['budgets', 'milestones', 'contracts'], {
-    gentle_mode: true,
+    gentle_level: 3,
     enable_subcategories: false,
   }),
 
   // Einkommensmix (BAföG, Werkstudentenjob, Eltern) und Ausgaben in Blöcken:
   // der Semesterbeitrag ist genau der Fall, für den die Liquiditätsvorschau da ist.
   lifeSituation('student_university', ['liquidity', 'budgets', 'milestones', 'income', 'contracts'], {
-    gentle_mode: true,
+    gentle_level: 3,
   }),
 
   // Erstes volles Gehalt, erste eigene Wohnung, erste Steuererklärung —
@@ -331,7 +333,7 @@ export const LIFE_SITUATIONS: readonly LifeSituation[] = [
   lifeSituation(
     'single_parent',
     ['debts', 'liquidity', 'budgets', 'milestones', 'income', 'occasions', 'tax', 'contracts'],
-    { gentle_mode: true },
+    { gentle_level: 3 },
   ),
 
   // Bestehender `business_mode` (EÜR, Steuer-Tank, Steuerstufe im Wasserfall).
@@ -366,7 +368,7 @@ export const LIFE_SITUATIONS: readonly LifeSituation[] = [
   // Bedürfnisse sind dieselben: bis zum Monatsende kommen, Raten sortieren,
   // sofort kündbare Kosten finden. Vermögensthemen wären hier blanker Hohn.
   lifeSituation('debt_focus', ['debts', 'liquidity', 'budgets', 'milestones', 'contracts'], {
-    gentle_mode: true,
+    gentle_level: 3,
   }),
 ];
 

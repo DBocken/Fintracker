@@ -59,3 +59,39 @@ describe("local-finance-store über IndexedDB (Issue #29)", () => {
     expect(await hasPlaintextFinanceStorage()).toBe(true);
   });
 });
+
+describe("Abbau der Umgebung waehrend der Abfrage", () => {
+  it("[REGRESSION] sollte nicht werfen, wenn localStorage nach dem ersten await verschwindet", async () => {
+    // Die Verfuegbarkeitspruefung stand am Anfang der Funktion, der Zugriff
+    // dahinter — nach einem `await`. Verschwindet die Umgebung dazwischen
+    // (Testdatei zu Ende, Tab geschlossen), warf der Zugriff
+    // `ReferenceError: localStorage is not defined` als unbehandelte Rejection.
+    // Im CI war der Lauf dadurch rot, obwohl alle Tests gruen waren.
+    const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() {
+        throw new ReferenceError("localStorage is not defined");
+      },
+    });
+
+    try {
+      await expect(hasPlaintextFinanceStorage()).resolves.toBe(false);
+    } finally {
+      if (original) Object.defineProperty(globalThis, "localStorage", original);
+      else Reflect.deleteProperty(globalThis, "localStorage");
+    }
+  });
+
+  it("[REGRESSION] sollte nicht werfen, wenn es localStorage gar nicht mehr gibt", async () => {
+    // Der Fall aus dem CI: jsdom ist abgebaut, das Global existiert nicht mehr.
+    const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Reflect.deleteProperty(globalThis, "localStorage");
+
+    try {
+      await expect(hasPlaintextFinanceStorage()).resolves.toBe(false);
+    } finally {
+      if (original) Object.defineProperty(globalThis, "localStorage", original);
+    }
+  });
+});

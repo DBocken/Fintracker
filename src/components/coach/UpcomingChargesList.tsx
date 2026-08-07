@@ -7,8 +7,7 @@ import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { InfoGroup } from "@/components/common/InfoGroup";
 import ListRow from "@/components/common/ListRow";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/utils";
-import { useGentleMode } from "@/components/providers/GentleModeProvider";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useI18n } from "@/i18n/useI18n";
 import { formatCoachDaysUntil, pluralTransactions } from "@/i18n/format";
 
@@ -30,7 +29,7 @@ interface Props {
  */
 export default function UpcomingChargesList({ now = new Date(), horizonDays = 30 }: Props) {
   const { input, isLoading } = useForecast();
-  const { enabled: gentle } = useGentleMode();
+  const { format: formatTotal, formatInstallment } = useMoneyFormat();
   const { t } = useI18n();
   const fromISO = format(now, ISO);
 
@@ -69,10 +68,11 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
   return (
     <InfoGroup
       title={t('coach.upcomingCharges')}
-      description={`Nächste ${horizonDays} Tage · ${charges.length} ${pluralTransactions(
-        charges.length,
-        t,
-      )} · ${gentle ? "•••" : formatCurrency(total)} gesamt`}
+      description={t('coach.upcomingChargesSummary')
+        .replace('{days}', String(horizonDays))
+        .replace('{count}', String(charges.length))
+        .replace('{transactions}', pluralTransactions(charges.length, t))
+        .replace('{total}', formatTotal(total))}
     >
       <div className="divide-y divide-border/60">
         {charges.map((c) => (
@@ -83,7 +83,7 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
             subtitle={`${formatCoachDaysUntil(c.daysUntil, t)} · ${format(parseISO(c.dateISO), "EEE, dd.MM.", {
               locale: de,
             })}`}
-            value={gentle ? "•••" : formatCurrency(c.amount)}
+            value={formatInstallment(c.amount)}
           />
         ))}
       </div>

@@ -48,24 +48,48 @@ describe("UserQuickProfile (zusammengeführtes Profil)", () => {
     });
   });
 
-  describe("Sanfter-Modus-Schalter", () => {
+  describe("Sanfter Modus — Stufenwahl", () => {
     // Gleiche Fehlerklasse wie die axe-critical `button-name`-Befunde aus dem
-    // WP-4.6-Gate: Radix-Switch ohne zugänglichen Namen, Nachbartext nicht
-    // programmatisch verknüpft.
-    it("[REGRESSION] sollte den Sanfter-Modus-Schalter zugänglich benennen (Deutsch)", async () => {
+    // WP-4.6-Gate: Radix-Bedienelement ohne zugänglichen Namen, Nachbartext
+    // nicht programmatisch verknüpft. Seit der Annäherungsleiter
+    // (`docs/debt-avoidance-recovery.md`) ist es eine Auswahl statt eines
+    // Schalters — der zugängliche Name muss derselbe bleiben.
+    it("[REGRESSION] sollte die Stufenwahl zugänglich benennen (Deutsch)", async () => {
       renderProfile("de");
 
       fireEvent.click(screen.getByRole("button", { name: "Profil öffnen" }));
 
-      expect(await screen.findByRole("switch", { name: "Sanfter Modus" })).toBeInTheDocument();
+      expect(await screen.findByRole("combobox", { name: "Sanfter Modus" })).toBeInTheDocument();
     });
 
-    it("[REGRESSION] sollte den Sanfter-Modus-Schalter zugänglich benennen (Englisch)", async () => {
+    it("[REGRESSION] sollte die Stufenwahl zugänglich benennen (Englisch)", async () => {
       renderProfile("en");
 
       fireEvent.click(screen.getByRole("button", { name: "Open profile" }));
 
-      expect(await screen.findByRole("switch", { name: "Gentle mode" })).toBeInTheDocument();
+      expect(await screen.findByRole("combobox", { name: "Gentle mode" })).toBeInTheDocument();
+    });
+
+    it("sollte einen Rückweg aus dem Sanften Modus anbieten (Deutsch)", async () => {
+      // Der eigentliche Zweck der Leiter: Ein Modus ohne Rückweg ist ein
+      // Versteck. Die Wahl muss deshalb sichtbar mehr als „an/aus" hergeben.
+      renderProfile("de");
+
+      fireEvent.click(screen.getByRole("button", { name: "Profil öffnen" }));
+
+      expect(await screen.findByRole("combobox", { name: "Sanfter Modus" })).toHaveTextContent(
+        "Alles sichtbar",
+      );
+    });
+
+    it("sollte einen Rückweg aus dem Sanften Modus anbieten (Englisch)", async () => {
+      renderProfile("en");
+
+      fireEvent.click(screen.getByRole("button", { name: "Open profile" }));
+
+      expect(await screen.findByRole("combobox", { name: "Gentle mode" })).toHaveTextContent(
+        "Everything visible",
+      );
     });
   });
 

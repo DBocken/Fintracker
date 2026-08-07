@@ -16,12 +16,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Debt } from '@/types';
-import { GENTLE_AMOUNT_MASK } from '@/lib/gentle-mode';
+import { GENTLE_AMOUNT_MASK, type GentleLevel } from '@/lib/gentle-mode';
 
-const gentle = vi.fn(() => false);
+const gentleLevel = vi.fn<() => GentleLevel>(() => 0);
 
 vi.mock('@/components/providers/GentleModeProvider', () => ({
-  useGentleMode: () => ({ enabled: gentle(), toggle: vi.fn() }),
+  useGentleMode: () => ({ level: gentleLevel(), enabled: gentleLevel() > 0, setLevel: vi.fn() }),
 }));
 
 import { DebtCard } from '../DebtCard';
@@ -42,30 +42,41 @@ function setup() {
 
 describe('DebtCard — Sanfter Modus (WP-9.5)', () => {
   it('sollte den Saldo normal zeigen', () => {
-    gentle.mockReturnValue(false);
+    gentleLevel.mockReturnValue(0);
     setup();
     expect(screen.getByText(/4\.820/)).toBeInTheDocument();
   });
 
   it('sollte den Saldo im Sanften Modus maskieren', () => {
-    gentle.mockReturnValue(true);
+    gentleLevel.mockReturnValue(3);
     setup();
     expect(screen.queryByText(/4\.820/)).toBeNull();
     expect(screen.getAllByText(GENTLE_AMOUNT_MASK).length).toBeGreaterThan(0);
   });
 
-  it('sollte auch die Rate maskieren', () => {
-    // Die Rate ist die Zahl, die den Alltag bestimmt — sie stehen zu lassen,
-    // waehrend der Saldo verdeckt ist, waere ein halbes Versprechen.
-    gentle.mockReturnValue(true);
+  it('sollte auf der verdecktesten Stufe auch die Rate maskieren', () => {
+    // Stufe 3 ist die Ankunft: Hier soll gar keine Zahl entgegenspringen, auch
+    // nicht die, die den Alltag bestimmt.
+    gentleLevel.mockReturnValue(3);
     setup();
     expect(screen.queryByText(/150/)).toBeNull();
+  });
+
+  it('sollte auf Stufe 2 die Rate zeigen und den Saldo verdeckt lassen', () => {
+    // Der Kern der Annaeherungsleiter (`docs/debt-avoidance-recovery.md`): Wer
+    // handeln will, braucht die naechste Rate — nicht die Gesamtsumme. Genau
+    // auf dieser Flaeche entscheidet sich, ob die Leiter mehr ist als eine
+    // Einstellung.
+    gentleLevel.mockReturnValue(2);
+    setup();
+    expect(screen.getByText(/150/)).toBeInTheDocument();
+    expect(screen.queryByText(/4\.820/)).toBeNull();
   });
 
   it('sollte den Namen der Schuld weiterhin zeigen', () => {
     // Gegenprobe: Maskiert werden BETRAEGE, nicht die Orientierung. Eine Karte
     // ohne Namen waere unbenutzbar statt sanft.
-    gentle.mockReturnValue(true);
+    gentleLevel.mockReturnValue(3);
     setup();
     expect(screen.getByText('Ratenkredit')).toBeInTheDocument();
   });
