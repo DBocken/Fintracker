@@ -2,7 +2,8 @@ import type { Account, Transaction } from "../types";
 import { getAccounts } from "./account-service";
 import { getTransactions } from "./transaction-service";
 import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
-import { getDebts, getTotalDebt } from "./debt-service";
+import { getDebts } from "./debt-service";
+import { totalOutstandingDebt } from "@/lib/debt-totals";
 import { getReceivables, getTotalReceivables } from "./receivable-service";
 
 export interface AccountSource {
@@ -121,7 +122,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     investments = 0;
   }
 
-  const totalDebt = getTotalDebt(debts);
+  const totalDebt = totalOutstandingDebt(debts);
   const debtSources: DebtSource[] = debts
     .filter((d) => !d.is_paid_off)
     .map((d) => ({ id: d.id, name: d.name, balance: Math.max(0, d.balance) }));

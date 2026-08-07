@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculatePayoffPlan, getTotalDebt, getTotalMinPayment } from "../debt-service";
+import { calculatePayoffPlan } from "../debt-service";
 import type { Debt } from "../../types";
 
 function makeDebt(overrides: Partial<Debt>): Debt {
@@ -16,25 +16,6 @@ function makeDebt(overrides: Partial<Debt>): Debt {
     ...overrides,
   };
 }
-
-describe("getTotalDebt / getTotalMinPayment", () => {
-  it("sums balances and min payments, ignoring paid-off debts", () => {
-    const debts = [
-      makeDebt({ id: "a", balance: 1000, min_payment: 50 }),
-      makeDebt({ id: "b", balance: 500, min_payment: 25 }),
-      makeDebt({ id: "c", balance: 9999, min_payment: 999, is_paid_off: true }),
-    ];
-
-    expect(getTotalDebt(debts)).toBeCloseTo(1500);
-    expect(getTotalMinPayment(debts)).toBeCloseTo(75);
-  });
-
-  it("ignores negative balances/min payments", () => {
-    const debts = [makeDebt({ id: "a", balance: -100, min_payment: -10 })];
-    expect(getTotalDebt(debts)).toBe(0);
-    expect(getTotalMinPayment(debts)).toBe(0);
-  });
-});
 
 describe("calculatePayoffPlan", () => {
   it("returns an empty plan for no active debts", () => {

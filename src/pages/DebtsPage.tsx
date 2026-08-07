@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLine } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import EmptyState from "@/components/common/EmptyState";
 import FinanceErrorState from "@/components/common/FinanceErrorState";
+import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
 import { DebtFormDialog } from "@/components/debts/DebtFormDialog";
 import { DebtSuggestionsBanner } from "@/components/debts/DebtSuggestionsBanner";
@@ -32,281 +29,69 @@ import ClaimImportDialog from "@/components/debts/ClaimImportDialog";
 import { ReceivablesPanel } from "@/components/debts/ReceivablesPanel";
 import { DebtCard } from "@/components/debts/DebtCard";
 import { SignatureMoment } from "@/components/common/SignatureMoment";
-import { useDebtFreedom } from "@/hooks/useDebtFreedom";
 import { DebtDetailSheet } from "@/components/debts/DebtDetailSheet";
 import { CounselingBridgeCard } from "@/components/debts/CounselingBridgeCard";
 import { SchufaSelfCheckCard } from "@/components/debts/SchufaSelfCheckCard";
 import { InfoStatStrip } from "@/components/common/InfoGroup";
-import type { Debt, Transaction } from "@/types";
-import { getTransactions } from "@/services/transaction-service";
-import { getFinancialHealth } from "@/services/financial-health-service";
-import { assessDebtCounseling } from "@/lib/debt-counseling";
-
-import {
-  getDebts,
-  createDebt,
-  updateDebt,
-  deleteDebt,
-  getTotalDebt,
-  getTotalMinPayment,
-  calculatePayoffPlan,
-  getDebtTransactionAssignments,
-  assignTransactionToDebt,
-  unassignDebtTransaction,
-  type DebtTransactionAssignment,
-  type PayoffStrategy,
-  getDebtTypeLabels,
-  DEBT_TYPE_ICONS,
-  getExistentialPriorityExplanation,
-} from "@/services/debt-service";
-import { getDebtStrategy, setDebtStrategy } from "@/services/debt-strategy-service";
+import { DEBT_TYPE_ICONS, getExistentialPriorityExplanation, type PayoffStrategy } from "@/services/debt-service";
+import { useDebtsOverview } from "@/features/debts/application/use-debts-overview";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
+/**
+ * Schulden-Fläche — reine Darstellung.
+ *
+ * Beschaffen, Ändern und Rechnen liegen in `useDebtsOverview`
+ * (`src/features/debts/`). Zuvor standen vier Abfragen, fünf Mutationen und
+ * sämtliche Ableitungen hier oben in derselben Datei wie das JSX.
+ */
 export default function DebtsPage() {
   const money = useMoneyFormat();
-  const { t, locale } = useI18n();
-  const debtTypeLabels = getDebtTypeLabels();
-  const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Partial<Debt> | null>(null);
-  // Portfolio-Strategie: global, persistiert, gilt für alle Schulden (#54)
-  const [strategy, setStrategyState] = useState<PayoffStrategy>(getDebtStrategy);
-  const setStrategy = (s: PayoffStrategy) => {
-    setStrategyState(s);
-    setDebtStrategy(s);
-  };
-  const [extraBudget, setExtraBudget] = useState("");
-  const [selectedDebtId, setSelectedDebtId] = useState<string>("");
-  // Mobile-Detailansicht (Audit C-P1/F): Zuordnung/Aktionen pro Schuld im Sheet.
-  const [detailDebtId, setDetailDebtId] = useState<string | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-
-  // WP-9.6: `isError` UND `refetch` — ohne den Fehlerzustand wuerde ein
-  // Lesefehler unten als „Noch keine Schulden erfasst" erscheinen, und das ist
-  // ausgerechnet hier die unbarmherzigste Verwechslung, die die App anbieten
-  // kann.
+  const { t } = useI18n();
   const {
-    data: debts = [],
     isLoading,
-    isError: debtsError,
-    refetch: refetchDebts,
-  } = useQuery({
-    queryKey: ["debts"],
-    queryFn: getDebts,
-  });
+    hasLoadError,
+    retryAll,
+    debts,
+    debitTransactions,
+    debtTypeLabels,
+    totalDebt,
+    totalMin,
+    payoffPlan,
+    counseling,
+    causes,
+    celebrateDebtFreedom,
+    strategy,
+    setStrategy,
+    extraBudget,
+    setExtraBudget,
+    currentDebtId,
+    setSelectedDebtId,
+    selectedDebt,
+    assignmentByTransactionId,
+    assignedToSelectedDebt,
+    totalAssignedToSelectedDebt,
+    toggleAssignmentFor,
+    toggleAssignmentForSelected,
+    assignBusy,
+    dialogOpen,
+    setDialogOpen,
+    importDialogOpen,
+    setImportDialogOpen,
+    editing,
+    startCreate,
+    startEdit,
+    saveDebt,
+    removeDebt,
+    togglePaidOff,
+    saveBusy,
+    detailDebt,
+    detailOpen,
+    setDetailOpen,
+    openDetail,
+  } = useDebtsOverview();
 
-  const {
-    data: transactions = [],
-    isError: transactionsError,
-    refetch: refetchTransactions,
-  } = useQuery<Transaction[]>({
-    queryKey: ["transactions", "debt-assignment"],
-    queryFn: () => getTransactions(500),
-    enabled: debts.length > 0,
-  });
-
-  const {
-    data: assignments = [],
-    isError: assignmentsError,
-    refetch: refetchAssignments,
-  } = useQuery<DebtTransactionAssignment[]>({
-    queryKey: ["debt-transaction-assignments"],
-    queryFn: getDebtTransactionAssignments,
-    enabled: debts.length > 0,
-  });
-
-  // Einkommens-/Ausgabenmittel speisen die Überschuldungs-Heuristik (Issue #50).
-  const {
-    data: health,
-    isError: healthError,
-    refetch: refetchHealth,
-  } = useQuery({
-    queryKey: ["financial-health", locale],
-    queryFn: getFinancialHealth,
-    enabled: debts.length > 0,
-  });
-
-  // EIN Fehlerblock fuer die ganze Seite, nicht vier. Alle vier Abfragen
-  // speisen dieselbe Aussage („was schuldest du und wie zahlst du es ab") —
-  // vier getrennte Meldungen waeren vier Raetsel statt eines Hinweises.
-  // Genau daran ist ein Versuch schon gescheitert: Der Test fand zwei Knoepfe
-  // „Erneut versuchen" auf einem Screen.
-  const hasLoadError = debtsError || transactionsError || assignmentsError || healthError;
-  const retryAll = () => {
-    void refetchDebts();
-    void refetchTransactions();
-    void refetchAssignments();
-    void refetchHealth();
-  };
-
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["debts"] });
-    queryClient.invalidateQueries({ queryKey: ["debt-transaction-assignments"] });
-    queryClient.invalidateQueries({ queryKey: ["coach-insights"] });
-    queryClient.invalidateQueries({ queryKey: ["milestones"] });
-    queryClient.invalidateQueries({ queryKey: ["net-worth"] });
-    queryClient.invalidateQueries({ queryKey: ["financial-health"] });
-    queryClient.invalidateQueries({ queryKey: ["coach-overview"] });
-    queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
-  };
-
-  const createMutation = useMutation({
-    mutationFn: createDebt,
-    onSuccess: () => {
-      invalidate();
-      showSuccess(t("debts.addSuccess"));
-      setDialogOpen(false);
-    },
-    onError: (e: Error) => showError(e.message),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: updateDebt,
-    onSuccess: () => {
-      invalidate();
-      showSuccess(t("debts.updateSuccess"));
-      setDialogOpen(false);
-      setEditing(null);
-    },
-    onError: (e: Error) => showError(e.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteDebt,
-    onSuccess: () => {
-      invalidate();
-      showSuccess(t("debts.deleteSuccess"));
-    },
-    onError: (e: Error) => showError(e.message),
-  });
-
-  const assignMutation = useMutation({
-    mutationFn: assignTransactionToDebt,
-    onSuccess: () => {
-      invalidate();
-      showSuccess(t("debts.assignSuccess"));
-    },
-    onError: (e: Error) => showError(e.message),
-  });
-
-  const unassignMutation = useMutation({
-    mutationFn: unassignDebtTransaction,
-    onSuccess: () => {
-      invalidate();
-      showSuccess(t("debts.unassignSuccess"));
-    },
-    onError: (e: Error) => showError(e.message),
-  });
-
-  const totalDebt = getTotalDebt(debts);
-
-  // WP-7.4: Der Erfolgsmoment erscheint genau einmal je Schuldenfreiheit — und
-  // NICHT bei jemandem, der nie Schulden erfasst hat (dort waere er albern bis
-  // verletzend). `isLoading` sperrt den Fehlalarm ab, waehrend die Summe noch
-  // 0 ist, weil die Daten fehlen.
-  const celebrateDebtFreedom = useDebtFreedom(totalDebt, isLoading);
-
-  const totalMin = getTotalMinPayment(debts);
-
-  const payoffPlan = useMemo(() => {
-    const extra = parseFloat(extraBudget) || 0;
-    return calculatePayoffPlan(debts, totalMin + extra, strategy);
-  }, [debts, totalMin, extraBudget, strategy]);
-
-  // Schuldnerberatungs-Empfehlung: schlägt nur an, wenn der Plan auf eine
-  // Überschuldung hindeutet (nie aufgehend, > 6 Jahre, Raten > Spielraum).
-  const counseling = useMemo(() => {
-    const extra = parseFloat(extraBudget) || 0;
-    return assessDebtCounseling({
-      plan: payoffPlan,
-      monthlyRate: totalMin + extra,
-      minPayments: totalMin,
-      monthlyIncome: health?.monthlyIncome ?? 0,
-      monthlyExpenses: health?.monthlyExpenses ?? 0,
-    });
-  }, [payoffPlan, totalMin, extraBudget, health]);
-
-  const currentDebtId = selectedDebtId || debts.find((d) => !d.is_paid_off)?.id || debts[0]?.id || "";
-  const selectedDebt = debts.find((d) => d.id === currentDebtId) || null;
-
-  const assignmentByTransactionId = useMemo(() => {
-    const map = new Map<string, DebtTransactionAssignment>();
-    for (const assignment of assignments) {
-      map.set(assignment.transaction_id, assignment);
-    }
-    return map;
-  }, [assignments]);
-
-  const assignedToSelectedDebt = useMemo(
-
-    () => assignments.filter((assignment) => assignment.debt_id === currentDebtId),
-    [assignments, currentDebtId]
-  );
-
-  const debitTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.id && transaction.amount < 0),
-    [transactions]
-  );
-
-  const totalAssignedToSelectedDebt = assignedToSelectedDebt.reduce((sum, assignment) => sum + Number(assignment.amount), 0);
-
-  // Debt cause breakdown by type / provider
-
-  const causes = useMemo(() => {
-    const active = debts.filter((d) => !d.is_paid_off && d.balance > 0);
-    const sum = active.reduce((s, d) => s + d.balance, 0);
-    if (sum <= 0) return [];
-    const byKey: Record<string, number> = {};
-    for (const d of active) {
-      const key = d.is_bnpl ? d.provider || debtTypeLabels.installment : debtTypeLabels[d.type];
-      byKey[key] = (byKey[key] || 0) + d.balance;
-    }
-    return Object.entries(byKey)
-      .map(([label, amount]) => ({ label, amount, pct: Math.round((amount / sum) * 100) }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [debts, debtTypeLabels]);
-
-  const handleSave = (data: Partial<Debt>) => {
-    if (editing?.id) updateMutation.mutate({ ...data, id: editing.id });
-    else createMutation.mutate(data);
-  };
-
-  const handleEdit = (d: Debt) => {
-    setEditing(d);
-    setDialogOpen(true);
-  };
-
-  const togglePaidOff = (d: Debt) => {
-    updateMutation.mutate({ id: d.id, is_paid_off: !d.is_paid_off, balance: !d.is_paid_off ? 0 : d.balance });
-  };
-
-  const handleToggleAssignmentFor = (debtId: string, transaction: Transaction, checked: boolean) => {
-    if (!transaction.id || !debtId) return;
-
-    const existing = assignmentByTransactionId.get(transaction.id);
-    if (checked) {
-      if (existing) return;
-      assignMutation.mutate({ debtId, transactionId: transaction.id });
-      return;
-    }
-
-    if (existing?.debt_id === debtId) {
-      unassignMutation.mutate(existing.id);
-    }
-  };
-
-  const handleToggleTransactionAssignment = (transaction: Transaction, checked: boolean) =>
-    handleToggleAssignmentFor(currentDebtId, transaction, checked);
-
-  const openDetail = (d: Debt) => {
-    setDetailDebtId(d.id);
-    setDetailOpen(true);
-  };
-
-  const detailDebt = debts.find((d) => d.id === detailDebtId) || null;
 
   return (
 
@@ -329,10 +114,7 @@ export default function DebtsPage() {
               {t('debts.debtsPage.scanLetters')}
             </Button>
             <Button
-              onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
-              }}
+              onClick={startCreate}
             >
               <Plus className="mr-1.5 h-4 w-4" />
               {t("debts.addDebt")}
@@ -340,10 +122,7 @@ export default function DebtsPage() {
           </div>
 
           <DebtSuggestionsBanner
-            onAdopt={(prefill) => {
-              setEditing(prefill);
-              setDialogOpen(true);
-            }}
+            onAdopt={startEdit}
           />
 
           {isLoading ? (
@@ -362,10 +141,7 @@ export default function DebtsPage() {
           description={t('debts.debtsPage.emptyDescription')}
           action={
             <Button
-              onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
-              }}
+              onClick={startCreate}
             >
               <Plus className="mr-1.5 h-4 w-4" />
               {t('debts.debtsPage.addFirstDebt')}
@@ -451,12 +227,12 @@ export default function DebtsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(d)}>
+                        <DropdownMenuItem onClick={() => startEdit(d)}>
                           <Pencil className="mr-2 h-4 w-4" aria-hidden="true" /> {t('debts.debtsPage.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            if (confirm(t('debts.debtsPage.deleteConfirm').replace('{name}', d.name))) deleteMutation.mutate(d.id);
+                            if (confirm(t('debts.debtsPage.deleteConfirm').replace('{name}', d.name))) removeDebt(d.id);
                           }}
                           className="text-warning focus:text-warning"
                         >
@@ -553,8 +329,8 @@ export default function DebtsPage() {
                                 type="checkbox"
                                 className="mt-1 h-4 w-4"
                                 checked={assignedHere}
-                                disabled={!!assigned && !assignedHere || assignMutation.isPending || unassignMutation.isPending}
-                                onChange={(e) => handleToggleTransactionAssignment(transaction, e.target.checked)}
+                                disabled={(!!assigned && !assignedHere) || assignBusy}
+                                onChange={(e) => toggleAssignmentForSelected(transaction, e.target.checked)}
                               />
                               <span className="min-w-0 flex-1">
                                 <span className="block truncate font-medium">
@@ -710,8 +486,8 @@ export default function DebtsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         debt={editing}
-        onSave={handleSave}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        onSave={saveDebt}
+        isLoading={saveBusy}
       />
 
       <ClaimImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
@@ -724,16 +500,16 @@ export default function DebtsPage() {
         assignmentByTransactionId={assignmentByTransactionId}
         onEdit={(d) => {
           setDetailOpen(false);
-          handleEdit(d);
+          startEdit(d);
         }}
         onDelete={(d) => {
-          if (confirm(`Schuld „${d.name}“ löschen?`)) {
-            deleteMutation.mutate(d.id);
+          if (confirm(t('debts.debtsPage.deleteConfirm').replace('{name}', d.name))) {
+            removeDebt(d.id);
             setDetailOpen(false);
           }
         }}
-        onToggleAssignment={handleToggleAssignmentFor}
-        assignBusy={assignMutation.isPending || unassignMutation.isPending}
+        onToggleAssignment={toggleAssignmentFor}
+        assignBusy={assignBusy}
       />
     </div>
   );
