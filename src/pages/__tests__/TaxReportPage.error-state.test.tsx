@@ -37,7 +37,7 @@ vi.mock('@/services/account-service', async (importOriginal) => ({
 import TaxReportPage from '../TaxReportPage';
 
 describe('Fehlerzustand auf dem Steuer-Screen (WP-9.6)', () => {
-  it('[REGRESSION] sollte den Ladefehler genau EINMAL benennen', async () => {
+  it('[REGRESSION] [ZUSTAND /tax:fehler] sollte den Ladefehler genau EINMAL benennen', async () => {
     renderWithProviders(<TaxReportPage />, { query: true, router: true });
 
     await screen.findByRole('alert');

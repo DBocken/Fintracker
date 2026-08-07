@@ -745,7 +745,7 @@ describe.each(['de', 'en'] as const)('CityPage (%s)', (locale) => {
     await waitFor(() => expect(chip.textContent).toMatch(/Anstellung/));
   });
 
-  it('[REGRESSION] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {
+  it('[REGRESSION] [ZUSTAND /city:leer] sollte bei leeren Transaktionen den Empty-State statt eines Demo-Fallbacks zeigen (kein Canvas gemountet)', async () => {
     vi.mocked(getTransactions).mockResolvedValue([]);
     renderWithProviders(<CityPage />, { query: true, locale });
 

@@ -106,7 +106,7 @@ describe('EuerPage (Smoke)', () => {
     );
   });
 
-  it('sollte ohne Betriebsdaten den Leerzustand zeigen', async () => {
+  it('[ZUSTAND /euer:leer] sollte ohne Betriebsdaten den Leerzustand zeigen', async () => {
     renderPage('/euer?year=2025');
     expect(await screen.findByText('Noch keine Betriebsdaten')).toBeInTheDocument();
   });

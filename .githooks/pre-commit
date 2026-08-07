@@ -15,5 +15,6 @@ pnpm check:card-rule || exit 1
 pnpm check:platform-parity || exit 1
 pnpm check:query-errors || exit 1
 pnpm check:a11y-names || exit 1
+pnpm check:state-coverage || exit 1
 # Bestandspruefung: findet, was der Diff-Modus strukturell nie sieht.
 pnpm check:i18n --all || exit 1

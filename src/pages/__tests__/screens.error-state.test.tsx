@@ -33,7 +33,7 @@ import DebtsPage from '../DebtsPage';
 import NetWorthPage from '../NetWorthPage';
 
 describe('Fehlerzustand auf den Screens (WP-9.6)', () => {
-  it('[REGRESSION] Schulden: sollte den Ladefehler benennen statt „noch keine Schulden"', async () => {
+  it('[REGRESSION] [ZUSTAND /debts:fehler] Schulden: sollte den Ladefehler benennen statt „noch keine Schulden"', async () => {
     renderWithProviders(<DebtsPage />, { query: true });
 
     expect(await screen.findByText('Deine Daten konnten nicht geladen werden')).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('Fehlerzustand auf den Screens (WP-9.6)', () => {
     expect(screen.queryByText(/Noch keine Schulden/i)).toBeNull();
   });
 
-  it('[REGRESSION] Vermögen: sollte den Ladefehler benennen statt eines Leerzustands', async () => {
+  it('[REGRESSION] [ZUSTAND /net-worth:fehler] Vermögen: sollte den Ladefehler benennen statt eines Leerzustands', async () => {
     renderWithProviders(<NetWorthPage />, { query: true });
 
     expect(await screen.findByText('Deine Daten konnten nicht geladen werden')).toBeInTheDocument();
