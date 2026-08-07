@@ -16,13 +16,16 @@ import type { FinanceOverviewViewModel } from "../../application/finance-overvie
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
-const VIEWS: { key: StoryView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "verlauf", label: "Verlauf", icon: Activity },
-  { key: "fluss", label: "Fluss", icon: Waypoints },
-  { key: "kategorien", label: "Kategorien", icon: PieChart },
-  { key: "landschaft", label: "Landschaft", icon: Mountain },
-  { key: "ausgaben", label: "Ausgaben", icon: Wallet },
-  { key: "konten", label: "Konten", icon: CreditCard },
+// `labelKey` statt `label`: Eine Modul-Konstante mit fertigem Text friert die
+// Sprache beim Import ein (AGENTS.md Paragraf 6). Aufgeloest wird erst beim
+// Rendern.
+const VIEWS: { key: StoryView; labelKey: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "verlauf", labelKey: "common.storyHistory", icon: Activity },
+  { key: "fluss", labelKey: "common.storyFlow", icon: Waypoints },
+  { key: "kategorien", labelKey: "common.categoriesLabel", icon: PieChart },
+  { key: "landschaft", labelKey: "common.storyLandscape", icon: Mountain },
+  { key: "ausgaben", labelKey: "common.storyExpenses", icon: Wallet },
+  { key: "konten", labelKey: "common.storyAccounts", icon: CreditCard },
 ];
 
 const isStoryView = (value: string | null): value is StoryView =>
@@ -130,7 +133,7 @@ export default function DashboardMobileStory({ className, model }: Props) {
               )}
             >
               <Icon className="h-4 w-4" />
-              <span className="truncate">{v.label}</span>
+              <span className="truncate">{t(v.labelKey)}</span>
             </button>
           );
         })}

@@ -66,10 +66,17 @@ jobs:
       - name: Fehlerzustands-Check (useQuery)
         run: pnpm check:query-errors
 
-      - name: i18n-Check
+      - name: i18n-Check (Diff)
         run: |
           git fetch origin main
           pnpm check:i18n --range origin/main...HEAD
+
+      # Der Diff-Modus sieht Altbestand strukturell NIE. Genau daran sind in
+      # Phase 9 zweimal hartcodierte Strings vorbeigelaufen, bis jemand die
+      # Datei aus anderem Grund anfasste. Der Bestandsmodus prueft den ganzen
+      # Baum und ist seit WP-10.1 sauber — er darf es bleiben.
+      - name: i18n-Check (Bestand)
+        run: pnpm check:i18n --all
 
       - name: i18n-Waechter (eingefrorene Uebersetzungen)
         run: pnpm check:i18n-module-consts

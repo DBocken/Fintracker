@@ -22,6 +22,7 @@
  *   --range <base>...<head>  git diff <base>...<head> …
  */
 
+import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -29,6 +30,30 @@ import { fileURLToPath } from 'url';
 // import.meta.url ist eine file://-URL, kein Pfad → erst fileURLToPath,
 // sonst zeigt REPO_ROOT auf ein nicht existierendes Verzeichnis.
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/**
+ * Deutsche Woerter, die in diesem Projekt TYPWERTE sind und keine Texte.
+ *
+ * `Cycle` (src/components/contracts/contract-types.ts) und `DashboardRange`
+ * (src/features/dashboard/domain/overview-types.ts) sind auf Deutsch benannt.
+ * Ob das eine gute Entscheidung war, ist eine andere Frage — sie ist getroffen,
+ * die Werte stehen in persistierten Daten, und an den Raendern wird gemappt.
+ * Diese Liste haelt den Waechter davon ab, sie als Verstoesse zu melden.
+ */
+const DOMAIN_VALUE_TERMS = [
+  'Woechentlich',
+  'Wöchentlich',
+  'Monatlich',
+  'Vierteljährlich',
+  'Halbjährlich',
+  'Jährlich',
+  'Unbekannt',
+  "'Jahr'",
+  "'Quartal'",
+  "'Monat'",
+  "'Gesamt'",
+  "'Benutzerdefiniert'",
+];
 
 function parseArgs(argv) {
   let mode = 'staged';
@@ -38,6 +63,8 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === '--staged') {
       mode = 'staged';
+    } else if (arg === '--all') {
+      mode = 'all';
     } else if (arg === '--range') {
       mode = 'range';
       range = argv[i + 1];
@@ -47,7 +74,7 @@ function parseArgs(argv) {
       range = arg.slice('--range='.length);
     } else {
       console.error(`❌ Unbekanntes Argument: ${arg}`);
-      console.error('Nutzung: check-i18n.mjs [--staged | --range <base>...<head>]');
+      console.error('Nutzung: check-i18n.mjs [--staged | --all | --range <base>...<head>]');
       process.exit(2);
     }
   }
@@ -78,6 +105,18 @@ const ENGLISH_KEYWORDS = [
 ];
 
 function getChangedFiles() {
+  // `--all` prueft den BESTAND, nicht den Diff. Das ist der Modus, der bis
+  // WP-10.1 fehlte: Der Waechter konnte Altlasten strukturell nie sehen, und
+  // genau deshalb sind in Phase 9 zweimal hartcodierte Strings erst aufgefallen,
+  // als jemand die Datei aus anderem Grund anfasste.
+  if (mode === 'all') {
+    const output = execFileSync('git', ['ls-files', 'src'], { encoding: 'utf8', cwd: REPO_ROOT });
+    return output
+      .trim()
+      .split('\n')
+      .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
+  }
+
   const args =
     mode === 'range'
       ? ['diff', range, '--name-only', '--diff-filter=ACM']
@@ -96,6 +135,18 @@ function getChangedFiles() {
 }
 
 function getChangedLines(file) {
+  // Im Bestandsmodus wird die ganze Datei als Pseudo-Diff gereicht (jede Zeile
+  // mit '+'). Bewusst so: Eine zweite Erkennungs-Implementierung wuerde von der
+  // diff-basierten abdriften, und dann meldeten die beiden Modi Verschiedenes.
+  if (mode === 'all') {
+    try {
+      const content = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      return `@@ -0,0 +1 @@\n${content.split('\n').map((line) => `+${line}`).join('\n')}`;
+    } catch {
+      return '';
+    }
+  }
+
   const args =
     mode === 'range' ? ['diff', range, '-U0', '--', file] : ['diff', '--cached', '-U0', '--', file];
 
@@ -123,6 +174,14 @@ function checkHardcodedStrings(file, diff) {
     return issues;
   }
 
+  // `tax-catalog.ts` fuehrt die gesetzlichen Fundstellen des DEUTSCHEN
+  // Steuerrechts („§9a S. 1 Nr. 1 Buchst. a EStG", „1.230 EUR seit VZ 2023").
+  // Das ist die Sache selbst und nicht ihre Uebersetzung — eine russische
+  // Fassung von §9a EStG gibt es nicht.
+  if (file.includes('src/data/tax-catalog')) {
+    return issues;
+  }
+
   // Nur TS/TSX Dateien prüfen
   if (!file.endsWith('.ts') && !file.endsWith('.tsx')) {
     return issues;
@@ -132,7 +191,8 @@ function checkHardcodedStrings(file, diff) {
   const lines = diff.split('\n');
   let lineNum = 0;
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
     if (line.startsWith('@@')) {
       // Neue Zeile nach diff hunk
       lineNum = parseInt(line.match(/\+(\d+)/)?.[1] || 0);
@@ -140,8 +200,46 @@ function checkHardcodedStrings(file, diff) {
       lineNum++;
       const content = line.substring(1); // Entferne '+' Prefix
 
-      // Überspringe Kommentare
-      if (content.trim().startsWith('//') || content.trim().startsWith('/*')) {
+      // Überspringe Kommentare — auch Fortsetzungszeilen eines Blockkommentars
+      // (`* …`), die sonst jeden erklärenden Text als Verstoß meldeten.
+      const trimmed = content.trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        continue;
+      }
+
+      // Kein sichtbarer Text, sondern INTERNE BEZEICHNER. Diese Fälle haben den
+      // Bestandsmodus (WP-10.1) zunächst unbrauchbar gemacht: 26 gemeldete
+      // Dateien, davon rund drei Viertel Fehlalarme. Eine Regel mit so vielen
+      // Fehlalarmen wird abgeschaltet, also wird sie hier geschärft.
+      //
+      // - Vergleiche und `case`: `range === 'Jahr'`, `case "Monatlich":` — der
+      //   deutsche Wortlaut ist ein Typwert, kein Text für den Bildschirm. An
+      //   den Rändern (URL, Persistenz) wird er gemappt.
+      // - `labelKey`/`shortLabelKey` in derselben Zeile: das ist das
+      //   Fallback-Muster `{ label: "Schulden", labelKey: "nav.items.debts" }`
+      //   — der Schlüssel gewinnt, der Text ist nur die Notfassung.
+      // - Speicher-Schlüssel und `console.*`: nie sichtbar.
+      // Der Schluessel steht oft in der NAECHSTEN Zeile, nicht derselben:
+      //   { id: "daten",
+      //     label: "Daten & Konten",
+      //     labelKey: "nav.groups.daten", … }
+      // Ohne diesen Blick nach vorn meldet der Waechter das Fallback-Muster,
+      // das genau richtig ist.
+      const neighbourhood = `${trimmed}\n${(lines[index + 1] ?? '').trim()}`;
+
+      if (
+        /===|!==|\.includes\(|^case\s|switch\s*\(/.test(trimmed) ||
+        /\blabelKey\b|\bshortLabelKey\b|\bdescriptionKey\b/.test(neighbourhood) ||
+        /\bconsole\.|STORAGE_KEY|_KEY\s*=|queryKey/.test(trimmed) ||
+        // CSV-Spaltenzuordnungen: `categoryColumn: 'Kategorie'` benennt die
+        // Spaltenueberschrift eines deutschen Bank-Exports. Das ist ein
+        // Datenformat, kein Bildschirmtext — uebersetzt braeche der Import.
+        /\w+Column\s*[:?]/.test(trimmed) ||
+        // Bindestrich-Tokens ohne Leerzeichen sind Bezeichner, keine Prosa:
+        // `status: 'not-found'`, `variant: 'no-data'`. Ein Bildschirmtext
+        // besteht aus Woertern mit Abstand dazwischen.
+        /['"][a-z]+(-[a-z]+)+['"]/.test(trimmed)
+      ) {
         continue;
       }
 
@@ -152,6 +250,21 @@ function checkHardcodedStrings(file, diff) {
 
       // Überspringe Import/Type-Definitionen
       if (content.includes('import') || content.includes('type ') || content.includes('interface ')) {
+        continue;
+      }
+
+      // Domänen-Vokabular dieses Projekts: `Cycle` und `DashboardRange` haben
+      // deutsche TYPWERTE ("Monatlich", "Jahr"). Sie sind interne Bezeichner,
+      // keine Bildschirmtexte — an den Rändern werden sie gemappt
+      // (`RANGE_TO_TOKEN` für die URL, `mapCycleToRhythmus` vor dem Speichern).
+      //
+      // Ausgenommen wird NUR ausserhalb von JSX: Ein `<span>Monatlich</span>`
+      // wäre sehr wohl ein Verstoss, und diese Ausnahme darf ihn nicht decken.
+      // Bewusst auf TAGS geprueft und nicht auf `<`/`>`: Vergleiche (`>= 25`)
+      // und Pfeilfunktionen (`=>`) enthalten diese Zeichen ebenfalls, und eine
+      // Erkennung darauf haette die Ausnahme wirkungslos gemacht.
+      const looksLikeJsx = /<\/?[A-Za-z]/.test(trimmed);
+      if (!looksLikeJsx && DOMAIN_VALUE_TERMS.some((term) => trimmed.includes(term))) {
         continue;
       }
 
@@ -204,7 +317,7 @@ function checkHardcodedStrings(file, diff) {
 
 // Main
 console.log('\n🌍 i18n Compliance Check läuft...\n');
-console.log(mode === 'range' ? `   Modus: --range ${range}\n` : '   Modus: --staged\n');
+console.log(`   Modus: --${mode}${mode === 'range' ? ` ${range}` : ''}\n`);
 
 const files = getChangedFiles();
 let hasErrors = false;

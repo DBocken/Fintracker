@@ -93,7 +93,7 @@ export function TransactionDetailsPanel({
   isHidden = false,
   isLoading = false,
   onClose,
-  closeLabel = 'Abbrechen',
+  closeLabel,
   layout = 'stacked',
 }: TransactionDetailsPanelProps) {
   const money = useMoneyFormat();
@@ -621,7 +621,9 @@ export function TransactionDetailsPanel({
       {/* Speichern / Schließen – volle Breite unter beiden Spalten */}
       <div className="mt-4 flex justify-end gap-2 border-t pt-4">
         <Button variant="outline" onClick={onClose} disabled={isLoading}>
-          {closeLabel}
+          {/* Der Standardtext kann nicht im Default-Parameter stehen — dort ist
+              kein Hook erlaubt. Aufgeloest wird er hier. */}
+          {closeLabel ?? t('common.cancel')}
         </Button>
         <Button onClick={handleSave} disabled={isLoading}>
           Speichern

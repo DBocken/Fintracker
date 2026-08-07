@@ -225,7 +225,7 @@ export function EnhancedSettings() {
             <InfoStatStrip
               className="md:min-w-[280px]"
               items={[
-                { label: "Kategorien", value: categories.length },
+                { label: t('common.categoriesLabel'), value: categories.length },
                 { label: "Aufbewahrung", value: `${settings?.retention_months || 36} M` },
               ]}
             />
