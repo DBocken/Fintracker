@@ -126,8 +126,18 @@ export default function EuerPage() {
         actions={<TaxYearPicker years={years} value={year} onChange={setYear} />}
       />
 
-      {hasLoadError && <FinanceErrorState variant="transactions" onRetry={retryAll} />}
-
+      {/*
+        Bei einem Lesefehler endet die Seite hier. Vorher stand die
+        Fehlermeldung ueber einem vollstaendig aufgebauten Bericht aus leeren
+        Zahlen — inklusive „Noch keine Betriebsdaten". Zwei widersprechende
+        Aussagen uebereinander, und die untere ist die gefaehrlichere: Eine
+        EUeR ist eine steuerliche Aufstellung, wer ihr glaubt, meldet zu wenig
+        ([REGRESSION] `EuerPage.error-state.test.tsx`, WP-12.1).
+      */}
+      {hasLoadError ? (
+        <FinanceErrorState variant="transactions" onRetry={retryAll} />
+      ) : (
+        <>
       {!report.paramsExact && (
         <p className="text-xs text-warning">
           {t('tax.page.paramsClamped', 'Für {year} liegen noch keine amtlichen Werte vor – es gelten die Werte aus {used}.')
@@ -183,6 +193,8 @@ export default function EuerPage() {
       {hasData && <EuerExportCard report={report} transactions={transactions} categories={categories} />}
 
       <TaxDisclaimer />
+        </>
+      )}
     </div>
   );
 }

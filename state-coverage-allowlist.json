@@ -1,38 +1,6 @@
 {
   "_comment": "Flaechen ohne Test fuer einen Zustand. ZWEI Formen: \"offen\" ist Backlog und darf nur schrumpfen; \"entfaellt\" ist entschieden und braucht je Zustand einen Grund. Angemeldet wird ein Zustand ueber einen Tag im Testtitel: [ZUSTAND /route:zustand]. Neue Flaechen gehoeren in KEINE der beiden Formen - dann ist ein Test zu schreiben, nicht die Liste zu erweitern. \"offen\" zieht `pnpm check:state-coverage --update` nach, die Gruende bleiben.",
   "routes": {
-    "/coach": {
-      "offen": [
-        "leer",
-        "fehler"
-      ]
-    },
-    "/dashboard": {
-      "offen": [
-        "leer"
-      ]
-    },
-    "/accounts": {
-      "offen": [
-        "leer"
-      ]
-    },
-    "/budgets": {
-      "offen": [
-        "leer",
-        "fehler"
-      ]
-    },
-    "/debts": {
-      "offen": [
-        "leer"
-      ]
-    },
-    "/net-worth": {
-      "offen": [
-        "leer"
-      ]
-    },
     "/liquidity": {
       "offen": [
         "leer",
@@ -41,8 +9,7 @@
     },
     "/milestones": {
       "offen": [
-        "leer",
-        "fehler"
+        "leer"
       ]
     },
     "/income": {
@@ -51,24 +18,9 @@
         "fehler"
       ]
     },
-    "/tax": {
-      "offen": [
-        "leer"
-      ]
-    },
-    "/euer": {
-      "offen": [
-        "fehler"
-      ]
-    },
     "/trading": {
       "offen": [
         "leer",
-        "fehler"
-      ]
-    },
-    "/city": {
-      "offen": [
         "fehler"
       ]
     },
