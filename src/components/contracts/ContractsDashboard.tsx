@@ -416,7 +416,14 @@ export function ContractsDashboard() {
           {/* Mobile: Kartenliste */}
           <ul className="divide-y divide-border/70 lg:hidden">
             {visibleActive.map(renderMobileRow)}
-            {visibleActive.length === 0 && (
+            {/*
+              `!hasLoadError`: Ein gescheiterter Lesevorgang hinterlaesst
+              dieselbe leere Liste wie ein leerer Bestand. „Noch keine
+              Vertraege aktiv" stand dann direkt unter der Fehlermeldung — und
+              liest sich wie Entwarnung: keine laufenden Kosten
+              ([REGRESSION] `ContractsPage.error-state.test.tsx`, WP-12.1).
+            */}
+            {visibleActive.length === 0 && !hasLoadError && (
               <li className="py-6 text-center text-sm text-muted-foreground">
                 {t("contracts.emptyStateMessage", "Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.")}
               </li>
@@ -429,7 +436,7 @@ export function ContractsDashboard() {
               {tableHead}
               <TableBody>
                 {visibleActive.map(renderRow)}
-                {visibleActive.length === 0 && (
+                {visibleActive.length === 0 && !hasLoadError && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground">
                       {t("contracts.emptyStateMessage", "Noch keine Verträge aktiv. Bestätige oben einen Kandidaten oder markiere eine Transaktion als Vertrag.")}

@@ -23,6 +23,7 @@ import {
 import { useSpecialCategoriesOverview } from '@/features/special-categories/application/use-special-categories-overview';
 import { SpecialCategoriesDesktopView } from '@/features/special-categories/presentation/desktop/SpecialCategoriesDesktopView';
 import { SpecialCategoriesMobileStory } from '@/features/special-categories/presentation/mobile/SpecialCategoriesMobileStory';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 const NO_PARENT = '__none__';
 
@@ -70,6 +71,19 @@ export default function SpecialCategoriesPage() {
       toast.error(error instanceof Error ? error.message : t('specialCategories.service.notFound'));
     }
   };
+
+  // Das ViewModel fuehrte `isError` und `refetch` bereits, gelesen hat es
+  // niemand: Nach einem Lesefehler sah die Flaeche aus, als haette der Nutzer
+  // nie einen Anlass angelegt. Ein Anlass buendelt Ausgaben ueber
+  // Kategoriegrenzen hinweg — sein Verschwinden ist keine Kleinigkeit
+  // ([REGRESSION] `SpecialCategoriesPage.error-state.test.tsx`, WP-12.1).
+  if (model.isError) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-6">
+        <FinanceErrorState variant="data" onRetry={() => model.refetch?.()} />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
