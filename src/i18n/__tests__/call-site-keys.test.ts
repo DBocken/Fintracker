@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { describe, it, expect } from 'vitest';
 import { translations, DEFAULT_LOCALE } from '../translations';
@@ -29,7 +29,13 @@ function sourceFiles(): string[] {
     .filter(Boolean)
     .filter((f) => /\.(ts|tsx)$/.test(f))
     .filter((f) => !f.includes('__tests__') && !/\.(test|spec)\./.test(f))
-    .filter((f) => !f.startsWith('src/test-utils/'));
+    .filter((f) => !f.startsWith('src/test-utils/'))
+    // `git ls-files` kennt den Index, nicht die Platte: eine noch nicht
+    // eingecheckte Löschung (Umbenennung mitten in einem Refactoring) liegt
+    // hier weiterhin drin. Ohne diesen Filter stirbt die Prüfung mit einem
+    // ENOENT-Stacktrace statt eine Aussage über i18n zu treffen. Die
+    // Korpusgröße bleibt durch die Untergrenze unten abgesichert.
+    .filter((f) => existsSync(`${process.cwd()}/${f}`));
 }
 
 function resolveKey(key: string): unknown {
