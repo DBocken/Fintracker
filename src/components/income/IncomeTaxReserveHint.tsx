@@ -18,7 +18,14 @@ const formatCurrency = (v: number) =>
 export default function IncomeTaxReserveHint({ streams }: { streams: IncomeStream[] }) {
   const money = useMoneyFormat();
   const { t } = useI18n();
-  const { data: settings } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+  const { data: settings, isError: settingsError } = useQuery({ queryKey: ['userSettings'], queryFn: getUserSettings });
+
+  // Bewusst kein Fehlerzustand, sondern Schweigen: `resolveTaxReservePercent`
+  // liefert ohne Einstellungen den STANDARD-Satz. Diesen Hinweis trotzdem zu
+  // zeigen hiesse, dem Nutzer einen Ruecklagenbetrag zu nennen, der auf einem
+  // Prozentsatz beruht, den er so nie gewaehlt hat — eine falsche Zahl ist
+  // schlimmer als keine.
+  if (settingsError) return null;
 
   const percent = resolveTaxReservePercent(settings);
   const result = computeTaxReserve(streams, percent);

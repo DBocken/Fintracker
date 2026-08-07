@@ -16,10 +16,16 @@ const MAX_ACCOUNTS_SHOWN = 3;
  */
 export function DataQualityNotice() {
   const { t } = useI18n();
-  const { data: accounts = [] } = useQuery<Account[]>({
+  const { data: accounts = [], isError: accountsError } = useQuery<Account[]>({
     queryKey: ["accounts"],
     queryFn: () => getAccounts(),
   });
+
+  // Bewusst kein Fehlerzustand: Dieser Hinweis erscheint ohnehin nur, WENN es
+  // etwas zu bemaengeln gibt. Ein Fehlerblock an seiner Stelle waere eine
+  // Meldung, wo sonst nichts steht — laut, ohne dem Nutzer zu helfen. Die
+  // Flaechen, die dieselben Konten anzeigen, benennen den Lesefehler bereits.
+  if (accountsError) return null;
 
   const problematic = accounts
     .map((account) => deriveAccountDataQuality(account))

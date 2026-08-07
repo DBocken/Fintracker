@@ -61,7 +61,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryFn: () => getTransactions(DASHBOARD_TRANSACTION_LIMIT),
   });
 
-  const { data: cats = [] } = useQuery({
+  const { data: cats = [], isError: catsError } = useQuery({
     queryKey: dashboardKeys.categories,
     queryFn: () => getCategories(),
   });
@@ -71,7 +71,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     queryFn: () => getAccounts(),
   });
 
-  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
+  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS, isError: contractDecisionsError } = useQuery({
     queryKey: dashboardKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
@@ -371,7 +371,7 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     // WP-9.2: `!txsError` trennt "keine Buchungen" von "Buchungen nicht
     // ladbar". Ohne ihn behauptet der Screen bei einem Lesefehler das Erste.
     isEmpty: !txsLoading && !txsError && txs.length === 0,
-    hasError: txsError,
+    hasError: txsError || catsError || accountsError || contractDecisionsError,
     accountsLoading,
     accountsError,
     transactions,
@@ -384,5 +384,5 @@ export function useFinanceOverview(options?: UseFinanceOverviewOptions): Finance
     sort,
     hidden,
     actions,
-  }), [txsLoading, txsError, txs, accountsLoading, accountsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
+  }), [txsLoading, txsError, txs, accountsLoading, accountsError, catsError, contractDecisionsError, transactions, cats, accounts, balances, stats, sankeyData, filters, sort, hidden, actions]);
 }

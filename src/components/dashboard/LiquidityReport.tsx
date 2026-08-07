@@ -164,7 +164,7 @@ export default function LiquidityReport() {
 
   // Kategorie-Prioritäten (vom Nutzer gesetzt) → steuern den Spar-Wasserfall
   // im BudgetOptimizer: niedrige Priorität wird zuerst gekürzt.
-  const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
+  const { data: categories = [], isError: categoriesError } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
   const priorityByCategory = useMemo(() => {
     const map = new Map<string, Prioritaet>();
     for (const c of categories) {
@@ -308,6 +308,8 @@ export default function LiquidityReport() {
     });
   }, [forecast, bufferBasis, risk]);
 
+  const hasLoadError = isError || categoriesError;
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -322,7 +324,7 @@ export default function LiquidityReport() {
     );
   }
 
-  if (isError) {
+  if (hasLoadError) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />

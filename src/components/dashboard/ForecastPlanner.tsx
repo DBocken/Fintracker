@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { ForecastOverrides } from '@/services/forecast-overrides-service';
 import type { PlannedForecastEvent, SinkingFund, ForecastInput, ForecastTransfer, RecurringFlow } from '@/lib/forecast-types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
@@ -55,7 +56,11 @@ const INTEREST_KINDS = new Set(['savings', 'checking']);
 export default function ForecastPlanner({ overrides, onChange, input, highlightedSection, onHighlightComplete, activeSection }: Props) {
   const money = useMoneyFormat();
   const { t } = useI18n();
-  const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const interestAccounts = accounts.filter((a) => INTEREST_KINDS.has(a.type));
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
   const [activeHighlight, setActiveHighlight] = useState<string | null>(null);
@@ -90,6 +95,8 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
     const pulse = activeHighlight === sectionId ? 'animate-[highlightPulse_2s_ease-out]' : '';
     return `${active} ${pulse}`.trim();
   };
+
+  if (accountsError) return <FinanceErrorState variant="data" onRetry={() => void refetchAccounts()} />;
 
   return (
     <>

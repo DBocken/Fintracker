@@ -13,6 +13,7 @@ import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 import type { FinanceOverviewViewModel } from "../../application/finance-overview-view-model";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 
@@ -45,9 +46,12 @@ export function resolveSwipeTarget(
 /** Eigene Ansicht für die Finanzlandschaft – lädt die Gesundheitsdaten erst, wenn sie gezeigt wird. */
 function LandscapeView() {
   const { t, locale } = useI18n();
-  const { data: health, isLoading } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
+  const { data: health, isLoading, isError, refetch } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
   if (isLoading) {
     return <div className="h-40 animate-pulse rounded-xl bg-muted" aria-busy />;
+  }
+  if (isError) {
+    return <FinanceErrorState variant="data" onRetry={() => void refetch()} />;
   }
   if (!health || health.subScores.length === 0) {
     return (

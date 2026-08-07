@@ -48,6 +48,7 @@ import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { LoadingSwap } from '@/components/common/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
 
@@ -80,7 +81,12 @@ export function BackupManager() {
   const [foreignPending, setForeignPending] = useState<BackupData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: backupInfo, isLoading: isLoadingInfo } = useQuery({
+  const {
+    data: backupInfo,
+    isLoading: isLoadingInfo,
+    isError: backupInfoError,
+    refetch: refetchBackupInfo,
+  } = useQuery({
     queryKey: ['backup-info'],
     queryFn: () => backupService.getBackupInfo(),
     refetchInterval: false,
@@ -189,6 +195,7 @@ export function BackupManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {backupInfoError && <FinanceErrorState variant="data" onRetry={() => void refetchBackupInfo()} />}
           {isLoadingInfo ? (
             // WP-8.4: Choreografie aus WP-7.3 statt eines kreisenden Symbols.
             // Der Platzhalter hat die Form der spaeteren Kennzahlen-Kacheln —

@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/i18n/useI18n';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { showError, showSuccess } from '@/utils/toast';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { toMinor, sumMinor } from '@/lib/money';
 import {
   parseSplitAmount,
@@ -48,7 +49,11 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
 
   const txId = transaction.id ?? '';
 
-  const { data: savedAllocations = [] } = useQuery({
+  const {
+    data: savedAllocations = [],
+    isError: allocationsError,
+    refetch: refetchAllocations,
+  } = useQuery({
     queryKey: ['allocations', txId],
     queryFn: () => getAllocationsForTransaction(txId),
     enabled: !!txId,
@@ -157,6 +162,8 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
   };
 
   const isSaved = savedAllocations.length > 0;
+
+  if (allocationsError) return <FinanceErrorState variant="data" onRetry={() => void refetchAllocations()} />;
 
   return (
     <div data-tour-id="split-panel" className="space-y-3">
