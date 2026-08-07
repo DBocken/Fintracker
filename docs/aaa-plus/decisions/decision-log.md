@@ -244,3 +244,39 @@ darf beim Erzeugen von Snapshots nicht gesetzt sein — als Falle in
 **Verworfen:** Die Toleranz anzuheben. Bei den ohnehin erlaubten 5 %
 Pixelabweichung scheiterte der Vergleich bereits; ein höherer Wert hätte den
 Test entwertet, statt das Problem zu lösen.
+
+## 2026-08-07 — F-3: Telemetrie und Feedback werden gebaut, aber nicht scharf geschaltet
+
+**Kontext:** F-1 hat entschieden: Opt-in-Telemetrie mit Versand, und
+ausdrücklich „Es braucht einen Backend-Endpunkt und einen Datenschutz-Text.
+Beides ist Teil von Phase 11, nicht optional."
+
+**Was in diesem Durchgang gebaut wurde:** Der vollständige Client-Weg —
+Ereignis-Schema ohne freien Nutzlast-Teil, Positivliste beim Filtern, Kontrolle
+an der Ausgangstür, Warteschlange mit Deckel, Opt-in-Schalter in den
+Einstellungen, Widerruf, der das Gesammelte löscht. Abgesichert durch
+`src/security/telemetry.security.test.ts`, inklusive der Prüfung, dass es genau
+**einen** Versandweg im ganzen Baum gibt.
+
+**Was bewusst NICHT gebaut wurde und warum:** Der Endpunkt selbst. Er wäre eine
+Supabase Edge Function — und die deployt in diesem Repository nicht automatisch
+(AGENTS.md §11). Ein Endpunkt, der im Code liegt, aber nirgends läuft, ist
+schlechter als keiner: Der Schalter verspräche dann einen Versand, den es nicht
+gibt, und niemand bemerkt es, weil der Client den Fehlschlag korrekt behandelt.
+
+**Wie sich das im Verhalten zeigt:** `VITE_TELEMETRY_ENDPOINT` hat **keinen**
+Rückfallwert. Ohne Konfiguration meldet `flushTelemetry` `skipped: no-endpoint`
+und sendet nichts. Der Schalter bleibt trotzdem sinnvoll, weil er über das
+*Aufzeichnen* entscheidet — ohne Einwilligung wird nichts geschrieben.
+
+**Dasselbe gilt für die Rückmeldung (WP-11.4).** Die Fachlogik ist da und
+geprüft: Beträge und IBANs im freien Text werden erkannt und auf Wunsch durch
+Platzhalter ersetzt — der Fall, der aus Hilfsbereitschaft entsteht („bei der
+Miete von 1.250 € stimmt die Kategorie nicht"). Oberfläche und Versand fehlen,
+aus demselben Grund und mit derselben Begründung, die Phase 8 schon für den
+Telemetrie-Schalter benutzt hat: **Ein Formular ohne Empfänger ist ein totes
+Versprechen.**
+
+**Was das für den nächsten Durchgang heißt:** Der Reihenfolge nach zuerst der
+Empfänger, dann das Formular. Beides ist klein — die schwierigen Teile
+(Schwärzen, Filtern, Einwilligung, Widerruf) liegen fertig und getestet vor.

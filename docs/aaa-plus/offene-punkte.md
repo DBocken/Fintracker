@@ -200,8 +200,34 @@ Slice-Screens in drei Viewports ab. Eine Ausweitung auf alle 22 Routen hieße 66
 eingecheckte Baselines, die bei jeder Gestaltungsänderung neu erzeugt werden
 müssen — der Nutzen steht in keinem Verhältnis, solange Layout und Kontrast
 bereits maschinell geprüft sind. Bewusste Entscheidung, kein Versehen.
-- **Phase 11 — Rollout:** Feature Flags, Telemetrie, Feedback, Rollback.
-  Die Telemetrie-Grundsatzentscheidung ist gefallen — siehe `decision-log` F-1.
+- **Phase 11 — Rollout:** umgesetzt bis auf den Empfänger, siehe unten.
+
+### Phase 11 — was steht und was bewusst offen bleibt
+
+| Punkt | Stand |
+|---|---|
+| **Feature-Flags** (WP-11.1) | **fertig.** Voreinstellung im Code, gespeichert wird nur die Abweichung. `userToggleable: false` trennt den Not-Aus vom Nutzerschalter — sonst wäre er über die Einstellungen aushebelbar. `staleFlags()` fragt nach Flags, die zwei Nebenversionen lang beide Zweige tragen |
+| **Telemetrie** (WP-11.2) | **Client fertig, Empfänger bewusst nicht** (`decision-log` F-3). Opt-in, Widerruf löscht das Gesammelte, ohne Endpunkt passiert nichts |
+| **Rollback** (WP-11.3) | **fertig — und dabei ein echtes Loch geschlossen**, siehe unten |
+| **Feedback** (WP-11.4) | **Fachlogik fertig, Oberfläche bewusst nicht** (`decision-log` F-3) |
+
+#### Der Befund, der bei „Rollback" zutage kam
+
+`LOCAL_STORE_SCHEMA_VERSION` gab es seit Langem — mit einem Kommentar, der
+erklärte, wozu sie da sei („damit ein späterer Migrationshook erkennt, ob er
+laufen muss"). **Gelesen oder geschrieben hat sie niemand.** Sie war eine
+Absichtserklärung, kein Mechanismus.
+
+Warum das ausgerechnet hier zählt: In einer Cloud-App heißt Rollback „alte
+Version wieder ausrollen" — die Daten liegen auf dem Server, und der kennt sein
+Schema. Hier liegen sie auf dem Gerät. Wird eine Auslieferung zurückgenommen,
+trifft eine **ältere** App auf **neuere** Daten. Ohne Prüfung liest sie, was sie
+versteht, ignoriert den Rest — und schreibt ihn beim nächsten Speichern weg.
+Kein Absturz, keine Meldung; der Verlust fällt Wochen später auf.
+
+Jetzt prüft jeder Zugriff, und es gibt genau drei Ausgänge: gleicher Stand,
+älter (hochziehen) oder **neuer — dann nicht anfassen**. Ein Rollback darf Daten
+kosten, aber keine zerstören.
 
 ## 5. Infrastruktur & Messung
 
