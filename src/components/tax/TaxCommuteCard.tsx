@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { showSuccess, showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
 import { getTaxYearProfile, saveTaxYearProfile } from '@/services/tax-profile-service';
@@ -16,7 +17,14 @@ export function TaxCommuteCard({ year }: { year: number }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
-  const { data: profile } = useQuery({
+  // WP-9.6: Die Eingabefelder starten leer. Ein Lesefehler liest sich damit
+  // als „noch nichts eingetragen" — und der Speichern-Knopf ueberschreibt die
+  // echten Werte mit Leere.
+  const {
+    data: profile,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: ['taxYearProfile', year],
     queryFn: () => getTaxYearProfile(year),
   });
@@ -52,6 +60,10 @@ export function TaxCommuteCard({ year }: { year: number }) {
         <p className="text-xs text-muted-foreground">{t('tax.commute.description', '')}</p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {profileError && (
+          <FinanceErrorState variant="data" onRetry={() => void refetchProfile()} />
+        )}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="commute-days">{t('tax.commute.daysLabel', 'Arbeitstage mit Fahrt')}</Label>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ServerOff, LoaderCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { buildAnalyticsPackage } from "@/services/analytics-aggregation-service";
 
@@ -27,7 +28,10 @@ const GROUP_LABELS: Record<string, string> = {
 export default function AnalyticsTransparencyPreview() {
   const { t } = useI18n();
   const [revealed, setRevealed] = useState(false);
-  const { data, isLoading } = useQuery({
+  // WP-9.6: Scheitert die Vorschau, bliebe sie leer — und das liest sich als
+  // „es wuerde nichts gesendet". Auf einem Datenschutz-Screen ist das keine
+  // fehlende Anzeige, sondern eine unbelegte Zusage.
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-preview"],
     queryFn: buildAnalyticsPackage,
     enabled: revealed,
@@ -50,6 +54,8 @@ export default function AnalyticsTransparencyPreview() {
           <Eye className="mr-1.5 h-4 w-4" aria-hidden="true" />
           {t("analytics.showPreview")}
         </Button>
+      ) : isError ? (
+        <FinanceErrorState variant="data" onRetry={() => void refetch()} />
       ) : isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />

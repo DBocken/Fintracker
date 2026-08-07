@@ -98,24 +98,49 @@ export default function DebtsPage() {
     queryFn: getDebts,
   });
 
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "debt-assignment"],
     queryFn: () => getTransactions(500),
     enabled: debts.length > 0,
   });
 
-  const { data: assignments = [] } = useQuery<DebtTransactionAssignment[]>({
+  const {
+    data: assignments = [],
+    isError: assignmentsError,
+    refetch: refetchAssignments,
+  } = useQuery<DebtTransactionAssignment[]>({
     queryKey: ["debt-transaction-assignments"],
     queryFn: getDebtTransactionAssignments,
     enabled: debts.length > 0,
   });
 
   // Einkommens-/Ausgabenmittel speisen die Überschuldungs-Heuristik (Issue #50).
-  const { data: health } = useQuery({
+  const {
+    data: health,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
     queryKey: ["financial-health", locale],
     queryFn: getFinancialHealth,
     enabled: debts.length > 0,
   });
+
+  // EIN Fehlerblock fuer die ganze Seite, nicht vier. Alle vier Abfragen
+  // speisen dieselbe Aussage („was schuldest du und wie zahlst du es ab") —
+  // vier getrennte Meldungen waeren vier Raetsel statt eines Hinweises.
+  // Genau daran ist ein Versuch schon gescheitert: Der Test fand zwei Knoepfe
+  // „Erneut versuchen" auf einem Screen.
+  const hasLoadError = debtsError || transactionsError || assignmentsError || healthError;
+  const retryAll = () => {
+    void refetchDebts();
+    void refetchTransactions();
+    void refetchAssignments();
+    void refetchHealth();
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["debts"] });
@@ -326,10 +351,10 @@ export default function DebtsPage() {
           <Skeleton variant="shimmer" className="h-20 w-full" />
           <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
-      ) : debtsError ? (
+      ) : hasLoadError ? (
         // VOR dem Leerzustand: „nicht ladbar" ist eine andere Aussage als
         // „noch nichts erfasst" (WP-9.2).
-        <FinanceErrorState onRetry={() => void refetchDebts()} />
+        <FinanceErrorState onRetry={retryAll} />
       ) : debts.length === 0 ? (
         <EmptyState
           emoji="💸"

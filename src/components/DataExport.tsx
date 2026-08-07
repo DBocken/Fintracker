@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import {
   Download,
   FileText,
@@ -24,7 +25,15 @@ export function DataExport() {
   const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | '30d' | '90d' | '1y'>('all');
 
-  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
+  // WP-9.6: Ohne den Fehlerfall exportiert die Seite stillschweigend eine
+  // LEERE Datei — und die sieht aus wie ein vollstaendiger Export. Bei einer
+  // Sicherung ist das die teuerste Verwechslung, die die App anbieten kann.
+  const {
+    data: transactions = [],
+    isLoading: isLoadingTransactions,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ['transactions', 'export'],
     queryFn: () => getTransactions(10000),
   });
@@ -163,6 +172,12 @@ export function DataExport() {
           {t('dataExport.description')}
         </CardDescription>
       </CardHeader>
+
+      {transactionsError && (
+        <CardContent>
+          <FinanceErrorState variant="transactions" onRetry={() => void refetchTransactions()} />
+        </CardContent>
+      )}
       <CardContent className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2">{t('dataExport.timeRange')}</label>

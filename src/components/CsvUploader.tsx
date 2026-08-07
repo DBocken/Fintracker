@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import FinanceErrorState from '@/components/common/FinanceErrorState'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Wallet } from 'lucide-react'
 import {
@@ -50,7 +51,14 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
   // Load accounts
-  const { data: accounts = [], isLoading: accountsLoading } = useQuery({
+  // WP-9.6: Ohne den Fehlerfall sah ein Lesefehler aus wie „du hast noch kein
+  // Konto" — und schickte auf die Anlegen-Schiene, obwohl die Konten da sind.
+  const {
+    data: accounts = [],
+    isLoading: accountsLoading,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   })
@@ -170,6 +178,10 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {accountsError && (
+              <FinanceErrorState variant="data" onRetry={() => void refetchAccounts()} />
+            )}
+
             {/* Account Selection - Required */}
             <div>
               <label className="block text-sm font-medium mb-2">
