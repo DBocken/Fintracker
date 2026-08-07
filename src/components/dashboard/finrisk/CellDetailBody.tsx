@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { cn } from '@/lib/utils';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -44,9 +45,14 @@ const GROUP_FILL: Record<CompositionLine['group'], string> = {
 
 const GROUP_SEQUENCE: CompositionLine['group'][] = ['income', 'fixed', 'variable', 'event'];
 
-/** Signierte €-Anzeige: Zuflüsse mit „+", Abflüsse über das Intl-Minus. */
-function fmtSigned(amount: number): string {
-  return `${amount > 0 ? '+' : ''}${eur.format(amount)}`;
+/**
+ * Signierte €-Anzeige: Zuflüsse mit „+", Abflüsse über das Intl-Minus.
+ *
+ * `mask` kommt als Parameter herein und nicht aus `useMoneyFormat()`: Diese
+ * Funktion liegt im Modulraum, dort ist kein Hook erlaubt (WP-9.5).
+ */
+function fmtSigned(amount: number, mask: (formatted: string) => string): string {
+  return `${amount > 0 ? '+' : ''}${mask(eur.format(amount))}`;
 }
 
 const PAGER_BUTTON =
@@ -71,6 +77,7 @@ function CompositionRow({
   animate: boolean;
   t: (key: string) => string;
 }) {
+  const money = useMoneyFormat();
   const magnitude = Math.abs(line.amount);
   // Mindestbreite, damit kleine Posten neben großen sichtbar bleiben.
   const targetPct = magnitude > 0 ? Math.max(3, Math.min(100, (magnitude / scale) * 100)) : 0;
@@ -110,7 +117,7 @@ function CompositionRow({
       <div className="flex items-baseline justify-between gap-2 text-sm">
         <span className="min-w-0 truncate">{line.name}</span>
         <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
-          <span className="font-semibold">{fmtSigned(shown)}</span>
+          <span className="font-semibold">{fmtSigned(shown, money.mask)}</span>
           {showBadge && (
             <span
               className={cn(
@@ -145,23 +152,23 @@ function CompositionRow({
           <span
             className="absolute -top-0.5 h-3 w-px bg-foreground/60"
             style={{ left: `${avgPct}%` }}
-            title={`Ø ${fmtSigned(range.avg)} in dieser Zelle`}
+            title={`Ø ${fmtSigned(range.avg, money.mask)} in dieser Zelle`}
           />
         )}
         {medianPct != null && (
           <span
             className="absolute -top-0.5 h-3 w-px bg-foreground/60"
             style={{ left: `${medianPct}%` }}
-            title={line.median != null ? `Median ${fmtSigned(line.median)}` : undefined}
+            title={line.median != null ? `Median ${fmtSigned(line.median, money.mask)}` : undefined}
           />
         )}
       </div>
       {range && (
         <div className="flex items-baseline justify-between gap-2 text-[10px] tabular-nums text-muted-foreground">
           <span>
-            {t('finrisk.cellDetailComposition.rangeLabel')} {fmtSigned(range.min)} … {fmtSigned(range.max)}
+            {t('finrisk.cellDetailComposition.rangeLabel')} {fmtSigned(range.min, money.mask)} … {fmtSigned(range.max, money.mask)}
           </span>
-          <span>Ø {fmtSigned(range.avg)}</span>
+          <span>Ø {fmtSigned(range.avg, money.mask)}</span>
         </div>
       )}
     </div>

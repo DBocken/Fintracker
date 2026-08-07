@@ -64,6 +64,7 @@ import { ChartFigure } from '@/components/common/ChartFigure';
 import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -147,6 +148,7 @@ type ChartView = 'lines' | 'heatmap';
  * eintragen. Keine zweite, davon getrennte Szenario-Eingabe mehr.
  */
 export default function LiquidityReport() {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
   const { months, safetyBuffer, bufferBasis } = overrides;
@@ -385,7 +387,7 @@ export default function LiquidityReport() {
             <SelectContent>
               {[0, 500, 1000, 2000, 5000].map((b) => (
                 <SelectItem key={b} value={String(b)}>
-                  {eur.format(b)}
+                  {money.mask(eur.format(b))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -467,7 +469,7 @@ export default function LiquidityReport() {
             items={[
               {
                 label: t("liquidityReport.lowestBalanceLabel"),
-                value: eur.format(liqRisk.lowestBalance),
+                value: money.mask(eur.format(liqRisk.lowestBalance)),
                 hint: fmtDate(liqRisk.lowestBalanceDate),
                 tone: lowestTone,
               },
@@ -479,12 +481,12 @@ export default function LiquidityReport() {
               },
               {
                 label: t("liquidityReport.minOperatingLabel"),
-                value: eur.format(liqRisk.minimumOperatingCash),
+                value: money.mask(eur.format(liqRisk.minimumOperatingCash)),
                 hint: t("liquidityReport.operatingAvailable"),
               },
               {
                 label: t("liquidityReport.minAvailableLabel"),
-                value: eur.format(liqRisk.minimumAvailableCash),
+                value: money.mask(eur.format(liqRisk.minimumAvailableCash)),
                 hint: t("liquidityReport.includingReserve"),
               },
             ]}
@@ -510,7 +512,7 @@ export default function LiquidityReport() {
                           )}
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          −{eur.format(d.amount)}
+                          −{money.mask(eur.format(d.amount))}
                         </span>
                       </li>
                     ))}
@@ -636,6 +638,7 @@ function ChartLinesView({
   hasBand: boolean;
   safetyBuffer: number;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const seriesSummary = useSeriesSummary();
   const colors = getChartColors();
@@ -667,7 +670,7 @@ function ChartLinesView({
       summary={seriesSummary({
         title: t('liquidityReport.liquidityChartCaption'),
         values: chartData.map((point) => point.operating),
-        formatValue: (value) => eur.format(value),
+        formatValue: (value) => money.mask(eur.format(value)),
         labelAt: (index) => fmtDate(chartData[index]?.date ?? ''),
       })}
       columns={[
@@ -676,13 +679,13 @@ function ChartLinesView({
           key: 'operating',
           label: t('liquidityReport.seriesOperating'),
           numeric: true,
-          format: (row) => eur.format(row.operating),
+          format: (row) => money.mask(eur.format(row.operating)),
         },
         {
           key: 'median',
           label: t('liquidityReport.seriesMedian'),
           numeric: true,
-          format: (row) => (row.median === undefined ? '—' : eur.format(row.median)),
+          format: (row) => (row.median === undefined ? '—' : money.mask(eur.format(row.median))),
         },
         {
           // WP-6.1/6.10: Die Unsicherheit gehoert auch in die nicht-visuelle
@@ -693,7 +696,7 @@ function ChartLinesView({
           format: (row) =>
             row.outerFloor === undefined || row.outerHeight === undefined
               ? '—'
-              : `${eur.format(row.outerFloor)} – ${eur.format(row.outerFloor + row.outerHeight)}`,
+              : `${money.mask(eur.format(row.outerFloor))} – ${money.mask(eur.format(row.outerFloor + row.outerHeight))}`,
         },
       ]}
       rows={chartData}
@@ -758,14 +761,14 @@ function ChartLinesView({
             axisLine={{ stroke: colors.axisStroke }}
           />
           <YAxis
-            tickFormatter={(v: number) => eur.format(v)}
+            tickFormatter={(v: number) => money.mask(eur.format(v))}
             width={72}
             tick={{ fontSize: 12, fill: colors.axisText }}
             axisLine={{ stroke: colors.axisStroke }}
           />
           <Tooltip
             {...chartTooltipProps({
-              formatValue: (v) => eur.format(v),
+              formatValue: (v) => money.mask(eur.format(v)),
               formatLabel: (l) => fmtDate(l),
               seriesLabels,
             })}
@@ -888,6 +891,7 @@ function ChartViewToggle({ value, onChange }: { value: ChartView; onChange: (v: 
  * über eine dezente Zeilentönung + Badge signalisiert (kein Karten-Rahmen).
  */
 export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummary[] }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const hasTransfers = months.some((m) => m.transfersOut > 0);
   const hasInterest = months.some((m) => m.interest > 0);
@@ -928,18 +932,18 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
                 </span>
               </td>
               <td className="text-right text-emerald-600 dark:text-emerald-400">
-                {eur.format(m.income)}
+                {money.mask(eur.format(m.income))}
               </td>
-              <td className="text-right">−{eur.format(m.fixedExpenses)}</td>
-              <td className="text-right">−{eur.format(m.variableExpenses)}</td>
+              <td className="text-right">−{money.mask(eur.format(m.fixedExpenses))}</td>
+              <td className="text-right">−{money.mask(eur.format(m.variableExpenses))}</td>
               {hasTransfers && (
                 <td className="text-right">
-                  {m.transfersOut > 0 ? `−${eur.format(m.transfersOut)}` : '—'}
+                  {m.transfersOut > 0 ? `−${money.mask(eur.format(m.transfersOut))}` : '—'}
                 </td>
               )}
               {hasInterest && (
                 <td className="text-right text-emerald-600 dark:text-emerald-400">
-                  {m.interest > 0 ? `+${eur.format(m.interest)}` : '—'}
+                  {m.interest > 0 ? `+${money.mask(eur.format(m.interest))}` : '—'}
                 </td>
               )}
               <td className="text-right">
@@ -948,11 +952,11 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
                   {i > 0 && (
                     <DeltaBadge current={m.closingBalance} previous={months[i - 1].closingBalance} />
                   )}
-                  <span className="font-semibold">{eur.format(m.closingBalance)}</span>
+                  <span className="font-semibold">{money.mask(eur.format(m.closingBalance))}</span>
                 </span>
               </td>
               <td className="text-right text-xs text-muted-foreground">
-                {eur.format(m.lowestBalance)} · {shortDate(m.lowestBalanceDate)}
+                {money.mask(eur.format(m.lowestBalance))} · {shortDate(m.lowestBalanceDate)}
               </td>
             </tr>
           ))}

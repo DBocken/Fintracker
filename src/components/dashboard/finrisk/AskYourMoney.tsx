@@ -13,6 +13,7 @@ import type {
   AffordabilityResult,
 } from '@/lib/finrisk/affordability';
 import { cn } from '@/lib/utils';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -140,6 +141,7 @@ function AffordabilityView({
   fmtDate: (dayIndex: number) => string;
   t: (key: string) => string;
 }) {
+  const money = useMoneyFormat();
   const baseAmount = result.goal.amount;
   const ways = useMemo(() => result.options.filter((o) => o.lever !== 'asis'), [result.options]);
 
@@ -148,10 +150,10 @@ function AffordabilityView({
       <div className="mt-4 rounded-lg bg-emerald-500/10 p-3">
         <div className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
           <Check className="h-4 w-4 shrink-0" />
-          {t('finrisk.yes')} – {t('finrisk.isAffordable').replace('{amount}', eur.format(baseAmount)).replace('{confidence}', pct(result.baseSuccess))}
+          {t('finrisk.yes')} – {t('finrisk.isAffordable').replace('{amount}', money.mask(eur.format(baseAmount))).replace('{confidence}', pct(result.baseSuccess))}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          {t('finrisk.worstPoint').replace('{value}', eur.format(result.options[0].worstValue)).replace('{date}', fmtDate(result.options[0].worstDayIndex))}
+          {t('finrisk.worstPoint').replace('{value}', money.mask(eur.format(result.options[0].worstValue))).replace('{date}', fmtDate(result.options[0].worstDayIndex))}
         </p>
       </div>
     );
@@ -191,7 +193,8 @@ function WayRow({
   fmtDate: (dayIndex: number) => string;
   t: (key: string) => string;
 }) {
-  const { icon, title } = describe(option, t);
+  const money = useMoneyFormat();
+  const { icon, title } = describe(option, t, money.mask);
   return (
     <li className="flex items-start justify-between gap-3 py-2.5">
       <span className="flex min-w-0 items-start gap-2">
@@ -199,7 +202,7 @@ function WayRow({
         <span className="min-w-0">
           <span className="block text-sm font-medium">{title}</span>
           <span className="block text-[11px] text-muted-foreground">
-            {t('finrisk.worstPoint').replace('{value}', eur.format(option.worstValue)).replace('{date}', fmtDate(option.worstDayIndex))}
+            {t('finrisk.worstPoint').replace('{value}', money.mask(eur.format(option.worstValue))).replace('{date}', fmtDate(option.worstDayIndex))}
           </span>
         </span>
       </span>
@@ -210,7 +213,13 @@ function WayRow({
   );
 }
 
-function describe(option: AffordabilityOption, t: (key: string) => string): { icon: JSX.Element; title: string } {
+// `mask` als Parameter statt aus dem Hook: Diese Funktion liegt im Modulraum,
+// dort ist kein Hook erlaubt (WP-9.5) — genau wie `t` schon hereingereicht wird.
+function describe(
+  option: AffordabilityOption,
+  t: (key: string) => string,
+  mask: (formatted: string) => string,
+): { icon: JSX.Element; title: string } {
   switch (option.detail.kind) {
     case 'delay': {
       const months = Math.round(option.detail.extraDays / 30);
@@ -229,12 +238,12 @@ function describe(option: AffordabilityOption, t: (key: string) => string): { ic
     case 'cut':
       return {
         icon: <TrendingDown className="h-4 w-4" />,
-        title: t('finrisk.cut').replace('{amount}', eur.format(option.detail.perMonth)),
+        title: t('finrisk.cut').replace('{amount}', mask(eur.format(option.detail.perMonth))),
       };
     case 'earn':
       return {
         icon: <TrendingUp className="h-4 w-4" />,
-        title: t('finrisk.earn').replace('{amount}', eur.format(option.detail.perMonth)),
+        title: t('finrisk.earn').replace('{amount}', mask(eur.format(option.detail.perMonth))),
       };
     default:
       return { icon: <Check className="h-4 w-4" />, title: t('finrisk.noChange') };

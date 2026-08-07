@@ -28,6 +28,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 export type ChartTableColumn<Row> = {
   /** Stabiler Schlüssel für React — nicht der Anzeigename (der wandert mit der Sprache). */
@@ -66,6 +67,10 @@ export function ChartFigure<Row>({
   className,
 }: ChartFigureProps<Row>) {
   const { t } = useI18n();
+  // WP-9.5: Die Zahlen der Tabelle laufen durch die Maske des Sanften Modus.
+  // Zentral, weil jede Aufrufstelle ihren eigenen `format` mitbringt — dort
+  // einzeln zu maskieren haette dieselbe Luecke erzeugt wie bei den Skeletten.
+  const money = useMoneyFormat();
   const [open, setOpen] = useState(false);
   const tableId = useId();
 
@@ -124,7 +129,7 @@ export function ChartFigure<Row>({
                             column.numeric && 'text-right tabular-nums',
                           )}
                         >
-                          {column.format(row)}
+                          {column.numeric ? money.mask(column.format(row)) : column.format(row)}
                         </td>
                       ))}
                     </tr>

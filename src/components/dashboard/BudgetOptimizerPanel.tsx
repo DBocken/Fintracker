@@ -16,6 +16,7 @@ import {
 } from '@/lib/budget-priority-plan';
 import { matchContractDomain, classifyContractPriority } from '@/lib/contract-priority';
 import type { BufferShortfall } from '@/lib/liquidity-shortfall';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 // Note: PRIORITY_LABEL moved to i18n, but keeping fallback for backward compatibility
 const getPriorityLabel = (t: (key: string, fallback?: string) => string, priority: Prioritaet): string => {
@@ -45,7 +46,20 @@ interface ContractHint {
   monthlySavings: number;
 }
 
-function deriveContractHints(input: ForecastInput | null): ContractHint[] {
+/**
+ * Vertrags-Hinweise aus den wiederkehrenden Abflüssen.
+ *
+ * `t` und `mask` kommen als Parameter herein und nicht aus Hooks: Die Funktion
+ * liegt im Modulraum. `t` ist dabei kein Beiwerk — die Textbausteine hier
+ * standen bis WP-9.5 **hartcodiert auf Deutsch** im Quelltext. Der
+ * i18n-Wächter prüft den Diff, und diese Zeilen hatte lange niemand angefasst;
+ * sichtbar wurde der Verstoß erst, als der Sanfte Modus die Datei berührte.
+ */
+function deriveContractHints(
+  input: ForecastInput | null,
+  t: (key: string) => string,
+  mask: (formatted: string) => string,
+): ContractHint[] {
   const flows = (input?.recurringFlows ?? []).filter((f) => f.amount < 0);
   const byDomain = new Map<string, typeof flows>();
   for (const f of flows) {
@@ -66,8 +80,22 @@ function deriveContractHints(input: ForecastInput | null): ContractHint[] {
       hints.push({
         domain,
         kind: 'bundle',
-        title: `${sorted.length} ${domain}-Abos`,
-        reason: `${sorted.map((f) => `${f.name} (${eur.format(Math.abs(f.amount))}/Mo.)`).join(', ')} – zusammen ${eur.format(total)}/Mo. Auf einen reduzieren spart bis zu ${eur.format(savings)}/Mo.`,
+        title: t('budgetOptimizer.contractBundleTitle')
+          .replace('{count}', String(sorted.length))
+          .replace('{domain}', domain),
+        reason: t('budgetOptimizer.contractBundleReason')
+          .replace(
+            '{items}',
+            sorted
+              .map((f) =>
+                t('budgetOptimizer.contractBundleItem')
+                  .replace('{name}', f.name)
+                  .replace('{amount}', mask(eur.format(Math.abs(f.amount)))),
+              )
+              .join(', '),
+          )
+          .replace('{total}', mask(eur.format(total)))
+          .replace('{savings}', mask(eur.format(savings))),
         monthlySavings: savings,
       });
     } else if (!BUNDLE_DOMAINS.has(domain) && sorted.length > 0) {
@@ -75,8 +103,10 @@ function deriveContractHints(input: ForecastInput | null): ContractHint[] {
       hints.push({
         domain,
         kind: 'review',
-        title: `${top.name} prüfen`,
-        reason: `${eur.format(Math.abs(top.amount))}/Mo. (${eur.format(Math.abs(top.amount) * 12)}/Jahr) – ein Anbietervergleich kann die Fixbelastung dauerhaft senken.`,
+        title: t('budgetOptimizer.contractReviewTitle').replace('{name}', top.name),
+        reason: t('budgetOptimizer.contractReviewReason')
+          .replace('{monthly}', mask(eur.format(Math.abs(top.amount))))
+          .replace('{yearly}', mask(eur.format(Math.abs(top.amount) * 12))),
         monthlySavings: 0,
       });
     }
@@ -93,13 +123,17 @@ interface Props {
 }
 
 export default function BudgetOptimizerPanel({ input, priorityByCategory, bufferShortfall }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [mode, setMode] = useState<'goal' | 'buffer' | 'contracts'>('goal');
   const [goalAmount, setGoalAmount] = useState(5000);
   const [goalMonths, setGoalMonths] = useState(12);
   const [showAll, setShowAll] = useState(false);
 
-  const contractHints = useMemo(() => deriveContractHints(input), [input]);
+  const contractHints = useMemo(
+    () => deriveContractHints(input, t, money.mask),
+    [input, t, money],
+  );
 
   // Spar-Wasserfall-Posten: variable Ausgaben (anteilig kürzbar, Volatilität ×
   // Betrag) plus klar kündbare Abos (Streaming/Fitness, voller Betrag kürzbar,
@@ -163,7 +197,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
           </div>
           {emergencyTarget > 0 && (
             <Badge variant="outline" className="shrink-0 text-xs">
-              {t("budgetOptimizer.emergencyReserve")} {eur.format(emergencyTarget)}
+              {t("budgetOptimizer.emergencyReserve")} {money.mask(eur.format(emergencyTarget))}
             </Badge>
           )}
         </div>
@@ -229,12 +263,12 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
 
             {goalAmount > 0 && goalMonths > 0 && (
               <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
-                <span className="font-medium">{eur.format(goalMonthly)}/Monat</span>
+                <span className="font-medium">{money.mask(eur.format(goalMonthly))}/Monat</span>
                 <span className="ml-2 text-muted-foreground">
                   nötig ·{' '}
                   {achievable
-                    ? `möglich durch ${eur.format(totalCut)}/Mo. Einsparung`
-                    : `maximale Einsparung laut Daten: ${eur.format(Math.round(maxPossible))}/Mo.`}
+                    ? `möglich durch ${money.mask(eur.format(totalCut))}/Mo. Einsparung`
+                    : `maximale Einsparung laut Daten: ${money.mask(eur.format(Math.round(maxPossible)))}/Mo.`}
                 </span>
               </div>
             )}
@@ -245,8 +279,8 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                 <AlertTitle>{t('budgetOptimizer.goalExceedsVariableTitle')}</AlertTitle>
                 <AlertDescription>
                   Mit deinen variablen Ausgaben lassen sich realistisch ca.{' '}
-                  {eur.format(Math.round(maxPossible))}/Mo. einsparen – das Ziel erfordert{' '}
-                  {eur.format(Math.round(goalMonthly))}/Mo. Entweder Zeitraum verlängern oder
+                  {money.mask(eur.format(Math.round(maxPossible)))}/Mo. einsparen – das Ziel erfordert{' '}
+                  {money.mask(eur.format(Math.round(goalMonthly)))}/Mo. Entweder Zeitraum verlängern oder
                   Fixkosten (Verträge) prüfen.
                 </AlertDescription>
               </Alert>
@@ -272,10 +306,10 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             ) : (
               <>
                 <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
-                  <span className="font-medium">~{eur.format(bufferShortfall.monthlyNeeded)}/Monat</span>
+                  <span className="font-medium">~{money.mask(eur.format(bufferShortfall.monthlyNeeded))}/Monat</span>
                   <span className="ml-2 text-muted-foreground">
                     freimachen, um über dem Puffer zu bleiben (Fehlbetrag{' '}
-                    {eur.format(bufferShortfall.deficit)} bis zum Tiefpunkt in{' '}
+                    {money.mask(eur.format(bufferShortfall.deficit))} bis zum Tiefpunkt in{' '}
                     {bufferShortfall.monthsUntilTrough}{' '}
                     {bufferShortfall.monthsUntilTrough === 1 ? 'Monat' : 'Monaten'})
                   </span>
@@ -285,8 +319,8 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                     <Shield className="h-4 w-4" />
                     <AlertTitle>{t('budgetOptimizer.savingNotEnoughTitle')}</AlertTitle>
                     <AlertDescription>
-                      Mit Kürzungen lassen sich realistisch ca. {eur.format(Math.round(maxPossible))}/Mo.
-                      freimachen – nötig sind {eur.format(bufferShortfall.monthlyNeeded)}/Mo. Prüfe
+                      Mit Kürzungen lassen sich realistisch ca. {money.mask(eur.format(Math.round(maxPossible)))}/Mo.
+                      freimachen – nötig sind {money.mask(eur.format(bufferShortfall.monthlyNeeded))}/Mo. Prüfe
                       zusätzlich Verträge oder ein extra Einkommen.
                     </AlertDescription>
                   </Alert>
@@ -323,7 +357,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                       </Badge>
                       {hint.monthlySavings > 0 && (
                         <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          bis {eur.format(hint.monthlySavings)}/Mo.
+                          bis {money.mask(eur.format(hint.monthlySavings))}/Mo.
                         </span>
                       )}
                     </div>
@@ -340,7 +374,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
                   {t('budgetOptimizer.emergencyReserveLabel')}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Empfehlung: ca. {eur.format(emergencyTarget)} (3 Monate Fixkosten + variable Ausgaben)
+                  Empfehlung: ca. {money.mask(eur.format(emergencyTarget))} (3 Monate Fixkosten + variable Ausgaben)
                   als Reserve halten, bevor du Schulden tilgst oder investierst.
                 </p>
               </div>
@@ -366,6 +400,7 @@ function WaterfallResult({
   showAll: boolean;
   onToggleShowAll: () => void;
 }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const suggestions = plan.suggestions;
   if (suggestions.length === 0) {
@@ -398,7 +433,7 @@ function WaterfallResult({
                   </span>
                 )}
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {eur.format(s.monthlyAmount)}/Mo.
+                  {money.mask(eur.format(s.monthlyAmount))}/Mo.
                 </span>
               </div>
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -410,10 +445,10 @@ function WaterfallResult({
             </div>
             <div className="shrink-0 text-right">
               <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                −{eur.format(s.suggestedCut)}/Mo.
+                −{money.mask(eur.format(s.suggestedCut))}/Mo.
               </div>
               <div className="text-xs text-muted-foreground">
-                {s.kind === 'contract' && s.newBudget === 0 ? 'kündigen' : `→ ${eur.format(s.newBudget)}`}
+                {s.kind === 'contract' && s.newBudget === 0 ? 'kündigen' : `→ ${money.mask(eur.format(s.newBudget))}`}
               </div>
             </div>
           </div>

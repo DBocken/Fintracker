@@ -9,6 +9,7 @@
 
 import { useCallback } from 'react';
 import { useI18n } from '@/i18n/useI18n';
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { describeSeries } from '@/lib/chart-summary';
 
 export type SeriesSummaryOptions = {
@@ -30,11 +31,17 @@ export type SeriesSummaryOptions = {
  */
 export function useSeriesSummary(): (options: SeriesSummaryOptions) => string | undefined {
   const { t } = useI18n();
+  const money = useMoneyFormat();
 
   return useCallback(
-    ({ title, values, formatValue, labelAt }: SeriesSummaryOptions) => {
+    ({ title, values, formatValue: rawFormat, labelAt }: SeriesSummaryOptions) => {
       const shape = describeSeries(values);
       if (!shape) return undefined;
+
+      // WP-9.5: Der Sanfte Modus wirkt HIER und nicht in den ~20 Aufrufstellen.
+      // Jede von ihnen reicht einen eigenen Formatierer herein; ihn dort einzeln
+      // zu maskieren waere wieder eine Frage der Aufmerksamkeit.
+      const formatValue = (value: number) => money.mask(rawFormat(value));
 
       const key =
         shape.trend === 'rising'
@@ -53,6 +60,6 @@ export function useSeriesSummary(): (options: SeriesSummaryOptions) => string | 
         .replace('{minLabel}', labelAt(shape.minIndex))
         .replace('{count}', String(shape.count));
     },
-    [t],
+    [t, money],
   );
 }

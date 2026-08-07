@@ -24,6 +24,7 @@ import { confirmClaim, type Claim } from "@/services/claim-service";
 import { getLetterDocTypeLabels } from "@/services/letter-parser-service";
 import { getScanGuidance, type OcrProgress } from "@/services/letter-ocr-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 interface ClaimImportDialogProps {
   open: boolean;
@@ -211,6 +212,7 @@ function ClaimReviewRow({
   onConfirm: () => void;
   isConfirming: boolean;
 }) {
+  const money = useMoneyFormat();
   const latest = claim.timeline[claim.timeline.length - 1];
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
@@ -221,7 +223,7 @@ function ClaimReviewRow({
             <span className="truncate">{claim.creditor}</span>
             {latest && <Badge variant="secondary">{getLetterDocTypeLabels()[latest.doc_type]}</Badge>}
           </div>
-          <div className="text-xs text-muted-foreground">{eur.format(claim.current_amount)}</div>
+          <div className="text-xs text-muted-foreground">{money.mask(eur.format(claim.current_amount))}</div>
         </div>
       </div>
       {claim.debt_id ? (

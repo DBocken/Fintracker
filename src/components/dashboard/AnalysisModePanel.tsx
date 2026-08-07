@@ -8,6 +8,7 @@ import type { DashboardRange } from "./filter-constants";
 import { useFeatureAccess } from "@/hooks/useTier";
 import { MonthPicker } from "./MonthPicker";
 import { cn } from "@/lib/utils";
+import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const monthLabel = (key: string) =>
@@ -30,6 +31,7 @@ interface Props {
  * sichtbar gesperrt (Premium); Berechnung via lib/analysis-modes.
  */
 export default function AnalysisModePanel({ allTransactions, categories, range, customDays }: Props) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   const [mode, setMode] = useState<AnalysisMode>("zeitraum");
   const canCompare = useFeatureAccess("premiumAnalytics");
@@ -122,9 +124,9 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <Stat label={t("analysisModePanel.avgIncome")} value={eur.format(typical.income)} className="text-positive" />
-                <Stat label={t("analysisModePanel.avgExpenses")} value={eur.format(typical.expenses)} className="text-warning" />
-                <Stat label={t("analysisModePanel.avgBalance")} value={eur.format(typical.net)} className={typical.net >= 0 ? "text-positive" : "text-warning"} />
+                <Stat label={t("analysisModePanel.avgIncome")} value={money.mask(eur.format(typical.income))} className="text-positive" />
+                <Stat label={t("analysisModePanel.avgExpenses")} value={money.mask(eur.format(typical.expenses))} className="text-warning" />
+                <Stat label={t("analysisModePanel.avgBalance")} value={money.mask(eur.format(typical.net))} className={typical.net >= 0 ? "text-positive" : "text-warning"} />
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {typical.partial
@@ -154,10 +156,10 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
                   {t("analysisModePanel.expenses")}{" "}
                   <span className="font-semibold">
                     {trend.expensesChangePct == null
-                      ? eur.format(trend.current.expenses)
+                      ? money.mask(eur.format(trend.current.expenses))
                       : `${trend.expensesChangePct > 0 ? "+" : ""}${trend.expensesChangePct.toFixed(0)} %`}
                   </span>{" "}
-                  {t("analysisModePanel.vsLastPeriod").replace("{previous}", eur.format(trend.previous.expenses)).replace("{current}", eur.format(trend.current.expenses))}
+                  {t("analysisModePanel.vsLastPeriod").replace("{previous}", money.mask(eur.format(trend.previous.expenses))).replace("{current}", money.mask(eur.format(trend.current.expenses)))}
                 </div>
               </div>
               {trend.topCauses.length > 0 && (
@@ -167,7 +169,7 @@ export default function AnalysisModePanel({ allTransactions, categories, range, 
                       <span>{categoryName(c.categoryId)}</span>
                       <span className={c.delta > 0 ? "text-warning" : "text-positive"}>
                         {c.delta > 0 ? "+" : ""}
-                        {eur.format(c.delta)}
+                        {money.mask(eur.format(c.delta))}
                       </span>
                     </li>
                   ))}
@@ -252,16 +254,17 @@ function CompareRow({
   delta: number;
   positiveGood?: boolean;
 }) {
+  const money = useMoneyFormat();
   // Bei Ausgaben ist ein Anstieg „schlecht" (warning), bei Einnahmen/Saldo gut.
   const deltaTone = delta === 0 ? "text-muted-foreground" : (delta > 0) === !!positiveGood ? "text-positive" : "text-warning";
   return (
     <tr className="border-t">
       <td className="py-1.5 text-muted-foreground">{label}</td>
-      <td className="py-1.5 text-right">{eur.format(a)}</td>
-      <td className="py-1.5 text-right">{eur.format(b)}</td>
+      <td className="py-1.5 text-right">{money.mask(eur.format(a))}</td>
+      <td className="py-1.5 text-right">{money.mask(eur.format(b))}</td>
       <td className={cn("py-1.5 text-right font-medium", deltaTone)}>
         {delta > 0 ? "+" : ""}
-        {eur.format(delta)}
+        {money.mask(eur.format(delta))}
       </td>
     </tr>
   );

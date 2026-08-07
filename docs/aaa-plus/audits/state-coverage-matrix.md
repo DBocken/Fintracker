@@ -196,30 +196,54 @@ Im Sweep sind damit: die immer sichtbaren Screens (Coach, Dashboard,
 Buchungen, Konten, CSV, Export, Einstellungen, Finanzstadt) sowie Budgets,
 Meilensteine, Verträge, Liquidität, Einkommen, Schulden, Anlässe und Steuer.
 
-### Was nach dem ersten Sweep offen bleibt — und warum
+### Stand nach dem zweiten Sweep
 
-23 Dateien in Reichweite des Modus sind noch nicht gezogen. Das ist kein
-Vergessen, sondern der Punkt, an dem das mechanische Vorgehen an seine Grenze
-kam:
+Die Dateien mit mehreren Komponenten sind nachgezogen; wo die Formatierung im
+**Modulraum** liegt und kein Hook erlaubt ist, wird die Maske jetzt als
+Parameter hereingereicht — genauso, wie `t` es dort schon wurde
+(`fmtSigned`, `describe`, `deriveContractHints`).
 
-| Grund | Dateien |
-|---|---|
-| **Mehrere Komponenten je Datei.** Der Hook muss in *jede* gehen, die einen Betrag ausgibt — ein Skript, das nur die exportierte trifft, erzeugt `Cannot find name 'money'` | `AnalysisModePanel`, `BudgetOptimizerPanel`, `ForecastPlanner`, `LiquidityReport`, `AskYourMoney`, `CellDetailBody`, `ClaimImportDialog` |
-| **Formatierung im Modulraum**, außerhalb jeder Komponente — dort ist kein Hook erlaubt, der maskierte Wert muss hereingereicht werden | `CityLabels` |
-| **Diagramm-interne Formatierer** (Achsen-Ticks, Tooltips), die als Funktion durchgereicht werden | `SankeyChart`, `TimelineChart`, `HeatmapCalendar`, `WeeklyPatternCharts`, `SmartInsightsPanel`, `SpendingSunburstChart`, `TransactionCharts`, `IncomeBreakdownCard`, `IncomeOverTimeCard`, `ContractsDashboard` u. a. |
+**Diagramme zentral statt einzeln.** Rund zwanzig Charts reichen
+`ChartFigure` je einen eigenen Formatierer herein. Sie alle anzufassen wäre
+wieder eine Frage der Aufmerksamkeit gewesen — dieselbe Lücke wie bei den
+Skeletten. Die Maske sitzt deshalb in `ChartFigure` (Tabellenzellen) und in
+`useSeriesSummary()` (der zusammenfassende Satz). Damit respektiert **jede**
+barrierefreie Chart-Entsprechung den Sanften Modus, auch die von Diagrammen,
+die es noch nicht gibt.
 
-Zwei Dateien sind **bewusst** ausgenommen:
+Maskiert werden dort nur **Zahlenspalten**. Ein maskiertes Datum wäre keine
+Schonung, sondern Datenverlust: Ohne die Zeitachse ist die Tabelle nicht mehr
+lesbar, nur noch leer.
 
-- `AnalyticsTransparencyPreview` zeigt, was die App senden *würde*. Wer das
-  prüft, will genau die echten Werte sehen — eine Maske wäre hier das
-  Gegenteil von Transparenz.
-- `BankCallbackPage` ist eine Durchgangsseite der Bankanbindung, kein Screen,
-  auf dem man verweilt.
+**Ein Nebenbefund, dieselbe Klasse wie in `WaterfallPanel`.**
+`deriveContractHints()` baute seine Hinweistexte **hartcodiert auf Deutsch**
+zusammen („… Abos", „Auf einen reduzieren spart bis zu …", „ein
+Anbietervergleich kann die Fixbelastung dauerhaft senken"). Der i18n-Wächter
+prüft den Diff, und diese Zeilen hatte lange niemand angefasst — sichtbar wurde
+der Verstoß erst, als der Sanfte Modus die Datei berührte. Fünf neue Schlüssel
+in allen vier Sprachbäumen.
 
-Ein Versuch, den Rest per Skript nachzuziehen, hat beim ersten Anlauf sieben
-Dateien zerschossen (die Destrukturierungs-Klammer `function X({` wurde für den
-Funktionsrumpf gehalten). Die Änderungen sind zurückgenommen worden; der Rest
-gehört von Hand gemacht.
+### Offen: die sichtbare Achsen- und Tooltip-Beschriftung
+
+Was in Diagrammen **sichtbar** an Beträgen steht (Y-Achsen-Ticks, Tooltips),
+ist bewusst nicht maskiert — und das ist keine Bequemlichkeit, sondern eine
+Frage, die eine Entscheidung braucht:
+
+- Eine Achse, die durchgehend `***` zeigt, macht das Diagramm unlesbar, ohne
+  ruhiger zu werden.
+- Eine Achse, die weiter „3.000 €" zeigt, unterläuft genau das Versprechen des
+  Sanften Modus.
+
+Der wahrscheinlich richtige Weg ist ein dritter: In diesem Modus die
+**Wertachse ganz weglassen** und nur die Form zeigen — die Kurve trägt die
+Aussage „es wird besser/schlechter" auch ohne Skala. Das ist eine
+Gestaltungsentscheidung und gehört zusammen mit der Tutorial-Einladung in
+Phase 10.
+
+**Zwei Dateien bleiben bewusst ausgenommen:** `AnalyticsTransparencyPreview`
+zeigt, was die App senden *würde* — wer das prüft, will die echten Werte sehen,
+eine Maske wäre dort das Gegenteil von Transparenz. Und `BankCallbackPage` ist
+eine Durchgangsseite, kein Screen, auf dem man verweilt.
 
 ## Ableitung für Phase 9
 
@@ -228,5 +252,5 @@ gehört von Hand gemacht.
 | **WP-9.2** | ✅ **erledigt für Dashboard und Buchungsseite.** `FinanceErrorState` steht, `isEmpty` schliesst `hasError` aus. Die übrigen Screens ziehen nach — der Baustein ist da, es fehlt nur noch die Verdrahtung je ViewModel |
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
-| **WP-9.5** | ⏳ **Grundlage + erster Sweep.** Abdeckung 8/78 → **34/78**. 23 Dateien in Reichweite bleiben offen, Gründe unten |
+| **WP-9.5** | ⏳ **Grundlage + zwei Sweeps.** Abdeckung 8/78 → **41/78** direkt, plus alle Chart-Tabellen und -Zusammenfassungen zentral. Offen bleibt nur die SICHTBARE Achsen-/Tooltip-Beschriftung in Diagrammen — das ist eine Gestaltungsfrage, siehe unten |
 | **WP-9.6** | Wächter: Kein `useQuery` ohne Aussage zum Fehlerfall. Erst bauen, wenn die Aufrufstellen stehen — sonst ist er am ersten Tag rot und wird abgeschaltet |
