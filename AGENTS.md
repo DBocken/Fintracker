@@ -100,6 +100,7 @@ verwenden**.
 | `pnpm check:a11y-names` | Verlangt für jedes `<SelectTrigger>` und jede Schaltfläche, deren einziger Inhalt ein Icon ist, einen zugänglichen Namen (`aria-label`/`aria-labelledby`/`title`). **Ohne Ausnahmeliste** — anders als die übrigen Wächter, weil ein namenloses Bedienelement mit Screenreader schlicht nicht bedienbar ist. Läuft in Pre-Commit und CI |
 | `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
+| `pnpm check:layers` | Erzwingt die Import**richtung** aus §3 — beide Schichtungen (`lib → services → hooks → components → pages` und `domain → data → application → presentation`). TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie einer nach unten, und genau so sind 30 umgedrehte Abhängigkeiten in 14 `lib`-Dateien entstanden, ohne dass je etwas rot wurde. Der Auslöser war nie Absicht, sondern **Ort**: ein fachlicher Typ (`ContractRow`, `ForecastOverrides`, `MerchantRule`) oder eine reine Funktion (`explainCategorization`, `normalizeIban`) lag im I/O-Service oder in der Komponente, weil sie dort zuerst gebraucht wurde — wer sie danach von unten brauchte, hatte nur den Weg nach oben. Der Wächter löst Alias- (`@/…`) **und** Relativpfade auf; Tests sind ausgenommen (ein `lib/__tests__/`-Test darf einen Service heranziehen, das ist seine Absicht). Ausnahmen stehen in `layer-allowlist.json` und brauchen je Datei `imports` **und** `reason` — die Datei ist heute leer und sollte es bleiben. Läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
 ## 3. Architektur
@@ -116,6 +117,25 @@ Zwei komplementäre Schichtungen, siehe `docs/coding-guide.md` §2 im Detail:
   gebraucht wird, wandert nach `src/features/shared/`. Verbindliches
   Kochrezept inkl. Entscheidungsbaum „gemeinsame Komponente vs. getrennte
   Views": `docs/architecture/feature-structure.md`.
+
+Die Richtung ist maschinell erzwungen (`pnpm check:layers`, §2). Feature-`domain`
+liegt dabei auf der Höhe von `lib` — ein Service darf sie benutzen, umgekehrt
+nicht.
+
+### Wohin ein Typ gehört
+
+Der häufigste Weg, die Richtung umzudrehen, ist keine Architektur-Entscheidung,
+sondern eine Ablage-Gewohnheit: der Typ landet dort, wo er zuerst gebraucht wird.
+Ein `interface` im I/O-Service oder in der Komponente zwingt jeden späteren
+Nutzer weiter unten zum Import nach oben.
+
+| Was | Wohin |
+|---|---|
+| Form persistierter Daten (`ContractDecision`, `MerchantRule`, `TaxYearProfile`) | `src/lib/` — der Service speichert sie, besitzt sie aber nicht |
+| Reine Funktion ohne I/O (`explainCategorization`, `normalizeIban`) | `src/lib/`, auch wenn nur ein Service sie heute ruft |
+| Typ, den Service **und** Oberfläche brauchen | `src/lib/` |
+| Fachlicher Zustand, den **≥ 2 Slices** lesen (`DashboardFilterState`) | `src/features/shared/domain/` |
+| Modul, das `localStorage`/IndexedDB/Netz anfasst | `src/services/` — auch wenn es heute in `lib/` liegt |
 
 ### Vorentschiedenes zuerst lesen
 
@@ -354,8 +374,9 @@ Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
 Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
 (`pnpm check:platform-parity`), den Fehlerzustand jeder Abfrage
 (`pnpm check:query-errors`) die Namen der Bedienelemente
-(`pnpm check:a11y-names`) und die Zustands-Abdeckung je Fläche
-(`pnpm check:state-coverage`). Claude
+(`pnpm check:a11y-names`), die Zustands-Abdeckung je Fläche
+(`pnpm check:state-coverage`) und die Import-Richtung zwischen den Schichten
+(`pnpm check:layers`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.

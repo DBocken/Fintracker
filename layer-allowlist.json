@@ -1,0 +1,11 @@
+{
+  "_hinweis": [
+    "Ausnahmen vom Schicht-Wächter (scripts/check-layers.mjs, AGENTS.md §3).",
+    "Die Liste ist absichtlich leer: der Bestand ist sauber, und jeder Eintrag",
+    "hier ist eine Abhängigkeit, die in die falsche Richtung zeigt.",
+    "Format je Eintrag: \"<repo-relativer Pfad>\": { \"imports\": [\"<Spezifizierer>\"], \"reason\": \"<warum das hier nicht auflösbar ist>\" }.",
+    "Ohne tragfähigen `reason` wird der Eintrag abgewiesen. Verwaiste Einträge",
+    "(Verstoß längst weg) meldet der Wächter als Warnung — dann bitte löschen."
+  ],
+  "exceptions": {}
+}

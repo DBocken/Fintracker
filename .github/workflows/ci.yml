@@ -65,6 +65,12 @@ jobs:
       - name: Test-Struktur-Check
         run: pnpm check:test-structure
 
+      # TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie
+      # einer nach unten. So sind 30 umgedrehte Abhaengigkeiten entstanden,
+      # ohne dass je etwas rot wurde.
+      - name: Schicht-Waechter
+        run: pnpm check:layers
+
       - name: Karten-Regel-Check
         run: pnpm check:card-rule
 

@@ -20,6 +20,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:i18n-module-consts": "node scripts/check-i18n-module-consts.mjs",
     "check:test-structure": "node scripts/check-test-structure.mjs",
+    "check:layers": "node scripts/check-layers.mjs",
     "check:card-rule": "node scripts/check-card-rule.mjs",
     "check:platform-parity": "node scripts/check-platform-parity.mjs",
     "check:query-errors": "node scripts/check-query-errors.mjs",
