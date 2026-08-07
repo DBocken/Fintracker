@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, MoreVertical, Sparkles } from "lucide-react";
 import EmptyState from "@/components/common/EmptyState";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { InfoStatStrip } from "@/components/common/InfoGroup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,22 +54,42 @@ export function ReceivablesPanel() {
   const [editing, setEditing] = useState<Partial<Receivable> | null>(null);
   const [selectedReceivableId, setSelectedReceivableId] = useState<string>("");
 
-  const { data: receivables = [], isLoading } = useQuery({
+  const {
+    data: receivables = [],
+    isLoading,
+    isError: receivablesError,
+    refetch: refetchReceivables,
+  } = useQuery({
     queryKey: ["receivables"],
     queryFn: getReceivables,
   });
 
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     queryKey: ["transactions", "receivable-assignment"],
     queryFn: () => getTransactions(500),
     enabled: receivables.length > 0,
   });
 
-  const { data: assignments = [] } = useQuery<ReceivableTransactionAssignment[]>({
+  const {
+    data: assignments = [],
+    isError: assignmentsError,
+    refetch: refetchAssignments,
+  } = useQuery<ReceivableTransactionAssignment[]>({
     queryKey: ["receivable-transaction-assignments"],
     queryFn: getReceivableTransactionAssignments,
     enabled: receivables.length > 0,
   });
+
+  const hasLoadError = receivablesError || transactionsError || assignmentsError;
+  const retryAll = () => {
+    void refetchReceivables();
+    void refetchTransactions();
+    void refetchAssignments();
+  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["receivables"] });
@@ -212,6 +233,8 @@ export function ReceivablesPanel() {
           <Skeleton variant="shimmer" className="h-20 w-full" />
           <Skeleton variant="shimmer" className="h-20 w-full" />
         </div>
+      ) : hasLoadError ? (
+        <FinanceErrorState variant="data" onRetry={retryAll} />
       ) : receivables.length === 0 ? (
         <EmptyState
           emoji="🤝"

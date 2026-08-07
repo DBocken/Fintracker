@@ -95,6 +95,13 @@ export default function TaxReportPage() {
 
   const hasMarked = report.txCount > 0;
 
+  // Eine Ursache, eine Aussage: Faellt der Speicher als Ganzes aus, scheitern
+  // die Abfragen der Seite UND die der Vorschlagsrubrik. Beide zeigten dann
+  // denselben Satz untereinander. Die Rubrik behaelt ihren eigenen
+  // Fehlerzustand — sie kann auch allein scheitern —, tritt hier aber zurueck
+  // ([REGRESSION] `TaxReportPage.error-state.test.tsx`, WP-9.6).
+  const hasLoadError = transactionsError || categoriesError || profileError;
+
   return (
     <div className="mx-auto w-full max-w-screen-lg space-y-6">
       <PageHeader
@@ -115,9 +122,11 @@ export default function TaxReportPage() {
 
       {showEuerPointer && <EuerPointerCard />}
 
-      <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
+      {!hasLoadError && (
+        <TaxSuggestionsSection transactions={transactions} categories={categories} onOpenTransaction={openTransaction} />
+      )}
 
-      {transactionsError || categoriesError || profileError ? (
+      {hasLoadError ? (
         <FinanceErrorState
           variant="transactions"
           onRetry={() => {

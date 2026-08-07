@@ -90,18 +90,37 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     queryKey: transactionsKeys.transactions(FINANCE_TRANSACTION_LIMIT),
     queryFn: () => getTransactions(FINANCE_TRANSACTION_LIMIT),
   });
-  const { data: cats = [] } = useQuery({
+  // WP-9.6: Auch die Nebendaten in denselben Fehlerzustand. Ohne Kategorien
+  // wird jede Buchung als „ohne Kategorie" angezeigt, ohne Konten fehlt die
+  // Zuordnung — beides sieht nach gepflegten Daten aus, die es nicht sind.
+  const {
+    data: cats = [],
+    isError: catsError,
+    refetch: refetchCats,
+  } = useQuery({
     queryKey: transactionsKeys.categories,
     queryFn: () => getCategories(),
   });
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: transactionsKeys.accounts,
     queryFn: () => getAccounts(),
   });
-  const { data: contractDecisions = EMPTY_CONTRACT_DECISIONS } = useQuery({
+  const {
+    data: contractDecisions = EMPTY_CONTRACT_DECISIONS,
+    isError: contractDecisionsError,
+    refetch: refetchContractDecisions,
+  } = useQuery({
     queryKey: transactionsKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
+
+  // EINE Aussage fuer die ganze Seite (siehe DebtsPage): Vier getrennte
+  // Meldungen fuer dieselbe Ursache waeren vier Raetsel statt eines Hinweises.
+  const hasLoadError = txsError || catsError || accountsError || contractDecisionsError;
   // Aufteilungen speisen Suche (Split-Notizen), Kategorie-Filter, die
   // aufklappbaren Split-Zeilen und die anteilsgenauen Kennzahlen.
   const allocations = useAllocationMap();
@@ -247,7 +266,10 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   const retry = useCallback(() => {
     void refetchTxs();
-  }, [refetchTxs]);
+    void refetchCats();
+    void refetchAccounts();
+    void refetchContractDecisions();
+  }, [refetchTxs, refetchCats, refetchAccounts, refetchContractDecisions]);
 
   const actions = useMemo(() => ({
     deleteTransaction: deleteTransactionAction,
@@ -276,8 +298,8 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     // WP-9.2: `!txsError` ist der Kern. Ohne ihn bedeutet `txs.length === 0`
     // zweierlei — "keine Buchungen" und "Buchungen nicht ladbar" — und der
     // Screen behauptet im zweiten Fall das Erste.
-    isEmpty: !txsLoading && !txsError && txs.length === 0,
-    hasError: txsError,
+    isEmpty: !txsLoading && !hasLoadError && txs.length === 0,
+    hasError: hasLoadError,
     transactions,
     categories: cats,
     accounts,
@@ -287,5 +309,5 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     filters: filtersVM,
     hidden,
     actions,
-  }), [txsLoading, txsError, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
+  }), [txsLoading, hasLoadError, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
 }

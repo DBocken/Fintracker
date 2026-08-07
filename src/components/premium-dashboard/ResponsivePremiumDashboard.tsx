@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import SegmentedControl from "@/components/common/SegmentedControl";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { getTransactions, getCategories } from "../../services/transaction-service";
 import { sumIncome, sumExpenses } from "../../lib/analysis-data";
 import { getAccounts } from "../../services/account-service";
@@ -27,21 +28,40 @@ export function ResponsivePremiumDashboard() {
 
   // Gleiche Query wie das Basis-Dashboard (gleicher queryKey ⇒ gleiches Limit),
   // damit der Cache konsistent bleibt (Issue #40).
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const {
+    data: transactions = [],
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery<Transaction[]>({
     // Limit im Query-Key (F-PERF-3) gegen Cache-Kollision mit dem 1000er-Load.
     queryKey: ["transactions", 5000],
     queryFn: () => getTransactions(5000),
   });
 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
 
-  const { data: accounts = [] } = useQuery<Account[]>({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery<Account[]>({
     queryKey: ["accounts"],
     queryFn: () => getAccounts(),
   });
+
+  const hasLoadError = transactionsError || categoriesError || accountsError;
+  const retryAll = () => {
+    void refetchTransactions();
+    void refetchCategories();
+    void refetchAccounts();
+  };
 
   // Aufteilungen: Split-Anteile zählen in ihrer eigenen Kategorie.
   const allocations = useAllocationMap();
@@ -197,6 +217,10 @@ export function ResponsivePremiumDashboard() {
   };
 
   const topExpense = fd.topExpenseCategories[0] ?? { name: t("premium.dashboard.noExpensesLabel"), amount: 0 };
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
 
   return (
     <div {...dyadProps("ResponsivePremiumDashboard")} className="space-y-8 sm:space-y-12">

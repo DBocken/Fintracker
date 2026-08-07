@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { showSuccess, showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import type { Account, AccountType } from '../../types';
 import {
   getAccounts,
@@ -54,17 +55,30 @@ export function AccountManager() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const {
+    data: accounts = [],
+    isLoading,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
   });
 
-  const { data: limitInfo } = useQuery({
+  const {
+    data: limitInfo,
+    isError: limitError,
+    refetch: refetchLimit,
+  } = useQuery({
     queryKey: ['account-limit'],
     queryFn: canCreateAccount,
   });
 
-  const { data: consentStatuses = {} } = useQuery({
+  const {
+    data: consentStatuses = {},
+    isError: consentError,
+    refetch: refetchConsent,
+  } = useQuery({
     queryKey: ['account-consent-statuses', accounts.map((a) => a.id).join(',')],
     enabled: accounts.length > 0,
     queryFn: async () => {
@@ -74,6 +88,13 @@ export function AccountManager() {
       return Object.fromEntries(entries);
     },
   });
+
+  const hasLoadError = accountsError || limitError || consentError;
+  const retryAll = () => {
+    void refetchAccounts();
+    void refetchLimit();
+    void refetchConsent();
+  };
 
   const expiredConsentAccounts = useMemo(
     () => accounts.filter((account) => consentStatuses[account.id]?.expired),
@@ -299,6 +320,8 @@ export function AccountManager() {
       <RequireTier feature="bankSync">
         <GoCardlessConnect onConnectionSuccess={handleConnectionSuccess} />
       </RequireTier>
+
+      {hasLoadError && <FinanceErrorState variant="data" onRetry={retryAll} />}
 
       <Card>
         <CardHeader>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, PiggyBank } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import PageHeader from "@/components/common/PageHeader";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,21 +24,41 @@ export default function BudgetsPage() {
   const [editing, setEditing] = useState<Budget | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const { data: overview, isLoading } = useQuery({
+  const {
+    data: overview,
+    isLoading,
+    isError: overviewError,
+    refetch: refetchOverview,
+  } = useQuery({
     queryKey: ["budget-overview"],
     queryFn: () => getBudgetOverview(),
   });
 
   // Hauptkategorien (mit Unterkategorien) für die Auswahl im Formular.
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ["categories-hierarchical"],
     queryFn: getHierarchicalCategories,
   });
 
-  const { data: accounts = [] } = useQuery({
+  const {
+    data: accounts = [],
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery({
     queryKey: ["accounts"],
     queryFn: getAccounts,
   });
+
+  const hasLoadError = overviewError || categoriesError || accountsError;
+  const retryAll = () => {
+    void refetchOverview();
+    void refetchCategories();
+    void refetchAccounts();
+  };
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["budget-overview"] });
 
@@ -107,6 +128,8 @@ export default function BudgetsPage() {
             <Skeleton variant="shimmer" key={i} className="h-28 w-full rounded-2xl" />
           ))}
         </div>
+      ) : hasLoadError ? (
+        <FinanceErrorState variant="data" onRetry={retryAll} />
       ) : (
         <div className="space-y-6">
           {suggestions.length > 0 && (

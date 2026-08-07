@@ -22,7 +22,17 @@ import { buildPendingCategorySuggestions } from "@/lib/automation-suggestions";
 export function useAutomationSuggestions() {
   const qc = useQueryClient();
 
-  const { data: transactions = [], isLoading: txLoading } = useQuery({
+  // WP-9.6: Alle vier Abfragen speisen dieselbe Aussage („diese Vorschlaege
+  // sind offen"). Faellt eine aus, sind die Vorschlaege nicht bloss weniger,
+  // sondern falsch: Ohne `decided` gelten laengst weggeklickte wieder als
+  // offen. Der Hook stellt nichts dar (AGENTS.md §3) — er reicht den
+  // Unterschied nach oben durch.
+  const {
+    data: transactions = [],
+    isLoading: txLoading,
+    isError: txError,
+    refetch: refetchTx,
+  } = useQuery({
     // Limit im Query-Key (F-PERF-3): sonst kollidiert dieser 1000er-Load mit den
     // 5000er-Loads von Dashboard/Buchungen/Premium unter demselben Key und der
     // zuerst gemountete Aufrufer bestimmt den Cache → still falsche Summen.
@@ -30,15 +40,27 @@ export function useAutomationSuggestions() {
     queryKey: ["transactions", 1000],
     queryFn: () => getTransactions(1000),
   });
-  const { data: categories = [] } = useQuery({
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategories,
   });
-  const { data: rules = [] } = useQuery({
+  const {
+    data: rules = [],
+    isError: rulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ["merchant-rules"],
     queryFn: getMerchantRules,
   });
-  const { data: decided = [] } = useQuery({
+  const {
+    data: decided = [],
+    isError: decidedError,
+    refetch: refetchDecided,
+  } = useQuery({
     queryKey: ["automation-suggestions"],
     queryFn: getAutomationSuggestions,
   });
@@ -86,6 +108,13 @@ export function useAutomationSuggestions() {
   return {
     suggestions,
     isLoading: txLoading,
+    isError: txError || categoriesError || rulesError || decidedError,
+    refetch: () => {
+      void refetchTx();
+      void refetchCategories();
+      void refetchRules();
+      void refetchDecided();
+    },
     categoryNameById,
     accept: (s: AutomationSuggestion) => acceptMutation.mutate(s),
     reject: (s: AutomationSuggestion) => rejectMutation.mutate(s),

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import type { BudgetStatus } from "@/types";
 import { resolveRolloverConfig } from "@/lib/budget-rollover";
@@ -13,7 +14,19 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR",
 
 /** Rendert einen EPC-QR-Code (GiroCode) lokal als Bild. */
 function GiroImage({ payload, alt }: { payload: string; alt: string }) {
-  const { data } = useQuery({ queryKey: ["girocode", payload], queryFn: () => renderGirocodeDataUrl(payload) });
+  const {
+    data,
+    isError: girocodeError,
+    refetch: refetchGirocode,
+  } = useQuery({
+    queryKey: ["girocode", payload],
+    queryFn: () => renderGirocodeDataUrl(payload),
+  });
+
+  if (girocodeError) {
+    return <FinanceErrorState variant="data" onRetry={refetchGirocode} />;
+  }
+
   if (!data) return null;
   return (
     <img
@@ -37,11 +50,19 @@ export default function SweepCard({ status }: { status: BudgetStatus }) {
   const action = resolveRolloverConfig(status.budget).surplusAction;
   const applicable = (action === "sweep_savings" || action === "sweep_invest") && (status.swept ?? 0) >= 1;
 
-  const { data: plan } = useQuery({
+  const {
+    data: plan,
+    isError: planError,
+    refetch: refetchPlan,
+  } = useQuery({
     queryKey: ["budget-sweep", status.budget.id, status.swept],
     queryFn: () => getBudgetSweepPlan(status),
     enabled: applicable,
   });
+
+  if (planError) {
+    return <FinanceErrorState variant="data" onRetry={refetchPlan} />;
+  }
 
   if (!applicable || !plan) return null;
   const { gate } = plan;

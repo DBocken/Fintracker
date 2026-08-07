@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -37,8 +38,17 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
   const txId = transaction.id ?? "";
   const total = Math.abs(transaction.amount);
 
-  const { data: households = [] } = useQuery({ queryKey: ["households"], queryFn: getHouseholds });
-  const { data: existing } = useQuery({
+  const {
+    data: households = [],
+    isError: householdsError,
+    refetch: refetchHouseholds,
+  } = useQuery({ queryKey: ["households"], queryFn: getHouseholds });
+
+  const {
+    data: existing,
+    isError: existingError,
+    refetch: refetchExisting,
+  } = useQuery({
     queryKey: ["shared-split", txId],
     queryFn: () => getSharedExpenseSplit(txId),
     enabled: !!txId,
@@ -49,11 +59,22 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
     if (existing?.household_id) setHouseholdId(existing.household_id);
   }, [existing]);
 
-  const { data: members = [] } = useQuery({
+  const {
+    data: members = [],
+    isError: membersError,
+    refetch: refetchMembers,
+  } = useQuery({
     queryKey: ["household-members", householdId],
     queryFn: () => getHouseholdMembers(householdId),
     enabled: !!householdId,
   });
+
+  const hasLoadError = householdsError || existingError || membersError;
+  const retryAll = () => {
+    void refetchHouseholds();
+    void refetchExisting();
+    void refetchMembers();
+  };
 
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -99,6 +120,10 @@ export function HouseholdSplitPanel({ transaction }: { transaction: Transaction 
       showSuccess(t("household.removeSplitSuccess"));
     },
   });
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
 
   if (households.length === 0) {
     return (

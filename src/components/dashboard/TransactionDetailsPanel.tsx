@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
 import { getAllocationsForTransaction } from '@/services/transaction-allocation-service';
@@ -116,7 +117,11 @@ export function TransactionDetailsPanel({
     }
   }, [transaction]);
 
-  const { data: learnedRules = [] } = useQuery({
+  const {
+    data: learnedRules = [],
+    isError: rulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ['merchant-rules'],
     queryFn: getMerchantRules,
     enabled: !!transaction,
@@ -128,11 +133,21 @@ export function TransactionDetailsPanel({
   // AUSSERHALB der FeatureGate geladen: Aufteilungen überleben ein Tier-Downgrade,
   // der Steuer-Hinweis muss also auch ohne Premium sichtbar sein.
   const txIdForAllocations = transaction?.id ?? '';
-  const { data: taxAllocations = [] } = useQuery({
+  const {
+    data: taxAllocations = [],
+    isError: allocationsError,
+    refetch: refetchAllocations,
+  } = useQuery({
     queryKey: ['allocations', txIdForAllocations],
     queryFn: () => getAllocationsForTransaction(txIdForAllocations),
     enabled: !!txIdForAllocations,
   });
+
+  const hasLoadError = rulesError || allocationsError;
+  const retryAll = () => {
+    void refetchRules();
+    void refetchAllocations();
+  };
 
   const similar = useMemo(() => {
     if (!transaction) return { exact: [], probable: [], reason: 'merchant' as const };
@@ -151,6 +166,10 @@ export function TransactionDetailsPanel({
   }, [transaction, draft, allTransactions]);
 
   if (!transaction || !draft) return null;
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
 
   const similarIds = similar.exact.map((tx) => tx.id!).filter(Boolean);
   const similarCount = similarIds.length;

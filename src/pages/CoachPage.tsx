@@ -37,12 +37,34 @@ export default function CoachPage() {
   const tier = useTier();
   const tutorialRun = useTutorialRun();
   const includeTaxReserve = hasFeatureAccess(tier, "creatorPack");
-  const { data: coach, isLoading: coachLoading } = useQuery({
+  const {
+    data: coach,
+    isLoading: coachLoading,
+    isError: coachError,
+    refetch: refetchCoach,
+  } = useQuery({
     queryKey: ["coach-overview", locale, includeTaxReserve, tutorialRun.upcoming],
     queryFn: () => getCoachOverview({ includeTaxReserve, tutorialChapter: tutorialRun.upcoming }),
   });
-  const { data: health } = useQuery({ queryKey: ["financial-health", locale], queryFn: getFinancialHealth });
-  const { data: milestones, isLoading: milestonesLoading } = useQuery({ queryKey: ["milestones", locale], queryFn: evaluateMilestones });
+
+  const {
+    data: health,
+    isError: healthError,
+    refetch: refetchHealth,
+  } = useQuery({
+    queryKey: ["financial-health", locale],
+    queryFn: getFinancialHealth,
+  });
+
+  const {
+    data: milestones,
+    isLoading: milestonesLoading,
+    isError: milestonesError,
+    refetch: refetchMilestones,
+  } = useQuery({
+    queryKey: ["milestones", locale],
+    queryFn: evaluateMilestones,
+  });
 
   // Leerer Zustand (Issue #39): ohne Daten gibt es nichts zu coachen —
   // klare nächste Aktion statt leerer Karten. Eigener queryKey, damit der
@@ -63,11 +85,19 @@ export default function CoachPage() {
     },
   });
 
-  if (hasDataError) {
+  const hasLoadError = coachError || healthError || milestonesError || hasDataError;
+  const retryAll = () => {
+    void refetchCoach();
+    void refetchHealth();
+    void refetchMilestones();
+    void refetchHasData();
+  };
+
+  if (hasLoadError) {
     return (
       <div className="space-y-8">
         <PageHeader title={t("coach.title")} description={t("coach.description")} />
-        <FinanceErrorState onRetry={() => void refetchHasData()} />
+        <FinanceErrorState onRetry={retryAll} />
       </div>
     );
   }
