@@ -65,6 +65,7 @@ import { computeBufferShortfall } from '@/lib/liquidity-shortfall';
 import DeltaBadge from '@/components/common/DeltaBadge';
 import type { Prioritaet } from '@/types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 
 const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -156,7 +157,7 @@ export default function LiquidityReport() {
   const setSafetyBuffer = (b: number) => updateConfig({ safetyBuffer: b });
   const setBufferBasis = (b: BufferBasis) => updateConfig({ bufferBasis: b });
 
-  const { forecast, input, analysis, isLoading, isError, error } = useForecast({
+  const { forecast, input, analysis, isLoading, isError, refetch: refetchForecast } = useForecast({
     months,
     safetyBuffer,
     bufferBasis,
@@ -164,7 +165,11 @@ export default function LiquidityReport() {
 
   // Kategorie-Prioritäten (vom Nutzer gesetzt) → steuern den Spar-Wasserfall
   // im BudgetOptimizer: niedrige Priorität wird zuerst gekürzt.
-  const { data: categories = [], isError: categoriesError } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
+  const {
+    data: categories = [],
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
   const priorityByCategory = useMemo(() => {
     const map = new Map<string, Prioritaet>();
     for (const c of categories) {
@@ -325,12 +330,19 @@ export default function LiquidityReport() {
   }
 
   if (hasLoadError) {
+    // Vorher stand hier `error.message` — also „IndexedDB nicht erreichbar" auf
+    // dem Bildschirm eines Menschen, der die App benutzt statt sie zu bauen.
+    // Dazu fehlte jeder Wiederholversuch. `FinanceErrorState` sagt WAS nicht
+    // ging, dass die Daten nicht verloren sind, und bietet den naechsten
+    // Schritt (WP-9.2).
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>{t("liquidityReport.forecastError")}</AlertTitle>
-        <AlertDescription>{error?.message ?? t("liquidityReport.unknownError")}</AlertDescription>
-      </Alert>
+      <FinanceErrorState
+        variant="data"
+        onRetry={() => {
+          refetchForecast();
+          void refetchCategories();
+        }}
+      />
     );
   }
 

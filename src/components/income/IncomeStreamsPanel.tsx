@@ -81,13 +81,20 @@ export default function IncomeStreamsPanel() {
     void refetchAllocations();
   };
 
+  // VOR dem Leerzustand. Scheitert die Abfrage, ist `txs` ebenfalls `[]` — der
+  // Leerzustand gewann dann das Rennen und der Fehlerblock darunter war
+  // unerreichbar. Genau der Befund aus WP-9.1, nur an einer Stelle, die er
+  // damals nicht erwischt hat ([REGRESSION] `IncomePage.error-state.test.tsx`).
+  if (hasLoadError) {
+    return <FinanceErrorState variant="transactions" onRetry={retryAll} />;
+  }
+
   if (!txsLoading && txs.length === 0) {
     return <FinanceEmptyState />;
   }
 
   return (
     <div className="space-y-6">
-      {hasLoadError && <FinanceErrorState variant="transactions" onRetry={retryAll} />}
 
       <div className="max-w-xs">
         <SegmentedControl

@@ -187,7 +187,15 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               <label className="block text-sm font-medium mb-2">
                 {t("csv.targetAccount")} <span className="text-warning">*</span>
               </label>
-              {accounts.length === 0 && !accountsLoading ? (
+              {/*
+                `!accountsError` ist der Kern: Ein gescheiterter Lesevorgang
+                hinterlaesst dieselbe leere Liste wie ein leerer Speicher, und
+                die Aufforderung „erstelle zuerst ein Konto" stand dann direkt
+                NEBEN der Fehlermeldung — zwei widersprechende Aussagen, von
+                denen die untere den Nutzer dazu bringt, ein Konto ein zweites
+                Mal anzulegen ([REGRESSION] `CsvPage.error-state.test.tsx`).
+              */}
+              {accounts.length === 0 && !accountsLoading && !accountsError ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
