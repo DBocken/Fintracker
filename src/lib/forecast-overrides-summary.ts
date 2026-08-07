@@ -192,3 +192,50 @@ export function summarizeOverrides(
 
   return changes;
 }
+
+/**
+ * Der Patch, der genau EINE aktive Annahme zurücknimmt.
+ *
+ * Lag zuvor als `clearOverrideChange` in `LiquidityReport.tsx` und rief die
+ * Setz-Funktion selbst auf. Dadurch war sie nur über einen gerenderten Screen
+ * erreichbar — für sechs verschiedene Override-Sammlungen und den kniffligen
+ * Sonderfall unten. Jetzt liefert sie den Patch zurück; das Setzen bleibt Sache
+ * der Oberfläche.
+ *
+ * Der Sonderfall: Ein Vertrags-Override kann zugleich Betrag UND End-Datum
+ * überschreiben. Gelöst wird dann nur das betroffene Feld — bleibt danach ein
+ * leeres Override-Objekt übrig, verschwindet der ganze Eintrag. Ohne diesen
+ * zweiten Schritt bliebe eine leere Hülle stehen, die als aktive Annahme
+ * gezählt würde, ohne eine zu sein.
+ */
+export function overrideChangeRemovalPatch(
+  overrides: ForecastOverrides,
+  change: OverrideChange,
+): Partial<ForecastOverrides> {
+  switch (change.source) {
+    case 'recurringFlowOverrides': {
+      const next = { ...overrides.recurringFlowOverrides };
+      const updated = { ...next[change.key] };
+      if (change.field) delete updated[change.field];
+      if (Object.keys(updated).length > 0) next[change.key] = updated;
+      else delete next[change.key];
+      return { recurringFlowOverrides: next };
+    }
+    case 'categoryBudgets': {
+      const next = { ...overrides.categoryBudgets };
+      delete next[change.key];
+      return { categoryBudgets: next };
+    }
+    case 'accountInterest': {
+      const next = { ...overrides.accountInterest };
+      delete next[change.key];
+      return { accountInterest: next };
+    }
+    case 'plannedEvents':
+      return { plannedEvents: overrides.plannedEvents.filter((e) => e.id !== change.key) };
+    case 'transfers':
+      return { transfers: overrides.transfers.filter((t) => t.id !== change.key) };
+    case 'sinkingFunds':
+      return { sinkingFunds: overrides.sinkingFunds.filter((f) => f.id !== change.key) };
+  }
+}

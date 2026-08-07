@@ -17,10 +17,22 @@ import { resolve } from 'node:path';
  *   zeigte das Dreifache ihrer echten Spannweite.
  */
 
-const SOURCE = readFileSync(
-  resolve(__dirname, '../../components/dashboard/LiquidityReport.tsx'),
-  'utf8'
-);
+/**
+ * Der Quelltext der Liniendarstellung UND der gemeinsamen Bausteine.
+ *
+ * Die Wolke entsteht über drei Dateien: die Fläche selbst reicht die
+ * Perzentile hinein, `chart-shared` beschreibt die Ebenen, `ChartLinesView`
+ * zeichnet sie. Bis zur Zerlegung von `LiquidityReport.tsx` lag alles in einer
+ * Datei. Der Test liest bewusst weiter die Quelle statt das gerenderte SVG
+ * (Begründung oben) — er muss dafür nur wissen, wo sie inzwischen steht.
+ */
+const SOURCE = [
+  '../../components/dashboard/LiquidityReport.tsx',
+  '../../components/dashboard/liquidity/chart-shared.ts',
+  '../../components/dashboard/liquidity/ChartLinesView.tsx',
+]
+  .map((relativePath) => readFileSync(resolve(__dirname, relativePath), 'utf8'))
+  .join('\n');
 
 /** Liest die BAND_LAYERS-Konstante aus der Quelle. */
 function bandLayers(): { key: string; opacityFactor: number }[] {
