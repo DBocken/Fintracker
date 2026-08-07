@@ -55,6 +55,7 @@ import { getPreferredMarketProvider } from '@/services/user-settings-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingSwap } from '@/components/common/LoadingSwap';
+import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -117,7 +118,12 @@ export default function TradingDashboard() {
   }, [preferredProvider]);
 
   // Initialize demo portfolio if none exists
-  const { data: hasInitialized, isLoading: isInitializing } = useQuery({
+  const {
+    data: hasInitialized,
+    isLoading: isInitializing,
+    isError: initializationError,
+    refetch: refetchInitialization,
+  } = useQuery({
     queryKey: ['portfolio-initialization'],
     queryFn: async () => {
       const portfolio = await initializeDemoPortfolio();
@@ -127,7 +133,12 @@ export default function TradingDashboard() {
   });
 
   // Get active portfolio
-  const { data: portfolio, isLoading: isLoadingPortfolio } = useQuery({
+  const {
+    data: portfolio,
+    isLoading: isLoadingPortfolio,
+    isError: portfolioError,
+    refetch: refetchPortfolio,
+  } = useQuery({
     queryKey: ['active-portfolio'],
     queryFn: getActivePortfolio,
     enabled: !!hasInitialized,
@@ -141,14 +152,23 @@ export default function TradingDashboard() {
   }, [portfolio]);
 
   // Get positions for active portfolio
-  const { data: positions, isLoading: isLoadingPositions } = useQuery({
+  const {
+    data: positions,
+    isLoading: isLoadingPositions,
+    isError: positionsError,
+    refetch: refetchPositions,
+  } = useQuery({
     queryKey: ['portfolio-positions', activePortfolio?.id],
     queryFn: () => getPositions(activePortfolio!.id),
     enabled: !!activePortfolio?.id,
   });
 
   // Get portfolio summary
-  const { data: summary } = useQuery({
+  const {
+    data: summary,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ['portfolio-summary', activePortfolio?.id],
     queryFn: () => getPortfolioSummary(activePortfolio!.id),
     enabled: !!activePortfolio?.id,
@@ -788,6 +808,27 @@ export default function TradingDashboard() {
     
     return data;
   };
+
+  // WP-9.6: Depot, Positionen und Kennzahlen sind Bestandsdaten. Faellt ihr
+  // Lesevorgang aus, zeigt der Fallback ein LEERES Depot — „du besitzt nichts"
+  // ist hier die teuerste Falschaussage der App. Eine Aussage fuer alle vier
+  // Abfragen: Sie haben dieselbe Quelle, vier Meldungen waeren vier Raetsel.
+  //
+  // Die eToro-Zusatzabfragen weiter unten stehen bewusst NICHT hier: Ihre
+  // `queryFn` faengt den Fehler selbst ab und liefert eine dokumentierte
+  // Ersatzantwort (leere Map, Anzeige faellt auf „Instrument #<id>" zurueck).
+  // Sie koennen den Fehlerzustand gar nicht erreichen.
+  const hasLoadError = initializationError || portfolioError || positionsError || summaryError;
+  const retryAll = () => {
+    void refetchInitialization();
+    void refetchPortfolio();
+    void refetchPositions();
+    void refetchSummary();
+  };
+
+  if (hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  }
 
   if (isInitializing || isLoadingPortfolio) {
     // WP-8.4: Choreografie aus WP-7.3. Der Platzhalter zeichnet vor, was
