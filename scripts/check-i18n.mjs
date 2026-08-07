@@ -263,7 +263,12 @@ function checkHardcodedStrings(file, diff) {
       // Bewusst auf TAGS geprueft und nicht auf `<`/`>`: Vergleiche (`>= 25`)
       // und Pfeilfunktionen (`=>`) enthalten diese Zeichen ebenfalls, und eine
       // Erkennung darauf haette die Ausnahme wirkungslos gemacht.
-      const looksLikeJsx = /<\/?[A-Za-z]/.test(trimmed);
+      //
+      // Nur `.tsx` kann JSX enthalten. Ohne diese Bedingung hielt der Waechter
+      // jede TypeScript-Generic fuer ein Tag — `ReadonlySet<DashboardRange>`
+      // faengt der Regex genauso wie `<span>`. Damit war die Ausnahme in
+      // `.ts`-Dateien praktisch abgeschaltet und meldete Typwerte als Text.
+      const looksLikeJsx = file.endsWith('.tsx') && /<\/?[A-Za-z]/.test(trimmed);
       if (!looksLikeJsx && DOMAIN_VALUE_TERMS.some((term) => trimmed.includes(term))) {
         continue;
       }

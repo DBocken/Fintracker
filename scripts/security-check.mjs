@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { encoding: 'utf8' })
   .split(/\r?\n/)
@@ -9,7 +9,11 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
   // erwartungsgemaess Tausende davon und wuerde den Waechter sonst dauerhaft rot
   // halten — worauf man ihn irgendwann abschaltet.
   .filter((file) => !/\.(png|jpe?g|gif|webp|woff2?|pptx|pdf|jar|zip|keystore|so|dylib|class)$/i.test(file))
-  .filter((file) => !['pnpm-lock.yaml', 'package-lock.json'].includes(file));
+  .filter((file) => !['pnpm-lock.yaml', 'package-lock.json'].includes(file))
+  // `git ls-files --cached` kennt den Index, nicht die Platte: eine noch nicht
+  // gestagte Loeschung steht hier weiter drin und liesse den Scan mit ENOENT
+  // sterben. Ein Pfad, den es nicht gibt, kann kein Secret enthalten.
+  .filter((file) => existsSync(file));
 
 const forbiddenTrackedEnv = files.filter(
   (file) => /(^|\/)\.env(?:\.|$)/.test(file) && !file.endsWith('.env.example'),

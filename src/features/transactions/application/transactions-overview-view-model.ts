@@ -1,7 +1,7 @@
 import type { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
-import type { DashboardFilterState } from '@/components/dashboard/filter-utils';
-import type { DashboardGranularity, DashboardRange } from '@/components/dashboard/filter-constants';
+import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
+import type { DashboardGranularity, DashboardRange } from '@/features/shared/domain/dashboard-filters';
 import type { PeriodOption } from '@/components/dashboard/period-utils';
 
 /**

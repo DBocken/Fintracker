@@ -1,5 +1,5 @@
 import type { Ausgabenklasse, Category, Rhythmus, Transaction } from '@/types';
-import type { CategorizationResult } from '@/services/transaction-service';
+import type { CategorizationResult } from '@/lib/categorization';
 import { taxCategoryById } from '@/data/tax-catalog';
 import { t } from '@/i18n/serviceT';
 

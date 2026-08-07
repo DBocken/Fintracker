@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeMemberBalances, computeDebts } from '../balances';
-import { splitWeighted, splitEqually, type SharedExpenseSplit } from '@/services/household-service';
+import { splitWeighted, splitEqually } from '@/services/household-service';
+import type { SharedExpenseSplit } from '@/lib/household-types';
 
 function split(overrides: Partial<SharedExpenseSplit>): SharedExpenseSplit {
   return {

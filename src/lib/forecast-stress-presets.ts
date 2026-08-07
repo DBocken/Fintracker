@@ -10,7 +10,7 @@
  * sich einzeln zurücknehmen. Kein paralleler Rechenweg mehr.
  */
 import { addDays, addMonths, format, parseISO } from 'date-fns';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { PlannedForecastEvent, VariableExpenseBaseline } from '@/lib/forecast-types';
 import { t } from '@/i18n/serviceT';
 

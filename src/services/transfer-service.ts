@@ -1,3 +1,4 @@
+import { normalizeIban } from '@/lib/iban';
 import type { Transaction } from '../types';
 
 export interface TransferCandidate {
@@ -15,13 +16,6 @@ const MAX_DAYS_APART = 2;
 function daysBetween(a: string, b: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.abs(Math.round((new Date(a).getTime() - new Date(b).getTime()) / msPerDay));
-}
-
-/** Vereinheitlicht eine IBAN (Leerzeichen weg, Großbuchstaben) für den Vergleich. */
-export function normalizeIban(iban?: string | null): string | null {
-  if (!iban) return null;
-  const normalized = iban.replace(/\s+/g, '').toUpperCase();
-  return normalized.length > 0 ? normalized : null;
 }
 
 /**

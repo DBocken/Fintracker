@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapCycleToRhythmus } from "../contract-types";
+import { mapCycleToRhythmus } from "@/lib/contract-types";
 
 describe("mapCycleToRhythmus", () => {
   it("maps known cycles to their Rhythmus equivalent", () => {

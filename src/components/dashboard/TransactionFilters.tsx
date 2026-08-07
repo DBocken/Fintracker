@@ -14,7 +14,7 @@ import {
   type DashboardRange,
   type EssentialFilter,
   type AusgabenklasseFilter,
-} from './filter-constants';
+} from '@/features/shared/domain/dashboard-filters';
 import type { PeriodOption } from './period-utils';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 

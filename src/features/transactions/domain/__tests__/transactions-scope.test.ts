@@ -4,8 +4,9 @@ import type { EffectiveBalance } from '@/features/shared/domain/balance-calculat
 // filterTransactions/DEFAULT_DASHBOARD_FILTERS sind laut WP-B2-Auftrag nur in
 // Tests für Äquivalenz-/Regressionsvergleiche erlaubt, nicht in den
 // Domain-Dateien selbst (die dürfen von `src/components/` nur Typen beziehen).
-import { filterTransactions, type DashboardFilterState } from '@/components/dashboard/filter-utils';
-import { DEFAULT_DASHBOARD_FILTERS } from '@/components/dashboard/filter-constants';
+import { filterTransactions } from '@/components/dashboard/filter-utils';
+import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
+import { DEFAULT_DASHBOARD_FILTERS } from '@/features/shared/domain/dashboard-filters';
 import {
   isInAccountScope,
   computeScopedBalance,

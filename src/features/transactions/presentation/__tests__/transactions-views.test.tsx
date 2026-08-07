@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
-import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/components/dashboard/filter-constants';
+import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/features/shared/domain/dashboard-filters';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import { TransactionsListPane } from '../shared/TransactionsListPane';
 import { TransactionsDetailAside } from '../desktop/TransactionsDetailAside';

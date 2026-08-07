@@ -1,5 +1,7 @@
 // Schulden-Guardrails (Issue #50, Epic #24): Mahnbescheid-Eskalation,
-// Schuldnerberatungs-Brücke, Betrugs-/Fehler-Schutz und Zahlungsabgleich.
+// Betrugs-/Fehler-Schutz und Zahlungsabgleich. Die Schuldnerberatungs-Brücke
+// und die Überschuldungs-Heuristik sind rein und liegen in
+// `lib/debt-counseling-guardrails.ts`.
 //
 // RDG-Grenze (Formulierungsdisziplin, siehe docs/RDG_TEXTREGELN.md):
 // Die App informiert, strukturiert und motiviert — sie berät nicht rechtlich.
@@ -8,40 +10,7 @@
 import { t } from "../i18n/serviceT";
 import type { Transaction } from "../types";
 import { creditorKey, similarReference, type Claim } from "./claim-service";
-
-// -----------------------------------------------------------------------------
-// Schuldnerberatungs-Brücke: anerkannte, KOSTENLOSE Stellen
-// -----------------------------------------------------------------------------
-
-export interface CounselingService {
-  name: string;
-  url: string;
-  note: string;
-}
-
-export function getCounselingServices(): CounselingService[] {
-  return [
-    {
-      name: t('debts.guardrails.counselingCaritasName'),
-      url: 'https://www.caritas.de/onlineberatung/schuldnerberatung',
-      note: t('debts.guardrails.counselingCaritasNote'),
-    },
-    {
-      name: t('debts.guardrails.counselingDiakoniaName'),
-      url: 'https://www.diakonie.de/schuldnerberatung',
-      note: t('debts.guardrails.counselingDiakoniaNote'),
-    },
-    {
-      name: t('debts.guardrails.counselingVerbraucherzentraleName'),
-      url: 'https://www.verbraucherzentrale.de/beratung',
-      note: t('debts.guardrails.counselingVerbraucherzentraleNote'),
-    },
-  ];
-}
-
-export function getCommercialRegulatorWarning(): string {
-  return t('debts.guardrails.commercialRegulatorWarning');
-}
+import { getCounselingServices, type CounselingService } from "@/lib/debt-counseling-guardrails";
 
 // -----------------------------------------------------------------------------
 // 1. Mahnbescheid-Eskalation
@@ -79,49 +48,6 @@ export function claimGuidance(claim: Claim): ClaimGuidance {
     allowPaymentAction: claim.status === "bestaetigt",
     message: t('debts.guardrails.normalClaimMessage'),
     counseling: null,
-  };
-}
-
-// -----------------------------------------------------------------------------
-// 2. Überschuldungs-Erkennung → aktiver Beratungs-Verweis
-// -----------------------------------------------------------------------------
-
-/** Tilgungsplan länger als 6 Jahre = Dauer einer Restschuldbefreiung. */
-export const OVERINDEBTEDNESS_PLAN_MONTHS = 72;
-
-export interface OverindebtednessInput {
-  /** Geplante monatliche Tilgungsrate über alle Schulden. */
-  monthlyRate: number;
-  /** Monatlich verfügbares Einkommen (nach Fixkosten). */
-  availableIncome: number;
-  /** Berechnete Plandauer in Monaten (null = Plan geht nie auf). */
-  planMonths: number | null;
-}
-
-export interface CounselingRecommendation {
-  recommended: boolean;
-  reason: string | null;
-  services: CounselingService[];
-  warning: string;
-}
-
-export function counselingRecommendation(
-  input: OverindebtednessInput,
-): CounselingRecommendation {
-  let reason: string | null = null;
-  if (input.planMonths === null) {
-    reason = t('debts.guardrails.overindebtednessNoSolution');
-  } else if (input.planMonths > OVERINDEBTEDNESS_PLAN_MONTHS) {
-    reason = t('debts.guardrails.overindebtednessPlanTooLong', 'Dein Plan dauert länger als {years} Jahre. Eine Schuldnerberatung kennt Wege, die schneller zum Ziel führen können.').replace('{years}', String(OVERINDEBTEDNESS_PLAN_MONTHS / 12));
-  } else if (input.monthlyRate > input.availableIncome) {
-    reason = t('debts.guardrails.overindebtednessHighRate');
-  }
-
-  return {
-    recommended: reason !== null,
-    reason,
-    services: getCounselingServices(),
-    warning: getCommercialRegulatorWarning(),
   };
 }
 

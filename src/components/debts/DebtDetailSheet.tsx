@@ -8,11 +8,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import type { Debt, Transaction } from "@/types";
-import {
-  getDebtTypeLabels,
-  DEBT_TYPE_ICONS,
-  type DebtTransactionAssignment,
-} from "@/services/debt-service";
+import { getDebtTypeLabels, DEBT_TYPE_ICONS } from "@/services/debt-service";
+import type { DebtTransactionAssignment } from "@/lib/debt-types";
 import { useI18n } from "@/i18n/useI18n";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 

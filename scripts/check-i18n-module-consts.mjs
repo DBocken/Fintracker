@@ -27,6 +27,7 @@
  */
 
 import { readFileSync } from 'fs';
+import fs from 'node:fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -42,7 +43,13 @@ function sourceFiles() {
     .filter(Boolean)
     .filter((f) => /\.(ts|tsx)$/.test(f))
     .filter((f) => !f.includes('__tests__') && !/\.(test|spec)\./.test(f))
-    .filter((f) => !f.startsWith('src/test-utils/'));
+    .filter((f) => !f.startsWith('src/test-utils/'))
+    // `git ls-files` kennt den Index, nicht die Platte: eine noch nicht
+    // gestagte Loeschung (Umbenennung mitten in einem Refactoring, oder ein
+    // Commit, der bewusst nur einen Teil der Aenderungen aufnimmt) steht hier
+    // weiter drin. Ohne diesen Filter stirbt der Waechter mit einem
+    // ENOENT-Stacktrace, statt eine Aussage ueber i18n zu treffen.
+    .filter((f) => fs.existsSync(path.join(REPO_ROOT, f)));
 }
 
 /**

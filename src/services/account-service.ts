@@ -1,5 +1,5 @@
 import type { Account, AccountType } from '../types';
-import { normalizeIban } from './transfer-service';
+import { normalizeIban } from '@/lib/iban';
 import { getCurrentUserId } from './auth-service';
 import { isDemoRecord } from './demo-data-service';
 import {

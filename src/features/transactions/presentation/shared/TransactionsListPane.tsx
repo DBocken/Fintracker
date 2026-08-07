@@ -11,7 +11,7 @@ import type {
   ContractFilter,
   EssentialFilter,
   AusgabenklasseFilter,
-} from '@/components/dashboard/filter-constants';
+} from '@/features/shared/domain/dashboard-filters';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import type { TransactionsViewInteractionProps } from '../transactions-view-props';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';

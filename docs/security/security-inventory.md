@@ -2,7 +2,7 @@
 
 Stand: 18.07.2026
 Pentest-Schritt: **7 — Retest und Lessons Learned abgeschlossen** nach vollständigem Scope-Durchlauf aus
-`docs/security/pentest-scope.md`. Bericht: `docs/security/pentest-report-2026-07-18.md`; Plan: `docs/security/remediation-plan-2026-07-18.md`; Nachbericht: `docs/security/pentest-after-report-2026-07-18.md`.
+`docs/security/pentest-scope.md`. Bericht: `docs/archive/pentest-report-2026-07-18.md`; Plan: `docs/archive/remediation-plan-2026-07-18.md`; Nachbericht: `docs/archive/pentest-after-report-2026-07-18.md`.
 
 ## 1. Aktueller Pentest-Status
 
@@ -56,15 +56,15 @@ Pentest-Schritt: **7 — Retest und Lessons Learned abgeschlossen** nach vollst�
 
 ## 6. Vollständiger Scope-Durchlauf 2026-07-18
 
-- Bericht: `docs/security/pentest-report-2026-07-18.md`
-- Remediation-Plan: `docs/security/remediation-plan-2026-07-18.md`
+- Bericht: `docs/archive/pentest-report-2026-07-18.md`
+- Remediation-Plan: `docs/archive/remediation-plan-2026-07-18.md`
 - Findings: FT-2026-001 bis FT-2026-007; alle fixed
 - Nächster Arbeitsmodus: Betriebliches Monitoring und neue Findings nur über den dokumentierten Pentest-Prozess aufnehmen.
 
 ## Abschluss 2026-07-18
 
 Der vollständige Scope-Durchlauf wurde abgeschlossen. Bericht, Remediation-Plan
-und Nachbericht liegen unter `docs/security/pentest-report-2026-07-18.md`,
-`docs/security/remediation-plan-2026-07-18.md` und
-`docs/security/pentest-after-report-2026-07-18.md`. Alle Findings aus dem
+und Nachbericht liegen unter `docs/archive/pentest-report-2026-07-18.md`,
+`docs/archive/remediation-plan-2026-07-18.md` und
+`docs/archive/pentest-after-report-2026-07-18.md`. Alle Findings aus dem
 Bericht sind auf Fixed gesetzt und per vollständigem Retest verifiziert.

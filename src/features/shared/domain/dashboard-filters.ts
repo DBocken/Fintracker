@@ -1,3 +1,12 @@
+/**
+ * Filter-Modell des Dashboards: Bereichsoptionen, Filter-Achsen und der
+ * Zustand, den Dashboard, Transaktionen und die Auswertungen gemeinsam lesen.
+ *
+ * Liegt in `features/shared/domain`, weil ihn mehr als ein Slice braucht
+ * (AGENTS.md §3). Zuvor stand `DashboardFilterState` in
+ * `components/dashboard/filter-utils.ts` — die Feature-Domänen mussten dafür
+ * entgegen der Schichtrichtung nach oben in `components/` importieren.
+ */
 import type { DashboardGranularity } from '@/features/dashboard/domain/overview-types';
 
 export const DASHBOARD_RANGE_OPTIONS = [
@@ -44,3 +53,16 @@ export const DEFAULT_DASHBOARD_FILTERS = {
   customGranularity: DEFAULT_CUSTOM_GRANULARITY,
   customPeriod: DEFAULT_CUSTOM_PERIOD,
 };
+
+export interface DashboardFilterState {
+  category: string;
+  account: string;
+  contract: ContractFilter;
+  essential: EssentialFilter;
+  ausgabenklasse: AusgabenklasseFilter;
+  search: string;
+  range: DashboardRange;
+  customDays: number;
+  /** Konkrete Periode für Jahr/Quartal/Monat (z.B. `2026-Q2`); sonst leer. */
+  customPeriod?: string;
+}

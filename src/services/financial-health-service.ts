@@ -1,6 +1,7 @@
 import type { Transaction, Debt } from "../types";
 import { getTransactions } from "./transaction-service";
-import { getDebts, getTotalMinPayment } from "./debt-service";
+import { getDebts } from "./debt-service";
+import { totalMinimumPayment } from "@/lib/debt-totals";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "./net-worth-service";
 import { t } from "../i18n/serviceT";
 
@@ -122,7 +123,7 @@ export function computeFinancialHealth(
   });
 
   // 4. Liquidity: can income cover expenses + min debt payments?
-  const minPayments = getTotalMinPayment(debts);
+  const minPayments = totalMinimumPayment(debts);
   const obligations = expenses + minPayments;
   const liquidityRatio = obligations > 0 ? income / obligations : income > 0 ? 2 : 0;
   const liquidityScore = clamp(((liquidityRatio - 1) / 0.5) * 100 + (liquidityRatio >= 1 ? 50 : 0));

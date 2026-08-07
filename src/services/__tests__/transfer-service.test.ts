@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   findTransferCandidates,
-  normalizeIban,
   planInternalTransfers,
   type AccountIbanRef,
 } from '../transfer-service';
+import { normalizeIban } from '@/lib/iban';
 import type { Transaction } from '../../types';
 
 function makeTx(overrides: Partial<Transaction>): Transaction {

@@ -3,7 +3,7 @@
 // scanbarer EPC-QR-Code und ein Prognose-Gate, das den Sicherheitspuffer schützt.
 
 import type { BudgetStatus } from "@/types";
-import { buildForecastInput } from "@/lib/forecast-data";
+import { buildForecastInput } from "@/services/forecast-data";
 import { calculateDeterministicForecast } from "@/lib/forecast";
 import { resolveRolloverConfig } from "@/lib/budget-rollover";
 import { evaluateSweepGate, minBalanceWithinHorizon, type SweepGateResult } from "@/lib/budget-sweep";

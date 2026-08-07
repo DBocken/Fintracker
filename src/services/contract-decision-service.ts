@@ -2,20 +2,7 @@ import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-sto
 import { safeAudit, redactForAudit } from './audit-log-service';
 import { t } from '@/i18n/serviceT';
 import type { Rhythmus } from '@/types';
-
-/**
- * Dauerhafte Vertrags-Entscheidung des Nutzers, gebunden an einen normalisierten
- * Händler-Fingerprint (siehe lib/merchant-fingerprint). Verträge selbst werden aus
- * den Transaktionen abgeleitet; diese Entscheidung überschreibt nur den Status,
- * damit beendete/abgelehnte Verträge die aktuellen Fixkosten nicht verfälschen.
- */
-export type ContractStatus =
-  | 'candidate'
-  | 'active'
-  | 'ended'
-  | 'rejected'
-  | 'paused'
-  | 'archived';
+import type { ContractDecision, ContractStatus } from '@/lib/contract-types';
 
 export function getContractStatusLabels(): Record<ContractStatus, string> {
   return {
@@ -26,18 +13,6 @@ export function getContractStatusLabels(): Record<ContractStatus, string> {
     paused: t('contracts.statusLabels.paused'),
     archived: t('contracts.statusLabels.archived'),
   };
-}
-
-export interface ContractDecision {
-  id: string;
-  user_id: string;
-  fingerprint: string;
-  status: ContractStatus;
-  cycle_override?: Rhythmus | null;
-  ended_at?: string | null;
-  note?: string | null;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export async function getContractDecisions(): Promise<ContractDecision[]> {

@@ -4,7 +4,8 @@ import { toast } from 'react-hot-toast';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories, deleteTransaction } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';
-import { getContractDecisionMap, type ContractDecision } from '@/services/contract-decision-service';
+import { getContractDecisionMap } from '@/services/contract-decision-service';
+import type { ContractDecision } from '@/lib/contract-types';
 import { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import { useAllocationMap } from '@/hooks/useAllocationMap';
 import { usePersistedSet } from '@/hooks/usePersistedSet';
@@ -14,13 +15,13 @@ import {
   DEFAULT_DASHBOARD_FILTERS,
   DEFAULT_CUSTOM_GRANULARITY,
   PERIOD_RANGES,
+  type DashboardFilterState,
   type DashboardGranularity,
   type DashboardRange,
-} from '@/components/dashboard/filter-constants';
+} from '@/features/shared/domain/dashboard-filters';
 import {
   filterTransactions,
   collectMatchingAllocationIds,
-  type DashboardFilterState,
 } from '@/components/dashboard/filter-utils';
 import { listAvailablePeriods } from '@/components/dashboard/period-utils';
 import type { Transaction } from '@/types';

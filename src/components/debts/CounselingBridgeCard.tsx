@@ -1,5 +1,5 @@
 import { HeartHandshake, ExternalLink } from "lucide-react";
-import type { CounselingRecommendation } from "@/services/debt-guardrails-service";
+import type { CounselingRecommendation } from "@/lib/debt-counseling-guardrails";
 import { useI18n } from "@/i18n/useI18n";
 
 /**

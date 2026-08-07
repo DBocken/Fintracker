@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { migrateCategoryPack2026 } from '../local-settings-service';
 import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
-import { explainCategorization } from '../transaction-service';
+import { explainCategorization } from '@/lib/categorization';
 import type { Category, Transaction } from '../../types';
 
 function tx(overrides: Partial<Transaction>): Transaction {

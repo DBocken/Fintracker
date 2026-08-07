@@ -6,7 +6,8 @@ import { useI18n } from "@/i18n/useI18n";
 import { showError } from "@/utils/toast";
 import { ocrImages } from "@/services/letter-ocr-service";
 import { parseReceipt } from "@/services/receipt-parser-service";
-import { categorizeTransaction, getCategories } from "@/services/transaction-service";
+import { getCategories } from "@/services/transaction-service";
+import { categorizeTransaction } from "@/lib/categorization";
 import { TransactionFormDialog, type TransactionPrefill } from "./TransactionFormDialog";
 import type { Transaction } from "@/types";
 

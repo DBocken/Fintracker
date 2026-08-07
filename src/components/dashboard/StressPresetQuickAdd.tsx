@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { buildStressOverrides, type StressPreset } from '@/lib/forecast-stress-presets';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { VariableExpenseBaseline } from '@/lib/forecast-types';
 import { useI18n } from '@/i18n/useI18n';
 

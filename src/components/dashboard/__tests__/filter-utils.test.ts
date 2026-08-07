@@ -7,11 +7,13 @@ import {
   encodeDashboardFilters,
   decodeDashboardFilters,
   buildTransactionsHref,
-  type DashboardFilterState,
 } from "../filter-utils";
-import { DEFAULT_DASHBOARD_FILTERS } from "../filter-constants";
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  type DashboardFilterState,
+} from "@/features/shared/domain/dashboard-filters";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
-import type { ContractDecision } from "@/services/contract-decision-service";
+import type { ContractDecision } from "@/lib/contract-types";
 import type { Account, Category, Transaction, TransactionAllocation } from "@/types";
 
 const NOW = new Date("2024-06-15T12:00:00Z");

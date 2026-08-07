@@ -2385,6 +2385,8 @@ export const translations = {
           title: 'Portfolio-Verlauf',
           disclaimer: '* Simulierter Verlauf basierend auf aktuellen Portfoliodaten',
           valueLabel: 'Wert',
+          startLabel: 'Start',
+          dayLabel: 'Tag {n}',
         },
       },
       etoroConnectDialog: {
@@ -7049,6 +7051,8 @@ export const translations = {
           title: 'Portfolio history',
           disclaimer: '* Simulated history based on current portfolio data',
           valueLabel: 'Value',
+          startLabel: 'Start',
+          dayLabel: 'Day {n}',
         },
       },
       etoroConnectDialog: {
@@ -11427,6 +11431,8 @@ export const translations = {
           title: "portfolio qeb",
           disclaimer: "* DaHjaj portfolio De'mo' rurbogh qeb",
           valueLabel: "Huch mI'",
+          startLabel: "taghlaHbe'",
+          dayLabel: "jaj {n}",
         },
       },
       etoroConnectDialog: {
@@ -15991,6 +15997,8 @@ export const translations = {
           title: 'История портфеля',
           disclaimer: '* Смоделированная история на основе текущих данных портфеля',
           valueLabel: 'Стоимость',
+          startLabel: 'Начало',
+          dayLabel: 'День {n}',
         },
       },
       etoroConnectDialog: {

@@ -5,19 +5,7 @@
  * Veranlagungszeitraum, mit stabiler ID `tax-profile-<year>`.
  */
 import { readLocalFinanceList, upsertLocalFinanceItem } from './local-finance-store';
-
-export interface TaxYearProfile {
-  id: string;
-  year: number;
-  /** Arbeitstage mit Arbeitsweg (für die Entfernungspauschale). */
-  commuteDaysPerYear?: number | null;
-  /** Einfache Entfernung Wohnung–Arbeit in km. */
-  commuteOneWayKm?: number | null;
-  /** Anzahl Homeoffice-Tage (für die Homeoffice-Pauschale). */
-  homeofficeDays?: number | null;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { TaxYearProfile } from '@/lib/tax-types';
 
 const KEY = 'taxYearProfiles' as const;
 

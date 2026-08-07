@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeOverrides } from '../forecast-overrides-summary';
-import { DEFAULT_FORECAST_OVERRIDES } from '@/services/forecast-overrides-service';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import { summarizeOverrides, overrideChangeRemovalPatch } from '../forecast-overrides-summary';
+import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { RecurringFlow } from '@/lib/forecast-types';
 
 const flows: RecurringFlow[] = [
@@ -176,5 +176,83 @@ describe('summarizeOverrides', () => {
       const ids = chips.map((c) => c.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
+  });
+});
+
+describe('overrideChangeRemovalPatch', () => {
+  const CHANGE = {
+    id: 'x',
+    kind: 'flow-amount' as const,
+    label: 'Miete',
+    source: 'recurringFlowOverrides' as const,
+    key: 'flow-1',
+  };
+
+  it('sollte einen Kategorie-Budget-Eintrag entfernen und die übrigen lassen', () => {
+    const overrides = make({ categoryBudgets: { miete: 900, essen: 300 } });
+    const patch = overrideChangeRemovalPatch(overrides, {
+      ...CHANGE,
+      kind: 'budget',
+      source: 'categoryBudgets',
+      key: 'miete',
+    });
+    expect(patch).toEqual({ categoryBudgets: { essen: 300 } });
+  });
+
+  it('sollte einen Zinssatz entfernen', () => {
+    const overrides = make({ accountInterest: { 'acc-1': 2.5, 'acc-2': 1 } });
+    const patch = overrideChangeRemovalPatch(overrides, {
+      ...CHANGE,
+      kind: 'interest',
+      source: 'accountInterest',
+      key: 'acc-1',
+    });
+    expect(patch).toEqual({ accountInterest: { 'acc-2': 1 } });
+  });
+
+  it('sollte einen geplanten Posten anhand seiner id entfernen', () => {
+    const overrides = make({
+      plannedEvents: [
+        { id: 'e1', label: 'A', amount: 10, date: '2026-01-01' },
+        { id: 'e2', label: 'B', amount: 20, date: '2026-02-01' },
+      ] as never,
+    });
+    const patch = overrideChangeRemovalPatch(overrides, {
+      ...CHANGE,
+      kind: 'event',
+      source: 'plannedEvents',
+      key: 'e1',
+    });
+    expect((patch.plannedEvents as { id: string }[]).map((e) => e.id)).toEqual(['e2']);
+  });
+
+  it('sollte bei einem Vertrags-Override nur das betroffene Feld lösen', () => {
+    // Ein Vertrag kann zugleich Betrag UND End-Datum überschreiben. Wer den
+    // Betrag zurücknimmt, will das End-Datum behalten.
+    const overrides = make({
+      recurringFlowOverrides: { 'flow-1': { amount: 500, endDate: '2026-12-31' } },
+    });
+    const patch = overrideChangeRemovalPatch(overrides, { ...CHANGE, field: 'amount' });
+    expect(patch).toEqual({ recurringFlowOverrides: { 'flow-1': { endDate: '2026-12-31' } } });
+  });
+
+  it('[REGRESSION] sollte den ganzen Eintrag entfernen, wenn nach dem Lösen nichts übrig bleibt', () => {
+    // Sonst bliebe eine leere Hülle stehen, die als aktive Annahme gezählt
+    // würde, ohne eine zu sein — die Chip-Liste zeigte dann eine Änderung an,
+    // die es nicht mehr gibt.
+    const overrides = make({ recurringFlowOverrides: { 'flow-1': { amount: 500 } } });
+    const patch = overrideChangeRemovalPatch(overrides, { ...CHANGE, field: 'amount' });
+    expect(patch).toEqual({ recurringFlowOverrides: {} });
+  });
+
+  it('sollte die Vorlage nicht verändern', () => {
+    const overrides = make({ categoryBudgets: { miete: 900 } });
+    overrideChangeRemovalPatch(overrides, {
+      ...CHANGE,
+      kind: 'budget',
+      source: 'categoryBudgets',
+      key: 'miete',
+    });
+    expect(overrides.categoryBudgets).toEqual({ miete: 900 });
   });
 });

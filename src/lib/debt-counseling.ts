@@ -9,7 +9,7 @@ import {
   counselingRecommendation,
   type CounselingRecommendation,
   type OverindebtednessInput,
-} from "@/services/debt-guardrails-service";
+} from "@/lib/debt-counseling-guardrails";
 
 /** Minimaler Ausschnitt des Tilgungsplans, den wir hier brauchen. */
 export interface PayoffPlanShape {

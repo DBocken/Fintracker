@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
-import { DEFAULT_DASHBOARD_FILTERS } from '@/components/dashboard/filter-constants';
+import { DEFAULT_DASHBOARD_FILTERS } from '@/features/shared/domain/dashboard-filters';
 import { encodeDashboardFilters } from '@/components/dashboard/filter-utils';
 import {
   computeFlowTotals,

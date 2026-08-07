@@ -1,4 +1,5 @@
 import type { Debt, DebtPriority, DebtType } from "../types";
+import type { DebtTransactionAssignment } from "@/lib/debt-types";
 import { getCurrentUserId } from "./auth-service";
 import { getTransactions } from "./transaction-service";
 import { t } from "../i18n/serviceT";
@@ -117,14 +118,6 @@ export async function deleteDebt(id: string): Promise<void> {
   await deleteLocalFinanceItem<Debt>("debts", id);
   const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
   await writeLocalFinanceList("debtAssignments", assignments.filter((assignment) => assignment.debt_id !== id));
-}
-
-export function getTotalDebt(debts: Debt[]): number {
-  return debts.filter((d) => !d.is_paid_off).reduce((sum, d) => sum + Math.max(0, d.balance), 0);
-}
-
-export function getTotalMinPayment(debts: Debt[]): number {
-  return debts.filter((d) => !d.is_paid_off).reduce((sum, d) => sum + Math.max(0, d.min_payment), 0);
 }
 
 export type PayoffStrategy = "snowball" | "avalanche";
@@ -249,15 +242,6 @@ export function calculatePayoffPlan(
     totalInterestPaid: Math.round(steps.reduce((s, x) => s + x.totalInterestPaid, 0) * 100) / 100,
     insufficientBudget: false,
   };
-}
-
-export interface DebtTransactionAssignment {
-  id: string;
-  user_id: string;
-  debt_id: string;
-  transaction_id: string;
-  amount: number;
-  created_at: string;
 }
 
 export async function getDebtTransactionAssignments(): Promise<DebtTransactionAssignment[]> {

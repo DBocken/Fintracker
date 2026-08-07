@@ -17,7 +17,7 @@ vi.mock('@/hooks/useScenarioRisk', () => ({
   useScenarioRisk: () => ({ result: null, isCalculating: false }),
 }));
 
-vi.mock('@/lib/forecast-data', async (importOriginal) => ({
+vi.mock('@/services/forecast-data', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   buildForecastInput: () => Promise.reject(new Error('IndexedDB nicht erreichbar')),
 }));

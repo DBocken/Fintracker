@@ -1,6 +1,6 @@
 import type { Transaction } from "@/types";
-import { normalizeMerchantName } from "@/services/merchant-normalization";
-import { normalizeIban } from "@/services/transfer-service";
+import { normalizeMerchantName } from "@/lib/merchant-normalization";
+import { normalizeIban } from "@/lib/iban";
 import { t } from "@/i18n/serviceT";
 
 /**

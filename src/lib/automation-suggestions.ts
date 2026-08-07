@@ -6,11 +6,11 @@
 // On-demand & rein: berechnet aus vorhandenen Daten, ohne die Import-Pipeline
 // zu berühren. Die einzige Mutation passiert erst, wenn der Nutzer annimmt.
 
-import { explainCategorization } from "@/services/transaction-service";
-import { buildCategorySuggestionFromResult } from "@/services/automation-suggestion-service";
-import type { AutomationSuggestion } from "@/services/automation-suggestion-service";
+import { explainCategorization } from "@/lib/categorization";
+import { buildCategorySuggestionFromResult } from "@/lib/automation-suggestion-model";
+import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import type { Category, Transaction } from "@/types";
-import type { MerchantRule } from "@/services/merchant-rules-service";
+import type { MerchantRule } from "@/lib/categorization";
 
 /** Schwächste Confidence, die wir noch als Vorschlag zeigen (Regex-Fallback = 0,55). */
 export const MIN_SUGGEST_CONFIDENCE = 0.5;

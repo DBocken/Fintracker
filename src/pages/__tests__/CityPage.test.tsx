@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { renderWithProviders } from '@/test-utils/render';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import type { Category, Transaction } from '@/types';
-import type { ContractDecision } from '@/services/contract-decision-service';
+import type { ContractDecision } from '@/lib/contract-types';
 import type { CityLabelsHandle, CityLabelsProps } from '@/features/finance-city/presentation/CityLabels';
 import type { CityControlsApi } from '@/features/finance-city/presentation/CityCanvas';
 import type { CitySceneHandle } from '@/features/finance-city/presentation/city-scene';
@@ -145,7 +145,8 @@ const { useIsWideDesktopMock } = vi.hoisted(() => ({ useIsWideDesktopMock: vi.fn
 vi.mock('@/hooks/useIsWideDesktop', () => ({ useIsWideDesktop: useIsWideDesktopMock }));
 
 import { getTransactions, getCategories } from '@/services/transaction-service';
-import { evaluateMilestones, type MilestoneStatus } from '@/services/milestones-service';
+import { evaluateMilestones } from '@/services/milestones-service';
+import type { MilestoneStatus } from '@/lib/milestone-types';
 
 /** WP-D7: zwei Ziele — eines zu 65 % in Arbeit, eines erreicht (Trophäe). */
 const FIXTURE_MILESTONES: MilestoneStatus[] = [

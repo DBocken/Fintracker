@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { findStreamFlowIds, buildStreamLossScenario } from '../income-stress';
 import { runScenarioComparison } from '../forecast-scenario';
-import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import type { IncomeStream } from '../income-streams';
 import type { RecurringFlow, ForecastInput } from '../forecast-types';
 

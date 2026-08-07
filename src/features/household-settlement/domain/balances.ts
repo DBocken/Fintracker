@@ -1,5 +1,5 @@
 import { toMinor } from '@/lib/money';
-import type { SharedExpenseSplit } from '@/services/household-service';
+import type { SharedExpenseSplit } from '@/lib/household-types';
 
 /**
  * Reine Domänenlogik des lokalen Haushaltsausgleichs (kein React, kein I/O).

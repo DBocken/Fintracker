@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  DEFAULT_FORECAST_OVERRIDES,
-  getForecastOverrides,
-  saveForecastOverrides,
-  type ForecastOverrides,
-} from '@/services/forecast-overrides-service';
+import { getForecastOverrides, saveForecastOverrides } from '@/services/forecast-overrides-service';
+import { DEFAULT_FORECAST_OVERRIDES, type ForecastOverrides } from '@/lib/forecast-types';
 
 /**
  * Verwaltet die Forecast-Planungs-Overrides mit Persistenz.

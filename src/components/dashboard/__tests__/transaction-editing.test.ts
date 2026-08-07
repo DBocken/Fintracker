@@ -7,7 +7,7 @@ import {
   buildContractHint,
   confidenceLevel,
 } from '../transaction-details';
-import type { CategorizationResult } from '@/services/transaction-service';
+import type { CategorizationResult } from '@/lib/categorization';
 import type { Category, Transaction, Rhythmus } from '@/types';
 
 // Set up locale for serviceT.ts before each test

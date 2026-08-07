@@ -11,6 +11,7 @@ command -v pnpm >/dev/null 2>&1 || { echo "[pre-commit] pnpm nicht im PATH — C
 pnpm check:i18n --staged || exit 1
 pnpm check:i18n-module-consts || exit 1
 pnpm check:test-structure || exit 1
+pnpm check:layers || exit 1
 pnpm check:card-rule || exit 1
 pnpm check:platform-parity || exit 1
 pnpm check:query-errors || exit 1

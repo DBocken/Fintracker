@@ -4,13 +4,24 @@ Ergänzend zum Produkt-Audit (2026-06-20, Abschnitt E). Dokumentiert Features,
 die vorhanden, aber nicht (vollständig) in der Hauptnavigation sichtbar sind —
 damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
 
-## Trading (Beta)
-- **Fundort:** `src/pages/TradingPage.tsx`, `src/components/trading/*`, Flag `trading_beta`.
-- **Status:** Versteckt. Lokales Feature-Flag (`localStorage`, Default aus) +
-  Premium-Tier erforderlich. Route nur gerendert, wenn Flag aktiv.
-- **Reaktivierung:** In den Einstellungen → Beta-Features „Trading (Beta)" aktivieren.
-- **Abhängigkeiten:** Marktdaten/Import, Premium-Tier (Paywall #25), Haftungsausschluss.
-- **Risiken:** Lenkt vom Kernprodukt ab; keine Anlageberatung. Als Beta/Waitlist führen.
+## Trading — **nicht mehr versteckt**
+- **Fundort:** `src/pages/TradingPage.tsx`, `src/components/trading/*`.
+- **Status:** **Voll sichtbar und ungeschützt.** Kein Feature-Flag, kein
+  Tier-Gate: `FEATURE_FLAGS` (`src/lib/feature-flags.ts`) kennt nur
+  `telemetry`, `feedback`, `financeCity3d` und `bankSync`; der Nav-Eintrag hat
+  kein `requiredTier`; `ROUTE_GUARDS` führt `/trading` nicht; `App.tsx` rendert
+  die Route ohne `RouteGuard`.
+- **Warum:** Die doppelte Absperrung (`trading_beta` + Premium) ist auf
+  Nutzer-Entscheid entfernt worden — sie leitete verwirrend zum Coach um.
+  Festgehalten im `[REGRESSION]`-Test „zeigt Trading ohne Beta-Flag und ohne
+  Premium-Gate" in `src/components/layout/__tests__/nav-config.test.ts`.
+- **Abhängigkeiten:** Marktdaten/Import (eToro, Quote-Provider), Haftungsausschluss.
+- **Risiken:** Lenkt vom Kernprodukt ab; **keine Anlageberatung**. Der
+  Haftungsausschluss trägt jetzt allein, wo vorher zusätzlich das Gate stand.
+- **Technische Schuld:** `TradingDashboard.tsx` ist mit 1.357 Zeilen und 25
+  `useQuery`-Aufrufen in einer Komponente die unstrukturierteste Fläche der App
+  — und seit dem Wegfall des Gates die sichtbarste unter den großen. Zerlegung
+  in einen Slice steht aus.
 
 ## Anlässe (Sonderkategorien)
 - **Fundort:** Route `/occasions`, `src/pages/SpecialCategoriesPage.tsx`,

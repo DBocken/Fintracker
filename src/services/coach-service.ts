@@ -1,6 +1,7 @@
 import type { CoachOverview, CoachRecommendation, BehaviorInsight, CategoryGuidance, RoadmapStage, RoadmapStageKey } from "../types";
 import { getTransactions, getCategories } from "./transaction-service";
-import { getDebts, getTotalDebt, getTotalMinPayment, calculatePayoffPlan } from "./debt-service";
+import { getDebts, calculatePayoffPlan } from "./debt-service";
+import { totalOutstandingDebt, totalMinimumPayment } from "@/lib/debt-totals";
 import { getFinancialHealth, monthlyAverages } from "./financial-health-service";
 import { getLocalUserSettings } from "./local-settings-service";
 import { deriveIncomeStreams, type IncomeStream } from "../lib/income-streams";
@@ -93,8 +94,8 @@ export async function getCoachOverview(options?: {
     getCategories(),
   ]);
 
-  const totalDebt = getTotalDebt(debts);
-  const minimumMonthlyBurden = getTotalMinPayment(debts);
+  const totalDebt = totalOutstandingDebt(debts);
+  const minimumMonthlyBurden = totalMinimumPayment(debts);
   // Monatswerte als Durchschnitt der letzten 3 Monate (nicht die All-time-Summe
   // als „Monat" missdeuten) — dieselbe Quelle wie der Health-Score (F-UX-3).
   const { income: monthlyIncome, expenses: monthlyExpenses } = monthlyAverages(transactions, 3);

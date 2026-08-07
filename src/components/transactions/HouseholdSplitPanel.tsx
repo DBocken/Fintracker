@@ -8,15 +8,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { showSuccess, showError } from "@/utils/toast";
-import {
-  getHouseholds,
-  getHouseholdMembers,
-  getSharedExpenseSplit,
-  upsertSharedExpenseSplit,
-  deleteSharedExpenseSplit,
-  splitEqually,
-  type SharedExpenseShare,
-} from "@/services/household-service";
+import { getHouseholds, getHouseholdMembers, getSharedExpenseSplit, upsertSharedExpenseSplit, deleteSharedExpenseSplit, splitEqually } from "@/services/household-service";
+import type { SharedExpenseShare } from "@/lib/household-types";
 import type { Transaction } from "@/types";
 import { parseGermanNumber } from "@/lib/money";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';

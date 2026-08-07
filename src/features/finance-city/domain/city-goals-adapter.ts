@@ -21,7 +21,7 @@
  * des Milestone-Service) — AGENTS.md §8 bleibt unberührt.
  */
 
-import type { MilestoneStatus } from '@/services/milestones-service';
+import type { MilestoneStatus } from '@/lib/milestone-types';
 import type { CityDistrict, CityModel } from './city-model';
 import { goalProgressStage, goalStageColor, type GoalProgressStage } from './city-goal-progress';
 

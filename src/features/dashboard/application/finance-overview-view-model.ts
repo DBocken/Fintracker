@@ -7,7 +7,7 @@ import type {
   DashboardRange,
   EssentialFilter,
   AusgabenklasseFilter,
-} from '@/components/dashboard/filter-constants';
+} from '@/features/shared/domain/dashboard-filters';
 import type { PeriodOption } from '@/components/dashboard/period-utils';
 import type { EffectiveBalance, FinanceOverviewStats } from '../domain/overview-types';
 

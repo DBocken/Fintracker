@@ -4,7 +4,7 @@ import { getAusgabenklasseColor } from '@/lib/ausgabenklasse-colors';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types';
-import type { AusgabenklasseFilter } from './filter-constants';
+import type { AusgabenklasseFilter } from '@/features/shared/domain/dashboard-filters';
 
 interface AusgabenklasseFilterProps {
   value: AusgabenklasseFilter;

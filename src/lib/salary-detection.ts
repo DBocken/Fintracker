@@ -11,7 +11,7 @@
  * (`buildDetectedSalaryFlows`) und (b) die Vertragsübersicht
  * (`buildSalaryContractRows`). So erscheint Gehalt überall konsistent.
  */
-import { normalizeMerchantName } from '@/services/merchant-normalization';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import type { Transaction } from '@/types';
 
 /** Trifft typische Gehalts-/Lohnbegriffe in Zahler-, Beschreibungs- und Rohtext. */

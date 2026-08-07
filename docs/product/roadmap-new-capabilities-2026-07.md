@@ -41,13 +41,13 @@ Umsetzung erfolgt später, Slice für Slice, jeweils testgetrieben.
 
 ### Bezug zu bestehenden Dokumenten (verweisen, nicht duplizieren)
 
-- `docs/claude-anweisung-und-produkt-audit-2026-06-21.md` — Produkt- und
+- `docs/archive/claude-anweisung-und-produkt-audit-2026-06-21.md` — Produkt- und
   Anweisungs-Audit; liefert das Vokabular „ehrlich über Unsicherheit,
   Fragen-Headings, kein Feature-Sprech".
-- `docs/codequalitaet-audit-2026-07-02.md` — Codequalitäts-Audit; die hier
+- `docs/archive/codequalitaet-audit-2026-07-02.md` — Codequalitäts-Audit; die hier
   gesetzten Architekturleitplanken respektieren dessen Befunde
   (Registry-Disziplin, keine komponenten-lokalen Aggregationen).
-- `docs/umsetzungsleitfaden-2026-07-02.md` — Umsetzungsleitfaden; verbindliche
+- `docs/archive/umsetzungsleitfaden-2026-07-02.md` — Umsetzungsleitfaden; verbindliche
   Reihenfolge „Ziel → roter Test → minimale Implementierung → Refactor".
 - `docs/feature-strategy-sonderkategorien.md` — Stil- und Strukturvorbild für
   Vision, Invarianten, Gherkin-Szenarien und Work-Packages.

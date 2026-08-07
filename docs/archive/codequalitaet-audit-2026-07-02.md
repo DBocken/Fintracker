@@ -1,3 +1,5 @@
+> **Archiv — Protokoll, keine geltende Regel.** Repo-weiter Audit vom 02.07.2026 (Stand damals: 513 Quelldateien, 1408 Tests). Die Zahlen beschreiben diesen Zeitpunkt, nicht den heutigen. Umsetzung: `umsetzungsleitfaden-2026-07-02.md`.
+
 # Ganzheitlicher Code-, Sicherheits-, Datenschutz- und Finanzlogik-Audit
 
 **Datum:** 2026-07-02

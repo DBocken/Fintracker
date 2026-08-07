@@ -12,8 +12,8 @@ import { applyDetectedContracts } from "@/services/contract-detection-service";
 import {
   getContractDecisionMap,
   getContractStatusLabels,
-  type ContractDecision,
 } from "@/services/contract-decision-service";
+import type { ContractDecision } from "@/lib/contract-types";
 import { useI18n } from "@/i18n/useI18n";
 import type { Transaction, Category } from "@/types";
 import { format, parseISO, addMonths, startOfMonth } from "date-fns";
@@ -24,7 +24,7 @@ import { ContractDetailSheet } from "./ContractDetailSheet";
 import ListRow from "@/components/common/ListRow";
 import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
-import type { ContractRow } from "./contract-types";
+import type { ContractRow } from "@/lib/contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';

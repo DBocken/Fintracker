@@ -2,7 +2,7 @@ import { describe, it, expect, vi as vitest } from 'vitest';
 import { fireEvent, waitFor } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
 import StressPresetQuickAdd from '../StressPresetQuickAdd';
-import type { ForecastOverrides } from '@/services/forecast-overrides-service';
+import type { ForecastOverrides } from '@/lib/forecast-types';
 
 describe('StressPresetQuickAdd', () => {
   const mockOverrides: ForecastOverrides = {

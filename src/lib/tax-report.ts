@@ -28,7 +28,7 @@ import {
   type TaxRubricId,
   type TaxYearParams,
 } from '@/data/tax-catalog';
-import type { TaxYearProfile } from '@/services/tax-profile-service';
+import type { TaxYearProfile } from '@/lib/tax-types';
 
 export type TaxWarningKind =
   | 'missingLaborCosts'
