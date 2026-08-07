@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 import { startDemo } from "./fixtures/vertical-slice";
+import { ALL_ROUTES } from "./fixtures/routes";
 
 /**
  * WP-10.2 — Accessibility über ALLE Screens, nicht nur den Vertical Slice.
@@ -22,39 +23,6 @@ import { startDemo } from "./fixtures/vertical-slice";
  * meldet es für immer.
  */
 
-/**
- * Alle Routen, die ein Demo-Nutzer erreichen kann.
- *
- * Einige stehen hinter einem `RouteGuard` (Bereichs-Freischaltung über die
- * Lebenssituation) und leiten dann um. Das ist kein Fehlschlag, sondern der
- * Normalfall — der Test vermerkt es und geht weiter, statt eine Freischaltung
- * zu erzwingen, die es im echten Gebrauch auch nicht gibt.
- */
-const ROUTES = [
-  "/coach",
-  "/dashboard",
-  "/transactions",
-  "/accounts",
-  "/budgets",
-  "/debts",
-  "/net-worth",
-  "/liquidity",
-  "/milestones",
-  "/income",
-  "/tax",
-  "/euer",
-  "/trading",
-  "/city",
-  "/contracts",
-  "/occasions",
-  "/premium",
-  "/simulation",
-  "/csv",
-  "/export",
-  "/settings",
-  "/privacy",
-] as const;
-
 test.describe("Accessibility über alle Screens (WP-10.2)", () => {
   test.use({ locale: "de-DE" });
 
@@ -68,8 +36,14 @@ test.describe("Accessibility über alle Screens (WP-10.2)", () => {
     const critical: string[] = [];
     const skipped: string[] = [];
 
-    for (const route of ROUTES) {
+    for (const route of ALL_ROUTES) {
       await page.goto(route);
+      // Erst die Umleitung abwarten: Ein `RouteGuard` leitet im Client um,
+      // also NACH `goto`. Wer die Adresse sofort liest, sieht noch die alte
+      // und misst denselben Screen ein zweites Mal — genau das ist mit
+      // /simulation → /liquidity passiert.
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(300);
 
       // Umgeleitet? Dann ist der Bereich fuer diese Lebenssituation nicht
       // freigeschaltet — vermerken und weiter.

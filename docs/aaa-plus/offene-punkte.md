@@ -117,7 +117,7 @@ zwei der drei „offenen" Punkte **keine Mängel**; die Tabelle hatte sie
 | Punkt | Warum offen |
 |---|---|
 | **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
-| **Tutorial-Einladung verschiebt die ganze Seite** | Gemessen, siehe unten — gehört zu Phase 10, weil die tragfähigen Wege Gestaltungsentscheidungen sind |
+| **Tutorial-Einladung verschiebt die ganze Seite** | **behoben in Phase 10** (WP-10.3), siehe unten |
 
 ### Gemessen, nicht behoben: CLS der Tutorial-Einladung
 
@@ -136,20 +136,70 @@ Nach der Korrektur liegt `/dashboard` bei **0,077**. Die Einladung bleibt damit
 der mit Abstand größte Einzelposten des Budgets — sie schiebt die Seite
 inklusive Kopfzeile und Navigation nach unten.
 
-Warum hier nicht mitbehoben: Ihre Sichtbarkeit hängt an `getUserSettings` und
+Warum damals nicht mitbehoben: Ihre Sichtbarkeit hängt an `getUserSettings` und
 der Kapitel-Bereitschaft, beides aus IndexedDB und damit **echt** asynchron.
 Ein synchroner Merker dafür wäre eine zweite Quelle der Wahrheit; ist er
 veraltet, blitzt die Einladung auf und verschwindet wieder — das ist schlechter
-als die heutige Verschiebung. Die tragfähigen Wege sind, den Platz zu
-reservieren oder die Einladung unterhalb der Kopfzeile zu platzieren; beides
-ist eine Gestaltungsentscheidung und gehört in Phase 10.
+als die Verschiebung.
+
+**Entschieden und umgesetzt in WP-10.3.** Von den beiden im Raum stehenden Wegen
+trägt keiner: *Platz reservieren* lässt bei allen, die keine Einladung bekommen
+— dem Normalfall — dauerhaft einen leeren Streifen stehen; *unter die Kopfzeile
+setzen* verschiebt weiterhin fast die gesamte sichtbare Fläche.
+
+Gewählt wurde ein dritter: Die Einladung liegt jetzt **über** dem Inhalt statt
+in ihm (schwebender Streifen am unteren Rand, über der Mobil-Navigation).
+Dieselbe Entscheidung hatte der `OfflineIndicator` in WP-9.3 aus demselben Grund
+schon getroffen, und sie passt zur Sache: Ein Angebot, das man wegklicken kann,
+ist keine Seitenstruktur. CLS-Beitrag danach: 0.
+
+Zwei Folgen, die der Umbau selbst erst erzeugt hat und die mitbehoben sind:
+
+- Der Streifen war zunächst durchscheinend (`bg-brand/10`). Eine schwebende
+  Fläche übernimmt damit die Farbe dessen, was gerade darunter liegt — axe maß
+  für **denselben** Text 1.44:1 auf `/accounts` und 2.27:1 auf `/net-worth`.
+  Jetzt `bg-card`; der Farbakzent liegt im Rahmen.
+- In den Ganzseiten-Aufnahmen der Visual Regression legte er sich über echte
+  Inhalte. Die Aufnahmen klicken ihn jetzt weg (`dismissTourInvitation`) — sie
+  zeigen den Screen, und die Einladung hat eigene Tests.
 
 ## 4. Phasen 9–11 (unberührt)
 
 - **Phase 9 — Zustandsabdeckung:** vollständige State-Matrix je Screen (leer,
   ladend, fehlerhaft, gefiltert-leer, offline, Sanfter Modus).
-- **Phase 10 — Qualitätssicherung:** Visual Regression, Performance und
-  Accessibility vollständig durchsprechen (bisher nur für den Vertical Slice).
+- **Phase 10 — Qualitätssicherung:** Accessibility (WP-10.2) und Performance
+  (WP-10.4) laufen jetzt über **alle 22 Routen** statt über drei —
+  `e2e-tests/all-screens-a11y.spec.ts` und
+  `e2e-tests/all-screens-performance.spec.ts`, beide gegen die gemeinsame
+  Routenliste `e2e-tests/fixtures/routes.ts`.
+
+### Was die Flächenprüfungen gefunden haben (Phase 10)
+
+Der Sinn dieser Läufe ist genau das, was ein Slice-Gate nicht leisten kann. Die
+Zahlen des ersten Durchlaufs:
+
+| Prüfung | Erster Lauf | Danach |
+|---|---|---|
+| Accessibility (`critical` + `serious`) | **61 Verstöße** auf 22 Routen | 0 |
+| Bedienelemente ohne Namen (statisch, ganzer Baum) | **59** in 26 Dateien | 0, Wächter ohne Ausnahmeliste |
+| Farbkontraste über alle Skins | **86** in 16 Skin/Modus-Kombinationen | 0, als Test abgesichert |
+| CLS-Budget je Route | `/tax` 0,123 · `/liquidity` 0,102 | 0,000 · 0,000 |
+
+Zwei Lehren daraus stehen jetzt in `AGENTS.md`:
+
+1. **Der axe-Durchlauf sieht nur das gerade Gerenderte.** Er fand 8 namenlose
+   Auswahlfelder, die Quelle enthielt 48 — der Rest steckt in Dialogen und
+   Sheets ohne Klickpfad. Flächendeckung braucht einen Wächter auf der Quelle.
+2. **Ein Block, dessen Höhe von seinen Daten abhängt, darf nicht über anderem
+   Inhalt stehen, solange er lädt.** Ein höhengleiches Skelett gibt es dafür
+   nicht — die Höhe steht ja gerade nicht vorher fest. Entweder ist der Block
+   das letzte Element, oder die Seite wartet und zeigt alles zusammen.
+
+Offen bleibt hier nur die **Visual Regression**: Sie deckt weiterhin die drei
+Slice-Screens in drei Viewports ab. Eine Ausweitung auf alle 22 Routen hieße 66
+eingecheckte Baselines, die bei jeder Gestaltungsänderung neu erzeugt werden
+müssen — der Nutzen steht in keinem Verhältnis, solange Layout und Kontrast
+bereits maschinell geprüft sind. Bewusste Entscheidung, kein Versehen.
 - **Phase 11 — Rollout:** Feature Flags, Telemetrie, Feedback, Rollback.
   Die Telemetrie-Grundsatzentscheidung ist gefallen — siehe `decision-log` F-1.
 

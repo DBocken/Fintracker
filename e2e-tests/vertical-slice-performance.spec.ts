@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { startDemo } from "./fixtures/vertical-slice";
+import { CLS_BUDGET, collectWebVitals, lcpBudgetMs, type WebVitals } from "./fixtures/web-vitals";
 
 /**
  * WP-4.6: Vertical Slice Integration Test — Performance.
@@ -25,8 +26,7 @@ import { startDemo } from "./fixtures/vertical-slice";
 const IS_PREVIEW = process.env.E2E_TARGET === "preview";
 
 /** LCP-Budget in ms. Prod ist das Gate, Dev nur eine Rückmeldung. */
-const LCP_BUDGET_MS = IS_PREVIEW ? 2500 : 4000;
-const CLS_BUDGET = 0.1;
+const LCP_BUDGET_MS = lcpBudgetMs();
 
 /**
  * Budget der Warm-Navigation Dashboard → Stadt.
@@ -39,29 +39,6 @@ const CLS_BUDGET = 0.1;
  */
 const CITY_NAVIGATION_BUDGET_MS = 1000;
 const SOFTWARE_WEBGL = process.env.E2E_SOFTWARE_WEBGL === "1";
-
-type WebVitals = { lcp: number; cls: number };
-
-async function collectWebVitals(page: import("@playwright/test").Page): Promise<WebVitals> {
-  return page.evaluate(
-    () =>
-      new Promise<WebVitals>((resolve) => {
-        let lcp = 0;
-        let cls = 0;
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) lcp = entry.startTime;
-        }).observe({ type: "largest-contentful-paint", buffered: true });
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            const shift = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
-            if (!shift.hadRecentInput) cls += shift.value ?? 0;
-          }
-        }).observe({ type: "layout-shift", buffered: true });
-        // Sammelfenster: LCP/CLS sind kurz nach Load final (keine Nutzer-Eingabe hier).
-        setTimeout(() => resolve({ lcp, cls }), 2000);
-      }),
-  );
-}
 
 test.describe("Vertical Slice Performance (WP-4.6)", () => {
   // Deutsche Standard-Oberfläche (DEFAULT_LOCALE = 'de') prüfen.

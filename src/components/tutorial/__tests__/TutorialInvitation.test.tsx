@@ -45,6 +45,23 @@ describe('TutorialInvitation', () => {
     expect(run.start).toHaveBeenCalled();
   });
 
+  it('[REGRESSION] sollte nicht im Layoutfluss liegen', async () => {
+    // WP-10.3: Als eingeschobener Streifen ueber der ganzen Huelle war die
+    // Einladung mit 0,073 der groesste Posten im CLS-Budget von /dashboard
+    // (Budget 0,1) — sie schob Kopfzeile, Navigation und Inhalt gemeinsam nach
+    // unten. Eine schwebende Ebene verschiebt nichts. Wer diese Klassen
+    // entfernt, holt die Verschiebung zurueck, ohne dass ein Test rot wird —
+    // deshalb steht sie hier.
+    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'de');
+    const frame = screen.getByTestId('tutorial-invitation');
+    expect(frame.className).toContain('fixed');
+    // Der Rahmen darf die Bedienung darunter nicht abfangen …
+    expect(frame.className).toContain('pointer-events-none');
+    // … der Streifen selbst muss aber anklickbar bleiben.
+    const bar = frame.firstElementChild;
+    expect(bar?.className).toContain('pointer-events-auto');
+  });
+
   it('sollte das Wegklicken dem Host melden, ohne die Führung zu starten', async () => {
     // Das Verbergen selbst gehört dem Host (Befund A-2, Hinweisebenen-Präsenz)
     // und ist in TutorialHost.test.tsx abgesichert.

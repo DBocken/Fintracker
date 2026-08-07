@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Waves } from "lucide-react";
 import { InfoGroup } from "@/components/common/InfoGroup";
+import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { useI18n } from "@/i18n/useI18n";
-import { getWaterfallPlan } from "@/services/waterfall-service";
+import { useWaterfallPlan } from "@/hooks/useWaterfallPlan";
 import type { WaterfallStep, WaterfallStepKey } from "@/lib/budget-waterfall";
 import { cn } from "@/lib/utils";
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
@@ -72,8 +72,19 @@ export default function WaterfallPanel() {
   const money = useMoneyFormat();
   const { t } = useI18n();
   const animate = !useReducedMotion();
-  const { data: plan, isLoading } = useQuery({ queryKey: ["waterfall-plan"], queryFn: () => getWaterfallPlan() });
+  const { plan, isLoading, isError, refetch } = useWaterfallPlan();
 
+  // WP-9.6: „nicht ladbar" ist nicht „kein Einkommen erfasst". Ohne diesen
+  // Zweig faellt ein Lesefehler in den Hinweis „noch kein Einkommen" — eine
+  // Aussage ueber die Daten, die gar nicht gelesen werden konnten.
+  if (isError) {
+    return <FinanceErrorState variant="data" onRetry={() => void refetch()} />;
+  }
+
+  // Kein eigener Ladezustand mehr: Auf /liquidity wartet die SEITE auf denselben
+  // Plan und rendert erst dann (WP-10.4, siehe `useWaterfallPlan`). Ein Skelett
+  // hier waere ein zweiter, hoehenabweichender Zwischenzustand — genau die
+  // Verschiebung, die dort beseitigt wurde.
   if (isLoading || !plan) return null;
   if (plan.income <= 0) {
     return (
