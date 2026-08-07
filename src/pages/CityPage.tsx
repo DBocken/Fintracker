@@ -817,7 +817,14 @@ export default function CityPage() {
                 ref={canvasContainerRef}
                 data-tour-id="city-canvas"
                 aria-hidden={showList}
-                role={showList ? undefined : "img"}
+                // `group`, nicht `img`: In dieser Fläche stecken die
+                // Distrikt-Labels und im Störfall die Knöpfe „erneut
+                // versuchen"/„zur Liste". `role="img"` erklärt all das zum
+                // Bildinhalt — Hilfstechnik reicht es dann nicht mehr durch,
+                // und die einzige Ausweichmöglichkeit aus einer toten
+                // 3D-Fläche wäre ausgerechnet für die unerreichbar, die sie am
+                // dringendsten brauchen (axe: nested-interactive).
+                role={showList ? undefined : "group"}
                 aria-label={showList ? undefined : t("city.canvasAriaLabel")}
                 className={cn("absolute inset-0", showList && "invisible")}
               >

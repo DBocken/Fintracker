@@ -85,9 +85,14 @@ describe("AdaptiveSpendingToggle", () => {
         />,
         "de"
       );
-      // Der aria-label sitzt auf der Slider-Wurzel; role="slider" trägt der Thumb.
-      expect(screen.getByLabelText(/Konsequenz des Gegensteuerns/)).toBeInTheDocument();
-      expect(screen.getByRole("slider")).toHaveAttribute("aria-valuenow", "70");
+      // [REGRESSION] WP-10.2: Der Name muss AM Regler hängen, nicht an der
+      // Wurzel darüber. `role="slider"` trägt bei Radix der Thumb — lag der
+      // `aria-label` auf der Wurzel, war der Regler für Hilfstechnik namenlos
+      // (axe: aria-input-field-name), obwohl die Aufrufstelle ihn gesetzt hat.
+      expect(screen.getByRole("slider", { name: /Konsequenz des Gegensteuerns/ })).toHaveAttribute(
+        "aria-valuenow",
+        "70",
+      );
       expect(screen.getByText("70 %")).toBeInTheDocument();
     });
   });

@@ -163,7 +163,7 @@ export function TransactionFormDialog({
           <div className="space-y-1.5">
             <Label>{t("forms.accountLabel")}</Label>
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t("forms.accountLabel")}>
                 <SelectValue placeholder={t("forms.selectAccountPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
@@ -222,7 +222,7 @@ export function TransactionFormDialog({
           <div className="space-y-1.5">
             <Label>{t("forms.categoryLabel")}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t("forms.categoryLabel")}>
                 <SelectValue placeholder={t("forms.selectCategoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>

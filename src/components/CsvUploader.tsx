@@ -189,7 +189,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                     onValueChange={handleAccountChange}
                     disabled={accountsLoading}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full" aria-label={t("forms.accountLabel")}>
                       <SelectValue placeholder={accountsLoading ? t("csv.loadingAccounts") : t("forms.selectAccountPlaceholder", "Konto auswählen")} />
                     </SelectTrigger>
                     <SelectContent>
@@ -220,7 +220,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
             <div>
               <label className="block text-sm font-medium mb-2">{t("csv.accountType")}</label>
               <Select value={accountType} onValueChange={(val: 'bank' | 'credit') => setAccountType(val)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label={t("csv.accountType")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -244,7 +244,10 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               }`}
               style={{ pointerEvents: selectedAccountId ? 'auto' : 'none' }}
             >
-              <input {...getInputProps()} disabled={!selectedAccountId} />
+              {/* Das Feld selbst ist unsichtbar (react-dropzone), traegt aber die
+                  Tastatur- und Screenreader-Bedienung — ohne Namen ist es nur
+                  ein „Datei"-Knopf ohne Angabe, wofuer. */}
+              <input {...getInputProps()} disabled={!selectedAccountId} aria-label={t("csv.dragOrClick")} />
               {!selectedAccountId ? (
                 <p className="text-muted-foreground">{t("csv.selectAccountFirst")}</p>
               ) : isDragActive ? (
@@ -280,7 +283,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
         <div>
           <label className="block text-sm font-medium mb-2">{t("csv.accountType")}</label>
           <Select value={accountType} onValueChange={(val: 'bank' | 'credit') => setAccountType(val)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={t("csv.accountType")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -298,7 +301,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
         <div>
           <label className="block text-sm font-medium mb-1">{t("csv.delimiter")}</label>
           <Select value={delimiter} onValueChange={setDelimiter}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={t("csv.delimiter")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -320,18 +323,23 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
             'categoryColumn',
             'ibanColumn',
           ] as const
-        ).map((key) => (
+        ).map((key) => {
+          // Einmal benannt, zweimal gebraucht: sichtbar als Beschriftung und als
+          // Name des Auswahlfelds. Sonst hoerte man sieben Mal „Spalte waehlen"
+          // und wuesste nicht, welche Spalte gemeint ist.
+          const columnLabel = {
+            dateColumn: t("csv.dateColumn"),
+            amountColumn: t("csv.amountColumn"),
+            payeeColumn: t("csv.payeeColumn"),
+            descriptionColumn: t("csv.descriptionColumn"),
+            currencyColumn: t("csv.currencyColumn"),
+            categoryColumn: t("csv.categoryColumn"),
+            ibanColumn: t("csv.ibanColumn"),
+          }[key];
+          return (
           <div key={key}>
             <label className="block text-sm font-medium mb-1">
-              {{
-                dateColumn: t("csv.dateColumn"),
-                amountColumn: t("csv.amountColumn"),
-                payeeColumn: t("csv.payeeColumn"),
-                descriptionColumn: t("csv.descriptionColumn"),
-                currencyColumn: t("csv.currencyColumn"),
-                categoryColumn: t("csv.categoryColumn"),
-                ibanColumn: t("csv.ibanColumn"),
-              }[key]}
+              {columnLabel}
             </label>
             <Select
               value={mapping[key] || ''}
@@ -339,7 +347,7 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
                 setMapping({ ...mapping, [key]: val === '__none__' ? undefined : val })
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-label={columnLabel}>
                 <SelectValue placeholder={t("csv.selectColumn")} />
               </SelectTrigger>
               <SelectContent>
@@ -354,7 +362,8 @@ export function CsvUploader({ onTransactionsLoaded }: CsvUploaderProps) {
               </SelectContent>
             </Select>
           </div>
-        ))}
+          );
+        })}
 
         <div className="text-right">
           <Button

@@ -279,7 +279,7 @@ export function ContractsDashboard() {
               </div>
             </div>
             <Select value={viewMode} onValueChange={(val: "monthly" | "yearly") => setViewMode(val)}>
-              <SelectTrigger className="h-10 w-full sm:w-64"><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-64" aria-label={t("contracts.viewPlaceholder")}><SelectValue placeholder={t("contracts.viewPlaceholder")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly">{t("contracts.monthlyLabel", "monatlich")} (normiert)</SelectItem>
                 <SelectItem value="yearly">{t("contracts.annuallyLabel", "jährlich")} (tatsächlich)</SelectItem>

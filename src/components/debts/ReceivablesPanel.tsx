@@ -314,7 +314,7 @@ export function ReceivablesPanel() {
                 <div className="space-y-2">
                   <Label>{t('debts.receivablesPanel.receivableLabel')}</Label>
                   <Select value={currentReceivableId} onValueChange={setSelectedReceivableId}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label={t('debts.receivablesPanel.receivableLabel')}>
                       <SelectValue placeholder={t('debts.receivablesPanel.selectPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>

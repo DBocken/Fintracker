@@ -31,6 +31,7 @@ export function TimeRangeSettings({ retentionMonths, onRetentionChange }: TimeRa
     >
         <div className="space-y-2">
           <Slider
+            aria-label={t('settings.timeRange.title')}
             value={[retentionMonths]}
             onValueChange={([value]: number[]) => onRetentionChange(value)}
             min={1}

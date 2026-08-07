@@ -133,7 +133,7 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Select value={mainId} onValueChange={handleMainChange} disabled={disabled}>
-          <SelectTrigger className={cn('w-full min-w-0 sm:w-44', className)}><SelectValue placeholder={placeholder} /></SelectTrigger>
+          <SelectTrigger className={cn('w-full min-w-0 sm:w-44', className)} aria-label={t('categories.mainBadge')}><SelectValue placeholder={placeholder} /></SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE_VALUE}>{t('categories.noneValue')}</SelectItem>
             {mains.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}
@@ -141,7 +141,7 @@ export function CategoryTwoStepSelect({ categories, value, onChange, disabled, c
         </Select>
         {mainId && children.length > 0 && (
           <Select value={subId} onValueChange={handleSubChange} disabled={disabled}>
-            <SelectTrigger className={cn('w-full min-w-0 sm:w-48', className)}><SelectValue placeholder={t('categories.subPlaceholder')} /></SelectTrigger>
+            <SelectTrigger className={cn('w-full min-w-0 sm:w-48', className)} aria-label={t('categories.subBadge')}><SelectValue placeholder={t('categories.subPlaceholder')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value={MAIN_ONLY_VALUE}>{t('categories.onlyMainOption')}</SelectItem>
               {children.map((c) => <SelectItem key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</SelectItem>)}

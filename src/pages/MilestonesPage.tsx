@@ -47,7 +47,7 @@ export default function MilestonesPage() {
               </div>
               <div className="text-2xl font-semibold tabular-nums text-primary">{pct}%</div>
             </div>
-            <Progress value={pct} className="mt-3" />
+            <Progress value={pct} className="mt-3" aria-label={t("milestones.achieved")} />
           </div>
 
           {/* Fortschrittspfad */}

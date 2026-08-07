@@ -431,7 +431,7 @@ export function TransactionDetailsPanel({
               disabled={isLoading}
               onValueChange={(value) => setDraft((d) => (d ? { ...d, contract_cycle: (value as Rhythmus) || null } : d))}
             >
-              <SelectTrigger id="cycle-select">
+              <SelectTrigger id="cycle-select" aria-label={t('transactionDetails.cycleLabel')}>
                 <SelectValue placeholder={t('dashboard.selectCycle')} />
               </SelectTrigger>
               <SelectContent>

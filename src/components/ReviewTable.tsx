@@ -252,7 +252,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
             <Tag className="h-4 w-4" />
             <span>{t('reviewTable.selected').replace('{count}', selectedRows.size.toString())}</span>
             <Select value={bulkCategory} onValueChange={setBulkCategory}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48" aria-label={t('reviewTable.bulkCategoryLabel')}>
                 <SelectValue placeholder={t('reviewTable.categoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -365,7 +365,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                           )
                         }
                       >
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-32" aria-label={t('reviewTable.rowCategoryLabel')}>
                           <SelectValue placeholder="—" />
                         </SelectTrigger>
                         <SelectContent>
@@ -418,6 +418,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.firstPage')}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -427,6 +428,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.previousPage')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -439,6 +441,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.nextPage')}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -448,6 +451,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 p-0"
+                aria-label={t('reviewTable.lastPage')}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>

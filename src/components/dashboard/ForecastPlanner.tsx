@@ -429,7 +429,7 @@ function AccountSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="h-9">
+      <SelectTrigger className="h-9" aria-label={placeholder}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -471,7 +471,7 @@ function EventForm({
       <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newItem')}</div>
       <Input placeholder={t('forecast.itemName')} value={name} onChange={(e) => setName(e.target.value)} />
       <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className="h-9" aria-label={t('forecast.kindLabel')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -488,7 +488,7 @@ function EventForm({
         onChange={(e) => setAmount(e.target.value)}
       />
       <Select value={direction} onValueChange={(v) => setDirection(v as 'out' | 'in')}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className="h-9" aria-label={t('forecast.directionLabel')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -504,7 +504,7 @@ function EventForm({
             <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               <Select value={cadence} onValueChange={(v) => setCadence(v as EventCadence)}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9" aria-label={t('forecast.cadenceLabel')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -690,7 +690,7 @@ function TransferForm({
       <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newTransfer')}</div>
       <div className="col-span-2">
         <Select value={isRecurring ? 'recurring' : 'onetime'} onValueChange={(v) => setIsRecurring(v === 'recurring')}>
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9" aria-label={t('forecast.kindLabel')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -715,7 +715,7 @@ function TransferForm({
       {isRecurring ? (
         <>
           <Select value={cadence} onValueChange={(v) => setCadence(v as typeof cadence)}>
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="h-9" aria-label={t('forecast.cadenceLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

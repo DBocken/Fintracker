@@ -194,7 +194,7 @@ export function DataExport() {
               <FileText className="h-6 w-6" />
               <div className="text-left">
                 <div className="font-semibold">{t('dataExport.csvTitle')}</div>
-                <div className="text-xs text-muted-foreground">{t('dataExport.csvDesc')}</div>
+                <div className="text-xs opacity-80">{t('dataExport.csvDesc')}</div>
               </div>
             </Button>
             <Button
@@ -205,7 +205,7 @@ export function DataExport() {
               <Database className="h-6 w-6" />
               <div className="text-left">
                 <div className="font-semibold">{t('dataExport.pdfTitle')}</div>
-                <div className="text-xs text-muted-foreground">{t('dataExport.pdfDesc')}</div>
+                <div className="text-xs opacity-80">{t('dataExport.pdfDesc')}</div>
               </div>
             </Button>
           </div>

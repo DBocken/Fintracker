@@ -267,6 +267,7 @@ export default function PortfolioManager({
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      aria-label={t('trading.portfolioManager.deleteLabel').replace('{name}', portfolio.name)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

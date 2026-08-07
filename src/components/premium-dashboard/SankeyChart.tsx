@@ -187,6 +187,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">{t("premium.sankey.heightLabel")}</span>
             <Slider
+              aria-label={t("premium.sankey.heightLabel")}
               value={[chartHeight]}
               min={300}
               max={800}

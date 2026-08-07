@@ -178,7 +178,7 @@ export function AccountFormDialog({
           <div className="space-y-2">
             <Label htmlFor="type">{t('accounts.formDialog.typeLabel')}</Label>
             <Select value={type} onValueChange={(val) => setType(val as AccountType)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('accounts.formDialog.typeLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ export function AccountFormDialog({
             <div className="space-y-2">
               <Label htmlFor="currency">{t('accounts.formDialog.currencyLabel')}</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
+                <SelectTrigger aria-label={t('accounts.formDialog.currencyLabel')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -369,7 +369,7 @@ export function AccountFormDialog({
                   value={autopayAccountId || ''}
                   onValueChange={(val) => setAutopayAccountId(val === '__none__' ? null : val)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label={t('accounts.formDialog.autopayAccountLabel')}>
                     <SelectValue placeholder={t('accounts.formDialog.autopayAccountPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>

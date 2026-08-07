@@ -26,7 +26,7 @@ export function LanguageSettings() {
   return (
     <InfoGroup title={t('settings.language')} description={t('settings.languageDescription')}>
         <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-          <SelectTrigger className="w-full sm:w-64">
+          <SelectTrigger className="w-full sm:w-64" aria-label={t('settings.language')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

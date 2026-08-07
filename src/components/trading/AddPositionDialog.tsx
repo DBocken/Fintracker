@@ -288,7 +288,7 @@ export default function AddPositionDialog({
                 onValueChange={setCurrency}
                 disabled={createMutation.isPending || updateMutation.isPending}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="col-span-3" aria-label={t('trading.addPositionDialog.currencyLabel')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

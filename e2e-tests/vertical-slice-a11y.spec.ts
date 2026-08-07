@@ -45,7 +45,7 @@ test.describe("Vertical Slice Accessibility (WP-4.6)", () => {
     // Finanzstadt (Canvas + barrierearme Parallelstruktur)
     await page.goto("/city");
     await expect(page.getByRole("heading", { name: "Finanzstadt" })).toBeVisible();
-    await expect(page.getByRole("img", { name: "3D-Ansicht der Finanzstadt" })).toBeVisible({
+    await expect(page.getByRole("group", { name: "3D-Ansicht der Finanzstadt" })).toBeVisible({
       timeout: 15000,
     });
     const cityCritical = await scan("Finanzstadt");

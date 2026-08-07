@@ -66,6 +66,12 @@ jobs:
       - name: Fehlerzustands-Check (useQuery)
         run: pnpm check:query-errors
 
+      # Statisch, weil der axe-Durchlauf nur sieht, was gerade gerendert ist:
+      # er fand acht namenlose Auswahlfelder, die Quelle enthielt 48. Der Rest
+      # steckt in Dialogen und Sheets ohne Klickpfad.
+      - name: Namens-Check (Bedienelemente)
+        run: pnpm check:a11y-names
+
       - name: i18n-Check (Diff)
         run: |
           git fetch origin main

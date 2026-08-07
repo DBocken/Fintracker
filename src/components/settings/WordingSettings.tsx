@@ -42,7 +42,7 @@ export function WordingSettings() {
           onValueChange={(value) => setWording(value as Wording)}
           disabled={!hasOverlay}
         >
-          <SelectTrigger className="w-full sm:w-64">
+          <SelectTrigger className="w-full sm:w-64" aria-label={t('settings.wording.title')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -84,7 +84,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
           <div className="space-y-1.5">
             <Label>{t('accounts.cashWithdrawal.fromAccount')}</Label>
             <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label={t('accounts.cashWithdrawal.fromAccount')}>
                 <SelectValue placeholder={t('accounts.cashWithdrawal.fromAccountPlaceholder')} />
               </SelectTrigger>
               <SelectContent>

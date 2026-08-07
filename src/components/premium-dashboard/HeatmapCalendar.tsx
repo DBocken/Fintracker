@@ -149,7 +149,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
           <div className="flex items-center gap-3">
             <div className="text-sm text-foreground">{t("premium.heatmap.timeRange")}</div>
             <Select value={String(daysRange)} onValueChange={(v) => setDaysRange(Number(v))}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px]" aria-label={t("premium.heatmap.timeRange")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -162,7 +162,7 @@ export function HeatmapCalendar({ transactions }: HeatmapCalendarProps) {
           <div className="flex items-center gap-3">
             <div className="text-sm text-foreground">{t("premium.heatmap.aggregation")}</div>
             <Select value={aggregator} onValueChange={(v: Aggregator) => setAggregator(v)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px]" aria-label={t("premium.heatmap.aggregation")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

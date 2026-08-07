@@ -81,8 +81,18 @@ export function ChartFigure<Row>({
       {summary && <p className="sr-only">{summary}</p>}
 
       {/* Für Hilfstechnik ausgeblendet: die Tabelle unten ist die
-          gleichwertige Fassung, beides vorzulesen wäre Doppelung. */}
-      <div aria-hidden="true" className="min-h-0 flex-1">
+          gleichwertige Fassung, beides vorzulesen wäre Doppelung.
+
+          `inert` gehört zwingend dazu und ist nicht Zierde: `aria-hidden`
+          allein nimmt den Inhalt aus dem Baum, lässt ihn aber fokussierbar —
+          Recharts setzt auf seiner Zeichenfläche `tabIndex`. Wer sich mit der
+          Tabulatortaste bewegt, landete damit in einem Element, das sein
+          Screenreader nicht vorliest: der Fokus verschwindet. Genau das meldet
+          axe als `aria-hidden-focus` (auf sechs Screens, weil dieser Baustein
+          zentral ist). React 18 kennt `inert` noch nicht als Prop und reicht
+          es als unbekanntes Attribut unverändert an das DOM weiter — daher
+          die Schreibweise. */}
+      <div aria-hidden="true" className="min-h-0 flex-1" {...{ inert: '' }}>
         {children}
       </div>
 

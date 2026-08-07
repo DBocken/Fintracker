@@ -156,7 +156,10 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
             <p className="text-lg font-medium">{t('debts.claimImport.processing')}</p>
             {progress && (
               <div className="w-full space-y-1">
-                <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
+                <Progress
+                  value={(progress.done / Math.max(progress.total, 1)) * 100}
+                  aria-label={t('debts.claimImport.processing')}
+                />
                 <p className="text-center text-sm text-muted-foreground">{progress.label}</p>
               </div>
             )}

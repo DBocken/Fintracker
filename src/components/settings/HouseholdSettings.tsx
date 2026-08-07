@@ -112,6 +112,7 @@ export function HouseholdSettings() {
                     size="sm"
                     className="text-warning hover:text-warning"
                     onClick={() => removeMember.mutate(member.id)}
+                    aria-label={t('householdSettings.removeMemberLabel').replace('{name}', member.name)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

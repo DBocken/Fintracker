@@ -135,7 +135,7 @@ export function ProfileDialogContent() {
             value={skin}
             onValueChange={(v) => updateSkinMutation.mutate(v as SkinId)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={t("profile.selectSkinLabel")}>
               <SelectValue placeholder={t("profile.selectSkinLabel")} />
             </SelectTrigger>
             <SelectContent>

@@ -126,15 +126,24 @@ export function TransactionTable({
               <TableCell>{format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: de })}</TableCell>
               <TableCell>
                 {account ? (
+                  // Die Kontofarbe traegt der Rahmen und der Punkt, NICHT die
+                  // Schrift: Sie kommt aus den Nutzerdaten, also kann kein
+                  // Token ihre Lesbarkeit garantieren — gemessen 3.92:1 auf der
+                  // eigenen 6-%-Tönung. Als Rahmen bleibt die Zuordnung auf
+                  // einen Blick erhalten, die Beschriftung wird lesbar.
                   <Badge
                     variant="outline"
-                    className="text-xs whitespace-nowrap"
+                    className="whitespace-nowrap gap-1.5 text-xs text-foreground"
                     style={{
                       borderColor: account.color,
-                      color: account.color,
                       backgroundColor: account.color + '10',
                     }}
                   >
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: account.color }}
+                    />
                     <span aria-hidden="true">{account.icon}</span> {account.name}
                   </Badge>
                 ) : (

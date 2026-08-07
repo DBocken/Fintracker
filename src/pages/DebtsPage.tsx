@@ -478,7 +478,7 @@ export default function DebtsPage() {
                   <div className="space-y-2">
                     <Label>{t('debts.debtsPage.debtLabel')}</Label>
                     <Select value={currentDebtId} onValueChange={setSelectedDebtId}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label={t('debts.debtsPage.debtLabel')}>
                         <SelectValue placeholder={t('debts.debtsPage.selectDebtPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>

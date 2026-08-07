@@ -273,6 +273,7 @@ export default function PositionTable({
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit(position)}
+                        aria-label={t('trading.positionTable.editLabel').replace('{symbol}', position.symbol)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -280,7 +281,11 @@ export default function PositionTable({
                     {onDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('trading.positionTable.deleteLabel').replace('{symbol}', position.symbol)}
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </AlertDialogTrigger>
