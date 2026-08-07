@@ -1,7 +1,15 @@
 name: CI
 
 on:
+  # `push` NUR auf main. Ohne Filter loest jeder Push auf einen PR-Branch ZWEI
+  # vollstaendige Laeufe aus — einen fuer `push`, einen fuer `pull_request` —
+  # mit identischem Ergebnis. Das ist die Haelfte der Warteschlange fuer nichts
+  # und verzoegert genau die Laeufe, auf die es ankommt.
+  #
+  # Ein Branch ohne offenen Pull Request bekommt damit keinen Lauf mehr. Das ist
+  # gewollt: Geprueft wird, was gemergt werden soll.
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -89,6 +97,19 @@ jobs:
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
+
+      # Bis WP-10.6 hatte CI ueberhaupt keinen Build-Schritt: Der
+      # Produktions-Build lief nur nebenbei im Performance-Job
+      # (E2E_TARGET=preview). Ein Build-Fehler waere dort als
+      # Performance-Fehlschlag erschienen — an der falschen Stelle gesucht.
+      - name: Produktions-Build
+        run: pnpm build
+
+      # Die Menge an JavaScript stand bisher nur als Warnung im Build-Protokoll.
+      # Eine Warnung, die bei jedem Build erscheint, liest nach der dritten
+      # Woche niemand mehr.
+      - name: Bundle-Budget
+        run: pnpm check:bundle-size
 
       - name: Tests & Coverage
         run: pnpm test:coverage
