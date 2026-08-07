@@ -29,7 +29,7 @@ vi.mock('@/services/transaction-service', async (importOriginal) => ({
 import TransactionsPage from '../TransactionsPage';
 
 describe('TransactionsPage — Fehlerzustand (WP-9.2)', () => {
-  it('[REGRESSION] sollte einen Ladefehler benennen statt „keine Daten" zu behaupten', async () => {
+  it('[REGRESSION] [ZUSTAND /transactions:fehler] sollte einen Ladefehler benennen statt „keine Daten" zu behaupten', async () => {
     renderWithProviders(<TransactionsPage />, { query: true });
 
     expect(

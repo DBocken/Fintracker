@@ -80,6 +80,12 @@ jobs:
       - name: Namens-Check (Bedienelemente)
         run: pnpm check:a11y-names
 
+      # Die Zeilenabdeckung lag bei 71 % — und /debts zeigte nach einem
+      # Lesefehler trotzdem „Noch keine Schulden". Eine Prozentzahl zaehlt
+      # Zeilen, dieser Schritt zaehlt Aussagen je Flaeche und Zustand.
+      - name: Zustands-Abdeckung je Flaeche
+        run: pnpm check:state-coverage
+
       - name: i18n-Check (Diff)
         run: |
           git fetch origin main

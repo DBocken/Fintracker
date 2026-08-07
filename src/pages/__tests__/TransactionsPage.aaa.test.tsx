@@ -85,7 +85,7 @@ describe('TransactionsPage — AAA+-Produktsprache', () => {
       ).toBeInTheDocument();
     });
 
-    it('sollte im Leerzustand eine konkrete naechste Aktion anbieten', () => {
+    it('[ZUSTAND /transactions:leer] sollte im Leerzustand eine konkrete naechste Aktion anbieten', () => {
       state.loading = false;
       state.txs = [];
       renderPage();

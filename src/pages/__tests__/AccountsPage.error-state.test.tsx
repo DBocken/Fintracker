@@ -29,7 +29,7 @@ vi.mock('@/services/account-service', async (importOriginal) => ({
 import AccountsPage from '../AccountsPage';
 
 describe('Fehlerzustand auf dem Konten-Screen (WP-9.6)', () => {
-  it('[REGRESSION] sollte den Ladefehler genau EINMAL benennen', async () => {
+  it('[REGRESSION] [ZUSTAND /accounts:fehler] sollte den Ladefehler genau EINMAL benennen', async () => {
     renderWithProviders(<AccountsPage />, { query: true });
 
     await screen.findByText('Deine Daten konnten nicht geladen werden');

@@ -24,6 +24,7 @@
     "check:platform-parity": "node scripts/check-platform-parity.mjs",
     "check:query-errors": "node scripts/check-query-errors.mjs",
     "check:a11y-names": "node scripts/check-a11y-names.mjs",
+    "check:state-coverage": "node scripts/check-state-coverage.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "prepare": "git config core.hooksPath >/dev/null 2>&1 || git config core.hooksPath .githooks || true"
   },

@@ -1,0 +1,134 @@
+{
+  "_comment": "Flaechen ohne Test fuer einen Zustand. ZWEI Formen: \"offen\" ist Backlog und darf nur schrumpfen; \"entfaellt\" ist entschieden und braucht je Zustand einen Grund. Angemeldet wird ein Zustand ueber einen Tag im Testtitel: [ZUSTAND /route:zustand]. Neue Flaechen gehoeren in KEINE der beiden Formen - dann ist ein Test zu schreiben, nicht die Liste zu erweitern. \"offen\" zieht `pnpm check:state-coverage --update` nach, die Gruende bleiben.",
+  "routes": {
+    "/coach": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/dashboard": {
+      "offen": [
+        "leer"
+      ]
+    },
+    "/accounts": {
+      "offen": [
+        "leer"
+      ]
+    },
+    "/budgets": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/debts": {
+      "offen": [
+        "leer"
+      ]
+    },
+    "/net-worth": {
+      "offen": [
+        "leer"
+      ]
+    },
+    "/liquidity": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/milestones": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/income": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/tax": {
+      "offen": [
+        "leer"
+      ]
+    },
+    "/euer": {
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/trading": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/city": {
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/contracts": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/occasions": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/premium": {
+      "offen": [
+        "leer",
+        "fehler"
+      ]
+    },
+    "/simulation": {
+      "entfaellt": {
+        "leer": "Reine Eingabeflaeche mit Reglern; die Rechnung entsteht aus der Eingabe, nicht aus gespeicherten Buchungen."
+      },
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/csv": {
+      "entfaellt": {
+        "leer": "Der Datei-Upload ist der Einstiegspunkt und immer bedienbar - eine leere Vorschau ist der Normalzustand vor der ersten Datei, keine Aussage ueber Bestandsdaten."
+      },
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/export": {
+      "entfaellt": {
+        "leer": "Die Ausgabewege stehen immer zur Verfuegung; ob Daten da sind, entscheidet erst der Ausloeser. Kein Leerzustand der Flaeche selbst."
+      },
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/settings": {
+      "entfaellt": {
+        "leer": "Die Einstellungen zeigen immer Bedienelemente, nie eine Liste von Nutzerdaten. Es gibt keinen Zustand 'noch nichts erfasst', der mit einem Ladefehler verwechselt werden koennte."
+      },
+      "offen": [
+        "fehler"
+      ]
+    },
+    "/privacy": {
+      "entfaellt": {
+        "leer": "Wie /settings: eine Erklaerseite mit Schaltern. Kein Bestand, der leer sein koennte."
+      },
+      "offen": [
+        "fehler"
+      ]
+    }
+  }
+}

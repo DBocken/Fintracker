@@ -33,7 +33,7 @@ vi.mock('@/features/dashboard/presentation/mobile/DashboardMobileStory', () => (
 import { Dashboard } from '../Dashboard';
 
 describe('Dashboard — Fehlerzustand (WP-9.2)', () => {
-  it('[REGRESSION] sollte einen Ladefehler benennen statt „keine Daten" zu behaupten', async () => {
+  it('[REGRESSION] [ZUSTAND /dashboard:fehler] sollte einen Ladefehler benennen statt „keine Daten" zu behaupten', async () => {
     renderWithProviders(<Dashboard />, { query: true });
 
     expect(

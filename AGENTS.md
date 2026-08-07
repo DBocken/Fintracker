@@ -98,6 +98,7 @@ verwenden**.
 | `pnpm check:platform-parity` | Prüft den maschinell fassbaren Teil von §4: Eine Fläche mit `hidden <bp>:*` ohne Gegenstück (`<bp>:hidden`) fehlt auf schmalen Breiten ganz — das ist kein Dichte-Unterschied, sondern ein fehlendes Feature. Legitime Paare über Dateigrenzen stehen mit **Nennung des Partners** in `platform-parity-allowlist.json`. Läuft in Pre-Commit und CI |
 | `pnpm check:bundle-size` | Vergleicht die gzip-Grössen aus `dist/assets` gegen `bundle-size-budget.json` (Einzelbudget ab 20 kB, dazu eine Gesamtgrenze über **alle** Bündel). Setzt einen `pnpm build` voraus. Das Budget ist der heutige Stand plus 10 % — es soll Wachstum sichtbar machen, nicht die Vergangenheit verurteilen. Läuft in CI |
 | `pnpm check:a11y-names` | Verlangt für jedes `<SelectTrigger>` und jede Schaltfläche, deren einziger Inhalt ein Icon ist, einen zugänglichen Namen (`aria-label`/`aria-labelledby`/`title`). **Ohne Ausnahmeliste** — anders als die übrigen Wächter, weil ein namenloses Bedienelement mit Screenreader schlicht nicht bedienbar ist. Läuft in Pre-Commit und CI |
+| `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
@@ -153,6 +154,22 @@ Ablauf: **Ziel verstehen → Test schreiben (rot) → minimale Implementierung
   lokalen Kopien pro Datei.
 - Tags für besondere Kategorien: `[REGRESSION]` (behobener Bug),
   `[SECURITY]`, `[INTEGRITY]`, `[PRIVACY]`, `[MOBILE]`.
+- **Zustands-Tag `[ZUSTAND /route:zustand]`** meldet an, dass dieser Test für
+  eine Fläche einen Zustand der Matrix aus §9.1 prüft (`geladen`, `leer`,
+  `gefiltert-leer`, `fehler`). Pflicht sind `leer` und `fehler` je Route —
+  genau die beiden, die einander zum Verwechseln ähnlich sehen und deshalb
+  eine falsche Auskunft erzeugen können. Erzwungen durch
+  `pnpm check:state-coverage`.
+
+```typescript
+it('[REGRESSION] [ZUSTAND /debts:fehler] sollte den Ladefehler benennen statt „noch keine Schulden"', () => {})
+```
+
+**Ein Test je Feature ist das Minimum, aber nicht dasselbe wie „wird rot, wenn
+das Feature bricht".** Für Schulden und Vermögen gab es Tests, sie waren grün,
+und beide Seiten haben nach einem Lesefehler „du hast noch nichts" behauptet.
+Ein Test wird erst dann zum Wächter, wenn er den falschen Zustand vom richtigen
+unterscheiden kann — deshalb zählt der Wächter Zustände und nicht Zeilen.
 
 ```typescript
 // ✅ GUT:
@@ -335,8 +352,9 @@ Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n
 (`pnpm check:i18n`), Teststruktur (`pnpm check:test-structure`), die
 Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
 (`pnpm check:platform-parity`), den Fehlerzustand jeder Abfrage
-(`pnpm check:query-errors`) und die Namen der Bedienelemente
-(`pnpm check:a11y-names`). Claude
+(`pnpm check:query-errors`) die Namen der Bedienelemente
+(`pnpm check:a11y-names`) und die Zustands-Abdeckung je Fläche
+(`pnpm check:state-coverage`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.
