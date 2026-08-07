@@ -1095,6 +1095,26 @@ export const translations = {
         themeSavedSuccess: 'Theme gespeichert',
         themeSaveError: 'Fehler beim Speichern des Themes',
       },
+      telemetry: {
+        title: 'Anonyme Nutzungsdaten',
+        description:
+          'Aus in der Voreinstellung. Wenn du zustimmst, hilfst du dabei, Fehler zu finden und langsame Stellen zu erkennen — ohne dass etwas über dein Geld das Gerät verlässt.',
+        stateOn: 'Eingeschaltet',
+        stateOff: 'Ausgeschaltet',
+        sendsTitle: 'Was gesendet wird',
+        sends: {
+          screens: 'Welche Bereiche geöffnet wurden',
+          errors: 'Dass ein Fehler auftrat und in welchem Bereich',
+          performance: 'Wie schnell Seiten aufgebaut haben',
+        },
+        neverTitle: 'Was niemals gesendet wird',
+        never: {
+          amounts: 'Beträge, Salden und Umsätze',
+          payees: 'Empfänger, Verwendungszwecke, IBANs',
+          identity: 'Name, E-Mail oder eine Kennung deines Geräts',
+        },
+        revokeButton: 'Zustimmung widerrufen und Gesammeltes löschen',
+      },
       timeRange: {
         title: 'Aufbewahrungsdauer',
         months: '{months} Monate',
@@ -5718,6 +5738,26 @@ export const translations = {
         themeSavedSuccess: 'Theme saved',
         themeSaveError: 'Error saving theme',
       },
+      telemetry: {
+        title: 'Anonymous usage data',
+        description:
+          'Off by default. If you agree, you help find bugs and spot slow screens — without anything about your money leaving the device.',
+        stateOn: 'On',
+        stateOff: 'Off',
+        sendsTitle: 'What is sent',
+        sends: {
+          screens: 'Which areas were opened',
+          errors: 'That an error occurred, and in which area',
+          performance: 'How quickly screens rendered',
+        },
+        neverTitle: 'What is never sent',
+        never: {
+          amounts: 'Amounts, balances and transactions',
+          payees: 'Payees, references, IBANs',
+          identity: 'Name, email or any identifier of your device',
+        },
+        revokeButton: 'Withdraw consent and delete what was collected',
+      },
       timeRange: {
         title: 'Retention period',
         months: '{months} months',
@@ -10088,6 +10128,26 @@ export const translations = {
         darkModeToggleLabel: "qab choH",
         themeSavedSuccess: "qab polta'",
         themeSaveError: "qab polmeH Qagh",
+      },
+      telemetry: {
+        title: "lo'lu'ghach De'",
+        description:
+          "chu'be'lu'. bIchaw'chugh, Qagh tu'meH je Qit qaSbogh Daq tu'meH choQaH — 'ach Huch De' juH mejbe'.",
+        stateOn: "chu'lu'",
+        stateOff: "chu'be'lu'",
+        sendsTitle: "nuq lu'angtaH",
+        sends: {
+          screens: "Daqmey poSlu'bogh",
+          errors: "Qagh qaS 'ej nuqDaq",
+          performance: "chay' nom Daqmey cher",
+        },
+        neverTitle: "nuq lu'angbe'taH",
+        never: {
+          amounts: "Huch mI'mey, Huch polmey je",
+          payees: "Huch Hevwe', qech, IBAN je",
+          identity: "pong, De'wI' pong ghap jan pong",
+        },
+        revokeButton: "chaw' yIteq 'ej boSlu'bogh yIQaw'",
       },
       timeRange: {
         title: "polghach poH",
@@ -14599,6 +14659,26 @@ export const translations = {
         darkModeToggleLabel: 'Переключить оформление',
         themeSavedSuccess: 'Тема сохранена',
         themeSaveError: 'Ошибка при сохранении темы',
+      },
+      telemetry: {
+        title: 'Анонимные данные об использовании',
+        description:
+          'По умолчанию выключено. Если вы согласитесь, это поможет находить ошибки и медленные экраны — при этом ничего о ваших деньгах не покидает устройство.',
+        stateOn: 'Включено',
+        stateOff: 'Выключено',
+        sendsTitle: 'Что отправляется',
+        sends: {
+          screens: 'Какие разделы открывались',
+          errors: 'Что произошла ошибка и в каком разделе',
+          performance: 'Как быстро отрисовывались экраны',
+        },
+        neverTitle: 'Что не отправляется никогда',
+        never: {
+          amounts: 'Суммы, остатки и операции',
+          payees: 'Получатели, назначения платежа, IBAN',
+          identity: 'Имя, адрес почты или идентификатор устройства',
+        },
+        revokeButton: 'Отозвать согласие и удалить собранное',
       },
       timeRange: {
         title: 'Срок хранения',

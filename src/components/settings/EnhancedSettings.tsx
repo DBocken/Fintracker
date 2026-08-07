@@ -26,6 +26,7 @@ import { BulkAssignment } from './BulkAssignment';
 import { PerformanceDashboard } from '../PerformanceDashboard';
 import { LocalEncryptionSettings } from './LocalEncryptionSettings';
 import { PrivacySyncAnalyticsSettings } from './PrivacySyncAnalyticsSettings';
+import { TelemetrySettings } from './TelemetrySettings';
 import { DangerZoneSettings } from './DangerZoneSettings';
 import DiagnosticsSettings from './DiagnosticsSettings';
 import { CloudMcpSyncCard } from './CloudMcpSyncCard';
@@ -344,6 +345,12 @@ export function EnhancedSettings() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <LocalEncryptionSettings />
             <PrivacySyncAnalyticsSettings />
+          </div>
+          {/* WP-11.2: Der Opt-in-Schalter gehoert laut decision-log F-1 hierher
+              — in denselben Abschnitt wie Verschluesselung und Sync-Datei, weil
+              es dieselbe Frage ist: Was verlaesst dieses Geraet? */}
+          <div className="mt-6">
+            <TelemetrySettings />
           </div>
           <Link
             to="/privacy"
