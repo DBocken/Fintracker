@@ -32,8 +32,14 @@ const SERVICE_IMPORT = /^\s*import\s[^;]*?from\s+['"](?:@\/services\/|(?:\.\.\/)
 /**
  * Bausteine, deren Aufgabe Infrastruktur IST — sie tragen den Zugriff
  * absichtlich und werden nicht mitgezählt.
+ *
+ * Exportiert, weil derselbe Begriff auch beim Schicht-Wächter gebraucht wird
+ * (`hooks-ohne-components` in `layers-core.mjs`, AGENTS.md §3/ARCH-4): ein
+ * Hook, der einen Context liest (`useAuth` aus `AuthProvider`), ist Provider-
+ * Infrastruktur, kein Fachdaten-Zugriff — dasselbe Kriterium wie hier, also
+ * ein Prädikat statt zwei.
  */
-function istInfrastruktur(relPath) {
+export function istInfrastruktur(relPath) {
   return (
     /\/providers\//.test(relPath) ||
     /Provider\.tsx$/.test(relPath) ||

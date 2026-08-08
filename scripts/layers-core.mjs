@@ -7,6 +7,7 @@
  */
 
 import path from 'node:path';
+import { istInfrastruktur } from './view-data-core.mjs';
 
 /**
  * Regeln, jeweils: welche Dateien betroffen sind, was sie NICHT importieren
@@ -64,6 +65,17 @@ export const RULES = [
     forbids: (target) => /^src\/(components|pages)\//.test(target),
     why: 'Das ViewModel darf nicht in `components/` oder `pages/` greifen — auch nicht für einen Typ. Genau daran scheitert sonst der Zweck der Trennung: Eine zweite Präsentation (Android, anderer Shell) müsste die alte Oberfläche mitschleppen, nur damit ein `import type` noch auflöst. Reine Funktionen und fachliche Typen gehören nach `src/lib/` bzw. `src/features/shared/domain/`; ein React-Context-Hook nach `src/hooks/` (AGENTS.md §3, „Wohin ein Typ gehört").',
   },
+  {
+    id: 'hooks-ohne-components',
+    appliesTo: (rel) => rel.startsWith('src/hooks/'),
+    // Ausnahme: Context-Provider-Lesezugriffe (`useAuth` aus `AuthProvider`,
+    // `useGentleMode` aus `GentleModeProvider`, …) sind die uebliche Bauform
+    // fuer `src/hooks/` (AGENTS.md §3, „Wohin ein Typ gehört": „der Provider
+    // bleibt Komponente, der Lesezugriff nicht"). Dasselbe Praedikat wie beim
+    // Ansicht/Daten-Waechter — ein Kriterium, kein zweites erfunden.
+    forbids: (target) => /^src\/(components|pages)\//.test(target) && !istInfrastruktur(target),
+    why: '`src/hooks/` bindet reine Logik an React, kennt aber die Oberfläche nicht — genau die Blindstelle aus ARCH-4: `useKpiPreferences.ts` zog `KPI_DEFINITIONS` (Fachdaten, kein Context) aus `src/components/kpi/kpis.ts`. Ein Hook, der Fachdaten aus der Komponentenschicht liest, zwingt jedes ViewModel, das den Hook benutzt, die alte Oberfläche mitzuschleppen. Fachdaten und reine Funktionen gehören nach `src/lib/`; ein Context-Provider-Lesezugriff (`useAuth`, `useGentleMode`) bleibt erlaubt.',
+  },
 ];
 
 /**
@@ -79,11 +91,14 @@ export function isTestFile(rel) {
   );
 }
 
-const IMPORT_RE =
+// Exportiert, weil `slice-presentation-core.mjs` (WP 2.3, ARCH-3) dieselbe
+// Import-Erkennung braucht — eine Zaehl-Regel, nicht zwei, die auseinanderlaufen
+// koennten.
+export const IMPORT_RE =
   /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /** Blendet Kommentare aus, damit ein Beispiel-Import im Doc-Kommentar nicht zählt. */
-function stripComments(source) {
+export function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 }
 

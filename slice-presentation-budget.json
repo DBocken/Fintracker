@@ -1,0 +1,5 @@
+{
+  "_comment": "Ratsche fuer ARCH-3 (AGENTS.md §3, WP 2.3): zaehlt Importe aus src/features/<slice>/presentation/ nach src/components/ oder src/pages/ (die Alt-Oberflaeche). Ausgangswert nachgezaehlt am 2026-08-08: 24 Importe in 10 Dateien ueber alle vier Slices mit presentation/ (dashboard, finance-city, special-categories, transactions) — nicht die zwei, die plan.md WP 2.3 annahm (siehe docs/qualitaet-2026-08/nachpruefung.md, Eintrag 0.6).",
+  "_hinweis": "Darf NUR sinken. WP 6.2 (TransactionCharts -> features/dashboard/presentation) und WP 6.3 (TradingDashboard -> features/trading/presentation) senken die Zahl gezielt; bei jeder Migration hier den max-Wert auf den neuen Ist-Stand nachziehen, sonst gibt die Ratsche den Fortschritt wieder her.",
+  "max": 24
+}

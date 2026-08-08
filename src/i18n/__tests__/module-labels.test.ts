@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { SKINS } from '@/skins/skins';
-import { KPI_DEFINITIONS } from '@/components/kpi/kpis';
+import { KPI_DEFINITIONS } from '@/lib/kpi-definitions';
 import { SUPPORTED_LOCALES } from '../translations';
 import { lookupTranslation } from '../I18nProvider';
 import { t } from '../serviceT';

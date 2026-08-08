@@ -77,6 +77,15 @@ jobs:
       - name: Ansicht/Daten-Waechter
         run: pnpm check:view-data
 
+      # Zweite Ratsche neben Ansicht/Daten: zaehlt Importe aus
+      # src/features/<slice>/presentation/ nach der Alt-Oberflaeche
+      # (src/components/, src/pages/). ARCH-3: der Referenz-Slice `dashboard`
+      # importiert TransactionCharts.tsx (564 Zeilen) aus components/ — eine
+      # andere Fachfrage als Datenzugriffe, deshalb eine eigene Zahl statt
+      # einer Erweiterung von check:view-data.
+      - name: Slice-Presentation-Waechter
+        run: pnpm check:slice-presentation
+
       # Ein type="number"-Feld verstuemmelt deutsche Dezimaleingaben, BEVOR
       # ein Parser sie sieht: "12,50" wird zu 1250, ein Zinssatz "5,5" zu 55 %.
       - name: Dezimal-Eingabe-Check

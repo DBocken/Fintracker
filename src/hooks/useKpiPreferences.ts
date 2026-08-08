@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getUserSettings, updateUserSettings } from "@/services/transaction-service";
-import { DEFAULT_KPI_PREFS, KPI_DEFINITIONS, type KpiId } from "@/components/kpi/kpis";
+import { DEFAULT_KPI_PREFS, KPI_DEFINITIONS, type KpiId } from "@/lib/kpi-definitions";
 
 export type KpiPrefs = {
   order: KpiId[];

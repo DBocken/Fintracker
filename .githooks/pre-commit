@@ -13,6 +13,7 @@ pnpm check:i18n-module-consts || exit 1
 pnpm check:test-structure || exit 1
 pnpm check:layers || exit 1
 pnpm check:view-data || exit 1
+pnpm check:slice-presentation || exit 1
 pnpm check:decimal-inputs || exit 1
 pnpm check:money-parsing || exit 1
 pnpm check:card-rule || exit 1

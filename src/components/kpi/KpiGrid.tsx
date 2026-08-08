@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/i18n/useI18n";
-import { KPI_BY_ID, KPI_DEFINITIONS, type KpiComputeInput, type KpiId } from "@/components/kpi/kpis";
+import { KPI_BY_ID, KPI_DEFINITIONS, type KpiComputeInput, type KpiId } from "@/lib/kpi-definitions";
 import { KpiCard } from "@/components/kpi/KpiCard";
 import { cn } from "@/lib/utils";
 

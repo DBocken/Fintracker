@@ -27,7 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { dyadProps } from "@/lib/dyad";
-import { KPI_DEFINITIONS, type KpiId } from "@/components/kpi/kpis";
+import { KPI_DEFINITIONS, type KpiId } from "@/lib/kpi-definitions";
 
 export type KpiPrefs = {
   order: KpiId[];
