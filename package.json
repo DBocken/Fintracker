@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "typecheck:api": "tsc --noEmit -p api/tsconfig.json",
+    "typecheck:mcp-poc": "pnpm --dir mcp-poc exec tsc --noEmit -p tsconfig.json",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",

@@ -33,7 +33,12 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - `strict` bleibt an. **Kein** `as any`, **kein** `as unknown as` an Datengrenzen.
 - Domänentypen zentral in `src/types.ts` (Transaction, Account, Category, Budget,
   Debt, Claim, Contract, Backup, Vault, EncryptionState, FeatureFlag, Tier).
-- `api/` und `mcp-poc/` gehören in den Typecheck.
+- `api/` und `mcp-poc/` sind im Typecheck — `pnpm typecheck:api` und
+  `pnpm typecheck:mcp-poc`, beide in CI. Das Root-`tsconfig.json` includiert
+  bewusst nur `src` + `vitest.setup.ts` (Browser-Ziel: DOM, JSX,
+  `moduleResolution: bundler`); die beiden Node-Ziele haben deshalb eigene
+  Konfigurationen. Bis WP 2.4 stand dieser Satz hier, ohne dass er zutraf —
+  ausgerechnet der Token-Endpunkt kompilierte ungeprüft.
 
 ## 4. Money-Handling (verbindlich)
 

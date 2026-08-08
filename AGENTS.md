@@ -90,7 +90,9 @@ verwenden**.
 | Befehl | Zweck |
 |---|---|
 | `pnpm dev` | Dev-Server (Vite) |
-| `pnpm build` | Typecheck (`tsc`) + Produktions-Build |
+| `pnpm build` | Typecheck (`tsc`) + Produktions-Build — deckt nur `src` ab, siehe die zwei Zeilen darunter |
+| `pnpm typecheck:api` | Typecheck der Vercel Serverless Functions (`api/`, eigenes `tsconfig.json`). Das Root-`tsconfig` includiert bewusst nur `src` + `vitest.setup.ts` und zielt auf den Browser (DOM, JSX, `moduleResolution: bundler`) — `api/` läuft in Node und braucht andere Globals. `docs/coding-guide.md` behauptete bis WP 2.4, beides sei im Typecheck; **es war nie so**, und ausgerechnet der Token-Endpunkt kompilierte ungeprüft. Läuft in CI |
+| `pnpm typecheck:mcp-poc` | Dasselbe für `mcp-poc/`. Setzt dort einen eigenen Install voraus (`pnpm --dir mcp-poc install --ignore-workspace`): mcp-poc ist **kein** Workspace-Paket (`pnpm-workspace.yaml`, `packages: [.]`) und hat eine eigene Lockdatei — dieselbe Trennung respektiert der OSV-Scan. Ohne `--ignore-workspace` übernimmt der Root-Workspace den Aufruf und installiert nichts. Läuft in CI |
 | `pnpm preview` | Build lokal previewen |
 | `pnpm lint` | ESLint — keine Warnungen erlaubt |
 | `pnpm test` | Alle Vitest-Suiten |
