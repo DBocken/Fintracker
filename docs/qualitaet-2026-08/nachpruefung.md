@@ -226,6 +226,49 @@ hat — stiller Datenverlust ist schlimmer als lauter. Deshalb steht WP 1.2b in
 Phase 1 und nicht im Nachlauf: Phase 1 ist erst zu, wenn der Nutzer die Zahl
 sieht.
 
+### 1.d · Zwei Offenlegungen aus WP 1.2, die nicht verschwiegen werden
+
+**Befund 1 — TDD wurde nicht eingehalten.** Der ausführende Agent hat Schemata,
+Registry und Service-Einbau **im selben Schritt** wie die Tests geschrieben,
+statt zuerst rot zu laufen und das zu protokollieren. Er hat das von sich aus
+offengelegt. Die Rot-Grün-Eigenschaft ist logisch gegeben (vor der Änderung
+existierte `data-integrity-report.ts` nicht und es wurde nichts gefiltert — die
+Assertions `toHaveLength(3)` und „ein Eintrag im Report" hätten beide verfehlt),
+aber **belegt ist sie nicht**.
+
+**Entscheidung.** Der Commit bleibt; die Commit-Nachricht behauptet keinen
+roten Lauf, den es nicht gab. Für die folgenden Pakete wird der rote Lauf
+**vom Orchestrator** verlangt und im Bericht zitiert, nicht nur beauftragt.
+
+**Begründung.** Nachträglich einen roten Lauf zu inszenieren, indem man die
+Implementierung wieder herausnimmt, erzeugt einen Beleg, aber keine Wahrheit —
+der Test ist dann trotzdem in Kenntnis der Implementierung geschrieben. Die
+ehrlichere Konsequenz ist, die Lücke zu benennen und die Kontrolle zu
+verschärfen, statt den Nachweis zu simulieren.
+
+**Preis.** Für diese fünf Schemata bleibt offen, ob die Tests wirklich fangen,
+was sie zu fangen vorgeben. Die Mutationsprobe, die WP 2.1 geliefert hat, gibt
+es hier nicht.
+
+**Befund 2 — die Messung liegt auf der Grenze, nicht darunter.**
+`plan.md` setzt für WP 1.2 ein Budget von **≤ 50 ms** zusätzlich bei 5 000
+Transaktionen. Gemessen (vier Läufe, frischer Prozess): **47,4 / 49,7 / 50,1 /
+51,1 ms**, Median ~49 ms. Das ist kein „komfortabel unter Budget", sondern ein
+Streuband **um** die Grenze — und gemessen in Node/Vitest, nicht im Browser.
+
+**Entscheidung.** Keine Worker-Verlagerung in diesem Paket. Der Perf-Test
+bleibt mit großzügiger Schranke im Baum (damit CI nicht flackert) und
+protokolliert die echte Zahl.
+
+**Begründung.** Eine Verlagerung in den Worker ist ein eigener Umbau mit
+eigenem Risiko; ihn auf Verdacht mitzunehmen, macht das Paket größer, ohne die
+Frage zu beantworten. Die Frage beantwortet erst eine Messung im echten
+Browser-Kaltstart.
+
+**Preis.** Bis dahin ist „das Budget ist eingehalten" eine Aussage über
+Node, nicht über das Gerät des Nutzers. Wer sie als Browser-Aussage liest,
+liest zu viel hinein.
+
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
 **Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das
@@ -290,11 +333,24 @@ tragbar — aber er verdeckt für diese Zeit jeden **anderen** Fehlschlag im
 selben Schritt. Wer während dieser Spanne ein Paket schiebt, muss die
 CI-Ausgabe lesen, nicht nur die Farbe.
 
-**Nicht gewählt, aber offen:** Die Validierung aus dem eager Pfad holen
-(dynamischer `import()` in `getAnalyticsConsent`). Das ist kein Widerspruch zur
-Entscheidung, sondern ein eigenes Paket — es senkt das Budget wieder, statt die
-Prüfung aufzugeben. Wird erst sinnvoll, wenn die Zahl nach WP 1.2 zeigt, wie
-groß das Problem wirklich ist.
+**Nachtrag nach WP 1.2 — die Anhebung entfällt.** Gemessen am Bau nach
+WP 1.2 Teil A liegt `index` bei **166,9 kB gzip** gegen ein Budget von
+176,1 kB, und `check:bundle-size` ist wieder grün. Die Schema-Module haben zod
+aus dem eager geladenen Bündel **heraus**gezogen: der gemeinsam genutzte Code
+landet jetzt in einem eigenen Chunk, statt am Einstieg zu hängen. Die
+vorbereitete Entscheidung „einmal anheben mit der echten Zahl" wird damit
+gegenstandslos — **die echte Zahl brauchte keine Anhebung.**
+
+Die Lehre bleibt trotzdem stehen, und sie ist die interessantere: Die
+Diagnose („zod kostet Startbündel") war richtig, die Schlussfolgerung
+(„also muss das Budget steigen") war voreilig. Wo ein Modul landet, entscheidet
+der Bündler anhand des Import-Graphen — und der ändert sich mit dem nächsten
+Paket. **Ein Budget nachzuziehen, bevor die Arbeit fertig ist, hätte hier eine
+Grenze dauerhaft aufgeweicht, die sich von selbst wieder eingerenkt hat.**
+Genau dafür war das Warten gut.
+
+**Nicht gewählt, weiterhin offen:** Die Validierung aus dem eager Pfad holen
+(dynamischer `import()` in `getAnalyticsConsent`). Momentan nicht nötig.
 
 **Nebenbefund aus demselben Lauf:** `check:bundle-size` meldet `dist` mit
 4,6 kB gegen ein Budget von 47,0 kB — ein Bündel, dessen Name sich durch
