@@ -543,6 +543,28 @@ Genau dafür war das Warten gut.
 (dynamischer `import()` in `getAnalyticsConsent`). Momentan nicht nötig.
 
 **Nebenbefund aus demselben Lauf:** `check:bundle-size` meldet `dist` mit
-4,6 kB gegen ein Budget von 47,0 kB — ein Bündel, dessen Name sich durch
-Umbenennung längst von dem gelöst hat, was das Budget einmal maß. Es misst
-nichts mehr und wird beim selben Nachziehen bereinigt.
+4,6 kB gegen ein Budget von 47,0 kB — der Verdacht war, das Budget messe
+nichts mehr.
+
+**Erledigt am Phasenende von Phase 1, mit einer Korrektur.** Nachgemessen liegt
+`dist` bei **42,2 kB** gegen dieselben 47,0 kB — der Eintrag misst also sehr
+wohl etwas, die 4,6 kB waren ein anderer Bau. Er bleibt unverändert stehen; ihn
+zu entfernen hätte eine geltende Grenze aus einer Fehldiagnose heraus gelöscht.
+Bemerkenswert bleibt die Schwankungsbreite desselben abgeleiteten Chunk-Namens
+zwischen zwei Bauten — wer dieses Budget künftig anfasst, sollte zweimal messen.
+
+Tatsächlich nachgezogen wurden nur zwei Zahlen:
+
+- **`idb` neu aufgenommen** (273,6 kB Ist → 309.248 B Budget). Der Chunk
+  entstand durch die Schema-Module und hatte noch gar kein Budget.
+- **`money` von 305.152 B auf 24.576 B gesenkt.** Ist: 21,6 kB. *Dieses*
+  Budget maß wirklich nichts mehr.
+
+**Was bewusst NICHT passiert ist:** `pnpm check:bundle-size --update` hätte
+fünf Budgets **und die Gesamtgrenze angehoben** (2436 kB → 2465 kB), obwohl der
+Wächter grün war — der Befehl setzt schlicht „Ist plus 10 %", auch wo das eine
+Lockerung bedeutet. Genau das ist die Aufweichung, gegen die eine Ratsche
+gebaut ist. Übernommen wurde deshalb nur, was **senkt** oder was **neu** ist;
+jede Zahl, die gestiegen wäre, blieb stehen. Die Lehre für den Umgang mit
+`--update` überhaupt: **sein Ergebnis ist ein Vorschlag, kein Ergebnis** — der
+Diff gehört gelesen, bevor er committet wird.
