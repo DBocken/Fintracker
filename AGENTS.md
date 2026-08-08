@@ -157,6 +157,7 @@ versehentlich untergraben und Überlegungen nicht neu erarbeitet werden:
 | Tutorial, Freischaltung von Funktionen, behutsame Heranführung | `docs/tutorial-progressive-disclosure.md` |
 | Reihenfolge der Tutorial-Kapitel, Datenquellen-Weiche (Datei/Bank/Beispieldaten) | `docs/tutorial-sequence.md` |
 | Sanfter Modus, Schulden & Vermeidungsverhalten, Nutzerbefragung, Werbeaussagen | `docs/debt-avoidance-recovery.md` |
+| Zweiter Tracker (Meal, Fit, Car …), gegenseitiger Datenzugriff, getrennte lokale Datenbasen | `docs/architecture/trackerverse-data-access.md` |
 
 ## 4. Plattform-Prinzip (verbindlich)
 

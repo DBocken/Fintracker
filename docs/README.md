@@ -36,6 +36,7 @@ Bericht bleibt als Beleg.
 | [`coding-guide.md`](coding-guide.md) | Entwickler-Leitfaden, Schichten im Detail |
 | [`architecture/feature-structure.md`](architecture/feature-structure.md) | Kochrezept für Feature-Slices, Entscheidungsbaum Desktop/Mobile |
 | [`architecture/entity-references.md`](architecture/entity-references.md) | Entitäten über stabile IDs adressieren, nicht über Anzeigenamen |
+| [`architecture/trackerverse-data-access.md`](architecture/trackerverse-data-access.md) | Wie ein zweiter Tracker Daten des Fintrackers sieht — Vertrag statt gemeinsamer Speicher |
 | [`domain-invariants.md`](domain-invariants.md) | Fachliche Invarianten, auf die sich Tests berufen |
 | [`design-principles.md`](design-principles.md) | 7 Kernprinzipien + Karten- und Animationsregel |
 | [`performance.md`](performance.md) | Performance-Ist-Zustand und geplante Phase B |
