@@ -492,7 +492,48 @@ und dieser Block wird beim Start eines Pakets gefüllt, nicht hinterher.
 
 ## Segment 2 · Phase 2 — Geld-Korrektheit & Wächterlöcher
 
-*Der Abschluss-Eintrag wird geschrieben, sobald WP 2.5 steht.*
+### Abschluss — 2026-08-08
+
+**Fünf Pakete, wie geplant** (2.1–2.5). Phase 2 ist die einzige bisher, in der
+kein zusätzliches Paket entstanden ist — passend dazu, dass es die kleinteilige
+Phase war: enge Aufträge, benannte Fundstellen, wenig Entdeckungsraum.
+
+**Was Phase 2 verändert hat.** Vorher galten drei Regeln nur auf dem Papier;
+jetzt haben alle drei einen Wächter oder Test:
+
+| Versprechen | Vorher | Jetzt |
+|---|---|---|
+| Kein Roh-`parseFloat` für Geld, kein `as unknown as` an Datengrenzen (`coding-guide.md`) | verletzt in drei Dateien, **kein** Wächter | `check:money-parsing`, 0 offene Fundstellen |
+| Importrichtung `lib → services → hooks → components → pages` (§3) | `hooks/` war unbewacht, Slice-`presentation/` auch | harte Regel + Ratsche bei 24 |
+| „`api/` und `mcp-poc/` gehören in den Typecheck" (`coding-guide.md`) | lief **nie** | zwei CI-Schritte, beide grün |
+| Invariante 5, cent-genau (`domain-invariants.md`) | Prosa | `isCentPrecise` an der Schreibgrenze |
+| Grenzwerte der Geldlogik (`<`, `>`, Vorzeichen im Tausenderpunkt) | untestet, Mutation blieb grün | drei Tests, Mutationsprobe belegt |
+
+Die Wächterzahl ist von zwölf auf **vierzehn** gestiegen (plus die zwei
+Typecheck-Schritte). Der Preis dafür steht in 2.b: der Grenznutzen jedes
+weiteren Wächters sinkt, und irgendwann ist ihre Zahl selbst ein Problem. Für
+die zwei aus dieser Phase gilt das noch nicht — beide schließen eine Lücke, an
+der nachweislich schon etwas durchgerutscht ist.
+
+**Was diese Phase über den Plan gelehrt hat.** Alle drei Vorbefunde aus 0.6,
+die Phase 2 betrafen, haben sich **exakt bestätigt** — 4 hooks-Importe, 24
+Slice-Importe, ein absichtlich gesetzter Test, der die Gegenentscheidung
+festhielt. Das ist kein Zufall, sondern das Ergebnis davon, sie **vor** dem
+ersten Paket nachgezählt zu haben statt sie beim Bauen zu entdecken. Der Plan
+lag falsch, aber er lag *nachprüfbar* falsch, und die Korrektur stand
+schriftlich fest, bevor ein Agent sie brauchte.
+
+**Zwei Dinge bleiben offen und sind benannt:**
+- `debt-service`/`receivable-service` haben dasselbe Muster wie DOM-4
+  (Float-Betrag ohne Cent-Validierung) für ihre eigenen Entitäten. Andere
+  fachliche Grenze, eigener Folgepunkt — gefunden in WP 2.5.
+- Die Suiten `test:integrity`/`test:security`/`test:privacy`/`test:mobile`
+  filtern über feste Dateilisten statt über Globs (1.f); „die Suite ist grün"
+  bedeutet damit weniger, als es klingt. Entscheidung fällt in WP 7.6.
+
+---
+
+*Die Zwischenbefunde, auf die sich der Abschluss beruft:*
 
 ### 2.b · WP 2.3 — Vorentscheidung 0.6 hat sich bestätigt, und die Ratsche wurde eigenständig
 

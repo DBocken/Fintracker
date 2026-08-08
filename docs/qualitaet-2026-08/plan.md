@@ -240,7 +240,7 @@ beide; Fehler, die dabei auftauchen, beheben (gehören zum Paket).
 **Akzeptanz:** CI-Schritt läuft und ist grün · `coding-guide.md:36` stimmt
 wieder wörtlich.
 
-### - [ ] WP 2.5 · Invariante 5 einlösen (DOM-4) · S
+### - [x] WP 2.5 · Invariante 5 einlösen (DOM-4) · S — `9bf65fd`
 **Ziel:** Die zentrale Schreibgrenze validiert cent-genau — Invariante 5 wird
 von Prosa zu geprüfter Wahrheit.
 **Vorgehen:** `saveTransactions` prüft jeden Betrag per
