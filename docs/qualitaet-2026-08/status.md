@@ -10,10 +10,9 @@
 
 Das Programm läuft agentengestützt und wird regelmäßig mitten in der Arbeit
 unterbrochen — Volumenlimit, Container-Recycling, Sitzungsende. Es ist darauf
-ausgelegt: **der Commit ist der einzige haltbare Zustand.** Ein angefangenes
-Paket wird nicht halb weitergeführt, sondern verworfen und neu gemacht. Das
-kostet einmal Arbeit und spart jedes Mal die Frage „was war hier eigentlich
-schon fertig?".
+ausgelegt: **der gepushte Commit ist der einzige haltbare Zustand.** Was im
+Arbeitsbaum liegt, wird nicht halb weitergeführt — es sei denn, sein Zustand
+ist *bekannt* (Schritt 2).
 
 ```
 1  git fetch origin
@@ -21,8 +20,18 @@ schon fertig?".
    git pull
 
 2  git status --short
-   → nicht leer? Dann brach ein Paket ab:
-     git checkout -- . && git clean -fd     (dieses Paket wird neu gemacht)
+   → leer? Weiter mit 3.
+   → nicht leer? Dann steht im Block „Aktuell in Arbeit" (unten), welches
+     Paket es ist und wie weit es war. Zwei Fälle, und nur zwei:
+
+     (a) Der Block sagt „geprüft, Commit steht aus" und nennt genau diese
+         Dateien → Wächterbatterie erneut laufen lassen, dann committen.
+         Fertige, belegte Arbeit wird NICHT weggeworfen.
+     (b) Alles andere — Block leer, Dateien passen nicht, Schritt unklar →
+         git checkout -- . && git clean -fd     (Paket wird neu gemacht)
+
+     Im Zweifel gilt (b). Ein neu gemachtes Paket kostet Zeit, ein halb
+     verstandener Arbeitsbaum kostet Vertrauen in alles danach.
 
 3  pnpm install --frozen-lockfile           (frischer Container hat kein node_modules)
 
@@ -32,8 +41,10 @@ schon fertig?".
    verifizieren (Zeilennummern altern absichtlich) → Test zuerst, rot →
    implementieren → Wächterbatterie → commit → push.
 
-6  status.md (diese Tabelle) und das plan.md-Kästchen im selben Commit
-   nachziehen. Erst dann ist das Paket fertig.
+6  Buchhaltung nachziehen: status.md (Tabelle + „Aktuell in Arbeit") und das
+   plan.md-Kästchen. Das ist ein ZWEITER Commit — die SHA des Code-Commits
+   steht erst fest, wenn er existiert. Der Code-Commit trägt das Paket, der
+   Buchhaltungs-Commit trägt seine SHA. Erst dann ist das Paket fertig.
 ```
 
 **Wächterbatterie je Paket** — in der Reihenfolge, die auch CI fährt
@@ -65,9 +76,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 1.1 · Envelope-Korruption wirft statt schluckt (RES-1) |
-| **Schritt** | Umsetzung durch delegierten Agenten, Prüfung durch den Orchestrator steht aus |
-| **Im Arbeitsbaum** | `local-crypto.ts`, `local-finance-store.ts`, `transaction-storage-service.ts`, `translations.ts` und deren Tests — **verwerfen und neu machen**, wenn hier eine neue Sitzung einsteigt |
+| **Paket** | — |
+| **Schritt** | — |
+| **Im Arbeitsbaum** | nichts (sauber) |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -117,7 +128,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 
 | # | WP | Thema | Status | Commit |
 |---|---|---|---|---|
-| 1 | 1.1 | Envelope-Korruption wirft statt schluckt (RES-1) | offen | |
+| 1 | 1.1 | Envelope-Korruption wirft statt schluckt (RES-1) | **fertig** | `2c3d5de` |
 | 2 | 2.1 | Drei Mutations-Löcher schließen (TEST-1/2/3) | **fertig** | `c4bed98` |
 | 3 | 2.2 | Regelverstöße + Wächter `check:money-parsing` (GOV-1) | offen | |
 | 4 | 1.2 | zod an der Kern-Lesegrenze (RES-2, DOM-2) | offen | |
@@ -125,6 +136,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 6 | 1.4 | Sync-Import: Versionsvergleich + Bestätigung (RES-4) | offen | |
 | 7 | 1.5 | Backup: Prüfsumme + Item-Validierung (RES-5) | offen | |
 | 8 | 1.6 | Speicher-Laufzeitfehler behandeln (RES-6, RES-7) | offen | |
+| 8a | **1.7** | `forecastOverrides` schluckt den Korruptionsfehler weiter | offen | neu aus WP 1.1, siehe `nachpruefung.md` 1.a |
 | 9 | 2.3 | Layer-Wächter: hooks + Slice-Presentation (ARCH-3/4) | offen | |
 | 10 | 2.4 | `api/` und `mcp-poc/` in den Typecheck (GOV-2) | offen | |
 | 11 | 2.5 | Invariante 5 einlösen (DOM-4) | offen | |

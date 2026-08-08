@@ -75,7 +75,7 @@ allen Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.
 
 ## Phase 1 — Datenverlust unmöglich machen (P0)
 
-### - [ ] WP 1.1 · Envelope-Korruption wirft statt schluckt (RES-1) · S
+### - [x] WP 1.1 · Envelope-Korruption wirft statt schluckt (RES-1) · S — `2c3d5de`
 **Ziel:** Ein korrupter verschlüsselter Envelope darf nie wieder als „keine
 Daten" gelesen und beim nächsten Schreiben überschrieben werden.
 **Vorgehen (Test-First):**
@@ -154,6 +154,26 @@ Hauptbereiche; Rückgabewert von `requestPersistentStorage()` auswerten — bei
 Verweigerung dezenter Hinweis auf Backup.
 **Akzeptanz:** Quota-Fehler zeigt die Meldung statt roher `DOMException`
 (Test) · Render-Crash einer Fläche legt nicht mehr die ganze App lahm (Test).
+
+### - [ ] WP 1.7 · `forecastOverrides` schluckt den Korruptionsfehler weiter · S
+**Herkunft:** kein Audit-Befund — bei WP 1.1 aufgefallen, begründet in
+[`nachpruefung.md`](nachpruefung.md) 1.a.
+**Ziel:** Auch die letzte Collection meldet Korruption, statt sie in Defaults
+zu verwandeln. Phase 1 ist erst dann wirklich abgeschlossen.
+**Vorgehen:** `getForecastOverrides()` (`src/services/forecast-overrides-service.ts`)
+fängt heute **jeden** Fehler und liefert `cloneDefaults()` — ein
+`VaultCorruptError` (WP 1.1) verschwindet darin spurlos. Der Rethrow allein
+genügt nicht: `src/hooks/useForecastOverrides.ts` konsumiert per
+`void promise.then(...)` **ohne `.catch`**, ein Wurf wäre also eine unhandled
+Rejection. Also zuerst die Fläche auf das Query-Error-Muster umbauen
+(`FinanceErrorState` wie in `EuerPage.tsx`), dann den Fehler durchreichen.
+Unterscheide dabei „Key existiert nicht" (Defaults sind richtig) von
+„Envelope kaputt" (Fehlerzustand) — genau die Unterscheidung, die WP 1.1
+überhaupt erst möglich gemacht hat.
+**Akzeptanz:** `[REGRESSION]`-Test (korrupter Envelope ⇒ Fehler statt
+Defaults) · `[ZUSTAND …:fehler]`-Test der betroffenen Fläche ·
+`pnpm check:state-coverage` und `pnpm check:query-errors` grün ohne neuen
+Allowlist-Eintrag.
 
 ---
 

@@ -156,7 +156,67 @@ grün — was in diesem Programm rot wird, hat dieses Programm verursacht.
 
 ## Segment 1 · Phase 1 — Datenverlust unmöglich machen
 
-*Wird geschrieben, sobald WP 1.6 steht.*
+*Der Abschluss-Eintrag wird geschrieben, sobald WP 1.6 steht. Bis dahin
+sammeln sich hier die Zwischenbefunde.*
+
+### 1.a · WP 1.1 legt einen zweiten Schlucker frei — neues Paket WP 1.7
+
+**Befund.** WP 1.1 macht aus einem korrupten Envelope einen geworfenen
+`VaultCorruptError`. In `src/services/forecast-overrides-service.ts`,
+`getForecastOverrides()`, kommt dieser Fehler nie an: die Funktion fängt
+**jeden** Fehler von `loadAndMaybeDecrypt` und liefert `cloneDefaults()`.
+`forecastOverrides` ist ein registrierter `LOCAL_FINANCE_KEYS`-Eintrag —
+genau der Bestand, den WP 1.1 schützen soll. Für diese eine Collection bleibt
+die Fehlkette also offen.
+
+**Entscheidung.** Nicht in WP 1.1 mitbehoben, sondern **neues Paket WP 1.7**
+(in `plan.md` ergänzt, Phase 1, nach WP 1.6).
+
+**Begründung.** Der Rethrow allein reicht hier nicht: `src/hooks/useForecastOverrides.ts`
+konsumiert den Aufruf per `void promise.then(...)` **ohne `.catch`**. Ein
+geworfener Fehler wäre damit eine unhandled Rejection statt eines
+Fehlerzustands — die Fläche muss zuerst auf das Query-Error-Muster umgebaut
+werden (`FinanceErrorState`, `[ZUSTAND …:fehler]`-Test). Das ist eine
+UI-Änderung mit eigener Zustands-Abdeckung, und WP 1.1 hatte ausdrücklich
+„keine UI-Fläche" als Grenze. Ein Paket, das seine eigene Grenze überschreitet,
+ist nicht mehr einzeln rückrollbar.
+
+**Preis.** Zwischen WP 1.1 und WP 1.7 ist der Schutz **ungleichmäßig**: 29 von
+30 Collections melden Korruption, `forecastOverrides` schluckt sie weiter. Das
+ist schlechter als „überall gleich", weil es den Eindruck erweckt, das Thema
+sei erledigt. Deshalb steht WP 1.7 in Phase 1 und nicht im Nachlauf — Phase 1
+ist erst abgeschlossen, wenn auch diese Collection wirft.
+
+### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
+
+**Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das
+Laufwerk erstmals benutzt und dabei zwei Stellen widerlegt, die `status.md`
+behauptet hatte:
+
+1. Schritt 2 sagte pauschal „Arbeitsbaum nicht leer ⇒ verwerfen". Beim echten
+   Wiedereinstieg lag dort WP 1.1 — **vollständig, mit belegter grüner
+   Wächterbatterie und von mir gelesenem Diff**. Die Regel hätte fertige,
+   geprüfte Arbeit vernichtet.
+2. Schritt 6 verlangte Buchhaltung „im selben Commit". Das geht nicht: die
+   SHA, die in die Tabelle gehört, existiert erst, **nachdem** der Commit
+   gemacht ist.
+
+**Entscheidung.** Beide Schritte in `status.md` umgeschrieben. Schritt 2
+unterscheidet jetzt bekannten von unbekanntem Zustand und macht die Angabe im
+Block „Aktuell in Arbeit" zur Bedingung dafür, Arbeit zu behalten — im Zweifel
+gilt weiterhin verwerfen. Schritt 6 sagt jetzt, was ohnehin passiert: zwei
+Commits, Code trägt das Paket, Buchhaltung trägt seine SHA.
+
+**Begründung.** Ein Wiedereinstiegs-Protokoll, das beim ersten echten Einsatz
+nicht befolgt wird, ist wertlos — es hätte hier entweder Arbeit zerstört oder
+(was tatsächlich geschah) eine Abweichung ohne Papierspur erzeugt. Beides ist
+schlimmer als eine Regel mit einer sauber benannten Ausnahme.
+
+**Preis.** Schritt 2 ist nicht mehr mechanisch, sondern verlangt ein Urteil.
+Das ist die Stelle, an der eine wiederaufnehmende Sitzung sich selbst
+belügen kann („war bestimmt fertig"). Dagegen hilft nur die harte Kopplung an
+den „Aktuell in Arbeit"-Block: steht dort nichts Passendes, wird verworfen —
+und dieser Block wird beim Start eines Pakets gefüllt, nicht hinterher.
 
 ## Segment 2 · Phase 2 — Geld-Korrektheit & Wächterlöcher
 
