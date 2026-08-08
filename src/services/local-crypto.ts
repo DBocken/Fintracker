@@ -1,4 +1,4 @@
-import { idbGet, idbSet, idbKeys, migrateLocalStorageToIdb, requestPersistentStorage } from './idb-kv'
+import { idbGet, idbSet, idbKeys, migrateLocalStorageToIdb, requestAndRecordPersistentStorage } from './idb-kv'
 import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys'
 import { t } from '../i18n/serviceT'
 
@@ -31,7 +31,9 @@ async function writeDataRaw(storageKey: string, raw: string): Promise<void> {
   if (typeof localStorage !== 'undefined') localStorage.removeItem(storageKey)
   if (!persistenceRequested) {
     persistenceRequested = true
-    void requestPersistentStorage()
+    // RES-7: Rückgabewert wird ausgewertet (nicht mehr fire-and-forget) und
+    // bei Verweigerung als kleines Flag gemerkt — Details siehe idb-kv.ts.
+    void requestAndRecordPersistentStorage()
   }
 }
 

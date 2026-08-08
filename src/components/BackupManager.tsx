@@ -52,6 +52,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
+import { usePersistentStorageDenied } from '@/hooks/usePersistentStorageDenied';
 
 type RestoreDetails = {
   transactions: number;
@@ -74,6 +75,10 @@ export function formatRestoreDetailsSummary(
 
 export function BackupManager() {
   const { t } = useI18n();
+  // RES-7: Verweigerte Persistenz-Zusicherung — dezenter Hinweis statt
+  // Dauerbanner, siehe Card unten (nur sichtbar, wenn der Browser tatsächlich
+  // verweigert hat).
+  const persistentStorageDenied = usePersistentStorageDenied();
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [encryptedBackupPassword, setEncryptedBackupPassword] = useState('');
@@ -274,6 +279,9 @@ export function BackupManager() {
             <CardDescription>
               {t('backup.createDesc')}
             </CardDescription>
+            {persistentStorageDenied && (
+              <p className="text-xs text-muted-foreground">{t('backup.persistenceDeniedHint')}</p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>

@@ -3322,6 +3322,7 @@ export const translations = {
       noData: 'Keine Daten verfügbar',
       createBackup: 'Backup erstellen',
       createDesc: 'Lade alle deine Daten als JSON-Datei herunter',
+      persistenceDeniedHint: 'Dieser Browser hat dauerhaften Speicher nicht zugesichert – ein aktuelles Backup ist deshalb besonders wichtig.',
       backupInfo: 'Das Backup enthält Transaktionen, Kategorien, Konten und Einstellungen. Empfohlen ist das verschlüsselte Backup – es schützt deine Daten auch außerhalb der App.',
       encryptedBackup: 'Verschlüsseltes Backup (.enc.json) – empfohlen',
       password: 'Passwort',
@@ -4105,6 +4106,9 @@ export const translations = {
       reloadButton: 'Seite neu laden',
       homeButton: 'Zur Startseite',
       errorLogButton: 'Fehler-Log in Konsole anzeigen',
+    },
+    storage: {
+      quotaExceeded: 'Der Speicher ist voll und konnte nicht geschrieben werden. Exportiere ein Backup oder räume Daten auf, bevor du weiterarbeitest.',
     },
     demoData: {
       removeSuccess: 'Beispieldaten entfernt',
@@ -8037,6 +8041,7 @@ export const translations = {
       noData: 'No data available',
       createBackup: 'Create backup',
       createDesc: 'Download all your data as a JSON file',
+      persistenceDeniedHint: 'This browser has not granted persistent storage – an up-to-date backup matters especially here.',
       backupInfo: 'The backup contains transactions, categories, accounts, and settings. Encrypted backup is recommended – it protects your data outside the app too.',
       encryptedBackup: 'Encrypted backup (.enc.json) – recommended',
       password: 'Password',
@@ -8820,6 +8825,9 @@ export const translations = {
       reloadButton: 'Reload page',
       homeButton: 'Go to home',
       errorLogButton: 'Show error log in console',
+    },
+    storage: {
+      quotaExceeded: 'Storage is full and could not be written. Export a backup or clean up data before continuing.',
     },
     demoData: {
       removeSuccess: 'Demo data removed',
@@ -17073,6 +17081,7 @@ export const translations = {
       noData: 'Нет доступных данных',
       createBackup: 'Создать резервную копию',
       createDesc: 'Скачать все ваши данные в виде файла JSON',
+      persistenceDeniedHint: 'Этот браузер не подтвердил постоянное хранилище — актуальная резервная копия здесь особенно важна.',
       backupInfo: 'Резервная копия содержит операции, категории, счета и настройки. Рекомендуется зашифрованная копия — она защищает ваши данные и вне приложения.',
       encryptedBackup: 'Зашифрованная резервная копия (.enc.json) — рекомендуется',
       password: 'Пароль',
@@ -17856,6 +17865,9 @@ export const translations = {
       reloadButton: 'Перезагрузить страницу',
       homeButton: 'На главную',
       errorLogButton: 'Показать журнал ошибок в консоли',
+    },
+    storage: {
+      quotaExceeded: 'Хранилище заполнено, запись не удалась. Экспортируй резервную копию или удали лишние данные, прежде чем продолжать.',
     },
     demoData: {
       removeSuccess: 'Демо-данные удалены',
