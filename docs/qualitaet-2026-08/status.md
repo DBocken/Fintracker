@@ -77,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | — |
-| **Schritt** | — |
-| **Im Arbeitsbaum** | nichts (sauber) |
+| **Paket** | WP 3.1 · PBKDF2 ≥ 600 000 + kdf-Versionierung (SEC-1) |
+| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
+| **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
