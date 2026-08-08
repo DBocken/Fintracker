@@ -11,7 +11,7 @@ import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getTaxYearProfile } from '@/services/tax-profile-service';
 import { useBusinessMode } from '@/hooks/useBusinessMode';
 import { buildTaxYearReport, hasEuerMarkings } from '@/lib/tax-report';
-import { listAvailablePeriods } from '@/components/dashboard/period-utils';
+import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import { TaxYearPicker } from '@/components/tax/TaxYearPicker';
 import { TaxSummaryStrip } from '@/components/tax/TaxSummaryStrip';
 import { TaxRubricCard } from '@/components/tax/TaxRubricCard';

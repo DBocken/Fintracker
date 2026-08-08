@@ -71,6 +71,12 @@ jobs:
       - name: Schicht-Waechter
         run: pnpm check:layers
 
+      # Ratsche, kein Verbot: Solange eine Flaeche ihre eigene Datenschicht IST,
+      # laesst sich keine zweite Praesentation danebenstellen, ohne die
+      # Datenbeschaffung ein zweites Mal zu schreiben (AGENTS.md §4).
+      - name: Ansicht/Daten-Waechter
+        run: pnpm check:view-data
+
       # Ein type="number"-Feld verstuemmelt deutsche Dezimaleingaben, BEVOR
       # ein Parser sie sieht: "12,50" wird zu 1250, ein Zinssatz "5,5" zu 55 %.
       - name: Dezimal-Eingabe-Check

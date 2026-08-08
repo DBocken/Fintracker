@@ -109,6 +109,7 @@ verwenden**.
 | `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm check:layers` | Erzwingt die Import**richtung** aus §3 — beide Schichtungen (`lib → services → hooks → components → pages` und `domain → data → application → presentation`). TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie einer nach unten, und genau so sind 30 umgedrehte Abhängigkeiten in 14 `lib`-Dateien entstanden, ohne dass je etwas rot wurde. Der Auslöser war nie Absicht, sondern **Ort**: ein fachlicher Typ (`ContractRow`, `ForecastOverrides`, `MerchantRule`) oder eine reine Funktion (`explainCategorization`, `normalizeIban`) lag im I/O-Service oder in der Komponente, weil sie dort zuerst gebraucht wurde — wer sie danach von unten brauchte, hatte nur den Weg nach oben. Der Wächter löst Alias- (`@/…`) **und** Relativpfade auf; Tests sind ausgenommen (ein `lib/__tests__/`-Test darf einen Service heranziehen, das ist seine Absicht). Ausnahmen stehen in `layer-allowlist.json` und brauchen je Datei `imports` **und** `reason` — die Datei ist heute leer und sollte es bleiben. Läuft in Pre-Commit und CI |
+| `pnpm check:view-data` | **Ratsche, kein Verbot.** Zählt die Datenzugriffe, die noch IN der Darstellung stehen (`useQuery`/`useMutation` und direkte Service-Importe unter `src/components/`, `src/pages/`). Eine Komponente DARF laut §3 einen Service benutzen — die Richtung stimmt, der Befund ist ein anderer: Solange eine Fläche ihre eigene Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen, ohne die Datenbeschaffung ein zweites Mal zu schreiben. Genau das verspricht §4. Der Ausgangswert in `view-data-budget.json` ist **282** (146 Abfragen + 136 Service-Importe in 84 Flächen) und **darf nur sinken**; Heraufsetzen macht das Versprechen zur Absichtserklärung. Nicht gezählt werden `features/<slice>/application` (dort gehört der Zugriff hin), Tests und Provider/Gates. Läuft in Pre-Commit und CI |
 | `pnpm check:decimal-inputs` | Verbietet `<input type="number">` für **Dezimalfelder**. Im Browser gemessen (Chromium, `de-DE`): getipptes „12,50" ergibt den Wert `"1250"`, „1.200" ergibt `"1.200"` (→ `parseFloat` liest 1,2), ein Zinssatz „5,5" wird zu **55 %**. Der Browser verstümmelt die Eingabe, **bevor** irgendein Parser sie sieht — `parseGermanNumber` repariert das nicht mehr. Ersatz ist `<DecimalInput>` (`@/components/common/DecimalInput`); es gibt eine **Zahl** nach außen, keinen Text, damit die Aufrufstelle gar nicht erst falsch parsen kann. Ganzzahlige Felder (Tag im Monat, Anzahl, Jahr) sind mit `type="number"` richtig. Die Ausnahmeliste `decimal-input-allowlist.json` kennt wie die Query-Liste zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken, ein Objekt **`{ count, reason }`** ist entschieden. Läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
@@ -131,6 +132,16 @@ Die Richtung ist maschinell erzwungen (`pnpm check:layers`, §2). Feature-`domai
 liegt dabei auf der Höhe von `lib` — ein Service darf sie benutzen, umgekehrt
 nicht.
 
+**Das ViewModel kennt die Oberfläche nicht — auch nicht für einen Typ.**
+`features/<slice>/application` darf nicht nach `src/components/` oder
+`src/pages/` greifen (Regel `feature-application-ohne-ui`). Daran hängt der
+ganze Zweck der Trennung: Wird später eine zweite Präsentation danebengestellt
+(Android, anderer Shell), muss das ViewModel unverändert weiterlaufen. Ein
+einziges `import type` aus einer Komponentendatei zwingt sonst dazu, die alte
+Oberfläche mitzuschleppen. Genau so lag es: `use-etoro-account.ts` holte zwei
+Zustandstypen aus `EtoroNewsTab.tsx` und `EtoroDiscoverTab.tsx`, und der
+Wächter schwieg, weil seine Regel nur `features/*/presentation` kannte.
+
 ### Wohin ein Typ gehört
 
 Der häufigste Weg, die Richtung umzudrehen, ist keine Architektur-Entscheidung,
@@ -145,6 +156,8 @@ Nutzer weiter unten zum Import nach oben.
 | Typ, den Service **und** Oberfläche brauchen | `src/lib/` |
 | Fachlicher Zustand, den **≥ 2 Slices** lesen (`DashboardFilterState`) | `src/features/shared/domain/` |
 | Modul, das `localStorage`/IndexedDB/Netz anfasst | `src/services/` — auch wenn es heute in `lib/` liegt |
+| Zustandstyp, den ein ViewModel hält (`EtoroNewsFilter`) | `src/features/<slice>/domain/` — nie die Komponentendatei, in der er zuerst gebraucht wurde |
+| React-Context-Hook, den auch ein ViewModel liest (`useLocalEncryption`) | `src/hooks/` — der Provider bleibt Komponente, der Lesezugriff nicht |
 
 ### Vorentschiedenes zuerst lesen
 
@@ -394,7 +407,8 @@ Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
 (`pnpm check:query-errors`) die Namen der Bedienelemente
 (`pnpm check:a11y-names`), die Zustands-Abdeckung je Fläche
 (`pnpm check:state-coverage`), die Import-Richtung zwischen den Schichten
-(`pnpm check:layers`) und die Dezimal-Eingabefelder
+(`pnpm check:layers`), die Trennung von Ansicht und Daten
+(`pnpm check:view-data`) und die Dezimal-Eingabefelder
 (`pnpm check:decimal-inputs`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere

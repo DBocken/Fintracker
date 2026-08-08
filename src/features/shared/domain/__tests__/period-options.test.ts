@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { resolvePeriodRange, listAvailablePeriods } from "../period-utils";
-import { getDashboardDateRange, encodeDashboardFilters, decodeDashboardFilters } from "../filter-utils";
+import { resolvePeriodRange, listAvailablePeriods } from "../period-options";
+import { getDashboardDateRange, encodeDashboardFilters, decodeDashboardFilters } from "../dashboard-filtering";
 import type { Transaction } from "@/types";
 
 function tx(id: string, date: string): Transaction {

@@ -22,8 +22,8 @@ import {
 import {
   filterTransactions,
   collectMatchingAllocationIds,
-} from '@/components/dashboard/filter-utils';
-import { listAvailablePeriods } from '@/components/dashboard/period-utils';
+} from '@/features/shared/domain/dashboard-filtering';
+import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import type { Transaction } from '@/types';
 import { transactionsKeys, FINANCE_TRANSACTION_LIMIT } from '../data/transactions-query-keys';
 import { computeLocalBalances, computeEffectiveBalances } from '@/features/shared/domain/balance-calculations';

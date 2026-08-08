@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
-import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
+import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import type { IncomeBreakdown } from '@/lib/analysis-data';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 import { ChartFigure } from '@/components/common/ChartFigure';

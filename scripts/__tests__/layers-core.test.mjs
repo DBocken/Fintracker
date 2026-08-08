@@ -37,6 +37,56 @@ describe('Schicht-Wächter', () => {
     });
   });
 
+  describe('ViewModel kennt die Darstellung nicht', () => {
+    // Der eigentliche Zweck der Trennung: Wenn spaeter eine andere
+    // Praesentation danebengestellt wird (Android, anderer Shell), muss das
+    // ViewModel unveraendert weiterlaufen. Ein Import nach `components/`
+    // macht das unmoeglich — die alte Oberflaeche muesste mitgeschleppt
+    // werden, sei es auch nur fuer einen Typ.
+    it('[REGRESSION] sollte einen Typ-Import des ViewModels aus components/ melden', () => {
+      // Genau das stand in `features/trading/application/use-etoro-account.ts`:
+      // zwei Zustandstypen kamen aus zwei React-Komponentendateien. Der
+      // Waechter hat geschwiegen, weil seine Regel nur `features/*/presentation`
+      // kannte — der Weg nach `src/components/` stand offen.
+      const src = `import type { EtoroNewsFilter } from '@/components/trading/EtoroNewsTab';`;
+      const { violations } = analyzeFile('src/features/trading/application/use-etoro-account.ts', src);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].ruleId).toBe('feature-application-ohne-ui');
+    });
+
+    it('[REGRESSION] sollte auch eine reine Funktion aus components/ melden', () => {
+      const src = `import { filterTransactions } from '@/components/dashboard/filter-utils';`;
+      expect(analyzeFile('src/features/dashboard/application/use-finance-overview.ts', src).violations)
+        .toHaveLength(1);
+    });
+
+    it('sollte eine Seite (pages/) genauso verbieten', () => {
+      const src = `import { Foo } from '@/pages/TransactionsPage';`;
+      expect(analyzeFile('src/features/x/application/use-x.ts', src).violations).toHaveLength(1);
+    });
+
+    it('sollte dem ViewModel lib, services und die eigene domain weiter erlauben', () => {
+      const src = [
+        `import { toMinor } from '@/lib/money';`,
+        `import { getAccounts } from '@/services/account-service';`,
+        `import type { PeriodOption } from '@/features/shared/domain/period-options';`,
+        `import { useQuery } from '@tanstack/react-query';`,
+      ].join('\n');
+      expect(analyzeFile('src/features/dashboard/application/use-finance-overview.ts', src).violations)
+        .toEqual([]);
+    });
+
+    it('sollte einen React-Context-Hook aus hooks/ erlauben', () => {
+      // `hooks -> components` bleibt bewusst ungeprueft (AGENTS.md §3): Ein
+      // Hook, der einen Context liest, ist die uebliche Bauform. Liegt er in
+      // `src/hooks/`, ist er fuer das ViewModel erreichbar, ohne dass eine
+      // Komponentendatei im Spiel ist.
+      const src = `import { useLocalEncryption } from '@/hooks/useLocalEncryption';`;
+      expect(analyzeFile('src/features/trading/application/use-etoro-account.ts', src).violations)
+        .toEqual([]);
+    });
+  });
+
   describe('Verstöße', () => {
     it('[REGRESSION] sollte lib → services melden (30 solcher Zeilen lagen unbemerkt im Baum)', () => {
       const src = `import { getAccounts } from '@/services/account-service';`;

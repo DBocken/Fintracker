@@ -20,8 +20,8 @@ import {
   type EssentialFilter,
   type AusgabenklasseFilter,
 } from '@/features/shared/domain/dashboard-filters';
-import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from '@/components/dashboard/filter-utils';
-import { listAvailablePeriods } from '@/components/dashboard/period-utils';
+import { filterTransactions, getDashboardGranularity, encodeDashboardFilters } from '@/features/shared/domain/dashboard-filtering';
+import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import { buildSankeyData, buildSpendingSunburst, buildSunburstTree } from '@/lib/analysis-data';
 import type { Transaction } from '@/types';
 import { dashboardKeys, DASHBOARD_TRANSACTION_LIMIT } from '../data/dashboard-query-keys';

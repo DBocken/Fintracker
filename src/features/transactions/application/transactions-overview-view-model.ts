@@ -2,7 +2,7 @@ import type { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEd
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 import type { DashboardGranularity, DashboardRange } from '@/features/shared/domain/dashboard-filters';
-import type { PeriodOption } from '@/components/dashboard/period-utils';
+import type { PeriodOption } from '@/features/shared/domain/period-options';
 
 /**
  * UI-neutrales ViewModel der Buchungsseite (Verhaltensreferenz:

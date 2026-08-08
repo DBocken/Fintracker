@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { buildSunburstBreakdown } from '@/lib/analysis-data';
 import type { SunburstTree } from '@/lib/analysis-data';
 import { SpendingSunburstChart } from './SpendingSunburstChart';
-import { buildTransactionsHref } from './filter-utils';
+import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import type { AusgabenklasseFilter } from '@/features/shared/domain/dashboard-filters';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';

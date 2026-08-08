@@ -58,6 +58,12 @@ export const RULES = [
     forbids: (target) => /^src\/features\/[^/]+\/presentation\//.test(target),
     why: 'Das ViewModel eines Slices kennt seine Darstellung nicht — sonst lässt es sich nicht für Desktop und Mobile gemeinsam nutzen (AGENTS.md §4).',
   },
+  {
+    id: 'feature-application-ohne-ui',
+    appliesTo: (rel) => /^src\/features\/[^/]+\/application\//.test(rel),
+    forbids: (target) => /^src\/(components|pages)\//.test(target),
+    why: 'Das ViewModel darf nicht in `components/` oder `pages/` greifen — auch nicht für einen Typ. Genau daran scheitert sonst der Zweck der Trennung: Eine zweite Präsentation (Android, anderer Shell) müsste die alte Oberfläche mitschleppen, nur damit ein `import type` noch auflöst. Reine Funktionen und fachliche Typen gehören nach `src/lib/` bzw. `src/features/shared/domain/`; ein React-Context-Hook nach `src/hooks/` (AGENTS.md §3, „Wohin ein Typ gehört").',
+  },
 ];
 
 /**

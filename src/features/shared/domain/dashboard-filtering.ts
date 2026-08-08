@@ -10,7 +10,7 @@ import type {
 } from '@/features/shared/domain/dashboard-filters';
 import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
-import { resolvePeriodRange } from './period-utils';
+import { resolvePeriodRange } from './period-options';
 import type { ContractDecision } from '@/lib/contract-types';
 
 interface DateRange {

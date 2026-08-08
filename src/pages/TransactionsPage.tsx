@@ -10,7 +10,7 @@ import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import FinanceErrorState from "@/components/common/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
-import { decodeDashboardFilters, encodeDashboardFilters } from "@/components/dashboard/filter-utils";
+import { decodeDashboardFilters, encodeDashboardFilters } from "@/features/shared/domain/dashboard-filtering";
 import { useTransactionsOverview } from "@/features/transactions/application/use-transactions-overview";
 import { transactionsKeys } from "@/features/transactions/data/transactions-query-keys";
 import { TransactionsListPane } from "@/features/transactions/presentation/shared/TransactionsListPane";

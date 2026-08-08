@@ -33,7 +33,7 @@ vi.mock('@/services/portfolio-service', () => ({
   deletePosition: vi.fn(),
 }));
 
-vi.mock('@/components/providers/LocalEncryptionProvider', () => ({
+vi.mock('@/hooks/useLocalEncryption', () => ({
   useLocalEncryption: () => ({ unlocked: false }),
 }));
 
