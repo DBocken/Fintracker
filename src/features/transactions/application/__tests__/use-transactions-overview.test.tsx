@@ -7,6 +7,7 @@ import type { DashboardFilterState } from '@/features/shared/domain/dashboard-fi
 import { computeTransactionStats } from '../../domain/transaction-stats';
 import { transactionsKeys } from '../../data/transactions-query-keys';
 import { useTransactionsOverview } from '../use-transactions-overview';
+import { recordSkipped, clearIntegrityReport } from '@/services/data-integrity-report';
 
 vi.mock('@/services/transaction-service', () => ({
   getTransactions: vi.fn(),
@@ -368,6 +369,26 @@ describe('useTransactionsOverview', () => {
       // NICHT den Filter-State betrifft, würde die Write-back-Effekte der Page
       // (useEffect auf `filters`) unnötig erneut auslösen.
       expect(Object.is(result.current.filters.values, valuesBefore)).toBe(true);
+    });
+  });
+
+  describe('Integritätsmeldung (WP 1.2b)', () => {
+    beforeEach(() => {
+      clearIntegrityReport();
+    });
+
+    it('sollte skippedTransactionsCount aus dem Integritäts-Bericht übernehmen', async () => {
+      recordSkipped('transactions', 3);
+
+      const { result } = await renderOverview();
+
+      expect(result.current.integrity.skippedTransactionsCount).toBe(3);
+    });
+
+    it('sollte 0 liefern, solange nichts übersprungen wurde (kein Dauerbanner)', async () => {
+      const { result } = await renderOverview();
+
+      expect(result.current.integrity.skippedTransactionsCount).toBe(0);
     });
   });
 });

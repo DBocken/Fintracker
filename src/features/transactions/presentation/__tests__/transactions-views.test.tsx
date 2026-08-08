@@ -89,6 +89,7 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
       detailsSaving: false,
       retry: noop,
     },
+    integrity: { skippedTransactionsCount: 0 },
     ...overrides,
   };
 }

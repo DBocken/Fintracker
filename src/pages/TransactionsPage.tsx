@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import FinanceEmptyState from "@/components/common/FinanceEmptyState";
 import FinanceErrorState from "@/components/common/FinanceErrorState";
+import DataIntegrityWarning from "@/components/common/DataIntegrityWarning";
 import { useI18n } from "@/i18n/useI18n";
 import { useIsWideDesktop } from "@/hooks/useIsWideDesktop";
 import { decodeDashboardFilters, encodeDashboardFilters } from "@/features/shared/domain/dashboard-filtering";
@@ -135,27 +136,35 @@ export default function TransactionsPage() {
         // allgemeinen "noch keine Daten"-Text zu zeigen.
         <FinanceEmptyState variant="no-transactions" />
       ) : (
-        <div data-tour-id="transactions-list" className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
-          <TransactionsListPane model={model} detailsTransaction={detailsTransaction} onOpenDetails={openDetails} />
-          {isWide ? (
-            <TransactionsDetailAside
-              model={model}
-              detailsTransaction={detailsTransaction}
-              onCloseDetails={closeDetails}
-              onSaveDetails={handleSaveDetails}
-              renderDetailExtra={renderOccasions}
-            />
-          ) : (
-            <TransactionsDetailSheet
-              model={model}
-              detailsTransaction={detailsTransaction}
-              onSaveDetails={handleSaveDetails}
-              detailsOpen={detailsOpen}
-              onDetailsOpenChange={handleDetailsOpenChange}
-              renderDetailExtra={renderOccasions}
-            />
-          )}
-        </div>
+        <>
+          {/*
+            WP 1.2b: kein Fehlerzustand (die Daten SIND da) — Warnung NEBEN
+            der Liste, nicht an ihrer Stelle. Rendert `null`, solange nichts
+            übersprungen wurde (kein Dauerbanner).
+          */}
+          <DataIntegrityWarning skippedCount={model.integrity.skippedTransactionsCount} />
+          <div data-tour-id="transactions-list" className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+            <TransactionsListPane model={model} detailsTransaction={detailsTransaction} onOpenDetails={openDetails} />
+            {isWide ? (
+              <TransactionsDetailAside
+                model={model}
+                detailsTransaction={detailsTransaction}
+                onCloseDetails={closeDetails}
+                onSaveDetails={handleSaveDetails}
+                renderDetailExtra={renderOccasions}
+              />
+            ) : (
+              <TransactionsDetailSheet
+                model={model}
+                detailsTransaction={detailsTransaction}
+                onSaveDetails={handleSaveDetails}
+                detailsOpen={detailsOpen}
+                onDetailsOpenChange={handleDetailsOpenChange}
+                renderDetailExtra={renderOccasions}
+              />
+            )}
+          </div>
+        </>
       )}
 
       <TransactionFormDialog

@@ -34,6 +34,7 @@ import {
   countActiveFilters,
 } from '../domain/transactions-scope';
 import { computeTransactionStats } from '../domain/transaction-stats';
+import { getIntegrityReport } from '@/services/data-integrity-report';
 import type { TransactionsOverviewViewModel } from './transactions-overview-view-model';
 
 const noop = () => {};
@@ -217,6 +218,16 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
+  // WP 1.2b: `recordSkipped('transactions', …)` läuft synchron INNERHALB des
+  // `getTransactions`-Aufrufs (vor dessen Resolve) — bis zum nächsten Render
+  // nach einem (Re-)Fetch spiegelt der In-Memory-Bericht also bereits den
+  // aktuellen Lesevorgang. Bewusst UNGEMEMOT: `getIntegrityReport()` ist ein
+  // billiger Map-Read, kein `useMemo`-würdiger Aufwand, und ein `useMemo` ohne
+  // reaktive Quelle (Singleton, keine Props/State) hätte keine korrekte
+  // Abhängigkeit.
+  const skippedTransactionsCount =
+    getIntegrityReport().find((entry) => entry.key === 'transactions')?.skipped ?? 0;
+
   const periodOptions = useMemo(
     () => (PERIOD_RANGES.has(filters.range) ? listAvailablePeriods(txs, filters.range) : []),
     [txs, filters.range],
@@ -312,5 +323,6 @@ export function useTransactionsOverview(options?: UseTransactionsOverviewOptions
     filters: filtersVM,
     hidden,
     actions,
-  }), [txsLoading, hasLoadError, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions]);
+    integrity: { skippedTransactionsCount },
+  }), [txsLoading, hasLoadError, txs, transactions, cats, accounts, splits, balances, stats, filtersVM, hidden, actions, skippedTransactionsCount]);
 }

@@ -55,6 +55,13 @@ export type TransactionsOverviewViewModel = {
     showRunningBalance: boolean;
   };
   stats: { income: number; expenses: number; balance: number; count: number };
+  /**
+   * WP 1.2b: Was `data-integrity-report.ts` beim letzten Lesen der Buchungen
+   * an übersprungenen, beschädigten Items gezählt hat (WP 1.2 Teil A). `0`,
+   * solange nichts übersprungen wurde — die Fläche zeigt dann keinen Hinweis
+   * (kein Dauerbanner).
+   */
+  integrity: { skippedTransactionsCount: number };
   filters: {
     /**
      * Referenzstabil, solange sich kein Filterfeld ändert (URL-Write-back der

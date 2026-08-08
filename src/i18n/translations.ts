@@ -476,6 +476,7 @@ export const translations = {
       rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
     },
     dataIntegrity: {
+      itemsSkippedOne: 'Ein Eintrag konnte nicht gelesen werden.',
       itemsSkipped: '{count} Einträge konnten nicht gelesen werden.',
       checkBackup: 'Backup prüfen',
     },
@@ -5172,6 +5173,7 @@ export const translations = {
       rejected: 'Invalid data at the "{resource}" boundary was rejected.',
     },
     dataIntegrity: {
+      itemsSkippedOne: 'One entry could not be read.',
       itemsSkipped: '{count} entries could not be read.',
       checkBackup: 'Check backup',
     },
@@ -9868,6 +9870,7 @@ export const translations = {
       rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
     },
     dataIntegrity: {
+      itemsSkippedOne: "wa' De' laDlaHbe'.",
       itemsSkipped: "{count} De' laDlaHbe'.",
       checkBackup: "cha' ghItlh yIghoj",
     },
@@ -14170,6 +14173,7 @@ export const translations = {
       rejected: 'Недопустимые данные на границе «{resource}» отклонены.',
     },
     dataIntegrity: {
+      itemsSkippedOne: 'Не удалось прочитать одну запись.',
       itemsSkipped: 'Не удалось прочитать {count} записей.',
       checkBackup: 'Проверить резервную копию',
     },
