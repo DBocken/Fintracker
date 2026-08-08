@@ -293,32 +293,37 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
 });
 
 describe("estimatePasswordStrength", () => {
+  // WP 3.3 (SEC-3): `label` (übersetzter Anzeigetext, hartkodiert Deutsch)
+  // wurde durch `category` ersetzt — eine stabile, nicht-übersetzte Kategorie
+  // ('weak' | 'medium' | 'strong'). Die Übersetzung des Anzeigetexts liegt
+  // jetzt in der Komponente (`useI18n()`); die Kategorie ist zugleich die
+  // Gate-Schwelle für den Setup-Button in `LocalEncryptionSettings`.
   it("classifies short, simple passwords as weak", () => {
-    expect(estimatePasswordStrength("abc").label).toBe("schwach");
-    expect(estimatePasswordStrength("").label).toBe("schwach");
+    expect(estimatePasswordStrength("abc").category).toBe("weak");
+    expect(estimatePasswordStrength("").category).toBe("weak");
   });
 
-  it("classifies medium-length mixed passwords as mittel", () => {
+  it("classifies medium-length mixed passwords as medium", () => {
     const result = estimatePasswordStrength("Abcdefgh1");
-    expect(result.label).toBe("mittel");
+    expect(result.category).toBe("medium");
   });
 
-  it("classifies long passwords with mixed character classes as stark", () => {
+  it("classifies long passwords with mixed character classes as strong", () => {
     const result = estimatePasswordStrength("Correct-Horse-Battery-9");
-    expect(result.label).toBe("stark");
+    expect(result.category).toBe("strong");
   });
 
-  it("erkennt reine Wiederholung trotz Länge als schwach (Entropie statt Länge)", () => {
-    expect(estimatePasswordStrength("aaaaaaaaaaaa").label).toBe("schwach");
+  it("erkennt reine Wiederholung trotz Länge als weak (Entropie statt Länge)", () => {
+    expect(estimatePasswordStrength("aaaaaaaaaaaa").category).toBe("weak");
   });
 
   it("wertet einfache Sequenzen ab", () => {
-    expect(estimatePasswordStrength("abcdefghijkl").label).toBe("schwach");
+    expect(estimatePasswordStrength("abcdefghijkl").category).toBe("weak");
   });
 
   it("wertet gängige Passwörter hart ab", () => {
     const res = estimatePasswordStrength("Passwort123!");
-    expect(res.label).toBe("schwach");
+    expect(res.category).toBe("weak");
     expect(res.score).toBeLessThanOrEqual(25);
   });
 });

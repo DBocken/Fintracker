@@ -426,4 +426,12 @@ export const everydayRu: TranslationOverlay = {
   dataExport: {
     pdfBalance: 'Остаток на счёте: €{amount}',
   },
+  privacy: {
+    localEncryption: {
+      // WP 3.3 (SEC-3): именно те, кто выбирает слабый пароль, реже всего
+      // читают формальное предупреждение — поэтому здесь простыми словами.
+      weakPasswordWarning: 'Этот пароль легко подобрать. Даже лучшее шифрование тогда почти не защищает.',
+      overrideWeakLabel: 'Я понимаю, что это рискованно, и всё равно продолжаю.',
+    },
+  },
 };

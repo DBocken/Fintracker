@@ -801,17 +801,33 @@ export async function decryptJsonWithPassword<T>(envelope: EncryptedEnvelopeV1, 
 const COMMON_PASSWORD_PREFIXES =
   /^(password|passwort|geheim|123456|12345678|qwertz|qwerty|asdfgh|111111|000000|abc123|letmein|admin|willkommen|welcome|iloveyou|monkey|dragon)/i
 
+/** WP 3.3 (SEC-3): stabile, nicht-übersetzte Kategorie für Gate-Logik — nie
+ * über den übersetzten Anzeigetext matchen (AGENTS.md §6, "Matching über den
+ * Anzeigenamen"). Die Übersetzung des Labels ist reine Präsentationslogik
+ * und liegt deshalb in der Komponente (`useI18n()`), nicht hier. */
+export type PasswordStrengthCategory = 'weak' | 'medium' | 'strong'
+
 /**
  * Schätzt die Passwortstärke über die Shannon-Entropie (Länge × Zeichenraum),
  * abzüglich Strafen für Wiederholungen und einfache Sequenzen (abc, 123).
  * Ersetzt die frühere reine Längen-/Klassen-Heuristik (Issue #32): so wird
  * z. B. "aaaaaaaaaa" trotz Länge realistisch als schwach erkannt.
  *
- * @returns score 0–100 sowie ein Label (schwach < 36 bit ≤ mittel < 66 bit ≤ stark)
+ * WP 3.3 (SEC-3): `category` ist die Gate-Schwelle für den Setup-Button in
+ * `LocalEncryptionSettings` — unterhalb von `weak` blockiert er. Gemessene
+ * Beispiele (siehe `__tests__/local-crypto.test.ts`): "1234" → 9,3 bit
+ * (weak), "Sommer2026" → 55,4 bit (medium), "correcthorsebatterystaple" →
+ * 105,3 bit (strong). Die Schwelle ist die bereits bestehende
+ * "schwach"-Kategorie — keine neue Zahl, sondern die, die schon als
+ * Stärkeanzeige lief, jetzt zusätzlich als Gate ausgewertet.
+ *
+ * @returns score 0–100 sowie eine Kategorie (weak < 36 bit ≤ medium < 66 bit ≤ strong)
  */
-export function estimatePasswordStrength(password: string): { score: number; label: string } {
+export function estimatePasswordStrength(
+  password: string,
+): { score: number; category: PasswordStrengthCategory } {
   const p = password || ''
-  if (!p) return { score: 0, label: 'schwach' }
+  if (!p) return { score: 0, category: 'weak' }
 
   let pool = 0
   if (/[a-z]/.test(p)) pool += 26
@@ -840,9 +856,9 @@ export function estimatePasswordStrength(password: string): { score: number; lab
   }
 
   const score = Math.max(0, Math.min(100, Math.round(bits * 1.15)))
-  let label: string = 'schwach'
-  if (bits >= 66) label = 'stark'
-  else if (bits >= 36) label = 'mittel'
+  let category: PasswordStrengthCategory = 'weak'
+  if (bits >= 66) category = 'strong'
+  else if (bits >= 36) category = 'medium'
 
-  return { score, label }
+  return { score, category }
 }
