@@ -7,6 +7,7 @@ import { useAuth } from "./components/providers/AuthProvider";
 import { useLocalEncryption } from "./components/providers/LocalEncryptionProvider";
 import { hasStartedAnonymousMode } from "./lib/anonymous-mode";
 import { syncCategoryTemplate } from "@/services/category-template-service";
+import { runStoreMigrations } from "@/services/local-store-migrations";
 import AppShell from "@/components/layout/AppShell";
 import RouteGuard from "@/components/layout/RouteGuard";
 
@@ -50,6 +51,34 @@ function App() {
   const { status } = useAuth();
   const { enabled, unlocked } = useLocalEncryption();
   const [anonymousStarted, setAnonymousStarted] = useState(() => hasStartedAnonymousMode());
+  const [migrationState, setMigrationState] = useState<"idle" | "running" | "done">("idle");
+  const [migrationError, setMigrationError] = useState<Error | null>(null);
+
+  const isAuthenticated = status === "authenticated";
+  const locked = enabled && !unlocked;
+  // Die App wird tatsaechlich benutzt (angemeldet oder bewusst anonym
+  // gestartet) UND der lokale Speicher ist lesbar (kein Tresor im Weg —
+  // ein kuenftiger echter Schritt koennte verschluesselte Daten anfassen
+  // muessen, siehe local-store-migrations.ts).
+  const readyForStoreMigration = (isAuthenticated || anonymousStarted) && !locked;
+
+  // WP 1.3: Der einmalige, asynchrone Migrationslaeufer fuer
+  // LOCAL_STORE_SCHEMA_VERSION. Muss erfolgreich abgeschlossen sein, BEVOR
+  // irgendeine Flaeche den lokalen Speicher liest/schreibt — sonst wuerde
+  // assertCompatibleStore() (local-finance-store.ts) mit
+  // StoreMigrationPendingError ablehnen, sobald WP 4.1 den ersten echten
+  // Schritt eintraegt. Heute (leere Schrittliste) ist der Lauf ein
+  // No-op, der nur den Versions-Marker nachtraegt.
+  useEffect(() => {
+    if (!readyForStoreMigration) return;
+    if (migrationState !== "idle") return;
+    setMigrationState("running");
+    runStoreMigrations()
+      .then(() => setMigrationState("done"))
+      .catch((error: unknown) => {
+        setMigrationError(error instanceof Error ? error : new Error(String(error)));
+      });
+  }, [readyForStoreMigration, migrationState]);
 
   // Additives Kategorien-/Filterwort-Update (Weg B): nur für eingeloggte Nutzer
   // (anonym = kein Server-Kontakt) und nur bei entsperrtem Tresor. Fire-and-forget,
@@ -61,11 +90,18 @@ function App() {
     void syncCategoryTemplate().catch(() => {});
   }, [status, enabled, unlocked]);
 
+  // Ein fehlgeschlagener Migrationslauf wird NICHT still verschluckt: der
+  // Wurf waehrend des Renderns laesst ihn den umgebenden <ErrorBoundary>
+  // (main.tsx) erreichen — sichtbar statt eines Zugriffs, der reihenweise
+  // mit StoreMigrationPendingError scheitert, ohne dass die Oberflaeche
+  // je sagt, warum.
+  if (migrationError) {
+    throw migrationError;
+  }
+
   if (status === "loading") {
     return <div className="min-h-screen bg-background" />;
   }
-
-  const isAuthenticated = status === "authenticated";
 
   // Erstbesuch ohne Anmeldung: Landing-Screen mit der Wahl
   // "Ohne Anmeldung starten" oder Google-Login (Issue #28).
@@ -84,7 +120,13 @@ function App() {
     );
   }
 
-  const locked = enabled && !unlocked;
+  // Store-Migration steht noch aus (oder laeuft) UND der Tresor ist offen
+  // (bzw. gar nicht erst aktiv) — noch keine Fläche rendern, die lesen
+  // koennte. Gleiches Muster wie der Ladezustand oben: kurzer, textloser
+  // Zwischenzustand, kein Flackern bei der heutigen leeren Schrittliste.
+  if (readyForStoreMigration && migrationState !== "done") {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   // Ab hier: volle App — angemeldet ODER bewusst anonym (Issue #26).
   return (

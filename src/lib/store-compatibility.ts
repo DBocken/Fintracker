@@ -18,6 +18,24 @@
  * Deshalb gibt es genau drei Ausgänge, und einer davon ist „nicht anfassen".
  */
 
+/**
+ * Schema-Version des lokalen Finanzspeichers. Wird erhöht, sobald bestehende
+ * Datenstrukturen migrationsbedürftig erweitert werden. Reine Neuanlage
+ * weiterer Collections braucht keine Migration.
+ *
+ * Liegt bewusst hier (reine Logik) und nicht in `local-finance-store.ts`
+ * (I/O-Service): Sowohl der synchrone Kompatibilitäts-Check bei jedem
+ * Store-Zugriff als auch der asynchrone Migrationsläufer
+ * (`src/services/local-store-migrations.ts`, WP 1.3) brauchen dieselbe Zahl —
+ * eine Ablage in einem der beiden Services hätte den jeweils anderen zu einem
+ * Import nach "oben" gezwungen. `local-finance-store.ts` re-exportiert die
+ * Konstante weiterhin, damit bestehende Importe funktionsfähig bleiben.
+ */
+import { t } from '../i18n/serviceT';
+
+export const LOCAL_STORE_SCHEMA_VERSION = 2;
+export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_version';
+
 export type StoreCompatibility =
   /** Gleicher Stand — nichts zu tun. */
   | { status: 'ok' }
@@ -70,5 +88,39 @@ export class StoreVersionTooNewError extends Error {
     this.name = 'StoreVersionTooNewError';
     this.stored = stored;
     this.supported = supported;
+  }
+}
+
+/**
+ * Der Fehler, den ein Store-Zugriff wirft, wenn echte Migrationsschritte
+ * (`src/services/local-store-migrations.ts`) noch nicht gelaufen sind (WP 1.3).
+ *
+ * Warum werfen statt "so gut es geht" lesen: Sobald ein Schritt tatsächlich
+ * die Datenform ändert, würde altes Code-Verständnis auf neu geformte Daten
+ * (oder umgekehrt) treffen und stillschweigend falsche Werte liefern — genau
+ * das Kriterium aus WP 1.3 verbietet das. Der Fehler ist bewusst von
+ * `StoreVersionTooNewError` unterschieden: Hier ist die App die richtige
+ * Version, nur der einmalige Migrationslauf beim Start ist noch nicht
+ * (oder noch nicht erfolgreich) durchgelaufen — die Oberfläche kann das von
+ * "Speicher kaputt" und "App zu alt" unterscheiden.
+ */
+export class StoreMigrationPendingError extends Error {
+  readonly from: number;
+  readonly to: number;
+
+  constructor(from: number, to: number) {
+    // Über i18n, nicht hartkodiert: Dieser Fehler kann den Nutzer erreichen
+    // (App.tsx wirft ihn in den ErrorBoundary), anders als die
+    // Entwicklermeldung von StoreVersionTooNewError darunter. Die
+    // Allowlist deckt Altbestand, niemals Nachschub — `check:i18n --staged`
+    // prüft geänderte Zeilen ohne Ausnahmeliste.
+    super(
+      t('storeCompatibility.migrationPending', 'Lokale Daten warten auf Migration.')
+        .replace('{from}', String(from))
+        .replace('{to}', String(to)),
+    );
+    this.name = 'StoreMigrationPendingError';
+    this.from = from;
+    this.to = to;
   }
 }

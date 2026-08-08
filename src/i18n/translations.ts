@@ -475,6 +475,9 @@ export const translations = {
     schemaBoundary: {
       rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
     },
+    storeCompatibility: {
+      migrationPending: 'Deine lokalen Daten werden gerade auf einen neuen Stand gebracht (Version {from} auf {to}). Lade die Seite neu — bleibt der Hinweis, spiele ein Backup ein.',
+    },
     dataIntegrity: {
       itemsSkippedOne: 'Ein Eintrag konnte nicht gelesen werden.',
       itemsSkipped: '{count} Einträge konnten nicht gelesen werden.',
@@ -5171,6 +5174,9 @@ export const translations = {
     },
     schemaBoundary: {
       rejected: 'Invalid data at the "{resource}" boundary was rejected.',
+    },
+    storeCompatibility: {
+      migrationPending: 'Your local data is being brought up to date (version {from} to {to}). Reload the page — if the notice stays, restore a backup.',
     },
     dataIntegrity: {
       itemsSkippedOne: 'One entry could not be read.',
@@ -9869,6 +9875,9 @@ export const translations = {
     schemaBoundary: {
       rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
     },
+    storeCompatibility: {
+      migrationPending: "De' chu'moHlu'taH ({from} {to} je). yIchu'qa' — taHchugh, chelmoHwI' yIchel.",
+    },
     dataIntegrity: {
       itemsSkippedOne: "wa' De' laDlaHbe'.",
       itemsSkipped: "{count} De' laDlaHbe'.",
@@ -14171,6 +14180,9 @@ export const translations = {
     },
     schemaBoundary: {
       rejected: 'Недопустимые данные на границе «{resource}» отклонены.',
+    },
+    storeCompatibility: {
+      migrationPending: 'Локальные данные обновляются до нового формата (версия {from} → {to}). Перезагрузи страницу — если сообщение осталось, восстанови резервную копию.',
     },
     dataIntegrity: {
       itemsSkippedOne: 'Не удалось прочитать одну запись.',
