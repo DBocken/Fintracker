@@ -142,7 +142,7 @@ aber um einen Warnhinweis bei Minor-Differenz ergänzt.
 **Akzeptanz:** Manipulierte Datei wird erkannt (`[INTEGRITY]`-Test) · alte
 Backups importieren weiter (Test) · bestehende Roundtrip-Tests unverändert grün.
 
-### - [ ] WP 1.6 · Speicher-Laufzeitfehler behandeln (RES-6, RES-7) · S
+### - [x] WP 1.6 · Speicher-Laufzeitfehler behandeln (RES-6, RES-7) · S — `080b0ae`
 **Ziel:** Quota-Erschöpfung und IndexedDB-Ausfälle haben definiertes,
 nutzerverständliches Verhalten.
 **Vorgehen:** In `idb-kv.ts` `QuotaExceededError` erkennen und
