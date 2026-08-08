@@ -77,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 1.4 · Sync-Import: Versionsvergleich + Bestätigung (RES-4) |
-| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
-| **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
+| **Paket** | — |
+| **Schritt** | — |
+| **Im Arbeitsbaum** | nichts (sauber) |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -135,7 +135,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 4 | 1.2 | zod an der Kern-Lesegrenze — Teil A (Registry, 5 Collections) | **fertig** | `6404429` |
 | 4a | **1.2b** | Integritätsmeldung erreicht die Fläche (`/transactions`) | **fertig** | `a13adf7` |
 | 5 | 1.3 | Echter Migrationsläufer (RES-3) | **fertig** | `c765da1` |
-| 6 | 1.4 | Sync-Import: Versionsvergleich + Bestätigung (RES-4) | offen | |
+| 6 | 1.4 | Sync-Import: Versionsvergleich + Bestätigung (RES-4) | **fertig** | `ff348fa` |
 | 7 | 1.5 | Backup: Prüfsumme + Item-Validierung (RES-5) | offen | |
 | 8 | 1.6 | Speicher-Laufzeitfehler behandeln (RES-6, RES-7) | offen | |
 | 8a | **1.7** | `forecastOverrides` schluckt den Korruptionsfehler weiter | offen | neu aus WP 1.1, siehe `nachpruefung.md` 1.a |

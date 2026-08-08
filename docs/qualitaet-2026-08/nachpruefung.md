@@ -325,6 +325,36 @@ es klingt: es ist eine Aussage über eine handgepflegte Dateiliste, nicht
 liest, liest zu viel hinein — genau die Sorte stiller Bedeutungsverlust,
 gegen die dieses Programm sonst antritt.
 
+### 1.g · Der Ansicht/Daten-Wächter hat einen Entwurfsfehler gefunden, kein Zählproblem
+
+**Befund.** WP 1.4 riss die view-data-Ratsche (283 gegen 282). Der neue
+Bestätigungsdialog importierte zwei Typen (`SnapshotStandInfo`,
+`SnapshotVersionComparison`) aus `snapshot-sync-service` — richtungskonform
+nach §3, aber der Wächter zählt jeden Service-Import in der Darstellung.
+
+**Entscheidung.** Nicht die Ratsche heraufgesetzt, sondern die Typen nach
+`src/lib/snapshot-comparison.ts` verschoben (Re-Export im Service für
+Bestandsimporte).
+
+**Begründung.** Die Tabelle „Wohin ein Typ gehört" in AGENTS.md §3 beantwortet
+den Fall ohne Ermessensspielraum: *Typ, den Service **und** Oberfläche
+brauchen ⇒ `src/lib/`.* Der Wächter hat also keinen Fehlalarm produziert,
+sondern eine Ablage-Gewohnheit erwischt — genau die, die laut AGENTS.md „der
+häufigste Weg ist, die Richtung umzudrehen": der Typ landet dort, wo er zuerst
+gebraucht wurde.
+
+**Preis.** Keiner, der zählt. Der Service ist um zwei Typdeklarationen ärmer
+und um einen Re-Export reicher.
+
+**Nebenbefund im selben Zug:** Der erste Entwurf der Fläche fragte den Service
+per `previewSnapshotImport` **vorher**, ob der Import erlaubt sei, und rief
+dann die Mutation. Das war ein zweiter Codepfad mit einer zweiten Meinung über
+den Versionsstand. Ersetzt durch: die Fläche ruft einfach die Mutation und
+**reagiert auf die Absage** (`SnapshotOlderVersionError` trägt den Vergleich
+mit). Ein Codepfad, eine Wahrheit — bezahlt mit einer doppelten Entschlüsselung
+auf dem seltenen Konfliktpfad. Aufgefallen ist auch das nur, weil die Ratsche
+den zusätzlichen Service-Import sichtbar gemacht hat.
+
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
 **Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das

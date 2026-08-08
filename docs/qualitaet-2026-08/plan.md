@@ -122,7 +122,7 @@ Roundtrip-Test „alte Form rein → neue Form raus". Zusätzlich den fehlenden
 **Akzeptanz:** Läufer mit Test je Schritt · Abbruch mitten im Lauf lässt den
 Store lesbar zurück (Test) · genutzt von WP 4.1.
 
-### - [ ] WP 1.4 · Sync-Import: Versionsvergleich + Bestätigung (RES-4) · S
+### - [x] WP 1.4 · Sync-Import: Versionsvergleich + Bestätigung (RES-4) · S — `ff348fa`
 **Ziel:** Ein älterer Snapshot löscht nie unbestätigt neuere Daten.
 **Vorgehen:** `snapshot_version`/Zeitstempel gegen lokalen Stand prüfen; bei
 älter/abweichend expliziter Dialog mit beiden Ständen („Gerät: 12.08., Datei:
