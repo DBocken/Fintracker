@@ -5,6 +5,8 @@ import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from '
 // bestehende Importe (`from './local-finance-store'`) funktionsfähig.
 import { LOCAL_FINANCE_KEYS, type LocalFinanceKey } from './local-storage-keys';
 import { StoreVersionTooNewError, checkStoreCompatibility } from '@/lib/store-compatibility';
+import { COLLECTION_SCHEMAS, type CollectionSchemaKey } from '@/lib/schemas/collection-schemas';
+import { recordSkipped } from './data-integrity-report';
 
 export { LOCAL_FINANCE_KEYS };
 export type { LocalFinanceKey };
@@ -71,7 +73,27 @@ export async function readLocalFinanceList<T>(key: LocalFinanceKey): Promise<T[]
   // hier stillschweigend `[]` zurückkommen, überschriebe der nächste Schreib-
   // vorgang (Read-Modify-Write in upsertLocalFinanceItem) die Collection.
   if (!Array.isArray(data)) throw new VaultCorruptError(storageKey);
-  return data;
+
+  // Schema-Registry (WP 1.2, RES-2/DOM-2): Ratsche statt Alles-oder-nichts.
+  // Collection ohne Schema ⇒ unverändert durchreichen (Bestandsverhalten).
+  // Collection mit Schema ⇒ je Item validieren; kaputte Items werden
+  // übersprungen und gezählt, statt die gesamte Liste zu verwerfen oder ein
+  // manipuliertes Item bis in die Render-Schicht durchzureichen.
+  const schema = COLLECTION_SCHEMAS[key as CollectionSchemaKey];
+  if (!schema) return data;
+
+  const valid: T[] = [];
+  let skipped = 0;
+  for (const item of data) {
+    const result = schema.safeParse(item);
+    if (result.success) {
+      valid.push(result.data as T);
+    } else {
+      skipped += 1;
+    }
+  }
+  recordSkipped(key, skipped);
+  return valid;
 }
 
 export async function writeLocalFinanceList<T>(key: LocalFinanceKey, items: T[]): Promise<void> {

@@ -4,6 +4,8 @@ import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from '
 import { escapeCsvCell } from '@/lib/csv-utils';
 import { t } from '@/i18n/serviceT';
 import { logger } from '@/utils/logger';
+import { transactionSchema } from '@/lib/schemas/transaction.schema';
+import { recordSkipped } from './data-integrity-report';
 
 /**
  * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
@@ -297,7 +299,25 @@ class TransactionStorageService {
       // Spiegelbildlich zu local-finance-store.readLocalFinanceList (RES-1):
       // gültiges JSON ohne Array ist ein beschädigter Bestand, keine Leerliste.
       if (!Array.isArray(data)) throw new VaultCorruptError(LOCAL_TRANSACTIONS_KEY);
-      return { success: true, data };
+
+      // Item-Validierung (WP 1.2, RES-2/DOM-2): dieselbe Registry-Idee wie
+      // `local-finance-store.readLocalFinanceList`, hier direkt verdrahtet,
+      // weil Transaktionen NICHT über `readLocalFinanceList` laufen (eigener
+      // Key `LOCAL_TRANSACTIONS_KEY`/`ausgabentracker_transactions_v3`).
+      // Kaputte Items werden übersprungen und gezählt, nie still verworfen
+      // und nie werfen sie die ganze Liste weg.
+      const valid: Transaction[] = [];
+      let skipped = 0;
+      for (const item of data) {
+        const result = transactionSchema.safeParse(item);
+        if (result.success) {
+          valid.push(result.data as Transaction);
+        } else {
+          skipped += 1;
+        }
+      }
+      recordSkipped('transactions', skipped);
+      return { success: true, data: valid };
     } catch (error) {
       return {
         success: false,

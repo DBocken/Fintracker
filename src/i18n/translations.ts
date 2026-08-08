@@ -475,6 +475,10 @@ export const translations = {
     schemaBoundary: {
       rejected: 'Ungültige Daten an der Datengrenze „{resource}" wurden abgewiesen.',
     },
+    dataIntegrity: {
+      itemsSkipped: '{count} Einträge konnten nicht gelesen werden.',
+      checkBackup: 'Backup prüfen',
+    },
     specialCategories: {
       service: {
         nameRequired: 'Anlass braucht einen Namen',
@@ -5166,6 +5170,10 @@ export const translations = {
     },
     schemaBoundary: {
       rejected: 'Invalid data at the "{resource}" boundary was rejected.',
+    },
+    dataIntegrity: {
+      itemsSkipped: '{count} entries could not be read.',
+      checkBackup: 'Check backup',
     },
     specialCategories: {
       service: {
@@ -9859,6 +9867,10 @@ export const translations = {
     schemaBoundary: {
       rejected: "veH {resource} Daq De' ngoDHa' lajQo'.",
     },
+    dataIntegrity: {
+      itemsSkipped: "{count} De' laDlaHbe'.",
+      checkBackup: "cha' ghItlh yIghoj",
+    },
     specialCategories: {
       service: {
         nameRequired: "qaSwI' pong poQ",
@@ -14156,6 +14168,10 @@ export const translations = {
     },
     schemaBoundary: {
       rejected: 'Недопустимые данные на границе «{resource}» отклонены.',
+    },
+    dataIntegrity: {
+      itemsSkipped: 'Не удалось прочитать {count} записей.',
+      checkBackup: 'Проверить резервную копию',
     },
     specialCategories: {
       service: {
