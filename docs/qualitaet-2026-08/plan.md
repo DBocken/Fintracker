@@ -155,7 +155,7 @@ Verweigerung dezenter Hinweis auf Backup.
 **Akzeptanz:** Quota-Fehler zeigt die Meldung statt roher `DOMException`
 (Test) · Render-Crash einer Fläche legt nicht mehr die ganze App lahm (Test).
 
-### - [ ] WP 1.2b · Die Integritätsmeldung erreicht die Fläche · S
+### - [x] WP 1.2b · Die Integritätsmeldung erreicht die Fläche · S — `a13adf7`
 **Herkunft:** Teilung von WP 1.2, begründet in [`nachpruefung.md`](nachpruefung.md) 1.c.
 **Ziel:** Was `data-integrity-report.ts` zählt, sieht auch der Nutzer.
 **Vorgehen:** `src/services/data-integrity-report.ts` hält je Collection die
