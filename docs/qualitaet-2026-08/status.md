@@ -54,7 +54,8 @@ ist *bekannt* (Schritt 2).
 pnpm lint                                                     # 24 s
 pnpm check:i18n && pnpm check:i18n-module-consts && pnpm check:test-structure \
   && pnpm check:layers && pnpm check:view-data && pnpm check:decimal-inputs \
-  && pnpm check:card-rule && pnpm check:platform-parity && pnpm check:query-errors \
+  && pnpm check:money-parsing && pnpm check:card-rule && pnpm check:platform-parity \
+  && pnpm check:query-errors \
   && pnpm check:a11y-names && pnpm check:state-coverage && pnpm check:i18n --all
                                                               # 14 s zusammen
 pnpm exec tsc --noEmit                                        # 43 s
@@ -76,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 2.2 · Regelverstöße + Wächter `check:money-parsing` (GOV-1) |
-| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
-| **Im Arbeitsbaum** | Fall (b): was hier liegt, ist ungeprüft → `git checkout -- . && git clean -fd`, Paket neu machen |
+| **Paket** | — |
+| **Schritt** | — |
+| **Im Arbeitsbaum** | nichts (sauber) |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -92,7 +93,7 @@ Gemessen am 2026-08-08 auf `f2c6e5a`, frischer Container:
 |---|---|
 | pnpm / Node | 10.33.0 / v22.22.2 (CI pinnt pnpm 10.12.4, Node 22) |
 | `pnpm install --frozen-lockfile` | ~1 min (ohne Cache) |
-| elf `check:*` + `check:i18n --all` | **14 s** |
+| zwölf `check:*` + `check:i18n --all` | **~15 s** |
 | `pnpm lint` | 24 s |
 | `pnpm exec tsc --noEmit` | 43 s |
 | `pnpm test` | **9 min 51 s** (500 Dateien, 4808 Tests) |
@@ -130,7 +131,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 |---|---|---|---|---|
 | 1 | 1.1 | Envelope-Korruption wirft statt schluckt (RES-1) | **fertig** | `2c3d5de` |
 | 2 | 2.1 | Drei Mutations-Löcher schließen (TEST-1/2/3) | **fertig** | `c4bed98` |
-| 3 | 2.2 | Regelverstöße + Wächter `check:money-parsing` (GOV-1) | offen | |
+| 3 | 2.2 | Regelverstöße + Wächter `check:money-parsing` (GOV-1) | **fertig** | `51accd2` |
 | 4 | 1.2 | zod an der Kern-Lesegrenze (RES-2, DOM-2) | offen | |
 | 5 | 1.3 | Echter Migrationsläufer (RES-3) | offen | |
 | 6 | 1.4 | Sync-Import: Versionsvergleich + Bestätigung (RES-4) | offen | |

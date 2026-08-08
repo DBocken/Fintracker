@@ -190,7 +190,7 @@ Allowlist-Eintrag.
 **Akzeptanz:** Alle vier Fälle grün; im PR je Fall der Nachweis, welche
 Mutation jetzt gefangen würde.
 
-### - [ ] WP 2.2 · Regelverstöße beheben + Wächter `check:money-parsing` (GOV-1) · S
+### - [x] WP 2.2 · Regelverstöße beheben + Wächter `check:money-parsing` (GOV-1) · S — `51accd2`
 **Ziel:** Die zwei real verletzten Verbote sind behoben und maschinell bewacht.
 **Vorgehen:**
 1. `AskYourMoney.tsx:52` auf `parseGermanNumber` umstellen ([REGRESSION]-Test
