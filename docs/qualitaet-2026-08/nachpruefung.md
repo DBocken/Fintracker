@@ -1,0 +1,163 @@
+# Nachprüfung — was der Plan übersehen hat
+
+> **Geltend, weil Entscheidungen binden** (analog
+> `docs/aaa-plus/decisions/decision-log.md`). `plan.md` sagt, was zu tun ist;
+> diese Datei sagt, wo der Plan an der Wirklichkeit vorbeigezielt hat und was
+> stattdessen gilt. Neue Arbeitspakete, die daraus entstehen, werden **in
+> `plan.md` ergänzt** — die Arbeitsliste bleibt eine einzige Datei.
+
+**Muster je Eintrag:** Befund (mit Beleg) → Entscheidung → Begründung → Preis.
+Der Preis gehört dazu: eine Entscheidung ohne benannten Preis ist eine
+Behauptung, keine Abwägung.
+
+Ein Eintrag entsteht am Ende eines Segments (Segment = Phase). Fällt
+unterwegs etwas auf, wird es **sofort** unter der Überschrift der laufenden
+Phase notiert — beim Phasenabschluss ist es sonst vergessen.
+
+---
+
+## Segment 0 · Das Laufwerk — 2026-08-08
+
+Vier Entscheidungen, die vor dem ersten Paket getroffen werden mussten, weil
+sie jedes folgende betreffen.
+
+### 0.1 · „Ein Arbeitspaket = ein PR" ist in dieser Umgebung nicht ausführbar
+
+**Befund.** `plan.md`, Arbeitsregel 2, fordert je Paket einen eigenen PR. Die
+Sitzung, die dieses Programm ausführt, ist auf genau einen Branch festgelegt
+(`claude/qualitaetsaudit-code-verbesserungen-6f10e4`); ein zweiter Branch ist
+ihr verwehrt. Vierzig Pakete stehen vierzig unmöglichen PRs gegenüber.
+
+**Entscheidung.** Ein Branch, **ein kumulierender Draft-PR**, darin **ein
+Commit je Arbeitspaket**. Die Commit-Message trägt WP-ID, Ziel und
+Testabdeckung; der PR-Body führt die Paketliste mit SHA.
+
+**Begründung.** Die Absicht hinter Regel 2 ist nicht die Zahl der PRs, sondern
+dass jedes Paket **einzeln prüfbar und einzeln rückrollbar** ist. Das leistet
+ein sauber geschnittener Commit genauso — `git revert <sha>` nimmt ein Paket
+zurück, ohne die anderen anzufassen. Was verloren geht, ist die
+PR-Review-Granularität; was gewonnen wird, ist die Ausführbarkeit überhaupt.
+
+**Preis.** Der PR wird groß und ist am Stück nicht mehr sinnvoll zu
+reviewen — er muss commitweise gelesen werden. Ein CI-Rotlauf trifft immer
+den ganzen Stapel, nicht ein Paket. Wer das anders will, muss die
+Branch-Beschränkung der Sitzung aufheben, nicht diese Entscheidung.
+
+### 0.2 · Der flüchtige Container macht den Commit zum einzigen Zustand
+
+**Befund.** `plan.md` setzt eine durchlaufende Arbeitssitzung voraus. Real
+endet die Sitzung am Volumenlimit, und der Container wird danach recycelt:
+`node_modules` fehlt beim Neustart, der Arbeitsbaum ist weg, nur der
+gepushte Branch überlebt. Ein zur Hälfte umgesetztes Paket wäre bei
+Wiederaufnahme nicht von einem fertigen zu unterscheiden.
+
+**Entscheidung.** Nach jedem grünen Paket wird **sofort committet und
+gepusht**. Ein angefangenes Paket wird bei Wiederaufnahme **verworfen**
+(`git checkout -- . && git clean -fd`) und neu gemacht, nie halb
+weitergeführt. Delegierte Agenten dürfen deshalb **nicht committen** — sie
+liefern einen Arbeitsbaum ab, der Orchestrator prüft und committet.
+
+**Begründung.** Der Wiedereinstieg braucht eine Frage mit genau einer
+Antwort: *Ist dieses Paket committet?* Alles andere — halbfertige Tests,
+teilweise umgestellte Aufrufer, ein Agent, der mitten im Refactoring
+abgeschnitten wurde — ist nicht zuverlässig rekonstruierbar, und der Versuch
+kostet mehr als die Wiederholung.
+
+**Preis.** Ein Abbruch kurz vor dem Ende eines großen Pakets (etwa WP 4.1)
+wirft dessen Arbeit vollständig weg. Gegenmaßnahme ist Paketschnitt, nicht
+Zustandsrettung: was zu groß ist, um in einem Zug fertig zu werden, wird in
+`plan.md` in nummerierte Teilpakete zerlegt, bevor daran gearbeitet wird.
+
+### 0.3 · Modell-Untergrenze Sonnet statt Haiku
+
+**Befund.** `plan.md`, Arbeitsregel 5, markiert dreizehn Pakete mit „(H)
+mechanisch, Haiku genügt". Mechanisch sind sie nur an der Oberfläche: an
+jedem sichtbaren String hängen drei Locales, ein `everyday`-Overlay je
+Sprache, ein bilingualer Test und zwölf Wächter, von denen mehrere
+(`check:i18n --all`, `locale-parity`, `wording-consistency`,
+`check:state-coverage`) erst nach dem Schreiben zuschlagen.
+
+**Entscheidung.** (H)- und (S)-Pakete gehen an Sonnet-Agenten. (O)-Pakete —
+ADRs, Entwurfsentscheidungen, die Nachprüfungen selbst — bleiben beim
+Orchestrator.
+
+**Begründung.** Delegation spart hier kein Budget (dasselbe Kontingent), sie
+spart **Kontext**, und Kontext ist das, was die autonome Laufzeit begrenzt.
+Ein Agent, dessen Ergebnis dreimal nachgebessert werden muss, verbraucht mehr
+Kontext als er spart — die Untergrenze ist deshalb eine Effizienz-, keine
+Qualitätsentscheidung.
+
+**Preis.** Höhere Kosten je delegiertem Paket. Wird in Kauf genommen.
+
+### 0.4 · Segment = Phase, mit sofortiger Zwischennotiz
+
+**Befund.** Der Auftrag verlangt eine Nachprüfung „nach jedem Segment";
+`plan.md` kennt den Begriff nicht, nur Phasen — und deren Reihenfolge ist
+verzahnt (2.1 und 2.2 laufen mitten in Phase 1).
+
+**Entscheidung.** Segment = Phase. Der Eintrag entsteht, sobald die **letzte**
+WP einer Phase steht — bei Phase 2 also erst nach 2.5, obwohl 2.1/2.2 früh
+fertig sind. Zwischenbefunde werden sofort bei ihrer Entdeckung unter der
+Phasen-Überschrift notiert.
+
+**Begründung.** Ein Befund, der beim Bauen auffällt und erst am Phasenende
+aufgeschrieben werden soll, ist am Phasenende weg — besonders, wenn dazwischen
+eine Sitzung endet.
+
+**Preis.** Die Datei wird zwischendurch unfertig aussehen. Das ist gewollt:
+sie ist ein Arbeitsprotokoll, kein Bericht.
+
+### 0.5 · Die volle Testsuite läuft am Phasenende, nicht je Paket
+
+**Befund.** Die Definition of Done in `plan.md` (Arbeitsregel 4) verlangt
+`pnpm test` grün je Paket. Gemessen: **9 min 51 s** für 4808 Tests in 500
+Dateien. Über vierzig Pakete sind das knapp sieben Stunden reine Wartezeit —
+in einer Ausführung, deren knappste Ressource Zeit vor dem nächsten Limit ist.
+
+**Entscheidung.** Je Paket laufen `lint`, die zwölf Wächter, `tsc` und
+**gezielt die betroffenen Testdateien** (`pnpm exec vitest run <pfade>`). Die
+volle Suite läuft **am Phasenende**, zusammen mit `build`, `check:bundle-size`
+und `test:coverage`.
+
+**Begründung.** Die Frage „bricht dieses Paket einen entfernten Test?"
+beantwortet CI bei **jedem Push** ohnehin und vollständig
+(`ci.yml`, Job `quality`) — und gepusht wird nach jedem Paket. Die lokale
+Vollprüfung wäre also eine zweite Antwort auf eine bereits gestellte Frage,
+bezahlt mit der Zeit, die für das nächste Paket fehlt. Was lokal bleibt, ist
+genau das, was CI **nicht** schnell genug beantwortet: die Wächter, die
+sonst erst nach dem Push rot werden.
+
+**Preis.** Ein entfernter Fehlschlag wird erst nach dem Push sichtbar, nicht
+davor — die Korrektur ist dann ein zweiter Commit statt eines
+Amend. Ausdrücklich in Kauf genommen; ein roter CI-Lauf im Draft-PR ist
+sichtbar und behebbar, verlorene Zeit nicht.
+
+### 0.6 · Vorbefunde aus der Erkundung, die `plan.md` nicht kennt
+
+Gefunden bei der Bestandsaufnahme vor dem ersten Paket, jeweils **noch nicht
+entschieden** — sie werden in dem Paket entschieden, das sie zuerst berührt,
+und stehen hier, damit sie dort nicht überraschen:
+
+| Befund | Beleg | Berührt |
+|---|---|---|
+| `feature-presentation-ohne-legacy-components` wäre am ersten Tag rot: **24 Importe in 10 Dateien** über alle vier Slices mit `presentation/`, nicht die zwei, die der Plan annimmt | `src/features/{dashboard,finance-city,special-categories,transactions}/presentation/` | **WP 2.3** |
+| `hooks → components` ist heute nicht versehentlich ungeprüft, sondern **absichtlich**; ein Test hält das schriftlich fest | `scripts/__tests__/layers-core.test.mjs:79-87` | **WP 2.3** |
+| `'ausgabentracker_transactions_v3'` ist doppelt definiert statt importiert | `services/local-storage-keys.ts:11` und `services/transaction-storage-service.ts:35` | WP 1.2 / 4.1 |
+| `validateBackup` und `isVersionCompatible` sind `private` — von außen nicht testbar | `services/backup-service.ts:314,443` | WP 1.5 |
+| Drei Dateiformate teilen `EncryptedEnvelopeV1`, validieren es aber unterschiedlich streng (lax / zod-`.strict()` / Ad-hoc) | `local-crypto.ts:103`, `snapshot-sync-service.ts:47`, `backup-service.ts:302` | WP 1.2 / 4.1 |
+| `importEncryptedSnapshot` schreibt **rohe IDB-Strings** zurück — ein Schlüsselschema-Wechsel schlägt auf Sync und Backup durch | `services/snapshot-sync-service.ts:211-222` | **WP 4.1 (ADR)** |
+| PBKDF2-Parameter stehen an **zwei** Stellen | `local-crypto.ts` `enable()` und `freshStandaloneConfig()` | WP 3.1 |
+
+**Kein Vorbefund ist rot.** Die Baseline auf `f2c6e5a` (siehe
+[`status.md`](status.md)) ist in allen zwölf Wächtern, `lint` und `tsc`
+grün — was in diesem Programm rot wird, hat dieses Programm verursacht.
+
+---
+
+## Segment 1 · Phase 1 — Datenverlust unmöglich machen
+
+*Wird geschrieben, sobald WP 1.6 steht.*
+
+## Segment 2 · Phase 2 — Geld-Korrektheit & Wächterlöcher
+
+*Wird geschrieben, sobald WP 2.5 steht.*

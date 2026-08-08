@@ -4,6 +4,13 @@
 > ([`audit.md`](audit.md), Stand `main@067244f`) — dort stehen alle Belege.
 > Befund-IDs (RES-1, DOM-2, …) verweisen dorthin. Nach Abschluss wandert das
 > Verzeichnis nach `docs/archive/`.
+>
+> **Wo das Programm gerade steht und wie man wieder einsteigt:**
+> [`status.md`](status.md). **Wo dieser Plan an der Wirklichkeit vorbeizielte
+> und was stattdessen gilt:** [`nachpruefung.md`](nachpruefung.md) — dort
+> stehen unter anderem die Abweichungen von Arbeitsregel 2 (ein PR je Paket)
+> und Arbeitsregel 5 (Modellwahl), die in dieser Ausführungsumgebung nötig
+> waren.
 
 ## Arbeitsregeln für den ausführenden Agenten
 

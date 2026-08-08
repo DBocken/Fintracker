@@ -104,6 +104,8 @@ Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
 | Datei | Rolle |
 |---|---|
 | [`qualitaet-2026-08/plan.md`](qualitaet-2026-08/plan.md) | Geltender Arbeitsplan: 7 Phasen, Arbeitspakete mit Akzeptanzkriterien, Vorentschiedenes |
+| [`qualitaet-2026-08/nachpruefung.md`](qualitaet-2026-08/nachpruefung.md) | Getroffene Entscheidungen — geltend, weil sie binden. Wo der Plan an der Wirklichkeit vorbeizielte und was stattdessen gilt |
+| [`qualitaet-2026-08/status.md`](qualitaet-2026-08/status.md) | **Protokoll.** Paketstand, Baseline und der Wiedereinstieg für eine neue Sitzung |
 | [`qualitaet-2026-08/audit.md`](qualitaet-2026-08/audit.md) | **Protokoll.** Qualitäts-Audit vom 2026-08-08 (`main@067244f`) — die Belege zum Plan |
 
 ## Protokoll: `docs/archive/`
