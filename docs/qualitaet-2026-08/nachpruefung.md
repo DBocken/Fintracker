@@ -220,4 +220,44 @@ und dieser Block wird beim Start eines Pakets gefüllt, nicht hinterher.
 
 ## Segment 2 · Phase 2 — Geld-Korrektheit & Wächterlöcher
 
-*Wird geschrieben, sobald WP 2.5 steht.*
+*Der Abschluss-Eintrag wird geschrieben, sobald WP 2.5 steht.*
+
+### 2.a · zod an Datengrenzen kollidiert mit der Bundle-Ratsche
+
+**Befund.** WP 2.2 ersetzt in `analytics-consent-service.ts` einen
+`as unknown as`-Cast durch eine echte zod-Prüfung. `PrivacyIndicator` hängt in
+der App-Shell und zieht diesen Service — und damit zod — in das **eager
+geladene Startbündel**. `check:bundle-size` wurde rot: `index` 181,0 kB gegen
+ein Budget von 172,0 kB. Der Plan hat diese Kopplung nirgends vorgesehen: er
+behandelt „zod an Datengrenzen" (Phase 1/2) und „Bundle-Budget" (Phase 4) als
+unabhängige Themen. Sie sind es nicht — **jede eingelöste Datengrenze kostet
+Startbündel**, weil der Cast, den sie ersetzt, zur Laufzeit nichts kostete.
+Er prüfte allerdings auch nichts.
+
+**Entscheidung.** Das Budget wird **nicht sofort** nachgezogen, sondern
+**einmal nach WP 1.2** — mit der dann bekannten echten Zahl.
+
+**Begründung.** WP 1.2 bringt zod an die Kern-Lesegrenze für Transaktionen,
+Konten, Budgets und Schulden; der Startpfad wächst dort aus demselben Grund
+erneut. Zwei Anhebungen kurz hintereinander, jede einzeln mit „ist gewollt"
+begründet, sind genau die Aufweichung, gegen die eine Ratsche gebaut ist: Eine
+Anhebung mit bekannter Zahl ist eine Entscheidung, zwei sind eine Gewohnheit.
+Die Abwägung selbst ist damit vorgezeichnet — in einer local-first Finanz-App
+ist „ein beschädigter Datensatz erreicht die Oberfläche nicht" den Preis wert.
+
+**Preis.** Der Startpfad wird messbar schwerer, und CI bleibt bis zum Ende von
+WP 1.2 rot. Ein roter Draft-PR ist sichtbar und benannt (Kommentar im PR), also
+tragbar — aber er verdeckt für diese Zeit jeden **anderen** Fehlschlag im
+selben Schritt. Wer während dieser Spanne ein Paket schiebt, muss die
+CI-Ausgabe lesen, nicht nur die Farbe.
+
+**Nicht gewählt, aber offen:** Die Validierung aus dem eager Pfad holen
+(dynamischer `import()` in `getAnalyticsConsent`). Das ist kein Widerspruch zur
+Entscheidung, sondern ein eigenes Paket — es senkt das Budget wieder, statt die
+Prüfung aufzugeben. Wird erst sinnvoll, wenn die Zahl nach WP 1.2 zeigt, wie
+groß das Problem wirklich ist.
+
+**Nebenbefund aus demselben Lauf:** `check:bundle-size` meldet `dist` mit
+4,6 kB gegen ein Budget von 47,0 kB — ein Bündel, dessen Name sich durch
+Umbenennung längst von dem gelöst hat, was das Budget einmal maß. Es misst
+nichts mehr und wird beim selben Nachziehen bereinigt.
