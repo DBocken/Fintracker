@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/i18n/useI18n";
@@ -59,10 +60,10 @@ export default function BudgetFormDialog({
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [subIds, setSubIds] = useState<Set<string>>(new Set());
-  const [limit, setLimit] = useState<number>(0);
-  const [warnThreshold, setWarnThreshold] = useState<number>(DEFAULT_WARN_THRESHOLD);
+  const [limit, setLimit] = useState<number | null>(null);
+  const [warnThreshold, setWarnThreshold] = useState<number | null>(DEFAULT_WARN_THRESHOLD);
   const [rolloverMode, setRolloverMode] = useState<RolloverMode>("off");
-  const [cap, setCap] = useState<number>(0);
+  const [cap, setCap] = useState<number | null>(null);
   const [surplusAction, setSurplusAction] = useState<SurplusAction>("carry");
   const [sweepTargetAccountId, setSweepTargetAccountId] = useState<string>("");
   const [adaptive, setAdaptive] = useState<boolean>(false);
@@ -115,11 +116,11 @@ export default function BudgetFormDialog({
     setName(budget?.name ?? "");
     setCategoryId(budget?.category_id ?? "");
     setSubIds(new Set(budget?.subcategory_ids ?? []));
-    setLimit(budget?.limit ?? 0);
+    setLimit(budget?.limit ?? null);
     setWarnThreshold(budget?.warn_threshold ?? DEFAULT_WARN_THRESHOLD);
     // Migration: altes boolean `rollover:true` entspricht „Ansparen".
     setRolloverMode(budget?.rolloverConfig?.mode ?? (budget?.rollover ? "accumulate" : "off"));
-    setCap(budget?.rolloverConfig?.cap ?? 0);
+    setCap(budget?.rolloverConfig?.cap ?? null);
     setSurplusAction(budget?.rolloverConfig?.surplusAction ?? "carry");
     setSweepTargetAccountId(budget?.rolloverConfig?.sweepTargetAccountId ?? "");
     setAdaptive(budget?.adaptive ?? false);
@@ -156,7 +157,7 @@ export default function BudgetFormDialog({
     });
   };
 
-  const canSave = categoryId && limit > 0 && name.trim().length > 0;
+  const canSave = categoryId && limit !== null && limit > 0 && name.trim().length > 0;
 
   const handleSubmit = () => {
     if (!canSave) return;
@@ -165,8 +166,10 @@ export default function BudgetFormDialog({
       name: name.trim(),
       category_id: categoryId,
       subcategory_ids: subIds.size > 0 ? Array.from(subIds) : undefined,
-      limit,
-      warn_threshold: warnThreshold,
+      // `canSave` schliesst `null` bereits aus; TypeScript sieht das ueber die
+      // Closure-Grenze nicht, deshalb der explizite Fallback.
+      limit: limit ?? 0,
+      warn_threshold: warnThreshold ?? DEFAULT_WARN_THRESHOLD,
       color: selectedCategory?.color,
       icon: selectedCategory?.icon,
       period,
@@ -180,7 +183,7 @@ export default function BudgetFormDialog({
           ? undefined
           : {
               mode: rolloverMode,
-              cap: showSurplusOptions && cap > 0 ? cap : undefined,
+              cap: showSurplusOptions && cap !== null && cap > 0 ? cap : undefined,
               surplusAction: showSurplusOptions ? surplusAction : undefined,
               sweepTargetAccountId:
                 showSurplusOptions && surplusAction === "sweep_savings" && sweepTargetAccountId
@@ -256,24 +259,19 @@ export default function BudgetFormDialog({
               <Label htmlFor="budget-limit">
                 {adaptive ? t('budgets.formDialog.adaptiveLimitLabel') : `${periodLimitWords[period]} (€)`}
               </Label>
-              <Input
+              <DecimalInput
                 id="budget-limit"
-                type="number"
-                min={0}
-                value={limit || ""}
-                onChange={(e) => setLimit(Number(e.target.value))}
+                value={limit}
+                onChange={setLimit}
                 placeholder={t('budgets.formDialog.limitPlaceholder')}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="budget-warn">{t('budgets.formDialog.warnThresholdLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="budget-warn"
-                type="number"
-                min={1}
-                max={100}
-                value={warnThreshold || ""}
-                onChange={(e) => setWarnThreshold(Number(e.target.value))}
+                value={warnThreshold}
+                onChange={setWarnThreshold}
                 placeholder={t('budgets.formDialog.warnThresholdPlaceholder')}
               />
             </div>
@@ -354,12 +352,10 @@ export default function BudgetFormDialog({
                   <Label htmlFor="budget-cap" className="text-xs">
                     {t('budgets.formDialog.capLabel')}
                   </Label>
-                  <Input
+                  <DecimalInput
                     id="budget-cap"
-                    type="number"
-                    min={0}
-                    value={cap || ""}
-                    onChange={(e) => setCap(Number(e.target.value))}
+                    value={cap}
+                    onChange={setCap}
                     placeholder={t('budgets.formDialog.capPlaceholder')}
                   />
                 </div>

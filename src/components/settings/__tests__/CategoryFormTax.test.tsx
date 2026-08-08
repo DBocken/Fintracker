@@ -9,8 +9,12 @@ function openAdvanced(triggerLabel: RegExp) {
   fireEvent.click(screen.getByText(triggerLabel));
 }
 
-function renderForm(attributes: CategoryAttributes = {}, locale: 'de' | 'en' = 'de') {
-  return renderWithI18n(
+function renderForm(
+  attributes: CategoryAttributes = {},
+  locale: 'de' | 'en' = 'de',
+  onAttributesChange = vi.fn(),
+) {
+  renderWithI18n(
     <CategoryForm
       name="Handwerker"
       color="#1d5c54"
@@ -24,12 +28,13 @@ function renderForm(attributes: CategoryAttributes = {}, locale: 'de' | 'en' = '
       onIconChange={vi.fn()}
       onAddFilter={vi.fn()}
       onRemoveFilter={vi.fn()}
-      onAttributesChange={vi.fn()}
+      onAttributesChange={onAttributesChange}
       onSave={vi.fn()}
       onReset={vi.fn()}
     />,
     locale,
   );
+  return { onAttributesChange };
 }
 
 describe('CategoryForm Steuer-Rubrik', () => {
@@ -77,5 +82,33 @@ describe('CategoryForm Steuer-Rubrik', () => {
         }
       }
     });
+  });
+});
+
+describe('CategoryForm – Monatsbudget (AGENTS.md §8)', () => {
+  // Das Budgetfeld war ein `<Input type="number">`. In einem deutschen Browser
+  // wird aus getipptem „250,50" der Wert „25050" — ein Kategoriebudget, das
+  // hundertmal zu hoch steht, schlägt nie an. Eine Warnung, die nicht kommt,
+  // sieht genauso aus wie „alles in Ordnung".
+  it('[REGRESSION] sollte „250,50" als Monatsbudget 250,50 melden, nicht als 25050', () => {
+    const { onAttributesChange } = renderForm();
+    openAdvanced(/Erweiterte Eigenschaften/);
+
+    const budget = document.getElementById('category-budget-monat') as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: '250,50' } });
+
+    expect(onAttributesChange).toHaveBeenCalledWith({ budget_monat: 250.5 });
+  });
+
+  it('sollte ein geleertes Budgetfeld als „nicht gesetzt" melden, nicht als 0', () => {
+    // 0 € Budget und „kein Budget" sind verschiedene Aussagen: Das eine warnt
+    // bei jedem Cent, das andere gar nicht.
+    const { onAttributesChange } = renderForm({ budget_monat: 300 });
+    openAdvanced(/Erweiterte Eigenschaften/);
+
+    const budget = document.getElementById('category-budget-monat') as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: '' } });
+
+    expect(onAttributesChange).toHaveBeenCalledWith({ budget_monat: null });
   });
 });

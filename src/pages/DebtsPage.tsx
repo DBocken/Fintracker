@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, CheckCircle2, TrendingDown, MoreVertical, ScanLin
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -386,12 +386,10 @@ export default function DebtsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="extra">{t('debts.debtsPage.extraBudgetLabel')}</Label>
-                    <Input
+                    <DecimalInput
                       id="extra"
-                      type="number"
-                      inputMode="decimal"
                       value={extraBudget}
-                      onChange={(e) => setExtraBudget(e.target.value)}
+                      onChange={setExtraBudget}
                       placeholder="0"
                     />
                     <p className="text-xs text-muted-foreground">

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useI18n } from '@/i18n/useI18n';
@@ -126,7 +127,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
   const money = useMoneyFormat();
   const { t } = useI18n();
   const [mode, setMode] = useState<'goal' | 'buffer' | 'contracts'>('goal');
-  const [goalAmount, setGoalAmount] = useState(5000);
+  const [goalAmount, setGoalAmount] = useState<number | null>(5000);
   const [goalMonths, setGoalMonths] = useState(12);
   const [showAll, setShowAll] = useState(false);
 
@@ -162,7 +163,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
     return [...variable, ...contracts];
   }, [input, priorityByCategory]);
 
-  const goalMonthly = goalAmount / Math.max(1, goalMonths);
+  const goalMonthly = (goalAmount ?? 0) / Math.max(1, goalMonths);
   // Zielbetrag des Wasserfalls: im Spar-Modus das Sparziel, im Liquiditäts-Modus
   // der aus dem Forecast abgeleitete monatliche Fehlbetrag bis zum Tiefpunkt.
   const targetMonthly = mode === 'buffer' ? bufferShortfall?.monthlyNeeded ?? 0 : goalMonthly;
@@ -238,13 +239,11 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="goal-amount">{t('budgetOptimizer.goalAmountLabel')}</Label>
-                <Input
+                <DecimalInput
                   id="goal-amount"
-                  type="number"
-                  min={0}
-                  value={goalAmount || ''}
-                  onChange={(e) => setGoalAmount(Number(e.target.value))}
-                  placeholder="z.B. 5000"
+                  value={goalAmount}
+                  onChange={setGoalAmount}
+                  placeholder={t('budgetOptimizer.goalAmountPlaceholder')}
                 />
               </div>
               <div className="space-y-1.5">
@@ -261,7 +260,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               </div>
             </div>
 
-            {goalAmount > 0 && goalMonths > 0 && (
+            {(goalAmount ?? 0) > 0 && goalMonths > 0 && (
               <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
                 <span className="font-medium">{money.mask(eur.format(goalMonthly))}/Monat</span>
                 <span className="ml-2 text-muted-foreground">
@@ -273,7 +272,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               </div>
             )}
 
-            {!achievable && goalAmount > 0 && (
+            {!achievable && (goalAmount ?? 0) > 0 && (
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertTitle>{t('budgetOptimizer.goalExceedsVariableTitle')}</AlertTitle>

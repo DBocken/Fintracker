@@ -2,6 +2,7 @@ import React from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -371,12 +372,10 @@ export function CategoryForm({
                 <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="category-budget-monat">{t('categoryForm.budgetLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="category-budget-monat"
-                type="number"
-                min={0}
-                value={attributes.budget_monat ?? ''}
-                onChange={(event) => onAttributesChange({ budget_monat: event.target.value ? Number(event.target.value) : null })}
+                value={attributes.budget_monat ?? null}
+                onChange={(v) => onAttributesChange({ budget_monat: v })}
                 placeholder={t('categoryForm.budgetPlaceholder')}
               />
             </div>

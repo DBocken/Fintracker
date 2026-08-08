@@ -105,3 +105,33 @@ describe("BudgetFormDialog – Rollover & Adaptive", () => {
     });
   });
 });
+
+describe("BudgetFormDialog – Dezimaleingaben (AGENTS.md §8)", () => {
+  // Limit und Deckel waren `<Input type="number">`. In einem deutschen Browser
+  // liefert so ein Feld für getipptes „250,50" den Wert „25050" — das Komma ist
+  // weg, bevor irgendein Parser es sieht. Ein Budget, das um Faktor 100 zu hoch
+  // steht, schlägt nie an; das ist eine stille Warnung, die nicht kommt.
+  it("[REGRESSION] sollte „250,50\" als Limit 250,50 speichern, nicht als 25050", async () => {
+    const { onSave } = setup({ id: "b1", name: "Wohnen", category_id: "wohnen", limit: 1000 } as Budget);
+
+    const limit = document.getElementById("budget-limit") as HTMLInputElement;
+    await userEvent.clear(limit);
+    await userEvent.type(limit, "250,50");
+    await userEvent.click(screen.getByRole("button", { name: /speichern/i }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ limit: 250.5 }));
+  });
+
+  it("[REGRESSION] sollte eine Warnschwelle „82,5\" nicht als 825 % speichern", async () => {
+    // 825 % kann nie erreicht werden — die Warnung waere damit tot, ohne dass
+    // irgendwo etwas rot wird.
+    const { onSave } = setup({ id: "b1", name: "Wohnen", category_id: "wohnen", limit: 1000 } as Budget);
+
+    const schwelle = screen.getByLabelText(/Warnschwelle|Warn/i);
+    await userEvent.clear(schwelle);
+    await userEvent.type(schwelle, "82,5");
+    await userEvent.click(screen.getByRole("button", { name: /speichern/i }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ warn_threshold: 82.5 }));
+  });
+});

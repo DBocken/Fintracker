@@ -10,6 +10,7 @@
 import { Fragment, useState } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -71,7 +72,7 @@ export function EventForm({
   const { t } = useI18n();
   const [name, setName] = useState('');
   const [date, setDate] = useState(today());
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<number | null>(null);
   const [direction, setDirection] = useState<'out' | 'in'>('out');
   const [accountId, setAccountId] = useState('');
   // Wiederkehrend: macht aus dem Posten z. B. ein neues Gehalt oder einen
@@ -80,7 +81,7 @@ export function EventForm({
   const [cadence, setCadence] = useState<EventCadence>('monthly');
   const [endDate, setEndDate] = useState('');
 
-  const valid = name.trim() && amount && Number(amount) > 0 && accountId;
+  const valid = name.trim() && amount !== null && amount > 0 && accountId;
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
@@ -95,13 +96,10 @@ export function EventForm({
           <SelectItem value="recurring">{t('forecast.recurring')}</SelectItem>
         </SelectContent>
       </Select>
-      <Input
-        type="number"
-        inputMode="decimal"
-        min="0"
+      <DecimalInput
         placeholder={t('forecast.amount')}
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={setAmount}
       />
       <Select value={direction} onValueChange={(v) => setDirection(v as 'out' | 'in')}>
         <SelectTrigger className="h-9" aria-label={t('forecast.directionLabel')}>
@@ -150,7 +148,7 @@ export function EventForm({
         className="col-span-2"
         disabled={!valid}
         onClick={() => {
-          const signed = (direction === 'in' ? 1 : -1) * Number(amount);
+          const signed = (direction === 'in' ? 1 : -1) * (amount ?? 0);
           onAdd({
             id: `ev-${Date.now()}`,
             name: name.trim(),
@@ -160,7 +158,7 @@ export function EventForm({
             ...(isRecurring ? { cadence, ...(endDate ? { endDate } : {}) } : {}),
           });
           setName('');
-          setAmount('');
+          setAmount(null);
           setEndDate('');
         }}
       >
@@ -179,23 +177,20 @@ export function FundForm({
 }) {
   const { t } = useI18n();
   const [name, setName] = useState('');
-  const [target, setTarget] = useState('');
+  const [target, setTarget] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState('');
   const [accountId, setAccountId] = useState('');
 
-  const valid = name.trim() && target && Number(target) > 0 && dueDate && accountId;
+  const valid = name.trim() && target !== null && target > 0 && dueDate && accountId;
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
       <div className="col-span-2 text-xs font-medium text-muted-foreground">{t('forecast.newReserve')}</div>
       <Input placeholder={t('forecast.reserveName')} value={name} onChange={(e) => setName(e.target.value)} />
-      <Input
-        type="number"
-        inputMode="decimal"
-        min="0"
+      <DecimalInput
         placeholder={t('forecast.targetAmount')}
         value={target}
-        onChange={(e) => setTarget(e.target.value)}
+        onChange={setTarget}
       />
       <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       <AccountSelect accounts={accounts} value={accountId} onValueChange={setAccountId} placeholder={t('forecast.reserveAccount')} />
@@ -206,12 +201,12 @@ export function FundForm({
           onAdd({
             id: `sf-${Date.now()}`,
             name: name.trim(),
-            targetAmount: Number(target),
+            targetAmount: target ?? 0,
             dueDate,
             accountId,
           });
           setName('');
-          setTarget('');
+          setTarget(null);
           setDueDate('');
         }}
       >
@@ -259,19 +254,14 @@ export function BudgetOverrideForm({
               )}
             </div>
           </div>
-          <Input
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min="0"
+          <DecimalInput
             aria-label={t('forecast.budgetFor').replace('{category}', expense.category)}
             placeholder={String(expense.monthlyAmount)}
-            value={overrides.categoryBudgets[expense.category] ?? ''}
-            onChange={(e) => {
+            value={overrides.categoryBudgets[expense.category] ?? null}
+            onChange={(v) => {
               const next = { ...overrides.categoryBudgets };
-              const v = e.target.value;
-              if (v === '') delete next[expense.category];
-              else next[expense.category] = Number(v);
+              if (v === null) delete next[expense.category];
+              else next[expense.category] = v;
               onChange({ categoryBudgets: next });
             }}
             className="h-9 w-28 shrink-0 text-right tabular-nums"
@@ -292,14 +282,14 @@ export function TransferForm({
   const { t } = useI18n();
   const [fromAccountId, setFromAccountId] = useState('');
   const [toAccountId, setToAccountId] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<number | null>(null);
   const [isRecurring, setIsRecurring] = useState(false);
   const [date, setDate] = useState(today());
   const [cadence, setCadence] = useState<'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual'>('monthly');
   const [anchorDate, setAnchorDate] = useState(today());
 
   const valid =
-    fromAccountId && toAccountId && amount && Number(amount) > 0 && fromAccountId !== toAccountId;
+    fromAccountId && toAccountId && amount !== null && amount > 0 && fromAccountId !== toAccountId;
 
   return (
     <div className="grid grid-cols-2 gap-2 [&_input]:h-9">
@@ -319,13 +309,10 @@ export function TransferForm({
       <AccountSelect accounts={accounts} value={fromAccountId} onValueChange={setFromAccountId} placeholder={t('forecast.fromAccount')} />
       <AccountSelect accounts={accounts} value={toAccountId} onValueChange={setToAccountId} placeholder={t('forecast.toAccount')} />
 
-      <Input
-        type="number"
-        inputMode="decimal"
-        min="0"
+      <DecimalInput
         placeholder={t('forecast.amount')}
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={setAmount}
       />
 
       {isRecurring ? (
@@ -355,14 +342,14 @@ export function TransferForm({
         onClick={() => {
           onAdd({
             id: `tf-${Date.now()}`,
-            amount: Number(amount),
+            amount: amount ?? 0,
             fromAccountId,
             toAccountId,
             ...(isRecurring ? { cadence, anchorDate } : { date }),
           });
           setFromAccountId('');
           setToAccountId('');
-          setAmount('');
+          setAmount(null);
           setDate(today());
           setAnchorDate(today());
         }}
@@ -489,16 +476,13 @@ export function RecurringFlowOverrideForm({
                       <div className="grid gap-2 sm:grid-cols-2">
                         <div>
                           <Label className="text-xs">{t('forecast.amount')}</Label>
-                          <Input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.01"
+                          <DecimalInput
+                            aria-label={t('forecast.amountFor').replace('{flow}', flow.name)}
                             placeholder={String(flow.amount)}
-                            value={override?.amount ?? ''}
-                            onChange={(e) => {
+                            value={override?.amount ?? null}
+                            onChange={(v) => {
                               const next = { ...overrides.recurringFlowOverrides };
-                              const v = e.target.value;
-                              if (v === '') {
+                              if (v === null) {
                                 const updated = { ...override };
                                 delete updated.amount;
                                 if (Object.keys(updated).length > 0) {
@@ -507,7 +491,7 @@ export function RecurringFlowOverrideForm({
                                   delete next[flow.id];
                                 }
                               } else {
-                                next[flow.id] = { ...override, amount: Number(v) };
+                                next[flow.id] = { ...override, amount: v };
                               }
                               onChange({ recurringFlowOverrides: next });
                             }}

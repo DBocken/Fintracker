@@ -8,20 +8,5 @@
     "Hintergrund, im Browser gemessen (Chromium, de-DE): getipptes \"12,50\" wird zum Wert \"1250\",",
     "ein Zinssatz \"5,5\" zu 55 % — der Browser verstuemmelt die Eingabe, BEVOR ein Parser sie sieht."
   ],
-  "files": {
-    "src/components/AdvancedBalanceChart.tsx": 1,
-    "src/components/accounts/AccountFormDialog.tsx": 2,
-    "src/components/budgets/BudgetFormDialog.tsx": 3,
-    "src/components/dashboard/BudgetOptimizerPanel.tsx": 1,
-    "src/components/dashboard/ForecastPlanner.tsx": 1,
-    "src/components/dashboard/StressPresetQuickAdd.tsx": 1,
-    "src/components/dashboard/TransactionDetailsPanel.tsx": 1,
-    "src/components/dashboard/forecast/ForecastForms.tsx": 4,
-    "src/components/euer/TaxReserveTankCard.tsx": 1,
-    "src/components/settings/CategoryForm.tsx": 1,
-    "src/components/trading/AddPositionDialog.tsx": 2,
-    "src/components/trading/OcrImportDialog.tsx": 2,
-    "src/components/transactions/TransactionFormDialog.tsx": 1,
-    "src/pages/DebtsPage.tsx": 1
-  }
+  "files": {}
 }

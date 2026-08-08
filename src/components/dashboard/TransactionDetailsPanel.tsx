@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
@@ -560,16 +561,11 @@ export function TransactionDetailsPanel({
               <Label htmlFor="tax-labor-costs" className="text-xs text-muted-foreground">
                 {t('tax.form.laborCostsLabel', 'davon Arbeitskosten (€)')}
               </Label>
-              <Input
+              <DecimalInput
                 id="tax-labor-costs"
-                type="number"
-                min={0}
-                max={Math.abs(transaction.amount)}
-                value={draft.tax_labor_costs ?? ''}
+                value={draft.tax_labor_costs ?? null}
                 disabled={isLoading}
-                onChange={(e) =>
-                  setDraft((d) => (d ? { ...d, tax_labor_costs: e.target.value ? Number(e.target.value) : null } : d))
-                }
+                onChange={(v) => setDraft((d) => (d ? { ...d, tax_labor_costs: v } : d))}
               />
               <p className="text-xs text-muted-foreground">
                 {draft.tax_labor_costs

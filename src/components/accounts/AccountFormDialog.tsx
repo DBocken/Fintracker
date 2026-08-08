@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -58,9 +59,9 @@ export function AccountFormDialog({
   const [statementCloseDay, setStatementCloseDay] = useState<number | null>(null);
   const [dueDay, setDueDay] = useState<number | null>(null);
   const [autopayAccountId, setAutopayAccountId] = useState<string | null>(null);
-  const [openingBalance, setOpeningBalance] = useState('');
+  const [openingBalance, setOpeningBalance] = useState<number | null>(null);
   const [openingBalanceDate, setOpeningBalanceDate] = useState('');
-  const [manualBalance, setManualBalance] = useState('');
+  const [manualBalance, setManualBalance] = useState<number | null>(null);
 
   useEffect(() => {
     if (account) {
@@ -76,12 +77,12 @@ export function AccountFormDialog({
       setStatementCloseDay(account.statement_close_day || null);
       setDueDay(account.due_day || null);
       setAutopayAccountId(account.autopay_account_id || '');
-      setOpeningBalance(account.opening_balance ? String(account.opening_balance) : '');
+      setOpeningBalance(account.opening_balance || null);
       setOpeningBalanceDate(account.opening_balance_date || '');
       setManualBalance(
         account.live_balance_type === 'manual' && account.live_balance_amount != null
-          ? String(account.live_balance_amount)
-          : ''
+          ? account.live_balance_amount
+          : null
       );
     } else {
       setName('');
@@ -96,9 +97,9 @@ export function AccountFormDialog({
       setStatementCloseDay(null);
       setDueDay(null);
       setAutopayAccountId('');
-      setOpeningBalance('');
+      setOpeningBalance(null);
       setOpeningBalanceDate('');
-      setManualBalance('');
+      setManualBalance(null);
     }
   }, [account, open]);
 
@@ -117,9 +118,9 @@ export function AccountFormDialog({
     // ohne einen vorhandenen Bank-Sync-Saldo zu berühren, falls nichts
     // eingegeben wurde.
     let liveBalanceUpdate: Partial<Account> = {};
-    if (manualBalance.trim()) {
+    if (manualBalance !== null) {
       liveBalanceUpdate = {
-        live_balance_amount: Number(manualBalance.replace(',', '.')),
+        live_balance_amount: manualBalance,
         live_balance_currency: currency,
         live_balance_type: 'manual',
         live_balance_updated_at: new Date().toISOString(),
@@ -146,8 +147,8 @@ export function AccountFormDialog({
       statement_close_day: type === 'credit_card' ? statementCloseDay : null,
       due_day: type === 'credit_card' ? dueDay : null,
       autopay_account_id: type === 'credit_card' ? autopayAccountId : null,
-      opening_balance: openingBalance.trim() ? Number(openingBalance.replace(',', '.')) : 0,
-      opening_balance_date: openingBalance.trim() ? (openingBalanceDate || null) : null,
+      opening_balance: openingBalance ?? 0,
+      opening_balance_date: openingBalance !== null ? (openingBalanceDate || null) : null,
       ...liveBalanceUpdate,
     });
   };
@@ -254,12 +255,10 @@ export function AccountFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="openingBalance">{t('accounts.formDialog.openingBalanceLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="openingBalance"
-                type="number"
-                step="0.01"
                 value={openingBalance}
-                onChange={(e) => setOpeningBalance(e.target.value)}
+                onChange={setOpeningBalance}
                 placeholder={t('accounts.formDialog.openingBalancePlaceholder')}
               />
             </div>
@@ -270,7 +269,7 @@ export function AccountFormDialog({
                 type="date"
                 value={openingBalanceDate}
                 onChange={(e) => setOpeningBalanceDate(e.target.value)}
-                disabled={!openingBalance.trim()}
+                disabled={openingBalance === null}
               />
             </div>
           </div>
@@ -281,12 +280,10 @@ export function AccountFormDialog({
           {account && (
             <div className="space-y-2">
               <Label htmlFor="manualBalance">{t('accounts.formDialog.manualBalanceLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="manualBalance"
-                type="number"
-                step="0.01"
                 value={manualBalance}
-                onChange={(e) => setManualBalance(e.target.value)}
+                onChange={setManualBalance}
                 placeholder={
                   account.live_balance_amount != null
                     ? t('accounts.formDialog.manualBalanceCurrentPrefix') + account.live_balance_amount

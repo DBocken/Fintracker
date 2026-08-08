@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PiggyBank, Trash2 } from 'lucide-react';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
@@ -33,7 +33,7 @@ export function TaxReserveTankCard({ year, businessIncomeYtd, percent, reserve }
   const queryClient = useQueryClient();
   const reduced = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<number | null>(null);
 
   const movements = reserve?.movements ?? [];
   const tank = computeTaxTank(businessIncomeYtd, percent, movements);
@@ -58,7 +58,7 @@ export function TaxReserveTankCard({ year, businessIncomeYtd, percent, reserve }
         amount: signedAmount,
       }),
     onSuccess: () => {
-      setAmount('');
+      setAmount(null);
       void invalidate();
     },
   });
@@ -67,8 +67,7 @@ export function TaxReserveTankCard({ year, businessIncomeYtd, percent, reserve }
     onSuccess: () => void invalidate(),
   });
 
-  const parsedAmount = Number(amount.replace(',', '.'));
-  const canSubmit = Number.isFinite(parsedAmount) && parsedAmount > 0 && !addMutation.isPending;
+  const canSubmit = amount !== null && amount > 0 && !addMutation.isPending;
 
   const panelId = `tax-reserve-tank-${year}`;
 
@@ -127,20 +126,17 @@ export function TaxReserveTankCard({ year, businessIncomeYtd, percent, reserve }
               <Label htmlFor={`tank-amount-${year}`} className="text-xs">
                 {t('euer.tank.addLabel', 'Betrag')}
               </Label>
-              <Input
+              <DecimalInput
                 id={`tank-amount-${year}`}
-                type="number"
-                step="0.01"
-                min="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
                 className="w-32"
               />
             </div>
-            <Button size="sm" disabled={!canSubmit} onClick={() => addMutation.mutate(parsedAmount)}>
+            <Button size="sm" disabled={!canSubmit} onClick={() => addMutation.mutate(amount ?? 0)}>
               {t('euer.tank.addReserve', 'Zurückgelegt')}
             </Button>
-            <Button size="sm" variant="outline" disabled={!canSubmit} onClick={() => addMutation.mutate(-parsedAmount)}>
+            <Button size="sm" variant="outline" disabled={!canSubmit} onClick={() => addMutation.mutate(-(amount ?? 0))}>
               {t('euer.tank.payTax', 'Steuer gezahlt')}
             </Button>
           </div>

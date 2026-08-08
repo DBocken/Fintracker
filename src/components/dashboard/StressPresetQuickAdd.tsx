@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShoppingCart, TrendingDown, Flame, Wrench, type LucideIcon, ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Card } from '@/components/ui/card';
 import { buildStressOverrides, type StressPreset } from '@/lib/forecast-stress-presets';
 import type { ForecastOverrides } from '@/lib/forecast-types';
@@ -37,7 +37,7 @@ interface PresetConfig {
   title: string;
   disabled: boolean;
   params: PresetParams;
-  onSetParam: (key: string, value: number) => void;
+  onSetParam: (key: string, value: number | undefined) => void;
 }
 
 interface PresetParams {
@@ -52,6 +52,11 @@ interface PresetParams {
   recoveryDay?: number;
 }
 
+/**
+ * Ein Parameter-Feld eines Szenarios. `value` ist immer der ausgefuellte Wert
+ * oder der Vorgabewert; `undefined` nach aussen heisst „geleert" — dann greift
+ * beim Anwenden wieder die Vorgabe, statt dass eine 0 durchschlaegt.
+ */
 function ParamField({
   label,
   value,
@@ -60,18 +65,16 @@ function ParamField({
 }: {
   label: string;
   value: number;
-  onChange: (v: number) => void;
+  onChange: (v: number | undefined) => void;
   suffix?: string;
 }) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1">
-        <Input
-          type="number"
-          inputMode="decimal"
-          value={Number.isFinite(value) ? value : ''}
-          onChange={(e) => onChange(Number(e.target.value))}
+        <DecimalInput
+          value={Number.isFinite(value) ? value : null}
+          onChange={(v) => onChange(v ?? undefined)}
           className="h-8 text-sm"
         />
         {suffix && <span className="whitespace-nowrap text-xs text-muted-foreground">{suffix}</span>}
@@ -317,7 +320,7 @@ export default function StressPresetQuickAdd({
     recoveryDay: 70,
   });
 
-  const setParam = (key: string, value: number) => {
+  const setParam = (key: string, value: number | undefined) => {
     setParams((p) => ({ ...p, [key]: value }));
   };
 

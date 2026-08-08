@@ -48,7 +48,10 @@ describe('ForecastPlanner Prinzip 8 (Karten sind Aktionen)', () => {
       </I18nProvider>,
     );
     expect(getByText('Wohnen')).toBeInTheDocument();
-    expect(getAllByRole('spinbutton').length).toBe(1);
+    // <DecimalInput> statt type="number": das Budgetfeld ist ein `textbox`,
+    // adressiert ueber seinen zugaenglichen Namen. Ein `spinbutton` haette aus
+    // getipptem „1.071,08" still „1.07108" gemacht.
+    expect(getAllByRole('textbox', { name: /Budget für|Budget for/ }).length).toBe(1);
   });
 
   it('sollte englische Texte korrekt rendern', () => {

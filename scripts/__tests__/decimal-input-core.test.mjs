@@ -44,6 +44,16 @@ describe('findNumberInputs', () => {
       expect(findNumberInputs('a.tsx', src)).toHaveLength(1);
     });
 
+    it('[REGRESSION] sollte ein Zielbetrag-Feld finden', () => {
+      // Aufgefallen beim Aufraeumen des Backlogs: `FundForm` hatte ein
+      // `type="number"`-Feld fuer den Zielbetrag einer Ruecklage, und der
+      // Waechter schwieg — „target" fehlte schlicht im Wortschatz. Ein
+      // Waechter, der einen ganzen Feldtyp nicht kennt, meldet „alles sauber"
+      // ueber etwas, das er nie angesehen hat.
+      const src = `<Input type="number" placeholder={t('forecast.targetAmount')} value={target} />`;
+      expect(findNumberInputs('a.tsx', src)).toHaveLength(1);
+    });
+
     it('sollte die Zeilennummer melden', () => {
       const src = `zeile1\nzeile2\n<Input type="number" id="amount" />`;
       expect(findNumberInputs('a.tsx', src)[0].line).toBe(3);

@@ -29,6 +29,11 @@ const DECIMAL_HINTS = [
   'payment', 'rate', 'zins', 'interest', 'budget', 'cost', 'kosten',
   'euro', 'money', 'geld', 'value', 'wert', 'buffer', 'puffer',
   'income', 'einkommen', 'expense', 'ausgabe', 'tilgung', 'quantity',
+  // Nachgetragen: `FundForm` hatte ein `type="number"`-Feld fuer den
+  // Zielbetrag einer Ruecklage, und der Waechter hat geschwiegen. Ein
+  // Wortschatz, der einen Feldtyp nicht kennt, meldet „alles sauber" ueber
+  // etwas, das er nie angesehen hat.
+  'target', 'ziel', 'sum', 'summe', 'total',
 ];
 
 /** Attribute, deren Inhalt verrät, worum es in dem Feld geht. */

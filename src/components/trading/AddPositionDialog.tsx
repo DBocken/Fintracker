@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -44,8 +45,8 @@ export default function AddPositionDialog({
   const queryClient = useQueryClient();
   const [symbol, setSymbol] = useState('');
   const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [entryPrice, setEntryPrice] = useState('');
+  const [quantity, setQuantity] = useState<number | null>(null);
+  const [entryPrice, setEntryPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState('EUR');
   const [exchange, setExchange] = useState('');
   const [buyDate, setBuyDate] = useState('');
@@ -64,8 +65,8 @@ export default function AddPositionDialog({
     if (editPosition) {
       setSymbol(editPosition.symbol);
       setName(editPosition.name || '');
-      setQuantity(editPosition.quantity.toString());
-      setEntryPrice(editPosition.entry_price.toString());
+      setQuantity(editPosition.quantity);
+      setEntryPrice(editPosition.entry_price);
       setCurrency(editPosition.currency || 'EUR');
       setExchange(editPosition.exchange || '');
       setBuyDate((editPosition.metadata?.buy_date as string | undefined) || '');
@@ -73,8 +74,8 @@ export default function AddPositionDialog({
       // Reset form for new position
       setSymbol('');
       setName('');
-      setQuantity('');
-      setEntryPrice('');
+      setQuantity(null);
+      setEntryPrice(null);
       setCurrency('EUR');
       setExchange('');
       setBuyDate('');
@@ -146,13 +147,13 @@ export default function AddPositionDialog({
       return;
     }
 
-    const quantityNum = parseFloat(quantity);
+    const quantityNum = quantity ?? NaN;
     if (isNaN(quantityNum) || quantityNum <= 0) {
       toast.error(t('trading.addPositionDialog.messages.quantityInvalid'));
       return;
     }
 
-    const entryPriceNum = parseFloat(entryPrice);
+    const entryPriceNum = entryPrice ?? NaN;
     if (isNaN(entryPriceNum) || entryPriceNum < 0) {
       toast.error(t('trading.addPositionDialog.messages.priceInvalid'));
       return;
@@ -191,8 +192,8 @@ export default function AddPositionDialog({
     // Reset form
     setSymbol('');
     setName('');
-    setQuantity('');
-    setEntryPrice('');
+    setQuantity(null);
+    setEntryPrice(null);
     setCurrency('EUR');
     setExchange('');
     setBuyDate('');
@@ -249,14 +250,11 @@ export default function AddPositionDialog({
               <Label htmlFor="quantity" className="text-right">
                 {t('trading.addPositionDialog.quantityLabel')}
               </Label>
-              <Input
+              <DecimalInput
                 id="quantity"
-                type="number"
-                step="any"
-                min="0"
                 placeholder={t('trading.addPositionDialog.quantityPlaceholder')}
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={setQuantity}
                 className="col-span-3"
                 disabled={createMutation.isPending || updateMutation.isPending}
               />
@@ -266,14 +264,11 @@ export default function AddPositionDialog({
               <Label htmlFor="entryPrice" className="text-right">
                 {t('trading.addPositionDialog.entryPriceLabel')}
               </Label>
-              <Input
+              <DecimalInput
                 id="entryPrice"
-                type="number"
-                step="any"
-                min="0"
                 placeholder={t('trading.addPositionDialog.entryPricePlaceholder')}
                 value={entryPrice}
-                onChange={(e) => setEntryPrice(e.target.value)}
+                onChange={setEntryPrice}
                 className="col-span-3"
                 disabled={createMutation.isPending || updateMutation.isPending}
               />

@@ -62,7 +62,11 @@ export function useDebtsOverview() {
     setStrategyState(next);
     setDebtStrategy(next);
   };
-  const [extraBudget, setExtraBudget] = useState("");
+  // Zahl statt Rohtext: Das Feld ist ein `<DecimalInput>`, das bereits eine
+  // gelesene Zahl liefert. `parseExtraBudget` bleibt trotzdem davor stehen —
+  // es nimmt weiterhin auch Strings entgegen (Altbestand, Tests) und macht aus
+  // „nichts eingetragen" eine 0, ohne die es keinen Plan zu rechnen gaebe.
+  const [extraBudget, setExtraBudget] = useState<number | null>(null);
   const [selectedDebtId, setSelectedDebtId] = useState<string>("");
   // Mobile-Detailansicht (Audit C-P1/F): Zuordnung/Aktionen pro Schuld im Sheet.
   const [detailDebtId, setDetailDebtId] = useState<string | null>(null);

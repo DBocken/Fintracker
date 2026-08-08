@@ -49,7 +49,11 @@ describe('RecurringFlowOverrideForm – Tabellen-Darstellung (Prinzip 8)', () =>
     fireEvent.click(screen.getByRole('button', { name: /Bearbeiten|Edit/ }));
     // Aufgeklappte Inline-Zeile zeigt die Bearbeitungsfelder.
     expect(screen.getByText(/End-Datum|End date/)).toBeInTheDocument();
-    expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+    // Betragsfeld ist ein <DecimalInput> (type="text" + inputMode="decimal"),
+    // also KEIN `spinbutton` mehr — ein `type="number"`-Feld haette aus
+    // getipptem „12,50" den Wert „1250" gemacht. Gesucht wird deshalb ueber den
+    // zugaenglichen Namen, nicht ueber die Rolle.
+    expect(screen.getByRole('textbox', { name: /Betrag für|Amount for/ })).toBeInTheDocument();
   });
 
   it('sollte auto-deaktivierte Verträge als „beendet" markieren und die Checkbox sperren', () => {

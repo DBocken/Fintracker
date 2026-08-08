@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/i18n/useI18n';
@@ -132,19 +132,15 @@ export default function ForecastPlanner({ overrides, onChange, input, highlighte
                 <div key={a.id} className="flex items-center justify-between gap-3">
                   <Label className="truncate text-sm">{a.name}</Label>
                   <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      min="0"
+                    <DecimalInput
                       className="h-9 w-24"
-                      value={overrides.accountInterest[a.id] ?? ''}
+                      aria-label={t('forecast.interestFor').replace('{account}', a.name)}
+                      value={overrides.accountInterest[a.id] ?? null}
                       placeholder="0"
-                      onChange={(e) => {
+                      onChange={(v) => {
                         const next = { ...overrides.accountInterest };
-                        const v = e.target.value;
-                        if (v === '') delete next[a.id];
-                        else next[a.id] = Number(v);
+                        if (v === null) delete next[a.id];
+                        else next[a.id] = v;
                         onChange({ accountInterest: next });
                       }}
                     />
