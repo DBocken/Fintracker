@@ -115,11 +115,14 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - **Coverage** wird gemessen (`pnpm test:coverage`); die Thresholds in
   `vitest.config.ts` dürfen nicht unterschritten werden (CI wird sonst rot).
 
-## 13. Trackingverse-Modularität
+## 13. Trackerverse-Modularität
 
 - Kein globaler Singleton-State außerhalb der Provider.
 - Router-Basename-fähig (`<BrowserRouter basename>`); Storage-Keys pro Modul
   namespacen (über die Registry).
+- **Datenzugriff zwischen Trackern ausschließlich über den Vertrag** aus
+  `docs/architecture/trackerverse-data-access.md` (Aggregat-Scopes mit
+  Zustimmung, keine Fremdzugriffe auf Speicher, keine Kopien).
 - Shared-Kandidaten (`lib/money`, `lib/schemas`, Krypto, Storage-Abstraktion)
   von FinTrack-spezifischer Domäne trennen; ein öffentliches Modul-Interface,
   keine tiefen Imports in interne Dateien.
