@@ -70,6 +70,22 @@ export type EncryptedEnvelopeV1 = {
 
 const CONFIG_KEY = 'ausgabentracker_local_encryption_config_v1'
 const CHECK_KEY = 'ausgabentracker_local_encryption_check_v1'
+// Zwischenstand eines noch nicht abgeschlossenen PBKDF2-Rewraps (SEC-1). Trägt
+// die ZIELPARAMETER (inkl. Salt) des laufenden Umschlüsselungsversuchs, damit
+// ein Resume — nach einem Abbruch mitten im Rewrap-Loop ODER nach einem ganz
+// gewöhnlichen lock()/unlock() mittendrin — dieselben Parameter wiederverwendet
+// statt bei jedem Versuch ein neues zufälliges Salt zu ziehen. Ohne das würden
+// bereits umgeschlüsselte Einträge (altes Salt vom abgebrochenen Versuch) auf
+// ein drittes, nie dagewesenes Salt treffen und wären mit keinem der beiden
+// bekannten Schlüssel mehr entschlüsselbar.
+const REWRAP_PENDING_KEY = 'ausgabentracker_local_encryption_rewrap_pending_v1'
+
+// SEC-1 (docs/qualitaet-2026-08/audit.md): OWASP empfiehlt für PBKDF2-HMAC-
+// SHA256 ≥ 600.000 Iterationen (210.000 war der SHA-512-Wert und machte das
+// Passwort ~2,8× schneller offline brute-forcebar als beabsichtigt). Einzige
+// Definitionsstelle — `enable()`, `freshStandaloneConfig()` und der Rewrap in
+// `unlock()` referenzieren ausschließlich diese Konstante.
+export const PBKDF2_ITERATIONS = 600_000
 
 function b64encode(bytes: ArrayBuffer | Uint8Array): string {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
@@ -207,8 +223,52 @@ function clearConfig() {
   localStorage.removeItem(CONFIG_KEY)
 }
 
+function kdfMatches(a: LocalEncryptionConfigV1['kdf'], b: LocalEncryptionConfigV1['kdf']): boolean {
+  return a.name === b.name && a.hash === b.hash && a.iterations === b.iterations && a.salt_b64 === b.salt_b64
+}
+
+function loadPendingRewrapConfig(): LocalEncryptionConfigV1 | null {
+  const raw = localStorage.getItem(REWRAP_PENDING_KEY)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed?.v === 1 && parsed?.enabled) return parsed as LocalEncryptionConfigV1
+    return null
+  } catch {
+    return null
+  }
+}
+
+function savePendingRewrapConfig(cfg: LocalEncryptionConfigV1) {
+  localStorage.setItem(REWRAP_PENDING_KEY, JSON.stringify(cfg))
+}
+
+function clearPendingRewrapConfig() {
+  localStorage.removeItem(REWRAP_PENDING_KEY)
+}
+
+// Vollständige Registry der bei aktiver Verschlüsselung als Envelope
+// gespeicherten Keys (VE-6 / F-CRYPTO-1) — gemeinsam genutzt von
+// `migrateFinanceKeys()` (encrypt/decrypt bei enable/disable) und dem
+// PBKDF2-Rewrap (SEC-1), damit beide garantiert dieselbe Menge sehen.
+async function getSensitiveStorageKeys(): Promise<string[]> {
+  const sensitiveKeys = new Set<string>(ENCRYPTED_STORAGE_KEYS)
+  return (await idbKeys()).filter(
+    (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),
+  )
+}
+
 export const localEncryption = {
   _key: null as CryptoKey | null,
+  // Zweiter Schlüssel, der WÄHREND eines laufenden (oder mitten abgebrochenen)
+  // PBKDF2-Rewraps (SEC-1) zusätzlich zu `_key` gültig ist — welche der beiden
+  // Generationen ein konkreter Envelope tatsächlich trägt, steht in dessen
+  // eigenem `kdf`-Feld (`_rewrapAltKdf` zum Abgleich). Ohne diesen zweiten
+  // Schlüssel wäre ein Eintrag, der im Rewrap-Loop bereits umgeschlüsselt
+  // wurde, bevor `_key` am Ende auf die neue Generation zeigt, für die Dauer
+  // des Rewraps unlesbar — genau der Zustand „manche Keys alt, manche neu".
+  _rewrapAltKey: null as CryptoKey | null,
+  _rewrapAltKdf: null as LocalEncryptionConfigV1['kdf'] | null,
 
   getConfig(): LocalEncryptionConfigV1 | null {
     return loadConfig()
@@ -224,6 +284,12 @@ export const localEncryption = {
 
   lock() {
     this._key = null
+    // Ein expliziter lock() macht den Vault vollständig unlesbar — der
+    // Rewrap-Fallback-Schlüssel darf das nicht unterlaufen. Ein Resume nach
+    // dem nächsten unlock() liest seinen Fortschritt ohnehin aus dem
+    // persistierten Pending-Marker, nicht aus diesem In-Memory-Feld.
+    this._rewrapAltKey = null
+    this._rewrapAltKdf = null
   },
 
   async enable(password: string): Promise<void> {
@@ -236,7 +302,7 @@ export const localEncryption = {
       kdf: {
         name: 'PBKDF2',
         hash: 'SHA-256',
-        iterations: 210_000,
+        iterations: PBKDF2_ITERATIONS,
         salt_b64: b64encode(salt),
       },
       cipher: {
@@ -292,6 +358,101 @@ export const localEncryption = {
     }
 
     this._key = key
+
+    // SEC-1: Passwort ist verifiziert — ein Alt-Vault (< PBKDF2_ITERATIONS)
+    // wird jetzt automatisch auf die neuen Parameter umgeschlüsselt. Ein
+    // Fehlschlag dabei (z. B. ein IndexedDB-Schreibfehler) darf den gerade
+    // erfolgreichen Unlock NICHT rückgängig machen — der Vault ist mit dem
+    // korrekten Passwort bereits vollständig lesbar (siehe decryptEnvelope-
+    // Fallback), der Rewrap wird beim nächsten Unlock automatisch fortgesetzt.
+    try {
+      await this.rewrapIfNeeded(password, cfg)
+    } catch (err) {
+      console.warn('[local-crypto] PBKDF2-Rewrap fehlgeschlagen, wird beim nächsten Unlock fortgesetzt:', {
+        message: (err as Error).message,
+      })
+    }
+  },
+
+  /**
+   * SEC-1: Schlüsselt einen Alt-Vault (`oldCfg.kdf.iterations < PBKDF2_ITERATIONS`)
+   * automatisch auf die aktuellen KDF-Parameter um. Resumable und crash-sicher:
+   * - Zielparameter (inkl. Salt) werden VOR dem Loop persistiert
+   *   (`REWRAP_PENDING_KEY`), damit ein Resume — nach Abbruch oder nach einem
+   *   zwischenzeitlichen lock()/unlock() — dieselben Parameter wiederverwendet
+   *   statt bei jedem Versuch ein neues Salt zu ziehen (sonst wären bereits
+   *   umgeschlüsselte Einträge mit keinem der beiden bekannten Schlüssel mehr
+   *   lesbar).
+   * - CONFIG_KEY/CHECK_KEY werden ERST nach vollständigem Loop-Durchlauf
+   *   umgestellt — bis dahin bleibt der alte Zustand die persistierte
+   *   Wahrheit, und `_rewrapAltKey` deckt bereits umgeschlüsselte Einträge als
+   *   Lese-Fallback ab (siehe decryptEnvelope).
+   * - Pro Eintrag: bereits auf die Zielparameter umgeschlüsselte Einträge
+   *   werden übersprungen (Resume), alles andere wird über den generischen
+   *   decryptEnvelope-Fallback gelesen (deckt sowohl „noch alt" als auch
+   *   „von einem vorherigen Durchlauf schon neu" ab) und neu verschlüsselt.
+   */
+  async rewrapIfNeeded(password: string, oldCfg: LocalEncryptionConfigV1): Promise<void> {
+    if (oldCfg.kdf.iterations >= PBKDF2_ITERATIONS) {
+      // Nichts zu tun — ein evtl. verwaister Pending-Marker (z. B. aus einem
+      // Durchlauf, der zwischen dem finalen saveConfig() und dem Aufräumen
+      // des Markers abgebrochen ist) wird hier bereinigt.
+      clearPendingRewrapConfig()
+      return
+    }
+
+    const newCfg =
+      loadPendingRewrapConfig() ??
+      (() => {
+        const salt = crypto.getRandomValues(new Uint8Array(16))
+        const cfg: LocalEncryptionConfigV1 = {
+          v: 1,
+          enabled: true,
+          kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations: PBKDF2_ITERATIONS, salt_b64: b64encode(salt) },
+          cipher: { name: 'AES-GCM', key_length: 256 },
+        }
+        savePendingRewrapConfig(cfg)
+        return cfg
+      })()
+
+    const newKey = await deriveKeyFromPassword(password, newCfg)
+    this._rewrapAltKey = newKey
+    this._rewrapAltKdf = newCfg.kdf
+
+    const keys = await getSensitiveStorageKeys()
+    for (const storageKey of keys) {
+      const raw = await idbGet(storageKey)
+      if (!raw) continue
+
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(raw)
+      } catch {
+        continue
+      }
+      if (!isEnvelopeV1(parsed)) continue
+      if (kdfMatches(parsed.kdf, newCfg.kdf)) continue // bereits umgeschlüsselt (Resume)
+
+      // `decryptEnvelope` prüft `_key` (alte Generation) UND `_rewrapAltKey`
+      // (diese neue Generation) — deckt damit auch Einträge ab, die ein
+      // vorheriger abgebrochener Durchlauf schon umgeschlüsselt hatte.
+      const plaintext = await this.decryptEnvelope(parsed)
+      const envelope = await encryptString(plaintext, newKey, newCfg)
+      await writeDataRaw(storageKey, JSON.stringify(envelope))
+    }
+
+    // Erst jetzt, nach vollständigem Loop, wird die neue Generation zur
+    // persistierten Wahrheit — CHECK_KEY und CONFIG_KEY unmittelbar
+    // hintereinander, ohne await dazwischen.
+    const checkPlain = JSON.stringify({ ok: true, created_at: new Date().toISOString() })
+    const checkEnc = await encryptString(checkPlain, newKey, newCfg)
+    localStorage.setItem(CHECK_KEY, JSON.stringify(checkEnc))
+    saveConfig(newCfg)
+    clearPendingRewrapConfig()
+
+    this._key = newKey
+    this._rewrapAltKey = null
+    this._rewrapAltKdf = null
   },
 
   async disable(password: string): Promise<void> {
@@ -303,6 +464,8 @@ export const localEncryption = {
     await this.migrateFinanceKeys('decrypt')
 
     this._key = null
+    this._rewrapAltKey = null
+    this._rewrapAltKdf = null
     localStorage.removeItem(CHECK_KEY)
     clearConfig()
   },
@@ -316,7 +479,19 @@ export const localEncryption = {
 
   async decryptEnvelope(envelope: EncryptedEnvelopeV1): Promise<string> {
     const key = this.requireUnlocked()
-    return decryptString(envelope, key)
+    try {
+      return await decryptString(envelope, key)
+    } catch (err) {
+      // SEC-1-Rewrap: `envelope` kann zur jeweils ANDEREN Generation gehören
+      // (noch nicht umgeschlüsselt, oder von einem abgebrochenen vorherigen
+      // Durchlauf schon umgeschlüsselt) — vor dem Aufgeben mit dem passenden
+      // Fallback-Schlüssel versuchen, statt den Vault für die Dauer des
+      // Rewraps teilweise unlesbar zu machen.
+      if (this._rewrapAltKey && this._rewrapAltKdf && kdfMatches(envelope.kdf, this._rewrapAltKdf)) {
+        return decryptString(envelope, this._rewrapAltKey)
+      }
+      throw err
+    }
   },
 
   async encryptJson(value: unknown): Promise<EncryptedEnvelopeV1> {
@@ -404,11 +579,7 @@ export const localEncryption = {
     // von ~24 Keys, wodurch disable() Budgets, Splits, Forderungen, Kategorien
     // u. v. m. als unlesbare Envelopes zurückließ (Datenverlust). Jetzt deckt die
     // Migration alle registrierten Keys ab.
-    const sensitiveKeys = new Set<string>(ENCRYPTED_STORAGE_KEYS)
-
-    const keys = (await idbKeys()).filter(
-      (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),
-    )
+    const keys = await getSensitiveStorageKeys()
 
     for (const storageKey of keys) {
       const raw = await idbGet(storageKey)
@@ -428,9 +599,12 @@ export const localEncryption = {
         continue
       }
 
-      // decrypt
+      // decrypt — über `decryptEnvelope` (nicht `decryptString` direkt): deckt
+      // damit auch Einträge ab, die ein noch nicht abgeschlossener SEC-1-
+      // Rewrap bereits auf die neue Generation umgeschlüsselt hat, während
+      // `key`/`cfg` hier noch die alte Generation sind (siehe rewrapIfNeeded).
       if (!isEnvelopeV1(parsed)) continue
-      const pt = await decryptString(parsed, key)
+      const pt = await this.decryptEnvelope(parsed)
       await writeDataRaw(storageKey, pt)
     }
   },
@@ -449,7 +623,7 @@ function freshStandaloneConfig(): LocalEncryptionConfigV1 {
     kdf: {
       name: 'PBKDF2',
       hash: 'SHA-256',
-      iterations: 210_000,
+      iterations: PBKDF2_ITERATIONS,
       salt_b64: b64encode(salt),
     },
     cipher: {
