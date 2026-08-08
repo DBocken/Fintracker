@@ -87,10 +87,12 @@ describe('useDebtsOverview', () => {
     expect(result.current.totalMin).toBe(75);
   });
 
-  it('[REGRESSION] sollte „1.200" als 1.200 € Zusatztilgung rechnen, nicht als 1,20 €', async () => {
-    // `parseFloat("1.200")` liefert 1.2. Der Plan wurde damit praktisch nur aus
-    // der Mindestrate gerechnet — der Nutzer sah trotz vierstelliger Angabe
-    // keine spürbare Verkürzung und konnte sich das nicht erklären.
+  it('[REGRESSION] sollte 1.200 € Zusatztilgung als 1.200 € rechnen, nicht als 1,20 €', async () => {
+    // `parseFloat("1.200")` lieferte 1.2. Der Plan wurde damit praktisch nur
+    // aus der Mindestrate gerechnet — der Nutzer sah trotz vierstelliger Angabe
+    // keine spürbare Verkürzung und konnte sich das nicht erklären. Das Lesen
+    // der Eingabe liegt jetzt in `<DecimalInput>`; hier wird geprüft, dass der
+    // gelesene Wert auch wirklich in den Plan eingeht.
     setupQueries([LANGLAEUFER]);
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useDebtsOverview(), { wrapper });
@@ -98,7 +100,7 @@ describe('useDebtsOverview', () => {
 
     const nurMindestrate = result.current.payoffPlan.totalMonths;
 
-    act(() => result.current.setExtraBudget('1.200'));
+    act(() => result.current.setExtraBudget(1200));
     await waitFor(() => expect(result.current.extraPayment).toBe(1200));
 
     // Mit 1.300 € pro Monat ist die Schuld in rund zehn Monaten weg; mit dem
@@ -107,25 +109,28 @@ describe('useDebtsOverview', () => {
     expect(result.current.payoffPlan.totalMonths).toBeLessThanOrEqual(12);
   });
 
-  it('[REGRESSION] sollte „12,50" als 12,50 € lesen und die Cent nicht verschlucken', async () => {
+  it('[REGRESSION] sollte die Cent einer Zusatztilgung nicht verschlucken', async () => {
     setupQueries([LANGLAEUFER]);
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useDebtsOverview(), { wrapper });
     await waitFor(() => expect(result.current.debts).toHaveLength(1));
 
-    act(() => result.current.setExtraBudget('12,50'));
+    act(() => result.current.setExtraBudget(12.5));
     await waitFor(() => expect(result.current.extraPayment).toBe(12.5));
   });
 
-  it('sollte eine unlesbare Zusatztilgung als 0 behandeln statt zu werfen', async () => {
+  it('sollte ein leeres Zusatztilgungs-Feld als 0 behandeln statt zu werfen', async () => {
+    // `null` heißt „nichts eingetragen" — das ist der Wert, den
+    // `<DecimalInput>` bei leerem oder unlesbarem Feld meldet. Der Plan muss
+    // dann unverändert weiterrechnen, nicht abstürzen.
     setupQueries([LANGLAEUFER]);
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useDebtsOverview(), { wrapper });
     await waitFor(() => expect(result.current.debts).toHaveLength(1));
 
     const vorher = result.current.payoffPlan.totalMonths;
-    act(() => result.current.setExtraBudget('abc'));
-    await waitFor(() => expect(result.current.extraBudget).toBe('abc'));
+    act(() => result.current.setExtraBudget(null));
+    await waitFor(() => expect(result.current.extraBudget).toBeNull());
     expect(result.current.extraPayment).toBe(0);
     expect(result.current.payoffPlan.totalMonths).toBe(vorher);
   });

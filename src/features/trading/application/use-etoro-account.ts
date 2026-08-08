@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import type { Portfolio, PortfolioPosition } from '@/types';
-import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
+import { useLocalEncryption } from '@/hooks/useLocalEncryption';
 import { isEtoroPosition } from '@/services/quote-service';
 import {
   fetchEtoroAggregateForPortfolio,
@@ -45,8 +45,10 @@ import { getEtoroCredentials, fetchEtoroInstrumentMeta, fetchEtoroStocksIndustri
 import { selectEtoroMirrors } from '@/services/etoro-mirrors';
 import { selectCashAccountId, selectPerformanceSeries } from '@/services/etoro-performance';
 import { selectWatchlistSummaries, selectWatchlistItems } from '@/services/etoro-watchlists';
-import type { EtoroNewsFilter } from '@/components/trading/EtoroNewsTab';
-import type { EtoroDiscoverInstrumentOption } from '@/components/trading/EtoroDiscoverTab';
+import type {
+  EtoroNewsFilter,
+  EtoroDiscoverInstrumentOption,
+} from '@/features/trading/domain/etoro-view-state';
 import {
   ETORO_QUERY_DEFAULTS,
   ETORO_STALE_LIVE,

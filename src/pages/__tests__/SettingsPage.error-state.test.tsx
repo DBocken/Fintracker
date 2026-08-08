@@ -12,7 +12,7 @@ import { renderWithProviders } from '@/test-utils/render';
 
 // Der Verschluesselungs-Kontext ist fuer diese Frage ohne Belang, seine
 // Abwesenheit wuerde die Seite aber vor dem ersten Render abbrechen lassen.
-vi.mock('@/components/providers/LocalEncryptionProvider', () => ({
+vi.mock('@/hooks/useLocalEncryption', () => ({
   useLocalEncryption: () => ({ enabled: false, unlocked: true }),
 }));
 

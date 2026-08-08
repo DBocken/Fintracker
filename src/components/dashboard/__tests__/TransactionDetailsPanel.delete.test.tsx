@@ -101,9 +101,10 @@ describe("TransactionDetailsPanel – Löschabsicherung (#175)", () => {
     const onDelete = vi.fn();
     renderPanel({ locale: "en", onDelete });
 
-    // Der Auslöse-Button trägt aktuell festen Text „Löschen" (vorbestehend);
-    // der Dialog selbst ist i18n-geführt.
-    await userEvent.click(screen.getByRole("button", { name: "Löschen" }));
+    // [REGRESSION] Der Auslöse-Button trug festen deutschen Text „Löschen",
+    // auch im englischen Baum — dieser Test hat den Fehler frueher sogar
+    // festgeschrieben. Jetzt ist er uebersetzt, und der Dialog ist es weiterhin.
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(screen.getByText("Confirm deletion")).toBeTruthy();
 
     await userEvent.click(

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [sourceAccountId, setSourceAccountId] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   const [date, setDate] = useState(today());
 
   const {
@@ -49,7 +50,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
 
   useEffect(() => {
     if (!open) return;
-    setAmount("");
+    setAmount(null);
     setDate(today());
     setSourceAccountId(sourceAccounts[0]?.id ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +61,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
       recordCashWithdrawal({
         sourceAccountId,
         cashAccountId,
-        amount: parseFloat(amount.replace(",", ".")) || 0,
+        amount: amount ?? 0,
         date,
       }),
     onSuccess: () => {
@@ -107,12 +108,10 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="wd-amount">{t('accounts.cashWithdrawal.amountLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="wd-amount"
-                type="number"
-                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
                 placeholder={t('accounts.cashWithdrawal.amountPlaceholder')}
               />
             </div>

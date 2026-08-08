@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useI18n } from '@/i18n/useI18n';
@@ -126,7 +127,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
   const money = useMoneyFormat();
   const { t } = useI18n();
   const [mode, setMode] = useState<'goal' | 'buffer' | 'contracts'>('goal');
-  const [goalAmount, setGoalAmount] = useState(5000);
+  const [goalAmount, setGoalAmount] = useState<number | null>(5000);
   const [goalMonths, setGoalMonths] = useState(12);
   const [showAll, setShowAll] = useState(false);
 
@@ -162,7 +163,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
     return [...variable, ...contracts];
   }, [input, priorityByCategory]);
 
-  const goalMonthly = goalAmount / Math.max(1, goalMonths);
+  const goalMonthly = (goalAmount ?? 0) / Math.max(1, goalMonths);
   // Zielbetrag des Wasserfalls: im Spar-Modus das Sparziel, im Liquiditäts-Modus
   // der aus dem Forecast abgeleitete monatliche Fehlbetrag bis zum Tiefpunkt.
   const targetMonthly = mode === 'buffer' ? bufferShortfall?.monthlyNeeded ?? 0 : goalMonthly;
@@ -216,7 +217,7 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               variant={mode === 'buffer' ? 'default' : 'outline'}
               onClick={() => setMode('buffer')}
             >
-              <LifeBuoy className="mr-1.5 h-3.5 w-3.5" /> Liquidität sichern
+              <LifeBuoy className="mr-1.5 h-3.5 w-3.5" /> {t('budgetOptimizer.modeBuffer')}
               {bufferShortfall.breaches && (
                 <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden="true" />
               )}
@@ -227,7 +228,8 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             variant={mode === 'contracts' ? 'default' : 'outline'}
             onClick={() => setMode('contracts')}
           >
-            <TrendingDown className="mr-1.5 h-3.5 w-3.5" /> Verträge ({contractHints.length})
+            <TrendingDown className="mr-1.5 h-3.5 w-3.5" />{' '}
+            {t('budgetOptimizer.modeContracts').replace('{count}', String(contractHints.length))}
           </Button>
         </div>
       </CardHeader>
@@ -238,13 +240,11 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="goal-amount">{t('budgetOptimizer.goalAmountLabel')}</Label>
-                <Input
+                <DecimalInput
                   id="goal-amount"
-                  type="number"
-                  min={0}
-                  value={goalAmount || ''}
-                  onChange={(e) => setGoalAmount(Number(e.target.value))}
-                  placeholder="z.B. 5000"
+                  value={goalAmount}
+                  onChange={setGoalAmount}
+                  placeholder={t('budgetOptimizer.goalAmountPlaceholder')}
                 />
               </div>
               <div className="space-y-1.5">
@@ -261,27 +261,29 @@ export default function BudgetOptimizerPanel({ input, priorityByCategory, buffer
               </div>
             </div>
 
-            {goalAmount > 0 && goalMonths > 0 && (
+            {(goalAmount ?? 0) > 0 && goalMonths > 0 && (
               <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
                 <span className="font-medium">{money.mask(eur.format(goalMonthly))}/Monat</span>
                 <span className="ml-2 text-muted-foreground">
-                  nötig ·{' '}
+                  {t('budgetOptimizer.perMonthNeeded')} ·{' '}
                   {achievable
-                    ? `möglich durch ${money.mask(eur.format(totalCut))}/Mo. Einsparung`
-                    : `maximale Einsparung laut Daten: ${money.mask(eur.format(Math.round(maxPossible)))}/Mo.`}
+                    ? t('budgetOptimizer.achievableBy').replace('{amount}', money.mask(eur.format(totalCut)))
+                    : t('budgetOptimizer.maxByData').replace(
+                        '{amount}',
+                        money.mask(eur.format(Math.round(maxPossible))),
+                      )}
                 </span>
               </div>
             )}
 
-            {!achievable && goalAmount > 0 && (
+            {!achievable && (goalAmount ?? 0) > 0 && (
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertTitle>{t('budgetOptimizer.goalExceedsVariableTitle')}</AlertTitle>
                 <AlertDescription>
-                  Mit deinen variablen Ausgaben lassen sich realistisch ca.{' '}
-                  {money.mask(eur.format(Math.round(maxPossible)))}/Mo. einsparen – das Ziel erfordert{' '}
-                  {money.mask(eur.format(Math.round(goalMonthly)))}/Mo. Entweder Zeitraum verlängern oder
-                  Fixkosten (Verträge) prüfen.
+                  {t('budgetOptimizer.goalExceedsVariableBody')
+                    .replace('{possible}', money.mask(eur.format(Math.round(maxPossible))))
+                    .replace('{needed}', money.mask(eur.format(Math.round(goalMonthly))))}
                 </AlertDescription>
               </Alert>
             )}
@@ -429,7 +431,7 @@ function WaterfallResult({
                 </span>
                 {s.kind === 'contract' && (
                   <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    Vertrag
+                    {t('budgetOptimizer.contractBadge')}
                   </span>
                 )}
                 <span className="shrink-0 text-xs text-muted-foreground">

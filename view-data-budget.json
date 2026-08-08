@@ -1,0 +1,20 @@
+{
+  "_hinweis": [
+    "Datenzugriffe, die noch IN der Darstellungsschicht stehen (src/components, src/pages):",
+    "useQuery/useMutation plus direkte Service-Importe. Gemessen von scripts/check-view-data.mjs.",
+    "",
+    "DIESE ZAHL DARF NUR SINKEN. Sie ist kein Verbot — eine Komponente DARF laut AGENTS.md §3",
+    "einen Service benutzen, die Richtung stimmt. Sie misst etwas anderes: Solange eine Flaeche",
+    "ihre eigene Datenschicht IST, laesst sich keine zweite Praesentation danebenstellen, ohne die",
+    "Datenbeschaffung ein zweites Mal zu schreiben. Genau das verspricht §4 — gleiche Daten,",
+    "gleiche Berechnungen, gleiches ViewModel.",
+    "",
+    "Ausgangswert 282 (146 Abfragen + 136 Service-Importe in 84 Flaechen), gemessen am 2026-08-08.",
+    "Zu diesem Zeitpunkt haben 4 von 10 Slices die vollstaendige Kette domain->data->application->",
+    "presentation; 22 von 26 Routen sind nicht zerlegt.",
+    "",
+    "Heraufsetzen ist keine Option. Wer eine neue Abfrage braucht, legt sie in",
+    "src/features/<slice>/application an — Vorlage: features/dashboard, features/transactions."
+  ],
+  "max": 282
+}

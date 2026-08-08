@@ -138,8 +138,12 @@ export function EnhancedSettings() {
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] });
       queryClient.invalidateQueries({ queryKey: ['merchant-rules'] });
       const cleanup = [
-        result.deletedBudgets ? `${result.deletedBudgets} Budget(s) entfernt` : '',
-        result.deletedRules ? `${result.deletedRules} Regel(n) entfernt` : '',
+        result.deletedBudgets
+          ? t('settings.budgetsRemoved').replace('{count}', String(result.deletedBudgets))
+          : '',
+        result.deletedRules
+          ? t('settings.rulesRemoved').replace('{count}', String(result.deletedRules))
+          : '',
       ].filter(Boolean).join(', ');
       showSuccess(cleanup ? t('settings.categoryDeletedWithCleanup', 'Kategorie gelöscht ({cleanup})').replace('{cleanup}', cleanup) : t('settings.categoryDeleted', 'Kategorie gelöscht'));
     },

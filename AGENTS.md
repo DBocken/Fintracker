@@ -100,7 +100,7 @@ verwenden**.
 | `pnpm test:integrity` | Integritäts-Tests (`[INTEGRITY]`) |
 | `pnpm test:privacy` | Privacy-Tests (`[PRIVACY]`) |
 | `pnpm test:mobile` | Mobile-spezifische Tests (`[MOBILE]`) |
-| `pnpm check:i18n` | Prüft, dass keine hardcodierten UI-Strings auftauchen. **Zwei Modi:** `--staged`/`--range` sehen den Diff, `--all` den ganzen Baum — der Diff-Modus kann Altbestand strukturell NIE sehen, und genau daran sind in Phase 9 zwei Verstöße vorbeigelaufen. Beide laufen in Pre-Commit und CI. Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
+| `pnpm check:i18n` | Prüft, dass kein sichtbarer UI-Text hardcodiert im Quelltext steht. Erkannt werden **drei Formen**: Zeichenkette, **Template-Literal** (`` `Schuld „${name}" löschen?` ``) und **JSX-Text** (`<span>Verträge</span>`). Die letzten beiden waren bis WP-12.2 unsichtbar — der Wächter suchte nach `"Wort`/`'Wort`, und damit war ausgerechnet interpolierter Text und der häufigste Fall überhaupt nie im Blick. Ebenso weg ist der Pauschalfilter auf jeden Pfad mit `constants`. **Zwei Modi:** `--staged`/`--range` melden nur Fundstellen auf geänderten Zeilen, `--all` den ganzen Baum — der Diff-Modus kann Altbestand strukturell NIE sehen. Beide laufen in Pre-Commit und CI. Die Erkennung selbst steht in `i18n-core.mjs` und ist ohne git testbar. Die Ausnahmeliste `i18n-allowlist.json` kennt wie die Query-Liste zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken; ein Objekt **`{ count, reason }`** ist entschieden (Suchvokabular gegen deutschen Kontoauszugstext, Produktname, Entwicklermeldung). Die **Key-Symmetrie** prüft dagegen `src/i18n/__tests__/locale-parity.test.ts` (vollständiger Blatt-Vergleich aller `SUPPORTED_LOCALES` gegen `de`, unabhängig vom Diff) |
 | `pnpm check:i18n-module-consts` | Findet `t()`-Aufrufe im Initializer einer Modul-`const` — die frieren beim Import ein und ignorieren jeden späteren Sprachwechsel. Ganzbaumig über die TypeScript-AST, läuft in Pre-Commit und CI |
 | `pnpm check:query-errors` | Verlangt, dass jeder `useQuery`-Aufruf den Fehlerfall in die Hand nimmt. Sonst macht der übliche Fallback `data = []` einen Ladefehler unsichtbar und der Screen behauptet „du hast noch nichts“. **Vier anerkannte Formen:** `isError`/`error`/`status` destrukturieren · `throwOnError` · `return useQuery(…)` (ein Hook reicht durch, statt darzustellen — §3) · `const q = useQuery(…)` mit späterem `q.isError`, auch gesammelt über mehrere Abfragen einer Fläche. Kommentare werden ausgeblendet. Der destrukturierte Name muss auch BENUTZT werden — `isError: _fooError` ist ein Eingeständnis, keine Behandlung. Die Ausnahmeliste `query-error-allowlist.json` kennt zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken; ein Objekt **`{ count, reason }`** ist entschieden (Voreinstellung, deren Standard bereits die richtige Antwort ist · Vorschlag, der nichts behauptet, wenn er ausbleibt · `queryFn`, die den Fehler selbst abfängt). Ohne tragfähigen `reason` wird die Objektform abgewiesen. Läuft in Pre-Commit und CI |
 | `pnpm check:platform-parity` | Prüft den maschinell fassbaren Teil von §4: Eine Fläche mit `hidden <bp>:*` ohne Gegenstück (`<bp>:hidden`) fehlt auf schmalen Breiten ganz — das ist kein Dichte-Unterschied, sondern ein fehlendes Feature. Legitime Paare über Dateigrenzen stehen mit **Nennung des Partners** in `platform-parity-allowlist.json`. Läuft in Pre-Commit und CI |
@@ -109,6 +109,8 @@ verwenden**.
 | `pnpm check:state-coverage` | Verlangt je Fläche einen Test zum **Leer-** und zum **Fehlerzustand**. Die Zeilenabdeckung beantwortet das nicht: Sie lag bei 71 %, und `/debts` behauptete nach einem Lesefehler trotzdem „Noch keine Schulden" — es gab Tests, sie waren grün, und sie prüften, DASS gerendert wird, nicht WAS behauptet wird. Angemeldet wird ein Zustand über einen Tag im Testtitel: `it('[ZUSTAND /debts:fehler] …')`. Nur ein `it`/`test` zählt, kein `describe` und kein Kommentar. Die Ausnahmeliste `state-coverage-allowlist.json` kennt wie die Query-Liste zwei Formen: **`offen`** ist Backlog und darf nur schrumpfen, **`entfaellt`** ist entschieden und braucht je Zustand einen Grund (Flächen ohne Bestand, etwa `/settings`). Läuft in Pre-Commit und CI |
 | `pnpm check:test-structure` | Prüft Testdatei-Platzierung (`__tests__/`, Ausnahme `src/security/*.security.test.ts`) — läuft in Pre-Commit und CI |
 | `pnpm check:layers` | Erzwingt die Import**richtung** aus §3 — beide Schichtungen (`lib → services → hooks → components → pages` und `domain → data → application → presentation`). TypeScript kennt keine Schichten: ein Import nach oben sieht aus wie einer nach unten, und genau so sind 30 umgedrehte Abhängigkeiten in 14 `lib`-Dateien entstanden, ohne dass je etwas rot wurde. Der Auslöser war nie Absicht, sondern **Ort**: ein fachlicher Typ (`ContractRow`, `ForecastOverrides`, `MerchantRule`) oder eine reine Funktion (`explainCategorization`, `normalizeIban`) lag im I/O-Service oder in der Komponente, weil sie dort zuerst gebraucht wurde — wer sie danach von unten brauchte, hatte nur den Weg nach oben. Der Wächter löst Alias- (`@/…`) **und** Relativpfade auf; Tests sind ausgenommen (ein `lib/__tests__/`-Test darf einen Service heranziehen, das ist seine Absicht). Ausnahmen stehen in `layer-allowlist.json` und brauchen je Datei `imports` **und** `reason` — die Datei ist heute leer und sollte es bleiben. Läuft in Pre-Commit und CI |
+| `pnpm check:view-data` | **Ratsche, kein Verbot.** Zählt die Datenzugriffe, die noch IN der Darstellung stehen (`useQuery`/`useMutation` und direkte Service-Importe unter `src/components/`, `src/pages/`). Eine Komponente DARF laut §3 einen Service benutzen — die Richtung stimmt, der Befund ist ein anderer: Solange eine Fläche ihre eigene Datenschicht **ist**, lässt sich keine zweite Präsentation danebenstellen, ohne die Datenbeschaffung ein zweites Mal zu schreiben. Genau das verspricht §4. Der Ausgangswert in `view-data-budget.json` ist **282** (146 Abfragen + 136 Service-Importe in 84 Flächen) und **darf nur sinken**; Heraufsetzen macht das Versprechen zur Absichtserklärung. Nicht gezählt werden `features/<slice>/application` (dort gehört der Zugriff hin), Tests und Provider/Gates. Läuft in Pre-Commit und CI |
+| `pnpm check:decimal-inputs` | Verbietet `<input type="number">` für **Dezimalfelder**. Im Browser gemessen (Chromium, `de-DE`): getipptes „12,50" ergibt den Wert `"1250"`, „1.200" ergibt `"1.200"` (→ `parseFloat` liest 1,2), ein Zinssatz „5,5" wird zu **55 %**. Der Browser verstümmelt die Eingabe, **bevor** irgendein Parser sie sieht — `parseGermanNumber` repariert das nicht mehr. Ersatz ist `<DecimalInput>` (`@/components/common/DecimalInput`); es gibt eine **Zahl** nach außen, keinen Text, damit die Aufrufstelle gar nicht erst falsch parsen kann. Ganzzahlige Felder (Tag im Monat, Anzahl, Jahr) sind mit `type="number"` richtig. Die Ausnahmeliste `decimal-input-allowlist.json` kennt wie die Query-Liste zwei Formen: eine blosse **Zahl** ist offenes Backlog und darf nur sinken, ein Objekt **`{ count, reason }`** ist entschieden. Läuft in Pre-Commit und CI |
 | `pnpm security:secrets` | Secret-Scan (`scripts/security-check.mjs`) |
 
 ## 3. Architektur
@@ -130,6 +132,16 @@ Die Richtung ist maschinell erzwungen (`pnpm check:layers`, §2). Feature-`domai
 liegt dabei auf der Höhe von `lib` — ein Service darf sie benutzen, umgekehrt
 nicht.
 
+**Das ViewModel kennt die Oberfläche nicht — auch nicht für einen Typ.**
+`features/<slice>/application` darf nicht nach `src/components/` oder
+`src/pages/` greifen (Regel `feature-application-ohne-ui`). Daran hängt der
+ganze Zweck der Trennung: Wird später eine zweite Präsentation danebengestellt
+(Android, anderer Shell), muss das ViewModel unverändert weiterlaufen. Ein
+einziges `import type` aus einer Komponentendatei zwingt sonst dazu, die alte
+Oberfläche mitzuschleppen. Genau so lag es: `use-etoro-account.ts` holte zwei
+Zustandstypen aus `EtoroNewsTab.tsx` und `EtoroDiscoverTab.tsx`, und der
+Wächter schwieg, weil seine Regel nur `features/*/presentation` kannte.
+
 ### Wohin ein Typ gehört
 
 Der häufigste Weg, die Richtung umzudrehen, ist keine Architektur-Entscheidung,
@@ -144,6 +156,8 @@ Nutzer weiter unten zum Import nach oben.
 | Typ, den Service **und** Oberfläche brauchen | `src/lib/` |
 | Fachlicher Zustand, den **≥ 2 Slices** lesen (`DashboardFilterState`) | `src/features/shared/domain/` |
 | Modul, das `localStorage`/IndexedDB/Netz anfasst | `src/services/` — auch wenn es heute in `lib/` liegt |
+| Zustandstyp, den ein ViewModel hält (`EtoroNewsFilter`) | `src/features/<slice>/domain/` — nie die Komponentendatei, in der er zuerst gebraucht wurde |
+| React-Context-Hook, den auch ein ViewModel liest (`useLocalEncryption`) | `src/hooks/` — der Provider bleibt Komponente, der Lesezugriff nicht |
 
 ### Vorentschiedenes zuerst lesen
 
@@ -264,6 +278,8 @@ damit klar ist, *warum* der jeweilige Wächter existiert.
 | `t()` im Initializer einer **Modul-`const`** | Wird EINMAL beim Import aufgelöst; ein Sprachwechsel wirkt nie wieder. Konstante in eine **Funktion** umwandeln | `pnpm check:i18n-module-consts` (TypeScript-AST, ganzbaumig) |
 | **Doppelter Namespace** in `translations.ts` | Gültiges JavaScript — der spätere gewinnt, der frühere verschwindet lautlos. Im ausgewerteten Objekt ist der Fehler unsichtbar | `tsc` (TS1117) **und** `locale-parity.test.ts` (liest die Quelle) |
 | **Vertippter `t()`-Key** | Rendert den rohen Punkt-String. Die Locale-Parität fängt das NICHT — sie prüft die Bäume gegeneinander, nicht die Aufrufstellen | `call-site-keys.test.ts` |
+| **Text im Template-Literal** | `` `Schuld „${name}" löschen?` `` — der Wächter suchte nach `"Wort`/`'Wort`, ein Backtick kam darin nicht vor. Unsichtbar war damit ausgerechnet der interpolierte Text, also der, der einen Namen oder Betrag einsetzt | `pnpm check:i18n` (seit WP-12.2) |
+| **Text zwischen zwei Tags** | `<span>Verträge</span>` steht in gar keinen Anführungszeichen — der häufigste Fall überhaupt, und er wurde nie angesehen | `pnpm check:i18n` (seit WP-12.2) |
 | **Erfundener Platzhalter** in einer Übersetzung | Steht wörtlich als `{foo}` auf dem Bildschirm. Umgekehrt darf eine Sprache einen Platzhalter weglassen — Russisch braucht kein `{plural}` | `locale-parity.test.ts` |
 | **Rohe Steuerbytes** im Quelltext | `grep` hält die Datei für binär und überspringt sie in jedem Audit | `pnpm security:secrets` |
 | Matching über den **Anzeigenamen** statt der ID | Bricht bei Umbenennung und in jeder anderen Sprache. Entitäten immer über die stabile ID adressieren | Review; die historischen Ausnahmen in `local-settings-service.ts` sind als solche kommentiert |
@@ -296,6 +312,13 @@ Zwei Arbeitsregeln dazu:
 - **3D:** three.js — ausschließlich in src/features/finance-city/ (WebGL-Stadt); nirgendwo sonst importieren.
 
 ## 8. Geld & Domäne
+
+**Eingabe:** Geldbeträge und andere Dezimalzahlen werden über
+`<DecimalInput>` erfasst, **nie** über `<input type="number">`. Ein
+`type="number"`-Feld macht in einem deutschen Browser aus getipptem „12,50" den
+Wert `"1250"` und aus einem Zinssatz „5,5" die Zahl `55` — es verstümmelt die
+Eingabe, bevor sie irgendein Parser sieht. Erzwungen durch
+`pnpm check:decimal-inputs` (§2).
 
 Beträge intern **immer Integer-Cent** über `src/lib/money.ts`
 (`toMinor`/`sumMinor`); nie roher Float-Vergleich, nie `toFixed` für
@@ -383,8 +406,10 @@ Karten-Regel (`pnpm check:card-rule`), die Plattform-Parität
 (`pnpm check:platform-parity`), den Fehlerzustand jeder Abfrage
 (`pnpm check:query-errors`) die Namen der Bedienelemente
 (`pnpm check:a11y-names`), die Zustands-Abdeckung je Fläche
-(`pnpm check:state-coverage`) und die Import-Richtung zwischen den Schichten
-(`pnpm check:layers`). Claude
+(`pnpm check:state-coverage`), die Import-Richtung zwischen den Schichten
+(`pnpm check:layers`), die Trennung von Ansicht und Daten
+(`pnpm check:view-data`) und die Dezimal-Eingabefelder
+(`pnpm check:decimal-inputs`). Claude
 Code erhält zusätzlich Live-Hinweise über `.claude/hooks/` (blockierend:
 test-structure; advisory: Animations-Baseline, Karten-Klickbarkeit). Andere
 Agenten prüfen diese Punkte im Selbst-Review.

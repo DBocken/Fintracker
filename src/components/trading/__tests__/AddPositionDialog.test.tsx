@@ -100,3 +100,25 @@ describe('AddPositionDialog — Kurs-Verifikation', () => {
     });
   });
 });
+
+describe('AddPositionDialog — Dezimaleingaben (AGENTS.md §8)', () => {
+  // Stückzahl und Einstiegskurs waren `<Input type="number">`. In einem
+  // deutschen Browser wird aus getipptem „12,50" der Wert „1250" — der
+  // Einstiegskurs stünde dann um Faktor 100 zu hoch im Depot und jede
+  // Performance-Rechnung darauf wäre falsch, ohne dass etwas auffällt.
+  it('[REGRESSION] sollte Stückzahl und Einstiegskurs mit deutschem Komma speichern', async () => {
+    const { createPosition } = await import('@/services/portfolio-service');
+    renderDialog();
+
+    fireEvent.change(screen.getByLabelText(/Symbol/), { target: { value: 'AAPL' } });
+    fireEvent.change(document.getElementById("quantity") as HTMLInputElement, { target: { value: '2,5' } });
+    fireEvent.change(document.getElementById("entryPrice") as HTMLInputElement, { target: { value: '123,45' } });
+    fireEvent.click(screen.getByRole('button', { name: /Hinzufügen|Speichern/i }));
+
+    await waitFor(() =>
+      expect(createPosition).toHaveBeenCalledWith(
+        expect.objectContaining({ quantity: 2.5, entry_price: 123.45 }),
+      ),
+    );
+  });
+});

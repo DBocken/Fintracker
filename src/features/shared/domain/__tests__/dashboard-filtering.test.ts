@@ -7,7 +7,7 @@ import {
   encodeDashboardFilters,
   decodeDashboardFilters,
   buildTransactionsHref,
-} from "../filter-utils";
+} from "../dashboard-filtering";
 import {
   DEFAULT_DASHBOARD_FILTERS,
   type DashboardFilterState,

@@ -1,17 +1,14 @@
-import React, { createContext, useContext, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { localEncryption } from '@/services/local-crypto'
+// Context und Lesezugriff liegen in `src/hooks/` — sonst muesste jeder Leser
+// (auch ein ViewModel) eine Komponentendatei importieren.
+import {
+  LocalEncryptionContext,
+  useLocalEncryption,
+  type LocalEncryptionContextValue,
+} from '@/hooks/useLocalEncryption'
 
-type LocalEncryptionContextValue = {
-  enabled: boolean
-  unlocked: boolean
-  lock: () => void
-  unlock: (password: string) => Promise<void>
-  enable: (password: string) => Promise<void>
-  disable: (password: string) => Promise<void>
-  refresh: () => void
-}
-
-const LocalEncryptionContext = createContext<LocalEncryptionContextValue | null>(null)
+export { useLocalEncryption }
 
 export function LocalEncryptionProvider({ children }: { children: React.ReactNode }) {
   const [tick, setTick] = useState(0)
@@ -49,10 +46,4 @@ export function LocalEncryptionProvider({ children }: { children: React.ReactNod
   }, [tick])
 
   return <LocalEncryptionContext.Provider value={value}>{children}</LocalEncryptionContext.Provider>
-}
-
-export function useLocalEncryption() {
-  const ctx = useContext(LocalEncryptionContext)
-  if (!ctx) throw new Error('useLocalEncryption must be used within LocalEncryptionProvider')
-  return ctx
 }

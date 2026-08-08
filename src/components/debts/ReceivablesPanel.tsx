@@ -47,7 +47,7 @@ const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR",
 
 export function ReceivablesPanel() {
   const money = useMoneyFormat();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const receivableTypeLabels = getReceivableTypeLabels();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -282,7 +282,12 @@ export function ReceivablesPanel() {
                     <div className="text-xs text-muted-foreground">
                       {receivableTypeLabels[r.type]}
                       {r.debtor ? ` · ${r.debtor}` : ""}
-                      {r.due_date ? ` · fällig bis ${new Date(r.due_date).toLocaleDateString("de-DE")}` : ""}
+                      {r.due_date
+                        ? t('debts.receivablesPanel.dueUntil').replace(
+                            '{date}',
+                            new Date(r.due_date).toLocaleDateString(locale),
+                          )
+                        : ""}
                     </div>
                   </div>
                 </div>
@@ -315,7 +320,8 @@ export function ReceivablesPanel() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            if (confirm(`Forderung „${r.name}" löschen?`)) deleteMutation.mutate(r.id);
+                            if (confirm(t('debts.receivablesPanel.deleteConfirm').replace('{name}', r.name)))
+                              deleteMutation.mutate(r.id);
                           }}
                           className="text-warning focus:text-warning"
                         >

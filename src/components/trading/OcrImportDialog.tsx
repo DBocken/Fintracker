@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
+import { parseGermanNumber } from '@/lib/money';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -47,8 +49,14 @@ interface OcrImportDialogProps {
 interface EditablePosition {
   symbol: string;
   name?: string;
-  quantity?: string;
-  entryPrice?: string;
+  /**
+   * Menge und Einstiegskurs sind ZAHLEN, nicht der OCR-Rohtext. Die Erkennung
+   * liefert deutsche Schreibweise („1.234,56"), die `parseFloat` als 1,23456
+   * gelesen haette — deshalb wird an der Grenze einmal richtig gelesen und
+   * danach nicht mehr geparst.
+   */
+  quantity?: number | null;
+  entryPrice?: number | null;
   currency?: string;
 }
 
@@ -105,10 +113,15 @@ export default function OcrImportDialog({
       setOcrResult(result);
 
       // Convert to editable positions
-      const positions = result.positions.map(ocrPos => ({
-        ...ocrResultToEditablePosition(ocrPos),
-        name: ocrPos.symbol.value, // Default name to symbol
-      }));
+      const positions = result.positions.map((ocrPos) => {
+        const roh = ocrResultToEditablePosition(ocrPos);
+        return {
+          ...roh,
+          quantity: parseGermanNumber(roh.quantity),
+          entryPrice: parseGermanNumber(roh.entryPrice),
+          name: ocrPos.symbol.value, // Default name to symbol
+        };
+      });
 
       setEditablePositions(positions);
       setStep('review');
@@ -135,10 +148,10 @@ export default function OcrImportDialog({
   });
 
   // Handle position field update
-  const updatePosition = (
+  const updatePosition = <K extends keyof EditablePosition>(
     index: number,
-    field: keyof EditablePosition,
-    value: string
+    field: K,
+    value: EditablePosition[K]
   ) => {
     setEditablePositions(prev =>
       prev.map((pos, i) =>
@@ -164,8 +177,8 @@ export default function OcrImportDialog({
         return;
       }
 
-      const quantityNum = pos.quantity ? parseFloat(pos.quantity) : 0;
-      const entryPriceNum = pos.entryPrice ? parseFloat(pos.entryPrice) : 0;
+      const quantityNum = pos.quantity ?? 0;
+      const entryPriceNum = pos.entryPrice ?? 0;
 
       try {
         await createPosition({
@@ -360,12 +373,10 @@ export default function OcrImportDialog({
                         <Label htmlFor={`quantity-${index}`} className="text-xs">
                           {t('trading.ocrImportDialog.quantityLabel')}
                         </Label>
-                        <Input
+                        <DecimalInput
                           id={`quantity-${index}`}
-                          type="number"
-                          step="any"
-                          value={position.quantity || ''}
-                          onChange={(e) => updatePosition(index, 'quantity', e.target.value)}
+                          value={position.quantity ?? null}
+                          onChange={(v) => updatePosition(index, 'quantity', v)}
                           placeholder={t('trading.ocrImportDialog.quantityPlaceholder')}
                         />
                       </div>
@@ -373,12 +384,10 @@ export default function OcrImportDialog({
                         <Label htmlFor={`price-${index}`} className="text-xs">
                           {t('trading.ocrImportDialog.priceLabel')}
                         </Label>
-                        <Input
+                        <DecimalInput
                           id={`price-${index}`}
-                          type="number"
-                          step="any"
-                          value={position.entryPrice || ''}
-                          onChange={(e) => updatePosition(index, 'entryPrice', e.target.value)}
+                          value={position.entryPrice ?? null}
+                          onChange={(v) => updatePosition(index, 'entryPrice', v)}
                           placeholder={t('trading.ocrImportDialog.pricePlaceholder')}
                         />
                       </div>

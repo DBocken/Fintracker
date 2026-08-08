@@ -15,7 +15,7 @@ import {
   type EssentialFilter,
   type AusgabenklasseFilter,
 } from '@/features/shared/domain/dashboard-filters';
-import type { PeriodOption } from './period-utils';
+import type { PeriodOption } from '@/features/shared/domain/period-options';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 
 interface TransactionFiltersProps {

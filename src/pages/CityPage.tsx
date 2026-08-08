@@ -17,7 +17,7 @@ import { CityLegend } from "@/features/finance-city/presentation/CityLegend";
 import { selectCityLabels } from "@/features/finance-city/domain/city-labels";
 import { selectCityContext, computeLatestPriceIncrease } from "@/features/finance-city/domain/city-context";
 import { OVERVIEW_BALANCE_DISTRICT_ID } from "@/features/finance-city/domain/city-overview-adapter";
-import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
+import { buildTransactionsHref } from "@/features/shared/domain/dashboard-filtering";
 import { OTHER_MERCHANTS_FLOOR_ID } from "@/features/finance-city/domain/city-merchant-floors";
 import { useCityNavigation } from "@/features/finance-city/application/use-city-navigation";
 import { useCityBackNavigation } from "@/features/finance-city/application/use-city-back-navigation";

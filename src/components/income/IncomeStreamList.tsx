@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import InteractiveCard from '@/components/common/InteractiveCard';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
-import { buildTransactionsHref } from '@/components/dashboard/filter-utils';
+import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import type { IncomeStream } from '@/lib/income-streams';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 

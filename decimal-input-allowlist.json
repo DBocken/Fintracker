@@ -1,0 +1,12 @@
+{
+  "_hinweis": [
+    "Felder mit type=\"number\", die nach einer Dezimalzahl aussehen. ZWEI FORMEN:",
+    "Eine blosse ZAHL ist offenes Backlog und darf nur SINKEN — sie bedeutet NICHT \"in Ordnung\",",
+    "sondern \"bekannt und noch nicht behoben\". Ersatz ist <DecimalInput>.",
+    "Ein Objekt { count, reason } ist entschieden — dort ist type=\"number\" richtig, weil das Feld",
+    "ganzzahlig ist (Tag im Monat, Anzahl, Jahr).",
+    "Hintergrund, im Browser gemessen (Chromium, de-DE): getipptes \"12,50\" wird zum Wert \"1250\",",
+    "ein Zinssatz \"5,5\" zu 55 % — der Browser verstuemmelt die Eingabe, BEVOR ein Parser sie sieht."
+  ],
+  "files": {}
+}

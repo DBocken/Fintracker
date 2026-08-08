@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import FinanceErrorState from '@/components/common/FinanceErrorState';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
@@ -211,7 +212,7 @@ export function TransactionDetailsPanel({
         entityType: 'transaction',
         entityId: transaction.id,
         action: rememberMerchant ? 'accept_category_suggestion_always' : 'accept_category_suggestion',
-        title: `Kategorie-Vorschlag übernommen: ${categorySuggestion.categoryLabel}`,
+        title: t('transactionDetails.suggestionAcceptedAudit').replace('{category}', categorySuggestion.categoryLabel),
         redactedBefore: redactForAudit(transaction, ['category_id', 'subcategory_id']),
         redactedAfter: { category_id, subcategory_id },
         reversible: true,
@@ -332,7 +333,10 @@ export function TransactionDetailsPanel({
                 <Check className="mr-1 h-4 w-4" aria-hidden="true" /> Übernehmen
               </Button>
               <Button type="button" size="sm" variant="outline" disabled={isLoading} onClick={() => acceptSuggestion(true)}>
-                Immer für „{transaction.payee || 'diesen Händler'}“
+                {t('transactionDetails.alwaysForMerchant').replace(
+                  '{merchant}',
+                  transaction.payee || t('transactionDetails.thisMerchantFallback'),
+                )}
               </Button>
               <Button type="button" size="sm" variant="ghost" disabled={isLoading} onClick={() => setSuggestionDismissed(true)}>
                 <X className="mr-1 h-4 w-4" aria-hidden="true" /> Ablehnen
@@ -407,7 +411,7 @@ export function TransactionDetailsPanel({
         <FeatureGate feature="familyMode" fallback={null}>
           <div className="space-y-2 border-t pt-3">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Users className="h-4 w-4" aria-hidden="true" /> Ausgabe im Haushalt teilen
+              <Users className="h-4 w-4" aria-hidden="true" /> {t('transactionDetails.shareInHousehold')}
             </div>
             <HouseholdSplitPanel transaction={transaction} />
           </div>
@@ -480,7 +484,7 @@ export function TransactionDetailsPanel({
             </Label>
             <p className="text-xs text-muted-foreground">
               Überträge werden aus Ausgaben-/Einnahmen-Analysen ausgeschlossen.
-              {transaction.transfer_pair_id ? ' Beim Entfernen wird auch die verknüpfte Gegenbuchung gelöst.' : ''}
+              {transaction.transfer_pair_id ? t('transactionDetails.transferPairHint') : ''}
             </p>
           </div>
         </div>
@@ -560,16 +564,11 @@ export function TransactionDetailsPanel({
               <Label htmlFor="tax-labor-costs" className="text-xs text-muted-foreground">
                 {t('tax.form.laborCostsLabel', 'davon Arbeitskosten (€)')}
               </Label>
-              <Input
+              <DecimalInput
                 id="tax-labor-costs"
-                type="number"
-                min={0}
-                max={Math.abs(transaction.amount)}
-                value={draft.tax_labor_costs ?? ''}
+                value={draft.tax_labor_costs ?? null}
                 disabled={isLoading}
-                onChange={(e) =>
-                  setDraft((d) => (d ? { ...d, tax_labor_costs: e.target.value ? Number(e.target.value) : null } : d))
-                }
+                onChange={(v) => setDraft((d) => (d ? { ...d, tax_labor_costs: v } : d))}
               />
               <p className="text-xs text-muted-foreground">
                 {draft.tax_labor_costs
@@ -630,7 +629,7 @@ export function TransactionDetailsPanel({
               disabled={isLoading || !transaction.id}
               onClick={() => setDeleteConfirmOpen(true)}
             >
-              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Löschen
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> {t('transactionDetails.deleteButton')}
             </Button>
           )}
         </div>
@@ -645,7 +644,7 @@ export function TransactionDetailsPanel({
           {closeLabel ?? t('common.cancel')}
         </Button>
         <Button onClick={handleSave} disabled={isLoading}>
-          Speichern
+          {t('transactionDetails.saveButton')}
         </Button>
       </div>
 

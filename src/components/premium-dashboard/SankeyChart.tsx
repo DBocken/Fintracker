@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
-import { buildTransactionsHref } from "@/components/dashboard/filter-utils";
+import { buildTransactionsHref } from "@/features/shared/domain/dashboard-filtering";
 import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";

@@ -63,8 +63,11 @@ describe('StressPresetQuickAdd', () => {
       if (purchaseButton) {
         fireEvent.click(purchaseButton);
 
-        // Nach dem Klick sollten Parameter-Eingaben sichtbar sein
-        const inputs = container.querySelectorAll('input[type="number"]');
+        // Nach dem Klick sollten Parameter-Eingaben sichtbar sein. Sie sind
+        // <DecimalInput> (type="text" + inputMode="decimal") und nicht
+        // type="number": Letzteres haette aus einem Betrag „1.200,50" still
+        // etwas anderes gemacht, bevor ihn ueberhaupt jemand liest.
+        const inputs = container.querySelectorAll('input[inputmode="decimal"]');
         expect(inputs.length).toBeGreaterThan(0);
       }
     });

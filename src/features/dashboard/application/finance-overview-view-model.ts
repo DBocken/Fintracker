@@ -8,7 +8,7 @@ import type {
   EssentialFilter,
   AusgabenklasseFilter,
 } from '@/features/shared/domain/dashboard-filters';
-import type { PeriodOption } from '@/components/dashboard/period-utils';
+import type { PeriodOption } from '@/features/shared/domain/period-options';
 import type { EffectiveBalance, FinanceOverviewStats } from '../domain/overview-types';
 
 /** Aktuelle Werte aller Dashboard-Filter (1:1 zu `DEFAULT_DASHBOARD_FILTERS`). */

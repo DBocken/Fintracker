@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { TrendingUp, DollarSign, Settings } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -37,7 +37,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
   // null = automatisch (aus Endsaldo/Kontenstand zurückgerechnet)
   const [startingBalance, setStartingBalance] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [tempBalance, setTempBalance] = useState<string>('0');
+  const [tempBalance, setTempBalance] = useState<number | null>(0);
   // Achsen-Hygiene (#54): Auto-Skalierung als Default, 0-Linie optional erzwingbar
   const [axisFromZero, setAxisFromZero] = useState(false);
 
@@ -76,14 +76,13 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
   };
 
   const handleApplyStartingBalance = () => {
-    const balance = parseFloat(tempBalance);
-    setStartingBalance(Number.isFinite(balance) ? balance : 0);
+    setStartingBalance(tempBalance ?? 0);
     setShowSettings(false);
   };
 
   const handleUseAuto = () => {
     setStartingBalance(null);
-    setTempBalance(autoStartingBalance.toFixed(2));
+    setTempBalance(autoStartingBalance);
   };
 
   // WP-7.3: Der Wechsel Ladezustand -> Inhalt laeuft ueber LoadingSwap statt
@@ -122,7 +121,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
               variant="outline"
               size="sm"
               onClick={() => {
-                setTempBalance(effectiveStartingBalance.toFixed(2));
+                setTempBalance(effectiveStartingBalance);
                 setShowSettings(true);
               }}
               className="btn-secondary-premium"
@@ -305,12 +304,10 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
           <div className="space-y-4">
             <div>
               <Label htmlFor="startingBalance">{t('balanceChart.startingBalanceInput')}</Label>
-              <Input
+              <DecimalInput
                 id="startingBalance"
-                type="number"
-                step="0.01"
                 value={tempBalance}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTempBalance(e.target.value)}
+                onChange={setTempBalance}
                 placeholder={t('balanceChart.placeholder')}
               />
             </div>

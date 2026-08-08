@@ -12,7 +12,7 @@ import { useBusinessMode } from '@/hooks/useBusinessMode';
 import { getTaxReserveState } from '@/services/tax-reserve-service';
 import { buildEuerReport } from '@/lib/euer-report';
 import { resolveTaxReservePercent } from '@/lib/tax-reserve';
-import { listAvailablePeriods } from '@/components/dashboard/period-utils';
+import { listAvailablePeriods } from '@/features/shared/domain/period-options';
 import { TaxYearPicker } from '@/components/tax/TaxYearPicker';
 import { TaxDisclaimer } from '@/components/tax/TaxDisclaimer';
 import { EuerSummaryStrip } from '@/components/euer/EuerSummaryStrip';

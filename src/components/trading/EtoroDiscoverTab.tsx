@@ -20,10 +20,10 @@ import EtoroScopeGate from './EtoroScopeGate';
 // eToro-Konten laufen in USD — nie das EUR-Default.
 const USD = 'USD';
 
-export interface EtoroDiscoverInstrumentOption {
-  instrumentId: number;
-  name: string;
-}
+// Der Zustandstyp liegt in der `domain` des Slices — das ViewModel darf ihn
+// nicht aus einer Komponentendatei holen (check:layers, feature-application-ohne-ui).
+import type { EtoroDiscoverInstrumentOption } from '@/features/trading/domain/etoro-view-state';
+export type { EtoroDiscoverInstrumentOption };
 
 interface EtoroDiscoverSectionState {
   isLoading: boolean;

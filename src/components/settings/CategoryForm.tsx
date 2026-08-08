@@ -2,6 +2,7 @@ import React from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DecimalInput } from '@/components/common/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -149,7 +150,7 @@ export function CategoryForm({
                   onClick={() => onColorChange(option.value)}
                   className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-border' : 'border-transparent'}`}
                   style={{ backgroundColor: option.value }}
-                  aria-label={`Farbe ${option.label} auswählen`}
+                  aria-label={t('categoryForm.colorPick').replace('{color}', option.label)}
                   aria-pressed={color === option.value}
                 >
                   <span className="sr-only">{option.label}{color === option.value ? ', ausgewählt' : ''}</span>
@@ -167,7 +168,9 @@ export function CategoryForm({
                   type="button"
                   onClick={() => onIconChange(option)}
                   className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-border' : 'border-transparent'}`}
-                  aria-label={`Icon ${index + 1} auswählen: ${option}`}
+                  aria-label={t('categoryForm.iconPick')
+                    .replace('{index}', String(index + 1))
+                    .replace('{icon}', option)}
                   aria-pressed={icon === option}
                 >
                   <span aria-hidden="true">{option}</span>
@@ -371,12 +374,10 @@ export function CategoryForm({
                 <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="category-budget-monat">{t('categoryForm.budgetLabel')}</Label>
-              <Input
+              <DecimalInput
                 id="category-budget-monat"
-                type="number"
-                min={0}
-                value={attributes.budget_monat ?? ''}
-                onChange={(event) => onAttributesChange({ budget_monat: event.target.value ? Number(event.target.value) : null })}
+                value={attributes.budget_monat ?? null}
+                onChange={(v) => onAttributesChange({ budget_monat: v })}
                 placeholder={t('categoryForm.budgetPlaceholder')}
               />
             </div>

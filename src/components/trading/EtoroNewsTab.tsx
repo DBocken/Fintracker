@@ -6,7 +6,10 @@ import type { EtoroDiscussionsResponse } from '@/services/etoro-api-schemas';
 import { selectFeedPosts, selectMergedMarketFeed } from '@/services/etoro-feeds';
 import EtoroScopeGate from './EtoroScopeGate';
 
-export type EtoroNewsFilter = 'all' | 'my-positions';
+// Der Zustandstyp liegt in der `domain` des Slices — das ViewModel darf ihn
+// nicht aus einer Komponentendatei holen (check:layers, feature-application-ohne-ui).
+import type { EtoroNewsFilter } from '@/features/trading/domain/etoro-view-state';
+export type { EtoroNewsFilter };
 
 interface EtoroNewsSectionState {
   isLoading: boolean;

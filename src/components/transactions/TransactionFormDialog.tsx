@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
-import { parseGermanNumber } from "@/lib/money";
 import { getAccounts } from "@/services/account-service";
 import { createTransaction, getCategories } from "@/services/transaction-service";
 import { useI18n } from "@/i18n/useI18n";
@@ -79,7 +79,7 @@ export function TransactionFormDialog({
 
   const [accountId, setAccountId] = useState("");
   const [direction, setDirection] = useState<"expense" | "income">("expense");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   const [date, setDate] = useState(today());
   const [payee, setPayee] = useState("");
   const [description, setDescription] = useState("");
@@ -89,7 +89,7 @@ export function TransactionFormDialog({
   useEffect(() => {
     if (!open) return;
     setDirection(prefill?.direction ?? "expense");
-    setAmount(prefill?.amount != null ? String(prefill.amount) : "");
+    setAmount(prefill?.amount ?? null);
     setDate(prefill?.date ?? today());
     setPayee(prefill?.payee ?? "");
     setDescription(prefill?.description ?? "");
@@ -122,10 +122,11 @@ export function TransactionFormDialog({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Zentraler Parser (money.ts): liest deutschen Tausenderpunkt korrekt,
-      // damit "1.200" nicht als 1,20 € gespeichert wird (F-MONEY-1).
-      const parsed = parseGermanNumber(amount);
-      const numeric = parsed === null ? 0 : Math.abs(parsed);
+      // Der Betrag kommt als ZAHL aus <DecimalInput>. Frueher stand hier
+      // `parseGermanNumber` auf einem `type="number"`-Feld — das half nichts,
+      // weil der Browser das Komma schon geschluckt hatte und aus „12,50" der
+      // Wert „1250" wurde (F-MONEY-1).
+      const numeric = amount === null ? 0 : Math.abs(amount);
       if (numeric <= 0) throw new Error(t("forms.amountGreaterThanZero"));
       if (!accountId) throw new Error(t("forms.selectAccountRequired"));
       const signed = direction === "expense" ? -numeric : numeric;
@@ -196,12 +197,10 @@ export function TransactionFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="tx-amount">{t("forms.amountLabel")}</Label>
-              <Input
+              <DecimalInput
                 id="tx-amount"
-                type="number"
-                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
                 placeholder="0,00"
               />
             </div>

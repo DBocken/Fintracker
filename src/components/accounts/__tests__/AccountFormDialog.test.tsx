@@ -106,3 +106,58 @@ describe('AccountFormDialog – Geschäftskonto-Switch', () => {
     });
   });
 });
+
+describe('AccountFormDialog – Dezimaleingaben (AGENTS.md §8)', () => {
+  // Die Felder waren `<Input type="number">`. In einem deutschen Browser
+  // (Chromium, `de-DE`) liefert so ein Feld für getipptes „12,50" den Wert
+  // „1250" — das Komma wird geschluckt, BEVOR irgendein Parser es sieht. Der
+  // Eröffnungssaldo eines Kontos ist der Nullpunkt jeder späteren Rechnung;
+  // ein Faktor 100 dort verzieht alles, was darauf aufbaut.
+  it('[REGRESSION] sollte „1234,56" als Eröffnungssaldo 1234,56 speichern, nicht als 123456', () => {
+    const onSave = vi.fn();
+    renderDialog({ onSave });
+
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Girokonto' } });
+    fireEvent.change(screen.getByLabelText(/Kontostand am Anfang/i), { target: { value: '1234,56' } });
+    fireEvent.submit(screen.getByRole('switch', { name: 'Geschäftskonto' }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ opening_balance: 1234.56 }));
+  });
+
+  it('[REGRESSION] sollte den Tausenderpunkt in „1.200" nicht als Komma lesen', () => {
+    const onSave = vi.fn();
+    renderDialog({ onSave });
+
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Girokonto' } });
+    fireEvent.change(screen.getByLabelText(/Kontostand am Anfang/i), { target: { value: '1.200' } });
+    fireEvent.submit(screen.getByRole('switch', { name: 'Geschäftskonto' }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ opening_balance: 1200 }));
+  });
+
+  it('sollte ein leeres Saldofeld als 0 speichern und kein Saldo-Datum setzen', () => {
+    const onSave = vi.fn();
+    renderDialog({ onSave });
+
+    fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Girokonto' } });
+    fireEvent.submit(screen.getByRole('switch', { name: 'Geschäftskonto' }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ opening_balance: 0, opening_balance_date: null }),
+    );
+  });
+
+  it('sollte die manuelle Saldo-Korrektur centgenau übernehmen', () => {
+    const onSave = vi.fn();
+    renderDialog({ account: makeAccount({}), onSave });
+
+    fireEvent.change(screen.getByLabelText(/Aktueller Kontostand/i), {
+      target: { value: '2500,75' },
+    });
+    fireEvent.submit(screen.getByRole('switch', { name: 'Geschäftskonto' }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ live_balance_amount: 2500.75, live_balance_type: 'manual' }),
+    );
+  });
+});
