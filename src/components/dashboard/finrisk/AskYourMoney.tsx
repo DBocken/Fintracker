@@ -14,6 +14,7 @@ import type {
 } from '@/lib/finrisk/affordability';
 import { cn } from '@/lib/utils';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
+import { parseGermanNumber } from '@/lib/money';
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -49,11 +50,16 @@ export default function AskYourMoney({ input, config }: Props) {
 
   const { result, isCalculating } = useAffordability(input, config, goal);
 
-  const parsedAmount = Number.parseFloat(amount.replace(',', '.'));
-  const canAsk = Number.isFinite(parsedAmount) && parsedAmount > 0 && !!input;
+  // parseGermanNumber statt Roh-`parseFloat` mit Komma-Ersetzung: Ein Roh-Parser
+  // liest getipptes „1.200" (deutscher Tausenderpunkt) als 1,2 — der Nutzer
+  // bekäme die Antwort auf eine 600-mal zu kleine Frage (coding-guide.md §8).
+  // `parseGermanNumber` (nicht `parseEuroInput`) passt hier: Ungültige Eingabe
+  // bleibt ein deaktivierter Button (`canAsk`), kein Wurf mitten im Tippen.
+  const parsedAmount = parseGermanNumber(amount);
+  const canAsk = parsedAmount !== null && Number.isFinite(parsedAmount) && parsedAmount > 0 && !!input;
 
   const ask = () => {
-    if (!canAsk) return;
+    if (!canAsk || parsedAmount === null) return;
     setGoal({ amount: parsedAmount, dayIndex: days });
   };
 

@@ -118,6 +118,13 @@ jobs:
       - name: i18n-Waechter (eingefrorene Uebersetzungen)
         run: pnpm check:i18n-module-consts
 
+      # Roh-`parseFloat` mit Komma-Ersetzung verstuemmelt einen deutschen
+      # Geldbetrag ("1.200" -> 1,2); `as unknown as` hebelt TypeScript an
+      # einer Datengrenze vollstaendig aus und prueft zur Laufzeit nichts
+      # (GOV-1). i18n hatte drei Erkennungsformen, diese Regel bis WP 2.2 keine.
+      - name: Geld-Parsing-Check
+        run: pnpm check:money-parsing
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 

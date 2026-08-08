@@ -23,6 +23,7 @@
     "check:layers": "node scripts/check-layers.mjs",
     "check:view-data": "node scripts/check-view-data.mjs",
     "check:decimal-inputs": "node scripts/check-decimal-inputs.mjs",
+    "check:money-parsing": "node scripts/check-money-parsing.mjs",
     "check:card-rule": "node scripts/check-card-rule.mjs",
     "check:platform-parity": "node scripts/check-platform-parity.mjs",
     "check:query-errors": "node scripts/check-query-errors.mjs",

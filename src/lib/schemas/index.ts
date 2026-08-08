@@ -7,3 +7,5 @@ export * from './boundary';
 export * from './replacement-plan.schema';
 export * from './contract-record.schema';
 export * from './household-settlement.schema';
+export * from './gocardless-account.schema';
+export * from './analytics-consent.schema';

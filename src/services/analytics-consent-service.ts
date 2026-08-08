@@ -1,35 +1,30 @@
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { safeParseAtBoundary } from '@/lib/schemas/boundary';
+import { analyticsConsentSchema, type AnalyticsConsent } from '@/lib/schemas/analytics-consent.schema';
 
-export type AnalyticsConsent = {
-  user_id: string;
-  opted_in: boolean;
-  consent_version: string;
-  allowed_data_classes: string[];
-  updated_at?: string;
-  withdrawn_at?: string | null;
-};
+export type { AnalyticsConsent };
 
 const DEFAULT_ALLOWED_CLASSES = ['period', 'category_group', 'measures'];
 
-export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
-  const [data] = await readLocalFinanceList<AnalyticsConsent>('analyticsConsent');
-  if (!data) {
-    return {
-      user_id: 'local',
-      opted_in: false,
-      consent_version: 'analytics-v1',
-      allowed_data_classes: DEFAULT_ALLOWED_CLASSES,
-      withdrawn_at: null,
-    };
-  }
-
-  const row = data as unknown as Record<string, unknown>;
+function defaultConsent(): AnalyticsConsent {
   return {
-    ...row,
-    allowed_data_classes: Array.isArray(row.allowed_data_classes)
-      ? row.allowed_data_classes as string[]
-      : DEFAULT_ALLOWED_CLASSES,
-  } as AnalyticsConsent;
+    user_id: 'local',
+    opted_in: false,
+    consent_version: 'analytics-v1',
+    allowed_data_classes: DEFAULT_ALLOWED_CLASSES,
+    withdrawn_at: null,
+  };
+}
+
+export async function getAnalyticsConsent(): Promise<AnalyticsConsent> {
+  const [data] = await readLocalFinanceList<unknown>('analyticsConsent');
+  if (!data) return defaultConsent();
+
+  // Kein `as unknown as Record<...>`-Cast mehr (GOV-1): eine strukturell
+  // ungültige/beschädigte Ablage fällt jetzt auf den sicheren Ausgangszustand
+  // zurück, statt Felder ungeprüft durchzureichen.
+  const result = safeParseAtBoundary(analyticsConsentSchema, data, 'analyticsConsent');
+  return result.ok ? result.data : defaultConsent();
 }
 
 export async function setAnalyticsConsent(optedIn: boolean, allowedDataClasses = DEFAULT_ALLOWED_CLASSES): Promise<AnalyticsConsent> {
