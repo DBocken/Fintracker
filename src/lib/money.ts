@@ -28,6 +28,35 @@ export function sumMinor(values: number[]): number {
 }
 
 /**
+ * Toleranz für {@link isCentPrecise} — Einheit: Cent, nicht Euro.
+ *
+ * IEEE-754-Multiplikation streut auch bei einem fachlich exakten 2-Dezimal-
+ * Betrag um winzige Beträge (19.99 * 100 = 1998.9999999999998; 0.1 + 0.2 = 30
+ * statt exakt 30 Cent). Diese Streuung bleibt für Euro-Beträge im Alltags-
+ * bis Großbetrags-Bereich (bis in den zweistelligen Millionenbereich) durch
+ * `Number.EPSILON` (~2.22e-16) relativ zum Cent-Wert nach oben durch etwa
+ * 1e-7 Cent begrenzt — reine Darstellungsungenauigkeit, kein fachlicher
+ * Fehler. Ein tatsächlicher Sub-Cent-Betrag wie 0.005 € weicht dagegen um
+ * 0.5 Cent ab: das 5-Millionen-fache dieser Toleranz. `1e-6` liegt damit
+ * bequem über jeder Float-Darstellungsstreuung und bequem unter jeder
+ * denkbaren halben-Cent-Ambiguität — es gibt keinen Betrag, bei dem die Wahl
+ * dieser Konstante die Entscheidung "gültig vs. ungültig" beeinflusst.
+ */
+const CENT_PRECISION_EPSILON_CENTS = 1e-6;
+
+/**
+ * Prüft, ob ein Float-Euro-Betrag verlustfrei zu ganzzahligen Cent rundet
+ * (Invariante 5, docs/domain-invariants.md: Persistenzformat bleibt
+ * Euro-Float, die Validierung an fachlichen Grenzen ist cent-genau). `NaN`/
+ * `Infinity` gelten als nicht cent-genau.
+ */
+export function isCentPrecise(amount: number): boolean {
+  if (!Number.isFinite(amount)) return false;
+  const cents = amount * 100;
+  return Math.abs(cents - Math.round(cents)) <= CENT_PRECISION_EPSILON_CENTS;
+}
+
+/**
  * Deutsche Geldbetrags-Eingabe -> Float-Euro, oder `null` bei ungültiger Eingabe.
  *
  * Der einzige gemeinsame Parser für UI-Eingaben, CSV und programmatische Pfade.

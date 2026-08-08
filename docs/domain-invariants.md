@@ -8,7 +8,7 @@ Diese Regeln sind Sicherheitsgrenzen der Finanzlogik. Änderungen an Import, Per
 2. Ein interner Transfer verändert das Gesamtvermögen nicht und zählt weder als Einnahme noch als Ausgabe.
 3. Der erneute Import derselben Quelldatei erzeugt keine zweite Buchung.
 4. Bestehende manuelle Kategorien und Nutzerentscheidungen werden durch einen identischen Reimport nicht überschrieben.
-5. Geldbeträge werden an fachlichen Grenzen in ganzzahligen Cent validiert.
+5. Geldbeträge werden persistiert als Euro-Float (`Transaction.amount` u. a.), aber an fachlichen Grenzen (z. B. `saveTransactions`) per `toMinor`-Roundtrip cent-genau validiert: Betrag × 100 muss verlustfrei auf ganze Cent runden, sonst ist es ein Validierungsfehler — nie stilles Runden. Das Persistenzformat selbst bleibt Float (Migration auf Integer-Cent wäre eine eigene, hier nicht enthaltene Migration durch Backups, CSV, Sync und alle Konsumenten).
 6. Die Summe aller Aufteilungen entspricht exakt dem Absolutbetrag der Originalbuchung.
 7. Aufteilungen verändern den Kontostand nicht; sie ersetzen nur die analytische Kategorieverteilung.
 8. Ohne Aufteilungen verwendet die Analyse die Kategorie der Originalbuchung.

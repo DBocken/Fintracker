@@ -11,7 +11,7 @@ import {
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
 import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';
-import { parseGermanNumber } from '../lib/money';
+import { parseGermanNumber, isCentPrecise } from '../lib/money';
 import { t } from '@/i18n/serviceT';
 
 // -----------------------------------------------------------------------------
@@ -163,6 +163,14 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
     const normalizedAmount = parseGermanNumber(tx.amount);
     if (normalizedAmount === null) {
       throw new Error(t('transactionService.invalidAmount', '{amount}').replace('{amount}', String(tx.amount)).replace('{payee}', tx.payee || 'ohne Empfänger').replace('{date}', normalizedDate || ''));
+    }
+    // Invariante 5 (docs/domain-invariants.md): Persistenzformat bleibt
+    // Euro-Float, aber die Grenze validiert cent-genau — per toMinor-Roundtrip
+    // (Betrag * 100 muss verlustfrei auf ganze Cent runden). Eine Abweichung
+    // wie 0.005 € ist ein Validierungsfehler, nie ein still gerundeter Wert
+    // (Toleranzbegründung: `isCentPrecise` in `src/lib/money.ts`).
+    if (!isCentPrecise(normalizedAmount)) {
+      throw new Error(t('transactionService.amountNotCentPrecise', '{amount}').replace('{amount}', String(normalizedAmount)).replace('{payee}', tx.payee || 'ohne Empfänger').replace('{date}', normalizedDate || ''));
     }
 
     return {
