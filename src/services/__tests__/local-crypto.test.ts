@@ -3,6 +3,7 @@ import {
   estimatePasswordStrength,
   localEncryption,
   LocalEncryptionLockedError,
+  VaultCorruptError,
 } from "../local-crypto";
 import { clearLocalKvStore, idbGet, idbSet } from "../idb-kv";
 import {
@@ -105,6 +106,87 @@ describe("localEncryption", () => {
     const envelope = await localEncryption.encryptJson(large);
     const back = await localEncryption.decryptJson<typeof large>(envelope);
     expect(back).toEqual(large);
+  });
+});
+
+describe("loadAndMaybeDecrypt: korrupte Envelopes werfen statt zu schlucken (RES-1)", () => {
+  const KEY = "corrupt_test_key";
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  afterEach(async () => {
+    await clearLocalKvStore();
+    localStorage.clear();
+    localEncryption.lock();
+  });
+
+  it("[REGRESSION] (a) wirft VaultCorruptError, wenn der Rohwert kein JSON ist", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    await idbSet(KEY, "{das ist kein json");
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("[REGRESSION] (b) wirft VaultCorruptError, wenn ct_b64 eines gueltigen Envelopes verfaelscht ist", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    const envelope = await localEncryption.encryptJson({ foo: "bar" });
+    const tampered = { ...envelope, ct_b64: envelope.ct_b64.slice(0, -4) + "AAAA" };
+    await idbSet(KEY, JSON.stringify(tampered));
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("[REGRESSION] (c) wirft VaultCorruptError, wenn die entschluesselten Bytes kein JSON ergeben", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    // Envelope aus einem Nicht-JSON-Klartext bauen: direkt ueber die
+    // Standalone-Verschluesselung mit demselben Passwort verschluesseln reicht
+    // nicht (encryptString erwartet bereits JSON-Text als Input), daher wird
+    // hier ein echter Envelope genommen und der Klartext-Erwartungswert durch
+    // Bauen ueber encryptJson mit einem String simuliert, der beim Zurueck-
+    // Parsen kein gueltiges JSON ist.
+    const key = localEncryption.requireUnlocked();
+    const cfg = localEncryption.getConfig()!;
+    const ivU8 = crypto.getRandomValues(new Uint8Array(12));
+    const pt = new TextEncoder().encode("kein-json-text");
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: ivU8 }, key, pt);
+    const ctB64 = btoa(String.fromCharCode(...new Uint8Array(ct)));
+    const ivB64 = btoa(String.fromCharCode(...ivU8));
+    const envelope = {
+      type: "ausgabentracker.enc",
+      v: 1,
+      kdf: cfg.kdf,
+      cipher: { name: "AES-GCM", iv_b64: ivB64 },
+      ct_b64: ctB64,
+    };
+    await idbSet(KEY, JSON.stringify(envelope));
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("(d) liefert weiterhin null, wenn der Key gar nicht existiert", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+
+    await expect(localEncryption.loadAndMaybeDecrypt("does_not_exist_key")).resolves.toBeNull();
+  });
+
+  it("(e) wirft weiterhin LocalEncryptionLockedError bei gesperrtem Vault, nicht VaultCorruptError", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    await idbSet(KEY, JSON.stringify(await localEncryption.encryptJson({ foo: "bar" })));
+    localEncryption.lock();
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      LocalEncryptionLockedError,
+    );
   });
 });
 

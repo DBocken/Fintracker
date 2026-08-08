@@ -117,6 +117,23 @@ export class LocalEncryptionLockedError extends Error {
   }
 }
 
+// RES-1: Ein beschädigter Envelope (kaputtes JSON, fehlgeschlagene AES-GCM-
+// Entschlüsselung, entschlüsselter Klartext ohne gültiges JSON) wurde bislang
+// als „keine Daten" (`null`) gelesen — genau wie ein nicht existierender Key.
+// Der nächste Schreibvorgang (Read-Modify-Write in upsertLocalFinanceItem)
+// persistierte dann die fälschlich leere Liste und löschte den Bestand
+// dauerhaft. `VaultCorruptError` macht diesen Fall vom „echten" Leerzustand
+// unterscheidbar: `null` bedeutet ab jetzt ausschließlich „Key existiert
+// nicht", jeder Lese-/Entschlüsselungsfehler bei vorhandenem Rohwert wirft.
+export class VaultCorruptError extends Error {
+  name = 'VaultCorruptError'
+  storageKey: string
+  constructor(storageKey: string, message: string = '') {
+    super(message || t('crypto.corruptError'))
+    this.storageKey = storageKey
+  }
+}
+
 async function deriveKeyFromPassword(password: string, cfg: LocalEncryptionConfigV1): Promise<CryptoKey> {
   const salt = b64decode(cfg.kdf.salt_b64)
 
@@ -345,11 +362,26 @@ export const localEncryption = {
     try {
       parsed = JSON.parse(raw)
     } catch {
-      return null
+      // Rohwert ist vorhanden, aber kein JSON — ein früherer `return null` hier
+      // sah aus wie „kein Eintrag" und liess den nächsten Schreibvorgang den
+      // Bestand überschreiben (RES-1). Ein vorhandener, aber unlesbarer Rohwert
+      // ist immer eine Korruption, nie ein leerer Zustand.
+      throw new VaultCorruptError(storageKey)
     }
 
     if (isEnvelopeV1(parsed)) {
-      return await this.decryptJson<T>(parsed)
+      try {
+        return await this.decryptJson<T>(parsed)
+      } catch (err) {
+        // Ein gesperrter Vault ist keine Korruption — durchreichen, nicht
+        // einwickeln (sonst könnte die Fläche „entsperren" nicht mehr von
+        // „Backup einspielen" unterscheiden).
+        if (err instanceof LocalEncryptionLockedError) throw err
+        // Alles andere hier ist entweder ein AES-GCM-Auth-Fehler (verfälschter
+        // `ct_b64`) oder Klartext, der nach der Entschlüsselung kein gültiges
+        // JSON ergibt — in beiden Fällen ist der Envelope kaputt.
+        throw new VaultCorruptError(storageKey)
+      }
     }
 
     // Plain JSON while enabled: require unlock, then migrate in-place.

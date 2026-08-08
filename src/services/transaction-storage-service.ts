@@ -1,6 +1,6 @@
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
-import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from './local-crypto';
 import { escapeCsvCell } from '@/lib/csv-utils';
 import { t } from '@/i18n/serviceT';
 import { logger } from '@/utils/logger';
@@ -293,7 +293,11 @@ class TransactionStorageService {
       }
 
       const data = await localEncryption.loadAndMaybeDecrypt<Transaction[]>(LOCAL_TRANSACTIONS_KEY);
-      return { success: true, data: Array.isArray(data) ? data : [] };
+      if (data === null) return { success: true, data: [] };
+      // Spiegelbildlich zu local-finance-store.readLocalFinanceList (RES-1):
+      // gültiges JSON ohne Array ist ein beschädigter Bestand, keine Leerliste.
+      if (!Array.isArray(data)) throw new VaultCorruptError(LOCAL_TRANSACTIONS_KEY);
+      return { success: true, data };
     } catch (error) {
       return {
         success: false,

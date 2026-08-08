@@ -1,5 +1,5 @@
 import { t } from '../i18n/serviceT';
-import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from './local-crypto';
 // Key-Definitionen leben zentral in local-storage-keys (VE-6), damit die
 // Verschlüsselungs-Migration keine Kollektion übersehen kann. Re-Export hält
 // bestehende Importe (`from './local-finance-store'`) funktionsfähig.
@@ -63,8 +63,15 @@ export async function readLocalFinanceList<T>(key: LocalFinanceKey): Promise<T[]
     throw new LocalEncryptionLockedError();
   }
 
-  const data = await localEncryption.loadAndMaybeDecrypt<T[]>(LOCAL_FINANCE_KEYS[key]);
-  return Array.isArray(data) ? data : [];
+  const storageKey = LOCAL_FINANCE_KEYS[key];
+  const data = await localEncryption.loadAndMaybeDecrypt<T[]>(storageKey);
+  if (data === null) return [];
+  // `null` heisst „Key existiert nicht" (echter Leerzustand). Gültiges JSON,
+  // das kein Array ist, ist dagegen ein beschädigter Bestand (RES-1) — würde
+  // hier stillschweigend `[]` zurückkommen, überschriebe der nächste Schreib-
+  // vorgang (Read-Modify-Write in upsertLocalFinanceItem) die Collection.
+  if (!Array.isArray(data)) throw new VaultCorruptError(storageKey);
+  return data;
 }
 
 export async function writeLocalFinanceList<T>(key: LocalFinanceKey, items: T[]): Promise<void> {

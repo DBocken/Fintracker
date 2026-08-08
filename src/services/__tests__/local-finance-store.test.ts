@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   readLocalFinanceList,
   writeLocalFinanceList,
+  upsertLocalFinanceItem,
   LOCAL_FINANCE_KEYS,
   hasPlaintextFinanceStorage,
 } from "../local-finance-store";
 import { idbGet, idbSet, clearLocalKvStore } from "../idb-kv";
-import { localEncryption } from "../local-crypto";
+import { localEncryption, VaultCorruptError } from "../local-crypto";
 
 describe("local-finance-store über IndexedDB (Issue #29)", () => {
   beforeEach(async () => {
@@ -57,6 +58,30 @@ describe("local-finance-store über IndexedDB (Issue #29)", () => {
   it("erkennt unverschlüsselte Daten in IndexedDB", async () => {
     await idbSet(LOCAL_FINANCE_KEYS.transactions, JSON.stringify([{ id: "t1" }]));
     expect(await hasPlaintextFinanceStorage()).toBe(true);
+  });
+
+  it("[REGRESSION] sollte einen korrupten Envelope werfen statt ihn beim naechsten Schreiben zu ueberschreiben (RES-1)", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    const seedDebts = [{ id: "d1" }, { id: "d2" }, { id: "d3" }];
+    await writeLocalFinanceList("debts", seedDebts);
+
+    // Rohwert in fake-IndexedDB durch Muell ersetzen — simuliert einen
+    // beschaedigten Envelope (Bitfehler, abgebrochener Schreibvorgang).
+    await idbSet(LOCAL_FINANCE_KEYS.debts, "{kaputt");
+
+    await expect(upsertLocalFinanceItem("debts", { name: "neu" } as { id?: string; name: string })).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+
+    // Der Bestand darf NICHT durch den fehlgeschlagenen Schreibversuch ersetzt
+    // worden sein — der rohe (kaputte) Wert muss unveraendert dort liegen.
+    expect(await idbGet(LOCAL_FINANCE_KEYS.debts)).toBe("{kaputt");
+  });
+
+  it("[REGRESSION] sollte bei gueltigem JSON ohne Array werfen statt eine Leerliste zu liefern", async () => {
+    await idbSet(LOCAL_FINANCE_KEYS.debts, JSON.stringify({ notAnArray: true }));
+
+    await expect(readLocalFinanceList("debts")).rejects.toBeInstanceOf(VaultCorruptError);
   });
 });
 

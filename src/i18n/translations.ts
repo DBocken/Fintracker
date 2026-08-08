@@ -4579,6 +4579,7 @@ export const translations = {
       checkCorruptedError: 'Verschlüsselungs-Check beschädigt – bitte Verschlüsselung neu aktivieren.',
       checkInvalidError: 'Verschlüsselungs-Check ungültig – bitte Verschlüsselung neu aktivieren.',
       migrateError: 'Verschlüsselte Daten bei deaktivierter Verschlüsselung gefunden — Migration unvollständig.',
+      corruptError: 'Die gespeicherten Daten dieser Kategorie sind beschädigt und konnten nicht gelesen werden. Spiele ein Backup ein, bevor du weiterarbeitest.',
     },
     mcpService: {
       syncRiskNotAcknowledged: 'Sync abgebrochen: Risiko wurde nicht bestätigt (Stufe 1).',
@@ -9270,6 +9271,7 @@ export const translations = {
       checkCorruptedError: 'Encryption check is corrupted – please re-enable encryption.',
       checkInvalidError: 'Encryption check is invalid – please re-enable encryption.',
       migrateError: 'Found encrypted data while encryption is disabled — migration incomplete.',
+      corruptError: 'The stored data for this category is damaged and could not be read. Restore a backup before continuing.',
     },
     mcpService: {
       syncRiskNotAcknowledged: 'Sync cancelled: Risk not acknowledged (step 1).',
@@ -13568,6 +13570,7 @@ export const translations = {
       checkCorruptedError: "So' chovmeH rIQ – wa'DIch So' yIchu'qa'.",
       checkInvalidError: "So' chovmeH lughbe' – wa'DIch So' yIchu'qa'.",
       migrateError: "So' bIrtaHvIS So'lu'pu'bogh De' tu'lu' — DIchmoH mIw naQbe'.",
+      corruptError: "poQbogh ghojmoHwI' De' rIQ 'ej laDlaHbe'lu'. yItIgh nISlu'pa' chelmoHwI' yIchel.",
     },
     mcpService: {
       syncRiskNotAcknowledged: "rurmoHghach mevpu': Qobghach Sovbe' (wa'DIch).",
@@ -18258,6 +18261,7 @@ export const translations = {
       checkCorruptedError: 'Проверка шифрования повреждена – включите шифрование заново.',
       checkInvalidError: 'Проверка шифрования недействительна – включите шифрование заново.',
       migrateError: 'Обнаружены зашифрованные данные при отключённом шифровании — миграция не завершена.',
+      corruptError: 'Сохранённые данные этой категории повреждены и не могут быть прочитаны. Восстанови резервную копию, прежде чем продолжать.',
     },
     mcpService: {
       syncRiskNotAcknowledged: 'Синхронизация отменена: риск не подтверждён (шаг 1).',
