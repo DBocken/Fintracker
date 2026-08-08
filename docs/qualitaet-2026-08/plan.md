@@ -218,7 +218,7 @@ Mutation jetzt gefangen würde.
 **Akzeptanz:** Wächter schlägt auf die (vor dem Fix) bestehenden Fundstellen
 an (im PR belegen) · danach 0 Fundstellen · beide Fixes mit Tests.
 
-### - [ ] WP 2.3 · Layer-Wächter: `hooks`- und Slice-Presentation-Regel (ARCH-3/4) · S
+### - [x] WP 2.3 · Layer-Wächter: `hooks`- und Slice-Presentation-Regel (ARCH-3/4) · S — `3e00d3f`
 **Ziel:** Die in AGENTS.md §3 benannte Kette ist vollständig bewacht, bevor
 weitere Slices migriert werden.
 **Vorgehen:** In `scripts/layers-core.mjs` zwei Regeln ergänzen:

@@ -77,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 2.3 · Layer-Wächter: hooks + Slice-Presentation (ARCH-3/4) |
-| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
-| **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
+| **Paket** | — |
+| **Schritt** | — |
+| **Im Arbeitsbaum** | nichts (sauber) |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -139,7 +139,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 7 | 1.5 | Backup: Prüfsumme + Item-Validierung (RES-5) | **fertig** | `9f760db` |
 | 8 | 1.6 | Speicher-Laufzeitfehler behandeln (RES-6, RES-7) | **fertig** | `080b0ae` |
 | 8a | **1.7** | `forecastOverrides` schluckt den Korruptionsfehler weiter | **fertig** | `bba49ae` |
-| 9 | 2.3 | Layer-Wächter: hooks + Slice-Presentation (ARCH-3/4) | offen | |
+| 9 | 2.3 | Layer-Wächter: hooks + Slice-Presentation (ARCH-3/4) | **fertig** | `3e00d3f` |
 | 10 | 2.4 | `api/` und `mcp-poc/` in den Typecheck (GOV-2) | offen | |
 | 11 | 2.5 | Invariante 5 einlösen (DOM-4) | offen | |
 | 12 | 3.1 | PBKDF2 ≥ 600 000 + kdf-Versionierung (SEC-1) | offen | |

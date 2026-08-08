@@ -494,6 +494,37 @@ und dieser Block wird beim Start eines Pakets gefüllt, nicht hinterher.
 
 *Der Abschluss-Eintrag wird geschrieben, sobald WP 2.5 steht.*
 
+### 2.b · WP 2.3 — Vorentscheidung 0.6 hat sich bestätigt, und die Ratsche wurde eigenständig
+
+**Befund.** Die in 0.6 vorab notierten Zahlen stimmen exakt: **4 hooks-Importe
+in 3 Dateien**, **24 Slice-Presentation-Importe in 10 Dateien** (`plan.md`
+erwartet zwei). Neu entschieden werden musste nur, **wo** die zweite Zahl lebt.
+
+**Entscheidung.** Ein **eigener** Wächter `check:slice-presentation` mit eigener
+Budget-Datei, nicht eine Erweiterung von `check:view-data`.
+
+**Begründung.** Die beiden Zahlen messen verschiedene Fachfragen: `view-data`
+zählt **Datenzugriffe** in der Darstellung, `slice-presentation` zählt die
+**UI-Kopplung** einer Slice an die Alt-Oberfläche. In eine Summe geworfen
+könnte ein Fortschritt in der einen Richtung eine Verschlechterung in der
+anderen verdecken — und genau diese Zahl sollen WP 6.2/6.3 nachweislich senken.
+Eine Ratsche, deren Bewegung mehrdeutig ist, belegt nichts.
+
+**Preis.** Ein fünfzehnter Wächter, eine weitere Budget-Datei im Repo-Root, ein
+weiterer Pre-Commit- und CI-Schritt. Die Wächterbatterie liegt jetzt bei ~15 s;
+der Grenznutzen jedes weiteren Wächters sinkt, und irgendwann ist die Zahl der
+Wächter selbst ein Problem. Hier noch nicht.
+
+**Nebenbefund, nicht behoben.** `istInfrastruktur()` (aus `view-data-core.mjs`
+wiederverwendet statt neu erfunden) hat zwei Sorten Muster:
+verzeichnisbasierte (`/\/providers\//`) und dateinamenbasierte
+(`Provider.tsx$`, `FeatureGate.tsx$`). Auf einen **Import-Spezifizierer**
+— den `resolveTarget()` ohne Dateiendung liefert — greifen nur die
+verzeichnisbasierten. Für alle drei echten Fälle reicht das; ein
+`FeatureGate`-Import aus `hooks/` fiele durch die Ausnahme. Kommt im Bestand
+nicht vor, wäre aber beim vierten Anwendungsfall der Funktion eine böse
+Überraschung.
+
 ### 2.a · zod an Datengrenzen kollidiert mit der Bundle-Ratsche
 
 **Befund.** WP 2.2 ersetzt in `analytics-consent-service.ts` einen
