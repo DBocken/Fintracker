@@ -355,6 +355,39 @@ mit). Ein Codepfad, eine Wahrheit — bezahlt mit einer doppelten Entschlüsselu
 auf dem seltenen Konfliktpfad. Aufgefallen ist auch das nur, weil die Ratsche
 den zusätzlichen Service-Import sichtbar gemacht hat.
 
+### 1.h · Der Integritätsbericht taugt nicht für den Restore — und das war messbar
+
+**Befund.** WP 1.5 sollte die Meldung über übersprungene Items aus WP 1.2b
+wiederverwenden (`data-integrity-report.ts`, `DataIntegrityWarning`). Der
+Versuch scheiterte an einer Eigenschaft, die vorher niemandem aufgefallen war:
+Der Report gilt für den **jeweils letzten Lesevorgang** einer Collection.
+`restoreBackup()` liest dieselben Collections intern nach — und setzte den
+Zähler damit sofort wieder auf 0, weil der frisch bereinigte Bestand beim
+nächsten Lesen tatsächlich sauber ist.
+
+**Entscheidung.** Keine Wiederverwendung. Der Restore-Befund lebt im
+**Rückgabewert** von `restoreBackup()` (`details.skippedItems`, `warnings`);
+die Fläche in `BackupManager` speist sich direkt daraus.
+
+**Begründung.** „Letzter Lesevorgang" und „Ergebnis dieses einen Restores"
+sind verschiedene Aussagen, und die eine als die andere auszugeben, hätte eine
+Zahl erzeugt, die zufällig manchmal stimmt. Bemerkenswert ist nicht die
+Entscheidung, sondern **wie sie zustande kam**: nicht durch Nachdenken über
+das Design, sondern durch einen roten Test, der zeigte, dass der Zähler leer
+blieb. Das ist der Fall, für den TDD gebaut ist.
+
+**Preis.** Zwei Wege, auf denen dem Nutzer eine Integritätszahl gemeldet wird
+(Lesepfad und Restore-Pfad), mit zwei Bausteinen. Das ist Doppelung — aber
+Doppelung, die zwei verschiedene Aussagen sauber trennt, statt eine Aussage zu
+verwischen.
+
+**Nebenbefund, selbst gefunden und behoben:** `downloadBackup()` entfernt
+Broker-Secrets **nach** `createBackup()`. Eine in `createBackup()` berechnete
+Prüfsumme hätte danach nicht mehr zur redigierten Nutzlast gepasst — und
+**jeden normalen unverschlüsselten Export/Import-Roundtrip als „manipuliert"
+gemeldet**. Ein Integritätsschutz, der bei korrekter Benutzung Alarm schlägt,
+wird abgeschaltet; das wäre schlimmer als keiner gewesen.
+
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
 **Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das

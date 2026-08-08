@@ -132,7 +132,7 @@ ist es nicht mehr.
 **Akzeptanz:** Import eines älteren Snapshots ohne Bestätigung unmöglich
 (Test) · gleicher/neuerer Snapshot importiert wie bisher ohne Reibung.
 
-### - [ ] WP 1.5 · Backup: Prüfsumme + Item-Validierung beim Restore (RES-5) · S
+### - [x] WP 1.5 · Backup: Prüfsumme + Item-Validierung beim Restore (RES-5) · S — `9f760db`
 **Ziel:** Teilkorrupte Backups fallen beim Import auf, nicht Monate später.
 **Vorgehen:** SHA-256 über den Payload beim Export mitschreiben; beim Restore
 verifizieren; Items je Collection mit den Schemata aus WP 1.2 prüfen
