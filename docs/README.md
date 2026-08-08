@@ -96,6 +96,16 @@ Innerhalb davon gilt dieselbe Trennung.
 | `aaa-plus/evidence/2026-08-05-*.md` | **Protokoll.** Nachweise zu einem Lauf |
 | `aaa-plus/critic-reports/*.md` | **Protokoll.** Bewertung eines Arbeitspakets |
 
+## Laufendes Programm: Qualität 10/10 (2026-08)
+
+`docs/qualitaet-2026-08/` ist **kein Archiv**: das Programm hat offene
+Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
+
+| Datei | Rolle |
+|---|---|
+| [`qualitaet-2026-08/plan.md`](qualitaet-2026-08/plan.md) | Geltender Arbeitsplan: 7 Phasen, Arbeitspakete mit Akzeptanzkriterien, Vorentschiedenes |
+| [`qualitaet-2026-08/audit.md`](qualitaet-2026-08/audit.md) | **Protokoll.** Qualitäts-Audit vom 2026-08-08 (`main@067244f`) — die Belege zum Plan |
+
 ## Protokoll: `docs/archive/`
 
 Nichts hier ist eine geltende Regel. Jedes Dokument trägt oben einen Hinweis,
