@@ -233,7 +233,7 @@ scharf für Neues, und WP 6.2 leert die Liste wieder.
 **Akzeptanz:** `pnpm check:layers` grün · Allowlist enthält genau die zwei
 begründeten Einträge · Tests der verschobenen `KPI_DEFINITIONS` laufen.
 
-### - [ ] WP 2.4 · `api/` und `mcp-poc/` in den Typecheck (GOV-2) · H
+### - [x] WP 2.4 · `api/` und `mcp-poc/` in den Typecheck (GOV-2) · H — `eafe761`
 **Ziel:** Der Token-Endpunkt kompiliert nachweislich; die Doku-Aussage stimmt.
 **Vorgehen:** Eigenes `api/tsconfig.json`; CI-Schritt `tsc --noEmit` für
 beide; Fehler, die dabei auftauchen, beheben (gehören zum Paket).
