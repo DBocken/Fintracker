@@ -254,7 +254,7 @@ Persistenzformat Euro-Float, Validierung cent-genau (siehe „Vorentschiedenes")
 
 ## Phase 3 — Sicherheitstiefe (P1)
 
-### - [ ] WP 3.1 · PBKDF2 ≥ 600 000 Iterationen + kdf-Versionierung (SEC-1) · S
+### - [x] WP 3.1 · PBKDF2 ≥ 600 000 Iterationen + kdf-Versionierung (SEC-1) · S — `dd07c67`
 **Ziel:** OWASP-konforme Schlüsselableitung, ohne Altvaults auszusperren.
 **Vorgehen:** Neue Vaults mit ≥ 600 000 Iterationen (SHA-256); `kdf`-Feld im
 Envelope versionieren; beim erfolgreichen Unlock eines Alt-Vaults automatisch
