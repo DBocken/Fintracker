@@ -77,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | — |
-| **Schritt** | — |
-| **Im Arbeitsbaum** | nichts (sauber) |
+| **Paket** | WP 1.4 · Sync-Import: Versionsvergleich + Bestätigung (RES-4) |
+| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
+| **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
