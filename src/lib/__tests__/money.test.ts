@@ -41,6 +41,17 @@ describe("parseGermanNumber / parseEuroInput", () => {
     expect(parseGermanNumber("1.234.567")).toBe(1234567);
   });
 
+  it("liest den Tausenderpunkt auch bei NEGATIVEN Betraegen (-1.200 = -1200)", () => {
+    // Das Vorzeichen im Tausender-Muster (`/^-?\d{1,3}(\.\d{3})+$/`) war bis
+    // WP 2.1 ungetestet: ohne das `-?` faellt "-1.200" durch die Erkennung,
+    // der Punkt bleibt Dezimaltrenner, und parseFloat liefert lautlos -1,2 —
+    // ein Faktor 1000 auf einer Rueckzahlung, Abbuchung oder Gutschrift.
+    // Keiner der uebrigen Faelle haette angeschlagen, weil alle positiv sind.
+    expect(parseGermanNumber("-1.200")).toBe(-1200);
+    expect(parseGermanNumber("-1.234,56")).toBe(-1234.56);
+    expect(parseGermanNumber("-1.234.567")).toBe(-1234567);
+  });
+
   it("liest einfache Dezimalformate (Komma und Punkt)", () => {
     expect(parseGermanNumber("12,34")).toBe(12.34);
     expect(parseGermanNumber("12.50")).toBe(12.5);

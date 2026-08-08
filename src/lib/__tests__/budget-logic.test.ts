@@ -261,6 +261,24 @@ describe("budget-logic", () => {
       expect(s.ratio).toBeCloseTo(1.2);
     });
 
+    it("sollte bei Verbrauch exakt am Limit warn melden, nicht over", () => {
+      // Die Grenze selbst (`spent > limit`, budget-logic.ts). Sie speist die
+      // Budget-Ampeln UND den virtuellen Tank in disposable-budget.ts — bis
+      // WP 2.1 pruefte die Suite nur klar drunter und klar drueber, eine
+      // Mutation von `>` zu `>=` waere an beiden Stellen gruen geblieben.
+      // Fachlich gilt: das Limit ist ausgeschoepft, nicht ueberschritten.
+      const exact = [tx({ date: "2026-06-01", amount: -1000, category_id: "miete" })];
+      const s = computeBudgetStatus(
+        budget({ id: "b", category_id: "wohnen", limit: 1000, warn_threshold: 90 }),
+        exact,
+        CATEGORIES,
+        "2026-06",
+      );
+      expect(s.spent).toBe(1000);
+      expect(s.remaining).toBe(0);
+      expect(s.health).toBe("warn");
+    });
+
     describe("Edge Cases", () => {
       it("sollte mit Limit 0 nicht durch Null teilen", () => {
         const s = computeBudgetStatus(budget({ id: "b", category_id: "wohnen", limit: 0 }), txs, CATEGORIES, "2026-06");
