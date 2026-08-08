@@ -94,7 +94,7 @@ Daten" gelesen und beim nächsten Schreiben überschrieben werden.
 **Akzeptanz:** Regressionstest grün · kein Codepfad macht aus Korruption ein
 leeres Array · `pnpm check:state-coverage` unverändert grün.
 
-### - [ ] WP 1.2 · zod an der Kern-Lesegrenze (RES-2, DOM-2) · S
+### - [x] WP 1.2 · zod an der Kern-Lesegrenze (RES-2, DOM-2) · S — `6404429` (Teil A)
 **Ziel:** `parseAtBoundary` gilt für den Bestand, nicht nur für drei neue
 Domänen — AGENTS.md §8 wird wahr.
 **Vorgehen:** Schemata für `Transaction`, `Account`, `Category`, `Budget`,
@@ -154,6 +154,19 @@ Hauptbereiche; Rückgabewert von `requestPersistentStorage()` auswerten — bei
 Verweigerung dezenter Hinweis auf Backup.
 **Akzeptanz:** Quota-Fehler zeigt die Meldung statt roher `DOMException`
 (Test) · Render-Crash einer Fläche legt nicht mehr die ganze App lahm (Test).
+
+### - [ ] WP 1.2b · Die Integritätsmeldung erreicht die Fläche · S
+**Herkunft:** Teilung von WP 1.2, begründet in [`nachpruefung.md`](nachpruefung.md) 1.c.
+**Ziel:** Was `data-integrity-report.ts` zählt, sieht auch der Nutzer.
+**Vorgehen:** `src/services/data-integrity-report.ts` hält je Collection die
+Zahl der beim Lesen übersprungenen Items; die Texte (`dataIntegrity.*`) liegen
+i18n-vollständig bereit. Es fehlt die Fläche: ein Hinweis im Stil von
+`FinanceErrorState` — **kein** Fehlerzustand (die Daten sind ja da), sondern
+eine Warnung mit Handlungsoption („Backup prüfen"). Bilingualer Test, der die
+Zahl und die Handlungsoption prüft, nicht nur die Existenz.
+**Akzeptanz:** Ein übersprungenes Item ist auf der betroffenen Fläche sichtbar ·
+kein Fund ⇒ kein Hinweis (kein Dauerbanner) · `check:i18n --all` und
+`check:card-rule` grün.
 
 ### - [ ] WP 1.7 · `forecastOverrides` schluckt den Korruptionsfehler weiter · S
 **Herkunft:** kein Audit-Befund — bei WP 1.1 aufgefallen, begründet in

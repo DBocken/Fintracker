@@ -187,6 +187,45 @@ ist schlechter als „überall gleich", weil es den Eindruck erweckt, das Thema
 sei erledigt. Deshalb steht WP 1.7 in Phase 1 und nicht im Nachlauf — Phase 1
 ist erst abgeschlossen, wenn auch diese Collection wirft.
 
+### 1.c · WP 1.2 als Ratsche statt als Alles-oder-nichts, und in zwei Teilen
+
+**Befund.** `plan.md` verlangt für WP 1.2 Schemata für „`Transaction`,
+`Account`, `Category`, `Budget`, `Debt`, `Receivable` und die übrigen
+`LOCAL_FINANCE_KEYS`-Collections" — das sind **30**, dazu eine Nutzermeldung
+und eine Kaltstart-Messung. Das ist kein Paket, das in einem Zug fertig wird,
+und ein Paket, das nicht fertig wird, ist in dieser Ausführungsumgebung
+(Abbruch jederzeit möglich) verlorene Arbeit.
+
+**Entscheidung.** Zwei Schnitte statt einem grossen Wurf:
+
+1. **Ratsche statt Vollabdeckung.** Eine Schema-Registry
+   (`src/lib/schemas/collection-schemas.ts`) wird je Collection befragt:
+   Schema vorhanden ⇒ validieren, kein Schema ⇒ unverändert durchreichen.
+   Abgedeckt sind zunächst **5** (`transactions`, `accounts`, `debts`,
+   `receivables`, `budgets`); ein Test hält die Zahl fest und lässt sie nur
+   **steigen**. `categories` und `settings` fehlen bewusst — sie hängen an
+   einem Umbau von `local-settings-service.ts`.
+2. **Teil A ohne Fläche, Teil B mit.** Teil A (`6404429`) validiert, zählt und
+   hält fest; die Texte liegen i18n-vollständig bereit. Die Fläche, die das
+   anzeigt, ist **WP 1.2b**.
+
+**Begründung.** Beide Schnitte folgen demselben Prinzip wie die vorhandenen
+Wächter des Repos, wörtlich: *„ein Wächter, der ab morgen jeden Commit
+blockiert, wird abgeschaltet statt befolgt"* (`view-data-core.mjs`). Eine
+Validierung, die 30 gewachsene Collections gleichzeitig scharfstellt, verwirft
+beim ersten Lauf gute Bestandsdaten — deshalb sind die Schemata auch
+**nachsichtig** (kein `.strict()`): geprüft werden Pflichtfelder und Typen,
+nicht die Abwesenheit unbekannter Felder.
+
+**Preis.** Zwei Preise, beide echt. Erstens: 25 Collections bleiben vorerst
+ungeprüft, und die Registry macht das *sichtbar* statt es zu verdecken — die
+Ratschenzahl ist die ehrliche Antwort auf „wie weit sind wir". Zweitens:
+zwischen Teil A und WP 1.2b **zählt die App übersprungene Datensätze, ohne es
+zu sagen**. Das ist derselbe Fehler in klein, den WP 1.1 im Grossen behoben
+hat — stiller Datenverlust ist schlimmer als lauter. Deshalb steht WP 1.2b in
+Phase 1 und nicht im Nachlauf: Phase 1 ist erst zu, wenn der Nutzer die Zahl
+sieht.
+
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
 **Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das
