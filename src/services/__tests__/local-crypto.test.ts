@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   estimatePasswordStrength,
+  isLocalEncryptionWriteInFlight,
   localEncryption,
   LocalEncryptionLockedError,
+  onLocalEncryptionActivity,
+  onLocalEncryptionWriteSettled,
   VaultCorruptError,
 } from "../local-crypto";
 import { clearLocalKvStore, idbGet, idbSet } from "../idb-kv";
@@ -317,5 +320,143 @@ describe("estimatePasswordStrength", () => {
     const res = estimatePasswordStrength("Passwort123!");
     expect(res.label).toBe("schwach");
     expect(res.score).toBeLessThanOrEqual(25);
+  });
+});
+
+// WP 3.2 (SEC-2): Auto-Lock-Einstellung. Bewusst in localStorage (Klartext),
+// nicht im verschlüsselten Bestand — siehe Begründung bei AUTO_LOCK_KEY in
+// local-crypto.ts. Deshalb hier geprüft: die Einstellung ist unabhängig vom
+// Tresor-Zustand lesbar/schreibbar und überlebt einen "Neustart" (= sie liegt
+// in localStorage, nicht in einer In-Memory-Variable dieses Moduls).
+describe("Auto-Lock-Einstellung (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte ohne gespeicherten Wert den Standard von 10 Minuten liefern", () => {
+    expect(localEncryption.getAutoLockMinutes()).toBe(10);
+  });
+
+  it("sollte einen gesetzten Minutenwert zurückliefern", () => {
+    localEncryption.setAutoLockMinutes(15);
+    expect(localEncryption.getAutoLockMinutes()).toBe(15);
+  });
+
+  it("sollte 'never' als Einstellung akzeptieren und zurückliefern", () => {
+    localEncryption.setAutoLockMinutes("never");
+    expect(localEncryption.getAutoLockMinutes()).toBe("never");
+  });
+
+  it("sollte die Einstellung in localStorage persistieren, nicht nur im Speicher (übersteht einen 'Neustart')", () => {
+    localEncryption.setAutoLockMinutes(30);
+
+    // Ein Neustart hat kein Modul-Gedächtnis mehr — nur was in localStorage
+    // steht, kommt danach zurück. Direkt am Rohwert geprüft, damit der Test
+    // nicht bloß den eigenen Setter gegen den eigenen Getter testet.
+    expect(localStorage.getItem("ausgabentracker_local_encryption_autolock_v1")).toBe("30");
+
+    localStorage.setItem("ausgabentracker_local_encryption_autolock_v1", "never");
+    expect(localEncryption.getAutoLockMinutes()).toBe("never");
+  });
+
+  it("sollte bei einem kaputten/ungültigen gespeicherten Wert auf den Standard zurückfallen", () => {
+    localStorage.setItem("ausgabentracker_local_encryption_autolock_v1", "kein-zahlenwert");
+    expect(localEncryption.getAutoLockMinutes()).toBe(10);
+  });
+});
+
+// WP 3.2 (SEC-2): Aktivitäts-Kanal für laufende Schreibvorgänge. Ein langer
+// Import oder eine Massenumschlüsselung (migrateFinanceKeys, rewrapIfNeeded)
+// hat oft keine Maus-/Tastatur-Aktivität, würde vom Inaktivitäts-Timer aber
+// trotzdem mittendrin gesperrt — schlimmer als kein Auto-Lock (siehe
+// requireUnlocked(), das dann werfen würde). writeDataRaw() ist der einzige
+// Schreibpfad in den Bestand; ein Puls dort deckt jeden Schreibvorgang ab.
+describe("Aktivitäts-Kanal für Schreibvorgänge (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte bei jedem Schreibvorgang registrierte Aktivitäts-Listener benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionActivity(listener);
+
+    await localEncryption.encryptAndStore("activity_key", { a: 1 });
+    expect(listener).toHaveBeenCalled();
+
+    unsubscribe();
+  });
+
+  it("sollte einen abgemeldeten Listener nicht mehr benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionActivity(listener);
+    unsubscribe();
+
+    await localEncryption.encryptAndStore("activity_key", { a: 1 });
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+// WP 3.2 (SEC-2, "Vorentschieden" im Plan): zweite, unabhängige Auto-Lock-
+// Einstellung — Lock bei visibilitychange → hidden. Standard AUS (sonst
+// sperrt die App bei jedem Tab-Wechsel und die Einstellung wird abgeschaltet,
+// bevor sie irgendetwas schützt). Dieselbe Persistenz-Begründung wie bei der
+// Frist oben: Klartext-localStorage, unabhängig vom Tresor-Zustand lesbar.
+describe("Lock-bei-Tab-Wechsel-Einstellung (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("[SECURITY] sollte ohne gespeicherten Wert AUS (false) liefern", () => {
+    expect(localEncryption.getLockOnHidden()).toBe(false);
+  });
+
+  it("[SECURITY] sollte nach dem Einschalten true liefern", () => {
+    localEncryption.setLockOnHidden(true);
+    expect(localEncryption.getLockOnHidden()).toBe(true);
+  });
+
+  it("[SECURITY] sollte die Einstellung in localStorage persistieren (übersteht einen 'Neustart')", () => {
+    localEncryption.setLockOnHidden(true);
+    // Direkt am Rohwert geprüft — derselbe Grund wie beim Frist-Test oben:
+    // nicht bloß den eigenen Setter gegen den eigenen Getter testen.
+    expect(localStorage.getItem("ausgabentracker_local_encryption_lock_on_hidden_v1")).toBe("1");
+
+    localStorage.setItem("ausgabentracker_local_encryption_lock_on_hidden_v1", "1");
+    expect(localEncryption.getLockOnHidden()).toBe(true);
+
+    localEncryption.setLockOnHidden(false);
+    expect(localStorage.getItem("ausgabentracker_local_encryption_lock_on_hidden_v1")).toBeNull();
+  });
+});
+
+// WP 3.2 (SEC-2): "Schreibvorgang läuft"-Zähler, den der Provider nutzt, um
+// einen Lock-bei-Tab-Wechsel zu verschieben, statt einen mehrteiligen
+// Schreibvorgang (z.B. restoreLocalCollections) mittendrin abzubrechen.
+describe("Schreibvorgang-in-Arbeit-Kanal (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte außerhalb eines Schreibvorgangs false liefern", () => {
+    expect(isLocalEncryptionWriteInFlight()).toBe(false);
+  });
+
+  it("sollte registrierte Listener benachrichtigen, sobald ein Schreibvorgang abgeschlossen ist", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionWriteSettled(listener);
+
+    await localEncryption.encryptAndStore("flight_key", { a: 1 });
+
+    expect(listener).toHaveBeenCalled();
+    expect(isLocalEncryptionWriteInFlight()).toBe(false);
+    unsubscribe();
   });
 });

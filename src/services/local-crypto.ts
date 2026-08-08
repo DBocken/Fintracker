@@ -10,6 +10,64 @@ import { t } from '../i18n/serviceT'
 
 let persistenceRequested = false
 
+// --- Aktivitäts-Kanal für Auto-Lock (WP 3.2 / SEC-2) -------------------------
+// Jeder tatsächliche Schreibvorgang in den verschlüsselten Bestand zählt als
+// Aktivität — nicht nur Maus-/Tastatur-/Touch-Ereignisse. Ohne das würde ein
+// langer Import oder eine Massenumschlüsselung (migrateFinanceKeys,
+// rewrapIfNeeded — beide schreiben mehrfach über writeDataRaw, oft ohne dass
+// währenddessen irgendein DOM-Ereignis auftritt) vom Inaktivitäts-Timer
+// mittendrin unterbrochen: der nächste Schreibversuch träfe auf einen bereits
+// gesperrten Tresor (`requireUnlocked()` wirft dann) und bräche ab — ein Lock
+// mitten im Schreibvorgang wäre schlimmer als gar kein Auto-Lock. `local-
+// crypto.ts` kennt React nicht (Schichtregel: services → hooks, nicht
+// umgekehrt) — deshalb ein einfacher, framework-loser Listener-Kanal, den
+// `LocalEncryptionProvider` zusätzlich zu den DOM-Aktivitätsereignissen
+// abonniert. Freie Funktion statt Methode auf `localEncryption`, damit die
+// Referenz über die App-Laufzeit stabil bleibt (kein `this`-Rebind-Risiko,
+// wenn der Provider sie direkt als `extraActivity`-Prop weiterreicht).
+const activityListeners = new Set<() => void>()
+
+/** Meldet sich für den Aktivitäts-Kanal an; der Rückgabewert meldet ab. */
+export function onLocalEncryptionActivity(listener: () => void): () => void {
+  activityListeners.add(listener)
+  return () => {
+    activityListeners.delete(listener)
+  }
+}
+
+function pulseActivity(): void {
+  for (const listener of activityListeners) listener()
+}
+
+// --- "Schreibvorgang läuft"-Zähler für den Lock-bei-Tab-Wechsel (WP 3.2) ----
+// Anders als der Inaktivitäts-Timer wird `visibilitychange` → `hidden` NICHT
+// durch einen Aktivitäts-Puls aufgeschoben — der Puls verschiebt nur einen
+// künftigen Timer, er verhindert kein sofortiges Ereignis. Ein mehrteiliger
+// Schreibvorgang (`restoreLocalCollections` in backup-service.ts iteriert
+// z.B. mehrere Collections nacheinander mit je einem eigenen `await
+// writeLocalFinanceList(...)`) hätte sonst ein Loch: Tab-Wechsel zwischen zwei
+// Iterationen sperrt sofort, der nächste Schreibschritt trifft auf einen
+// bereits gesperrten Tresor und bricht mit `LocalEncryptionLockedError` ab —
+// ein Backup-Restore bliebe halb wiederhergestellt zurück. Deshalb zählt
+// `writeDataRaw` laufende Schreibvorgänge; der Provider verschiebt den Lock,
+// bis der Zähler auf 0 fällt, und sperrt dann nur, wenn der Tab zu diesem
+// Zeitpunkt IMMER NOCH verborgen ist (siehe LocalEncryptionProvider.tsx).
+let writesInFlight = 0
+const writeSettledListeners = new Set<() => void>()
+
+/** Läuft gerade ein Schreibvorgang in den verschlüsselten Bestand? */
+export function isLocalEncryptionWriteInFlight(): boolean {
+  return writesInFlight > 0
+}
+
+/** Meldet sich an, sobald KEIN Schreibvorgang mehr läuft (Zähler auf 0). */
+export function onLocalEncryptionWriteSettled(listener: () => void): () => void {
+  writeSettledListeners.add(listener)
+  return () => {
+    writeSettledListeners.delete(listener)
+  }
+}
+
 async function readDataRaw(storageKey: string): Promise<string | null> {
   const fromIdb = await idbGet(storageKey)
   if (fromIdb != null) return fromIdb
@@ -27,13 +85,22 @@ async function readDataRaw(storageKey: string): Promise<string | null> {
 }
 
 async function writeDataRaw(storageKey: string, raw: string): Promise<void> {
-  await idbSet(storageKey, raw)
-  if (typeof localStorage !== 'undefined') localStorage.removeItem(storageKey)
-  if (!persistenceRequested) {
-    persistenceRequested = true
-    // RES-7: Rückgabewert wird ausgewertet (nicht mehr fire-and-forget) und
-    // bei Verweigerung als kleines Flag gemerkt — Details siehe idb-kv.ts.
-    void requestAndRecordPersistentStorage()
+  pulseActivity()
+  writesInFlight += 1
+  try {
+    await idbSet(storageKey, raw)
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(storageKey)
+    if (!persistenceRequested) {
+      persistenceRequested = true
+      // RES-7: Rückgabewert wird ausgewertet (nicht mehr fire-and-forget) und
+      // bei Verweigerung als kleines Flag gemerkt — Details siehe idb-kv.ts.
+      void requestAndRecordPersistentStorage()
+    }
+  } finally {
+    writesInFlight = Math.max(0, writesInFlight - 1)
+    if (writesInFlight === 0) {
+      for (const listener of writeSettledListeners) listener()
+    }
   }
 }
 
@@ -79,6 +146,60 @@ const CHECK_KEY = 'ausgabentracker_local_encryption_check_v1'
 // ein drittes, nie dagewesenes Salt treffen und wären mit keinem der beiden
 // bekannten Schlüssel mehr entschlüsselbar.
 const REWRAP_PENDING_KEY = 'ausgabentracker_local_encryption_rewrap_pending_v1'
+
+// --- Auto-Lock-Einstellung (WP 3.2 / SEC-2) ----------------------------------
+// Kein Finanzdatum, sondern ein reines Verhaltens-Flag — wie
+// `PERSISTENCE_DENIED_KEY` in idb-kv.ts ("Kleines UI-Flag (kein Finanzdatum) —
+// bleibt bewusst in localStorage") bewusst in Klartext-localStorage, NICHT im
+// verschlüsselten Bestand (local-settings-service.ts): Diese Einstellung
+// steuert, WANN sich der Tresor selbst sperrt, und muss deshalb unabhängig vom
+// Tresor-Zustand lesbar sein — insbesondere direkt nach einem automatischen
+// Lock, wenn als Nächstes exakt diese Einstellung wieder gelesen werden muss,
+// um zu wissen, ob (und wann) erneut gesperrt werden soll. Läge sie im
+// verschlüsselten Bestand, wäre sie ausgerechnet dann unlesbar, wenn sie
+// gebraucht wird. Dieselbe Überlegung gilt schon für CONFIG_KEY/CHECK_KEY
+// oben: Voraussetzungen fürs Entsperren können nicht hinter dem Entsperren
+// liegen.
+const AUTO_LOCK_KEY = 'ausgabentracker_local_encryption_autolock_v1'
+/** Vorentschieden (WP 3.2 / docs/qualitaet-2026-08/plan.md): Standard 10 Minuten. */
+export const AUTO_LOCK_DEFAULT_MINUTES = 10
+/** Sentinel-Wert für "nie automatisch sperren". */
+export const AUTO_LOCK_NEVER = 'never' as const
+export type AutoLockSetting = number | typeof AUTO_LOCK_NEVER
+
+function loadAutoLockSetting(): AutoLockSetting {
+  if (typeof localStorage === 'undefined') return AUTO_LOCK_DEFAULT_MINUTES
+  const raw = localStorage.getItem(AUTO_LOCK_KEY)
+  if (raw == null) return AUTO_LOCK_DEFAULT_MINUTES
+  if (raw === AUTO_LOCK_NEVER) return AUTO_LOCK_NEVER
+  const minutes = Number(raw)
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : AUTO_LOCK_DEFAULT_MINUTES
+}
+
+function saveAutoLockSetting(value: AutoLockSetting): void {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(AUTO_LOCK_KEY, value === AUTO_LOCK_NEVER ? AUTO_LOCK_NEVER : String(value))
+}
+
+// Zweite, unabhängige Auto-Lock-Einstellung (WP 3.2 / SEC-2, "Vorentschieden"
+// im Plan): Lock bei `visibilitychange` → `hidden` (Tab-Wechsel, App in den
+// Hintergrund). Standardmäßig AUS — sonst sperrt die App bei jedem
+// Tab-Wechsel, und was ständig nervt, wird abgeschaltet und schützt dann gar
+// nichts mehr. Dieselbe Begründung wie bei AUTO_LOCK_KEY oben gilt
+// unverändert: Klartext-localStorage, weil die Einstellung unabhängig vom
+// Tresor-Zustand lesbar sein muss (u.a. direkt nach einem automatischen Lock).
+const AUTO_LOCK_ON_HIDDEN_KEY = 'ausgabentracker_local_encryption_lock_on_hidden_v1'
+
+function loadLockOnHiddenSetting(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  return localStorage.getItem(AUTO_LOCK_ON_HIDDEN_KEY) === '1'
+}
+
+function saveLockOnHiddenSetting(value: boolean): void {
+  if (typeof localStorage === 'undefined') return
+  if (value) localStorage.setItem(AUTO_LOCK_ON_HIDDEN_KEY, '1')
+  else localStorage.removeItem(AUTO_LOCK_ON_HIDDEN_KEY)
+}
 
 // SEC-1 (docs/qualitaet-2026-08/audit.md): OWASP empfiehlt für PBKDF2-HMAC-
 // SHA256 ≥ 600.000 Iterationen (210.000 war der SHA-512-Wert und machte das
@@ -280,6 +401,24 @@ export const localEncryption = {
 
   isUnlocked(): boolean {
     return this.isEnabled() && !!this._key
+  },
+
+  /** WP 3.2 (SEC-2): Minuten bis zum Auto-Lock, oder `AUTO_LOCK_NEVER`. */
+  getAutoLockMinutes(): AutoLockSetting {
+    return loadAutoLockSetting()
+  },
+
+  setAutoLockMinutes(value: AutoLockSetting): void {
+    saveAutoLockSetting(value)
+  },
+
+  /** WP 3.2 (SEC-2): Lock bei `visibilitychange` → `hidden`. Standard: aus. */
+  getLockOnHidden(): boolean {
+    return loadLockOnHiddenSetting()
+  },
+
+  setLockOnHidden(value: boolean): void {
+    saveLockOnHiddenSetting(value)
   },
 
   lock() {

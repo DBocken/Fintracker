@@ -1,18 +1,37 @@
 import { useMemo, useState } from 'react';
-import { Shield, Lock, Unlock, KeyRound, Trash2, FileKey2 } from 'lucide-react';
+import { Shield, Lock, Unlock, KeyRound, Trash2, FileKey2, TimerReset } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { showError, showSuccess } from '@/utils/toast';
-import { estimatePasswordStrength } from '@/services/local-crypto';
+import { estimatePasswordStrength, type AutoLockSetting } from '@/services/local-crypto';
 import { useLocalEncryption } from '@/components/providers/LocalEncryptionProvider';
 import { useI18n } from '@/i18n/useI18n';
 
+// WP 3.2 (SEC-2): Voreinstellungen für die Auto-Lock-Frist. 10 ist der
+// vorentschiedene Standard (docs/qualitaet-2026-08/plan.md, WP 3.2); "nie"
+// kommt als eigener SelectItem dazu (AUTO_LOCK_NEVER-Sentinel).
+const AUTO_LOCK_MINUTE_OPTIONS = [1, 5, 10, 15, 30, 60] as const;
+const AUTO_LOCK_NEVER_VALUE = 'never';
+
 export function LocalEncryptionSettings() {
-  const { enabled, unlocked, enable, unlock, lock, disable } = useLocalEncryption();
+  const {
+    enabled,
+    unlocked,
+    enable,
+    unlock,
+    lock,
+    disable,
+    autoLockMinutes,
+    setAutoLockMinutes,
+    lockOnHidden,
+    setLockOnHidden,
+  } = useLocalEncryption();
   const { t } = useI18n();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -110,6 +129,56 @@ export function LocalEncryptionSettings() {
             </Button>
           ) : null}
         </div>
+
+        {enabled && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground">
+              <TimerReset className="h-4 w-4 text-positive" />
+              {t('privacy.localEncryption.autoLockLabel')}
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              {t('privacy.localEncryption.autoLockDescription')}
+            </p>
+            <Select
+              value={autoLockMinutes === AUTO_LOCK_NEVER_VALUE ? AUTO_LOCK_NEVER_VALUE : String(autoLockMinutes)}
+              onValueChange={(value) =>
+                setAutoLockMinutes(
+                  (value === AUTO_LOCK_NEVER_VALUE ? AUTO_LOCK_NEVER_VALUE : Number(value)) as AutoLockSetting,
+                )
+              }
+            >
+              <SelectTrigger className="w-full sm:w-64" aria-label={t('privacy.localEncryption.autoLockLabel')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AUTO_LOCK_MINUTE_OPTIONS.map((minutes) => (
+                  <SelectItem key={minutes} value={String(minutes)}>
+                    {t('privacy.localEncryption.autoLockOptionMinutes').replace('{minutes}', String(minutes))}
+                  </SelectItem>
+                ))}
+                <SelectItem value={AUTO_LOCK_NEVER_VALUE}>
+                  {t('privacy.localEncryption.autoLockOptionNever')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+              <div>
+                <div className="text-sm font-medium text-foreground">
+                  {t('privacy.localEncryption.lockOnHiddenLabel')}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('privacy.localEncryption.lockOnHiddenDescription')}
+                </p>
+              </div>
+              <Switch
+                checked={lockOnHidden}
+                aria-label={t('privacy.localEncryption.lockOnHiddenLabel')}
+                onCheckedChange={(next) => setLockOnHidden(next)}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
