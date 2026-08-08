@@ -72,7 +72,13 @@ import FinanceErrorState from '@/components/common/FinanceErrorState';
 export default function LiquidityReport() {
   const money = useMoneyFormat();
   const { t } = useI18n();
-  const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
+  const {
+    overrides,
+    updateConfig,
+    updatePlanning,
+    isError: overridesError,
+    refetch: refetchOverrides,
+  } = useForecastOverrides();
   const { months, safetyBuffer, bufferBasis } = overrides;
   const setMonths = (m: number) => updateConfig({ months: m });
   const setSafetyBuffer = (b: number) => updateConfig({ safetyBuffer: b });
@@ -234,7 +240,7 @@ export default function LiquidityReport() {
     });
   }, [forecast, bufferBasis, risk]);
 
-  const hasLoadError = isError || categoriesError;
+  const hasLoadError = isError || categoriesError || overridesError;
 
   if (isLoading) {
     return (
@@ -262,6 +268,7 @@ export default function LiquidityReport() {
         onRetry={() => {
           refetchForecast();
           void refetchCategories();
+          void refetchOverrides();
         }}
       />
     );

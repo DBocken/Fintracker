@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { clearLocalKvStore, idbGet } from '../idb-kv';
-import { localEncryption } from '../local-crypto';
+import { clearLocalKvStore, idbGet, idbSet } from '../idb-kv';
+import { localEncryption, LocalEncryptionLockedError, VaultCorruptError } from '../local-crypto';
 import { FORECAST_OVERRIDES_STORAGE_KEY, getForecastOverrides, saveForecastOverrides } from '../forecast-overrides-service';
 import { DEFAULT_FORECAST_OVERRIDES } from '@/lib/forecast-types';
 
@@ -82,5 +82,37 @@ describe('forecast-overrides-service', () => {
       safetyBuffer: 1800,
       categoryBudgets: { geheimKategorie: 1234 },
     });
+  });
+
+  // WP 1.7 — die Fehlkette, die WP 1.1 fuer 29 von 30 Collections schon
+  // schliesst, war fuer forecastOverrides noch offen: `getForecastOverrides()`
+  // fing JEDEN Fehler und lieferte Defaults, auch einen `VaultCorruptError`.
+
+  it('[REGRESSION] sollte bei korruptem Envelope werfen statt Defaults zu liefern', async () => {
+    await localEncryption.enable('correct horse battery staple');
+    // Rohwert ist vorhanden, aber kein gueltiges JSON -> Korruption, kein
+    // Leerzustand (RES-1 in local-crypto.ts).
+    await idbSet(FORECAST_OVERRIDES_STORAGE_KEY, '{nicht-valides-json');
+
+    // `.rejects` ist hier der entscheidende Teil: die alte Implementierung
+    // haette `.resolves.toEqual(DEFAULT_FORECAST_OVERRIDES)` erfuellt — genau
+    // das darf jetzt NICHT mehr passieren.
+    await expect(getForecastOverrides()).rejects.toBeInstanceOf(VaultCorruptError);
+  });
+
+  it('sollte ohne vorhandenen Key weiterhin Defaults liefern, ohne zu werfen', async () => {
+    // Kein `beforeEach`-Schreibvorgang zuvor -> der Key existiert schlicht
+    // nicht. Das ist der echte Leerzustand, kein Fehler.
+    await expect(getForecastOverrides()).resolves.toEqual(DEFAULT_FORECAST_OVERRIDES);
+  });
+
+  it('sollte bei gesperrtem Vault weiterhin LocalEncryptionLockedError durchreichen', async () => {
+    await localEncryption.enable('correct horse battery staple');
+    await saveForecastOverrides({ ...DEFAULT_FORECAST_OVERRIDES, safetyBuffer: 1800 });
+    localEncryption.lock();
+
+    // Ein gesperrter Vault ist keine Korruption — die Fläche muss „entsperren"
+    // von „Backup einspielen" unterscheiden können.
+    await expect(getForecastOverrides()).rejects.toBeInstanceOf(LocalEncryptionLockedError);
   });
 });
