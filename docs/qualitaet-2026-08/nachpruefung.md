@@ -269,6 +269,62 @@ Browser-Kaltstart.
 Node, nicht über das Gerät des Nutzers. Wer sie als Browser-Aussage liest,
 liest zu viel hinein.
 
+### 1.e · Die i18n-Ausnahmeliste deckt Altbestand, niemals Nachschub
+
+**Befund.** Bei WP 1.3 entstand eine neue Fehlermeldung
+(`StoreMigrationPendingError`). Der erste Versuch hat sie als
+Entwicklertext behandelt und die Ausnahme für `store-compatibility.ts` in
+`i18n-allowlist.json` von `count: 1` auf `2` gehoben — mit einer
+plausibel klingenden Begründung. `check:i18n --all` war damit grün. Der
+**Pre-Commit-Hook** hat es trotzdem gefangen: `check:i18n --staged`
+prüft geänderte Zeilen **ohne** Ausnahmeliste.
+
+**Entscheidung.** Ausnahme zurück auf `1`. Die Meldung läuft über
+`serviceT` und steht in allen `SUPPORTED_LOCALES`. Die zweite neue Meldung
+(Lücke in der Migrations-Schrittliste) bleibt dagegen **englischer
+Entwicklertext ohne Schlüssel**.
+
+**Begründung.** Die Asymmetrie der beiden Modi ist Absicht, nicht Lücke:
+eine Ausnahmeliste, die auch für neue Zeilen gilt, ist keine Ratsche mehr,
+sondern ein Ventil. Die Unterscheidung zwischen den beiden Meldungen ist
+**wer sie sehen kann**: `StoreMigrationPendingError` erreicht über den
+`ErrorBoundary` den Nutzer und braucht deshalb Übersetzung und einen Satz,
+der eine Handlung nennt. Die Lücken-Meldung ist ein Autorenfehler in der
+Schrittliste — ein Zustand, in den ein Nutzer gar nicht geraten kann. Sie
+zu übersetzen würde eine Nutzerlage vortäuschen, die es nicht gibt.
+
+**Preis.** Für die Beurteilung „kann das der Nutzer sehen?" gibt es keinen
+Wächter — sie bleibt Selbst-Review. Der Hook erzwingt nur, dass die Frage
+überhaupt gestellt wird, nicht dass sie richtig beantwortet wird.
+
+**Bemerkenswert:** Hier hat der Pre-Commit-Hook den Fehler eines Agenten
+gefangen, den der Review nicht gefangen hätte — ich hatte die
+Allowlist-Erhöhung gelesen und für vertretbar gehalten. Das ist genau der
+Zweck des Wächter-Systems, und es ist das erste Mal in diesem Programm,
+dass es gegen *uns* gearbeitet hat statt für uns.
+
+### 1.f · `pnpm test:integrity` sieht neue Testdateien strukturell nicht
+
+**Befund.** Das Skript in `package.json` filtert `[INTEGRITY]` über eine
+**feste Dateiliste**, nicht über einen Glob. Die drei neuen Testdateien aus
+WP 1.3 tragen `[INTEGRITY]`/`[REGRESSION]`, laufen dort aber nicht mit.
+Dasselbe gilt für `test:security`, `test:privacy`, `test:mobile`.
+
+**Entscheidung.** Nicht in WP 1.3 behoben; als Punkt für **WP 7.6**
+(Buchhaltung und entschiedene Restpunkte) vorgemerkt.
+
+**Begründung.** Es ist kein Verhaltensfehler — die Tests laufen in
+`pnpm test` und in CI vollständig mit. Betroffen ist nur die Aussagekraft
+der vier benannten Suiten, und die Korrektur (Glob statt Liste) berührt
+alle vier plus die AGENTS.md-§2-Tabelle. Das gehört gebündelt entschieden,
+nicht als Anhängsel eines Speicher-Pakets.
+
+**Preis.** Bis dahin bedeutet „`pnpm test:security` ist grün" weniger, als
+es klingt: es ist eine Aussage über eine handgepflegte Dateiliste, nicht
+über alle `[SECURITY]`-Tests im Baum. Wer die Suite als Freigabe-Kriterium
+liest, liest zu viel hinein — genau die Sorte stiller Bedeutungsverlust,
+gegen die dieses Programm sonst antritt.
+
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
 **Befund.** Die erste Unterbrechung (Volumenlimit, 2026-08-08) hat das

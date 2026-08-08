@@ -109,7 +109,7 @@ verlagern und das im PR belegen.
 **Akzeptanz:** Manipulierter Einzeldatensatz erreicht nie die Render-Schicht
 (`[REGRESSION]`-Test) · Meldung i18n-vollständig · Kaltstart-Messung im PR.
 
-### - [ ] WP 1.3 · Echter Migrationsläufer an `LOCAL_STORE_SCHEMA_VERSION` (RES-3) · S/O
+### - [x] WP 1.3 · Echter Migrationsläufer an `LOCAL_STORE_SCHEMA_VERSION` (RES-3) · S/O — `c765da1`
 **Ziel:** Strukturänderungen persistierter Daten haben einen Aufhänger:
 nummerierte, getestete, genau einmal laufende Schritte.
 **Vorgehen:** Läufer in `src/services/` (Liste `migrations[n]`, läuft
