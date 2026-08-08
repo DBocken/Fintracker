@@ -168,7 +168,7 @@ Zahl und die Handlungsoption prüft, nicht nur die Existenz.
 kein Fund ⇒ kein Hinweis (kein Dauerbanner) · `check:i18n --all` und
 `check:card-rule` grün.
 
-### - [ ] WP 1.7 · `forecastOverrides` schluckt den Korruptionsfehler weiter · S
+### - [x] WP 1.7 · `forecastOverrides` schluckt den Korruptionsfehler weiter · S — `bba49ae`
 **Herkunft:** kein Audit-Befund — bei WP 1.1 aufgefallen, begründet in
 [`nachpruefung.md`](nachpruefung.md) 1.a.
 **Ziel:** Auch die letzte Collection meldet Korruption, statt sie in Defaults

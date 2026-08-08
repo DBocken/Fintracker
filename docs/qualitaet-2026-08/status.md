@@ -77,9 +77,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 1.7 · `forecastOverrides` schluckt den Korruptionsfehler |
-| **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
-| **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
+| **Paket** | — |
+| **Schritt** | — |
+| **Im Arbeitsbaum** | nichts (sauber) |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -138,7 +138,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 6 | 1.4 | Sync-Import: Versionsvergleich + Bestätigung (RES-4) | **fertig** | `ff348fa` |
 | 7 | 1.5 | Backup: Prüfsumme + Item-Validierung (RES-5) | **fertig** | `9f760db` |
 | 8 | 1.6 | Speicher-Laufzeitfehler behandeln (RES-6, RES-7) | **fertig** | `080b0ae` |
-| 8a | **1.7** | `forecastOverrides` schluckt den Korruptionsfehler weiter | offen | neu aus WP 1.1, siehe `nachpruefung.md` 1.a |
+| 8a | **1.7** | `forecastOverrides` schluckt den Korruptionsfehler weiter | **fertig** | `bba49ae` |
 | 9 | 2.3 | Layer-Wächter: hooks + Slice-Presentation (ARCH-3/4) | offen | |
 | 10 | 2.4 | `api/` und `mcp-poc/` in den Typecheck (GOV-2) | offen | |
 | 11 | 2.5 | Invariante 5 einlösen (DOM-4) | offen | |
@@ -178,7 +178,7 @@ geschrieben, sobald die letzte WP einer Phase steht:
 | Segment | Nachprüfung |
 |---|---|
 | 0 · Laufwerk | ✅ geschrieben |
-| 1 · Phase 1 | offen |
+| 1 · Phase 1 | ✅ geschrieben |
 | 2 · Phase 2 | offen |
 | 3 · Phase 3 | offen |
 | 4 · Phase 4 | offen |

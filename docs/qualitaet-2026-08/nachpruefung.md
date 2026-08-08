@@ -156,8 +156,56 @@ grün — was in diesem Programm rot wird, hat dieses Programm verursacht.
 
 ## Segment 1 · Phase 1 — Datenverlust unmöglich machen
 
-*Der Abschluss-Eintrag wird geschrieben, sobald WP 1.6 steht. Bis dahin
-sammeln sich hier die Zwischenbefunde.*
+### Abschluss — 2026-08-08
+
+**Acht Pakete statt sechs.** `plan.md` sah WP 1.1–1.6 vor; dazu kamen **WP 1.7**
+(`forecastOverrides` schluckte den neuen Fehler weiter) und **WP 1.2b** (die
+Integritätsmeldung erreichte die Fläche nicht). Beide entstanden nicht aus
+neuem Wissen, sondern daraus, dass die ersten Pakete den nächsten Schluckpunkt
+**sichtbar machten** — WP 1.1 hat einen Fehler eingeführt, der vorher nirgends
+ankommen konnte, und damit erst zeigen können, wer ihn wegwirft.
+
+**Was Phase 1 jetzt garantiert, prüfbar:**
+
+| Weg | Vorher | Jetzt |
+|---|---|---|
+| Envelope kaputt | `null` ⇒ `[]` ⇒ nächster Schreibvorgang löscht die Collection | `VaultCorruptError`, Schreiben scheitert vorher |
+| Einzelnes Item kaputt | fließt bis in die Render-Schicht | übersprungen, gezählt, auf `/transactions` gemeldet |
+| Schema-Version springt | Nummer wird stumm festgeschrieben | Läufer mit Schritt-für-Schritt-Version; Abbruch bleibt lesbar |
+| Älterer Sync-Snapshot | überschreibt neuere Daten kommentarlos | verlangt Bestätigung mit **beiden** Ständen |
+| Backup teilkorrupt | importiert „erfolgreich" | SHA-256 erkennt es; Items einzeln geprüft |
+| Quota erschöpft | rohe `DOMException` | benannter Fehler mit Handlungsoption |
+| IndexedDB-Erstaufruf scheitert | Store für die Sitzung tot | nächster Zugriff versucht es erneut |
+| Render-Crash einer Fläche | ganze App weg | Navigation bleibt, Routenwechsel erholt sich |
+
+**Das Erfolgskriterium 1 des Programms** („kein Codepfad macht aus einem
+Lese-/Entschlüsselungsfehler einen Leerzustand") gilt damit für die
+Kern-Lesewege — **aber nicht lückenlos**, und das ist die ehrliche Fassung:
+
+- 25 von 30 Collections haben noch **kein Schema** (Ratsche, `nachpruefung.md`
+  1.c). Sie sind gegen Envelope-Korruption geschützt (WP 1.1 wirkt für alle),
+  nicht gegen einzelne kaputte Datensätze.
+- Nur `/transactions` **zeigt** die Zahl übersprungener Items. Vier weitere
+  Collections zählen sie, ohne sie anzuzeigen.
+- `IncomeStressTestDialog` fällt bei einem Overrides-Fehler weiterhin still auf
+  Defaults zurück — dieselbe Klasse wie der Kernbefund, in einem sekundären
+  Dialog (gefunden in WP 1.7, bewusst nicht mitgenommen).
+
+**Was diese Phase über die Arbeitsweise gelehrt hat.** Dreimal hat nicht das
+Nachdenken den Fehler gefunden, sondern ein Wächter oder ein roter Test:
+`check:i18n --staged` fing eine Allowlist-Erhöhung, die ich für vertretbar
+gehalten hatte (1.e); die view-data-Ratsche fing einen Typ am falschen Ort und
+einen überflüssigen zweiten Codepfad (1.g); ein roter Test zeigte, dass der
+Integritätsbericht für den Restore semantisch nicht taugt (1.h). Dazu ein
+Beinahe-Fehler, den der ausführende Agent selbst fand: eine Prüfsumme vor der
+Secret-Redaktion hätte **jeden korrekten Export** als manipuliert gemeldet.
+Das ist der Kern des Programms in einem Satz: **Ein Versprechen ohne Wächter
+ist eine Absichtserklärung — und das gilt auch für die Versprechen, die man
+sich selbst beim Review gibt.**
+
+---
+
+*Die Zwischenbefunde, auf die sich der Abschluss beruft:*
 
 ### 1.a · WP 1.1 legt einen zweiten Schlucker frei — neues Paket WP 1.7
 
@@ -387,6 +435,29 @@ Prüfsumme hätte danach nicht mehr zur redigierten Nutzlast gepasst — und
 **jeden normalen unverschlüsselten Export/Import-Roundtrip als „manipuliert"
 gemeldet**. Ein Integritätsschutz, der bei korrekter Benutzung Alarm schlägt,
 wird abgeschaltet; das wäre schlimmer als keiner gewesen.
+
+### 1.i · Ein Dialog schluckt den Overrides-Fehler weiter
+
+**Befund.** `src/components/income/IncomeStressTestDialog.tsx` konsumiert
+`useForecastOverrides()` ebenfalls, zeigt aber keinen Fehlerzustand: bei einem
+Overrides-Fehler rechnet er intern mit `DEFAULT_FORECAST_OVERRIDES` weiter.
+Gefunden beim Bauen von WP 1.7.
+
+**Entscheidung.** Nicht mitgenommen. Als offener Punkt hier festgehalten und in
+Phase 7 (WP 7.1, Verschärfung der Fehlerzustands-Tests) mitzuentscheiden.
+
+**Begründung.** Es ist dieselbe Klasse wie der Kernbefund, aber in einem
+sekundären Dialog statt der Hauptfläche — und ein Fehlerzustand in einem Dialog
+ist eine eigene Design-Entscheidung (Bauform, Text, was passiert mit der
+laufenden Eingabe), keine Wiederholung der Fläche. WP 1.7 hatte `/liquidity`
+als benanntes Ziel; ein Paket, das seine eigene Grenze überschreitet, ist nicht
+mehr einzeln rückrollbar.
+
+**Preis.** Ein Nutzer, dessen Overrides beschädigt sind, sieht auf
+`/liquidity` einen Fehler und in diesem Dialog eine Rechnung mit
+Standardannahmen — **zwei verschiedene Auskünfte über denselben Zustand**. Das
+ist schlechter als zweimal derselbe Fehler und der Grund, warum der Punkt hier
+steht und nicht nur im Commit.
 
 ### 1.b · Der Wiedereinstieg selbst hatte zwei Fehler — beide korrigiert
 
