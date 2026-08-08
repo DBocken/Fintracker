@@ -159,7 +159,7 @@ Verweigerung dezenter Hinweis auf Backup.
 
 ## Phase 2 — Geld-Korrektheit & Wächterlöcher (P0, klein)
 
-### - [ ] WP 2.1 · Drei Mutations-Löcher schließen (TEST-1/2/3) · H
+### - [x] WP 2.1 · Drei Mutations-Löcher schließen (TEST-1/2/3) · H — `c4bed98`
 **Ziel:** Die exakten Grenzwerte der Geldlogik sind getestet — eine
 `<`↔`<=`-Mutation wird rot.
 **Vorgehen:** Testfälle: `basis === bufferCents` in `forecast.test.ts`

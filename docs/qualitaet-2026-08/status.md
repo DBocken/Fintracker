@@ -65,9 +65,9 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | — |
-| **Schritt** | — |
-| **Im Arbeitsbaum** | nichts (sauber) |
+| **Paket** | WP 1.1 · Envelope-Korruption wirft statt schluckt (RES-1) |
+| **Schritt** | Umsetzung durch delegierten Agenten, Prüfung durch den Orchestrator steht aus |
+| **Im Arbeitsbaum** | `local-crypto.ts`, `local-finance-store.ts`, `transaction-storage-service.ts`, `translations.ts` und deren Tests — **verwerfen und neu machen**, wenn hier eine neue Sitzung einsteigt |
 
 *Dieser Block wird beim Start eines Pakets gefüllt und beim Commit wieder
 geleert. Steht hier ein Paket und `git status` ist trotzdem sauber, wurde der
@@ -118,7 +118,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | # | WP | Thema | Status | Commit |
 |---|---|---|---|---|
 | 1 | 1.1 | Envelope-Korruption wirft statt schluckt (RES-1) | offen | |
-| 2 | 2.1 | Drei Mutations-Löcher schließen (TEST-1/2/3) | offen | |
+| 2 | 2.1 | Drei Mutations-Löcher schließen (TEST-1/2/3) | **fertig** | `c4bed98` |
 | 3 | 2.2 | Regelverstöße + Wächter `check:money-parsing` (GOV-1) | offen | |
 | 4 | 1.2 | zod an der Kern-Lesegrenze (RES-2, DOM-2) | offen | |
 | 5 | 1.3 | Echter Migrationsläufer (RES-3) | offen | |
