@@ -263,7 +263,7 @@ auf die neuen Parameter umschlüsseln (Rewrap). `[SECURITY]`-Tests: Alt-Vault
 **Akzeptanz:** Beide Tests grün · `pnpm test:security` grün · Iterationszahl
 an genau einer Stelle definiert.
 
-### - [ ] WP 3.2 · Auto-Lock (SEC-2) · S
+### - [x] WP 3.2 · Auto-Lock (SEC-2) · S — `14c4600`
 **Ziel:** Ein unbeaufsichtigtes, entsperrtes Gerät bleibt nicht unbegrenzt
 lesbar — das eigene Threat Model wird eingelöst.
 **Vorgehen:** Inaktivitäts-Timer (Default 10 min, in den

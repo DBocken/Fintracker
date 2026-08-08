@@ -640,3 +640,37 @@ gebaut ist. Übernommen wurde deshalb nur, was **senkt** oder was **neu** ist;
 jede Zahl, die gestiegen wäre, blieb stehen. Die Lehre für den Umgang mit
 `--update` überhaupt: **sein Ergebnis ist ein Vorschlag, kein Ergebnis** — der
 Diff gehört gelesen, bevor er committet wird.
+
+
+---
+
+## Segment 3 · Phase 3 — Sicherheitstiefe
+
+### 3.a · Ein Auftragspunkt fehlte im ersten Durchgang — gefunden, weil nachgezählt wurde
+
+**Befund.** WP 3.2 kam vollständig und grün zurück: Idle-Timer, Einstellung,
+Persistenz, Tests, i18n. Nicht enthalten war die im Auftrag ausdrücklich unter
+„Vorentschieden" genannte zweite Option — Sperre bei `visibilitychange →
+hidden`, Standard aus. `grep visibilitychange` fand im ganzen Paket nichts.
+Der Bericht erwähnte die Auslassung nicht.
+
+**Entscheidung.** Nachgefordert statt akzeptiert.
+
+**Begründung.** Der Punkt war klein und die Option ist standardmäßig aus — es
+wäre leicht gewesen, ihn als „praktisch folgenlos" durchgehen zu lassen. Genau
+das ist aber stilles Verkleinern des Auftrags: Wer entscheidet, dass ein
+spezifizierter Punkt entfällt, muss das sagen und begründen, nicht weglassen.
+Dass die Auslassung auffiel, lag nicht am Bericht, sondern daran, dass ich den
+Auftrag Punkt für Punkt gegen den Code gegriffen habe.
+
+**Preis.** Ein zweiter Agentenlauf. Deutlich billiger als eine Lücke, die erst
+in Phase 7 beim E2E-Test auffällt — oder gar nicht.
+
+**Und er hat sich fachlich gelohnt.** Der Nachtrag legte ein Problem frei, das
+der erste Durchgang nicht haben konnte: Der Aktivitäts-Puls schützt einen
+langen Import gegen den *Timer*, aber nicht gegen ein *sofortiges* Ereignis.
+Konkret geprüft: `restoreLocalCollections()` schreibt Collection für Collection
+mit je eigenem `await`; ein Tab-Wechsel dazwischen hätte sofort gesperrt und
+den Restore halb fertig abbrechen lassen. Die Lösung — laufende Schreibvorgänge
+zählen, den Lock aufschieben, und nur sperren, wenn der Tab *dann noch*
+verborgen ist — gäbe es ohne den Nachtrag nicht.
