@@ -37,6 +37,7 @@ import {
   Database,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   HardDrive,
   Info,
@@ -123,7 +124,12 @@ export function BackupManager() {
       return await backupService.restoreBackup(backupData, { allowForeign });
     },
     onSuccess: (result) => {
-      showSuccess(`${result.message} ${formatRestoreDetailsSummary(result.details, t)} ${t('backup.restoreMergeNote')}`);
+      // Hinweise (fehlende Prüfsumme, Minor-Versionsunterschied, übersprungene
+      // Items — WP 1.5) in den Erfolgs-Toast aufnehmen: Die Karte darunter ist
+      // nur bis zum automatischen Reload sichtbar (1500ms), der Toast ist der
+      // einzige Kanal, der das garantiert überlebt.
+      const warningsText = result.warnings.length > 0 ? ` ${result.warnings.join(' ')}` : '';
+      showSuccess(`${result.message} ${formatRestoreDetailsSummary(result.details, t)} ${t('backup.restoreMergeNote')}${warningsText}`);
       setRestoreDialogOpen(false);
       setBackupFile(null);
       setEncryptedRestorePassword('');
@@ -535,6 +541,19 @@ export function BackupManager() {
                 <p className="text-xs text-muted-foreground">{t('backup.settings')}</p>
               </div>
             </div>
+
+            {restoreMutation.data.warnings.length > 0 && (
+              <Alert className="mt-4 border-warning bg-warning/30">
+                <AlertTriangle className="h-4 w-4 text-warning" aria-hidden="true" />
+                <AlertDescription className="text-sm text-foreground">
+                  <ul className="list-disc space-y-1 pl-4">
+                    {restoreMutation.data.warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <p className="text-xs text-muted-foreground mt-4">
               {t('backup.restoreLoading')}

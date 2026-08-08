@@ -48,3 +48,40 @@ export const COLLECTION_SCHEMAS: Partial<Record<CollectionSchemaKey, z.ZodType>>
 
 /** Anzahl der aktuell abgedeckten Collections — Basis der Ratsche. */
 export const COVERED_COLLECTION_COUNT = Object.keys(COLLECTION_SCHEMAS).length;
+
+/** Ergebnis von {@link validateCollectionItems}. */
+export interface CollectionValidationResult<T> {
+  /** Items, die das Schema akzeptiert hat (bzw. alle Items, wenn kein Schema registriert ist). */
+  valid: T[];
+  /** Anzahl der Items, die das Schema abgelehnt hat. */
+  skippedCount: number;
+}
+
+/**
+ * Prüft jedes Item einer Collection gegen ihr registriertes Schema
+ * (WP 1.2/1.5, RES-2/RES-5). Gleiches Verhalten wie
+ * `local-finance-store.readLocalFinanceList` und
+ * `transaction-storage-service.getLocalTransactions`, hier als eigenständige,
+ * reine Funktion, damit Aufrufer außerhalb des Lesepfads (z. B. Backup-
+ * Restore) dieselbe Prüfung nutzen können, statt sie zu duplizieren:
+ * **überspringen, zählen — nie still verwerfen, nie alles-oder-nichts.**
+ *
+ * Collections ohne registriertes Schema laufen unverändert durch (Ratsche
+ * statt Alles-oder-nichts, siehe Registry-Kommentar oben).
+ */
+export function validateCollectionItems<T = unknown>(key: string, items: T[]): CollectionValidationResult<T> {
+  const schema = COLLECTION_SCHEMAS[key as CollectionSchemaKey];
+  if (!schema) return { valid: items, skippedCount: 0 };
+
+  const valid: T[] = [];
+  let skippedCount = 0;
+  for (const item of items) {
+    const result = schema.safeParse(item);
+    if (result.success) {
+      valid.push(result.data as T);
+    } else {
+      skippedCount += 1;
+    }
+  }
+  return { valid, skippedCount };
+}
