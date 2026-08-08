@@ -275,7 +275,7 @@ i18n; Tests für Timer-Reset bei Aktivität und für den Lock-Durchgriff.
 Sperrzustand · Einstellung persistiert · `[ZUSTAND]`-Abdeckung der
 Einstellungsfläche unverändert.
 
-### - [ ] WP 3.3 · Passwort-Mindeststärke als Gate (SEC-3) · S
+### - [x] WP 3.3 · Passwort-Mindeststärke als Gate (SEC-3) · S — `db1260e`
 **Ziel:** `1234` verschlüsselt keine Finanzdaten mehr ohne bewusste Entscheidung.
 **Vorgehen:** Unter der „schwach"-Schwelle von `estimatePasswordStrength`
 blockiert der Setup-Button; Override nur über explizite zusätzliche
@@ -284,7 +284,7 @@ Zielgruppe!); bilinguale Tests.
 **Akzeptanz:** Test: schwaches Passwort ohne Override unmöglich, mit Override
 möglich · bestehende Setup-Tests angepasst statt gelöscht.
 
-### - [ ] WP 3.4 · RLS-Wächter prüft Restriktivität (SEC-4) · H
+### - [x] WP 3.4 · RLS-Wächter prüft Restriktivität (SEC-4) · H — `c084fa4`
 **Ziel:** Eine versehentlich permissive Policy (`USING (true)`) fällt im Test.
 **Vorgehen:** `supabase-rls.security.test.ts` erweitern: je Policy muss
 `USING`/`WITH CHECK` ein `auth.uid() = user_id`-Muster enthalten (Regex über

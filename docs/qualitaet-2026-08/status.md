@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 3.3 · Passwort-Mindeststärke als Gate (SEC-3) |
+| **Paket** | WP 3.5 · MCP-Klartext in der UI kennzeichnen (SEC-5) |
 | **Schritt** | Umsetzung durch delegierten Agenten — **nicht** geprüft |
 | **Im Arbeitsbaum** | Fall (b): ungeprüft → verwerfen und Paket neu machen |
 
@@ -144,8 +144,8 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 11 | 2.5 | Invariante 5 einlösen (DOM-4) | **fertig** | `9bf65fd` |
 | 12 | 3.1 | PBKDF2 ≥ 600 000 + kdf-Versionierung (SEC-1) | **fertig** | `dd07c67` |
 | 13 | 3.2 | Auto-Lock (SEC-2) | **fertig** | `14c4600` |
-| 14 | 3.3 | Passwort-Mindeststärke als Gate (SEC-3) | offen | |
-| 15 | 3.4 | RLS-Wächter prüft Restriktivität (SEC-4) | offen | |
+| 14 | 3.3 | Passwort-Mindeststärke als Gate (SEC-3) | **fertig** | `db1260e` |
+| 15 | 3.4 | RLS-Wächter prüft Restriktivität (SEC-4) | **fertig** | `c084fa4` |
 | 16 | 3.5 | MCP-Klartext in der UI kennzeichnen (SEC-5) | offen | |
 | 17 | 4.1 | ADR + Umbau: Blob → Monats-Chunks (PERF-1) | offen | |
 | 18 | 4.2 | Query-Key-Invalidierungen präzisieren (PERF-2) | offen | |
