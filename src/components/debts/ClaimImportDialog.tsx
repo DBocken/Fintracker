@@ -50,7 +50,7 @@ export default function ClaimImportDialog({ open, onOpenChange }: ClaimImportDia
     mutationFn: confirmClaim,
     onSuccess: (claim) => {
       invalidate();
-      showSuccess(`Schuld „${claim.creditor}“ übernommen`);
+      showSuccess(t('debts.claimImport.confirmedToast').replace('{creditor}', claim.creditor));
       setResult((prev) =>
         prev ? { ...prev, claims: prev.claims.map((c) => (c.id === claim.id ? claim : c)) } : prev,
       );

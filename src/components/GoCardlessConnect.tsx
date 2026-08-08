@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,14 +38,6 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   const [showDropdown, setShowDropdown] = useState(false)
   const [requisition, setRequisition] = useState<{ id: string; link?: string; redirect?: string } | null>(null)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
-
-  useEffect(() => {
-    loadInstitutions()
-    try {
-      localStorage.removeItem('gocardless_public_url')
-    } catch {
-    }
-  }, [])
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -94,7 +86,10 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
     setFilteredInstitutions(sorted.slice(0, 20))
   }, [searchQuery, institutions])
 
-  const loadInstitutions = async () => {
+  // `useCallback` mit `t` in den Abhaengigkeiten: Seit die Fehlermeldung
+  // uebersetzt wird, haengt diese Funktion an der Sprache. Ohne das wuerde der
+  // Effekt unten eine veraltete Fassung festhalten.
+  const loadInstitutions = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -112,12 +107,20 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       if (e.setup_required || (e.details && e.details.includes('nicht konfiguriert'))) {
         setError('API_SETUP_REQUIRED')
       } else {
-        setError(`Fehler: ${e.message}`)
+        setError(t('common.errorWithMessage').replace('{message}', e.message ?? ''))
       }
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
+
+  useEffect(() => {
+    loadInstitutions()
+    try {
+      localStorage.removeItem('gocardless_public_url')
+    } catch {
+    }
+  }, [loadInstitutions])
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)

@@ -1,0 +1,69 @@
+{
+  "_hinweis": [
+    "Stellen mit deutschem Klartext im Quelltext. ZWEI FORMEN:",
+    "Eine blosse ZAHL ist offenes Backlog und darf nur SINKEN — sie bedeutet NICHT \"in Ordnung\",",
+    "sondern \"bekannt und noch nicht uebersetzt\". Ersatz ist t() bzw. serviceT.",
+    "Ein Objekt { count, reason } ist entschieden — dort IST der deutsche Wortlaut die Sache selbst",
+    "(Suchvokabular gegen deutschen Kontoauszugstext, Produktname, Entwicklermeldung).",
+    "Diese Liste ist erst mit dem Schliessen von drei Waechter-Luecken entstanden: Template-Literale,",
+    "JSX-Text und der Pauschalfilter 'constants' waren zuvor unsichtbar."
+  ],
+  "files": {
+    "src/data/merchant-keywords.ts": {
+      "count": 21,
+      "reason": "Suchvokabular gegen den Text deutscher Kontoauszuege (\"aldi süd\", \"agentur für arbeit\") plus die deutschen Namen der Saat-Kategorien. Uebersetzt wuerde die Zuordnung nicht mehr treffen — der Text, gegen den gematcht wird, ist immer deutsch."
+    },
+    "src/features/finance-city/data/city-demo-data.ts": {
+      "count": 2,
+      "reason": "Beispieldaten der WebGL-Stadt. Sie ersetzen keine Uebersetzung, sondern stehen an der Stelle echter Nutzerdaten — deren Namen der Nutzer selbst vergibt."
+    },
+    "src/services/demo-data-service.ts": {
+      "count": 1,
+      "reason": "Beispieldatensatz. Steht an der Stelle echter Nutzerdaten, die der Nutzer selbst benennt."
+    },
+    "src/services/local-settings-service.ts": {
+      "count": 3,
+      "reason": "Saat-Kategorien und der historische Namensabgleich, der im Modulkopf ausdruecklich als Altfall kommentiert ist. Die Namen stehen in bestehenden Nutzerdatenbanken; eine Uebersetzung wuerde den Abgleich brechen."
+    },
+    "src/services/cloud-mcp-sync-service.ts": {
+      "count": 1,
+      "reason": "Woertliche Bestaetigungsphrase, die der Nutzer eintippen muss, bevor Daten das Geraet verlassen. Sie ist ein Schluessel, kein Text — uebersetzt haette sie eine andere Wirkung als die dokumentierte."
+    },
+    "src/lib/constants.ts": {
+      "count": 2,
+      "reason": "Produktname und Produktbeschreibung. Eigennamen werden nicht uebersetzt."
+    },
+    "src/lib/feature-flags.ts": {
+      "count": 2,
+      "reason": "`reason` je Feature-Schalter — Begruendung fuer Entwickler, warum ein Schalter existiert und wie er voreingestellt ist. Erscheint nirgends auf dem Bildschirm."
+    },
+    "src/lib/store-compatibility.ts": {
+      "count": 1,
+      "reason": "Meldung eines `SchemaVersionError`. Entwicklerseitig — sie nennt Schema-Versionsnummern und richtet sich an den, der das Problem behebt."
+    },
+    "src/services/analytics-aggregation-service.ts": {
+      "count": 1,
+      "reason": "Wurf eines Privacy-Waechters. Er darf gar nicht erreichbar sein; wenn doch, liest ihn ein Entwickler."
+    },
+    "src/services/letter-ocr-service.ts": {
+      "count": 1,
+      "reason": "Wurf bei fehlendem Canvas-Kontext — Umgebungsfehler, kein Bildschirmtext."
+    },
+    "src/components/ErrorBoundary.tsx": {
+      "count": 1,
+      "reason": "Notfassung hinter `this.props.t?.(…) ||`. Die ErrorBoundary muss auch dann noch etwas sagen koennen, wenn der i18n-Kontext selbst der Grund fuer den Fehler ist."
+    },
+
+    "src/lib/analysis-data.ts": 2,
+    "src/lib/automation-suggestion-model.ts": 2,
+    "src/lib/feedback.ts": 1,
+    "src/lib/finrisk/stress-capacity.ts": 1,
+    "src/lib/forecast-overrides-summary.ts": 2,
+    "src/lib/forecast.ts": 1,
+    "src/lib/sankey-model.ts": 4,
+    "src/services/budget-sweep-service.ts": 1,
+    "src/services/contract-decision-service.ts": 1,
+    "src/services/contract-detection-service.ts": 1,
+    "src/services/gocardless-sync-service.ts": 1
+  }
+}

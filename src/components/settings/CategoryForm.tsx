@@ -150,7 +150,7 @@ export function CategoryForm({
                   onClick={() => onColorChange(option.value)}
                   className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${color === option.value ? 'border-border' : 'border-transparent'}`}
                   style={{ backgroundColor: option.value }}
-                  aria-label={`Farbe ${option.label} auswählen`}
+                  aria-label={t('categoryForm.colorPick').replace('{color}', option.label)}
                   aria-pressed={color === option.value}
                 >
                   <span className="sr-only">{option.label}{color === option.value ? ', ausgewählt' : ''}</span>
@@ -168,7 +168,9 @@ export function CategoryForm({
                   type="button"
                   onClick={() => onIconChange(option)}
                   className={`w-8 h-8 rounded border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${icon === option ? 'border-border' : 'border-transparent'}`}
-                  aria-label={`Icon ${index + 1} auswählen: ${option}`}
+                  aria-label={t('categoryForm.iconPick')
+                    .replace('{index}', String(index + 1))
+                    .replace('{icon}', option)}
                   aria-pressed={icon === option}
                 >
                   <span aria-hidden="true">{option}</span>

@@ -510,6 +510,7 @@ export const translations = {
       unassign: 'Entfernen',
     },
     common: {
+      errorWithMessage: 'Fehler: {message}',
       restCategory: 'Weitere / ohne Unterkategorie',
       categoriesLabel: 'Kategorien',
       storyHistory: 'Verlauf',
@@ -1043,6 +1044,8 @@ export const translations = {
       updateError: 'Fehler beim Aktualisieren: {error}',
     },
     settings: {
+      budgetsRemoved: '{count} Budget(s) entfernt',
+      rulesRemoved: '{count} Regel(n) entfernt',
       language: 'Sprache',
       languageDescription: 'Sprache der App. Betrifft zunächst ausgewählte Bereiche.',
       languageGerman: 'Deutsch',
@@ -1458,6 +1461,7 @@ export const translations = {
       emptyReceivableTitle: 'Keine Forderungen',
       emptyReceivableDesc: 'Verliehenes Geld wird hier angezeigt.',
       claimImport: {
+        confirmedToast: 'Schuld „{creditor}“ übernommen',
         title: 'Forderungsbriefe scannen',
         description:
           'Lade eingescannte Mahnungen, Rechnungen oder Inkasso-Schreiben als PDF oder Fotos hoch. Wir erkennen automatisch Gläubiger, Beträge und Fristen.',
@@ -1580,6 +1584,8 @@ export const translations = {
         addButton: 'Hinzufügen',
       },
       receivablesPanel: {
+        dueUntil: ' · fällig bis {date}',
+        deleteConfirm: 'Forderung „{name}“ löschen?',
         addReceivable: 'Forderung hinzufügen',
         emptyTitle: 'Noch keine Forderungen erfasst',
         emptyDescription:
@@ -2673,6 +2679,8 @@ export const translations = {
       onlyMainOption: 'Nur Hauptkategorie',
     },
     categoryForm: {
+      colorPick: 'Farbe {color} auswählen',
+      iconPick: 'Icon {index} auswählen: {icon}',
       editTitle: 'Kategorie bearbeiten',
       subcategoryTitle: 'Unterkategorie erstellen',
       newCategoryTitle: 'Neue Kategorie',
@@ -2990,6 +2998,13 @@ export const translations = {
       },
     },
     transactionDetails: {
+      suggestionAcceptedAudit: 'Kategorie-Vorschlag übernommen: {category}',
+      alwaysForMerchant: 'Immer für „{merchant}“',
+      thisMerchantFallback: 'diesen Händler',
+      shareInHousehold: 'Ausgabe im Haushalt teilen',
+      transferPairHint: ' Beim Entfernen wird auch die verknüpfte Gegenbuchung gelöst.',
+      deleteButton: 'Löschen',
+      saveButton: 'Speichern',
       payeeLabel: 'Empfänger/Zahler',
       applyToSimilar: 'Auf ähnliche Transaktionen anwenden',
       markAsTransferLabel: 'Als internen Übertrag zwischen eigenen Konten markieren',
@@ -4104,6 +4119,13 @@ export const translations = {
       title: 'Budget optimieren',
       goalAmountLabel: 'Sparziel (€)',
       goalAmountPlaceholder: 'z. B. 5000',
+      modeBuffer: 'Liquidität sichern',
+      modeContracts: 'Verträge ({count})',
+      perMonthNeeded: 'nötig',
+      achievableBy: 'möglich durch {amount}/Mo. Einsparung',
+      maxByData: 'maximale Einsparung laut Daten: {amount}/Mo.',
+      goalExceedsVariableBody: 'Mit deinen variablen Ausgaben lassen sich realistisch ca. {possible}/Mo. einsparen – das Ziel erfordert {needed}/Mo. Entweder Zeitraum verlängern oder Fixkosten (Verträge) prüfen.',
+      contractBadge: 'Vertrag',
       bufferHoldsDescription: 'Dein Liquiditätspuffer hält im gewählten Horizont – aktuell ist kein Eingriff nötig.',
       emergencyReserveLabel: 'Notrücklage',
       noCutsDetected: 'Noch keine kürzbaren Posten erkannt. Importiere mehr Transaktionen für Einspar-Vorschläge.',
@@ -5179,6 +5201,7 @@ export const translations = {
       unassign: 'Remove',
     },
     common: {
+      errorWithMessage: 'Error: {message}',
       restCategory: 'Other / no subcategory',
       categoriesLabel: 'Categories',
       storyHistory: 'History',
@@ -5712,6 +5735,8 @@ export const translations = {
       updateError: 'Error updating: {error}',
     },
     settings: {
+      budgetsRemoved: '{count} budget(s) removed',
+      rulesRemoved: '{count} rule(s) removed',
       language: 'Language',
       languageDescription: 'App language. Currently applies to selected areas.',
       languageGerman: 'German',
@@ -6127,6 +6152,7 @@ export const translations = {
       emptyReceivableTitle: 'No receivables',
       emptyReceivableDesc: 'Loaned money will be shown here.',
       claimImport: {
+        confirmedToast: 'Debt “{creditor}” adopted',
         title: 'Scan claim letters',
         description:
           'Upload scanned reminders, invoices, or collection letters as PDF or photos. We automatically detect creditor, amounts, and deadlines.',
@@ -6249,6 +6275,8 @@ export const translations = {
         addButton: 'Add',
       },
       receivablesPanel: {
+        dueUntil: ' · due by {date}',
+        deleteConfirm: 'Delete receivable “{name}”?',
         addReceivable: 'Add receivable',
         emptyTitle: 'No receivables yet',
         emptyDescription:
@@ -7342,6 +7370,8 @@ export const translations = {
       onlyMainOption: 'Main category only',
     },
     categoryForm: {
+      colorPick: 'Select colour {color}',
+      iconPick: 'Select icon {index}: {icon}',
       editTitle: 'Edit category',
       subcategoryTitle: 'Create subcategory',
       newCategoryTitle: 'New category',
@@ -7659,6 +7689,13 @@ export const translations = {
       },
     },
     transactionDetails: {
+      suggestionAcceptedAudit: 'Category suggestion accepted: {category}',
+      alwaysForMerchant: 'Always for “{merchant}”',
+      thisMerchantFallback: 'this merchant',
+      shareInHousehold: 'Share expense in household',
+      transferPairHint: ' Removing it also detaches the linked counter-entry.',
+      deleteButton: 'Delete',
+      saveButton: 'Save',
       payeeLabel: 'Payee/Payer',
       applyToSimilar: 'Apply to similar transactions',
       markAsTransferLabel: 'Mark as an internal transfer between your own accounts',
@@ -8773,6 +8810,13 @@ export const translations = {
       title: 'Optimize budget',
       goalAmountLabel: 'Savings goal (€)',
       goalAmountPlaceholder: 'e.g. 5000',
+      modeBuffer: 'Secure liquidity',
+      modeContracts: 'Contracts ({count})',
+      perMonthNeeded: 'needed',
+      achievableBy: 'achievable by saving {amount}/mo.',
+      maxByData: 'maximum saving per your data: {amount}/mo.',
+      goalExceedsVariableBody: 'Your variable spending realistically allows saving about {possible}/mo. – the goal requires {needed}/mo. Either extend the timeframe or review fixed costs (contracts).',
+      contractBadge: 'Contract',
       bufferHoldsDescription: 'Your liquidity buffer holds over the selected horizon – no action needed right now.',
       emergencyReserveLabel: 'Emergency reserve',
       noCutsDetected: 'No reducible items detected yet. Import more transactions to get saving suggestions.',
@@ -9848,6 +9892,7 @@ export const translations = {
       unassign: "yIteq",
     },
     common: {
+      errorWithMessage: 'Qagh: {message}',
       restCategory: "latlh",
       categoriesLabel: "Segh",
       storyHistory: "qun",
@@ -10138,6 +10183,8 @@ export const translations = {
       updateError: "choHtaHvIS Qagh: {error}",
     },
     settings: {
+      budgetsRemoved: '{count} Huch wIv teq',
+      rulesRemoved: '{count} chut teq',
       language: "Hol",
       languageDescription: "Ausgabentracker Hol. DaH 'ay' wIvlu'bogh neH lo'lu'.",
       languageGerman: "Deutsch",
@@ -10525,6 +10572,7 @@ export const translations = {
       emptyReceivableTitle: "HevmeH Huch pagh",
       emptyReceivableDesc: "naDev Huch noblu'pu'bogh cha'lu'.",
       claimImport: {
+        confirmedToast: '„{creditor}“ chuv wIv',
         title: "ngeHmey yIlegh",
         description: "ngeHmey, invoices, pagh Sub-qel ngeHmey PDF rur pagh mIllogh rur yIchagh. Sub-nobwI', mI' je poH DIchmoH maH.",
         dragHere: "naDev ngeHmey yIlan …",
@@ -10645,6 +10693,8 @@ export const translations = {
         addButton: "yIchel",
       },
       receivablesPanel: {
+        dueUntil: ' · {date}',
+        deleteConfirm: '„{name}“ Qaw\'?',
         addReceivable: "HevmeH Huch yIchel",
         emptyTitle: "HevmeH Huch pagh, DaH",
         emptyDescription: "Huch nobtaHbogh yIqIm, vaj Hoch legh 'ej DIlmey ghItlh laH SoH.",
@@ -11725,6 +11775,8 @@ export const translations = {
       onlyMainOption: "'ay' tIn neH",
     },
     categoryForm: {
+      colorPick: '{color} rItlh wIv',
+      iconPick: '{index} nagh beQ wIv: {icon}',
       editTitle: "'ay' yIchoH",
       subcategoryTitle: "'ay' mach yIchenmoH",
       newCategoryTitle: "'ay' chu'",
@@ -12006,6 +12058,13 @@ export const translations = {
       },
     },
     transactionDetails: {
+      suggestionAcceptedAudit: '{category} chuv wIv',
+      alwaysForMerchant: '„{merchant}“ reH',
+      thisMerchantFallback: 'ngevwI\'vam',
+      shareInHousehold: 'qorDu\'Daq Huch lo\' boch',
+      transferPairHint: ' teq \'e\' luchcha\'',
+      deleteButton: 'Qaw\'',
+      saveButton: 'choq',
       ausgabenklasseEssenziell: "'utlu'bogh",
       ausgabenklasseDiskretionaer: "'utHa'bogh",
       ausgabenklasseSparen: "Huch pol",
@@ -14130,6 +14189,7 @@ export const translations = {
       unassign: 'Убрать',
     },
     common: {
+      errorWithMessage: 'Ошибка: {message}',
       restCategory: 'Прочее / без подкатегории',
       categoriesLabel: 'Категории',
       storyHistory: 'Динамика',
@@ -14663,6 +14723,8 @@ export const translations = {
       updateError: 'Ошибка при обновлении: {error}',
     },
     settings: {
+      budgetsRemoved: 'Удалено бюджетов: {count}',
+      rulesRemoved: 'Удалено правил: {count}',
       language: 'Язык',
       languageDescription: 'Язык приложения. В настоящее время применяется к выбранным разделам.',
       languageGerman: 'Немецкий',
@@ -15078,6 +15140,7 @@ export const translations = {
       emptyReceivableTitle: 'Нет требований',
       emptyReceivableDesc: 'Одолженные деньги будут отображаться здесь.',
       claimImport: {
+        confirmedToast: 'Долг «{creditor}» принят',
         title: 'Сканировать письма с требованиями',
         description:
           'Загрузите отсканированные напоминания, счета или письма от коллекторов в формате PDF или фото. Мы автоматически определим кредитора, суммы и сроки.',
@@ -15200,6 +15263,8 @@ export const translations = {
         addButton: 'Добавить',
       },
       receivablesPanel: {
+        dueUntil: ' · до {date}',
+        deleteConfirm: 'Удалить требование «{name}»?',
         addReceivable: 'Добавить требование',
         emptyTitle: 'Требований пока нет',
         emptyDescription:
@@ -16293,6 +16358,8 @@ export const translations = {
       onlyMainOption: 'Только основная категория',
     },
     categoryForm: {
+      colorPick: 'Выбрать цвет {color}',
+      iconPick: 'Выбрать значок {index}: {icon}',
       editTitle: 'Редактировать категорию',
       subcategoryTitle: 'Создать подкатегорию',
       newCategoryTitle: 'Новая категория',
@@ -16610,6 +16677,13 @@ export const translations = {
       },
     },
     transactionDetails: {
+      suggestionAcceptedAudit: 'Предложение категории принято: {category}',
+      alwaysForMerchant: 'Всегда для «{merchant}»',
+      thisMerchantFallback: 'этого продавца',
+      shareInHousehold: 'Разделить расход в домохозяйстве',
+      transferPairHint: ' При удалении также будет отвязана связанная встречная проводка.',
+      deleteButton: 'Удалить',
+      saveButton: 'Сохранить',
       payeeLabel: 'Получатель/плательщик',
       applyToSimilar: 'Применить к похожим операциям',
       markAsTransferLabel: 'Отметить как внутренний перевод между своими счетами',
@@ -17724,6 +17798,13 @@ export const translations = {
       title: 'Оптимизировать бюджет',
       goalAmountLabel: 'Цель накоплений (€)',
       goalAmountPlaceholder: 'например, 5000',
+      modeBuffer: 'Обеспечить ликвидность',
+      modeContracts: 'Договоры ({count})',
+      perMonthNeeded: 'нужно',
+      achievableBy: 'возможно за счёт экономии {amount}/мес.',
+      maxByData: 'максимальная экономия по данным: {amount}/мес.',
+      goalExceedsVariableBody: 'С вашими переменными расходами реально экономить около {possible}/мес. — цель требует {needed}/мес. Либо продлите срок, либо пересмотрите постоянные расходы (договоры).',
+      contractBadge: 'Договор',
       bufferHoldsDescription: 'Ваш резерв ликвидности держится на выбранном горизонте — вмешательство пока не нужно.',
       emergencyReserveLabel: 'Аварийный резерв',
       noCutsDetected: 'Сокращаемые статьи пока не найдены. Импортируйте больше операций, чтобы получить предложения по экономии.',

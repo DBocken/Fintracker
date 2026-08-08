@@ -203,7 +203,7 @@ export default function BankCallbackPage() {
 
       setLinkedAccounts(prev => new Set(prev).add(gocardlessAccount.id));
     } catch (err: unknown) {
-      showError(`Fehler: ${(err as Error).message}`);
+      showError(t('common.errorWithMessage').replace('{message}', (err as Error).message));
     } finally {
       setImportingTransactions(prev => {
         const next = new Set(prev);
