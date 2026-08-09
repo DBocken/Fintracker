@@ -60,7 +60,23 @@ function App() {
   // gestartet) UND der lokale Speicher ist lesbar (kein Tresor im Weg —
   // ein kuenftiger echter Schritt koennte verschluesselte Daten anfassen
   // muessen, siehe local-store-migrations.ts).
-  const readyForStoreMigration = (isAuthenticated || anonymousStarted) && !locked;
+  // Bedingung ist ALLEIN der offene Tresor — nicht zusätzlich "angemeldet
+  // oder anonym gestartet".
+  //
+  // Bis WP 4.2 stand hier `(isAuthenticated || anonymousStarted) && !locked`.
+  // Das hat den ersten Start zerlegt, sobald WP 4.1c den ersten echten
+  // Migrationsschritt eintrug: Auf dem Landing-Screen war weder das eine noch
+  // das andere wahr, der Läufer lief also nicht — und „Demo ansehen" schreibt
+  // aus seinem Klick-Handler Beispieldaten. Dieser Schreibvorgang lief gegen
+  // `assertCompatibleStore()`, das wegen des ausstehenden Schritts
+  // `StoreMigrationPendingError` wirft. Der Handler brach ab, bevor er
+  // `setAnonymousStarted(true)` erreichte, und die App blieb auf `/` stehen.
+  // Sechs E2E-Tests haben genau das gemeldet.
+  //
+  // Eine Migration braucht keine Anmeldung — sie betrifft lokale Daten, die
+  // auch ein wiederkehrender anonymer Nutzer schon haben kann. Die einzige
+  // echte Vorbedingung ist ein lesbarer Speicher, also ein offener Tresor.
+  const readyForStoreMigration = !locked;
 
   // WP 1.3: Der einmalige, asynchrone Migrationslaeufer fuer
   // LOCAL_STORE_SCHEMA_VERSION. Muss erfolgreich abgeschlossen sein, BEVOR
@@ -103,6 +119,21 @@ function App() {
     return <div className="min-h-screen bg-background" />;
   }
 
+  // Store-Migration steht noch aus (oder laeuft) und der Tresor ist offen
+  // (bzw. gar nicht erst aktiv) — noch KEINE Fläche rendern, die lesen oder
+  // schreiben koennte. Gleiches Muster wie der Ladezustand oben: kurzer,
+  // textloser Zwischenzustand.
+  //
+  // Diese Sperre steht bewusst VOR dem Landing-Screen und nicht dahinter.
+  // Dahinter waere sie ein Rennen: Der Landing-Screen rendert, der Laeufer
+  // laeuft nebenher, und wer schnell genug auf „Demo ansehen" klickt (ein
+  // Test tut das immer) schreibt, bevor die Migration durch ist. Davor ist es
+  // eine Reihenfolge — der Screen erscheint erst, wenn nichts mehr aussteht,
+  // und der Klick kann gar nicht zu frueh kommen.
+  if (readyForStoreMigration && migrationState !== "done") {
+    return <div className="min-h-screen bg-background" />;
+  }
+
   // Erstbesuch ohne Anmeldung: Landing-Screen mit der Wahl
   // "Ohne Anmeldung starten" oder Google-Login (Issue #28).
   if (!isAuthenticated && !anonymousStarted) {
@@ -118,14 +149,6 @@ function App() {
         </Suspense>
       </BrowserRouter>
     );
-  }
-
-  // Store-Migration steht noch aus (oder laeuft) UND der Tresor ist offen
-  // (bzw. gar nicht erst aktiv) — noch keine Fläche rendern, die lesen
-  // koennte. Gleiches Muster wie der Ladezustand oben: kurzer, textloser
-  // Zwischenzustand, kein Flackern bei der heutigen leeren Schrittliste.
-  if (readyForStoreMigration && migrationState !== "done") {
-    return <div className="min-h-screen bg-background" />;
   }
 
   // Ab hier: volle App — angemeldet ODER bewusst anonym (Issue #26).

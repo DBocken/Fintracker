@@ -126,13 +126,28 @@ describe('runStoreMigrations', () => {
     expect(localStorage.getItem(TEST_KEY)).toBe('3');
   });
 
-  it('sollte eine Lücke zwischen definierten Schritten erkennen und ablehnen', async () => {
-    // Schritt für Version 2 fehlt — Version 3 wird trotzdem angeboten. Das ist
-    // ein Autorenfehler, kein "nichts zu tun".
-    const steps: StoreMigrationStep[] = [{ toVersion: 3, name: 'nur Schritt 3', run: () => {} }];
+  it('[REGRESSION] sollte eine Version ohne Schritt überspringen statt abzulehnen', async () => {
+    // Hier stand die Umkehrung: eine Lücke galt als Autorenfehler und wurde
+    // abgelehnt. Das war falsch, und es hat jeden NEUEN Nutzer getroffen —
+    // ein frischer Store gilt als Version 1, die Zielversion ist seit WP 4.1c
+    // die 3, und für Version 2 gab es nie einen Schritt, weil dieser Sprung
+    // älter ist als der Läufer. Der erste Start warf deshalb, und statt der
+    // App erschien ein Fehlerschirm.
+    //
+    // Eine Version ohne Schritt ist der Normalfall: Versionsnummern steigen
+    // auch aus Gründen, die keine Datenänderung brauchen. Der Fall, den die
+    // alte Prüfung meinte (Version angehoben, Schritt vergessen), sieht zur
+    // Laufzeit genau gleich aus und gehört deshalb in einen Test der
+    // Schrittliste — siehe local-store-migrations.fresh-start.test.ts.
+    const order: string[] = [];
+    const steps: StoreMigrationStep[] = [
+      { toVersion: 3, name: 'nur Schritt 3', run: () => { order.push('3'); } },
+    ];
 
-    await expect(runStoreMigrations(steps, 3, TEST_KEY)).rejects.toThrow();
-    expect(localStorage.getItem(TEST_KEY)).toBeNull();
+    await expect(runStoreMigrations(steps, 3, TEST_KEY)).resolves.toBeUndefined();
+
+    expect(order).toEqual(['3']);
+    expect(localStorage.getItem(TEST_KEY)).toBe('3');
   });
 
   it('sollte ohne definierte Schritte die Zielversion direkt festschreiben (heutiger Zustand von LOCAL_STORE_SCHEMA_VERSION)', async () => {
