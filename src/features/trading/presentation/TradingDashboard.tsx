@@ -19,6 +19,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
+import { UnconvertedCurrencyNotice } from '@/features/shared/presentation/UnconvertedCurrencyNotice';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'react-hot-toast';
 import { useEtoroAccount } from '@/features/trading/application/use-etoro-account';
@@ -100,6 +101,21 @@ export default function TradingDashboard() {
         <TradingSummaryStats summary={portfolio.summary} isEtoro={etoro.isEtoro} />
       )}
 
+      {/* VE-1: Was nicht in der Depotwährung notiert, steckt nicht im
+          Gesamtwert darüber — und muss deshalb genau hier stehen. */}
+      {portfolio.summary && (
+        <UnconvertedCurrencyNotice
+          description={t('currency.unconverted.portfolioDescription')}
+          items={portfolio.summary.unconverted_positions.map((position) => ({
+            key: position.id,
+            label: position.symbol,
+            hint: position.name,
+            currency: position.currency,
+            value: position.value,
+          }))}
+        />
+      )}
+
       <Tabs value={etoro.effectiveTab} onValueChange={etoro.setActiveTab} className="space-y-4">
         <TradingTabsBar isEtoro={etoro.isEtoro} />
 
@@ -109,7 +125,6 @@ export default function TradingDashboard() {
           <TradingPositionsTab
             positions={portfolio.positions}
             isLoading={portfolio.isLoadingPositions}
-            currency={portfolio.activePortfolio?.currency || 'EUR'}
             onEdit={portfolio.handleEditPosition}
             onDelete={portfolio.handleDeletePosition}
           />

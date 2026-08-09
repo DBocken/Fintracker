@@ -1661,6 +1661,17 @@ export const de = {
     debtFreeTitle: 'Schuldenfrei!',
     debtFreeDescription: 'Du hast alle deine Schulden zurückgezahlt. Riesiger Meilenstein!',
   },
+  currency: {
+    unconverted: {
+      title: 'Fremdwährung nicht verrechnet',
+      portfolioDescription:
+        'Fintracker rechnet keine Kurse um. Diese Positionen notieren in einer anderen Währung als das Depot und stecken deshalb nicht im Gesamtwert.',
+      netWorthDescription:
+        'Fintracker rechnet keine Kurse um. Diese Bestände notieren nicht in Euro und sind deshalb im Nettovermögen nicht enthalten.',
+      positionsCount: '{count} Positionen',
+      singlePosition: '1 Position',
+    },
+  },
   netWorth: {
     volumeShare: '{label}: {value} — {percent} % des Vermögens',
     title: 'Nettovermögen',

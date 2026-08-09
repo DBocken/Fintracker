@@ -1660,6 +1660,17 @@ export const ru = {
     debtFreeTitle: 'Без долгов!',
     debtFreeDescription: 'Вы погасили все свои долги. Огромное достижение!',
   },
+  currency: {
+    unconverted: {
+      title: 'Иностранная валюта не учтена',
+      portfolioDescription:
+        'Fintracker не пересчитывает курсы. Эти позиции ведутся не в валюте портфеля и поэтому не входят в общую стоимость.',
+      netWorthDescription:
+        'Fintracker не пересчитывает курсы. Эти активы номинированы не в евро и поэтому не входят в собственный капитал.',
+      positionsCount: 'Позиций: {count}',
+      singlePosition: '1 позиция',
+    },
+  },
   netWorth: {
     volumeShare: '{label}: {value} — {percent}% состояния',
     title: 'Собственный капитал',

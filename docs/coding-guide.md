@@ -46,8 +46,18 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
   Nie roher Float-Vergleich, nie `toFixed` für Berechnung.
 - **Ein** Eingabe-Parser: `parseGermanNumber`/`parseEuroInput` (money.ts).
   Roh-`parseFloat(x.replace(',','.'))` ist **verboten** (liest „1.200" falsch).
-- **EUR-only** (VE-1). Nicht-EUR-Buchungen werden abgewiesen oder sichtbar als
-  „nicht verrechnet" markiert, nie stumm summiert.
+- **EUR-only** (VE-1, ADR `docs/architecture/currency-eur-only.md`). Es gibt
+  keine Kursquelle und keine Umrechnung. **Summiert wird nur Gleichwährendes:**
+  `getPortfolioSummary` rechnet in der Depotwährung, `getNetWorthBreakdown` in
+  Euro; was daneben liegt, steht sichtbar als „nicht verrechnet" daneben
+  (`UnconvertedCurrencyNotice`), nie stumm in der Summe. Zerlegt wird das an
+  einer Stelle: `src/lib/portfolio-currency.ts`.
+- **Offener Rest von VE-1 (Stand WP 7.7):** Auf der **Konto- und Buchungsseite**
+  gilt das noch nicht. `Account.currency` wird gespeichert und angezeigt, aber
+  von keiner Rechnung gelesen — Saldo und Buchungen eines Fremdwährungskontos
+  gehen 1:1 als Euro in `cash`, `sumIncome`/`sumExpenses`, Budgets, Prognose und
+  EÜR ein. Wer das schließt, entscheidet zuerst über die **Buchungen**, nicht
+  über den Kontodialog; Details im „Preis"-Abschnitt des ADR.
 
 ## 5. Finanzlogik & Invarianten
 

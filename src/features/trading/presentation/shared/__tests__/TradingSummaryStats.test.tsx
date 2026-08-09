@@ -23,6 +23,7 @@ const SUMMARY: PortfolioSummary = {
   unrealized_gain_loss_percent: 25,
   positions_count: 3,
   currency: 'EUR',
+  unconverted_positions: [],
 };
 
 // Beschriftungen im Standard-Sprachstil (`everyday`) — „Rendite"/„Return"

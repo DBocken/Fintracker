@@ -1384,6 +1384,17 @@ export const tlh = {
     debtFreeTitle: "DIlnISghach Hutlh!",
     debtFreeDescription: "DIlnISghachlIj Hoch bIDIlpu'. chav tInqu'!",
   },
+  currency: {
+    unconverted: {
+      title: "nov Huch chelbe'lu'",
+      portfolioDescription:
+        "Huch mI' choHbe' Fintracker. Huch pat Huch rurbe' Huch'e' lo' vam boSghachmey; vaj Hoch mI'Daq tISbe'.",
+      netWorthDescription:
+        "Huch mI' choHbe' Fintracker. Euro rurbe' vam boSghachmey; vaj Huch Hoch tISbe'.",
+      positionsCount: "boSghachmey: {count}",
+      singlePosition: "wa' boSghach",
+    },
+  },
   netWorth: {
     volumeShare: "{label}: {value} — {percent}% Huch naQ",
     title: "Huch Hoch",

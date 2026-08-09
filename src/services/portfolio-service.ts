@@ -1,5 +1,6 @@
 import { t } from '../i18n/serviceT';
-import type { Portfolio, PortfolioPosition, PortfolioSummary } from '../types';
+import type { Portfolio, PortfolioPosition, PortfolioSummary, UnconvertedPosition } from '../types';
+import { isSameCurrency } from '@/lib/portfolio-currency';
 import { getCurrentUserId } from './auth-service';
 import {
   deleteLocalFinanceItem,
@@ -162,10 +163,29 @@ export async function getPortfolioSummary(portfolioId: string): Promise<Portfoli
   const positions = await getPositions(portfolioId);
   let total_value = 0;
   let total_cost = 0;
+  const unconverted_positions: UnconvertedPosition[] = [];
 
   for (const position of positions) {
     const currentPrice = position.last_price || position.entry_price;
-    total_value += position.quantity * currentPrice;
+    const marketValue = position.quantity * currentPrice;
+
+    // VE-1 (docs/architecture/currency-eur-only.md): Es gibt keine Kursquelle
+    // und keine Umrechnung. Eine Position in einer anderen Währung als der
+    // Depotwährung darf deshalb NICHT addiert werden — 1:1 summiert ergäbe das
+    // beim damaligen EUR/USD-Kurs rund 8 % Fehler, und zwar lautlos. Sie wird
+    // stattdessen benannt (F-DEBT-2, T1.11, WP 7.7).
+    if (!isSameCurrency(position.currency, portfolio.currency)) {
+      unconverted_positions.push({
+        id: position.id,
+        symbol: position.symbol,
+        name: position.name,
+        currency: position.currency,
+        value: marketValue,
+      });
+      continue;
+    }
+
+    total_value += marketValue;
     total_cost += positionCostBasis(position);
   }
 
@@ -179,6 +199,7 @@ export async function getPortfolioSummary(portfolioId: string): Promise<Portfoli
     unrealized_gain_loss_percent,
     positions_count: positions.length,
     currency: portfolio.currency,
+    unconverted_positions,
   };
 }
 

@@ -35,7 +35,6 @@ interface PositionTableProps {
   positions: PortfolioPosition[];
   onEdit?: (position: PortfolioPosition) => void;
   onDelete?: (id: string) => void;
-  currency?: string;
 }
 
 type SortField =
@@ -53,7 +52,6 @@ export default function PositionTable({
   positions,
   onEdit,
   onDelete,
-  currency = 'EUR',
 }: PositionTableProps) {
   const { t, locale } = useI18n();
   const [sortField, setSortField] = useState<SortField>('gain_loss');
@@ -247,7 +245,10 @@ export default function PositionTable({
                 <TableCell className="text-right">
                   <span className={isPositive ? 'text-positive dark:text-positive' : 'text-warning dark:text-warning'}>
                     {isPositive ? '+' : ''}
-                    {formatCurrency(gainLoss, currency)}
+                    {/* VE-1: Der Betrag gehört zur Position, nicht zum Depot —
+                        mit der Depotwährung beschriftet stand über dem Gewinn
+                        einer USD-Position ein Euro-Zeichen. */}
+                    {formatCurrency(gainLoss, position.currency)}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">

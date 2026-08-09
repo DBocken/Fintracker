@@ -13,7 +13,6 @@ import PositionTable from '../shared/PositionTable';
 export interface TradingPositionsTabProps {
   positions: PortfolioPosition[] | undefined;
   isLoading: boolean;
-  currency: string;
   onEdit: (position: PortfolioPosition) => void;
   onDelete: (id: string) => void;
 }
@@ -21,7 +20,6 @@ export interface TradingPositionsTabProps {
 export default function TradingPositionsTab({
   positions,
   isLoading,
-  currency,
   onEdit,
   onDelete,
 }: TradingPositionsTabProps) {
@@ -47,7 +45,6 @@ export default function TradingPositionsTab({
       positions={positions || []}
       onEdit={onEdit}
       onDelete={onDelete}
-      currency={currency}
     />
   );
 }

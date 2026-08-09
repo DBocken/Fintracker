@@ -60,13 +60,35 @@ export interface QuoteData {
   provider: ProviderType;
 }
 
+/**
+ * Eine Position, die NICHT in die Depotsumme eingeht, weil sie in einer
+ * anderen Währung notiert als das Depot (VE-1, EUR-only —
+ * `docs/architecture/currency-eur-only.md`). Sie verschwindet nicht, sie wird
+ * benannt: `value` ist der Marktwert in `currency`, nie umgerechnet.
+ */
+export interface UnconvertedPosition {
+  id: string;
+  symbol: string;
+  name?: string;
+  currency: string;
+  /** Marktwert in `currency` — Anzeige, nie Summand einer Depot-/Vermögenssumme. */
+  value: number;
+}
+
 export interface PortfolioSummary {
+  /** Marktwert der Positionen IN der Depotwährung; Fremdwährung fehlt hier bewusst. */
   total_value: number;
   total_cost: number;
   unrealized_gain_loss: number;
   unrealized_gain_loss_percent: number;
   realized_gain_loss?: number;
   realized_gain_loss_percent?: number;
+  /** Alle Positionen des Depots — auch die nicht verrechneten. */
   positions_count: number;
   currency: string;
+  /**
+   * Positionen in einer anderen Währung als `currency`. Pflichtfeld: Wer eine
+   * Summe baut, soll den Rest nicht übersehen können.
+   */
+  unconverted_positions: UnconvertedPosition[];
 }

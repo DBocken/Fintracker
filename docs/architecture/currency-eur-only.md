@@ -40,10 +40,18 @@ statt weggeworfen (`transaction-service.ts:192`, `gocardless-sync-service.ts:332
 `currency: … || 'EUR'`). Eine importierte Fremdwährungsangabe verschwindet damit
 nicht, sie wird nur nicht verrechnet.
 
-VE-1 hat dazu eine zweite Hälfte mitentschieden, die **bis heute nicht
-eingelöst** ist — siehe „Preis": Nicht-EUR-Buchungen sollen beim Import
-abgewiesen oder sichtbar als „nicht verrechnet" markiert werden, **nie stumm
-1:1 als EUR summiert**.
+VE-1 hat dazu eine zweite Hälfte mitentschieden: Nicht-EUR soll abgewiesen oder
+sichtbar als „nicht verrechnet" markiert werden, **nie stumm 1:1 als EUR
+summiert**. Für **Depot und Nettovermögen** ist das seit WP 7.7 eingelöst
+(siehe „Preis", Punkt 1); für **Konten und Buchungen** steht es weiterhin aus
+(Punkte 2 und 3).
+
+Daraus folgt die Regel, die der Code seither trägt: **Summiert wird nur
+Gleichwährendes.** Innerhalb eines Depots ist die Depotwährung die
+Rechenwährung — ein eToro-Depot in USD zeigt seine Kennzahlen ehrlich in USD;
+im Nettovermögen ist die Rechenwährung immer der Euro. Beide Zerlegungen stehen
+an einer Stelle (`src/lib/portfolio-currency.ts`), damit sie nicht
+auseinanderlaufen.
 
 ## Verworfene Alternativen
 
@@ -69,15 +77,27 @@ schriftlich abgewogen.
 **Das teuerste an dieser Entscheidung ist nicht die fehlende Umrechnung,
 sondern die fehlende Durchsetzung.**
 
-1. **Die zweite Hälfte von VE-1 ist offen.** Task T1.11 („Fremdwährung im
-   Nettovermögen") ist nicht umgesetzt: `getPortfolioSummary`
-   (`src/services/portfolio-service.ts:158-183`) summiert weiterhin
-   `quantity × Preis` über **alle** Positionen ohne einen Blick auf
-   `position.currency`; ein Flag `hasUnconvertedPositions` existiert nicht, und
-   `net-worth-service.ts:113` übernimmt `summary.total_value` unverändert ins
-   Nettovermögen. Das Demo-Portfolio liefert selbst zwei USD-Positionen (AAPL,
-   MSFT, `portfolio-service.ts:200-201`) — der Fehler ist also schon im
-   Auslieferungszustand sichtbar.
+1. ~~**Die zweite Hälfte von VE-1 ist offen.**~~ **Erledigt in WP 7.7**
+   (T1.11). `getPortfolioSummary` summiert nur noch Positionen in der
+   Depotwährung und liefert den Rest als `unconverted_positions` (Symbol,
+   Währung, Marktwert in der Fremdwährung); `getNetWorthBreakdown` nimmt nur
+   den Euro-Anteil in `investments` und weist den Rest als
+   `unconvertedInvestments` aus. Beide Flächen zeigen ihn über denselben
+   Baustein `features/shared/presentation/UnconvertedCurrencyNotice`.
+   Belegt durch `[REGRESSION]`-Tests in `portfolio-service.test.ts`,
+   `net-worth-service.currency.test.ts`, `portfolio-currency.test.ts` sowie
+   bilinguale Flächentests für Depot und Nettovermögen.
+   **Das Demo-Portfolio behält seine zwei USD-Positionen** (AAPL, MSFT):
+   Sie zeigen den Hinweis im Auslieferungszustand, statt die Fremdwährung
+   wegzudefinieren — die Demo ist damit ehrlich *und* erklärt die Regel.
+   Gemessen: Der Demo-Gesamtwert sinkt von 8.231,10 € auf 4.337,00 €, und
+   genau die Differenz (3.894,10 $) war der stumme Fehler.
+   Beim Nachziehen fiel dieselbe Umdeutung eine Zeile tiefer auf: Die
+   Positionstabelle beschriftete Gewinn/Verlust mit der **Depot**währung, über
+   dem Gewinn einer USD-Position stand also ein Euro-Zeichen
+   (`PositionTable.tsx`). Sie liest jetzt `position.currency` wie die beiden
+   Kursspalten daneben; die dafür durchgereichte `currency`-Prop entfällt
+   ersatzlos.
 2. **Auch auf der Buchungsseite gibt es keine Abweisung.** `saveTransactions`
    validiert Datum und Cent-Genauigkeit (`transaction-service.ts:170-183`),
    aber nicht die Währung; `sumIncome`/`sumExpenses`
@@ -87,9 +107,29 @@ sondern die fehlende Durchsetzung.**
    (`src/components/accounts/AccountFormDialog.tsx:203-206`), die Kontoliste
    zeigt die Währung an (`features/accounts/presentation/AccountList.tsx:164`) —
    verrechnet wird trotzdem alles als Euro.
-4. **Kein Wächter, kein Test.** Anders als die anderen Grundregeln dieses
-   Repos (§12 in `AGENTS.md`) hat EUR-only keine maschinelle Absicherung. Eine
-   neue Fremdwährungsquelle würde nichts rot machen.
+
+   **Nachgeprüft in WP 7.7, und bewusst dort belassen.** `Account.currency` wird
+   ausschließlich *geschrieben* (`account-service.ts:97`) und *angezeigt*
+   (`AccountList.tsx:164`); **keine** Rechnung liest sie. Ein USD-Konto wirkt
+   deshalb nicht nur auf den Saldo (`net-worth-service`, `cash`), sondern über
+   seine Buchungen auf `sumIncome`/`sumExpenses` (`lib/analysis-data.ts`) und
+   damit auf Analyse, Budgets, Prognose, EÜR und Finanzgesundheit.
+   Das ist der Grund, warum hier **nicht** dieselbe Bauform wie beim Depot
+   greift: Beim Depot ist die Position der Rechenposten und der einzige
+   Anschluss die Vermögenszeile. Beim Konto ist die **Buchung** der
+   Rechenposten, und sie hat sechs Anschlüsse. Nur den Saldo aus `cash`
+   herauszunehmen, während dieselben Buchungen weiter als Einnahme und Ausgabe
+   zählen, wäre keine halbe Lösung, sondern eine neue Ungereimtheit: zwei
+   Flächen, die sich über dieselben Daten widersprechen. Wer den Rest schließt,
+   entscheidet deshalb zuerst über die Buchungen (abweisen bei `saveTransactions`
+   vs. markieren in jeder Aggregation) — der Kontodialog ist die Folge dieser
+   Entscheidung, nicht ihr Anfang.
+4. **Kein Wächter — für die Depotseite jetzt aber Tests.** Ein Skript, das eine
+   neue Fremdwährungsquelle rot macht, gibt es weiterhin nicht (§12 in
+   `AGENTS.md`). Für Depot und Nettovermögen ist die Regel seit WP 7.7
+   immerhin durch `[REGRESSION]`-Tests festgenagelt: Wer dort wieder 1:1
+   summiert, bekommt vier rote Tests. Für Konten und Buchungen (Punkte 2 und 3)
+   gilt der Befund unverändert — dort würde nichts rot.
 
 Diese vier Punkte sind der reale Preis der Entscheidung im heutigen Stand —
 **nicht** eine Neuentscheidung: EUR-only bleibt. Wer die Lücke schließt, hat

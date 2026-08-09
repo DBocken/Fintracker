@@ -12,6 +12,7 @@ const EMPTY_NET_WORTH: NetWorthBreakdown = {
   accountBalances: {},
   accountSources: [],
   portfolioSources: [],
+  unconvertedInvestments: [],
   debtSources: [],
   receivableSources: [],
 };

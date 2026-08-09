@@ -88,6 +88,7 @@ export type {
   PortfolioPosition,
   QuoteData,
   PortfolioSummary,
+  UnconvertedPosition,
 } from '@/lib/portfolio-types';
 
 export type { OcrField, OcrExtractedPosition, OcrResult } from '@/lib/ocr-types';

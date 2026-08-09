@@ -1660,6 +1660,17 @@ export const en = {
     debtFreeTitle: 'Debt free!',
     debtFreeDescription: 'You have paid off all your debts. Huge milestone!',
   },
+  currency: {
+    unconverted: {
+      title: 'Foreign currency not included',
+      portfolioDescription:
+        'Fintracker does not convert exchange rates. These positions are held in a currency other than the portfolio currency, so they are not part of the total value.',
+      netWorthDescription:
+        'Fintracker does not convert exchange rates. These holdings are not held in euros, so they are not part of your net worth.',
+      positionsCount: '{count} positions',
+      singlePosition: '1 position',
+    },
+  },
   netWorth: {
     volumeShare: '{label}: {value} — {percent}% of net worth',
     title: 'Net worth',

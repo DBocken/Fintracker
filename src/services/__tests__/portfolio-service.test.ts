@@ -7,7 +7,9 @@ import {
   deletePosition,
   updatePositionPrice,
   getPortfolioSummary,
+  initializeDemoPortfolio,
 } from "../portfolio-service";
+import { toMinor } from "@/lib/money";
 
 async function seedPortfolio() {
   return createPortfolio({ name: "Test-Depot", currency: "EUR", type: "manual" });
@@ -126,5 +128,82 @@ describe("getPortfolioSummary — Investiert bei Hebel-Positionen", () => {
     // es hier isoliert zu "reparieren" und die drei Stellen auseinanderlaufen
     // zu lassen — eine echte Korrektur müsste alle drei gemeinsam ändern.
     expect(summary.total_value).toBe(1500);
+  });
+});
+
+/**
+ * VE-1 (`docs/architecture/currency-eur-only.md`): Fintracker rechnet nicht um.
+ * Eine Position in einer anderen Währung als der Depotwährung darf deshalb NIE
+ * in den Gesamtwert einfließen — sie wird sichtbar als „nicht verrechnet"
+ * ausgewiesen. Bis WP 7.7 summierte `getPortfolioSummary` USD 1:1 zu EUR.
+ */
+describe("getPortfolioSummary — Fremdwährung wird nicht verrechnet (VE-1)", () => {
+  it("[REGRESSION] sollte eine USD-Position nicht in den EUR-Gesamtwert summieren, sondern ausweisen", async () => {
+    const p = await seedPortfolio(); // Depotwährung EUR
+    await createPosition({ portfolio_id: p.id, symbol: "SAP", quantity: 10, entry_price: 100, currency: "EUR" });
+    await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 5, entry_price: 178.5, currency: "USD" });
+
+    const summary = await getPortfolioSummary(p.id);
+
+    expect(toMinor(summary.total_value)).toBe(toMinor(1000));
+    expect(toMinor(summary.total_cost)).toBe(toMinor(1000));
+    // Die Position verschwindet nicht — sie wird nur nicht verrechnet.
+    expect(summary.positions_count).toBe(2);
+    expect(summary.unconverted_positions).toHaveLength(1);
+    expect(summary.unconverted_positions[0]).toMatchObject({ symbol: "AAPL", currency: "USD" });
+    expect(toMinor(summary.unconverted_positions[0].value)).toBe(toMinor(892.5));
+  });
+
+  it("sollte ohne Fremdwährung eine leere Liste liefern", async () => {
+    const p = await seedPortfolio();
+    await createPosition({ portfolio_id: p.id, symbol: "SAP", quantity: 10, entry_price: 100, currency: "EUR" });
+
+    const summary = await getPortfolioSummary(p.id);
+
+    expect(toMinor(summary.total_value)).toBe(toMinor(1000));
+    expect(summary.unconverted_positions).toEqual([]);
+  });
+
+  it("sollte im USD-Depot die USD-Positionen verrechnen und die EUR-Position ausweisen", async () => {
+    // Spiegelfall: eToro führt Depots in USD. Innerhalb des Depots ist USD die
+    // Rechenwährung — dann ist die EUR-Position die nicht verrechnete.
+    const p = await createPortfolio({ name: "eToro", currency: "USD", type: "manual" });
+    await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 5, entry_price: 178.5, currency: "USD" });
+    await createPosition({ portfolio_id: p.id, symbol: "SAP", quantity: 10, entry_price: 100, currency: "EUR" });
+
+    const summary = await getPortfolioSummary(p.id);
+
+    expect(summary.currency).toBe("USD");
+    expect(toMinor(summary.total_value)).toBe(toMinor(892.5));
+    expect(summary.unconverted_positions).toHaveLength(1);
+    expect(summary.unconverted_positions[0]).toMatchObject({ symbol: "SAP", currency: "EUR" });
+  });
+
+  it("sollte den aktuellen Kurs verwenden, wenn eine Fremdwährungsposition bepreist ist", async () => {
+    const p = await seedPortfolio();
+    const pos = await createPosition({
+      portfolio_id: p.id,
+      symbol: "MSFT",
+      quantity: 8,
+      entry_price: 375.2,
+      currency: "USD",
+    });
+    await updatePositionPrice(pos.id, 400);
+
+    const summary = await getPortfolioSummary(p.id);
+
+    expect(toMinor(summary.total_value)).toBe(0);
+    expect(toMinor(summary.unconverted_positions[0].value)).toBe(toMinor(3200));
+  });
+
+  it("sollte das Demo-Depot ehrlich ausweisen: die zwei USD-Titel zählen nicht mit", async () => {
+    // Bewusst beibehalten (WP 7.7): Das Demo-Depot zeigt den Hinweis im
+    // Auslieferungszustand, statt die Fremdwährung wegzudefinieren.
+    const demo = await initializeDemoPortfolio();
+    const summary = await getPortfolioSummary(demo.id);
+
+    // SAP 10×145,50 + VOW3 20×92,80 + World 15×68,40 = 1.455 + 1.856 + 1.026 = 4.337,00 €
+    expect(toMinor(summary.total_value)).toBe(toMinor(4337));
+    expect(summary.unconverted_positions.map((position) => position.symbol).sort()).toEqual(["AAPL", "MSFT"]);
   });
 });

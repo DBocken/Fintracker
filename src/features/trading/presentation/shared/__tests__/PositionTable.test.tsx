@@ -19,6 +19,21 @@ function position(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition
   } as PortfolioPosition;
 }
 
+describe('PositionTable — Währung je Position (VE-1)', () => {
+  it('[REGRESSION] sollte Gewinn/Verlust in der Währung DER POSITION beschriften, nie in der des Depots', () => {
+    // Die Zelle formatierte den Betrag bis WP 7.7 mit der DEPOTwährung: In
+    // einem EUR-Depot stand über dem Gewinn einer USD-Position ein Euro-Zeichen
+    // — dieselbe stumme Umdeutung, die `getPortfolioSummary` in der Summe
+    // gemacht hat, nur eine Zeile tiefer und ohne Summe.
+    renderWithI18n(<PositionTable positions={[position({ currency: 'USD', last_price: 110 })]} />, 'de');
+
+    const cells = screen.getAllByRole('row')[1].querySelectorAll('td');
+    const gainLossCell = cells[6];
+    expect(gainLossCell.textContent).toContain('$');
+    expect(gainLossCell.textContent).not.toContain('€');
+  });
+});
+
 describe('PositionTable — Core Table Behavior', () => {
   describe('Empty State', () => {
     it('sollte einen Hinweis statt einer leeren Tabelle zeigen, wenn keine Positionen vorhanden sind', () => {
