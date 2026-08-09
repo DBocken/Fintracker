@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | Phasenende-Gate 5, danach Phase 6 |
+| **Paket** | WP 6.3 · TradingDashboard → features/trading (ARCH-3) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -180,8 +180,8 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 26a | **5.5b** | Wochentag/Datum folgen der App-Sprache | **fertig** | `998e5fe` |
 | 27 | 5.6 | `currencyFormatter`-Kopien → `useMoneyFormat` (KOMP-4) | offen | |
 | 28 | 5.7 | Toter Code entscheiden (KOMP-6) | offen | |
-| 29 | 6.1 | Verwaiste Slices entscheiden (ARCH-2) | offen | |
-| 30 | 6.2 | `TransactionCharts` in die Dashboard-Slice (ARCH-3) | offen | |
+| 29 | 6.1 | Verwaiste Slices entscheiden (ARCH-2) | **fertig** | `a08f940` |
+| 30 | 6.2 | `TransactionCharts` in die Dashboard-Slice (ARCH-3) | **fertig** | `f3af49c` |
 | 31 | 6.3 | `TradingDashboard` → Slice-Presentation (ARCH-5) | offen | |
 | 32 | 6.4 | `CityPage` entkernen (ARCH-5, KOMP-1) | offen | |
 | 33 | 6.5 | Slice-Migration, nächste Kandidaten (ARCH-1) | offen | |

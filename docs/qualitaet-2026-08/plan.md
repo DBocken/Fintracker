@@ -472,13 +472,13 @@ unverändert grün.
 **Abhängigkeit für alle Pakete: WP 2.3** (sonst migriert man in die alten
 Wächterlöcher hinein). Kochrezept: `docs/architecture/feature-structure.md`.
 
-### - [ ] WP 6.1 · Verwaiste Slices entscheiden (ARCH-2) · O
+### - [x] WP 6.1 · Verwaiste Slices entscheiden (ARCH-2) · O — `a08f940`
 Je Ordner (`contract-records`, `household-settlement`,
 `replacement-planning`): anschließen (erster echter Konsument) **oder** im
 Slice-README als „vorbereitet, ungenutzt seit <Datum>" kennzeichnen **oder**
 löschen (Git vergisst nichts). Keine stille dritte Option.
 
-### - [ ] WP 6.2 · `TransactionCharts` in die Dashboard-Slice (ARCH-3) · S
+### - [x] WP 6.2 · `TransactionCharts` in die Dashboard-Slice (ARCH-3) · S — `f3af49c`
 Migration nach `features/dashboard/presentation/`; hebt die zwei
 Allowlist-Einträge aus WP 2.3 wieder auf. **Akzeptanz:**
 `layer-allowlist.json` ist wieder leer.
