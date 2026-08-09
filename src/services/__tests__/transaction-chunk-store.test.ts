@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Transaction } from '@/types'
 import { UNKNOWN_QUARTER_KEY } from '@/lib/transaction-quarter'
-import { clearLocalKvStore, idbRemove, idbSet } from '../idb-kv'
-import { localEncryption } from '../local-crypto'
+import { clearLocalKvStore, idbGet, idbKeys, idbRemove, idbSet } from '../idb-kv'
+import { VaultCorruptError, localEncryption } from '../local-crypto'
 import { clearIntegrityReport, getIntegrityReport } from '../data-integrity-report'
 import {
   ChunkMissingError,
+  clearAllTransactionChunks,
+  readAllTransactionChunks,
   readTransactionChunk,
   readTransactionChunkIndex,
   writeTransactionChunk,
@@ -174,6 +176,107 @@ describe('transaction-chunk-store: Chunk-Cache (WP 4.1b, ADR "Chunk-Cache")', ()
     expect(spy).toHaveBeenCalled()
 
     spy.mockRestore()
+  })
+})
+
+describe('readAllTransactionChunks: Vollesen (WP 4.1c, PERF-1)', () => {
+  it('[REGRESSION] ein Chunk, der physisch existiert aber NICHT im Index steht, darf beim Vollesen nicht fehlen — Index wird berichtigt', async () => {
+    // ADR "Der Index bestimmt die Zählung, nicht die Menge": die
+    // Schreibreihenfolge (Chunk zuerst, Index danach) kann genau diesen
+    // Zustand hinterlassen — die Menge der Chunks MUSS über idbKeys()
+    // bestimmt werden, niemals aus dem Index.
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+    // Simuliert: der Chunk für Q2 ist physisch da, aber sein Index-Update ist
+    // nie passiert (z. B. Abbruch zwischen Chunk- und Index-Write).
+    await idbSet('ausgabentracker_transactions_v4_2026-Q2', JSON.stringify([tx('t2', '2026-04-01')]))
+
+    const indexBefore = await readTransactionChunkIndex()
+    expect(indexBefore['2026-Q2']).toBeUndefined()
+
+    const all = await readAllTransactionChunks()
+    expect(all.map((t) => t.id).sort()).toEqual(['t1', 't2'])
+
+    const indexAfter = await readTransactionChunkIndex()
+    expect(indexAfter['2026-Q2']).toBe(1)
+  })
+
+  it('sollte bei bereits korrektem Index KEINEN zusätzlichen Schreibvorgang auslösen', async () => {
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+    await readAllTransactionChunks() // wärmt den Cache, Index ist bereits korrekt
+
+    const spy = vi.spyOn(localEncryption, 'encryptAndStore')
+    await readAllTransactionChunks()
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('[REGRESSION] ein im Index genannter, physisch fehlender Chunk wirft auch beim Vollesen (RES-1) statt seine Buchungen stillschweigend zu verlieren', async () => {
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+    await writeTransactionChunk('2026-Q3', [tx('t2', '2026-08-01')])
+    await idbRemove('ausgabentracker_transactions_v4_2026-Q3')
+
+    await expect(readAllTransactionChunks()).rejects.toBeInstanceOf(ChunkMissingError)
+  })
+
+  it('[REGRESSION] eine kaputte Chunk-Entschlüsselung wirft (WP 1.1-Klasse) statt den Chunk wie ein Einzel-Item zu überspringen', async () => {
+    // Granularitäts-Entscheidung (WP 4.1c, s. readAllTransactionChunks): ein
+    // einzelnes kaputtes ITEM wird übersprungen (WP 1.2), ein ganzer kaputter
+    // CHUNK (bis zu einem Quartal Buchungen) wirft (WP 1.1) — sonst wäre ein
+    // stiller Verlust von potenziell Hunderten Buchungen möglich.
+    await localEncryption.enable('correct horse battery staple')
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+
+    const chunkKey = 'ausgabentracker_transactions_v4_2026-Q1'
+    const raw = await idbGet(chunkKey)
+    const envelope = JSON.parse(raw!)
+    // Ciphertext verfälschen -> AES-GCM-Authentifizierung schlägt fehl
+    // (echte Korruption, kein Parsing-Fehler).
+    envelope.ct_b64 = envelope.ct_b64.slice(0, -4) + (envelope.ct_b64.slice(-4) === 'AAAA' ? 'BBBB' : 'AAAA')
+    await idbSet(chunkKey, JSON.stringify(envelope))
+
+    await expect(readAllTransactionChunks()).rejects.toBeInstanceOf(VaultCorruptError)
+  })
+})
+
+describe('clearAllTransactionChunks (WP 4.1c)', () => {
+  it('sollte alle physischen v4-Schlüssel (Chunks + Index) und den Cache entfernen', async () => {
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+    await writeTransactionChunk('2026-Q2', [tx('t2', '2026-04-01')])
+    await readTransactionChunk('2026-Q1') // Cache wärmen
+
+    await clearAllTransactionChunks()
+
+    const remaining = (await idbKeys()).filter((k) => k.startsWith('ausgabentracker_transactions_v4_'))
+    expect(remaining).toEqual([])
+    expect(await readTransactionChunkIndex()).toEqual({})
+    expect(await readTransactionChunk('2026-Q1')).toEqual([]) // kein Leck aus dem vorherigen Cache
+  })
+})
+
+describe('local-crypto enable()/disable()/Rewrap decken die Chunk-Ablage ab (WP 4.1c)', () => {
+  const PW = 'correct horse battery staple'
+
+  it('[REGRESSION] disable() entschlüsselt Chunks UND Index zurück (kein Datenverlust wie bei der alten 7er-Handliste, VE-6)', async () => {
+    await localEncryption.enable(PW)
+    await writeTransactionChunk('2026-Q1', [tx('t1', '2026-01-15')])
+    const chunkKey = 'ausgabentracker_transactions_v4_2026-Q1'
+    const indexKey = 'ausgabentracker_transactions_v4_index'
+    expect(JSON.parse((await idbGet(chunkKey))!).type).toBe('ausgabentracker.enc')
+    expect(JSON.parse((await idbGet(indexKey))!).type).toBe('ausgabentracker.enc')
+
+    await localEncryption.disable(PW)
+
+    expect(JSON.parse((await idbGet(chunkKey))!).type).not.toBe('ausgabentracker.enc')
+    expect(JSON.parse((await idbGet(indexKey))!).type).not.toBe('ausgabentracker.enc')
+  })
+
+  it('[REGRESSION] enable() verschlüsselt einen bereits vorhandenen Klartext-Chunk sofort', async () => {
+    const chunkKey = 'ausgabentracker_transactions_v4_2026-Q1'
+    await idbSet(chunkKey, JSON.stringify([tx('t1', '2026-01-15')]))
+
+    await localEncryption.enable(PW)
+
+    expect(JSON.parse((await idbGet(chunkKey))!).type).toBe('ausgabentracker.enc')
   })
 })
 

@@ -1,5 +1,5 @@
 import { idbGet, idbSet, idbKeys, migrateLocalStorageToIdb, requestAndRecordPersistentStorage } from './idb-kv'
-import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys'
+import { ENCRYPTED_STORAGE_KEYS, TRANSACTION_CHUNK_KEY_PREFIX } from './local-storage-keys'
 import { t } from '../i18n/serviceT'
 
 // --- Datenspeicher-Seam (Issue #29) ------------------------------------------
@@ -399,7 +399,16 @@ function clearPendingRewrapConfig() {
 async function getSensitiveStorageKeys(): Promise<string[]> {
   const sensitiveKeys = new Set<string>(ENCRYPTED_STORAGE_KEYS)
   return (await idbKeys()).filter(
-    (k) => sensitiveKeys.has(k) || k.startsWith('ausgabentracker_transactions_v2__'),
+    (k) =>
+      sensitiveKeys.has(k) ||
+      k.startsWith('ausgabentracker_transactions_v2__') ||
+      // WP 4.1c (PERF-1): die Quartals-Chunk-Ablage + ihr Index (siehe
+      // `transaction-chunk-store.ts`) sind dynamisch benannt (ein Schlüssel
+      // je Quartal) und stehen deshalb nicht in `ENCRYPTED_STORAGE_KEYS` —
+      // ohne diese Zeile ließe `disable()` sie dauerhaft verschlüsselt zurück
+      // (derselbe Fehler, den VE-6 für die alte 7er-Handliste behoben hat) und
+      // der SEC-1-Rewrap würde sie nie auf die neuen KDF-Parameter heben.
+      k.startsWith(TRANSACTION_CHUNK_KEY_PREFIX),
   )
 }
 

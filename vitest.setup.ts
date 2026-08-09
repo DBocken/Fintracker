@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach } from "vitest"
 import { webcrypto } from "node:crypto"
 import { cleanup } from "@testing-library/react"
+import { LOCAL_STORE_SCHEMA_VERSION, LOCAL_STORE_SCHEMA_VERSION_KEY } from "./src/lib/store-compatibility"
 
 afterEach(() => {
   cleanup()
@@ -27,6 +28,69 @@ if (!globalThis.crypto?.subtle) {
     value: webcrypto,
     configurable: true,
   })
+}
+
+// Schema-Version-Marker deterministisch auf "bereits migriert" halten (WP 4.1c).
+//
+// `assertCompatibleStore()` (local-finance-store.ts) verweigert JEDEN
+// Store-Zugriff, solange laut `hasPendingStoreMigrations()` ein definierter
+// Migrationsschritt aussteht — gewolltes WP-1.3-Verhalten. In der echten App
+// garantiert `App.tsx`, dass `runStoreMigrations()` VOR jedem Store-Zugriff
+// einmal gelaufen ist; Tests überspringen `App.tsx` bewusst und riefen
+// `runStoreMigrations()` nie auf. Das blieb folgenlos, SOLANGE `migrations`
+// leer war — `local-finance-store.pending-migration.test.ts` kommentiert das
+// ausdrücklich als "heute nur hypothetisch, ab WP 4.1 real". WP 4.1c trägt den
+// ERSTEN echten Schritt ein (Transaktionen: Blob -> Quartals-Chunks): ab jetzt
+// würde JEDER Test, der irgendeine Collection über `local-finance-store.ts`
+// anfasst, ohne den Marker vorher zu setzen, mit `StoreMigrationPendingError`
+// scheitern — nicht nur Transaktions-Tests, jede Collection läuft über
+// denselben synchronen Check.
+//
+// Ein einmaliger Property-Patch (wie beim `navigator.language`-Pin oben)
+// reicht hier NICHT: der Marker lebt in `localStorage`, und Dutzende
+// Testdateien rufen `localStorage.clear()` mitten in ihrem eigenen
+// `beforeEach` auf (derselbe Grund, aus dem der Sprach-Pin bewusst KEIN
+// `beforeEach` ist — hier ist es aber nicht vermeidbar, weil `clear()` selbst
+// das Ziel ist). Deshalb wird `clear()` selbst umschlossen: jeder Aufruf
+// räumt wie gewohnt auf UND schreibt den Marker sofort wieder fest, sodass
+// die Ablage aus Sicht jedes Tests immer "bereits auf dem aktuellen Stand"
+// ist — genau der Zustand, den `App.tsx` in der echten App vor jedem
+// Store-Zugriff bereits hergestellt hat.
+//
+// Tests, die die Migrationsprüfung selbst GEZIELT prüfen wollen (fehlender
+// Marker, zu alte/zu neue Version), setzen den Marker in ihrem eigenen Test
+// explizit — ein expliziter `localStorage.setItem`/`removeItem` NACH diesem
+// `clear()`-Aufruf gewinnt immer, weil er später läuft.
+if (typeof window !== "undefined" && window.localStorage) {
+  // `localStorage` ist (WHATWG Web Storage) kein normales Objekt, sondern
+  // proxyt jede Eigenschaftszuweisung als Storage-Eintrag — ein direktes
+  // `window.localStorage.clear = fn` legt daher lautlos nur einen Eintrag
+  // namens "clear" an und lässt `clear()` selbst unangetastet (empirisch
+  // geprüft). Die eingebaute Methode hängt an `Storage.prototype`, DIE ist
+  // ein normales, beschreibbares Objekt — dort wird gepatcht.
+  //
+  // ACHTUNG, hier lag ein Fehler, der einen Datenschutz-Wächter blind gemacht
+  // hat: `localStorage` und `sessionStorage` teilen sich DENSELBEN Prototyp.
+  // Wer hier patcht, patcht beide. Die erste Fassung band zusätzlich das
+  // Original an `localStorage` (`proto.clear.bind(window.localStorage)`) —
+  // damit räumte `sessionStorage.clear()` in Wahrheit den localStorage und
+  // ließ die Sitzung stehen. Aufgefallen ist das an
+  // `telemetry-service.test.ts` („Sitzungskennung ist kein Gerätemerkmal"):
+  // Der Test räumt die Sitzung und erwartet eine neue Kennung — sie blieb
+  // dieselbe, und die Zusicherung „keine wiedererkennbare Kennung über den
+  // Besuch hinaus" war damit unbewiesen.
+  //
+  // Deshalb: Original UNGEBUNDEN halten und auf `this` aufrufen, und den
+  // Marker nur für den localStorage nachziehen.
+  const proto = Object.getPrototypeOf(window.localStorage) as Storage
+  const originalClear = proto.clear
+  proto.clear = function patchedClear(this: Storage) {
+    originalClear.call(this)
+    if (this === window.localStorage) {
+      this.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION))
+    }
+  }
+  window.localStorage.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION))
 }
 
 // Sprachwahl deterministisch machen.

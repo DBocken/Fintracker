@@ -2,6 +2,8 @@ import type { Transaction } from '@/types'
 import { transactionSchema } from '@/lib/schemas/transaction.schema'
 import { type QuarterKey } from '@/lib/transaction-quarter'
 import { recordSkipped } from './data-integrity-report'
+import { idbKeys, idbRemove } from './idb-kv'
+import { TRANSACTION_CHUNK_KEY_PREFIX } from './local-storage-keys'
 import {
   LocalEncryptionLockedError,
   VaultCorruptError,
@@ -11,16 +13,17 @@ import {
 import { t } from '@/i18n/serviceT'
 
 /**
- * Chunk-Speicherschicht für Transaktionen (PERF-1, WP 4.1b).
+ * Chunk-Speicherschicht für Transaktionen (PERF-1, WP 4.1b/4.1c).
  *
  * Vorgabe: `docs/architecture/transaction-storage-chunks.md` (ADR) —
- * verbindlich, nicht neu zu entscheiden. Diese Schicht wird in diesem Paket
- * noch NICHT scharf geschaltet: `transactionStorage`
- * (`transaction-storage-service.ts`) liest weiterhin den v3-Blob. Das
- * Umschalten samt Migration ist WP 4.1c.
+ * verbindlich, nicht neu zu entscheiden. WP 4.1b hat diese Schicht gebaut,
+ * aber noch nicht scharf geschaltet. **WP 4.1c schaltet sie scharf:**
+ * `transactionStorage` (`transaction-storage-service.ts`) liest/schreibt ab
+ * jetzt hierüber, sobald der v3-Blob migriert (entfernt) ist — siehe dort
+ * (`hasLegacyV3Blob`) und den Migrationsschritt in `local-store-migrations.ts`.
  */
 
-const CHUNK_KEY_PREFIX = 'ausgabentracker_transactions_v4_'
+const CHUNK_KEY_PREFIX = TRANSACTION_CHUNK_KEY_PREFIX
 const INDEX_KEY = `${CHUNK_KEY_PREFIX}index`
 
 function chunkStorageKey(quarter: QuarterKey): string {
@@ -187,4 +190,99 @@ export async function writeTransactionChunk(quarter: QuarterKey, transactions: T
   const index = await readIndex()
   index[quarter] = transactions.length
   await writeIndex(index)
+}
+
+/**
+ * Liest den GESAMTEN Transaktionsbestand über alle Quartals-Chunks (WP 4.1c,
+ * "Vollesen"). Zentrale ADR-Vorgabe ("Der Index bestimmt die Zählung, nicht
+ * die Menge"): welche Chunks es gibt, wird über `idbKeys()` und das
+ * Schlüsselpräfix bestimmt — NIEMALS aus dem Index. Die Schreibreihenfolge
+ * (Chunk zuerst, Index danach) kann einen Chunk hinterlassen, den der Index
+ * nicht nennt; wer die Menge aus dem Index ableitet, verliert dessen
+ * Buchungen lautlos (dieselbe Fehlerklasse wie RES-1, nur eine Ebene höher).
+ *
+ * Zwei Sicherungen, beide aus der ADR:
+ * - Ein im Index genannter, aber physisch fehlender Chunk ist der klassische
+ *   RES-1-Fall (WP 1.1) — er wirft (`ChunkMissingError`), statt die
+ *   zugehörigen Buchungen still aus dem Gesamtbestand zu entfernen.
+ * - Ein physisch vorhandener, aber im Index NICHT genannter Chunk wird
+ *   mitgelesen, und der Index wird dabei berichtigt ("… und der Index dabei
+ *   berichtigt", ADR-Wortlaut) — aber nur, wenn eine Abweichung tatsächlich
+ *   vorliegt, damit ein normales Vollesen im Regelfall keinen zusätzlichen
+ *   Schreibvorgang auslöst.
+ *
+ * **Granularität einer Chunk-Korruption (Denk-mit-Frage, WP 4.1c):** Ein
+ * einzelnes kaputtes ITEM innerhalb eines lesbaren Chunks wird — wie überall
+ * sonst (WP 1.2) — übersprungen, gezählt und gemeldet (`readChunkRaw`,
+ * unverändert). Scheitert aber die Entschlüsselung/das Parsen eines GANZEN
+ * Chunks (`VaultCorruptError`), wird das NICHT wie ein einzelnes Item
+ * übersprungen, sondern wirft — wie der komplette v3-Envelope in WP 1.1. Ein
+ * Chunk trägt bis zu einem Quartal Buchungen (potenziell Hunderte); ihn beim
+ * Vollesen still zu überspringen wäre keine Fehlertoleranz mehr, sondern
+ * genau der stille Bestandsverlust, den RES-1 verhindern soll. Diese Wahl
+ * erfordert keinen eigenen Code: `readChunkRaw`/`loadAndMaybeDecrypt` werfen
+ * bereits `VaultCorruptError`, und diese Funktion fängt sie bewusst NICHT ab
+ * — der Fehler erreicht `getTransactions()` als Fehlerzustand (RES-1-Kette),
+ * nie als leerer/unvollständiger Bestand.
+ */
+export async function readAllTransactionChunks(): Promise<Transaction[]> {
+  requireUnlockedIfEncrypted()
+
+  const allKeys = await idbKeys()
+  const physicalQuarters = allKeys.filter((k) => k.startsWith(CHUNK_KEY_PREFIX) && k !== INDEX_KEY) as QuarterKey[]
+  const physicalSet = new Set(physicalQuarters.map((k) => k.slice(CHUNK_KEY_PREFIX.length)))
+
+  const index = await readIndex()
+  // RES-1 auch für das Vollesen: ein im Index genannter, physisch fehlender
+  // Chunk darf nicht stillschweigend aus dem Gesamtbestand verschwinden (der
+  // Schreibpfad garantiert normalerweise "Chunk vor Index" — dieser Fall
+  // entsteht nur durch externe Korruption/manuelles Löschen, s. Tests).
+  for (const quarter of Object.keys(index)) {
+    if (!physicalSet.has(quarter)) {
+      throw new ChunkMissingError(quarter)
+    }
+  }
+
+  const result: Transaction[] = []
+  const actualCounts: TransactionChunkIndex = {}
+  for (const storageKey of physicalQuarters) {
+    const quarter = storageKey.slice(CHUNK_KEY_PREFIX.length)
+    let items = chunkCache.get(quarter)
+    if (!items) {
+      // Physisch vorhanden (kommt aus idbKeys()) — kein RES-1-Fall möglich,
+      // deshalb roh lesen statt über readTransactionChunk (spart den dortigen
+      // zweiten Index-Read je Quartal, s.o. "kaltes Vollesen" in der ADR).
+      items = (await readChunkRaw(quarter)) ?? []
+      chunkCache.set(quarter, items)
+    }
+    result.push(...items)
+    actualCounts[quarter] = items.length
+  }
+
+  const indexKeys = Object.keys(index)
+  const indexIsStale =
+    indexKeys.length !== Object.keys(actualCounts).length ||
+    indexKeys.some((quarter) => index[quarter] !== actualCounts[quarter])
+  if (indexIsStale) {
+    await writeIndex(actualCounts)
+  }
+
+  return result
+}
+
+/**
+ * Setzt die gesamte Chunk-Ablage zurück: entfernt jeden physischen
+ * v4-Schlüssel (Chunks + Index) und den In-Memory-Cache. Für
+ * `transactionStorage.clearLocalCache()` (WP 4.1c) — ohne das würde ein
+ * zwischen Tests wiederverwendeter IndexedDB-Store Buchungen aus einem
+ * früheren Test/einer früheren Session in den nächsten Lauf hineinlecken,
+ * sobald `transactionStorage` auf diese Schicht schreibt.
+ */
+export async function clearAllTransactionChunks(): Promise<void> {
+  const allKeys = await idbKeys()
+  const chunkKeys = allKeys.filter((k) => k.startsWith(CHUNK_KEY_PREFIX))
+  for (const key of chunkKeys) {
+    await idbRemove(key)
+  }
+  chunkCache.clear()
 }

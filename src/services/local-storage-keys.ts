@@ -42,6 +42,17 @@ export const LOCAL_FINANCE_KEYS = {
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;
 
+/**
+ * Schlüsselpräfix der Transaktions-Chunk-Ablage (WP 4.1b/c, PERF-1) —
+ * `docs/architecture/transaction-storage-chunks.md`. Liegt hier statt in
+ * `transaction-chunk-store.ts`, aus demselben zirkularfrei-Grund wie
+ * `LOCAL_FINANCE_KEYS`: `local-crypto.ts` liegt UNTER der Chunk-Ablage (diese
+ * importiert `local-crypto`), ein Import in die andere Richtung (damit
+ * `getSensitiveStorageKeys()` das Präfix kennt) wäre zirkulär. Diese Datei
+ * hat bewusst keine Imports und kann deshalb von beiden Seiten gelesen werden.
+ */
+export const TRANSACTION_CHUNK_KEY_PREFIX = 'ausgabentracker_transactions_v4_';
+
 /** Nutzerkategorien (mit Defaults). Bei aktiver Verschlüsselung ebenfalls Envelope. */
 export const LOCAL_CATEGORIES_KEY = 'ausgabentracker_categories_v1';
 

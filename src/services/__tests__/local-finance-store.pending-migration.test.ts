@@ -26,6 +26,13 @@ import { StoreMigrationPendingError } from '@/lib/store-compatibility';
 
 beforeEach(() => {
   localStorage.clear();
+  // WP 4.1c: `vitest.setup.ts` pinnt den Schema-Version-Marker nach jedem
+  // `localStorage.clear()` automatisch auf die aktuelle Version (Begründung
+  // dort — ohne das würde der jetzt echte Migrationsschritt aus WP 4.1c
+  // praktisch jeden anderen Test mit `StoreMigrationPendingError` sprengen).
+  // Diese Datei testet genau den GEGENTEILIGEN Zustand (Marker fehlt) und
+  // hebt den Auto-Pin deshalb bewusst wieder auf.
+  localStorage.removeItem(LOCAL_STORE_SCHEMA_VERSION_KEY);
 });
 
 describe('[INTEGRITY] Lokale Ablage mit ausstehender Migration', () => {

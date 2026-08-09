@@ -33,7 +33,7 @@
  */
 import { t } from '../i18n/serviceT';
 
-export const LOCAL_STORE_SCHEMA_VERSION = 2;
+export const LOCAL_STORE_SCHEMA_VERSION = 3;
 export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_version';
 
 export type StoreCompatibility =
