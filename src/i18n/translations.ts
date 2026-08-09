@@ -4620,6 +4620,9 @@ export const translations = {
       migrateError: 'Verschlüsselte Daten bei deaktivierter Verschlüsselung gefunden — Migration unvollständig.',
       corruptError: 'Die gespeicherten Daten dieser Kategorie sind beschädigt und konnten nicht gelesen werden. Spiele ein Backup ein, bevor du weiterarbeitest.',
     },
+    transactionChunkStore: {
+      chunkMissingError: 'Ein im Index verzeichneter Quartals-Chunk der Buchungen fehlt in der Ablage. Spiele ein Backup ein, bevor du weiterarbeitest.',
+    },
     mcpService: {
       syncRiskNotAcknowledged: 'Sync abgebrochen: Risiko wurde nicht bestätigt (Stufe 1).',
       syncPhraseIncorrect: 'Sync abgebrochen: Bestätigungsphrase stimmt nicht (Stufe 2).',
@@ -9351,6 +9354,9 @@ export const translations = {
       checkInvalidError: 'Encryption check is invalid – please re-enable encryption.',
       migrateError: 'Found encrypted data while encryption is disabled — migration incomplete.',
       corruptError: 'The stored data for this category is damaged and could not be read. Restore a backup before continuing.',
+    },
+    transactionChunkStore: {
+      chunkMissingError: 'A quarterly transaction chunk listed in the index is missing from storage. Restore a backup before continuing.',
     },
     mcpService: {
       syncRiskNotAcknowledged: 'Sync cancelled: Risk not acknowledged (step 1).',
@@ -18417,6 +18423,9 @@ export const translations = {
       checkInvalidError: 'Проверка шифрования недействительна – включите шифрование заново.',
       migrateError: 'Обнаружены зашифрованные данные при отключённом шифровании — миграция не завершена.',
       corruptError: 'Сохранённые данные этой категории повреждены и не могут быть прочитаны. Восстанови резервную копию, прежде чем продолжать.',
+    },
+    transactionChunkStore: {
+      chunkMissingError: 'Квартальный чанк транзакций, указанный в индексе, отсутствует в хранилище. Восстанови резервную копию, прежде чем продолжать.',
     },
     mcpService: {
       syncRiskNotAcknowledged: 'Синхронизация отменена: риск не подтверждён (шаг 1).',

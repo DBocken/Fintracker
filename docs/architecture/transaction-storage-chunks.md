@@ -90,6 +90,31 @@ entschlüsselter Bestand darf einen Lock nicht überleben — sonst wäre der
 Auto-Lock aus WP 3.2 eine Anzeige ohne Wirkung, also genau die Fehlerklasse,
 die `nachpruefung.md` 3.b beschreibt.
 
+### Der Index bestimmt die Zählung, nicht die Menge
+
+Nachgetragen am 2026-08-09 aus WP 4.1b, weil die dortige Reihenfolge-Entscheidung
+sonst zwischen zwei Paketen verloren geht.
+
+Beim einzelnen Schreibvorgang gilt dieselbe Disziplin wie bei der Migration:
+**Chunk zuerst, Index zuletzt.** Die umgekehrte Reihenfolge erzeugt genau den
+RES-1-Fall (ein im Index genannter Chunk, den es nicht gibt). Der Preis dieser
+Reihenfolge ist der spiegelbildliche Zustand: Bricht der Vorgang dazwischen ab,
+existiert ein Chunk, den der Index **nicht** nennt.
+
+Für das Lesen eines einzelnen Quartals ist das harmlos — es wird direkt
+adressiert und gefunden. **Für das Vollesen ist es das nicht:** Wer die Menge
+der vorhandenen Chunks aus dem Index ableitet, überspringt diesen Chunk, und
+seine Buchungen verschwinden lautlos aus `getTransactions()`. Das wäre
+derselbe stille Verlust, gegen den WP 1.1 angetreten ist — nur eine Ebene
+höher.
+
+Deshalb verbindlich: **Die Menge der vorhandenen Chunks wird durch Aufzählung
+der Ablage-Schlüssel bestimmt (`idbKeys()`, Präfix
+`ausgabentracker_transactions_v4_`), nicht aus dem Index.** Der Index liefert
+Zählungen und dient der RES-1-Prüfung beim gezielten Einzellesen; er ist keine
+Bestandsliste. Ein Chunk ohne Index-Eintrag wird beim Vollesen mitgelesen und
+der Index dabei berichtigt.
+
 ### Fassade bleibt
 
 Der Umbau findet vollständig hinter `transactionStorage` statt. Die 53

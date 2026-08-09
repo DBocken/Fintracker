@@ -5,6 +5,7 @@ import {
   localEncryption,
   LocalEncryptionLockedError,
   onLocalEncryptionActivity,
+  onLocalEncryptionLock,
   onLocalEncryptionWriteSettled,
   VaultCorruptError,
 } from "../local-crypto";
@@ -463,5 +464,41 @@ describe("Schreibvorgang-in-Arbeit-Kanal (WP 3.2 / SEC-2)", () => {
     expect(listener).toHaveBeenCalled();
     expect(isLocalEncryptionWriteInFlight()).toBe(false);
     unsubscribe();
+  });
+});
+
+// WP 4.1b (PERF-1): Lock-Kanal nach demselben Muster wie der Aktivitäts-Kanal
+// oben — der Chunk-Cache der Transaktions-Chunk-Ablage kennt `local-crypto`
+// nicht direkt, sondern hängt sich hierüber ein, um beim `lock()` (auch dem
+// automatischen aus WP 3.2) den GESAMTEN Cache zu verwerfen (ADR
+// "Chunk-Cache"). Freie Funktion statt Methode, aus demselben Grund wie
+// `onLocalEncryptionActivity`: stabile Referenz über die App-Laufzeit.
+describe("Lock-Kanal (WP 4.1b, PERF-1)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte registrierte Listener bei jedem lock() benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionLock(listener);
+
+    await localEncryption.enable("correct horse battery staple");
+    expect(listener).not.toHaveBeenCalled();
+
+    localEncryption.lock();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+  });
+
+  it("sollte einen abgemeldeten Listener nicht mehr benachrichtigen", () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionLock(listener);
+    unsubscribe();
+
+    localEncryption.lock();
+    expect(listener).not.toHaveBeenCalled();
   });
 });

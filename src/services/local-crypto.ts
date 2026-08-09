@@ -39,6 +39,30 @@ function pulseActivity(): void {
   for (const listener of activityListeners) listener()
 }
 
+// --- Lock-Kanal (WP 4.1b / PERF-1) -------------------------------------------
+// Dasselbe Muster wie der Aktivitäts-Kanal oben: `local-crypto.ts` kennt keine
+// Aufrufer oberhalb von sich selbst (Schichtregel), aber mehrere spätere
+// Schichten müssen erfahren, WANN ein `lock()` (auch der automatische aus
+// WP 3.2) tatsächlich stattfindet — allen voran die Chunk-Cache-Schicht der
+// Transaktions-Chunk-Ablage (`transaction-chunk-store.ts`, WP 4.1b), die
+// einen entschlüsselten Bestand nicht über einen Lock hinweg im Speicher
+// behalten darf (ADR "Chunk-Cache"). Freie Funktion statt Methode, aus
+// demselben Grund wie `onLocalEncryptionActivity`: stabile Referenz über die
+// App-Laufzeit.
+const lockListeners = new Set<() => void>()
+
+/** Meldet sich für den Lock-Kanal an; der Rückgabewert meldet ab. */
+export function onLocalEncryptionLock(listener: () => void): () => void {
+  lockListeners.add(listener)
+  return () => {
+    lockListeners.delete(listener)
+  }
+}
+
+function pulseLock(): void {
+  for (const listener of lockListeners) listener()
+}
+
 // --- "Schreibvorgang läuft"-Zähler für den Lock-bei-Tab-Wechsel (WP 3.2) ----
 // Anders als der Inaktivitäts-Timer wird `visibilitychange` → `hidden` NICHT
 // durch einen Aktivitäts-Puls aufgeschoben — der Puls verschiebt nur einen
@@ -429,6 +453,9 @@ export const localEncryption = {
     // persistierten Pending-Marker, nicht aus diesem In-Memory-Feld.
     this._rewrapAltKey = null
     this._rewrapAltKdf = null
+    // WP 4.1b: Lock-Kanal NACH dem Zurücksetzen pulsen — Listener, die
+    // synchron `isUnlocked()` abfragen, sehen bereits den gesperrten Zustand.
+    pulseLock()
   },
 
   async enable(password: string): Promise<void> {
