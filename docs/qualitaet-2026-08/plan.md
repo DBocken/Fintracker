@@ -503,7 +503,7 @@ Oberfläche oder gemeinsamer Baustein?" beantwortet sich über den Pfad.
 **Akzeptanz:** `maxBausteine` auf 0 · `check:layers` grün · keine Zusicherung
 in umziehenden Tests geändert.
 
-### - [ ] WP 6.4 · `CityPage` entkernen (ARCH-5, KOMP-1) · S
+### - [x] WP 6.4 · `CityPage` entkernen (ARCH-5, KOMP-1) · S — `067cf8b`
 Interaktions-/Kamera-Logik nach `features/finance-city/application`;
 `createCityScene` in benannte Teilschritte (Layout, Aufbau, Interaktion,
 Rendering); Page wird Orchestrierung. Zielgröße: Page < 300 Zeilen, keine

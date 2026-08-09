@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.4 · CityPage entkernen (ARCH-5, KOMP-1) |
+| **Paket** | WP 6.5 · Slice-Migration AccountManager/EnhancedSettings (ARCH-1) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -183,7 +183,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 29 | 6.1 | Verwaiste Slices entscheiden (ARCH-2) | **fertig** | `a08f940` |
 | 30 | 6.2 | `TransactionCharts` in die Dashboard-Slice (ARCH-3) | **fertig** | `f3af49c` |
 | 31 | 6.3 | `TradingDashboard` → Slice-Presentation (ARCH-5) | offen | |
-| 32 | 6.4 | `CityPage` entkernen (ARCH-5, KOMP-1) | offen | |
+| 32 | 6.4 | `CityPage` entkernen (ARCH-5, KOMP-1) | **fertig** | `067cf8b` |
 | 33 | 6.5 | Slice-Migration, nächste Kandidaten (ARCH-1) | offen | |
 | 34 | 6.6 | Gott-Module lib-seitig teilen (ARCH-6) | offen | |
 | 35 | 7.1 | Error-State-Tests verschärfen (TEST-4) | offen | |
