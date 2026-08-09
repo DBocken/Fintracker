@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | Segment-6-Nachprüfung + Phasenende-Gate |
+| **Paket** | Phase 7 · WP 7.1 (Error-State-Tests verschärfen) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 

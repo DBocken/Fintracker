@@ -1067,3 +1067,80 @@ war es Routine, kein Erkenntnisgewinn — genau das soll eine Regel leisten.
 Ratschen unverändert: `view-data` 282, `slice-presentation` 24. Ab Phase 6
 laufen delegierte Agenten auf Opus (Vorgabe des Auftraggebers, siehe
 `status.md`).
+
+### 6.a · Wächter, die auf der alten Struktur gebaut sind, messen die Migration als Rückschritt
+
+**Befund.** Dreimal in dieser Phase musste ein Wächter korrigiert werden, weil
+er genau die Migration verurteilt hätte, für die er wirbt: die
+Slice-Ratsche zählte shadcn-Primitive als Altlast (WP 6.2, 24→25 statt →17),
+sie vermischte fremde Feature-UI mit den vorgeschriebenen `common/`-Bausteinen
+(WP 6.3, wäre 17→48 gewesen), und der `check:i18n`-Diff-Modus las eine
+**verschobene** Datei als lauter neue Zeilen (WP 6.6, CI wäre rot gewesen).
+
+**Muster.** Ein Wächter, der Pfade zählt, kodiert die heutige Struktur als
+Norm. Jede Struktur-Migration erzeugt dann Zähl-Artefakte, die wie Verstöße
+aussehen. Die Antwort ist nie „Allowlist-Eintrag und weiter", sondern die
+Fachfrage: *Was genau soll die Zahl verhindern?* — und die Zählweise daran
+ausrichten (ui/ ist keine Alt-Oberfläche; `common/` ist eine eigene Frage mit
+eigener Antwort; Bestand ist eine Netto-Größe, keine Zeilen-Größe).
+
+**Preis und Beleg.** Jede Korrektur trug Mutationsproben und verschärfte
+Wächter-Tests; nichts wurde ausgenommen, nichts verschwand. `maxBausteine`
+steht nach dem `common/`-Umzug auf **0** — die Zahl, die vorher unerreichbar
+war, ist jetzt die Norm.
+
+### 6.b · Das Bundle-Gate gehört in die Paket-Abnahme, nicht nur ins Phasenende
+
+**Befund.** CI riss nach WP 6.5b das `SettingsPage`-Chunk-Budget um 0,1 kB —
+lokal unsichtbar, weil die Paket-Batterie keinen `pnpm build` enthielt. Das
+Wachstum war gewollt (neue Modulgrenzen der Migration), die Überraschung nicht.
+
+**Regel ab hier.** Pakete, die Code zwischen Chunks verschieben, fahren
+`pnpm build && pnpm check:bundle-size` in der Abnahme (ab WP 6.7 so
+gehandhabt). Anhebung nur je gerissenem Chunk mit Grund im Commit (4.g gilt).
+
+### 6.c · `git restore --staged --worktree` löscht eine neue Datei ersatzlos
+
+**Befund.** Beim Rückbau einer Mutationsprobe (WP 6.6) habe ich eine noch nie
+committete Datei mit `git restore --staged --worktree` „zurückgesetzt" — für
+eine Datei ohne HEAD-Stand heißt das: aus Index **und** Arbeitsverzeichnis
+entfernt. Wiederhergestellt über `git fsck` aus der Objektdatenbank (der
+`git add` hatte den Blob gerettet); Blob-Diff und 1294 grüne lib-Tests belegen
+die Identität.
+
+**Regel ab hier.** Probe-Zeilen in neuen Dateien werden per Textersetzung
+zurückgebaut, nie per `git restore`. Und: Der `git add` **vor** der Probe ist
+kein Ritual — er ist die Versicherung, die hier den Verlust verhindert hat.
+
+### 6.d · Was die Opus-Umstellung gebracht hat
+
+Der Auftraggeber hat die delegierten Agenten ab Phase 6 auf Opus gestellt.
+Der messbare Unterschied lag nicht in „weniger Fehler bei gleicher Arbeit",
+sondern in **Funden über den Auftrag hinaus**, jeweils mit Beleg statt
+Behauptung: der echte Fehlerzustand-Bug hinter dem Baseline-Test (6.5a), die
+verdeckte id-Kollision, die echte Dialog-Beschreibungen verdrängte (6.9), die
+lautlos schrumpfende `hooks`-Regel und der `RequireTier`-Fund (6.7), die
+ehrlich verweigerte Presentation-Migration samt Messtabelle (6.5b). Die
+Abnahme blieb unverändert streng und fand weiter Dinge (Commit-Schnitt,
+Index-Artefakte) — aber keinen einzigen zurückgelassenen roten Compiler und
+keinen Abbruch ohne Bericht mehr.
+
+### 6.e · Stand nach Phase 6
+
+| | vor Phase 6 | nach Phase 6 |
+|---|---|---|
+| Tests | 5147 in 546 Dateien | **5351 in 577 Dateien** |
+| Zeilenabdeckung | 75,7 % | **77,2 %** |
+| `check:view-data` | 251* | **220** |
+| Slice-Ratsche | 17 (eine Zahl) | **12 Feature-UI + 0 Bausteine** |
+| i18n-Backlog | 17 | 35 (Wächter sieht 4 Formen mehr; 54 entschieden) |
+| Bundle gesamt (gzip) | 2167 kB | 2173 kB (Grenze 2379) |
+| `components/common/`, `components/trading/` | existieren | **existieren nicht mehr** |
+| `CityPage` | 1205 Zeilen | **120** |
+
+\* 282 zu Phasenbeginn; 251 nach WP 6.3.
+
+Neun Pakete (6.1–6.9), dazu zwei Wächter-Grundsatzkorrekturen. Offen für
+Phase 7: die in 6.5b/6.7 dokumentierten Presentation-Nachzüge hängen an der
+`max`-Spalte (12) — der Weg dorthin führt über die Migration der restlichen
+Screens, nicht über eine weitere Zählregel-Änderung.
