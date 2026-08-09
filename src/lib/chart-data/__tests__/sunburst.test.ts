@@ -542,3 +542,73 @@ describe('buildSpendingSunburst (Superkategorie -> Hauptkategorie, kompakte Fixt
     expect(resolveAusgabenklasse(byId, null)).toBeNull();
   });
 });
+
+/**
+ * Grenzfälle der mobilen Aufschlüsselung und des Sunburst-Baums.
+ */
+describe('Sunburst — unvollständige Eingaben und ausgeschlossene Buchungen', () => {
+  function stx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
+    return {
+      date: '2026-03-04',
+      amount: -10,
+      payee: 'Test',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+      ...partial,
+      id: asTransactionId(partial.id ?? crypto.randomUUID()),
+    };
+  }
+
+  const cats: Category[] = [
+    { id: 'gehalt', name: 'Gehalt', filters: [], attributes: { ausgabenklasse: 'einkommen' } },
+    { id: 'wohnen', name: 'Wohnen', filters: [], attributes: { ausgabenklasse: 'essenziell' } },
+  ];
+
+  it('liefert für eine Sunburst-Struktur ohne Ringe eine leere Aufschlüsselung', () => {
+    // Aus einem gespeicherten Snapshot älterer Bauart können `inner`/`outer`
+    // fehlen. Die Aufschlüsselung muss dann leer sein statt zu werfen — ein
+    // Absturz nähme dem Nutzer die gesamte Ausgabenansicht.
+    const leer = buildSunburstBreakdown({ total: 0 } as unknown as Parameters<typeof buildSunburstBreakdown>[0]);
+    expect(leer).toEqual([]);
+  });
+
+  it('setzt Anteile auf 0, wenn die Gesamtsumme und der Klassenwert 0 sind', () => {
+    // Ohne diese Absicherung entstünde 0/0 = NaN und der Anteilsbalken würde
+    // als „NaN %" beschriftet.
+    const groups = buildSunburstBreakdown({
+      total: 0,
+      inner: [{ id: 'essenziell', name: 'Essenziell', value: 0 }],
+      outer: [{ id: 'essenziell::wohnen', parentId: 'essenziell', name: 'Wohnen', value: 0 }],
+    });
+    expect(groups[0].share).toBe(0);
+    expect(groups[0].children[0].share).toBe(0);
+  });
+
+  it('leitet die Gesamtsumme aus dem Innenring ab, wenn total nicht gesetzt ist', () => {
+    const groups = buildSunburstBreakdown({
+      total: 0,
+      inner: [
+        { id: 'essenziell', name: 'Essenziell', value: 75 },
+        { id: 'diskretionaer', name: 'Nicht-Essenziell', value: 25 },
+      ],
+      outer: [],
+    });
+    expect(groups[0].share).toBeCloseTo(0.75, 5);
+    expect(groups[1].share).toBeCloseTo(0.25, 5);
+  });
+
+  it('[REGRESSION] hält Überträge und Einkommens-Korrekturen aus dem Sunburst-Baum heraus', () => {
+    const tree = buildSunburstTree(
+      [
+        stx({ id: 'w1', amount: -100, category_id: 'wohnen' }),
+        stx({ id: 'u1', amount: -900, category_id: 'wohnen', is_transfer: true }),
+        stx({ id: 'g1', amount: -300, category_id: 'gehalt' }),
+      ],
+      cats,
+    );
+    expect(tree.total).toBeCloseTo(100, 2);
+    expect(tree.children.map((k) => k.klasseId)).toEqual(['essenziell']);
+  });
+});

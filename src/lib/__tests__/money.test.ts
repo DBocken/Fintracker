@@ -114,4 +114,16 @@ describe("parseGermanNumber / parseEuroInput", () => {
     expect(() => parseEuroInput("abc")).toThrow();
     expect(() => parseEuroInput("")).toThrow();
   });
+
+  it("weist Zeichenfolgen ab, die die Zeichen-Vorprüfung überstehen, aber keine Zahl sind", () => {
+    // Der Filter `[^\d,.-]` lässt Minus und Punkt stehen; die Kurzliste danach
+    // kennt nur die EINZELzeichen "-", "." und ",". Ein doppelter Tippfehler
+    // ("--50" aus einem Vorzeichen-Umschalter, ".." aus zwei Zehnertasten)
+    // erreicht damit `parseFloat` — und muss dort als `null` enden statt
+    // lautlos als 50, 0 oder -50 gebucht zu werden.
+    expect(parseGermanNumber("--50")).toBeNull();
+    expect(parseGermanNumber("..")).toBeNull();
+    expect(parseGermanNumber("-.-")).toBeNull();
+    expect(() => parseEuroInput("--50")).toThrow();
+  });
 });

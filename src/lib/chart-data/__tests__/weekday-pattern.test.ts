@@ -43,5 +43,17 @@ describe('buildWeekdayPattern (Wochenmuster-Aufbereitung)', () => {
       const result = buildWeekdayPattern([tx({ date: 'kein-datum', amount: -99 })]);
       expect(result.every((e) => e.income === 0 && e.expenses === 0)).toBe(true);
     });
+
+    it('zählt interne Überträge weder als Einnahme noch als Ausgabe (Invariante 2)', () => {
+      // Eine Umbuchung aufs Tagesgeld ist kein Ausgabetag. Zählt sie mit,
+      // erscheint der Sparrate-Tag als teuerster Wochentag und die
+      // Wochenmuster-Aussage („Samstag ist dein teuerster Tag") ist falsch.
+      const mitUebertrag = buildWeekdayPattern([
+        tx({ date: '2026-01-05', amount: -200 }),
+        tx({ date: '2026-01-05', amount: -800, is_transfer: true }),
+        tx({ date: '2026-01-05', amount: 800, is_transfer: true }),
+      ]);
+      expect(mitUebertrag[0]).toEqual({ day: 'Mo', income: 0, expenses: 200 });
+    });
   });
 });

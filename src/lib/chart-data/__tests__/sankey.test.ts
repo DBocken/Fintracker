@@ -307,3 +307,100 @@ describe('buildSankeyData (Sankey-Aufbereitung)', () => {
     });
   });
 });
+
+/**
+ * Grenzfälle beider Sankey-Aufbereitungen: Nullbeträge, Einkommens-Korrekturen
+ * und Überträge dürfen die Ausgaben-Seite nicht verfälschen.
+ */
+describe('Sankey — Nullbeträge, Einkommens-Korrekturen und Überträge', () => {
+  beforeEach(() => {
+    window.localStorage.setItem('ausgabentracker_locale_v1', 'de');
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem('ausgabentracker_locale_v1');
+  });
+
+  function stx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
+    return {
+      date: '2026-02-10',
+      amount: -10,
+      payee: 'Test',
+      description: '',
+      original_text: '',
+      auto_mapped: false,
+      confirmed: true,
+      account_id: 'giro',
+      ...partial,
+      id: partial.id !== undefined ? asTransactionId(partial.id) : undefined,
+    };
+  }
+
+  const cats: Category[] = [
+    { id: 'gehalt', name: 'Gehalt', filters: [], attributes: { ausgabenklasse: 'einkommen' } },
+    { id: 'wohnen', name: 'Wohnen', filters: [], attributes: { ausgabenklasse: 'essenziell' } },
+    { id: 'miete', name: 'Miete', filters: [], parent_id: 'wohnen' },
+    { id: 'ohneklasse', name: 'Sonstiges', filters: [] },
+  ];
+
+  it('ignoriert Nullbuchungen und interne Überträge in beiden Aufbereitungen', () => {
+    const txs = [
+      stx({ id: 'n1', amount: 0, category_id: 'wohnen' }),
+      stx({ id: 'u1', amount: -500, category_id: 'wohnen', is_transfer: true }),
+      stx({ id: 'e1', amount: -100, category_id: 'miete' }),
+    ];
+    const flach = buildSankeyData(txs, cats);
+    const klassen = buildSankeyDataByKlasse(txs, cats);
+    expect(flach.mainCategories.find((m) => m.id === 'wohnen')?.amount).toBeCloseTo(100, 2);
+    expect(flach.accounts[0].expenses).toBeCloseTo(100, 2);
+    expect(klassen.klassen.find((k) => k.id === 'essenziell')?.amount).toBeCloseTo(100, 2);
+    expect(klassen.accounts[0].expenses).toBeCloseTo(100, 2);
+  });
+
+  it('[REGRESSION] hält eine Gehaltsrückzahlung aus den Ausgaben heraus', () => {
+    // Eine negative Buchung in einer EINKOMMENS-Kategorie ist eine Korrektur
+    // des Zuflusses, keine Ausgabe. Landet sie im Ausgabenfluss, erscheint eine
+    // Lohnrückforderung als Ausgabenkategorie „Gehalt" — und die
+    // Ausgabensumme steigt um einen Betrag, der nie ausgegeben wurde.
+    const txs = [
+      stx({ id: 'g1', amount: 2000, category_id: 'gehalt' }),
+      stx({ id: 'g2', amount: -300, category_id: 'gehalt' }),
+      stx({ id: 'm1', amount: -800, category_id: 'miete' }),
+    ];
+    const flach = buildSankeyData(txs, cats);
+    expect(flach.totalIncome).toBeCloseTo(2000, 2);
+    expect(flach.mainCategories.some((m) => m.id === 'gehalt')).toBe(false);
+    expect(flach.accounts[0].expenses).toBeCloseTo(800, 2);
+
+    const klassen = buildSankeyDataByKlasse(txs, cats);
+    expect(klassen.totalIncome).toBeCloseTo(2000, 2);
+    expect(klassen.klassen.some((k) => k.id === 'einkommen')).toBe(false);
+    expect(klassen.accounts[0].expenses).toBeCloseTo(800, 2);
+  });
+
+  it('hält einen Einkommens-ANTEIL einer Aufteilung aus den Kategorie-Knoten heraus', () => {
+    // Die Kontosumme folgt der Originalbuchung (–500), die Kategorie-Knoten
+    // folgen den Anteilen: der als Gehaltskorrektur gebuchte Anteil zählt dort
+    // nicht mit, sonst summieren Kategorien mehr als tatsächlich ausgegeben.
+    const t = stx({ id: 's1', amount: -500, category_id: 'ohneklasse' });
+    const map = new Map([[
+      's1',
+      [
+        { id: 'a', transaction_id: 's1', amount_minor: -30000, category_id: 'miete', source: 'manual' as const },
+        { id: 'b', transaction_id: 's1', amount_minor: -20000, category_id: 'gehalt', source: 'manual' as const },
+      ],
+    ]]);
+    const flach = buildSankeyData([t], cats, [], map);
+    expect(flach.mainCategories.find((m) => m.id === 'wohnen')?.amount).toBeCloseTo(300, 2);
+    expect(flach.mainCategories.some((m) => m.id === 'gehalt')).toBe(false);
+
+    const klassen = buildSankeyDataByKlasse([t], cats, [], map);
+    expect(klassen.klassen.find((k) => k.id === 'essenziell')?.amount).toBeCloseTo(300, 2);
+    expect(klassen.klassen.some((k) => k.id === 'einkommen')).toBe(false);
+  });
+
+  it('führt Ausgaben ohne Ausgabenklasse in der Klasse „unkategorisiert"', () => {
+    const klassen = buildSankeyDataByKlasse([stx({ id: 'x1', amount: -40, category_id: 'ohneklasse' })], cats);
+    expect(klassen.klassen.find((k) => k.id === 'unkategorisiert')?.amount).toBeCloseTo(40, 2);
+  });
+});

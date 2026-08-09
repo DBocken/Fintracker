@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import type { Budget, Category, Transaction, TransactionAllocation } from "@/types";
+import type { Budget, BudgetRule, Category, Transaction, TransactionAllocation } from "@/types";
 import { asTransactionId } from "@/lib/ids";
 import {
+  DEFAULT_WARN_THRESHOLD,
   budgetCategoryIds,
   computeBudgetSpent,
   computeBudgetStatus,
+  healthFor,
   monthKeyOf,
   periodKeyOf,
   roundSuggestion,
@@ -317,6 +319,80 @@ describe("budget-logic", () => {
         ),
       ).toBe(false);
     });
+
+    it("sollte payee/description bei equals exakt vergleichen und fehlenden Text als leer behandeln", () => {
+      // Ein Budget mit `equals`-Regel begrenzt genau EINEN Zahlungsempfänger.
+      // Träfe `equals` wie `contains`, zöge dasselbe Limit fremde Ausgaben mit.
+      const genau = tx({ date: "2026-06-01", amount: -10, payee: "Netflix" });
+      expect(transactionMatchesRules([{ field: "payee", op: "equals", value: "netflix" }], genau)).toBe(true);
+      expect(transactionMatchesRules([{ field: "payee", op: "equals", value: "netflix gmbh" }], genau)).toBe(false);
+
+      const ohneText = tx({ date: "2026-06-01", amount: -10 });
+      delete (ohneText as Partial<Transaction>).payee;
+      expect(transactionMatchesRules([{ field: "payee", op: "equals", value: "netflix" }], ohneText)).toBe(false);
+      expect(transactionMatchesRules([{ field: "description", op: "contains", value: "abo" }], ohneText)).toBe(false);
+    });
+
+    it("sollte Konto-Regeln über die Konto-ID prüfen (equals und contains)", () => {
+      const t = tx({ date: "2026-06-01", amount: -10, account_id: "giro-haupt" });
+      expect(transactionMatchesRules([{ field: "account", op: "equals", value: "giro-haupt" }], t)).toBe(true);
+      expect(transactionMatchesRules([{ field: "account", op: "equals", value: "giro" }], t)).toBe(false);
+      expect(transactionMatchesRules([{ field: "account", op: "contains", value: "giro" }], t)).toBe(true);
+
+      const ohneKonto = tx({ date: "2026-06-01", amount: -10 });
+      expect(transactionMatchesRules([{ field: "account", op: "equals", value: "giro-haupt" }], ohneKonto)).toBe(false);
+      expect(transactionMatchesRules([{ field: "account", op: "contains", value: "giro" }], ohneKonto)).toBe(false);
+    });
+
+    it("sollte eine Betragsregel mit unlesbarem Schwellwert nicht als Filter wirken lassen", () => {
+      // Eine kaputte Schwelle darf das Budget nicht heimlich leeren: Statt „nichts
+      // passt" (Verbrauch fällt auf 0 und die Ampel steht auf Grün) gilt die
+      // Regel als nicht einschränkend.
+      const t = tx({ date: "2026-06-01", amount: -50 });
+      expect(transactionMatchesRules([{ field: "amount", op: "gt", value: "" }], t)).toBe(true);
+      expect(transactionMatchesRules([{ field: "amount", op: "gt", value: "abc" }], t)).toBe(true);
+    });
+
+    it("sollte eine Betragsregel mit equals auf den Absolutbetrag anwenden", () => {
+      const t = tx({ date: "2026-06-01", amount: -50 });
+      expect(transactionMatchesRules([{ field: "amount", op: "equals", value: "50" }], t)).toBe(true);
+      expect(transactionMatchesRules([{ field: "amount", op: "equals", value: "-50" }], t)).toBe(false);
+    });
+
+    it("sollte ein unbekanntes Regelfeld ignorieren statt alles auszuschließen", () => {
+      // Ein Feld aus einer neueren Version darf ein Budget in einer älteren
+      // Installation nicht auf 0 € Verbrauch einfrieren.
+      const t = tx({ date: "2026-06-01", amount: -50 });
+      const unbekannt = [{ field: "zukunftsfeld", op: "equals", value: "x" }] as unknown as BudgetRule[];
+      expect(transactionMatchesRules(unbekannt, t)).toBe(true);
+    });
+  });
+
+  describe("computeBudgetSpent mit Match-Regeln", () => {
+    it("sollte Buchungen der richtigen Kategorie zählen, die die Regel NICHT erfüllen, auslassen", () => {
+      const txs = [
+        tx({ date: "2026-06-01", amount: -800, category_id: "miete", payee: "Vermieter" }),
+        tx({ date: "2026-06-02", amount: -120, category_id: "strom", payee: "Stadtwerke" }),
+      ];
+      const b = budget({
+        id: "b",
+        category_id: "wohnen",
+        limit: 1000,
+        rules: [{ field: "payee", op: "contains", value: "stadtwerke" }],
+      });
+      expect(computeBudgetSpent(b, txs, CATEGORIES, "2026-06")).toBe(120);
+    });
+  });
+
+  describe("healthFor (eine Quelle der Wahrheit für die Ampel)", () => {
+    it("sollte ohne Limit nur dann over melden, wenn überhaupt etwas ausgegeben wurde", () => {
+      // Ein Budget mit Limit 0 („darf nichts kosten") ist bei 0 € Verbrauch
+      // eingehalten — die Ampel muss grün bleiben, sonst steht ein frisch
+      // angelegtes Nullbudget sofort auf Rot.
+      expect(healthFor(0, 0, DEFAULT_WARN_THRESHOLD)).toBe("ok");
+      expect(healthFor(0.01, 0, DEFAULT_WARN_THRESHOLD)).toBe("over");
+      expect(healthFor(0, -50, DEFAULT_WARN_THRESHOLD)).toBe("ok");
+    });
   });
 
   describe("roundSuggestion", () => {
@@ -374,6 +450,62 @@ describe("budget-logic", () => {
         expect(out).toHaveLength(1);
         expect(out[0].category_id).toBe("freizeit");
         expect(out[0].avgMonthly).toBeCloseTo(300);
+      });
+
+      it("sollte ohne windowMonths über drei Monate mitteln", () => {
+        // Der Divisor bestimmt die vorgeschlagene Grenze direkt. Ein
+        // versehentlich anderer Standardwert verschiebt jeden Vorschlag um
+        // denselben Faktor — hier festgenagelt: 900 € in einem von drei
+        // Fenstermonaten ergeben 300 € Durchschnitt, nicht 900 €.
+        const out = suggestBudgets(CATEGORIES, [tx({ date: "2026-06-01", amount: -900, category_id: "miete" })], {
+          currentMonth: "2026-06",
+        });
+        expect(out).toHaveLength(1);
+        expect(out[0].avgMonthly).toBeCloseTo(300);
+      });
+
+      it("sollte das Fenster über die Jahresgrenze zurückzählen", () => {
+        // Januar minus drei Monate endet im Vorjahr. Rechnet die Fensterbildung
+        // hier falsch, verschwinden November und Dezember aus dem Durchschnitt
+        // und der Vorschlag fällt für jeden Januar-Nutzer zu niedrig aus.
+        const txs = [
+          tx({ date: "2026-01-10", amount: -300, category_id: "miete" }),
+          tx({ date: "2025-12-10", amount: -300, category_id: "miete" }),
+          tx({ date: "2025-11-10", amount: -300, category_id: "miete" }),
+          tx({ date: "2025-10-10", amount: -900, category_id: "miete" }), // außerhalb des Fensters
+        ];
+        const out = suggestBudgets(CATEGORIES, txs, { currentMonth: "2026-01", windowMonths: 3 });
+        expect(out).toHaveLength(1);
+        expect(out[0].avgMonthly).toBeCloseTo(300);
+      });
+
+      it("sollte Überträge und Buchungen außerhalb des Fensters nicht mitmitteln", () => {
+        const txs = [
+          tx({ date: "2026-06-01", amount: -300, category_id: "miete" }),
+          tx({ date: "2026-06-02", amount: -9000, category_id: "miete", is_transfer: true }),
+          tx({ date: "2026-01-02", amount: -9000, category_id: "miete" }),
+        ];
+        const out = suggestBudgets(CATEGORIES, txs, { currentMonth: "2026-06", windowMonths: 3 });
+        expect(out).toHaveLength(1);
+        expect(out[0].avgMonthly).toBeCloseTo(100);
+      });
+
+      it("sollte Ausgaben ohne auflösbare Kategorie keinem Vorschlag zuschlagen", () => {
+        // Unkategorisiert, gelöschte Kategorie und Unterkategorie mit
+        // verwaister parent_id: keiner dieser Beträge darf in einem fremden
+        // Budgetvorschlag auftauchen — sonst schlägt die App eine Grenze für
+        // Geld vor, das dort nie ausgegeben wurde.
+        const catsMitWaise: Category[] = [
+          ...CATEGORIES,
+          cat({ id: "waise", name: "Waise", parent_id: "geloescht" }),
+        ];
+        const txs = [
+          tx({ date: "2026-06-01", amount: -500 }), // ohne Kategorie
+          tx({ date: "2026-06-02", amount: -500, category_id: "gibtsnicht" }), // gelöschte Kategorie
+          tx({ date: "2026-06-03", amount: -500, category_id: "waise" }), // Elternteil gelöscht
+        ];
+        const out = suggestBudgets(catsMitWaise, txs, { currentMonth: "2026-06", windowMonths: 1 });
+        expect(out).toHaveLength(0);
       });
     });
   });
