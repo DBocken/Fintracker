@@ -169,21 +169,35 @@ export async function runStoreMigrations(
     .filter((step) => step.toVersion > current && step.toVersion <= targetVersion)
     .sort((a, b) => a.toVersion - b.toVersion);
 
-  let expected = current + 1;
+  // Eine Version OHNE Schritt ist kein Fehler, sondern der Normalfall.
+  //
+  // Hier stand bis WP 4.2 eine Lückenprüfung: Sie verlangte, dass die
+  // Zielversionen der Schritte lückenlos bei `current + 1` beginnen, und warf
+  // sonst einen „Migration gap"-Fehler als vermeintlichen Autorenfehler
+  // („kein Zustand, in den ein Nutzer geraten kann"). Genau darin lag der
+  // Irrtum, und er hat jeden NEUEN Nutzer getroffen:
+  //
+  // Ein frischer Store hat keinen Marker und gilt damit als Version 1. Seit
+  // WP 4.1c ist die Zielversion 3, und es gibt genau einen Schritt — den nach
+  // 3. Für Version 2 gab es nie einen, weil der Sprung 1 -> 2 älter ist als
+  // dieser Läufer. Die Prüfung schlug deshalb bei jedem ersten Start zu, der
+  // Lauf warf, und `App.tsx` zeigte statt der App einen Fehlerschirm. Die
+  // E2E-Kette hat es gefangen („Demo ansehen" navigierte nicht mehr).
+  //
+  // Der Schlusszweig unten sagte übrigens von Anfang an das Richtige — „wie
+  // beim heutigen Sprung 1 -> 2 gibt es strukturell nichts zu tun". Die
+  // Lückenprüfung widersprach ihm; sie ist ersatzlos weg. Was bleibt: die
+  // definierten Schritte laufen aufsteigend, jeder genau einmal, und eine
+  // Version ohne Schritt kostet nichts.
+  //
+  // Der Fall, den die Prüfung fangen wollte (Version angehoben, Schritt
+  // vergessen), ist maschinell nicht von diesem hier zu unterscheiden — beide
+  // sehen gleich aus. Er gehört deshalb in einen Test der Schrittliste, nicht
+  // in eine Laufzeitprüfung, die den Nutzer trifft.
   for (const step of relevant) {
-    if (step.toVersion !== expected) {
-      throw new Error(
-        // Bewusst englischer Entwicklertext und KEIN i18n-Schluessel: Das ist
-        // ein Autorenfehler in dieser Datei (eine Luecke in der Schrittliste),
-        // kein Zustand, in den ein Nutzer geraten kann. Ein uebersetzter Text
-        // wuerde eine Nutzerlage vortaeuschen, die es nicht gibt.
-        `Migration gap: no step defined for version ${expected} (next defined step is "${step.name}" to version ${step.toVersion}).`,
-      );
-    }
     await step.run();
     current = step.toVersion;
     localStorage.setItem(versionKey, String(current));
-    expected += 1;
   }
 
   if (current < targetVersion) {
