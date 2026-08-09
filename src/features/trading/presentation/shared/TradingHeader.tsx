@@ -18,6 +18,8 @@ export interface TradingHeaderProps {
   activePortfolio: Portfolio | null;
   positions: PortfolioPosition[] | undefined;
   quoteProvider: 'yahoo' | 'stooq';
+  /** Gespeicherter Favorit — durchgereicht an den ProviderSelector. */
+  favoriteProvider: 'yahoo' | 'stooq';
   onProviderChange: (provider: 'yahoo' | 'stooq') => void;
   /** Kursaktualisierung läuft gerade — Knopf gesperrt, Symbol dreht sich. */
   isRefreshingQuotes: boolean;
@@ -37,6 +39,7 @@ export default function TradingHeader({
   activePortfolio,
   positions,
   quoteProvider,
+  favoriteProvider,
   onProviderChange,
   isRefreshingQuotes,
   onRefreshQuotes,
@@ -79,6 +82,7 @@ export default function TradingHeader({
         <div className="flex flex-wrap items-center gap-2">
           <ProviderSelector
             currentProvider={quoteProvider}
+            favoriteProvider={favoriteProvider}
             onProviderChange={onProviderChange}
           />
           <Button

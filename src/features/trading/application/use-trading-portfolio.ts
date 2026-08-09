@@ -271,6 +271,7 @@ export function useTradingPortfolio() {
 
     // Kursanbieter
     quoteProvider,
+    preferredProvider,
     handleProviderChange,
 
     // Kursaktualisierung

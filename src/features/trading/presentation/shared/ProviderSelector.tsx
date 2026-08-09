@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import {
   DropdownMenu,
@@ -17,15 +16,18 @@ import { setPreferredMarketProvider } from '@/services/user-settings-service';
 
 interface ProviderSelectorProps {
   currentProvider: 'yahoo' | 'stooq';
+  /** Gespeicherter Favorit aus dem ViewModel (use-trading-portfolio). */
+  favoriteProvider: 'yahoo' | 'stooq';
   onProviderChange: (provider: 'yahoo' | 'stooq') => void;
 }
 
 export default function ProviderSelector({
   currentProvider,
+  favoriteProvider: storedFavorite,
   onProviderChange,
 }: ProviderSelectorProps) {
   const { t } = useI18n();
-  const [favoriteProvider, setFavoriteProvider] = useState<'yahoo' | 'stooq'>('yahoo');
+  const queryClient = useQueryClient();
 
   const saveFavoriteMutation = useMutation({
     mutationFn: async (provider: 'yahoo' | 'stooq') => {
@@ -33,6 +35,10 @@ export default function ProviderSelector({
       return provider;
     },
     onSuccess: (provider) => {
+      // Pflicht, nicht Kuer: use-trading-portfolio liest den Favoriten mit
+      // staleTime: Infinity — ohne Invalidierung saehe das ViewModel den
+      // neuen Wert bis zum naechsten Reload nie (WP 6.3b).
+      void queryClient.invalidateQueries({ queryKey: ['preferred-market-provider'] });
       toast.success(t('trading.providerSelector.messages.saveFavoriteSuccess').replace('{provider}', provider.toUpperCase()));
     },
     onError: (error: Error) => {
@@ -40,8 +46,14 @@ export default function ProviderSelector({
     },
   });
 
+  // Optimistische Anzeige: Waehrend/nach dem Speichern zeigt der Stern den
+  // gewaehlten Wert, bis die invalidierte Query ihn als Prop zurueckbringt.
+  // Nach einem Fehler faellt die Anzeige auf den gespeicherten Wert zurueck.
+  const favoriteProvider = saveFavoriteMutation.isError
+    ? storedFavorite
+    : (saveFavoriteMutation.variables ?? storedFavorite);
+
   const handleSetFavorite = (provider: 'yahoo' | 'stooq') => {
-    setFavoriteProvider(provider);
     saveFavoriteMutation.mutate(provider);
   };
 

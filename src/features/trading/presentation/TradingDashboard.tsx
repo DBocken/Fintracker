@@ -83,6 +83,7 @@ export default function TradingDashboard() {
         activePortfolio={portfolio.activePortfolio}
         positions={portfolio.positions}
         quoteProvider={portfolio.quoteProvider}
+        favoriteProvider={portfolio.preferredProvider}
         onProviderChange={portfolio.handleProviderChange}
         isRefreshingQuotes={portfolio.refreshQuotesMutation.isPending}
         onRefreshQuotes={() => portfolio.refreshQuotesMutation.mutate()}

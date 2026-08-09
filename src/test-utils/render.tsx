@@ -65,15 +65,22 @@ export function renderWithProviders(
   pinI18n(locale, wording);
   let tree = ui;
   if (router) tree = <MemoryRouter>{tree}</MemoryRouter>;
+  // Bei `query: true` wird der Client mit zurueckgegeben, damit Tests
+  // Cache-Invalidierung zusichern koennen (WP 6.3b) — vorher war er im
+  // Closure gefangen und genau diese Zusicherung nicht formulierbar.
+  let client: QueryClient | undefined;
   if (query) {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     tree = <QueryClientProvider client={client}>{tree}</QueryClientProvider>;
   }
-  return render(
-    <I18nProvider initialLocale={locale} initialWording={wording}>
-      {tree}
-    </I18nProvider>,
-  );
+  return {
+    ...render(
+      <I18nProvider initialLocale={locale} initialWording={wording}>
+        {tree}
+      </I18nProvider>,
+    ),
+    queryClient: client,
+  };
 }
 
 export interface HookWrapperOptions {
