@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | Phase 7 · WP 7.1 (Error-State-Tests verschärfen) |
+| **Paket** | WP 7.2 · Datei-Schwellen Geldlogik (TEST-5) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -186,11 +186,12 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 32 | 6.4 | `CityPage` entkernen (ARCH-5, KOMP-1) | **fertig** | `067cf8b` |
 | 33 | 6.5 | Slice-Migration, nächste Kandidaten (ARCH-1) | offen | |
 | 34 | 6.6 | Gott-Module lib-seitig teilen (ARCH-6) | offen | |
-| 35 | 7.1 | Error-State-Tests verschärfen (TEST-4) | offen | |
+| 35 | 7.1 | Error-State-Tests verschärfen (TEST-4) | **fertig** | `eb608e6` |
 | 36 | 7.2 | Datei-Schwellen für die Geldlogik (TEST-5) | offen | |
 | 37 | 7.3 | E2E: Verschlüsselung + Backup-Roundtrip (TEST-6) | offen | |
 | 38 | 7.4 | Versionierung einführen (GOV-3) | offen | |
-| 39 | 7.5 | ADRs für Grundentscheidungen (GOV-4) | offen | |
+| 39 | 7.5 | ADRs für Grundentscheidungen (GOV-4) | **fertig** | `a61e53c` |
+| 39a | **7.7** | EUR-only wirklich durchsetzen (VE-1, Rest) | offen | |
 | 40 | 7.6 | Buchhaltung & entschiedene Restpunkte (GOV-5/6, SEC-6, DOM-5) | offen | |
 
 **Nachprüfung je Segment** (Segment = Phase) wird in `nachpruefung.md`

@@ -543,7 +543,7 @@ Prop-/Key-Entscheidung (Beschreibung je Aufrufstelle oder leerer Default);
 
 ## Phase 7 — Test- & Meta-Härtung (P2/P3)
 
-### - [ ] WP 7.1 · Error-State-Tests verschärfen (TEST-4) · H
+### - [x] WP 7.1 · Error-State-Tests verschärfen (TEST-4) · H — `eb608e6`
 Die schwachen `*.error-state.test.tsx` (Liste in TEST-4) auf das Muster der
 starken heben: Fehlertext-Assertion **plus**
 `queryByText(<irreführender Leerzustand>)).toBeNull()`.
@@ -565,12 +565,28 @@ CalVer passend zur Datumskultur des Projekts: Tag `v2026.08.0`,
 `android/app/build.gradle` `versionCode`/`versionName` mitziehen; Absatz in
 AGENTS.md §11 („jeder Merge-Meilenstein bekommt Tag + CHANGELOG-Eintrag").
 
-### - [ ] WP 7.5 · ADRs für Grundentscheidungen nachtragen (GOV-4) · O
+### - [x] WP 7.5 · ADRs für Grundentscheidungen nachtragen (GOV-4) · O — `a61e53c`
 Datierte Kurz-ADRs in `docs/architecture/` nach dem Muster von
 `entity-references.md`: EUR-only · IndexedDB-KV statt SQLite ·
 Doppel-Schichtung (klassisch + Slices) · Wächter-System als
 Durchsetzungsstrategie · Euro-Float-Persistenz (aus WP 2.5). Je ADR: Kontext,
 Entscheidung, verworfene Alternative, Preis.
+
+### - [ ] WP 7.7 · EUR-only wirklich durchsetzen (VE-1, Rest) · S
+**Befund aus WP 7.5 (Preis-Abschnitt `currency-eur-only.md`):** Das Versprechen
+aus `coding-guide.md` §4 („Nicht-EUR wird abgewiesen oder sichtbar als *nicht
+verrechnet* markiert, nie stumm summiert") ist **nie umgesetzt**:
+`getPortfolioSummary` summiert USD 1:1 (`portfolio-service.ts:158-183`),
+`net-worth-service.ts:113` übernimmt den Wert ins Nettovermögen, der
+Kontodialog bietet USD/GBP/CHF an — und das **Demo-Portfolio liefert selbst
+zwei USD-Positionen** (AAPL, MSFT). T1.11 (F-DEBT-2, „High") aus dem
+Umsetzungsleitfaden blieb liegen.
+**Ziel:** Nicht-EUR-Positionen werden sichtbar als „nicht verrechnet"
+ausgewiesen (`hasUnconvertedPositions` o. ä.), nie stumm summiert; das
+Demo-Portfolio zeigt den Zustand ehrlich. `[REGRESSION]`-Test Pflicht:
+USD-Position ⇒ Summe unverändert + Hinweis sichtbar, bilingual.
+**Akzeptanz:** kein Pfad summiert Fremdwährung stumm · Demo-Portfolio ehrlich ·
+`coding-guide.md` §4 stimmt wieder.
 
 ### - [ ] WP 7.6 · Buchhaltung & entschiedene Restpunkte (GOV-5, GOV-6, SEC-6, DOM-5) · H
 `view-data-budget.json`: Kommentar, dass 282 selbst die offene Schuld ist
