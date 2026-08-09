@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ServerOff, LoaderCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { buildAnalyticsPackage } from "@/services/analytics-aggregation-service";
 

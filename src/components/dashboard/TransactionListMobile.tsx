@@ -4,7 +4,7 @@ import { Repeat } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account, Category, Transaction } from '../../types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
-import ListRow from '@/components/common/ListRow';
+import ListRow from '@/features/shared/presentation/ListRow';
 import { buildDayGroups, formatDayHeading } from './transaction-day-groups';
 
 interface TransactionListMobileProps {

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { getUserSettings } from '@/services/transaction-service';
 import { computeTaxReserve, resolveTaxReservePercent } from '@/lib/tax-reserve';

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Loader2, Lock, ShieldAlert, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import EmptyState from '@/components/common/EmptyState';
+import EmptyState from '@/features/shared/presentation/EmptyState';
 import { Button } from '@/components/ui/button';
 import { EtoroAccountError } from '@/services/etoro-account-service';
 

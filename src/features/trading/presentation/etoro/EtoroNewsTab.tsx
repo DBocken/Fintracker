@@ -1,7 +1,7 @@
 import { Newspaper } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import EmptyState from '@/components/common/EmptyState';
-import SegmentedControl from '@/components/common/SegmentedControl';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import SegmentedControl from '@/features/shared/presentation/SegmentedControl';
 import type { EtoroDiscussionsResponse } from '@/services/etoro-api-schemas';
 import { selectFeedPosts, selectMergedMarketFeed } from '@/services/etoro-feeds';
 import EtoroScopeGate from './EtoroScopeGate';

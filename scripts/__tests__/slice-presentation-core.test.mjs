@@ -118,6 +118,45 @@ describe('countLegacyImports', () => {
       expect(result.bausteine).toBe(0);
     });
 
+    it('sollte einen Baustein an seinem ZIELORT nicht mehr zählen — sonst bliebe die Ratsche über 0 (WP 6.7)', () => {
+      // WP 6.7 hebt `src/components/common/` nach
+      // `src/features/shared/presentation/`. Genau das ist der Grund, warum die
+      // Baustein-Spalte hier NICHT wie `ui/` per Ausnahme entschärft wurde: Die
+      // Zahl soll 0 erreichen, weil der Befund behoben ist — nicht, weil er
+      // ausgeblendet wird. Ein Zielort, der weiter zählte, machte den Umzug
+      // wirkungslos und ein Übergangs-Barrel unter `components/common/` (die
+      // naheliegende Alternative zur Vollumstellung) zur Sackgasse.
+      const src = [
+        `import { InteractiveCard } from '@/features/shared/presentation/InteractiveCard';`,
+        `import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';`,
+        `import FinanceErrorState from '../../../shared/presentation/FinanceErrorState';`,
+      ].join('\n');
+      const result = countLegacyImports('src/features/trading/presentation/tabs/T.tsx', src);
+      expect(result.imports).toBe(0);
+      expect(result.specs).toEqual([]);
+      expect(result.bausteine).toBe(0);
+      expect(result.bausteinSpecs).toEqual([]);
+    });
+
+    it('sollte einen ZURÜCKGELASSENEN Baustein unter components/common/ weiterhin zählen (WP 6.7)', () => {
+      // Die Spalte bleibt nach dem Umzug stehen und steht auf 0 — als Wächter
+      // gegen den Rückfall. Wer einen neuen app-eigenen Baustein wieder unter
+      // `src/components/common/` ablegt und aus einer Slice benutzt, wird rot.
+      const src = `import { NeuerBaustein } from '@/components/common/NeuerBaustein';`;
+      const result = countLegacyImports('src/features/trading/presentation/tabs/T.tsx', src);
+      expect(result.bausteine).toBe(1);
+      expect(result.bausteinSpecs).toEqual(['@/components/common/NeuerBaustein']);
+    });
+
+    it('sollte die shared-Presentation selbst messen, wenn SIE in die Alt-Oberfläche greift (WP 6.7)', () => {
+      // `src/features/shared/presentation/` faellt unter `istSlicePresentation`
+      // — der Zielort ist damit nicht blind gestellt, sondern selbst gemessen.
+      // Ohne das koennte ein Baustein die Alt-Oberflaeche hineinziehen und die
+      // Kopplung waere aus beiden Zahlen verschwunden.
+      const src = `import { AccountCards } from '@/components/accounts/AccountCards';`;
+      const result = countLegacyImports('src/features/shared/presentation/InfoGroup.tsx', src);
+      expect(result.imports).toBe(1);
+    });
   });
 
   describe('Kein Fehlalarm', () => {

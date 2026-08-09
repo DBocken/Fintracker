@@ -1,9 +1,9 @@
-import { InfoGroup } from '@/components/common/InfoGroup'
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup'
 import type { Account } from '@/types'
 import type { EffectiveBalance } from '@/features/dashboard/domain/overview-types'
 import { useMoneyFormat } from '@/hooks/useMoneyFormat'
 import { useI18n } from '@/i18n/useI18n'
-import { LoadingSwap } from '@/components/common/LoadingSwap'
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface AccountCardsProps {

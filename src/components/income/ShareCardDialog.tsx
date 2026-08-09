@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import SegmentedControl from '@/components/common/SegmentedControl';
+import SegmentedControl from '@/features/shared/presentation/SegmentedControl';
 import { useI18n } from '@/i18n/useI18n';
 import { buildShareCardData } from '@/lib/share-card';
 import { exportNodeAsPng } from '@/lib/png-export';

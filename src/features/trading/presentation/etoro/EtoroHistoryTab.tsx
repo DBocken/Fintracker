@@ -1,8 +1,8 @@
 import { History, ArrowLeftRight } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { formatCurrency } from '@/lib/utils';
-import EmptyState from '@/components/common/EmptyState';
-import { InfoGroup, InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import { InfoGroup, InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type {

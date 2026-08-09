@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileUp, Landmark, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import { isDemoDataActive, loadDemoData } from '@/services/demo-data-service';
 import type { TutorialSource } from '@/lib/tutorial-sequence';

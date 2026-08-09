@@ -7,7 +7,7 @@ import { toMajor, type Cents } from '@/lib/money';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
-import ListRow from '@/components/common/ListRow';
+import ListRow from '@/features/shared/presentation/ListRow';
 import { cn } from '@/lib/utils';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
 import { planListReorganization } from '@/lib/list-reorganization';

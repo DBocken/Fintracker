@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Info, ArrowRight, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import InteractiveCard from "@/components/common/InteractiveCard";
+import InteractiveCard from "@/features/shared/presentation/InteractiveCard";
 import type { CoachRecommendation } from "@/types";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useI18n } from "@/i18n/useI18n";

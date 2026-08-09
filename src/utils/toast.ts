@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 import { createElement } from 'react';
-import AnimatedCheck from '@/components/common/AnimatedCheck';
+import AnimatedCheck from '@/features/shared/presentation/AnimatedCheck';
 
 export const showSuccess = (message: string) => {
   // Animierter SVG-Haken statt Default-Icon – gleiches Animations-Qualitätslevel

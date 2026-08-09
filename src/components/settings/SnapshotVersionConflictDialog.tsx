@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { InfoStatStrip } from '@/components/common/InfoGroup';
+import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import type { SnapshotStandInfo, SnapshotVersionComparison } from '@/lib/snapshot-comparison';
 

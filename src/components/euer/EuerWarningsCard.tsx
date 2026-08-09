@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import type { EuerReport, EuerWarning } from '@/lib/euer-report';

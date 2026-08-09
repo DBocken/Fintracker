@@ -61,13 +61,14 @@ presentation/
 
 ## Offen
 
-- `presentation/` importiert an fünf Stellen `@/components/common/`-Bausteine
-  (`InfoGroup`, `EmptyState`, `InteractiveCard`, `DecimalInput`,
-  `FinanceErrorState`, `LoadingSwap`, `ChartFigure`, `SegmentedControl`,
-  `StatHero`). Das ist kein Fehler dieser Slice — AGENTS.md §8/§9 schreibt
-  genau diese Bausteine vor —, sondern der offene Umzug
-  `components/common/` → `features/shared/presentation/`. Gezählt in
-  `slice-presentation-budget.json` unter `maxBausteine`.
+- ~~`presentation/` importiert an fünf Stellen app-eigene Bausteine aus
+  `components/common/`~~ — **erledigt mit WP 6.7.** Die Bausteine (`InfoGroup`,
+  `EmptyState`, `InteractiveCard`, `DecimalInput`, `FinanceErrorState`,
+  `LoadingSwap`, `ChartFigure`, `SegmentedControl`, `StatHero`) liegen jetzt
+  unter `@/features/shared/presentation/`. Es war nie ein Fehler dieser Slice —
+  AGENTS.md §8/§9 schreibt genau diese Bausteine vor —, sondern ihr Ablageort;
+  die Spalte `maxBausteine` in `slice-presentation-budget.json` steht damit auf
+  0 und bleibt als Wächter gegen den Rückfall stehen.
 - Die drei Dialoge halten je eine `useMutation` (Absenden hinter einer
   Interaktion, Kochrezept Schritt 8, Ausnahme „echte Lazy-Loads"). Wenn ein
   zweiter Aufrufer dazukommt, gehören sie ins ViewModel.

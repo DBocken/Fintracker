@@ -6,7 +6,7 @@
  * statt eines kreisenden Symbols.
  */
 import type { PortfolioPosition } from '@/types';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
 import PositionTable from '../shared/PositionTable';
 

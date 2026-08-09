@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { buildPayoutRadar, type IncomeStream } from '@/lib/income-streams';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';

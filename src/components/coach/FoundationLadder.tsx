@@ -4,7 +4,7 @@ import { Check, Dot, Lock } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useI18n } from "@/i18n/useI18n";
 import { getFinanceFoundation } from "@/services/finance-foundation-service";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import type { FoundationStage } from "@/lib/finance-foundation";
 import { cn } from "@/lib/utils";
 

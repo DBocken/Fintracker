@@ -6,7 +6,7 @@ import { useMotionSafe } from '@/hooks/useReducedMotion';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
 import { MOTION_DURATIONS, MOTION_EASINGS_BEZIER } from '@/lib/motion-tokens';
-import { SignatureMoment } from '@/components/common/SignatureMoment';
+import { SignatureMoment } from '@/features/shared/presentation/SignatureMoment';
 import { Button } from '@/components/ui/button';
 import { exportNodeAsPng } from '@/lib/png-export';
 import type { WrappedStats } from '@/lib/income-wrapped';

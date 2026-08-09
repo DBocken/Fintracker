@@ -111,10 +111,12 @@ if (bausteineGesamt > budget.maxBausteine) {
   console.error(`
    Das sind die app-eigenen Bausteine (\`InfoGroup\`, \`InteractiveCard\`,
    \`EmptyState\`, \`DecimalInput\`, \`FinanceErrorState\`, …). Sie zu BENUTZEN ist
-   richtig und teils erzwungen (AGENTS.md §8/§9) — sie liegen nur noch am
-   falschen Ort. Aufgelöst wird das nicht je Slice, sondern einmal für die ganze
-   App: \`src/components/common/\` → \`src/features/shared/presentation/\`.
-   Bis dahin darf die Zahl nur SINKEN.
+   richtig und teils erzwungen (AGENTS.md §8/§9) — sie liegen nur am falschen
+   Ort. Seit WP 6.7 ist das keine Altlast mehr, sondern ein Rückfall: Der Umzug
+   \`src/components/common/\` → \`src/features/shared/presentation/\` ist gemacht,
+   die Zahl steht auf 0, und \`src/components/common/\` existiert nicht mehr. Ein
+   neuer app-eigener Baustein gehört nach \`src/features/shared/presentation/\`,
+   nicht wieder unter \`components/\`.
 `);
   process.exit(1);
 }

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import type { Category, Transaction } from '@/types';
 import { updateTransaction } from '@/services/transaction-service';
 import { getAutomationSuggestions, upsertAutomationSuggestion } from '@/services/automation-suggestion-service';

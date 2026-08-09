@@ -109,8 +109,8 @@ keine Karte.
 ### Bausteine (verbindlich)
 | Fall | Baustein | Garantien |
 |---|---|---|
-| Klickbare Karte (Link/Popup/Akkordion) | `@/components/common/InteractiveCard` | ganze Fläche ist echtes `<a>`/`<Link>`/`<button>`, Fokusring, Hover, Touch-Ziel ≥ 44px, Affordanz-Chevron, `aria-expanded` bei Disclosure |
-| Reines Readout ohne Follow-up | `@/components/common/InfoGroup` / `InfoStatStrip` | kein Rahmen/Schatten → wirkt nicht antippbar; klar gegliederte Werte |
+| Klickbare Karte (Link/Popup/Akkordion) | `@/features/shared/presentation/InteractiveCard` | ganze Fläche ist echtes `<a>`/`<Link>`/`<button>`, Fokusring, Hover, Touch-Ziel ≥ 44px, Affordanz-Chevron, `aria-expanded` bei Disclosure |
+| Reines Readout ohne Follow-up | `@/features/shared/presentation/InfoGroup` / `InfoStatStrip` | kein Rahmen/Schatten → wirkt nicht antippbar; klar gegliederte Werte |
 | Sekundäraktion in klickbarer Karte | Vollflächiger Karten-Button + Aktion mit `pointer-events-auto`/`z-10` darüber (kein Button-im-Button) | gültiges HTML, beide Klickziele erreichbar |
 
 ### Affordanz & Accessibility

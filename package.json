@@ -17,7 +17,7 @@
     "test:integrity": "vitest run src/services/__tests__/transaction-allocation-service.test.ts src/services/__tests__/transaction-storage-service.security.test.ts src/services/__tests__/csv-service.test.ts src/services/__tests__/receipt-parser-service.test.ts src/components/dashboard/__tests__/filter-utils.test.ts src/lib/__tests__/contract-derivation.test.ts src/services/__tests__/snapshot-sync-service.test.ts --testNamePattern='\\[INTEGRITY\\]'",
     "test:privacy": "vitest run src/services/__tests__/local-crypto.security.test.ts src/services/__tests__/local-data-boundary.security.test.ts src/services/__tests__/forecast-overrides-service.test.ts src/services/__tests__/snapshot-sync-service.test.ts src/pages/__tests__/BankCallbackPage.security.test.ts --testNamePattern='\\[PRIVACY\\]'",
     "test:e2e": "playwright test",
-    "test:mobile": "vitest run src/features/dashboard/presentation/mobile/__tests__/DashboardMobileStory.swipe.test.ts src/components/dashboard/__tests__/TransactionListMobile.mobile.test.tsx src/components/common/__tests__/GlossaryTerm.test.tsx --testNamePattern='\\[MOBILE\\]'",
+    "test:mobile": "vitest run src/features/dashboard/presentation/mobile/__tests__/DashboardMobileStory.swipe.test.ts src/components/dashboard/__tests__/TransactionListMobile.mobile.test.tsx src/features/shared/presentation/__tests__/GlossaryTerm.test.tsx --testNamePattern='\\[MOBILE\\]'",
     "security:secrets": "node scripts/security-check.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:i18n-module-consts": "node scripts/check-i18n-module-consts.mjs",

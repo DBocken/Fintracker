@@ -25,8 +25,8 @@ import NavFeatureSettings from './NavFeatureSettings';
 import { FeatureGate } from '@/components/FeatureGate';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { InfoStatStrip } from '@/components/common/InfoGroup';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 function SectionHeader({
   icon,
@@ -50,6 +50,22 @@ function SectionHeader({
   );
 }
 
+/**
+ * Einstellungen — Darstellung.
+ *
+ * **Warum diese Datei noch unter `src/components/settings/` steht — die
+ * Blockade ist gefallen (WP 6.7).** WP 6.5b hat die Datenzugriffe in die Slice
+ * gehoben, die Darstellung aber bewusst hier gelassen: Sie benutzt mit
+ * `InfoStatStrip` und `FinanceErrorState` zwei app-eigene Bausteine, die
+ * damals unter `src/components/common/` lagen — ein Umzug haette die
+ * `maxBausteine`-Spalte von `pnpm check:slice-presentation` erhoeht (36 → 38),
+ * eine Ratsche, die nur sinken darf (Rechnung: `src/features/settings/README.md`,
+ * „Warum noch keine `presentation/`"). Seit WP 6.7 liegen beide unter
+ * `@/features/shared/presentation/` und zaehlen nicht mehr. Was vom Umzug
+ * dieser Flaeche bleibt, ist allein die Feature-UI-Spalte (`max`, +20 durch
+ * Geschwister-Bausteine aus `components/settings/`) — eine andere Frage mit
+ * einer anderen Antwort, und ein eigenes Paket.
+ */
 export function EnhancedSettings() {
   const { t } = useI18n();
   const businessMode = useBusinessMode();

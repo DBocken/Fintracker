@@ -8,7 +8,7 @@ import { getUserSettings, updateUserSettings } from '@/services/transaction-serv
 import { resolveTaxReservePercent } from '@/lib/tax-reserve';
 import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 /**
  * Einstellung für den Steuer-Puffer-Prozentsatz (0 = deaktiviert). Reine

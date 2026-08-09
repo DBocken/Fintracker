@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Lock, ShieldCheck, ShieldAlert, Server, EyeOff, BarChart3, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvider";
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";

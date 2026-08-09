@@ -1,7 +1,7 @@
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
-import EmptyState from '@/components/common/EmptyState';
+import EmptyState from '@/features/shared/presentation/EmptyState';
 
 type FinanceErrorStateVariant = 'transactions' | 'data';
 

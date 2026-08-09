@@ -65,9 +65,21 @@ describe('analyzeCardRule (WP-8.0)', () => {
       false,
     );
     expect(analyze('src/components/ui/card.tsx', CARD_WITHOUT_ACTION).violates).toBe(false);
+    // [REGRESSION] WP 6.7: Die app-eigenen Bausteine liegen seit dem Umzug
+    // unter `src/features/shared/presentation/`. Zeigt die Ausnahme weiter auf
+    // `src/components/common/`, prueft der Waechter ausgerechnet die Datei, die
+    // die Karte DEFINIERT — und der alte Pfad existiert gar nicht mehr, die
+    // Ausnahme waere ein toter Zeiger.
     expect(
-      analyze('src/components/common/InteractiveCard.tsx', CARD_WITHOUT_ACTION).violates,
+      analyze('src/features/shared/presentation/InteractiveCard.tsx', CARD_WITHOUT_ACTION)
+        .violates,
     ).toBe(false);
+    for (const baustein of ['InfoGroup', 'ChartFigure', 'LoadingSwap']) {
+      expect(
+        analyze(`src/features/shared/presentation/${baustein}.tsx`, CARD_WITHOUT_ACTION).violates,
+        baustein,
+      ).toBe(false);
+    }
   });
 
   it('sollte Dateien ohne Karten-Chrome nicht anfassen', () => {

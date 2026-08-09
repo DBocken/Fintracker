@@ -6,9 +6,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
-import RequireTier from '@/components/common/RequireTier';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
+import RequireTier from '@/components/RequireTier';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account } from '@/lib/account-types';
 import { useAccountManager } from '@/features/accounts/application/use-account-manager';
@@ -27,14 +27,21 @@ import { GoCardlessConnect } from '../GoCardlessConnect';
  * Interaktion, die laut Kochrezept (`docs/architecture/feature-structure.md`,
  * Schritt 5) nicht ins ViewModel gehoert.
  *
- * **Warum diese Datei noch unter `src/components/` steht.** Sie benutzt drei
- * app-eigene Bausteine (`FinanceErrorState`, `LoadingSwap`, `RequireTier`) aus
- * `@/components/common/`. Zoege sie mit in die Slice, stiege die
- * `maxBausteine`-Spalte von `pnpm check:slice-presentation` (36) — eine
- * Ratsche, die nur sinken darf. Dieselbe Entscheidung wie in WP 6.4
- * (`EmptyState`/`FinanceErrorState` blieben in der `CityPage`). Frei wird der
- * Umzug mit WP 6.7, das `components/common/` nach
- * `features/shared/presentation/` hebt.
+ * **Warum diese Datei noch unter `src/components/` steht — die Baustein-
+ * Blockade ist gefallen (WP 6.7).** Bis dahin lagen die benutzten Bausteine
+ * (`FinanceErrorState`, `LoadingSwap`) unter `src/components/common/`; ein
+ * Umzug dieser Datei in die Slice haette die `maxBausteine`-Spalte von
+ * `pnpm check:slice-presentation` von 36 aus ERHOEHT — eine Ratsche, die nur
+ * sinken darf. Seit WP 6.7 liegen sie unter `@/features/shared/presentation/`
+ * und werden gar nicht mehr gezaehlt (die Spalte steht auf 0).
+ *
+ * Offen bleibt fuer diesen Umzug allein die Feature-UI-Spalte (`max`):
+ * `RequireTier` (Gate, kein Baustein — siehe `src/components/RequireTier.tsx`)
+ * und `GoCardlessConnect` liegen weiter unter `src/components/`. Das ist eine
+ * andere Frage mit einer anderen Antwort (Screen fuer Screen) und ein eigenes
+ * Paket — bewusst NICHT Teil von WP 6.7, weil eine Verschiebung von 25
+ * Bausteinen und eine Screen-Migration in einem Diff nicht mehr
+ * auseinanderzuhalten waeren.
  */
 export function AccountManager() {
   const { t } = useI18n();

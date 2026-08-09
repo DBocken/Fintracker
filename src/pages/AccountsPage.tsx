@@ -1,7 +1,7 @@
 import { AccountManager } from "@/components/accounts/AccountManager";
 import { CashSection } from "@/components/accounts/CashSection";
 import { FeatureGate } from "@/components/FeatureGate";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useAccountsLoadState } from "@/features/accounts/application/use-accounts-load-state";
 
 /**

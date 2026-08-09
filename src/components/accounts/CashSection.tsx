@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { getAccounts, createAccount } from "@/services/account-service";
 import { getTransactions } from "@/services/transaction-service";
 import { getNetWorthBreakdown } from "@/services/net-worth-service";

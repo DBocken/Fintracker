@@ -49,7 +49,14 @@
     "(AccountList, AccountDataQualityBadge). Die vier Wirte selbst bleiben vorerst unter",
     "src/components/ bzw. src/pages/, weil ihr Umzug die maxBausteine-Spalte von",
     "slice-presentation-budget.json ERHOEHT haette (FinanceErrorState, LoadingSwap, RequireTier,",
-    "DecimalInput, InfoSheet) — dieselbe Entscheidung wie in WP 6.4. Sie werden mit WP 6.7 frei."
+    "DecimalInput, InfoSheet) — dieselbe Entscheidung wie in WP 6.4. Sie werden mit WP 6.7 frei.",
+    "",
+    "WP 6.7 (components/common -> features/shared/presentation): 221 -> 220. Der Umzug ist rein",
+    "mechanisch und aendert an keiner Flaeche etwas; die eine Zaehleinheit stammt daher, dass",
+    "FinanceEmptyState.tsx den Service-Import demo-data-service mitnimmt und ihr neuer Ort nicht mehr",
+    "unter src/components/ liegt. Kein Zugriff ist aufgeloest worden, keiner ist verschwunden — die",
+    "Zahl misst 'Zugriff IN der Darstellungsschicht', und die Baustein-Sammlung ist ab jetzt Slice-",
+    "Presentation. Wer sie zurueckrechnen will: 220 + 1 = der Stand von WP 6.5a."
   ],
-  "max": 221
+  "max": 220
 }

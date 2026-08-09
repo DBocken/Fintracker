@@ -25,7 +25,7 @@ import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { getChartColors } from '@/lib/chart-theme';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { BAND_LAYERS, eur, fmtDate, type ChartPoint } from './chart-shared';
 
 /**

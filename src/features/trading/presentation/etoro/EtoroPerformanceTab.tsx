@@ -4,13 +4,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';
-import EmptyState from '@/components/common/EmptyState';
+import EmptyState from '@/features/shared/presentation/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { PerformancePoint } from '@/services/etoro-performance';
 import { selectPerformanceTrend } from '@/services/etoro-performance';
 import EtoroScopeGate from './EtoroScopeGate';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 interface EtoroPerformanceTabProps {
   isLocked: boolean;

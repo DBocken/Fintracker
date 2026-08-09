@@ -10,7 +10,7 @@ import type { PortfolioSummary } from '@/types';
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { formatCurrency } from '@/lib/utils';
 import { buildPerformancePreview } from '@/features/trading/domain/performance-preview';

@@ -1,7 +1,7 @@
-import PageHeader from '@/components/common/PageHeader';
+import PageHeader from '@/features/shared/presentation/PageHeader';
 import LiquidityReport from '@/components/dashboard/LiquidityReport';
 import WaterfallPanel from '@/components/budgets/WaterfallPanel';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWaterfallPlan } from '@/hooks/useWaterfallPlan';
 import { useI18n } from '@/i18n/useI18n';

@@ -5,7 +5,7 @@ import { TransactionDayList } from '@/components/dashboard/TransactionDayList';
 import { TransactionStats } from '@/components/dashboard/TransactionStats';
 import { TransactionFilters } from '@/components/dashboard/TransactionFilters';
 import { useI18n } from '@/i18n/useI18n';
-import FilteredEmptyState from '@/components/common/FilteredEmptyState';
+import FilteredEmptyState from '@/features/shared/presentation/FilteredEmptyState';
 import { describeActiveFilters } from '@/features/shared/domain/active-filters';
 import { formatCurrency } from '@/lib/utils';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';

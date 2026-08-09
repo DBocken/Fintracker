@@ -111,6 +111,14 @@ function istDesignSystemPrimitiv(target) {
  * die Summe hätte Fortschritt in der einen Richtung als Verschlechterung
  * ausgewiesen. Beide Zahlen dürfen nur sinken; `bausteine` erreicht 0, sobald
  * `components/common/` nach `features/shared/presentation/` zieht.
+ *
+ * **Stand seit WP 6.7: `bausteine` ist 0.** Der Umzug ist gemacht,
+ * `src/components/common/` existiert nicht mehr. Die Spalte bleibt trotzdem
+ * stehen — nicht als Buchhaltung über einen erledigten Befund, sondern als
+ * Wächter gegen den Rückfall: Wer einen neuen app-eigenen Baustein wieder
+ * unter `src/components/common/` ablegt und ihn aus einer Slice benutzt, wird
+ * rot. Das ist der einzige Weg, wie die Frage „Alt-Oberfläche oder gemeinsamer
+ * Baustein?" ihre Antwort über den Pfad behält.
  */
 function istBaustein(target) {
   return /^src\/components\/common\//.test(target);

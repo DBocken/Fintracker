@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

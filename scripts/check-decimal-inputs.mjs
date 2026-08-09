@@ -17,7 +17,7 @@
  * Komma, weil das Feld es schon geschluckt hatte. Deshalb prüft dieser Wächter
  * das FELD und nicht den Parser.
  *
- * Ersatz: `<DecimalInput>` aus `@/components/common/DecimalInput` — es gibt
+ * Ersatz: `<DecimalInput>` aus `@/features/shared/presentation/DecimalInput` — es gibt
  * eine Zahl nach außen, keinen Text, damit die Aufrufstelle gar nicht erst
  * falsch parsen kann.
  *
@@ -108,7 +108,7 @@ if (offen.length > 0) {
   console.error(`
    Ein \`type="number"\`-Feld verstümmelt deutsche Dezimaleingaben, BEVOR
    irgendein Parser sie sieht: „12,50" wird zu 1250, „5,5 %" zu 55 %.
-   Ersatz: <DecimalInput> aus @/components/common/DecimalInput — es gibt eine
+   Ersatz: <DecimalInput> aus @/features/shared/presentation/DecimalInput — es gibt eine
    ZAHL nach außen, keinen Text, damit die Aufrufstelle nicht falsch parsen kann.
 
    Ist das Feld ganzzahlig (Tag, Anzahl, Jahr), gehört es mit Begründung in

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import type { MilestoneStatus } from "@/lib/milestone-types";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { SignatureMoment } from "@/components/common/SignatureMoment";
+import { SignatureMoment } from "@/features/shared/presentation/SignatureMoment";
 
 /**
  * Meilenstein-Anzeige. `variant="compact"` (Coach) zeigt nur den letzten Erfolg

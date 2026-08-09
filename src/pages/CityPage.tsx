@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { Building2 } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
-import EmptyState from "@/components/common/EmptyState";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import EmptyState from "@/features/shared/presentation/EmptyState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useCityPageModel } from "@/features/finance-city/application/use-city-page-model";
 import { CityChrome } from "@/features/finance-city/presentation/CityChrome";
 import { CityStage } from "@/features/finance-city/presentation/CityStage";
@@ -19,6 +19,16 @@ import { CitySignatureMoment } from "@/features/finance-city/presentation/CityMo
  * der vier Anzeigezustände gezeigt wird. Alles Fachliche steht im ViewModel
  * (`features/finance-city/application/use-city-page-model.ts`, ohne WebGL
  * testbar), alles Räumliche in `presentation/CityStage.tsx`.
+ *
+ * **Warum `EmptyState`/`FinanceErrorState` hier geblieben sind — die Blockade
+ * ist gefallen (WP 6.7).** In WP 6.4 wanderte der Rest der Fläche in die
+ * Slice, diese beiden Zustands-Bausteine aber nicht: Sie lagen unter
+ * `src/components/common/`, und jede Slice-Datei, die sie benutzt hätte, wäre
+ * in der `maxBausteine`-Spalte von `pnpm check:slice-presentation` gelandet —
+ * einer Ratsche, die nur sinken darf. Seit WP 6.7 liegen sie unter
+ * `@/features/shared/presentation/` und werden nicht mehr gezählt. Die vier
+ * Anzeigezustände dürfen damit in `features/finance-city/presentation` ziehen;
+ * das ist ein eigenes Paket, bewusst nicht Teil des Umzugs.
  *
  * **AppShell-Entscheidung** (README „AppShell-Entscheidung"): `AppShell`
  * umschließt jede Route mit einem scrollenden `<main>` und einem gepolsterten

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { TrendingUp, DollarSign, Settings } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -18,8 +18,8 @@ import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { computeTotalFlow, computeAutoStartingBalance, buildBalanceHistory } from '@/features/dashboard/domain/overview-calculations';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AdvancedBalanceChartProps {

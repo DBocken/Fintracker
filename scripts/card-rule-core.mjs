@@ -23,9 +23,18 @@
  * abgeschaltet.
  */
 
-/** Dateien, die die Bausteine DEFINIEREN statt sie zu benutzen. */
+/**
+ * Dateien, die die Bausteine DEFINIEREN statt sie zu benutzen.
+ *
+ * Die app-eigenen Bausteine liegen seit WP 6.7 unter
+ * `src/features/shared/presentation/` (vorher `src/components/common/`) — die
+ * Ausnahme ist mitgezogen. Ein Pfad, der auf ein nicht mehr existierendes
+ * Verzeichnis zeigt, wird nie rot und nie grün: Er ist still erblindet, und
+ * zwar in die falsche Richtung — die Definitionsdatei selbst wäre ab dem Umzug
+ * ein Regelverstoß gewesen.
+ */
 const DEFINITION_FILES =
-  /src\/components\/(ui\/card|common\/(InteractiveCard|InfoGroup|ChartFigure|LoadingSwap))\.tsx$/;
+  /src\/(components\/ui\/card|features\/shared\/presentation\/(InteractiveCard|InfoGroup|ChartFigure|LoadingSwap))\.tsx$/;
 
 /** Erkennt Karten-Chrome: Komponente, Design-System-Klasse oder Ad-hoc-Box. */
 export function hasCardChrome(content) {

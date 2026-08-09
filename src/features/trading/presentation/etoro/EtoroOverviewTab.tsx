@@ -1,8 +1,8 @@
 import { Wallet } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { formatCurrency } from '@/lib/utils';
-import StatHero from '@/components/common/StatHero';
-import { InfoGroup, InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import StatHero from '@/features/shared/presentation/StatHero';
+import { InfoGroup, InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import type { EtoroAggregatePortfolioResponse } from '@/services/etoro-api-schemas';
 import EtoroScopeGate from './EtoroScopeGate';
 

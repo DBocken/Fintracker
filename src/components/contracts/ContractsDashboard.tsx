@@ -21,16 +21,16 @@ import { useDateFnsLocale } from "@/i18n/useDateFnsLocale";
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from "recharts";
 import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
 import { ContractDetailSheet } from "./ContractDetailSheet";
-import ListRow from "@/components/common/ListRow";
+import ListRow from "@/features/shared/presentation/ListRow";
 import { Repeat } from "lucide-react";
 import { FeatureGate } from "@/components/FeatureGate";
 import type { ContractRow } from "@/lib/contract-types";
 import { computeContracts, computeIncomeContracts, monthlyEquivalent, yearlyEquivalent, isActiveForTotals } from "@/lib/contract-derivation";
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 function euro(n: number) {
   return n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });

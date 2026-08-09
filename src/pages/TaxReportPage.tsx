@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import PageHeader from '@/components/common/PageHeader';
-import EmptyState from '@/components/common/EmptyState';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import PageHeader from '@/features/shared/presentation/PageHeader';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';

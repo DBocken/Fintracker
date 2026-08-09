@@ -73,7 +73,17 @@ export const RULES = [
     // fuer `src/hooks/` (AGENTS.md §3, „Wohin ein Typ gehört": „der Provider
     // bleibt Komponente, der Lesezugriff nicht"). Dasselbe Praedikat wie beim
     // Ansicht/Daten-Waechter — ein Kriterium, kein zweites erfunden.
-    forbids: (target) => /^src\/(components|pages)\//.test(target) && !istInfrastruktur(target),
+    //
+    // `features/*/presentation/` steht seit WP 6.7 daneben, und zwar nicht als
+    // neue Regel, sondern damit die alte nicht schrumpft: Bis dahin lagen die
+    // app-eigenen Bausteine unter `src/components/common/` und waren fuer einen
+    // Hook damit verboten. Der Umzug nach `src/features/shared/presentation/`
+    // haette sie ohne diese Zeile lautlos erlaubt — dieselbe Blindstelle wie
+    // ARCH-4, nur durch eine Verschiebung erzeugt statt durch eine Ablage.
+    forbids: (target) =>
+      (/^src\/(components|pages)\//.test(target) ||
+        /^src\/features\/[^/]+\/presentation\//.test(target)) &&
+      !istInfrastruktur(target),
     why: '`src/hooks/` bindet reine Logik an React, kennt aber die Oberfläche nicht — genau die Blindstelle aus ARCH-4: `useKpiPreferences.ts` zog `KPI_DEFINITIONS` (Fachdaten, kein Context) aus `src/components/kpi/kpis.ts`. Ein Hook, der Fachdaten aus der Komponentenschicht liest, zwingt jedes ViewModel, das den Hook benutzt, die alte Oberfläche mitzuschleppen. Fachdaten und reine Funktionen gehören nach `src/lib/`; ein Context-Provider-Lesezugriff (`useAuth`, `useGentleMode`) bleibt erlaubt.',
   },
 ];

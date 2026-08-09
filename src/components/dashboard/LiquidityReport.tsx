@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
 import { parseISO, differenceInDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { InfoGroup, InfoStatStrip } from '@/components/common/InfoGroup';
+import { InfoGroup, InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +57,7 @@ import {
   MonthlyOverviewTable,
   SimulationControls,
 } from './liquidity/LiquidityViews';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 
 /**

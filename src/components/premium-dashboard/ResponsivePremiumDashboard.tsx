@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import SegmentedControl from "@/components/common/SegmentedControl";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import SegmentedControl from "@/features/shared/presentation/SegmentedControl";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { getTransactions, getCategories } from "../../services/transaction-service";
 import { sumIncome, sumExpenses } from "../../lib/analysis-data";
 import { getAccounts } from "../../services/account-service";

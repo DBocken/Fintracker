@@ -39,7 +39,14 @@ function main() {
   if (!/src\/.+\.tsx$/.test(fp)) return;
   if (/\.(test|spec)\.tsx?$/.test(fp) || /__tests__/.test(fp)) return;
   // Die Primitive selbst und die UI-Basis-Karte sind Definitionen, keine Nutzung.
-  if (/src\/components\/(ui\/card|common\/(InteractiveCard|InfoGroup))\.tsx$/.test(fp)) return;
+  // Die app-eigenen Bausteine liegen seit WP 6.7 unter
+  // `src/features/shared/presentation/` (vorher `src/components/common/`).
+  if (
+    /src\/(components\/ui\/card|features\/shared\/presentation\/(InteractiveCard|InfoGroup))\.tsx$/.test(
+      fp,
+    )
+  )
+    return;
 
   let content = "";
   try {

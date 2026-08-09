@@ -54,15 +54,20 @@ ohne die Datenbeschaffung ein zweites Mal zu schreiben (AGENTS.md §4).
 ## Wo die Darstellung heute steht
 
 `AccountManager.tsx`, `AccountFormDialog.tsx`, `TransferSuggestions.tsx` und
-`GoCardlessConnect.tsx` liegen **weiterhin unter `src/components/`**. Das ist
-eine gerechnete Entscheidung, keine Nachlässigkeit: Jede dieser Dateien benutzt
-mindestens einen app-eigenen Baustein aus `@/components/common/` —
-`FinanceErrorState`, `LoadingSwap`, `RequireTier`, `DecimalInput` (nach §8 sogar
-per `check:decimal-inputs` erzwungen) und `InfoSheet`. Zögen sie mit in die
-Slice, stiege die Spalte `maxBausteine` in `slice-presentation-budget.json`
-(36) — eine Ratsche, die nur sinken darf. Dieselbe Entscheidung hat WP 6.4 für
-`EmptyState`/`FinanceErrorState` in der `CityPage` getroffen. Frei wird der
-Umzug mit **WP 6.7** (`components/common/` → `features/shared/presentation/`).
+`GoCardlessConnect.tsx` liegen **weiterhin unter `src/components/`** — die
+Blockade dafür ist mit **WP 6.7** aber gefallen. Die Entscheidung war gerechnet,
+keine Nachlässigkeit: Jede dieser Dateien benutzt mindestens einen app-eigenen
+Baustein (`FinanceErrorState`, `LoadingSwap`, `DecimalInput` — nach §8 sogar per
+`check:decimal-inputs` erzwungen — und `InfoSheet`), und
+solange die unter `src/components/common/` lagen, hätte ihr Umzug in die Slice
+die Spalte `maxBausteine` in `slice-presentation-budget.json` (36) erhöht; eine
+Ratsche, die nur sinken darf. Dieselbe Entscheidung hat WP 6.4 für
+`EmptyState`/`FinanceErrorState` in der `CityPage` getroffen. Seit WP 6.7 liegen
+die Bausteine unter `@/features/shared/presentation/` und zählen nicht mehr.
+Offen bleibt für diese vier Dateien allein die Feature-UI-Spalte (`max`):
+`RequireTier` (Gate, nicht Baustein — `src/components/RequireTier.tsx`) und
+`GoCardlessConnect` liegen weiter unter `src/components/`. Das ist ein eigenes
+Paket.
 
 Nach `presentation/` gezogen ist deshalb genau das, was **ohne** einen solchen
 Baustein auskommt: die Kontenliste samt Leerzustand und das

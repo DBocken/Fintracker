@@ -47,9 +47,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { backupService } from '@/services/backup-service';
 import type { BackupData } from '@/services/backup-service';
 import { usePersistentStorageDenied } from '@/hooks/usePersistentStorageDenied';

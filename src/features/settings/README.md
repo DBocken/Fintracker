@@ -60,21 +60,27 @@ Dauer, sondern der Zustand vor der ersten Speicherung.
 ## Warum noch keine `presentation/`
 
 Nicht, weil es nicht lohnte — sondern weil beide Spalten der Slice-Ratsche
-(`slice-presentation-budget.json`) exakt auf ihrem Maximum stehen (`max: 12`,
-`maxBausteine: 36`) und **nur sinken dürfen**. Nachgemessen am Bestand:
+(`slice-presentation-budget.json`) exakt auf ihrem Maximum standen (`max: 12`,
+`maxBausteine: 36`) und **nur sinken dürfen**. Nachgemessen am Bestand vor
+WP 6.7:
 
 | Umzug | Importe nach fremder Feature-UI (`max`) | Importe nach `components/common/` (`maxBausteine`) |
 |---|---|---|
 | nur `EnhancedSettings.tsx` | 12 → **32** (+20 Geschwister-/Nachbarbausteine) | 36 → **38** (`InfoGroup`, `FinanceErrorState`) |
 | ganzes `components/settings/` | 12 → **22** (Provider, `ThemeToggle`, `TaxCategorySelect`, `FeatureSelection`, `PerformanceDashboard`, `BackupManager`, `FeatureGate`) | 36 → **50** (14× `InfoGroup`/`InteractiveCard`/`FinanceErrorState`/`DecimalInput`) |
 
-Beide Wege brechen beide Ratschen. Die Baustein-Spalte ist dabei kein Fehler der
-Fläche: `InfoGroup`, `InteractiveCard`, `FinanceErrorState` und `DecimalInput`
-sind nach AGENTS.md §8/§9 **vorgeschrieben** — dieselbe Fehlerform, die WP 6.3
-schon einmal gemessen hat, nur ein Screen weiter. Die Antwort darauf steht
-bereits im Plan und heisst **WP 6.7** (`components/common/` →
-`features/shared/presentation/`); danach ist der Umzug dieser Fläche eine reine
-Verschiebung.
+Beide Wege brachen damals beide Ratschen. Die Baustein-Spalte war dabei kein
+Fehler der Fläche: `InfoGroup`, `InteractiveCard`, `FinanceErrorState` und
+`DecimalInput` sind nach AGENTS.md §8/§9 **vorgeschrieben** — dieselbe
+Fehlerform, die WP 6.3 schon einmal gemessen hat, nur ein Screen weiter.
+
+**Seit WP 6.7 ist die rechte Spalte erledigt**: `components/common/` liegt jetzt
+unter `features/shared/presentation/`, `maxBausteine` steht auf 0, und keiner
+der oben gerechneten Baustein-Importe zählt noch. Offen bleibt allein die linke
+Spalte — die Geschwister-Bausteine aus `components/settings/`, die mit der
+Fläche zusammen oder nach ihr migrieren müssen. Das ist eine andere Frage mit
+einer anderen Antwort (Screen für Screen statt ein Umzug für die ganze App) und
+gehört in ein eigenes Paket.
 
 Bis dahin bleibt die Darstellung in `src/components/settings/`
 (`EnhancedSettings.tsx`, 283 Zeilen — von 441). Das ist der bewusste
@@ -98,7 +104,8 @@ Konsumenten und ist kein verwaistes Verzeichnis (ARCH-2).
 
 ## Offen
 
-- `presentation/` (siehe oben) — abhängig von WP 6.7.
+- `presentation/` (siehe oben) — die Baustein-Spalte blockiert seit WP 6.7
+  nicht mehr; offen ist nur noch die Feature-UI-Spalte (`max`).
 - Die übrigen Einstellungs-Bausteine tragen weiterhin eigene Zugriffe:
   `HouseholdSettings` (6), `PrivacySyncAnalyticsSettings` (4),
   `AppearanceSettings` (3), `NavFeatureSettings` (3), `TaxReserveSettings` (3),

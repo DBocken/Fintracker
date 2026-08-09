@@ -7,8 +7,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { DecimalInput } from '@/components/common/DecimalInput';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { TaxCategorySelect } from '@/components/tax/TaxCategorySelect';
 import { getRubricForCategory } from '@/data/tax-catalog';
 import { getAllocationsForTransaction } from '@/services/transaction-allocation-service';

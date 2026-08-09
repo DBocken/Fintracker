@@ -23,7 +23,7 @@ import type { SankeyData } from "@/lib/analysis-data";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
 import { chartNumber, chartTooltipProps } from '@/lib/chart-tooltip';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 interface SankeyChartProps {
   data: SankeyData;

@@ -1,9 +1,9 @@
 import { Star, Bell } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { formatCurrency } from '@/lib/utils';
-import EmptyState from '@/components/common/EmptyState';
-import { InfoGroup } from '@/components/common/InfoGroup';
-import SegmentedControl from '@/components/common/SegmentedControl';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
+import SegmentedControl from '@/features/shared/presentation/SegmentedControl';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { EtoroWatchlistsResponse, EtoroPriceAlertsResponse } from '@/services/etoro-api-schemas';
 import { selectWatchlistSummaries, selectWatchlistItems, selectPriceAlerts } from '@/services/etoro-watchlists';

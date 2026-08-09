@@ -195,7 +195,7 @@ describe('Kommentare (WP-9.6, Nachtrag)', () => {
     // Waechter, der seine eigene Begruendung als Verstoss liest, schickt jeden
     // auf eine falsche Faehrte.
     const content = '/**\n * Bis hierher: `const { data = [] } = useQuery(…)`.\n */\nexport const X = 1;';
-    expect(analyze('src/components/common/Y.tsx', content)).toEqual({ violations: [], total: 0 });
+    expect(analyze('src/features/shared/presentation/Y.tsx', content)).toEqual({ violations: [], total: 0 });
   });
 
   it('sollte einen Aufruf im Zeilenkommentar nicht melden', () => {

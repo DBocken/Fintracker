@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PiggyBank, Trash2 } from 'lucide-react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { Button } from '@/components/ui/button';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Label } from '@/components/ui/label';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';

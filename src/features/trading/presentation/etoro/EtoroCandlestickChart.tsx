@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { useI18n } from '@/i18n/useI18n';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { formatCurrency } from '@/lib/utils';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Waves } from "lucide-react";
-import { InfoGroup } from "@/components/common/InfoGroup";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import { InfoGroup } from "@/features/shared/presentation/InfoGroup";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { useI18n } from "@/i18n/useI18n";

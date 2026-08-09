@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { cn } from '@/lib/utils';
-import DeltaBadge from '@/components/common/DeltaBadge';
+import DeltaBadge from '@/features/shared/presentation/DeltaBadge';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
 import type { OverrideChange } from '@/lib/forecast-overrides-summary';
 import { eur, fmtMonth, type ChartView } from './chart-shared';

@@ -19,7 +19,7 @@
  */
 import type { PortfolioSummary } from '@/types';
 import { useI18n } from '@/i18n/useI18n';
-import { InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import { InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import { formatCurrency } from '@/lib/utils';
 
 export interface TradingSummaryStatsProps {

@@ -17,8 +17,8 @@
  */
 import { useI18n } from '@/i18n/useI18n';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'react-hot-toast';
 import { useEtoroAccount } from '@/features/trading/application/use-etoro-account';

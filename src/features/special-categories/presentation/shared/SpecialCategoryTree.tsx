@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Trash2, Plus } from 'lucide-react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types';

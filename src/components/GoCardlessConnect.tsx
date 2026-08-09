@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { CreditCard, ExternalLink, Loader2, RefreshCw, AlertTriangle, Search, Building2, Check } from 'lucide-react'
 import { getRedirectOrigin, PRODUCTION_APP_ORIGIN } from '@/lib/app-origin'
 import { isSafeExternalAuthUrl } from '@/lib/safe-url'
-import InfoButton from '@/components/common/InfoSheet'
+import InfoButton from '@/features/shared/presentation/InfoSheet'
 import { useI18n } from '@/i18n/useI18n'
 import {
   INSTITUTION_RESULT_LIMIT,
@@ -33,10 +33,13 @@ interface GoCardlessConnectProps {
  * `features/accounts/domain/institution-search.ts` — vorher standen beide als
  * `useEffect` hier und waren nicht einzeln pruefbar.
  *
- * Diese Datei bleibt vorerst unter `src/components/`, weil sie `InfoSheet` aus
- * `@/components/common/` benutzt; ein Umzug in die Slice wuerde die
- * `maxBausteine`-Ratsche (`pnpm check:slice-presentation`) erhoehen, die nur
- * sinken darf. Sie wird mit WP 6.7 frei.
+ * Diese Datei liegt noch unter `src/components/` — die Blockade dafuer ist
+ * aber mit WP 6.7 gefallen. Bis dahin lag der benutzte Baustein `InfoSheet`
+ * unter `src/components/common/`, und ein Umzug in die Slice haette die
+ * `maxBausteine`-Ratsche (`pnpm check:slice-presentation`) erhoeht, die nur
+ * sinken darf. Seit WP 6.7 liegt er unter `@/features/shared/presentation/`
+ * und wird nicht mehr gezaehlt; der Umzug nach
+ * `features/accounts/presentation` ist frei und ein eigenes Paket.
  */
 export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }: GoCardlessConnectProps) {
   const { t } = useI18n();

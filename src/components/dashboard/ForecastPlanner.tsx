@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trash2, PiggyBank, CalendarPlus, Percent, Target, ArrowRightLeft, Link2Off } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/i18n/useI18n';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { getAccounts } from '@/services/account-service';
 import { calculateRequiredContribution } from '@/lib/forecast';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import type { ForecastOverrides } from '@/lib/forecast-types';
 import type { ForecastInput } from '@/lib/forecast-types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';

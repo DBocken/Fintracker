@@ -36,9 +36,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, CheckCircle2, Wallet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 interface PortfolioManagerProps {
   activePortfolioId?: string;

@@ -133,6 +133,25 @@ describe('Schicht-Wächter', () => {
       expect(analyzeFile('src/hooks/useFoo.ts', src).violations).toEqual([]);
     });
 
+    it('[REGRESSION] sollte auch die Slice-Presentation verbieten — WP 6.7 hat die Bausteine verschoben, nicht freigegeben', () => {
+      // Vor WP 6.7 lag `InteractiveCard` unter `src/components/common/` und war
+      // fuer einen Hook damit verboten. Der Umzug nach
+      // `src/features/shared/presentation/` haette die Regel lautlos verkleinert:
+      // dieselbe Blindstelle wie ARCH-4, diesmal durch eine Verschiebung erzeugt.
+      const src = `import { InteractiveCard } from '@/features/shared/presentation/InteractiveCard';`;
+      const { violations } = analyzeFile('src/hooks/useFoo.ts', src);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].ruleId).toBe('hooks-ohne-components');
+    });
+
+    it('sollte die uebrigen Slice-Schichten weiter erlauben — ein Hook darf reine Fachlogik lesen', () => {
+      const src = [
+        `import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';`,
+        `import { financeQueryKeys } from '@/features/shared/data/finance-query-keys';`,
+      ].join('\n');
+      expect(analyzeFile('src/hooks/useFoo.ts', src).violations).toEqual([]);
+    });
+
     it('sollte einen Import aus jedem providers/-Verzeichnis erlauben, nicht nur die zwei bekannten', () => {
       // Reuse-Nachweis fuer `istInfrastruktur()` aus view-data-core.mjs: das
       // Verzeichnis-Kriterium `/\/providers\//` traegt unabhaengig vom

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Wallet, LineChart, CreditCard, HandCoins, Info, ChevronRight, Plus } from "lucide-react";
 import AssetVolume from "@/components/networth/AssetVolume";
-import PageHeader from "@/components/common/PageHeader";
-import StatHero from "@/components/common/StatHero";
+import PageHeader from "@/features/shared/presentation/PageHeader";
+import StatHero from "@/features/shared/presentation/StatHero";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,8 +17,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "@/services/net-worth-service";
-import FinanceEmptyState from "@/components/common/FinanceEmptyState";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceEmptyState from "@/features/shared/presentation/FinanceEmptyState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DecimalInput } from "@/components/common/DecimalInput";
+import { DecimalInput } from "@/features/shared/presentation/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/i18n/useI18n";
@@ -21,7 +21,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { TypedSelect } from "@/components/common/TypedSelect";
+import { TypedSelect } from "@/features/shared/presentation/TypedSelect";
 import { Trash2, Plus } from "lucide-react";
 import type {
   Account,

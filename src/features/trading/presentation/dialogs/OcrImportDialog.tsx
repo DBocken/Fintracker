@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { parseGermanNumber } from '@/lib/money';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';

@@ -3,7 +3,7 @@ import { ArrowLeftRight, Link2, Unlink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { useTransferSuggestions } from '@/features/accounts/application/use-transfer-suggestions';
@@ -16,10 +16,13 @@ const dateFmt = new Intl.DateTimeFormat('de-DE');
  *
  * Die zwei Abfragen und zwei Mutationen liegen seit WP 6.5a in
  * `features/accounts/application/use-transfer-suggestions.ts`. Diese Datei
- * bleibt vorerst unter `src/components/`, weil sie `FinanceErrorState` aus
- * `@/components/common/` benutzt — ein Umzug in die Slice wuerde die
- * `maxBausteine`-Ratsche erhoehen (`pnpm check:slice-presentation`), die nur
- * sinken darf. Sie wird mit WP 6.7 frei.
+ * liegt noch unter `src/components/` — die Blockade dafuer ist mit WP 6.7
+ * gefallen. Bis dahin lag `FinanceErrorState` unter `src/components/common/`,
+ * und ein Umzug in die Slice haette die `maxBausteine`-Ratsche erhoeht
+ * (`pnpm check:slice-presentation`), die nur sinken darf. Seit WP 6.7 liegt
+ * der Baustein unter `@/features/shared/presentation/` und wird nicht mehr
+ * gezaehlt; der Umzug nach `features/accounts/presentation` ist frei und ein
+ * eigenes Paket.
  */
 export function TransferSuggestions() {
   const money = useMoneyFormat();

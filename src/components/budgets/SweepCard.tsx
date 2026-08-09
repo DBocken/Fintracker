@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import type { BudgetStatus } from "@/types";
 import { resolveRolloverConfig } from "@/lib/budget-rollover";

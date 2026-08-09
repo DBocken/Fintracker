@@ -31,7 +31,7 @@ import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 interface ReviewTableProps {
   transactions: Transaction[];

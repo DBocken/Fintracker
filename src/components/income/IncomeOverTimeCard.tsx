@@ -8,7 +8,7 @@ import type { IncomeOverTimePoint } from '@/lib/analysis-data';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForStackedData, valueAxisProps } from '@/lib/chart-axis';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });

@@ -16,7 +16,7 @@ import type { AusgabenklasseFilter } from '@/features/shared/domain/dashboard-fi
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 interface SunburstInner {
   id: string;

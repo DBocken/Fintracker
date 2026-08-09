@@ -1,6 +1,6 @@
 import { useI18n } from '@/i18n/useI18n';
 import { formatCurrency } from '@/lib/utils';
-import { InfoGroup, InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import { InfoGroup, InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import type { EtoroPnlResponse } from '@/services/etoro-api-schemas';
 import { selectAccountPnl } from '@/services/etoro-history';
 

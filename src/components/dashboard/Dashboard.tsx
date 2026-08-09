@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { SlidersHorizontal, Sparkles, ArrowRight, Building2 } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { TransactionStats } from './TransactionStats';
-import StatHero from '@/components/common/StatHero';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import StatHero from '@/features/shared/presentation/StatHero';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
@@ -24,11 +24,11 @@ import type { Transaction } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
 import AnalysisModePanel from './AnalysisModePanel';
-import FinanceEmptyState from '@/components/common/FinanceEmptyState';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useTutorialPresence } from '@/components/tutorial/tutorial-presence';
 import { useGlobalAtmosphere } from '@/hooks/useGlobalAtmosphere';
-import { ATMOSPHERE_ACCENTS } from '@/components/common/AtmosphereLayer';
+import { ATMOSPHERE_ACCENTS } from '@/features/shared/presentation/AtmosphereLayer';
 
 // Die Buchungen-Vorschau auf dem Dashboard ist reine Vorschau ohne Sammelbearbeitung
 // (die lebt vollständig auf /transactions) – Auswahl bleibt hier bewusst inert.
