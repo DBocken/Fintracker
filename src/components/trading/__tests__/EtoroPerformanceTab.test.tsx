@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import { translations } from '@/i18n/translations';
 import { EtoroAccountError } from '@/services/etoro-account-service';
 import type { PerformancePoint } from '@/services/etoro-performance';
@@ -55,6 +56,31 @@ describe('EtoroPerformanceTab', () => {
         'de',
       );
       expect(screen.getByText('Fehlende Berechtigung')).toBeInTheDocument();
+    });
+  });
+
+  describe('PERF-4: chartData-Memoisierung', () => {
+    it('[REGRESSION] sollte bei neuen series-Werten (gleiche Länge) die aktualisierten Zahlen in der zugänglichen Tabelle zeigen', () => {
+      const { rerender } = renderWithI18n(
+        <EtoroPerformanceTab isLocked={false} isLoading={false} error={null} series={series} />,
+        'de',
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /Werte als Tabelle/i }));
+      expect(screen.getByText(/5\.400,00\s\$/)).toBeInTheDocument();
+
+      const updatedSeries: PerformancePoint[] = [series[0], series[1], { date: '2026-07-01', value: 9999 }];
+      // Muss dieselbe I18nProvider-Instanz wie beim ersten Render behalten —
+      // sonst rerendert RTL die ganze Baumwurzel und der Provider-Kontext
+      // fehlt.
+      rerender(
+        <I18nProvider initialLocale="de">
+          <EtoroPerformanceTab isLocked={false} isLoading={false} error={null} series={updatedSeries} />
+        </I18nProvider>,
+      );
+
+      expect(screen.getByText(/9\.999,00\s\$/)).toBeInTheDocument();
+      expect(screen.queryByText(/5\.400,00\s\$/)).not.toBeInTheDocument();
     });
   });
 

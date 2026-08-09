@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { ChartFigure } from '@/components/common/ChartFigure';
@@ -87,11 +88,18 @@ export default function EtoroCandlestickChart({ candles, height = 300 }: EtoroCa
   const { t, locale } = useI18n();
   const chartAnimation = useChartAnimation();
 
-  const chartData = candles.map((candle) => ({
-    ...candle,
-    label: formatAxisDate(candle.date, locale),
-    range: [candle.low, candle.high] as [number, number],
-  }));
+  // PERF-4: An die Quell-Werte gebunden (candles, locale) — sonst baut
+  // Recharts bei jedem Render (z. B. Live-Kurspolling) Skalen/Pfade neu,
+  // obwohl sich die Daten gar nicht geaendert haben.
+  const chartData = useMemo(
+    () =>
+      candles.map((candle) => ({
+        ...candle,
+        label: formatAxisDate(candle.date, locale),
+        range: [candle.low, candle.high] as [number, number],
+      })),
+    [candles, locale],
+  );
 
   return (
     // WP-6.10: OHLC-Werte auch ohne Diagramm zugaenglich.

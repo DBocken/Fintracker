@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { screen, fireEvent } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
+import { I18nProvider } from '@/i18n/I18nProvider';
 import type { CandlePoint } from '@/services/etoro-discover';
 import EtoroCandlestickChart, { computeCandleGeometry } from '../EtoroCandlestickChart';
 
@@ -67,5 +69,30 @@ describe('EtoroCandlestickChart', () => {
 
     const { container: empty } = renderWithI18n(<EtoroCandlestickChart candles={[]} />);
     expect(empty.querySelector('.recharts-responsive-container')).toBeInTheDocument();
+  });
+
+  describe('PERF-4: chartData-Memoisierung', () => {
+    it('[REGRESSION] sollte bei neuen candles (gleiche Referenzlänge, neue Werte) die aktualisierten OHLC-Werte in der zugänglichen Tabelle zeigen', () => {
+      const { rerender } = renderWithI18n(<EtoroCandlestickChart candles={candles} />, 'de');
+
+      fireEvent.click(screen.getByRole('button', { name: /Werte als Tabelle/i }));
+      expect(screen.getByText(/105,00\s\$/)).toBeInTheDocument();
+
+      const updatedCandles: CandlePoint[] = [
+        { date: '2026-01-01T00:00:00Z', open: 100, high: 999, low: 98, close: 102, isUp: true },
+        candles[1],
+      ];
+      // Muss dieselbe I18nProvider-Instanz wie beim ersten Render behalten —
+      // sonst rerendert RTL die ganze Baumwurzel und der Provider-Kontext
+      // fehlt.
+      rerender(
+        <I18nProvider initialLocale="de">
+          <EtoroCandlestickChart candles={updatedCandles} />
+        </I18nProvider>,
+      );
+
+      expect(screen.getByText(/999,00\s\$/)).toBeInTheDocument();
+      expect(screen.queryByText(/105,00\s\$/)).not.toBeInTheDocument();
+    });
   });
 });

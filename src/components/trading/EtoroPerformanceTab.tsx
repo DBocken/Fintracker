@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useI18n } from '@/i18n/useI18n';
@@ -46,10 +47,17 @@ export default function EtoroPerformanceTab({ isLocked, isLoading, error, onRetr
   const chartAnimation = useChartAnimation();
   const trend = selectPerformanceTrend(series);
 
-  const chartData = series.map((point) => ({
-    ...point,
-    label: formatAxisDate(point.date, locale),
-  }));
+  // PERF-4: An die Quell-Werte gebunden (series, locale) — sonst baut
+  // Recharts bei jedem Render (z. B. Live-Kurspolling) Skalen/Pfade neu,
+  // obwohl sich die Daten gar nicht geaendert haben.
+  const chartData = useMemo(
+    () =>
+      series.map((point) => ({
+        ...point,
+        label: formatAxisDate(point.date, locale),
+      })),
+    [series, locale],
+  );
 
   return (
     <EtoroScopeGate isLocked={isLocked} isLoading={isLoading} error={error} onRetry={onRetry}>

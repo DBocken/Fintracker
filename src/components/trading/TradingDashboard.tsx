@@ -204,6 +204,20 @@ export default function TradingDashboard() {
       ? t('trading.dashboard.performanceChart.startLabel')
       : t('trading.dashboard.performanceChart.dayLabel').replace('{n}', String(day));
 
+  // PERF-4: Bisher entstand dieses Array inline im JSX (LineChart-Prop) und
+  // damit bei jedem Render neu, auch wenn sich weder performancePreview noch
+  // die Uebersetzung geaendert hat. `t` ist in I18nProvider ein stabiles
+  // useCallback (deps: [locale, wording]) — als Abhaengigkeit bildet es also
+  // exakt die Faelle ab, in denen sich performancePreviewLabel(day) aendern
+  // kann (Sprachwechsel, Wording-Wechsel), ohne bei jedem Render neu zu
+  // greifen. Wird unconditional auf Top-Level berechnet (auch wenn nur der
+  // Nicht-eToro-Zweig sie zeigt) — Hooks duerfen nicht bedingt laufen.
+  const performancePreviewChartData = useMemo(
+    () => performancePreview.map((point) => ({ ...point, label: performancePreviewLabel(point.day) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- performancePreviewLabel ist reine Funktion von (day, t); t traegt den relevanten State.
+    [performancePreview, t],
+  );
+
   if (hasLoadError) {
     return <FinanceErrorState variant="data" onRetry={retryAll} />;
   }
@@ -672,7 +686,7 @@ export default function TradingDashboard() {
                   rowKey={(row, index) => `${row.day ?? 'start'}-${index}`}
                 >
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={performancePreview.map((point) => ({ ...point, label: performancePreviewLabel(point.day) }))}>
+                  <LineChart data={performancePreviewChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="label" />
                     <YAxis />
