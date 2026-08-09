@@ -35,10 +35,27 @@ Bericht bleibt als Beleg.
 |---|---|
 | [`coding-guide.md`](coding-guide.md) | Entwickler-Leitfaden, Schichten im Detail |
 | [`architecture/feature-structure.md`](architecture/feature-structure.md) | Kochrezept für Feature-Slices, Entscheidungsbaum Desktop/Mobile |
-| [`architecture/entity-references.md`](architecture/entity-references.md) | Entitäten über stabile IDs adressieren, nicht über Anzeigenamen |
 | [`domain-invariants.md`](domain-invariants.md) | Fachliche Invarianten, auf die sich Tests berufen |
 | [`design-principles.md`](design-principles.md) | 7 Kernprinzipien + Karten- und Animationsregel |
 | [`performance.md`](performance.md) | Performance-Ist-Zustand und geplante Phase B |
+
+### Architektur-Entscheidungen (ADR)
+
+Datiert, in ADR-Form: Kontext · Entscheidung · verworfene Alternative · Preis.
+Sie sind **geltend** — wer abweichen will, braucht neue Fakten, nicht neuen
+Geschmack. Der Preis-Abschnitt sagt, was die Entscheidung heute wirklich kostet;
+wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
+„rekonstruiert" da.
+
+| Datei | Entscheidung |
+|---|---|
+| [`architecture/entity-references.md`](architecture/entity-references.md) | `EntityRef` für generische Verweise, typisierte FK-Felder sonst; Entitäten immer über die stabile ID adressieren (2026-07-19) |
+| [`architecture/transaction-storage-chunks.md`](architecture/transaction-storage-chunks.md) | Transaktionsablage als Quartals-Chunks statt einem Blob (2026-08-09) |
+| [`architecture/currency-eur-only.md`](architecture/currency-eur-only.md) | EUR-only, keine Multi-Currency-Vorbereitung (2026-07-02) |
+| [`architecture/storage-indexeddb-kv.md`](architecture/storage-indexeddb-kv.md) | IndexedDB als Key-Value-Ablage, keine relationale Datenbank (ca. Juni 2026) |
+| [`architecture/dual-layering.md`](architecture/dual-layering.md) | Klassische Schichten und Feature-Slices dauerhaft nebeneinander (2026-07-12) |
+| [`architecture/guard-system.md`](architecture/guard-system.md) | Wächter-Skripte in Pre-Commit + CI als Durchsetzungsstrategie (2026-07-12) |
+| [`architecture/money-euro-float.md`](architecture/money-euro-float.md) | Euro-Float in der Persistenz, Cent in der Rechnung (2026-08-08) |
 
 ## Geltend — Sicherheit & Datenschutz
 
