@@ -1,4 +1,4 @@
-import { requireUserId } from './auth-service';
+import { getCurrentUserId } from './auth-service';
 import { t } from '../i18n/serviceT';
 import { logger } from '@/utils/logger';
 import type { Category, Account, UserSettings } from '../types';
@@ -9,7 +9,7 @@ import {
   saveTransactions,
   updateUserSettings,
 } from './transaction-service';
-import { restoreLocalCategories } from './local-settings-service';
+import { LOCAL_USER_ID, restoreLocalCategories } from './local-settings-service';
 import { createAccount, getAccounts } from './account-service';
 import {
   encryptJsonWithPassword,
@@ -182,7 +182,7 @@ export type BackupChecksumVerification = 'ok' | 'missing' | 'mismatch';
 /**
  * Verifiziert die Prüfsumme eines Backups gegen seine Nutzlast (WP 1.5,
  * RES-5). Reine, unabhängig testbare Funktion — kein Zugriff auf
- * `requireUserId()`/Storage, daher ohne Auth-Mock testbar.
+ * die Nutzer-Auflösung/Storage, daher ohne Auth-Mock testbar.
  *
  * - `'missing'`: kein `checksum`-Feld (Backup vor v1.2) — Aufrufer entscheidet,
  *   ob trotzdem importiert wird (ja, mit Hinweis — Vorentschieden #2).
@@ -207,8 +207,8 @@ export const BACKUP_VERSION = '1.2.0';
  * War bis WP 1.5 eine `private`-Methode von `BackupService` — von außen
  * nicht testbar, obwohl der Vergleich selbst kein internen Zustand braucht.
  * Jetzt eine eigenständige Modul-Funktion (wie `isForeignBackup` daneben):
- * kein Grund, dafür eine Instanz zu erzeugen oder Mocks für `requireUserId()`
- * aufzusetzen, nur um diese eine Zeile zu testen.
+ * kein Grund, dafür eine Instanz zu erzeugen oder die Nutzer-Auflösung zu
+ * mocken, nur um diese eine Zeile zu testen.
  */
 export function isVersionCompatible(backupVersion: string, currentVersion: string = BACKUP_VERSION): boolean {
   const [major] = backupVersion.split('.').map(Number);
@@ -277,6 +277,33 @@ export function isForeignBackup(backup: Pick<BackupData, 'userId'>, currentUserI
 }
 
 /**
+ * Besitzer-Kennung für Sicherung und Wiederherstellung — angemeldet die
+ * Konto-Kennung, sonst `LOCAL_USER_ID`.
+ *
+ * Bis WP 7.3 stand hier `requireUserId()`, das ohne angemeldete Sitzung wirft.
+ * Damit war die Sicherung ausgerechnet im Normalfall dieser App unbenutzbar:
+ * local-first, anonym gestartet, Daten in IndexedDB (AGENTS.md §1). Sichtbar
+ * wurde es erst im echten Browser (E2E, WP 7.3) — die Karte „Aktueller
+ * Datenbestand" meldete „Deine Daten konnten nicht geladen werden", und der
+ * Export lieferte gar keine Datei. Die Unit-Suite sah nichts davon, weil jeder
+ * bestehende Backup-Test `requireUserId` auf eine feste Kennung mockt und
+ * damit nur den angemeldeten Fall beschreibt.
+ *
+ * `(await getCurrentUserId()) || LOCAL_USER_ID` ist dabei keine Erfindung
+ * dieser Datei, sondern die Form, die neun weitere Services bereits benutzen
+ * (`account-service`, `debt-service`, `claim-service`, `portfolio-service`, …)
+ * — und es ist genau die Kennung, unter der diese Services anonym schreiben.
+ * Damit greift auch der Kategorie-Filter in `createBackup()` wieder
+ * (`user_id === userId`), der anonym vorher nie zutreffen konnte.
+ *
+ * Der Fremd-Backup-Schutz bleibt: Eine Datei mit fremder Konto-Kennung trifft
+ * auf `LOCAL_USER_ID` und wird weiterhin als fremd erkannt.
+ */
+async function resolveBackupUserId(): Promise<string> {
+  return (await getCurrentUserId()) || LOCAL_USER_ID;
+}
+
+/**
  * Backup service for exporting and importing complete user data
  */
 class BackupService {
@@ -284,7 +311,7 @@ class BackupService {
    * Create a complete backup of all user data
    */
   async createBackup(): Promise<BackupData> {
-    const userId = await requireUserId();
+    const userId = await resolveBackupUserId();
 
     // Fetch all user data
     const [transactions, categories, accounts, settings, collections] = await Promise.all([
@@ -488,7 +515,7 @@ class BackupService {
     };
   }> {
     try {
-      const userId = await requireUserId();
+      const userId = await resolveBackupUserId();
       const warnings: string[] = [];
 
       // Validate version compatibility (Major-basiert, Vorentschieden #4).
