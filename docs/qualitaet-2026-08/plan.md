@@ -548,7 +548,7 @@ Die schwachen `*.error-state.test.tsx` (Liste in TEST-4) auf das Muster der
 starken heben: Fehlertext-Assertion **plus**
 `queryByText(<irreführender Leerzustand>)).toBeNull()`.
 
-### - [ ] WP 7.2 · Datei-Schwellen für die Geldlogik (TEST-5) · H
+### - [x] WP 7.2 · Datei-Schwellen für die Geldlogik (TEST-5) · H — `53c3d4c`
 Per-Glob-Thresholds in `vitest.config.ts`: ≥ 90 % Branches für `money.ts`,
 `forecast.ts`, `budget-logic.ts`, `analysis-data.ts`,
 `transaction-allocation-service.ts`. Fehlende Abdeckung, die dabei auffällt,
@@ -572,7 +572,7 @@ Doppel-Schichtung (klassisch + Slices) · Wächter-System als
 Durchsetzungsstrategie · Euro-Float-Persistenz (aus WP 2.5). Je ADR: Kontext,
 Entscheidung, verworfene Alternative, Preis.
 
-### - [ ] WP 7.7 · EUR-only wirklich durchsetzen (VE-1, Rest) · S
+### - [x] WP 7.7 · EUR-only wirklich durchsetzen (VE-1, Rest) · S — `913d929`
 **Befund aus WP 7.5 (Preis-Abschnitt `currency-eur-only.md`):** Das Versprechen
 aus `coding-guide.md` §4 („Nicht-EUR wird abgewiesen oder sichtbar als *nicht
 verrechnet* markiert, nie stumm summiert") ist **nie umgesetzt**:
