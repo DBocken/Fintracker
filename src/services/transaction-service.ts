@@ -1,4 +1,12 @@
-import type { Transaction, Category, UserSettings, HierarchicalCategory, Rhythmus } from '../types';
+import type {
+  Transaction,
+  Category,
+  UserSettings,
+  HierarchicalCategory,
+  Rhythmus,
+  CategorySuggestion,
+  CategorizationSnapshotEntry,
+} from '../types';
 import { transactionStorage } from './transaction-storage-service';
 import {
   getLocalCategories,
@@ -389,13 +397,6 @@ export async function updateCategory(category: Category): Promise<Category> {
 // Auto-Kategorisierung & intelligente Vorschläge (jetzt auf nutzerlokalen Transaktionen)
 // -----------------------------------------------------------------------------
 
-/** Vorzustand eines Kategorisierungsfeldes, um eine Sammeländerung rückgängig zu machen. */
-export interface CategorizationSnapshotEntry {
-  id: string;
-  category_id: string | null;
-  auto_mapped: boolean;
-}
-
 export async function recategorizeTransactions(): Promise<{
   total: number;
   assigned: number;
@@ -492,11 +493,6 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
   });
 
   return affected.slice(0, limit);
-}
-
-export interface CategorySuggestion {
-  category: Category;
-  affectedCount: number;
 }
 
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {

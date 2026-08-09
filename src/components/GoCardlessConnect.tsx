@@ -1,126 +1,73 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { gocardlessService } from '../services/gocardless-service'
 import { CreditCard, ExternalLink, Loader2, RefreshCw, AlertTriangle, Search, Building2, Check } from 'lucide-react'
 import { getRedirectOrigin, PRODUCTION_APP_ORIGIN } from '@/lib/app-origin'
 import { isSafeExternalAuthUrl } from '@/lib/safe-url'
 import InfoButton from '@/components/common/InfoSheet'
 import { useI18n } from '@/i18n/useI18n'
-
-interface Institution {
-  id: string
-  name: string
-  bic: string
-  logo: string
-  countries: string[]
-  transaction_total_days?: string
-}
+import {
+  INSTITUTION_RESULT_LIMIT,
+  rankInstitutions,
+  type Institution,
+} from '@/features/accounts/domain/institution-search'
+import {
+  API_SETUP_REQUIRED,
+  useBankInstitutions,
+  type BankRequisition,
+} from '@/features/accounts/application/use-bank-institutions'
 
 interface GoCardlessConnectProps {
   onConnectionSuccess: (accountId: string) => void
 }
 
-
+/**
+ * Bankanbindung ueber GoCardless — Darstellung.
+ *
+ * Netzzugriff (Institute laden, Freigabe anfragen) liegt seit WP 6.5a in
+ * `features/accounts/application/use-bank-institutions.ts`, Filter und
+ * Rangfolge der Banksuche als reine Funktion in
+ * `features/accounts/domain/institution-search.ts` — vorher standen beide als
+ * `useEffect` hier und waren nicht einzeln pruefbar.
+ *
+ * Diese Datei bleibt vorerst unter `src/components/`, weil sie `InfoSheet` aus
+ * `@/components/common/` benutzt; ein Umzug in die Slice wuerde die
+ * `maxBausteine`-Ratsche (`pnpm check:slice-presentation`) erhoehen, die nur
+ * sinken darf. Sie wird mit WP 6.7 frei.
+ */
 export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }: GoCardlessConnectProps) {
   const { t } = useI18n();
+  const institutionsModel = useBankInstitutions();
 
-  const [institutions, setInstitutions] = useState<Institution[]>([])
-  const [filteredInstitutions, setFilteredInstitutions] = useState<Institution[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null)
-  const [loading, setLoading] = useState(false)
   const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [connectError, setConnectError] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [requisition, setRequisition] = useState<{ id: string; link?: string; redirect?: string } | null>(null)
+  const [requisition, setRequisition] = useState<BankRequisition | null>(null)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
 
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredInstitutions([])
-      return
-    }
+  const { institutions, isLoading: loading } = institutionsModel
+  const error = connectError ?? institutionsModel.loadError
 
-    const query = searchQuery.toLowerCase().trim()
-    const queryParts = query.split(/\s+/)
+  // In der Entwicklung ist die Sandbox-Bank fast immer die gemeinte.
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-    const filtered = institutions.filter(inst => {
-      const name = inst.name.toLowerCase()
-      const bic = inst.bic?.toLowerCase() || ''
-      
-      return queryParts.every(part => 
-        name.includes(part) || bic.includes(part)
-      )
-    })
-
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    
-    const sorted = filtered.sort((a, b) => {
-      if (isDev) {
-        const aIsSandbox = a.id.includes('SANDBOX')
-        const bIsSandbox = b.id.includes('SANDBOX')
-        if (aIsSandbox && !bIsSandbox) return -1
-        if (bIsSandbox && !aIsSandbox) return 1
-      }
-
-      const aName = a.name.toLowerCase()
-      const bName = b.name.toLowerCase()
-      const aBic = a.bic?.toLowerCase() || ''
-      const bBic = b.bic?.toLowerCase() || ''
-
-      if (aName === query || aBic === query) return -1
-      if (bName === query || bBic === query) return 1
-
-      const aStartsWith = aName.startsWith(query) || aBic.startsWith(query)
-      const bStartsWith = bName.startsWith(query) || bBic.startsWith(query)
-      if (aStartsWith && !bStartsWith) return -1
-      if (bStartsWith && !aStartsWith) return 1
-
-      return a.name.localeCompare(b.name)
-    })
-
-    setFilteredInstitutions(sorted.slice(0, 20))
-  }, [searchQuery, institutions])
-
-  // `useCallback` mit `t` in den Abhaengigkeiten: Seit die Fehlermeldung
-  // uebersetzt wird, haengt diese Funktion an der Sprache. Ohne das wuerde der
-  // Effekt unten eine veraltete Fassung festhalten.
-  const loadInstitutions = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const data = await gocardlessService.getInstitutions('DE')
-      console.log('[gocardless-connect] Institutions loaded', { count: data.length })
-      
-      const sorted = data.sort((a, b) => a.name.localeCompare(b.name))
-      setInstitutions(sorted)
-      
-    } catch (err: unknown) {
-      const e = err as { message?: string; setup_required?: boolean; details?: string };
-      console.error('[gocardless-connect] Failed to load institutions:', { message: e.message })
-
-      if (e.setup_required || (e.details && e.details.includes('nicht konfiguriert'))) {
-        setError('API_SETUP_REQUIRED')
-      } else {
-        setError(t('common.errorWithMessage').replace('{message}', e.message ?? ''))
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [t])
+  const filteredInstitutions = useMemo(
+    () => rankInstitutions(institutions, searchQuery, { preferSandbox: isDev }),
+    [institutions, isDev, searchQuery],
+  )
 
   useEffect(() => {
-    loadInstitutions()
     try {
       localStorage.removeItem('gocardless_public_url')
     } catch {
+      // Privater Modus ohne localStorage: Aufraeumen ist dann gegenstandslos.
     }
-  }, [loadInstitutions])
+  }, [])
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
@@ -139,31 +86,26 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   const handleConnect = async () => {
 
     if (!selectedInstitution) {
-      setError(t('goCardlessConnect.selectBankPlease'))
+      setConnectError(t('goCardlessConnect.selectBankPlease'))
       return
     }
 
     try {
       setConnecting(true)
-      setError(null)
+      setConnectError(null)
 
       const redirectOrigin = getRedirectOrigin()
 
       if (!redirectOrigin.startsWith('https://') && !selectedInstitution.id.includes('SANDBOX')) {
-        setError(t('goCardlessConnect.httpRedirectError'))
+        setConnectError(t('goCardlessConnect.httpRedirectError'))
         setConnecting(false)
         return
       }
 
       const redirectUrl = `${redirectOrigin}/ausgabentracker/return`
-      
-      const rq = await gocardlessService.createRequisition(
 
-        selectedInstitution.id,
-        redirectUrl
-      )
+      const rq = await institutionsModel.createRequisition(selectedInstitution.id, redirectUrl)
 
-      console.log('[gocardless-connect] Requisition created')
       setRequisition(rq)
       setShowAuthDialog(true)
 
@@ -174,9 +116,9 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       console.error('[gocardless-connect] Connection failed:', { message: e.message })
 
       if (e.setup_required) {
-        setError('API_SETUP_REQUIRED')
+        setConnectError(API_SETUP_REQUIRED)
       } else {
-        setError(`Verbindungsfehler: ${e.message}`)
+        setConnectError(`Verbindungsfehler: ${e.message}`)
       }
     } finally {
       setConnecting(false)
@@ -184,12 +126,10 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   }
 
   const handleRetry = () => {
-    setInstitutions([])
-    setFilteredInstitutions([])
     setSearchQuery('')
     setSelectedInstitution(null)
-    setError(null)
-    loadInstitutions()
+    setConnectError(null)
+    institutionsModel.reload()
   }
 
   useEffect(() => {
@@ -203,17 +143,17 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
   const copyLink = async (link: string) => {
     try {
       await navigator.clipboard.writeText(link)
-      setError(null)
+      setConnectError(null)
       alert(t('goCardlessConnect.linkCopied'))
     } catch {
-      setError(t('goCardlessConnect.copyError'))
+      setConnectError(t('goCardlessConnect.copyError'))
     }
   }
 
   // Auth-Links kommen aus der API-Antwort → vor Redirect validieren (safe-url)
   const openAuthInThisTab = (link: string) => {
     if (!isSafeExternalAuthUrl(link, { allowedOrigins: [window.location.origin] })) {
-      setError(t('goCardlessConnect.unsafeAuthLink'))
+      setConnectError(t('goCardlessConnect.unsafeAuthLink'))
       return
     }
     setShowAuthDialog(false)
@@ -222,7 +162,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
 
   const openAuthInNewTab = (link: string) => {
     if (!isSafeExternalAuthUrl(link, { allowedOrigins: [window.location.origin] })) {
-      setError(t('goCardlessConnect.unsafeAuthLink'))
+      setConnectError(t('goCardlessConnect.unsafeAuthLink'))
       return
     }
     window.open(link, '_blank', 'noopener')
@@ -239,7 +179,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
           {t('goCardlessConnect.description')}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {showAuthDialog && requisition && (
           <div className="p-4 bg-muted/40 border rounded-md space-y-3">
@@ -274,7 +214,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
           </div>
         )}
 
-        {error === 'API_SETUP_REQUIRED' ? (
+        {error === API_SETUP_REQUIRED ? (
           <Alert variant="destructive" className="border-warning/50 bg-warning/10">
             <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription className="space-y-2">
@@ -327,7 +267,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
             </div>
 
             {showDropdown && filteredInstitutions.length > 0 && (
-              <div 
+              <div
                 className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-80 overflow-auto"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -357,7 +297,7 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
                     </div>
                   </button>
                 ))}
-                {filteredInstitutions.length === 20 && (
+                {filteredInstitutions.length === INSTITUTION_RESULT_LIMIT && (
                   <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">
                     {t('goCardlessConnect.moreResultsAvailable')}
                   </div>
