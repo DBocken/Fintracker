@@ -2,7 +2,7 @@ import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import { Search } from "lucide-react"
 
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 const Command = React.forwardRef<
@@ -20,13 +20,34 @@ const Command = React.forwardRef<
 ))
 Command.displayName = CommandPrimitive.displayName
 
-const CommandDialog = ({
-  children,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof Dialog>) => {
+type CommandDialogProps = React.ComponentPropsWithoutRef<typeof Dialog> & {
+  /**
+   * Zugänglicher Name des Dialogs. Pflicht und ohne Vorgabewert: Radix
+   * verlangt in jedem `DialogContent` einen `DialogTitle`, sonst heißt der
+   * Dialog mit Screenreader nur „Dialog". Ein Vorgabewert HIER wäre genau der
+   * Fehler, den WP 6.9 eine Ebene tiefer beseitigt hat — ein erfundener Text
+   * aus dem Baustein, der an jeder Aufrufstelle behauptet, was nur die
+   * Aufrufstelle weiß. Deshalb kommt der Name (übersetzt) von dort.
+   */
+  title: string
+}
+
+/**
+ * Der Titel steht `sr-only`: Die Palette hat mit ihrem Suchfeld bereits einen
+ * visuellen Anker, eine zusätzliche sichtbare Überschrift würde die Optik
+ * verändern, ohne für sehende Nutzer etwas zu klären. Bauform wie in
+ * `OnboardingDialog` (`<DialogTitle className="sr-only">`) statt Radix'
+ * `VisuallyHidden`: das Paket ist hier nur transitiv vorhanden, ein direkter
+ * Import wäre eine Phantom-Abhängigkeit.
+ *
+ * `sr-only` ist `position: absolute` und nimmt deshalb keine Zeile im
+ * `grid`-Layout des `DialogContent` ein — das Bild bleibt unverändert.
+ */
+const CommandDialog = ({ children, title, ...props }: CommandDialogProps) => {
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         {children}
       </DialogContent>
     </Dialog>
