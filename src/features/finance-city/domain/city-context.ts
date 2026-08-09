@@ -14,7 +14,7 @@
 
 import type { CityLevel } from './city-layout';
 import type { CityBooking, CityModel } from './city-model';
-import { sumMinor, toMinor, toMajor } from '@/lib/money';
+import { sumMinor, toMinor, toMajor, type Cents } from '@/lib/money';
 
 export type CityContextSummary =
   /** Stadt-Ebene: die Gesamtausgabe aller Distrikte (Bezugsgröße aller %-Werte in den Labels). */
@@ -24,7 +24,7 @@ export type CityContextSummary =
   /** Etagen-/Einzelansicht: Name, Unterkategorie-Betrag, Anzahl Verträge (0 = keine Etagen), Anteil an der Gesamtausgabe. */
   | { kind: 'subcategory'; label: string; amount: number; contractCount: number; share?: number };
 
-function cityTotalMinor(model: CityModel): number {
+function cityTotalMinor(model: CityModel): Cents {
   return sumMinor(model.districts.map((d) => toMinor(d.total)));
 }
 
@@ -82,6 +82,6 @@ export function selectCityContext(
  */
 export function computeLatestPriceIncrease(bookings: CityBooking[] | undefined): number | null {
   if (!bookings || bookings.length < 2) return null;
-  const diffMinor = toMinor(bookings[0].amount) - toMinor(bookings[1].amount);
+  const diffMinor = (toMinor(bookings[0].amount) - toMinor(bookings[1].amount)) as Cents;
   return diffMinor > 0 ? toMajor(diffMinor) : null;
 }

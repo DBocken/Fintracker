@@ -1,7 +1,7 @@
 import { parseISO, getDay, format } from "date-fns";
 import type { Account, Ausgabenklasse, Category, Transaction, TransactionAllocation } from "@/types";
 import { t as translate } from "@/i18n/serviceT";
-import { toMinor, toMajor, sumMinor } from "@/lib/money";
+import { toMinor, toMajor, sumMinor, type Cents } from "@/lib/money";
 
 /**
  * Transferbereinigte Einnahmen-/Ausgabensummen — eine Quelle der Wahrheit für
@@ -97,15 +97,15 @@ export function sumCategoryFlow(
   allocationsByTx: Map<string, TransactionAllocation[]> | undefined,
   matches: (assignedId: string | null) => boolean,
 ): { income: number; expenses: number } {
-  const incomeParts: number[] = [];
-  const expenseParts: number[] = [];
+  const incomeParts: Cents[] = [];
+  const expenseParts: Cents[] = [];
   for (const t of transactions) {
     if (t.is_transfer) continue;
     for (const contribution of getCategoryContributions(t, allocationsByTx)) {
       if (!matches(contribution.assignedId)) continue;
       const minor = toMinor(contribution.amount);
       if (minor > 0) incomeParts.push(minor);
-      else if (minor < 0) expenseParts.push(-minor);
+      else if (minor < 0) expenseParts.push((-minor) as Cents);
     }
   }
   return { income: toMajor(sumMinor(incomeParts)), expenses: toMajor(sumMinor(expenseParts)) };

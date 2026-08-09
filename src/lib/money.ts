@@ -10,21 +10,39 @@
 
 import { t } from "@/i18n/serviceT";
 
+/**
+ * Branded Types für Geld (WP 5.1, DOM-1): Cent und Euro sind für den
+ * Compiler ohne Brand identisch (`number`) — eine Faktor-100-Verwechslung
+ * kompiliert widerspruchslos. Der Brand existiert NUR zur Compile-Zeit
+ * (Intersection mit einem nie befüllten Phantom-Feld); zur Laufzeit ist ein
+ * `Cents`/`EuroAmount`-Wert ein ganz normaler `number`, `JSON.stringify`,
+ * Vergleiche (`===`, `toBe`) etc. verhalten sich unverändert.
+ *
+ * `toMinor`/`toMajor` sind die EINZIGEN Konstruktoren. Persistierte Daten
+ * und zod-Schemata liefern an der Datengrenze rohen `number` — der Brand
+ * wird dort bewusst NICHT erzwungen (siehe `parseAtBoundary`-Schemata), weil
+ * das Persistenzformat von `Transaction.amount` laut ADR Euro-Float bleibt
+ * (docs/domain-invariants.md Invariante 5) und ein Pflicht-Cast an jeder
+ * Lesestelle den Brand zur Dekoration machen würde.
+ */
+export type Cents = number & { readonly __brand: "Cents" };
+export type EuroAmount = number & { readonly __brand: "EuroAmount" };
+
 /** Float-Euro -> Integer-Cent. Vorzeichen bleibt erhalten. */
-export function toMinor(amount: number): number {
+export function toMinor(amount: number): Cents {
   // Math.round behandelt die übliche Float-Drift bei 2-Dezimal-Euro-Beträgen
   // korrekt (z. B. 19.99*100 = 1998.9999… -> 1999, 0.1+0.2 -> 30).
-  return Math.round(amount * 100);
+  return Math.round(amount * 100) as Cents;
 }
 
 /** Integer-Cent -> Float-Euro (nur für Anzeige/Export). */
-export function toMajor(minor: number): number {
-  return minor / 100;
+export function toMajor(minor: Cents): EuroAmount {
+  return (minor / 100) as EuroAmount;
 }
 
 /** Summe einer Cent-Liste (Integer). */
-export function sumMinor(values: number[]): number {
-  return values.reduce((acc, v) => acc + v, 0);
+export function sumMinor(values: Cents[]): Cents {
+  return values.reduce((acc: number, v) => acc + v, 0) as Cents;
 }
 
 /**

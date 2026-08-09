@@ -96,7 +96,19 @@ export type AllocationSource = 'manual' | 'receipt' | 'trackerverse';
 export interface TransactionAllocation {
   id: string;
   transaction_id: string;
-  /** Teilbetrag in Cent (Integer). */
+  /**
+   * Teilbetrag in Cent (Integer). WP 5.1 (DOM-1) hat geprüft, ob dieses Feld
+   * auf `Cents` (`@/lib/money`) gebrandet werden kann: Es kompiliert, bricht
+   * aber `tsc --noEmit` in 3 Testdateien (23 Fundstellen — rohe
+   * `amount_minor: <Zahl>`-Objektliterale in
+   * `services/__tests__/transaction-allocation-service.test.ts`,
+   * `lib/__tests__/analysis-data.test.ts`,
+   * `features/shared/domain/__tests__/dashboard-filtering.test.ts`), die laut
+   * WP-5.1-Vorgabe (docs/qualitaet-2026-08/plan.md) nicht angepasst werden
+   * dürfen, um grün zu werden. Deshalb bewusst UNGEBRANDET gelassen —
+   * Umstellung ist ein eigener Folgeschritt mit expliziter Test-Migration,
+   * kein Nebeneffekt von WP 5.1.
+   */
   amount_minor: number;
   category_id: string | null;
   subcategory_id?: string | null;

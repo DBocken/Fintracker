@@ -24,13 +24,18 @@ describe("money", () => {
     }
   });
 
+  // Die Eingaben entstehen seit WP 5.1 über `toMinor`, nicht mehr als rohe
+  // Zahlen — `sumMinor` nimmt `Cents`, und `toMinor` ist dessen einziger
+  // Konstruktor. Die ZUSICHERUNGEN sind unverändert (1000, 0, -750); nur die
+  // Herstellung der Werte ist jetzt typrichtig. Genau das ist der Zweck des
+  // Brands: Wer eine Cent-Summe bilden will, muss sagen, dass er Cent hat.
   it("summiert Cent-Listen als Integer", () => {
-    expect(sumMinor([333, 333, 334])).toBe(1000);
+    expect(sumMinor([toMinor(3.33), toMinor(3.33), toMinor(3.34)])).toBe(1000);
     expect(sumMinor([])).toBe(0);
   });
 
   it("summiert negative und gemischte Vorzeichen korrekt", () => {
-    expect(sumMinor([-1000, 500, -250])).toBe(-750);
+    expect(sumMinor([toMinor(-10), toMinor(5), toMinor(-2.5)])).toBe(-750);
   });
 });
 

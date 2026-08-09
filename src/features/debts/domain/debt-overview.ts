@@ -8,7 +8,7 @@
  */
 import type { Debt } from "@/types";
 import type { DebtTransactionAssignment } from "@/lib/debt-types";
-import { parseGermanNumber, sumMinor, toMajor, toMinor } from "@/lib/money";
+import { parseGermanNumber, sumMinor, toMajor, toMinor, type Cents } from "@/lib/money";
 
 /** Ein Posten der Aufschlüsselung „woher kommen die Schulden". */
 export interface DebtCause {
@@ -47,10 +47,10 @@ export function summarizeDebtCauses(debts: Debt[], labels: Record<string, string
   const totalMinor = sumMinor(active.map((debt) => toMinor(debt.balance)));
   if (totalMinor <= 0) return [];
 
-  const byLabelMinor = new Map<string, number>();
+  const byLabelMinor = new Map<string, Cents>();
   for (const debt of active) {
     const label = debt.is_bnpl ? debt.provider || labels.installment : labels[debt.type];
-    byLabelMinor.set(label, (byLabelMinor.get(label) ?? 0) + toMinor(debt.balance));
+    byLabelMinor.set(label, ((byLabelMinor.get(label) ?? 0) + toMinor(debt.balance)) as Cents);
   }
 
   return [...byLabelMinor.entries()]
