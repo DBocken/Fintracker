@@ -39,6 +39,14 @@ export default function MobileNav() {
         // eingeklappten Browser-Leisten); blendet der Browser unten seine Leiste
         // ein, rutscht das Panel-Ende dahinter. dvh folgt der sichtbaren Höhe.
         className="max-h-[100dvh] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+        // Bewusst ohne Beschreibung (WP 6.9-Muster): Der Inhalt IST die
+        // Navigation — der Titel „Navigation" und die Liste der Ziele sagen
+        // vollständig, was hier zu tun ist. Ein zusätzlicher Satz („Wähle einen
+        // Bereich") wäre erfundener Fülltext, den ein Screenreader vor der
+        // Liste vorliest, ohne etwas hinzuzufügen. `undefined` statt gar nichts,
+        // weil Radix sonst bei jedem Öffnen warnt und damit das Signal
+        // stumpf macht, auf das sich WP 6.9 stützt.
+        aria-describedby={undefined}
       >
         <SheetHeader className="border-b border-sidebar-border px-4 py-3">
           <SheetTitle className="text-sidebar-foreground">{t("shell.navigation")}</SheetTitle>

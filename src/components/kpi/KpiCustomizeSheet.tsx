@@ -20,7 +20,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -191,6 +191,15 @@ export function KpiCustomizeSheet({
       <SheetContent {...dyadProps("KpiCustomizeSheet")} className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{t('kpi.sheetTitle')}</SheetTitle>
+          {/*
+            Hier eine ECHTE Beschreibung statt eines Opt-outs: „Dashboard
+            anpassen" sagt nicht, WAS angepasst wird. Der Satz benennt beide
+            Handlungen, die dieses Sheet anbietet (auswählen und sortieren) —
+            das ist die Auskunft, die ein Screenreader vor der Liste braucht,
+            und sie hilft sehend genauso. Der Hinweiskasten darunter nennt
+            dagegen nur die Obergrenzen, beschreibt also die Fläche nicht.
+          */}
+          <SheetDescription>{t('kpi.sheetDescription')}</SheetDescription>
         </SheetHeader>
 
         <div className="mt-4">
