@@ -404,7 +404,7 @@ Abbaudatum im Kommentar.
 **Akzeptanz:** `check:layers` grün · kein Import zeigt mehr auf die alte
 Sammeldatei außer über die Übergangs-Re-Exports.
 
-### - [ ] WP 5.2b · Branded IDs auf die realen Felder anwenden (DOM-3, Rest) · S
+### - [x] WP 5.2b · Branded IDs auf die realen Felder anwenden (DOM-3, Rest) · S — `42f4617`
 **Abhängigkeit:** WP 5.2 (`src/lib/ids.ts` existiert, ist aber auf kein Feld
 angewendet).
 **Warum getrennt:** Gemessen in WP 5.2 — `Transaction.id` allein ergibt **447

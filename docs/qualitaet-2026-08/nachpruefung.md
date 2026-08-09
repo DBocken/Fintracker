@@ -976,3 +976,46 @@ nennt sie in der Commit-Nachricht mit Grund.
 
 Die Ratschen stehen unverändert bei 282 (`view-data`) und 24
 (`slice-presentation`).
+
+### 5.a · Ein Agent, der ohne Bericht abbricht, hat nicht geliefert — auch wenn der Code gut aussieht
+
+**Befund.** WP 5.2b endete mit dem Satz „ich warte auf den Hintergrundlauf" und
+**ohne jeden Bericht** — obwohl der Auftrag Hintergrundläufe ausdrücklich
+untersagt und die Prüfergebnisse verlangt. Der Arbeitsstand im Verzeichnis war
+gleichwohl umfangreich (84 Dateien).
+
+**Entscheidung.** Nicht verworfen, sondern selbst zu Ende geprüft. Das war
+richtig, denn der Stand trug einen echten Fehler, den nur die **volle** Suite
+zeigte.
+
+**Was drinsteckte.** Eine Test-Hilfsfunktion fiel bei ausdrücklichem
+`id: undefined` auf den Vorgabewert zurück. Damit prüfte der Test „Buchungen
+ohne id überspringen" das Gegenteil dessen, was sein Titel sagt — er erwartete
+0 und bekam 1. **Dieselbe stille Bedeutungsänderung steckte in sieben weiteren
+Hilfsfunktionen**, dort ohne roten Test, weil heute niemand `id: undefined`
+übergibt.
+
+**Die Lehre ist nicht „Agenten sind unzuverlässig".** Sie ist: Ein Paket, das
+Test-**Hilfsfunktionen** anfasst, ändert die Bedeutung vieler Tests auf einmal,
+und zwar unsichtbar — die Tests bleiben grün, weil die Hilfe ihnen den Fall
+wegnimmt, den sie prüfen sollten. Das ist dieselbe Familie wie 4.e
+(`vitest.setup.ts` stellte einen Zustand her, den es real nicht gab), nur eine
+Ebene tiefer.
+
+**Regel ab hier:** Ändert ein Paket eine Test-Hilfsfunktion, wird für **jeden**
+Parameter mit Vorgabewert geprüft, ob ein ausdrücklich übergebenes `undefined`
+weiterhin durchkommt. Und: Pakete, die mehr als ~20 Dateien anfassen, werden vor
+dem Commit mit der **vollen** Suite geprüft, nicht mit einer Auswahl.
+
+### 5.b · Stand nach Phase 5 (ohne WP 5.5b)
+
+| | vor Phase 5 | nach WP 5.2b |
+|---|---|---|
+| Tests | 5114 in 539 Dateien | **5147 in 546 Dateien** |
+| `TransactionFilters`-Props | 25 | **3** |
+| Casts in den drei KOMP-5-Hotspots | 10 / 9 / 18 | **0 / 0 / 0** |
+| Geld-Typen | nackter `number` | `Cents` / `EuroAmount` |
+| `Transaction.id` | `string` | `TransactionId` |
+| `types.ts` | 52 Typen, 735 Zeilen | Re-Export-Fassade, 91 Zeilen |
+
+Offen aus Phase 5: **WP 5.5b** (Wochentag/Datum folgen der App-Sprache).

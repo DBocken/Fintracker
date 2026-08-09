@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 5.2b · Branded IDs auf die realen Felder (DOM-3, Rest) |
+| **Paket** | WP 5.5b · Wochentag/Datum folgen der App-Sprache |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -156,7 +156,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 21 | 4.5 | i18n-Bundle je Locale splitten (PERF-3) | **fertig** | `71f3cdf` |
 | 22 | 5.1 | Branded Types für Geld (DOM-1) | **fertig** | `cc9783e` |
 | 23 | 5.2 | `types.ts` aufteilen (DOM-3) | **fertig** | `3cca9d5` |
-| 23a | **5.2b** | Branded IDs auf die realen Felder (DOM-3, Rest) | offen | |
+| 23a | **5.2b** | Branded IDs auf die realen Felder (DOM-3, Rest) | **fertig** | `42f4617` |
 | 24 | 5.3 | `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) | **fertig** | `b43c2c9` |
 | 25 | 5.4 | `TransactionFilters` aufs ViewModel (KOMP-2) | offen | |
 | 26 | 5.5 | Tagesgruppierung konsolidieren (KOMP-3) | **fertig** | `b1dd8e6` |
