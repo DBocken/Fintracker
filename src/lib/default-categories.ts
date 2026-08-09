@@ -10,5 +10,10 @@ import { buildDefaultCategories } from "../data/merchant-keywords";
  *
  * IDs sind stabil (`local-cat-<slug>`), damit Transaktionen ihre Zuordnung
  * über Sessions behalten.
+ *
+ * Lag bis WP 6.6 unter `src/services/` — es ist aber reine Fachdatenherkunft
+ * ohne I/O, und `src/lib/category-migrations.ts` braucht sie von unten
+ * (AGENTS.md §3, „Wohin ein Typ gehört"). Ein Service, der sie speichert,
+ * besitzt sie nicht.
  */
 export const DEFAULT_LOCAL_CATEGORIES = buildDefaultCategories();

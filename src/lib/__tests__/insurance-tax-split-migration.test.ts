@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateInsuranceTaxSplit } from '../local-settings-service';
+import { migrateInsuranceTaxSplit } from '../category-migrations';
 import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
 import type { Category } from '../../types';
 

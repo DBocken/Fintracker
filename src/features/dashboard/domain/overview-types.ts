@@ -1,4 +1,4 @@
-import type { SpendingSunburst, SunburstTree } from '@/lib/analysis-data';
+import type { SpendingSunburst, SunburstTree } from '@/lib/chart-data/sunburst';
 
 // Kanonische Quelle: src/features/shared/domain/balance-calculations.ts (≥2 Slices benötigen diesen Typ).
 export type { EffectiveBalance } from '@/features/shared/domain/balance-calculations';

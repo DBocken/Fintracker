@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Category } from '@/types';
-import { migrateParentIds } from '../local-settings-service';
+import { migrateParentIds } from '../category-migrations';
 
 /**
  * Testet die parent_id-Migration für Kategorien, die vor der Hierarchie-

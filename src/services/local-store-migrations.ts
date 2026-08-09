@@ -33,8 +33,10 @@ import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
  * Schritte aussteht — sind keine definiert (heutiger Stand), bleibt sie beim
  * bisherigen harmlosen Verhalten (Version direkt festschreiben, nichts zu tun).
  *
- * **Die bestehenden Lazy-Feld-Migrationen** in `local-settings-service.ts`
- * (`migrateParentIds`, `backfillAusgabenklasse`, …) bleiben unberührt — sie
+ * **Die bestehenden Lazy-Feld-Migrationen** in `lib/category-migrations.ts`
+ * (`migrateParentIds`, `backfillAusgabenklasse`, …; bis WP 6.6 in
+ * `local-settings-service.ts`, das sie weiterhin beim Lesen aufruft) bleiben
+ * unberührt — sie
  * hängen an keinem Versionszähler und laufen weiter bei jedem Lesen. Nur NEUE
  * *strukturelle* Migrationen (die die Form einer ganzen Collection ändern)
  * gehen künftig über diesen Läufer.

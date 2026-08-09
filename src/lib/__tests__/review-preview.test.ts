@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { buildAutoCategoryPreview } from '../review-preview';
 import { applyAutoCategorization } from '@/services/transaction-service';
 import { transactionStorage } from '@/services/transaction-storage-service';
-import { DEFAULT_LOCAL_CATEGORIES } from '@/services/default-categories';
+import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
 import type { Category, Transaction } from '@/types';
 import type { MerchantRule } from '@/lib/categorization';
 import { asTransactionId } from '@/lib/ids';

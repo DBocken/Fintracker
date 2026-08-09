@@ -28,7 +28,7 @@
       "count": 1,
       "reason": "Beispieldatensatz. Steht an der Stelle echter Nutzerdaten, die der Nutzer selbst benennt."
     },
-    "src/services/local-settings-service.ts": {
+    "src/lib/category-migrations.ts": {
       "count": 3,
       "reason": "Saat-Kategorien und der historische Namensabgleich, der im Modulkopf ausdruecklich als Altfall kommentiert ist. Die Namen stehen in bestehenden Nutzerdatenbanken; eine Uebersetzung wuerde den Abgleich brechen."
     },
@@ -65,7 +65,8 @@
       "reason": "Notfassung hinter `this.props.t?.(…) ||`. Die ErrorBoundary muss auch dann noch etwas sagen koennen, wenn der i18n-Kontext selbst der Grund fuer den Fehler ist."
     },
 
-    "src/lib/analysis-data.ts": 2,
+    "src/lib/chart-data/sankey.ts": 1,
+    "src/lib/chart-data/sunburst.ts": 1,
     "src/lib/automation-suggestion-model.ts": 2,
     "src/lib/feedback.ts": 1,
     "src/lib/finrisk/stress-capacity.ts": 1,

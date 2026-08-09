@@ -1,6 +1,6 @@
 import type { useTransactionDetailEditing } from '@/hooks/useTransactionDetailEditing';
 import type { Account, Category, Transaction } from '@/types';
-import type { SankeyData } from '@/lib/analysis-data';
+import type { SankeyData } from '@/lib/chart-data/sankey';
 import type {
   ContractFilter,
   DashboardGranularity,

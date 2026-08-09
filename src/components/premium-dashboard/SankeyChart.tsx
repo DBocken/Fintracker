@@ -19,7 +19,7 @@ import {
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/features/shared/domain/dashboard-filtering";
-import type { SankeyData } from "@/lib/analysis-data";
+import type { SankeyData } from "@/lib/chart-data/sankey";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
 import { chartNumber, chartTooltipProps } from '@/lib/chart-tooltip';

@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test-utils/render';
-import type { SankeyData } from '@/lib/analysis-data';
+import type { SankeyData } from '@/lib/chart-data/sankey';
 import { SankeyChart } from '../SankeyChart';
 
 // Recharts' ResponsiveContainer und der Radix-Slider brauchen ResizeObserver,

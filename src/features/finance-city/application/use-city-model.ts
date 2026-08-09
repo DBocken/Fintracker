@@ -21,7 +21,7 @@ import { useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { evaluateMilestones } from '@/services/milestones-service';
-import { buildSunburstTree } from '@/lib/analysis-data';
+import { buildSunburstTree } from '@/lib/chart-data/sunburst';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
 import { useAllocationMap } from '@/hooks/useAllocationMap';

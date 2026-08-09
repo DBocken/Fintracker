@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSpendingSunburst } from '@/lib/analysis-data';
+import { buildSpendingSunburst } from '@/lib/chart-data/sunburst';
 import type { Transaction, Category } from '@/types';
 import { asTransactionId } from '@/lib/ids';
 

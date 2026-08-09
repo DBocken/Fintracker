@@ -15,7 +15,8 @@ import { SankeyChart } from "./SankeyChart";
 import { WeeklyPatternCharts } from "./WeeklyPatternCharts";
 import { KpiSection } from "@/components/kpi/KpiSection";
 import { dyadProps } from "@/lib/dyad";
-import { buildSankeyData, buildWeekdayPattern } from "@/lib/analysis-data";
+import { buildSankeyData } from "@/lib/chart-data/sankey";
+import { buildWeekdayPattern } from "@/lib/chart-data/weekday-pattern";
 import { useI18n } from "@/i18n/useI18n";
 import { useAllocationMap } from "@/hooks/useAllocationMap";
 

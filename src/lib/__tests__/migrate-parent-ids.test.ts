@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Category } from "@/types";
-import { migrateParentIds } from "../local-settings-service";
+import { migrateParentIds } from "../category-migrations";
 
 /**
  * F-CAT: getLocalCategories schrieb die komplette verschlüsselte Kategorienliste

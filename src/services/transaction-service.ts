@@ -14,8 +14,8 @@ import {
   updateLocalCategory,
   getLocalUserSettings,
   updateLocalUserSettings,
-  backfillAusgabenklasse,
 } from './local-settings-service';
+import { backfillAusgabenklasse } from '@/lib/category-migrations';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
 import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';

@@ -10,7 +10,7 @@ import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState'
 import EmptyState from '@/features/shared/presentation/EmptyState';
 import { Button } from '@/components/ui/button';
 import { getTransactions, getCategories } from '@/services/transaction-service';
-import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/analysis-data';
+import { buildIncomeBreakdown, buildIncomeOverTime } from '@/lib/chart-data/income-breakdown';
 import { deriveIncomeStreams } from '@/lib/income-streams';
 import { pickWrappedYear } from '@/lib/income-wrapped';
 import { useTier } from '@/hooks/useTier';

@@ -5,7 +5,7 @@ import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { useI18n } from '@/i18n/useI18n';
 import { CHART_BRAND } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
-import type { SunburstNode, SunburstTree } from '@/lib/analysis-data';
+import type { SunburstNode, SunburstTree } from '@/lib/chart-data/sunburst';
 
 interface Props {
   tree: SunburstTree;

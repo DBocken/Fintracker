@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateCategoryPack2026 } from '../local-settings-service';
+import { migrateCategoryPack2026 } from '../category-migrations';
 import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
 import { explainCategorization } from '@/lib/categorization';
 import type { Category, Transaction } from '../../types';

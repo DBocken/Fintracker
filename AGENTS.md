@@ -288,7 +288,7 @@ damit klar ist, *warum* der jeweilige Wächter existiert.
 | **Halb übersetzte Zeile** | `<strong>Hinweis:</strong> {t('…')}` — der Wächter hielt die ganze ZEILE für übersetzt, sobald irgendwo darauf ein `t(` stand. Daneben stand der Rest der Aussage im Klartext | `pnpm check:i18n` (seit WP 6.8: `t()` deckt JSX-Text nie ab) |
 | **Erfundener Platzhalter** in einer Übersetzung | Steht wörtlich als `{foo}` auf dem Bildschirm. Umgekehrt darf eine Sprache einen Platzhalter weglassen — Russisch braucht kein `{plural}` | `locale-parity.test.ts` |
 | **Rohe Steuerbytes** im Quelltext | `grep` hält die Datei für binär und überspringt sie in jedem Audit | `pnpm security:secrets` |
-| Matching über den **Anzeigenamen** statt der ID | Bricht bei Umbenennung und in jeder anderen Sprache. Entitäten immer über die stabile ID adressieren | Review; die historischen Ausnahmen in `local-settings-service.ts` sind als solche kommentiert |
+| Matching über den **Anzeigenamen** statt der ID | Bricht bei Umbenennung und in jeder anderen Sprache. Entitäten immer über die stabile ID adressieren | Review; die historischen Ausnahmen in `lib/category-migrations.ts` (bis WP 6.6 `local-settings-service.ts`) sind als solche kommentiert |
 
 Zwei Arbeitsregeln dazu:
 

@@ -48,7 +48,8 @@ function resolveKey(key: string): unknown {
 }
 
 /**
- * `t('…')` und der Alias `translate('…')` (src/lib/analysis-data.ts importiert
+ * `t('…')` und der Alias `translate('…')` (src/lib/analysis-data.ts und die
+ * `lib/chart-data/`-Module importieren
  * `t as translate`). Nur Literal-Keys — dynamisch gebaute werden separat gezählt.
  */
 const LITERAL_CALL = /(?<![\w.])(?:t|translate)\(\s*['"]([a-zA-Z0-9_.]+)['"]/g;

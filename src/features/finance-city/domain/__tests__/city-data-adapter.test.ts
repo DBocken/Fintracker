@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildCityModelFromData } from '../city-data-adapter';
-import type { SunburstNode, SunburstTree } from '@/lib/analysis-data';
+import type { SunburstNode, SunburstTree } from '@/lib/chart-data/sunburst';
 import type { Category } from '@/types';
 import type { CityContract } from '../city-model';
 

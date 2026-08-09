@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { applyAutoCategorization, recategorizeTransactions, saveTransactions, getTransactions } from '../transaction-service';
 import { explainCategorization, MIN_SILENT_ASSIGN_CONFIDENCE } from '@/lib/categorization';
 import { transactionStorage } from '../transaction-storage-service';
-import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
+import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
 import type { Transaction } from '../../types';
 import { asTransactionId } from '@/lib/ids';
 

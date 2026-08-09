@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateEssentialHealthClasses } from '../local-settings-service';
+import { migrateEssentialHealthClasses } from '../category-migrations';
 import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
 import type { Category } from '../../types';
 

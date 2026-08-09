@@ -7,7 +7,7 @@
 // wird – plattformübergreifend – korrigiert (er unterschlug bisher direkt auf
 // der Hauptkategorie gebuchte Beträge ohne Unterkategorie).
 
-import type { SankeyData } from "@/lib/analysis-data";
+import type { SankeyData } from "@/lib/chart-data/sankey";
 import { t } from "@/i18n/serviceT";
 
 export interface SankeyModelNode {

@@ -3,7 +3,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderWithI18n } from '@/test-utils/render';
 import { translations } from '@/i18n/translations';
 import { SpendingSunburstChart } from '../SpendingSunburstChart';
-import type { SunburstTree } from '@/lib/analysis-data';
+import type { SunburstTree } from '@/lib/chart-data/sunburst';
 
 // Reduzierte Bewegung erzwingen → Sweep ist sofort vollständig (sweep=1),
 // damit die Segmente synchron (ohne rAF-Warten) gerendert werden.
