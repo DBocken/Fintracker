@@ -347,7 +347,7 @@ nicht über den Index** (ADR-Abschnitt „Der Index bestimmt die Zählung, nicht
 die Menge"), mit Test: ein Chunk ohne Index-Eintrag darf beim Vollesen **nicht**
 fehlen.
 
-### - [ ] WP 4.2 · Query-Key-Invalidierungen verifizieren und präzisieren (PERF-2) · S
+### - [x] WP 4.2 · Query-Key-Invalidierungen verifizieren und präzisieren (PERF-2) · S — `08b77bb`
 **Ziel:** `['transactions']` wird nur invalidiert, wenn Buchungen sich ändern
 können.
 **Vorgehen:** Je Fundstelle (Liste in PERF-2) **erst verifizieren**: eine

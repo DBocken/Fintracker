@@ -860,3 +860,55 @@ gehabt, und die Ausnahmeliste hätte diesen Punkt zugedeckt.
 
 **Preis.** Keiner. Die Liste bleibt bei 36 begründeten Einträgen, das offene
 Backlog bei 17.
+
+### 4.e · Der Kernumbau hat den ersten Start zerlegt — und nur E2E konnte es sehen
+
+**Befund.** Nach WP 4.1c meldete CI sechs E2E-Fehlschläge mit einer Ursache:
+„Demo ansehen" navigierte nicht mehr, die URL blieb auf `/`. Die Unit-Suite war
+mit 5092 Tests grün. Der Fehler war **kein Testproblem**: Jeder neue Nutzer
+kam nicht mehr in die App.
+
+Zwei Ursachen, nacheinander gefunden:
+
+1. **Der Läufer warf auf jedem frischen Store.** WP 4.1c hob die Schemaversion
+   von 2 auf 3 und trug einen Schritt nach 3 ein. Ein frischer Store gilt als
+   Version 1; für Version 2 gab es nie einen Schritt, weil dieser Sprung älter
+   ist als der Läufer. Eine Lückenprüfung hielt das für einen Autorenfehler und
+   warf — mit dem Kommentar, das sei „kein Zustand, in den ein Nutzer geraten
+   kann". Es ist der Zustand, in dem *jeder* Nutzer anfängt.
+2. **Der Demo-Start war ein Rennen.** `readyForStoreMigration` verlangte
+   „angemeldet oder anonym gestartet"; auf dem Landing-Screen ist beides
+   falsch, der Läufer lief also gar nicht. „Demo ansehen" schreibt aber aus
+   seinem Klick-Handler — gegen ein `assertCompatibleStore()`, das wegen des
+   ausstehenden Schritts wirft.
+
+**Entscheidung.** (1) Lückenprüfung ersatzlos entfernt: Eine Version ohne
+Schritt ist der Normalfall. (2) Bedingung auf „Tresor offen" reduziert und die
+Warte-Sperre **vor** den Landing-Screen gezogen — aus einem Rennen wird eine
+Reihenfolge.
+
+**Begründung.** Der Fall, den die Lückenprüfung fangen wollte (Version
+angehoben, Schritt vergessen), sieht zur Laufzeit exakt gleich aus wie der
+legitime. Er gehört deshalb in einen Test der Schrittliste, nicht in einen
+Wurf, der den Nutzer trifft. Und eine Sperre *hinter* dem Screen bleibt ein
+Rennen: Ein Mensch gewinnt es selten, ein Test immer.
+
+**Preis.** Zwei Nachbesserungs-Commits nach einem Paket, das ich als fertig
+gemeldet hatte. Die Meldung „5092 Tests grün" war zutreffend und trotzdem
+irreführend — die Suite **kann** diesen Pfad nicht prüfen.
+
+**Die eigentliche Lehre, und sie ist unbequem:** `vitest.setup.ts` setzt den
+Schema-Marker bei jedem `localStorage.clear()` automatisch. Genau dieser
+Marker fehlt beim ersten echten Start. Die Testumgebung stellte also einen
+Zustand her, den es in der Wirklichkeit nie gibt, und machte den häufigsten
+aller Zustände — „frische Installation" — unsichtbar. Das ist die Fehlerklasse
+aus 4.c, nur andersherum: dort ging das Messgerät falsch, hier misst es einen
+Fall, den die Realität nicht kennt.
+
+Daraus zwei Regeln für den Rest:
+- **Ein Paket, das die Schemaversion anfasst oder am Start-/Migrationspfad
+  arbeitet, gilt erst nach grünem E2E als fertig** — nicht nach grüner
+  Unit-Suite.
+- Wo die Testumgebung einen Zustand *herstellt*, muss mindestens ein Test ihn
+  ausdrücklich wieder *entfernen*. `local-store-migrations.fresh-start.test.ts`
+  tut das jetzt.
