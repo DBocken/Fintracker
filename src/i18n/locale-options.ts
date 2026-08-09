@@ -1,4 +1,4 @@
-import { SUPPORTED_LOCALES, type Locale } from './translations';
+import { SUPPORTED_LOCALES, type Locale } from './locale';
 
 export interface LocaleOption {
   value: Locale;

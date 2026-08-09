@@ -4,10 +4,40 @@ import { afterEach } from "vitest"
 import { webcrypto } from "node:crypto"
 import { cleanup } from "@testing-library/react"
 import { LOCAL_STORE_SCHEMA_VERSION, LOCAL_STORE_SCHEMA_VERSION_KEY } from "./src/lib/store-compatibility"
+import { preloadLocale } from "./src/i18n/translation-registry"
 
 afterEach(() => {
   cleanup()
 })
+
+// i18n-Sprachbäume deterministisch vorladen (WP 4.5 / PERF-3).
+//
+// Produktionscode lädt `en`/`ru`/`tlh` seit der Bündel-Aufteilung nur noch
+// per `import()` bei Bedarf — nur `de` ist statisch gebunden (Startbündel-
+// Split, siehe `src/i18n/translation-registry.ts`). Der Testlauf soll trotzdem
+// GENAU DAS ALTE VERHALTEN sehen: alle Sprachen synchron verfügbar, egal
+// welcher Test zuerst `lookupTranslation('en', …)` o. Ä. aufruft. Ohne dieses
+// Vorladen würde ein Test, der zufällig der ERSTE Aufrufer einer Sprache in
+// seiner Datei ist, kurzzeitig den de-Fallback sehen (die Sprachdatei ist ja
+// noch unterwegs) — abhängig von Testreihenfolge, also flatterhaft.
+//
+// Das ist richtig für die MEHRHEIT der Suite: die allermeisten i18n-Tests
+// (Locale-Parität, Nav-/Dashboard-Abdeckung, Wording-Konsistenz, …) prüfen
+// INHALTLICHE Korrektheit über alle Sprachen hinweg — nicht das Ladeverhalten
+// selbst. Für die wäre eine vom Zufall der Aufrufreihenfolge abhängige
+// Assertion reine Störung, keine zusätzliche Prüfkraft.
+//
+// ACHTUNG, das hat einen Preis: dieses Vorladen macht das eigentlich NEUE
+// Verhalten dieses Pakets — das Fenster "Zielsprache noch nicht geladen ⇒
+// de-Fallback ⇒ Nachladen ⇒ Re-Render" — für JEDEN Test unsichtbar, der sich
+// nicht ausdrücklich dagegen wehrt. Genau diese Form von Blindheit hat schon
+// einmal zugeschlagen (Schema-Marker-Patch weiter unten in dieser Datei ließ
+// keinen Test den kaputten Erststart sehen). Deshalb gilt hier dieselbe
+// Regel: `src/i18n/__tests__/translation-lazy-loading.test.ts` ruft VOR jedem
+// eigenen Test `resetTranslationCacheForTests()` auf und hebt das Vorladen
+// für sich gezielt wieder auf — nur dort wird der Fallback- und Re-Render-Pfad
+// tatsächlich durchlaufen und geprüft.
+await Promise.all([preloadLocale("en"), preloadLocale("ru"), preloadLocale("tlh")])
 
 // jsdom kennt kein IndexedDB; fake-indexeddb stellt es global bereit (Issue #29).
 // Nach jedem Test den KV-Store leeren, damit Tests isoliert bleiben.

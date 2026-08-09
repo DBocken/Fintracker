@@ -1,10 +1,14 @@
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
-  translations,
-  type Locale,
-} from './translations';
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './locale';
+import { readLocaleOrFallback, subscribeLocaleVersion, getLocaleVersion } from './translation-registry';
 import {
   BASE_WORDING,
   WORDING_STORAGE_KEY,
@@ -58,9 +62,15 @@ function walkPath(root: unknown, key: string): unknown {
  * Liefert immer den Basistext (= Fachsprache). Signatur und Verhalten bleiben
  * bewusst unverändert: würde diese Funktion das Register mit auflösen, wechselten
  * `serviceT` und bestehende Tests still mit.
+ *
+ * WP 4.5 / PERF-3: `locale` ist evtl. noch nicht geladen (nur `de` ist
+ * statisch gebunden) — `readLocaleOrFallback` liefert dann synchron den
+ * deutschen Baum zurück und stößt das Nachladen im Hintergrund an. Sobald der
+ * Chunk eintrifft, sorgt `subscribeLocaleVersion` (siehe `I18nProvider`
+ * unten) für einen Re-Render, der hier automatisch den echten Baum liest.
  */
 export function lookupTranslation(locale: Locale, key: string): string | undefined {
-  const node = walkPath(translations[locale], key);
+  const node = walkPath(readLocaleOrFallback(locale), key);
   return typeof node === 'string' ? node : undefined;
 }
 
@@ -118,6 +128,15 @@ export function I18nProvider({
     }
   }, []);
 
+  // WP 4.5 / PERF-3: `en`/`ru`/`tlh` sind nur per `import()` verfügbar. Bis der
+  // Chunk der aktiven Sprache eintrifft, liefert `t()` den de-Fallback
+  // (`lookupTranslation`/`readLocaleOrFallback`). Dieses Abonnement erzwingt
+  // eine neue `value`-Referenz, SOBALD der Chunk da ist — sonst würde der
+  // Context-Value trotz neuer Übersetzungsdaten unverändert bleiben und
+  // Consumer würden nie neu rendern (React vergleicht Context-Konsum über die
+  // Referenz von `value`, nicht über ihren Inhalt).
+  const localeVersion = useSyncExternalStore(subscribeLocaleVersion, getLocaleVersion, getLocaleVersion);
+
   const t = useCallback(
     (key: string, fallback?: string): string => {
       return lookupWorded(locale, key, wording) ?? fallback ?? key;
@@ -125,10 +144,13 @@ export function I18nProvider({
     [locale, wording],
   );
 
-  const value = useMemo<I18nContextValue>(
-    () => ({ locale, setLocale, t, wording, setWording }),
-    [locale, setLocale, t, wording, setWording],
-  );
+  const value = useMemo<I18nContextValue>(() => {
+    // Siehe Kommentar bei `localeVersion` oben — bewusst referenziert, nicht
+    // weil der Wert selbst gebraucht wird, sondern um die Memoisierung bei
+    // jedem nachgeladenen Sprach-Chunk aufzubrechen.
+    void localeVersion;
+    return { locale, setLocale, t, wording, setWording };
+  }, [locale, setLocale, t, wording, setWording, localeVersion]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
