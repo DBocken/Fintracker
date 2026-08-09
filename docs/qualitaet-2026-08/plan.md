@@ -293,7 +293,7 @@ gegen echte Instanz nur als dokumentierter Folgepunkt, nicht Teil des Pakets.
 **Akzeptanz:** Eingeschleuste `USING (true)`-Policy macht den Test rot
 (im PR demonstrieren, dann entfernen).
 
-### - [ ] WP 3.5 · MCP-Klartext in der UI kennzeichnen (SEC-5) · H
+### - [x] WP 3.5 · MCP-Klartext in der UI kennzeichnen (SEC-5) · H — `77319fc`
 **Ziel:** Die Opt-in-Fläche selbst sagt, was `docs/mcp-poc.md` sagt.
 **Vorgehen:** Hinweis am Cloud-MCP-Opt-in: Aggregate liegen bei Supabase
 unverschlüsselt (RLS-geschützt), Umfang benennen. i18n-vollständig, bilingual

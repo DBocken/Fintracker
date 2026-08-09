@@ -674,3 +674,77 @@ mit je eigenem `await`; ein Tab-Wechsel dazwischen hätte sofort gesperrt und
 den Restore halb fertig abbrechen lassen. Die Lösung — laufende Schreibvorgänge
 zählen, den Lock aufschieben, und nur sperren, wenn der Tab *dann noch*
 verborgen ist — gäbe es ohne den Nachtrag nicht.
+
+### 3.b · Das Muster hinter vier von fünf Sicherheitsbefunden: der Mechanismus war da, nur fragte ihn niemand
+
+**Befund.** Phase 3 hat fünf Sicherheitsbefunde abgearbeitet. Bei **vier**
+davon lag der Fehler nicht in einem fehlenden Mechanismus, sondern in einem
+vorhandenen, den nichts abfragte:
+
+| WP | Der Mechanismus war da | Niemand fragte ihn |
+|---|---|---|
+| 3.1 | Der Envelope trägt seit jeher ein `kdf`-Feld mit Iterationszahl | Beim Entschlüsseln wurde es **nie gelesen** — die Versionierung war tot |
+| 3.2 | `lock()` existierte und funktionierte | Kein Timer, kein Listener rief es je auf |
+| 3.3 | `estimatePasswordStrength()` berechnete eine Bewertung | Der Setup-Button fragte sie **nicht** — sie war reine Anzeige |
+| 3.4 | Die RLS-Policies sind sämtlich korrekt eigentümer-beschränkt | Der Wächter **zählte** sie nur, statt sie zu lesen |
+
+Nur WP 3.5 (fehlender UI-Hinweis) ist eine echte Auslassung.
+
+**Entscheidung.** Kein neues Arbeitspaket, aber eine Prüffrage, die ab hier in
+jedem Sicherheits- und Wächter-Auftrag mitläuft: *Wird das Ergebnis dieser
+Berechnung irgendwo ausgewertet — oder wird es nur angezeigt?* Sie steht in
+den Aufträgen der Phase 4 ff. bereits drin.
+
+**Begründung.** Diese Fehlerklasse ist die unsichtbarste, die es gibt. Es gibt
+Code, er ist richtig, er ist getestet, er läuft — und er hat trotzdem keine
+Wirkung, weil sein Ergebnis im Nichts endet. Kein Compiler, kein Linter und
+keine Zeilenabdeckung schlägt hier an: `estimatePasswordStrength` war zu
+100 % abgedeckt. Ein Test, der prüft, *dass* eine Funktion rechnet, sagt nichts
+darüber, ob jemand auf das Ergebnis hört.
+
+Das ist dieselbe Familie wie der Befund, der `check:state-coverage` ausgelöst
+hat (Tests waren grün, und die Fläche behauptete trotzdem das Falsche) — und
+wie WP 2.1, wo drei Mutationen ohne Test waren, während die Zeilenabdeckung
+gut aussah. Die Lehre wiederholt sich: **Abdeckung misst Berührung, nicht
+Wirkung.**
+
+**Preis.** Eine zusätzliche Frage je Auftrag. Sie kostet nichts, wenn die
+Antwort „ja, wird ausgewertet" lautet — und genau dann ist sie am wenigsten
+verzichtbar, weil man sie sonst nicht gestellt hätte.
+
+### 3.c · Zwei Agenten parallel: billiger, aber die Zwischenstände lügen
+
+**Befund.** WP 3.3 und 3.4 liefen gleichzeitig, weil ihre Dateimengen disjunkt
+sind. Das hat funktioniert — aber der 3.4-Agent meldete in seinem Bericht acht
+`tsc`-Fehler, die er nicht verursacht hatte: es war der halbfertige Stand des
+3.3-Agenten in Dateien, die 3.4 ausdrücklich nicht anfassen durfte. Er hat das
+korrekt erkannt und zugeordnet, statt sie zu „reparieren".
+
+**Entscheidung.** Parallelisierung bleibt, aber nur bei **disjunkten
+Dateimengen**, und der Auftrag nennt die gesperrten Dateien des jeweils anderen
+namentlich. Die Wächterbatterie des Orchestrators läuft **nach beiden**
+Agenten, nie zwischendrin — nur sie sieht einen konsistenten Baum.
+
+**Begründung.** Der Zeitgewinn ist real (zwei Pakete in der Zeit von einem).
+Das Risiko ist nicht der Dateikonflikt — den verhindert die Disjunktheit —
+sondern die **Fehldiagnose**: Ein Agent, der einen fremden Zwischenstand für
+seinen eigenen Fehler hält, „repariert" ihn und macht daraus einen echten
+Konflikt. Dass es hier gut ging, lag daran, dass der Auftrag die fremden
+Dateien benannte.
+
+**Preis.** Kein Agent kann seinen eigenen Lauf vollständig grün belegen,
+solange der andere noch schreibt — die Verifikation verschiebt sich zwingend
+zum Orchestrator. Wer das nicht einkalkuliert, liest einen roten
+Zwischenstand als Paketfehler.
+
+### 3.d · Stand nach Phase 3
+
+| | vor Phase 3 | nach Phase 3 |
+|---|---|---|
+| Tests | 4986 in 523 Dateien | **5044 in 529 Dateien** |
+| `[SECURITY]`-Tests | 188 | **216** |
+| Zeilenabdeckung | 75,0 % | 75,1 % |
+| Bundle (gzip, alle) | 2188,5 kB | 2195,2 kB (Grenze 2379,0) |
+
+Die Ratschen stehen unverändert bei 282 (`view-data`) und 24
+(`slice-presentation`); Phase 3 hat keine Fläche angefasst, die sie bewegt.
