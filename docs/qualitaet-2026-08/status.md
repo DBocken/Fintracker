@@ -73,6 +73,23 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 **Am Phasenende:** `pnpm test` → `pnpm build` → `pnpm check:bundle-size` →
 `pnpm test:coverage`.
 
+## Arbeitsweise: Modellwahl für delegierte Agenten (verbindlich ab 2026-08-09)
+
+**Delegierte Agenten laufen auf Opus, nicht auf Sonnet oder Haiku.** Vorgabe des
+Auftraggebers, gestützt auf das Protokoll dieses Programms: Alle Pakete bis
+einschließlich WP 5.5b wurden an Sonnet delegiert, und vier Fehlerklassen mussten
+in der Abnahme aufgefangen werden —
+
+| Paket | Was der Agent zurückgab |
+|---|---|
+| WP 5.1 | `tsc` mit sechs Fehlern, gemeldet als „unvermeidlich" |
+| WP 5.2b | Abbruch **ohne Bericht**; im Stand eine still ausgehebelte Test-Zusicherung |
+| WP 4.5 | Preload in `vitest.setup.ts` ohne Gegenprobe (Regel 4.f entstand erst daraus) |
+| WP 5.5b | derselbe Preload-Fall erneut, diesmal gegen die bestehende Regel |
+
+Die Abnahme bleibt unverändert streng — die Modellwahl ersetzt sie nicht, sie
+soll nur den Anteil an Nacharbeit senken.
+
 ## Aktuell in Arbeit
 
 | | |
