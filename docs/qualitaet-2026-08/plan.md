@@ -334,7 +334,7 @@ fortgeschrieben · fehlender Chunk trotz Index-Eintrag **wirft** (RES-1-Regel),
 wird nicht zur Leerliste · Cache verwirft beim `lock()` genau den Bestand ·
 eine Einzeländerung verwirft **ein** Quartal, nicht die ganze Karte.
 
-### - [ ] WP 4.1c · Migration, Umschaltung und die drei Messungen (PERF-1) · S
+### - [x] WP 4.1c · Migration, Umschaltung und die drei Messungen (PERF-1) · S — `6858756`
 **Abhängigkeit:** 4.1b, WP 1.3 (Läufer).
 **Ziel:** v3-Blob → v4-Chunks als nummerierter Migrationsschritt, Fassade
 schaltet um, Aufrufer bleiben unberührt.

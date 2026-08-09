@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 4.1c · Migration, Umschaltung, drei Messungen (PERF-1) |
+| **Paket** | WP 4.2 · Query-Key-Invalidierungen präzisieren (PERF-2) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -149,7 +149,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 16 | 3.5 | MCP-Klartext in der UI kennzeichnen (SEC-5) | **fertig** | `77319fc` |
 | 17 | **4.1a** | ADR Chunk-Ablage + Baseline (PERF-1) | **fertig** | `edd7e6e` |
 | 17a | **4.1b** | Chunk-Speicherschicht + Index (PERF-1) | **fertig** | `877bf71` |
-| 17b | **4.1c** | Migration, Umschaltung, drei Messungen (PERF-1) | offen | |
+| 17b | **4.1c** | Migration, Umschaltung, drei Messungen (PERF-1) | **fertig** | `6858756` |
 | 18 | 4.2 | Query-Key-Invalidierungen präzisieren (PERF-2) | offen | |
 | 19 | 4.3 | `invalidateQueries()` ohne Key eliminieren (PERF-5) | offen | |
 | 20 | 4.4 | Chart-Daten memoisieren (PERF-4) | offen | |

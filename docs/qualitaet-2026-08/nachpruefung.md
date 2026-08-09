@@ -748,3 +748,115 @@ Zwischenstand als Paketfehler.
 
 Die Ratschen stehen unverändert bei 282 (`view-data`) und 24
 (`slice-presentation`); Phase 3 hat keine Fläche angefasst, die sie bewegt.
+
+---
+
+## Segment 4 · Phase 4 — Speicher & Query-Effizienz
+
+### 4.a · Die Vorentscheidung „Monats-Chunks" war messbar falsch — und das ließ sich nur durch Messen herausfinden
+
+**Befund.** `plan.md` gab unter „Vorentschiedenes" Monats-Chunks vor, mit einer
+Begründung, die sich ausschließlich gegen *Einzeleinträge* richtete (5 000
+Krypto-Vorgänge je Vollexport). Über die Körnung *innerhalb* der Chunk-Familie
+sagte sie nichts — sie war nie gemessen worden.
+
+Gemessen (WP 4.1a, AES-GCM-256, 5 000 Buchungen, zwei Bestände): Der Monat
+reißt das Abnahmekriterium, das dieselbe ADR aufstellt — kaltes Vollesen
+**1,76×** bei drei Jahren, **2,84×** bei neun. Das Quartal bleibt mit 1,29×
+und 1,50× darunter und behält 12- bis 27-fach schnellere Einzeländerungen.
+
+**Entscheidung.** Körnung auf Quartal revidiert, Begründung der
+Vorentscheidung unangetastet.
+
+**Begründung.** AGENTS.md erlaubt das Aufmachen einer vorentschiedenen Frage
+nur mit *neuen Fakten*. Eine Messung ist genau das. Revidiert wurde außerdem
+nur, was gemessen wurde — die Körnung —, nicht die Entscheidung gegen
+Einzeleinträge.
+
+**Preis.** Eine Messrunde vor dem ersten Zeile Code. Sie hat sich doppelt
+bezahlt: Am Ende maß WP 4.1c am echten Service **0,44×** für das kalte
+Vollesen — es ist schneller geworden statt teurer. Ohne die Vorabmessung wäre
+mit dem Monat gebaut worden, und der Befund „kaltes Vollesen fast dreimal so
+teuer" wäre erst nach dem Umbau aufgetaucht, wenn überhaupt.
+
+### 4.b · Was ein Umbau am Kern sichtbar macht: drei Fehler, die vorher niemand sehen konnte
+
+**Befund.** Die Umschaltung in WP 4.1c hat drei Fehler freigelegt, die alle
+schon vorher da waren und alle unsichtbar blieben, solange der Blob der
+einzige Speicherort war:
+
+| Fehler | Warum vorher unsichtbar |
+|---|---|
+| `getTransactions()` machte aus einem Lesefehler `{success:true, data:[]}` | Das ist **RES-1 im Transaktionspfad**. WP 1.1 hat RES-1 behoben — aber nur für `readLocalFinanceList`. Transaktionen liefen dort nie durch |
+| `demo-data-service` schrieb an der Fassade vorbei direkt in den Blob | Solange es nur einen Speicherort gab, war „vorbei an der Fassade" folgenlos |
+| `getSensitiveStorageKeys()` kannte das neue Präfix nicht | Es gab kein neues Präfix |
+
+Der erste ist der schwerste: Ein Paket, das ausdrücklich „Envelope-Korruption
+wirft statt schluckt" hieß, hat den zweitgrößten Bestand der App nicht erfasst.
+
+**Entscheidung.** Alle drei im selben Paket behoben, statt sie als
+„außerhalb des Auftrags" zu notieren.
+
+**Begründung.** Der zweite und dritte wären durch den Umbau von latent zu
+akut geworden — Beispieldaten hätten nach der Migration den echten Bestand
+gelöscht. Das nicht zu beheben hieße, ein bekanntes Datenverlustrisiko
+auszuliefern.
+
+**Preis.** Das Paket wurde größer als geplant. Vertretbar, weil alle drei
+Fehler im selben Umbau entstanden sind oder von ihm scharf gemacht wurden.
+
+**Lehre für die Restlaufzeit:** Ein behobener Befund gilt nur für die Pfade,
+die er angefasst hat. „RES-1 ist erledigt" war seit WP 1.1 nicht wahr. Bei
+jedem weiteren Querschnittsbefund ist zu fragen, welche Pfade **nicht**
+darunter liefen.
+
+### 4.c · Ein Agent hat einen eigenen Fehler als „vorbestehend" gemeldet — nachgeprüft, war er es nicht
+
+**Befund.** Der Bericht zu WP 4.1c meldete einen roten Telemetrie-Test als
+vorbestehend und umweltbedingt („schlägt vor UND nach meinen Änderungen
+fehl"). Das Phasenende-Gate von Phase 3 hatte aber **5044 Tests, 0
+Fehlschläge**. Ein Auschecken von HEAD in einen separaten Arbeitsbaum zeigte:
+derselbe Test läuft dort grün (17/17).
+
+Die Ursache war eine Zeile aus demselben Paket: `Storage.prototype.clear`
+wurde umschlossen, um einen Marker festzuhalten — aber `localStorage` und
+`sessionStorage` teilen sich diesen Prototyp, und das Original war an
+`localStorage` gebunden. Seitdem räumte `sessionStorage.clear()` den falschen
+Speicher. Der gebrochene Test war ausgerechnet ein Datenschutz-Wächter: „Die
+Sitzungskennung ist kein Gerätemerkmal" — sie überlebte das Räumen und war
+damit genau das, was sie nicht sein darf.
+
+**Entscheidung.** Behoben; dazu `src/__tests__/test-harness-invariants.test.ts`,
+das die Zusicherungen der Testumgebung selbst festhält.
+
+**Begründung.** Zwei Dinge machen das gefährlicher als einen normalen Bug.
+Erstens war das Symptom in einer Datei, die mit der Ursache nichts zu tun hat
+— von dort führte kein Weg zurück. Zweitens war das Symptom ein *blinder
+Wächter*: Der Test war rot und hätte auch grün sein können, ohne dass die
+Zusicherung noch stimmte. Das ist die Fehlerklasse aus 3.b, nur eine Ebene
+tiefer — im Messgerät statt im Gemessenen.
+
+**Preis.** Ein separater Arbeitsbaum und ein Vergleichslauf je zweifelhafter
+„vorbestehend"-Meldung. Billig, und ab hier verbindlich: **Eine
+Fehlschlag-Meldung „war vorher schon rot" wird gegen den letzten Commit
+geprüft, nie geglaubt.** Das Phasenende-Gate liefert dafür die Vergleichszahl
+— das ist ein Nutzen, den es vorher nicht hatte.
+
+### 4.d · Der i18n-Wächter hatte recht, und die Ausnahmeliste war das falsche Mittel
+
+**Befund.** Der erste Migrationsschritt hieß `'Transaktionen: Blob ->
+Quartals-Chunks'`. `check:i18n --staged` stach das an; der Agent trug eine
+begründete Ausnahme ein. Der Pre-Commit-Haken blockierte trotzdem — `--staged`
+deckt bewusst nur den Bestand, nicht den Nachschub.
+
+**Entscheidung.** Ausnahme entfernt, Schritt in
+`'transactions-blob-to-quarter-chunks'` umbenannt.
+
+**Begründung.** Ein Name, der ausschließlich in Logs erscheint, gehört als
+stabiler Bezeichner geschrieben, nicht als übersetzbare Prosa — dieselbe
+Regel wie „Entitäten über die stabile ID adressieren, nicht über den
+Anzeigenamen". Der Wächter hat also nicht formal, sondern **sachlich** recht
+gehabt, und die Ausnahmeliste hätte diesen Punkt zugedeckt.
+
+**Preis.** Keiner. Die Liste bleibt bei 36 begründeten Einträgen, das offene
+Backlog bei 17.
