@@ -483,10 +483,25 @@ Migration nach `features/dashboard/presentation/`; hebt die zwei
 Allowlist-Einträge aus WP 2.3 wieder auf. **Akzeptanz:**
 `layer-allowlist.json` ist wieder leer.
 
-### - [ ] WP 6.3 · `TradingDashboard` → `features/trading/presentation` (ARCH-5, KOMP-1) · S
+### - [x] WP 6.3 · `TradingDashboard` → `features/trading/presentation` (ARCH-5, KOMP-1) · S — `302b134`
 Aufspaltung entlang der Tabs (Portfolio/News/Discover); vervollständigt die
 Trading-Slice-Kette. ViewModel (`use-etoro-account`) bleibt unverändert — das
 ist der Beweis, dass die Trennung trägt.
+
+### - [ ] WP 6.3b · `ProviderSelector`: gespeicherten Favoriten wirklich lesen · S
+**Befund aus WP 6.3 (Bestandsfehler, nicht durch den Umzug entstanden):**
+`favoriteProvider` startet fest auf `'yahoo'` und liest den gespeicherten Wert
+nie, obwohl `useTradingPortfolio` ihn kennt — der Stern steht nach jedem Reload
+am falschen Anbieter. `[REGRESSION]`-Test Pflicht.
+
+### - [ ] WP 6.7 · `components/common/` → `features/shared/presentation/` · H
+**Befund aus WP 6.3:** Die Baustein-Spalte der Slice-Ratsche (`maxBausteine`,
+Stand 36) erreicht erst mit diesem Umzug die 0. Neun Bausteine, **~110
+betroffene Dateien** (in WP 6.3 gemessen — vorher neu zählen). EIN Umzug für
+die ganze App; danach ist `components/common/` leer und die Frage „Alt-
+Oberfläche oder gemeinsamer Baustein?" beantwortet sich über den Pfad.
+**Akzeptanz:** `maxBausteine` auf 0 · `check:layers` grün · keine Zusicherung
+in umziehenden Tests geändert.
 
 ### - [ ] WP 6.4 · `CityPage` entkernen (ARCH-5, KOMP-1) · S
 Interaktions-/Kamera-Logik nach `features/finance-city/application`;

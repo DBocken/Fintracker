@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.3 · TradingDashboard → features/trading (ARCH-3) |
+| **Paket** | WP 6.4 · CityPage entkernen (ARCH-5, KOMP-1) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
