@@ -8,7 +8,7 @@
  * (`contract-derivation.ts`, `forecast-data.ts`) dazu, entgegen der
  * Schichtrichtung nach oben zu importieren (AGENTS.md §3).
  */
-import type { Rhythmus } from "@/types";
+import type { Rhythmus } from "@/lib/transaction-types";
 
 export type Cycle = "Wöchentlich" | "Monatlich" | "Vierteljährlich" | "Halbjährlich" | "Jährlich" | "Unbekannt";
 
