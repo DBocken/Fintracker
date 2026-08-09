@@ -42,10 +42,29 @@ describe('Fehlerzustand auf den Screens (WP-9.6)', () => {
     expect(screen.queryByText(/Noch keine Schulden/i)).toBeNull();
   });
 
+  it('[ZUSTAND /debts:fehler] Schulden (en): sollte den Ladefehler benennen statt „noch keine Schulden"', async () => {
+    renderWithProviders(<DebtsPage />, { query: true, locale: 'en' });
+
+    expect(await screen.findByText('Your data could not be loaded')).toBeInTheDocument();
+    expect(screen.queryByText(/No debts recorded yet/i)).toBeNull();
+  });
+
   it('[REGRESSION] [ZUSTAND /net-worth:fehler] Vermögen: sollte den Ladefehler benennen statt eines Leerzustands', async () => {
     renderWithProviders(<NetWorthPage />, { query: true });
 
     expect(await screen.findByText('Deine Daten konnten nicht geladen werden')).toBeInTheDocument();
+    // WP 7.1: Der Satz „statt eines Leerzustands" im Titel war bis hierher
+    // eine Behauptung ÜBER den Test, keine Zusicherung IM Test — beide
+    // Aussagen hätten gleichzeitig dastehen können (WP 6.5a,
+    // `AccountManager`). Ein leeres Vermögen liest sich wie Verlust.
+    expect(screen.queryByText('Noch keine Transaktionen')).toBeNull();
+  });
+
+  it('[ZUSTAND /net-worth:fehler] Vermögen (en): sollte den Ladefehler benennen statt eines Leerzustands', async () => {
+    renderWithProviders(<NetWorthPage />, { query: true, locale: 'en' });
+
+    expect(await screen.findByText('Your data could not be loaded')).toBeInTheDocument();
+    expect(screen.queryByText('No transactions yet')).toBeNull();
   });
 
   it('sollte den Fehler ansagbar auszeichnen', async () => {

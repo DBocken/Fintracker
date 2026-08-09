@@ -118,7 +118,17 @@ export default function TaxReportPage() {
         </p>
       )}
 
-      <TaxSummaryStrip report={report} />
+      {/*
+        WP 7.1 — Die Kennzahlenreihe ist eine AUSSAGE, keine Verzierung: Nach
+        einem Lesefehler stand dort „Markierte Ausgaben 0,00 €",
+        „Steuerermäßigung 0,00 €", „Buchungen 0" — direkt über dem Hinweis,
+        dass nichts geladen werden konnte. Der Leerzustand darunter („Noch
+        nichts markiert") war längst richtig unterdrückt; die Zahlen, die
+        dasselbe in schärferer Form behaupten, waren es nicht. Auf einer
+        Steuerfläche ist das die teuerste Null der App: Wer ihr glaubt, setzt
+        nichts ab ([REGRESSION] `TaxReportPage.error-state.test.tsx`).
+      */}
+      {!hasLoadError && <TaxSummaryStrip report={report} />}
 
       {showEuerPointer && <EuerPointerCard />}
 

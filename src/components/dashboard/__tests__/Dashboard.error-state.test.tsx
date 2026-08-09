@@ -39,6 +39,18 @@ describe('Dashboard — Fehlerzustand (WP-9.2)', () => {
     expect(
       await screen.findByText('Deine Daten konnten nicht geladen werden'),
     ).toBeInTheDocument();
+    // WP 7.1: Der Fehlertext allein beweist nicht, dass der Leerzustand weg
+    // ist — beide könnten untereinander stehen (WP 6.5a, `AccountManager`).
+    // Auf dem Einstiegsscreen wäre „Noch keine Transaktionen" der erste
+    // Eindruck nach einem Fehlschlag: „meine App ist leer".
+    expect(screen.queryByText('Noch keine Transaktionen')).toBeNull();
+  });
+
+  it('[ZUSTAND /dashboard:fehler] sollte (en) einen Ladefehler benennen statt „keine Daten" zu behaupten', async () => {
+    renderWithProviders(<Dashboard />, { query: true, locale: 'en' });
+
+    expect(await screen.findByText('Your data could not be loaded')).toBeInTheDocument();
+    expect(screen.queryByText('No transactions yet')).toBeNull();
   });
 
   it('sollte den Fehler als solchen auszeichnen', async () => {
