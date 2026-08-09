@@ -384,7 +384,7 @@ messbar kleiner (Zahl im PR) · Paritäts- und Overlay-Tests weiter scharf
 
 ## Phase 5 — Typen & Entdopplung (P2)
 
-### - [ ] WP 5.1 · Branded Types für Geld (DOM-1) · S
+### - [x] WP 5.1 · Branded Types für Geld (DOM-1) · S — `cc9783e`
 **Ziel:** Cent-Euro-Verwechslung ist ein Compile-Fehler.
 **Vorgehen:** `type Cents = number & { readonly __brand: 'Cents' }` (und
 `EuroAmount`) in `money.ts`; `toMinor`/`toMajor` als einzige Konstruktoren;
