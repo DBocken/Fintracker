@@ -75,7 +75,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 ## Arbeitsweise: Modellwahl für delegierte Agenten (verbindlich ab 2026-08-09)
 
-**Delegierte Agenten laufen auf Opus, nicht auf Sonnet oder Haiku.** Vorgabe des
+**Delegierte Agenten laufen auf Opus, nicht auf Sonnet oder Haiku. Der Orchestrator selbst läuft ab der nächsten Sitzung auf Fable** (Vorgabe des Auftraggebers vom 2026-08-09; das Modell einer laufenden Sitzung ist nicht umschaltbar — beim Start der nächsten Sitzung Fable wählen). Vorgabe des
 Auftraggebers, gestützt auf das Protokoll dieses Programms: Alle Pakete bis
 einschließlich WP 5.5b wurden an Sonnet delegiert, und vier Fehlerklassen mussten
 in der Abnahme aufgefangen werden —
@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 5.5b · Wochentag/Datum folgen der App-Sprache |
+| **Paket** | Phasenende-Gate 5, danach Phase 6 |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -177,7 +177,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 24 | 5.3 | `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) | **fertig** | `b43c2c9` |
 | 25 | 5.4 | `TransactionFilters` aufs ViewModel (KOMP-2) | offen | |
 | 26 | 5.5 | Tagesgruppierung konsolidieren (KOMP-3) | **fertig** | `b1dd8e6` |
-| 26a | **5.5b** | Wochentag/Datum folgen der App-Sprache | offen | |
+| 26a | **5.5b** | Wochentag/Datum folgen der App-Sprache | **fertig** | `998e5fe` |
 | 27 | 5.6 | `currencyFormatter`-Kopien → `useMoneyFormat` (KOMP-4) | offen | |
 | 28 | 5.7 | Toter Code entscheiden (KOMP-6) | offen | |
 | 29 | 6.1 | Verwaiste Slices entscheiden (ARCH-2) | offen | |

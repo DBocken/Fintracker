@@ -453,7 +453,7 @@ wieder lebendig — vorher nicht löschen.
 
 ---
 
-### - [ ] WP 5.5b · Wochentag und Datum folgen der App-Sprache · S
+### - [x] WP 5.5b · Wochentag und Datum folgen der App-Sprache · S — `998e5fe`
 **Befund aus WP 5.5:** `formatDayHeading` formatiert das
 Wochentagskürzel mit fest verdrahtetem `{ locale: de }`. Seit WP 5.5 liest ein
 englischer Nutzer deshalb **„Today · Mi 3.7."** — englischer Kopf, deutscher
