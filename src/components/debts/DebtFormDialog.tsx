@@ -91,7 +91,7 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{debt?.id ? t('debts.debtForm.editTitle') : t('debts.debtForm.newTitle')}</DialogTitle>
         </DialogHeader>

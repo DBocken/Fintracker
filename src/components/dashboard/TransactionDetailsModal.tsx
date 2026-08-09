@@ -79,7 +79,10 @@ export function TransactionDetailsModal({
     // Breiter, horizontaler Dialog: Stammdaten links (1/3), Bearbeitung rechts (2/3).
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl">
+        <DialogContent
+          className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{t('dashboard.transactionDetailsTitle')}</DialogTitle>
           </DialogHeader>

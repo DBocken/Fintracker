@@ -81,7 +81,7 @@ export default function IncomeStressTestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {stream ? t('income.stress.dialogTitle').replace('{name}', stream.label) : ''}

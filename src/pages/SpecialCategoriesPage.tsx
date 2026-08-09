@@ -103,7 +103,7 @@ export default function SpecialCategoriesPage() {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{t('specialCategories.create')}</DialogTitle>
           </DialogHeader>

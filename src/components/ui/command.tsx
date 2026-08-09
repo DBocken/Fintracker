@@ -26,7 +26,7 @@ const CommandDialog = ({
 }: React.ComponentPropsWithoutRef<typeof Dialog>) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0">
+      <DialogContent className="overflow-hidden p-0" aria-describedby={undefined}>
         {children}
       </DialogContent>
     </Dialog>

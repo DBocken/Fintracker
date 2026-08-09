@@ -197,7 +197,10 @@ export function Dashboard() {
       </div>
 
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-        <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md">
+        <DialogContent
+          className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{t("dashboard.filter")}</DialogTitle>
           </DialogHeader>

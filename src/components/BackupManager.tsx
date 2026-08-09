@@ -412,7 +412,7 @@ export function BackupManager() {
                   {t('backup.uploadBackup')}
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent aria-describedby={undefined}>
                 <DialogHeader>
                   <DialogTitle>{t('backup.restoreDialogTitle')}</DialogTitle>
                 </DialogHeader>

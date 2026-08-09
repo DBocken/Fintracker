@@ -101,6 +101,7 @@ export default function OnboardingDialog() {
     <Dialog open={open}>
       <DialogContent
         className="max-h-[85vh] max-w-2xl overflow-y-auto"
+        aria-describedby={undefined}
         // Kein Schließen per Escape/Klick daneben: der Weg hinaus führt über
         // „Später entscheiden", damit der Zustand eindeutig gespeichert wird.
         onEscapeKeyDown={(e) => e.preventDefault()}

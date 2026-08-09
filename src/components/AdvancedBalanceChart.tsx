@@ -297,7 +297,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
       </Card>
 
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="card-premium">
+        <DialogContent className="card-premium" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{t('balanceChart.dialogTitle')}</DialogTitle>
           </DialogHeader>
