@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { isDemoDataActive, removeDemoData } from "@/services/demo-data-service";
 import { showSuccess } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
+import { invalidateFinanceData } from "@/features/shared/data/finance-query-keys";
 
 /**
  * Banner über allen Screens, solange Beispieldaten geladen sind (Issue #39).
@@ -37,8 +38,11 @@ export default function DemoDataBanner() {
     setRemoving(true);
     try {
       await removeDemoData();
-      // Alle Daten-Queries neu laden — Transaktionen, Konten, Schulden, KPIs.
-      await queryClient.invalidateQueries();
+      // Finanz-Domäne neu laden — Transaktionen, Konten, Schulden, KPIs
+      // (`['demo-data-active']` fällt namentlich mit hinein, DAS lässt den
+      // Banner sofort verschwinden). Trading/Haushalt/Sync/Settings sind
+      // nachweislich unbetroffen und werden ausgelassen (WP 4.3, PERF-5).
+      await invalidateFinanceData(queryClient);
       showSuccess(t('demoData.removeSuccess'));
     } finally {
       setRemoving(false);

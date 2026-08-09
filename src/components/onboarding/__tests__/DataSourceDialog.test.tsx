@@ -1,8 +1,9 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
-import { renderWithProviders } from '@/test-utils/render';
+import { renderWithProviders, createHookWrapper } from '@/test-utils/render';
 import DataSourceDialog from '../DataSourceDialog';
 import { getLocalUserSettings, updateLocalUserSettings } from '@/services/local-settings-service';
 import { localEncryption } from '@/services/local-crypto';
@@ -84,6 +85,44 @@ describe('DataSourceDialog', () => {
     await waitFor(async () => {
       expect((await getLocalUserSettings()).tutorial_source).toBeNull();
     });
+  });
+
+  it('[REGRESSION] [PERF-5] sollte beim Dateiweg keine Finanz-Domäne neu laden — es hat sich nichts geändert', async () => {
+    const { wrapper, queryClient } = createHookWrapper({ locale: 'de' });
+    queryClient.setQueryData(['accounts'], []);
+
+    render(
+      <MemoryRouter>
+        <DataSourceDialog />
+      </MemoryRouter>,
+      { wrapper },
+    );
+
+    await userEvent.click(await screen.findByText(/Datei von meiner Bank/));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/csv'));
+
+    // Der Dateiweg ändert weder Konten noch Buchungen — eine Invalidierung
+    // der Finanz-Domäne wäre reine Verschwendung (PERF-5).
+    expect(queryClient.getQueryState(['accounts'])?.isInvalidated).toBeFalsy();
+  });
+
+  it('[REGRESSION] [PERF-5] sollte beim Demoweg die Finanz-Domäne neu laden, aber Trading unberührt lassen', async () => {
+    const { wrapper, queryClient } = createHookWrapper({ locale: 'de' });
+    queryClient.setQueryData(['accounts'], []);
+    queryClient.setQueryData(['portfolios'], []);
+
+    render(
+      <MemoryRouter>
+        <DataSourceDialog />
+      </MemoryRouter>,
+      { wrapper },
+    );
+
+    await userEvent.click(await screen.findByText(/Erst mal umsehen/));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/dashboard'));
+
+    expect(queryClient.getQueryState(['accounts'])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(['portfolios'])?.isInvalidated).toBeFalsy();
   });
 
   it('sollte nicht fragen, wenn die Demo schon über die Anmeldeseite lief', async () => {

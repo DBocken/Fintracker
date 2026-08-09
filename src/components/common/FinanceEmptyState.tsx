@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n/useI18n";
 import EmptyState from "@/components/common/EmptyState";
 import { loadDemoData } from "@/services/demo-data-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { invalidateFinanceData } from "@/features/shared/data/finance-query-keys";
 
 type FinanceEmptyStateVariant = 'no-data' | 'no-budgets' | 'no-goals' | 'no-transactions';
 
@@ -30,7 +31,11 @@ export default function FinanceEmptyState({ variant = 'no-data', animated = fals
     setLoading(true);
     try {
       await loadDemoData();
-      await queryClient.invalidateQueries();
+      // Beispieldaten ersetzen Konten/Buchungen/Schulden als Ganzes — die
+      // gesamte Finanz-Domäne (WP 4.3, PERF-5) muss neu laden, Trading/
+      // Haushalt/Sync/Settings bleiben unberührt und werden bewusst
+      // ausgelassen (siehe `FINANCE_UNRELATED_QUERY_KEY_ROOTS`).
+      await invalidateFinanceData(queryClient);
     } finally {
       setLoading(false);
     }

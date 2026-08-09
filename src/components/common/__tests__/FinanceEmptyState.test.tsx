@@ -1,8 +1,11 @@
 import type { ReactElement } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import FinanceEmptyState from '../FinanceEmptyState';
-import { renderWithProviders } from '@/test-utils/render';
+import { renderWithProviders, createHookWrapper } from '@/test-utils/render';
+import { loadDemoData } from '@/services/demo-data-service';
 
 const reduceMock = vi.fn(() => false);
 vi.mock('@/hooks/useReducedMotion', () => ({
@@ -94,5 +97,29 @@ describe('FinanceEmptyState (WP-3.3)', () => {
     const bgLayer = container.querySelector('[data-testid="empty-state-bg"]');
     expect(bgLayer).toBeInTheDocument();
     expect(bgLayer?.getAttribute('style')).toBeFalsy();
+  });
+
+  it('[REGRESSION] [PERF-5] sollte beim Laden der Beispieldaten die Finanz-Domäne neu laden, aber Trading unberührt lassen', async () => {
+    const { wrapper, queryClient } = createHookWrapper({ locale: 'de' });
+    // Vorbelegung: eine Finanz-Abfrage (Konten) und eine nachweislich
+    // unabhängige Trading-Abfrage (Portfolios) sind bereits gecacht.
+    queryClient.setQueryData(['accounts'], []);
+    queryClient.setQueryData(['portfolios'], []);
+
+    render(
+      <MemoryRouter>
+        <FinanceEmptyState />
+      </MemoryRouter>,
+      { wrapper },
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Beispieldaten ansehen' }));
+
+    expect(loadDemoData).toHaveBeenCalled();
+    // Die Fläche mit den Konten muss nach dem Laden frisch sein …
+    expect(queryClient.getQueryState(['accounts'])?.isInvalidated).toBe(true);
+    // … Trading (eine nachweislich unabhängige Domäne) darf nicht mit
+    // angestoßen werden — genau das tat der vorherige Pauschal-Wipe.
+    expect(queryClient.getQueryState(['portfolios'])?.isInvalidated).toBeFalsy();
   });
 });
