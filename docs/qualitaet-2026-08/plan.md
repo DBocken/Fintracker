@@ -421,7 +421,7 @@ null Fehler haben.**
 **Akzeptanz:** mindestens `Transaction.id` vollständig gebrandet · kein
 `as unknown as` · Demonstrationstest aus WP 5.2 weiterhin grün.
 
-### - [ ] WP 5.3 · `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) · S
+### - [x] WP 5.3 · `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) · S — `b43c2c9`
 Wrapper um `<Select>` mit typisiertem `onValueChange`; Helfer für den
 `useQuery`-Fehlertyp. Die Hotspots (`BudgetFormDialog`, `DebtFormDialog`,
 `TradingDashboard`) umstellen; die 21 `exhaustive-deps`-Disables dabei je
@@ -434,7 +434,7 @@ Props auf `{ filters: FilterViewModel; showSearch?; stacked? }`; beide
 Aufrufer reichen das Objekt durch. `[REGRESSION]`-Test: Dashboard-Vorschau und
 `/transactions` filtern identisch.
 
-### - [ ] WP 5.5 · Tagesgruppierung konsolidieren (KOMP-3) · H
+### - [x] WP 5.5 · Tagesgruppierung konsolidieren (KOMP-3) · H — `b1dd8e6`
 `TransactionListMobile` auf `buildDayGroups`/`formatDayHeading` umstellen;
 bilingualer Test für den Tageskopf inkl. „Heute/Gestern". Sichtbare
 Vereinheitlichung — im PR einen Screenshot-Vergleich oder Test-Assertion der
@@ -452,6 +452,20 @@ Absicht klären (Rest einer Migration?); `withErrorBoundary` wird durch WP 1.6
 wieder lebendig — vorher nicht löschen.
 
 ---
+
+### - [ ] WP 5.5b · Wochentag und Datum folgen der App-Sprache · S
+**Befund aus WP 5.5:** `formatDayHeading` formatiert das
+Wochentagskürzel mit fest verdrahtetem `{ locale: de }`. Seit WP 5.5 liest ein
+englischer Nutzer deshalb **„Today · Mi 3.7."** — englischer Kopf, deutscher
+Wochentag. Bestand (Desktop hatte es schon), aber jetzt auch auf Mobil sichtbar.
+**Umfang:** rund **vierzehn** weitere Dateien verdrahten `date-fns` genauso fest
+— gezählt in WP 5.5, vor dem Umbau neu verifizieren.
+**Vorgehen:** Eine Stelle, die das `date-fns`-Locale aus der App-Sprache
+ableitet (`de`/`en`/`ru`), statt es je Aufrufstelle zu importieren. Bilinguale
+Tests für mindestens den Tageskopf.
+**Akzeptanz:** kein `{ locale: de }` mehr in einer Datei, die nutzersichtbaren
+Text formatiert · bilingualer Test zeigt „Wed" statt „Mi" · `check:i18n`
+unverändert grün.
 
 ## Phase 6 — Architektur-Konvergenz (P2, fortlaufend)
 

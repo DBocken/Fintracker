@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 5.3 · TypedSelect + Query-Error-Helfer (KOMP-5) |
+| **Paket** | WP 5.4 · TransactionFilters aufs ViewModel reduzieren (KOMP-2) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -157,9 +157,10 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 22 | 5.1 | Branded Types für Geld (DOM-1) | **fertig** | `cc9783e` |
 | 23 | 5.2 | `types.ts` aufteilen (DOM-3) | **fertig** | `3cca9d5` |
 | 23a | **5.2b** | Branded IDs auf die realen Felder (DOM-3, Rest) | offen | |
-| 24 | 5.3 | `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) | offen | |
+| 24 | 5.3 | `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) | **fertig** | `b43c2c9` |
 | 25 | 5.4 | `TransactionFilters` aufs ViewModel (KOMP-2) | offen | |
-| 26 | 5.5 | Tagesgruppierung konsolidieren (KOMP-3) | offen | |
+| 26 | 5.5 | Tagesgruppierung konsolidieren (KOMP-3) | **fertig** | `b1dd8e6` |
+| 26a | **5.5b** | Wochentag/Datum folgen der App-Sprache | offen | |
 | 27 | 5.6 | `currencyFormatter`-Kopien → `useMoneyFormat` (KOMP-4) | offen | |
 | 28 | 5.7 | Toter Code entscheiden (KOMP-6) | offen | |
 | 29 | 6.1 | Verwaiste Slices entscheiden (ARCH-2) | offen | |
