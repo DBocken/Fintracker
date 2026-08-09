@@ -308,7 +308,7 @@ nur Existenz.
 
 ## Phase 4 — Speicher & Query-Effizienz (P1)
 
-### - [x] WP 4.1a · ADR Chunk-Ablage + Baseline-Messung (PERF-1) · O — `SHA_4_1_A`
+### - [x] WP 4.1a · ADR Chunk-Ablage + Baseline-Messung (PERF-1) · O — `edd7e6e`
 **Ergebnis:** `docs/architecture/transaction-storage-chunks.md`.
 Der Entwurf wurde durch einen Befund bestimmt, den das Audit nicht nennt:
 `getTransactions()` hat **53 Aufrufstellen**, und die meisten lesen mit Limit

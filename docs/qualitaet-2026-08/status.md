@@ -147,7 +147,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 14 | 3.3 | Passwort-Mindeststärke als Gate (SEC-3) | **fertig** | `db1260e` |
 | 15 | 3.4 | RLS-Wächter prüft Restriktivität (SEC-4) | **fertig** | `c084fa4` |
 | 16 | 3.5 | MCP-Klartext in der UI kennzeichnen (SEC-5) | **fertig** | `77319fc` |
-| 17 | **4.1a** | ADR Chunk-Ablage + Baseline (PERF-1) | **fertig** | `SHA_4_1_A` |
+| 17 | **4.1a** | ADR Chunk-Ablage + Baseline (PERF-1) | **fertig** | `edd7e6e` |
 | 17a | **4.1b** | Chunk-Speicherschicht + Index (PERF-1) | offen | |
 | 17b | **4.1c** | Migration, Umschaltung, drei Messungen (PERF-1) | offen | |
 | 18 | 4.2 | Query-Key-Invalidierungen präzisieren (PERF-2) | offen | |
