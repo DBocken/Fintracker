@@ -14,7 +14,15 @@
     "presentation; 22 von 26 Routen sind nicht zerlegt.",
     "",
     "Heraufsetzen ist keine Option. Wer eine neue Abfrage braucht, legt sie in",
-    "src/features/<slice>/application an — Vorlage: features/dashboard, features/transactions."
+    "src/features/<slice>/application an — Vorlage: features/dashboard, features/transactions.",
+    "",
+    "WP 6.3 (TradingDashboard -> features/trading/presentation): 282 -> 251. Aufschluesselung der 31:",
+    "27 Zugriffe sind mit der Trading-UI in die Slice gezogen (22 reine Service-Importe fuer Selektoren",
+    "und Typen, 5 useMutation von Formular-/Verbinden-Dialogen — Schreibvorgaenge hinter einer",
+    "Interaktion, Kochrezept Schritt 8). 4 weitere stammen aus PortfolioManager und sind NICHT",
+    "verschoben, sondern aufgeloest worden: seine Depotliste (useQuery) und drei Mutationen liegen",
+    "jetzt in features/trading/application/use-trading-portfolios.ts. Keine einzige LESENDE Abfrage",
+    "wurde an dieser Zahl vorbeigetragen — genau das war die Bedingung fuer den Umzug."
   ],
-  "max": 282
+  "max": 251
 }

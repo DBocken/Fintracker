@@ -55,13 +55,33 @@ console.log('\n🧩 Slice-Presentation-Wächter läuft (AGENTS.md §3, ARCH-3)..
 
 const dateien = trackedFiles();
 let gesamt = 0;
+let bausteineGesamt = 0;
 const proDatei = [];
+const bausteineProDatei = [];
 
 for (const rel of dateien) {
-  const { imports, specs } = countLegacyImports(rel, fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8'));
-  if (imports === 0) continue;
-  gesamt += imports;
-  proDatei.push({ rel, imports, specs });
+  const { imports, specs, bausteine, bausteinSpecs } = countLegacyImports(
+    rel,
+    fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8'),
+  );
+  if (imports > 0) {
+    gesamt += imports;
+    proDatei.push({ rel, imports, specs });
+  }
+  if (bausteine > 0) {
+    bausteineGesamt += bausteine;
+    bausteineProDatei.push({ rel, imports: bausteine, specs: bausteinSpecs });
+  }
+}
+
+/** Fundstellen absteigend ausgeben — dieselbe Form fuer beide Spalten. */
+function meldeFundstellen(liste) {
+  liste
+    .sort((a, b) => b.imports - a.imports)
+    .forEach((d) => {
+      console.error(`      ${String(d.imports).padStart(2)}\u00d7  ${d.rel}`);
+      d.specs.forEach((s) => console.error(`            \u2192 ${s}`));
+    });
 }
 
 const budget = fs.existsSync(BUDGET_PATH) ? JSON.parse(fs.readFileSync(BUDGET_PATH, 'utf8')) : null;
@@ -71,17 +91,37 @@ if (!budget) {
   process.exit(1);
 }
 
-console.log(`   ${proDatei.length} Slice-Presentation-Dateien importieren aus der Alt-Oberfläche`);
-console.log(`   Stand: ${gesamt} — erlaubt: ${budget.max}\n`);
+if (typeof budget.maxBausteine !== 'number') {
+  console.error(
+    '❌ slice-presentation-budget.json: `maxBausteine` fehlt. Seit WP 6.3 zählt der Wächter zwei getrennte Fachfragen (fremde Feature-UI vs. app-eigene Bausteine unter components/common/) — ohne beide Ausgangswerte ist die zweite Ratsche wirkungslos.',
+  );
+  process.exit(1);
+}
+
+console.log(`   ${proDatei.length} Slice-Presentation-Datei(en) importieren fremde Feature-UI`);
+console.log(`   Stand: ${gesamt} — erlaubt: ${budget.max}`);
+console.log(`   ${bausteineProDatei.length} Slice-Presentation-Datei(en) importieren app-eigene Bausteine (components/common/)`);
+console.log(`   Stand: ${bausteineGesamt} — erlaubt: ${budget.maxBausteine}\n`);
+
+if (bausteineGesamt > budget.maxBausteine) {
+  console.error(
+    `❌ ${bausteineGesamt - budget.maxBausteine} Baustein-Import(e) zu viel aus \`src/components/common/\`.\n`,
+  );
+  meldeFundstellen(bausteineProDatei);
+  console.error(`
+   Das sind die app-eigenen Bausteine (\`InfoGroup\`, \`InteractiveCard\`,
+   \`EmptyState\`, \`DecimalInput\`, \`FinanceErrorState\`, …). Sie zu BENUTZEN ist
+   richtig und teils erzwungen (AGENTS.md §8/§9) — sie liegen nur noch am
+   falschen Ort. Aufgelöst wird das nicht je Slice, sondern einmal für die ganze
+   App: \`src/components/common/\` → \`src/features/shared/presentation/\`.
+   Bis dahin darf die Zahl nur SINKEN.
+`);
+  process.exit(1);
+}
 
 if (gesamt > budget.max) {
-  console.error(`❌ ${gesamt - budget.max} Import(e) aus der Alt-Oberfläche zu viel in der Slice-Presentation.\n`);
-  proDatei
-    .sort((a, b) => b.imports - a.imports)
-    .forEach((d) => {
-      console.error(`      ${String(d.imports).padStart(2)}×  ${d.rel}`);
-      d.specs.forEach((s) => console.error(`            → ${s}`));
-    });
+  console.error(`❌ ${gesamt - budget.max} Import(e) fremder Feature-UI zu viel in der Slice-Presentation.\n`);
+  meldeFundstellen(proDatei);
   console.error(`
    Slice-Presentation (\`src/features/<slice>/presentation/\`) soll die
    Darstellung DES Slices sein, nicht die Alt-\`components/\`/\`pages/\`-Schicht
@@ -97,13 +137,18 @@ if (gesamt > budget.max) {
   process.exit(1);
 }
 
-if (gesamt < budget.max) {
-  console.warn(
-    `⚠️  Budget veraltet: erlaubt ${budget.max}, gefunden ${gesamt}. Bitte in slice-presentation-budget.json auf ${gesamt} nachziehen — eine Ratsche, die nicht nachgezogen wird, gibt den Fortschritt wieder her.\n`,
-  );
+for (const [feld, ist, soll] of [
+  ['max', gesamt, budget.max],
+  ['maxBausteine', bausteineGesamt, budget.maxBausteine],
+]) {
+  if (ist < soll) {
+    console.warn(
+      `⚠️  Budget veraltet: ${feld} erlaubt ${soll}, gefunden ${ist}. Bitte in slice-presentation-budget.json auf ${ist} nachziehen — eine Ratsche, die nicht nachgezogen wird, gibt den Fortschritt wieder her.\n`,
+    );
+  }
 }
 
 console.log(
-  `✅ Slice-Presentation OK (${gesamt} Alt-Importe, Ratsche bei ${budget.max} — die Zahl darf nur sinken)\n`,
+  `✅ Slice-Presentation OK (${gesamt} Feature-UI-Importe bei Ratsche ${budget.max}, ${bausteineGesamt} Baustein-Importe bei Ratsche ${budget.maxBausteine} — beide Zahlen dürfen nur sinken)\n`,
 );
 process.exit(0);

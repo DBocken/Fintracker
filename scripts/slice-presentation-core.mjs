@@ -69,36 +69,93 @@ export function istSlicePresentation(relPath) {
  * gar keine Alternative. Eine Zahl, die sie mitzählt, kann nie 0 erreichen und
  * bestraft jede Migration mit ihrem eigenen Kartenrahmen.
  *
- * `src/components/common/` bleibt ausdrücklich GEZÄHLT: `ChartFigure`,
- * `InteractiveCard`, `FinanceErrorState` sind app-eigene Bausteine der
- * Alt-Oberfläche und echte Kandidaten für `src/features/shared/presentation/`
- * — dort ist der Befund berechtigt.
+ * `src/components/common/` bleibt GEZÄHLT — seit WP 6.3 aber in einer eigenen
+ * Spalte, siehe `istBaustein()` direkt darunter.
  */
 function istDesignSystemPrimitiv(target) {
   return /^src\/components\/ui\//.test(target);
 }
 
 /**
- * Zählt Importe einer Slice-Presentation-Datei, die nach `src/components/`
- * oder `src/pages/` (die Alt-Oberfläche) zeigen — ohne die shadcn-Primitive
- * unter `src/components/ui/` (siehe `istDesignSystemPrimitiv`).
+ * `src/components/common/` sind die app-eigenen Bausteine — eigene Spalte,
+ * nicht ausgenommen (WP 6.3).
+ *
+ * **Was WP 6.3 gemessen hat.** Die Migration von `TradingDashboard` in
+ * `features/trading/presentation/` (ARCH-5/KOMP-1) hätte die EINE Zahl von 17
+ * auf 48 getrieben. Aufgeschlüsselt: 12 davon sind Importe nach fremder
+ * Feature-UI (unverändert gegenüber vorher), 36 sind `components/common/`. Die
+ * Trading-Fläche benutzt die Bausteine nämlich genau so, wie AGENTS.md es
+ * vorschreibt — `InfoGroup`/`InfoStatStrip` und `InteractiveCard` nach §9,
+ * `DecimalInput` nach §8 (dort sogar per `check:decimal-inputs` erzwungen),
+ * `EmptyState`/`FinanceErrorState` für Leer- und Fehlerzustand nach §9.1.
+ *
+ * Damit stand dieselbe Fehlerform wie in WP 6.2 (`ui/`) noch einmal da, nur ein
+ * Verzeichnis weiter und diesmal nicht bloss verzerrend, sondern blockierend:
+ * Eine Zahl, die eine Migration 31-fach bestraft, weil die migrierte Fläche die
+ * vorgeschriebenen Bausteine benutzt, misst nicht mehr den Befund, sondern
+ * verhindert seine Behebung.
+ *
+ * **Warum trotzdem keine Ausnahme wie bei `ui/`.** Der Unterschied zu den
+ * shadcn-Primitiven ist echt: `src/components/ui/` ist ein Fremdbaukasten und
+ * bleibt, wo er ist; `src/components/common/` liegt nur deshalb unter
+ * `components/`, weil es `src/features/shared/presentation/` noch nicht gibt.
+ * Das ist ein offener Befund und gehört gezählt — aber als eigene Frage mit
+ * eigener Antwort (ein Umzug für die ganze App), nicht vermischt mit „diese
+ * Slice hängt an einem noch nicht migrierten Feature-Screen" (ein Umzug je
+ * Screen).
+ *
+ * Genau dieselbe Begründung steht schon im Kopf dieser Datei dafür, dass
+ * `check:view-data` und `check:slice-presentation` zwei Zahlen sind und nicht
+ * eine: „eine gemeinsame Summe würde eine Verschlechterung in der einen
+ * Richtung durch Fortschritt in der anderen verdecken." Hier war es umgekehrt —
+ * die Summe hätte Fortschritt in der einen Richtung als Verschlechterung
+ * ausgewiesen. Beide Zahlen dürfen nur sinken; `bausteine` erreicht 0, sobald
+ * `components/common/` nach `features/shared/presentation/` zieht.
+ */
+function istBaustein(target) {
+  return /^src\/components\/common\//.test(target);
+}
+
+/**
+ * Zählt Importe einer Slice-Presentation-Datei in die Alt-Oberfläche, getrennt
+ * nach den zwei Fachfragen dahinter.
+ *
+ * - `imports`/`specs`: Importe nach **fremder Feature-UI** (`src/components/<feature>/`,
+ *   `src/pages/`) — der ARCH-3-Befund. Behebung: den betroffenen Screen migrieren.
+ * - `bausteine`/`bausteinSpecs`: Importe nach `src/components/common/` — die
+ *   app-eigenen Bausteine. Behebung: `components/common/` → `features/shared/presentation/`.
+ *
+ * Nicht gezählt werden die shadcn-Primitive unter `src/components/ui/`
+ * (siehe `istDesignSystemPrimitiv`).
  *
  * @param relPath repo-relativer Pfad
  * @param source  Dateiinhalt
- * @returns `{ imports, specs }` — `specs` die rohen Import-Spezifizierer, für die Fehlermeldung
+ * @returns `{ imports, specs, bausteine, bausteinSpecs }` — die rohen Spezifizierer für die Fehlermeldung
  */
 export function countLegacyImports(relPath, source) {
-  if (!istSlicePresentation(relPath) || isTestFile(relPath)) return { imports: 0, specs: [] };
+  if (!istSlicePresentation(relPath) || isTestFile(relPath)) {
+    return { imports: 0, specs: [], bausteine: 0, bausteinSpecs: [] };
+  }
 
   const specs = [];
+  const bausteinSpecs = [];
   for (const match of stripComments(source).matchAll(IMPORT_RE)) {
     const spec = match[1] ?? match[2];
     if (!spec) continue;
     const target = resolveTarget(spec, relPath);
     if (!target) continue;
     if (istDesignSystemPrimitiv(target)) continue;
+    if (istBaustein(target)) {
+      bausteinSpecs.push(spec);
+      continue;
+    }
     if (/^src\/(components|pages)\//.test(target)) specs.push(spec);
   }
 
-  return { imports: specs.length, specs };
+  return {
+    imports: specs.length,
+    specs,
+    bausteine: bausteinSpecs.length,
+    bausteinSpecs,
+  };
 }

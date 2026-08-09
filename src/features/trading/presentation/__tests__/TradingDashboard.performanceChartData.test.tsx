@@ -40,8 +40,8 @@ beforeAll(() => {
 });
 
 vi.mock('@/services/etoro-account-service', async () => {
-  const actual = await vi.importActual<typeof import('../../../services/etoro-account-service')>(
-    '../../../services/etoro-account-service',
+  const actual = await vi.importActual<typeof import('@/services/etoro-account-service')>(
+    '@/services/etoro-account-service',
   );
   return {
     ...actual,

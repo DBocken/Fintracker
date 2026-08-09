@@ -29,7 +29,7 @@ import {
   calculateGainLossPercent,
   calculateAnnualizedReturnPercent,
   getBuyDate,
-} from './position-metrics';
+} from '@/features/trading/domain/position-metrics';
 
 interface PositionTableProps {
   positions: PortfolioPosition[];

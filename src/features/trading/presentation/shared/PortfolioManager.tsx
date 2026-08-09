@@ -1,13 +1,15 @@
+/**
+ * Depotverwaltung — Liste, Anlegen, Aktivieren, Löschen.
+ *
+ * Bis WP 6.3 lag der Baustein in `src/components/trading/` und hielt seine
+ * Abfrage und drei Mutationen selbst. Beides steht jetzt im ViewModel
+ * `features/trading/application/use-trading-portfolios.ts`; hier bleibt die
+ * Darstellung und der Dialog-Zustand (Kochrezept Schritt 8).
+ */
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import type { Portfolio } from '@/types';
-import {
-  getPortfolios,
-  deletePortfolio,
-  setActivePortfolio,
-  createPortfolio,
-} from '@/services/portfolio-service';
+import { useTradingPortfolios } from '@/features/trading/application/use-trading-portfolios';
 import {
   Dialog,
   DialogContent,
@@ -48,77 +50,25 @@ export default function PortfolioManager({
   onPortfolioChange,
 }: PortfolioManagerProps) {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPortfolioName, setNewPortfolioName] = useState('');
   const [newPortfolioCurrency, setNewPortfolioCurrency] = useState('EUR');
 
-  const {
-    data: portfolios,
-    isLoading,
-    isError: portfoliosError,
-    refetch: refetchPortfolios,
-  } = useQuery({
-    queryKey: ['portfolios'],
-    queryFn: getPortfolios,
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deletePortfolio,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-      toast.success(t('trading.portfolioManager.messages.deleteSuccess'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('trading.portfolioManager.messages.errorDelete').replace('{error}', error.message));
-    },
-  });
-
-  const setActiveMutation = useMutation({
-    mutationFn: setActivePortfolio,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
-      toast.success(t('trading.portfolioManager.messages.activateSuccess'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('trading.portfolioManager.messages.errorActivate').replace('{error}', error.message));
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: createPortfolio,
-    onSuccess: (portfolio) => {
-      queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+  const model = useTradingPortfolios({
+    onPortfolioChange,
+    onCreated: () => {
       setIsCreateDialogOpen(false);
       setNewPortfolioName('');
-      toast.success(t('trading.portfolioManager.messages.success'));
-      onPortfolioChange?.(portfolio);
-    },
-    onError: (error: Error) => {
-      toast.error(t('trading.portfolioManager.messages.errorCreate').replace('{error}', error.message));
     },
   });
+  const { portfolios, isLoading } = model;
 
   const handleCreatePortfolio = () => {
     if (!newPortfolioName.trim()) {
       toast.error(t('trading.portfolioManager.messages.nameRequired'));
       return;
     }
-    createMutation.mutate({
-      name: newPortfolioName.trim(),
-      type: 'manual',
-      currency: newPortfolioCurrency,
-      is_active: false,
-    });
-  };
-
-  const handleSetActive = (portfolio: Portfolio) => {
-    setActiveMutation.mutate(portfolio.id);
-    onPortfolioChange?.(portfolio);
-  };
-
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    model.createPortfolio({ name: newPortfolioName.trim(), currency: newPortfolioCurrency });
   };
 
   const getPortfolioTypeLabel = (type: string) => {
@@ -167,7 +117,7 @@ export default function PortfolioManager({
 
   return (
     <div className="space-y-4">
-      {portfoliosError && <FinanceErrorState variant="data" onRetry={refetchPortfolios} />}
+      {model.hasLoadError && <FinanceErrorState variant="data" onRetry={model.retry} />}
 
       <div className="flex items-center justify-between">
         <div>
@@ -263,8 +213,8 @@ export default function PortfolioManager({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSetActive(portfolio)}
-                    disabled={setActiveMutation.isPending}
+                    onClick={() => model.activatePortfolio(portfolio)}
+                    disabled={model.isActivating}
                   >
                     {t('trading.portfolioManager.activateButton')}
                   </Button>
@@ -289,7 +239,7 @@ export default function PortfolioManager({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>{t('trading.portfolioManager.cancelButton')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(portfolio.id)}>
+                      <AlertDialogAction onClick={() => model.deletePortfolio(portfolio.id)}>
                         {t('trading.portfolioManager.deleteButton')}
                       </AlertDialogAction>
                     </AlertDialogFooter>

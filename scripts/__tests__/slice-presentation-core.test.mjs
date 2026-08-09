@@ -59,24 +59,65 @@ describe('countLegacyImports', () => {
 
     it('sollte Relativpfade genauso auflösen wie @/-Aliase', () => {
       // 'src/features/special-categories/presentation' + drei '../' landet
-      // bei 'src' — von dort führt 'components/common/InteractiveCard' nach
-      // 'src/components/common/InteractiveCard'.
-      const src = `import { InteractiveCard } from '../../../components/common/InteractiveCard';`;
+      // bei 'src' — von dort führt 'components/dashboard/TransactionStats' nach
+      // 'src/components/dashboard/TransactionStats'.
+      const src = `import TransactionStats from '../../../components/dashboard/TransactionStats';`;
       const result = countLegacyImports('src/features/special-categories/presentation/View.tsx', src);
       expect(result.imports).toBe(1);
-    });
-
-    it('sollte app-eigene Bausteine unter components/common/ zählen — sie gehören nach features/shared/presentation/', () => {
-      const src = `import { ChartFigure } from '@/components/common/ChartFigure';`;
-      const result = countLegacyImports('src/features/dashboard/presentation/shared/TransactionCharts.tsx', src);
-      expect(result.imports).toBe(1);
-      expect(result.specs).toEqual(['@/components/common/ChartFigure']);
     });
 
     it('sollte reine Typ-Importe genauso zählen wie Wert-Importe', () => {
       const src = `import type { X } from '@/components/dashboard/filter-utils';`;
       expect(countLegacyImports('src/features/x/presentation/A.tsx', src).imports).toBe(1);
     });
+  });
+
+  describe('app-eigene Bausteine (components/common/) — eigene Spalte seit WP 6.3', () => {
+    it('sollte einen Baustein-Import in `bausteine` zählen, NICHT in `imports`', () => {
+      const src = `import { ChartFigure } from '@/components/common/ChartFigure';`;
+      const result = countLegacyImports('src/features/dashboard/presentation/shared/TransactionCharts.tsx', src);
+      expect(result.imports).toBe(0);
+      expect(result.specs).toEqual([]);
+      expect(result.bausteine).toBe(1);
+      expect(result.bausteinSpecs).toEqual(['@/components/common/ChartFigure']);
+    });
+
+    it('sollte einen Baustein auch über einen Relativpfad erkennen', () => {
+      const src = `import { InteractiveCard } from '../../../components/common/InteractiveCard';`;
+      const result = countLegacyImports('src/features/special-categories/presentation/View.tsx', src);
+      expect(result.imports).toBe(0);
+      expect(result.bausteine).toBe(1);
+    });
+
+    it('[REGRESSION] sollte Bausteine und fremde Feature-UI in derselben Datei getrennt ausweisen (WP 6.3)', () => {
+      // Genau der Fund aus WP 6.3: Die Migration von TradingDashboard haette
+      // die EINE Zahl von 17 auf 48 getrieben — 12 fremde Feature-UI und 36
+      // Bausteine, die AGENTS.md §8/§9 sogar VORSCHREIBT. Zwei Befunde mit
+      // zwei verschiedenen Antworten (Screen migrieren vs. components/common
+      // nach features/shared/presentation heben) gehoeren in zwei Zahlen.
+      const src = [
+        `import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';`,
+        `import { InfoStatStrip } from '@/components/common/InfoGroup';`,
+        `import { DecimalInput } from '@/components/common/DecimalInput';`,
+        `import { Button } from '@/components/ui/button';`,
+      ].join('\n');
+      const result = countLegacyImports('src/features/trading/presentation/tabs/T.tsx', src);
+      expect(result.imports).toBe(1);
+      expect(result.specs).toEqual(['@/components/premium-dashboard/SankeyChart']);
+      expect(result.bausteine).toBe(2);
+      expect(result.bausteinSpecs).toEqual([
+        '@/components/common/InfoGroup',
+        '@/components/common/DecimalInput',
+      ]);
+    });
+
+    it('sollte in einem Test unter presentation/__tests__ auch keine Bausteine zählen', () => {
+      const src = `import { InteractiveCard } from '@/components/common/InteractiveCard';`;
+      const result = countLegacyImports('src/features/x/presentation/__tests__/A.test.tsx', src);
+      expect(result.imports).toBe(0);
+      expect(result.bausteine).toBe(0);
+    });
+
   });
 
   describe('Kein Fehlalarm', () => {
