@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | Segment-7-Nachprüfung + Phasenende-Gate + Programm-Abschluss |
+| **Paket** | — PROGRAMM ABGESCHLOSSEN (2026-08-09, Abschlussbericht in nachpruefung.md) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 

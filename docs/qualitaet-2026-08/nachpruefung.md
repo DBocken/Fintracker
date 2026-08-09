@@ -1144,3 +1144,98 @@ Neun Pakete (6.1–6.9), dazu zwei Wächter-Grundsatzkorrekturen. Offen für
 Phase 7: die in 6.5b/6.7 dokumentierten Presentation-Nachzüge hängen an der
 `max`-Spalte (12) — der Weg dorthin führt über die Migration der restlichen
 Screens, nicht über eine weitere Zählregel-Änderung.
+
+### 7.a · Ein abgeschnittener Agent ist zwei verschiedene Situationen
+
+**Befund.** Das Sitzungslimit hat beide Phase-7-Agenten mitten im Edit
+abgeschnitten. Die Stände waren nicht gleichwertig: WP 7.4+7.6 war fast fertig
+und kohärent (nur die Kür stand halb), WP 7.3 hatte noch keine Specs, aber
+einen wertvollen Beifang, der einen Privacy-Wächter brach.
+
+**Entscheidung.** Kohärentes selbst zu Ende führen (7.4+7.6: ein Import, eine
+Aufrufstelle — mit verhaltensgleicher Übersetzung von `canvasMounted`, wo die
+naheliegende Form das Verhalten gekippt hätte); Inkohärentes **sichern und
+zurücksetzen**, den Neustart mit dem gesicherten Diff als *Referenz, nicht
+Vorlage* ausstatten (7.3).
+
+**Beleg für die Zweiteilung.** Der 7.3-Neustart klärte auf, woran der
+Vorgänger wirklich scheiterte: nicht am Code, sondern an seinen **Kommentaren**
+(der Privacy-Wächter greppt den Quelltext auf /supabase/i, und die Kommentare
+nannten „Supabase-User-ID"). Ein Weiterflicken am halben Stand hätte diese
+Aufklärung nie erzwungen.
+
+### 7.b · Der Fund des Programms, der keiner Prüfung entsprang, sondern dem Dokumentieren
+
+Das ADR-Paket (7.5) sollte nur Entscheidungen nachtragen. Sein Preis-Abschnitt
+zwang aber zum Nachsehen, was die Entscheidung heute wirklich kostet — und fand
+so den größten offenen Geldfehler: **USD wurde 1:1 als EUR summiert**, sichtbar
+im Auslieferungszustand (Demo-Depot). WP 7.7 hat ihn beziffert (8.231,10 € →
+4.337,00 €; die Differenz von 3.894,10 $ war exakt der stumme Fehler) und
+geschlossen. Und WP 7.3 fand auf dem Weg zum E2E-Test, dass **anonymes Backup
+komplett kaputt war** — der Standardfall der App scheiterte an einem
+`requireUserId` für ein Feature, das ausdrücklich ohne Konto funktionieren soll.
+
+Die Lehre für künftige Audits: Die Pflicht, den *Preis* einer Entscheidung
+hinzuschreiben, und die Pflicht, den *echten Browserpfad* zu gehen, finden
+Fehlerklassen, die Wächter und Unit-Suiten strukturell nicht sehen.
+
+### 7.c · Stand nach Phase 7
+
+| | vor Phase 7 | nach Phase 7 |
+|---|---|---|
+| Tests | 5351 in 577 Dateien | **5457 in 584 Dateien** (+ 2 E2E-Specs, 8 gesamt) |
+| Zeilenabdeckung | 77,2 % | **77,4 %** (Geldlogik: 9 Dateien ≥ 92 %, meist ≥ 97 % Branches, je Datei-Schwelle) |
+| Fehlerzustand-Familie | 6 stark / 14 schwach-mittel | **20 stark**, 3 echte Bugs behoben |
+| Version | keine | **2026.8.0** (CalVer, CHANGELOG, versionCode gerechnet) |
+| ADRs | 2 (unverzeichnet) | **7, datiert, im README verzeichnet** |
+| USD in EUR-Summen | stumm summiert | **ausgewiesen, nie summiert** |
+| Anonymes Backup | warf „Nicht angemeldet" | **funktioniert, E2E-gedeckt** |
+
+## Abschlussbericht des Programms (2026-08-09)
+
+**Alle Plan-Pakete sind umgesetzt** — 7 Phasen, 44 geplante Arbeitspakete plus
+9 unterwegs registrierte Folgepakete (5.2b, 5.5b, 6.3b, 6.7, 6.8, 6.9, 7.7 u. a.),
+zusammen **53 abgeschlossene Pakete** in einem PR (#291). Das Phasenende-Gate
+der letzten Phase ist grün (5457 Tests, Coverage-Schwellen der Geldlogik aktiv,
+Build und Bundle 2213,2/2379,0 kB).
+
+**Das Erfolgskriterium aus `plan.md` ist Punkt für Punkt erfüllt:**
+1. ✅ Lesefehler ⇒ nie Leerzustand: `check:state-coverage` erzwingt beide
+   Zustände je Fläche; WP 7.1 hob die letzte schwache Testfamilie an und fand
+   drei reale Verstöße (behoben, `[REGRESSION]`).
+2. ✅ Behauptete Regeln haben Wächter oder sind als Entscheidung markiert:
+   14 `check:*`-Wächter; WP 7.6 dokumentierte die entschiedenen Reste; WP 7.7
+   machte die letzte falsche Doku-Behauptung (EUR-only) wahr.
+3. ✅ Einzeländerung: 46,7 ms → 3,8 ms bei 5 000 Buchungen (Phase 4).
+4. ✅ `Cents`/`EuroAmount` und `TransactionId` sind Compile-Fehler (5.1/5.2b);
+   `@ts-expect-error`-Demonstrationen sichern es selbsttragend.
+5. ✅ `layer-allowlist.json` leer · view-data 282 → **220** · verwaiste Slices
+   tragen Entscheidungen (6.1), `components/common`/`components/trading`
+   existieren nicht mehr.
+6. ✅ Version **2026.8.0** samt CHANGELOG und §11-Ablauf; 7 datierte ADRs.
+
+**Was das Programm über den Plan hinaus gefunden hat** (jeweils behoben):
+kaputter Erststart für jeden neuen Nutzer (4.1c/E2E), eingefrorene
+Chart-Sprache (4.4), toter Anbieter-Favorit (6.3b), lügende
+Dialog-Beschreibung in jeder Fläche (6.9), hartkodiertes „Heute/Gestern" im
+Desktop-Pfad (5.5), Fehler+Leer gleichzeitig auf drei Flächen (7.1),
+USD-als-EUR (7.7), anonymes Backup (7.3).
+
+**Offene, registrierte Folgepunkte** (bewusst außerhalb des Programms):
+- Konten/Buchungen in Fremdwährung (ADR `currency-eur-only.md`, Preis Punkt 3;
+  Entscheidung beginnt bei den Buchungen, nicht beim Kontodialog).
+- `updateUserSettings`-Schreib-Rennen der Einstiegs-Dialoge (WP-7.3-Bericht).
+- `getBackupInfo` baut für vier Kennzahlen ein Voll-Backup samt Prüfsumme.
+- Wortlaut „fremdes Konto" für die eigene lokale Sicherung nach Login.
+- `GROUP_LABELS`-Blindstelle des i18n-Wächters (Record-Werte); globale
+  Coverage-Schwellen ~20 Punkte unter Ist (Kommentar veraltet); `CommandDialog`
+  ohne Namen; drei Sheets ohne Description; `hasPendingStoreMigrations`-Familie
+  siehe 4.e-Regel.
+- i18n-Backlog 35 in 23 Dateien (Zahlen dürfen nur sinken); Presentation-Reste
+  an der `max`-Spalte 12 (Weg: restliche Screens migrieren).
+
+**Die Arbeitsregeln, die dieses Programm hinterlässt**, stehen in den
+Nachprüfungs-Einträgen 0.6–7.b und in `status.md` („Arbeitsweise"): Absicht vor
+Auftrag · gemessene statt behaupteter Zahlen · Wächter an der Fachfrage
+ausrichten, nie per Allowlist beruhigen · Testumgebungs-Zustände brauchen
+aufhebende Tests · ein Rest, der bleiben soll, wird ein Paket, keine Fußnote.
