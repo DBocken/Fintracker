@@ -554,7 +554,7 @@ Per-Glob-Thresholds in `vitest.config.ts`: ≥ 90 % Branches für `money.ts`,
 `transaction-allocation-service.ts`. Fehlende Abdeckung, die dabei auffällt,
 gehört zum Paket.
 
-### - [ ] WP 7.3 · E2E: Verschlüsselung + Backup-Roundtrip (TEST-6) · S
+### - [x] WP 7.3 · E2E: Verschlüsselung + Backup-Roundtrip (TEST-6) · S — `4dcfa86`
 **Abhängigkeit:** WP 3.2 (Auto-Lock ändert den Flow). Zwei schlanke Specs:
 „aktivieren → sperren → entsperren" und „Backup exportieren → reimportieren →
 Daten identisch" — durch den echten Browser-Pfad (Dialog, Datei, Reload).

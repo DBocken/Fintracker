@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 7.3 · E2E Verschlüsselung+Backup (Neustart nach Sitzungslimit) |
+| **Paket** | Segment-7-Nachprüfung + Phasenende-Gate + Programm-Abschluss |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -188,7 +188,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 34 | 6.6 | Gott-Module lib-seitig teilen (ARCH-6) | offen | |
 | 35 | 7.1 | Error-State-Tests verschärfen (TEST-4) | **fertig** | `eb608e6` |
 | 36 | 7.2 | Datei-Schwellen für die Geldlogik (TEST-5) | **fertig** | `53c3d4c` |
-| 37 | 7.3 | E2E: Verschlüsselung + Backup-Roundtrip (TEST-6) | offen | |
+| 37 | 7.3 | E2E: Verschlüsselung + Backup-Roundtrip (TEST-6) | **fertig** | `4dcfa86` |
 | 38 | 7.4 | Versionierung einführen (GOV-3) | **fertig** | `b1520c5` |
 | 39 | 7.5 | ADRs für Grundentscheidungen (GOV-4) | **fertig** | `a61e53c` |
 | 39a | **7.7** | EUR-only wirklich durchsetzen (VE-1, Rest) | **fertig** | `913d929` |
