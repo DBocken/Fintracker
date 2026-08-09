@@ -36,6 +36,8 @@ export type {
   CategoryAttributes,
   Category,
   HierarchicalCategory,
+  CategorySuggestion,
+  CategorizationSnapshotEntry,
   SpecialCategory,
   SpecialCategoryAssignmentSource,
   SpecialCategoryAssignment,

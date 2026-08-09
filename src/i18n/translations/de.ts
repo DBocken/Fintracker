@@ -1110,6 +1110,8 @@ export const de = {
       year: '1 Jahr',
       years: '{years} Jahre',
     },
+    retentionLabel: 'Aufbewahrung',
+    retentionMonthsShort: '{months} M',
     settingsSaved: 'Einstellungen gespeichert',
     saveFailed: 'Fehler beim Speichern',
     categorySaved: 'Kategorie gespeichert',

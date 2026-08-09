@@ -1109,6 +1109,8 @@ export const ru = {
       year: '1 год',
       years: '{years} лет',
     },
+    retentionLabel: 'Хранение',
+    retentionMonthsShort: '{months} мес.',
     settingsSaved: 'Настройки сохранены',
     saveFailed: 'Ошибка при сохранении',
     categorySaved: 'Категория сохранена',

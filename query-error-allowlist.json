@@ -33,10 +33,6 @@
       "count": 1,
       "reason": "Entschieden. Wie GentleModeProvider: Ohne gelesene Einstellung greift das Standard-Erscheinungsbild. Ein Fehlerblock anstelle der App waere hier die groessere Stoerung."
     },
-    "src/components/settings/CategoryManager.tsx": {
-      "count": 1,
-      "reason": "Entschieden. Ein Kategorie-Vorschlag. Bleibt er aus, fehlt eine Anregung; die Kategorienliste selbst kommt von aussen und hat ihren eigenen Fehlerzustand."
-    },
     "src/components/settings/NavFeatureSettings.tsx": {
       "count": 1,
       "reason": "Entschieden. Voreinstellung; ohne sie zeigt die App ihren Standard-Funktionsumfang."
@@ -44,6 +40,10 @@
     "src/components/settings/PrivacySyncAnalyticsSettings.tsx": {
       "count": 1,
       "reason": "Entschieden. Zeitpunkt der letzten Synchronisation. Ist er nicht lesbar, steht dort nichts statt eines falschen Datums."
+    },
+    "src/features/settings/application/use-settings-overview.ts": {
+      "count": 1,
+      "reason": "Entschieden. Ein Kategorie-Vorschlag. Bleibt er aus, fehlt eine Anregung; die Kategorienliste selbst und die Einstellungen haben ihren gemeinsamen Fehlerzustand in `hasLoadError`. Lag zuvor in CategoryManager.tsx."
     },
     "src/features/trading/application/use-etoro-account.ts": {
       "count": 5,

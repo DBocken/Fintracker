@@ -82,6 +82,31 @@ export interface HierarchicalCategory extends Category {
 }
 
 /**
+ * Vorschlag, eine Kategorie auf bisher anders zugeordnete Buchungen anzuwenden.
+ *
+ * Der `transaction-service` rechnet ihn aus, die Kategorieverwaltung stellt ihn
+ * dar — ein Typ, den Service UND Oberfläche brauchen, gehört damit nach
+ * `src/lib/` (AGENTS.md §3, „Wohin ein Typ gehört"). Bis WP 6.5b stand er im
+ * Service, und die Oberfläche musste ihn von dort holen: ein Griff in die
+ * I/O-Schicht, den `pnpm check:view-data` zu Recht mitgezählt hat.
+ */
+export interface CategorySuggestion {
+  category: Category;
+  affectedCount: number;
+}
+
+/**
+ * Vorzustand eines Kategorisierungsfeldes, um eine Sammeländerung rückgängig
+ * zu machen (Invariante 12). Aus demselben Grund hier und nicht im Service:
+ * Die Fläche hält den Vorrat, der Service schreibt ihn zurück.
+ */
+export interface CategorizationSnapshotEntry {
+  id: string;
+  category_id: string | null;
+  auto_mapped: boolean;
+}
+
+/**
  * Sonderkategorie („Anlass") – eine quer zur Kategorie-Hierarchie liegende
  * Dimension, die Buchungen aus beliebigen Kategorien, Konten und Zahlungswegen
  * zu einem Ereignis bündelt (z. B. „Flitterwochen"). Eine Buchung behält immer

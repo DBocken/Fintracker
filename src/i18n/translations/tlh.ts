@@ -857,6 +857,8 @@ export const tlh = {
       year: "wa' DIS",
       years: "{years} DISmey",
     },
+    retentionLabel: "polghach",
+    retentionMonthsShort: "{months} jar",
     settingsSaved: "chenmoHghach polta'",
     saveFailed: "polmeH Qagh",
     categorySaved: "'ay' polta'",

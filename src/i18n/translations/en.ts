@@ -1109,6 +1109,8 @@ export const en = {
       year: '1 year',
       years: '{years} years',
     },
+    retentionLabel: 'Retention',
+    retentionMonthsShort: '{months} mo',
     settingsSaved: 'Settings saved',
     saveFailed: 'Error saving',
     categorySaved: 'Category saved',

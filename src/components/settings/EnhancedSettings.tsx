@@ -1,22 +1,8 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, ShieldCheck, Tags, Wand2, Trash2, HardDrive, Palette, Languages, Home, LayoutList } from 'lucide-react';
-import { showError, showSuccess } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
-import type { HierarchicalCategory, Transaction, Category } from '../../types';
-import {
-  getUserSettings,
-  updateUserSettings,
-  getHierarchicalCategories,
-  saveCategory,
-  updateCategory,
-  recategorizeTransactions,
-  restoreCategorization,
-  getCategoryPreview,
-  type CategorizationSnapshotEntry,
-} from '../../services/transaction-service';
-import { deleteCategory } from '../../services/category-service';
+import type { HierarchicalCategory } from '../../types';
+import { useSettingsOverview } from '@/features/settings/application/use-settings-overview';
 import { CategoryManager } from './CategoryManager';
 import { CategoryPreview } from './CategoryPreview';
 import { TimeRangeSettings } from './TimeRangeSettings';
@@ -66,170 +52,19 @@ function SectionHeader({
 
 export function EnhancedSettings() {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const [editingCategory, setEditingCategory] = useState<HierarchicalCategory | null>(null);
-  const [affectedTransactions, setAffectedTransactions] = useState<Transaction[]>([]);
-  const [undoSnapshot, setUndoSnapshot] = useState<CategorizationSnapshotEntry[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
-  const [bulkResults, setBulkResults] = useState<{ total: number; assigned: number; unassigned: number } | null>(null);
-
-  const {
-    data: settings,
-    isError: settingsError,
-    refetch: refetchSettings,
-  } = useQuery({
-    queryKey: ['userSettings'],
-    queryFn: getUserSettings,
-  });
   const businessMode = useBusinessMode();
-
-  const {
-    data: categories = [],
-    isError: categoriesError,
-    refetch: refetchCategories,
-  } = useQuery({
-    queryKey: ['hierarchicalCategories'],
-    queryFn: getHierarchicalCategories,
-  });
-
-  // Der Fallback `[]` ist hier besonders teuer: Die Kennzahl zeigt dann „0
-  // Kategorien" und die Kategorieverwaltung eine leere Liste — wer daraufhin
-  // neu anlegt, erzeugt Duplikate zu Kategorien, die es laengst gibt. Eine
-  // Einstellungsseite ohne ihre Einstellungen ist ausserdem nicht bedienbar,
-  // deshalb EINE Aussage fuer die ganze Flaeche statt einer je Rubrik.
-  const hasLoadError = settingsError || categoriesError;
-  const retryAll = () => {
-    void refetchSettings();
-    void refetchCategories();
-  };
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: updateUserSettings,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
-      showSuccess(t('settings.settingsSaved', 'Einstellungen gespeichert'));
-    },
-    onError: () => showError(t('settings.saveFailed', 'Fehler beim Speichern')),
-  });
-
-  const saveCategoryMutation = useMutation({
-    mutationFn: (category: Partial<Category> & { name: string }) => {
-      if (category.id) {
-        return updateCategory(category as Category);
-      }
-      return saveCategory(category as Omit<Category, 'id'>);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hierarchicalCategories'] });
-      queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      showSuccess(t('settings.categorySaved', 'Kategorie gespeichert'));
-      setEditingCategory(null);
-    },
-    onError: () => showError(t('settings.saveFailed', 'Fehler beim Speichern')),
-  });
-
-  const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => deleteCategory(id),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['hierarchicalCategories'] });
-      queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      // Referenzierende Daten wurden mitbereinigt → deren Queries auffrischen.
-      queryClient.invalidateQueries({ queryKey: ['budget-overview'] });
-      queryClient.invalidateQueries({ queryKey: ['merchant-rules'] });
-      const cleanup = [
-        result.deletedBudgets
-          ? t('settings.budgetsRemoved').replace('{count}', String(result.deletedBudgets))
-          : '',
-        result.deletedRules
-          ? t('settings.rulesRemoved').replace('{count}', String(result.deletedRules))
-          : '',
-      ].filter(Boolean).join(', ');
-      showSuccess(cleanup ? t('settings.categoryDeletedWithCleanup', 'Kategorie gelöscht ({cleanup})').replace('{cleanup}', cleanup) : t('settings.categoryDeleted', 'Kategorie gelöscht'));
-    },
-    onError: () => showError(t('settings.deleteFailed', 'Fehler beim Löschen')),
-  });
-
-  const recategorizeMutation = useMutation({
-    mutationFn: recategorizeTransactions,
-    onMutate: () => {
-      setBulkStatus('processing');
-    },
-    onSuccess: (summary) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      showSuccess(t('settings.recategorizationSuccess', 'Transaktionen neu kategorisiert'));
-      // Vorwerte der geänderten Buchungen für ein echtes Undo vorhalten (F-UX-1).
-      setUndoSnapshot(summary.undo);
-      setBulkResults({
-        total: summary.total,
-        assigned: summary.assigned,
-        unassigned: summary.unassigned,
-      });
-      setBulkStatus('completed');
-    },
-    onError: () => {
-      showError(t('settings.recategorizationError', 'Fehler bei der Neukategorisierung'));
-      setBulkStatus('idle');
-    },
-  });
-
-  const undoMutation = useMutation({
-    mutationFn: restoreCategorization,
-    onSuccess: (restored) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['category-suggestion'] });
-      setUndoSnapshot([]);
-      showSuccess(t('settings.undoRestored', '{count} Buchungen zurückgesetzt').replace('{count}', String(restored)));
-    },
-    onError: () => showError(t('settings.undoFailed', 'Rückgängig machen fehlgeschlagen')),
-  });
-
-  const handleCategorySave = (categoryData: Partial<Category> & { name: string }) => {
-    saveCategoryMutation.mutate(categoryData);
-  };
+  // Sämtliche Datenzugriffe der Fläche liegen seit WP 6.5b im ViewModel der
+  // Slice (`features/settings/application`) — hier bleibt die Darstellung.
+  const settings = useSettingsOverview();
 
   const handleCategoryDelete = (category: HierarchicalCategory) => {
     if (category.id) {
-      deleteCategoryMutation.mutate(category.id);
+      settings.deleteCategory(category.id);
     }
   };
 
-  const handleCategoryEdit = (category: HierarchicalCategory) => {
-    setEditingCategory(category);
-  };
-
-  const handlePreview = async () => {
-    if (!editingCategory?.id) {
-      showError(t('settings.selectCategoryFirst', 'Bitte zuerst eine Kategorie auswählen'));
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const transactions = await getCategoryPreview(editingCategory.id);
-      setAffectedTransactions(transactions);
-    } catch {
-      showError(t('settings.previewLoadError', 'Fehler beim Laden der Vorschau'));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleApply = () => {
-    recategorizeMutation.mutate();
-  };
-
-  const handleUndo = () => {
-    if (undoSnapshot.length === 0) {
-      showError(t('settings.nothingToUndo', 'Nichts zum Rückgängigmachen'));
-      return;
-    }
-    undoMutation.mutate(undoSnapshot);
-  };
-
-  if (hasLoadError) {
-    return <FinanceErrorState variant="data" onRetry={retryAll} />;
+  if (settings.hasLoadError) {
+    return <FinanceErrorState variant="data" onRetry={settings.retry} />;
   }
 
   return (
@@ -254,8 +89,14 @@ export function EnhancedSettings() {
             <InfoStatStrip
               className="md:min-w-[280px]"
               items={[
-                { label: t('common.categoriesLabel'), value: categories.length },
-                { label: "Aufbewahrung", value: `${settings?.retention_months || 36} M` },
+                { label: t('common.categoriesLabel'), value: settings.categoryCount },
+                {
+                  label: t('settings.retentionLabel', 'Aufbewahrung'),
+                  value: t('settings.retentionMonthsShort', '{months} M').replace(
+                    '{months}',
+                    String(settings.retentionMonths),
+                  ),
+                },
               ]}
             />
           </div>
@@ -269,19 +110,20 @@ export function EnhancedSettings() {
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <CategoryManager
-              categories={categories}
-              onCategorySave={handleCategorySave}
+              categories={settings.categories}
+              suggestion={settings.categorySuggestion}
+              onCategorySave={settings.saveCategory}
               onCategoryDelete={handleCategoryDelete}
-              onCategoryEdit={handleCategoryEdit}
-              onApplySuggestion={() => recategorizeMutation.mutate()}
+              onCategoryEdit={(category) => settings.selectCategory(category.id)}
+              onApplySuggestion={settings.recategorize}
             />
             <CategoryPreview
-              category={editingCategory}
-              affectedTransactions={affectedTransactions}
-              onPreview={handlePreview}
-              onApply={handleApply}
-              onUndo={handleUndo}
-              isProcessing={isProcessing}
+              category={settings.preview.category}
+              affectedTransactions={settings.preview.transactions}
+              onPreview={() => void settings.loadPreview()}
+              onApply={settings.recategorize}
+              onUndo={settings.undoRecategorization}
+              isProcessing={settings.preview.isLoading}
             />
           </div>
         </section>
@@ -337,19 +179,19 @@ export function EnhancedSettings() {
           />
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <TimeRangeSettings
-              retentionMonths={settings?.retention_months || 36}
-              onRetentionChange={(months) => updateSettingsMutation.mutate({ retention_months: months })}
+              retentionMonths={settings.retentionMonths}
+              onRetentionChange={settings.setRetentionMonths}
             />
             <AutoCategorizationSettings
-              autoConfirm={settings?.auto_confirm_mapping || false}
-              onAutoConfirmChange={(enabled) => updateSettingsMutation.mutate({ auto_confirm_mapping: enabled })}
+              autoConfirm={settings.autoConfirmMapping}
+              onAutoConfirmChange={settings.setAutoConfirmMapping}
             />
             <BulkAssignment
-              status={bulkStatus}
-              results={bulkResults}
-              onBulkAssign={() => recategorizeMutation.mutate()}
-              onRecategorize={() => recategorizeMutation.mutate()}
-              isRecategorizing={recategorizeMutation.isPending}
+              status={settings.bulk.status}
+              results={settings.bulk.results}
+              onBulkAssign={settings.recategorize}
+              onRecategorize={settings.recategorize}
+              isRecategorizing={settings.bulk.isRunning}
             />
             {/* Prozent-Regler wird vom Einzelunternehmer-Modus mitgenutzt —
                 im Modus sichtbar auch ohne Creator-Pack. Der Modus selbst wird
