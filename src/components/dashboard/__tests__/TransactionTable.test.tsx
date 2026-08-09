@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Account, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { TransactionTable } from '../TransactionTable';
 
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
@@ -12,7 +13,7 @@ import { getAccounts } from '@/services/account-service';
 const noop = () => {};
 
 const transaction: Transaction = {
-  id: 'tx-1',
+  id: asTransactionId('tx-1'),
   date: '2026-06-21',
   amount: -12.34,
   payee: 'REWE',

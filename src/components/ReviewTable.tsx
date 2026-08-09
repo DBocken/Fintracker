@@ -23,6 +23,7 @@ import {
 import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Transaction, HierarchicalCategory } from '../types';
+import { asTransactionId } from '@/lib/ids';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getMerchantRules } from '../services/merchant-rules-service';
 import { buildAutoCategoryPreview } from '@/lib/review-preview';
@@ -115,7 +116,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     setRows(
       (transactions || []).map((t, i) => ({
         ...t,
-        id: t.id || `temp-${i}`,
+        id: t.id || asTransactionId(`temp-${i}`),
         category_id: t.category_id || null,
       }))
     );

@@ -7,8 +7,10 @@
  * `src/types.ts` (WP 5.2, DOM-3).
  */
 
+import type { TransactionId } from "./ids";
+
 export interface Transaction {
-  id?: string;
+  id?: TransactionId;
   account_id?: string | null;
   date: string;
   amount: number;

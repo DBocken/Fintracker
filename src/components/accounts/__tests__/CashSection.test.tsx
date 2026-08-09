@@ -40,6 +40,7 @@ import { CashSection } from '../CashSection';
 import { getAccounts, createAccount } from '@/services/account-service';
 import { getTransactions } from '@/services/transaction-service';
 import { detectCashWithdrawals, findCashAccount, moveWithdrawalToCash } from '@/services/cash-service';
+import { asTransactionId } from '@/lib/ids';
 
 function makeAccount(overrides: Partial<Account>): Account {
   return {
@@ -56,9 +57,8 @@ function makeAccount(overrides: Partial<Account>): Account {
   };
 }
 
-function makeTx(overrides: Partial<Transaction>): Transaction {
+function makeTx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: 'tx-1',
     date: '2026-06-10',
     amount: -50,
     payee: 'Geldautomat',
@@ -67,6 +67,13 @@ function makeTx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId('tx-1'),
   };
 }
 

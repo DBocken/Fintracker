@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { renderWithProviders } from '@/test-utils/render';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import type { Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import type { ContractDecision } from '@/lib/contract-types';
 import type { CityLabelsHandle, CityLabelsProps } from '@/features/finance-city/presentation/CityLabels';
 import type { CityControlsApi } from '@/features/finance-city/presentation/CityCanvas';
@@ -202,7 +203,7 @@ function monthsAgoISO(months: number): string {
 
 const FIXTURE_TRANSACTIONS: Transaction[] = [
   {
-    id: 'tx-netflix',
+    id: asTransactionId('tx-netflix'),
     date: daysAgoISO(5),
     amount: -17.99,
     payee: 'Netflix',
@@ -215,7 +216,7 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
   {
     // WP-D4: ältere, GÜNSTIGERE Netflix-Buchung — macht die Sheet-Buchungsliste
     // mehrzeilig und den Preis-Trend-Hinweis (+2,00 €) deterministisch testbar.
-    id: 'tx-netflix-old',
+    id: asTransactionId('tx-netflix-old'),
     date: daysAgoISO(35),
     amount: -15.99,
     payee: 'Netflix',
@@ -226,7 +227,7 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
     category_id: CAT_STREAMING,
   },
   {
-    id: 'tx-hbo',
+    id: asTransactionId('tx-hbo'),
     date: daysAgoISO(8),
     amount: -9.99,
     payee: 'HBO',
@@ -246,7 +247,7 @@ const FIXTURE_TRANSACTIONS: Transaction[] = [
   // Monate 1..3 (nicht 0): der 15. des LAUFENDEN Monats läge in der ersten
   // Monatshälfte in der Zukunft und fiele aus dem Stream-Fenster.
   ...[1, 2, 3].map((monthsAgo) => ({
-    id: `tx-gehalt-${monthsAgo}`,
+    id: asTransactionId(`tx-gehalt-${monthsAgo}`),
     date: monthsAgoISO(monthsAgo),
     amount: 3000,
     payee: 'Muster GmbH',

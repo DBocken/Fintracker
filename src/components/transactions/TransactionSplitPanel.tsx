@@ -91,7 +91,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
   const isBalanced = openMinor === 0;
 
   const validation = validateAllocations(
-    { id: txId, amount: transaction.amount },
+    { id: transaction.id, amount: transaction.amount },
     rows
       .filter((r) => rowMinor(r) !== 0)
       .map((r) => ({
@@ -116,7 +116,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
           label: r.label || null,
           source: 'manual' as const,
         }));
-      await setAllocations({ id: txId, amount: transaction.amount }, inputs);
+      await setAllocations({ id: transaction.id, amount: transaction.amount }, inputs);
     },
     onSuccess: () => {
       showSuccess(t("transactionSplit.saveSplitSuccess"));

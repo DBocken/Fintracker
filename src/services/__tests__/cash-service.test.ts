@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { detectCashWithdrawals, recordCashWithdrawal, findCashAccount } from "../cash-service";
 import { getTransactions } from "../transaction-service";
 import type { Account, Transaction } from "../../types";
+import { asTransactionId } from '@/lib/ids';
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: overrides.id || crypto.randomUUID(),
     date: "2026-06-01",
     amount: 0,
     payee: "",
@@ -14,6 +14,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : asTransactionId(overrides.id || crypto.randomUUID()),
   };
 }
 

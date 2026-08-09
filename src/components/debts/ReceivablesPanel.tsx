@@ -25,6 +25,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { ReceivableFormDialog } from "@/components/debts/ReceivableFormDialog";
 import type { Receivable, Transaction } from "@/types";
+import type { TransactionId } from "@/lib/ids";
 import { getTransactions } from "@/services/transaction-service";
 import {
   getReceivables,
@@ -173,11 +174,11 @@ export function ReceivablesPanel() {
 
   // Vorgeschlagene (auch kleine) Rückzahlungen für die ausgewählte Forderung.
   const suggestedIds = useMemo(() => {
-    if (!selectedReceivable) return new Set<string>();
+    if (!selectedReceivable) return new Set<TransactionId>();
     return new Set(
       suggestReceivableRepayments(selectedReceivable, incomingTransactions)
         .map((t) => t.id)
-        .filter((id): id is string => !!id),
+        .filter((id): id is TransactionId => !!id),
     );
   }, [selectedReceivable, incomingTransactions]);
 

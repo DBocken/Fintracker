@@ -11,6 +11,7 @@ import {
 import { createTransaction } from "../transaction-service";
 import { writeLocalFinanceList } from "../local-finance-store";
 import type { Receivable, Transaction } from "../../types";
+import { asTransactionId } from "../../lib/ids";
 
 function makeReceivable(overrides: Partial<Receivable>): Receivable {
   return {
@@ -46,9 +47,9 @@ describe("suggestReceivableRepayments", () => {
   it("matches incoming transactions by debtor name and ignores outgoing", () => {
     const receivable = makeReceivable({ name: "Ticket", debtor: "Max Mustermann" });
     const txs: Transaction[] = [
-      { id: "1", date: "2026-06-01", amount: 20, payee: "Max Mustermann", description: "", original_text: "", auto_mapped: false, confirmed: false },
-      { id: "2", date: "2026-06-02", amount: -20, payee: "Max Mustermann", description: "", original_text: "", auto_mapped: false, confirmed: false },
-      { id: "3", date: "2026-06-03", amount: 99, payee: "Edeka", description: "", original_text: "", auto_mapped: false, confirmed: false },
+      { id: asTransactionId("1"), date: "2026-06-01", amount: 20, payee: "Max Mustermann", description: "", original_text: "", auto_mapped: false, confirmed: false },
+      { id: asTransactionId("2"), date: "2026-06-02", amount: -20, payee: "Max Mustermann", description: "", original_text: "", auto_mapped: false, confirmed: false },
+      { id: asTransactionId("3"), date: "2026-06-03", amount: 99, payee: "Edeka", description: "", original_text: "", auto_mapped: false, confirmed: false },
     ];
     const matches = suggestReceivableRepayments(receivable, txs);
     expect(matches.map((t) => t.id)).toEqual(["1"]);

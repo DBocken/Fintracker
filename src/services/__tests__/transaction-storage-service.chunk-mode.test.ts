@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { idbGet, idbKeys, idbSet, clearLocalKvStore } from '../idb-kv';
 import { localEncryption } from '../local-crypto';
 import { transactionStorage } from '../transaction-storage-service';
@@ -14,9 +15,9 @@ import { getTransactions, saveTransactions, updateTransaction, deleteTransaction
  * Legacy-Zweig bleiben (`hasLegacyV3Blob`).
  */
 
-function tx(id: string, date: string, overrides: Partial<Transaction> = {}): Transaction {
+function tx(id: string, date: string, overrides: Omit<Partial<Transaction>, 'id'> = {}): Transaction {
   return {
-    id,
+    id: asTransactionId(id),
     date,
     amount: -12.34,
     payee: 'REWE',

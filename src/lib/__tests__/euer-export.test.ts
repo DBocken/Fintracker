@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { buildEuerCsv, euerCsvFilename } from '../euer-export';
 import { buildEuerReport } from '../euer-report';
 import type { Account, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 const translate = (_key: string, fallback?: string) => fallback ?? _key;
 
 let seq = 0;
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   seq += 1;
   return {
-    id: overrides.id || `tx-${seq}`,
     account_id: 'biz',
     date: '2025-05-10',
     amount: -100,
@@ -19,6 +19,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    id: asTransactionId(overrides.id || `tx-${seq}`),
   };
 }
 

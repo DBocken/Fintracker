@@ -7,14 +7,15 @@
  * Laufzeit ist ein gebrandeter ID-Wert ein ganz normaler `string`,
  * `JSON.stringify`, IndexedDB-Keys und Objektgleichheit sehen ihn unverändert.
  *
- * Angewendet wird der Brand NICHT auf die bestehenden `id`/`*_id`-Felder in
- * `Transaction`/`Account`/`Category` u. a. — siehe Bericht zu WP 5.2: Die
- * Messung ergab, dass das Branden von `Transaction['id']` allein bereits
- * hunderte Fundstellen bricht (rohe String-Literale in Test-Fixtures,
- * `crypto.randomUUID()`-Zuweisungen, Objekt-Keys). Diese Datei stellt die
- * Brand-Typen und ihre Konstruktoren bereit, ohne sie an bestehende Felder zu
- * zwingen — Umstellung einzelner, klar abgegrenzter Signaturen ist ein
- * eigener Folgeschritt (siehe Bericht).
+ * Angewendet ist der Brand seit WP 5.2b auf `Transaction['id']`. In WP 5.2
+ * lagen die Typen hier noch UNBENUTZT bereit — das ist die Fehlerklasse aus
+ * `docs/qualitaet-2026-08/nachpruefung.md` 3.b („der Mechanismus war da, nur
+ * fragte ihn niemand"), und genau deshalb stand das Anwenden als eigenes
+ * Paket im Plan statt als Absichtserklärung in diesem Kommentar.
+ *
+ * `Account['id']` und `Category['id']` sind NICHT gebrandet: gemessen in
+ * WP 5.2 brachen sie zusammen 812 Stellen in 129 Dateien, gegenüber 447 für
+ * `Transaction['id']` allein. Wer sie nachzieht, misst zuerst neu.
  */
 
 export type TransactionId = string & { readonly __brand: "TransactionId" };

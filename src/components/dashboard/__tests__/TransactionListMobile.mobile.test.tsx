@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Account, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { TransactionListMobile } from '../TransactionListMobile';
 import { buildDayGroups, formatDayHeading } from '../transaction-day-groups';
 
@@ -11,7 +12,7 @@ vi.mock('@/services/account-service', () => ({ getAccounts: vi.fn() }));
 import { getAccounts } from '@/services/account-service';
 
 const transaction: Transaction = {
-  id: 'tx-1',
+  id: asTransactionId('tx-1'),
   date: '2026-06-21',
   amount: -12.34,
   payee: 'REWE',
@@ -104,8 +105,8 @@ describe('[MOBILE] transaction row interaction', () => {
 // `buildDayGroups` direkt.
 describe('[MOBILE] Tageskopf (WP 5.5 / KOMP-3)', () => {
   const now = new Date('2026-07-03T12:00:00');
-  const today: Transaction = { ...transaction, id: 'tx-today', date: '2026-07-03', payee: 'Lieferando' };
-  const yesterday: Transaction = { ...transaction, id: 'tx-yesterday', date: '2026-07-02', payee: 'Rewe' };
+  const today: Transaction = { ...transaction, id: asTransactionId('tx-today'), date: '2026-07-03', payee: 'Lieferando' };
+  const yesterday: Transaction = { ...transaction, id: asTransactionId('tx-yesterday'), date: '2026-07-02', payee: 'Rewe' };
 
   it('sollte den Tageskopf bilingual mit „Heute"/„Gestern" bzw. „Today"/„Yesterday" zeigen', () => {
     const { unmount } = renderWithI18n(
@@ -143,7 +144,7 @@ describe('[MOBILE] Tageskopf (WP 5.5 / KOMP-3)', () => {
   });
 
   it('sollte ein älteres Datum weiterhin als Datum zeigen, nicht als „Heute"/„Gestern"', () => {
-    const older: Transaction = { ...transaction, id: 'tx-older', date: '2026-06-20', payee: 'Miete' };
+    const older: Transaction = { ...transaction, id: asTransactionId('tx-older'), date: '2026-06-20', payee: 'Miete' };
     renderWithI18n(
       <TransactionListMobile
         transactions={[older]}
@@ -165,8 +166,8 @@ describe('[MOBILE] Tageskopf (WP 5.5 / KOMP-3)', () => {
     const transactions: Transaction[] = [
       today,
       yesterday,
-      { ...transaction, id: 'tx-yesterday-2', date: '2026-07-02', payee: 'Bäckerei' },
-      { ...transaction, id: 'tx-june', date: '2026-06-30', payee: 'Gehalt' },
+      { ...transaction, id: asTransactionId('tx-yesterday-2'), date: '2026-07-02', payee: 'Bäckerei' },
+      { ...transaction, id: asTransactionId('tx-june'), date: '2026-06-30', payee: 'Gehalt' },
     ];
     const expectedGroups = buildDayGroups(transactions, 0);
 

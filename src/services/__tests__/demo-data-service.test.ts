@@ -13,6 +13,7 @@ import { clearLocalKvStore } from "../idb-kv";
 import { localEncryption } from "../local-crypto";
 import { buildDefaultCategories } from "../../data/merchant-keywords";
 import type { Account, Debt, Transaction } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 
 const NOW = new Date("2026-06-12T12:00:00Z");
 
@@ -96,7 +97,7 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
 
   it("vermischt sich nie mit echten Daten: Entfernen lässt echte Datensätze stehen", async () => {
     const realTx: Transaction = {
-      id: crypto.randomUUID(),
+      id: asTransactionId(crypto.randomUUID()),
       date: "2026-05-01",
       amount: -19.99,
       payee: "Echter Händler",

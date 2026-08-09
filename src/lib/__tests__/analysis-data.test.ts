@@ -17,6 +17,7 @@ import {
 } from '../analysis-data';
 import type { SunburstNode } from '../analysis-data';
 import type { Account, Transaction, Category, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * Integration tests for the analysis-data sunburst visualization
@@ -114,25 +115,25 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
     it('builds sunburst with all 4 super categories from spending transactions', () => {
       const transactions: Transaction[] = [
         // Essenziell - Wohnen
-        { id: '1', date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Rent', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Rent', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Essenziell - Strom (contract)
-        { id: '2', date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR', is_contract: true, contract_cycle: 'monthly' },
+        { id: asTransactionId('2'), date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR', is_contract: true, contract_cycle: 'monthly' },
         // Essenziell - Wasser
-        { id: '3', date: '2024-06-01', amount: -30, payee: 'Water Co', description: 'Water', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('3'), date: '2024-06-01', amount: -30, payee: 'Water Co', description: 'Water', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Essenziell - Lebensmittel
-        { id: '4', date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('4'), date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Diskretionaer - Streaming
-        { id: '5', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('5'), date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Diskretionaer - Restaurants
-        { id: '6', date: '2024-06-03', amount: -45, payee: 'Pizza Palace', description: 'Dinner', original_text: 'Pizza', category_id: 'restaurants', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('6'), date: '2024-06-03', amount: -45, payee: 'Pizza Palace', description: 'Dinner', original_text: 'Pizza', category_id: 'restaurants', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Sparen - Tagesgeld
-        { id: '7', date: '2024-06-03', amount: -200, payee: 'Trade Republic', description: 'Savings', original_text: 'TR', category_id: 'tagesgeld', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('7'), date: '2024-06-03', amount: -200, payee: 'Trade Republic', description: 'Savings', original_text: 'TR', category_id: 'tagesgeld', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Sparen - ETF
-        { id: '8', date: '2024-06-04', amount: -500, payee: 'Trade Republic', description: 'ETF Plan', original_text: 'TR', category_id: 'etf', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('8'), date: '2024-06-04', amount: -500, payee: 'Trade Republic', description: 'ETF Plan', original_text: 'TR', category_id: 'etf', auto_mapped: true, confirmed: true, currency: 'EUR' },
         // Uncategorized
-        { id: '9', date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Cash withdrawal', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+        { id: asTransactionId('9'), date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Cash withdrawal', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
         // Income (should not appear in spending sunburst)
-        { id: '10', date: '2024-06-05', amount: 3000, payee: 'Employer', description: 'Monthly salary', original_text: 'Salary', category_id: 'gehalt', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('10'), date: '2024-06-05', amount: 3000, payee: 'Employer', description: 'Monthly salary', original_text: 'Salary', category_id: 'gehalt', auto_mapped: true, confirmed: true, currency: 'EUR' },
       ];
 
       const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
@@ -165,9 +166,9 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
 
     it('properly categorizes subcategories under correct parent ausgabenklasse', () => {
       const transactions: Transaction[] = [
-        { id: '1', date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
-        { id: '2', date: '2024-06-01', amount: -30, payee: 'Water Co', description: 'Water', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
-        { id: '3', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('2'), date: '2024-06-01', amount: -30, payee: 'Water Co', description: 'Water', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('3'), date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
       ];
 
       const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
@@ -228,9 +229,9 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
   describe('Edge cases and robustness', () => {
     it('handles mixed transactions with some having no category', () => {
       const transactions: Transaction[] = [
-        { id: '1', date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
-        { id: '2', date: '2024-06-02', amount: -50, payee: 'Unknown', description: 'Cash', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
-        { id: '3', date: '2024-06-03', amount: -30, payee: 'Another', description: 'Unknown', original_text: 'Unknown', auto_mapped: false, confirmed: false, currency: 'EUR' },
+        { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('2'), date: '2024-06-02', amount: -50, payee: 'Unknown', description: 'Cash', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+        { id: asTransactionId('3'), date: '2024-06-03', amount: -30, payee: 'Another', description: 'Unknown', original_text: 'Unknown', auto_mapped: false, confirmed: false, currency: 'EUR' },
       ];
 
       const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
@@ -249,8 +250,8 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
 
     it('ignores transfer transactions (is_transfer flag)', () => {
       const transactions: Transaction[] = [
-        { id: '1', date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
-        { id: '2', date: '2024-06-01', amount: -500, payee: 'Savings Account', description: 'Transfer', original_text: 'Transfer', is_transfer: true, auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+        { id: asTransactionId('2'), date: '2024-06-01', amount: -500, payee: 'Savings Account', description: 'Transfer', original_text: 'Transfer', is_transfer: true, auto_mapped: true, confirmed: true, currency: 'EUR' },
       ];
 
       const sunburst = buildSpendingSunburst(transactions, fullCategoryHierarchy);
@@ -265,11 +266,11 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
   // Donut-Hover nicht greift.
   describe('buildSunburstBreakdown (mobile hierarchy)', () => {
     const transactions: Transaction[] = [
-      { id: '1', date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Rent', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '2', date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '3', date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '4', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '5', date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Cash', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+      { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Rent', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('2'), date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Electricity', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('3'), date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('4'), date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Subscription', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('5'), date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Cash', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
     ];
 
     describe('Normal Behavior', () => {
@@ -347,19 +348,19 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
 
     const transactions: Transaction[] = [
       // Essenziell > Wohnen > Strom (Unterkategorie)
-      { id: '1', date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('1'), date: '2024-06-01', amount: -80, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Essenziell > Wohnen > Wasser (Unterkategorie)
-      { id: '2', date: '2024-06-01', amount: -30, payee: 'Water', description: 'Wasser', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('2'), date: '2024-06-01', amount: -30, payee: 'Water', description: 'Wasser', original_text: 'Water', category_id: 'wasser', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Essenziell > Wohnen direkt (ohne Unterkategorie)
-      { id: '3', date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Miete', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('3'), date: '2024-06-01', amount: -100, payee: 'Landlord', description: 'Miete', original_text: 'Rent', category_id: 'wohnen', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Essenziell > Lebensmittel (Hauptkategorie ohne Unterkategorien)
-      { id: '4', date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Einkauf', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('4'), date: '2024-06-02', amount: -50, payee: 'REWE', description: 'Einkauf', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Diskretionaer > Unterhaltung > Streaming
-      { id: '5', date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Abo', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('5'), date: '2024-06-02', amount: -15, payee: 'Netflix', description: 'Abo', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Unkategorisiert
-      { id: '6', date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Bar', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
+      { id: asTransactionId('6'), date: '2024-06-04', amount: -25, payee: 'Unknown', description: 'Bar', original_text: 'ATM', auto_mapped: false, confirmed: false, currency: 'EUR' },
       // Einkommen — darf nicht auftauchen
-      { id: '7', date: '2024-06-05', amount: 3000, payee: 'Employer', description: 'Gehalt', original_text: 'Salary', category_id: 'gehalt', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('7'), date: '2024-06-05', amount: 3000, payee: 'Employer', description: 'Gehalt', original_text: 'Salary', category_id: 'gehalt', auto_mapped: true, confirmed: true, currency: 'EUR' },
     ];
 
     describe('Normal Behavior', () => {
@@ -443,18 +444,18 @@ describe('Analysis Data - Sunburst Visualization Integration', () => {
 
     it('summiert Einnahmen und Ausgaben ohne interne Überträge (Invariante 2)', () => {
       const txs = [
-        tx({ id: '1', amount: 2000 }),
-        tx({ id: '2', amount: -500 }),
-        tx({ id: '3', amount: 1000, is_transfer: true }),
-        tx({ id: '4', amount: -1000, is_transfer: true }),
+        tx({ id: asTransactionId('1'), amount: 2000 }),
+        tx({ id: asTransactionId('2'), amount: -500 }),
+        tx({ id: asTransactionId('3'), amount: 1000, is_transfer: true }),
+        tx({ id: asTransactionId('4'), amount: -1000, is_transfer: true }),
       ];
       expect(sumIncome(txs)).toBe(2000);
       expect(sumExpenses(txs)).toBe(500);
     });
 
     it('[REGRESSION] ein Transfer-Paar verändert die Summen nicht', () => {
-      const base = [tx({ id: '1', amount: 2000 }), tx({ id: '2', amount: -500 })];
-      const withTransfer = [...base, tx({ id: '3', amount: 800, is_transfer: true }), tx({ id: '4', amount: -800, is_transfer: true })];
+      const base = [tx({ id: asTransactionId('1'), amount: 2000 }), tx({ id: asTransactionId('2'), amount: -500 })];
+      const withTransfer = [...base, tx({ id: asTransactionId('3'), amount: 800, is_transfer: true }), tx({ id: asTransactionId('4'), amount: -800, is_transfer: true })];
       expect(sumIncome(withTransfer)).toBe(sumIncome(base));
       expect(sumExpenses(withTransfer)).toBe(sumExpenses(base));
     });
@@ -475,9 +476,8 @@ describe('Income Breakdown & Over Time', () => {
     { id: 'versicherungen', name: 'Versicherungen', filters: [], parent_id: null, attributes: { ausgabenklasse: 'essenziell' } },
   ];
 
-  function itx(overrides: Partial<Transaction>): Transaction {
+  function itx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
     return {
-      id: overrides.id ?? crypto.randomUUID(),
       date: '2024-03-15',
       amount: 0,
       payee: '',
@@ -486,14 +486,15 @@ describe('Income Breakdown & Over Time', () => {
       auto_mapped: false,
       confirmed: false,
       ...overrides,
+      id: asTransactionId(overrides.id ?? crypto.randomUUID()),
     };
   }
 
   describe('buildIncomeBreakdown', () => {
     it('gruppiert Einnahmen nach Haupt- und Unterkategorie, total === Summe', () => {
       const txs: Transaction[] = [
-        itx({ id: '1', amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
-        itx({ id: '2', amount: 300, category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+        itx({ id: asTransactionId('1'), amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
+        itx({ id: asTransactionId('2'), amount: 300, category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
       ];
       const result = buildIncomeBreakdown(txs, incomeCategories);
       expect(result.total).toBe(2300);
@@ -505,9 +506,9 @@ describe('Income Breakdown & Over Time', () => {
 
     it('schließt Transfers und Ausgaben aus', () => {
       const txs: Transaction[] = [
-        itx({ id: '1', amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
-        itx({ id: '2', amount: 1000, is_transfer: true }),
-        itx({ id: '3', amount: -50, category_id: 'versicherungen' }),
+        itx({ id: asTransactionId('1'), amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
+        itx({ id: asTransactionId('2'), amount: 1000, is_transfer: true }),
+        itx({ id: asTransactionId('3'), amount: -50, category_id: 'versicherungen' }),
       ];
       const result = buildIncomeBreakdown(txs, incomeCategories);
       expect(result.total).toBe(2000);
@@ -515,7 +516,7 @@ describe('Income Breakdown & Over Time', () => {
 
     it('positive Buchung in einer Nicht-Einkommens-Kategorie landet unter "Sonstige Zuflüsse"', () => {
       const txs: Transaction[] = [
-        itx({ id: '1', amount: 15, category_id: 'versicherungen', description: 'Beitragsrückerstattung' }),
+        itx({ id: asTransactionId('1'), amount: 15, category_id: 'versicherungen', description: 'Beitragsrückerstattung' }),
       ];
       const result = buildIncomeBreakdown(txs, incomeCategories);
       expect(result.total).toBe(15);
@@ -529,7 +530,7 @@ describe('Income Breakdown & Over Time', () => {
           { id: 'a2', transaction_id: '1', category_id: 'verkaeufe', subcategory_id: 'onlineverkauf', amount_minor: 50000, source: 'manual' },
         ]],
       ]);
-      const txs: Transaction[] = [itx({ id: '1', amount: 2000 })];
+      const txs: Transaction[] = [itx({ id: asTransactionId('1'), amount: 2000 })];
       const result = buildIncomeBreakdown(txs, incomeCategories, allocationsByTx);
       expect(result.total).toBe(2000);
       expect(result.groups.find((g) => g.id === 'anstellung')?.value).toBe(1500);
@@ -545,8 +546,8 @@ describe('Income Breakdown & Over Time', () => {
   describe('buildIncomeOverTime', () => {
     it('aggregiert Einnahmen je Monat und Hauptkategorie, aufsteigend sortiert', () => {
       const txs: Transaction[] = [
-        itx({ id: '1', date: '2024-02-01', amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
-        itx({ id: '2', date: '2024-01-01', amount: 300, category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
+        itx({ id: asTransactionId('1'), date: '2024-02-01', amount: 2000, category_id: 'anstellung', subcategory_id: 'gehalt' }),
+        itx({ id: asTransactionId('2'), date: '2024-01-01', amount: 300, category_id: 'verkaeufe', subcategory_id: 'onlineverkauf' }),
       ];
       const result = buildIncomeOverTime(txs, incomeCategories);
       expect(result.map((p) => p.month)).toEqual(['2024-01', '2024-02']);
@@ -572,7 +573,7 @@ describe('buildSankeyData & buildWeekdayPattern (Sankey/Wochenmuster-Aufbereitun
     window.localStorage.removeItem('ausgabentracker_locale_v1');
   });
 
-  function tx(partial: Partial<Transaction>): Transaction {
+  function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
     return {
       date: '2026-01-05',
       amount: -10,
@@ -582,6 +583,7 @@ describe('buildSankeyData & buildWeekdayPattern (Sankey/Wochenmuster-Aufbereitun
       auto_mapped: false,
       confirmed: true,
       ...partial,
+    id: partial.id !== undefined ? asTransactionId(partial.id) : undefined,
     };
   }
 
@@ -977,8 +979,8 @@ describe('sumCategoryFlow', () => {
     ['clothes', { id: 'clothes', name: 'Kleidung', filters: [], parent_id: null } as Category],
     ['shoes', { id: 'shoes', name: 'Schuhe', filters: [], parent_id: 'clothes' } as Category],
   ]);
-  const aldi = tx({ id: 'aldi', amount: -50, category_id: 'food' });
-  const cua = tx({ id: 'cua', amount: -30, category_id: 'clothes' });
+  const aldi = tx({ id: asTransactionId('aldi'), amount: -50, category_id: 'food' });
+  const cua = tx({ id: asTransactionId('cua'), amount: -30, category_id: 'clothes' });
   const allocations = new Map<string, TransactionAllocation[]>([
     ['aldi', [
       { id: 'a-food', transaction_id: 'aldi', amount_minor: -3700, category_id: 'food', source: 'manual' } as TransactionAllocation,
@@ -1004,8 +1006,8 @@ describe('sumCategoryFlow', () => {
   });
 
   it('sollte Einnahmen und Ausgaben getrennt führen und Transfers ausschließen', () => {
-    const gehalt = tx({ id: 'inc', amount: 2000, category_id: 'food' });
-    const transfer = tx({ id: 'tr', amount: -500, category_id: 'food', is_transfer: true });
+    const gehalt = tx({ id: asTransactionId('inc'), amount: 2000, category_id: 'food' });
+    const transfer = tx({ id: asTransactionId('tr'), amount: -500, category_id: 'food', is_transfer: true });
     const result = sumCategoryFlow([gehalt, transfer, aldi], undefined, (id) => isCategoryInFilter(id, cats, 'food'));
     expect(result.income).toBeCloseTo(2000, 2);
     // Ohne Aufteilungs-Map zählt die Aldi-Buchung voll in ihrer eigenen Kategorie.
@@ -1013,8 +1015,8 @@ describe('sumCategoryFlow', () => {
   });
 
   it('sollte cent-genau summieren (keine Float-Drift)', () => {
-    const a = tx({ id: 'a', amount: -0.1, category_id: 'food' });
-    const b = tx({ id: 'b', amount: -0.2, category_id: 'food' });
+    const a = tx({ id: asTransactionId('a'), amount: -0.1, category_id: 'food' });
+    const b = tx({ id: asTransactionId('b'), amount: -0.2, category_id: 'food' });
     const result = sumCategoryFlow([a, b], undefined, (id) => isCategoryInFilter(id, cats, 'food'));
     expect(result.expenses).toBe(0.3);
   });

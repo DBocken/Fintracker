@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { deriveIncomeStreams, buildPayoutRadar } from '../income-streams';
 import type { IncomeStream } from '../income-streams';
 import type { Transaction, Category } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 const categories: Category[] = [
   { id: 'anstellung', name: 'Anstellung', filters: [], parent_id: null, attributes: { ausgabenklasse: 'einkommen' } },
@@ -13,9 +14,8 @@ const categories: Category[] = [
   { id: 'versicherungen', name: 'Versicherungen', filters: [], parent_id: null, attributes: { ausgabenklasse: 'essenziell' } },
 ];
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: overrides.id ?? crypto.randomUUID(),
     date: '2024-06-15',
     amount: 0,
     payee: '',
@@ -24,6 +24,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : asTransactionId(overrides.id ?? crypto.randomUUID()),
   };
 }
 

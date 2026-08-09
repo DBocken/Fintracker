@@ -12,8 +12,9 @@ import {
 } from "../transaction-allocation-service";
 import { writeLocalFinanceList } from "../local-finance-store";
 import type { Transaction, TransactionAllocation } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 
-const tx = (amount: number, id = "tx-1"): Pick<Transaction, "id" | "amount"> => ({ id, amount });
+const tx = (amount: number, id = "tx-1"): Pick<Transaction, "id" | "amount"> => ({ id: asTransactionId(id), amount });
 
 const alloc = (amount_minor: number, category_id: string | null, source: AllocationInput["source"] = "manual"): AllocationInput => ({
   amount_minor,

@@ -6,6 +6,7 @@ import { saveTransactions, updateTransaction, getTransactions } from '../transac
 import { transactionStorage } from '../transaction-storage-service';
 import type { Transaction } from '../../types';
 import { isBusinessModeEnabled } from '@/lib/life-situations';
+import { asTransactionId } from '@/lib/ids';
 
 beforeEach(async () => {
   localStorage.setItem('ausgabentracker_locale_v1', 'de');
@@ -47,9 +48,8 @@ describe('Einzelunternehmer-Modus (Opt-in)', () => {
 });
 
 describe('Transaction.euer_private an den Persistenz-Grenzen', () => {
-  function tx(overrides: Partial<Transaction>): Transaction {
+  function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
     return {
-      id: overrides.id || crypto.randomUUID(),
       date: '2026-03-01',
       amount: -50,
       payee: 'Baumarkt',
@@ -58,6 +58,7 @@ describe('Transaction.euer_private an den Persistenz-Grenzen', () => {
       auto_mapped: false,
       confirmed: false,
       ...overrides,
+      id: asTransactionId(overrides.id || crypto.randomUUID()),
     };
   }
 

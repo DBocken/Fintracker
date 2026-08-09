@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { draftFromTransaction, diffTransactionDraft, buildDetailTaxDefault } from '../transaction-details';
 import type { Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: 't1',
     date: '2025-05-10',
     amount: -1800,
     payee: 'Malerbetrieb',
@@ -13,6 +13,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId('t1'),
   };
 }
 

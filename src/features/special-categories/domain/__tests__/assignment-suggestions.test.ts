@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import {
   DEFAULT_LEAD_DAYS,
   suggestTransactionsForEvent,
   suggestionWindow,
 } from '../assignment-suggestions';
 
-function tx(id: string, date: string, over: Partial<Transaction> = {}): Transaction {
+function tx(id: string, date: string, over: Omit<Partial<Transaction>, 'id'> = {}): Transaction {
   return {
-    id,
     date,
     amount: -20,
     payee: 'P',
@@ -17,6 +17,7 @@ function tx(id: string, date: string, over: Partial<Transaction> = {}): Transact
     auto_mapped: false,
     confirmed: true,
     ...over,
+    id: asTransactionId(id),
   };
 }
 

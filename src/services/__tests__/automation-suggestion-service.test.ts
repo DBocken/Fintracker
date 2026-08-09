@@ -4,6 +4,7 @@ import { buildCategorySuggestion, buildCategorySuggestionFromResult, type Automa
 import { writeLocalFinanceList } from '../local-finance-store';
 import type { Transaction } from '@/types';
 import type { CategorizationResult } from '@/lib/categorization';
+import { asTransactionId } from '@/lib/ids';
 
 beforeEach(async () => {
   await writeLocalFinanceList('automationSuggestions', []);
@@ -26,9 +27,8 @@ function suggestion(overrides: Partial<AutomationSuggestion> = {}): AutomationSu
   };
 }
 
-function tx(overrides: Partial<Transaction> = {}): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string } = {}): Transaction {
   return {
-    id: 'tx-1',
     date: '2024-01-15',
     amount: -10,
     payee: 'REWE',
@@ -37,6 +37,13 @@ function tx(overrides: Partial<Transaction> = {}): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId('tx-1'),
   };
 }
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Transaction } from '@/types'
+import { asTransactionId } from '@/lib/ids'
 import { UNKNOWN_QUARTER_KEY } from '@/lib/transaction-quarter'
 import { clearLocalKvStore, idbGet, idbKeys, idbRemove, idbSet } from '../idb-kv'
 import { VaultCorruptError, localEncryption } from '../local-crypto'
@@ -22,7 +23,7 @@ import {
 
 function tx(id: string, date: string): Transaction {
   return {
-    id,
+    id: asTransactionId(id),
     date,
     amount: -12.34,
     payee: 'REWE',

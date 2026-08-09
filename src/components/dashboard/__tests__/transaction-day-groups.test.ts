@@ -1,16 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import type { Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { buildDayGroups, formatDayHeading } from '../transaction-day-groups';
 
-function tx(p: Partial<Transaction> & { date: string; amount: number }): Transaction {
+function tx(p: Omit<Partial<Transaction>, 'id'> & { date: string; amount: number; id?: string }): Transaction {
   return {
-    id: `${p.date}-${p.amount}-${Math.abs(p.amount)}`,
     payee: p.payee ?? 'Test',
     description: '',
     original_text: '',
     auto_mapped: false,
     confirmed: true,
     ...p,
+    id: asTransactionId(p.id ?? `${p.date}-${p.amount}-${Math.abs(p.amount)}`),
   };
 }
 

@@ -16,10 +16,11 @@ import type { ContractRow } from '@/lib/contract-types';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { calculateDeterministicForecast } from '@/lib/forecast';
+import { asTransactionId } from '@/lib/ids';
 
 const NOW = new Date('2026-06-15');
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
     date: '2026-06-01',
     amount: -10,
@@ -29,6 +30,7 @@ function tx(partial: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...partial,
+    id: partial.id !== undefined ? asTransactionId(partial.id) : undefined,
   };
 }
 

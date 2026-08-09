@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { DEFAULT_DASHBOARD_FILTERS } from '@/features/shared/domain/dashboard-filters';
 import type { FinanceOverviewViewModel } from '../../application/finance-overview-view-model';
 
@@ -64,7 +65,7 @@ const FIXTURE_ACCOUNTS: Account[] = [
 ];
 
 const FIXTURE_TRANSACTIONS: Transaction[] = [
-  { id: 'tx-1', date: '2026-05-05', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-1'), date: '2026-05-05', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
 ];
 
 const noop = () => {};

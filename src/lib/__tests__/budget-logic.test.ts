@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Budget, Category, Transaction, TransactionAllocation } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 import {
   budgetCategoryIds,
   computeBudgetSpent,
@@ -199,7 +200,7 @@ describe("budget-logic", () => {
       });
 
       it("sollte Split-Aufteilungen anteilig berücksichtigen", () => {
-        const txs = [tx({ id: "t1", date: "2026-06-01", amount: -100, category_id: "freizeit" })];
+        const txs = [tx({ id: asTransactionId("t1"), date: "2026-06-01", amount: -100, category_id: "freizeit" })];
         const allocations = new Map<string, TransactionAllocation[]>([
           [
             "t1",

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildSpendingSunburst } from '@/lib/analysis-data';
 import type { Transaction, Category } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * Test suite for two critical blocking issues:
@@ -74,7 +75,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
   it('builds sunburst with all 5 ausgabenklasse categories from existing transactions', () => {
     const transactions: Transaction[] = [
       {
-        id: '1',
+        id: asTransactionId('1'),
         date: '2024-06-10',
         amount: -100,
         payee: 'Stadtwerke',
@@ -86,7 +87,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
         currency: 'EUR',
       },
       {
-        id: '2',
+        id: asTransactionId('2'),
         date: '2024-06-10',
         amount: -50,
         payee: 'REWE',
@@ -98,7 +99,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
         currency: 'EUR',
       },
       {
-        id: '3',
+        id: asTransactionId('3'),
         date: '2024-06-10',
         amount: -20,
         payee: 'Netflix',
@@ -110,7 +111,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
         currency: 'EUR',
       },
       {
-        id: '4',
+        id: asTransactionId('4'),
         date: '2024-06-10',
         amount: -100,
         payee: 'Trade Republic',
@@ -122,7 +123,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
         currency: 'EUR',
       },
       {
-        id: '5',
+        id: asTransactionId('5'),
         date: '2024-06-10',
         amount: 3000,
         payee: 'Employer',
@@ -162,7 +163,7 @@ describe('Issue 1: Existing transactions evaluated for ausgabenklasse', () => {
   it('categorizes uncategorized expenses as unkategorisiert in sunburst', () => {
     const transactions: Transaction[] = [
       {
-        id: '1',
+        id: asTransactionId('1'),
         date: '2024-06-10',
         amount: -50,
         payee: 'Unknown',
@@ -188,15 +189,15 @@ describe('Issue 2: Sunburst visualization shows all 5 color categories', () => {
     // Mix of all categories
     const transactions: Transaction[] = [
       // Essenziell
-      { id: '1', date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Diskretionaer
-      { id: '2', date: '2024-06-02', amount: -20, payee: 'Netflix', description: 'Abo', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('2'), date: '2024-06-02', amount: -20, payee: 'Netflix', description: 'Abo', original_text: 'Netflix', category_id: 'streaming', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Sparen
-      { id: '3', date: '2024-06-03', amount: -50, payee: 'Trade Republic', description: 'Sparplan', original_text: 'TR', category_id: 'sparen', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('3'), date: '2024-06-03', amount: -50, payee: 'Trade Republic', description: 'Sparplan', original_text: 'TR', category_id: 'sparen', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Essenziell (second category)
-      { id: '4', date: '2024-06-04', amount: -30, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('4'), date: '2024-06-04', amount: -30, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
       // Unkategorisiert
-      { id: '5', date: '2024-06-05', amount: -25, payee: 'Random', description: 'Cash', original_text: 'Random', auto_mapped: false, confirmed: false, currency: 'EUR' },
+      { id: asTransactionId('5'), date: '2024-06-05', amount: -25, payee: 'Random', description: 'Cash', original_text: 'Random', auto_mapped: false, confirmed: false, currency: 'EUR' },
     ];
 
     const sunburst = buildSpendingSunburst(transactions, mockCategories);
@@ -226,9 +227,9 @@ describe('Issue 2: Sunburst visualization shows all 5 color categories', () => {
 
   it('properly aggregates outer ring by spending category within each ausgabenklasse', () => {
     const transactions: Transaction[] = [
-      { id: '1', date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '2', date: '2024-06-01', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
-      { id: '3', date: '2024-06-01', amount: -30, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('1'), date: '2024-06-01', amount: -100, payee: 'LSW', description: 'Strom', original_text: 'LSW', category_id: 'strom', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('2'), date: '2024-06-01', amount: -50, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
+      { id: asTransactionId('3'), date: '2024-06-01', amount: -30, payee: 'REWE', description: 'Groceries', original_text: 'REWE', category_id: 'lebensmittel', auto_mapped: true, confirmed: true, currency: 'EUR' },
     ];
 
     const sunburst = buildSpendingSunburst(transactions, mockCategories);

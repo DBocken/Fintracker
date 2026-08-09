@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { TransactionDayList } from '../TransactionDayList';
 
 /**
@@ -33,7 +34,7 @@ vi.mock('@/services/account-service', () => ({ getAccounts: vi.fn() }));
 
 afterEach(() => reduceMock.mockReturnValue(false));
 
-function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
+function tx(p: Omit<Partial<Transaction>, 'id'> & { date: string; amount: number; id: string }): Transaction {
   return {
     payee: p.payee ?? 'Test',
     description: '',
@@ -41,6 +42,7 @@ function tx(p: Partial<Transaction> & { date: string; amount: number; id: string
     auto_mapped: false,
     confirmed: true,
     ...p,
+    id: asTransactionId(p.id),
   };
 }
 

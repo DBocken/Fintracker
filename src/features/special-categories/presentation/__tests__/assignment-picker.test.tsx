@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { renderWithProviders } from '@/test-utils/render';
 import type { Locale } from '@/i18n/translations';
 import { buildSpecialCategoriesData } from '../../application/special-categories-view-model';
@@ -15,7 +16,7 @@ const cats: SpecialCategory[] = [
 ];
 
 function tx(id: string, amount: number, date = '2026-08-20'): Transaction {
-  return { id, date, amount, payee: 'Amazon', description: '', original_text: '', auto_mapped: false, confirmed: true };
+  return { id: asTransactionId(id), date, amount, payee: 'Amazon', description: '', original_text: '', auto_mapped: false, confirmed: true };
 }
 
 const taucherset = tx('taucher', -180); // 20.08. → Vorschlag für Flitterwochen

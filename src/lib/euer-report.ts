@@ -22,6 +22,7 @@
  * Jahreszuordnung strikt nach Buchungsdatum (Zu-/Abflussprinzip §11 EStG).
  */
 import type { Account, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { getRubricForCategory, getTaxParams, taxCategoryById, type TaxYearParams } from '@/data/tax-catalog';
 import { TAX_CATEGORIES } from '@/data/tax-catalog';
 import { TAX_RELEVANT_MAIN_IDS } from '@/lib/tax-reserve';
@@ -171,7 +172,7 @@ export function buildEuerReport(
     // erzeugt die Info-Zeile (verhindert Doppelzählung über das Gegen-Bein).
     if (tx.is_transfer) {
       if (!onBusiness) continue;
-      const pair = tx.transfer_pair_id ? txById.get(tx.transfer_pair_id) : undefined;
+      const pair = tx.transfer_pair_id ? txById.get(asTransactionId(tx.transfer_pair_id)) : undefined;
       const pairOnBusiness = Boolean(pair?.account_id && businessAccountIds.has(pair.account_id));
       if (pairOnBusiness) continue; // Geschäft↔Geschäft: rein intern.
       if (tx.amount < 0) entnahmen += Math.abs(tx.amount);

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * WP-10.5 — Die aggregierte Ausgaben-Auswertung, bis hierher ohne einen
@@ -30,7 +31,7 @@ const CATEGORY: Category = {
 } as Category;
 
 function tx(amount: number, date = '2026-01-10', id = Math.random().toString(36)): Transaction {
-  return { id, amount, date, category_id: 'cat-food' } as Transaction;
+  return { id: asTransactionId(id), amount, date, category_id: 'cat-food' } as Transaction;
 }
 
 function withData(transactions: Transaction[], categories: Category[] = [CATEGORY]) {
@@ -81,7 +82,7 @@ describe('buildAnalyticsPackage — Beträge', () => {
     withData(
       [
         ...Array.from({ length: 5 }, () => tx(-1)),
-        ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-3), id: `h${i}`, category_id: 'cat-home' })),
+        ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-3), id: asTransactionId(`h${i}`), category_id: 'cat-home' })),
       ],
       [CATEGORY, other],
     );
@@ -127,8 +128,8 @@ describe('buildAnalyticsPackage — Schutz kleiner Gruppen', () => {
 describe('buildAnalyticsPackage — Gruppierung', () => {
   it('sollte je Monat und Gruppe einen Datensatz bilden', async () => {
     withData([
-      ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-1, '2026-01-05'), id: `a${i}` })),
-      ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-1, '2026-02-05'), id: `b${i}` })),
+      ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-1, '2026-01-05'), id: asTransactionId(`a${i}`) })),
+      ...Array.from({ length: 5 }, (_, i) => ({ ...tx(-1, '2026-02-05'), id: asTransactionId(`b${i}`) })),
     ]);
 
     const periods = (await buildAnalyticsPackage()).records.map((r) => r.period).sort();

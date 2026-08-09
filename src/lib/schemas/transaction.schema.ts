@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * zod-Schema für `Transaction` (WP 1.2, RES-2/DOM-2) — Kern-Lesegrenze für
@@ -13,12 +14,18 @@ import { z } from 'zod';
  * gespeicherte Buchungen haben noch keine) — an der Lesegrenze ist ein
  * gespeicherter Datensatz OHNE `id` dagegen ein Korruptionsfall: er lässt
  * sich später nicht mehr eindeutig aktualisieren/löschen.
+ *
+ * `id` wird hier auf `TransactionId` gebrandet (WP 5.2b, DOM-3) —
+ * genau an dieser Lesegrenze und nirgendwo sonst: jeder gespeicherte
+ * Datensatz durchläuft dieses Schema, bevor er als `Transaction` im Baum
+ * verwendet wird. Ein Cast an jeder einzelnen Lesestelle wäre Dekoration;
+ * hier ist er ein einziges Mal nötig und deckt jeden Aufrufer ab.
  */
 export const transactionCycleSchema = z.enum(['weekly', 'monthly', 'quarterly', 'yearly']);
 
 export const transactionSchema = z
   .object({
-    id: z.string().min(1),
+    id: z.string().min(1).transform(asTransactionId),
     account_id: z.string().nullable().optional(),
     date: z.string().optional(),
     amount: z.number().optional(),

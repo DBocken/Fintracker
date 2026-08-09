@@ -1,4 +1,5 @@
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * Deterministische Transaktions-Factory für Perf-/Stress-Tests: verteilt n
@@ -16,7 +17,7 @@ export function makeSyntheticTransactions(n: number): Transaction[] {
     const date = new Date(start);
     date.setUTCDate(date.getUTCDate() - day);
     transactions.push({
-      id: `syn-${i}`,
+      id: asTransactionId(`syn-${i}`),
       date: date.toISOString().slice(0, 10),
       amount: i % 6 === 5 ? 2400 : -(10 + (i % 90)),
       payee: PAYEES[i % PAYEES.length],

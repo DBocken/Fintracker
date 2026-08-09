@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
 import type { Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { useCityModel } from '../use-city-model';
 
 vi.mock('@/services/transaction-service', () => ({
@@ -25,7 +26,7 @@ const FIXTURE_CATEGORIES: Category[] = [
 
 const FIXTURE_TRANSACTIONS: Transaction[] = [
   {
-    id: 'tx-1',
+    id: asTransactionId('tx-1'),
     date: '2026-06-05',
     amount: -17.99,
     payee: 'Netflix',
@@ -76,7 +77,7 @@ describe('useCityModel', () => {
     // Etage im Streaming-Gebäude (bzw. hier: im "Freizeit"-Direkt-Gebäude)
     // erscheinen.
     const aldi: Transaction = {
-      id: 'tx-aldi',
+      id: asTransactionId('tx-aldi'),
       date: '2026-06-10',
       amount: -8.5,
       payee: 'Aldi',
@@ -109,7 +110,7 @@ describe('useCityModel', () => {
       { id: CAT_CLOTHES, name: 'Kleidung', filters: [] },
     ] as Category[]);
     const aldi: Transaction = {
-      id: 'tx-aldi',
+      id: asTransactionId('tx-aldi'),
       date: '2026-06-10',
       amount: -50,
       payee: 'Aldi',

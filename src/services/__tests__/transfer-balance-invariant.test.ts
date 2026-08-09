@@ -14,12 +14,13 @@ import type { Transaction } from '../../types';
 import { excludeTransfers } from '../transaction-service';
 import { planInternalTransfers, type AccountIbanRef } from '../transfer-service';
 import { normalizeIban } from '@/lib/iban';
+import { asTransactionId } from '@/lib/ids';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeTx(overrides: Partial<Transaction>): Transaction {
+function makeTx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
     date: '2026-06-01',
     amount: 0,
@@ -29,6 +30,7 @@ function makeTx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : undefined,
   };
 }
 

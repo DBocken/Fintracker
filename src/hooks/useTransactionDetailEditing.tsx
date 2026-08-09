@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { updateTransaction } from '@/services/transaction-service';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
 import { upsertContractDecision } from '@/services/contract-decision-service';
@@ -17,7 +18,7 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
   const qc = useQueryClient();
   const { t } = useI18n();
 
-  const restoreMutation = useMutation<void, Error, Array<{ id: string } & Partial<Transaction>>>({
+  const restoreMutation = useMutation<void, Error, Array<Omit<Partial<Transaction>, 'id'> & { id: string }>>({
     mutationFn: (snapshots) => updateTransaction(snapshots).then(() => undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -28,7 +29,7 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
   });
 
   const detailsMutation = useMutation<
-    { count: number; snapshot: Array<{ id: string } & Partial<Transaction>> },
+    { count: number; snapshot: Array<Omit<Partial<Transaction>, 'id'> & { id: string }> },
     Error,
     { id: string; patch: Partial<Transaction>; transaction: Transaction; applyToSimilar: boolean; similarIds: string[] }
   >({
@@ -38,8 +39,8 @@ export function useTransactionDetailEditing(allTransactions: Transaction[], onSa
 
       const patchKeys = Object.keys(patch) as (keyof Transaction)[];
       const snapshot = ids.map((tid) => {
-        const prev = byId.get(tid);
-        const entry: { id: string } & Partial<Transaction> = { id: tid };
+        const prev = byId.get(asTransactionId(tid));
+        const entry: Omit<Partial<Transaction>, 'id'> & { id: string } = { id: tid };
         patchKeys.forEach((k) => {
           (entry as Record<string, unknown>)[k] = prev ? prev[k] ?? null : null;
         });

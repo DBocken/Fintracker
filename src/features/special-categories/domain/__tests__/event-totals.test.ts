@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { assignmentCostMinor, computeEventTotals } from '../event-totals';
 
 let txSeq = 0;
-function tx(amount: number, over: Partial<Transaction> = {}): Transaction {
+function tx(amount: number, over: Omit<Partial<Transaction>, 'id'> & { id?: string } = {}): Transaction {
   txSeq += 1;
   return {
-    id: over.id ?? `tx-${txSeq}`,
     date: '2026-09-05',
     amount,
     payee: 'P',
@@ -15,6 +15,7 @@ function tx(amount: number, over: Partial<Transaction> = {}): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...over,
+    id: asTransactionId(over.id ?? `tx-${txSeq}`),
   };
 }
 

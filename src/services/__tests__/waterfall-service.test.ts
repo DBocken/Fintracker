@@ -6,6 +6,7 @@ import { writeLocalFinanceList } from '../local-finance-store';
 import { updateLocalUserSettings } from '../local-settings-service';
 import { localEncryption } from '../local-crypto';
 import type { Account, Transaction } from '../../types';
+import { asTransactionId } from '@/lib/ids';
 
 const REFERENCE = new Date('2025-06-15T12:00:00Z');
 
@@ -25,10 +26,9 @@ function account(id: string, isBusiness: boolean): Account {
 }
 
 let seq = 0;
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   seq += 1;
   return {
-    id: `wf-${seq}`,
     account_id: 'biz',
     date: '2025-05-10',
     amount: 1000,
@@ -38,6 +38,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId(`wf-${seq}`),
   };
 }
 
