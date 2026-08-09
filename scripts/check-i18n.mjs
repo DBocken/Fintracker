@@ -181,11 +181,27 @@ for (const file of files) {
   // gehört in `--all`, nicht in den Commit von jemandem, der nebenan etwas
   // anderes repariert hat.
   if (mode !== 'all') {
+    const fundeGesamt = funde.length;
     const geaendert = addedLineNumbers(file);
     funde = funde.filter((f) => geaendert.has(f.line));
     if (funde.length === 0) continue;
-    // Neue Verstöße sind IMMER blockierend — die Ausnahmeliste deckt den
-    // Bestand, nicht den Nachschub.
+    // Neue Verstöße sind blockierend — die Ausnahmeliste deckt den Bestand,
+    // nicht den Nachschub. „Bestand" ist dabei eine NETTO-Frage, keine
+    // Zeilen-Frage: Eine VERSCHOBENE Datei (WP 6.6 zog die historischen
+    // Seed-Strings nach lib/category-migrations.ts) besteht im Diff
+    // ausschließlich aus neuen Zeilen, ihr Bestand ist aber derselbe. Der
+    // alte Zeilen-Maßstab hätte genau die Migration blockiert, deren
+    // Allowlist-Eintrag im selben Commit korrekt mitgezogen wurde — dieselbe
+    // Fehlerform wie die Slice-Ratsche vor WP 6.2/6.3.
+    // Gedeckt ist eine Änderung deshalb genau dann, wenn die GESAMTZAHL der
+    // Datei ihren Allowlist-Stand nicht übersteigt: Wer zusätzlich zum
+    // verschobenen Bestand auch nur einen String NEU einführt, liegt über
+    // dem Stand und bleibt blockiert. Dateien ohne Eintrag bleiben es sowieso.
+    const eintrag = allowlist[file];
+    if (eintrag && fundeGesamt <= eintrag.count) {
+      gedeckt.push({ file, gefunden: funde.length, erlaubt: eintrag.count });
+      continue;
+    }
     offen.push({ file, funde, erlaubt: 0 });
     continue;
   }
