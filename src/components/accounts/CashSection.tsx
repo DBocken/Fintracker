@@ -65,7 +65,20 @@ export function CashSection() {
     void refetchTransactions();
   };
 
-  const invalidate = () => {
+  // Reines Konto-Anlegen betrifft keine Buchung — nur ['accounts']/['net-worth']/
+  // ['has-finance-data'] werden hier tatsächlich wieder gültig. Eine
+  // Root-Invalidierung von ['transactions'] träfe unnötig BEIDE Großqueries
+  // (['transactions', 5000] und ['transactions', 1000], PERF-2).
+  const invalidateAfterAccountOnlyChange = () => {
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["net-worth"] });
+    queryClient.invalidateQueries({ queryKey: ["has-finance-data"] });
+  };
+
+  // moveWithdrawalToCash legt eine neue Buchung an (gespiegelte Gutschrift)
+  // und verknüpft sie mit der Giro-Abhebung — hier bleibt die
+  // ['transactions']-Root-Invalidierung richtig.
+  const invalidateAfterTransactionChange = () => {
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
     queryClient.invalidateQueries({ queryKey: ["transactions"] });
     queryClient.invalidateQueries({ queryKey: ["net-worth"] });
@@ -75,7 +88,7 @@ export function CashSection() {
   const createCashMutation = useMutation({
     mutationFn: () => createAccount({ name: "Bargeld", type: "cash", is_budget_pool_member: false }),
     onSuccess: () => {
-      invalidate();
+      invalidateAfterAccountOnlyChange();
       showSuccess(t('accounts.cashSection.cashAccountCreated'));
     },
     onError: (e: Error) => showError(e.message),
@@ -85,7 +98,7 @@ export function CashSection() {
     mutationFn: (giroTransaction: Transaction) =>
       moveWithdrawalToCash({ giroTransaction, cashAccountId: cashAccount!.id }),
     onSuccess: () => {
-      invalidate();
+      invalidateAfterTransactionChange();
       showSuccess(t('accounts.cashSection.atmAccepted'));
     },
     onError: (e: Error) => showError(e.message),
