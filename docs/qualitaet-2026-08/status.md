@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.9 · Dialog-Beschreibung (letztes Phase-6-Paket) |
+| **Paket** | Segment-6-Nachprüfung + Phasenende-Gate |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 

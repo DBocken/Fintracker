@@ -532,7 +532,7 @@ bleiben schmaler Kern. Tests wandern mit.
 
 ---
 
-### - [ ] WP 6.9 · Dialog-Beschreibung lügt in jedem Dialog · S
+### - [x] WP 6.9 · Dialog-Beschreibung lügt in jedem Dialog · S — `c184460`
 **Befund aus WP 6.8 (A11y-Sachfehler, Backlog-Eintrag `ui/dialog.tsx`):**
 `ui/dialog.tsx` trägt eine hartcodierte `sr-only`-Beschreibung „Dialog content
 for account management" — in **jedem** Dialog der App. Screenreader-Nutzer
