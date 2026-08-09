@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import { Sparkles, Check, TrendingDown, TrendingUp, CalendarClock, LoaderCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ function getWhenPresets(t: (key: string) => string): { label: string; days: numb
  */
 export default function AskYourMoney({ input, config }: Props) {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const startISO = config.startDate ?? format(new Date(), 'yyyy-MM-dd');
   const [amount, setAmount] = useState('');
   const [days, setDays] = useState(30);
@@ -65,7 +66,7 @@ export default function AskYourMoney({ input, config }: Props) {
 
   const fmtDate = (dayIndex: number) => {
     try {
-      return format(addDays(parseISO(startISO), dayIndex), 'd. MMM', { locale: de });
+      return format(addDays(parseISO(startISO), dayIndex), 'd. MMM', { locale: dateFnsLocale });
     } catch {
       return '';
     }

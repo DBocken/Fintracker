@@ -5,8 +5,7 @@
  * Sie werden von mehreren Ansichten gebraucht und gehören deshalb an eine
  * eigene Stelle statt in die grösste der Ansichten.
  */
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { format, parseISO, type Locale as DateFnsLocale } from 'date-fns';
 
 export const eur = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -36,17 +35,25 @@ export interface ChartPoint {
   median?: number;
 }
 
-export function fmtDate(iso: string): string {
+/**
+ * `dateFnsLocale` kommt bewusst als Parameter herein (nicht über
+ * `resolveDateFnsLocale()` intern aufgelöst): die Aufrufer sind React-
+ * Komponenten, die bereits über `useDateFnsLocale()` (`@/i18n/useDateFnsLocale`)
+ * re-rendern, sobald der Sprach-Chunk eintrifft. Ein interner, nicht
+ * abonnierter Aufruf würde bis zu diesem Chunk auf dem `de`-Fallback
+ * hängen bleiben, ohne dass danach je ein Re-Render nachliefert (WP 5.5b).
+ */
+export function fmtDate(iso: string, dateFnsLocale: DateFnsLocale): string {
   try {
-    return format(parseISO(iso), 'd. MMM yyyy', { locale: de });
+    return format(parseISO(iso), 'd. MMM yyyy', { locale: dateFnsLocale });
   } catch {
     return iso;
   }
 }
 
-export function fmtMonth(yyyymm: string): string {
+export function fmtMonth(yyyymm: string, dateFnsLocale: DateFnsLocale): string {
   try {
-    return format(parseISO(`${yyyymm}-01`), 'MMM yyyy', { locale: de });
+    return format(parseISO(`${yyyymm}-01`), 'MMM yyyy', { locale: dateFnsLocale });
   } catch {
     return yyyymm;
   }

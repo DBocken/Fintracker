@@ -18,8 +18,8 @@ import { getMerchantRules, upsertMerchantRule } from '@/services/merchant-rules-
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { showSuccess } from '@/utils/toast';
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
@@ -100,6 +100,7 @@ export function TransactionDetailsPanel({
 }: TransactionDetailsPanelProps) {
   const money = useMoneyFormat();
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const [applyToSimilar, setApplyToSimilar] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -276,7 +277,7 @@ export function TransactionDetailsPanel({
       <div data-tour-id="detail-basics" className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <Label className="text-xs text-muted-foreground">{t('dashboard.date')}</Label>
-          <p className="font-medium">{format(parseISO(transaction.date), 'dd. MMMM yyyy', { locale: de })}</p>
+          <p className="font-medium">{format(parseISO(transaction.date), 'dd. MMMM yyyy', { locale: dateFnsLocale })}</p>
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">{t('dashboard.amount')}</Label>

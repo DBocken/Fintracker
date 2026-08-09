@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2, ArrowUpDown, ArrowDown, ArrowUp, MoreVertical, Pencil, Repeat } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import type { Transaction, Account, Category } from '../../types';
 import { CategoryCellEditor } from '@/components/categories/CategoryCellEditor';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
@@ -50,6 +50,7 @@ export function TransactionTable({
   onOpenDetails,
 }: TransactionTableProps) {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const money = useMoneyFormat();
 
   const getAccountById = (accountId: string | null | undefined): Account | undefined => {
@@ -123,7 +124,7 @@ export function TransactionTable({
                   onCheckedChange={() => onSelect(rowId)}
                 />
               </TableCell>
-              <TableCell>{format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: de })}</TableCell>
+              <TableCell>{format(parseISO(transaction.date), 'dd.MM.yyyy', { locale: dateFnsLocale })}</TableCell>
               <TableCell>
                 {account ? (
                   // Die Kontofarbe traegt der Rahmen und der Punkt, NICHT die

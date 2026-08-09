@@ -17,7 +17,7 @@ import type { ContractDecision } from "@/lib/contract-types";
 import { useI18n } from "@/i18n/useI18n";
 import type { Transaction, Category } from "@/types";
 import { format, parseISO, addMonths, startOfMonth } from "date-fns";
-import { de } from "date-fns/locale";
+import { useDateFnsLocale } from "@/i18n/useDateFnsLocale";
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from "recharts";
 import { ContractSuggestionsBanner } from "./ContractSuggestionsBanner";
 import { ContractDetailSheet } from "./ContractDetailSheet";
@@ -38,6 +38,7 @@ function euro(n: number) {
 
 export function ContractsDashboard() {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const chartAnimation = useChartAnimation();
   const {
     data: transactions = [],
@@ -159,7 +160,7 @@ export function ContractsDashboard() {
   const chartData: ChartPoint[] = useMemo(() => {
     const start = startOfMonth(new Date());
     const months = Array.from({ length: 12 }, (_, i) => addMonths(start, i));
-    const data = months.map((m) => ({ label: format(m, "MMM", { locale: de }), income: 0, expenses: 0, net: 0 }));
+    const data = months.map((m) => ({ label: format(m, "MMM", { locale: dateFnsLocale }), income: 0, expenses: 0, net: 0 }));
 
     const addAmountToMonth = (date: Date, amount: number, isIncome: boolean) => {
       const idx = months.findIndex((m) => m.getFullYear() === date.getFullYear() && m.getMonth() === date.getMonth());
@@ -195,7 +196,7 @@ export function ContractsDashboard() {
     totalsExpenses.forEach(processRow);
     data.forEach((d) => { d.net = d.income + d.expenses; });
     return data;
-  }, [totalsIncome, totalsExpenses]);
+  }, [totalsIncome, totalsExpenses, dateFnsLocale]);
 
   // WP-6.8: Runde Achsenwerte über alle drei geplotteten Serien, damit keine
   // aus der Achse fällt. Die Nulllinie ist hier Pflicht — Ausgaben sind negativ

@@ -21,7 +21,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { format, parseISO, isValid } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import type { Transaction, HierarchicalCategory } from '../types';
 import { asTransactionId } from '@/lib/ids';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
@@ -43,6 +43,7 @@ const DUPLICATE_AMOUNT_TOLERANCE = 0.005;
 
 export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const [rows, setRows] = useState<Transaction[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
@@ -334,7 +335,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                       />
                     </TableCell>
                     <TableCell>
-                      {isValidDate ? format(date!, 'dd.MM.yyyy', { locale: de }) : '-'}
+                      {isValidDate ? format(date!, 'dd.MM.yyyy', { locale: dateFnsLocale }) : '-'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {row.description || row.original_text || t('reviewTable.emptyCell')}

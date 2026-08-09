@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
-import { de } from "date-fns/locale";
 import { useForecast } from "@/hooks/useForecast";
 import { getUpcomingCharges, expenseCharges } from "@/lib/upcoming-charges";
 import { LoadingSwap } from '@/components/common/LoadingSwap';
@@ -9,6 +8,7 @@ import ListRow from "@/components/common/ListRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useI18n } from "@/i18n/useI18n";
+import { useDateFnsLocale } from "@/i18n/useDateFnsLocale";
 import { formatCoachDaysUntil, pluralTransactions } from "@/i18n/format";
 
 const ISO = "yyyy-MM-dd";
@@ -31,6 +31,7 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
   const { input, isLoading } = useForecast();
   const { format: formatTotal, formatInstallment } = useMoneyFormat();
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const fromISO = format(now, ISO);
 
   const charges = useMemo(() => {
@@ -81,7 +82,7 @@ export default function UpcomingChargesList({ now = new Date(), horizonDays = 30
             icon="💳"
             title={c.name}
             subtitle={`${formatCoachDaysUntil(c.daysUntil, t)} · ${format(parseISO(c.dateISO), "EEE, dd.MM.", {
-              locale: de,
+              locale: dateFnsLocale,
             })}`}
             value={formatInstallment(c.amount)}
           />

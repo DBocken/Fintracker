@@ -5,6 +5,7 @@ import { webcrypto } from "node:crypto"
 import { cleanup } from "@testing-library/react"
 import { LOCAL_STORE_SCHEMA_VERSION, LOCAL_STORE_SCHEMA_VERSION_KEY } from "./src/lib/store-compatibility"
 import { preloadLocale } from "./src/i18n/translation-registry"
+import { preloadDateFnsLocale } from "./src/i18n/date-fns-locale"
 
 afterEach(() => {
   cleanup()
@@ -38,6 +39,23 @@ afterEach(() => {
 // für sich gezielt wieder auf — nur dort wird der Fallback- und Re-Render-Pfad
 // tatsächlich durchlaufen und geprüft.
 await Promise.all([preloadLocale("en"), preloadLocale("ru"), preloadLocale("tlh")])
+
+// Dasselbe Vorladen für die `date-fns`-Locale-Objekte (WP 5.5b,
+// `src/i18n/date-fns-locale.ts`) — aus demselben Grund: `en`/`ru` hängen dort
+// ebenfalls nur an `import()`, und ohne Vorladen sähe der zufällig erste
+// Test, der eine Sprache anfragt, kurzzeitig den `de`-Fallback statt des
+// Zielwochentagskürzels. `tlh` hat kein `date-fns`-Locale (siehe Kommentar
+// dort) und wird deshalb hier bewusst nicht vorgeladen.
+//
+// Derselbe Preis wie beim Sprachbaum-Preload oben: dieses Vorladen macht das
+// eigentlich NEUE Verhalten aus WP 5.5b — das Fenster "Zielsprache noch nicht
+// geladen ⇒ de-Fallback-Locale ⇒ Nachladen ⇒ Re-Render über
+// `useDateFnsLocale`" — für JEDEN Test unsichtbar, der sich nicht ausdrücklich
+// dagegen wehrt. `src/i18n/__tests__/date-fns-locale-lazy-loading.test.tsx`
+// ruft VOR jedem eigenen Test `resetDateFnsLocaleCacheForTests()` auf und
+// hebt das Vorladen für sich gezielt wieder auf — nur dort wird der Fallback-
+// und Re-Render-Pfad tatsächlich durchlaufen und geprüft.
+await Promise.all([preloadDateFnsLocale("en"), preloadDateFnsLocale("ru")])
 
 // jsdom kennt kein IndexedDB; fake-indexeddb stellt es global bereit (Issue #29).
 // Nach jedem Test den KV-Store leeren, damit Tests isoliert bleiben.

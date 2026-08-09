@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { t } from '@/i18n/serviceT';
+import { resolveDateFnsLocale, weekdayAbbrevToken } from '@/i18n/date-fns-locale';
+import { resolveInitialLocale } from '@/i18n/I18nProvider';
 import type { Transaction, TransactionAllocation } from '@/types';
 
 export interface DayGroup {
@@ -105,14 +106,20 @@ export function flattenDayGroups(
  * „Gestern · Mi 2.7." bzw. „Di 1.7." für weiter zurückliegende Tage.
  * „Heute"/„Gestern" laufen über `serviceT` (kein React-Kontext in diesem
  * Modul) und folgen damit der aktuellen App-Sprache (`transactions.dayHeadingToday`
- * / `transactions.dayHeadingYesterday`).
+ * / `transactions.dayHeadingYesterday"). Das Wochentagskürzel folgt seit
+ * WP 5.5b über `resolveDateFnsLocale` (`@/i18n/date-fns-locale`) derselben
+ * Sprache — davor war es fest auf `date-fns/locale/de` verdrahtet (WP-5.5-
+ * Befund: „Today · Mi 3.7.").
  *
- * Bekannte Lücke (nicht Teil dieses Pakets): das Wochentagskürzel kommt
- * immer aus der `de`-Locale von date-fns, unabhängig von der App-Sprache —
- * wie überall sonst im Repo, wo date-fns direkt mit `{ locale: de }`
- * aufgerufen wird. Ebenso fehlt für weiter zurückliegende Tage die
- * Jahreszahl; bei Buchungen aus einem früheren Jahr ist „Di 1.7." ohne
- * Jahr mehrdeutig.
+ * Token-Breite folgt `weekdayAbbrevToken` (locale-bewusst, nicht einheitlich):
+ * Deutsch/Russisch bleiben beim angestammten 2-stelligen Kürzel („Mi"/„пт" —
+ * optisch UNVERÄNDERT), nur Englisch wechselt auf die 3-stellige, dort
+ * übliche Form („Wed" statt „We") — Begründung im Kopfkommentar von
+ * `weekdayAbbrevToken` (`@/i18n/date-fns-locale`).
+ *
+ * Bekannte Lücke (nicht Teil dieses Pakets): für weiter zurückliegende Tage
+ * fehlt die Jahreszahl; bei Buchungen aus einem früheren Jahr ist „Di 1.7."
+ * ohne Jahr mehrdeutig.
  */
 export function formatDayHeading(dateKey: string, now = new Date()): string {
   let date: Date;
@@ -123,7 +130,8 @@ export function formatDayHeading(dateKey: string, now = new Date()): string {
   }
   if (Number.isNaN(date.getTime())) return dateKey;
 
-  const short = format(date, 'EEEEEE d.M.', { locale: de });
+  const token = weekdayAbbrevToken(resolveInitialLocale());
+  const short = format(date, `${token} d.M.`, { locale: resolveDateFnsLocale() });
   const diff = differenceInCalendarDays(now, date);
   if (diff === 0) return `${t('transactions.dayHeadingToday', 'Heute')} · ${short}`;
   if (diff === 1) return `${t('transactions.dayHeadingYesterday', 'Gestern')} · ${short}`;
