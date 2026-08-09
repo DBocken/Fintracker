@@ -52,7 +52,10 @@ will, braucht neue Fakten, nicht neuen Geschmack:
   Serverless-Endpunkt muss den Payload lesen, um MCP-Antworten zu bauen —
   Verschlüsselung bräche das Feature. Stattdessen UI-Kennzeichnung (WP 3.5)
   und schärferer RLS-Wächter (WP 3.4).
-- **Blob-Ablösung als Monats-Chunks, nicht Einzeleinträge** (PERF-1):
+- **Blob-Ablösung als Zeit-Chunks, nicht Einzeleinträge** (PERF-1):
+  *Körnung revidiert in WP 4.1a: **Quartal**, nicht Monat — gemessen, Zahlen in
+  `docs/architecture/transaction-storage-chunks.md`. Die Begründung unten bleibt
+  unberührt, sie richtet sich gegen Einzeleinträge.*
   Einzeleinträge bedeuten 5 000 Crypto-Operationen je Import und je
   Vollexport; Monats-Chunks begrenzen die Größe je Schreibvorgang auf einen
   Monat und bleiben beim Vollexport in ~120 Operationen. Details klärt die
@@ -305,22 +308,41 @@ nur Existenz.
 
 ## Phase 4 — Speicher & Query-Effizienz (P1)
 
-### - [ ] WP 4.1 · ADR + Umbau: Transaktions-Blob → Monats-Chunks (PERF-1) · O (ADR) / S (Umbau)
-**Abhängigkeit:** WP 1.3 (Migrationsläufer). Größtes Paket des Programms.
-**Ziel:** Eine Einzeländerung kostet nie wieder Parse+Crypto über den
-Gesamtbestand.
-**Vorgehen:**
-1. ADR in `docs/architecture/` (datiert): Monats-Chunks als Vorgabe (siehe
-   „Vorentschiedenes"), Schlüsselschema (`…_transactions_v4_2026-07`),
-   Index-/Lookup-Strategie, Auswirkungen auf Backup/Sync/Export, verworfene
-   Alternative Einzeleinträge mit Begründung.
-2. Umsetzung hinter der bestehenden Service-Fassade
-   (`transaction-storage-service`) — Aufrufer bleiben unberührt; Migration als
-   nummerierter Schritt im Läufer aus WP 1.3 inkl. Crash-Test.
-3. Messung vorher/nachher im PR: Dauer einer Einzeländerung bei 5 000
-   Buchungen (Ziel: unabhängig von der Gesamtzahl, nur monatsabhängig).
+### - [x] WP 4.1a · ADR Chunk-Ablage + Baseline-Messung (PERF-1) · O — `SHA_4_1_A`
+**Ergebnis:** `docs/architecture/transaction-storage-chunks.md`.
+Der Entwurf wurde durch einen Befund bestimmt, den das Audit nicht nennt:
+`getTransactions()` hat **53 Aufrufstellen**, und die meisten lesen mit Limit
+10 000, also alles — sogar `getTransactionsPaginated()` holt intern den
+Gesamtbestand. Chunking allein hätte die Kosten deshalb nur verlagert
+(billigeres Schreiben, teureres kaltes Vollesen). Die ADR entscheidet
+deshalb **Chunks + Index + Chunk-Cache** als Einheit und bindet den Cache an
+den Entsperrzustand (sonst überlebte ein entschlüsselter Bestand den
+Auto-Lock aus WP 3.2).
+**Und sie korrigiert die Vorentscheidung „Monats-Chunks" auf Quartale** — die
+Messung zeigt, dass der Monat das eigene Abnahmekriterium reißt (kaltes
+Vollesen 1,76× bei drei Jahren, 2,84× bei neun) und gegenüber dem Quartal beim
+Schreiben kaum etwas gewinnt. Zahlen in der ADR. Die Begründung der
+Vorentscheidung („nicht je Eintrag") bleibt unberührt.
+
+### - [ ] WP 4.1b · Chunk-Speicherschicht + Index (PERF-1) · S
+**Abhängigkeit:** 4.1a. **Berührt noch keinen Bestand.**
+**Ziel:** Lesen/Schreiben je Quartals-Chunk, Index-Pflege und Chunk-Cache als
+eigenständige, vollständig getestete Schicht — hinter der Fassade, aber noch
+nicht scharf geschaltet.
+**Akzeptanz:** Roundtrip je Chunk · Index wird aus den Chunks abgeleitet, nie
+fortgeschrieben · fehlender Chunk trotz Index-Eintrag **wirft** (RES-1-Regel),
+wird nicht zur Leerliste · Cache verwirft beim `lock()` genau den Bestand ·
+eine Einzeländerung verwirft **ein** Quartal, nicht die ganze Karte.
+
+### - [ ] WP 4.1c · Migration, Umschaltung und die drei Messungen (PERF-1) · S
+**Abhängigkeit:** 4.1b, WP 1.3 (Läufer).
+**Ziel:** v3-Blob → v4-Chunks als nummerierter Migrationsschritt, Fassade
+schaltet um, Aufrufer bleiben unberührt.
 **Akzeptanz:** Alle bestehenden Transaktions-, Backup-, Sync-Roundtrip-Tests
-unverändert grün · Migrations-Roundtrip-Test · Messwerte im PR.
+unverändert grün · Migrations-Roundtrip **und** Crash-Test (Abbruch vor dem
+Index lässt den v3-Blob als Wahrheit stehen) · **alle drei** Messungen aus dem
+ADR-Abschnitt „Wonach das hier zu beurteilen ist" im PR, nicht nur die
+schmeichelhafte.
 
 ### - [ ] WP 4.2 · Query-Key-Invalidierungen verifizieren und präzisieren (PERF-2) · S
 **Ziel:** `['transactions']` wird nur invalidiert, wenn Buchungen sich ändern
