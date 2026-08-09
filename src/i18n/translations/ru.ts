@@ -1429,6 +1429,8 @@ export const ru = {
     splitExpand: 'Показать разделение',
     splitCollapse: 'Скрыть разделение',
     splitUncategorized: 'Без категории',
+    dayHeadingToday: 'Сегодня',
+    dayHeadingYesterday: 'Вчера',
   },
   debts: {
     title: 'Долги и требования',

@@ -1158,6 +1158,8 @@ export const tlh = {
     splitExpand: "'ay'mey yI'ang",
     splitCollapse: "'ay'mey yISo'",
     splitUncategorized: "Segh Hutlhbogh",
+    dayHeadingToday: "DaHjaj",
+    dayHeadingYesterday: "wa'Hu'",
   },
   debts: {
     title: "SubmeH Huch 'ej HevmeH Huch",

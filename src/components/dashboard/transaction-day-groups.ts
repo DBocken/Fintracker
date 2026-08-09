@@ -1,5 +1,6 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { t } from '@/i18n/serviceT';
 import type { Transaction, TransactionAllocation } from '@/types';
 
 export interface DayGroup {
@@ -102,6 +103,16 @@ export function flattenDayGroups(
 /**
  * Menschliche Tages-Überschrift wie im Buchungs-Schema: „Heute · Do 3.7.",
  * „Gestern · Mi 2.7." bzw. „Di 1.7." für weiter zurückliegende Tage.
+ * „Heute"/„Gestern" laufen über `serviceT` (kein React-Kontext in diesem
+ * Modul) und folgen damit der aktuellen App-Sprache (`transactions.dayHeadingToday`
+ * / `transactions.dayHeadingYesterday`).
+ *
+ * Bekannte Lücke (nicht Teil dieses Pakets): das Wochentagskürzel kommt
+ * immer aus der `de`-Locale von date-fns, unabhängig von der App-Sprache —
+ * wie überall sonst im Repo, wo date-fns direkt mit `{ locale: de }`
+ * aufgerufen wird. Ebenso fehlt für weiter zurückliegende Tage die
+ * Jahreszahl; bei Buchungen aus einem früheren Jahr ist „Di 1.7." ohne
+ * Jahr mehrdeutig.
  */
 export function formatDayHeading(dateKey: string, now = new Date()): string {
   let date: Date;
@@ -114,7 +125,7 @@ export function formatDayHeading(dateKey: string, now = new Date()): string {
 
   const short = format(date, 'EEEEEE d.M.', { locale: de });
   const diff = differenceInCalendarDays(now, date);
-  if (diff === 0) return `Heute · ${short}`;
-  if (diff === 1) return `Gestern · ${short}`;
+  if (diff === 0) return `${t('transactions.dayHeadingToday', 'Heute')} · ${short}`;
+  if (diff === 1) return `${t('transactions.dayHeadingYesterday', 'Gestern')} · ${short}`;
   return short;
 }

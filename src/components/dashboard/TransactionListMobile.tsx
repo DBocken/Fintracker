@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Repeat } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { useI18n } from '@/i18n/useI18n';
 import type { Account, Category, Transaction } from '../../types';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import ListRow from '@/components/common/ListRow';
+import { buildDayGroups, formatDayHeading } from './transaction-day-groups';
 
 interface TransactionListMobileProps {
   transactions: Transaction[];
@@ -16,6 +15,8 @@ interface TransactionListMobileProps {
   hiddenTransactions: Set<string>;
   onSelect: (id: string) => void;
   onOpenDetails: (transaction: Transaction) => void;
+  /** Nur für Tests: fixiert „heute" für die Tageskopf-Relativierung (Heute/Gestern). */
+  now?: Date;
 }
 
 const currencyFormatter = new Intl.NumberFormat('de-DE', {
@@ -42,40 +43,28 @@ export function TransactionListMobile({
   hiddenTransactions,
   onSelect,
   onOpenDetails,
+  now,
 }: TransactionListMobileProps) {
   const { t } = useI18n();
   const money = useMoneyFormat();
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  // Nach Tag gruppieren, Reihenfolge der (bereits sortierten) Liste beibehalten.
-  const groups = useMemo(() => {
-    const out: { key: string; label: string; items: Transaction[] }[] = [];
-    const byKey = new Map<string, { key: string; label: string; items: Transaction[] }>();
-    for (const tx of transactions) {
-      const key = tx.date;
-      let group = byKey.get(key);
-      if (!group) {
-        let label = key;
-        try {
-          label = format(parseISO(key), 'EEEE, d. MMMM yyyy', { locale: de });
-        } catch {
-          // Ungültiges Datum: Roh-Key als Label nutzen.
-        }
-        group = { key, label, items: [] };
-        byKey.set(key, group);
-        out.push(group);
-      }
-      group.items.push(tx);
-    }
-    return out;
-  }, [transactions]);
+  // Dieselbe Tagesgruppierung wie die Desktop-Fassung (`TransactionDayList`,
+  // WP 5.5/KOMP-3) — vorher hatte diese Liste ein eigenes `reduce` mit
+  // vollem Datum ohne „Heute/Gestern"-Relativierung, identische Buchungen
+  // sahen also je Einstiegspunkt anders formatiert aus. `endingBalance`
+  // bleibt 0: `delta`/`runningBalance` werden hier nicht dargestellt, nur
+  // Kopf (`formatDayHeading`) und Zeilen.
+  const groups = useMemo(() => buildDayGroups(transactions, 0), [transactions]);
 
   return (
     <div className="space-y-5">
       {groups.map((group) => (
         <section key={group.key} className="space-y-1">
-          <h3 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{group.label}</h3>
+          <h3 className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {formatDayHeading(group.key, now)}
+          </h3>
           <ul className="divide-y divide-border/70">
             {group.items.map((transaction) => {
               const rowId = transaction.id || '';

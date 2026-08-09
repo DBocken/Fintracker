@@ -1429,6 +1429,8 @@ export const en = {
     splitExpand: 'Show split',
     splitCollapse: 'Hide split',
     splitUncategorized: 'Uncategorized',
+    dayHeadingToday: 'Today',
+    dayHeadingYesterday: 'Yesterday',
   },
   debts: {
     title: 'Debts & Receivables',

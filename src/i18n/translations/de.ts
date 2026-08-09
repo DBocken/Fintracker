@@ -1430,6 +1430,8 @@ export const de = {
     splitExpand: 'Aufteilung anzeigen',
     splitCollapse: 'Aufteilung ausblenden',
     splitUncategorized: 'Ohne Kategorie',
+    dayHeadingToday: 'Heute',
+    dayHeadingYesterday: 'Gestern',
   },
   debts: {
     title: 'Schulden & Forderungen',
