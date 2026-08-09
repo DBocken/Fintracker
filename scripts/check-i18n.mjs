@@ -121,6 +121,15 @@ function changedFiles() {
     return output
       .trim()
       .split('\n')
+      // Derselbe Geltungsbereich wie --all (`git ls-files src`): Gemeint ist
+      // sichtbarer UI-Text im QUELLTEXT der App. E2E-Fixtures unter
+      // e2e-tests/ ZITIEREN gerenderten deutschen Text als Erwartungswert —
+      // sie sind die Pruefung der Uebersetzung, nicht ihr Gegenstand. Bis
+      // WP 7.3 fiel das nicht auf, weil nie eine Fixture mit deutschem
+      // Wortlaut im Diff stand.
+      .filter((f) => f.startsWith('src/'))
+      .join('\n')
+      .split('\n')
       .filter(Boolean)
       .filter((f) => /\.tsx?$/.test(f))
       .filter((f) => fs.existsSync(path.join(REPO_ROOT, f)));
