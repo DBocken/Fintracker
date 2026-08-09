@@ -559,7 +559,7 @@ gehört zum Paket.
 „aktivieren → sperren → entsperren" und „Backup exportieren → reimportieren →
 Daten identisch" — durch den echten Browser-Pfad (Dialog, Datei, Reload).
 
-### - [ ] WP 7.4 · Versionierung einführen (GOV-3) · H
+### - [x] WP 7.4 · Versionierung einführen (GOV-3) · H — `b1520c5`
 CalVer passend zur Datumskultur des Projekts: Tag `v2026.08.0`,
 `CHANGELOG.md` (rückwirkend grob ab #287), `package.json`-Version,
 `android/app/build.gradle` `versionCode`/`versionName` mitziehen; Absatz in
@@ -588,7 +588,7 @@ USD-Position ⇒ Summe unverändert + Hinweis sichtbar, bilingual.
 **Akzeptanz:** kein Pfad summiert Fremdwährung stumm · Demo-Portfolio ehrlich ·
 `coding-guide.md` §4 stimmt wieder.
 
-### - [ ] WP 7.6 · Buchhaltung & entschiedene Restpunkte (GOV-5, GOV-6, SEC-6, DOM-5) · H
+### - [x] WP 7.6 · Buchhaltung & entschiedene Restpunkte (GOV-5, GOV-6, SEC-6, DOM-5) · H — `b1520c5` (inkl. Kür)
 `view-data-budget.json`: Kommentar, dass 282 selbst die offene Schuld ist
 (Zahl/Objekt-Konvention verlinken) · `security-headers.md`: `style-src
 'unsafe-inline'` als entschieden dokumentieren (Begründung Tailwind) ·
