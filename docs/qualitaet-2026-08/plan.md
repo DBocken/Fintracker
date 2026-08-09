@@ -366,7 +366,7 @@ betroffene Fläche weiterhin frisch lädt.
 Drei Fundstellen mit `useMemo` an die Quell-Arrays binden; keine
 Verhaltensänderung, bestehende Tests genügen als Netz.
 
-### - [ ] WP 4.5 · i18n-Bundle je Locale splitten (PERF-3) · O/S
+### - [x] WP 4.5 · i18n-Bundle je Locale splitten (PERF-3) · O/S — `71f3cdf`
 **Ziel:** Der Startpfad lädt eine Sprache, nicht vier.
 **Vorgehen:** `translations.ts` je Locale in ein eigenes Modul; aktive Sprache
 (+ `de`-Fallback) dynamisch importieren, `tlh` nur bei Aktivierung.

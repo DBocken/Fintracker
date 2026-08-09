@@ -912,3 +912,67 @@ Daraus zwei Regeln für den Rest:
 - Wo die Testumgebung einen Zustand *herstellt*, muss mindestens ein Test ihn
   ausdrücklich wieder *entfernen*. `local-store-migrations.fresh-start.test.ts`
   tut das jetzt.
+
+### 4.f · Wo die Testumgebung einen Zustand herstellt, gehört ein Test, der ihn aufhebt
+
+**Befund.** WP 4.5 kam vollständig und grün zurück — und hatte in
+`vitest.setup.ts` alle Sprachen vorgeladen, „damit der Testlauf GENAU DAS ALTE
+VERHALTEN sieht". Die Begründung ist richtig (ohne Preload hinge das Ergebnis
+an der Testreihenfolge). Die Folge war aber, dass der **einzige neue
+Produktionspfad des Pakets** — deutscher Fallback, solange die Zielsprache
+lädt, dann Nachrendern — von keinem Test berührt wurde.
+
+**Entscheidung.** Preload bleibt, aber er trägt jetzt seine Begründung *und*
+den Verweis auf eine Gegenprobe an Ort und Stelle, und es gibt eine Testdatei,
+die ihn für sich aufhebt (`resetTranslationCacheForTests`).
+
+**Begründung.** Das ist wortwörtlich die Regel, die zwei Einträge weiter oben
+aus 4.e entstanden ist — hier zum ersten Mal angewandt, und zwar auf ein Paket,
+das ohne sie durchgegangen wäre. Eine Regel, die man beim nächsten Anlass nicht
+anwendet, ist keine.
+
+**Preis.** Ein zweiter Agentenlauf. Er hat sich gelohnt: Die Mutationsprobe zum
+Nachrendern (die `localeVersion`-Kopplung aus dem Dependency-Array entfernt)
+machte **gezielt nur diesen einen Test** rot — damit ist belegt, dass er die
+Re-Render-Verdrahtung prüft und nicht die Fallback-Logik ein zweites Mal. Und
+ohne Fallback zeigte `serviceT` den rohen Key `common.save`, also genau die
+Regression, gegen die §6 antritt.
+
+### 4.g · `--update` ist beim Bundle-Budget das falsche Werkzeug — zum zweiten Mal
+
+**Befund.** WP 4.5 hat das Budget mit `--update` neu vermessen. Übernommen
+wurden dabei nicht nur die echten Senkungen (`idb` −215 kB) und die drei neuen
+Locale-Chunks, sondern zusätzlich **fünf Anhebungen und die Gesamtgrenze** —
+obwohl keines dieser Bündel gerissen war. Der gemessene Gesamtwert lag mit
+2198,9 kB deutlich unter der bestehenden Grenze von 2379,0 kB.
+
+**Entscheidung.** Die fünf Anhebungen und die Gesamtgrenze zurückgenommen; der
+Wächter ist auch so grün (nachgeprüft, nicht angenommen).
+
+**Begründung.** Dasselbe war schon in Phase 2 aufgefallen. `--update` schreibt
+den *heutigen Stand plus 10 %* für **alle** Bündel fest — es kennt den
+Unterschied zwischen „gewachsen, und das ist gewollt" und „zufällig gerade
+etwas größer" nicht. Ein angehobenes Budget, das niemand gebraucht hat, ist
+stillschweigend verschenkter Spielraum: Es macht künftiges Wachstum unsichtbar,
+das der Wächter sonst gemeldet hätte.
+
+**Preis.** Eine Minute Nacharbeit je Paket, das das Budget anfasst. Dafür
+bleibt die Grenze eine Aussage über gewolltes Wachstum statt eine Nachzeichnung
+des Ist-Zustands.
+
+**Regel ab hier:** Nach `--update` wird der Diff gelesen und alles
+zurückgenommen, was steigt, ohne gerissen zu sein. Wer eine Anhebung behält,
+nennt sie in der Commit-Nachricht mit Grund.
+
+### 4.h · Stand nach Phase 4
+
+| | vor Phase 4 | nach Phase 4 |
+|---|---|---|
+| Tests | 5044 in 529 Dateien | **5114 in 539 Dateien** |
+| Zeilenabdeckung | 75,1 % | 75,7 % |
+| Bundle gesamt (gzip) | 2195,2 kB | 2198,9 kB (Grenze 2379,0) |
+| **Startbündel (gzip)** | 634,5 kB | **441,9 kB (−30,3 %)** |
+| Einzeländerung, 5 000 Buchungen | 46,7 ms | **3,8 ms** |
+
+Die Ratschen stehen unverändert bei 282 (`view-data`) und 24
+(`slice-presentation`).

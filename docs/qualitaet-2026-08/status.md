@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 4.5 · i18n-Bundle je Locale splitten (PERF-3) |
+| **Paket** | WP 5.1 · Branded Types für Geld (DOM-1) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
@@ -153,7 +153,7 @@ Phase-6-Migrationen · 3.2 vor 7.3 · 5.1 vor 5.2.**
 | 18 | 4.2 | Query-Key-Invalidierungen präzisieren (PERF-2) | **fertig** | `08b77bb` |
 | 19 | 4.3 | `invalidateQueries()` ohne Key eliminieren (PERF-5) | **fertig** | `f80e317` |
 | 20 | 4.4 | Chart-Daten memoisieren (PERF-4) | **fertig** | `dfe2c94` |
-| 21 | 4.5 | i18n-Bundle je Locale splitten (PERF-3) | offen | |
+| 21 | 4.5 | i18n-Bundle je Locale splitten (PERF-3) | **fertig** | `71f3cdf` |
 | 22 | 5.1 | Branded Types für Geld (DOM-1) | offen | |
 | 23 | 5.2 | `types.ts` aufteilen + Branded IDs (DOM-3) | offen | |
 | 24 | 5.3 | `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) | offen | |
