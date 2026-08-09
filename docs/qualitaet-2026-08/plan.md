@@ -395,7 +395,7 @@ kompilierender Stand.
 **Akzeptanz:** Demonstrations-Testdatei: `sumMinor([euroWert])` kompiliert
 nicht (per `@ts-expect-error` im Test festgehalten) · 0 Laufzeit-Diffs.
 
-### - [ ] WP 5.2 · `types.ts` entlang der Domänen aufteilen + Branded IDs (DOM-3) · S
+### - [x] WP 5.2 · `types.ts` entlang der Domänen aufteilen (DOM-3) · S — `3cca9d5`
 **Abhängigkeit:** WP 5.1. Aufteilen nach der „Wohin ein Typ gehört"-Tabelle
 (AGENTS.md §3): persistierte Formen nach `src/lib/` bzw.
 `features/<slice>/domain/`; `TransactionId`/`AccountId`/`CategoryId` als
@@ -403,6 +403,23 @@ Branded Types. Re-Exports aus `types.ts` übergangsweise erlaubt, mit
 Abbaudatum im Kommentar.
 **Akzeptanz:** `check:layers` grün · kein Import zeigt mehr auf die alte
 Sammeldatei außer über die Übergangs-Re-Exports.
+
+### - [ ] WP 5.2b · Branded IDs auf die realen Felder anwenden (DOM-3, Rest) · S
+**Abhängigkeit:** WP 5.2 (`src/lib/ids.ts` existiert, ist aber auf kein Feld
+angewendet).
+**Warum getrennt:** Gemessen in WP 5.2 — `Transaction.id` allein ergibt **447
+Fehler in 84 Dateien**, mit `Account.id`/`Category.id` zusammen **812 in 129**.
+Der Großteil sind rohe `id: 'tx1'`-Literale in Tests, die auf Konstruktoren
+umgestellt werden müssen.
+**Ziel:** Die Brands greifen an den realen Feldern, nicht nur im Vorrat.
+Solange sie ungenutzt sind, sind sie die Fehlerklasse aus `nachpruefung.md` 3.b
+(„der Mechanismus war da, nur fragte ihn niemand").
+**Vorgehen:** Feld für Feld, je Feld ein kompilierender Stand. Testliterale über
+die Konstruktoren (`asTransactionId`) — das macht die Konstruktion typrichtig
+und schwächt keine Zusicherung. **`tsc --noEmit` muss nach jedem Teilschritt
+null Fehler haben.**
+**Akzeptanz:** mindestens `Transaction.id` vollständig gebrandet · kein
+`as unknown as` · Demonstrationstest aus WP 5.2 weiterhin grün.
 
 ### - [ ] WP 5.3 · `TypedSelect<T>` + Query-Error-Helfer (KOMP-5) · S
 Wrapper um `<Select>` mit typisiertem `onValueChange`; Helfer für den
