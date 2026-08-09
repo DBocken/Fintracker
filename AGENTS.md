@@ -405,6 +405,34 @@ konkreten `supabase functions deploy <name>`-Befehl, kurzer Begründung und
 Link zum PR. Gilt für jeden Merge in diesem Bereich, nicht nur beim ersten
 Mal — kein Vorgang wird stillschweigend übersprungen.
 
+### Versionierung: jeder Merge-Meilenstein bekommt Tag + CHANGELOG-Eintrag
+
+**CalVer `JJJJ.M.n`** (Jahr, Monat, laufende Nummer im Monat), Tag mit
+`v`-Präfix: `v2026.8.0`. **Eine** Schreibweise überall — die führende Null
+(`2026.08.0`) ist nach SemVer §9 unzulässig, npm normalisiert sie still weg,
+und zwei Schreibweisen für einen Stand sind genau die Mehrdeutigkeit, die eine
+Versionsnummer beseitigen soll. Meilenstein heißt: ein Merge, der für Nutzer
+etwas ändert oder einen benennbaren Programmstand abschließt — nicht jeder
+Merge.
+
+Ablauf, in dieser Reihenfolge:
+
+1. **Version ziehen** — `package.json` (`version`) und
+   `android/app/build.gradle` (`versionName`). `versionCode` wird nicht
+   gezählt, sondern **gerechnet**: `JJJJ * 10000 + MM * 100 + n`
+   (`2026.8.0` → `20260800`); die Formel steht als Kommentar an Ort und Stelle,
+   damit beide Zahlen nicht auseinanderlaufen können.
+2. **CHANGELOG** — der `## [Unreleased]`-Block wird zum Versionsblock
+   (`## 2026.8.0 — JJJJ-MM-TT`), darüber entsteht ein neuer, leerer
+   `[Unreleased]`. Gliederung je Block: **Neu · Behoben · Intern**, sortiert
+   nach Nutzer-Sichtbarkeit, keine Commit-Liste.
+3. **Tag auf den Merge-Commit auf `main`** — `git tag -a v2026.8.0 -m …` erst
+   *nach* dem Merge. Ein Tag auf einem Branch-Stand zeigt auf einen Commit, den
+   `main` nach einem Squash oder Rebase nicht mehr enthält.
+
+Der Changelog ist die menschenlesbare Fassung, nicht das Protokoll: was ein
+Arbeitspaket im Einzelnen tat, steht im Commit und in `docs/`.
+
 ## 12. Automatische Durchsetzung
 
 Pre-Commit (`.githooks/pre-commit`) und CI erzwingen i18n

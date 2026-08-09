@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatCurrency, formatPercent } from '@/lib/utils';
-import { deriveCityRequestState, type CityRequestState } from '../domain/city-request-state';
+import type { CityRequestState } from '../domain/city-request-state';
 import { buildCityContractSheet, selectCityContract, type CityContractSheet } from '../domain/city-contract-sheet';
 import { useCityModel, type CityModelTab } from './use-city-model';
 import { useCityNavigation } from './use-city-navigation';
@@ -70,7 +70,7 @@ export function useCityPageModel(cityBreadcrumbLabel: string, locale: string): C
   // `useCityWorld`.
   const [tab, setTab] = useState<CityModelTab>('expenses');
 
-  const { model, isLoading, isEmpty, isError, refetch, overview, timeline } = useCityModel(
+  const { model, requestState, refetch, overview, timeline } = useCityModel(
     tab,
     selectedMonth ?? undefined,
   );
@@ -119,9 +119,14 @@ export function useCityPageModel(cityBreadcrumbLabel: string, locale: string): C
     model,
     overview,
     timeline,
-    requestState: deriveCityRequestState({ isLoading, isError, isEmpty }),
+    // Seit WP 7.6 liefert useCityModel den Zustand fertig gerangfolgt —
+    // die Ableitung hier war die Uebergangsloesung aus WP 6.4.
+    requestState,
     refetch,
-    canvasMounted: !isLoading && !isEmpty,
+    // Verhaltensgleich zu frueher (!isLoading && !isEmpty): Die Buehne haengt
+    // an VORHANDENEN Distrikten, nicht am Fehlerzustand — ein Fehler MIT
+    // stehenden Daten laesst sie stehen, ein Fehler ohne Daten nicht.
+    canvasMounted: requestState !== 'loading' && model.districts.length > 0,
     nav,
     geometry,
     timelineCursor,

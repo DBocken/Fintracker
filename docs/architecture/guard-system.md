@@ -145,7 +145,8 @@ anderen verdecken. „Eine Ratsche, deren Bewegung mehrdeutig ist, belegt nichts
 6. **Der lokale Zaun ist umgehbar.** `git commit --no-verify` überspringt alles,
    und der Hook steigt zusätzlich still aus, wenn `pnpm` nicht im PATH liegt
    (GUI-Git-Clients). Das ist bewusst so und wird als Entscheidung geführt: CI
-   ist der verbindliche Zaun (GOV-6, dokumentiert in WP 7.6).
+   ist der verbindliche Zaun (GOV-6; als Entscheidung ausgeschrieben in
+   `docs/security/security-headers.md`, Abschnitt „Entschiedene Punkte", WP 7.6).
 7. **Die wichtigste Regel dieses Repos ist von alldem nicht erfasst.** „Absicht
    vor Auftrag" (`AGENTS.md`, vor §1) kann kein Skript prüfen. Ein dichtes
    Wächternetz verführt zu dem Schluss, grün heiße fertig — es heißt nur, dass

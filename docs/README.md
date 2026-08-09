@@ -28,6 +28,7 @@ Bericht bleibt als Beleg.
 | [`CLAUDE.md`](../CLAUDE.md) | Nur die Claude-Code-spezifische Mechanik (Hooks, `.claude/`). Keine inhaltlichen Regeln |
 | [`AI_RULES.md`](../AI_RULES.md) | Wegweiser auf `AGENTS.md`, für Werkzeuge, die genau diesen Dateinamen erwarten |
 | [`README.md`](../README.md) | Einstieg: Stack, Setup, Kommandos |
+| [`CHANGELOG.md`](../CHANGELOG.md) | Was sich je Version geändert hat (CalVer `JJJJ.M.n`). Menschenlesbare Fassung, kein Protokoll — Ablauf in `AGENTS.md` §11 |
 
 ## Geltend — Architektur & Handwerk
 
@@ -66,7 +67,7 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`security/threat-model.md`](security/threat-model.md) | Bedrohungsmodell |
 | [`security/security-inventory.md`](security/security-inventory.md) | Stand der Schutzmaßnahmen |
 | [`security/pentest-scope.md`](security/pentest-scope.md) | Geltender Prüfumfang für Pentests |
-| [`security/security-headers.md`](security/security-headers.md) | Header-Konfiguration (Beispiel für Deployments) |
+| [`security/security-headers.md`](security/security-headers.md) | Header-Konfiguration der Deployments + die entschiedenen Punkte dazu (`style-src 'unsafe-inline'`, Pre-Commit-Bypass) |
 
 ## Geltend — Fachdomäne & Produkt
 

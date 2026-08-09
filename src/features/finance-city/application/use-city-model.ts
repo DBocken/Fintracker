@@ -37,6 +37,7 @@ import { buildCityTimeline, monthKind, type CityMonth } from '../domain/city-tim
 import { buildForecastInput } from '@/services/forecast-data';
 import { projectCategorySpend } from '@/lib/forecast-category-projection';
 import type { CityModel } from '../domain/city-model';
+import { deriveCityRequestState, type CityRequestState } from '../domain/city-request-state';
 import type { GoalProgressStage } from '../domain/city-goal-progress';
 import type { Category } from '@/types';
 
@@ -45,15 +46,20 @@ export type CityModelTab = 'expenses' | 'income' | 'goals' | 'overview';
 
 export type UseCityModelResult = {
   model: CityModel;
-  isLoading: boolean;
   /**
-   * WP-9.6: Getrennt von `isEmpty`. Eine leere Stadt heisst „du hast noch
-   * nichts erfasst" — bei einem Lesefehler waere das die falscheste Aussage,
-   * die dieser Screen treffen kann.
+   * EIN Zustand statt dreier unabhaengiger Booleans (WP 7.6, Befund DOM-5).
+   *
+   * Bis dahin gab dieser Hook `isLoading`/`isError`/`isEmpty` einzeln heraus —
+   * und ein Lesefehler setzt IMMER beide, `isError` und `isEmpty` (ohne Daten
+   * hat die Stadt keine Distrikte). Welcher davon gewinnt, konnte der Hook
+   * damit gar nicht sagen; die Rangfolge lag bei der Aufrufstelle und war
+   * seit WP 6.4 nur deshalb richtig, weil `useCityPageModel` sie sofort wieder
+   * ueber `deriveCityRequestState` herstellte. Jetzt ist die unmoegliche
+   * Kombination nicht mehr darstellbar: WP-9.6 („error schlaegt empty") steht
+   * einmal in der Domaene und gilt fuer jeden Leser.
    */
-  isError: boolean;
+  requestState: CityRequestState;
   refetch: () => void;
-  isEmpty: boolean;
   /** Nur im Übersicht-Tab gesetzt: Welt-Zuordnung der Distrikte + Summen/Saldo für Chip und Welt-Sprung. */
   overview?: CityOverviewInfo;
   /** WP-5.2: Wählbare Monate (Vergangenheit mit Daten, laufender Monat, Prognose). Leer außerhalb des Ausgaben-Tabs. */
@@ -251,16 +257,21 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
     model,
     overview,
     timeline,
-    isLoading:
-      tab === 'goals'
-        ? milestonesPending
-        : transactionsLoading || categoriesLoading || (isProjection && forecastLoading),
-    // Derselbe Zuschnitt wie bei `isLoading`: Im Ziele-Tab zaehlen die
-    // Meilensteine, sonst die Finanzdaten.
-    isError:
-      tab === 'goals'
-        ? milestonesError
-        : transactionsError || categoriesError || allocError || (isProjection && forecastError),
+    // Die Rangfolge (laden -> Fehler -> leer -> bereit) steht in der Domaene,
+    // nicht hier und nicht in der Aufrufstelle: `deriveCityRequestState`.
+    requestState: deriveCityRequestState({
+      isLoading:
+        tab === 'goals'
+          ? milestonesPending
+          : transactionsLoading || categoriesLoading || (isProjection && forecastLoading),
+      // Derselbe Zuschnitt wie beim Laden: Im Ziele-Tab zaehlen die
+      // Meilensteine, sonst die Finanzdaten.
+      isError:
+        tab === 'goals'
+          ? milestonesError
+          : transactionsError || categoriesError || allocError || (isProjection && forecastError),
+      isEmpty: model.districts.length === 0,
+    }),
     refetch: () => {
       void refetchMilestones();
       void refetchTransactions();
@@ -268,6 +279,5 @@ export function useCityModel(tab: CityModelTab = 'expenses', monthKey?: string):
       void refetchAllocations();
       void refetchForecast();
     },
-    isEmpty: model.districts.length === 0,
   };
 }
