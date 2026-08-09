@@ -324,7 +324,7 @@ Vollesen 1,76× bei drei Jahren, 2,84× bei neun) und gegenüber dem Quartal bei
 Schreiben kaum etwas gewinnt. Zahlen in der ADR. Die Begründung der
 Vorentscheidung („nicht je Eintrag") bleibt unberührt.
 
-### - [ ] WP 4.1b · Chunk-Speicherschicht + Index (PERF-1) · S
+### - [x] WP 4.1b · Chunk-Speicherschicht + Index (PERF-1) · S — `877bf71`
 **Abhängigkeit:** 4.1a. **Berührt noch keinen Bestand.**
 **Ziel:** Lesen/Schreiben je Quartals-Chunk, Index-Pflege und Chunk-Cache als
 eigenständige, vollständig getestete Schicht — hinter der Fassade, aber noch
@@ -342,7 +342,10 @@ schaltet um, Aufrufer bleiben unberührt.
 unverändert grün · Migrations-Roundtrip **und** Crash-Test (Abbruch vor dem
 Index lässt den v3-Blob als Wahrheit stehen) · **alle drei** Messungen aus dem
 ADR-Abschnitt „Wonach das hier zu beurteilen ist" im PR, nicht nur die
-schmeichelhafte.
+schmeichelhafte · **das Vollesen bestimmt die Chunk-Menge über `idbKeys()`,
+nicht über den Index** (ADR-Abschnitt „Der Index bestimmt die Zählung, nicht
+die Menge"), mit Test: ein Chunk ohne Index-Eintrag darf beim Vollesen **nicht**
+fehlen.
 
 ### - [ ] WP 4.2 · Query-Key-Invalidierungen verifizieren und präzisieren (PERF-2) · S
 **Ziel:** `['transactions']` wird nur invalidiert, wenn Buchungen sich ändern
