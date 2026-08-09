@@ -277,6 +277,75 @@ export function isForeignBackup(backup: Pick<BackupData, 'userId'>, currentUserI
 }
 
 /**
+ * Verhältnis der Besitzer-Kennung eines Backups zur aktuellen Kennung.
+ *
+ * `isForeignBackup` daneben kennt nur „gleich/ungleich" — und genau das war
+ * seit WP 7.3 zu grob: Anonym erstellte Sicherungen tragen seither
+ * `LOCAL_USER_ID`. Meldet sich derselbe Mensch später an und spielt seine
+ * EIGENE Datei ein, sind die Kennungen ungleich, und die Oberfläche behauptete
+ * „mit einem anderen Benutzerkonto erstellt". Vor WP 7.3 war der Pfad
+ * unerreichbar (anonyme Sicherung warf), die Falschaussage ist also neu und
+ * von uns erzeugt.
+ *
+ * Drei Fälle statt zwei — und die Einstufung gehört hierher, weil nur der
+ * Service beide Kennungen kennt; die Oberfläche sah bisher nur `FOREIGN_BACKUP`
+ * und konnte deshalb gar nichts anderes sagen.
+ */
+export type BackupOwnership =
+  /** Gleiche Kennung — keine Rückfrage nötig. */
+  | 'same'
+  /** Ohne angemeldetes Konto erstellt und wird jetzt einem Konto zugeordnet. */
+  | 'localToAccount'
+  /** Andere Konto-Kennung — der echte Fremdfall. */
+  | 'otherAccount';
+
+/** Besitzverhältnis ohne den Fall „gleich" — die beiden bestätigungspflichtigen. */
+export type ForeignBackupOwnership = Exclude<BackupOwnership, 'same'>;
+
+export function classifyBackupOwnership(
+  backup: Pick<BackupData, 'userId'>,
+  currentUserId: string,
+): BackupOwnership {
+  // Bewusst der direkte Vergleich (wie bisher in `restoreBackup`) und nicht
+  // `isForeignBackup`: Letzteres wertet eine LEERE Kennung als „nicht fremd"
+  // und würde hier still ein anderes Ergebnis liefern als der Merge-Schutz.
+  if (backup.userId === currentUserId) return 'same';
+  // In diesem Zweig ist `currentUserId` zwangsläufig eine andere Kennung, also
+  // ein angemeldetes Konto — die lokale Herkunft allein entscheidet.
+  return backup.userId === LOCAL_USER_ID ? 'localToAccount' : 'otherAccount';
+}
+
+/**
+ * Fehler, der eine nicht bestätigte Wiederherstellung abbricht.
+ *
+ * Die Meldung bleibt wörtlich `FOREIGN_BACKUP`: Aufrufstellen und Tests prüfen
+ * seit Issue #30 genau diese Zeichenkette. Neu ist nur das mitgeführte
+ * Besitzverhältnis — additiv, damit vorhandene Prüfungen unverändert greifen.
+ */
+export class ForeignBackupError extends Error {
+  readonly ownership: ForeignBackupOwnership;
+
+  constructor(ownership: ForeignBackupOwnership) {
+    super('FOREIGN_BACKUP');
+    this.name = 'ForeignBackupError';
+    this.ownership = ownership;
+  }
+}
+
+/**
+ * Liest das Besitzverhältnis aus einem abgefangenen Fehler — `null`, wenn der
+ * Fehler nichts damit zu tun hat.
+ *
+ * Ein roher `Error('FOREIGN_BACKUP')` (älterer Stand, Testdoubles) wird
+ * weiterhin als Fremdkonto gelesen: dieselbe Auskunft wie vor dieser Änderung.
+ */
+export function backupOwnershipFromError(error: unknown): ForeignBackupOwnership | null {
+  if (error instanceof ForeignBackupError) return error.ownership;
+  if (error instanceof Error && error.message === 'FOREIGN_BACKUP') return 'otherAccount';
+  return null;
+}
+
+/**
  * Besitzer-Kennung für Sicherung und Wiederherstellung — angemeldet die
  * Konto-Kennung, sonst `LOCAL_USER_ID`.
  *
@@ -548,9 +617,9 @@ class BackupService {
       }
 
       // Check if backup belongs to current user.
-      const belongsToCurrentUser = backupData.userId === userId;
-      if (!belongsToCurrentUser && !options?.allowForeign) {
-        throw new Error('FOREIGN_BACKUP');
+      const ownership = classifyBackupOwnership(backupData, userId);
+      if (ownership !== 'same' && !options?.allowForeign) {
+        throw new ForeignBackupError(ownership);
       }
 
       let results = {
@@ -641,9 +710,15 @@ class BackupService {
 
       return {
         success: true,
-        message: belongsToCurrentUser
-          ? t('backup.service.restoreSuccess')
-          : t('backup.service.restoreSuccessForeign'),
+        // Der Zusatz in Klammern muss dasselbe sagen wie die Rückfrage davor —
+        // sonst bestätigt man „aus der Nutzung ohne Konto" und liest danach
+        // „aus anderem Benutzerkonto".
+        message:
+          ownership === 'same'
+            ? t('backup.service.restoreSuccess')
+            : ownership === 'localToAccount'
+              ? t('backup.service.restoreSuccessLocal')
+              : t('backup.service.restoreSuccessForeign'),
         warnings,
         details: results,
       };

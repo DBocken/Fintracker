@@ -50,8 +50,8 @@ import { showSuccess, showError } from '@/utils/toast';
 import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
 import { Skeleton } from '@/components/ui/skeleton';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
-import { backupService } from '@/services/backup-service';
-import type { BackupData } from '@/services/backup-service';
+import { backupService, backupOwnershipFromError } from '@/services/backup-service';
+import type { BackupData, ForeignBackupOwnership } from '@/services/backup-service';
 import { usePersistentStorageDenied } from '@/hooks/usePersistentStorageDenied';
 
 type RestoreDetails = {
@@ -84,7 +84,15 @@ export function BackupManager() {
   const [encryptedBackupPassword, setEncryptedBackupPassword] = useState('');
   const [encryptedRestorePassword, setEncryptedRestorePassword] = useState('');
   const [restoreMode, setRestoreMode] = useState<'json' | 'enc'>('json');
-  const [foreignPending, setForeignPending] = useState<BackupData | null>(null);
+  /**
+   * Wiederherstellung, die auf eine Bestätigung wartet — samt Grund. Der Grund
+   * kommt aus dem Service, weil nur er die Kennung des Backups UND die
+   * aktuelle kennt; die Fläche sah bis hierher nur „FOREIGN_BACKUP" und konnte
+   * deshalb gar nichts anderes sagen als „anderes Benutzerkonto".
+   */
+  const [restoreConfirmation, setRestoreConfirmation] = useState<
+    { backupData: BackupData; ownership: ForeignBackupOwnership } | null
+  >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -138,15 +146,18 @@ export function BackupManager() {
       setRestoreDialogOpen(false);
       setBackupFile(null);
       setEncryptedRestorePassword('');
-      setForeignPending(null);
+      setRestoreConfirmation(null);
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     },
     onError: (error: Error, variables) => {
-      // Fremd-Backup: nicht still importieren, sondern ausdrücklich bestätigen lassen.
-      if (error.message === 'FOREIGN_BACKUP' && !variables.allowForeign) {
-        setForeignPending(variables.backupData);
+      // Kennung weicht ab: nicht still importieren, sondern ausdrücklich
+      // bestätigen lassen — egal, welcher der beiden Fälle es ist. Der
+      // Unterschied liegt nur im Wortlaut der Rückfrage.
+      const ownership = backupOwnershipFromError(error);
+      if (ownership && !variables.allowForeign) {
+        setRestoreConfirmation({ backupData: variables.backupData, ownership });
         return;
       }
       showError(error instanceof Error ? error.message : t('backup.restoreError'));
@@ -593,12 +604,27 @@ export function BackupManager() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!foreignPending} onOpenChange={(open) => !open && setForeignPending(null)}>
+      {/*
+        Zwei Wortlaute, eine Rückfrage: Ein ohne Konto erstelltes Backup stammt
+        NICHT aus einem fremden Konto — es wird dem Konto gerade erst
+        zugeordnet. Die Bestätigung bleibt trotzdem, weil in beiden Fällen in
+        vorhandene Daten hineingemischt wird.
+      */}
+      <AlertDialog
+        open={!!restoreConfirmation}
+        onOpenChange={(open) => !open && setRestoreConfirmation(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('backup.foreignBackupTitle')}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {restoreConfirmation?.ownership === 'localToAccount'
+                ? t('backup.localBackupTitle')
+                : t('backup.foreignBackupTitle')}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('backup.foreignBackupWarning')}
+              {restoreConfirmation?.ownership === 'localToAccount'
+                ? t('backup.localBackupWarning')
+                : t('backup.foreignBackupWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -606,12 +632,17 @@ export function BackupManager() {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                if (foreignPending) {
-                  restoreMutation.mutate({ backupData: foreignPending, allowForeign: true });
+                if (restoreConfirmation) {
+                  restoreMutation.mutate({
+                    backupData: restoreConfirmation.backupData,
+                    allowForeign: true,
+                  });
                 }
               }}
             >
-              {t('backup.foreignBackupAction')}
+              {restoreConfirmation?.ownership === 'localToAccount'
+                ? t('backup.localBackupAction')
+                : t('backup.foreignBackupAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

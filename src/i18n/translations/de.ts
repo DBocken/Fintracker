@@ -579,6 +579,7 @@ export const de = {
     moveUpLabel: 'Nach oben',
     moveDownLabel: 'Nach unten',
     sheetTitle: 'Dashboard anpassen',
+    sheetDescription: 'Wähle die Kennzahlen für dein Dashboard und bringe sie in die gewünschte Reihenfolge.',
     infoText: 'Desktop zeigt maximal {desktopCount} KPIs, Mobile maximal {mobileCount}.',
     overActiveWarning: 'Du hast aktuell {activeCount} aktiv – die Anzeige wird gekürzt (Reihenfolge zählt).',
     activeTab: 'Aktiv',
@@ -1876,6 +1877,12 @@ export const de = {
     },
   },
   commandPalette: {
+    // Name des Dialogs für Screenreader (sr-only). Bewusst „Schnellzugriff"
+    // und nicht „Befehlspalette": Letzteres ist Werkzeug-Jargon aus
+    // Entwicklungsumgebungen und bräuchte ein Alltags-Overlay, um verständlich
+    // zu sein — der Begriff hier beschreibt dagegen in beiden Registern, was
+    // die Fläche tut.
+    dialogLabel: 'Schnellzugriff',
     quickActionsHeading: 'Quick Actions',
   },
   coachService: {
@@ -3361,6 +3368,15 @@ export const de = {
     foreignBackupTitle: 'Backup aus anderem Konto',
     foreignBackupWarning: 'Dieses Backup wurde mit einem anderen Benutzerkonto erstellt. Beim Wiederherstellen werden die Daten deinem aktuellen Konto zugeordnet und mit deinem Bestand zusammengeführt. Nur fortfahren, wenn das beabsichtigt ist.',
     foreignBackupAction: 'Trotzdem wiederherstellen',
+    // Eigener Satz Schlüssel für die zweite, harmlose Bestätigung: Das Backup
+    // stammt nicht aus einem fremden Konto, sondern aus der Nutzung ohne
+    // Konto. Bewusst „ohne angemeldetes Konto erstellt" statt „auf diesem
+    // Gerät" — Letzteres kann die App nicht wissen (eine solche Datei lässt
+    // sich weitergeben), und eine unbelegte Behauptung ist genau der Fehler,
+    // den diese Keys beheben.
+    localBackupTitle: 'Backup ohne Konto übernehmen',
+    localBackupWarning: 'Dieses Backup wurde ohne angemeldetes Konto erstellt (lokale Nutzung). Beim Wiederherstellen werden die Daten deinem jetzigen Konto zugeordnet und mit deinem Bestand zusammengeführt.',
+    localBackupAction: 'Dem Konto zuordnen',
     aboutBackups: 'Über Backups',
     regularBackups: 'Regelmäßige Backups: Erstelle wöchentlich ein Backup, um Datenverlust zu vermeiden.',
     storageLocation: 'Speicherort: Speichere Backups an einem sicheren Ort (z. B. Cloud-Speicher, externe Festplatte).',
@@ -3386,6 +3402,7 @@ export const de = {
       itemsSkipped: '{count} Einträge im Backup waren beschädigt und wurden beim Wiederherstellen übersprungen.',
       restoreSuccess: 'Backup erfolgreich wiederhergestellt',
       restoreSuccessForeign: 'Backup erfolgreich wiederhergestellt (aus anderem Benutzerkonto)',
+      restoreSuccessLocal: 'Backup erfolgreich wiederhergestellt (ohne Konto erstellt, jetzt deinem Konto zugeordnet)',
       restoreFailed: 'Wiederherstellung fehlgeschlagen: {error}',
       unknownError: 'Unbekannter Fehler',
     },

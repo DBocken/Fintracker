@@ -569,6 +569,7 @@ export const tlh = {
     moveUpLabel: "Dung",
     moveDownLabel: "bIng",
     sheetTitle: "nab chenmoHghach",
+    sheetDescription: "nab mI'mey yIwIv 'ej patlhchaj yIchoH.",
     infoText: "Desktop nab: mI' potlh {desktopCount}; mobile: {mobileCount} neH.",
     overActiveWarning: "DaH {activeCount} chu'taH; Hoch legh 'e' luHutlhlaH (patlh potlh).",
     activeTab: "chu'taH",
@@ -1598,6 +1599,7 @@ export const tlh = {
     },
   },
   commandPalette: {
+    dialogLabel: "nom Suq",
     quickActionsHeading: "vangmey tugh",
   },
   coachService: {
@@ -3026,6 +3028,9 @@ export const tlh = {
     foreignBackupTitle: "De' polwI' latlh Huch polwI'vo'",
     foreignBackupWarning: "De' polwI'vam lo'wI' latlh Huch polwI' lo'taH chenmoHlu'pu'. cheghmoHtaHvIS, De' DaH Huch polwI'lIjDaq noblu', 'ej De'lIj rar. nablu'bogh neH, yIghoS.",
     foreignBackupAction: "'ach yIcheghmoH",
+    localBackupTitle: "Huch polwI' Hutlhbogh De' polwI'",
+    localBackupWarning: "Huch polwI' Hutlhbogh chenmoHlu'pu' De' polwI'vam. cheghmoHtaHvIS, De' DaH Huch polwI'lIjDaq noblu', 'ej De'lIj rar.",
+    localBackupAction: "Huch polwI'lIjDaq yInob",
     aboutBackups: "De' polwI'mey ghu'",
     regularBackups: "Hogh Hogh: De' polwI' yIchenmoH, pagh De' HutlhmeH.",
     storageLocation: "polDaq: De' polwI'mey QaQqu'bogh Daqmey pol (motlh: cloud, latlh na' chan).",
@@ -3051,6 +3056,7 @@ export const tlh = {
       itemsSkipped: "De' polwI'Daq {count} ghItlhmey mIghqu'pu', 'ej cheghmoHtaHvIS juSlu'pu'.",
       restoreSuccess: "De' polwI' cheghmoHlu'pu' Qapla'",
       restoreSuccessForeign: "De' polwI' cheghmoHlu'pu' Qapla' (latlh lo'wI' Huch polwI'vo')",
+      restoreSuccessLocal: "De' polwI' cheghmoHlu'pu' Qapla' (Huch polwI' Hutlhbogh chenmoHlu'pu', DaH Huch polwI'lIjDaq noblu')",
       restoreFailed: "cheghmoHghach lujpu': {error}",
       unknownError: "Qagh Sovlu'be'bogh",
     },

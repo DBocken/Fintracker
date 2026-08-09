@@ -578,6 +578,7 @@ export const en = {
     moveUpLabel: 'Move up',
     moveDownLabel: 'Move down',
     sheetTitle: 'Customize dashboard',
+    sheetDescription: 'Choose the metrics for your dashboard and put them in the order you want.',
     infoText: 'Desktop shows max {desktopCount} KPIs, mobile max {mobileCount}.',
     overActiveWarning: 'You currently have {activeCount} active – display will be truncated (order matters).',
     activeTab: 'Active',
@@ -1875,6 +1876,7 @@ export const en = {
     },
   },
   commandPalette: {
+    dialogLabel: 'Quick access',
     quickActionsHeading: 'Quick Actions',
   },
   coachService: {
@@ -3360,6 +3362,9 @@ export const en = {
     foreignBackupTitle: 'Backup from different account',
     foreignBackupWarning: 'This backup was created with a different user account. When restoring, the data will be assigned to your current account and merged with your data. Only proceed if this is intended.',
     foreignBackupAction: 'Restore anyway',
+    localBackupTitle: 'Adopt backup created without an account',
+    localBackupWarning: 'This backup was created without a signed-in account (local use). When restoring, the data will be assigned to your current account and merged with your existing data.',
+    localBackupAction: 'Assign to my account',
     aboutBackups: 'About backups',
     regularBackups: 'Regular backups: Create a backup weekly to avoid data loss.',
     storageLocation: 'Storage location: Store backups in a safe place (e.g. cloud storage, external hard drive).',
@@ -3385,6 +3390,7 @@ export const en = {
       itemsSkipped: '{count} entries in the backup were damaged and were skipped during restore.',
       restoreSuccess: 'Backup restored successfully',
       restoreSuccessForeign: 'Backup restored successfully (from different user account)',
+      restoreSuccessLocal: 'Backup restored successfully (created without an account, now assigned to your account)',
       restoreFailed: 'Restore failed: {error}',
       unknownError: 'Unknown error',
     },
