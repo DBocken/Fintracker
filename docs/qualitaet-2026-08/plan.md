@@ -358,11 +358,11 @@ Begründung („bleibt, weil …" / „präzisiert, weil …").
 **Akzeptanz:** Keine Fläche zeigt veraltete Daten (bestehende Tests grün) ·
 Begründungsliste vollständig.
 
-### - [ ] WP 4.3 · `invalidateQueries()` ohne Key eliminieren (PERF-5) · H
+### - [x] WP 4.3 · `invalidateQueries()` ohne Key eliminieren (PERF-5) · H — `f80e317`
 Drei Fundstellen (PERF-5) auf gezielte Keys; kurzer Test je Stelle, dass die
 betroffene Fläche weiterhin frisch lädt.
 
-### - [ ] WP 4.4 · Chart-Daten memoisieren (PERF-4) · H
+### - [x] WP 4.4 · Chart-Daten memoisieren (PERF-4) · H — `dfe2c94`
 Drei Fundstellen mit `useMemo` an die Quell-Arrays binden; keine
 Verhaltensänderung, bestehende Tests genügen als Netz.
 
