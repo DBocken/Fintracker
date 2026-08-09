@@ -494,7 +494,7 @@ ist der Beweis, dass die Trennung trägt.
 nie, obwohl `useTradingPortfolio` ihn kennt — der Stern steht nach jedem Reload
 am falschen Anbieter. `[REGRESSION]`-Test Pflicht.
 
-### - [ ] WP 6.7 · `components/common/` → `features/shared/presentation/` · H
+### - [x] WP 6.7 · `components/common/` → `features/shared/presentation/` · H — `fdf233e`
 **Befund aus WP 6.3:** Die Baustein-Spalte der Slice-Ratsche (`maxBausteine`,
 Stand 36) erreicht erst mit diesem Umzug die 0. Neun Bausteine, **~110
 betroffene Dateien** (in WP 6.3 gemessen — vorher neu zählen). EIN Umzug für

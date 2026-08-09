@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.7 · components/common → features/shared/presentation |
+| **Paket** | WP 6.8 · check:i18n-Blindstellen schließen |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
