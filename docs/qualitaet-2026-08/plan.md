@@ -429,7 +429,7 @@ Fundstelle prüfen: beheben oder mit Ein-Satz-Begründung stehen lassen.
 **Akzeptanz:** Cast-Zahl der drei Hotspots im PR vorher/nachher · keine neuen
 Disables.
 
-### - [ ] WP 5.4 · `TransactionFilters` aufs ViewModel reduzieren (KOMP-2) · S
+### - [x] WP 5.4 · `TransactionFilters` aufs ViewModel reduzieren (KOMP-2) · S — `3ba8c0b`
 Props auf `{ filters: FilterViewModel; showSearch?; stacked? }`; beide
 Aufrufer reichen das Objekt durch. `[REGRESSION]`-Test: Dashboard-Vorschau und
 `/transactions` filtern identisch.

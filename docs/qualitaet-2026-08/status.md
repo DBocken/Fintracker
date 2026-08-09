@@ -77,7 +77,7 @@ Bei Themen aus AGENTS.md §10 zusätzlich `pnpm test:security` und
 
 | | |
 |---|---|
-| **Paket** | WP 5.4 · TransactionFilters aufs ViewModel reduzieren (KOMP-2) |
+| **Paket** | WP 5.2b · Branded IDs auf die realen Felder (DOM-3, Rest) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
