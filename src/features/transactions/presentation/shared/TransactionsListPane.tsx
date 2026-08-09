@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TransactionDayList } from '@/components/dashboard/TransactionDayList';
@@ -7,14 +8,10 @@ import { useI18n } from '@/i18n/useI18n';
 import FilteredEmptyState from '@/components/common/FilteredEmptyState';
 import { describeActiveFilters } from '@/features/shared/domain/active-filters';
 import { formatCurrency } from '@/lib/utils';
-import type {
-  ContractFilter,
-  EssentialFilter,
-  AusgabenklasseFilter,
-} from '@/features/shared/domain/dashboard-filters';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import type { TransactionsViewInteractionProps } from '../transactions-view-props';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
+import { toFilterViewModel } from './filter-view-model-adapter';
 
 interface Props extends Pick<TransactionsViewInteractionProps, 'detailsTransaction' | 'onOpenDetails'> {
   model: TransactionsOverviewViewModel;
@@ -51,6 +48,11 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
    */
   const activeFilters = describeActiveFilters(filters.values);
 
+  const filterViewModel = useMemo(
+    () => toFilterViewModel(filters, model.categories, model.accounts),
+    [filters, model.categories, model.accounts],
+  );
+
   const emptyList = (
     <FilteredEmptyState
       active={activeFilters}
@@ -77,32 +79,7 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <TransactionFilters
-            filterCat={filters.values.category}
-            setFilterCat={(v) => filters.set.patch({ category: v })}
-            filterAccount={filters.values.account}
-            setFilterAccount={(v) => filters.set.patch({ account: v })}
-            searchInput={filters.values.search}
-            setSearchInput={(v) => filters.set.patch({ search: v })}
-            range={filters.values.range}
-            setRange={filters.set.range}
-            customDays={filters.values.customDays}
-            setCustomDays={(v) => filters.set.patch({ customDays: v })}
-            customGran={filters.customGranularity}
-            setCustomGran={filters.set.customGranularity}
-            customPeriod={filters.values.customPeriod ?? ''}
-            setCustomPeriod={(v) => filters.set.patch({ customPeriod: v })}
-            periodOptions={filters.periodOptions}
-            categories={model.categories}
-            accounts={model.accounts}
-            filterContract={filters.values.contract}
-            setFilterContract={(v: ContractFilter) => filters.set.patch({ contract: v })}
-            filterEssential={filters.values.essential}
-            setFilterEssential={(v: EssentialFilter) => filters.set.patch({ essential: v })}
-            filterAusgabenklasse={filters.values.ausgabenklasse}
-            setFilterAusgabenklasse={(v: AusgabenklasseFilter) => filters.set.patch({ ausgabenklasse: v })}
-            showSearch={false}
-          />
+          <TransactionFilters filters={filterViewModel} showSearch={false} />
           {filters.activeCount > 0 && (
             <Button
               type="button"

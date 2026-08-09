@@ -5,44 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
-import type { Account, Category } from '../../types';
-import {
-  DASHBOARD_RANGE_OPTIONS,
-  PERIOD_RANGES,
-  type ContractFilter,
-  type DashboardGranularity,
-  type DashboardRange,
-  type EssentialFilter,
-  type AusgabenklasseFilter,
-} from '@/features/shared/domain/dashboard-filters';
-import type { PeriodOption } from '@/features/shared/domain/period-options';
+import type { Account } from '../../types';
+import { DASHBOARD_RANGE_OPTIONS, PERIOD_RANGES } from '@/features/shared/domain/dashboard-filters';
+import type { FilterViewModel } from '@/features/shared/domain/filter-view-model';
 import { AusgabenklasseFilterComponent } from './AusgabenklasseFilter';
 
 interface TransactionFiltersProps {
-  filterCat: string;
-  setFilterCat: (value: string) => void;
-  filterAccount: string;
-  setFilterAccount: (value: string) => void;
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  range: DashboardRange;
-  setRange: (value: DashboardRange) => void;
-  customDays: number;
-  setCustomDays: (value: number) => void;
-  customGran: DashboardGranularity;
-  setCustomGran: (value: DashboardGranularity) => void;
-  customPeriod: string;
-  setCustomPeriod: (value: string) => void;
-  /** Verfügbare Perioden (Jahr/Quartal/Monat) je nach gewählter Granularität. */
-  periodOptions: PeriodOption[];
-  categories: Category[];
-  accounts: Account[];
-  filterContract: ContractFilter;
-  setFilterContract: (v: ContractFilter) => void;
-  filterEssential: EssentialFilter;
-  setFilterEssential: (v: EssentialFilter) => void;
-  filterAusgabenklasse: AusgabenklasseFilter;
-  setFilterAusgabenklasse: (v: AusgabenklasseFilter) => void;
+  /** Werte, Setter, Perioden/Konten/Kategorien in einem Objekt (WP 5.4, KOMP-2). */
+  filters: FilterViewModel;
   showSearch?: boolean;
   /**
    * `true` rendert die Filter als aufgeräumtes, beschriftetes 2-Spalten-Raster
@@ -52,32 +22,11 @@ interface TransactionFiltersProps {
 }
 
 export function TransactionFilters({
-  filterCat,
-  setFilterCat,
-  filterAccount,
-  setFilterAccount,
-  searchInput,
-  setSearchInput,
-  range,
-  setRange,
-  customDays,
-  setCustomDays,
-  customGran,
-  setCustomGran,
-  customPeriod,
-  setCustomPeriod,
-  periodOptions,
-  categories,
-  accounts,
-  filterContract,
-  setFilterContract,
-  filterEssential,
-  setFilterEssential,
-  filterAusgabenklasse,
-  setFilterAusgabenklasse,
+  filters,
   showSearch = true,
   stacked = false,
 }: TransactionFiltersProps) {
+  const { values, set, periodOptions, categories, accounts } = filters;
   const { t } = useI18n();
 
   // Im Stacked-Modus füllen die Trigger die Spalte; in der Toolbar feste Breiten.
@@ -98,7 +47,7 @@ export function TransactionFilters({
   return (
     <div className={cn(stacked ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : 'flex flex-wrap items-center gap-2')}>
       <Field label={t('transactionFilters.accountLabel')}>
-        <Select value={filterAccount} onValueChange={setFilterAccount}>
+        <Select value={values.account} onValueChange={set.account}>
           <SelectTrigger data-tour-id="filter-account" aria-label={t('transactionFilters.accountAriaLabel')} className={triggerClass('w-48')}>
             <SelectValue placeholder={t('transactionFilters.accountPlaceholder')} />
           </SelectTrigger>
@@ -123,7 +72,7 @@ export function TransactionFilters({
       </Field>
 
       <Field label={t('transactionFilters.categoryLabel')}>
-        <Select value={filterCat} onValueChange={setFilterCat}>
+        <Select value={values.category} onValueChange={set.category}>
           <SelectTrigger data-tour-id="filter-category" aria-label={t('transactionFilters.categoryAriaLabel')} className={triggerClass('w-48')}>
             <SelectValue placeholder={t('transactionFilters.categoryPlaceholder')} />
           </SelectTrigger>
@@ -137,7 +86,7 @@ export function TransactionFilters({
       </Field>
 
       <Field label={t('transactionFilters.contractLabel')}>
-        <Select value={filterContract} onValueChange={setFilterContract}>
+        <Select value={values.contract} onValueChange={set.contract}>
           <SelectTrigger data-tour-id="filter-contract" aria-label={t('transactionFilters.contractAriaLabel')} className={triggerClass('w-40')}>
             <SelectValue placeholder={t('transactionFilters.contractPlaceholder')} />
           </SelectTrigger>
@@ -150,7 +99,7 @@ export function TransactionFilters({
       </Field>
 
       <Field label={t('transactionFilters.essentialLabel')}>
-        <Select value={filterEssential} onValueChange={setFilterEssential}>
+        <Select value={values.essential} onValueChange={set.essential}>
           <SelectTrigger data-tour-id="filter-essential" aria-label={t('transactionFilters.essentialAriaLabel')} className={triggerClass('w-44')}>
             <SelectValue placeholder={t('transactionFilters.essentialPlaceholder')} />
           </SelectTrigger>
@@ -164,15 +113,15 @@ export function TransactionFilters({
 
       <Field label={t('transactionFilters.ausgabenklasseLabel')}>
         <AusgabenklasseFilterComponent
-          value={filterAusgabenklasse}
-          onChange={setFilterAusgabenklasse}
+          value={values.ausgabenklasse}
+          onChange={set.ausgabenklasse}
           categories={categories}
           className={stacked ? 'w-full' : undefined}
         />
       </Field>
 
       <Field label={t('transactionFilters.timeRangeLabel')}>
-        <Select value={range} onValueChange={setRange}>
+        <Select value={values.range} onValueChange={set.range}>
           <SelectTrigger data-tour-id="filter-timerange" aria-label={t('transactionFilters.timeRangeAriaLabel')} className={triggerClass('w-40')}>
             <SelectValue />
           </SelectTrigger>
@@ -184,9 +133,9 @@ export function TransactionFilters({
         </Select>
       </Field>
 
-      {PERIOD_RANGES.has(range) && (
+      {PERIOD_RANGES.has(values.range) && (
         <Field label={t('transactionFilters.periodLabel')}>
-          <Select value={customPeriod} onValueChange={setCustomPeriod}>
+          <Select value={values.customPeriod} onValueChange={set.customPeriod}>
             <SelectTrigger aria-label={t('transactionFilters.periodAriaLabel')} className={triggerClass('w-40')}>
               <SelectValue placeholder={t('transactionFilters.periodPlaceholder')} />
             </SelectTrigger>
@@ -203,16 +152,16 @@ export function TransactionFilters({
         </Field>
       )}
 
-      {range === t('transactionFilters.customRange') && (
+      {values.range === t('transactionFilters.customRange') && (
         <>
-          <Field label={t('transactionFilters.daysLabel').replace(/{days}/g, String(customDays))}>
+          <Field label={t('transactionFilters.daysLabel').replace(/{days}/g, String(values.customDays))}>
             <div className="flex items-center gap-2">
-              {!stacked && <Label id="custom-days-label" className="text-sm">{t('transactionFilters.daysLabel').replace(/{days}/g, String(customDays))}</Label>}
+              {!stacked && <Label id="custom-days-label" className="text-sm">{t('transactionFilters.daysLabel').replace(/{days}/g, String(values.customDays))}</Label>}
               <Slider
-                aria-label={stacked ? t('transactionFilters.daysLabel').replace('{days}', String(customDays)) : undefined}
+                aria-label={stacked ? t('transactionFilters.daysLabel').replace('{days}', String(values.customDays)) : undefined}
                 aria-labelledby={stacked ? undefined : 'custom-days-label'}
-                value={[customDays]}
-                onValueChange={([value]: number[]) => setCustomDays(value)}
+                value={[values.customDays]}
+                onValueChange={([value]: number[]) => set.customDays(value)}
                 min={1}
                 max={365}
                 className={stacked ? 'w-full' : 'w-32'}
@@ -221,7 +170,7 @@ export function TransactionFilters({
           </Field>
 
           <Field label={t('transactionFilters.granularityLabel')}>
-            <Select value={customGran} onValueChange={setCustomGran}>
+            <Select value={values.customGranularity} onValueChange={set.customGranularity}>
               <SelectTrigger aria-label={t('transactionFilters.granularityAriaLabel')} className={triggerClass('w-28')}>
                 <SelectValue />
               </SelectTrigger>
@@ -243,8 +192,8 @@ export function TransactionFilters({
               id="transaction-search"
               type="search"
               placeholder={t('transactionFilters.searchPlaceholder')}
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
+              value={values.search}
+              onChange={(event) => set.search(event.target.value)}
               className={triggerClass('w-48')}
             />
           </div>

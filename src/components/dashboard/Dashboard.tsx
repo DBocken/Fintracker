@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { TransactionDetailsModal } from './TransactionDetailsModal';
 import DashboardMobileStory from '@/features/dashboard/presentation/mobile/DashboardMobileStory';
 import { DashboardDesktopView } from '@/features/dashboard/presentation/desktop/DashboardDesktopView';
 import { useFinanceOverview } from '@/features/dashboard/application/use-finance-overview';
+import type { FilterViewModel } from '@/features/shared/domain/filter-view-model';
 import type { Transaction } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
@@ -46,6 +47,17 @@ export function Dashboard() {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const model = useFinanceOverview({ onDetailsSaved: () => setDetailsOpen(false) });
+
+  // `model.filters.values`/`.set` sind bereits 1:1 `FilterViewModel`-förmig
+  // (gleiche Feldnamen) — hier nur um `categories`/`accounts` ergänzt, die im
+  // ViewModel auf oberster Ebene stehen (WP 5.4, KOMP-2).
+  const dashboardFilterViewModel: FilterViewModel = useMemo(() => ({
+    values: model.filters.values,
+    set: model.filters.set,
+    periodOptions: model.filters.periodOptions,
+    categories: model.categories,
+    accounts: model.accounts,
+  }), [model.filters.values, model.filters.set, model.filters.periodOptions, model.categories, model.accounts]);
 
   const handleDelete = useCallback((transactionId: string) => {
     setTransactionToDelete(transactionId);
@@ -191,29 +203,7 @@ export function Dashboard() {
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <TransactionFilters
-              filterCat={model.filters.values.category}
-              setFilterCat={model.filters.set.category}
-              filterAccount={model.filters.values.account}
-              setFilterAccount={model.filters.set.account}
-              searchInput={model.filters.values.search}
-              setSearchInput={model.filters.set.search}
-              range={model.filters.values.range}
-              setRange={model.filters.set.range}
-              customDays={model.filters.values.customDays}
-              setCustomDays={model.filters.set.customDays}
-              customGran={model.filters.values.customGranularity}
-              setCustomGran={model.filters.set.customGranularity}
-              customPeriod={model.filters.values.customPeriod}
-              setCustomPeriod={model.filters.set.customPeriod}
-              periodOptions={model.filters.periodOptions}
-              categories={model.categories}
-              accounts={model.accounts}
-              filterContract={model.filters.values.contract}
-              setFilterContract={model.filters.set.contract}
-              filterEssential={model.filters.values.essential}
-              setFilterEssential={model.filters.set.essential}
-              filterAusgabenklasse={model.filters.values.ausgabenklasse}
-              setFilterAusgabenklasse={model.filters.set.ausgabenklasse}
+              filters={dashboardFilterViewModel}
               showSearch={false}
               stacked
             />
