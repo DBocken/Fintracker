@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.5 · Slice-Migration AccountManager/EnhancedSettings (ARCH-1) |
+| **Paket** | WP 6.7 · components/common → features/shared/presentation |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 

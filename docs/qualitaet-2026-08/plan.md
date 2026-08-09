@@ -509,10 +509,20 @@ Interaktions-/Kamera-Logik nach `features/finance-city/application`;
 Rendering); Page wird Orchestrierung. Zielgröße: Page < 300 Zeilen, keine
 Funktion > 100.
 
-### - [ ] WP 6.5 · Slice-Migration, nächste Kandidaten (ARCH-1) · S
+### - [x] WP 6.5 · Slice-Migration, nächste Kandidaten (ARCH-1) · S — `95c6ce3` (Settings) + `f7dcb7c` (Accounts)
 Je Route ein PR, Reihenfolge nach view-data-Hotspots: `AccountManager`
 (7 Queries), `EnhancedSettings` (7), dann absteigend. Jeder PR senkt
 `view-data-budget.json` messbar (Ratsche nachziehen — sie darf nur sinken).
+
+### - [ ] WP 6.8 · `check:i18n`-Blindstellen schließen · S
+**Befunde aus WP 6.5a/b, je gegen HEAD nachgewiesen:** Der Wächter sieht drei
+Formen sichtbaren UI-Texts nicht: **Props-Objekte** (`{ label: "Aufbewahrung" }`),
+**Einzelwort mit Doppelpunkt** (`<strong>Hinweis:</strong>`) und
+**Template-Literal ohne führendes Leerzeichen** (`` `Verbindungsfehler: ${e.message}` ``).
+Dieselbe Familie wie die WP-12.2-Blindstellen (Template-Literal, JSX-Text).
+Die konkreten Fundstellen sind behoben bzw. unverändert übernommen; hier geht
+es um den **Wächter** (`i18n-core.mjs`), inklusive Mutationsprobe je Form und
+Neuvermessung der Allowlist.
 
 ### - [ ] WP 6.6 · Gott-Module lib-seitig teilen (ARCH-6) · S (kür)
 Migrationsfunktionen aus `local-settings-service.ts` nach
