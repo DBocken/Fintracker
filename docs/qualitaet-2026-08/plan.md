@@ -488,7 +488,7 @@ Aufspaltung entlang der Tabs (Portfolio/News/Discover); vervollständigt die
 Trading-Slice-Kette. ViewModel (`use-etoro-account`) bleibt unverändert — das
 ist der Beweis, dass die Trennung trägt.
 
-### - [ ] WP 6.3b · `ProviderSelector`: gespeicherten Favoriten wirklich lesen · S
+### - [x] WP 6.3b · `ProviderSelector`: gespeicherten Favoriten wirklich lesen · S — `3b90058`
 **Befund aus WP 6.3 (Bestandsfehler, nicht durch den Umzug entstanden):**
 `favoriteProvider` startet fest auf `'yahoo'` und liest den gespeicherten Wert
 nie, obwohl `useTradingPortfolio` ihn kennt — der Stern steht nach jedem Reload
