@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.6 · Gott-Module lib-seitig teilen (ARCH-6, kür) |
+| **Paket** | WP 6.9 · Dialog-Beschreibung (letztes Phase-6-Paket) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 

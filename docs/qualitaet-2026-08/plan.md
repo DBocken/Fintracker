@@ -524,7 +524,7 @@ Die konkreten Fundstellen sind behoben bzw. unverändert übernommen; hier geht
 es um den **Wächter** (`i18n-core.mjs`), inklusive Mutationsprobe je Form und
 Neuvermessung der Allowlist.
 
-### - [ ] WP 6.6 · Gott-Module lib-seitig teilen (ARCH-6) · S (kür)
+### - [x] WP 6.6 · Gott-Module lib-seitig teilen (ARCH-6) · S (kür) — `2173cfe`
 Migrationsfunktionen aus `local-settings-service.ts` nach
 `src/lib/category-migrations.ts` (reine Funktionen); Sankey-/Sunburst-Aufbau
 aus `analysis-data.ts` in `lib/chart-data/`-Module; `sumIncome`/`sumExpenses`
