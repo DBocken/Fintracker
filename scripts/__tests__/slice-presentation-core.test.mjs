@@ -59,11 +59,18 @@ describe('countLegacyImports', () => {
 
     it('sollte Relativpfade genauso auflösen wie @/-Aliase', () => {
       // 'src/features/special-categories/presentation' + drei '../' landet
-      // bei 'src' — von dort führt 'components/ui/button' nach
-      // 'src/components/ui/button'.
-      const src = `import { Button } from '../../../components/ui/button';`;
+      // bei 'src' — von dort führt 'components/common/InteractiveCard' nach
+      // 'src/components/common/InteractiveCard'.
+      const src = `import { InteractiveCard } from '../../../components/common/InteractiveCard';`;
       const result = countLegacyImports('src/features/special-categories/presentation/View.tsx', src);
       expect(result.imports).toBe(1);
+    });
+
+    it('sollte app-eigene Bausteine unter components/common/ zählen — sie gehören nach features/shared/presentation/', () => {
+      const src = `import { ChartFigure } from '@/components/common/ChartFigure';`;
+      const result = countLegacyImports('src/features/dashboard/presentation/shared/TransactionCharts.tsx', src);
+      expect(result.imports).toBe(1);
+      expect(result.specs).toEqual(['@/components/common/ChartFigure']);
     });
 
     it('sollte reine Typ-Importe genauso zählen wie Wert-Importe', () => {
@@ -73,8 +80,27 @@ describe('countLegacyImports', () => {
   });
 
   describe('Kein Fehlalarm', () => {
+    it('[REGRESSION] sollte shadcn-Primitive unter components/ui/ NICHT zählen (WP 6.2)', () => {
+      // Die Migration von TransactionCharts loeste zwei gezaehlte Importe auf
+      // und brachte als Slice-Datei `ui/card` + `ui/switch` mit — unterm
+      // Strich waere die Ratsche von 24 auf 25 GESTIEGEN. AGENTS.md §7 nennt
+      // shadcn/`@/components/ui` als ausschliessliche UI-Quelle: eine zweite
+      // Praesentation benutzt dieselben Primitive, sie sind nicht die
+      // Alt-Oberflaeche.
+      const src = [
+        `import { Card, CardHeader } from '@/components/ui/card';`,
+        `import { Switch } from '@/components/ui/switch';`,
+        `import { Button } from '../../../../components/ui/button';`,
+      ].join('\n');
+      const result = countLegacyImports('src/features/dashboard/presentation/shared/TransactionCharts.tsx', src);
+      expect(result.imports).toBe(0);
+      expect(result.specs).toEqual([]);
+    });
+
     it('sollte eine Datei außerhalb von presentation/ nicht zählen (application darf laut check:layers ohnehin nicht)', () => {
-      const src = `import { Button } from '@/components/ui/button';`;
+      // Bewusst KEIN `ui/`-Import: der zaehlt seit WP 6.2 nirgends, der Test
+      // wuerde sonst auch bei kaputtem `istSlicePresentation` gruen bleiben.
+      const src = `import { AccountCards } from '@/components/accounts/AccountCards';`;
       expect(countLegacyImports('src/features/dashboard/application/use-finance-overview.ts', src).imports).toBe(0);
     });
 
@@ -110,7 +136,8 @@ describe('countLegacyImports', () => {
     });
 
     it('sollte einen Test unter presentation/__tests__ nicht zählen — Tests sind ausgenommen', () => {
-      const src = `import { Button } from '@/components/ui/button';`;
+      // Bewusst KEIN `ui/`-Import (siehe oben) — sonst prueft der Test nichts.
+      const src = `import { AccountCards } from '@/components/accounts/AccountCards';`;
       expect(
         countLegacyImports('src/features/dashboard/presentation/__tests__/View.test.tsx', src).imports,
       ).toBe(0);
