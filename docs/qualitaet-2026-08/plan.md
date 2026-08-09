@@ -514,7 +514,7 @@ Je Route ein PR, Reihenfolge nach view-data-Hotspots: `AccountManager`
 (7 Queries), `EnhancedSettings` (7), dann absteigend. Jeder PR senkt
 `view-data-budget.json` messbar (Ratsche nachziehen — sie darf nur sinken).
 
-### - [ ] WP 6.8 · `check:i18n`-Blindstellen schließen · S
+### - [x] WP 6.8 · `check:i18n`-Blindstellen schließen · S — `43d514b`
 **Befunde aus WP 6.5a/b, je gegen HEAD nachgewiesen:** Der Wächter sieht drei
 Formen sichtbaren UI-Texts nicht: **Props-Objekte** (`{ label: "Aufbewahrung" }`),
 **Einzelwort mit Doppelpunkt** (`<strong>Hinweis:</strong>`) und

@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | WP 6.8 · check:i18n-Blindstellen schließen |
+| **Paket** | WP 6.6 · Gott-Module lib-seitig teilen (ARCH-6, kür) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
