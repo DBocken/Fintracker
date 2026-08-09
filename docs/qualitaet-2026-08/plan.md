@@ -532,6 +532,15 @@ bleiben schmaler Kern. Tests wandern mit.
 
 ---
 
+### - [ ] WP 6.9 · Dialog-Beschreibung lügt in jedem Dialog · S
+**Befund aus WP 6.8 (A11y-Sachfehler, Backlog-Eintrag `ui/dialog.tsx`):**
+`ui/dialog.tsx` trägt eine hartcodierte `sr-only`-Beschreibung „Dialog content
+for account management" — in **jedem** Dialog der App. Screenreader-Nutzer
+bekommen im Budget-Dialog eine falsche Auskunft. Behebung braucht eine
+Prop-/Key-Entscheidung (Beschreibung je Aufrufstelle oder leerer Default);
+`[REGRESSION]`-Test Pflicht, bilingual. Senkt zugleich den i18n-Backlog
+(`ui/dialog.tsx` 2, `ui/sheet.tsx` 1 prüfen).
+
 ## Phase 7 — Test- & Meta-Härtung (P2/P3)
 
 ### - [ ] WP 7.1 · Error-State-Tests verschärfen (TEST-4) · H
