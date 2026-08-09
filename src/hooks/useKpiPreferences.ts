@@ -120,6 +120,9 @@ export function useKpiPreferences() {
     if (!pending) return;
 
     mutation.mutate(normalizePrefs(pending));
+    // `mutation` (react-query-Objekt, jede Render-Runde neu) bewusst nicht in
+    // den Deps: sein Einschluss würde den Pending-Sync bei jedem Render erneut
+    // anstoßen, nicht nur wenn Auth/Query tatsächlich in den Erfolgsfall wechseln.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed, query.isSuccess, LS_PENDING]);
 
@@ -130,6 +133,9 @@ export function useKpiPreferences() {
     const has = !!query.data?.kpi_prefs;
     if (has) return;
     mutation.mutate(normalizePrefs(localPrefs));
+    // `mutation`/`localPrefs` bewusst nicht in den Deps — dieselbe Begründung
+    // wie beim Pending-Sync oben: nur der Übergang in den Erfolgsfall soll das
+    // einmalige Seeding auslösen, nicht jede Neuberechnung der beiden Werte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed, query.isSuccess]);
 

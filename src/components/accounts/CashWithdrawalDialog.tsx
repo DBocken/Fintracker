@@ -53,6 +53,10 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
     setAmount(null);
     setDate(today());
     setSourceAccountId(sourceAccounts[0]?.id ?? "");
+    // `sourceAccounts`/`cashAccountId` bewusst nicht in den Deps: Das Formular
+    // soll nur beim ÖFFNEN oder bei einer geänderten Kontoanzahl zurückgesetzt
+    // werden, nicht bei jeder Neuberechnung von `sourceAccounts` während der
+    // Dialog schon offen ist (das würde eine laufende Nutzerauswahl überschreiben).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, accounts.length]);
 

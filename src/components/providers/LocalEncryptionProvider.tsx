@@ -130,6 +130,9 @@ export function LocalEncryptionProvider({ children }: { children: React.ReactNod
       },
       refresh,
     }
+    // `enabled`/`unlocked`/`autoLockMinutes`/`lockOnHidden` sind synchrone
+    // Lesungen aus dem nicht-reaktiven `localEncryption`-Modul; `tick` ist ihr
+    // einziges Änderungssignal (via `refresh()`) und deckt sie vollständig ab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick])
 

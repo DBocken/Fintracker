@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
@@ -65,7 +65,10 @@ export default function WrappedSlides({ stats, onClose }: { stats: WrappedStats;
   }, [stats]);
 
   const [index, setIndex] = useState(0);
-  const clamp = (i: number) => Math.max(0, Math.min(slides.length - 1, i));
+  // `useCallback` statt einer Closure im Render-Körper: der Tastatur-Effekt
+  // unten braucht eine stabile Referenz, die trotzdem auf ein aktuelles
+  // `slides.length` reagiert — sonst müsste er `clamp` selbst ignorieren.
+  const clamp = useCallback((i: number) => Math.max(0, Math.min(slides.length - 1, i)), [slides.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -75,8 +78,7 @@ export default function WrappedSlides({ stats, onClose }: { stats: WrappedStats;
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides.length]);
+  }, [clamp, onClose]);
 
   const current = slides[index];
   const isFinal = current === 'final';

@@ -89,6 +89,9 @@ export function ContractsDashboard() {
     if (autoScanned.current || transactions.length === 0) return;
     autoScanned.current = true;
     rescanMutation.mutate();
+    // `rescanMutation` bewusst nicht in den Deps: Die `autoScanned`-Ref lässt
+    // den Effekt ohnehin nur einmal wirken, ein neuer `mutate`-Verweis (jede
+    // Render-Runde) würde daran nichts ändern.
   }, [transactions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [onlyChanges, setOnlyChanges] = useState(false);

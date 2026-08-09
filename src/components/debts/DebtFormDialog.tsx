@@ -5,13 +5,7 @@ import { DecimalInput } from "@/components/common/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TypedSelect } from "@/components/common/TypedSelect";
 import type { Debt, DebtPriority, DebtType } from "@/types";
 import {
   getDebtPriorityLabels,
@@ -19,6 +13,7 @@ import {
   getExistentialPriorityExplanation,
   suggestDebtPriority,
 } from "@/services/debt-service";
+import { recordToOptions, typedKeys } from "@/lib/typed-record";
 import { useI18n } from "@/i18n/useI18n";
 
 interface DebtFormDialogProps {
@@ -29,16 +24,31 @@ interface DebtFormDialogProps {
   isLoading?: boolean;
 }
 
-const emptyForm = {
+/** Form-Zustand von `DebtFormDialog` — als eigener Typ statt Feld-für-Feld-Casts
+ * im Objektliteral: `emptyForm` prüft sich damit als Ganzes gegen den Typ,
+ * statt fünf einzelne `as DebtType`/`as number | null`-Behauptungen zu brauchen. */
+interface DebtFormState {
+  name: string;
+  type: DebtType;
+  balance: number | null;
+  interest_rate: number | null;
+  min_payment: number | null;
+  due_day: string;
+  provider: string;
+  is_bnpl: boolean;
+  priority: DebtPriority;
+}
+
+const emptyForm: DebtFormState = {
   name: "",
-  type: "credit_card" as DebtType,
-  balance: null as number | null,
-  interest_rate: null as number | null,
-  min_payment: null as number | null,
+  type: "credit_card",
+  balance: null,
+  interest_rate: null,
+  min_payment: null,
   due_day: "",
   provider: "",
   is_bnpl: false,
-  priority: "normal" as DebtPriority,
+  priority: "normal",
 };
 
 export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: DebtFormDialogProps) {
@@ -110,23 +120,14 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
           <div className="space-y-1.5">
             <Label>{t('debts.debtForm.typeLabel')}</Label>
-            <Select
+            <TypedSelect
               value={form.type}
-              onValueChange={(v) =>
-                setForm((f) => ({ ...f, type: v as DebtType, is_bnpl: v === "bnpl" ? true : f.is_bnpl }))
+              onValueChange={(type) =>
+                setForm((f) => ({ ...f, type, is_bnpl: type === "bnpl" ? true : f.is_bnpl }))
               }
-            >
-              <SelectTrigger aria-label={t('debts.debtForm.typeLabel')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(debtTypeLabels) as DebtType[]).map((debtType) => (
-                  <SelectItem key={debtType} value={debtType}>
-                    {debtTypeLabels[debtType]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={recordToOptions(debtTypeLabels)}
+              aria-label={t('debts.debtForm.typeLabel')}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -175,22 +176,15 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSave, isLoading }: 
 
           <div className="space-y-1.5">
             <Label>{t('debts.debtForm.priorityLabel')}</Label>
-            <Select
+            <TypedSelect
               value={form.priority}
-              onValueChange={(v) => setForm((f) => ({ ...f, priority: v as DebtPriority }))}
-            >
-              <SelectTrigger aria-label={t('debts.debtForm.priorityLabel')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(debtPriorityLabels) as DebtPriority[]).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p === "existenzsichernd" ? "🏠 " : ""}
-                    {debtPriorityLabels[p]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={(priority) => setForm((f) => ({ ...f, priority }))}
+              options={typedKeys(debtPriorityLabels).map((p) => ({
+                value: p,
+                label: `${p === "existenzsichernd" ? "🏠 " : ""}${debtPriorityLabels[p]}`,
+              }))}
+              aria-label={t('debts.debtForm.priorityLabel')}
+            />
             <p className="text-xs text-muted-foreground">{getExistentialPriorityExplanation()}</p>
           </div>
 

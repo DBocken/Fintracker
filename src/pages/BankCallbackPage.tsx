@@ -51,6 +51,9 @@ export default function BankCallbackPage() {
   useEffect(() => {
     handleCallback();
     loadExistingAccounts();
+    // Bewusst nur beim Mount: `handleCallback`/`loadExistingAccounts` verarbeiten
+    // den OAuth-Callback einmalig; ihre Aufnahme (neue Funktionsidentität bei
+    // jedem Render) würde den Callback bei jedem Render erneut verarbeiten.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

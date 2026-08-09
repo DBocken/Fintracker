@@ -466,13 +466,13 @@ export default function TradingDashboard() {
             <EtoroOverviewTab
               isLocked={!unlocked}
               isLoading={isLoadingAggregate}
-              error={aggregateError as Error | null}
+              error={aggregateError}
               onRetry={() => refetchAggregate()}
               aggregate={etoroAggregate}
               localPositionsValue={localEtoroPositionsValue}
               mirrorsValue={sumMirrorLiquidationValue(etoroAggregate)}
             />
-            <EtoroDemoAccountCard isLoading={isLoadingDemoPnl} error={demoPnlError as Error | null} pnl={etoroDemoPnl} />
+            <EtoroDemoAccountCard isLoading={isLoadingDemoPnl} error={demoPnlError} pnl={etoroDemoPnl} />
           </TabsContent>
         )}
 
@@ -481,7 +481,7 @@ export default function TradingDashboard() {
             <EtoroMirrorsTab
               isLocked={!unlocked}
               isLoading={isLoadingAggregate}
-              error={aggregateError as Error | null}
+              error={aggregateError}
               onRetry={() => refetchAggregate()}
               aggregate={etoroAggregate}
               instrumentMeta={mirrorInstrumentMeta}
@@ -496,19 +496,19 @@ export default function TradingDashboard() {
               pnl={{
                 data: etoroPnl,
                 isLoading: isLoadingPnl,
-                error: pnlError as Error | null,
+                error: pnlError,
                 onRetry: () => refetchPnl(),
               }}
               tradeHistory={{
                 data: etoroTradeHistory,
                 isLoading: isLoadingTradeHistory,
-                error: tradeHistoryError as Error | null,
+                error: tradeHistoryError,
                 onRetry: () => refetchTradeHistory(),
               }}
               cashMovements={{
                 data: etoroCashMovements,
                 isLoading: isLoadingBalances || isLoadingCashMovements,
-                error: (balancesError as Error | null) ?? (cashMovementsError as Error | null),
+                error: balancesError ?? cashMovementsError,
                 onRetry: () => {
                   refetchBalances();
                   if (cashAccountId) refetchCashMovements();
@@ -524,7 +524,7 @@ export default function TradingDashboard() {
             <EtoroAnalysisTab
               isLocked={!unlocked}
               isLoading={isLoadingAggregate}
-              error={aggregateError as Error | null}
+              error={aggregateError}
               onRetry={() => refetchAggregate()}
               aggregate={etoroAggregate}
               instrumentIndustryMap={analysisInstrumentIndustryMap}
@@ -541,7 +541,7 @@ export default function TradingDashboard() {
               watchlists={{
                 data: etoroWatchlists,
                 isLoading: isLoadingWatchlists,
-                error: watchlistsError as Error | null,
+                error: watchlistsError,
                 onRetry: () => refetchWatchlists(),
               }}
               selectedWatchlistId={effectiveWatchlistId}
@@ -549,13 +549,13 @@ export default function TradingDashboard() {
               watchlistItems={{
                 data: etoroWatchlistItems,
                 isLoading: isLoadingWatchlistItems,
-                error: watchlistItemsError as Error | null,
+                error: watchlistItemsError,
                 onRetry: () => refetchWatchlistItems(),
               }}
               priceAlerts={{
                 data: etoroPriceAlerts,
                 isLoading: isLoadingPriceAlerts,
-                error: priceAlertsError as Error | null,
+                error: priceAlertsError,
                 onRetry: () => refetchPriceAlerts(),
               }}
               rates={watchlistsRates ?? new Map()}
@@ -572,13 +572,13 @@ export default function TradingDashboard() {
               newsFeed={{
                 data: etoroNewsFeed,
                 isLoading: isLoadingNewsFeed,
-                error: newsFeedError as Error | null,
+                error: newsFeedError,
                 onRetry: () => refetchNewsFeed(),
               }}
               positionsFeed={{
                 responses: positionsFeedQueries.map((q) => q.data),
                 isLoading: isLoadingPositionsFeed,
-                error: positionsFeedError as Error | null,
+                error: positionsFeedError,
                 onRetry: refetchPositionsFeed,
               }}
             />
@@ -595,14 +595,14 @@ export default function TradingDashboard() {
               searchResults={selectInstrumentSearchResults(etoroInstrumentSearch)}
               searchState={{
                 isLoading: isLoadingInstrumentSearch,
-                error: instrumentSearchError as Error | null,
+                error: instrumentSearchError,
                 onRetry: () => refetchInstrumentSearch(),
                 hasSearched: discoverSearchQuery.length > 0,
               }}
               curatedLists={selectCuratedLists(etoroCuratedLists)}
               curatedListsState={{
                 isLoading: isLoadingCuratedLists,
-                error: curatedListsError as Error | null,
+                error: curatedListsError,
                 onRetry: () => refetchCuratedLists(),
               }}
               selectedInstrument={discoverSelectedInstrument}
@@ -610,7 +610,7 @@ export default function TradingDashboard() {
               candles={selectCandlePoints(etoroInstrumentCandles)}
               candlesState={{
                 isLoading: isLoadingCandles,
-                error: candlesError as Error | null,
+                error: candlesError,
                 onRetry: () => refetchCandles(),
               }}
               usernameQuery={discoverUsernameInput}
@@ -619,7 +619,7 @@ export default function TradingDashboard() {
               userProfile={selectPublicUserProfile(etoroPublicUserInfo)}
               userProfileState={{
                 isLoading: isLoadingPublicUserInfo,
-                error: publicUserInfoError as Error | null,
+                error: publicUserInfoError,
                 onRetry: () => refetchPublicUserInfo(),
                 hasSearched: discoverUsername.length > 0,
               }}
@@ -660,7 +660,7 @@ export default function TradingDashboard() {
             <EtoroPerformanceTab
               isLocked={!unlocked}
               isLoading={isLoadingBalancesHistory}
-              error={balancesHistoryError as Error | null}
+              error={balancesHistoryError}
               onRetry={() => refetchBalancesHistory()}
               series={performanceSeries}
             />
