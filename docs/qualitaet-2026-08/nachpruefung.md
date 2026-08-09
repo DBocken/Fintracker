@@ -1019,3 +1019,51 @@ dem Commit mit der **vollen** Suite geprüft, nicht mit einer Auswahl.
 | `types.ts` | 52 Typen, 735 Zeilen | Re-Export-Fassade, 91 Zeilen |
 
 Offen aus Phase 5: **WP 5.5b** (Wochentag/Datum folgen der App-Sprache).
+
+### 5.c · Die Regel aus 4.f hat zum ersten Mal von selbst gegriffen — und eine Rückgabe hat sich doppelt gelohnt
+
+**Befund.** WP 5.5b kam vollständig zurück und hatte in `vitest.setup.ts` die
+date-fns-Locales vorgeladen — im Muster des Sprachbaum-Preloads, aber **ohne
+die Gegenprobe**, die Regel 4.f verlangt. Beim ersten Vorkommen (WP 4.5) musste
+die Regel erst aus dem Vorfall abgeleitet werden; diesmal existierte sie, und
+die Abnahme hat sie angewandt. Ohne sie wäre dasselbe Loch ein zweites Mal
+durchgegangen: Der einzige neue Produktionspfad (Fallback-Fenster) war von
+keinem Test berührt.
+
+**Zweiter Teil der Rückgabe: eine Anzeigefrage nicht selbst entschieden.** Der
+Agent hatte `EEEEEE` global auf `EEE` umgestellt, damit Englisch „Wed" zeigt —
+Nebenwirkung: Deutsch hätte neu „Mi." **mit Punkt** gezeigt, eine sichtbare
+Änderung für Bestandsnutzer, die niemand verlangt hat. Die Rückfrage ergab die
+bessere Lösung: `weekdayAbbrevToken(locale)` — nur Englisch bekommt `EEE`,
+Deutsch und Russisch behalten `EEEEEE` (Russisch hat gar keine gebräuchliche
+dreistellige Form; `EEE` hätte dort das unübliche „птн" erzeugt). Beide
+Bestandssprachen sehen exakt aus wie vorher.
+
+**Nebenbefund mit Sprengkraft, vom Agenten selbst gefunden:** Die neuen
+en/ru-date-fns-Chunks kollidierten im bereinigten Namen mit den gleichnamigen
+Sprachbaum-Chunks aus WP 4.5. Im Budget-Wächter hätten sich beide Einträge
+gegenseitig überschrieben — geprüft worden wäre nur noch das **kleinere**
+Bündel, bei weiter grünem Wächter. Behoben über `manualChunks`; die zugrunde
+liegende Regex-Schwäche in `chunkName()` (`scripts/bundle-size-core.mjs`) ist
+als unabhängiger Altbefund offen.
+
+**Preis.** Ein zweiter Agentenlauf, wie bei WP 4.5. Der Unterschied: Diesmal
+war es Routine, kein Erkenntnisgewinn — genau das soll eine Regel leisten.
+
+### 5.d · Stand nach Phase 5 (endgültig, Gate grün)
+
+| | vor Phase 5 | nach Phase 5 |
+|---|---|---|
+| Tests | 5114 in 539 Dateien | **5154 in 547 Dateien** |
+| Zeilenabdeckung | 75,7 % | 75,8 % |
+| Bundle gesamt (gzip) | 2198,9 kB | 2167,2 kB (Grenze 2379,0) |
+| `TransactionFilters`-Props | 25 | **3** |
+| Casts in den KOMP-5-Hotspots | 10 / 9 / 18 | **0 / 0 / 0** |
+| Geld | nackter `number` | **`Cents` / `EuroAmount`** |
+| `Transaction.id` | `string` | **`TransactionId`** |
+| `types.ts` | 52 Typen, 735 Zeilen | Re-Export-Fassade, 91 Zeilen |
+| Datums-Locale | 15× fest `de` | **1 Stelle, folgt der App-Sprache** |
+
+Ratschen unverändert: `view-data` 282, `slice-presentation` 24. Ab Phase 6
+laufen delegierte Agenten auf Opus (Vorgabe des Auftraggebers, siehe
+`status.md`).
