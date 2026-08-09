@@ -184,7 +184,8 @@ export function AccountManager() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                <strong>Hinweis:</strong> {t('accounts.manager.bankSyncNote')}
+                <strong>{t('accounts.manager.noteLabel')}</strong>{' '}
+                {t('accounts.manager.bankSyncNote')}
               </AlertDescription>
             </Alert>
           )}

@@ -166,7 +166,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         </CardDescription>
         {enableDrilldown && (
           <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-            💡 <strong>Tipp:</strong> {t("premium.sankey.tipDrill")}
+            💡 <strong>{t("premium.sankey.tipLabel")}</strong> {t("premium.sankey.tipDrill")}
           </div>
         )}
       </CardHeader>

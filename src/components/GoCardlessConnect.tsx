@@ -121,7 +121,9 @@ export function GoCardlessConnect({ onConnectionSuccess: _onConnectionSuccess }:
       if (e.setup_required) {
         setConnectError(API_SETUP_REQUIRED)
       } else {
-        setConnectError(`Verbindungsfehler: ${e.message}`)
+        setConnectError(
+          t('goCardlessConnect.connectionError').replace('{message}', e.message ?? ''),
+        )
       }
     } finally {
       setConnecting(false)

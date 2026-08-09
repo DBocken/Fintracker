@@ -324,7 +324,7 @@ export function AdvancedBalanceChart({ endBalanceFromAccounts, transactions, isL
 
             <div className="text-xs text-muted-foreground">
               <p>• <strong>{t('balanceChart.calculateFromBalance')}:</strong> {t('balanceChart.calculateHint')}</p>
-              <p>• <strong>Manuell:</strong> {t('balanceChart.manualEntry')}</p>
+              <p>• <strong>{t('balanceChart.manualLabel')}</strong> {t('balanceChart.manualEntry')}</p>
             </div>
 
             <div className="flex gap-2">

@@ -6,7 +6,14 @@
     "Ein Objekt { count, reason } ist entschieden — dort IST der deutsche Wortlaut die Sache selbst",
     "(Suchvokabular gegen deutschen Kontoauszugstext, Produktname, Entwicklermeldung).",
     "Diese Liste ist erst mit dem Schliessen von drei Waechter-Luecken entstanden: Template-Literale,",
-    "JSX-Text und der Pauschalfilter 'constants' waren zuvor unsichtbar."
+    "JSX-Text und der Pauschalfilter 'constants' waren zuvor unsichtbar.",
+    "",
+    "WANN EINE ZAHL TROTZDEM STEIGEN DARF: nur, wenn der WAECHTER schaerfer geworden ist und deshalb",
+    "Bestand SIEHT, den es vorher schon gab. Das ist neue Erkenntnis, kein Rueckschritt — genau so ist",
+    "diese Liste ueberhaupt entstanden (WP 12.2), und genau so ist sie mit WP 6.8 gewachsen: Seither",
+    "sieht der Waechter auch das EINZELNE deutsche Wort, sobald seine Position es als Bildschirmtext",
+    "ausweist (JSX-Text, Wert einer Text-Prop, Beschriftungsform \"Wort: …\"). Wer dagegen NEUEN Klartext",
+    "schreibt, laesst die Zahl nicht steigen — im Diff-Modus ist jeder neue Verstoss blockierend."
   ],
   "files": {
     "src/data/merchant-keywords.ts": {
@@ -14,8 +21,8 @@
       "reason": "Suchvokabular gegen den Text deutscher Kontoauszuege (\"aldi süd\", \"agentur für arbeit\") plus die deutschen Namen der Saat-Kategorien. Uebersetzt wuerde die Zuordnung nicht mehr treffen — der Text, gegen den gematcht wird, ist immer deutsch."
     },
     "src/features/finance-city/data/city-demo-data.ts": {
-      "count": 2,
-      "reason": "Beispieldaten der WebGL-Stadt. Sie ersetzen keine Uebersetzung, sondern stehen an der Stelle echter Nutzerdaten — deren Namen der Nutzer selbst vergibt."
+      "count": 19,
+      "reason": "Beispieldaten der WebGL-Stadt. Sie ersetzen keine Uebersetzung, sondern stehen an der Stelle echter Nutzerdaten — deren Namen der Nutzer selbst vergibt. Bis WP 6.8 waren davon nur ZWEI sichtbar (\"Möbel & Hausrat\", \"Öffentliche Verkehrsmittel\") — die beiden mit Umlaut UND zwei Woertern; die uebrigen 17 sind derselbe Bauteil (`label: '…'` einer Demo-Position) und waren als Einzelwort unsichtbar."
     },
     "src/services/demo-data-service.ts": {
       "count": 1,
@@ -49,6 +56,10 @@
       "count": 1,
       "reason": "Wurf bei fehlendem Canvas-Kontext — Umgebungsfehler, kein Bildschirmtext."
     },
+    "src/services/telemetry-service.ts": {
+      "count": 1,
+      "reason": "`reason` eines fehlgeschlagenen Sendeversuchs (`{ status: 'failed', reason }`). Diagnose fuer Entwickler, in einer Reihe mit `HTTP 404` und `Netzfehler`; kein Aufrufer stellt das Feld dar."
+    },
     "src/components/ErrorBoundary.tsx": {
       "count": 1,
       "reason": "Notfassung hinter `this.props.t?.(…) ||`. Die ErrorBoundary muss auch dann noch etwas sagen koennen, wenn der i18n-Kontext selbst der Grund fuer den Fehler ist."
@@ -58,12 +69,26 @@
     "src/lib/automation-suggestion-model.ts": 2,
     "src/lib/feedback.ts": 1,
     "src/lib/finrisk/stress-capacity.ts": 1,
-    "src/lib/forecast-overrides-summary.ts": 2,
+    "src/lib/forecast-overrides-summary.ts": 3,
     "src/lib/forecast.ts": 1,
     "src/lib/sankey-model.ts": 4,
     "src/services/budget-sweep-service.ts": 1,
+    "src/services/claim-service.ts": 1,
     "src/services/contract-decision-service.ts": 1,
     "src/services/contract-detection-service.ts": 1,
-    "src/services/gocardless-sync-service.ts": 1
+    "src/services/gocardless-sync-service.ts": 1,
+
+    "src/components/GoCardlessConnect.tsx": 1,
+    "src/components/dashboard/BudgetOptimizerPanel.tsx": 3,
+    "src/components/dashboard/TransactionDetailsPanel.tsx": 3,
+    "src/components/dashboard/finrisk/CellDetailBody.tsx": 1,
+    "src/components/health-score/FinancialLandscape.tsx": 1,
+    "src/components/premium-dashboard/SankeyChart.tsx": 2,
+    "src/components/premium/LockedPreview.tsx": 1,
+    "src/components/settings/CategoryForm.tsx": 1,
+    "src/components/ui/dialog.tsx": 2,
+    "src/components/ui/sheet.tsx": 1,
+    "src/features/replacement-planning/domain/forecast-expansion.ts": 1,
+    "src/pages/BankCallbackPage.tsx": 2
   }
 }

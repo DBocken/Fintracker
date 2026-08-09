@@ -228,7 +228,8 @@ export function PrivacySyncAnalyticsSettings() {
         <Alert className="border-positive/20 bg-positive/10">
           <Sparkles className="h-4 w-4 text-positive" />
           <AlertDescription className="text-sm text-positive">
-            <strong>Gedanke für künftig:</strong> {t('privacy.privacySync.futureNote')}
+            <strong>{t('privacy.privacySync.futureNoteLabel')}</strong>{' '}
+            {t('privacy.privacySync.futureNote')}
           </AlertDescription>
         </Alert>
 

@@ -208,7 +208,9 @@ async function withEnginePool<R>(
         options.onProgress?.({
           done,
           total: totalCount,
-          label: `Seite ${done} von ${totalCount} …`,
+          label: t("debts.claimImport.pageProgress")
+            .replace("{done}", String(done))
+            .replace("{total}", String(totalCount)),
         }),
       options.signal,
     );

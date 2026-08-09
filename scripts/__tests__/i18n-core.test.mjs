@@ -62,6 +62,47 @@ describe('findHardcodedStrings', () => {
     });
   });
 
+  describe('Verstöße, die eine Position als Bildschirmtext ausweist (WP 6.8)', () => {
+    // Drei Formen, die WP 6.5a/b gegen HEAD nachgewiesen hat. Sie haben EINE
+    // gemeinsame Ursache: Das Vokabular kannte zwei Wege zum Treffer — ein Wort
+    // aus einer Handliste, oder ein Umlaut in mindestens zwei Wörtern. Ein
+    // einzelnes deutsches Kompositum ohne Umlaut („Aufbewahrung", „Hinweis",
+    // „Verbindungsfehler") ging beide Wege nicht und war damit unsichtbar,
+    // gleichgültig an welcher Stelle es stand.
+
+    it('[REGRESSION] sollte deutschen Text im Wert einer Text-Prop finden', () => {
+      // `{ label: "Aufbewahrung" }` — ein Textfeld eines Props-Objekts. Die
+      // Prop-Namen sind die Erlaubnis: Was unter `label`/`title`/`placeholder`
+      // steht, wird angezeigt, sonst hiesse die Prop anders.
+      expect(fund(`const feld = { id: 'retention', label: "Aufbewahrung" };`)).toHaveLength(1);
+    });
+
+    it('[REGRESSION] sollte ein Einzelwort mit Doppelpunkt in JSX finden', () => {
+      // `<strong>Hinweis:</strong>` — der Doppelpunkt macht aus dem Wort eine
+      // Anrede an den Leser; ein Bezeichner endet nie so.
+      expect(fund(`<strong>Hinweis:</strong>`)).toHaveLength(1);
+    });
+
+    it('[REGRESSION] sollte ein Einzelwort ohne Umlaut in JSX finden', () => {
+      expect(fund(`<span>Aufbewahrung</span>`)).toHaveLength(1);
+    });
+
+    it('[REGRESSION] sollte ein Template-Literal mit Doppelwort-Prefix finden', () => {
+      const src = 'setConnectError(`Verbindungsfehler: ${e.message}`)';
+      expect(fund(src)).toHaveLength(1);
+    });
+
+    it('[REGRESSION] sollte JSX-Text sehen, obwohl DANEBEN ein t()-Aufruf steht', () => {
+      // Die eigentliche Fassung der 6.5a-Fundstelle. Der Wächter hielt die
+      // ganze ZEILE für übersetzt, sobald irgendwo darauf ein `t(` stand — und
+      // genau daneben stand der Rest der Aussage im Klartext. Ein `t()`-Aufruf
+      // kann JSX-Text nie als Argument haben (Argumente sind Zeichenketten),
+      // deshalb deckt er ihn auch nie ab.
+      const src = `<strong>Hinweis:</strong> {t('accounts.manager.bankSyncNote')}`;
+      expect(fund(src)).toHaveLength(1);
+    });
+  });
+
   describe('Kein Fehlalarm', () => {
     it('sollte einen t()-Aufruf in Ruhe lassen', () => {
       expect(fund(`<span>{t('budgetOptimizer.title')}</span>`)).toEqual([]);
