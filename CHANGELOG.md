@@ -22,10 +22,15 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
-> Wird beim Merge dieses Zweigs zu **`v2026.8.0`** — dem ersten benannten Stand
-> des Projekts überhaupt. Inhalt ist das Qualitätsprogramm 10/10
-> (`docs/qualitaet-2026-08/`), ~40 Arbeitspakete aus einem Vollaudit vom
-> 2026-08-08.
+_Noch nichts._
+
+## 2026.8.0 — 2026-08-10
+
+> Der erste benannte Stand des Projekts überhaupt. Inhalt ist das
+> Qualitätsprogramm 10/10 (`docs/qualitaet-2026-08/`): 53 Arbeitspakete aus
+> einem Vollaudit vom 2026-08-08, dazu vier Fixes unmittelbar vor dem Merge.
+> Der Abschlussbericht mit dem belegten Erfolgskriterium steht in
+> `docs/qualitaet-2026-08/nachpruefung.md`.
 
 ### Neu
 
