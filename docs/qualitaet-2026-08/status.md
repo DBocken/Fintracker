@@ -94,7 +94,7 @@ soll nur den Anteil an Nacharbeit senken.
 
 | | |
 |---|---|
-| **Paket** | — PROGRAMM ABGESCHLOSSEN (2026-08-09, Abschlussbericht in nachpruefung.md) |
+| **Paket** | — PROGRAMM ABGESCHLOSSEN (2026-08-09; Korrektur 2026-08-10: WP 5.6/5.7 nicht bearbeitet, als #296/#297 ausgelagert) |
 | **Schritt** | — |
 | **Im Arbeitsbaum** | nichts |
 
