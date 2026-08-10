@@ -116,7 +116,7 @@ zwei der drei „offenen" Punkte **keine Mängel**; die Tabelle hatte sie
 
 | Punkt | Warum offen |
 |---|---|
-| **Telemetrie-Schalter** in den Einstellungen | Gehört zu Phase 11 (`decision-log` F-1); der Schalter ohne Empfänger wäre ein totes Versprechen |
+| **Telemetrie-Schalter** in den Einstellungen | **erledigt in Phase 11** (WP-11.2): Schalter gebaut (`TelemetrySettings.tsx`, in `EnhancedSettings` montiert); der Empfänger fehlt weiterhin bewusst (`decision-log` F-3: „zuerst der Empfänger") — den liefert das Betriebsprogramm (`docs/betrieb-2026-08/plan.md`, WP 3.4) |
 | **Tutorial-Einladung verschiebt die ganze Seite** | **behoben in Phase 10** (WP-10.3), siehe unten |
 
 ### Gemessen, nicht behoben: CLS der Tutorial-Einladung
@@ -256,7 +256,9 @@ kosten, aber keine zerstören.
 ## 6. Aus dem Protokoll übernommen (weiterhin offen)
 
 - **`e2e-tests/` hat keine Fixtures für Fehler- und Leerzustände.** Der Slice
-  fährt nur den Erfolgsweg. Gehört zu Phase 9.
+  fährt nur den Erfolgsweg. Phase 9 hat den Zustands-Wächter auf Unit-Ebene
+  geliefert; die E2E-Fixtures sind bewusst nicht nachgezogen — offener
+  Restpunkt ohne zugeordnete Phase.
 - **Der Demo-Einstieg landet auf `/coach`, nicht auf `/dashboard`.** Das ist
   produktseitig konsistent und sauber dokumentiert. Falls die Landung auf dem
   Dashboard doch gewünscht ist, gehört sie über den Router gelöst — nicht über

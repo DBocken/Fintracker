@@ -2,7 +2,7 @@
 
 Verbindliche Beschreibung der Nutzer-LifeSituationn, die das Onboarding
 („Welche Situation beschreibt dich am ehesten?") anbietet. Der Code dazu ist
-`src/lib/lifeSituations.ts` — bei Widerspruch gilt der Code, dieses Dokument
+`src/lib/life-situations.ts` — bei Widerspruch gilt der Code, dieses Dokument
 erklärt das **Warum**.
 
 ## Ziel

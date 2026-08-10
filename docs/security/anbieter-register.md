@@ -29,6 +29,7 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 | `public-api.etoro.com` | eToro | IL/UK/CY | nutzergewählt | Depot-Daten des Nutzers via **eigenem** API-Key; transitieren unseren Proxy (`etoro-proxy`) — **Proxy gehört in den Datenschutztext (BTR-S9 → WP 4.2)** | Nutzervertrag mit eToro; unser Proxy: eigene Verantwortung | aktiv | 2026-08-10 |
 | `github.com` | GitHub (Microsoft) | US | Entwicklung | Quellcode, CI, Issues — kein Endnutzer-Datenkontakt | entfällt | aktiv; **Spiegel-Pflicht → WP 3.1** | 2026-08-10 |
 | `schufa.de` · `caritas.de` · `diakonie.de` · `verbraucherzentrale.de` · `rechtsdienstleistungsregister.de` | diverse | DE | Link | Beratungs-/Auskunfts-Links, nutzerinitiiert, kein Datenfluss | entfällt | aktiv | 2026-08-10 |
+| `deno.land` · `esm.sh` | Deno Land Inc. / esm.sh | US | Entwicklung (Code-CDN) | Laufzeit-Importe der fünf Supabase Edge Functions (std lib, supabase-js) — kein Nutzerdatenkontakt, aber Lieferketten-Abhängigkeit | entfällt | aktiv; entfällt mit der Portierung (WP 7.4) | 2026-08-10 |
 
 ## Zu entfernen (Befunde, keine Absicht)
 
@@ -51,6 +52,10 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 
 ## Randnotizen
 
+- **Telemetrie-Endpunkt:** `VITE_TELEMETRY_ENDPOINT`
+  (`src/services/telemetry-service.ts`) ist heute **unbelegt** — es gibt kein
+  Versandziel und keinen Versand. Sobald er belegt wird (WP 3.4/4.1), bekommt
+  der Zielhost eine eigene Registerzeile; die stehende Regel der ADR greift.
 - **Referenzierte, nicht betriebene Domains:** `src/lib/constants.ts` nennt
   `support@ausgabentracker.de`, `docs.ausgabentracker.de`,
   `ausgabentracker.de/privacy`, `/terms` — nichts davon ist deployt. Werden

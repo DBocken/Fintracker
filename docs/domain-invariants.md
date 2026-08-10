@@ -1,6 +1,6 @@
 # Fachliche Invarianten
 
-Stand: 21.06.2026
+Stand: 09.08.2026 (lebendes Regelwerk — zuletzt ergänzt um Invarianten 21–23)
 
 Diese Regeln sind Sicherheitsgrenzen der Finanzlogik. Änderungen an Import, Persistenz, Verträgen, Transfers, Splits oder Analysen müssen sie durch automatisierte Tests erhalten.
 

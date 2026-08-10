@@ -1,8 +1,9 @@
 # Performance: Ist-Zustand & Roadmap
 
 Dieses Dokument beschreibt den **tatsächlichen** Performance-Zustand der App
-(Stand: Juli 2026) — was bereits skaliert, wo die realen Engpässe bei
-wachsenden Datenmengen liegen und was als Nächstes geplant ist (Phase B).
+(Stand: August 2026) — was bereits skaliert und wie der frühere
+Single-Blob-Engpass seit WP 4.1 gelöst ist (Entscheidung und Messung:
+`docs/architecture/transaction-storage-chunks.md`).
 
 > Historie: Eine frühere Version dieses Dokuments beschrieb
 > `VirtualizedTransactionTable.tsx`/`OptimizedTransactionTable.tsx` auf
@@ -45,50 +46,33 @@ wachsenden Datenmengen liegen und was als Nächstes geplant ist (Phase B).
 - Service (`transaction-service.getTransactions`/`getTransactionsPaginated`)
   und UI (`TransactionsPage`) sortieren **nicht** erneut; `filterTransactions`
   ist ordnungserhaltend. Gepinnt durch
-  `transaction-service.ordering.test.ts` und `filter-utils.test.ts`.
+  `transaction-service.ordering.test.ts` und
+  `src/features/shared/domain/__tests__/dashboard-filtering.test.ts`.
 
 ---
 
-## Bekannter Haupt-Engpass: Single-Blob-Storage
+## Gelöster Haupt-Engpass: vom Single-Blob zu Quartals-Chunks (WP 4.1)
 
-Transaktionen liegen als **ein** (optional verschlüsselter) JSON-Blob unter
-`ausgabentracker_transactions_v3` im IndexedDB-KV-Store (`idb-kv.ts`):
+Bis WP 4.1 lag der gesamte Transaktionsbestand als **ein** (optional
+verschlüsselter) JSON-Blob unter `ausgabentracker_transactions_v3` — jeder
+Read entschlüsselte alles, jede Einzel-Mutation schrieb und verschlüsselte
+alles neu (O(n) pro Edit). Seit WP 4.1c liest und schreibt
+`transaction-storage-service.ts` über die Chunk-Ablage
+(`transaction-chunk-store.ts`): Schlüssel
+`ausgabentracker_transactions_v4_YYYY-Qn` plus `…_v4_index`, je Chunk ein
+`EncryptedEnvelopeV1` über die unveränderte `localEncryption`-Schicht. Eine
+Einzeländerung berührt nur noch das betroffene Quartal — gemessen bei 5 000
+Buchungen mit Verschlüsselung: **46,7 ms → 3,8 ms**. Der v3-Blob ist nur noch
+der Legacy-Zweig bis zur Migration (nummerierter Schritt
+`transactions-blob-to-quarter-chunks` in `local-store-migrations.ts`).
 
-- Jeder Read entschlüsselt + parst den **gesamten** Bestand.
-- Jede Einzel-Mutation (Update/Delete) schreibt den **gesamten** Bestand neu
-  (Read-Modify-Write inkl. Re-Encrypt) → O(n) pro Edit.
-- `getTransactionsPaginated` ist bewusst **kein** Storage-Paging, sondern
+- `getTransactionsPaginated` bleibt bewusst **kein** Storage-Paging, sondern
   In-Memory-Filter+Slice (siehe JSDoc dort).
-
-Bei heutigen Datenmengen ist das unkritisch (IndexedDB statt localStorage,
-persistenter Speicher via `requestPersistentStorage`). Ab ~10k+ Buchungen wird
-der Blob-Decrypt/Re-Encrypt zum messbaren Kostenfaktor.
-
----
-
-## Phase B (geplant, separater PR): Monats-Chunk-Storage
-
-**Empfehlung: monatliche verschlüsselte Chunk-Blobs — NICHT Per-Record-Verschlüsselung.**
-
-- Per-Record-Envelopes mit Plaintext-Indexfeldern würden Datums-/Kadenz-
-  Metadaten an jeden mit Gerätezugriff leaken (Regression der
-  Verschlüsselungs-Posture) und bedeuten ~10k WebCrypto-Ops bei Import/Restore.
-- Monats-Chunks (`ausgabentracker_transactions_v4__YYYY-MM`, je ein
-  `EncryptedEnvelopeV1` über die unveränderte `localEncryption`-Schicht):
-  - O(Monat) statt O(alles) pro Write,
-  - natürliches datum-absteigendes Cursor-Paging über Monats-Keys
-    (deckungsgleich mit der Sortierung aller Consumer),
-  - Metadaten-Leak begrenzt auf „welche Monate haben Daten".
-- Migration v3→v4 nach dem verified-write-then-delete-Muster von
-  `migrateLocalStorageToIdb`; Cross-Month-Operationen (Import-Dedupe) brauchen
-  einen Known-IDs-Index-Chunk.
-- Hinweis: der Legacy-Prefix `ausgabentracker_transactions_v2__` in
-  `idb-kv.ts` stammt aus einem früheren Chunk-Schema — Migrationshistorie vor
-  der Umsetzung prüfen.
-
-**Auslöser:** erst umsetzen, wenn reale Datenmengen den Blob-Decrypt messbar
-schmerzen lassen (Diagnose: Einstellungen → Technischer Status →
-Performance-Dashboard).
+- **Monats**-Chunks waren die ursprüngliche Vorgabe und wurden gemessen
+  verworfen (kaltes Vollesen 1,76×–2,84× statt der 1,5×-Grenze);
+  Per-Record-Verschlüsselung ebenso (Metadaten-Leak an jeden mit
+  Gerätezugriff, ~10k WebCrypto-Ops je Import/Restore). Entwurf, Messung und
+  Verworfenes vollständig in `docs/architecture/transaction-storage-chunks.md`.
 
 ---
 
@@ -98,4 +82,7 @@ Performance-Dashboard).
   (Einstellungen → Technischer Status).
 - Perf-Smoke-Tests: `src/components/dashboard/__tests__/TransactionDayList.perf.test.tsx`
   mit deterministischer Factory `src/test-utils/synthetic-transactions.ts`.
+- Chunk-Ablage: `src/services/__tests__/transaction-storage-service.perf.test.ts`
+  — die drei ADR-Zahlen am echten Service (5 000 Buchungen, Verschlüsselung
+  an), mit hartem Verhältnis-Gate ≤ 1,5× für das kalte Vollesen.
 - Coverage-Thresholds + 20s-testTimeout: `vitest.config.ts`.

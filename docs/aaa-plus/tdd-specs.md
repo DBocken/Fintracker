@@ -813,7 +813,8 @@ sichtbar und werden auf `ruhe` normalisiert.
 
 - `src/components/dashboard/__tests__/` — vollständig.
 - `src/features/dashboard/` — alle Tests.
-- `src/components/kpi/__tests__/` — KPI-Tests.
+- `src/components/kpi/__tests__/` — (existiert nicht — KPI-Verhalten wird an
+  den Aufrufstellen getestet, ein eigenes Testverzeichnis wurde nie angelegt).
 - Visual Regression: Desktop + Mobile Dashboard.
 - E2E: Dashboard-Navigation, Filter, Zeitraumwechsel.
 

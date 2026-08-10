@@ -253,7 +253,7 @@ eine Durchgangsseite, kein Screen, auf dem man verweilt.
 | **WP-9.3** | ✅ **erledigt.** `useOnlineStatus()` + `OfflineIndicator` im Header |
 | **WP-9.4** | ✅ **erledigt für die Buchungsseite.** `describeActiveFilters()` + `FilteredEmptyState`. Andere gefilterte Listen (Verträge, Analyse) ziehen nach |
 | **WP-9.5** | ⏳ **Grundlage + zwei Sweeps.** Abdeckung 8/78 → **41/78** direkt, plus alle Chart-Tabellen und -Zusammenfassungen zentral. Offen bleibt nur die SICHTBARE Achsen-/Tooltip-Beschriftung in Diagrammen — das ist eine Gestaltungsfrage, siehe unten |
-| **WP-9.6** | ✅ **erledigt.** `pnpm check:query-errors` mit Ausnahmeliste als Backlog. Stand: **21/150** Aufrufe behandelt, 129 im Backlog — die Zahl je Datei darf nur sinken |
+| **WP-9.6** | ✅ **erledigt.** `pnpm check:query-errors` mit Ausnahmeliste als Backlog. Stand heute: der offene Backlog ist **leer** — alle 18 verbliebenen Einträge in `query-error-allowlist.json` sind je Datei begründet entschieden (`{ count, reason }`) |
 
 
 ## Stand nach WP-9.6 — der Fehlerfall bekommt einen Wächter

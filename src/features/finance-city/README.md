@@ -55,6 +55,10 @@ dieselben aggregierten Daten wie im restlichen Dashboard
 
 ## Akzeptanzkriterien (Checkliste)
 
+> **Baseline aus WP-C0 — seit WP-C3/C8 erfüllt.** Die Kästchen bleiben als
+> ursprüngliche Zielliste stehen; die Umsetzung belegen die Abschnitte weiter
+> unten (WP-5.x/E1) und die Slice-Dateien selbst.
+
 - [ ] Die drei Ebenen (Stadt/Distrikt/Gebäude) sind über Klick/Tap
       erreichbar; Breadcrumb zeigt den aktuellen Pfad (Root =
       `city.breadcrumbCity`).
@@ -96,10 +100,10 @@ dieselben aggregierten Daten wie im restlichen Dashboard
 
 | Schicht | Inhalt | Verantwortung |
 |---|---|---|
-| `domain/` | (WP-C1) `city-model.ts`, Höhen-/Layout-Mathe | Reine Deskriptoren + Berechnungen. VERBOTEN: React, three.js, Browser-APIs. Übernimmt `CityDistrictData`/`CityContractData` aus `data/city-demo-data.ts`. |
-| `data/` | `city-demo-data.ts` (dieses WP) | Fixture für den ersten Prototyp; später Adapter, der `buildSunburstTree`/`computeContracts` auf dieselben Typen abbildet statt eigener Aggregation. |
-| `application/` | (WP-C2) Navigation/Drill-down-State | UI-neutrale Ebenen-Navigation (Stadt→Distrikt→Gebäude), Breadcrumb-Stack. VERBOTEN: three.js-Importe — reiner State/Reducer, damit er ohne WebGL-Kontext testbar ist. |
-| `presentation/` | (WP-C3) Canvas, Renderer, Kamera | three.js-Lifecycle **außerhalb** des React-Render-Zyklus (Szene/Renderer/Kamera in einem Effekt aufgebaut, nicht als deklarativer Scenegraph); React besitzt nur Container-Div + Resize-/Visibility-Observer. HTML-Label-Overlays statt Sprites. |
+| `domain/` | `city-model.ts`, `city-data-adapter.ts`, Höhen-/Layout-Mathe (heute 34 Module) | Reine Deskriptoren + Berechnungen. VERBOTEN: React, three.js, Browser-APIs. |
+| `data/` | `city-demo-data.ts` | Ursprünglich Fixture für den Prototyp — heute reine Test-Fixture; produktiv liefert `domain/city-data-adapter.ts` echte Daten (`buildSunburstTree`/`computeContracts`). |
+| `application/` | `use-city-navigation.ts` u. a. (10 Hooks) | UI-neutrale Ebenen-Navigation (Stadt→Distrikt→Gebäude), Breadcrumb-Stack. VERBOTEN: three.js-Importe — reiner State/Reducer, damit er ohne WebGL-Kontext testbar ist. |
+| `presentation/` | `CityCanvas.tsx`, `city-scene.ts`, `use-city-camera-rig.ts` u. a. | three.js-Lifecycle **außerhalb** des React-Render-Zyklus (Szene/Renderer/Kamera in einem Effekt aufgebaut, nicht als deklarativer Scenegraph); React besitzt nur Container-Div + Resize-/Visibility-Observer. HTML-Label-Overlays statt Sprites. |
 
 ## Mobile-Entscheidungen
 
@@ -454,13 +458,12 @@ Monatsregler, der in drei von vier Tabs nichts tut, wäre schlimmer als keiner.
 Ohne Auswahl bleibt der Vorgabe-Ausschnitt (alle Buchungen) wie vor WP-5.2; die
 Seite startet nicht in einem Zustand, den niemand gewählt hat.
 
-## Folgeschritte
+## Folgeschritte — alle drei umgesetzt (WP-C2/C3/C8)
 
-- **Echte Daten**: Adapter, der `buildSunburstTree` (`src/lib/analysis-data.ts`)
-  und `computeContracts` (`src/lib/contract-derivation.ts`) auf
-  `CityDistrictData`/`CityContractData` abbildet, statt der Fixture in
-  `data/city-demo-data.ts`. Typen wandern dabei nach `domain/city-model.ts`.
-- **Canvas-Lifecycle** (WP-C3): three.js-Renderer/Kamera/Szene,
-  Render-on-Demand-Loop, DPR-Cap, HTML-Label-Overlays.
-- **Navigation/Drill-down-State** (WP-C2): Application-Hook ohne
-  three.js-Importe.
+- **Echte Daten**: erledigt — `domain/city-data-adapter.ts` bildet
+  `buildSunburstTree`/`computeContracts` auf die City-Typen ab;
+  `data/city-demo-data.ts` wird nur noch von Tests importiert.
+- **Canvas-Lifecycle** (WP-C3): erledigt — `presentation/CityCanvas.tsx`,
+  `city-scene.ts`, `use-city-camera-rig.ts`.
+- **Navigation/Drill-down-State** (WP-C2): erledigt —
+  `application/use-city-navigation.ts` ohne three.js-Importe.

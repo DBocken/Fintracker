@@ -210,6 +210,12 @@ Minimalmodus (kein WebGL)
 **Exit-Kriterium:** Alle Audit-Dokumente liegen vor, sind vom Orchestrator
 geprüft und im `docs/aaa-plus/audits/` abgelegt.
 
+> **Nachtrag (2026-08-10):** Phase 0 und 1 wurden ohne die hier gelisteten
+> Einzeldokumente ausgeführt; die tatsächliche Bestandsaufnahme steckt in
+> `audits/2026-08-05-ist-zustand-ausserhalb-der-stadt.md` und `progress.md`.
+> Die Tabellen (und der Verzeichnisbaum in §16) zeigen die **geplante**, nicht
+> die vorhandene Ablage.
+
 | WP-ID | Titel | Agent | Ergebnis |
 |---|---|---|---|
 | WP-0.1 | Repository Structure Audit | Repository Analyst | `repo-structure.md` |

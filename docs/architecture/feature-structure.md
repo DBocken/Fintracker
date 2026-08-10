@@ -45,12 +45,13 @@ Neben CSS-Dual-Render (Dashboard-Muster oben) gibt es einen zweiten legitimen Fa
 
 - Tests IMMER in `__tests__/`-Ordnern — Pre-Commit/CI (`pnpm check:test-structure`) blockt andere Ablagen; Claude Code blockt zusätzlich live (`.claude/hooks/test-structure-check.mjs`).
 - Deutsche Testtitel `it('sollte …')`; `renderWithI18n`/`renderWithProviders`/`createHookWrapper` nur zentral aus `@/test-utils/render`.
-- i18n: keine neuen hardcodierten UI-Strings; Keys in beiden Sprachen in `src/i18n/translations.ts` (erzwungen via `pnpm check:i18n` in Pre-Commit + CI).
+- i18n: keine neuen hardcodierten UI-Strings; Keys in **allen** `SUPPORTED_LOCALES` (`de`/`en`/`ru`) je Sprachbaum in `src/i18n/translations/<locale>.ts` — nicht im Barrel `translations.ts` (erzwungen via `pnpm check:i18n` in Pre-Commit + CI; Key-Symmetrie: `locale-parity.test.ts`).
 - Karten-Regel & Animations-Baseline gelten auch in `presentation/` (siehe `docs/design-principles.md`).
+- Die vollständige, verbindliche Wächterliste steht in `AGENTS.md` §2 bzw. `docs/architecture/guard-system.md`; auf `presentation/` wirken zusätzlich `check:slice-presentation`, `check:view-data`, `check:card-rule`, `check:a11y-names` und `check:platform-parity`.
 
 ## Nächste Migrationskandidaten (Reihenfolge mit Begründung)
 
-1. **TransactionsPage** (`src/pages/TransactionsPage.tsx`, 434 Zeilen) — größter Gewinn: viele Inline-Aggregationen (`effectiveBalanceById`, `scopedCurrentBalance`, `endingBalance`, `stats`), eigene `useIsWideDesktop`-matchMedia-Kopie, Master-Detail-Split; kann `domain/balance-calculations` der Dashboard-Slice wiederverwenden (ggf. nach `src/features/shared/` oder `src/lib` heben, wenn zwei Slices sie brauchen).
+1. ~~**TransactionsPage**~~ — **migriert**: `src/features/transactions/` ist eine vollständige Slice (domain/data/application/presentation, siehe oben als Referenz für „gemeinsamer Kern + JS-Branching"); `src/pages/TransactionsPage.tsx` ist auf 177 Zeilen zurückgebaut.
 2. **CoachPage / NetWorthPage** — bereits nahe am Muster (`getCoachOverview`/`getNetWorthBreakdown` liefern ViewModel-artige Objekte aus dem Service-Layer); fehlt nur ein dünner Application-Hook + explizite Typen.
 3. **Repo-weite Query-Key-Normalisierung** (`userSettings` vs. `user-settings`, `automation-suggestions` vs. `automationSuggestions`) — separater, mechanischer Schritt mit eigener Invalidierungs-Prüfung.
-4. **`filter-utils`/`filter-constants`/`period-utils` nach `src/features/shared/` heben** (aktuell `src/components/dashboard/`) — werden inzwischen von ≥ 2 Slices (Dashboard, Transactions) UND direkt von `IncomeBreakdownCard`/`IncomeStreamList`, `EuerPage`, `TaxReportPage` importiert; laut Entscheidungsbaum-Kriterium „von ≥ 2 Slices gebraucht → nach `features/shared/`" ein dokumentierter Zwischenschritt, der noch aussteht (siehe `src/features/transactions/README.md`).
+4. ~~**`filter-utils`/`filter-constants`/`period-utils` nach `src/features/shared/` heben**~~ — **erledigt**: Filtermodell und Bereichslogik liegen in `src/features/shared/domain/` (`dashboard-filters.ts`, `dashboard-filtering.ts`, `active-filters.ts`, `period-options.ts`, `filter-view-model.ts`); `src/components/dashboard/` hält keine dieser Dateien mehr.

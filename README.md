@@ -53,7 +53,8 @@ pnpm build && npx cap sync android  # Android app
 
 ### Struktur-Wächter
 
-Alle laufen in Pre-Commit **und** CI. Sie prüfen Regeln, die weder Compiler noch
+Alle laufen in Pre-Commit **und** CI — Ausnahme `check:bundle-size` (nur CI,
+braucht `dist/`). Sie prüfen Regeln, die weder Compiler noch
 Test rot machen würden — jeder einzelne existiert wegen eines Fehlers, der
 genau deshalb durchgerutscht ist. Was er im Detail prüft und warum, steht in
 [AGENTS.md](AGENTS.md) §2.
@@ -63,12 +64,16 @@ genau deshalb durchgerutscht ist. Was er im Detail prüft und warum, steht in
 | `pnpm check:i18n` | Hardcodierte UI-Strings (`--staged`/`--range` für den Diff, `--all` für den Bestand) |
 | `pnpm check:i18n-module-consts` | `t()` im Initializer einer Modul-`const` — friert beim Import ein |
 | `pnpm check:layers` | Import-**Richtung** zwischen den Schichten (AGENTS.md §3) |
+| `pnpm check:view-data` | Ratsche: Datenzugriffe in der Darstellung (`view-data-budget.json`, darf nur sinken) |
+| `pnpm check:slice-presentation` | Ratsche: Slice-Importe aus der Alt-Oberfläche (`slice-presentation-budget.json`) |
 | `pnpm check:test-structure` | Testdatei-Platzierung (`__tests__/`-Konvention) |
 | `pnpm check:card-rule` | Karten-Chrome ohne Interaktions-Signal |
 | `pnpm check:platform-parity` | Fläche, die auf schmalen Breiten ganz fehlt |
 | `pnpm check:query-errors` | `useQuery`-Aufruf ohne behandelten Fehlerfall |
 | `pnpm check:a11y-names` | Bedienelement ohne zugänglichen Namen |
 | `pnpm check:state-coverage` | Test für Leer- **und** Fehlerzustand je Fläche |
+| `pnpm check:decimal-inputs` | `<input type="number">` für Dezimalfelder (verstümmelt deutsche Eingaben) |
+| `pnpm check:money-parsing` | Roh-`parseFloat` für Geldbeträge und `as unknown as` unter `src/` |
 | `pnpm check:bundle-size` | gzip-Größen gegen `bundle-size-budget.json` (nur CI, setzt `pnpm build` voraus) |
 
 ## Tests
@@ -112,13 +117,17 @@ Klingonisch (`tlh`) steht in `INACTIVE_LOCALES` — die Übersetzungen bleiben i
 Baum, die Sprache ist nicht wählbar und **nicht** paritätspflichtig.
 
 Zweite Achse: der **Sprachstil** (`wording`). `everyday` (Alltagssprache,
-Standard) und `technical` (Fachsprache). Der Basisbaum in `translations.ts`
-*ist* die Fachsprache; `src/i18n/overlays/everyday/<locale>.ts` enthält nur die
+Standard) und `technical` (Fachsprache). Der Basisbaum je Sprache in
+`src/i18n/translations/<locale>.ts` *ist* die Fachsprache;
+`src/i18n/overlays/everyday/<locale>.ts` enthält nur die
 Abweichungen. Aufgelöst wird das in `t()` — Aufrufstellen ändern sich nie.
 
-- Translations: `src/i18n/translations.ts`
-- Neue Strings: zentral dort eintragen, in **allen** aktiven Sprachen, via
-  `useI18n()`/`t()` in Komponenten bzw. `serviceT` in `services`/`lib`.
+- Translations: `src/i18n/translations/<locale>.ts` (`de.ts`, `en.ts`, `ru.ts`,
+  dazu inaktiv `tlh.ts`). `src/i18n/translations.ts` ist nur noch ein Barrel
+  für Tests und Typ-Herleitung — Produktionscode importiert ihn nicht.
+- Neue Strings: in **jedem** Sprachbaum unter `src/i18n/translations/`
+  eintragen, via `useI18n()`/`t()` in Komponenten bzw. `serviceT` in
+  `services`/`lib`.
 - Tests: bilingual mit `renderWithI18n(..., 'de')` und `renderWithI18n(..., 'en')`.
 
 Siehe [AGENTS.md](AGENTS.md) §6 „i18n (verbindlich)" und den ausführlichen

@@ -47,7 +47,7 @@ Bibliothek.**
 |---|---|
 | Datenbank | `ausgabentracker`, Version 1 (`src/services/idb-kv.ts:16-18`) |
 | Objektspeicher | genau einer: `kv`, ohne Indizes |
-| Schlüssel | die Kollektionsschlüssel aus `LOCAL_FINANCE_KEYS` (heute **31**, `src/services/local-storage-keys.ts:10-41`) plus die Transaktions-Chunks |
+| Schlüssel | die Kollektionsschlüssel aus `LOCAL_FINANCE_KEYS` (heute **30**, `src/services/local-storage-keys.ts:10-41`) plus die Transaktions-Chunks |
 | Wert | ein fertiger JSON-String — Klartext **oder** AES-GCM-Envelope |
 | API | `idbGet`/`idbSet`/`idbRemove`/`idbKeys`/`clearLocalKvStore` |
 | Abhängigkeiten | keine (`idb`, `idb-keyval`, `Dexie` sind nicht im Baum) |

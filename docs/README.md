@@ -98,10 +98,14 @@ nicht versehentlich untergraben werden:
 | [`feature-strategy-sonderkategorien.md`](feature-strategy-sonderkategorien.md) | Sonderkategorien |
 | [`product/roadmap-new-capabilities-2026-07.md`](product/roadmap-new-capabilities-2026-07.md) | Geplante Fähigkeiten — plant Arbeit, implementiert nichts |
 
-## Laufendes Programm: AAA+
+## Programm AAA+ (abgeschlossen, Regeln gelten weiter)
 
-`docs/aaa-plus/` ist **kein Archiv**: das Programm hat offene Arbeitspakete.
-Innerhalb davon gilt dieselbe Trennung.
+`docs/aaa-plus/` ist **kein Archiv**, obwohl alle Arbeitspakete (Phasen 0–11)
+abgeschlossen sind: Spezifikation, Entscheidungsprotokoll und Zustandsmatrix
+gelten weiter. Offen sind nur das Deployment aus
+[#282](https://github.com/DBocken/Fintracker/issues/282) und die in
+`offene-punkte.md` bewusst offen markierten Punkte. Innerhalb gilt dieselbe
+Trennung.
 
 | Datei | Rolle |
 |---|---|
@@ -158,7 +162,7 @@ wofür es steht und wo die heutige Antwort steht.
 | `archive/remediation-plan-2026-07-18.md` | Behebungsplan dazu, abgearbeitet |
 | `archive/pentest-after-report-2026-07-18.md` | Nachbericht |
 | `archive/technical-improvements-2026-06.md` | Sammelbericht bis Juni 2026, noch im Cloud-first-Rahmen |
-| `archive/test-categories-2026-06.md` | Test-Inventar mit 783 Tests (heute 4634) |
+| `archive/test-categories-2026-06.md` | Test-Inventar mit 783 Tests (heute ein Mehrfaches — die aktuelle Zahl liefert `pnpm test`) |
 | `archive/modul-2-ausgabentracker-spec.md` | Ehemalige Top-README |
 
 ## Nachschlagewerke der Werkzeuge

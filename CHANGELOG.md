@@ -24,6 +24,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Intern
 
+- **Doku-Aktualitätslauf über alle 84 Markdown-Dateien**: ~60 veraltete
+  Aussagen in geltenden Dokumenten korrigiert — u. a. zeigten sämtliche
+  i18n-Anleitungen (AGENTS.md §6, README, `.claude/`-Werkzeuge) noch auf die
+  alte Zentraldatei statt auf die Sprachbäume `src/i18n/translations/<locale>.ts`
+  (WP 4.5); `performance.md` führte die längst gebauten Quartals-Chunks als
+  „geplant"; `security-boundaries.md` kannte die zwei realen Opt-in-Abflusswege
+  nicht; die Produkt-Roadmap 2026-07 listete Gebautes als „fehlt";
+  Slice-READMEs verwiesen auf gelöschte Dateien. Protokolle und Archive blieben
+  unangetastet (sie altern absichtlich); die drei von PR #299 korrigierten
+  Dateien ebenso. Nebenbefund behoben: `test:integrity` zeigte auf die seit
+  #288 gelöschte `filter-utils.test.ts`.
 - **Programm „Produktionsreife & EU-Souveränität" aufgesetzt**
   (`docs/betrieb-2026-08/`): Prüfung der zehn externen Betriebsvorschläge
   gegen den Repo-Stand (Audit mit Befund-IDs BTR-*), Arbeitsplan mit Phasen

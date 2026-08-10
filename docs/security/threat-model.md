@@ -50,6 +50,8 @@ Nutzer:in
       -> WebCrypto / local-crypto
       -> Supabase Auth und explizite Cloud-Opt-ins
       -> GoCardless, eToro, Markt-/Quote-APIs
+      -> Opt-in-Telemetrie (VITE_TELEMETRY_ENDPOINT; Voreinstellung aus,
+         heute ohne konfiguriertes Ziel)
       -> Import/Export/Backup/Vault/OCR-Parser
       -> Android Runtime / Manifest / FileProvider
 ```
@@ -63,6 +65,7 @@ Nutzer:in
 | Services -> IndexedDB | lokale Finanzobjekte, Migrationen | zentrale Storage-Abstraktion, AES-GCM-Envelope-Checks, Invarianten. |
 | App -> Supabase | Sessions, RLS-geschützte Daten, Edge Functions | Anon-Key-only im Client, RLS/WITH CHECK, Ownership-Prüfungen. |
 | App -> externe Finanz-APIs | Bank-/Broker-/Marktdatenantworten | Consent, sichere Redirects, ID-Dedupe, Validierung, Rate Limits. |
+| App -> Telemetrie-Endpunkt | Ereignisfelder der geschlossenen Union | Positivliste + Verbots-Substrings, Prüfung an der Ausgangstür, genau ein Versandweg ohne Endpunkt-Fallback (`telemetry.security.test.ts`), Opt-in aus. |
 | Web -> Android | Manifest, WebView, FileProvider, Backups | `allowBackup=false`, kein Cleartext, keine unnötig exportierten Komponenten. |
 | Repo -> Build/Release | Actions, Dependencies, Secrets | SHA-Pinning, minimale Permissions, pnpm Lockfile, Secret-Scan. |
 
@@ -135,8 +138,12 @@ Resilienzanforderung:
 
 - Welche Supabase-Tabellen existieren produktiv zusätzlich zu versionierten
   Migrationen?
-- Welche Sync-/MCP-/Bank-Features sind aktuell produktiv aktiviert und welche nur
-  Feature-Flag-/Alpha-Funktion?
+- ~~Welche Sync-/MCP-/Bank-Features sind aktuell produktiv aktiviert und welche
+  nur Feature-Flag-/Alpha-Funktion?~~ Repo-Antwort seit #291:
+  `src/lib/feature-flags.ts` (vier Flags samt Voreinstellung — `telemetry` aus,
+  `bankSync` aus, `feedback` an, `financeCity3d` an) und `src/lib/tier.ts`
+  (`ACCESS_CODES`). Offen bleibt nur, welche Voreinstellung ein Store-Build
+  tatsächlich ausliefert.
 - Welche Testumgebung darf externe Bank-/Broker-/Supabase-Aufrufe ausführen?
 - Gibt es produktive Crash-/Analytics-Provider, die nicht im Repo ersichtlich
   sind?

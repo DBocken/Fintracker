@@ -1,8 +1,11 @@
 # Behutsame Heranführung & Tutorial — Vorüberlegungen
 
-Status: **noch nicht implementiert.** Diese Datei hält die Vorüberlegungen
-fest, damit sie bei der Umsetzung nicht neu erarbeitet werden müssen und die
-bereits getroffenen Entscheidungen nicht versehentlich untergraben werden.
+Status: **umgesetzt** (`src/components/tutorial/`, `useTutorialRun`,
+`src/lib/tutorial-steps.ts`/`tutorial-sequence.ts`; die Freischaltungs-Achse
+`unlocked_features` lebt in `useNavVisibility`/`NavFeatureSettings`). Diese
+Datei bleibt stehen, weil sie das **Warum** erklärt — insbesondere, warum die
+Freischaltungs-Achse von `enabled_nav_features` getrennt ist — und getroffene
+Entscheidungen nicht versehentlich untergraben werden sollen.
 
 Vor jeder Arbeit an Tutorial, Freischaltung oder „behutsamer Heranführung":
 diese Datei **zuerst** lesen, zusammen mit `docs/onboarding-life-situations.md`

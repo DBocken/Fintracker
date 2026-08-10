@@ -38,7 +38,7 @@ Der Umbau der gesamten Oberfläche in einem Zug stand nicht zur Debatte: Unter
 **Beide Ordnungen gelten gleichzeitig und dauerhaft nebeneinander.**
 
 - **Klassische Schichten** für alles, was quer zu Features liegt: pure Domänen-
-  und Berechnungslogik (`src/lib/`, 150 Dateien), I/O (`src/services/`, 87),
+  und Berechnungslogik (`src/lib/`, 151 Dateien), I/O (`src/services/`, 87),
   React-Anbindung (`src/hooks/`, 37).
 - **Feature-Slices** `src/features/<name>/{domain,data,application,presentation}`
   für in sich geschlossene Features mit Desktop- **und** Mobil-Präsentation.

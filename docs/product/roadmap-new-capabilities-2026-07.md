@@ -85,10 +85,30 @@ Umbauten wandern — maßgeblich ist jeweils Pfad + Symbolname.
 | Tier-Gating | `Tier`-Union, `FEATURES`-Matrix und `hasFeatureAccess` in `src/lib/tier.ts` | Einzige Quelle für Free/Premium-Zuordnung (Entscheidung D7). |
 | Feature-Slice-Vorbild | `src/features/special-categories/{domain,data,application,presentation}` | Blaupause für den Slice `src/features/replacement-planning/`. |
 
-**Noch nicht vorhanden (wird erst durch diese Roadmap angelegt):**
-`src/lib/entity-ref.ts` und das Verzeichnis `src/lib/schemas/` existieren heute
-nicht (per `ls` geprüft); Issue F1 legt sie an. `docs/product/` existiert noch
-nicht; dieses Dokument ist sein erster Inhalt.
+**Seit der Erstellung umgesetzt (Nachtrag 2026-08-10):** Die
+Status-Spalten der Tabellen in §3 beschreiben den Stand vom **Juli 2026** —
+das Fundament F1 und große Teile der Domänenschichten sind inzwischen gebaut:
+
+- `src/lib/entity-ref.ts` (Typ, geschlossene Union, dangling-toleranter
+  `resolveEntityRef`) und `src/lib/schemas/` (u. a.
+  `replacement-plan.schema.ts`, `contract-record.schema.ts`,
+  `household-settlement.schema.ts`) existieren; Konvention als ADR:
+  `docs/architecture/entity-references.md` (Fundament-Issue #234).
+- Ersatzplanung: `LOCAL_FINANCE_KEYS.replacementPlans`, Slice
+  `src/features/replacement-planning/domain/` (`forecast-expansion.ts`,
+  `reserve-sufficiency.ts`, `cycle-restart.ts`),
+  `ForecastInput.probabilisticEvents`, `confirmReplacement()` im Service.
+- Vertragsakte: `LOCAL_FINANCE_KEYS.contractRecords`,
+  `contract-record-service.ts`, `src/features/contract-records/domain/`
+  (`deadlines.ts`, `warranty.ts`) — es fehlt allein die Oberfläche.
+- Haushaltsausgleich: `balances.ts` (`computeMemberBalances`, `computeDebts`),
+  `householdSettlements`-Collection samt Service und Schema; die
+  Vault-/Backup-Abdeckung (in §3.3 als „harter Blocker vor C1" markiert) ist
+  erledigt — `VaultPayload` enthält `households`, `householdMembers`,
+  `sharedExpenseSplits`, `householdSettlements` (`vault-format.ts`).
+
+Den lebenden Stand je Baustein tragen die Slice-READMEs unter
+`src/features/*/README.md`; die Issues #234–#248 bleiben die Arbeitsliste.
 
 ## 3. Capability-Matrix
 

@@ -9,9 +9,10 @@ TS-Implementierung empirisch zu klären:
 > Profil-Granularität muss die App (`src/lib/forecast-profile.ts`) abbilden, damit der
 > heutige **lineare Saldo-Abfall zwischen Gehaltstagen** verschwindet?
 
-Hintergrund: Der aktuelle Forecast verteilt variable Ausgaben gleichmäßig über den
-Monat (`src/lib/forecast.ts`, Schritt 2). Ziel der App-Seite ist ein profilgewichtetes
-Tagesmuster. Diese Studie validiert, welches Muster nötig ist.
+Hintergrund: Bis zur Umsetzung verteilte der Forecast variable Ausgaben
+gleichmäßig über den Monat. Inzwischen ist das profilgewichtete Tagesmuster
+ausgeliefert (`src/lib/forecast-profile.ts`, angewandt in
+`src/lib/forecast.ts`) — diese Studie hat es begründet.
 
 ## Zieldefinition
 
