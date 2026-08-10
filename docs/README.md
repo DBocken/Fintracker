@@ -10,7 +10,7 @@ Dokumenten nebeneinander lagen, die man ihnen nicht ansieht:
 
 Ein Audit von Juli, das nicht als Protokoll erkennbar ist, liest sich wie eine
 Regel. Genau so ist ein Test-Inventar mit 783 Tests im Wurzelverzeichnis stehen
-geblieben, während der Baum längst 4634 hatte.
+geblieben, während der Baum damals schon 4634 hatte — heute ein Mehrfaches.
 
 **Faustregel für neue Dokumente:** Trägt der Titel ein Datum oder beschreibt er
 einen Lauf („Audit", „Bericht", „Ergebnisse", „Fortschritt"), gehört er nach
@@ -123,8 +123,12 @@ Trennung.
 
 ## Laufendes Programm: Qualität 10/10 (2026-08)
 
-`docs/qualitaet-2026-08/` ist **kein Archiv**: das Programm hat offene
-Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
+`docs/qualitaet-2026-08/` ist **noch kein Archiv**, obwohl das Programm
+abgeschlossen ist: Zwei übersehene Pakete wurden als Issues ausgelagert
+([#296](https://github.com/DBocken/Fintracker/issues/296),
+[#297](https://github.com/DBocken/Fintracker/issues/297)), die Korrektur des
+Abschlussberichts läuft als PR #299. Die Archivierung erledigt WP 0.11 des
+Betriebsprogramms.
 
 | Datei | Rolle |
 |---|---|

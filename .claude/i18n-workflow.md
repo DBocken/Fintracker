@@ -167,7 +167,7 @@ A: **Ja — sechs Schritte:**
 A: Template-Strings verwenden:
 
 ```typescript
-// translations.ts
+// src/i18n/translations/de.ts
 de: {
   page: {
     greeting: 'Hallo {name}, willkommen!'
@@ -198,16 +198,25 @@ A: **Ja!** Warum:
 
 ```
 src/i18n/
-  ├── translations.ts          ← ZENTRAL: Alle Übersetzungen (DE + EN)
-  ├── useI18n.ts              ← Hook für Komponenten
+  ├── translations/            ← DIE SPRACHBÄUME
+  │   ├── de.ts · en.ts · ru.ts   ← aktive Sprachen (paritätspflichtig)
+  │   └── tlh.ts                  ← inaktiv, nicht paritätspflichtig
+  ├── translations.ts          ← nur Barrel für Tests + Typen (kein Laufzeitpfad)
+  ├── translation-registry.ts  ← Lazy-Import je Sprache (Laufzeitpfad)
+  ├── locale.ts                ← Locale, SUPPORTED_LOCALES, INACTIVE_LOCALES
+  ├── locale-options.ts        ← LOCALE_META für die Sprachauswahl
+  ├── overlays/everyday/       ← Alltagssprache je Sprache (Pflicht, s. overlay-coverage)
+  ├── wording.ts · glossary.ts ← Sprachstil-Achse
+  ├── serviceT.ts              ← t() für services/lib (ohne React-Kontext)
+  ├── useI18n.ts               ← Hook für Komponenten
   ├── I18nProvider.tsx         ← React Context Provider
   ├── format.ts                ← Helper (pluralize, formatDaysUntil, etc.)
-  └── __tests__/
-      ├── i18n.test.ts
-      └── format.test.ts
+  └── __tests__/               ← u. a. locale-parity, overlay-coverage, call-site-keys
 
 scripts/
-  └── check-i18n.mjs           ← Auto-Check (Pre-Commit + CI, blockiert hardcodierte Strings)
+  ├── check-i18n.mjs           ← Auto-Check (Pre-Commit + CI, blockiert hardcodierte Strings)
+  ├── i18n-core.mjs            ← die Erkennung, ohne git testbar
+  └── check-i18n-module-consts.mjs ← t() im Initializer einer Modul-const
 
 .claude/
   ├── templates/
@@ -225,7 +234,7 @@ Component zeigt eine kleine Grafik mit dynamischem Label.
 
 ### Schritt 1: Translations
 ```typescript
-// src/i18n/translations.ts
+// src/i18n/translations/de.ts (analog en.ts, ru.ts)
 de: {
   sparkline: {
     title: 'Ausgabentrend',
@@ -305,7 +314,7 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 ## 🎯 TL;DR (Kurzfassung)
 
 1. **Schreibe Tests zuerst** (für beide Sprachen!)
-2. **Definiere Strings zentral** in `src/i18n/translations.ts`
+2. **Definiere Strings** in jedem Sprachbaum `src/i18n/translations/<locale>.ts`
 3. **Verwende `useI18n()` Hook** in Komponenten
 4. **Hook überprüft** automatisch auf Fehler
 5. **Commit & Push** — fertig!
