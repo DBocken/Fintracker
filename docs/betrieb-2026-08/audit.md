@@ -7,8 +7,9 @@
 > steht in [`plan.md`](plan.md); die dauerhaften Regeln in den ADRs
 > [`eu-souveraenitaet.md`](../architecture/eu-souveraenitaet.md) und
 > [`supabase-abloesung.md`](../architecture/supabase-abloesung.md) sowie im
-> [`Anbieter-Register`](../security/anbieter-register.md). Nach Abschluss des
-> Programms wandert dieses Verzeichnis nach `docs/archive/`.
+> [`Anbieter-Register`](../security/anbieter-register.md). Programm-Issues:
+> Epic [#308](https://github.com/DBocken/Fintracker/issues/308). Nach
+> Abschluss des Programms wandert dieses Verzeichnis nach `docs/archive/`.
 
 **Auftrag und Maßstab:** Prüfen, wie die Vorschläge *sinnvoll* umsetzbar sind —
 nicht, wie sie wörtlich abzuarbeiten wären (AGENTS.md, „Absicht vor Auftrag").

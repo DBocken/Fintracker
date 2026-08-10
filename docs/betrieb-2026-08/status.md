@@ -20,16 +20,18 @@
 
 ## Paketstand
 
-| Phase | Pakete | Stand |
-|---|---|---|
-| 0 · Souveränität des Ist-Zustands | 11 (0.1–0.11) | offen |
-| 1 · Release Engineering | 4 (1.1–1.4) | offen |
-| 2 · Identity-Entkopplung | 4 (2.1–2.4) | offen |
-| 3 · EU-Standbein | 5 (3.1–3.5) | offen |
-| 4 · Observability | 4 (4.1, 4.2, 4.3, 4.5) | offen |
-| 5 · Native-Lebenszyklus | 2 (5.1–5.2) | offen |
-| 6 · Payments & Entitlements | 3 (6.1–6.3) | offen |
-| 7 · Supabase-Ablösung + Server-DR | 7 (7.1–7.7) | offen |
+Epic: [#308](https://github.com/DBocken/Fintracker/issues/308).
+
+| Phase | Issue | Pakete | Stand |
+|---|---|---|---|
+| 0 · Souveränität des Ist-Zustands | [#300](https://github.com/DBocken/Fintracker/issues/300) | 11 (0.1–0.11) | offen |
+| 1 · Release Engineering | [#301](https://github.com/DBocken/Fintracker/issues/301) | 4 (1.1–1.4) | offen |
+| 2 · Identity-Entkopplung | [#302](https://github.com/DBocken/Fintracker/issues/302) | 4 (2.1–2.4) | offen |
+| 3 · EU-Standbein | [#303](https://github.com/DBocken/Fintracker/issues/303) | 5 (3.1–3.5) | offen |
+| 4 · Observability | [#304](https://github.com/DBocken/Fintracker/issues/304) | 4 (4.1, 4.2, 4.3, 4.5) | offen |
+| 5 · Native-Lebenszyklus | [#305](https://github.com/DBocken/Fintracker/issues/305) | 2 (5.1–5.2) | offen |
+| 6 · Payments & Entitlements | [#306](https://github.com/DBocken/Fintracker/issues/306) | 3 (6.1–6.3) | offen |
+| 7 · Supabase-Ablösung + Server-DR | [#307](https://github.com/DBocken/Fintracker/issues/307) | 7 (7.1–7.7) | offen |
 
 **Gesamt: 40 Pakete, 0 abgeschlossen.** Belege zu [OPS]-Paketen sammeln sich
 unter `docs/betrieb-2026-08/belege/`.

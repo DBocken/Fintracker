@@ -11,7 +11,10 @@
 > Register bleiben.
 >
 > **Wo das Programm gerade steht und wie man wieder einsteigt:**
-> [`status.md`](status.md).
+> [`status.md`](status.md). **Programm-Issues:** Epic
+> [#308](https://github.com/DBocken/Fintracker/issues/308), Phasen
+> [#300](https://github.com/DBocken/Fintracker/issues/300)–[#307](https://github.com/DBocken/Fintracker/issues/307)
+> (je Phase unten verlinkt).
 >
 > **Livegang-Gate (außerhalb dieses Programms):** Öffentlicher Betrieb setzt
 > die Behebung von [#292](https://github.com/DBocken/Fintracker/issues/292)
@@ -70,7 +73,8 @@ ADRs); wer abweichen will, braucht neue Fakten:
   Transportadapter. Keine Implementierung ohne konkretes Push-Feature** (BTR-7).
 - **GitHub bleibt Arbeitsplattform; EU-Spiegel und EU-Artefakte sind Pflicht;
   kein Forgejo-Vollumzug** (BTR-1, WP 3.1).
-- **Mollie statt Stripe** — ersetzt den Plan aus #52 (BTR-8).
+- **Mollie statt Stripe** — [#306](https://github.com/DBocken/Fintracker/issues/306)
+  ersetzt den Plan aus [#52](https://github.com/DBocken/Fintracker/issues/52) (BTR-8).
 - **Kein Kubernetes; kein Sentry SaaS; LGTM-Vollausbau nur gegen definierte
   Schwelle** (BTR-2, BTR-4, BTR-5).
 - **DR-Übung quartalsweise, nicht monatlich** — Solo-Betrieb ehrlich
@@ -96,7 +100,7 @@ Harte Kanten im Kleinen: 0.8 vor jedem Paket, das externe Hosts ändert ·
 
 ---
 
-## Phase 0 — Souveränität des Ist-Zustands (P0)
+## Phase 0 — Souveränität des Ist-Zustands (P0) · [#300](https://github.com/DBocken/Fintracker/issues/300)
 
 Bevor irgendein EU-Zielbild entsteht, hören die heutigen Verstöße auf, still
 zu sein: US-Datenpfade raus oder benannt, Regionen festgestellt, die EU-Regel
@@ -249,7 +253,7 @@ Checkbox, die der Abschlussbericht als erledigt führt · Issue-Links gesetzt.
 
 ---
 
-## Phase 1 — Release Engineering
+## Phase 1 — Release Engineering · [#301](https://github.com/DBocken/Fintracker/issues/301)
 
 ### - [ ] WP 1.1 · Release-Runbook als geltende Regel (BTR-1) · O
 **Ziel:** Ein Release ist ein beschriebener, wiederholbarer, rückrollbarer
@@ -305,7 +309,7 @@ Verhaltensbruch für frische Installationen (`fresh-start`-Tests unverändert).
 
 ---
 
-## Phase 2 — Identity-Entkopplung (in-Repo)
+## Phase 2 — Identity-Entkopplung (in-Repo) · [#302](https://github.com/DBocken/Fintracker/issues/302)
 
 ### - [ ] WP 2.1 · `Identity`-Modell mit stabiler userId (BTR-3) · O/S
 **Ziel:** Die App kennt eine eigene Identität — das IdP-Subject ist ein
@@ -362,7 +366,7 @@ keine Vorfestlegung.
 
 ---
 
-## Phase 3 — EU-Standbein
+## Phase 3 — EU-Standbein · [#303](https://github.com/DBocken/Fintracker/issues/303)
 
 ### - [ ] WP 3.1 · [OPS] Codeberg-Spiegel + EU-Registry (BTR-1, BTR-2) · S
 **Ziel:** Quelle und Artefakte existieren in der EU: GitHub-Ausfall oder
@@ -443,7 +447,7 @@ konsistent (stehende Regel).
 
 ---
 
-## Phase 4 — Observability scharf schalten
+## Phase 4 — Observability scharf schalten · [#304](https://github.com/DBocken/Fintracker/issues/304)
 
 ### - [ ] WP 4.1 · Telemetrie live: Endpoint, Callsites, `render_crash` (BTR-4, BTR-5) · S
 **Ziel:** Die gebaute Telemetrie tut ihre Arbeit: Fehler und Web-Vitals
@@ -507,7 +511,7 @@ Nummer bleibt frei, statt nachzurücken.)*
 
 ---
 
-## Phase 5 — Native-Lebenszyklus (parallel ab Phase 0)
+## Phase 5 — Native-Lebenszyklus (parallel ab Phase 0) · [#305](https://github.com/DBocken/Fintracker/issues/305)
 
 ### - [ ] WP 5.1 · App-State-Maschine: Background/Resume schützt Schlüssel und Syncs (BTR-6) · S
 **Ziel:** Die Android-App verhält sich beim Backgrounding/Resume so bewusst
@@ -545,7 +549,7 @@ PrivacyPage.
 
 ---
 
-## Phase 6 — Payments & Entitlements (braucht Phase 2 + 3)
+## Phase 6 — Payments & Entitlements (braucht Phase 2 + 3) · [#306](https://github.com/DBocken/Fintracker/issues/306)
 
 ### - [ ] WP 6.1 · [OPS] Mollie-Grundlagen: Konto, USt/OSS, Impressum/AGB (BTR-8) · O
 **Ziel:** Der kaufmännische Unterbau steht, bevor Code Geld anfasst — Mollie
@@ -586,12 +590,12 @@ Gating-Matrix-/Security-Tests erweitert (manipulierter lokaler Wert schlägt
 Server-Fakt nicht).
 **Akzeptanz:** Bestehende Gate-Tests grün · neuer Security-Test „lokal
 überstimmt Server nicht" · Offline-Verhalten getestet und benannt ·
-[#52](https://github.com/DBocken/Fintracker/issues/52) durch das
-Mollie-Issue ersetzt (Verweis dort).
+[#52](https://github.com/DBocken/Fintracker/issues/52) durch
+[#306](https://github.com/DBocken/Fintracker/issues/306) ersetzt (Verweis dort).
 
 ---
 
-## Phase 7 — Supabase-Ablösung + Server-DR (braucht 2 + 3; 6 empfohlen zuerst)
+## Phase 7 — Supabase-Ablösung + Server-DR (braucht 2 + 3; 6 empfohlen zuerst) · [#307](https://github.com/DBocken/Fintracker/issues/307)
 
 ### - [ ] WP 7.1 · [OPS] IdP-Entscheid, Aufbau, EU-SMTP (BTR-3) · O
 **Ziel:** Der self-hosted IdP läuft auf EU-Infrastruktur und kann den
