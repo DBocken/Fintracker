@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Lock, ShieldCheck, ShieldAlert, Server, EyeOff, BarChart3, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvider";
 import { useTier } from "@/hooks/useTier";
 import { derivePrivacyStatus } from "@/lib/privacy-status";
@@ -81,41 +81,56 @@ export default function PrivacyPage() {
         )}
       </Card>
 
-      {/* Dein aktueller Server-Kontakt */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Server className="h-5 w-5" aria-hidden="true" />
-            {t("privacy.serverContactTitle")}
-          </CardTitle>
-          <CardDescription>{status.serverContactLabel}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm">
-          {status.sharedWithServer.length > 0 ? (
+      {/*
+        WP 7.1 — Diese Karte trifft eine Aussage über den Einwilligungsstand,
+        und genau den konnte die Seite nicht lesen. `consent?.opted_in ??
+        false` macht daraus stillschweigend „nicht zugestimmt": Die
+        Beschriftung nennt dann „Konto, Bank-Anbindung" und lässt die
+        aggregierte Statistik weg — eine Entwarnung, die niemand geprüft hat.
+
+        Der Fehlerhinweis darüber stand bisher NEBEN dieser Karte, nicht an
+        ihrer Stelle. Ein Datenschutz-Screen darf einen unbekannten Zustand
+        aber nicht raten, also tritt die Karte zurück, bis der Wert gelesen
+        ist ([REGRESSION] `PrivacyPage.error-state.test.tsx`). Was NICHT vom
+        Einwilligungsstand abhängt — Verschlüsselung, Datenmodell,
+        Analytics-Erklärung — bleibt stehen.
+      */}
+      {!consentError && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Server className="h-5 w-5" aria-hidden="true" />
+              {t("privacy.serverContactTitle")}
+            </CardTitle>
+            <CardDescription>{status.serverContactLabel}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            {status.sharedWithServer.length > 0 ? (
+              <div>
+                <p className="mb-1 font-medium">{t("privacy.sharedWithServerLabel")}</p>
+                <ul className="list-inside list-disc space-y-0.5 text-muted-foreground">
+                  {status.sharedWithServer.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">{t("privacy.noServerContact")}</p>
+            )}
             <div>
-              <p className="mb-1 font-medium">{t("privacy.sharedWithServerLabel")}</p>
+              <p className="mb-1 flex items-center gap-1.5 font-medium">
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
+                {t("privacy.neverLeavesLabel")}
+              </p>
               <ul className="list-inside list-disc space-y-0.5 text-muted-foreground">
-                {status.sharedWithServer.map((item) => (
+                {status.neverShared.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
-          ) : (
-            <p className="text-muted-foreground">{t("privacy.noServerContact")}</p>
-          )}
-          <div>
-            <p className="mb-1 flex items-center gap-1.5 font-medium">
-              <EyeOff className="h-4 w-4" aria-hidden="true" />
-              {t("privacy.neverLeavesLabel")}
-            </p>
-            <ul className="list-inside list-disc space-y-0.5 text-muted-foreground">
-              {status.neverShared.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Das Modell erklärt */}
       <Card>

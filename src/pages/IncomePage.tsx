@@ -1,4 +1,4 @@
-import PageHeader from '@/components/common/PageHeader';
+import PageHeader from '@/features/shared/presentation/PageHeader';
 import IncomeStreamsPanel from '@/components/income/IncomeStreamsPanel';
 import { useI18n } from '@/i18n/useI18n';
 

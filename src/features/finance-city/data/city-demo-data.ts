@@ -28,7 +28,7 @@
  * Anzeigewerten).
  */
 
-import { toMinor, toMajor } from '@/lib/money';
+import { toMinor, toMajor, sumMinor } from '@/lib/money';
 import { CATEGORY_COLORS } from '@/lib/constants';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from '../domain/city-model';
 
@@ -38,7 +38,7 @@ function euro(amount: number): number {
 }
 
 function sumEuro(amounts: number[]): number {
-  return toMajor(amounts.reduce((sum, amount) => sum + toMinor(amount), 0));
+  return toMajor(sumMinor(amounts.map(toMinor)));
 }
 
 // EXAKT aus der Spec (WP-C0): Netflix 17.99, Spotify 10.99, HBO 9.99, Apple TV 1.00.

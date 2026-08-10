@@ -474,4 +474,13 @@ export const everydayDe: TranslationOverlay = {
   dataExport: {
     pdfBalance: 'Kontostand: €{amount}',
   },
+  privacy: {
+    localEncryption: {
+      // WP 3.3 (SEC-3): genau die Zielgruppe eines schwachen Passworts liest
+      // eine Fachsprachen-Warnung am wenigsten — deshalb hier ausdrücklich
+      // in Alltagssprache statt nur im Basisbaum.
+      weakPasswordWarning: 'Dieses Passwort ist leicht zu knacken. Selbst die beste Verschlüsselung schützt dann kaum.',
+      overrideWeakLabel: 'Ich weiß, dass das riskant ist, und mache trotzdem weiter.',
+    },
+  },
 };

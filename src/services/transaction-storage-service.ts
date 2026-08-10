@@ -1,9 +1,19 @@
 import type { Transaction } from '../types';
 import { getCurrentUserId } from './auth-service';
-import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from './local-crypto';
 import { escapeCsvCell } from '@/lib/csv-utils';
 import { t } from '@/i18n/serviceT';
 import { logger } from '@/utils/logger';
+import { transactionSchema } from '@/lib/schemas/transaction.schema';
+import { recordSkipped } from './data-integrity-report';
+import { idbGet, idbRemove } from './idb-kv';
+import { quarterKeyForDate, type QuarterKey } from '@/lib/transaction-quarter';
+import {
+  clearAllTransactionChunks,
+  readAllTransactionChunks,
+  readTransactionChunk,
+  writeTransactionChunk,
+} from './transaction-chunk-store';
 
 /**
  * Storage strategy for transactions. Cloud/hybrid are retained for UI compatibility,
@@ -34,6 +44,71 @@ export interface StorageResult<T> {
 // Constants
 const LOCAL_TRANSACTIONS_KEY = 'ausgabentracker_transactions_v3';
 const DEFAULT_SYNC_INTERVAL = 5; // 5 minutes
+
+/**
+ * WP 4.1c (PERF-1): Ist der v3-Blob (noch) die Wahrheit?
+ *
+ * ADR-Zitat (`docs/architecture/transaction-storage-chunks.md`, "Migration"):
+ * "Der Zeiger, der bestimmt, welche Ablage gilt, wird als Letztes umgelegt."
+ * Genau dieser Zeiger ist die physische Anwesenheit des v3-Schlüssels — der
+ * Migrationsschritt (`local-store-migrations.ts`) entfernt ihn ausschließlich
+ * als LETZTEN Schritt, nachdem alle Chunks (und ihr Index) geschrieben sind.
+ * Solange er existiert, ist v3 die Wahrheit (auch wenn durch einen
+ * abgebrochenen Migrationslauf bereits halb geschriebene Chunks daneben
+ * liegen — die werden dann NICHT gelesen, siehe ADR). Verschwindet er, ist
+ * v4 die Wahrheit.
+ *
+ * Das ist bewusst KEINE Migration-bei-Lesezugriff (die ADR verbietet das
+ * ausdrücklich): Es wird nichts transformiert oder geschrieben, nur
+ * festgestellt, WESSEN Daten aktuell gelten — dieselbe Unterscheidung wie
+ * zwischen einer Migration und der (erlaubten) Versions-Prüfung in
+ * `assertCompatibleStore()`. Reine Existenzprüfung ohne Entschlüsselung
+ * (roh über `idbGet`, plus den localStorage-Fallback von
+ * `local-crypto.readDataRaw`, den ein noch nicht gelesener Alt-Schlüssel
+ * dort haben könnte) — billig genug, um sie bei jedem Zugriff zu stellen.
+ */
+async function hasLegacyV3Blob(): Promise<boolean> {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(LOCAL_TRANSACTIONS_KEY) != null) {
+    return true;
+  }
+  return (await idbGet(LOCAL_TRANSACTIONS_KEY)) != null;
+}
+
+/**
+ * Liest und validiert den v3-Blob roh. Von ZWEI Stellen genutzt: dem Legacy-
+ * Lesepfad dieses Service (solange `hasLegacyV3Blob()` wahr ist) UND dem
+ * Migrationsschritt selbst (`local-store-migrations.ts`, WP 4.1c) — deshalb
+ * eine eigene Exportfunktion statt einer Methode auf `transactionStorage`,
+ * damit der Migrationsläufer sie ohne Umweg über die Klasseninstanz
+ * importieren kann. Dieselbe Item-Validierung wie überall (WP 1.2): kaputte
+ * Items werden übersprungen und gezählt, nie die ganze Liste verworfen. Ein
+ * kaputter GESAMT-Envelope (`VaultCorruptError`) wird NICHT abgefangen —
+ * er wirft durch (WP 1.1: Korruption ist ein Fehlerzustand, keine Leerliste).
+ */
+export async function readLegacyV3Transactions(): Promise<Transaction[]> {
+  if (localEncryption.isEnabled() && !localEncryption.isUnlocked()) {
+    throw new LocalEncryptionLockedError();
+  }
+
+  const data = await localEncryption.loadAndMaybeDecrypt<Transaction[]>(LOCAL_TRANSACTIONS_KEY);
+  if (data === null) return [];
+  // Spiegelbildlich zu local-finance-store.readLocalFinanceList (RES-1):
+  // gültiges JSON ohne Array ist ein beschädigter Bestand, keine Leerliste.
+  if (!Array.isArray(data)) throw new VaultCorruptError(LOCAL_TRANSACTIONS_KEY);
+
+  const valid: Transaction[] = [];
+  let skipped = 0;
+  for (const item of data) {
+    const result = transactionSchema.safeParse(item);
+    if (result.success) {
+      valid.push(result.data as Transaction);
+    } else {
+      skipped += 1;
+    }
+  }
+  recordSkipped('transactions', skipped);
+  return valid;
+}
 
 /**
  * Transaction Storage Service
@@ -88,6 +163,19 @@ class TransactionStorageService {
   async getTransactions(limit: number = 1000, offset: number = 0): Promise<StorageResult<Transaction[]>> {
     try {
       const localResult = await this.getLocalTransactions();
+      // [REGRESSION] WP 4.1c: `getLocalTransactions()` wirft nie (siehe dort),
+      // sondern kapselt jeden Fehler bereits in `{ success: false }` — ein
+      // gesperrter Tresor ODER ein korrupter Bestand (VaultCorruptError, egal
+      // ob v3-Blob oder ein einzelner v4-Chunk) landete deshalb bislang HIER:
+      // `localResult.data` ist dann `undefined`, `rows` wurde lautlos zu `[]`,
+      // und diese Methode meldete `{ success: true, data: [] }` — die exakte
+      // RES-1-Fehlklasse, nur eine Ebene höher und ohne eigenen Test bislang,
+      // weil `transaction-service.ts::getTransactions()` sich auf `success`
+      // verlässt, das hier nie `false` wurde. Ein Fehlschlag muss ein
+      // Fehlschlag bleiben, nicht in einen leeren Erfolg übersetzt werden.
+      if (!localResult.success) {
+        return { success: false, error: localResult.error };
+      }
       const rows = localResult.data || [];
       // Nach Datum absteigend sortieren, BEVOR das Limit greift. Sonst schneidet
       // ein Limit (z. B. 2000) einen beliebigen Ausschnitt in Speicher-/Import-
@@ -255,8 +343,14 @@ class TransactionStorageService {
   async clearLocalCache(): Promise<StorageResult<void>> {
     try {
       localStorage.removeItem(LOCAL_TRANSACTIONS_KEY);
-      const { idbRemove } = await import('./idb-kv');
       await idbRemove(LOCAL_TRANSACTIONS_KEY);
+      // WP 4.1c: seit dem Umschalten auf die Chunk-Ablage ist der v3-Schlüssel
+      // nur noch EINE von zwei möglichen Wahrheiten (`hasLegacyV3Blob`) — ein
+      // Test/Aufrufer, der einen vollständigen Reset erwartet, braucht auch
+      // die v4-Chunks + deren Index leer, sonst leckt Bestand aus einem
+      // vorherigen Lauf (Test, Session) in den nächsten (mehrere bestehende
+      // Testdateien riefen diese Methode bereits für genau diesen Zweck auf).
+      await clearAllTransactionChunks();
       return { success: true };
     } catch (error) {
       return {
@@ -285,15 +379,18 @@ class TransactionStorageService {
     }
   }
 
+  /**
+   * WP 4.1c: Fassade bleibt — Signatur/Verhalten dieser Methode ändern sich
+   * nicht, nur WOHER sie liest. `hasLegacyV3Blob()` entscheidet, welche der
+   * beiden Ablagen aktuell die Wahrheit ist (s. dort); kein lazy-migrierender
+   * Zweig, nur ein Auswahlzweig zwischen zwei vollständigen Implementierungen.
+   */
   private async getLocalTransactions(): Promise<StorageResult<Transaction[]>> {
-
     try {
-      if (localEncryption.isEnabled() && !localEncryption.isUnlocked()) {
-        throw new LocalEncryptionLockedError();
-      }
-
-      const data = await localEncryption.loadAndMaybeDecrypt<Transaction[]>(LOCAL_TRANSACTIONS_KEY);
-      return { success: true, data: Array.isArray(data) ? data : [] };
+      const valid = (await hasLegacyV3Blob())
+        ? await readLegacyV3Transactions()
+        : await readAllTransactionChunks();
+      return { success: true, data: valid };
     } catch (error) {
       return {
         success: false,
@@ -302,6 +399,7 @@ class TransactionStorageService {
     }
   }
 
+  /** Legacy-Schreibpfad (v3-Blob) — unverändert, nur noch für den Fall genutzt, dass v3 noch nicht migriert ist. */
   private async setLocalTransactions(transactions: Transaction[]): Promise<void> {
     if (localEncryption.isEnabled() && !localEncryption.isUnlocked()) {
       throw new LocalEncryptionLockedError();
@@ -311,6 +409,8 @@ class TransactionStorageService {
   }
 
   private async saveLocalTransactions(newTransactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
+    if (!(await hasLegacyV3Blob())) return this.saveLocalTransactionsChunked(newTransactions);
+
     const existing = await this.getLocalTransactions();
     const merged = [...(existing.data || [])];
     const knownIds = new Set(merged.map((transaction) => transaction.id).filter(Boolean));
@@ -326,6 +426,8 @@ class TransactionStorageService {
   }
 
   private async updateLocalTransaction(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
+    if (!(await hasLegacyV3Blob())) return this.updateLocalTransactionChunked(id, updates);
+
     const existing = await this.getLocalTransactions();
     if (!existing.data) {
       return { success: false, error: t('transactionStorage.noTransactionsFound') };
@@ -344,14 +446,93 @@ class TransactionStorageService {
   }
 
   private async deleteLocalTransaction(id: string): Promise<StorageResult<void>> {
+    if (!(await hasLegacyV3Blob())) return this.deleteLocalTransactionChunked(id);
+
     const existing = await this.getLocalTransactions();
     if (!existing.data) {
       return { success: false, error: t('transactionStorage.noTransactionsFound') };
     }
-    
+
     const filtered = existing.data.filter(tx => tx.id !== id);
     await this.setLocalTransactions(filtered);
-    
+
+    return { success: true };
+  }
+
+  // ---- WP 4.1c: Chunk-basierte Gegenstücke (aktiv, sobald v3 migriert ist) ----
+  //
+  // "Einzeländerung" (ADR-Messung 1) heißt hier konkret: `updateTransaction`/
+  // `deleteTransaction` sollen nur DAS BETROFFENE Quartal neu ver-/entschlüsseln,
+  // nicht den Gesamtbestand. Dafür muss zuerst geklärt werden, IN WELCHEM
+  // Quartal die Buchung mit gegebener `id` heute liegt — die Signatur kennt nur
+  // die ID, nicht das Datum. Die Antwort kommt aus `readAllTransactionChunks()`:
+  // im realistischen Ablauf (Liste anzeigen → eine Zeile bearbeiten) ist der
+  // Chunk-Cache zu diesem Zeitpunkt bereits warm (die Liste wurde gerade erst
+  // geladen), und ein warmes Vollesen kostet laut ADR "0 Vorgänge" — die
+  // Quartalssuche ist dann faktisch gratis. Nur bei einem kalten Cache (Edit
+  // ohne vorherige Listenansicht) kostet sie so viel wie ein kaltes Vollesen;
+  // das ist kein Rückschritt gegenüber v3, wo JEDE Einzeländerung ohnehin den
+  // gesamten Blob entschlüsseln musste.
+
+  private async saveLocalTransactionsChunked(newTransactions: Transaction[]): Promise<StorageResult<Transaction[]>> {
+    const existing = await readAllTransactionChunks();
+    const knownIds = new Set(existing.map((transaction) => transaction.id).filter(Boolean));
+
+    const byQuarter = new Map<QuarterKey, Transaction[]>();
+    for (const transaction of newTransactions) {
+      if (transaction.id && knownIds.has(transaction.id)) continue;
+      const quarter = quarterKeyForDate(transaction.date);
+      const list = byQuarter.get(quarter);
+      if (list) list.push(transaction);
+      else byQuarter.set(quarter, [transaction]);
+      if (transaction.id) knownIds.add(transaction.id);
+    }
+
+    for (const [quarter, additions] of byQuarter) {
+      const current = await readTransactionChunk(quarter);
+      await writeTransactionChunk(quarter, [...current, ...additions]);
+    }
+
+    return { success: true, data: newTransactions };
+  }
+
+  private async updateLocalTransactionChunked(id: string, updates: Partial<Transaction>): Promise<StorageResult<Transaction>> {
+    const all = await readAllTransactionChunks();
+    const existing = all.find((tx) => tx.id === id);
+    if (!existing) {
+      return { success: false, error: t('transactionStorage.transactionNotFound') };
+    }
+
+    const updated: Transaction = { ...existing, ...updates };
+    const oldQuarter = quarterKeyForDate(existing.date);
+    const newQuarter = quarterKeyForDate(updated.date);
+
+    if (oldQuarter === newQuarter) {
+      const chunk = await readTransactionChunk(oldQuarter);
+      await writeTransactionChunk(oldQuarter, chunk.map((tx) => (tx.id === id ? updated : tx)));
+    } else {
+      // Das Datum wurde mitgeändert — die Buchung wandert ins neue Quartal.
+      const oldChunk = await readTransactionChunk(oldQuarter);
+      await writeTransactionChunk(oldQuarter, oldChunk.filter((tx) => tx.id !== id));
+      const newChunk = await readTransactionChunk(newQuarter);
+      await writeTransactionChunk(newQuarter, [...newChunk, updated]);
+    }
+
+    return { success: true, data: updated };
+  }
+
+  private async deleteLocalTransactionChunked(id: string): Promise<StorageResult<void>> {
+    const all = await readAllTransactionChunks();
+    const existing = all.find((tx) => tx.id === id);
+    if (!existing) {
+      // Kein Treffer: spiegelt das Legacy-Verhalten (kein Fehler, No-Op).
+      return { success: true };
+    }
+
+    const quarter = quarterKeyForDate(existing.date);
+    const chunk = await readTransactionChunk(quarter);
+    await writeTransactionChunk(quarter, chunk.filter((tx) => tx.id !== id));
+
     return { success: true };
   }
 

@@ -45,6 +45,48 @@ export async function dismissOnboarding(page: Page): Promise<void> {
 }
 
 /**
+ * Beendet ALLE Einstiegs-Dialoge eines blanken Starts (WP 7.3).
+ *
+ * `dismissOnboarding()` darüber reicht nur für den Demo-Einstieg: Wer über
+ * „Demo ansehen" hereinkommt, hat die Datenquellen-Weiche faktisch schon
+ * beantwortet (`DataSourceDialog` notiert das still), und übrig bleibt der
+ * eine Lebenssituations-Dialog. Wer dagegen blank startet — nach „Lokale
+ * Daten löschen" oder über „Kostenlos starten" — bekommt ZWEI Dialoge
+ * nacheinander: erst Kapitel 0 (`DataSourceDialog`), danach die
+ * Lebenssituation (`OnboardingDialog`). Beide tragen dieselbe Schaltfläche
+ * „Später entscheiden", weshalb ein einzelner Klick wie ein Erfolg aussieht
+ * und der zweite Dialog trotzdem stehen bleibt.
+ *
+ * Die Dialoge werden bewusst NACHEINANDER und jeweils bis zum Verschwinden
+ * abgearbeitet, nicht in einer Klick-Schleife: Beide speichern über
+ * `updateUserSettings`, das den Bestand liest, ergänzt und zurückschreibt.
+ * Zwei Klicks unmittelbar hintereinander — schneller, als ein Mensch je
+ * klickt — lassen den zweiten Schreibvorgang auf einem Stand aufsetzen, der
+ * den ersten noch nicht enthält; die Datenquellen-Weiche stand danach beim
+ * nächsten Seitenwechsel wieder da. Erst wenn der Dialog verschwunden ist,
+ * ist der Schreibvorgang durch.
+ */
+export async function dismissAllStartDialogs(page: Page): Promise<void> {
+  const sourceDialog = page.getByRole("dialog").filter({ hasText: "Womit möchtest du anfangen?" });
+  const lifeDialog = page
+    .getByRole("dialog")
+    .filter({ hasText: "Welche Situation beschreibt dich am ehesten?" });
+
+  for (const dialog of [sourceDialog, lifeDialog]) {
+    try {
+      await dialog.waitFor({ state: "visible", timeout: 15_000 });
+    } catch {
+      continue; // Dieser Dialog gehört zu diesem Einstieg nicht dazu.
+    }
+    await dialog.getByRole("button", { name: "Später entscheiden" }).click();
+    await expect(dialog).toBeHidden();
+  }
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await dismissTourInvitation(page);
+}
+
+/**
  * Onboarding → „Demo ansehen" → Onboarding-Dialog beenden → über die
  * Seitennavigation aufs Dashboard (mit gefülltem Hero als Lade-Anker).
  */

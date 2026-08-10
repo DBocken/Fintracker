@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Account, Transaction, UserSettings } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 /**
  * Testet die Opening-Balance-Erfassung des echten `syncAccountTransactions`.
@@ -168,7 +169,7 @@ describe('syncAccountTransactions — opening balance capture', () => {
     const original_text = 'Test payment';
     mockStoredTransactions = [
       {
-        id: 'existing-1', account_id: 'acc-1', date: '2024-06-10', amount: -100,
+        id: asTransactionId('existing-1'), account_id: 'acc-1', date: '2024-06-10', amount: -100,
         payee: 'Test Merchant', description: original_text, original_text,
         auto_mapped: false, confirmed: false, currency: 'EUR',
       },

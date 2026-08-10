@@ -466,6 +466,45 @@ describe('Sicherheitspuffer, Monatstief & Risiko', () => {
     expect(result.insights[0].kind).toBe('below_buffer');
   });
 
+  it('zaehlt genau auf dem Puffer NICHT als darunter', () => {
+    // Die Grenze selbst (`basisCents < bufferCents`, forecast.ts). Bis WP 2.1
+    // pruefte die Suite nur klar drunter und klar drueber — eine Mutation von
+    // `<` zu `<=` waere repo-weit gruen geblieben, und diese Kennzahl traegt
+    // die Kern-Warnung der App. Fachlich gilt: der Puffer ist erreicht, nicht
+    // unterschritten.
+    const result = run(
+      {
+        accounts: [checking(1000)],
+        recurringFlows: [
+          { id: 'rent', name: 'Miete', amount: -500, cadence: 'monthly', anchorDate: '2026-01-05', accountId: 'giro' },
+        ],
+      },
+      { safetyBuffer: 500 },
+    );
+    // 05.01: 1000-500 = 500 = Puffer -> exakt auf der Grenze, kein Bruch.
+    expect(day(result, '2026-01-05').belowSafetyBuffer).toBe(false);
+    // 05.02: die zweite Miete druckt auf 0 -> jetzt erst ein Bruch. Der erste
+    // gemeldete Pufferbruch ist damit der Februar, nicht der Januar.
+    expect(day(result, '2026-02-05').belowSafetyBuffer).toBe(true);
+    expect(result.risk.firstBelowSafetyBufferDate).toBe('2026-02-05');
+  });
+
+  it('zaehlt einen Cent unter dem Puffer als darunter', () => {
+    // Gegenprobe zum Fall darueber: die Grenze liegt wirklich dort, wo der
+    // vorige Test sie behauptet — nicht einen ganzen Euro daneben.
+    const result = run(
+      {
+        accounts: [checking(1000)],
+        recurringFlows: [
+          { id: 'rent', name: 'Miete', amount: -500.01, cadence: 'monthly', anchorDate: '2026-01-05', accountId: 'giro' },
+        ],
+      },
+      { safetyBuffer: 500 },
+    );
+    expect(day(result, '2026-01-05').belowSafetyBuffer).toBe(true);
+    expect(result.risk.firstBelowSafetyBufferDate).toBe('2026-01-05');
+  });
+
   it('bezieht den Puffer auf availableCash, wenn so konfiguriert', () => {
     const result = run(
       { accounts: [checking(100), tagesgeld(5000)] },

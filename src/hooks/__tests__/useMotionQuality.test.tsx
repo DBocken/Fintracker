@@ -8,7 +8,7 @@ import { MOTION_DURATIONS } from '@/lib/motion-tokens';
  * Reduced-Motion wird über den Hook gemockt, nicht über `matchMedia`:
  * Framer Motion liest die Media Query beim Modul-Import einmal aus, ein
  * späterer `matchMedia`-Mock erreicht sie nicht mehr. Das ist der Repo-Standard
- * (siehe `components/common/__tests__/SignatureMoment.test.tsx`).
+ * (siehe `features/shared/presentation/__tests__/SignatureMoment.test.tsx`).
  */
 const reduceMock = vi.fn(() => false);
 vi.mock('@/hooks/useReducedMotion', () => ({

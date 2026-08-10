@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { renderWithI18n } from "@/test-utils/render";
 import type { Account } from "@/types";
+import type { FilterViewModel } from "@/features/shared/domain/filter-view-model";
 import { TransactionFilters } from "../TransactionFilters";
 
 vi.mock("@/services/account-service", () => ({ getAccounts: vi.fn() }));
@@ -11,35 +12,46 @@ import { getAccounts } from "@/services/account-service";
 const noop = () => {};
 const ACCOUNTS: Account[] = [];
 
+// WP 5.4 (KOMP-2): `TransactionFilters` nimmt seit diesem Paket EIN
+// `filters: FilterViewModel`-Objekt statt 25 flacher Props entgegen. Die
+// Fixtur hier bündelt, was vorher einzeln als Props auf der Testkomponente
+// stand — die Assertions selbst (Labels je Modus/Sprache, keine eigene
+// Konten-Query) sind UNVERÄNDERT dieselbe Zusicherung wie vor dem Umbau.
+function buildFilters(): FilterViewModel {
+  return {
+    values: {
+      category: "all",
+      account: "all",
+      contract: "all",
+      essential: "all",
+      ausgabenklasse: "all",
+      search: "",
+      range: "Gesamt",
+      customDays: 30,
+      customGranularity: "daily",
+      customPeriod: "",
+    },
+    set: {
+      category: noop,
+      account: noop,
+      contract: noop,
+      essential: noop,
+      ausgabenklasse: noop,
+      search: noop,
+      range: noop,
+      customDays: noop,
+      customGranularity: noop,
+      customPeriod: noop,
+    },
+    periodOptions: [],
+    categories: [],
+    accounts: ACCOUNTS,
+  };
+}
+
 function renderFilters(stacked: boolean, locale: "de" | "en" = "de") {
   return renderWithI18n(
-    <TransactionFilters
-      filterCat="all"
-      setFilterCat={noop}
-      filterAccount="all"
-      setFilterAccount={noop}
-      searchInput=""
-      setSearchInput={noop}
-      range="Gesamt"
-      setRange={noop}
-      customDays={30}
-      setCustomDays={noop}
-      customGran="daily"
-      setCustomGran={noop}
-      customPeriod=""
-      setCustomPeriod={noop}
-      periodOptions={[]}
-      categories={[]}
-      accounts={ACCOUNTS}
-      filterContract="all"
-      setFilterContract={noop}
-      filterEssential="all"
-      setFilterEssential={noop}
-      filterAusgabenklasse="all"
-      setFilterAusgabenklasse={noop}
-      showSearch={false}
-      stacked={stacked}
-    />,
+    <TransactionFilters filters={buildFilters()} showSearch={false} stacked={stacked} />,
     locale,
   );
 }

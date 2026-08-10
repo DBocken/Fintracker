@@ -9,10 +9,10 @@
  * Gesamtstand um Bruchteile eines Cents daneben liegen kann.
  */
 import type { Debt } from "@/types";
-import { sumMinor, toMajor, toMinor } from "@/lib/money";
+import { sumMinor, toMajor, toMinor, type Cents } from "@/lib/money";
 
 /** Nur nicht abbezahlte Schulden zählen; negative Werte sind keine Schuld. */
-function activeAmounts(debts: Debt[], pick: (debt: Debt) => number): number[] {
+function activeAmounts(debts: Debt[], pick: (debt: Debt) => number): Cents[] {
   return debts.filter((debt) => !debt.is_paid_off).map((debt) => toMinor(Math.max(0, pick(debt))));
 }
 

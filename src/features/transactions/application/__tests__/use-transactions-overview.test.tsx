@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/features/shared/domain/dashboard-filters';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 import { computeTransactionStats } from '../../domain/transaction-stats';
 import { transactionsKeys } from '../../data/transactions-query-keys';
 import { useTransactionsOverview } from '../use-transactions-overview';
+import { recordSkipped, clearIntegrityReport } from '@/services/data-integrity-report';
 
 vi.mock('@/services/transaction-service', () => ({
   getTransactions: vi.fn(),
@@ -90,14 +92,14 @@ const FIXTURE_ACCOUNTS: Account[] = [
 // use-transactions-overview.ts). Deckt gemischte Konten (inkl. Budget-Pool-
 // und Nicht-Pool-Konto sowie Live-/lokalen Saldo) und ein Transfer-Paar ab.
 const FIXTURE_TRANSACTIONS: Transaction[] = [
-  { id: 'tx-cash', date: '2026-06-05', amount: -30, payee: 'Kiosk', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CASH },
-  { id: 'tx-june', date: '2026-06-01', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_SAVINGS },
-  { id: 'tx-transfer-out', date: '2026-05-20', amount: -200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, is_transfer: true, transfer_pair_id: 'tx-transfer-in' },
-  { id: 'tx-transfer-in', date: '2026-05-20', amount: 200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_SAVINGS, is_transfer: true, transfer_pair_id: 'tx-transfer-out' },
-  { id: 'tx-fun', date: '2026-05-15', amount: -100, payee: 'Kino', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FUN, account_id: ACC_CHECKING },
-  { id: 'tx-food', date: '2026-05-10', amount: -300, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
-  { id: 'tx-income', date: '2026-05-05', amount: 2000, payee: 'Arbeitgeber GmbH', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_INCOME, account_id: ACC_CHECKING },
-  { id: 'tx-old', date: '2025-01-15', amount: -20, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-cash'), date: '2026-06-05', amount: -30, payee: 'Kiosk', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CASH },
+  { id: asTransactionId('tx-june'), date: '2026-06-01', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_SAVINGS },
+  { id: asTransactionId('tx-transfer-out'), date: '2026-05-20', amount: -200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, is_transfer: true, transfer_pair_id: 'tx-transfer-in' },
+  { id: asTransactionId('tx-transfer-in'), date: '2026-05-20', amount: 200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_SAVINGS, is_transfer: true, transfer_pair_id: 'tx-transfer-out' },
+  { id: asTransactionId('tx-fun'), date: '2026-05-15', amount: -100, payee: 'Kino', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FUN, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-food'), date: '2026-05-10', amount: -300, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-income'), date: '2026-05-05', amount: 2000, payee: 'Arbeitgeber GmbH', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_INCOME, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-old'), date: '2025-01-15', amount: -20, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
 ];
 
 const BASE_FILTERS: DashboardFilterState = {
@@ -244,7 +246,7 @@ describe('useTransactionsOverview', () => {
       vi.mocked(getTransactions).mockResolvedValue([
         ...FIXTURE_TRANSACTIONS,
         {
-          id: 'tx-note', date: '2026-06-03', amount: -80, payee: 'Baumarkt', description: '', original_text: '',
+          id: asTransactionId('tx-note'), date: '2026-06-03', amount: -80, payee: 'Baumarkt', description: '', original_text: '',
           auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104',
         },
       ]);
@@ -368,6 +370,26 @@ describe('useTransactionsOverview', () => {
       // NICHT den Filter-State betrifft, würde die Write-back-Effekte der Page
       // (useEffect auf `filters`) unnötig erneut auslösen.
       expect(Object.is(result.current.filters.values, valuesBefore)).toBe(true);
+    });
+  });
+
+  describe('Integritätsmeldung (WP 1.2b)', () => {
+    beforeEach(() => {
+      clearIntegrityReport();
+    });
+
+    it('sollte skippedTransactionsCount aus dem Integritäts-Bericht übernehmen', async () => {
+      recordSkipped('transactions', 3);
+
+      const { result } = await renderOverview();
+
+      expect(result.current.integrity.skippedTransactionsCount).toBe(3);
+    });
+
+    it('sollte 0 liefern, solange nichts übersprungen wurde (kein Dauerbanner)', async () => {
+      const { result } = await renderOverview();
+
+      expect(result.current.integrity.skippedTransactionsCount).toBe(0);
     });
   });
 });

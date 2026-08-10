@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { buildAutoCategoryPreview } from '../review-preview';
 import { applyAutoCategorization } from '@/services/transaction-service';
 import { transactionStorage } from '@/services/transaction-storage-service';
-import { DEFAULT_LOCAL_CATEGORIES } from '@/services/default-categories';
+import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
 import type { Category, Transaction } from '@/types';
 import type { MerchantRule } from '@/lib/categorization';
+import { asTransactionId } from '@/lib/ids';
 
 beforeEach(async () => {
   localStorage.setItem('ausgabentracker_locale_v1', 'de');
@@ -12,10 +13,9 @@ beforeEach(async () => {
 });
 
 let seq = 0;
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   seq += 1;
   return {
-    id: overrides.id || `row-${seq}`,
     date: '2026-03-10',
     amount: -50,
     payee: '',
@@ -24,6 +24,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...overrides,
+    id: asTransactionId(overrides.id || `row-${seq}`),
   };
 }
 

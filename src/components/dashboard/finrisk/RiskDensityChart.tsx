@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { format, parseISO, type Locale as DateFnsLocale } from 'date-fns';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import { Info, MousePointerClick } from 'lucide-react';
 import { columnModes } from '@/lib/finrisk/density';
 import { densityColor, regionForValue, regionAccent } from '@/lib/finrisk/density-color';
@@ -68,6 +68,7 @@ interface HoverState {
 export default function RiskDensityChart({ result, safetyBuffer }: Props) {
   const money = useMoneyFormat();
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const { density, daily, breachProbabilities, stressCapacity } = result;
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -253,7 +254,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
         const x = xAt(d) + cellW / 2;
         let label = iso;
         try {
-          label = format(parseISO(iso), 'MMM', { locale: de });
+          label = format(parseISO(iso), 'MMM', { locale: dateFnsLocale });
         } catch {
           /* roher ISO-Fallback */
         }
@@ -273,7 +274,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
       ctx.stroke();
       ctx.restore();
     }
-  }, [size, geom, density, daily, safetyBuffer, criticalDay, hover, nDays, valueMin, valueMax]);
+  }, [size, geom, density, daily, safetyBuffer, criticalDay, hover, nDays, valueMin, valueMax, dateFnsLocale]);
 
   const handlePointer = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -439,7 +440,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
           {t('finrisk.liquiditySafety')}{' '}
           <span className="font-medium text-foreground">{money.mask(eur.format(selectedStress.maxAffordableShock))}</span>
           {criticalDay >= 0 && criticalDay < nDays && (
-            <> – {t('finrisk.tightestOn')} <span className="font-medium text-foreground">{fmtDay(density.dates[criticalDay])}</span></>
+            <> – {t('finrisk.tightestOn')} <span className="font-medium text-foreground">{fmtDay(density.dates[criticalDay], dateFnsLocale)}</span></>
           )}
           .
         </p>
@@ -469,7 +470,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
             className="pointer-events-none absolute z-10 w-[168px] rounded-lg border bg-popover/95 p-2 text-[11px] shadow-lg backdrop-blur"
             style={{ left: popLeft, top: popTop, bottom: popBottom }}
           >
-            <div className="mb-1 font-medium">{fmtDay(density.dates[hover.day])}</div>
+            <div className="mb-1 font-medium">{fmtDay(density.dates[hover.day], dateFnsLocale)}</div>
             <Row label={t('finrisk.howToReadMedian')} value={money.mask(eur.format(hoveredDaily.p50))} />
             <Row label="P10 – P90" value={`${money.mask(eur.format(hoveredDaily.p10))} … ${money.mask(eur.format(hoveredDaily.p90))}`} />
             {breachZero != null && <Row label={t('finrisk.chartRiskBelowZero')} value={`${Math.round(breachZero * 100)} %`} />}
@@ -507,7 +508,7 @@ export default function RiskDensityChart({ result, safetyBuffer }: Props) {
           {cellDetail ? (
             <>
               <DialogHeader>
-                <DialogTitle>{fmtDay(cellDetail.date)}</DialogTitle>
+                <DialogTitle>{fmtDay(cellDetail.date, dateFnsLocale)}</DialogTitle>
                 <DialogDescription>
                   Saldo {money.mask(eur.format(cellDetail.binLow))} – {money.mask(eur.format(cellDetail.binHigh))} · ≈ P
                   {cellDetail.percentile} · {cellDetail.pathsInCell} von {cellDetail.totalPaths}{' '}
@@ -566,9 +567,9 @@ function LegendSwatch({ region, label }: { region: 'deficit' | 'caution' | 'heal
   );
 }
 
-function fmtDay(iso: string): string {
+function fmtDay(iso: string, dateFnsLocale: DateFnsLocale): string {
   try {
-    return format(parseISO(iso), 'd. MMM yyyy', { locale: de });
+    return format(parseISO(iso), 'd. MMM yyyy', { locale: dateFnsLocale });
   } catch {
     return iso;
   }

@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { TransactionDayList } from '../TransactionDayList';
 
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
@@ -9,7 +10,7 @@ vi.mock('@/services/account-service', () => ({ getAccounts: vi.fn() }));
 
 import { getAccounts } from '@/services/account-service';
 
-function tx(p: Partial<Transaction> & { date: string; amount: number; id: string }): Transaction {
+function tx(p: Omit<Partial<Transaction>, 'id'> & { date: string; amount: number; id: string }): Transaction {
   return {
     payee: p.payee ?? 'Test',
     description: '',
@@ -17,6 +18,7 @@ function tx(p: Partial<Transaction> & { date: string; amount: number; id: string
     auto_mapped: false,
     confirmed: true,
     ...p,
+    id: asTransactionId(p.id),
   };
 }
 

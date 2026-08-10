@@ -21,8 +21,9 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { format, parseISO, isValid } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import type { Transaction, HierarchicalCategory } from '../types';
+import { asTransactionId } from '@/lib/ids';
 import { getHierarchicalCategories, getTransactions, saveTransactions } from '../services/transaction-service';
 import { getMerchantRules } from '../services/merchant-rules-service';
 import { buildAutoCategoryPreview } from '@/lib/review-preview';
@@ -30,7 +31,7 @@ import { getAccounts } from '../services/account-service';
 import { applyDetectedContracts } from '../services/contract-detection-service';
 import { reconcileAllInternalTransfers } from '../services/gocardless-sync-service';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 interface ReviewTableProps {
   transactions: Transaction[];
@@ -42,6 +43,7 @@ const DUPLICATE_AMOUNT_TOLERANCE = 0.005;
 
 export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const [rows, setRows] = useState<Transaction[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
@@ -115,7 +117,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
     setRows(
       (transactions || []).map((t, i) => ({
         ...t,
-        id: t.id || `temp-${i}`,
+        id: t.id || asTransactionId(`temp-${i}`),
         category_id: t.category_id || null,
       }))
     );
@@ -333,7 +335,7 @@ export function ReviewTable({ transactions, onConfirm }: ReviewTableProps) {
                       />
                     </TableCell>
                     <TableCell>
-                      {isValidDate ? format(date!, 'dd.MM.yyyy', { locale: de }) : '-'}
+                      {isValidDate ? format(date!, 'dd.MM.yyyy', { locale: dateFnsLocale }) : '-'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {row.description || row.original_text || t('reviewTable.emptyCell')}

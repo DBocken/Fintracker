@@ -1,6 +1,6 @@
 import type { Category, Transaction } from '@/types';
 import { getCategories, getTransactions } from './transaction-service';
-import { sumMinor, toMajor, toMinor } from '@/lib/money';
+import { sumMinor, toMajor, toMinor, type Cents } from '@/lib/money';
 
 export type AnalyticsAggregationRecord = {
   schema_version: 1;
@@ -60,7 +60,7 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
   // zurecht — die Rundung versteckt den Fehler, sie behebt ihn nicht. Bei 500
   // Buchungen liegt die Drift zuverlaessig im Cent-Bereich, und diese Zahlen
   // gehen als Kennzahlen aus dem Haus (Phase 11).
-  const totalExpensesMinor = sumMinor(expenses.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0))));
+  const totalExpensesMinor = sumMinor(expenses.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0)) as Cents));
   const buckets = new Map<string, Transaction[]>();
 
   for (const tx of expenses) {
@@ -81,7 +81,7 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
     }
 
     const [period, categoryGroup] = key.split('|');
-    const expenseSumMinor = sumMinor(rows.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0))));
+    const expenseSumMinor = sumMinor(rows.map((tx) => Math.abs(toMinor(Number(tx.amount) || 0)) as Cents));
     records.push({
       schema_version: 1,
       period,
@@ -90,7 +90,7 @@ export async function buildAnalyticsPackage(): Promise<AnalyticsPackageV1> {
         // `toMajor` ist der Uebergang zur Anzeige-/Exportform — hier endet die
         // Cent-Rechnung, sie beginnt nicht erst danach.
         expense_sum: toMajor(expenseSumMinor),
-        expense_average: toMajor(Math.round(expenseSumMinor / rows.length)),
+        expense_average: toMajor(Math.round(expenseSumMinor / rows.length) as Cents),
         transaction_count: rows.length,
         // Ein Anteil ist kein Geldbetrag: Er wird aus den Cent-Summen
         // gebildet (exakt) und erst zur Ausgabe auf vier Stellen gekuerzt.

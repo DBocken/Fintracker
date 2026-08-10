@@ -46,7 +46,7 @@ export function CategoryCellEditor({ categories, value, onChange, disabled, clas
           <span className="text-muted-foreground">{t('categories.selectLabel')}</span>
         )}
       </Button>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t('categories.dialogTitle')}</DialogTitle>
         </DialogHeader>

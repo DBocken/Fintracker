@@ -1,4 +1,4 @@
-import { InfoStatStrip } from '@/components/common/InfoGroup';
+import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
 import { formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';

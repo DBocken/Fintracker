@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Lock } from "lucide-react";
-import PageHeader from "@/components/common/PageHeader";
+import PageHeader from "@/features/shared/presentation/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { evaluateMilestones } from "@/services/milestones-service";
 import { useI18n } from "@/i18n/useI18n";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 
 export default function MilestonesPage() {
   const { t, locale } = useI18n();

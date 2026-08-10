@@ -302,7 +302,7 @@ sichtbar und werden auf `ruhe` normalisiert.
 - `src/index.css`: `--font-sans: 'Inter Variable'`, `--font-display: 'Space Grotesk Variable'`.
 - Global: `font-variant-numeric: tabular-nums` auf `body`.
 - `tailwind.config.js`: `fontFamily.sans = "var(--font-sans)"`, `fontFamily.display = "var(--font-display)"`.
-- `src/components/common/StatHero.tsx`: `text-3xl` (30px) für Hero-Werte, `text-xs` für Labels.
+- `src/features/shared/presentation/StatHero.tsx`: `text-3xl` (30px) für Hero-Werte, `text-xs` für Labels.
 - `src/components/kpi/KpiCard.tsx`: unbekannte Größe — zu prüfen.
 - Variable Fonts installiert: `@fontsource-variable/inter`, `space-grotesk`, `quicksand`, `orbitron`.
 - Keine zentrale Typografie-Skala als Token existiert. Größen sind Tailwind-Utilities
@@ -383,7 +383,7 @@ sichtbar und werden auf `ruhe` normalisiert.
 ### Regression Scope
 
 - Alle Komponenten, die `StatHero` verwenden — visuelle Regression.
-- `src/components/common/__tests__/` — bestehende Tests.
+- `src/features/shared/presentation/__tests__/` — bestehende Tests.
 - Alle Screens mit KPIs — Desktop und Mobile Screenshots.
 
 ### Manuelle Prüfpunkte
@@ -602,7 +602,7 @@ sichtbar und werden auf `ruhe` normalisiert.
 
 - Framer Motion (`framer-motion` ^12.42.2) ist installiert und unterstützt
   `layoutId` für Shared-Element-Transitions.
-- `src/components/common/InteractiveCard.tsx`: klickbare Karte, bereits mit
+- `src/features/shared/presentation/InteractiveCard.tsx`: klickbare Karte, bereits mit
   Framer Motion `motion` importiert in `__tests__`.
 - `src/components/dashboard/Dashboard.tsx`: verwendet `InteractiveCard` und
   direkte `Link`-Navigation.
@@ -672,8 +672,8 @@ sichtbar und werden auf `ruhe` normalisiert.
 
 ### Regression Scope
 
-- `src/components/common/InteractiveCard.tsx` und Tests.
-- `src/components/common/__tests__/InteractiveCard.test.tsx`.
+- `src/features/shared/presentation/InteractiveCard.tsx` und Tests.
+- `src/features/shared/presentation/__tests__/InteractiveCard.test.tsx`.
 - Alle Komponenten, die `InteractiveCard` verwenden.
 - E2E: Dashboard → Budget-Detail und zurück.
 
@@ -684,9 +684,9 @@ sichtbar und werden auf `ruhe` normalisiert.
 
 ### Verifizierter Ist-Zustand
 
-- `src/components/common/EmptyState.tsx`: generische Empty-State-Komponente
+- `src/features/shared/presentation/EmptyState.tsx`: generische Empty-State-Komponente
   mit Icon, Titel, Beschreibung.
-- `src/components/common/FinanceEmptyState.tsx`: finanzieller Empty-State
+- `src/features/shared/presentation/FinanceEmptyState.tsx`: finanzieller Empty-State
   mit nächsten Aktionen.
 - `src/index.css`: `@keyframes float-breathe` für Empty-State-Icon.
 - Keine deterministischen visuellen Tests für Empty States.
@@ -738,7 +738,7 @@ sichtbar und werden auf `ruhe` normalisiert.
 
 ### Regression Scope
 
-- `src/components/common/__tests__/EmptyState.test.tsx`.
+- `src/features/shared/presentation/__tests__/EmptyState.test.tsx`.
 - Alle Seiten, die `FinanceEmptyState` verwenden.
 - `src/components/dashboard/Dashboard.tsx` (verwendet `FinanceEmptyState`).
 
@@ -752,7 +752,7 @@ sichtbar und werden auf `ruhe` normalisiert.
 - `src/components/dashboard/Dashboard.tsx`: verwendet `KpiSection`,
   `InteractiveCard` (Coach-Preview), `TransactionFilters`, `DashboardDesktopView`
   oder `DashboardMobileStory`.
-- `src/components/common/StatHero.tsx`: Hero-Komponente, `text-3xl` (wird in
+- `src/features/shared/presentation/StatHero.tsx`: Hero-Komponente, `text-3xl` (wird in
   WP-2.3 auf `var(--font-size-hero)` geändert).
 - `src/components/kpi/KpiSection.tsx`, `KpiGrid.tsx`, `KpiCard.tsx`: KPI-Raster.
 - `src/features/dashboard/presentation/desktop/DashboardDesktopView.tsx` und

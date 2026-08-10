@@ -5,6 +5,7 @@ import { getPortfolios, getPortfolioSummary } from "./portfolio-service";
 import { getDebts } from "./debt-service";
 import { totalOutstandingDebt } from "@/lib/debt-totals";
 import { getReceivables, getTotalReceivables } from "./receivable-service";
+import { eurContribution } from "@/lib/portfolio-currency";
 
 export interface AccountSource {
   id: string;
@@ -18,6 +19,24 @@ export interface AccountSource {
 export interface PortfolioSource {
   id: string;
   name: string;
+  /** Euro-Anteil des Depots — Fremdwährung ist hier bewusst nicht enthalten. */
+  value: number;
+  /** Anzahl der Positionen hinter `value` (ohne die nicht verrechneten). */
+  positionsCount: number;
+}
+
+/**
+ * Ein Bestand, der BEWUSST nicht ins Nettovermögen einfließt, weil er nicht in
+ * Euro notiert (VE-1, `docs/architecture/currency-eur-only.md`). Je Depot und
+ * Währung ein Eintrag.
+ */
+export interface UnconvertedInvestmentSource {
+  /** `<portfolioId>:<currency>` — ein Depot kann mehrere Fremdwährungen halten. */
+  id: string;
+  /** Name des Depots, aus dem der Bestand stammt. */
+  name: string;
+  currency: string;
+  /** Marktwert in `currency` — Anzeige, nie Summand. */
   value: number;
   positionsCount: number;
 }
@@ -51,6 +70,11 @@ export interface NetWorthBreakdown {
   accountSources: AccountSource[];
   /** Details on each portfolio's contribution to investments */
   portfolioSources: PortfolioSource[];
+  /**
+   * Fremdwährungsbestände, die NICHT in `investments` und damit nicht in
+   * `netWorth` stecken (VE-1). Leer, solange alles in Euro notiert.
+   */
+  unconvertedInvestments: UnconvertedInvestmentSource[];
   /** Details on each debt's contribution to total debt */
   debtSources: DebtSource[];
   /** Details on each receivable's contribution to total receivables */
@@ -104,22 +128,49 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
   }
 
   // Investments
+  //
+  // VE-1 (docs/architecture/currency-eur-only.md): Das Nettovermögen ist ein
+  // Euro-Betrag. Bis WP 7.7 wanderte `summary.total_value` unverändert hierher
+  // — ein USD-Depot erhöhte damit das Euro-Vermögen 1:1, ohne dass irgendwo
+  // etwas davon zu sehen war (F-DEBT-2). Was nicht in Euro notiert, zählt
+  // nicht mit und wird stattdessen in `unconvertedInvestments` benannt.
   let investments = 0;
   const portfolioSources: PortfolioSource[] = [];
+  const unconvertedInvestments: UnconvertedInvestmentSource[] = [];
   try {
     const portfolios = (await getPortfolios()).filter((p) => p.type !== "demo");
     for (const p of portfolios) {
       const summary = await getPortfolioSummary(p.id);
-      investments += summary.total_value;
-      portfolioSources.push({
-        id: p.id,
-        name: p.name,
-        value: summary.total_value,
-        positionsCount: summary.positions_count,
-      });
+      const { eurValue, eurPositionsCount, unconverted } = eurContribution(summary);
+
+      // Ein Depot ohne jeden Euro-Anteil steht NICHT in der Aufstellung der
+      // Investitionen — es trägt nichts bei, und eine Zeile mit „0 €" wäre die
+      // dritte Falschaussage. Ein leeres Depot bleibt dagegen sichtbar: Es ist
+      // angelegt, nur noch nicht gefüllt.
+      if (eurPositionsCount > 0 || unconverted.length === 0) {
+        investments += eurValue;
+        portfolioSources.push({
+          id: p.id,
+          name: p.name,
+          value: eurValue,
+          positionsCount: eurPositionsCount,
+        });
+      }
+
+      for (const holding of unconverted) {
+        unconvertedInvestments.push({
+          id: `${p.id}:${holding.currency}`,
+          name: p.name,
+          currency: holding.currency,
+          value: holding.value,
+          positionsCount: holding.positionsCount,
+        });
+      }
     }
   } catch {
     investments = 0;
+    portfolioSources.length = 0;
+    unconvertedInvestments.length = 0;
   }
 
   const totalDebt = totalOutstandingDebt(debts);
@@ -141,6 +192,7 @@ export async function getNetWorthBreakdown(): Promise<NetWorthBreakdown> {
     accountBalances,
     accountSources,
     portfolioSources,
+    unconvertedInvestments,
     debtSources,
     receivableSources,
   };

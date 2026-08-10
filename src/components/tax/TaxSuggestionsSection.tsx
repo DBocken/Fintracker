@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import type { Category, Transaction } from '@/types';
 import { updateTransaction } from '@/services/transaction-service';
 import { getAutomationSuggestions, upsertAutomationSuggestion } from '@/services/automation-suggestion-service';
@@ -53,7 +53,9 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
     [transactions, categories, decided, businessAccountIds],
   );
 
-  const invalidate = () => {
+  // Annehmen ändert `tax_category_id` auf der Buchung (updateTransaction) —
+  // dort bleibt die ['transactions']-Root-Invalidierung richtig.
+  const invalidateAfterAccept = () => {
     queryClient.invalidateQueries({ queryKey: ['automationSuggestions'] });
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
   };
@@ -66,14 +68,20 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
       }
       await upsertAutomationSuggestion({ ...s, status: 'accepted' });
     },
-    onSuccess: invalidate,
+    onSuccess: invalidateAfterAccept,
   });
 
+  // Ablehnen ändert nur den Status des Vorschlags (upsertAutomationSuggestion)
+  // — keine Buchung ist betroffen, daher KEINE ['transactions']-Invalidierung
+  // (PERF-2, WP 4.2): sie würde beide Großqueries (5000er/1000er) unnötig
+  // neu laden.
   const dismissMutation = useMutation({
     mutationFn: async (s: AutomationSuggestion) => {
       await upsertAutomationSuggestion({ ...s, status: 'rejected' });
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automationSuggestions'] });
+    },
   });
 
   // Sichere Vorschläge (hohe Konfidenz + eindeutige Ziel-Rubrik) für die
@@ -94,7 +102,7 @@ export function TaxSuggestionsSection({ transactions, categories, onOpenTransact
         await upsertAutomationSuggestion({ ...s, status: 'accepted' });
       }
     },
-    onSuccess: invalidate,
+    onSuccess: invalidateAfterAccept,
   });
 
   // Vor dem Leer-Fall: Ohne die Entscheidungen waeren die Vorschlaege unten

@@ -79,7 +79,10 @@ export function TransactionDetailsModal({
     // Breiter, horizontaler Dialog: Stammdaten links (1/3), Bearbeitung rechts (2/3).
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl">
+        <DialogContent
+          className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{t('dashboard.transactionDetailsTitle')}</DialogTitle>
           </DialogHeader>
@@ -92,7 +95,16 @@ export function TransactionDetailsModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto scrollbar-subtle rounded-t-lg">
+      <SheetContent
+        side="bottom"
+        className="max-h-[85dvh] overflow-y-auto scrollbar-subtle rounded-t-lg"
+        // Bewusst ohne Beschreibung — und zwar dieselbe Entscheidung wie im
+        // Desktop-Zweig zwölf Zeilen darüber: Beide zeigen exakt denselben
+        // Inhalt (`TransactionDetailsPanel`). Eine Beschreibung nur auf einer
+        // der beiden Breiten wäre ein Paritätsbruch (AGENTS.md §4) — dieselben
+        // Daten, aber eine andere Auskunft je nach Bildschirm.
+        aria-describedby={undefined}
+      >
         <SheetHeader className="mb-2">
           <SheetTitle className="text-left">{t('dashboard.transactionDetailsTitle')}</SheetTitle>
         </SheetHeader>

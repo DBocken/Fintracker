@@ -17,3 +17,30 @@ export interface DebtTransactionAssignment {
   amount: number;
   created_at: string;
 }
+
+// --- Aus src/types.ts übernommen (WP 5.2/DOM-3) — gleiche Schulden-Domäne ---
+
+export type DebtType = 'credit_card' | 'bnpl' | 'installment' | 'overdraft' | 'private_loan' | 'car_loan' | 'student_loan' | 'mortgage' | 'other';
+
+/** Existenzsichernde Rückstände (Miete, Energie, Unterhalt) gehen im Plan immer vor Konsumschulden (#51). */
+export type DebtPriority = 'existenzsichernd' | 'normal';
+
+export interface Debt {
+  id: string;
+  user_id: string;
+  name: string;
+  type: DebtType;
+  balance: number;
+  original_amount?: number | null;
+  interest_rate: number;
+  min_payment: number;
+  due_day?: number | null;
+  due_date?: string | null;
+  is_bnpl: boolean;
+  provider?: string | null;
+  notes?: string | null;
+  is_paid_off: boolean;
+  priority?: DebtPriority | null;
+  created_at?: string;
+  updated_at?: string;
+}

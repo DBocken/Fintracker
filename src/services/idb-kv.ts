@@ -1,4 +1,5 @@
 import { ENCRYPTED_STORAGE_KEYS } from './local-storage-keys';
+import { isQuotaExceededError, StorageQuotaExceededError } from '@/lib/storage-errors';
 
 /**
  * Minimaler IndexedDB-Key-Value-Speicher (Issue #29).
@@ -34,22 +35,39 @@ function openDb(): Promise<IDBDatabase> {
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
+    }).catch((error: unknown) => {
+      // RES-6: Ein fehlgeschlagener Erstaufruf darf den KV-Store nicht
+      // dauerhaft totlegen. Ohne dieses Verwerfen bleibt `dbPromise` das
+      // abgelehnte Promise für die gesamte Session — jeder spätere Zugriff
+      // scheitert sofort wieder, ohne dass IndexedDB je einen zweiten Versuch
+      // bekommt. Der nächste Aufruf von `openDb()` startet dadurch neu.
+      dbPromise = null;
+      throw error;
     });
   }
   return dbPromise;
 }
 
 function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return openDb().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, mode);
-        const store = transaction.objectStore(STORE_NAME);
-        const request = run(store);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      }),
-  );
+  return openDb()
+    .then(
+      (db) =>
+        new Promise<T>((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, mode);
+          const store = transaction.objectStore(STORE_NAME);
+          const request = run(store);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        }),
+    )
+    .catch((error: unknown) => {
+      // RES-6: Ein voller Speicher wirft sonst eine rohe DOMException bis zur
+      // Oberfläche durch. Übersetzt in einen typisierten Fehler mit
+      // Handlungsoption (Backup exportieren / Daten aufräumen) statt eines
+      // technischen Browser-Brockens.
+      if (isQuotaExceededError(error)) throw new StorageQuotaExceededError(error);
+      throw error;
+    });
 }
 
 export async function idbGet(key: string): Promise<string | null> {
@@ -147,4 +165,31 @@ export async function requestPersistentStorage(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Kleines UI-Flag (kein Finanzdatum) — bleibt bewusst in localStorage. */
+const PERSISTENCE_DENIED_KEY = "ausgabentracker_persistent_storage_denied_v1";
+
+/**
+ * RES-7: `requestPersistentStorage()` wurde bisher fire-and-forget aufgerufen
+ * (`void requestPersistentStorage()` in local-crypto.ts) — der Rückgabewert
+ * ging verloren, eine Verweigerung blieb unbemerkt. Diese Variante wertet ihn
+ * aus und merkt eine Verweigerung als kleines Flag, das eine ruhige Fläche
+ * (Backup-Einstellungen) lesen kann. Kein Dauerbanner: Der Nutzer kann die
+ * Browser-Entscheidung ohnehin nicht beeinflussen, er soll nur wissen, dass
+ * ein aktuelles Backup dadurch wichtiger ist als sonst.
+ */
+export async function requestAndRecordPersistentStorage(): Promise<boolean> {
+  const granted = await requestPersistentStorage();
+  if (typeof localStorage !== "undefined") {
+    if (granted) localStorage.removeItem(PERSISTENCE_DENIED_KEY);
+    else localStorage.setItem(PERSISTENCE_DENIED_KEY, "1");
+  }
+  return granted;
+}
+
+/** Liest das von {@link requestAndRecordPersistentStorage} gesetzte Flag. */
+export function isPersistentStorageDenied(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  return localStorage.getItem(PERSISTENCE_DENIED_KEY) === "1";
 }

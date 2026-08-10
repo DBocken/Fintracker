@@ -9,6 +9,7 @@
 import { isValidIban } from "./letter-parser-service";
 import { doublePaymentWarning, type Claim } from "./claim-service";
 import { t } from "../i18n/serviceT";
+import { toMajor, toMinor } from "@/lib/money";
 
 // -----------------------------------------------------------------------------
 // EPC069-12-Payload (Service Tag BCD, Version 002, SCT)
@@ -57,8 +58,11 @@ export function buildEpcPayload(data: EpcPaymentData): string {
     throw new Error(t('girocodeService.recipientNameMissing', 'Empfängername fehlt.'));
   }
 
-  const cents = Math.round(data.amount * 100);
-  const amount = cents / 100;
+  // WP 5.1 (DOM-1): Ad-hoc-Cent-Rundung auf `@/lib/money` zurückgeführt.
+  // `toMajor(toMinor(x))` ist bit-identisch zur vorherigen
+  // `Math.round(x * 100) / 100` — dieselbe Formel (`Math.round(amount * 100)`
+  // in `toMinor`, `minor / 100` in `toMajor`), kein Rundungsverhalten weicht ab.
+  const amount = toMajor(toMinor(data.amount));
   if (!Number.isFinite(amount) || amount < EPC_MIN_AMOUNT || amount > EPC_MAX_AMOUNT) {
     throw new Error(t('girocodeService.amountOutOfRange', 'Betrag außerhalb des erlaubten Bereichs: {amount}').replace('{amount}', String(data.amount)));
   }

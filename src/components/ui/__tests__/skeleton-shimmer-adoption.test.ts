@@ -17,7 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 /** Alle nicht-Test-TSX-Dateien unter src/, wie git sie kennt. */
 function sourceFiles(): string[] {
@@ -27,7 +27,16 @@ function sourceFiles(): string[] {
     .split(/\r?\n/)
     .filter(Boolean)
     .filter((f) => f.endsWith('.tsx'))
-    .filter((f) => !f.includes('__tests__') && !/\.(test|spec)\./.test(f));
+    .filter((f) => !f.includes('__tests__') && !/\.(test|spec)\./.test(f))
+    // `git ls-files` kennt den Index, nicht die Platte: eine noch nicht
+    // eingecheckte Löschung (Umbenennung mitten in einem Refactoring) liegt
+    // hier weiterhin drin. Ohne diesen Filter stirbt die Prüfung mit einem
+    // ENOENT-Stacktrace statt eine Aussage über die Ladezustände zu treffen —
+    // genau so geschehen bei der Slice-Migration in WP 6.3. Derselbe Filter
+    // steht aus demselben Grund in `src/i18n/__tests__/call-site-keys.test.ts`
+    // und in `scripts/check-view-data.mjs`. Die Korpusgröße bleibt durch die
+    // Untergrenze unten abgesichert.
+    .filter((f) => existsSync(`${process.cwd()}/${f}`));
 }
 
 /** Öffnende `<Skeleton …>`-Tags, auch über mehrere Zeilen. */

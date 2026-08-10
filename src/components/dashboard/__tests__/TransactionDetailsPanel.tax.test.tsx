@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import type { Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { translations } from '@/i18n/translations';
 
@@ -30,7 +31,7 @@ const CATS: Category[] = [{ id: 'food', name: 'Lebensmittel', parent_id: null } 
 
 function baseTx(overrides: Partial<Transaction> = {}): Transaction {
   return {
-    id: 't1',
+    id: asTransactionId('t1'),
     date: '2025-05-10',
     amount: -1800,
     payee: 'Malerbetrieb',

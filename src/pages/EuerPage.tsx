@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import PageHeader from '@/components/common/PageHeader';
-import EmptyState from '@/components/common/EmptyState';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import PageHeader from '@/features/shared/presentation/PageHeader';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
 import { getAccounts } from '@/services/account-service';

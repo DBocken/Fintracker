@@ -1,6 +1,7 @@
 import { parse } from 'papaparse';
 import type { Transaction } from '../types';
 import { parseGermanNumber } from '../lib/money';
+import { asTransactionId } from '../lib/ids';
 import { t } from '../i18n/serviceT';
 
 export const MAX_CSV_FILE_BYTES = 10 * 1024 * 1024;
@@ -194,7 +195,7 @@ export async function parseCsv(
       counterpartyIban,
     ]);
     return {
-      id,
+      id: asTransactionId(id),
       date,
       amount,
       payee,

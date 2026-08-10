@@ -1,4 +1,12 @@
-import type { Transaction, Category, UserSettings, HierarchicalCategory, Rhythmus } from '../types';
+import type {
+  Transaction,
+  Category,
+  UserSettings,
+  HierarchicalCategory,
+  Rhythmus,
+  CategorySuggestion,
+  CategorizationSnapshotEntry,
+} from '../types';
 import { transactionStorage } from './transaction-storage-service';
 import {
   getLocalCategories,
@@ -6,12 +14,12 @@ import {
   updateLocalCategory,
   getLocalUserSettings,
   updateLocalUserSettings,
-  backfillAusgabenklasse,
 } from './local-settings-service';
+import { backfillAusgabenklasse } from '@/lib/category-migrations';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
 import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';
-import { parseGermanNumber } from '../lib/money';
+import { parseGermanNumber, isCentPrecise } from '../lib/money';
 import { t } from '@/i18n/serviceT';
 
 // -----------------------------------------------------------------------------
@@ -163,6 +171,14 @@ export async function saveTransactions(transactions: Transaction[]): Promise<Tra
     const normalizedAmount = parseGermanNumber(tx.amount);
     if (normalizedAmount === null) {
       throw new Error(t('transactionService.invalidAmount', '{amount}').replace('{amount}', String(tx.amount)).replace('{payee}', tx.payee || 'ohne Empfänger').replace('{date}', normalizedDate || ''));
+    }
+    // Invariante 5 (docs/domain-invariants.md): Persistenzformat bleibt
+    // Euro-Float, aber die Grenze validiert cent-genau — per toMinor-Roundtrip
+    // (Betrag * 100 muss verlustfrei auf ganze Cent runden). Eine Abweichung
+    // wie 0.005 € ist ein Validierungsfehler, nie ein still gerundeter Wert
+    // (Toleranzbegründung: `isCentPrecise` in `src/lib/money.ts`).
+    if (!isCentPrecise(normalizedAmount)) {
+      throw new Error(t('transactionService.amountNotCentPrecise', '{amount}').replace('{amount}', String(normalizedAmount)).replace('{payee}', tx.payee || 'ohne Empfänger').replace('{date}', normalizedDate || ''));
     }
 
     return {
@@ -381,13 +397,6 @@ export async function updateCategory(category: Category): Promise<Category> {
 // Auto-Kategorisierung & intelligente Vorschläge (jetzt auf nutzerlokalen Transaktionen)
 // -----------------------------------------------------------------------------
 
-/** Vorzustand eines Kategorisierungsfeldes, um eine Sammeländerung rückgängig zu machen. */
-export interface CategorizationSnapshotEntry {
-  id: string;
-  category_id: string | null;
-  auto_mapped: boolean;
-}
-
 export async function recategorizeTransactions(): Promise<{
   total: number;
   assigned: number;
@@ -484,11 +493,6 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
   });
 
   return affected.slice(0, limit);
-}
-
-export interface CategorySuggestion {
-  category: Category;
-  affectedCount: number;
 }
 
 export async function getTopCategorySuggestion(): Promise<CategorySuggestion | null> {

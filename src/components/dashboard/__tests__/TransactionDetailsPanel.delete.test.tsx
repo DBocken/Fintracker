@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import type { Category, Transaction } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 import { I18nProvider } from "@/i18n/I18nProvider";
 
 // Gleiche Mock-Basis wie die übrigen Panel-Tests (useQuery liefert leere
@@ -24,7 +25,7 @@ import { TransactionDetailsPanel } from "../TransactionDetailsPanel";
 
 const CATS: Category[] = [{ id: "food", name: "Lebensmittel", parent_id: null } as Category];
 const TX: Transaction = {
-  id: "t1",
+  id: asTransactionId("t1"),
   date: "2026-07-02",
   amount: -117.6,
   payee: "Santander",

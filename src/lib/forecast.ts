@@ -25,7 +25,7 @@ import {
   parseISO,
   startOfMonth,
 } from 'date-fns';
-import { toMajor, toMinor } from './money';
+import { toMajor, toMinor, type Cents } from './money';
 import { distributeMonthlyByProfile } from './forecast-profile';
 import { t } from '@/i18n/serviceT';
 import type {
@@ -522,21 +522,30 @@ export function calculateDeterministicForecast(
     const basisCents = resolved.bufferBasis === 'available' ? available : operating;
     const bufferCents = toMinor(resolved.safetyBuffer);
 
+    // Die interne Tages-Simulation (`balances`, `DayBucket`-Felder,
+    // `operating`/`available`/`netWorth`/`interestCents`/`dayVariableCents`)
+    // bleibt bewusst ungebrandet `number`: `+=`/`Math.round`/`reduce`
+    // degradieren einen `Cents`-Wert bei jeder Operation zurück zu `number`
+    // (TS-Operator-Overloads), eine durchgängige Brandung hier wäre eine
+    // eigene, deutlich größere Migration (WP 5.1/DOM-1 hält den Umfang auf
+    // Feld-/Signatur-Ebene). Der Cast an dieser einzigen Übergabestelle an
+    // `toMajor` ist sicher: jeder Wert ist ausschließlich über `toMinor`
+    // entstanden bzw. daraus akkumuliert.
     daily.push({
       date: key,
       accountBalances: mapToMajor(balances),
-      operatingCash: toMajor(operating),
-      availableCash: toMajor(available),
-      netWorth: toMajor(netWorth),
-      inflows: toMajor(bucket.inflows),
-      fixedExpenses: toMajor(bucket.fixedExpenses),
-      variableExpenses: toMajor(dayVariableCents),
-      events: toMajor(bucket.events),
-      interest: toMajor(interestCents),
-      outflows: toMajor(bucket.fixedExpenses + dayVariableCents),
-      transfersIn: toMajor(bucket.transfersIn),
-      transfersOut: toMajor(bucket.transfersOut),
-      dailyDelta: toMajor(operating - prevOperating),
+      operatingCash: toMajor(operating as Cents),
+      availableCash: toMajor(available as Cents),
+      netWorth: toMajor(netWorth as Cents),
+      inflows: toMajor(bucket.inflows as Cents),
+      fixedExpenses: toMajor(bucket.fixedExpenses as Cents),
+      variableExpenses: toMajor(dayVariableCents as Cents),
+      events: toMajor(bucket.events as Cents),
+      interest: toMajor(interestCents as Cents),
+      outflows: toMajor((bucket.fixedExpenses + dayVariableCents) as Cents),
+      transfersIn: toMajor(bucket.transfersIn as Cents),
+      transfersOut: toMajor(bucket.transfersOut as Cents),
+      dailyDelta: toMajor((operating - prevOperating) as Cents),
       belowSafetyBuffer: basisCents < bufferCents,
     });
     prevOperating = operating;
@@ -623,7 +632,7 @@ function sumAll(balances: Record<string, number>): number {
 
 function mapToMajor(balances: Record<string, number>): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const [id, bal] of Object.entries(balances)) out[id] = toMajor(bal);
+  for (const [id, bal] of Object.entries(balances)) out[id] = toMajor(bal as Cents);
   return out;
 }
 

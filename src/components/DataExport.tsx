@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import {
   Download,
   FileText,
@@ -173,109 +173,124 @@ export function DataExport() {
         </CardDescription>
       </CardHeader>
 
-      {transactionsError && (
+      {/*
+        WP 7.1 — „nicht ladbar" ist nicht „nichts zu exportieren".
+
+        Bis hierher stand der Fehlerhinweis nur ÜBER dem vollständigen
+        Exportformular: darunter behauptete dieselbe Fläche weiter
+        „Anzahl Transaktionen: 0" und „Keine Transaktionen zum Exportieren
+        verfügbar. Importiere zuerst Daten …" — eine Aufforderung, Daten neu
+        zu erfassen, die es längst gibt. Zwei widersprechende Aussagen
+        nebeneinander, und die untere ist die falsche.
+
+        Deshalb ersetzt der Fehlerzustand das Formular, statt sich darüber zu
+        setzen: Aus unlesbaren Daten gibt es weder eine Anzahl noch einen
+        Export ([REGRESSION] `ExportPage.error-state.test.tsx`).
+      */}
+      {transactionsError ? (
         <CardContent>
           <FinanceErrorState variant="transactions" onRetry={() => void refetchTransactions()} />
         </CardContent>
-      )}
-      <CardContent className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">{t('dataExport.timeRange')}</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(['all', '30d', '90d', '1y'] as const).map((range) => (
+      ) : (
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">{t('dataExport.timeRange')}</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(['all', '30d', '90d', '1y'] as const).map((range) => (
+                <Button
+                  key={range}
+                  variant={selectedDateRange === range ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedDateRange(range)}
+                  className="w-full"
+                >
+                  {range === 'all' ? t('dataExport.allData') :
+                   range === '30d' ? t('dataExport.days30') :
+                   range === '90d' ? t('dataExport.days90') : t('dataExport.year1')}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">{t('dataExport.format')}</label>
+            <div className="grid grid-cols-2 gap-4">
               <Button
-                key={range}
-                variant={selectedDateRange === range ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedDateRange(range)}
-                className="w-full"
+                variant={exportFormat === 'csv' ? 'default' : 'outline'}
+                onClick={() => setExportFormat('csv')}
+                className="h-20 flex flex-col items-center justify-center gap-2"
               >
-                {range === 'all' ? t('dataExport.allData') :
-                 range === '30d' ? t('dataExport.days30') :
-                 range === '90d' ? t('dataExport.days90') : t('dataExport.year1')}
+                <FileText className="h-6 w-6" />
+                <div className="text-left">
+                  <div className="font-semibold">{t('dataExport.csvTitle')}</div>
+                  <div className="text-xs opacity-80">{t('dataExport.csvDesc')}</div>
+                </div>
               </Button>
-            ))}
+              <Button
+                variant={exportFormat === 'pdf' ? 'default' : 'outline'}
+                onClick={() => setExportFormat('pdf')}
+                className="h-20 flex flex-col items-center justify-center gap-2"
+              >
+                <Database className="h-6 w-6" />
+                <div className="text-left">
+                  <div className="font-semibold">{t('dataExport.pdfTitle')}</div>
+                  <div className="text-xs opacity-80">{t('dataExport.pdfDesc')}</div>
+                </div>
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">{t('dataExport.format')}</label>
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant={exportFormat === 'csv' ? 'default' : 'outline'}
-              onClick={() => setExportFormat('csv')}
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <FileText className="h-6 w-6" />
-              <div className="text-left">
-                <div className="font-semibold">{t('dataExport.csvTitle')}</div>
-                <div className="text-xs opacity-80">{t('dataExport.csvDesc')}</div>
-              </div>
-            </Button>
-            <Button
-              variant={exportFormat === 'pdf' ? 'default' : 'outline'}
-              onClick={() => setExportFormat('pdf')}
-              className="h-20 flex flex-col items-center justify-center gap-2"
-            >
-              <Database className="h-6 w-6" />
-              <div className="text-left">
-                <div className="font-semibold">{t('dataExport.pdfTitle')}</div>
-                <div className="text-xs opacity-80">{t('dataExport.pdfDesc')}</div>
-              </div>
-            </Button>
+          <div className="p-4 rounded-lg bg-muted space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {t('dataExport.transactionCount')}
+              </span>
+              <span className="font-semibold">{filteredTransactions.length}</span>
+            </div>
+            <div className="flex items-start justify-between gap-2 text-sm">
+              <span className="shrink-0 text-muted-foreground">
+                {t('dataExport.fileName')}
+              </span>
+              <span className="min-w-0 break-all text-right font-mono text-xs">{getFileNamePreview()}</span>
+            </div>
           </div>
-        </div>
 
-        <div className="p-4 rounded-lg bg-muted space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {t('dataExport.transactionCount')}
-            </span>
-            <span className="font-semibold">{filteredTransactions.length}</span>
-          </div>
-          <div className="flex items-start justify-between gap-2 text-sm">
-            <span className="shrink-0 text-muted-foreground">
-              {t('dataExport.fileName')}
-            </span>
-            <span className="min-w-0 break-all text-right font-mono text-xs">{getFileNamePreview()}</span>
-          </div>
-        </div>
-
-        <Alert className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            {t('dataExport.alertText')}
-          </AlertDescription>
-        </Alert>
-
-        <Button
-          onClick={handleExport}
-          disabled={isLoadingTransactions || exportMutation.isPending || filteredTransactions.length === 0}
-          className="w-full"
-          size="lg"
-        >
-          {exportMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {t('dataExport.exporting')}
-            </>
-          ) : (
-            <>
-              <Download className="mr-2 h-4 w-4" />
-              {t('dataExport.exportButton').replace('{count}', String(filteredTransactions.length))}
-            </>
-          )}
-        </Button>
-
-        {filteredTransactions.length === 0 && !isLoadingTransactions && (
-          <Alert>
+          <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              {t('dataExport.noTransactions')}
+              {t('dataExport.alertText')}
             </AlertDescription>
           </Alert>
-        )}
-      </CardContent>
+
+          <Button
+            onClick={handleExport}
+            disabled={isLoadingTransactions || exportMutation.isPending || filteredTransactions.length === 0}
+            className="w-full"
+            size="lg"
+          >
+            {exportMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t('dataExport.exporting')}
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                {t('dataExport.exportButton').replace('{count}', String(filteredTransactions.length))}
+              </>
+            )}
+          </Button>
+
+          {filteredTransactions.length === 0 && !isLoadingTransactions && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                {t('dataExport.noTransactions')}
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }

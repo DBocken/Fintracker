@@ -1,4 +1,4 @@
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { Download } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import type { Category, Transaction } from '@/types';

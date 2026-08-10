@@ -1,6 +1,7 @@
 import { format, startOfMonth, subMonths, addDays } from 'date-fns';
 import type { Account, Debt, Transaction } from '@/types';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { getTransactions, saveTransactions, deleteTransaction } from './transaction-service';
 import { t } from '@/i18n/serviceT';
 
 /**
@@ -210,6 +211,40 @@ export function isDemoDataActive(): boolean {
 }
 
 /**
+ * Ersetzt die vorhandenen Demo-Buchungen durch `newDemoTransactions` (leer
+ * für ein reines Entfernen). Buchungen laufen bewusst über dieselbe Fassade
+ * wie jeder andere Aufrufer (`getTransactions`/`saveTransactions`/
+ * `deleteTransaction` aus `transaction-service.ts`) — NICHT mehr über den
+ * generischen `writeLocalFinanceList('transactions', …)`, der früher direkt
+ * den v3-Blob ersetzte.
+ *
+ * WP 4.1c (PERF-1): Seit `transactionStorage` auf die Quartals-Chunk-Ablage
+ * umschaltet, ist der v3-Blob nach einer Migration LEER/weg — ein Schreiber,
+ * der ihn trotzdem direkt ersetzt, würde den gesamten migrierten (echten)
+ * Bestand lautlos verlieren und den "Zeiger" (`hasLegacyV3Blob`,
+ * `transaction-storage-service.ts`) fälschlich zurück auf v3 kippen. Die
+ * Fassade routet dagegen automatisch zur jeweils aktuellen Ablage.
+ *
+ * Löschungen laufen SEQUENTIELL, nicht über `Promise.all`: Jede
+ * Einzellöschung ist ein Lesen-Ändern-Schreiben ihres Quartals/Blobs; parallel
+ * gestartet würden mehrere Löschungen desselben Quartals denselben
+ * Vorher-Stand lesen und sich beim Schreiben gegenseitig überschreiben (nur
+ * die zuletzt geschriebene Löschung bliebe wirksam) — ein klassisches
+ * Lost-Update, keine Nebenläufigkeit, die sich hier lohnt.
+ */
+async function replaceDemoTransactions(newDemoTransactions: Transaction[]): Promise<void> {
+  const existing = await getTransactions(10000);
+  const staleDemoIds = existing.filter(isDemoRecord).map((tx) => tx.id!);
+
+  for (const id of staleDemoIds) {
+    await deleteTransaction(id);
+  }
+  if (newDemoTransactions.length > 0) {
+    await saveTransactions(newDemoTransactions);
+  }
+}
+
+/**
  * Lädt den Demo-Datensatz in den lokalen Speicher. Bestehende echte Daten
  * bleiben unangetastet; bereits vorhandene Demo-Datensätze werden ersetzt
  * (idempotent — zweimal laden erzeugt keine Duplikate).
@@ -217,14 +252,13 @@ export function isDemoDataActive(): boolean {
 export async function loadDemoData(now: Date = new Date()): Promise<DemoDataset> {
   const dataset = buildDemoDataset(now);
 
-  const [transactions, accounts, debts] = await Promise.all([
-    readLocalFinanceList<Transaction>('transactions'),
+  const [accounts, debts] = await Promise.all([
     readLocalFinanceList<Account>('accounts'),
     readLocalFinanceList<Debt>('debts'),
   ]);
 
+  await replaceDemoTransactions(dataset.transactions);
   await Promise.all([
-    writeLocalFinanceList('transactions', [...transactions.filter((t) => !isDemoRecord(t)), ...dataset.transactions]),
     writeLocalFinanceList('accounts', [...accounts.filter((a) => !isDemoRecord(a)), ...dataset.accounts]),
     writeLocalFinanceList('debts', [...debts.filter((d) => !isDemoRecord(d)), ...dataset.debts]),
   ]);
@@ -236,14 +270,13 @@ export async function loadDemoData(now: Date = new Date()): Promise<DemoDataset>
 
 /** Entfernt ausschließlich Demo-Datensätze (ID-Präfix) — echte Daten bleiben. */
 export async function removeDemoData(): Promise<void> {
-  const [transactions, accounts, debts] = await Promise.all([
-    readLocalFinanceList<Transaction>('transactions'),
+  const [accounts, debts] = await Promise.all([
     readLocalFinanceList<Account>('accounts'),
     readLocalFinanceList<Debt>('debts'),
   ]);
 
+  await replaceDemoTransactions([]);
   await Promise.all([
-    writeLocalFinanceList('transactions', transactions.filter((t) => !isDemoRecord(t))),
     writeLocalFinanceList('accounts', accounts.filter((a) => !isDemoRecord(a))),
     writeLocalFinanceList('debts', debts.filter((d) => !isDemoRecord(d))),
   ]);

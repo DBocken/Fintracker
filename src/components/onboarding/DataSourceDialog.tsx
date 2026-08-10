@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { FileUp, Landmark, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
 import { isDemoDataActive, loadDemoData } from '@/services/demo-data-service';
 import type { TutorialSource } from '@/lib/tutorial-sequence';
 import type { UserSettings } from '@/types';
 import { showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
+import { invalidateFinanceData } from '@/features/shared/data/finance-query-keys';
 
 /**
  * Kapitel 0 des Tutorials — die Datenquellen-Weiche
@@ -91,9 +92,18 @@ export default function DataSourceDialog() {
   const choose = async (source: TutorialSource) => {
     setPending(source);
     try {
-      if (source === 'demo') await loadDemoData();
-      await mutation.mutateAsync({ tutorial_source: source });
-      await queryClient.invalidateQueries();
+      if (source === 'demo') {
+        // Beispieldaten ersetzen Konten/Buchungen/Schulden als Ganzes — nur
+        // hier ändert sich tatsächlich Finanzdaten (WP 4.3, PERF-5). Die
+        // Datei-/Bankwege ändern hier noch nichts (Import/Verbindung laufen
+        // auf den Zielseiten mit eigener Invalidierung); ein Pauschal-Wipe
+        // wäre dort reine Verschwendung.
+        await loadDemoData();
+        await mutation.mutateAsync({ tutorial_source: source });
+        await invalidateFinanceData(queryClient);
+      } else {
+        await mutation.mutateAsync({ tutorial_source: source });
+      }
       navigate(DESTINATION[source]);
     } finally {
       setPending(null);

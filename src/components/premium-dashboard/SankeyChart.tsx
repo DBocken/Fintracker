@@ -19,11 +19,11 @@ import {
 import { toPng, toJpeg } from "html-to-image";
 import { chartColorAt } from "@/lib/chart-colors";
 import { buildTransactionsHref } from "@/features/shared/domain/dashboard-filtering";
-import type { SankeyData } from "@/lib/analysis-data";
+import type { SankeyData } from "@/lib/chart-data/sankey";
 import { buildSankeyModel } from "@/lib/sankey-model";
 import { useI18n } from "@/i18n/useI18n";
 import { chartNumber, chartTooltipProps } from '@/lib/chart-tooltip';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 interface SankeyChartProps {
   data: SankeyData;
@@ -166,7 +166,7 @@ export function SankeyChart({ data, enableDrilldown = true }: SankeyChartProps) 
         </CardDescription>
         {enableDrilldown && (
           <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-            💡 <strong>Tipp:</strong> {t("premium.sankey.tipDrill")}
+            💡 <strong>{t("premium.sankey.tipLabel")}</strong> {t("premium.sankey.tipDrill")}
           </div>
         )}
       </CardHeader>

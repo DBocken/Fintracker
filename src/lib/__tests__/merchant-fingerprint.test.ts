@@ -6,8 +6,9 @@ import {
   findSimilarTransactions,
 } from "@/lib/merchant-fingerprint";
 import type { Transaction } from "@/types";
+import { asTransactionId } from '@/lib/ids';
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
     date: "2024-01-01",
     amount: -10,
@@ -17,6 +18,7 @@ function tx(partial: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...partial,
+    id: partial.id !== undefined ? asTransactionId(partial.id) : undefined,
   };
 }
 

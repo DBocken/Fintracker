@@ -1,5 +1,5 @@
 import { format, addDays, parseISO } from 'date-fns';
-import { toMajor } from '@/lib/money';
+import { toMajor, type Cents } from '@/lib/money';
 import type {
   ForecastTransfer,
   PlannedForecastEvent,
@@ -67,7 +67,11 @@ export function expandReplacementPlans(
     const eventAccount = plan.reserve_account_id ?? defaultOperatingAccountId;
     if (!eventAccount) continue; // Ohne Konto lässt sich der Posten nicht platzieren.
 
-    const outflowEuros = -Math.abs(toMajor(vm.cashflow.outflowMinor));
+    // `ReplacementCashflow.outflowMinor` u. a. bleiben bewusst `number` (kein
+    // Cents-Brand) — sie stammen aus `replacement-plan.ts`, außerhalb des
+    // Belegstellen-Umfangs von WP 5.1 (DOM-1); die Werte sind nachweislich
+    // bereits cent-genau.
+    const outflowEuros = -Math.abs(toMajor(vm.cashflow.outflowMinor as Cents));
 
     if (windowed) {
       // (c) Probabilistisches Ersatzereignis: unsicheres Datum (Fenster) + Preis.
@@ -99,7 +103,7 @@ export function expandReplacementPlans(
       events.push({
         id: `rp-${plan.id}-residual`,
         name: `${plan.name} (Restwert)`,
-        amount: Math.abs(toMajor(vm.cashflow.residualInflowMinor)),
+        amount: Math.abs(toMajor(vm.cashflow.residualInflowMinor as Cents)),
         date: vm.replacementDate,
         accountId: eventAccount,
         category: plan.category,
@@ -109,7 +113,7 @@ export function expandReplacementPlans(
     // (b) Rücklagen-Transfer nur bei explizitem Reservekonto + Finanzierungsquelle
     // und noch offenem Beitragsbedarf. Beiträge enden am Tag vor dem Ersatz.
     const fundedFrom = plan.funded_from_account_id ?? defaultOperatingAccountId;
-    const contributionEuros = toMajor(vm.monthlyReserveContributionMinor);
+    const contributionEuros = toMajor(vm.monthlyReserveContributionMinor as Cents);
     const contribEnd = format(addDays(parseISO(vm.replacementDate), -1), ISO);
     if (
       plan.reserve_account_id &&

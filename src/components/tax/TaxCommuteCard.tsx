@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { showSuccess, showError } from '@/utils/toast';
 import { useI18n } from '@/i18n/useI18n';
 import { getTaxYearProfile, saveTaxYearProfile } from '@/services/tax-profile-service';

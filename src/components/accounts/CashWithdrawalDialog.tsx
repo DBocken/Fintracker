@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { DecimalInput } from "@/components/common/DecimalInput";
+import { DecimalInput } from "@/features/shared/presentation/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useI18n } from "@/i18n/useI18n";
 import { getAccounts } from "@/services/account-service";
 import { recordCashWithdrawal } from "@/services/cash-service";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import type { Account } from "@/types";
 
 interface CashWithdrawalDialogProps {
@@ -53,6 +53,10 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
     setAmount(null);
     setDate(today());
     setSourceAccountId(sourceAccounts[0]?.id ?? "");
+    // `sourceAccounts`/`cashAccountId` bewusst nicht in den Deps: Das Formular
+    // soll nur beim ÖFFNEN oder bei einer geänderten Kontoanzahl zurückgesetzt
+    // werden, nicht bei jeder Neuberechnung von `sourceAccounts` während der
+    // Dialog schon offen ist (das würde eine laufende Nutzerauswahl überschreiben).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, accounts.length]);
 
@@ -77,7 +81,7 @@ export function CashWithdrawalDialog({ open, onOpenChange, cashAccountId }: Cash
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t('accounts.cashWithdrawal.title')}</DialogTitle>
         </DialogHeader>

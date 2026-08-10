@@ -1,6 +1,6 @@
 import { useI18n } from '@/i18n/useI18n';
 import { AdvancedBalanceChart } from '@/components/AdvancedBalanceChart';
-import { SpendingBreakdownCard, ExpensesOverTimeCard } from '@/components/dashboard/TransactionCharts';
+import { SpendingBreakdownCard, ExpensesOverTimeCard } from '../shared/TransactionCharts';
 import { AccountCards } from '@/components/accounts/AccountCards';
 import { SankeyChart } from '@/components/premium-dashboard/SankeyChart';
 import { cn } from '@/lib/utils';

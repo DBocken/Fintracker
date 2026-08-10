@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   idbGet,
   idbSet,
@@ -8,6 +8,7 @@ import {
   collectLegacyDataKeys,
   migrateLocalStorageToIdb,
 } from "../idb-kv";
+import { StorageQuotaExceededError } from "@/lib/storage-errors";
 
 describe("idb-kv Grundoperationen", () => {
   beforeEach(async () => {
@@ -73,5 +74,80 @@ describe("migrateLocalStorageToIdb", () => {
 
     // Zweiter Lauf bleibt ein No-Op.
     expect(await migrateLocalStorageToIdb()).toBe(0);
+  });
+});
+
+describe("idb-kv Laufzeitfehler (RES-6, WP 1.6)", () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    await clearLocalKvStore();
+  });
+
+  it("[REGRESSION] übersetzt einen Quota-Fehler beim Schreiben in eine verständliche Meldung mit Handlungsoption statt einer rohen DOMException", async () => {
+    const putSpy = vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+    });
+
+    try {
+      await expect(idbSet("k", "v")).rejects.toBeInstanceOf(StorageQuotaExceededError);
+      await expect(idbSet("k", "v")).rejects.not.toBeInstanceOf(DOMException);
+      // Die Meldung nennt eine Handlungsoption, nicht nur das Problem.
+      await expect(idbSet("k", "v")).rejects.toMatchObject({
+        message: expect.stringMatching(/backup|aufräumen/i),
+      });
+    } finally {
+      putSpy.mockRestore();
+    }
+  });
+
+  it("[REGRESSION] erkennt auch den Legacy-Quota-Code 22 ohne passenden Namen", async () => {
+    const putSpy = vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      const legacy = new Error("quota") as Error & { code: number };
+      legacy.name = "UnknownError";
+      legacy.code = 22;
+      throw legacy;
+    });
+
+    try {
+      await expect(idbSet("k", "v")).rejects.toBeInstanceOf(StorageQuotaExceededError);
+    } finally {
+      putSpy.mockRestore();
+    }
+  });
+
+  it("[REGRESSION] openDb() erholt sich nach einem fehlgeschlagenen Erstaufruf statt den Store für die Session tot zu lassen", async () => {
+    // Isoliertes Modul: `dbPromise` ist modulprivat und darf es bleiben — ein
+    // frischer Import startet mit ungecachtem Zustand, statt einen Test-Only-
+    // Reset-Export in die Produktions-API aufzunehmen.
+    vi.resetModules();
+    const realOpen = indexedDB.open.bind(indexedDB);
+    let calls = 0;
+    const openSpy = vi.spyOn(indexedDB, "open").mockImplementation((...args: Parameters<typeof indexedDB.open>) => {
+      calls += 1;
+      if (calls === 1) {
+        const failingRequest = {} as IDBOpenDBRequest;
+        queueMicrotask(() => {
+          Object.defineProperty(failingRequest, "error", {
+            value: new DOMException("boom", "UnknownError"),
+            configurable: true,
+          });
+          failingRequest.onerror?.(new Event("error"));
+        });
+        return failingRequest;
+      }
+      return realOpen(...args);
+    });
+
+    try {
+      const fresh = await import("../idb-kv");
+      // Erster Zugriff scheitert...
+      await expect(fresh.idbGet("x")).rejects.toBeTruthy();
+      // ...der zweite gelingt, weil openDb() das kaputte Promise verworfen hat.
+      await expect(fresh.idbGet("x")).resolves.toBeNull();
+      expect(calls).toBeGreaterThanOrEqual(2);
+    } finally {
+      openSpy.mockRestore();
+      vi.resetModules();
+    }
   });
 });

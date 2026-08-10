@@ -6,10 +6,10 @@ import {
 } from "@/lib/automation-suggestions";
 import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import type { Category, Transaction } from "@/types";
+import { asTransactionId } from '@/lib/ids';
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: "t1",
     payee: "",
     description: "",
     original_text: "",
@@ -18,6 +18,13 @@ function tx(partial: Partial<Transaction>): Transaction {
     is_transfer: false,
     category_id: null,
     ...partial,
+    // `id` bewusst mit derselben Semantik wie vor dem Brand (WP 5.2b): Ein
+    // ausdrueckliches `id: undefined` MUSS undefined bleiben — der Test
+    // "Buchungen ohne id ueberspringen" haengt daran. Nur das FEHLEN des
+    // Schluessels faellt auf den Vorgabewert zurueck.
+    id: 'id' in partial
+      ? (partial.id === undefined ? undefined : asTransactionId(partial.id))
+      : asTransactionId("t1"),
   } as Transaction;
 }
 

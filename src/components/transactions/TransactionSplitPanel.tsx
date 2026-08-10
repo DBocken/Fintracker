@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useI18n } from '@/i18n/useI18n';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { showError, showSuccess } from '@/utils/toast';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
-import { toMinor, sumMinor } from '@/lib/money';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
+import { toMinor, sumMinor, type Cents } from '@/lib/money';
 import {
   parseSplitAmount,
   openSplitMinor,
@@ -82,12 +82,16 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
   // (`parseSplitAmount`). `openMinor` ist richtungsnormiert: > 0 offen,
   // < 0 zu viel zugewiesen (siehe `@/lib/split-amounts`).
   const rowMinor = (row: SplitRow) => parseSplitAmount(row.amountEur, totalMinor);
-  const allocatedMinor = sumMinor(rows.map(rowMinor));
+  // `parseSplitAmount`/`AllocationInput.amount_minor` bleiben bewusst `number`
+  // (kein Cents-Brand, WP 5.1/DOM-1 — siehe Kommentar an
+  // `TransactionAllocation.amount_minor` in @/types); hier ist der Wert
+  // nachweislich bereits cent-genau.
+  const allocatedMinor = sumMinor(rows.map((r) => rowMinor(r) as Cents));
   const openMinor = openSplitMinor(totalMinor, allocatedMinor);
   const isBalanced = openMinor === 0;
 
   const validation = validateAllocations(
-    { id: txId, amount: transaction.amount },
+    { id: transaction.id, amount: transaction.amount },
     rows
       .filter((r) => rowMinor(r) !== 0)
       .map((r) => ({
@@ -112,7 +116,7 @@ export function TransactionSplitPanel({ transaction, categories }: TransactionSp
           label: r.label || null,
           source: 'manual' as const,
         }));
-      await setAllocations({ id: txId, amount: transaction.amount }, inputs);
+      await setAllocations({ id: transaction.id, amount: transaction.amount }, inputs);
     },
     onSuccess: () => {
       showSuccess(t("transactionSplit.saveSplitSuccess"));

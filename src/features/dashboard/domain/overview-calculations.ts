@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { resolveDateFnsLocale } from '@/i18n/date-fns-locale';
 import type { Transaction } from '@/types';
 import type { BalanceHistoryPoint, DashboardGranularity, IncomeExpensePoint } from './overview-types';
 
@@ -21,7 +21,7 @@ export function buildIncomeExpenseSeries(
     const date = format(
       parseISO(t.date),
       granularity === 'daily' ? 'dd.MM.' : granularity === 'weekly' ? 'dd.MM.' : 'MM.yy',
-      { locale: de }
+      { locale: resolveDateFnsLocale() }
     );
     if (!acc[date]) acc[date] = { income: 0, expenses: 0 };
     if (t.amount > 0) acc[date].income += t.amount;
@@ -58,7 +58,7 @@ export function buildBalanceHistory(transactions: Transaction[], startingBalance
 
   sortedTxs.forEach((tx) => {
     const isoKey = format(parseISO(tx.date), 'yyyy-MM-dd');
-    const label = format(parseISO(tx.date), 'dd.MM', { locale: de });
+    const label = format(parseISO(tx.date), 'dd.MM', { locale: resolveDateFnsLocale() });
 
     if (!dailyMap.has(isoKey)) {
       dailyMap.set(isoKey, {

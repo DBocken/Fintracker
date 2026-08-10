@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { idbRemove } from '../idb-kv';
 import { localEncryption } from '../local-crypto';
 import { transactionStorage } from '../transaction-storage-service';
@@ -8,7 +9,7 @@ const STORAGE_KEY = 'ausgabentracker_transactions_v3';
 
 function transaction(id: string, categoryId: string | null = null): Transaction {
   return {
-    id,
+    id: asTransactionId(id),
     date: '2026-06-21',
     amount: -12.34,
     payee: 'REWE',

@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import PageHeader from '@/components/common/PageHeader';
-import EmptyState from '@/components/common/EmptyState';
-import { LoadingSwap } from '@/components/common/LoadingSwap';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import PageHeader from '@/features/shared/presentation/PageHeader';
+import EmptyState from '@/features/shared/presentation/EmptyState';
+import { LoadingSwap } from '@/features/shared/presentation/LoadingSwap';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useI18n } from '@/i18n/useI18n';
 import { getTransactions, getCategories } from '@/services/transaction-service';
@@ -118,7 +118,17 @@ export default function TaxReportPage() {
         </p>
       )}
 
-      <TaxSummaryStrip report={report} />
+      {/*
+        WP 7.1 — Die Kennzahlenreihe ist eine AUSSAGE, keine Verzierung: Nach
+        einem Lesefehler stand dort „Markierte Ausgaben 0,00 €",
+        „Steuerermäßigung 0,00 €", „Buchungen 0" — direkt über dem Hinweis,
+        dass nichts geladen werden konnte. Der Leerzustand darunter („Noch
+        nichts markiert") war längst richtig unterdrückt; die Zahlen, die
+        dasselbe in schärferer Form behaupten, waren es nicht. Auf einer
+        Steuerfläche ist das die teuerste Null der App: Wer ihr glaubt, setzt
+        nichts ab ([REGRESSION] `TaxReportPage.error-state.test.tsx`).
+      */}
+      {!hasLoadError && <TaxSummaryStrip report={report} />}
 
       {showEuerPointer && <EuerPointerCard />}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toMinor, toMajor, sumMinor, parseGermanNumber, parseEuroInput } from "../money";
+import { toMinor, toMajor, sumMinor, parseGermanNumber, parseEuroInput, isCentPrecise } from "../money";
 
 describe("money", () => {
   it("konvertiert 2-Dezimal-Euro exakt in Cent", () => {
@@ -24,13 +24,44 @@ describe("money", () => {
     }
   });
 
+  // Die Eingaben entstehen seit WP 5.1 über `toMinor`, nicht mehr als rohe
+  // Zahlen — `sumMinor` nimmt `Cents`, und `toMinor` ist dessen einziger
+  // Konstruktor. Die ZUSICHERUNGEN sind unverändert (1000, 0, -750); nur die
+  // Herstellung der Werte ist jetzt typrichtig. Genau das ist der Zweck des
+  // Brands: Wer eine Cent-Summe bilden will, muss sagen, dass er Cent hat.
   it("summiert Cent-Listen als Integer", () => {
-    expect(sumMinor([333, 333, 334])).toBe(1000);
+    expect(sumMinor([toMinor(3.33), toMinor(3.33), toMinor(3.34)])).toBe(1000);
     expect(sumMinor([])).toBe(0);
   });
 
   it("summiert negative und gemischte Vorzeichen korrekt", () => {
-    expect(sumMinor([-1000, 500, -250])).toBe(-750);
+    expect(sumMinor([toMinor(-10), toMinor(5), toMinor(-2.5)])).toBe(-750);
+  });
+});
+
+describe("isCentPrecise (Invariante 5, docs/domain-invariants.md)", () => {
+  it("[REGRESSION] lehnt einen Sub-Cent-Betrag wie 0.005 ab statt ihn zu runden", () => {
+    expect(isCentPrecise(0.005)).toBe(false);
+    expect(isCentPrecise(-0.005)).toBe(false);
+    expect(isCentPrecise(12.345)).toBe(false);
+  });
+
+  it("akzeptiert gültige 2-Dezimal-Beträge inkl. Null und großer Werte", () => {
+    for (const x of [0, 12.34, -45.0, 0.01, -0.01, 1_000_000.99, -999_999.5]) {
+      expect(isCentPrecise(x)).toBe(true);
+    }
+  });
+
+  it("akzeptiert Float-Darstellungsdrift derselben fachlichen Cent-Summe", () => {
+    // 0.1 + 0.2 = 0.30000000000000004 in IEEE-754 — fachlich exakt 30 Cent.
+    expect(isCentPrecise(0.1 + 0.2)).toBe(true);
+    expect(isCentPrecise(19.99)).toBe(true);
+  });
+
+  it("lehnt NaN und Infinity ab", () => {
+    expect(isCentPrecise(NaN)).toBe(false);
+    expect(isCentPrecise(Infinity)).toBe(false);
+    expect(isCentPrecise(-Infinity)).toBe(false);
   });
 });
 
@@ -39,6 +70,17 @@ describe("parseGermanNumber / parseEuroInput", () => {
     expect(parseGermanNumber("1.200")).toBe(1200);
     expect(parseGermanNumber("1.234,56")).toBe(1234.56);
     expect(parseGermanNumber("1.234.567")).toBe(1234567);
+  });
+
+  it("liest den Tausenderpunkt auch bei NEGATIVEN Betraegen (-1.200 = -1200)", () => {
+    // Das Vorzeichen im Tausender-Muster (`/^-?\d{1,3}(\.\d{3})+$/`) war bis
+    // WP 2.1 ungetestet: ohne das `-?` faellt "-1.200" durch die Erkennung,
+    // der Punkt bleibt Dezimaltrenner, und parseFloat liefert lautlos -1,2 —
+    // ein Faktor 1000 auf einer Rueckzahlung, Abbuchung oder Gutschrift.
+    // Keiner der uebrigen Faelle haette angeschlagen, weil alle positiv sind.
+    expect(parseGermanNumber("-1.200")).toBe(-1200);
+    expect(parseGermanNumber("-1.234,56")).toBe(-1234.56);
+    expect(parseGermanNumber("-1.234.567")).toBe(-1234567);
   });
 
   it("liest einfache Dezimalformate (Komma und Punkt)", () => {
@@ -71,5 +113,17 @@ describe("parseGermanNumber / parseEuroInput", () => {
     expect(parseEuroInput("1.200")).toBe(1200);
     expect(() => parseEuroInput("abc")).toThrow();
     expect(() => parseEuroInput("")).toThrow();
+  });
+
+  it("weist Zeichenfolgen ab, die die Zeichen-Vorprüfung überstehen, aber keine Zahl sind", () => {
+    // Der Filter `[^\d,.-]` lässt Minus und Punkt stehen; die Kurzliste danach
+    // kennt nur die EINZELzeichen "-", "." und ",". Ein doppelter Tippfehler
+    // ("--50" aus einem Vorzeichen-Umschalter, ".." aus zwei Zehnertasten)
+    // erreicht damit `parseFloat` — und muss dort als `null` enden statt
+    // lautlos als 50, 0 oder -50 gebucht zu werden.
+    expect(parseGermanNumber("--50")).toBeNull();
+    expect(parseGermanNumber("..")).toBeNull();
+    expect(parseGermanNumber("-.-")).toBeNull();
+    expect(() => parseEuroInput("--50")).toThrow();
   });
 });

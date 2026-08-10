@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { taxCategoryById } from '@/data/tax-catalog';

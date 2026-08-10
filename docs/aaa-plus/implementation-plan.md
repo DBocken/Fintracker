@@ -487,7 +487,7 @@ Verzeichnisse, Build-Konfiguration und Abhängigkeitsbäume.
 - Alle Verzeichnisse und ihre Zwecke sind dokumentiert.
 - Alle direkten npm-Abhängigkeiten sind mit Version und Zweck gelistet.
 - Der Dependency-Graph der zentralen Module (`@/lib`, `@/components/ui`,
-  `@/components/common`) ist visualisiert.
+  `@/features/shared/presentation`) ist visualisiert.
 
 ---
 

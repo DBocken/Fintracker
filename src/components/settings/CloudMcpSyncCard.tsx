@@ -129,7 +129,13 @@ export function CloudMcpSyncCard() {
         <strong className="text-amber-600 dark:text-amber-400">
           {t('settings.cloudMcpSync.localOnlyWarning')}
         </strong>{' '}
-        {t('settings.cloudMcpSync.rawDataStay')}
+        {t('settings.cloudMcpSync.rawDataStay')}{' '}
+        {/* SEC-5: Umfang + Speicherform stehen am Schalter selbst, bevor
+            überhaupt ein Login oder die doppelte Bestätigung erfolgt —
+            nicht nur in docs/mcp-poc.md. */}
+        <strong className="text-amber-600 dark:text-amber-400">
+          {t('settings.cloudMcpSync.plaintextStorageNotice')}
+        </strong>
       </p>
 
       {!isAuthenticated && (

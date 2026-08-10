@@ -9,7 +9,7 @@ import {
   startOfQuarter,
   startOfYear,
 } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { resolveDateFnsLocale } from '@/i18n/date-fns-locale';
 import type { Transaction } from '@/types';
 import type { DashboardRange } from '@/features/shared/domain/dashboard-filters';
 
@@ -95,7 +95,7 @@ export function listAvailablePeriods(transactions: Transaction[], range: Dashboa
   const toLabel = (value: string, sample: Date): string => {
     if (range === 'Jahr') return value;
     if (range === 'Quartal') return `Q${getQuarter(sample)} ${format(sample, 'yyyy')}`;
-    return format(sample, 'MMMM yyyy', { locale: de });
+    return format(sample, 'MMMM yyyy', { locale: resolveDateFnsLocale() });
   };
 
   return Array.from(seen.entries())

@@ -1,722 +1,94 @@
-import type { GentleLevel } from '@/lib/gentle-mode';
-import type { LifeSituationId, ModifierId, NavFeatureId } from '@/lib/life-situations';
-import type { TutorialChapterId, TutorialSource } from '@/lib/tutorial-sequence';
-
-export type AccountType = 'checking' | 'credit_card' | 'savings' | 'wallet' | 'cash' | 'other';
-
-export interface Account {
-  id: string;
-  user_id: string;
-  name: string;
-  type: AccountType;
-  currency: string;
-  description?: string;
-  /** IBAN des Kontos (für die Erkennung interner Überträge zwischen eigenen Konten) */
-  iban?: string | null;
-  color: string;
-  icon: string;
-  is_budget_pool_member: boolean;
-  /** Geschäftskonto (Einzelunternehmer): Buchungen zählen in die EÜR. Fehlend ≙ privat. */
-  is_business?: boolean;
-  order_index: number;
-  statement_close_day?: number | null;
-  due_day?: number | null;
-  autopay_account_id?: string | null;
-  gocardless_account_id?: string | null;
-  gocardless_requisition_id?: string | null;
-  gocardless_institution_id?: string | null;
-  gocardless_institution_name?: string | null;
-  last_sync_at?: string | null;
-  sync_enabled?: boolean;
-  bank_connection_id?: string | null;
-  live_balance_amount?: number | null;
-  live_balance_currency?: string | null;
-  live_balance_type?: string | null;
-  live_balance_updated_at?: string | null;
-  /** Saldo zu einem Stichtag, bevor lokale Transaktionen erfasst wurden */
-  opening_balance?: number | null;
-  opening_balance_date?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Transaction {
-  id?: string;
-  account_id?: string | null;
-  date: string;
-  amount: number;
-  payee: string;
-  description: string;
-  original_text: string;
-  currency?: string;
-  csvCategoryName?: string;
-  category?: string;
-  category_id?: string | null;
-  subcategory_id?: string | null;
-  auto_mapped: boolean;
-  confirmed: boolean;
-  /** Markiert diese Transaktion als internen Übertrag zwischen eigenen Konten */
-  is_transfer?: boolean;
-  /** ID der verknüpften Gegenbuchung auf dem anderen Konto */
-  transfer_pair_id?: string | null;
-  /** IBAN des Gegenübers (Sender/Empfänger) – Basis für die automatische Transfer-Erkennung */
-  counterparty_iban?: string | null;
-  /** Ob diese Transaktion ein erkannter oder manueller Vertrag ist */
-  is_contract?: boolean;
-  /** Zyklus des Vertrags (weekly, monthly, etc.) */
-  contract_cycle?: Rhythmus | null;
-  /** Steuer-Rubrik dieser Buchung (stabile ID aus tax-catalog.ts). null/undefined = nicht steuerrelevant. */
-  tax_category_id?: string | null;
-  /** Arbeits-/Fahrtkostenanteil in EUR (positiv, ≤ |amount|) für §35a Abs. 3 – nur dieser Anteil ist begünstigt. */
-  tax_labor_costs?: number | null;
-  /** Kurznotiz für die Steuererklärung (z. B. Rechnungsnummer, Zahlungsweg). */
-  tax_note?: string | null;
-  /**
-   * Explizit privat trotz Geschäftskonto (EÜR-Exklusion). Gewinnt gegen ein
-   * gesetztes EÜR-`tax_category_id` (Konflikt ⇒ Warnung im EÜR-Report).
-   */
-  euer_private?: boolean;
-}
-
-export type Rhythmus = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-
-/** Herkunft einer Transaktionsaufteilung. */
-export type AllocationSource = 'manual' | 'receipt' | 'trackerverse';
-
 /**
- * Aufteilung einer Transaktion auf mehrere Kategorien (Split-Buchung).
+ * ÜBERGANGS-BARREL — keine Typdefinitionen mehr, nur Re-Exports.
  *
- * Beträge in Cent (Integer, gleiches Vorzeichen wie `Transaction.amount`).
- * Aufteilungen sind kontoneutral: der Kontostand nutzt ausschließlich den
- * Originalbetrag der Transaktion – Aufteilungen erzeugen keine zusätzlichen
- * kontowirksamen Buchungen. Kategorie-Analysen verwenden Aufteilungen, sofern
- * vorhanden, sonst die Kategorie der Transaktion selbst. Die Summe aller
- * Aufteilungen entspricht exakt dem Betrag der Originalbuchung (cent-genau).
- */
-export interface TransactionAllocation {
-  id: string;
-  transaction_id: string;
-  /** Teilbetrag in Cent (Integer). */
-  amount_minor: number;
-  category_id: string | null;
-  subcategory_id?: string | null;
-  label?: string | null;
-  source: AllocationSource;
-  /** Herkunfts-ID bei automatischen Quellen (Beleg-Zeile, Trackerverse-Event). */
-  external_origin_id?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-export type Prioritaet = 'essential' | 'normal' | 'nice';
-export type Zahlungsweg = 'giro' | 'credit' | 'paypal' | 'cash';
-
-/**
- * Vorgelagerte Ausgabenklasse über den Hauptkategorien. Dient als oberste
- * Aggregationsebene (Sunburst-Innenring) und entkoppelt die Essenziell-Sicht
- * von der Kategorie-Hierarchie, weil `essenziell` je Unterkategorie variiert.
- */
-export type Ausgabenklasse = 'essenziell' | 'diskretionaer' | 'sparen' | 'einkommen';
-
-export interface CategoryAttributes {
-  ist_vertrag?: boolean;
-  rhythmus?: Rhythmus | null;
-  faelligkeitstag?: number | null;
-  next_due_date?: string | null;
-  kuendigungsfrist_tage?: number | null;
-  vertragsende?: string | null;
-  fixkosten?: boolean;
-  essenziell?: boolean;
-  /** Vorgelagerte Klasse; `essenziell` bleibt als abgeleitetes Bool erhalten. */
-  ausgabenklasse?: Ausgabenklasse;
-  prioritaet?: Prioritaet | null;
-  budget_monat?: number | null;
-  warnschwelle_prozent?: number | null;
-  zahlungsweg?: Zahlungsweg | null;
-  merchant_alias?: string | null;
-  steuerrelevant?: boolean;
-  /** Default-Steuer-Rubrik: Buchungen dieser Kategorie werden mit dieser Rubrik VORGESCHLAGEN (nie automatisch markiert). */
-  default_tax_category_id?: string | null;
-  tags?: string[];
-  sichtbar?: boolean;
-  archiviert?: boolean;
-  sort_index?: number | null;
-  priority_level?: number | null;
-  min_budget_monat?: number | null;
-  flexible?: boolean;
-  protected?: boolean;
-}
-
-export interface Category {
-  id: string;
-  user_id?: string | null;
-  /**
-   * Anzeigename. Bei Standard-Kategorien der deutsche Ausgangstext, der als
-   * Fallback zu {@link name_key} dient; bei selbst angelegten oder umbenannten
-   * Kategorien der Text der Nutzerin.
-   */
-  name: string;
-  /**
-   * i18n-Key des Anzeigenamens — nur bei NICHT umbenannten Standard-Kategorien
-   * gesetzt. `getLocalCategories()` loest ihn beim Lesen auf, deshalb folgt die
-   * Beschriftung der Sprache, ohne dass eine Renderstelle das wissen muss.
-   *
-   * Sobald die Nutzerin umbenennt, wird das Feld auf `null` gesetzt: ab dann
-   * gewinnt ihr Text und ein Sprachwechsel fasst ihn nicht mehr an.
-   * `filters` (die Such-Stichwoerter) bleiben davon immer unberuehrt — sie
-   * matchen deutschen Kontoauszugstext und werden nie uebersetzt.
-   */
-  name_key?: string | null;
-  color?: string;
-  icon?: string;
-  filters: string[];
-  is_default?: boolean;
-  parent_id?: string | null;
-  level?: number;
-  attributes?: CategoryAttributes;
-}
-
-/**
- * Sonderkategorie („Anlass") – eine quer zur Kategorie-Hierarchie liegende
- * Dimension, die Buchungen aus beliebigen Kategorien, Konten und Zahlungswegen
- * zu einem Ereignis bündelt (z. B. „Flitterwochen"). Eine Buchung behält immer
- * ihre echte {@link Transaction.category_id}; die Anlass-Zuordnung ist rein
- * additiv und kontoneutral.
+ * `src/types.ts` bündelte bis WP 5.2 (DOM-3, `docs/qualitaet-2026-08/`) ≥9
+ * Fachdomänen in einer Datei. Die Definitionen sind jetzt entlang der
+ * „Wohin ein Typ gehört"-Tabelle (AGENTS.md §3) nach `src/lib/*-types.ts`
+ * verschoben — dorthin, weil jeder dieser Typen sowohl von einem Service als
+ * auch von der Oberfläche gebraucht wird (persistierte Form bzw. von
+ * Service+UI gemeinsam genutzter abgeleiteter Typ).
  *
- * Anlässe haben eine eigene Parent-Hierarchie (`parent_id`), damit „Hochzeit"
- * die Summen ihrer Kind-Anlässe (Polterabend, Feier, Flitterwochen) mit-
- * aggregiert. Zyklen sind verboten (siehe `hierarchy.ts`). Premium-Feature.
- */
-export interface SpecialCategory {
-  id: string;
-  user_id?: string | null;
-  name: string;
-  /** Übergeordneter Anlass (z. B. Flitterwochen → Hochzeit). null = oberste Ebene. */
-  parent_id?: string | null;
-  color?: string;
-  icon?: string;
-  /** Optionaler Ereignis-Zeitraum (ISO `YYYY-MM-DD`) – Grundlage für Vorschläge, kein harter Filter. */
-  start_date?: string | null;
-  end_date?: string | null;
-  /** Vorlauf-Tage vor `start_date`, in denen Buchungen noch vorgeschlagen werden (Default 14). */
-  lead_days?: number | null;
-  /** Optionales Kostenziel in Integer-Cent (Anlass-Budget). null = kein Ziel. */
-  target_minor?: number | null;
-  note?: string | null;
-  archived?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-/** Herkunft einer Anlass-Zuordnung. */
-export type SpecialCategoryAssignmentSource = 'manual' | 'suggestion';
-
-/**
- * n:m-Zuordnung einer Buchung (oder eines Teilbetrags davon) zu einem
- * {@link SpecialCategory}. Kontoneutral: erzeugt keine Buchung und verändert
- * keine Salden – reine Auswertungs-Schicht (wie {@link TransactionAllocation}).
+ * Diese Datei bleibt bewusst als Re-Export-Fassade bestehen: 337 Dateien
+ * importierten zum Zeitpunkt der Aufteilung aus `@/types` — eine
+ * Big-Bang-Umstellung aller Importstellen war nicht Teil von WP 5.2 (siehe
+ * Bericht). **Abbaudatum: 2026-11-30** — bis dahin sollen Importe schrittweise
+ * auf die konkrete `@/lib/*-types`-Datei umgestellt werden (z. B. im Zuge
+ * anderer WPs, die die jeweilige Datei ohnehin anfassen); ab diesem Datum darf
+ * diese Fassade entfernt werden, sofern keine Importe mehr auf sie zeigen.
  *
- * `amount_minor` erlaubt die cent-genaue Teil-Zuordnung (z. B. 20 € Trinkgeld
- * aus einer 100-€-Barabhebung). Fehlt es, zählt die ganze Buchung. Die Summe
- * aller Teil-Zuordnungen einer Buchung darf `|amount|` nicht überschreiten.
+ * NICHT hier ergänzen: neue Typen gehören direkt in ihre `src/lib/*-types.ts`-
+ * Datei (oder `src/features/<slice>/domain/`, falls nur ein Slice sie braucht).
  */
-export interface SpecialCategoryAssignment {
-  id: string;
-  special_category_id: string;
-  transaction_id: string;
-  /** Teilbetrag in Integer-Cent (positiv). null/undefined = ganze Buchung. */
-  amount_minor?: number | null;
-  /** Optional an einen konkreten Split ({@link TransactionAllocation}) gebunden. */
-  allocation_id?: string | null;
-  source: SpecialCategoryAssignmentSource;
-  note?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
 
-export interface UserSettings {
-  user_id: string;
-  auto_confirm_mapping: boolean;
-  retention_months: number;
-  default_currency?: string;
-  enable_subcategories: boolean;
-  theme?: string;
-  kpi_prefs?: {
-    order: string[];
-    active: string[];
-  };
-  preferred_market_provider?: 'yahoo' | 'stooq';
-  /**
-   * Stufe des Sanften Modus (`@/lib/gentle-mode`). `0` ist aus, `3` verdeckt
-   * alles. Begründung der Reihenfolge: `docs/debt-avoidance-recovery.md`.
-   */
-  gentle_level?: GentleLevel;
-  /**
-   * @deprecated Abgelöst durch {@link UserSettings.gentle_level}. Das Feld
-   * existiert nur noch, damit die einmalige Migration in
-   * `local-settings-service` Altbestände lesen und räumen kann — es wird
-   * nirgends mehr geschrieben.
-   */
-  gentle_mode?: boolean;
-  /** Empfohlener Steuer-Rücklage-Prozentsatz für Creator-/Selbstständigen-Einnahmen (0 = aus). */
-  tax_reserve_percent?: number;
-  /**
-   * @deprecated Abgelöst: der Einzelunternehmer-Modus leitet sich heute aus dem
-   * Bereich `euer` in {@link UserSettings.enabled_nav_features} ab
-   * (`isBusinessModeEnabled`). Das Feld existiert nur noch, damit die einmalige
-   * Migration in `local-settings-service` Altbestände lesen und räumen kann —
-   * es wird nirgends mehr geschrieben.
-   */
-  business_mode?: boolean;
-  /** Im Onboarding gewählte Lebenssituation. Dient nur der Vorauswahl. */
-  onboarding_life_situation?: LifeSituationId | null;
-  /** Zusätzlich gewählte Umstände (rein additiv, siehe `@/lib/life-situations`). */
-  onboarding_modifiers?: ModifierId[];
-  /**
-   * Sichtbare Nav-Bereiche. Bewusst die *bestätigte Nutzerauswahl* und nicht
-   * der Lebenssituation selbst: nur so überschreibt ein späterer Wechsel der Lebenssituation
-   * keine manuell getroffenen Entscheidungen. `null`/undefined = Onboarding
-   * nicht durchlaufen ⇒ alles sichtbar (Bestandsnutzer).
-   */
-  enabled_nav_features?: NavFeatureId[] | null;
-  /**
-   * Freigeschaltete Nav-Bereiche — die Tempo-Achse des Tutorials, additiv neben
-   * {@link enabled_nav_features}. Sichtbar ist ein Bereich, wenn er *gewählt
-   * UND freigeschaltet* ist (`isNavPathVisible`).
-   *
-   * `null`/undefined = Freischaltung nicht in Gebrauch ⇒ alles freigeschaltet.
-   * Bestandsnutzer haben das Feld nicht und dürfen dadurch nichts verlieren;
-   * scharf wird die Achse erst, wenn das Tutorial sie ausdrücklich setzt.
-   * „Alles freischalten" in den Einstellungen setzt sie wieder auf `null`.
-   */
-  unlocked_features?: NavFeatureId[] | null;
-  /**
-   * In der Datenquellen-Weiche (Kapitel 0) gewählter Weg.
-   *
-   * `undefined` = nie gefragt (die Weiche erscheint), `null` = gefragt und
-   * übersprungen. Gespeichert wird der **gewählte Weg**, nicht was tatsächlich
-   * an Daten vorliegt: Wer „Bank" wählt und abbricht, soll das unterbrochene
-   * Tutorial an derselben Stelle fortsetzen. Über Sichtbarkeit entscheiden
-   * weiterhin die echten Daten.
-   */
-  tutorial_source?: TutorialSource | null;
-  /** Abgeschlossene Tutorial-Kapitel. Unbekannte IDs werden ignoriert. */
-  tutorial_completed_chapters?: TutorialChapterId[];
-}
+export type { AccountType, Account } from '@/lib/account-types';
 
-/**
- * Eine Bewegung der Steuerrücklage: + = zurückgelegt, − = Steuer gezahlt.
- * Quick-Actions im Steuer-Tank; keine Auto-Erkennung von Transfers (v1).
- */
-export interface TaxReserveMovement {
-  id: string;
-  /** Buchungsdatum der Bewegung (YYYY-MM-DD). */
-  date: string;
-  amount: number;
-  note?: string | null;
-}
+export type {
+  Transaction,
+  Rhythmus,
+  AllocationSource,
+  TransactionAllocation,
+} from '@/lib/transaction-types';
 
-/**
- * Steuerrücklage je Veranlagungsjahr. Das ZIEL wird NIE persistiert, sondern
- * immer abgeleitet (Prozent × YTD-Betriebseinnahmen) — sonst driftet es.
- */
-export interface TaxReserveState {
-  /** Stabile ID `tax-reserve-<year>` (Upsert-Anker im lokalen Store). */
-  id: string;
-  user_id: string;
-  year: number;
-  movements: TaxReserveMovement[];
-  /** Übersteuert tax_reserve_percent aus den Settings nur für dieses Jahr. */
-  percent_override?: number | null;
-  /** Konto, auf dem die Rücklage physisch liegt (nur Anzeige). */
-  account_id?: string | null;
-}
+export type {
+  Prioritaet,
+  Zahlungsweg,
+  Ausgabenklasse,
+  CategoryAttributes,
+  Category,
+  HierarchicalCategory,
+  CategorySuggestion,
+  CategorizationSnapshotEntry,
+  SpecialCategory,
+  SpecialCategoryAssignmentSource,
+  SpecialCategoryAssignment,
+} from '@/lib/category-types';
 
-export interface HierarchicalCategory extends Category {
-  children?: HierarchicalCategory[];
-  parent?: HierarchicalCategory;
-}
+export type { UserSettings } from '@/lib/settings-types';
 
-/**
- * Budget-Periode. Aktuell ist nur `monthly` aktiv – `weekly`/`yearly` sind im
- * Typ schon vorgesehen, werden aber erst mit dem Premium-Ausbau freigeschaltet.
- */
-export type BudgetPeriod = 'monthly' | 'weekly' | 'yearly';
+export type { TaxReserveMovement, TaxReserveState } from '@/lib/tax-types';
 
-/**
- * Eine einzelne Matching-Regel eines (Premium-)Budgets. Ohne Premium bleibt
- * `rules` leer – das Budget rechnet dann rein kategorie-basiert. Die Felder sind
- * bereits modelliert, damit der spätere Regel-Editor keine Datenmigration braucht.
- */
-export interface BudgetRule {
-  /** Worauf die Regel prüft. */
-  field: 'payee' | 'description' | 'amount' | 'account';
-  /** Vergleichsoperator. */
-  op: 'contains' | 'equals' | 'gt' | 'lt';
-  /** Vergleichswert (String für Text/Konto, Zahl für Betrag – als String gehalten). */
-  value: string;
-}
+export type {
+  BudgetPeriod,
+  BudgetRule,
+  RolloverMode,
+  SurplusAction,
+  BudgetRollover,
+  BudgetPeriodLedger,
+  Budget,
+  BudgetDrift,
+  BudgetHealth,
+  BudgetStatus,
+  BudgetSuggestion,
+} from '@/lib/budget-types';
 
-/**
- * Übertrags-Modus eines Budgets zwischen zwei Perioden:
- * - `off`        – jeder Monat startet frisch beim Basislimit
- * - `accumulate` – nicht genutztes Budget wandert mit (Limit steigt)
- * - `overspend`  – Überschreitung wird vom Folgemonat abgezogen (Start im Minus)
- * - `both`       – positiver und negativer Übertrag
- */
-export type RolloverMode = 'off' | 'accumulate' | 'overspend' | 'both';
+export type { DebtType, DebtPriority, Debt } from '@/lib/debt-types';
 
-/** Was mit positivem Restbudget am Periodenende geschieht. */
-export type SurplusAction = 'carry' | 'sweep_savings' | 'sweep_invest';
+export type {
+  ReceivableType,
+  Receivable,
+  ReceivableTransactionAssignment,
+} from '@/lib/receivable-types';
 
-/** Rollover-Konfiguration eines Budgets (löst das alte boolean `rollover` ab). */
-export interface BudgetRollover {
-  mode: RolloverMode;
-  /** Obergrenze des angesparten positiven Übertrags in EUR (0/undefined = unbegrenzt). */
-  cap?: number;
-  /** Verbleib des positiven Rests (Default `carry`). `sweep_*` führt ihn ab statt zu kumulieren. */
-  surplusAction?: SurplusAction;
-  /** Zielkonto für einen Sweep (z. B. Tagesgeld). */
-  sweepTargetAccountId?: string;
-  /** Ziel-Sparziel/Milestone für einen Sweep. */
-  sweepTargetGoalId?: string;
-}
+export type { Milestone } from '@/lib/milestone-types';
 
-/** Abgeleiteter Übertrags-Stand eines Budgets für eine konkrete Periode. */
-export interface BudgetPeriodLedger {
-  budgetId: string;
-  /** Periode `YYYY-MM`. */
-  period: string;
-  /** Basislimit der Periode (ggf. datengetrieben). */
-  baseLimit: number;
-  /** Übertrag aus der Vorperiode (kann negativ sein). */
-  carryIn: number;
-  /** Effektives Limit = Basislimit + carryIn. */
-  effectiveLimit: number;
-  /** Tatsächliche Ausgaben der Periode. */
-  spent: number;
-  /** Verbleibend = effektives Limit − Ausgaben. */
-  remaining: number;
-  /** Per Sweep abgeführter Überschuss (siehe `surplusAction`). */
-  swept: number;
-  /** An die Folgeperiode weitergereichter Übertrag. */
-  carryOut: number;
-}
+export type {
+  RoadmapStageKey,
+  RoadmapStage,
+  GoalProgress,
+  BehaviorInsight,
+  CategoryGuidance,
+  CoachRecommendation,
+  CoachOverview,
+} from '@/lib/coach-types';
 
-/**
- * Ein benutzerdefiniertes Budget – visualisiert als „Tank". Ein Budget bindet
- * an genau eine Hauptkategorie; optional lassen sich einzelne Unterkategorien
- * auswählen (leer = alle Unterkategorien zählen). Alles strikt lokal gespeichert.
- */
-export interface Budget {
-  id: string;
-  name: string;
-  /** Hauptkategorie, deren Ausgaben in den Tank fließen. */
-  category_id: string;
-  /** Teilmenge der Unterkategorien; leer/undefined = alle zählen. */
-  subcategory_ids?: string[];
-  /** Monatslimit in EUR (positiv). */
-  limit: number;
-  /** Warnschwelle in Prozent (Default 80). Ab hier färbt sich der Tank. */
-  warn_threshold?: number;
-  /** Akzentfarbe des Tanks (CSS-Farbe); fällt sonst auf die Kategoriefarbe zurück. */
-  color?: string;
-  /** Emoji/Icon-Hinweis für die Karte. */
-  icon?: string;
-  /** Aus einem Vorschlag erstellt (für Analytics/Hinweise). */
-  from_suggestion?: boolean;
+export type {
+  MarketDataProvider,
+  ProviderType,
+  Portfolio,
+  PortfolioPosition,
+  QuoteData,
+  PortfolioSummary,
+  UnconvertedPosition,
+} from '@/lib/portfolio-types';
 
-  // --- Premium-Felder (bereits modelliert, UI erst mit Premium) ---
-  /** Abrechnungsperiode. Ohne Premium immer `monthly`. */
-  period?: BudgetPeriod;
-  /**
-   * @deprecated Altes boolean-Feld. Wird via `resolveRolloverConfig` auf
-   * `{ mode: 'accumulate' }` migriert. Neue Logik nutzt `rolloverConfig`.
-   */
-  rollover?: boolean;
-  /** Rollover-Konfiguration (Übertrag, Cap, Sweep). Premium. */
-  rolloverConfig?: BudgetRollover;
-  /**
-   * Datengetriebenes Basislimit: statt des fixen `limit` wird je Monat der
-   * Median der jüngsten Ausgaben verwendet („Adaptive Tank"). `limit` dient dann
-   * als Fallback ohne Historie. Premium.
-   */
-  adaptive?: boolean;
-  /** Zusätzliche Match-Regeln. Premium; ohne Premium leer. */
-  rules?: BudgetRule[];
-
-  created_at?: string;
-  updated_at?: string;
-}
-
-/** Abweichung des gesetzten Limits vom realen Median (Auto-Retune-Hinweis). */
-export interface BudgetDrift {
-  /** Realer Median der jüngsten Ausgaben. */
-  median: number;
-  /** Aktuelles (Basis-)Limit. */
-  limit: number;
-  /** Differenz `median − limit` (positiv = Ausgaben über Limit). */
-  drift: number;
-  /** Relative Abweichung |drift|/limit. */
-  ratio: number;
-  /** Richtung der Abweichung relativ zum Limit. */
-  direction: 'over' | 'under' | 'ok';
-  /** Empfohlenes neues Limit (gerundet) bei signifikanter Abweichung. */
-  suggestedLimit: number;
-  /** true, wenn die relative Abweichung die Schwelle überschreitet. */
-  significant: boolean;
-}
-
-/** Ampel-Status eines Budgets relativ zur Warnschwelle/zum Limit. */
-export type BudgetHealth = 'ok' | 'warn' | 'over';
-
-/** Berechneter Live-Stand eines Budgets für eine konkrete Periode. */
-export interface BudgetStatus {
-  budget: Budget;
-  /** Ausgegeben in der Periode (positiver EUR-Betrag). */
-  spent: number;
-  /** Verbleibend (kann negativ sein bei Überschreitung). */
-  remaining: number;
-  /** Auslastung 0..1+ (Ausgaben / Limit). */
-  ratio: number;
-  /** Füllstand in Prozent, 0..100 gekappt (für den Tank). */
-  fillPercent: number;
-  health: BudgetHealth;
-
-  // --- Rollover (optional; nur gesetzt, wenn über die Rollover-Engine berechnet) ---
-  /** Übertrag aus der Vorperiode (kann negativ sein). */
-  carryIn?: number;
-  /** Effektives Limit der Periode (Basislimit + carryIn). */
-  effectiveLimit?: number;
-  /** An die Folgeperiode weitergereichter Übertrag. */
-  carryOut?: number;
-  /** Per Sweep abgeführter Überschuss. */
-  swept?: number;
-  /** Abweichung des Limits vom realen Median (für „Limit anpassen?"-Hinweis). */
-  drift?: BudgetDrift;
-}
-
-/** Vorgeschlagenes Budget für eine Hauptkategorie (noch nicht gespeichert). */
-export interface BudgetSuggestion {
-  category_id: string;
-  name: string;
-  /** Vorgeschlagenes Limit (gerundet) auf Basis des Durchschnitts. */
-  limit: number;
-  /** Durchschnittliche Monatsausgabe, auf der der Vorschlag basiert. */
-  avgMonthly: number;
-  color?: string;
-  icon?: string;
-}
-
-export type DebtType = 'credit_card' | 'bnpl' | 'installment' | 'overdraft' | 'private_loan' | 'car_loan' | 'student_loan' | 'mortgage' | 'other';
-
-/** Existenzsichernde Rückstände (Miete, Energie, Unterhalt) gehen im Plan immer vor Konsumschulden (#51). */
-export type DebtPriority = 'existenzsichernd' | 'normal';
-
-export interface Debt {
-  id: string;
-  user_id: string;
-  name: string;
-  type: DebtType;
-  balance: number;
-  original_amount?: number | null;
-  interest_rate: number;
-  min_payment: number;
-  due_day?: number | null;
-  due_date?: string | null;
-  is_bnpl: boolean;
-  provider?: string | null;
-  notes?: string | null;
-  is_paid_off: boolean;
-  priority?: DebtPriority | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-/** Art der Forderung (verliehenes Geld, geteilte Ausgabe, Kaution, …). */
-export type ReceivableType = 'private_loan' | 'shared_expense' | 'deposit' | 'other';
-
-/**
- * Eine Forderung – Geld, das jemand mir schuldet (verliehenes Geld). Spiegelbild
- * zur {@link Debt}, aber als Aktivum und mit eingehenden Rückzahlungen.
- */
-export interface Receivable {
-  id: string;
-  user_id: string;
-  /** Bezeichnung, z. B. "Max – Konzertticket". */
-  name: string;
-  /** Name des Schuldners – Basis für das Matching eingehender Rückzahlungen. */
-  debtor?: string | null;
-  type: ReceivableType;
-  /** Offener Restbetrag. */
-  amount: number;
-  /** Ursprünglich verliehener Betrag. */
-  original_amount?: number | null;
-  /** Bar verliehen (kein Bankbeleg). */
-  is_cash: boolean;
-  due_date?: string | null;
-  notes?: string | null;
-  /** Vollständig zurückgezahlt. */
-  is_settled: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-/** Verknüpft eine eingehende Buchung als (Teil-)Rückzahlung mit einer Forderung. */
-export interface ReceivableTransactionAssignment {
-  id: string;
-  user_id: string;
-  receivable_id: string;
-  transaction_id: string;
-  amount: number;
-  created_at: string;
-}
-
-export interface Milestone {
-  id: string;
-  user_id: string;
-  milestone_key: string;
-  achieved_at: string;
-}
-
-export type RoadmapStageKey = 'starter_emergency_fund' | 'consumer_debt_elimination' | 'full_emergency_fund' | 'personal_goals';
-
-export interface RoadmapStage {
-  key: RoadmapStageKey;
-  title: string;
-  order: number;
-  progress: number;
-  status: 'locked' | 'active' | 'completed';
-  description: string;
-  whyItMatters: string;
-}
-
-export interface GoalProgress {
-  id: string;
-  name: string;
-  targetAmount: number;
-  currentAmount: number;
-  progress: number;
-  estimatedCompletionDate?: string | null;
-  milestoneState: 'not-started' | 'in-progress' | 'close' | 'achieved';
-}
-
-export interface BehaviorInsight {
-  id: string;
-  title: string;
-  message: string;
-  severity: 'info' | 'warning' | 'success';
-}
-
-export interface CategoryGuidance {
-  categoryId: string;
-  categoryName: string;
-  status: 'protected' | 'reduce' | 'cut';
-  recommendedMax: number;
-  currentSpend: number;
-  savingsOpportunity: number;
-  reason: string;
-}
-
-export interface CoachRecommendation {
-  id: string;
-  title: string;
-  message: string;
-  reason: string;
-  severity: 'info' | 'warning' | 'success';
-  ctaLabel?: string;
-  ctaTo?: string;
-}
-
-export interface CoachOverview {
-  stage: RoadmapStage;
-  recommendations: CoachRecommendation[];
-  goals: GoalProgress[];
-  categoryGuidance: CategoryGuidance[];
-  debtSummary: {
-    totalDebt: number;
-    minimumMonthlyBurden: number;
-    snowballMonths: number;
-    avalancheMonths: number;
-    preferredStrategy: 'snowball' | 'avalanche';
-  };
-  insights: BehaviorInsight[];
-}
-
-export interface MarketDataProvider {
-  name: string;
-  type: ProviderType;
-  fetchQuotes(symbols: string[]): Promise<QuoteData[]>;
-  fetchQuote(symbol: string): Promise<QuoteData | null>;
-}
-
-export type ProviderType = 'etoro' | 'yahoo' | 'stooq' | 'mock';
-
-export interface Portfolio {
-  id: string;
-  user_id: string;
-  name: string;
-  type: 'etoro' | 'manual' | 'demo';
-  provider_config?: Record<string, unknown>;
-  currency: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface PortfolioPosition {
-  id: string;
-  portfolio_id: string;
-  symbol: string;
-  name?: string;
-  quantity: number;
-  entry_price: number;
-  currency: string;
-  exchange?: string;
-  metadata?: Record<string, unknown>;
-  last_price?: number;
-  last_price_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface QuoteData {
-  symbol: string;
-  name?: string;
-  price: number;
-  change?: number;
-  change_percent?: number;
-  currency?: string;
-  exchange?: string;
-  timestamp?: number;
-  provider: ProviderType;
-}
-
-export interface PortfolioSummary {
-  total_value: number;
-  total_cost: number;
-  unrealized_gain_loss: number;
-  unrealized_gain_loss_percent: number;
-  realized_gain_loss?: number;
-  realized_gain_loss_percent?: number;
-  positions_count: number;
-  currency: string;
-}
-
-export interface OcrField {
-  value: string;
-  confidence: number;
-  status: 'high' | 'medium' | 'low';
-}
-
-export interface OcrExtractedPosition {
-  symbol: OcrField;
-  quantity?: OcrField;
-  entryPrice?: OcrField;
-  currency?: OcrField;
-}
-
-export interface OcrResult {
-  text: string;
-  positions: OcrExtractedPosition[];
-  overallConfidence: number;
-}
+export type { OcrField, OcrExtractedPosition, OcrResult } from '@/lib/ocr-types';

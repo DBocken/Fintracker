@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { showSuccess, showError } from "@/utils/toast";
 import { getHouseholds, getHouseholdMembers, getSharedExpenseSplit, upsertSharedExpenseSplit, deleteSharedExpenseSplit, splitEqually } from "@/services/household-service";

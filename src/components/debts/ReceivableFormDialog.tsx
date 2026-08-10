@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { DecimalInput } from "@/components/common/DecimalInput";
+import { DecimalInput } from "@/features/shared/presentation/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -75,7 +75,7 @@ export function ReceivableFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{receivable?.id ? t('debts.receivableForm.editTitle') : t('debts.receivableForm.newTitle')}</DialogTitle>
         </DialogHeader>

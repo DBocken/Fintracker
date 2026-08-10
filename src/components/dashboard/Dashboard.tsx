@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { SlidersHorizontal, Sparkles, ArrowRight, Building2 } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { TransactionStats } from './TransactionStats';
-import StatHero from '@/components/common/StatHero';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import StatHero from '@/features/shared/presentation/StatHero';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { TransactionFilters } from './TransactionFilters';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { TransactionTable } from './TransactionTable';
@@ -19,15 +19,16 @@ import { TransactionDetailsModal } from './TransactionDetailsModal';
 import DashboardMobileStory from '@/features/dashboard/presentation/mobile/DashboardMobileStory';
 import { DashboardDesktopView } from '@/features/dashboard/presentation/desktop/DashboardDesktopView';
 import { useFinanceOverview } from '@/features/dashboard/application/use-finance-overview';
+import type { FilterViewModel } from '@/features/shared/domain/filter-view-model';
 import type { Transaction } from '../../types';
 import { KpiSection } from '@/components/kpi/KpiSection';
 import { dyadProps } from '@/lib/dyad';
 import AnalysisModePanel from './AnalysisModePanel';
-import FinanceEmptyState from '@/components/common/FinanceEmptyState';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceEmptyState from '@/features/shared/presentation/FinanceEmptyState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { useTutorialPresence } from '@/components/tutorial/tutorial-presence';
 import { useGlobalAtmosphere } from '@/hooks/useGlobalAtmosphere';
-import { ATMOSPHERE_ACCENTS } from '@/components/common/AtmosphereLayer';
+import { ATMOSPHERE_ACCENTS } from '@/features/shared/presentation/AtmosphereLayer';
 
 // Die Buchungen-Vorschau auf dem Dashboard ist reine Vorschau ohne Sammelbearbeitung
 // (die lebt vollständig auf /transactions) – Auswahl bleibt hier bewusst inert.
@@ -46,6 +47,17 @@ export function Dashboard() {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const model = useFinanceOverview({ onDetailsSaved: () => setDetailsOpen(false) });
+
+  // `model.filters.values`/`.set` sind bereits 1:1 `FilterViewModel`-förmig
+  // (gleiche Feldnamen) — hier nur um `categories`/`accounts` ergänzt, die im
+  // ViewModel auf oberster Ebene stehen (WP 5.4, KOMP-2).
+  const dashboardFilterViewModel: FilterViewModel = useMemo(() => ({
+    values: model.filters.values,
+    set: model.filters.set,
+    periodOptions: model.filters.periodOptions,
+    categories: model.categories,
+    accounts: model.accounts,
+  }), [model.filters.values, model.filters.set, model.filters.periodOptions, model.categories, model.accounts]);
 
   const handleDelete = useCallback((transactionId: string) => {
     setTransactionToDelete(transactionId);
@@ -185,35 +197,16 @@ export function Dashboard() {
       </div>
 
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
-        <DialogContent className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md">
+        <DialogContent
+          className="flex max-h-[85dvh] flex-col overflow-y-auto sm:max-w-md"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{t("dashboard.filter")}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <TransactionFilters
-              filterCat={model.filters.values.category}
-              setFilterCat={model.filters.set.category}
-              filterAccount={model.filters.values.account}
-              setFilterAccount={model.filters.set.account}
-              searchInput={model.filters.values.search}
-              setSearchInput={model.filters.set.search}
-              range={model.filters.values.range}
-              setRange={model.filters.set.range}
-              customDays={model.filters.values.customDays}
-              setCustomDays={model.filters.set.customDays}
-              customGran={model.filters.values.customGranularity}
-              setCustomGran={model.filters.set.customGranularity}
-              customPeriod={model.filters.values.customPeriod}
-              setCustomPeriod={model.filters.set.customPeriod}
-              periodOptions={model.filters.periodOptions}
-              categories={model.categories}
-              accounts={model.accounts}
-              filterContract={model.filters.values.contract}
-              setFilterContract={model.filters.set.contract}
-              filterEssential={model.filters.values.essential}
-              setFilterEssential={model.filters.set.essential}
-              filterAusgabenklasse={model.filters.values.ausgabenklasse}
-              setFilterAusgabenklasse={model.filters.set.ausgabenklasse}
+              filters={dashboardFilterViewModel}
               showSearch={false}
               stacked
             />

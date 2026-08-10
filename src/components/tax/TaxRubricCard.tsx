@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle } from 'lucide-react';

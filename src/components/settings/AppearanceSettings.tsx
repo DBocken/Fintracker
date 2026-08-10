@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import { Check } from 'lucide-react';
 import { getUserSettings, updateUserSettings } from '@/services/transaction-service';
 import { SKINS, normalizeSkinId, type SkinId } from '@/skins/skins';

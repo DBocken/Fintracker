@@ -1,4 +1,4 @@
-import type { TranslationTree } from '../translations';
+import type { TranslationTree } from '../translations/de';
 
 /**
  * Dünnes Overlay über dem Basisbaum. Es führt NIE einen neuen Key ein, es

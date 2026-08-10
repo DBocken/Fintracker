@@ -65,4 +65,55 @@ describe("[INTEGRITY] saveTransactions strikte Validierung (F-MONEY-4)", () => {
     const saved = await saveTransactions([tx]);
     expect(saved[0].amount).toBe(0);
   });
+
+  describe("Cent-genaue Validierung (Invariante 5, docs/domain-invariants.md)", () => {
+    it("[REGRESSION] lehnt einen Sub-Cent-Betrag wie 0.005 ab statt ihn still zu runden", async () => {
+      const tx = { ...base, id: "tx-subcent", date: "2026-01-15", amount: 0.005 } as Transaction;
+      await expect(saveTransactions([tx])).rejects.toThrow(/[Cc]ent/);
+      // Nichts wurde persistiert — auch kein still auf 0.00/0.01 gerundeter Wert.
+      expect(await getTransactions(10)).toHaveLength(0);
+    });
+
+    it("[REGRESSION] lehnt einen negativen Sub-Cent-Betrag ab", async () => {
+      const tx = { ...base, id: "tx-subcent-neg", date: "2026-01-15", amount: -0.005 } as Transaction;
+      await expect(saveTransactions([tx])).rejects.toThrow(/[Cc]ent/);
+    });
+
+    it("akzeptiert gültige Beträge (2 Dezimalstellen, negativ, Null, große Werte) unverändert", async () => {
+      const txs = [
+        { ...base, id: "tx-p1", date: "2026-01-15", amount: 12.34 },
+        { ...base, id: "tx-p2", date: "2026-01-15", amount: -45.0 },
+        { ...base, id: "tx-p3", date: "2026-01-15", amount: 0 },
+        { ...base, id: "tx-p4", date: "2026-01-15", amount: 1_000_000.99 },
+      ] as Transaction[];
+      const saved = await saveTransactions(txs);
+      expect(saved.map((s) => s.amount)).toEqual([12.34, -45.0, 0, 1_000_000.99]);
+    });
+
+    it("die Fehlermeldung ist für den Nutzer verständlich (kein roher Typfehler)", async () => {
+      const tx = { ...base, id: "tx-subcent-msg", date: "2026-01-15", amount: 0.005 } as Transaction;
+      try {
+        await saveTransactions([tx]);
+        expect.unreachable("sollte werfen");
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        const message = (err as Error).message;
+        expect(message).not.toMatch(/NaN|undefined|\[object/);
+        expect(message).toMatch(/0\.005/);
+      }
+    });
+
+    it("[REGRESSION] die Fehlermeldung folgt der eingestellten Sprache (i18n-vollständig)", async () => {
+      const txDe = { ...base, id: "tx-subcent-de", date: "2026-01-15", amount: 0.005 } as Transaction;
+      await expect(saveTransactions([txDe])).rejects.toThrow(/Cent genau/);
+
+      localStorage.setItem("ausgabentracker_locale_v1", "en");
+      const txEn = { ...base, id: "tx-subcent-en", date: "2026-01-15", amount: 0.005 } as Transaction;
+      await expect(saveTransactions([txEn])).rejects.toThrow(/precise to the cent/);
+
+      localStorage.setItem("ausgabentracker_locale_v1", "ru");
+      const txRu = { ...base, id: "tx-subcent-ru", date: "2026-01-15", amount: 0.005 } as Transaction;
+      await expect(saveTransactions([txRu])).rejects.toThrow(/точной до цента/);
+    });
+  });
 });

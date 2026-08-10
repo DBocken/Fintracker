@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n/useI18n";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
 import { KpiCustomizeSheet } from "@/components/kpi/KpiCustomizeSheet";
 import { useKpiPreferences } from "@/hooks/useKpiPreferences";
-import type { KpiComputeInput } from "@/components/kpi/kpis";
+import type { KpiComputeInput } from "@/lib/kpi-definitions";
 import { dyadProps } from "@/lib/dyad";
 
 export function KpiSection({ data }: { data: KpiComputeInput }) {

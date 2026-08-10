@@ -6,7 +6,7 @@
  * Parallel-State: ein Zeilen-Tap ruft dieselbe Aktion wie ein Canvas-Tap.
  */
 import { ArrowLeft } from 'lucide-react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
 import { cn, formatCurrency, formatPercent } from '@/lib/utils';
 import type { CityModel } from '../domain/city-model';

@@ -79,7 +79,7 @@ export default function CommandPalette() {
   );
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={setOpen} title={t("commandPalette.dialogLabel")}>
       <Command className="rounded-lg border shadow-md">
         <CommandInput placeholder={t("shell.search") + "…"} />
         <CommandList>

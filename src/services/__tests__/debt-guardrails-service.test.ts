@@ -15,6 +15,7 @@ import { applyLetterToClaim, claimFromLetter, type Claim } from "../claim-servic
 import { girocodeForClaim } from "../girocode-service";
 import { parseLetter } from "../letter-parser-service";
 import { LETTER_CORPUS } from "./letter-parser-corpus";
+import { asTransactionId } from '@/lib/ids';
 
 beforeEach(() => {
   // Set locale for serviceT
@@ -29,9 +30,8 @@ function corpusText(name: string): string {
   return LETTER_CORPUS.find((l) => l.name === name)!.text;
 }
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: partial.id ?? crypto.randomUUID(),
     date: "2026-06-01",
     amount: -10,
     payee: "",
@@ -40,6 +40,7 @@ function tx(partial: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...partial,
+    id: partial.id !== undefined ? asTransactionId(partial.id) : asTransactionId(partial.id ?? crypto.randomUUID()),
   };
 }
 

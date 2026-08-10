@@ -36,7 +36,7 @@
  *   — `city-scaling.ts#scaleFloors` verteilt sie nur proportional auf die
  *   bereits feststehende Balkenhöhe.
  */
-import { type SunburstNode, type SunburstTree } from '@/lib/analysis-data';
+import { type SunburstNode, type SunburstTree } from '@/lib/chart-data/sunburst';
 import type { Category } from '@/types';
 import type { CityContract, CityDistrict, CityModel, CitySubcategory } from './city-model';
 import { activityLevel } from './city-activity';

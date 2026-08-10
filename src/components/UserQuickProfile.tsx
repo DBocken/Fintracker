@@ -63,7 +63,7 @@ export default function UserQuickProfile() {
         </button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" aria-describedby={undefined}>
         <ProfileDialogContent />
       </DialogContent>
     </Dialog>

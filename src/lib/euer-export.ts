@@ -6,6 +6,7 @@
  * Dezimalkomma, CSV-Injection-gehärtet (F-MONEY-2).
  */
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import type { EuerLine, EuerReport } from './euer-report';
 import { escapeCsvCell } from './csv-utils';
 
@@ -72,7 +73,7 @@ export function buildEuerCsv(
     for (const line of lines) {
       const label = lineLabel(line, translate, categoryNames);
       for (const txId of line.transactionIds) {
-        const tx = byId.get(txId);
+        const tx = byId.get(asTransactionId(txId));
         if (!tx) continue;
         row([
           sectionLabel,

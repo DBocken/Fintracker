@@ -1,4 +1,4 @@
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { Slider } from '@/components/ui/slider';
 import { Clock } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';

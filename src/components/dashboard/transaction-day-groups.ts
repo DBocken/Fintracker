@@ -1,5 +1,7 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { t } from '@/i18n/serviceT';
+import { resolveDateFnsLocale, weekdayAbbrevToken } from '@/i18n/date-fns-locale';
+import { resolveInitialLocale } from '@/i18n/I18nProvider';
 import type { Transaction, TransactionAllocation } from '@/types';
 
 export interface DayGroup {
@@ -102,6 +104,22 @@ export function flattenDayGroups(
 /**
  * Menschliche Tages-Überschrift wie im Buchungs-Schema: „Heute · Do 3.7.",
  * „Gestern · Mi 2.7." bzw. „Di 1.7." für weiter zurückliegende Tage.
+ * „Heute"/„Gestern" laufen über `serviceT` (kein React-Kontext in diesem
+ * Modul) und folgen damit der aktuellen App-Sprache (`transactions.dayHeadingToday`
+ * / `transactions.dayHeadingYesterday"). Das Wochentagskürzel folgt seit
+ * WP 5.5b über `resolveDateFnsLocale` (`@/i18n/date-fns-locale`) derselben
+ * Sprache — davor war es fest auf `date-fns/locale/de` verdrahtet (WP-5.5-
+ * Befund: „Today · Mi 3.7.").
+ *
+ * Token-Breite folgt `weekdayAbbrevToken` (locale-bewusst, nicht einheitlich):
+ * Deutsch/Russisch bleiben beim angestammten 2-stelligen Kürzel („Mi"/„пт" —
+ * optisch UNVERÄNDERT), nur Englisch wechselt auf die 3-stellige, dort
+ * übliche Form („Wed" statt „We") — Begründung im Kopfkommentar von
+ * `weekdayAbbrevToken` (`@/i18n/date-fns-locale`).
+ *
+ * Bekannte Lücke (nicht Teil dieses Pakets): für weiter zurückliegende Tage
+ * fehlt die Jahreszahl; bei Buchungen aus einem früheren Jahr ist „Di 1.7."
+ * ohne Jahr mehrdeutig.
  */
 export function formatDayHeading(dateKey: string, now = new Date()): string {
   let date: Date;
@@ -112,9 +130,10 @@ export function formatDayHeading(dateKey: string, now = new Date()): string {
   }
   if (Number.isNaN(date.getTime())) return dateKey;
 
-  const short = format(date, 'EEEEEE d.M.', { locale: de });
+  const token = weekdayAbbrevToken(resolveInitialLocale());
+  const short = format(date, `${token} d.M.`, { locale: resolveDateFnsLocale() });
   const diff = differenceInCalendarDays(now, date);
-  if (diff === 0) return `Heute · ${short}`;
-  if (diff === 1) return `Gestern · ${short}`;
+  if (diff === 0) return `${t('transactions.dayHeadingToday', 'Heute')} · ${short}`;
+  if (diff === 1) return `${t('transactions.dayHeadingYesterday', 'Gestern')} · ${short}`;
   return short;
 }

@@ -1,9 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import {
-  backfillCategoryNameKeys,
-  localizeCategories,
-} from '../local-settings-service';
-import { DEFAULT_LOCAL_CATEGORIES } from '../default-categories';
+import { backfillCategoryNameKeys } from '@/lib/category-migrations';
+import { localizeCategories } from '../local-settings-service';
+import { DEFAULT_LOCAL_CATEGORIES } from '@/lib/default-categories';
 import { REGEX_FALLBACK_RULES } from '@/data/merchant-keywords';
 import type { Category } from '@/types';
 

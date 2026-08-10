@@ -2,16 +2,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { buildPendingTaxSuggestions } from '../tax-suggestions';
 import type { AutomationSuggestion } from '@/lib/automation-suggestion-model';
 import type { Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 beforeEach(() => {
   localStorage.setItem('ausgabentracker_locale_v1', 'de');
 });
 
 let seq = 0;
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   seq += 1;
   return {
-    id: overrides.id || `tx-${seq}`,
     date: '2025-05-10',
     amount: -100,
     payee: '',
@@ -20,6 +20,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    id: asTransactionId(overrides.id || `tx-${seq}`),
   };
 }
 

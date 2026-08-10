@@ -1,8 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   estimatePasswordStrength,
+  isLocalEncryptionWriteInFlight,
   localEncryption,
   LocalEncryptionLockedError,
+  onLocalEncryptionActivity,
+  onLocalEncryptionLock,
+  onLocalEncryptionWriteSettled,
+  VaultCorruptError,
 } from "../local-crypto";
 import { clearLocalKvStore, idbGet, idbSet } from "../idb-kv";
 import {
@@ -108,6 +113,87 @@ describe("localEncryption", () => {
   });
 });
 
+describe("loadAndMaybeDecrypt: korrupte Envelopes werfen statt zu schlucken (RES-1)", () => {
+  const KEY = "corrupt_test_key";
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  afterEach(async () => {
+    await clearLocalKvStore();
+    localStorage.clear();
+    localEncryption.lock();
+  });
+
+  it("[REGRESSION] (a) wirft VaultCorruptError, wenn der Rohwert kein JSON ist", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    await idbSet(KEY, "{das ist kein json");
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("[REGRESSION] (b) wirft VaultCorruptError, wenn ct_b64 eines gueltigen Envelopes verfaelscht ist", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    const envelope = await localEncryption.encryptJson({ foo: "bar" });
+    const tampered = { ...envelope, ct_b64: envelope.ct_b64.slice(0, -4) + "AAAA" };
+    await idbSet(KEY, JSON.stringify(tampered));
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("[REGRESSION] (c) wirft VaultCorruptError, wenn die entschluesselten Bytes kein JSON ergeben", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    // Envelope aus einem Nicht-JSON-Klartext bauen: direkt ueber die
+    // Standalone-Verschluesselung mit demselben Passwort verschluesseln reicht
+    // nicht (encryptString erwartet bereits JSON-Text als Input), daher wird
+    // hier ein echter Envelope genommen und der Klartext-Erwartungswert durch
+    // Bauen ueber encryptJson mit einem String simuliert, der beim Zurueck-
+    // Parsen kein gueltiges JSON ist.
+    const key = localEncryption.requireUnlocked();
+    const cfg = localEncryption.getConfig()!;
+    const ivU8 = crypto.getRandomValues(new Uint8Array(12));
+    const pt = new TextEncoder().encode("kein-json-text");
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: ivU8 }, key, pt);
+    const ctB64 = btoa(String.fromCharCode(...new Uint8Array(ct)));
+    const ivB64 = btoa(String.fromCharCode(...ivU8));
+    const envelope = {
+      type: "ausgabentracker.enc",
+      v: 1,
+      kdf: cfg.kdf,
+      cipher: { name: "AES-GCM", iv_b64: ivB64 },
+      ct_b64: ctB64,
+    };
+    await idbSet(KEY, JSON.stringify(envelope));
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      VaultCorruptError,
+    );
+  });
+
+  it("(d) liefert weiterhin null, wenn der Key gar nicht existiert", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+
+    await expect(localEncryption.loadAndMaybeDecrypt("does_not_exist_key")).resolves.toBeNull();
+  });
+
+  it("(e) wirft weiterhin LocalEncryptionLockedError bei gesperrtem Vault, nicht VaultCorruptError", async () => {
+    await localEncryption.enable("ein-sicheres-passwort");
+    await idbSet(KEY, JSON.stringify(await localEncryption.encryptJson({ foo: "bar" })));
+    localEncryption.lock();
+
+    await expect(localEncryption.loadAndMaybeDecrypt(KEY)).rejects.toBeInstanceOf(
+      LocalEncryptionLockedError,
+    );
+  });
+});
+
 describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
   const PW = "correct horse battery staple";
 
@@ -208,32 +294,211 @@ describe("localEncryption enable/disable Migration (F-CRYPTO-1)", () => {
 });
 
 describe("estimatePasswordStrength", () => {
+  // WP 3.3 (SEC-3): `label` (übersetzter Anzeigetext, hartkodiert Deutsch)
+  // wurde durch `category` ersetzt — eine stabile, nicht-übersetzte Kategorie
+  // ('weak' | 'medium' | 'strong'). Die Übersetzung des Anzeigetexts liegt
+  // jetzt in der Komponente (`useI18n()`); die Kategorie ist zugleich die
+  // Gate-Schwelle für den Setup-Button in `LocalEncryptionSettings`.
   it("classifies short, simple passwords as weak", () => {
-    expect(estimatePasswordStrength("abc").label).toBe("schwach");
-    expect(estimatePasswordStrength("").label).toBe("schwach");
+    expect(estimatePasswordStrength("abc").category).toBe("weak");
+    expect(estimatePasswordStrength("").category).toBe("weak");
   });
 
-  it("classifies medium-length mixed passwords as mittel", () => {
+  it("classifies medium-length mixed passwords as medium", () => {
     const result = estimatePasswordStrength("Abcdefgh1");
-    expect(result.label).toBe("mittel");
+    expect(result.category).toBe("medium");
   });
 
-  it("classifies long passwords with mixed character classes as stark", () => {
+  it("classifies long passwords with mixed character classes as strong", () => {
     const result = estimatePasswordStrength("Correct-Horse-Battery-9");
-    expect(result.label).toBe("stark");
+    expect(result.category).toBe("strong");
   });
 
-  it("erkennt reine Wiederholung trotz Länge als schwach (Entropie statt Länge)", () => {
-    expect(estimatePasswordStrength("aaaaaaaaaaaa").label).toBe("schwach");
+  it("erkennt reine Wiederholung trotz Länge als weak (Entropie statt Länge)", () => {
+    expect(estimatePasswordStrength("aaaaaaaaaaaa").category).toBe("weak");
   });
 
   it("wertet einfache Sequenzen ab", () => {
-    expect(estimatePasswordStrength("abcdefghijkl").label).toBe("schwach");
+    expect(estimatePasswordStrength("abcdefghijkl").category).toBe("weak");
   });
 
   it("wertet gängige Passwörter hart ab", () => {
     const res = estimatePasswordStrength("Passwort123!");
-    expect(res.label).toBe("schwach");
+    expect(res.category).toBe("weak");
     expect(res.score).toBeLessThanOrEqual(25);
+  });
+});
+
+// WP 3.2 (SEC-2): Auto-Lock-Einstellung. Bewusst in localStorage (Klartext),
+// nicht im verschlüsselten Bestand — siehe Begründung bei AUTO_LOCK_KEY in
+// local-crypto.ts. Deshalb hier geprüft: die Einstellung ist unabhängig vom
+// Tresor-Zustand lesbar/schreibbar und überlebt einen "Neustart" (= sie liegt
+// in localStorage, nicht in einer In-Memory-Variable dieses Moduls).
+describe("Auto-Lock-Einstellung (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte ohne gespeicherten Wert den Standard von 10 Minuten liefern", () => {
+    expect(localEncryption.getAutoLockMinutes()).toBe(10);
+  });
+
+  it("sollte einen gesetzten Minutenwert zurückliefern", () => {
+    localEncryption.setAutoLockMinutes(15);
+    expect(localEncryption.getAutoLockMinutes()).toBe(15);
+  });
+
+  it("sollte 'never' als Einstellung akzeptieren und zurückliefern", () => {
+    localEncryption.setAutoLockMinutes("never");
+    expect(localEncryption.getAutoLockMinutes()).toBe("never");
+  });
+
+  it("sollte die Einstellung in localStorage persistieren, nicht nur im Speicher (übersteht einen 'Neustart')", () => {
+    localEncryption.setAutoLockMinutes(30);
+
+    // Ein Neustart hat kein Modul-Gedächtnis mehr — nur was in localStorage
+    // steht, kommt danach zurück. Direkt am Rohwert geprüft, damit der Test
+    // nicht bloß den eigenen Setter gegen den eigenen Getter testet.
+    expect(localStorage.getItem("ausgabentracker_local_encryption_autolock_v1")).toBe("30");
+
+    localStorage.setItem("ausgabentracker_local_encryption_autolock_v1", "never");
+    expect(localEncryption.getAutoLockMinutes()).toBe("never");
+  });
+
+  it("sollte bei einem kaputten/ungültigen gespeicherten Wert auf den Standard zurückfallen", () => {
+    localStorage.setItem("ausgabentracker_local_encryption_autolock_v1", "kein-zahlenwert");
+    expect(localEncryption.getAutoLockMinutes()).toBe(10);
+  });
+});
+
+// WP 3.2 (SEC-2): Aktivitäts-Kanal für laufende Schreibvorgänge. Ein langer
+// Import oder eine Massenumschlüsselung (migrateFinanceKeys, rewrapIfNeeded)
+// hat oft keine Maus-/Tastatur-Aktivität, würde vom Inaktivitäts-Timer aber
+// trotzdem mittendrin gesperrt — schlimmer als kein Auto-Lock (siehe
+// requireUnlocked(), das dann werfen würde). writeDataRaw() ist der einzige
+// Schreibpfad in den Bestand; ein Puls dort deckt jeden Schreibvorgang ab.
+describe("Aktivitäts-Kanal für Schreibvorgänge (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte bei jedem Schreibvorgang registrierte Aktivitäts-Listener benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionActivity(listener);
+
+    await localEncryption.encryptAndStore("activity_key", { a: 1 });
+    expect(listener).toHaveBeenCalled();
+
+    unsubscribe();
+  });
+
+  it("sollte einen abgemeldeten Listener nicht mehr benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionActivity(listener);
+    unsubscribe();
+
+    await localEncryption.encryptAndStore("activity_key", { a: 1 });
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+// WP 3.2 (SEC-2, "Vorentschieden" im Plan): zweite, unabhängige Auto-Lock-
+// Einstellung — Lock bei visibilitychange → hidden. Standard AUS (sonst
+// sperrt die App bei jedem Tab-Wechsel und die Einstellung wird abgeschaltet,
+// bevor sie irgendetwas schützt). Dieselbe Persistenz-Begründung wie bei der
+// Frist oben: Klartext-localStorage, unabhängig vom Tresor-Zustand lesbar.
+describe("Lock-bei-Tab-Wechsel-Einstellung (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("[SECURITY] sollte ohne gespeicherten Wert AUS (false) liefern", () => {
+    expect(localEncryption.getLockOnHidden()).toBe(false);
+  });
+
+  it("[SECURITY] sollte nach dem Einschalten true liefern", () => {
+    localEncryption.setLockOnHidden(true);
+    expect(localEncryption.getLockOnHidden()).toBe(true);
+  });
+
+  it("[SECURITY] sollte die Einstellung in localStorage persistieren (übersteht einen 'Neustart')", () => {
+    localEncryption.setLockOnHidden(true);
+    // Direkt am Rohwert geprüft — derselbe Grund wie beim Frist-Test oben:
+    // nicht bloß den eigenen Setter gegen den eigenen Getter testen.
+    expect(localStorage.getItem("ausgabentracker_local_encryption_lock_on_hidden_v1")).toBe("1");
+
+    localStorage.setItem("ausgabentracker_local_encryption_lock_on_hidden_v1", "1");
+    expect(localEncryption.getLockOnHidden()).toBe(true);
+
+    localEncryption.setLockOnHidden(false);
+    expect(localStorage.getItem("ausgabentracker_local_encryption_lock_on_hidden_v1")).toBeNull();
+  });
+});
+
+// WP 3.2 (SEC-2): "Schreibvorgang läuft"-Zähler, den der Provider nutzt, um
+// einen Lock-bei-Tab-Wechsel zu verschieben, statt einen mehrteiligen
+// Schreibvorgang (z.B. restoreLocalCollections) mittendrin abzubrechen.
+describe("Schreibvorgang-in-Arbeit-Kanal (WP 3.2 / SEC-2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte außerhalb eines Schreibvorgangs false liefern", () => {
+    expect(isLocalEncryptionWriteInFlight()).toBe(false);
+  });
+
+  it("sollte registrierte Listener benachrichtigen, sobald ein Schreibvorgang abgeschlossen ist", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionWriteSettled(listener);
+
+    await localEncryption.encryptAndStore("flight_key", { a: 1 });
+
+    expect(listener).toHaveBeenCalled();
+    expect(isLocalEncryptionWriteInFlight()).toBe(false);
+    unsubscribe();
+  });
+});
+
+// WP 4.1b (PERF-1): Lock-Kanal nach demselben Muster wie der Aktivitäts-Kanal
+// oben — der Chunk-Cache der Transaktions-Chunk-Ablage kennt `local-crypto`
+// nicht direkt, sondern hängt sich hierüber ein, um beim `lock()` (auch dem
+// automatischen aus WP 3.2) den GESAMTEN Cache zu verwerfen (ADR
+// "Chunk-Cache"). Freie Funktion statt Methode, aus demselben Grund wie
+// `onLocalEncryptionActivity`: stabile Referenz über die App-Laufzeit.
+describe("Lock-Kanal (WP 4.1b, PERF-1)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem("ausgabentracker_locale_v1", "de");
+    localEncryption.lock();
+  });
+
+  it("sollte registrierte Listener bei jedem lock() benachrichtigen", async () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionLock(listener);
+
+    await localEncryption.enable("correct horse battery staple");
+    expect(listener).not.toHaveBeenCalled();
+
+    localEncryption.lock();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+  });
+
+  it("sollte einen abgemeldeten Listener nicht mehr benachrichtigen", () => {
+    const listener = vi.fn();
+    const unsubscribe = onLocalEncryptionLock(listener);
+    unsubscribe();
+
+    localEncryption.lock();
+    expect(listener).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import { InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import type { IncomeStreamsResult } from '@/lib/income-streams';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';

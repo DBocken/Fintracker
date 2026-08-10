@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { saveTransactions, updateTransaction, getTransactions } from '../transaction-service';
 import { transactionStorage } from '../transaction-storage-service';
 import type { Transaction } from '../../types';
+import { asTransactionId } from '@/lib/ids';
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: overrides.id || crypto.randomUUID(),
     date: '2025-03-10',
     amount: -1800,
     payee: 'Malerbetrieb Müller',
@@ -14,6 +14,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: true,
     confirmed: false,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : asTransactionId(overrides.id || crypto.randomUUID()),
   };
 }
 

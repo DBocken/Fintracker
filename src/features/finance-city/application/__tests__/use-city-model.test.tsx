@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
 import type { Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { useCityModel } from '../use-city-model';
 
 vi.mock('@/services/transaction-service', () => ({
@@ -25,7 +26,7 @@ const FIXTURE_CATEGORIES: Category[] = [
 
 const FIXTURE_TRANSACTIONS: Transaction[] = [
   {
-    id: 'tx-1',
+    id: asTransactionId('tx-1'),
     date: '2026-06-05',
     amount: -17.99,
     payee: 'Netflix',
@@ -49,9 +50,9 @@ describe('useCityModel', () => {
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
 
-    expect(result.current.isEmpty).toBe(false);
+    expect(result.current.requestState).toBe('ready');
     expect(result.current.model.districts).toHaveLength(1);
     expect(result.current.model.districts[0]).toMatchObject({ id: CAT_LEISURE, label: 'Freizeit' });
     expect(result.current.model.districts[0].subcategories[0]).toMatchObject({
@@ -60,11 +61,31 @@ describe('useCityModel', () => {
     });
   });
 
-  it('sollte isLoading während des Ladens true liefern', () => {
+  it('sollte während des Ladens requestState "loading" liefern', () => {
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.requestState).toBe('loading');
+  });
+
+  it('sollte bei einem Lesefehler "error" liefern, obwohl das Modell leer ist', async () => {
+    // DOM-5: Der Hook lieferte `isLoading`/`isError`/`isEmpty` als drei
+    // UNABHÄNGIGE Booleans — und ein Lesefehler setzt immer BEIDE, `isError`
+    // und `isEmpty` (ohne Daten hat die Stadt keine Distrikte). Welcher
+    // Zustand gewinnt, konnte der Hook damit gar nicht sagen; die Rangfolge
+    // lag bei der Aufrufstelle. Jetzt sagt er es selbst: „error" schlägt
+    // „empty", weil eine leere Stadt „du hast noch nichts erfasst" heisst —
+    // die falscheste Aussage, die dieser Screen nach einem Lesefehler treffen
+    // kann.
+    vi.mocked(getTransactions).mockRejectedValue(new Error('Lesefehler'));
+
+    const { wrapper } = createHookWrapper();
+    const { result } = renderHook(() => useCityModel(), { wrapper });
+
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
+
+    expect(result.current.requestState).toBe('error');
+    expect(result.current.model.districts).toHaveLength(0);
   });
 
   it('[REGRESSION] sollte eine einzelne, nicht wiederkehrende Buchung (z. B. Aldi, 1x) als eigene Etage im richtigen Gebäude liefern', async () => {
@@ -76,7 +97,7 @@ describe('useCityModel', () => {
     // Etage im Streaming-Gebäude (bzw. hier: im "Freizeit"-Direkt-Gebäude)
     // erscheinen.
     const aldi: Transaction = {
-      id: 'tx-aldi',
+      id: asTransactionId('tx-aldi'),
       date: '2026-06-10',
       amount: -8.5,
       payee: 'Aldi',
@@ -91,7 +112,7 @@ describe('useCityModel', () => {
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
 
     const building = result.current.model.districts[0].subcategories[0];
     // toMatchObject: seit WP-D4 tragen Etagen zusätzlich ihre `bookings` (Sheet-Buchungsliste).
@@ -109,7 +130,7 @@ describe('useCityModel', () => {
       { id: CAT_CLOTHES, name: 'Kleidung', filters: [] },
     ] as Category[]);
     const aldi: Transaction = {
-      id: 'tx-aldi',
+      id: asTransactionId('tx-aldi'),
       date: '2026-06-10',
       amount: -50,
       payee: 'Aldi',
@@ -130,7 +151,7 @@ describe('useCityModel', () => {
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
     await waitFor(() => expect(result.current.model.districts).toHaveLength(2));
 
     const byId = new Map(result.current.model.districts.map((d) => [d.id, d]));
@@ -141,14 +162,14 @@ describe('useCityModel', () => {
     expect(clothes?.subcategories[0].contracts).toMatchObject([{ label: 'Aldi', amount: 13 }]);
   });
 
-  it('sollte bei leeren Transaktionen isEmpty=true liefern (kein Demo-Fallback)', async () => {
+  it('sollte bei leeren Transaktionen requestState "empty" liefern (kein Demo-Fallback)', async () => {
     vi.mocked(getTransactions).mockResolvedValue([]);
     const { wrapper } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
 
-    expect(result.current.isEmpty).toBe(true);
+    expect(result.current.requestState).toBe('empty');
     expect(result.current.model.districts).toHaveLength(0);
   });
 
@@ -166,10 +187,10 @@ describe('useCityModel', () => {
     const { wrapper, queryClient } = createHookWrapper();
     const { result } = renderHook(() => useCityModel(), { wrapper });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.requestState).not.toBe('loading'));
     // Unkategorisiert -> kein Hauptkategorie-Distrikt.
     expect(result.current.model.districts).toHaveLength(0);
-    expect(result.current.isEmpty).toBe(true);
+    expect(result.current.requestState).toBe('empty');
 
     // Kategorie zugewiesen: die Query liefert jetzt die kategorisierte Buchung.
     vi.mocked(getTransactions).mockResolvedValue([{ ...uncategorized, category_id: CAT_STREAMING }]);
@@ -180,6 +201,6 @@ describe('useCityModel', () => {
 
     await waitFor(() => expect(result.current.model.districts).toHaveLength(1));
     expect(result.current.model.districts[0]).toMatchObject({ id: CAT_LEISURE, label: 'Freizeit' });
-    expect(result.current.isEmpty).toBe(false);
+    expect(result.current.requestState).toBe('ready');
   });
 });

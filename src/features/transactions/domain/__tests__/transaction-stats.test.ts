@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Category, Transaction, TransactionAllocation } from '@/types';
 import { computeTransactionStats } from '../transaction-stats';
+import { asTransactionId } from '@/lib/ids';
 
-function makeTx(overrides: Partial<Transaction>): Transaction {
+function makeTx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
     date: '2026-01-01',
     amount: 0,
@@ -12,6 +13,7 @@ function makeTx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : undefined,
   };
 }
 

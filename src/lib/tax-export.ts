@@ -5,6 +5,7 @@
  * Semikolon-getrennt, CSV-Injection-gehärtet (F-MONEY-2).
  */
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import type { TaxYearReport } from './tax-report';
 import { escapeCsvCell } from './csv-utils';
 
@@ -39,7 +40,7 @@ export function buildTaxCsv(
     const anlageLabel = translate(`tax.anlage.${rubric.anlage}`, rubric.anlage);
     const rubricLabel = translate(`tax.rubric.${rubricKeySegment(rubric.rubricId)}.name`, rubric.rubricId);
     for (const txId of rubric.transactionIds) {
-      const tx = byId.get(txId);
+      const tx = byId.get(asTransactionId(txId));
       if (!tx) continue;
       rows.push(
         [

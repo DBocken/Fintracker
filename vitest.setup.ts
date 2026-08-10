@@ -3,10 +3,59 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach } from "vitest"
 import { webcrypto } from "node:crypto"
 import { cleanup } from "@testing-library/react"
+import { LOCAL_STORE_SCHEMA_VERSION, LOCAL_STORE_SCHEMA_VERSION_KEY } from "./src/lib/store-compatibility"
+import { preloadLocale } from "./src/i18n/translation-registry"
+import { preloadDateFnsLocale } from "./src/i18n/date-fns-locale"
 
 afterEach(() => {
   cleanup()
 })
+
+// i18n-Sprachbäume deterministisch vorladen (WP 4.5 / PERF-3).
+//
+// Produktionscode lädt `en`/`ru`/`tlh` seit der Bündel-Aufteilung nur noch
+// per `import()` bei Bedarf — nur `de` ist statisch gebunden (Startbündel-
+// Split, siehe `src/i18n/translation-registry.ts`). Der Testlauf soll trotzdem
+// GENAU DAS ALTE VERHALTEN sehen: alle Sprachen synchron verfügbar, egal
+// welcher Test zuerst `lookupTranslation('en', …)` o. Ä. aufruft. Ohne dieses
+// Vorladen würde ein Test, der zufällig der ERSTE Aufrufer einer Sprache in
+// seiner Datei ist, kurzzeitig den de-Fallback sehen (die Sprachdatei ist ja
+// noch unterwegs) — abhängig von Testreihenfolge, also flatterhaft.
+//
+// Das ist richtig für die MEHRHEIT der Suite: die allermeisten i18n-Tests
+// (Locale-Parität, Nav-/Dashboard-Abdeckung, Wording-Konsistenz, …) prüfen
+// INHALTLICHE Korrektheit über alle Sprachen hinweg — nicht das Ladeverhalten
+// selbst. Für die wäre eine vom Zufall der Aufrufreihenfolge abhängige
+// Assertion reine Störung, keine zusätzliche Prüfkraft.
+//
+// ACHTUNG, das hat einen Preis: dieses Vorladen macht das eigentlich NEUE
+// Verhalten dieses Pakets — das Fenster "Zielsprache noch nicht geladen ⇒
+// de-Fallback ⇒ Nachladen ⇒ Re-Render" — für JEDEN Test unsichtbar, der sich
+// nicht ausdrücklich dagegen wehrt. Genau diese Form von Blindheit hat schon
+// einmal zugeschlagen (Schema-Marker-Patch weiter unten in dieser Datei ließ
+// keinen Test den kaputten Erststart sehen). Deshalb gilt hier dieselbe
+// Regel: `src/i18n/__tests__/translation-lazy-loading.test.ts` ruft VOR jedem
+// eigenen Test `resetTranslationCacheForTests()` auf und hebt das Vorladen
+// für sich gezielt wieder auf — nur dort wird der Fallback- und Re-Render-Pfad
+// tatsächlich durchlaufen und geprüft.
+await Promise.all([preloadLocale("en"), preloadLocale("ru"), preloadLocale("tlh")])
+
+// Dasselbe Vorladen für die `date-fns`-Locale-Objekte (WP 5.5b,
+// `src/i18n/date-fns-locale.ts`) — aus demselben Grund: `en`/`ru` hängen dort
+// ebenfalls nur an `import()`, und ohne Vorladen sähe der zufällig erste
+// Test, der eine Sprache anfragt, kurzzeitig den `de`-Fallback statt des
+// Zielwochentagskürzels. `tlh` hat kein `date-fns`-Locale (siehe Kommentar
+// dort) und wird deshalb hier bewusst nicht vorgeladen.
+//
+// Derselbe Preis wie beim Sprachbaum-Preload oben: dieses Vorladen macht das
+// eigentlich NEUE Verhalten aus WP 5.5b — das Fenster "Zielsprache noch nicht
+// geladen ⇒ de-Fallback-Locale ⇒ Nachladen ⇒ Re-Render über
+// `useDateFnsLocale`" — für JEDEN Test unsichtbar, der sich nicht ausdrücklich
+// dagegen wehrt. `src/i18n/__tests__/date-fns-locale-lazy-loading.test.tsx`
+// ruft VOR jedem eigenen Test `resetDateFnsLocaleCacheForTests()` auf und
+// hebt das Vorladen für sich gezielt wieder auf — nur dort wird der Fallback-
+// und Re-Render-Pfad tatsächlich durchlaufen und geprüft.
+await Promise.all([preloadDateFnsLocale("en"), preloadDateFnsLocale("ru")])
 
 // jsdom kennt kein IndexedDB; fake-indexeddb stellt es global bereit (Issue #29).
 // Nach jedem Test den KV-Store leeren, damit Tests isoliert bleiben.
@@ -27,6 +76,69 @@ if (!globalThis.crypto?.subtle) {
     value: webcrypto,
     configurable: true,
   })
+}
+
+// Schema-Version-Marker deterministisch auf "bereits migriert" halten (WP 4.1c).
+//
+// `assertCompatibleStore()` (local-finance-store.ts) verweigert JEDEN
+// Store-Zugriff, solange laut `hasPendingStoreMigrations()` ein definierter
+// Migrationsschritt aussteht — gewolltes WP-1.3-Verhalten. In der echten App
+// garantiert `App.tsx`, dass `runStoreMigrations()` VOR jedem Store-Zugriff
+// einmal gelaufen ist; Tests überspringen `App.tsx` bewusst und riefen
+// `runStoreMigrations()` nie auf. Das blieb folgenlos, SOLANGE `migrations`
+// leer war — `local-finance-store.pending-migration.test.ts` kommentiert das
+// ausdrücklich als "heute nur hypothetisch, ab WP 4.1 real". WP 4.1c trägt den
+// ERSTEN echten Schritt ein (Transaktionen: Blob -> Quartals-Chunks): ab jetzt
+// würde JEDER Test, der irgendeine Collection über `local-finance-store.ts`
+// anfasst, ohne den Marker vorher zu setzen, mit `StoreMigrationPendingError`
+// scheitern — nicht nur Transaktions-Tests, jede Collection läuft über
+// denselben synchronen Check.
+//
+// Ein einmaliger Property-Patch (wie beim `navigator.language`-Pin oben)
+// reicht hier NICHT: der Marker lebt in `localStorage`, und Dutzende
+// Testdateien rufen `localStorage.clear()` mitten in ihrem eigenen
+// `beforeEach` auf (derselbe Grund, aus dem der Sprach-Pin bewusst KEIN
+// `beforeEach` ist — hier ist es aber nicht vermeidbar, weil `clear()` selbst
+// das Ziel ist). Deshalb wird `clear()` selbst umschlossen: jeder Aufruf
+// räumt wie gewohnt auf UND schreibt den Marker sofort wieder fest, sodass
+// die Ablage aus Sicht jedes Tests immer "bereits auf dem aktuellen Stand"
+// ist — genau der Zustand, den `App.tsx` in der echten App vor jedem
+// Store-Zugriff bereits hergestellt hat.
+//
+// Tests, die die Migrationsprüfung selbst GEZIELT prüfen wollen (fehlender
+// Marker, zu alte/zu neue Version), setzen den Marker in ihrem eigenen Test
+// explizit — ein expliziter `localStorage.setItem`/`removeItem` NACH diesem
+// `clear()`-Aufruf gewinnt immer, weil er später läuft.
+if (typeof window !== "undefined" && window.localStorage) {
+  // `localStorage` ist (WHATWG Web Storage) kein normales Objekt, sondern
+  // proxyt jede Eigenschaftszuweisung als Storage-Eintrag — ein direktes
+  // `window.localStorage.clear = fn` legt daher lautlos nur einen Eintrag
+  // namens "clear" an und lässt `clear()` selbst unangetastet (empirisch
+  // geprüft). Die eingebaute Methode hängt an `Storage.prototype`, DIE ist
+  // ein normales, beschreibbares Objekt — dort wird gepatcht.
+  //
+  // ACHTUNG, hier lag ein Fehler, der einen Datenschutz-Wächter blind gemacht
+  // hat: `localStorage` und `sessionStorage` teilen sich DENSELBEN Prototyp.
+  // Wer hier patcht, patcht beide. Die erste Fassung band zusätzlich das
+  // Original an `localStorage` (`proto.clear.bind(window.localStorage)`) —
+  // damit räumte `sessionStorage.clear()` in Wahrheit den localStorage und
+  // ließ die Sitzung stehen. Aufgefallen ist das an
+  // `telemetry-service.test.ts` („Sitzungskennung ist kein Gerätemerkmal"):
+  // Der Test räumt die Sitzung und erwartet eine neue Kennung — sie blieb
+  // dieselbe, und die Zusicherung „keine wiedererkennbare Kennung über den
+  // Besuch hinaus" war damit unbewiesen.
+  //
+  // Deshalb: Original UNGEBUNDEN halten und auf `this` aufrufen, und den
+  // Marker nur für den localStorage nachziehen.
+  const proto = Object.getPrototypeOf(window.localStorage) as Storage
+  const originalClear = proto.clear
+  proto.clear = function patchedClear(this: Storage) {
+    originalClear.call(this)
+    if (this === window.localStorage) {
+      this.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION))
+    }
+  }
+  window.localStorage.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION))
 }
 
 // Sprachwahl deterministisch machen.

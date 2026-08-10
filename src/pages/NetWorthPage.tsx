@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Wallet, LineChart, CreditCard, HandCoins, Info, ChevronRight, Plus } from "lucide-react";
 import AssetVolume from "@/components/networth/AssetVolume";
-import PageHeader from "@/components/common/PageHeader";
-import StatHero from "@/components/common/StatHero";
+import PageHeader from "@/features/shared/presentation/PageHeader";
+import StatHero from "@/features/shared/presentation/StatHero";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,8 +17,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getNetWorthBreakdown, type NetWorthBreakdown } from "@/services/net-worth-service";
-import FinanceEmptyState from "@/components/common/FinanceEmptyState";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceEmptyState from "@/features/shared/presentation/FinanceEmptyState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
+import { UnconvertedCurrencyNotice } from "@/features/shared/presentation/UnconvertedCurrencyNotice";
 import { useI18n } from "@/i18n/useI18n";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -191,6 +192,23 @@ export default function NetWorthPage() {
           >
             <CompositionVolume data={data} />
           </StatHero>
+
+          {/* VE-1: Die Hauptzahl darüber ist ein Euro-Betrag. Was nicht in Euro
+              notiert, steckt nicht darin — direkt darunter gesagt, nicht in
+              einem Sheet versteckt. */}
+          <UnconvertedCurrencyNotice
+            description={t("currency.unconverted.netWorthDescription")}
+            items={data.unconvertedInvestments.map((holding) => ({
+              key: holding.id,
+              label: holding.name,
+              hint:
+                holding.positionsCount === 1
+                  ? t("currency.unconverted.singlePosition")
+                  : t("currency.unconverted.positionsCount").replace("{count}", String(holding.positionsCount)),
+              currency: holding.currency,
+              value: holding.value,
+            }))}
+          />
 
           {/* Antippbare Zeilen mit Detail-Sheets */}
           <div className="grid gap-3 sm:grid-cols-2">

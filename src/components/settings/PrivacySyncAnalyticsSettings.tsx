@@ -28,9 +28,12 @@ import {
   getLatestSyncMetadata,
   getSyncPaths,
   importEncryptedSnapshot,
+  SnapshotOlderVersionError,
   removeSyncPath,
   saveSyncPath,
+  type SnapshotVersionComparison,
 } from '@/services/snapshot-sync-service';
+import { SnapshotVersionConflictDialog } from './SnapshotVersionConflictDialog';
 
 function StatusBadge({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
@@ -108,18 +111,42 @@ export function PrivacySyncAnalyticsSettings() {
     onError: (error: Error) => showError(error.message),
   });
 
+  const [pendingImport, setPendingImport] = useState<{
+    file: File;
+    comparison: SnapshotVersionComparison;
+  } | null>(null);
+
   const importSnapshotMutation = useMutation({
-    mutationFn: importEncryptedSnapshot,
+    mutationFn: ({ file, acknowledgeOlder }: { file: File; acknowledgeOlder?: boolean }) =>
+      importEncryptedSnapshot(file, { acknowledgeOlder }),
     onSuccess: (snapshot) => {
+      queryClient.invalidateQueries({ queryKey: ['sync-metadata-latest'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
       queryClient.invalidateQueries({ queryKey: ['portfolios'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio-positions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      setPendingImport(null);
       showSuccess(t('privacy.privacySync.importSuccess').replace('{version}', String(snapshot.snapshot_version)));
     },
-    onError: (error: Error) => showError(error.message),
+    // RES-4: Die Fläche fragt nicht vorher, ob sie darf — sie reagiert auf
+    // die Absage. Der Service ist der einzige Ort, der über den Versionsstand
+    // entscheidet (SnapshotOlderVersionError trägt den Vergleich mit), und
+    // eine zweite Meinung in der Oberfläche könnte davon abdriften. Der
+    // Preis: Auf dem Konfliktpfad wird die Datei zweimal entschlüsselt —
+    // seltener Fall, kleine Datei, dafür genau ein Codepfad.
+    onError: (error: Error, variables) => {
+      if (error instanceof SnapshotOlderVersionError) {
+        setPendingImport({ file: variables.file, comparison: error.comparison });
+        return;
+      }
+      showError(error.message);
+    },
   });
+
+  const handleImportFileSelected = (file: File) => {
+    importSnapshotMutation.mutate({ file });
+  };
 
   const addPath = () => {
     if (!pathHint.trim()) {
@@ -201,7 +228,8 @@ export function PrivacySyncAnalyticsSettings() {
         <Alert className="border-positive/20 bg-positive/10">
           <Sparkles className="h-4 w-4 text-positive" />
           <AlertDescription className="text-sm text-positive">
-            <strong>Gedanke für künftig:</strong> {t('privacy.privacySync.futureNote')}
+            <strong>{t('privacy.privacySync.futureNoteLabel')}</strong>{' '}
+            {t('privacy.privacySync.futureNote')}
           </AlertDescription>
         </Alert>
 
@@ -289,7 +317,7 @@ export function PrivacySyncAnalyticsSettings() {
                 disabled={!encryption.unlocked || importSnapshotMutation.isPending}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
-                  if (file) importSnapshotMutation.mutate(file);
+                  if (file) void handleImportFileSelected(file);
                   event.currentTarget.value = '';
                 }}
               />
@@ -338,6 +366,17 @@ export function PrivacySyncAnalyticsSettings() {
           </p>
         </div>
       </CardContent>
+
+      <SnapshotVersionConflictDialog
+        comparison={pendingImport?.comparison ?? null}
+        open={pendingImport !== null}
+        onCancel={() => setPendingImport(null)}
+        onConfirm={() => {
+          if (pendingImport) {
+            importSnapshotMutation.mutate({ file: pendingImport.file, acknowledgeOlder: true });
+          }
+        }}
+      />
     </Card>
   );
 }

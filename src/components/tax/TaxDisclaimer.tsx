@@ -1,4 +1,4 @@
-import InfoButton from '@/components/common/InfoSheet';
+import InfoButton from '@/features/shared/presentation/InfoSheet';
 import { useI18n } from '@/i18n/useI18n';
 
 export function TaxDisclaimer() {

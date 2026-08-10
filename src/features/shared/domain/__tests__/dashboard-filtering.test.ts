@@ -15,10 +15,11 @@ import {
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
 import type { ContractDecision } from "@/lib/contract-types";
 import type { Account, Category, Transaction, TransactionAllocation } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 
 const NOW = new Date("2024-06-15T12:00:00Z");
 
-function tx(partial: Partial<Transaction> & { id: string; date: string }): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id: string; date: string }): Transaction {
   return {
     payee: "",
     description: "",
@@ -30,6 +31,7 @@ function tx(partial: Partial<Transaction> & { id: string; date: string }): Trans
     auto_mapped: false,
     confirmed: false,
     ...partial,
+    id: asTransactionId(partial.id),
   } as Transaction;
 }
 

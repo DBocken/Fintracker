@@ -67,16 +67,24 @@ export async function migrateForecastOverridesFromLocalStorage(): Promise<boolea
   }
 }
 
-/** Liest die gespeicherten Overrides (mit Defaults für fehlende Felder). */
+/**
+ * Liest die gespeicherten Overrides (mit Defaults für fehlende Felder).
+ *
+ * [REGRESSION] (WP 1.7) Vorher fing diese Funktion JEDEN Fehler von
+ * `loadAndMaybeDecrypt` ab und lieferte `cloneDefaults()` — auch einen
+ * `VaultCorruptError` (WP 1.1). Das sah aus wie „du hast nichts eingestellt",
+ * obwohl Einstellungen vorhanden und nur nicht lesbar waren. `null` (Key
+ * existiert nicht) bleibt weiterhin der echte Leerzustand — `normalize(null)`
+ * liefert dafür bereits die Defaults, ganz ohne Catch. Alles andere
+ * (`VaultCorruptError`, `LocalEncryptionLockedError`) wird durchgereicht; die
+ * aufrufende Fläche (`useForecastOverrides`) trägt das über das
+ * Query-Error-Muster.
+ */
 export async function getForecastOverrides(): Promise<ForecastOverrides> {
   if (typeof window === 'undefined') return cloneDefaults();
-  try {
-    await migrateForecastOverridesFromLocalStorage();
-    const stored = await localEncryption.loadAndMaybeDecrypt<Partial<ForecastOverrides>>(FORECAST_OVERRIDES_STORAGE_KEY);
-    return normalize(stored);
-  } catch {
-    return cloneDefaults();
-  }
+  await migrateForecastOverridesFromLocalStorage();
+  const stored = await localEncryption.loadAndMaybeDecrypt<Partial<ForecastOverrides>>(FORECAST_OVERRIDES_STORAGE_KEY);
+  return normalize(stored);
 }
 
 /** Persistiert die Overrides im verschlüsselbaren lokalen Store. */

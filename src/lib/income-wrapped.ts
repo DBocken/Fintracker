@@ -5,7 +5,7 @@
  */
 import type { Category, Transaction } from "@/types";
 import { deriveIncomeStreams, type IncomeStreamsResult } from "./income-streams";
-import { buildIncomeOverTime } from "./analysis-data";
+import { buildIncomeOverTime } from "./chart-data/income-breakdown";
 import { buildShareCardData, type ShareCardData } from "./share-card";
 
 export interface WrappedStats {

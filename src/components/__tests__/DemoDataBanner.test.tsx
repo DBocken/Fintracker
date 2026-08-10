@@ -16,8 +16,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen } from '@testing-library/react';
-import { renderWithProviders } from '@/test-utils/render';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { renderWithProviders, createHookWrapper } from '@/test-utils/render';
 import { DEMO_ACTIVE_KEY } from '@/services/demo-data-service';
 import DemoDataBanner from '../DemoDataBanner';
 
@@ -45,5 +47,26 @@ describe('DemoDataBanner', () => {
     // Gegenprobe: `initialData` darf den Banner nicht dauerhaft einblenden.
     const { container } = renderWithProviders(<DemoDataBanner />, { query: true });
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('[REGRESSION] [PERF-5] sollte beim Entfernen die Finanz-Domäne neu laden, aber Trading unberührt lassen', async () => {
+    localStorage.setItem(DEMO_ACTIVE_KEY, 'true');
+    const { wrapper, queryClient } = createHookWrapper({ locale: 'de' });
+    queryClient.setQueryData(['accounts'], []);
+    queryClient.setQueryData(['portfolios'], []);
+
+    render(
+      <MemoryRouter>
+        <DemoDataBanner />
+      </MemoryRouter>,
+      { wrapper },
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Beispieldaten entfernen' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(['accounts'])?.isInvalidated).toBe(true);
+    });
+    expect(queryClient.getQueryState(['portfolios'])?.isInvalidated).toBeFalsy();
   });
 });

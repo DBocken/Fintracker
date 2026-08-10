@@ -15,7 +15,7 @@
  */
 
 import { t } from '@/i18n/serviceT';
-import { toMinor, toMajor, sumMinor } from '@/lib/money';
+import { toMinor, toMajor, sumMinor, type Cents } from '@/lib/money';
 import type { CityDistrict, CityModel } from './city-model';
 
 /** Saldo-Turm: Gold bei Überschuss (Sparrate) … */
@@ -52,7 +52,7 @@ function sideCopy(district: CityDistrict, side: 'left' | 'right'): CityDistrict 
 export function buildCityOverviewModel(expenses: CityModel, income: CityModel): CityOverviewResult {
   const incomeTotalMinor = sumMinor(income.districts.map((d) => toMinor(d.total)));
   const expensesTotalMinor = sumMinor(expenses.districts.map((d) => toMinor(d.total)));
-  const balanceMinor = incomeTotalMinor - expensesTotalMinor;
+  const balanceMinor = (incomeTotalMinor - expensesTotalMinor) as Cents;
 
   const districts: CityDistrict[] = [
     ...income.districts.map((d) => sideCopy(d, 'left')),
@@ -65,7 +65,7 @@ export function buildCityOverviewModel(expenses: CityModel, income: CityModel): 
   if (districts.length > 0 && balanceMinor !== 0) {
     const surplus = balanceMinor > 0;
     const label = surplus ? t('financeCity.balanceSurplus', 'Sparrate') : t('financeCity.balanceDeficit', 'Defizit');
-    const amount = toMajor(Math.abs(balanceMinor));
+    const amount = toMajor(Math.abs(balanceMinor) as Cents);
     districts.splice(income.districts.length, 0, {
       id: OVERVIEW_BALANCE_DISTRICT_ID,
       label,

@@ -4,11 +4,11 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { chartRamp } from '@/lib/chart-colors';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
-import type { IncomeOverTimePoint } from '@/lib/analysis-data';
+import type { IncomeOverTimePoint } from '@/lib/chart-data/income-breakdown';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForStackedData, valueAxisProps } from '@/lib/chart-axis';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });

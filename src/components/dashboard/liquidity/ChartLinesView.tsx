@@ -7,7 +7,7 @@
  */
 import { useId } from 'react';
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import {
   Area,
   CartesianGrid,
@@ -25,7 +25,7 @@ import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { getChartColors } from '@/lib/chart-theme';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { useSeriesSummary } from '@/hooks/useSeriesSummary';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { BAND_LAYERS, eur, fmtDate, type ChartPoint } from './chart-shared';
 
 /**
@@ -43,6 +43,7 @@ export function ChartLinesView({
 }) {
   const money = useMoneyFormat();
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const seriesSummary = useSeriesSummary();
   const colors = getChartColors();
   // Baseline: Daten bauen sich auf; bei prefers-reduced-motion direkt Zielzustand.
@@ -74,10 +75,10 @@ export function ChartLinesView({
         title: t('liquidityReport.liquidityChartCaption'),
         values: chartData.map((point) => point.operating),
         formatValue: (value) => money.mask(eur.format(value)),
-        labelAt: (index) => fmtDate(chartData[index]?.date ?? ''),
+        labelAt: (index) => fmtDate(chartData[index]?.date ?? '', dateFnsLocale),
       })}
       columns={[
-        { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => fmtDate(row.date) },
+        { key: 'date', label: t('balanceChart.dateColumn'), format: (row) => fmtDate(row.date, dateFnsLocale) },
         {
           key: 'operating',
           label: t('liquidityReport.seriesOperating'),
@@ -158,7 +159,7 @@ export function ChartLinesView({
           <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
           <XAxis
             dataKey="date"
-            tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: de })}
+            tickFormatter={(v: string) => format(parseISO(v), 'MMM', { locale: dateFnsLocale })}
             minTickGap={32}
             tick={{ fontSize: 12, fill: colors.axisText }}
             axisLine={{ stroke: colors.axisStroke }}
@@ -172,7 +173,7 @@ export function ChartLinesView({
           <Tooltip
             {...chartTooltipProps({
               formatValue: (v) => money.mask(eur.format(v)),
-              formatLabel: (l) => fmtDate(l),
+              formatLabel: (l) => fmtDate(l, dateFnsLocale),
               seriesLabels,
             })}
           />

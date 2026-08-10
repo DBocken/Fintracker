@@ -1,0 +1,26 @@
+{
+  "_hinweis": [
+    "Roh-`parseFloat`/`Number.parseFloat` mit `replace(',', '.')` sowie `as unknown as` unter src/ (ausser Tests).",
+    "ZWEI FORMEN: Eine blosse ZAHL ist offenes Backlog und darf nur SINKEN — sie bedeutet NICHT \"in Ordnung\",",
+    "sondern \"bekannt und noch nicht behoben\". Ersatz ist parseGermanNumber/parseEuroInput (@/lib/money) bzw.",
+    "parseAtBoundary/safeParseAtBoundary mit einem zod-Schema (@/lib/schemas).",
+    "Ein Objekt { count, reason } ist entschieden — dort ist die Fundstelle begruendet KEINE Datengrenze bzw.",
+    "kein Nutzer-Geldbetrag (reiner Typ-Interop, Debug-Zugriff). Ob eine `as unknown as`-Fundstelle eine echte",
+    "Datengrenze ist, ist nicht maschinell entscheidbar — die Antwort des Repos darauf ist diese Allowlist.",
+    "Start: leer. Jeder neue Eintrag ist eine einmalige, begruendete Entscheidung, kein Freifahrtschein."
+  ],
+  "files": {
+    "src/services/letter-ocr-service.ts": {
+      "count": 2,
+      "reason": "pdf.js-Handles, keine Datengrenze: `PdfDocument` ist absichtlich ein schmales Interface (`numPages`, `destroy`), damit pdfjs-dist-Interna nicht in den Rest der Pipeline durchsickern. `PDFDocumentProxy` erfuellt es strukturell bereits; die Werte stammen aus dem bereits typisierten pdfjs-dist-Client, nicht aus ungeprueften Nutzer-/Netzdaten."
+    },
+    "src/services/local-crypto.ts": {
+      "count": 1,
+      "reason": "Reiner TS-Workaround fuer `Function.prototype.apply`: die Signatur verlangt ein `number[]`-Argumente-Array, ein `Uint8Array`-Subarray ist trotz Array-like-Laufzeitverhalten strukturell inkompatibel. Kein externer/ungeprueften Input beteiligt, keine Datengrenze."
+    },
+    "src/components/categories/CategoryTwoStepSelect.tsx": {
+      "count": 1,
+      "reason": "Schreibender Debug-Zugriff (`window.__DEBUG_CATEGORY_HIERARCHY__ = …`), kein Lesen fremder/ungeprueften Daten — also keine Datengrenze. `window` hat keine Index-Signatur fuer beliebige Zusatzfelder, daher der Cast beim Schreiben."
+    }
+  }
+}

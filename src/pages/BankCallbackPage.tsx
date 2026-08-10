@@ -24,21 +24,12 @@ import { syncAccountTransactions } from '@/services/gocardless-sync-service';
 import { showSuccess, showError } from '@/utils/toast';
 import { isSafeExternalAuthUrl } from '@/lib/safe-url';
 import { logger } from '@/utils/logger';
+import { safeParseAtBoundary } from '@/lib/schemas/boundary';
+import { gocardlessAccountsResponseSchema, type GoCardlessAccount } from '@/lib/schemas/gocardless-account.schema';
 
 export function isSafeBankCallbackAuthLink(link: string | null | undefined, origin?: string): boolean {
   const currentOrigin = origin ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
   return isSafeExternalAuthUrl(link, { allowedOrigins: currentOrigin ? [currentOrigin] : [] });
-}
-
-interface GoCardlessAccount {
-  id: string;
-  currency: string;
-  iban?: string;
-  ownerName?: string;
-  name?: string;
-  product?: string;
-  status?: string;
-  balances?: Array<{ balanceType: string; balanceAmount: { amount: string; currency: string } }>;
 }
 
 export default function BankCallbackPage() {
@@ -60,6 +51,9 @@ export default function BankCallbackPage() {
   useEffect(() => {
     handleCallback();
     loadExistingAccounts();
+    // Bewusst nur beim Mount: `handleCallback`/`loadExistingAccounts` verarbeiten
+    // den OAuth-Callback einmalig; ihre Aufnahme (neue Funktionsidentität bei
+    // jedem Render) würde den Callback bei jedem Render erneut verarbeiten.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,7 +110,23 @@ export default function BankCallbackPage() {
         const result = await gocardlessService.getAccounts(lookupKey);
 
         lastRequisition = result.requisition || null;
-        gotAccounts = (result.accounts || []) as unknown as GoCardlessAccount[];
+
+        // Fremde Bankdaten (Supabase Edge Function -> GoCardless-API) sind eine
+        // echte Datengrenze — ein Cast allein prüft zur Laufzeit nichts. Eine
+        // manipulierte/kaputte Antwort erreicht die Fläche nie, sondern den
+        // Fehlerzustand (GOV-1, coding-guide.md §6).
+        const parsedAccounts = safeParseAtBoundary(
+          gocardlessAccountsResponseSchema,
+          result.accounts || [],
+          'gocardless-accounts',
+        );
+        if (!parsedAccounts.ok) {
+          setRequisitionInfo(lastRequisition);
+          setError(parsedAccounts.error.message);
+          setStatus('error');
+          return;
+        }
+        gotAccounts = parsedAccounts.data;
 
         // Save for UI
         setRequisitionInfo(lastRequisition);
@@ -129,7 +139,7 @@ export default function BankCallbackPage() {
             sessionStorage.setItem('gocardless_requisition_id', resolvedRequisitionId);
           }
 
-          setAccounts(gotAccounts as GoCardlessAccount[]);
+          setAccounts(gotAccounts);
 
           // Complete bank connection setup (needs actual requisition.id)
           if (resolvedRequisitionId) {

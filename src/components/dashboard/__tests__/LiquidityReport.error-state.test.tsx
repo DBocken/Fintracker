@@ -34,5 +34,21 @@ describe('Fehlerzustand der Liquiditäts-Fläche', () => {
     expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Der Nutzer bekommt NICHT die Ausnahme des Speichers zu lesen.
     expect(screen.queryByText(/IndexedDB/i)).toBeNull();
+    // WP 7.1: Der Fehler steht an der STELLE der Prognose, nicht darüber —
+    // sonst rechnet die Fläche daneben weiter aus leeren Daten und sagt, wie
+    // lange das Geld reicht (Gegenstück in
+    // `LiquidityReport.overrides-error-state.test.tsx`).
+    expect(screen.queryByText('Frag dein Geld')).toBeNull();
+  });
+
+  it('[ZUSTAND /liquidity:fehler] sollte (en) den Ladefehler benennen, ohne die technische Meldung zu zeigen', async () => {
+    renderWithProviders(<LiquidityReport />, { query: true, router: true, locale: 'en' });
+
+    await screen.findByText('Your data could not be loaded', {}, { timeout: 4000 });
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.queryByText(/IndexedDB/i)).toBeNull();
+    expect(screen.queryByText('Ask your money')).toBeNull();
   });
 });

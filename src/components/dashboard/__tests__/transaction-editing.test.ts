@@ -9,6 +9,7 @@ import {
 } from '../transaction-details';
 import type { CategorizationResult } from '@/lib/categorization';
 import type { Category, Transaction, Rhythmus } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 // Set up locale for serviceT.ts before each test
 beforeEach(() => {
@@ -30,7 +31,7 @@ afterEach(() => {
 
 describe('Transaction Editing - Draft Management', () => {
   const mockTransaction: Transaction = {
-    id: 'tx-1',
+    id: asTransactionId('tx-1'),
     account_id: 'acc-1',
     date: '2024-06-10',
     amount: -100,
@@ -235,9 +236,9 @@ describe('Transaction Editing - Draft Management', () => {
     });
 
     const recurring = (payee: string, amount: number): Transaction[] => [
-      base({ id: 'a', payee, amount, date: '2024-04-10' }),
-      base({ id: 'b', payee, amount, date: '2024-05-10' }),
-      base({ id: 'c', payee, amount, date: '2024-06-10' }),
+      base({ id: asTransactionId('a'), payee, amount, date: '2024-04-10' }),
+      base({ id: asTransactionId('b'), payee, amount, date: '2024-05-10' }),
+      base({ id: asTransactionId('c'), payee, amount, date: '2024-06-10' }),
     ];
 
     it('hints when the same payee recurs across multiple months', () => {
@@ -256,26 +257,26 @@ describe('Transaction Editing - Draft Management', () => {
 
     it('returns null with too few months', () => {
       const txns = [
-        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-05-10' }),
-        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: asTransactionId('a'), payee: 'Netflix', amount: -13.99, date: '2024-05-10' }),
+        base({ id: asTransactionId('b'), payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
       ];
       expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
     });
 
     it('does not count multiple same-day bookings as recurring', () => {
       const txns = [
-        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
-        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
-        base({ id: 'c', payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: asTransactionId('a'), payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: asTransactionId('b'), payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
+        base({ id: asTransactionId('c'), payee: 'Netflix', amount: -13.99, date: '2024-06-10' }),
       ];
       expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
     });
 
     it('tolerates small price changes but excludes large ones', () => {
       const txns = [
-        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
-        base({ id: 'b', payee: 'Netflix', amount: -14.99, date: '2024-05-10' }),
-        base({ id: 'c', payee: 'Netflix', amount: -50.0, date: '2024-06-10' }), // out of tolerance
+        base({ id: asTransactionId('a'), payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: asTransactionId('b'), payee: 'Netflix', amount: -14.99, date: '2024-05-10' }),
+        base({ id: asTransactionId('c'), payee: 'Netflix', amount: -50.0, date: '2024-06-10' }), // out of tolerance
       ];
       const hint = buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns);
       expect(hint).toBeNull(); // only 2 in tolerance → below threshold
@@ -283,9 +284,9 @@ describe('Transaction Editing - Draft Management', () => {
 
     it('ignores transfers and opposite directions', () => {
       const txns = [
-        base({ id: 'a', payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
-        base({ id: 'b', payee: 'Netflix', amount: -13.99, date: '2024-05-10', is_transfer: true }),
-        base({ id: 'c', payee: 'Netflix', amount: 13.99, date: '2024-06-10' }), // refund, other direction
+        base({ id: asTransactionId('a'), payee: 'Netflix', amount: -13.99, date: '2024-04-10' }),
+        base({ id: asTransactionId('b'), payee: 'Netflix', amount: -13.99, date: '2024-05-10', is_transfer: true }),
+        base({ id: asTransactionId('c'), payee: 'Netflix', amount: 13.99, date: '2024-06-10' }), // refund, other direction
       ];
       expect(buildContractHint({ payee: 'Netflix', amount: -13.99 }, false, txns)).toBeNull();
     });
@@ -318,7 +319,7 @@ describe('Transaction Editing - Modal Scenarios', () => {
   it('sollte Kategoriewechsel von unkategorisiert zu essenziell verarbeiten', () => {
     // Scenario: User opens uncategorized transaction and assigns it to "Wohnen"
     const uncategorizedTx: Transaction = {
-      id: 'tx-1',
+      id: asTransactionId('tx-1'),
       date: '2024-06-10',
       amount: -50,
       payee: 'Hausmeister',
@@ -344,7 +345,7 @@ describe('Transaction Editing - Modal Scenarios', () => {
   it('sollte Vertrags-Flag mit automatisch gewähltem Zyklus umschalten', () => {
     // Scenario: User marks Netflix as a contract
     const tx: Transaction = {
-      id: 'tx-1',
+      id: asTransactionId('tx-1'),
       date: '2024-06-10',
       amount: -13.99,
       payee: 'Netflix',
@@ -368,7 +369,7 @@ describe('Transaction Editing - Modal Scenarios', () => {
   it('sollte unveränderte Kategorie beim Vertrags-Toggle beibehalten', () => {
     // Scenario: Category stays the same, only contract flag changes
     const contractTx: Transaction = {
-      id: 'tx-1',
+      id: asTransactionId('tx-1'),
       date: '2024-06-01',
       amount: -100,
       payee: 'LSW',

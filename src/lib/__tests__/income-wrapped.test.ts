@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildWrappedStats, pickWrappedYear } from '../income-wrapped';
 import type { Transaction, Category } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 const categories: Category[] = [
   { id: 'anstellung', name: 'Anstellung', filters: [], parent_id: null, attributes: { ausgabenklasse: 'einkommen' } },
@@ -11,10 +12,11 @@ const categories: Category[] = [
   { id: 'onlineverkauf', name: 'Online-Verkäufe', filters: [], parent_id: 'verkaeufe', attributes: { ausgabenklasse: 'einkommen' } },
 ];
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: overrides.id ?? crypto.randomUUID(), date: '2025-06-15', amount: 0, payee: '',
+    date: '2025-06-15', amount: 0, payee: '',
     description: '', original_text: '', auto_mapped: false, confirmed: false, ...overrides,
+    id: asTransactionId(overrides.id ?? crypto.randomUUID()),
   };
 }
 

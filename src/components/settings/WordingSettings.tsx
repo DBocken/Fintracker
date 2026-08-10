@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { useI18n } from '@/i18n/useI18n';
 import { lookupTranslation, lookupWorded } from '@/i18n/I18nProvider';
 import { SUPPORTED_WORDINGS, type Wording } from '@/i18n/wording';

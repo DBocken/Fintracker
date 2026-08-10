@@ -20,6 +20,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
+import { firstQueryError } from '@/lib/query-results';
 import type { Portfolio, PortfolioPosition } from '@/types';
 import { useLocalEncryption } from '@/hooks/useLocalEncryption';
 import { isEtoroPosition } from '@/services/quote-service';
@@ -430,7 +431,10 @@ export function useEtoroAccount({ portfolio, positions }: UseEtoroAccountInput) 
   });
 
   const isLoadingPositionsFeed = positionsFeedQueries.some((q) => q.isLoading);
-  const positionsFeedError = positionsFeedQueries.find((q) => q.error)?.error;
+  // `.find(...)?.error` liefert bei keinem Treffer `undefined`, nicht `null` —
+  // `firstQueryError` normalisiert das auf denselben `Error | null`, den jede
+  // andere Abfrage hier schon von `useQuery` bekommt (siehe query-results.ts).
+  const positionsFeedError = firstQueryError(positionsFeedQueries);
   const refetchPositionsFeed = () => positionsFeedQueries.forEach((q) => q.refetch());
 
   // Demo-Konto-P&L (kleiner Zusatzblock im Übersicht-Tab) — teilt sich denselben

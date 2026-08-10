@@ -1,4 +1,4 @@
-import { requireUserId } from './auth-service';
+import { getCurrentUserId } from './auth-service';
 import { t } from '../i18n/serviceT';
 import { logger } from '@/utils/logger';
 import type { Category, Account, UserSettings } from '../types';
@@ -9,7 +9,7 @@ import {
   saveTransactions,
   updateUserSettings,
 } from './transaction-service';
-import { restoreLocalCategories } from './local-settings-service';
+import { LOCAL_USER_ID, restoreLocalCategories } from './local-settings-service';
 import { createAccount, getAccounts } from './account-service';
 import {
   encryptJsonWithPassword,
@@ -22,6 +22,8 @@ import {
   writeLocalFinanceList,
   type LocalFinanceKey,
 } from './local-finance-store';
+import { validateCollectionItems } from '@/lib/schemas/collection-schemas';
+import { canonicalJsonStringify } from '@/lib/stable-json';
 
 /**
  * Collections, die bereits typisiert in `data` liegen (Transaktionen/Konten)
@@ -116,6 +118,19 @@ export async function restoreLocalCollections(
 }
 
 /**
+ * Prüfsumme über die Backup-Nutzlast (WP 1.5, RES-5). Deckt bewusst nur
+ * `data` + `collections` ab — die eigentlichen wiederherstellbaren
+ * Finanzdaten — nicht `version`/`timestamp`/`userId`: Diese Metadaten dürfen
+ * sich zwischen Export und einer späteren Prüfung ändern (z. B. Zeitstempel-
+ * Normalisierung), ohne dass ein unverändertes Backup als "manipuliert" gilt.
+ */
+export interface BackupChecksum {
+  algorithm: 'sha256';
+  /** Hex-kodierter SHA-256-Digest über die kanonisierte (schlüsselsortierte) Nutzlast. */
+  value: string;
+}
+
+/**
  * Complete backup data structure
  */
 export interface BackupData {
@@ -134,6 +149,116 @@ export interface BackupData {
    * Abwärtskompatibilität mit Backups vor v1.1.
    */
   collections?: Record<string, unknown[]>;
+  /**
+   * SHA-256-Prüfsumme über `data`+`collections` (WP 1.5, RES-5). Optional für
+   * Abwärtskompatibilität mit Backups vor v1.2 — ein Backup OHNE Prüfsumme
+   * bleibt importierbar (siehe {@link verifyBackupChecksum}), nur mit
+   * Hinweis. Ein Nutzer, dessen einziges (altes) Backup deswegen abgelehnt
+   * würde, hätte durch diese Änderung Daten verloren statt gewonnen.
+   */
+  checksum?: BackupChecksum;
+}
+
+/** Nutzlast, über die {@link computeBackupChecksum} hasht. */
+type BackupPayload = Pick<BackupData, 'data' | 'collections'>;
+
+/**
+ * Berechnet die SHA-256-Prüfsumme über die Backup-Nutzlast. Kanonisiert die
+ * Nutzlast vorher über `canonicalJsonStringify` (Schlüssel rekursiv
+ * sortiert), damit die Prüfsumme gegen harmlose Neuordnung der JSON-Schlüssel
+ * stabil ist und nur auf tatsächliche Inhaltsänderungen reagiert.
+ * `collections` wird dabei auf `{}` normalisiert, wenn nicht gesetzt — ein
+ * Backup mit `collections: undefined` und eines mit `collections: {}` sind
+ * inhaltlich gleich und müssen dieselbe Prüfsumme ergeben.
+ */
+export async function computeBackupChecksum(payload: BackupPayload): Promise<string> {
+  const canonical = canonicalJsonStringify({ data: payload.data, collections: payload.collections ?? {} });
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export type BackupChecksumVerification = 'ok' | 'missing' | 'mismatch';
+
+/**
+ * Verifiziert die Prüfsumme eines Backups gegen seine Nutzlast (WP 1.5,
+ * RES-5). Reine, unabhängig testbare Funktion — kein Zugriff auf
+ * die Nutzer-Auflösung/Storage, daher ohne Auth-Mock testbar.
+ *
+ * - `'missing'`: kein `checksum`-Feld (Backup vor v1.2) — Aufrufer entscheidet,
+ *   ob trotzdem importiert wird (ja, mit Hinweis — Vorentschieden #2).
+ * - `'mismatch'`: Prüfsumme vorhanden, passt aber nicht zur Nutzlast —
+ *   Nutzlast ist beschädigt oder wurde verändert.
+ * - `'ok'`: Prüfsumme passt.
+ */
+export async function verifyBackupChecksum(backup: Pick<BackupData, 'data' | 'collections' | 'checksum'>): Promise<BackupChecksumVerification> {
+  if (!backup.checksum) return 'missing';
+  const expected = await computeBackupChecksum({ data: backup.data, collections: backup.collections });
+  return expected === backup.checksum.value ? 'ok' : 'mismatch';
+}
+
+/** Aktuelle Backup-Formatversion. Modul-Konstante statt Klassenfeld (siehe {@link isVersionCompatible}). */
+export const BACKUP_VERSION = '1.2.0';
+
+/**
+ * Prüft Backup-Strukturkompatibilität rein über die Major-Version (WP 1.5,
+ * RES-5 — bewusst Major-basiert, siehe Vorentschieden #4: ein Minor-Sprung
+ * darf neue, optionale Felder mitbringen, ohne alte Backups abzulehnen).
+ *
+ * War bis WP 1.5 eine `private`-Methode von `BackupService` — von außen
+ * nicht testbar, obwohl der Vergleich selbst kein internen Zustand braucht.
+ * Jetzt eine eigenständige Modul-Funktion (wie `isForeignBackup` daneben):
+ * kein Grund, dafür eine Instanz zu erzeugen oder die Nutzer-Auflösung zu
+ * mocken, nur um diese eine Zeile zu testen.
+ */
+export function isVersionCompatible(backupVersion: string, currentVersion: string = BACKUP_VERSION): boolean {
+  const [major] = backupVersion.split('.').map(Number);
+  const [currentMajor] = currentVersion.split('.').map(Number);
+  return major === currentMajor;
+}
+
+/**
+ * Liefert einen lokalisierten Warnhinweis, wenn Backup- und aktuelle Version
+ * denselben Major-Stand haben, sich aber im Minor unterscheiden — sonst
+ * `null`. Ergänzt `isVersionCompatible` (Vorentschieden #4): Kompatibilität
+ * bleibt Major-basiert, ein Minor-Unterschied lehnt nichts ab, verdient aber
+ * einen Hinweis (neuere/ältere App-Version könnte Felder anders befüllen).
+ */
+export function getVersionMinorMismatchWarning(
+  backupVersion: string,
+  currentVersion: string = BACKUP_VERSION,
+): string | null {
+  const [, backupMinor] = backupVersion.split('.').map(Number);
+  const [, currentMinor] = currentVersion.split('.').map(Number);
+  if (!Number.isFinite(backupMinor) || !Number.isFinite(currentMinor) || backupMinor === currentMinor) {
+    return null;
+  }
+  return t(
+    'backup.service.versionMinorMismatch',
+    'Die Backup-Version {backupVersion} unterscheidet sich von der aktuellen Version {currentVersion} — einzelne Felder könnten fehlen oder abweichen.',
+  )
+    .replace('{backupVersion}', backupVersion)
+    .replace('{currentVersion}', currentVersion);
+}
+
+/**
+ * Prüft die Top-Level-Struktur eines Backups (WP 1.2/1.5). War bis WP 1.5
+ * eine `private`-Methode von `BackupService` — siehe Begründung bei
+ * {@link isVersionCompatible}, dieselbe Testbarkeits-Lücke, dieselbe Lösung.
+ */
+export function validateBackup(data: unknown): data is BackupData {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return (
+    !!d.version &&
+    !!d.timestamp &&
+    !!d.userId &&
+    !!d.data &&
+    typeof d.data === 'object' &&
+    Array.isArray((d.data as Record<string, unknown>).transactions) &&
+    Array.isArray((d.data as Record<string, unknown>).categories) &&
+    Array.isArray((d.data as Record<string, unknown>).accounts) &&
+    typeof (d.data as Record<string, unknown>).settings === 'object'
+  );
 }
 
 export type EncryptedBackupFileV1 = {
@@ -152,16 +277,110 @@ export function isForeignBackup(backup: Pick<BackupData, 'userId'>, currentUserI
 }
 
 /**
+ * Verhältnis der Besitzer-Kennung eines Backups zur aktuellen Kennung.
+ *
+ * `isForeignBackup` daneben kennt nur „gleich/ungleich" — und genau das war
+ * seit WP 7.3 zu grob: Anonym erstellte Sicherungen tragen seither
+ * `LOCAL_USER_ID`. Meldet sich derselbe Mensch später an und spielt seine
+ * EIGENE Datei ein, sind die Kennungen ungleich, und die Oberfläche behauptete
+ * „mit einem anderen Benutzerkonto erstellt". Vor WP 7.3 war der Pfad
+ * unerreichbar (anonyme Sicherung warf), die Falschaussage ist also neu und
+ * von uns erzeugt.
+ *
+ * Drei Fälle statt zwei — und die Einstufung gehört hierher, weil nur der
+ * Service beide Kennungen kennt; die Oberfläche sah bisher nur `FOREIGN_BACKUP`
+ * und konnte deshalb gar nichts anderes sagen.
+ */
+export type BackupOwnership =
+  /** Gleiche Kennung — keine Rückfrage nötig. */
+  | 'same'
+  /** Ohne angemeldetes Konto erstellt und wird jetzt einem Konto zugeordnet. */
+  | 'localToAccount'
+  /** Andere Konto-Kennung — der echte Fremdfall. */
+  | 'otherAccount';
+
+/** Besitzverhältnis ohne den Fall „gleich" — die beiden bestätigungspflichtigen. */
+export type ForeignBackupOwnership = Exclude<BackupOwnership, 'same'>;
+
+export function classifyBackupOwnership(
+  backup: Pick<BackupData, 'userId'>,
+  currentUserId: string,
+): BackupOwnership {
+  // Bewusst der direkte Vergleich (wie bisher in `restoreBackup`) und nicht
+  // `isForeignBackup`: Letzteres wertet eine LEERE Kennung als „nicht fremd"
+  // und würde hier still ein anderes Ergebnis liefern als der Merge-Schutz.
+  if (backup.userId === currentUserId) return 'same';
+  // In diesem Zweig ist `currentUserId` zwangsläufig eine andere Kennung, also
+  // ein angemeldetes Konto — die lokale Herkunft allein entscheidet.
+  return backup.userId === LOCAL_USER_ID ? 'localToAccount' : 'otherAccount';
+}
+
+/**
+ * Fehler, der eine nicht bestätigte Wiederherstellung abbricht.
+ *
+ * Die Meldung bleibt wörtlich `FOREIGN_BACKUP`: Aufrufstellen und Tests prüfen
+ * seit Issue #30 genau diese Zeichenkette. Neu ist nur das mitgeführte
+ * Besitzverhältnis — additiv, damit vorhandene Prüfungen unverändert greifen.
+ */
+export class ForeignBackupError extends Error {
+  readonly ownership: ForeignBackupOwnership;
+
+  constructor(ownership: ForeignBackupOwnership) {
+    super('FOREIGN_BACKUP');
+    this.name = 'ForeignBackupError';
+    this.ownership = ownership;
+  }
+}
+
+/**
+ * Liest das Besitzverhältnis aus einem abgefangenen Fehler — `null`, wenn der
+ * Fehler nichts damit zu tun hat.
+ *
+ * Ein roher `Error('FOREIGN_BACKUP')` (älterer Stand, Testdoubles) wird
+ * weiterhin als Fremdkonto gelesen: dieselbe Auskunft wie vor dieser Änderung.
+ */
+export function backupOwnershipFromError(error: unknown): ForeignBackupOwnership | null {
+  if (error instanceof ForeignBackupError) return error.ownership;
+  if (error instanceof Error && error.message === 'FOREIGN_BACKUP') return 'otherAccount';
+  return null;
+}
+
+/**
+ * Besitzer-Kennung für Sicherung und Wiederherstellung — angemeldet die
+ * Konto-Kennung, sonst `LOCAL_USER_ID`.
+ *
+ * Bis WP 7.3 stand hier `requireUserId()`, das ohne angemeldete Sitzung wirft.
+ * Damit war die Sicherung ausgerechnet im Normalfall dieser App unbenutzbar:
+ * local-first, anonym gestartet, Daten in IndexedDB (AGENTS.md §1). Sichtbar
+ * wurde es erst im echten Browser (E2E, WP 7.3) — die Karte „Aktueller
+ * Datenbestand" meldete „Deine Daten konnten nicht geladen werden", und der
+ * Export lieferte gar keine Datei. Die Unit-Suite sah nichts davon, weil jeder
+ * bestehende Backup-Test `requireUserId` auf eine feste Kennung mockt und
+ * damit nur den angemeldeten Fall beschreibt.
+ *
+ * `(await getCurrentUserId()) || LOCAL_USER_ID` ist dabei keine Erfindung
+ * dieser Datei, sondern die Form, die neun weitere Services bereits benutzen
+ * (`account-service`, `debt-service`, `claim-service`, `portfolio-service`, …)
+ * — und es ist genau die Kennung, unter der diese Services anonym schreiben.
+ * Damit greift auch der Kategorie-Filter in `createBackup()` wieder
+ * (`user_id === userId`), der anonym vorher nie zutreffen konnte.
+ *
+ * Der Fremd-Backup-Schutz bleibt: Eine Datei mit fremder Konto-Kennung trifft
+ * auf `LOCAL_USER_ID` und wird weiterhin als fremd erkannt.
+ */
+async function resolveBackupUserId(): Promise<string> {
+  return (await getCurrentUserId()) || LOCAL_USER_ID;
+}
+
+/**
  * Backup service for exporting and importing complete user data
  */
 class BackupService {
-  private readonly BACKUP_VERSION = '1.1.0';
-
   /**
    * Create a complete backup of all user data
    */
   async createBackup(): Promise<BackupData> {
-    const userId = await requireUserId();
+    const userId = await resolveBackupUserId();
 
     // Fetch all user data
     const [transactions, categories, accounts, settings, collections] = await Promise.all([
@@ -172,17 +391,27 @@ class BackupService {
       snapshotLocalCollections(),
     ]);
 
+    const data = {
+      transactions: transactions || [],
+      categories: categories.filter(c => c.user_id === userId || !c.user_id),
+      accounts: accounts,
+      settings,
+    };
+
+    // Prüfsumme über die Nutzlast (WP 1.5, RES-5) — schützt gegen teilkorrupte,
+    // aber strukturell gültige Dateien, die sonst "erfolgreich" importieren.
+    const checksum: BackupChecksum = {
+      algorithm: 'sha256',
+      value: await computeBackupChecksum({ data, collections }),
+    };
+
     return {
-      version: this.BACKUP_VERSION,
+      version: BACKUP_VERSION,
       timestamp: new Date().toISOString(),
       userId,
-      data: {
-        transactions: transactions || [],
-        categories: categories.filter(c => c.user_id === userId || !c.user_id),
-        accounts: accounts,
-        settings,
-      },
+      data,
       collections,
+      checksum,
     };
   }
 
@@ -202,7 +431,21 @@ class BackupService {
     }
     // Broker-Zugangsdaten (eToro apiKey/userKey) NIE in einen Klartext-Export
     // schreiben — deutlich sensibler als die übrigen Finanzdaten (T1.10 / F-DEBT-1).
-    const data = redactPortfolioSecrets(backup || await this.createBackup());
+    const redacted = redactPortfolioSecrets(backup || await this.createBackup());
+    // Prüfsumme NACH der Redaktion neu berechnen (WP 1.5): `createBackup()`
+    // hat sie über die volle, unredigierte Nutzlast berechnet. Ohne diesen
+    // Schritt würde ein Restore genau dieser (unveränderten) Exportdatei
+    // fälschlich 'mismatch' melden, weil die entfernten Broker-Secrets die
+    // Nutzlast verändert haben, ohne dass die Prüfsumme mitgezogen wurde.
+    const data: BackupData = redacted.checksum
+      ? {
+          ...redacted,
+          checksum: {
+            algorithm: 'sha256',
+            value: await computeBackupChecksum({ data: redacted.data, collections: redacted.collections }),
+          },
+        }
+      : redacted;
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     
@@ -264,9 +507,9 @@ class BackupService {
         try {
           const json = e.target?.result as string;
           const data = JSON.parse(json);
-          
+
           // Validate backup structure
-          if (!this.validateBackup(data)) {
+          if (!validateBackup(data)) {
             throw new Error(t('backup.service.invalidFormat'));
           }
 
@@ -309,30 +552,18 @@ class BackupService {
   }
 
   /**
-   * Validate backup structure
-   */
-  private validateBackup(data: unknown): data is BackupData {
-    if (!data || typeof data !== 'object') return false;
-    const d = data as Record<string, unknown>;
-    return (
-      !!d.version &&
-      !!d.timestamp &&
-      !!d.userId &&
-      !!d.data &&
-      typeof d.data === 'object' &&
-      Array.isArray((d.data as Record<string, unknown>).transactions) &&
-      Array.isArray((d.data as Record<string, unknown>).categories) &&
-      Array.isArray((d.data as Record<string, unknown>).accounts) &&
-      typeof (d.data as Record<string, unknown>).settings === 'object'
-    );
-  }
-
-  /**
    * Restore data from backup.
    *
    * Fremd-Backups (andere user_id) werden nicht still importiert (Issue #30):
    * ohne `allowForeign` wirft die Methode FOREIGN_BACKUP, damit die UI eine
    * ausdrückliche Warnung/Bestätigung anzeigen kann.
+   *
+   * WP 1.5 (RES-5): zusätzlich Prüfsumme verifizieren (manipulierte, aber
+   * strukturell gültige Dateien werden abgelehnt — fehlende Prüfsumme bei
+   * älteren Backups bleibt dagegen nur ein Hinweis, kein Ablehnungsgrund) und
+   * jedes Item der abgedeckten Collections gegen sein Schema prüfen
+   * (überspringen + zählen, nie alles-oder-nichts — dieselbe Registry wie
+   * WP 1.2, `@/lib/schemas/collection-schemas`).
    */
   async restoreBackup(
     backupData: BackupData,
@@ -340,26 +571,55 @@ class BackupService {
   ): Promise<{
     success: boolean;
     message: string;
+    /** Lokalisierte Hinweise, die den Import NICHT verhindert haben (fehlende Prüfsumme, Minor-Versionsunterschied, übersprungene Items). */
+    warnings: string[];
     details: {
       transactions: number;
       categories: number;
       accounts: number;
       settings: boolean;
       collections: number;
+      /** Anzahl der Items, die ihr Collection-Schema nicht erfüllt haben und deshalb NICHT importiert wurden. */
+      skippedItems: number;
     };
   }> {
     try {
-      const userId = await requireUserId();
+      const userId = await resolveBackupUserId();
+      const warnings: string[] = [];
 
-      // Validate version compatibility
-      if (!this.isVersionCompatible(backupData.version)) {
+      // Validate version compatibility (Major-basiert, Vorentschieden #4).
+      if (!isVersionCompatible(backupData.version)) {
         throw new Error(t('backup.service.versionIncompatible', 'Backup-Version {version} ist nicht kompatibel').replace('{version}', backupData.version));
+      }
+      const minorMismatchWarning = getVersionMinorMismatchWarning(backupData.version);
+      if (minorMismatchWarning) warnings.push(minorMismatchWarning);
+
+      // Prüfsumme verifizieren (WP 1.5, RES-5). 'mismatch' bricht ab —
+      // 'missing' (altes Backup vor v1.2) bleibt importierbar, nur mit Hinweis
+      // (Vorentschieden #2: sonst verliert ein Nutzer mit genau einem alten
+      // Backup durch diese Änderung Daten statt sie zu schützen).
+      const checksumStatus = await verifyBackupChecksum(backupData);
+      if (checksumStatus === 'mismatch') {
+        throw new Error(
+          t(
+            'backup.service.checksumMismatch',
+            'Die Prüfsumme des Backups stimmt nicht mit dem Inhalt überein — die Datei ist beschädigt oder wurde verändert.',
+          ),
+        );
+      }
+      if (checksumStatus === 'missing') {
+        warnings.push(
+          t(
+            'backup.service.checksumMissing',
+            'Dieses Backup enthält keine Prüfsumme (älteres Format) — der Inhalt konnte nicht automatisch verifiziert werden.',
+          ),
+        );
       }
 
       // Check if backup belongs to current user.
-      const belongsToCurrentUser = backupData.userId === userId;
-      if (!belongsToCurrentUser && !options?.allowForeign) {
-        throw new Error('FOREIGN_BACKUP');
+      const ownership = classifyBackupOwnership(backupData, userId);
+      if (ownership !== 'same' && !options?.allowForeign) {
+        throw new ForeignBackupError(ownership);
       }
 
       let results = {
@@ -368,25 +628,53 @@ class BackupService {
         accounts: 0,
         settings: false,
         collections: 0,
+        skippedItems: 0,
       };
 
+      // Item-Validierung (WP 1.2/1.5, RES-2/RES-5): kaputte Items werden VOR
+      // dem Schreiben übersprungen und gezählt, statt sie in den Store zu
+      // schreiben und erst beim nächsten Lesen zu bemerken ("nicht Monate
+      // später"). Bewusst NICHT über `recordSkipped`/`data-integrity-report`
+      // gemeldet: dieser Bericht gilt für den JEWEILS LETZTEN Lesevorgang
+      // einer Collection (siehe dortige Doku) — `restoreTransactions`/
+      // `restoreLocalCollections` lesen dieselbe Collection intern selbst
+      // (`getTransactions`, `readLocalFinanceList`), und jeder GENUINE
+      // Folge-Lesevorgang danach liest den jetzt bereinigten Bestand (0
+      // übersprungen, korrekt) — würde also den hier gesetzten Befund sofort
+      // wieder überschreiben. Der Restore-Befund gehört stattdessen in den
+      // Rückgabewert dieser Methode (`details.skippedItems`/`warnings`),
+      // der nicht durch einen späteren, unabhängigen Lesevorgang veraltet.
+      const { valid: validTransactions, skippedCount: skippedTransactions } = validateCollectionItems(
+        'transactions',
+        backupData.data.transactions,
+      );
+      results.skippedItems += skippedTransactions;
+
+      const { valid: validAccounts, skippedCount: skippedAccounts } = validateCollectionItems(
+        'accounts',
+        backupData.data.accounts,
+      );
+      results.skippedItems += skippedAccounts;
+
       // Restore transactions
-      if (backupData.data.transactions.length > 0) {
+      if (validTransactions.length > 0) {
         results.transactions = await this.restoreTransactions(
           userId,
-          backupData.data.transactions
+          validTransactions
         );
       }
 
-      // Restore categories (only user-owned categories)
+      // Restore categories (only user-owned categories). Kategorien sind
+      // NICHT in der Schema-Registry abgedeckt (Vorentschieden #3 aus WP 1.2 —
+      // siehe `collection-schemas.ts`), deshalb keine Item-Validierung hier.
       const userCategories = backupData.data.categories.filter((c: Category) => c.user_id);
       if (userCategories.length > 0) {
         results.categories = await this.restoreCategories(userId, userCategories);
       }
 
       // Restore accounts
-      if (backupData.data.accounts.length > 0) {
-        results.accounts = await this.restoreAccounts(userId, backupData.data.accounts);
+      if (validAccounts.length > 0) {
+        results.accounts = await this.restoreAccounts(userId, validAccounts);
       }
 
       // Restore settings
@@ -394,15 +682,44 @@ class BackupService {
         results.settings = await this.restoreSettings(userId, backupData.data.settings);
       }
 
-      // Übrige Collections nicht-destruktiv per stabiler ID mergen.
-      const restoredCollections = await restoreLocalCollections(backupData.collections);
+      // Übrige Collections: Items je Collection gegen ihr Schema prüfen,
+      // dann nicht-destruktiv per stabiler ID mergen.
+      const validatedCollections = backupData.collections
+        ? Object.fromEntries(
+            Object.entries(backupData.collections).map(([key, items]) => {
+              if (!Array.isArray(items)) return [key, items];
+              const { valid, skippedCount } = validateCollectionItems(key, items);
+              results.skippedItems += skippedCount;
+              return [key, valid];
+            }),
+          )
+        : undefined;
+      const restoredCollections = await restoreLocalCollections(validatedCollections);
       results.collections = Object.values(restoredCollections).reduce((sum, n) => sum + n, 0);
+
+      if (results.skippedItems > 0) {
+        warnings.push(
+          results.skippedItems === 1
+            ? t('backup.service.itemsSkippedOne', 'Ein Eintrag im Backup war beschädigt und wurde beim Wiederherstellen übersprungen.')
+            : t(
+                'backup.service.itemsSkipped',
+                '{count} Einträge im Backup waren beschädigt und wurden beim Wiederherstellen übersprungen.',
+              ).replace('{count}', String(results.skippedItems)),
+        );
+      }
 
       return {
         success: true,
-        message: belongsToCurrentUser
-          ? t('backup.service.restoreSuccess')
-          : t('backup.service.restoreSuccessForeign'),
+        // Der Zusatz in Klammern muss dasselbe sagen wie die Rückfrage davor —
+        // sonst bestätigt man „aus der Nutzung ohne Konto" und liest danach
+        // „aus anderem Benutzerkonto".
+        message:
+          ownership === 'same'
+            ? t('backup.service.restoreSuccess')
+            : ownership === 'localToAccount'
+              ? t('backup.service.restoreSuccessLocal')
+              : t('backup.service.restoreSuccessForeign'),
+        warnings,
         details: results,
       };
     } catch (error) {
@@ -439,13 +756,6 @@ class BackupService {
   }
 
   // ==================== Private Methods ====================
-
-  private isVersionCompatible(backupVersion: string): boolean {
-    // Simple version check - in production, implement semver comparison
-    const [major] = backupVersion.split('.').map(Number);
-    const [currentMajor] = this.BACKUP_VERSION.split('.').map(Number);
-    return major === currentMajor;
-  }
 
   private async fetchTransactions(_userId: string): Promise<import('../types').Transaction[]> {
     try {

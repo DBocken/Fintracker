@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, CheckCircle2, MoreVertical, Sparkles } from "lucide-react";
-import EmptyState from "@/components/common/EmptyState";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
-import { InfoStatStrip } from "@/components/common/InfoGroup";
+import EmptyState from "@/features/shared/presentation/EmptyState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
+import { InfoStatStrip } from "@/features/shared/presentation/InfoGroup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { ReceivableFormDialog } from "@/components/debts/ReceivableFormDialog";
 import type { Receivable, Transaction } from "@/types";
+import type { TransactionId } from "@/lib/ids";
 import { getTransactions } from "@/services/transaction-service";
 import {
   getReceivables,
@@ -173,11 +174,11 @@ export function ReceivablesPanel() {
 
   // Vorgeschlagene (auch kleine) Rückzahlungen für die ausgewählte Forderung.
   const suggestedIds = useMemo(() => {
-    if (!selectedReceivable) return new Set<string>();
+    if (!selectedReceivable) return new Set<TransactionId>();
     return new Set(
       suggestReceivableRepayments(selectedReceivable, incomingTransactions)
         .map((t) => t.id)
-        .filter((id): id is string => !!id),
+        .filter((id): id is TransactionId => !!id),
     );
   }, [selectedReceivable, incomingTransactions]);
 

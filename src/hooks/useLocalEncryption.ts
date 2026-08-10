@@ -13,6 +13,7 @@
  * Oberfläche auskommt.
  */
 import { createContext, useContext } from 'react';
+import type { AutoLockSetting } from '@/services/local-crypto';
 
 export type LocalEncryptionContextValue = {
   enabled: boolean;
@@ -21,6 +22,12 @@ export type LocalEncryptionContextValue = {
   unlock: (password: string) => Promise<void>;
   enable: (password: string) => Promise<void>;
   disable: (password: string) => Promise<void>;
+  /** WP 3.2 (SEC-2): aktuelle Auto-Lock-Frist (Minuten, oder `'never'`). */
+  autoLockMinutes: AutoLockSetting;
+  setAutoLockMinutes: (value: AutoLockSetting) => void;
+  /** WP 3.2 (SEC-2): Lock bei `visibilitychange` → `hidden`. Standard: aus. */
+  lockOnHidden: boolean;
+  setLockOnHidden: (value: boolean) => void;
   refresh: () => void;
 };
 

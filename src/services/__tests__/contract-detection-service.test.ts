@@ -8,10 +8,10 @@ vi.mock("../transaction-service", () => ({
 }));
 
 import { detectRecurringTransactions, findSimilarContractTransactions } from "../contract-detection-service";
+import { asTransactionId } from '@/lib/ids';
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: crypto.randomUUID(),
     date: "2026-01-15",
     amount: -10,
     payee: "Test",
@@ -22,6 +22,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
     is_transfer: false,
     account_id: "acc-1",
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId(crypto.randomUUID()),
   };
 }
 

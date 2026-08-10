@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { InfoStatStrip, type InfoStat } from '@/components/common/InfoGroup';
+import { InfoStatStrip, type InfoStat } from '@/features/shared/presentation/InfoGroup';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
 import { useForecast } from '@/hooks/useForecast';
@@ -81,7 +81,7 @@ export default function IncomeStressTestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {stream ? t('income.stress.dialogTitle').replace('{name}', stream.label) : ''}

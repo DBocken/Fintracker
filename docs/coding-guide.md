@@ -33,7 +33,12 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - `strict` bleibt an. **Kein** `as any`, **kein** `as unknown as` an Datengrenzen.
 - Domänentypen zentral in `src/types.ts` (Transaction, Account, Category, Budget,
   Debt, Claim, Contract, Backup, Vault, EncryptionState, FeatureFlag, Tier).
-- `api/` und `mcp-poc/` gehören in den Typecheck.
+- `api/` und `mcp-poc/` sind im Typecheck — `pnpm typecheck:api` und
+  `pnpm typecheck:mcp-poc`, beide in CI. Das Root-`tsconfig.json` includiert
+  bewusst nur `src` + `vitest.setup.ts` (Browser-Ziel: DOM, JSX,
+  `moduleResolution: bundler`); die beiden Node-Ziele haben deshalb eigene
+  Konfigurationen. Bis WP 2.4 stand dieser Satz hier, ohne dass er zutraf —
+  ausgerechnet der Token-Endpunkt kompilierte ungeprüft.
 
 ## 4. Money-Handling (verbindlich)
 
@@ -41,8 +46,25 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
   Nie roher Float-Vergleich, nie `toFixed` für Berechnung.
 - **Ein** Eingabe-Parser: `parseGermanNumber`/`parseEuroInput` (money.ts).
   Roh-`parseFloat(x.replace(',','.'))` ist **verboten** (liest „1.200" falsch).
-- **EUR-only** (VE-1). Nicht-EUR-Buchungen werden abgewiesen oder sichtbar als
-  „nicht verrechnet" markiert, nie stumm summiert.
+- **EUR-only** (VE-1, ADR `docs/architecture/currency-eur-only.md`). Es gibt
+  keine Kursquelle und keine Umrechnung. **Summiert wird nur Gleichwährendes:**
+  `getPortfolioSummary` rechnet in der Depotwährung, `getNetWorthBreakdown` in
+  Euro; was daneben liegt, steht sichtbar als „nicht verrechnet" daneben
+  (`UnconvertedCurrencyNotice`), nie stumm in der Summe. Zerlegt wird das an
+  einer Stelle: `src/lib/portfolio-currency.ts`.
+- **Der Kontodialog bietet nur EUR an.** Ein Fremdwährungskonto ist über die
+  Oberfläche nicht mehr neu anlegbar (`AccountFormDialog.tsx`,
+  `waehrungsOptionen()`); trägt ein **bestehendes** Konto bereits eine andere
+  Währung, bleibt genau diese wählbar, damit das Speichern sie nicht
+  stillschweigend auf EUR umschreibt. Wer eine neue Währungsauswahl irgendwo
+  einbaut, macht damit einen Wert wählbar, den keine Rechnung liest.
+- **Offener Rest von VE-1 (Stand VE-1 „Blutung stoppen"):** Auf der
+  **Buchungsseite** gilt EUR-only noch nicht. `Account.currency` wird
+  gespeichert und angezeigt, aber von keiner Rechnung gelesen — Saldo und
+  Buchungen eines Bestands-Fremdwährungskontos gehen 1:1 als Euro in `cash`,
+  `sumIncome`/`sumExpenses`, Budgets, Prognose und EÜR ein. Wer das schließt,
+  entscheidet zuerst über die **Buchungen**; Details im „Preis"-Abschnitt des
+  ADR.
 
 ## 5. Finanzlogik & Invarianten
 

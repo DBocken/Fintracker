@@ -184,6 +184,9 @@ export function useTradingPortfolio() {
     }, 60000);
 
     return () => clearInterval(interval);
+  // `refreshQuotesMutation` bewusst nicht in den Deps: Es ist ein react-query-
+  // Mutations-Objekt mit stabiler `mutate`-Funktion — sein Einschluss würde
+  // das 60-Sekunden-Intervall bei jedem Render neu aufsetzen statt laufen zu lassen.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions]);
 
@@ -268,6 +271,7 @@ export function useTradingPortfolio() {
 
     // Kursanbieter
     quoteProvider,
+    preferredProvider,
     handleProviderChange,
 
     // Kursaktualisierung

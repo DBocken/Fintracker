@@ -1,4 +1,4 @@
-import type { Locale } from '../translations';
+import type { Locale } from '../locale';
 import type { Wording } from '../wording';
 import type { TranslationOverlay } from './types';
 import { everydayDe } from './everyday/de';

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders, renderWithI18n } from '@/test-utils/render';
 import type { Account, Category, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { DEFAULT_DASHBOARD_FILTERS, DEFAULT_CUSTOM_GRANULARITY } from '@/features/shared/domain/dashboard-filters';
 import type { TransactionsOverviewViewModel } from '../../application/transactions-overview-view-model';
 import { TransactionsListPane } from '../shared/TransactionsListPane';
@@ -57,7 +58,7 @@ const FIXTURE_ACCOUNTS: Account[] = [
 ];
 
 const FIXTURE_TRANSACTIONS: Transaction[] = [
-  { id: 'tx-1', date: '2026-05-05', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-1'), date: '2026-05-05', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
 ];
 
 const noop = () => {};
@@ -89,6 +90,7 @@ function buildModel(overrides: Partial<TransactionsOverviewViewModel> = {}): Tra
       detailsSaving: false,
       retry: noop,
     },
+    integrity: { skippedTransactionsCount: 0 },
     ...overrides,
   };
 }

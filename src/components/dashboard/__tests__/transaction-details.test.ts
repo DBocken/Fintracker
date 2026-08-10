@@ -8,6 +8,7 @@ import {
   resolveCategorySelection,
   type TransactionDetailDraft,
 } from '../transaction-details';
+import { asTransactionId } from '@/lib/ids';
 
 // Set up locale for serviceT.ts before each test
 beforeEach(() => {
@@ -18,9 +19,8 @@ afterEach(() => {
   window.localStorage.removeItem('ausgabentracker_locale_v1');
 });
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: 't1',
     date: '2026-01-01',
     amount: -10,
     payee: 'Test',
@@ -29,6 +29,13 @@ function tx(partial: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...partial,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in partial
+      ? (partial.id === undefined ? undefined : asTransactionId(partial.id))
+      : asTransactionId('t1'),
   };
 }
 

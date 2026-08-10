@@ -8,10 +8,12 @@ import {
   DEMO_ID_PREFIX,
 } from "../demo-data-service";
 import { readLocalFinanceList, writeLocalFinanceList } from "../local-finance-store";
+import { getTransactions, saveTransactions } from "../transaction-service";
 import { clearLocalKvStore } from "../idb-kv";
 import { localEncryption } from "../local-crypto";
 import { buildDefaultCategories } from "../../data/merchant-keywords";
 import type { Account, Debt, Transaction } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 
 const NOW = new Date("2026-06-12T12:00:00Z");
 
@@ -83,7 +85,11 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
     await loadDemoData(NOW);
     expect(isDemoDataActive()).toBe(true);
 
-    const txs = await readLocalFinanceList<Transaction>("transactions");
+    // WP 4.1c (PERF-1): Buchungen laufen über dieselbe Fassade wie jeder
+    // andere Aufrufer (`getTransactions`), nicht mehr über den generischen
+    // `readLocalFinanceList('transactions')` — der läse nach einer Migration
+    // am v3-Blob vorbei (`transaction-storage-service.ts`, `hasLegacyV3Blob`).
+    const txs = await getTransactions(1000);
     const accounts = await readLocalFinanceList<Account>("accounts");
     expect(txs.length).toBeGreaterThan(30);
     expect(accounts).toHaveLength(2);
@@ -91,7 +97,7 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
 
   it("vermischt sich nie mit echten Daten: Entfernen lässt echte Datensätze stehen", async () => {
     const realTx: Transaction = {
-      id: crypto.randomUUID(),
+      id: asTransactionId(crypto.randomUUID()),
       date: "2026-05-01",
       amount: -19.99,
       payee: "Echter Händler",
@@ -103,14 +109,18 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
     const realAccount = { id: crypto.randomUUID(), name: "Echtes Konto" } as Account;
     const realDebt = { id: crypto.randomUUID(), name: "Echte Schuld" } as Debt;
 
-    await writeLocalFinanceList("transactions", [realTx]);
+    // WP 4.1c: über dieselbe Fassade wie `demo-data-service.ts` selbst jetzt
+    // schreibt (`saveTransactions`) — normalisiert/defaultet Felder (Invariante
+    // 5 u.a.), deshalb wird unten gegen den ZURÜCKGEGEBENEN (normalisierten)
+    // Stand verglichen, nicht gegen das rohe Test-Literal.
+    const [savedRealTx] = await saveTransactions([realTx]);
     await writeLocalFinanceList("accounts", [realAccount]);
     await writeLocalFinanceList("debts", [realDebt]);
 
     await loadDemoData(NOW);
     await removeDemoData();
 
-    expect(await readLocalFinanceList<Transaction>("transactions")).toEqual([realTx]);
+    expect(await getTransactions(1000)).toEqual([savedRealTx]);
     expect(await readLocalFinanceList<Account>("accounts")).toEqual([realAccount]);
     expect(await readLocalFinanceList<Debt>("debts")).toEqual([realDebt]);
     expect(isDemoDataActive()).toBe(false);
@@ -118,9 +128,9 @@ describe("loadDemoData / removeDemoData (Issue #39)", () => {
 
   it("ist idempotent: zweimal laden erzeugt keine Duplikate", async () => {
     await loadDemoData(NOW);
-    const first = await readLocalFinanceList<Transaction>("transactions");
+    const first = await getTransactions(1000);
     await loadDemoData(NOW);
-    const second = await readLocalFinanceList<Transaction>("transactions");
+    const second = await getTransactions(1000);
     expect(second).toHaveLength(first.length);
   });
 });

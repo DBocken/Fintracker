@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DecimalInput } from "@/components/common/DecimalInput";
+import { DecimalInput } from "@/features/shared/presentation/DecimalInput";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/i18n/useI18n";
@@ -21,6 +21,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { TypedSelect } from "@/features/shared/presentation/TypedSelect";
 import { Trash2, Plus } from "lucide-react";
 import type {
   Account,
@@ -32,6 +33,7 @@ import type {
   SurplusAction,
 } from "@/types";
 import { DEFAULT_WARN_THRESHOLD } from "@/lib/budget-logic";
+import { recordToOptions } from "@/lib/typed-record";
 import { FeatureGate } from "@/components/FeatureGate";
 
 
@@ -291,18 +293,13 @@ export default function BudgetFormDialog({
           {/* Abrechnungsperiode (#133): monatlich (Default), wöchentlich oder jährlich. */}
           <div className="space-y-1.5">
             <Label htmlFor="budget-period">{t('budgets.formDialog.periodLabel')}</Label>
-            <Select value={period} onValueChange={(v) => setPeriod(v as BudgetPeriod)}>
-              <SelectTrigger id="budget-period" aria-label={t('budgets.formDialog.periodLabel')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(periodLabels) as BudgetPeriod[]).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {periodLabels[p]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TypedSelect
+              id="budget-period"
+              value={period}
+              onValueChange={setPeriod}
+              options={recordToOptions(periodLabels)}
+              aria-label={t('budgets.formDialog.periodLabel')}
+            />
           </div>
 
           {period !== "monthly" ? (
@@ -333,18 +330,12 @@ export default function BudgetFormDialog({
               <Sparkles className="h-4 w-4 text-brand" />
               {t('budgets.formDialog.rolloverTitle')}
             </div>
-            <Select value={rolloverMode} onValueChange={(v) => setRolloverMode(v as RolloverMode)}>
-              <SelectTrigger aria-label={t('budgets.formDialog.rolloverAriaLabel')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(rolloverLabels) as RolloverMode[]).map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {rolloverLabels[mode]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TypedSelect
+              value={rolloverMode}
+              onValueChange={setRolloverMode}
+              options={recordToOptions(rolloverLabels)}
+              aria-label={t('budgets.formDialog.rolloverAriaLabel')}
+            />
 
             {showSurplusOptions && (
               <div className="grid grid-cols-2 gap-3 pt-1">
@@ -363,18 +354,13 @@ export default function BudgetFormDialog({
                   <Label htmlFor="budget-surplus" className="text-xs">
                     {t('budgets.formDialog.surplusLabel')}
                   </Label>
-                  <Select value={surplusAction} onValueChange={(v) => setSurplusAction(v as SurplusAction)}>
-                    <SelectTrigger id="budget-surplus" aria-label={t('budgets.formDialog.surplusAriaLabel')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(surplusLabels) as SurplusAction[]).map((action) => (
-                        <SelectItem key={action} value={action}>
-                          {surplusLabels[action]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <TypedSelect
+                    id="budget-surplus"
+                    value={surplusAction}
+                    onValueChange={setSurplusAction}
+                    options={recordToOptions(surplusLabels)}
+                    aria-label={t('budgets.formDialog.surplusAriaLabel')}
+                  />
                 </div>
               </div>
             )}
@@ -414,40 +400,24 @@ export default function BudgetFormDialog({
             </p>
             {rules.map((rule, i) => (
               <div key={i} className="flex flex-wrap items-center gap-1.5">
-                <Select
+                <TypedSelect
+                  className="h-8 w-[7.5rem]"
                   value={rule.field}
-                  onValueChange={(v) =>
-                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, field: v as BudgetRule["field"] } : r)))
+                  onValueChange={(field) =>
+                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, field } : r)))
                   }
-                >
-                  <SelectTrigger className="h-8 w-[7.5rem]" aria-label={t('budgets.formDialog.ruleFieldAriaLabel').replace('{index}', String(i + 1))}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(ruleFieldLabels) as BudgetRule["field"][]).map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {ruleFieldLabels[f]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
+                  options={recordToOptions(ruleFieldLabels)}
+                  aria-label={t('budgets.formDialog.ruleFieldAriaLabel').replace('{index}', String(i + 1))}
+                />
+                <TypedSelect
+                  className="h-8 w-[6.5rem]"
                   value={rule.op}
-                  onValueChange={(v) =>
-                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, op: v as BudgetRule["op"] } : r)))
+                  onValueChange={(op) =>
+                    setRules((rs) => rs.map((r, j) => (j === i ? { ...r, op } : r)))
                   }
-                >
-                  <SelectTrigger className="h-8 w-[6.5rem]" aria-label={t('budgets.formDialog.ruleOperatorAriaLabel').replace('{index}', String(i + 1))}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(ruleOpLabels) as BudgetRule["op"][]).map((o) => (
-                      <SelectItem key={o} value={o}>
-                        {ruleOpLabels[o]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={recordToOptions(ruleOpLabels)}
+                  aria-label={t('budgets.formDialog.ruleOperatorAriaLabel').replace('{index}', String(i + 1))}
+                />
                 <Input
                   className="h-8 min-w-0 flex-1"
                   value={rule.value}

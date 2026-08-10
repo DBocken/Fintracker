@@ -11,10 +11,11 @@ import {
 import type { Transaction, Category } from "@/types";
 import type { ContractDecision } from "@/lib/contract-types";
 import { merchantFingerprint } from "@/lib/merchant-fingerprint";
+import { asTransactionId } from '@/lib/ids';
 
 const NOW = new Date("2024-06-01");
 
-function tx(partial: Partial<Transaction>): Transaction {
+function tx(partial: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
     date: "2024-01-01",
     amount: -10,
@@ -24,6 +25,7 @@ function tx(partial: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...partial,
+    id: partial.id !== undefined ? asTransactionId(partial.id) : undefined,
   };
 }
 
@@ -68,10 +70,10 @@ describe("computeContracts status awareness", () => {
     const ibanA = "DE11 0000 0000 0000 0000 01";
     const ibanB = "DE22 0000 0000 0000 0000 02";
     const seriesA = monthlySeries("Netflix", -9.99, 3, 3).map((t, i) => ({
-      ...t, id: `a-${i}`, counterparty_iban: ibanA,
+      ...t, id: asTransactionId(`a-${i}`), counterparty_iban: ibanA,
     }));
     const seriesB = monthlySeries("Netflix", -9.99, 3, 5).map((t, i) => ({
-      ...t, id: `b-${i}`, counterparty_iban: ibanB,
+      ...t, id: asTransactionId(`b-${i}`), counterparty_iban: ibanB,
     }));
 
     // Nutzer hat die Familie unter der ERSTEN IBAN als „Kein Vertrag" markiert.

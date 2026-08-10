@@ -77,6 +77,15 @@ jobs:
       - name: Ansicht/Daten-Waechter
         run: pnpm check:view-data
 
+      # Zweite Ratsche neben Ansicht/Daten: zaehlt Importe aus
+      # src/features/<slice>/presentation/ nach der Alt-Oberflaeche
+      # (src/components/, src/pages/). ARCH-3: der Referenz-Slice `dashboard`
+      # importiert TransactionCharts.tsx (564 Zeilen) aus components/ — eine
+      # andere Fachfrage als Datenzugriffe, deshalb eine eigene Zahl statt
+      # einer Erweiterung von check:view-data.
+      - name: Slice-Presentation-Waechter
+        run: pnpm check:slice-presentation
+
       # Ein type="number"-Feld verstuemmelt deutsche Dezimaleingaben, BEVOR
       # ein Parser sie sieht: "12,50" wird zu 1250, ein Zinssatz "5,5" zu 55 %.
       - name: Dezimal-Eingabe-Check
@@ -118,8 +127,33 @@ jobs:
       - name: i18n-Waechter (eingefrorene Uebersetzungen)
         run: pnpm check:i18n-module-consts
 
+      # Roh-`parseFloat` mit Komma-Ersetzung verstuemmelt einen deutschen
+      # Geldbetrag ("1.200" -> 1,2); `as unknown as` hebelt TypeScript an
+      # einer Datengrenze vollstaendig aus und prueft zur Laufzeit nichts
+      # (GOV-1). i18n hatte drei Erkennungsformen, diese Regel bis WP 2.2 keine.
+      - name: Geld-Parsing-Check
+        run: pnpm check:money-parsing
+
       - name: Typecheck
         run: pnpm exec tsc --noEmit
+
+      # GOV-2: `docs/coding-guide.md` behauptete seit Langem, `api/` und
+      # `mcp-poc/` gehoerten in den Typecheck. Beides lief nie — das
+      # Root-tsconfig includiert nur `src` + `vitest.setup.ts`, und
+      # `mcp-poc/tsconfig.json` rief kein CI-Schritt auf. Ausgerechnet der
+      # Token-Endpunkt kompilierte also ungeprueft.
+      - name: Typecheck api/ (Serverless Functions)
+        run: pnpm typecheck:api
+
+      # Eigener Schritt mit eigenem Install: mcp-poc ist bewusst KEIN
+      # Workspace-Paket (siehe pnpm-workspace.yaml, `packages: [.]`) und hat
+      # eine eigene Lockdatei — dieselbe Trennung, die auch der OSV-Scan
+      # respektiert. Ohne `--ignore-workspace` uebernimmt der Root-Workspace
+      # den Aufruf und installiert nichts.
+      - name: Typecheck mcp-poc (POC-Server)
+        run: |
+          pnpm --dir mcp-poc install --frozen-lockfile --ignore-workspace
+          pnpm typecheck:mcp-poc
 
       # Bis WP-10.6 hatte CI ueberhaupt keinen Build-Schritt: Der
       # Produktions-Build lief nur nebenbei im Performance-Job

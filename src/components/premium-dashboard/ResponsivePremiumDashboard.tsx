@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import SegmentedControl from "@/components/common/SegmentedControl";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import SegmentedControl from "@/features/shared/presentation/SegmentedControl";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { getTransactions, getCategories } from "../../services/transaction-service";
 import { sumIncome, sumExpenses } from "../../lib/analysis-data";
 import { getAccounts } from "../../services/account-service";
@@ -15,7 +15,8 @@ import { SankeyChart } from "./SankeyChart";
 import { WeeklyPatternCharts } from "./WeeklyPatternCharts";
 import { KpiSection } from "@/components/kpi/KpiSection";
 import { dyadProps } from "@/lib/dyad";
-import { buildSankeyData, buildWeekdayPattern } from "@/lib/analysis-data";
+import { buildSankeyData } from "@/lib/chart-data/sankey";
+import { buildWeekdayPattern } from "@/lib/chart-data/weekday-pattern";
 import { useI18n } from "@/i18n/useI18n";
 import { useAllocationMap } from "@/hooks/useAllocationMap";
 

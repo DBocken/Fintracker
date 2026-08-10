@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { localEncryption } from '../local-crypto';
 import { writeLocalFinanceList } from '../local-finance-store';
 import {
@@ -21,7 +22,7 @@ vi.mock('../transaction-service', () => ({
 
 function tx(id: string, amount: number): Transaction {
   return {
-    id,
+    id: asTransactionId(id),
     date: '2026-09-05',
     amount,
     payee: 'P',

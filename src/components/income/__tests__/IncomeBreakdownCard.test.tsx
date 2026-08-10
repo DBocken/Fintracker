@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { screen, within, fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 import IncomeBreakdownCard from '../IncomeBreakdownCard';
-import type { IncomeBreakdown } from '@/lib/analysis-data';
+import type { IncomeBreakdown } from '@/lib/chart-data/income-breakdown';
 
 beforeAll(() => {
   globalThis.ResizeObserver ||= class {

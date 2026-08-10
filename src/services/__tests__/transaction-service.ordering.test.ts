@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { Transaction } from '../../types';
+import { asTransactionId } from '../../lib/ids';
 
 // Sortier-Contract: Die Storage-Schicht liefert datum-absteigend sortiert
 // (transaction-storage-service sortiert VOR dem Limit — sonst verliert ein
@@ -7,10 +8,10 @@ import type { Transaction } from '../../types';
 // verlassen und NICHT erneut sortieren; diese Tests pinnen den Contract,
 // bevor redundante Sorts entfernt werden.
 const storedRows: Transaction[] = [
-  { id: 'c', date: '2026-07-03', amount: -3, payee: 'C', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: 'b', date: '2026-07-02', amount: -2, payee: 'B', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: 'b2', date: '2026-07-02', amount: -20, payee: 'B2', description: '', original_text: '', auto_mapped: false, confirmed: true },
-  { id: 'a', date: '2026-07-01', amount: -1, payee: 'A', description: '', original_text: '', auto_mapped: false, confirmed: true },
+  { id: asTransactionId('c'), date: '2026-07-03', amount: -3, payee: 'C', description: '', original_text: '', auto_mapped: false, confirmed: true },
+  { id: asTransactionId('b'), date: '2026-07-02', amount: -2, payee: 'B', description: '', original_text: '', auto_mapped: false, confirmed: true },
+  { id: asTransactionId('b2'), date: '2026-07-02', amount: -20, payee: 'B2', description: '', original_text: '', auto_mapped: false, confirmed: true },
+  { id: asTransactionId('a'), date: '2026-07-01', amount: -1, payee: 'A', description: '', original_text: '', auto_mapped: false, confirmed: true },
 ];
 
 vi.mock('../transaction-storage-service', () => ({

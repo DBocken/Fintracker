@@ -10,9 +10,9 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 import { useI18n } from '@/i18n/useI18n';
 import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
-import type { IncomeBreakdown } from '@/lib/analysis-data';
+import type { IncomeBreakdown } from '@/lib/chart-data/income-breakdown';
 import { chartText, chartTooltipProps } from '@/lib/chart-tooltip';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 
 const formatCurrencyInt = (v: number) =>
   v.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });

@@ -6,7 +6,7 @@
  * lagen nur in derselben Datei wie die Abfragen und die grosse Liniengrafik.
  */
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import { Dices, Grid3x3, LineChart, LoaderCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/i18n/useI18n';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import { cn } from '@/lib/utils';
-import DeltaBadge from '@/components/common/DeltaBadge';
+import DeltaBadge from '@/features/shared/presentation/DeltaBadge';
 import type { ForecastMonthlySummary } from '@/lib/forecast-types';
 import type { OverrideChange } from '@/lib/forecast-overrides-summary';
 import { eur, fmtMonth, type ChartView } from './chart-shared';
@@ -61,11 +61,12 @@ export function ChartViewToggle({ value, onChange }: { value: ChartView; onChang
 export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummary[] }) {
   const money = useMoneyFormat();
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const hasTransfers = months.some((m) => m.transfersOut > 0);
   const hasInterest = months.some((m) => m.interest > 0);
   const shortDate = (iso: string) => {
     try {
-      return format(parseISO(iso), 'd.M.', { locale: de });
+      return format(parseISO(iso), 'd.M.', { locale: dateFnsLocale });
     } catch {
       return iso;
     }
@@ -91,7 +92,7 @@ export function MonthlyOverviewTable({ months }: { months: ForecastMonthlySummar
             <tr key={m.month} className={cn('tabular-nums', m.belowSafetyBuffer && 'bg-warning/10')}>
               <td>
                 <span className="flex items-center gap-1.5 font-medium">
-                  {fmtMonth(m.month)}
+                  {fmtMonth(m.month, dateFnsLocale)}
                   {m.belowSafetyBuffer && (
                     <Badge variant="outline" className="border-warning text-warning">
                       {t("liquidityReport.belowBufferLabel")}

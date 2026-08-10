@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShoppingCart, TrendingDown, Flame, Wrench, type LucideIcon, ChevronDown, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Card } from '@/components/ui/card';
 import { buildStressOverrides, type StressPreset } from '@/lib/forecast-stress-presets';
 import type { ForecastOverrides } from '@/lib/forecast-types';

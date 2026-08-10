@@ -20,7 +20,7 @@
  */
 import { getCategoryContributions, resolveHierarchy } from '@/lib/analysis-data';
 import { merchantFingerprint } from '@/lib/merchant-fingerprint';
-import { toMinor, toMajor, sumMinor } from '@/lib/money';
+import { toMinor, toMajor, sumMinor, type Cents } from '@/lib/money';
 import { t } from '@/i18n/serviceT';
 import type { Transaction, Category, TransactionAllocation } from '@/types';
 import { isRecurring } from './city-recurrence';
@@ -36,7 +36,7 @@ function otherMerchantsLabel(): string {
 }
 
 /** Eine einzelne Buchung, gesammelt für die spätere Cent-genaue Aggregation je Händler. `txId` fehlt nur bei (praktisch nicht vorkommenden) Transaktionen ohne id — solche Buchungen zählen zur Summe, erscheinen aber nicht in der Sheet-Buchungsliste (kein Deep-Link-Ziel). */
-type MerchantBooking = { payee: string; absMinor: number; txId?: string; date: string };
+type MerchantBooking = { payee: string; absMinor: Cents; txId?: string; date: string };
 
 /**
  * Baut je Gebäude (Unterkategorie-Id, `subId ?? mainId`) die Liste der
@@ -83,7 +83,7 @@ export function buildMerchantFloorsByBuilding(
       const assignedId = contribution.assignedId;
       if (!assignedId) continue;
       if (!categoriesById.has(assignedId)) continue; // Kategorie nicht auflösbar -> überspringen statt crashen.
-      const absMinor = Math.abs(toMinor(contribution.amount));
+      const absMinor = Math.abs(toMinor(contribution.amount)) as Cents;
       if (absMinor === 0) continue;
 
       const { mainId, subId } = resolveHierarchy(categoriesById, assignedId);
@@ -117,7 +117,7 @@ export function buildMerchantFloorsByBuilding(
     });
     merchantTotals.sort((a, b) => b.totalMinor - a.totalMinor);
 
-    let floors: { id: string; label: string; totalMinor: number; bookings: MerchantBooking[] }[];
+    let floors: { id: string; label: string; totalMinor: Cents; bookings: MerchantBooking[] }[];
     if (merchantTotals.length > MAX_NAMED_MERCHANTS + 1) {
       const top = merchantTotals.slice(0, MAX_NAMED_MERCHANTS);
       const rest = merchantTotals.slice(MAX_NAMED_MERCHANTS);

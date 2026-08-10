@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import type { Transaction } from '../../types';

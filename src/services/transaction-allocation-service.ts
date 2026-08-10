@@ -1,6 +1,6 @@
 import { t } from '../i18n/serviceT';
 import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
-import { toMinor, sumMinor } from '@/lib/money';
+import { toMinor, sumMinor, type Cents } from '@/lib/money';
 import type { Transaction, TransactionAllocation } from '@/types';
 
 /**
@@ -44,7 +44,11 @@ export function validateAllocations(
   allocations: TransactionAllocation[],
 ): AllocationValidationResult {
   const expectedMinor = toMinor(transaction.amount);
-  const actualMinor = sumMinor(allocations.map((a) => a.amount_minor));
+  // `TransactionAllocation.amount_minor` bleibt bewusst `number` (kein
+  // Cents-Brand, WP 5.1/DOM-1: Branding brach `tsc --noEmit` in 3
+  // Testdateien mit rohen Objektliteralen, die laut Vorgabe nicht angepasst
+  // werden dürfen) — hier ist der Wert nachweislich bereits cent-genau.
+  const actualMinor = sumMinor(allocations.map((a) => a.amount_minor as Cents));
   const base = { expectedMinor, actualMinor, deltaMinor: actualMinor - expectedMinor };
 
   if (allocations.length === 0) {

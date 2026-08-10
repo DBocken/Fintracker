@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { createHookWrapper } from '@/test-utils/render';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { DEFAULT_DASHBOARD_FILTERS } from '@/features/shared/domain/dashboard-filters';
 import { encodeDashboardFilters } from '@/features/shared/domain/dashboard-filtering';
 import {
@@ -84,13 +85,13 @@ const FIXTURE_ACCOUNTS: Account[] = [
 // Transfer-Paar (muss aus den Flow-Totals ausgeschlossen bleiben) sowie eine
 // Buchung im Vorjahr (für den Perioden-Vorbelegungstest).
 const FIXTURE_TRANSACTIONS: Transaction[] = [
-  { id: 'tx-1', date: '2026-05-05', amount: 2000, payee: 'Arbeitgeber GmbH', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_INCOME, account_id: ACC_CHECKING },
-  { id: 'tx-2', date: '2026-05-10', amount: -300, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
-  { id: 'tx-3', date: '2026-05-15', amount: -100, payee: 'Kino', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FUN, account_id: ACC_CHECKING },
-  { id: 'tx-4', date: '2026-06-01', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_SAVINGS },
-  { id: 'tx-5', date: '2026-05-20', amount: -200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, is_transfer: true, transfer_pair_id: 'tx-6' },
-  { id: 'tx-6', date: '2026-05-20', amount: 200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_SAVINGS, is_transfer: true, transfer_pair_id: 'tx-5' },
-  { id: 'tx-7', date: '2025-01-15', amount: -20, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-1'), date: '2026-05-05', amount: 2000, payee: 'Arbeitgeber GmbH', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_INCOME, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-2'), date: '2026-05-10', amount: -300, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-3'), date: '2026-05-15', amount: -100, payee: 'Kino', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FUN, account_id: ACC_CHECKING },
+  { id: asTransactionId('tx-4'), date: '2026-06-01', amount: -50, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_SAVINGS },
+  { id: asTransactionId('tx-5'), date: '2026-05-20', amount: -200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_CHECKING, is_transfer: true, transfer_pair_id: 'tx-6' },
+  { id: asTransactionId('tx-6'), date: '2026-05-20', amount: 200, payee: 'Übertrag', description: '', original_text: '', auto_mapped: false, confirmed: true, account_id: ACC_SAVINGS, is_transfer: true, transfer_pair_id: 'tx-5' },
+  { id: asTransactionId('tx-7'), date: '2025-01-15', amount: -20, payee: 'Rewe', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING },
 ];
 
 beforeEach(() => {
@@ -266,7 +267,7 @@ describe('useFinanceOverview', () => {
     it('sollte über die Notiz an der Buchung und die Notiz einer Split-Zeile filtern', async () => {
       vi.mocked(getTransactions).mockResolvedValue([
         ...FIXTURE_TRANSACTIONS,
-        { id: 'tx-note', date: '2026-05-12', amount: -80, payee: 'Baumarkt', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104' },
+        { id: asTransactionId('tx-note'), date: '2026-05-12', amount: -80, payee: 'Baumarkt', description: '', original_text: '', auto_mapped: false, confirmed: true, category_id: CAT_FOOD, account_id: ACC_CHECKING, tax_note: 'Rechnung 2026-104' },
       ]);
       vi.mocked(getAllocationMap).mockResolvedValue(
         new Map<string, TransactionAllocation[]>([

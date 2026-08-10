@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildSankeyModel } from "@/lib/sankey-model";
-import type { SankeyData } from "@/lib/analysis-data";
+import type { SankeyData } from "@/lib/chart-data/sankey";
 
 const main = (id: string, amount: number, byAccount: Record<string, number> = {}) => ({ id, name: id, amount, byAccount });
 const sub = (id: string, mainId: string, amount: number) => ({ id, name: id, mainId, mainName: mainId, amount, byAccount: {} });

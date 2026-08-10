@@ -325,4 +325,12 @@ export const everydayEn: TranslationOverlay = {
       },
     },
   },
+  privacy: {
+    localEncryption: {
+      // WP 3.3 (SEC-3): the exact audience that picks a weak password is
+      // least likely to read a technical warning — spelled out plainly here.
+      weakPasswordWarning: 'This password is easy to crack. Even the best encryption barely helps then.',
+      overrideWeakLabel: 'I understand this is risky and want to continue anyway.',
+    },
+  },
 };

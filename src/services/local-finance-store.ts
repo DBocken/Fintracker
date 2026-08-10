@@ -1,36 +1,49 @@
 import { t } from '../i18n/serviceT';
-import { LocalEncryptionLockedError, localEncryption } from './local-crypto';
+import { LocalEncryptionLockedError, VaultCorruptError, localEncryption } from './local-crypto';
 // Key-Definitionen leben zentral in local-storage-keys (VE-6), damit die
 // Verschlüsselungs-Migration keine Kollektion übersehen kann. Re-Export hält
 // bestehende Importe (`from './local-finance-store'`) funktionsfähig.
 import { LOCAL_FINANCE_KEYS, type LocalFinanceKey } from './local-storage-keys';
-import { StoreVersionTooNewError, checkStoreCompatibility } from '@/lib/store-compatibility';
+import {
+  StoreVersionTooNewError,
+  StoreMigrationPendingError,
+  checkStoreCompatibility,
+  LOCAL_STORE_SCHEMA_VERSION,
+  LOCAL_STORE_SCHEMA_VERSION_KEY,
+} from '@/lib/store-compatibility';
+import { COLLECTION_SCHEMAS, type CollectionSchemaKey } from '@/lib/schemas/collection-schemas';
+import { recordSkipped } from './data-integrity-report';
+import { hasPendingStoreMigrations } from './local-store-migrations';
 
 export { LOCAL_FINANCE_KEYS };
 export type { LocalFinanceKey };
 
-/**
- * Schema-Version des lokalen Finanzspeichers. Wird erhöht, sobald bestehende
- * Datenstrukturen migrationsbedürftig erweitert werden. Reine Neuanlage weiterer
- * Collections braucht keine Migration. Alles bleibt strikt lokal.
- *
- * **WP-11.3: Diese Konstante wird jetzt tatsächlich benutzt.** Bis dahin stand
- * hier nur die Absicht („damit ein späterer Migrationshook erkennt, ob er
- * laufen muss") — gelesen oder geschrieben hat sie niemand. Für Phase 11 ist
- * das der Unterschied zwischen einem Rollback und einem Datenverlust: Wird eine
- * Auslieferung zurückgenommen, trifft eine ältere App auf neuere Daten und
- * schreibt beim Speichern alles weg, was sie nicht versteht.
- */
-export const LOCAL_STORE_SCHEMA_VERSION = 2;
-export const LOCAL_STORE_SCHEMA_VERSION_KEY = 'ausgabentracker_store_schema_version';
+// Re-Export (WP-11.3 / WP 1.3): Die Zahl selbst lebt jetzt in
+// `@/lib/store-compatibility`, damit sowohl dieser synchrone Check als auch
+// der asynchrone Läufer (`local-store-migrations.ts`) sie ohne zirkulären
+// Import lesen können. Bestehende Importe `from './local-finance-store'`
+// bleiben funktionsfähig.
+export { LOCAL_STORE_SCHEMA_VERSION, LOCAL_STORE_SCHEMA_VERSION_KEY };
 
 /**
  * Prüft vor JEDEM Zugriff, ob diese App die vorgefundene Ablage überhaupt
- * verstehen darf — und schreibt die eigene Version fest, sobald sie es tut.
+ * verstehen darf.
  *
- * Bewusst hier und nicht in einem einmaligen Start-Hook: Ein Rollback passiert
- * nicht beim Start, sondern zwischen zwei Besuchen. Ein Hook, der beim letzten
- * Start lief, hätte die Antwort von gestern.
+ * Bewusst hier und nicht (nur) in einem einmaligen Start-Hook: Ein Rollback
+ * passiert nicht beim Start, sondern zwischen zwei Besuchen. Ein Hook, der
+ * beim letzten Start lief, hätte die Antwort von gestern.
+ *
+ * **WP 1.3:** Anders als zuvor schreibt der `'migrate'`-Zweig die Version
+ * NICHT mehr blind fest, sobald echte Migrationsschritte aussteht
+ * (`hasPendingStoreMigrations`) — sonst könnte ein Lesezugriff altes
+ * Datenformat unter neuer Versionsnummer "verstehen" und falsche Werte
+ * liefern. Stattdessen wirft er `StoreMigrationPendingError`; der einmalige,
+ * asynchrone Läufer `runStoreMigrations()` (siehe `local-store-migrations.ts`,
+ * verdrahtet in `App.tsx`) muss vorher erfolgreich gelaufen sein. Sind KEINE
+ * Schritte für die aktuelle Lücke definiert (heutiger Stand: `migrations` ist
+ * leer), gibt es nichts zu schützen — dann bleibt es beim alten, harmlosen
+ * Verhalten und die Version wird direkt festgeschrieben, damit ein Store ohne
+ * jede echte Strukturänderung nicht bei jedem Zugriff erneut geprüft werden muss.
  */
 function assertCompatibleStore() {
   const compatibility = checkStoreCompatibility(
@@ -42,10 +55,10 @@ function assertCompatibleStore() {
     throw new StoreVersionTooNewError(compatibility.stored, compatibility.supported);
   }
 
-  // `migrate` und `ok` schreiben beide fest, was diese App versteht. Eine
-  // eigene Migrationsstufe gibt es (noch) nicht — sobald es sie gibt, ist das
-  // hier ihr Aufhänger, und der Zweig ist bereits benannt.
   if (compatibility.status === 'migrate') {
+    if (hasPendingStoreMigrations(compatibility.from, compatibility.to)) {
+      throw new StoreMigrationPendingError(compatibility.from, compatibility.to);
+    }
     localStorage.setItem(LOCAL_STORE_SCHEMA_VERSION_KEY, String(LOCAL_STORE_SCHEMA_VERSION));
   }
 }
@@ -63,8 +76,35 @@ export async function readLocalFinanceList<T>(key: LocalFinanceKey): Promise<T[]
     throw new LocalEncryptionLockedError();
   }
 
-  const data = await localEncryption.loadAndMaybeDecrypt<T[]>(LOCAL_FINANCE_KEYS[key]);
-  return Array.isArray(data) ? data : [];
+  const storageKey = LOCAL_FINANCE_KEYS[key];
+  const data = await localEncryption.loadAndMaybeDecrypt<T[]>(storageKey);
+  if (data === null) return [];
+  // `null` heisst „Key existiert nicht" (echter Leerzustand). Gültiges JSON,
+  // das kein Array ist, ist dagegen ein beschädigter Bestand (RES-1) — würde
+  // hier stillschweigend `[]` zurückkommen, überschriebe der nächste Schreib-
+  // vorgang (Read-Modify-Write in upsertLocalFinanceItem) die Collection.
+  if (!Array.isArray(data)) throw new VaultCorruptError(storageKey);
+
+  // Schema-Registry (WP 1.2, RES-2/DOM-2): Ratsche statt Alles-oder-nichts.
+  // Collection ohne Schema ⇒ unverändert durchreichen (Bestandsverhalten).
+  // Collection mit Schema ⇒ je Item validieren; kaputte Items werden
+  // übersprungen und gezählt, statt die gesamte Liste zu verwerfen oder ein
+  // manipuliertes Item bis in die Render-Schicht durchzureichen.
+  const schema = COLLECTION_SCHEMAS[key as CollectionSchemaKey];
+  if (!schema) return data;
+
+  const valid: T[] = [];
+  let skipped = 0;
+  for (const item of data) {
+    const result = schema.safeParse(item);
+    if (result.success) {
+      valid.push(result.data as T);
+    } else {
+      skipped += 1;
+    }
+  }
+  recordSkipped(key, skipped);
+  return valid;
 }
 
 export async function writeLocalFinanceList<T>(key: LocalFinanceKey, items: T[]): Promise<void> {

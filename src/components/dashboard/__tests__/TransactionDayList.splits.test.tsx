@@ -2,6 +2,7 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '@/test-utils/render';
 import type { Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { TransactionDayList } from '../TransactionDayList';
 
 vi.mock('@/components/providers/GentleModeProvider', () => ({ useGentleMode: () => ({ enabled: false }) }));
@@ -21,7 +22,7 @@ const CATEGORIES: Category[] = [
 ];
 
 const ALDI: Transaction = {
-  id: 'aldi',
+  id: asTransactionId('aldi'),
   date: '2026-07-03',
   amount: -50,
   payee: 'Aldi',
@@ -32,7 +33,7 @@ const ALDI: Transaction = {
   category_id: 'food',
 };
 
-const CUA: Transaction = { ...ALDI, id: 'cua', payee: 'C&A', amount: -30, category_id: 'clothes' };
+const CUA: Transaction = { ...ALDI, id: asTransactionId('cua'), payee: 'C&A', amount: -30, category_id: 'clothes' };
 
 const ALDI_SPLITS: TransactionAllocation[] = [
   { id: 'a-food', transaction_id: 'aldi', amount_minor: -3700, category_id: 'food', source: 'manual' } as TransactionAllocation,
@@ -189,7 +190,7 @@ describe('TransactionDayList – aufgeteilte Buchungen', () => {
       // fenstergestützt — die Split-Zeilen müssen dort ebenso erscheinen.
       const many: Transaction[] = Array.from({ length: 200 }, (_, i) => ({
         ...ALDI,
-        id: `tx-${i}`,
+        id: asTransactionId(`tx-${i}`),
         payee: `Buchung ${i}`,
         date: '2026-07-03',
       }));

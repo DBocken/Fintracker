@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -8,18 +7,23 @@ import { Search, Folder, Tag, Sparkles } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { CategoryForm } from './CategoryForm';
 import { CategoryTree } from './CategoryTree';
-import type { HierarchicalCategory, CategoryAttributes, Category } from '../../types';
-import { getTopCategorySuggestion, type CategorySuggestion } from '../../services/transaction-service';
+import type { HierarchicalCategory, CategoryAttributes, Category, CategorySuggestion } from '../../types';
 
 interface CategoryManagerProps {
   categories: HierarchicalCategory[];
+  /**
+   * Kategorie-Vorschlag aus dem ViewModel (`useSettingsOverview`). Bis WP 6.5b
+   * fragte diese Komponente ihn selbst ab — eine Fläche mit eigener
+   * Datenschicht (AGENTS.md §3/§4, `pnpm check:view-data`).
+   */
+  suggestion: CategorySuggestion | null;
   onCategoryDelete: (category: HierarchicalCategory) => void;
   onCategoryEdit: (category: HierarchicalCategory) => void;
   onCategorySave: (categoryData: Partial<Category> & { name: string }) => void;
   onApplySuggestion: () => void;
 }
 
-export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, onCategorySave, onApplySuggestion }: CategoryManagerProps) {
+export function CategoryManager({ categories, suggestion, onCategoryDelete, onCategoryEdit, onCategorySave, onApplySuggestion }: CategoryManagerProps) {
   const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('manage');
@@ -46,10 +50,6 @@ export function CategoryManager({ categories, onCategoryDelete, onCategoryEdit, 
   const handleCategoryFormSave = () => onCategorySave({ id: selectedCategory?.id, name: formName, color: formColor, icon: formIcon, filters: formFilters, parent_id: selectedCategory ? selectedCategory.parent_id : newCategoryParentId, attributes: formAttributes });
   const handleCategoryFormReset = () => { setSelectedCategory(null); setFormName(''); setFormColor('#2e7d72'); setFormIcon('🛒'); setFormFilters([]); setFormAttributes({}); setNewCategoryParentId(null); };
   const handleEditCategoryClick = (category: HierarchicalCategory) => { setSelectedCategory(category); setNewCategoryParentId(category.parent_id ?? null); setActiveTab('create'); onCategoryEdit(category); };
-  const { data: suggestion } = useQuery<CategorySuggestion | null>({
-    queryKey: ['category-suggestion'],
-    queryFn: getTopCategorySuggestion,
-  });
 
   return (
     <div className="space-y-6">

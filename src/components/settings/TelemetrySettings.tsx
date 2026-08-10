@@ -1,5 +1,5 @@
 import { BarChart3, Check, X } from 'lucide-react';
-import { InfoGroup } from '@/components/common/InfoGroup';
+import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { createHookWrapper } from '@/test-utils/render';
 import { buildSpecialCategoriesData } from '../special-categories-view-model';
 import { useSpecialCategoriesOverview } from '../use-special-categories-overview';
@@ -39,7 +40,7 @@ const cats: SpecialCategory[] = [
 ];
 
 function tx(id: string, amount: number, date = '2026-09-05'): Transaction {
-  return { id, date, amount, payee: 'P', description: '', original_text: '', auto_mapped: false, confirmed: true };
+  return { id: asTransactionId(id), date, amount, payee: 'P', description: '', original_text: '', auto_mapped: false, confirmed: true };
 }
 
 beforeEach(() => {

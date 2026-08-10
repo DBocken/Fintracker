@@ -4,7 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Toolti
 import { useI18n } from '@/i18n/useI18n';
 import { chartTooltipProps } from '@/lib/chart-tooltip';
 import { niceTicksForData, valueAxisProps } from '@/lib/chart-axis';
-import { ChartFigure } from '@/components/common/ChartFigure';
+import { ChartFigure } from '@/features/shared/presentation/ChartFigure';
 import { useChartAnimation } from '@/hooks/useChartAnimation';
 
 interface WeeklyPatternChartsProps {

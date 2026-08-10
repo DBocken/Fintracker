@@ -1,0 +1,30 @@
+{
+  // Eigenes tsconfig fuer die Vercel Serverless Functions (GOV-2).
+  //
+  // Warum getrennt vom Root-tsconfig: Das Root-Projekt ist eine Browser-App
+  // (`lib: DOM`, `moduleResolution: bundler`, `jsx: react-jsx`) und includiert
+  // bewusst nur `src` + `vitest.setup.ts`. `api/` laeuft dagegen in Node — es
+  // braucht `@types/node`, kein DOM und kein JSX. Ein gemeinsames tsconfig
+  // haette hier nur die Wahl zwischen falschen Globals fuer die App oder
+  // falschen fuer den Endpunkt.
+  //
+  // Der Anlass: `docs/coding-guide.md` behauptet seit Langem „`api/` und
+  // `mcp-poc/` gehoeren in den Typecheck". Weder das eine noch das andere lief
+  // je in CI — ausgerechnet der Token-Endpunkt kompilierte also ungeprueft.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts"]
+}

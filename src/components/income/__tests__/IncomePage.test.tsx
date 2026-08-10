@@ -32,6 +32,7 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('@/hooks/useTier', () => ({ useTier: () => mockTier }));
 
 import IncomeStreamsPanel from '../IncomeStreamsPanel';
+import { asTransactionId } from '@/lib/ids';
 
 function renderPanel(locale: 'de' | 'en' = 'de') {
   return render(
@@ -43,9 +44,8 @@ function renderPanel(locale: 'de' | 'en' = 'de') {
   );
 }
 
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   return {
-    id: overrides.id ?? crypto.randomUUID(),
     date: '2024-06-15',
     amount: 0,
     payee: '',
@@ -54,6 +54,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: false,
     ...overrides,
+    id: overrides.id !== undefined ? asTransactionId(overrides.id) : asTransactionId(overrides.id ?? crypto.randomUUID()),
   };
 }
 

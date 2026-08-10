@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import type { SpecialCategory, SpecialCategoryAssignment, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { renderWithProviders } from '@/test-utils/render';
 import { TransactionOccasions } from '../shared/TransactionOccasions';
 
@@ -24,7 +25,7 @@ vi.mock('@/services/special-category-service', () => ({
 vi.mock('@/services/transaction-service', () => ({ getTransactions: async () => store.transactions }));
 
 const t1: Transaction = {
-  id: 't1', date: '2026-09-05', amount: -45, payee: 'Taverne', description: '', original_text: '',
+  id: asTransactionId('t1'), date: '2026-09-05', amount: -45, payee: 'Taverne', description: '', original_text: '',
   auto_mapped: false, confirmed: true,
 };
 

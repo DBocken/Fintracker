@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { buildMerchantFloorsByBuilding } from '../city-merchant-floors';
 import type { Category, Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 // Das "Sonstige"-Label kommt aus serviceT (`@/i18n/serviceT`), das die Sprache
 // aus localStorage liest — in jsdom sonst abhängig von `navigator.language`
@@ -23,7 +24,7 @@ function tx(opts: {
 }): Transaction {
   txCounter += 1;
   return {
-    id: `tx-${txCounter}`,
+    id: asTransactionId(`tx-${txCounter}`),
     date: opts.date ?? '2026-06-01',
     amount: opts.amount,
     payee: opts.payee,

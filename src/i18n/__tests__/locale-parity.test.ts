@@ -104,33 +104,37 @@ describe('Doppelte Namespaces', () => {
    * denselben überlebenden Block verglichen.
    */
   it('[REGRESSION] sollte je Locale keinen Namespace doppelt definieren', () => {
-    // Pfad ueber cwd statt import.meta.url: unter vitest/jsdom ist letzteres
-    // keine file:-URL.
-    const source = readFileSync(`${process.cwd()}/src/i18n/translations.ts`, 'utf8');
-    // Zeilenenden normalisieren: Die Datei lag zeitweise mit CRLF im Baum, und
-    // das `$`-Anker-Muster unten fand dann KEINE einzige Locale — der Wächter
-    // lief blind durch, statt rot zu werden. Ein Schutz, den ein unsichtbares
-    // Steuerzeichen aushebelt, ist kein Schutz.
-    const lines = source.split('\n').map((line) => line.replace(/\r$/, ''));
-
-    const localeStarts: Array<{ locale: string; line: number }> = [];
-    lines.forEach((line, index) => {
-      const match = line.match(/^ {2}(de|en|tlh|ru): \{$/);
-      if (match) localeStarts.push({ locale: match[1], line: index });
-    });
-    expect(localeStarts.length).toBe(4);
+    // WP 4.5 / PERF-3: die vier Sprachbäume liegen seit der Bündel-Aufteilung
+    // nicht mehr als vier Blöcke IN `translations.ts`, sondern als eigene
+    // Module unter `src/i18n/translations/`. Dieser Test ist deshalb
+    // umgezogen — die Prüfung selbst (Quelltext lesen, nicht das ausgewertete
+    // Objekt) ist unverändert, nur die Dateigrenze ist jetzt die Locale-Grenze
+    // statt eine Zeilenspanne innerhalb einer einzigen Datei.
+    const LOCALES = ['de', 'en', 'tlh', 'ru'] as const;
 
     const duplicates: string[] = [];
-    localeStarts.forEach(({ locale, line }, i) => {
-      const end = i + 1 < localeStarts.length ? localeStarts[i + 1].line : lines.length;
+    for (const locale of LOCALES) {
+      const path = `${process.cwd()}/src/i18n/translations/${locale}.ts`;
+      const source = readFileSync(path, 'utf8');
+      // Zeilenenden normalisieren: Die Datei lag zeitweise mit CRLF im Baum, und
+      // das `$`-Anker-Muster unten fand dann KEINE einzige Namespace-Zeile — der
+      // Wächter lief blind durch, statt rot zu werden. Ein Schutz, den ein
+      // unsichtbares Steuerzeichen aushebelt, ist kein Schutz.
+      const lines = source.split('\n').map((line) => line.replace(/\r$/, ''));
+
+      const start = lines.findIndex((line) => line === `export const ${locale} = {`);
+      expect(start, `${locale}.ts: „export const ${locale} = {" nicht gefunden`).toBeGreaterThanOrEqual(0);
+      const endMarker = lines.findIndex((line, i) => i > start && line === '} as const;');
+      expect(endMarker, `${locale}.ts: schließendes „} as const;" nicht gefunden`).toBeGreaterThan(start);
+
       const seen = new Set<string>();
-      for (let n = line + 1; n < end; n++) {
-        const match = lines[n].match(/^ {4}(\w+): [{'"[]/);
+      for (let n = start + 1; n < endMarker; n++) {
+        const match = lines[n].match(/^ {2}(\w+): [{'"[]/);
         if (!match) continue;
-        if (seen.has(match[1])) duplicates.push(`${locale}.${match[1]} (Zeile ${n + 1})`);
+        if (seen.has(match[1])) duplicates.push(`${locale}.${match[1]} (${locale}.ts Zeile ${n + 1})`);
         seen.add(match[1]);
       }
-    });
+    }
 
     expect(duplicates).toEqual([]);
   });

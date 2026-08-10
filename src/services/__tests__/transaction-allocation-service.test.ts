@@ -3,6 +3,7 @@ import {
   validateAllocations,
   setAllocations,
   clearAllocations,
+  getAllocations,
   getAllocationsForTransaction,
   getAllocationMap,
   deleteAllocationsForTransactions,
@@ -12,8 +13,9 @@ import {
 } from "../transaction-allocation-service";
 import { writeLocalFinanceList } from "../local-finance-store";
 import type { Transaction, TransactionAllocation } from "@/types";
+import { asTransactionId } from "@/lib/ids";
 
-const tx = (amount: number, id = "tx-1"): Pick<Transaction, "id" | "amount"> => ({ id, amount });
+const tx = (amount: number, id = "tx-1"): Pick<Transaction, "id" | "amount"> => ({ id: asTransactionId(id), amount });
 
 const alloc = (amount_minor: number, category_id: string | null, source: AllocationInput["source"] = "manual"): AllocationInput => ({
   amount_minor,
@@ -146,5 +148,55 @@ describe("transaction-allocation-service (local)", () => {
     await setAllocations(tx(-12.5), [alloc(-1250, "c1", "manual")]);
     const map2 = await getAllocationMap();
     expect(hasManualAllocations("tx-1", map2)).toBe(true);
+  });
+});
+
+describe("[INTEGRITY] Aufteilungs-Persistenz — Grenzfälle", () => {
+  it("verweigert das Aufteilen einer Buchung ohne ID, statt einen verwaisten Satz zu schreiben", async () => {
+    // Ohne Transaktions-ID trüge jede Aufteilung `transaction_id: undefined`:
+    // Der Betrag hinge an keiner Buchung und wäre weder auffindbar noch
+    // löschbar, würde in der Kategorie-Auswertung aber mitzählen.
+    await expect(
+      setAllocations({ id: undefined, amount: -12.5 } as Pick<Transaction, "id" | "amount">, [alloc(-1250, "c1")]),
+    ).rejects.toThrow();
+    expect(await getAllocations()).toHaveLength(0);
+  });
+
+  it("legt eine Aufteilung ohne angegebene Herkunft als manuell an", async () => {
+    // Die Herkunft entscheidet, ob die automatische Recategorisierung den Satz
+    // überschreiben darf. Ein fehlendes Feld muss deshalb auf die schützende
+    // Seite fallen (`manual`), nicht auf die überschreibbare.
+    await setAllocations(tx(-12.5), [{ amount_minor: -1250, category_id: "c1" }]);
+    const stored = await getAllocationsForTransaction("tx-1");
+    expect(stored[0].source).toBe("manual");
+    expect(hasManualAllocations("tx-1", await getAllocationMap())).toBe(true);
+  });
+
+  it("lässt eine leere Löschliste den Bestand unberührt", async () => {
+    await setAllocations(tx(-12.5), [alloc(-1250, "c1")]);
+    await deleteAllocationsForTransactions([]);
+    expect(await getAllocationsForTransaction("tx-1")).toHaveLength(1);
+  });
+
+  it("meldet für eine Transaktion ohne Aufteilungen keine manuelle Aufteilung", () => {
+    expect(hasManualAllocations("gibtsnicht", new Map())).toBe(false);
+  });
+
+  it("prüft bei einer Nullbuchung nur die Summe — ein Vorzeichen gibt es dort nicht", () => {
+    // Die Vorzeichen-Invariante (F-MONEY-5) braucht ein Vorzeichen der
+    // Originalbuchung. Bei 0,00 € (Storno, Nullzeile aus dem Import) hat sie
+    // keines; dann entscheidet allein die Summe. Eine Aufteilung 5 € / -5 €
+    // ist dort zulässig, eine Summe ≠ 0 nicht.
+    const nullbuchung = { id: asTransactionId("tx-null"), amount: 0 };
+    const gegenlaeufig: TransactionAllocation[] = [
+      { id: "a", transaction_id: "tx-null", amount_minor: 500, category_id: "c1", source: "manual" },
+      { id: "b", transaction_id: "tx-null", amount_minor: -500, category_id: "c2", source: "manual" },
+    ];
+    expect(validateAllocations(nullbuchung, gegenlaeufig).valid).toBe(true);
+
+    const schief: TransactionAllocation[] = [
+      { id: "a", transaction_id: "tx-null", amount_minor: 500, category_id: "c1", source: "manual" },
+    ];
+    expect(validateAllocations(nullbuchung, schief).error).toBe("sum_mismatch");
   });
 });

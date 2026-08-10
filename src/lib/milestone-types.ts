@@ -49,3 +49,14 @@ export interface MilestoneStatus {
   /** Quantifizierter Ist-/Soll-Fortschritt (WP-D7) — `null`, wenn nicht quantifizierbar. Optional, damit bestehende Status-Fixtures gültig bleiben. */
   progress?: MilestoneProgress | null;
 }
+
+/**
+ * Persistierter Nachweis eines erreichten Meilensteins (aus `src/types.ts`
+ * übernommen, WP 5.2/DOM-3 — gleiche Meilenstein-Domäne wie oben).
+ */
+export interface Milestone {
+  id: string;
+  user_id: string;
+  milestone_key: string;
+  achieved_at: string;
+}

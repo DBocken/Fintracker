@@ -1,4 +1,4 @@
-import { toMajor } from '@/lib/money';
+import { toMajor, type Cents } from '@/lib/money';
 import { formatCurrency } from '@/lib/utils';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,9 @@ interface EventTotalAmountProps {
  */
 export function EventTotalAmount({ minor, className, animate = true }: EventTotalAmountProps) {
   const money = useMoneyFormat();
-  const euro = toMajor(minor);
+  // `minor`-Prop bleibt bewusst `number` (kein Cents-Brand) — Aufrufer
+  // (`assignmentCostMinor` u. a.) liefern nachweislich bereits Cent-Werte.
+  const euro = toMajor(minor as Cents);
   const shown = useAnimatedNumber(euro, { enabled: animate });
   return (
     <span className={cn('tabular-nums', className)} aria-label={money.mask(formatCurrency(euro))}>

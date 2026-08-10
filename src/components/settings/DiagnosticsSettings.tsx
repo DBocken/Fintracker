@@ -9,8 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { InfoGroup, InfoStatStrip } from '@/components/common/InfoGroup';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import { InfoGroup, InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
 import { showError, showSuccess } from '@/utils/toast';
 import {

@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/i18n/useI18n"
 
 const Dialog = DialogPrimitive.Root
 
@@ -27,10 +28,20 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+// WP 6.9: Hier stand als Default eine `sr-only`-Beschreibung „Dialog content
+// for account management" — in JEDEM Dialog der App und auf Englisch. Sie
+// belegte zudem dieselbe `id`, auf die Radix `aria-describedby` zeigt, und
+// stand vor `children`: eine ECHTE `<DialogDescription>` an der Aufrufstelle
+// wurde deshalb nicht vorgelesen, sondern die falsche. Es gibt jetzt keinen
+// Default mehr. Eine Aufrufstelle sagt entweder etwas Wahres
+// (`<DialogDescription>`) oder ausdrücklich nichts (`aria-describedby={undefined}`)
+// — Letzteres hält auch Radix' Fehlt-eine-Beschreibung-Warnung ruhig.
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const { t } = useI18n()
+  return (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -44,17 +55,15 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
     >
-      <DialogPrimitive.Description className="sr-only">
-        Dialog content for account management
-      </DialogPrimitive.Description>
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
+        <span className="sr-only">{t('common.close')}</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
-))
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

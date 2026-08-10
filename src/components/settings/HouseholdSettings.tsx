@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, UserPlus, Plus } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 import {
   getHouseholds,
   getHouseholdMembers,

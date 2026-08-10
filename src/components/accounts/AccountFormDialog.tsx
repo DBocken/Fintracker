@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DecimalInput } from '@/components/common/DecimalInput';
+import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -36,6 +36,34 @@ interface AccountFormDialogProps {
 }
 
 const ACCOUNT_TYPES: AccountType[] = ['checking', 'credit_card', 'savings', 'wallet', 'cash', 'other'];
+
+/** Die einzige Währung, in der Fintracker rechnet (VE-1). */
+const RECHENWAEHRUNG = 'EUR';
+
+/**
+ * Welche Währungen dieser Dialog anbietet — EUR, plus die bereits gespeicherte
+ * Währung, falls das bearbeitete Konto eine andere trägt.
+ *
+ * Neu wählbar ist ausschließlich EUR: Keine Aggregation liest
+ * `Account.currency` (`analysis-data.ts`, `budget-logic.ts`, `forecast.ts`
+ * kennen das Feld nicht), ein Fremdwährungskonto schickt seine Buchungen also
+ * 1:1 als Euro in Einnahmen, Ausgaben, Budgets, Prognose, EÜR und
+ * Finanzgesundheit. Was die App nicht verrechnen kann, gehört nicht in die
+ * Auswahl (ADR `docs/architecture/currency-eur-only.md`).
+ *
+ * Die vorhandene Fremdwährung bleibt trotzdem stehen, und zwar aus einem
+ * Datenschutzgrund im Wortsinn: Ein Radix-`Select` mit einem Wert ohne
+ * passenden `SelectItem` zeigt einen LEEREN Auslöser. Der Nutzer sähe ein
+ * scheinbar unausgefülltes Pflichtfeld, wählte EUR — und das Zurücknehmen des
+ * Angebots hätte Bestandsdaten stillschweigend umgeschrieben statt sie nur
+ * nicht mehr zu vermehren. Der Weg zurück nach EUR bleibt offen, der Weg zu
+ * einer NEUEN Fremdwährung ist zu.
+ */
+function waehrungsOptionen(gespeicherte: string | undefined): string[] {
+  return gespeicherte && gespeicherte !== RECHENWAEHRUNG
+    ? [RECHENWAEHRUNG, gespeicherte]
+    : [RECHENWAEHRUNG];
+}
 
 export function AccountFormDialog({
   open,
@@ -154,10 +182,14 @@ export function AccountFormDialog({
   };
 
   const otherAccounts = accounts.filter(a => a.id !== account?.id && a.type === 'checking');
+  // Aus dem KONTO abgeleitet, nicht aus dem Formularzustand: Wer die
+  // Fremdwährung testweise auf EUR stellt, soll den Weg zurück haben,
+  // solange nicht gespeichert ist.
+  const currencyOptions = waehrungsOptionen(account?.currency);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {account ? t('accounts.formDialog.titleEdit') : t('accounts.formDialog.titleNew')}
@@ -200,10 +232,16 @@ export function AccountFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EUR">{t('accounts.formDialog.currencyEur')}</SelectItem>
-                  <SelectItem value="USD">{t('accounts.formDialog.currencyUsd')}</SelectItem>
-                  <SelectItem value="GBP">{t('accounts.formDialog.currencyGbp')}</SelectItem>
-                  <SelectItem value="CHF">{t('accounts.formDialog.currencyCHF')}</SelectItem>
+                  {currencyOptions.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {/* Nur EUR hat einen übersetzten Anzeigetext. Eine
+                          gespeicherte Fremdwährung wird als ihr Code gezeigt:
+                          Sie stammt aus Importdaten und kann jeder ISO-Code
+                          sein — eine Handliste von Beschriftungen würde für
+                          alles außerhalb ihrer selbst leer bleiben. */}
+                      {code === RECHENWAEHRUNG ? t('accounts.formDialog.currencyEur') : code}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -228,6 +266,12 @@ export function AccountFormDialog({
               </div>
             </div>
           </div>
+
+          {currency !== RECHENWAEHRUNG && (
+            <p className="text-xs text-muted-foreground -mt-2">
+              {t('accounts.formDialog.currencyForeignHint')}
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="iban">{t('accounts.formDialog.ibanLabel')}</Label>

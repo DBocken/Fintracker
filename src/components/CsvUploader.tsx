@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import FinanceErrorState from '@/components/common/FinanceErrorState'
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Wallet } from 'lucide-react'
 import {

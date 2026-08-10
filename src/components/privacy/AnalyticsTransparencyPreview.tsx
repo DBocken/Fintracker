@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ServerOff, LoaderCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
 import { buildAnalyticsPackage } from "@/services/analytics-aggregation-service";
 
@@ -43,9 +43,20 @@ export default function AnalyticsTransparencyPreview() {
       <div className="flex items-start gap-2 rounded-lg border border-positive/30 bg-positive/5 p-3 text-xs">
         <ServerOff className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />
         <span>
-          Aktuell verlässt <span className="font-medium">{t("analytics.nothingLabel")}</span> davon dein Gerät – der Upload
-          ist deaktiviert. Die Vorschau wird nur lokal erzeugt und zeigt, was eine anonyme Statistik
-          <span className="font-medium"> {t("analytics.maximalLabel")}</span> enthielte.
+          {/* Der Satz stand hier im Klartext, obwohl `analytics.noDataLeavesDevice`
+              ihn in allen vier Sprachen schon enthielt — die beiden Platzhalter
+              werden hervorgehoben, damit die Betonung erhalten bleibt. */}
+          {t("analytics.noDataLeavesDevice")
+            .split(/(\{nothing\}|\{maximal\})/)
+            .map((teil, i) =>
+              teil === "{nothing}" || teil === "{maximal}" ? (
+                <span key={i} className="font-medium">
+                  {t(teil === "{nothing}" ? "analytics.nothingLabel" : "analytics.maximalLabel")}
+                </span>
+              ) : (
+                teil
+              ),
+            )}
         </span>
       </div>
 

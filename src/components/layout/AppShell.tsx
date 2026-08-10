@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
+import { withErrorBoundary } from "@/components/ErrorBoundary";
 import SideNav from "@/components/layout/SideNav";
 import MobileNav from "@/components/layout/MobileNav";
 import BottomNav from "@/components/layout/BottomNav";
@@ -10,15 +11,22 @@ import OnboardingDialog from "@/components/onboarding/OnboardingDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
-import OfflineIndicator from "@/components/common/OfflineIndicator";
+import OfflineIndicator from "@/features/shared/presentation/OfflineIndicator";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
-import { AtmosphereLayer } from "@/components/common/AtmosphereLayer";
+import { AtmosphereLayer } from "@/features/shared/presentation/AtmosphereLayer";
 import { useGlobalAtmosphere } from "@/hooks/useGlobalAtmosphere";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import { useI18n } from "@/i18n/useI18n";
+
+// Route-Level-Fehlergrenze (RES-7 / WP 1.6): faengt einen Render-Crash EINER
+// Flaeche ab, ohne die AppShell-Navigation (SideNav/BottomNav/Header) mit
+// abzureissen — vorher gab es nur den globalen ErrorBoundary in main.tsx, der
+// beim Absturz die gesamte App inklusive Navigation ersetzte. `withErrorBoundary`
+// hatte bis hierher keinen Aufrufer (KOMP-6).
+const SafeOutlet = withErrorBoundary(Outlet);
 
 function getTitle(pathname: string, t: (key: string, fallback?: string) => string) {
   for (const g of NAV_GROUPS) {
@@ -127,7 +135,11 @@ export default function AppShell() {
               Containern weiter. min-w-0 erlaubt dem Flex-Kind das Schrumpfen. */}
           <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
             <div className="w-full min-w-0 px-4 py-6 sm:px-6 lg:px-8 2xl:px-10">
-              <Outlet />
+              {/* `key={location.pathname}` setzt die Fehlergrenze bei jedem
+                  Routenwechsel zurueck — sonst bliebe die Fallback-UI eines
+                  Absturzes stehen, obwohl per Navigation laengst eine andere
+                  (gesunde) Flaeche angefordert wurde. */}
+              <SafeOutlet key={location.pathname} />
             </div>
           </main>
         </div>

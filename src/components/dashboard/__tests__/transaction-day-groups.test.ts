@@ -1,16 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type { Transaction, TransactionAllocation } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 import { buildDayGroups, formatDayHeading } from '../transaction-day-groups';
 
-function tx(p: Partial<Transaction> & { date: string; amount: number }): Transaction {
+function tx(p: Omit<Partial<Transaction>, 'id'> & { date: string; amount: number; id?: string }): Transaction {
   return {
-    id: `${p.date}-${p.amount}-${Math.abs(p.amount)}`,
     payee: p.payee ?? 'Test',
     description: '',
     original_text: '',
     auto_mapped: false,
     confirmed: true,
     ...p,
+    id: asTransactionId(p.id ?? `${p.date}-${p.amount}-${Math.abs(p.amount)}`),
   };
 }
 
@@ -112,6 +113,11 @@ describe('buildDayGroups', () => {
 
 describe('formatDayHeading', () => {
   const now = new Date('2026-07-03T12:00:00');
+  const LOCALE_STORAGE_KEY = 'ausgabentracker_locale_v1';
+
+  afterEach(() => {
+    window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+  });
 
   it('sollte den heutigen Tag mit „Heute" kennzeichnen', () => {
     expect(formatDayHeading('2026-07-03', now)).toMatch(/^Heute · /);
@@ -129,6 +135,45 @@ describe('formatDayHeading', () => {
 
   it('sollte einen ungültigen Datums-Key unverändert zurückgeben', () => {
     expect(formatDayHeading('nicht-ein-datum', now)).toBe('nicht-ein-datum');
+  });
+
+  // [REGRESSION] WP 5.5b: Vor diesem Fix formatierte `formatDayHeading` das
+  // Wochentagskürzel fest mit `date-fns/locale/de` — ein englischer Nutzer
+  // sah unabhängig von der App-Sprache immer das deutsche Kürzel (WP-5.5-
+  // Befund, dort am Beispiel „Today · Mi 3.7."). Der 3.7.2026 (`now` oben)
+  // ist ein Freitag.
+  it('[REGRESSION] sollte das Wochentagskürzel auf Englisch aus der en-US-date-fns-Locale ableiten', () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    const label = formatDayHeading('2026-07-03', now);
+    expect(label).toContain('Fri');
+    expect(label).not.toContain('Fr.');
+  });
+
+  // Russisch bleibt bewusst beim 2-stelligen Kürzel („пт") — das ist die im
+  // Russischen übliche Kurzform (`weekdayAbbrevToken`), keine Lücke.
+  it('[REGRESSION] sollte das Wochentagskürzel auf Russisch aus der ru-date-fns-Locale ableiten', () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+    const label = formatDayHeading('2026-07-03', now);
+    expect(label).toContain('пт');
+  });
+
+  // Deutsch bleibt bewusst UNVERÄNDERT gegenüber dem Stand vor WP 5.5b
+  // (2-stelliges Kürzel ohne Punkt) — Review-Rückfrage: nur Englisch braucht
+  // die 3-stellige Form, siehe `weekdayAbbrevToken`.
+  it('sollte das Wochentagskürzel auf Deutsch unverändert (2-stellig, ohne Punkt) aus der de-date-fns-Locale ableiten', () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'de');
+    const label = formatDayHeading('2026-07-03', now);
+    expect(label).toContain('Fr');
+    expect(label).not.toContain('Fr.');
+  });
+
+  // Plan-Akzeptanzkriterium wörtlich (WP 5.5b): „Wed" statt „Mi" — der
+  // 1.7.2026 ist ein Mittwoch.
+  it('[REGRESSION] sollte am 1.7.2026 „Wed" statt „Mi" zeigen, wenn die App-Sprache Englisch ist', () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+    const label = formatDayHeading('2026-07-01', now);
+    expect(label).toContain('Wed');
+    expect(label).not.toContain('Mi');
   });
 });
 

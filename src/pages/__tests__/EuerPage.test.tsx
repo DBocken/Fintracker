@@ -9,6 +9,7 @@ import { transactionStorage } from '@/services/transaction-storage-service';
 import { writeLocalFinanceList } from '@/services/local-finance-store';
 import { localEncryption } from '@/services/local-crypto';
 import type { Account, Transaction } from '@/types';
+import { asTransactionId } from '@/lib/ids';
 
 // Reduced-Motion erzwingen: Count-up/Tank zeigen den Zielzustand direkt —
 // jsdom treibt requestAnimationFrame-Tweens nicht zuverlässig zu Ende.
@@ -37,10 +38,9 @@ function account(id: string, isBusiness: boolean): Account {
 }
 
 let seq = 0;
-function tx(overrides: Partial<Transaction>): Transaction {
+function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Transaction {
   seq += 1;
   return {
-    id: `euer-page-${seq}`,
     account_id: 'biz',
     date: '2025-05-10',
     amount: -100,
@@ -50,6 +50,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
     auto_mapped: false,
     confirmed: true,
     ...overrides,
+    // `id`: ausdrueckliches `id: undefined` MUSS undefined bleiben (WP 5.2b).
+    // Vor dem Brand stand die Vorgabe VOR dem Spread, ein `undefined` aus
+    // den Overrides hat sie also ueberschrieben. Nur das FEHLEN des
+    // Schluessels faellt auf die Vorgabe zurueck.
+    id: 'id' in overrides
+      ? (overrides.id === undefined ? undefined : asTransactionId(overrides.id))
+      : asTransactionId(`euer-page-${seq}`),
   };
 }
 

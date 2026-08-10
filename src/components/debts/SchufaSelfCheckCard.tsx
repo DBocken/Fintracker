@@ -1,15 +1,15 @@
-import { format, parseISO } from "date-fns";
-import { de } from "date-fns/locale";
+import { format, parseISO, type Locale as DateFnsLocale } from "date-fns";
 import { ShieldCheck, ExternalLink, Inbox, Check, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSchufareminder } from "@/hooks/useSchufareminder";
 import { getSchufaExplanation, SCHUFA_REQUEST_URL } from "@/services/schufa-service";
 import { useI18n } from "@/i18n/useI18n";
+import { useDateFnsLocale } from "@/i18n/useDateFnsLocale";
 
-function formatArrival(iso: string): string {
+function formatArrival(iso: string, dateFnsLocale: DateFnsLocale): string {
   try {
-    return format(parseISO(iso), "d. MMMM", { locale: de });
+    return format(parseISO(iso), "d. MMMM", { locale: dateFnsLocale });
   } catch {
     return "";
   }
@@ -23,6 +23,7 @@ function formatArrival(iso: string): string {
  */
 export function SchufaSelfCheckCard() {
   const { t } = useI18n();
+  const dateFnsLocale = useDateFnsLocale();
   const { reminder, isWaiting, isDue, request, markScanned, isRequesting, isMarking } =
     useSchufareminder();
   const explanation = getSchufaExplanation();
@@ -52,7 +53,7 @@ export function SchufaSelfCheckCard() {
                     <span>{t('debts.schufaCard.readySoon')}</span>
                   ) : (
                     <span>
-                      {t('debts.schufaCard.requested').replace('{date}', reminder ? formatArrival(reminder.expected_arrival) : "")}
+                      {t('debts.schufaCard.requested').replace('{date}', reminder ? formatArrival(reminder.expected_arrival, dateFnsLocale) : "")}
                     </span>
                   )}
                 </div>

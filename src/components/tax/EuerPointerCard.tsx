@@ -1,5 +1,5 @@
 import { Briefcase } from 'lucide-react';
-import InteractiveCard from '@/components/common/InteractiveCard';
+import InteractiveCard from '@/features/shared/presentation/InteractiveCard';
 import { useI18n } from '@/i18n/useI18n';
 
 /**

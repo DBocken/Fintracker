@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
 import { parseISO, differenceInDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { InfoGroup, InfoStatStrip } from '@/components/common/InfoGroup';
+import { InfoGroup, InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/i18n/useI18n';
+import { useDateFnsLocale } from '@/i18n/useDateFnsLocale';
 import { useForecast } from '@/hooks/useForecast';
 import { useForecastOverrides } from '@/hooks/useForecastOverrides';
 import { useScenarioRisk } from '@/hooks/useScenarioRisk';
@@ -56,7 +57,7 @@ import {
   MonthlyOverviewTable,
   SimulationControls,
 } from './liquidity/LiquidityViews';
-import FinanceErrorState from '@/components/common/FinanceErrorState';
+import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
 
 
 /**
@@ -72,7 +73,14 @@ import FinanceErrorState from '@/components/common/FinanceErrorState';
 export default function LiquidityReport() {
   const money = useMoneyFormat();
   const { t } = useI18n();
-  const { overrides, updateConfig, updatePlanning } = useForecastOverrides();
+  const dateFnsLocale = useDateFnsLocale();
+  const {
+    overrides,
+    updateConfig,
+    updatePlanning,
+    isError: overridesError,
+    refetch: refetchOverrides,
+  } = useForecastOverrides();
   const { months, safetyBuffer, bufferBasis } = overrides;
   const setMonths = (m: number) => updateConfig({ months: m });
   const setSafetyBuffer = (b: number) => updateConfig({ safetyBuffer: b });
@@ -234,7 +242,7 @@ export default function LiquidityReport() {
     });
   }, [forecast, bufferBasis, risk]);
 
-  const hasLoadError = isError || categoriesError;
+  const hasLoadError = isError || categoriesError || overridesError;
 
   if (isLoading) {
     return (
@@ -262,6 +270,7 @@ export default function LiquidityReport() {
         onRetry={() => {
           refetchForecast();
           void refetchCategories();
+          void refetchOverrides();
         }}
       />
     );
@@ -405,12 +414,12 @@ export default function LiquidityReport() {
               {
                 label: t("liquidityReport.lowestBalanceLabel"),
                 value: money.mask(eur.format(liqRisk.lowestBalance)),
-                hint: fmtDate(liqRisk.lowestBalanceDate),
+                hint: fmtDate(liqRisk.lowestBalanceDate, dateFnsLocale),
                 tone: lowestTone,
               },
               {
                 label: t("liquidityReport.firstBreachLabel"),
-                value: breach ? fmtDate(breach) : t("liquidityReport.noBreachLabel"),
+                value: breach ? fmtDate(breach, dateFnsLocale) : t("liquidityReport.noBreachLabel"),
                 hint: breach ? t("liquidityReport.daysUnderBuffer").replace("{days}", String(liqRisk.daysBelowSafetyBuffer)) : t("liquidityReport.horizonOkay"),
                 tone: breach ? 'warning' : 'good',
               },
@@ -433,7 +442,7 @@ export default function LiquidityReport() {
               {analysis.drivers.length > 0 && (
                 <InfoGroup title={t("liquidityReport.riskDrivers")}>
                   <p className="mb-3 text-xs text-muted-foreground">
-                    {t("liquidityReport.riskDriversDescription").replace("{highDate}", fmtDate(analysis.drawdownStart)).replace("{lowDate}", fmtDate(analysis.troughDate))}
+                    {t("liquidityReport.riskDriversDescription").replace("{highDate}", fmtDate(analysis.drawdownStart, dateFnsLocale)).replace("{lowDate}", fmtDate(analysis.troughDate, dateFnsLocale))}
                   </p>
                   <ul className="space-y-2">
                     {analysis.drivers.map((d, i) => (

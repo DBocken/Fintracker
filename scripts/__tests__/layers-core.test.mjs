@@ -77,13 +77,88 @@ describe('Schicht-Wächter', () => {
     });
 
     it('sollte einen React-Context-Hook aus hooks/ erlauben', () => {
-      // `hooks -> components` bleibt bewusst ungeprueft (AGENTS.md §3): Ein
-      // Hook, der einen Context liest, ist die uebliche Bauform. Liegt er in
-      // `src/hooks/`, ist er fuer das ViewModel erreichbar, ohne dass eine
-      // Komponentendatei im Spiel ist.
+      // `feature-application-ohne-ui` verbietet nur components/ und pages/,
+      // nicht hooks/ — ein Hook, der einen Context liest, ist die uebliche
+      // Bauform und bleibt fuer das ViewModel erreichbar, ohne dass eine
+      // Komponentendatei im Spiel ist. Seit WP 2.3 ist `hooks -> components`
+      // selbst KEINE Blindstelle mehr (siehe unten,
+      // „hooks kennt die Oberflaeche nicht") — dieser Test hier prueft nur,
+      // dass die Anwendungsschicht einen Hook unveraendert importieren darf.
       const src = `import { useLocalEncryption } from '@/hooks/useLocalEncryption';`;
       expect(analyzeFile('src/features/trading/application/use-etoro-account.ts', src).violations)
         .toEqual([]);
+    });
+  });
+
+  describe('hooks kennt die Oberflaeche nicht (hooks-ohne-components, ARCH-4)', () => {
+    // Bis WP 2.3 war `hooks -> components` eine ABSICHTLICHE Blindstelle
+    // (siehe Git-Historie dieser Datei). Live-Fund im Bestand:
+    // `useKpiPreferences.ts` importierte `KPI_DEFINITIONS` — Fachdaten, keinen
+    // Context — aus `src/components/kpi/kpis.ts`. Ein Hook, der Fachdaten aus
+    // der Komponentenschicht zieht, zwingt jedes ViewModel, das den Hook
+    // benutzt, die alte Oberflaeche mitzuschleppen — derselbe Fehler wie bei
+    // `feature-application-ohne-ui`, nur eine Etage tiefer.
+    it('[REGRESSION] sollte einen Fachdaten-Import aus components/ melden (KPI_DEFINITIONS lag in components/kpi/kpis.ts)', () => {
+      const src = `import { KPI_DEFINITIONS } from '@/components/kpi/kpis';`;
+      const { violations } = analyzeFile('src/hooks/useKpiPreferences.ts', src);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].ruleId).toBe('hooks-ohne-components');
+    });
+
+    it('sollte pages/ genauso verbieten wie components/', () => {
+      const src = `import { DebtsPage } from '@/pages/DebtsPage';`;
+      const { violations } = analyzeFile('src/hooks/useFoo.ts', src);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].ruleId).toBe('hooks-ohne-components');
+    });
+
+    it('sollte einen Context-Provider-Lesezugriff erlauben (AuthProvider) — die uebliche Bauform', () => {
+      // Genau die Form aus useTier.ts und useKpiPreferences.ts: der Provider
+      // bleibt Komponente, der Lesezugriff nicht (AGENTS.md §3, „Wohin ein
+      // Typ gehoert"). Dieselbe Ausnahme wie beim Ansicht/Daten-Waechter.
+      const src = `import { useAuth } from '@/components/providers/AuthProvider';`;
+      expect(analyzeFile('src/hooks/useTier.ts', src).violations).toEqual([]);
+    });
+
+    it('sollte einen Context-Provider-Lesezugriff erlauben (GentleModeProvider)', () => {
+      const src = `import { useGentleMode } from '@/components/providers/GentleModeProvider';`;
+      expect(analyzeFile('src/hooks/useMoneyFormat.ts', src).violations).toEqual([]);
+    });
+
+    it('sollte lib und services weiter erlauben', () => {
+      const src = [
+        `import { toMinor } from '@/lib/money';`,
+        `import { getAccounts } from '@/services/account-service';`,
+      ].join('\n');
+      expect(analyzeFile('src/hooks/useFoo.ts', src).violations).toEqual([]);
+    });
+
+    it('[REGRESSION] sollte auch die Slice-Presentation verbieten — WP 6.7 hat die Bausteine verschoben, nicht freigegeben', () => {
+      // Vor WP 6.7 lag `InteractiveCard` unter `src/components/common/` und war
+      // fuer einen Hook damit verboten. Der Umzug nach
+      // `src/features/shared/presentation/` haette die Regel lautlos verkleinert:
+      // dieselbe Blindstelle wie ARCH-4, diesmal durch eine Verschiebung erzeugt.
+      const src = `import { InteractiveCard } from '@/features/shared/presentation/InteractiveCard';`;
+      const { violations } = analyzeFile('src/hooks/useFoo.ts', src);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].ruleId).toBe('hooks-ohne-components');
+    });
+
+    it('sollte die uebrigen Slice-Schichten weiter erlauben — ein Hook darf reine Fachlogik lesen', () => {
+      const src = [
+        `import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';`,
+        `import { financeQueryKeys } from '@/features/shared/data/finance-query-keys';`,
+      ].join('\n');
+      expect(analyzeFile('src/hooks/useFoo.ts', src).violations).toEqual([]);
+    });
+
+    it('sollte einen Import aus jedem providers/-Verzeichnis erlauben, nicht nur die zwei bekannten', () => {
+      // Reuse-Nachweis fuer `istInfrastruktur()` aus view-data-core.mjs: das
+      // Verzeichnis-Kriterium `/\/providers\//` traegt unabhaengig vom
+      // konkreten Provider-Namen — kein zweites Infrastruktur-Praedikat im
+      // Repo noetig.
+      const src = `import { useSkin } from '@/components/providers/SkinProvider';`;
+      expect(analyzeFile('src/hooks/useSkinPref.ts', src).violations).toEqual([]);
     });
   });
 

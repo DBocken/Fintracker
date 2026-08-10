@@ -5,7 +5,7 @@ import { Activity, Waypoints, PieChart, Mountain, Wallet, CreditCard, HeartPulse
 import { Card, CardContent } from "@/components/ui/card";
 import { useI18n } from "@/i18n/useI18n";
 import { AdvancedBalanceChart } from "@/components/AdvancedBalanceChart";
-import { SpendingBreakdownCard, ExpensesOverTimeCard } from "@/components/dashboard/TransactionCharts";
+import { SpendingBreakdownCard, ExpensesOverTimeCard } from "../shared/TransactionCharts";
 import { AccountCards } from "@/components/accounts/AccountCards";
 import { SankeyChart } from "@/components/premium-dashboard/SankeyChart";
 import FinancialLandscape from "@/components/health-score/FinancialLandscape";
@@ -13,7 +13,7 @@ import { getFinancialHealth } from "@/services/financial-health-service";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 import type { FinanceOverviewViewModel } from "../../application/finance-overview-view-model";
-import FinanceErrorState from "@/components/common/FinanceErrorState";
+import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 
 type StoryView = "verlauf" | "fluss" | "kategorien" | "landschaft" | "ausgaben" | "konten";
 

@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, Repeat, SplitSquareHorizontal } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import { toMajor } from '@/lib/money';
+import { toMajor, type Cents } from '@/lib/money';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
 import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
-import ListRow from '@/components/common/ListRow';
+import ListRow from '@/features/shared/presentation/ListRow';
 import { cn } from '@/lib/utils';
 import { useMotionQuality } from '@/hooks/useMotionQuality';
 import { planListReorganization } from '@/lib/list-reorganization';
@@ -302,7 +302,10 @@ export function TransactionDayList({
   const renderSplitRow = (transaction: Transaction, allocation: TransactionAllocation, isLastSplit: boolean) => {
     const category = categoriesById.get(allocation.subcategory_id || allocation.category_id || '');
     const name = category?.name || t('transactions.splitUncategorized');
-    const amountLabel = money.mask(currencyFormatter.format(toMajor(allocation.amount_minor)));
+    // `TransactionAllocation.amount_minor` bleibt bewusst `number` (kein
+    // Cents-Brand, WP 5.1/DOM-1 — siehe Kommentar an der Feld-Definition in
+    // @/types); hier ist der Wert nachweislich bereits cent-genau.
+    const amountLabel = money.mask(currencyFormatter.format(toMajor(allocation.amount_minor as Cents)));
 
     return (
       <button
