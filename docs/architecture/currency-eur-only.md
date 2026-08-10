@@ -102,11 +102,35 @@ sondern die fehlende Durchsetzung.**
    validiert Datum und Cent-Genauigkeit (`transaction-service.ts:170-183`),
    aber nicht die Währung; `sumIncome`/`sumExpenses`
    (`src/lib/analysis-data.ts:23-35`) addieren jede Buchung ohne Währungsprüfung.
-3. **Die Oberfläche verspricht mehr, als die Rechnung hält.** Der Kontodialog
-   bietet USD, GBP und CHF zur Auswahl an
-   (`src/components/accounts/AccountFormDialog.tsx:203-206`), die Kontoliste
-   zeigt die Währung an (`features/accounts/presentation/AccountList.tsx:164`) —
-   verrechnet wird trotzdem alles als Euro.
+3. ~~**Die Oberfläche verspricht mehr, als die Rechnung hält.**~~ **Die
+   Neuanlage ist geschlossen** (VE-1, „Blutung stoppen"): Der Kontodialog
+   bietet nur noch EUR an (`src/components/accounts/AccountFormDialog.tsx`,
+   `waehrungsOptionen()`). Ein Fremdwährungskonto ist über die Oberfläche
+   **nicht mehr neu anlegbar**; die Kontoliste zeigt die Währung weiterhin an
+   (`features/accounts/presentation/AccountList.tsx:164`).
+
+   **Bestandsdaten bleiben unangetastet.** Trägt das bearbeitete Konto bereits
+   eine andere Währung (Bestand oder Import), bleibt genau diese eine wählbar
+   und wird als ihr Code angezeigt. Das ist kein Zugeständnis, sondern die
+   Vermeidung eines schlimmeren Fehlers: Ein Radix-`Select` mit einem Wert ohne
+   passenden `SelectItem` zeigt einen **leeren** Auslöser — der Nutzer sähe ein
+   scheinbar unausgefülltes Pflichtfeld, wählte EUR, und das Zurücknehmen des
+   Angebots hätte Bestandsdaten stillschweigend umgeschrieben. Der Weg zurück
+   nach EUR steht offen, der Weg zu einer neuen Fremdwährung ist zu. Dazu ein
+   Hinweistext, sobald die gewählte Währung nicht EUR ist
+   (`accounts.formDialog.currencyForeignHint`) — er sagt, dass nicht
+   umgerechnet wird, und behauptet ausdrücklich **nicht**, die Buchungen seien
+   ausgenommen. Die drei Beschriftungen `currencyUsd`/`currencyGbp`/
+   `currencyCHF` sind damit in allen vier Sprachbäumen entfallen; eine
+   Handliste hätte für jeden anderen ISO-Code ohnehin leer gelassen.
+   Belegt durch vier `[REGRESSION]`-Tests in
+   `src/components/accounts/__tests__/AccountFormDialog.test.tsx` (nur EUR
+   wählbar, bilingual; Bestands-USD-Konto zeigt und **speichert** weiterhin
+   USD).
+
+   **Offen bleibt der eigentliche Rechenfehler.** Ein Bestandskonto in USD
+   schickt seine Buchungen unverändert 1:1 als Euro in jede Aggregation. Was
+   hier geschlossen wurde, ist die Neuanlage, nicht die Verrechnung.
 
    **Nachgeprüft in WP 7.7, und bewusst dort belassen.** `Account.currency` wird
    ausschließlich *geschrieben* (`account-service.ts:97`) und *angezeigt*
@@ -122,14 +146,19 @@ sondern die fehlende Durchsetzung.**
    zählen, wäre keine halbe Lösung, sondern eine neue Ungereimtheit: zwei
    Flächen, die sich über dieselben Daten widersprechen. Wer den Rest schließt,
    entscheidet deshalb zuerst über die Buchungen (abweisen bei `saveTransactions`
-   vs. markieren in jeder Aggregation) — der Kontodialog ist die Folge dieser
-   Entscheidung, nicht ihr Anfang.
+   vs. markieren in jeder Aggregation) — die *Verrechnung* im Kontodialog ist
+   die Folge dieser Entscheidung, nicht ihr Anfang. Das *Angebot* im Dialog
+   war davon unabhängig und ist deshalb vorgezogen worden: Es braucht keine
+   Produktentscheidung, um aufzuhören, einen Zustand anzubieten, den die App
+   nicht rechnen kann.
 4. **Kein Wächter — für die Depotseite jetzt aber Tests.** Ein Skript, das eine
    neue Fremdwährungsquelle rot macht, gibt es weiterhin nicht (§12 in
    `AGENTS.md`). Für Depot und Nettovermögen ist die Regel seit WP 7.7
    immerhin durch `[REGRESSION]`-Tests festgenagelt: Wer dort wieder 1:1
-   summiert, bekommt vier rote Tests. Für Konten und Buchungen (Punkte 2 und 3)
-   gilt der Befund unverändert — dort würde nichts rot.
+   summiert, bekommt vier rote Tests. Für den **Kontodialog** gilt seit VE-1
+   („Blutung stoppen") dasselbe: Wer USD, GBP oder CHF wieder anbietet,
+   bekommt zwei rote Tests. Für die **Buchungen** (Punkt 2) gilt der Befund
+   unverändert — dort würde nichts rot.
 
 Diese vier Punkte sind der reale Preis der Entscheidung im heutigen Stand —
 **nicht** eine Neuentscheidung: EUR-only bleibt. Wer die Lücke schließt, hat

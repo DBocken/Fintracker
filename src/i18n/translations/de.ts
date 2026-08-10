@@ -2534,9 +2534,8 @@ export const de = {
       typeLabel: 'Kontotyp',
       currencyLabel: 'Währung',
       currencyEur: 'EUR (€)',
-      currencyUsd: 'USD ($)',
-      currencyGbp: 'GBP (£)',
-      currencyCHF: 'CHF',
+      currencyForeignHint:
+        'Fintracker rechnet ausschließlich in Euro und kann Fremdwährungen nicht umrechnen. Neue Konten werden deshalb in Euro geführt; die gespeicherte Währung dieses Kontos bleibt erhalten.',
       colorLabel: 'Farbe',
       iconPlaceholder: '🏦',
       ibanLabel: 'IBAN (optional)',

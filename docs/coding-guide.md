@@ -52,12 +52,19 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
   Euro; was daneben liegt, steht sichtbar als „nicht verrechnet" daneben
   (`UnconvertedCurrencyNotice`), nie stumm in der Summe. Zerlegt wird das an
   einer Stelle: `src/lib/portfolio-currency.ts`.
-- **Offener Rest von VE-1 (Stand WP 7.7):** Auf der **Konto- und Buchungsseite**
-  gilt das noch nicht. `Account.currency` wird gespeichert und angezeigt, aber
-  von keiner Rechnung gelesen — Saldo und Buchungen eines Fremdwährungskontos
-  gehen 1:1 als Euro in `cash`, `sumIncome`/`sumExpenses`, Budgets, Prognose und
-  EÜR ein. Wer das schließt, entscheidet zuerst über die **Buchungen**, nicht
-  über den Kontodialog; Details im „Preis"-Abschnitt des ADR.
+- **Der Kontodialog bietet nur EUR an.** Ein Fremdwährungskonto ist über die
+  Oberfläche nicht mehr neu anlegbar (`AccountFormDialog.tsx`,
+  `waehrungsOptionen()`); trägt ein **bestehendes** Konto bereits eine andere
+  Währung, bleibt genau diese wählbar, damit das Speichern sie nicht
+  stillschweigend auf EUR umschreibt. Wer eine neue Währungsauswahl irgendwo
+  einbaut, macht damit einen Wert wählbar, den keine Rechnung liest.
+- **Offener Rest von VE-1 (Stand VE-1 „Blutung stoppen"):** Auf der
+  **Buchungsseite** gilt EUR-only noch nicht. `Account.currency` wird
+  gespeichert und angezeigt, aber von keiner Rechnung gelesen — Saldo und
+  Buchungen eines Bestands-Fremdwährungskontos gehen 1:1 als Euro in `cash`,
+  `sumIncome`/`sumExpenses`, Budgets, Prognose und EÜR ein. Wer das schließt,
+  entscheidet zuerst über die **Buchungen**; Details im „Preis"-Abschnitt des
+  ADR.
 
 ## 5. Finanzlogik & Invarianten
 

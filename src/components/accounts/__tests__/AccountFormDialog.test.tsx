@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { I18nProvider } from '@/i18n/I18nProvider';
+import { screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { renderWithI18n } from '@/test-utils/render';
 import { AccountFormDialog } from '../AccountFormDialog';
 import type { Account } from '@/types';
 
@@ -15,19 +16,22 @@ function renderDialog(
   { account = null, onSave = vi.fn() }: { account?: Account | null; onSave?: (data: Partial<Account>) => void } = {},
   locale: 'de' | 'en' = 'de',
 ) {
-  render(
-    <I18nProvider initialLocale={locale}>
-      <AccountFormDialog
-        open
-        onOpenChange={() => {}}
-        account={account}
-        accounts={[]}
-        onSave={onSave}
-        isLoading={false}
-      />
-    </I18nProvider>,
+  // `renderWithI18n` hat selbst einen Vorgabewert für die Sprache; ein
+  // ausdrückliches `undefined` von hier aus würde ihn treffen — deshalb wird
+  // der Wert hier bereits festgelegt und nie weitergereicht, ohne gesetzt zu
+  // sein.
+  const view = renderWithI18n(
+    <AccountFormDialog
+      open
+      onOpenChange={() => {}}
+      account={account}
+      accounts={[]}
+      onSave={onSave}
+      isLoading={false}
+    />,
+    locale,
   );
-  return { onSave };
+  return { onSave, ...view };
 }
 
 function makeAccount(overrides: Partial<Account>): Account {
@@ -104,6 +108,79 @@ describe('AccountFormDialog – Geschäftskonto-Switch', () => {
 
       expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ is_business: false }));
     });
+  });
+});
+
+describe('AccountFormDialog – Währungsauswahl (VE-1, EUR-only)', () => {
+  // Der Dialog bot USD, GBP und CHF an, obwohl KEINE Aggregation die
+  // Kontowährung liest (`grep -c currency` in analysis-data.ts, budget-logic.ts,
+  // forecast.ts ist jeweils 0). Ein so angelegtes Dollar-Konto schickt seine
+  // Buchungen 1:1 als Euro in Einnahmen, Ausgaben, Budgets, Prognose, EÜR und
+  // Finanzgesundheit — stille Falschzahlen über die normale Oberfläche
+  // erreichbar. Was die App nicht verrechnen kann, gehört nicht in die Auswahl
+  // (ADR `docs/architecture/currency-eur-only.md`, Preis-Punkt 3).
+  it('[REGRESSION] sollte für ein neues Konto ausschließlich EUR anbieten (Deutsch)', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, 'de');
+
+    await user.click(screen.getByRole('combobox', { name: 'Währung' }));
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual(['EUR (€)']);
+  });
+
+  it('[REGRESSION] sollte für ein neues Konto ausschließlich EUR anbieten (Englisch)', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, 'en');
+
+    await user.click(screen.getByRole('combobox', { name: 'Currency' }));
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual(['EUR (€)']);
+    expect(screen.queryByRole('option', { name: /USD|GBP|CHF/ })).toBeNull();
+  });
+
+  // Der Fall, der ohne Sorgfalt still kaputtgeht: Ein `<Select>` mit einem
+  // Wert, für den es keinen `SelectItem` gibt, zeigt einen LEEREN Auslöser —
+  // der Nutzer sieht ein unausgefülltes Pflichtfeld und wählt EUR. Damit
+  // würde das Zurücknehmen des Angebots die Bestandsdaten ändern, statt sie
+  // nur nicht mehr zu vermehren. Deshalb bleibt die bereits gespeicherte
+  // Fremdwährung genau dieses Kontos wählbar.
+  it('[REGRESSION] sollte die gespeicherte Fremdwährung eines Bestandskontos anzeigen', () => {
+    renderDialog({ account: makeAccount({ currency: 'USD' }) });
+
+    expect(screen.getByRole('combobox', { name: 'Währung' })).toHaveTextContent('USD');
+  });
+
+  it('[REGRESSION] sollte die Fremdwährung eines Bestandskontos beim Speichern nicht auf EUR ändern', () => {
+    const onSave = vi.fn();
+    renderDialog({ account: makeAccount({ currency: 'USD' }), onSave });
+
+    fireEvent.submit(screen.getByRole('switch', { name: 'Geschäftskonto' }).closest('form')!);
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' }));
+  });
+
+  it('sollte bei einem Bestands-Fremdwährungskonto EUR und die eigene Währung anbieten, sonst nichts', async () => {
+    const user = userEvent.setup();
+    renderDialog({ account: makeAccount({ currency: 'USD' }) });
+
+    await user.click(screen.getByRole('combobox', { name: 'Währung' }));
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((o) => o.textContent)).toEqual(['EUR (€)', 'USD']);
+  });
+
+  it('sollte benennen, dass eine Fremdwährung nicht umgerechnet wird', () => {
+    renderDialog({ account: makeAccount({ currency: 'USD' }) });
+
+    expect(screen.getByText(/nicht umrechnen/i)).toBeInTheDocument();
+  });
+
+  it('sollte den Hinweis bei einem Euro-Konto nicht zeigen', () => {
+    renderDialog({ account: makeAccount({ currency: 'EUR' }) });
+
+    expect(screen.queryByText(/nicht umrechnen/i)).toBeNull();
   });
 });
 

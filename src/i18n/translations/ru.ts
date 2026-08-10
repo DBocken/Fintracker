@@ -2528,9 +2528,8 @@ export const ru = {
       typeLabel: 'Тип счёта',
       currencyLabel: 'Валюта',
       currencyEur: 'EUR (€)',
-      currencyUsd: 'USD ($)',
-      currencyGbp: 'GBP (£)',
-      currencyCHF: 'CHF',
+      currencyForeignHint:
+        'Fintracker считает только в евро и не умеет пересчитывать другие валюты. Поэтому новые счета ведутся в евро; у этого счёта сохраняется валюта, с которой он был записан.',
       colorLabel: 'Цвет',
       iconPlaceholder: '🏦',
       ibanLabel: 'IBAN (необязательно)',

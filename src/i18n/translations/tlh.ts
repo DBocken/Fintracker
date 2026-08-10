@@ -2242,9 +2242,8 @@ export const tlh = {
       typeLabel: "Huch ngaSwI' Segh",
       currencyLabel: "Huch Segh",
       currencyEur: "EUR (€)",
-      currencyUsd: "USD ($)",
-      currencyGbp: "GBP (£)",
-      currencyCHF: "CHF",
+      currencyForeignHint:
+        "Euro neH HIja' Fintracker; latlh Huch Segh choHlaHbe'. vaj Huch ngaSwI' chu' Euro lo'; Huch ngaSwI'vam Huch Segh polbogh ratlh.",
       colorLabel: "nguvghach",
       iconPlaceholder: "🏦",
       ibanLabel: "IBAN (wIvlu'bogh)",
