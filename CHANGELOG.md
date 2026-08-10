@@ -22,7 +22,15 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
-_Noch nichts._
+### Intern
+
+- **Programm „Produktionsreife & EU-Souveränität" aufgesetzt**
+  (`docs/betrieb-2026-08/`): Prüfung der zehn externen Betriebsvorschläge
+  gegen den Repo-Stand (Audit mit Befund-IDs BTR-*), Arbeitsplan mit Phasen
+  0–7 und 40 Paketen samt Livegang-Gate. Dazu die dauerhaften Regeln: ADR
+  „EU-only bei Anbietern und Subdienstleistern", ADR „Supabase-Ablösung mit
+  Neubau-Stopp" und das lebende Anbieter-Register
+  (`docs/security/anbieter-register.md`).
 
 ## 2026.8.0 — 2026-08-10
 

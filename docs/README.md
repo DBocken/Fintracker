@@ -57,6 +57,8 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`architecture/dual-layering.md`](architecture/dual-layering.md) | Klassische Schichten und Feature-Slices dauerhaft nebeneinander (2026-07-12) |
 | [`architecture/guard-system.md`](architecture/guard-system.md) | Wächter-Skripte in Pre-Commit + CI als Durchsetzungsstrategie (2026-07-12) |
 | [`architecture/money-euro-float.md`](architecture/money-euro-float.md) | Euro-Float in der Persistenz, Cent in der Rechnung (2026-08-08) |
+| [`architecture/eu-souveraenitaet.md`](architecture/eu-souveraenitaet.md) | Anbieter und Subdienstleister EU-only; Software self-hosted statt SaaS; Rollen-Taxonomie, Push-/Telemetrie-Prinzipien (2026-08-10) |
+| [`architecture/supabase-abloesung.md`](architecture/supabase-abloesung.md) | Supabase: Naht jetzt, Ablösung mittelfristig, Neubau-Stopp ab sofort (2026-08-10) |
 
 ## Geltend — Sicherheit & Datenschutz
 
@@ -68,6 +70,7 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`security/security-inventory.md`](security/security-inventory.md) | Stand der Schutzmaßnahmen |
 | [`security/pentest-scope.md`](security/pentest-scope.md) | Geltender Prüfumfang für Pentests |
 | [`security/security-headers.md`](security/security-headers.md) | Header-Konfiguration der Deployments + die entschiedenen Punkte dazu (`style-src 'unsafe-inline'`, Pre-Commit-Bypass) |
+| [`security/anbieter-register.md`](security/anbieter-register.md) | **Lebendes Register:** Anbieter, Subdienstleister, externe Endpunkte — Rollen, AVV-Stand, Prüfdaten; Faktenbasis für Subprozessoren-Verzeichnis und VVT |
 
 ## Geltend — Fachdomäne & Produkt
 
@@ -125,6 +128,19 @@ Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
 | [`qualitaet-2026-08/nachpruefung.md`](qualitaet-2026-08/nachpruefung.md) | Getroffene Entscheidungen — geltend, weil sie binden. Wo der Plan an der Wirklichkeit vorbeizielte und was stattdessen gilt |
 | [`qualitaet-2026-08/status.md`](qualitaet-2026-08/status.md) | **Protokoll.** Paketstand, Baseline und der Wiedereinstieg für eine neue Sitzung |
 | [`qualitaet-2026-08/audit.md`](qualitaet-2026-08/audit.md) | **Protokoll.** Qualitäts-Audit vom 2026-08-08 (`main@067244f`) — die Belege zum Plan |
+
+## Laufendes Programm: Betrieb & EU-Souveränität (2026-08)
+
+`docs/betrieb-2026-08/` ist **kein Archiv**: das Programm hat offene
+Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/` —
+die beiden ADRs und das Anbieter-Register bleiben als geltende Dokumente.
+
+| Datei | Rolle |
+|---|---|
+| [`betrieb-2026-08/plan.md`](betrieb-2026-08/plan.md) | Geltender Arbeitsplan: Phasen 0–7, 40 Arbeitspakete, [OPS]-Form mit `Wächter:`-Pflichtfeld, Livegang-Gate (#292/#293/#296/#298) |
+| [`betrieb-2026-08/audit.md`](betrieb-2026-08/audit.md) | **Protokoll.** Prüfung der zehn Betriebsvorschläge + Sofortbefunde (BTR-*), 2026-08-10, `main@b2513b7` |
+| [`betrieb-2026-08/status.md`](betrieb-2026-08/status.md) | **Protokoll.** Paketstand und Wiedereinstieg |
+| `betrieb-2026-08/belege/` | **Protokoll.** Nachweise der [OPS]-Pakete (entsteht mit dem ersten Beleg) |
 
 ## Protokoll: `docs/archive/`
 
