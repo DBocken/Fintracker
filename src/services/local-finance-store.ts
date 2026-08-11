@@ -12,6 +12,7 @@ import {
   LOCAL_STORE_SCHEMA_VERSION_KEY,
 } from '@/lib/store-compatibility';
 import { COLLECTION_SCHEMAS, type CollectionSchemaKey } from '@/lib/schemas/collection-schemas';
+import { withKeyLock } from '@/lib/key-mutex';
 import { recordSkipped } from './data-integrity-report';
 import { hasPendingStoreMigrations } from './local-store-migrations';
 
@@ -116,11 +117,38 @@ export async function writeLocalFinanceList<T>(key: LocalFinanceKey, items: T[])
   await localEncryption.encryptAndStore(LOCAL_FINANCE_KEYS[key], items);
 }
 
+/**
+ * Liest eine Collection, lässt sie ändern und schreibt sie zurück — der ganze
+ * Ablauf serialisiert je Speicherschlüssel (Issue #311).
+ *
+ * **Warum es diese Funktion gibt.** Lesen und Schreiben sind zwei `await`s mit
+ * einem echten Zeitfenster dazwischen (IndexedDB, AES-GCM). Zwei gleichzeitige
+ * Aufrufe lesen sonst denselben Stand, und der zweite schreibt eine Fassung
+ * ohne das Element des ersten — lautlos. Nachgemessen stand diese Sequenz in
+ * 12 Dateien; deshalb gibt es ab jetzt EINEN Weg statt zwölf Absicherungen.
+ *
+ * Der Ändern-Schritt läuft INNERHALB des Locks und darf deshalb selbst `async`
+ * sein. Er sollte allerdings nichts Langlaufendes tun: solange er läuft, warten
+ * andere Schreibvorgänge auf dieselbe Collection.
+ *
+ * Erzwungen durch `pnpm check:store-serialization`.
+ */
+export async function mutateLocalFinanceList<T>(
+  key: LocalFinanceKey,
+  aendern: (items: T[]) => T[] | Promise<T[]>,
+): Promise<T[]> {
+  return withKeyLock(LOCAL_FINANCE_KEYS[key], async () => {
+    const items = await readLocalFinanceList<T>(key);
+    const next = await aendern(items);
+    await writeLocalFinanceList(key, next);
+    return next;
+  });
+}
+
 export async function upsertLocalFinanceItem<T extends { id?: string }>(
   key: LocalFinanceKey,
   item: T,
 ): Promise<T & { id: string }> {
-  const items = await readLocalFinanceList<T & { id: string }>(key);
   const id = item.id || crypto.randomUUID();
   const now = new Date().toISOString();
   const nextItem = {
@@ -130,14 +158,14 @@ export async function upsertLocalFinanceItem<T extends { id?: string }>(
     created_at: (item as T & { created_at?: string }).created_at ?? now,
   } as T & { id: string };
 
-  const index = items.findIndex((entry) => entry.id === id);
-  if (index >= 0) {
-    items[index] = { ...items[index], ...nextItem };
-  } else {
-    items.push(nextItem);
-  }
+  await mutateLocalFinanceList<T & { id: string }>(key, (items) => {
+    const index = items.findIndex((entry) => entry.id === id);
+    if (index < 0) return [...items, nextItem];
+    const next = [...items];
+    next[index] = { ...next[index], ...nextItem };
+    return next;
+  });
 
-  await writeLocalFinanceList(key, items);
   return nextItem;
 }
 
@@ -146,27 +174,33 @@ export async function updateLocalFinanceItem<T extends { id?: string }>(
   id: string,
   updates: Partial<T>,
 ): Promise<T> {
-  const items = await readLocalFinanceList<T>(key);
-  const index = items.findIndex((entry) => entry.id === id);
-  if (index < 0) throw new Error(t('localFinanceStore.recordNotFound', 'Datensatz nicht gefunden'));
+  let updated: T | undefined;
 
-  const updated = {
-    ...items[index],
-    ...updates,
-    id,
-    updated_at: new Date().toISOString(),
-  } as T;
-  items[index] = updated;
-  await writeLocalFinanceList(key, items);
-  return updated;
+  await mutateLocalFinanceList<T>(key, (items) => {
+    const index = items.findIndex((entry) => entry.id === id);
+    // Der Fehler fliegt INNERHALB des Locks — `mutateLocalFinanceList` gibt es
+    // dabei wieder frei, und es wird nichts geschrieben.
+    if (index < 0) throw new Error(t('localFinanceStore.recordNotFound', 'Datensatz nicht gefunden'));
+
+    updated = {
+      ...items[index],
+      ...updates,
+      id,
+      updated_at: new Date().toISOString(),
+    } as T;
+    const next = [...items];
+    next[index] = updated;
+    return next;
+  });
+
+  return updated as T;
 }
 
 export async function deleteLocalFinanceItem<T extends { id?: string }>(
   key: LocalFinanceKey,
   id: string,
 ): Promise<void> {
-  const items = await readLocalFinanceList<T>(key);
-  await writeLocalFinanceList(key, items.filter((entry) => entry.id !== id));
+  await mutateLocalFinanceList<T>(key, (items) => items.filter((entry) => entry.id !== id));
 }
 
 function isPlaintextRaw(raw: string | null): boolean {

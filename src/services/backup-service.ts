@@ -17,9 +17,9 @@ import {
   type EncryptedEnvelopeV1,
 } from './local-crypto';
 import {
+  mutateLocalFinanceList,
   LOCAL_FINANCE_KEYS,
   readLocalFinanceList,
-  writeLocalFinanceList,
   type LocalFinanceKey,
 } from './local-finance-store';
 import { validateCollectionItems } from '@/lib/schemas/collection-schemas';
@@ -102,17 +102,22 @@ export async function restoreLocalCollections(
     if (!isLocalFinanceKey(key) || TYPED_BACKUP_KEYS.has(key)) continue;
     if (!Array.isArray(items) || items.length === 0) continue;
 
-    const current = await readLocalFinanceList<unknown>(key);
-    const existingIds = new Set(current.map(itemId).filter((id): id is string => id !== null));
-    const additions = items.filter((item) => {
-      const id = itemId(item);
-      return id !== null && !existingIds.has(id);
+    // Serialisiert (Issue #311): Ein Restore läuft neben der laufenden App —
+    // eine gleichzeitige Nutzeraktion auf derselben Collection ginge sonst
+    // unter, und zwar ausgerechnet beim Wiederherstellen von Daten.
+    let additionCount = 0;
+    await mutateLocalFinanceList<unknown>(key, (current) => {
+      const existingIds = new Set(current.map(itemId).filter((id): id is string => id !== null));
+      const additions = items.filter((item) => {
+        const id = itemId(item);
+        return id !== null && !existingIds.has(id);
+      });
+      additionCount = additions.length;
+      return additions.length === 0 ? current : [...current, ...additions];
     });
 
-    if (additions.length === 0) continue;
-
-    await writeLocalFinanceList(key, [...current, ...additions]);
-    results[key] = additions.length;
+    if (additionCount === 0) continue;
+    results[key] = additionCount;
   }
   return results;
 }

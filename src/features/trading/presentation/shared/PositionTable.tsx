@@ -29,6 +29,7 @@ import {
   calculateGainLossPercent,
   calculateAnnualizedReturnPercent,
   getBuyDate,
+  currentPriceOf,
 } from '@/features/trading/domain/position-metrics';
 
 interface PositionTableProps {
@@ -81,7 +82,7 @@ export default function PositionTable({
         return multiplier * (a.entry_price - b.entry_price);
       
       case 'current_price':
-        return multiplier * ((a.last_price || a.entry_price) - (b.last_price || b.entry_price));
+        return multiplier * (currentPriceOf(a) - currentPriceOf(b));
       
       case 'gain_loss': {
         const gainA = calculateGainLoss(a);
@@ -200,7 +201,7 @@ export default function PositionTable({
         </TableHeader>
         <TableBody>
           {sortedPositions.map((position) => {
-            const currentPrice = position.last_price || position.entry_price;
+            const currentPrice = currentPriceOf(position);
             const gainLoss = calculateGainLoss(position);
             const gainLossPercent = calculateGainLossPercent(position);
             const annualizedPercent = calculateAnnualizedReturnPercent(position);

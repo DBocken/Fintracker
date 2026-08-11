@@ -150,6 +150,12 @@ die beiden ADRs und das Anbieter-Register bleiben als geltende Dokumente.
 | [`betrieb-2026-08/status.md`](betrieb-2026-08/status.md) | **Protokoll.** Paketstand und Wiedereinstieg |
 | `betrieb-2026-08/belege/` | **Protokoll.** Nachweise der [OPS]-Pakete (entsteht mit dem ersten Beleg) |
 
+## Protokoll: Issue-Sichtung
+
+| Datei | Rolle |
+|---|---|
+| [`issue-triage-2026-08.md`](issue-triage-2026-08.md) | **Protokoll.** Bestandsprüfung der 44 offenen Issues gegen `main@60d98bd` (2026-08-11): was nachgemessen erledigt ist, welche Roadmap-Issues nur noch ihre Oberfläche brauchen, und die Reihenfolge daneben. **Kein Arbeitsplan** — der bleibt `betrieb-2026-08/plan.md` |
+
 ## Protokoll: `docs/archive/`
 
 Nichts hier ist eine geltende Regel. Jedes Dokument trägt oben einen Hinweis,

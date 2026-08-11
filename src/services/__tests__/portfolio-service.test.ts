@@ -115,19 +115,23 @@ describe("getPortfolioSummary — Investiert bei Hebel-Positionen", () => {
     expect(summary.total_value).toBe(1500);
   });
 
-  it("[Edge] dokumentiert aktuelles Verhalten bei last_price === 0: fällt auf entry_price zurück statt 0 zu zeigen", async () => {
+  it("[REGRESSION] sollte einen Kurs von 0 als wertlos werten statt auf den Einstiegskurs zurückzufallen", async () => {
     const p = await seedPortfolio();
     const pos = await createPosition({ portfolio_id: p.id, symbol: "AAPL", quantity: 10, entry_price: 150 });
     await updatePositionPrice(pos.id, 0);
     const summary = await getPortfolioSummary(p.id);
-    // `position.last_price || position.entry_price` behandelt einen echten
-    // Kurs von 0 (z.B. wertlose/delistete Position) wie "kein Kurs geladen"
-    // und zeigt den Einstiegskurs statt 0 — dieselbe Falsy-Falle existiert
-    // konsistent auch in position-metrics.ts und PositionTable.tsx. Dieser
-    // Test dokumentiert das aktuelle (fragwürdige) Verhalten bewusst, statt
-    // es hier isoliert zu "reparieren" und die drei Stellen auseinanderlaufen
-    // zu lassen — eine echte Korrektur müsste alle drei gemeinsam ändern.
-    expect(summary.total_value).toBe(1500);
+    // Issue #294: Bis hierher behandelte `last_price || entry_price` einen
+    // echten Kurs von 0 wie "kein Kurs geladen" und zeigte 1500 € statt eines
+    // Totalverlusts. Ein Vorgängertest hielt dieses Verhalten bewusst fest,
+    // weil eine isolierte Korrektur die drei Fundstellen hätte auseinander-
+    // laufen lassen; sie sind jetzt gemeinsam über `currentPriceOf` behoben.
+    //
+    // Dass 0 hier "wertlos" heißt und nicht "kein Kurs", ist nachgeprüft:
+    // Yahoo lässt das Quote bei fehlendem Kurs ganz entfallen, Stooq
+    // überspringt die Zeile, und eToro verlangt in `etoroCurrentPrice`
+    // ausdrücklich `> 0`. Kein Anbieter benutzt 0 als Fehlmarke.
+    expect(summary.total_value).toBe(0);
+    expect(summary.unrealized_gain_loss).toBe(-1500);
   });
 });
 

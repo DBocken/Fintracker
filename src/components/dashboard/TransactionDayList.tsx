@@ -5,7 +5,6 @@ import { ChevronDown, Repeat, SplitSquareHorizontal } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { toMajor, type Cents } from '@/lib/money';
 import type { Account, Category, Transaction, TransactionAllocation } from '@/types';
-import { useGentleMode } from '@/components/providers/GentleModeProvider';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import ListRow from '@/features/shared/presentation/ListRow';
 import { cn } from '@/lib/utils';
@@ -100,7 +99,6 @@ export function TransactionDayList({
   now,
 }: TransactionDayListProps) {
   const { t } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
   const money = useMoneyFormat();
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -175,7 +173,10 @@ export function TransactionDayList({
   const renderDayHeader = (group: DayGroup, withTopSpacing: boolean) => {
     const heading = formatDayHeading(group.key, now);
     const balanceLabel = money.mask(currencyFormatter.format(group.runningBalance));
-    const deltaLabel = gentleModeEnabled ? '' : deltaFormatter.format(group.delta);
+    // Zuvor eine eigene Maske (leerer Text bei aktivem Modus) — sie kannte die
+    // Stufen des Sanften Modus nicht und verschwieg die Tagesveraenderung schon
+    // auf Stufe 1, wo Fortschritt sichtbar bleiben soll (Issue #296).
+    const deltaLabel = money.mask(deltaFormatter.format(group.delta), 'progress');
     // Tutorial-Anker nur am ERSTEN Tag: Die Fuehrung braucht ein eindeutiges
     // Ziel, und `document.querySelector` naehme ohnehin das erste.
     const isFirstDay = group.key === groups[0]?.key;

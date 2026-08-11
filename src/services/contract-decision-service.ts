@@ -1,4 +1,4 @@
-import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { mutateLocalFinanceList, readLocalFinanceList } from './local-finance-store';
 import { safeAudit, redactForAudit } from './audit-log-service';
 import { t } from '@/i18n/serviceT';
 import type { Rhythmus } from '@/types';
@@ -42,38 +42,57 @@ export async function upsertContractDecision(
   if (!fp) return;
 
   const now = new Date().toISOString();
-  const decisions = await readLocalFinanceList<ContractDecision>('contractDecisions');
-  const existing = decisions.find((d) => d.fingerprint === fp);
-  const before = existing ? { ...existing } : null;
-  if (existing) {
-    existing.status = input.status;
-    existing.cycle_override = input.cycle_override ?? null;
-    existing.ended_at = input.ended_at ?? null;
-    existing.note = input.note ?? null;
-    existing.updated_at = now;
-  } else {
-    decisions.push({
-      id: crypto.randomUUID(),
-      user_id: 'local',
-      fingerprint: fp,
-      status: input.status,
-      cycle_override: input.cycle_override ?? null,
-      ended_at: input.ended_at ?? null,
-      note: input.note ?? null,
-      created_at: now,
-      updated_at: now,
-    });
-  }
-  await writeLocalFinanceList('contractDecisions', decisions);
+  // Halter-Objekt statt `let` — siehe merchant-rules-service: TypeScript
+  // verwirft die Typinformation einer in einem Callback gesetzten Variablen.
+  const vorher: { entscheidung: ContractDecision | null; bestand: boolean } = {
+    entscheidung: null,
+    bestand: false,
+  };
+
+  // Serialisiert (Issue #311): Der Vertragsbildschirm bestätigt Entscheidungen
+  // in Folge; ohne Lock überschrieb die zweite die erste.
+  const decisions = await mutateLocalFinanceList<ContractDecision>('contractDecisions', (aktuell) => {
+    const existing = aktuell.find((d) => d.fingerprint === fp);
+    vorher.entscheidung = existing ? { ...existing } : null;
+    vorher.bestand = Boolean(existing);
+    if (existing) {
+      return aktuell.map((d) =>
+        d.fingerprint === fp
+          ? {
+              ...d,
+              status: input.status,
+              cycle_override: input.cycle_override ?? null,
+              ended_at: input.ended_at ?? null,
+              note: input.note ?? null,
+              updated_at: now,
+            }
+          : d,
+      );
+    }
+    return [
+      ...aktuell,
+      {
+        id: crypto.randomUUID(),
+        user_id: 'local',
+        fingerprint: fp,
+        status: input.status,
+        cycle_override: input.cycle_override ?? null,
+        ended_at: input.ended_at ?? null,
+        note: input.note ?? null,
+        created_at: now,
+        updated_at: now,
+      },
+    ];
+  });
 
   const saved = decisions.find((d) => d.fingerprint === fp);
   await safeAudit({
     actor: 'user',
     entityType: 'contract',
     entityId: saved?.id ?? fp,
-    action: existing ? 'update' : 'create',
+    action: vorher.bestand ? 'update' : 'create',
     title: `Vertragsentscheidung: ${input.status}`,
-    redactedBefore: redactForAudit(before, ['fingerprint', 'status', 'cycle_override']),
+    redactedBefore: redactForAudit(vorher.entscheidung, ['fingerprint', 'status', 'cycle_override']),
     redactedAfter: redactForAudit(saved, ['fingerprint', 'status', 'cycle_override']),
     reversible: true,
     reversal: saved ? { operation: 'update', targetCollection: 'contractDecisions', targetId: saved.id } : null,
@@ -84,12 +103,12 @@ export async function deleteContractDecision(fingerprint: string): Promise<void>
   const fp = fingerprint.trim();
   if (!fp) return;
 
-  const decisions = await readLocalFinanceList<ContractDecision>('contractDecisions');
-  const removed = decisions.find((d) => d.fingerprint === fp) ?? null;
-  await writeLocalFinanceList(
-    'contractDecisions',
-    decisions.filter((d) => d.fingerprint !== fp),
-  );
+  const geloescht: { entscheidung: ContractDecision | null } = { entscheidung: null };
+  await mutateLocalFinanceList<ContractDecision>('contractDecisions', (decisions) => {
+    geloescht.entscheidung = decisions.find((d) => d.fingerprint === fp) ?? null;
+    return decisions.filter((d) => d.fingerprint !== fp);
+  });
+  const removed = geloescht.entscheidung;
 
   await safeAudit({
     actor: 'user',

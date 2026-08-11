@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import type { FinancialHealth } from "@/services/financial-health-service";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -84,15 +85,13 @@ function StatusTile({
  * Details und nächster Aktion per Tap. Bewusst numerisch und komplementär zur
  * illustrativen Finanzlandschaft (keine doppelte Score-Darstellung).
  */
-export default function CoachStatusGrid({
-  health,
-  gentle,
-}: {
-  health: FinancialHealth;
-  gentle: boolean;
-}) {
+export default function CoachStatusGrid({ health }: { health: FinancialHealth }) {
   const { t } = useI18n();
-  const mask = (v: string) => (gentle ? "***" : v);
+  // Zuvor eine eigene Maske (`gentle ? "***" : v`) auf einem `gentle`-Prop —
+  // sie kannte weder die Stufen des Sanften Modus noch die Betragsklassen
+  // (Issue #296). `useMoneyFormat` liest den Modus selbst; das Prop entfaellt
+  // damit ersatzlos.
+  const { mask } = useMoneyFormat();
   const explanationFor = (key: string) => health.subScores.find((s) => s.key === key)?.explanation ?? "";
 
   const monthsCovered =
@@ -135,8 +134,8 @@ export default function CoachStatusGrid({
         value={mask(eur.format(monthlyNet))}
         tone={monthlyNet > 0 ? "good" : monthlyNet === 0 ? "neutral" : "warn"}
         explanation={t('coach.statusGridBalanceInfo')
-          .replace('{income}', gentle ? "***" : eur.format(health.monthlyIncome))
-          .replace('{expenses}', gentle ? "***" : eur.format(health.monthlyExpenses))}
+          .replace('{income}', mask(eur.format(health.monthlyIncome)))
+          .replace('{expenses}', mask(eur.format(health.monthlyExpenses)))}
         ctaLabel={t('coach.statusGridBalanceAction')}
         ctaTo="/dashboard"
       />

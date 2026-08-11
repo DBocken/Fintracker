@@ -2,11 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCurrentUserId } from './auth-service';
 import { getAccounts } from './account-service';
 import {
+  mutateLocalFinanceList,
   deleteLocalFinanceItem,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
-  writeLocalFinanceList,
 } from './local-finance-store';
 
 export interface BankConnection {
@@ -94,6 +94,7 @@ async function hydrateConnectionsFromAccounts(): Promise<BankConnection[]> {
   if (existing.length > 0) return existing;
 
   const accounts = await getAccounts();
+
   const connectedAccounts = accounts.filter(
     (account) => account.gocardless_account_id || account.bank_connection_id || account.gocardless_requisition_id,
   );
@@ -117,8 +118,13 @@ async function hydrateConnectionsFromAccounts(): Promise<BankConnection[]> {
     last_sync_at: account.last_sync_at || undefined,
   }));
 
-  await writeLocalFinanceList('bankConnections', hydratedConnections);
-  return hydratedConnections;
+  // Serialisiert samt der "ist noch leer?"-Prüfung (Issue #311): Zwei
+  // gleichzeitige Leseanfragen hydrierten sonst beide und schrieben zweimal.
+  // Die Prüfung oben bleibt als billiger Vorabausstieg stehen — verbindlich
+  // ist die hier drinnen.
+  return mutateLocalFinanceList<BankConnection>('bankConnections', (aktuell) =>
+    aktuell.length > 0 ? aktuell : hydratedConnections,
+  );
 }
 
 class BankConnectionService {

@@ -10,6 +10,7 @@ import {
   localEncryption,
   onLocalEncryptionLock,
 } from './local-crypto'
+import { withKeyLock } from '@/lib/key-mutex'
 import { t } from '@/i18n/serviceT'
 
 /**
@@ -81,6 +82,26 @@ async function readIndex(): Promise<TransactionChunkIndex> {
 
 async function writeIndex(index: TransactionChunkIndex): Promise<void> {
   await localEncryption.encryptAndStore(INDEX_KEY, index)
+}
+
+/**
+ * Lesen-Ändern-Schreiben auf dem Index, serialisiert (Issue #311).
+ *
+ * Der Index ist der einzige Schlüssel dieser Schicht, den mehrere Quartale
+ * TEILEN: Zwei gleichzeitige `writeTransactionChunk`-Aufrufe für verschiedene
+ * Quartale schreiben verschiedene Chunks, aber denselben Index — ohne Lock
+ * verlöre einer der beiden seinen Zähleintrag. Der Schaden wäre begrenzt
+ * (`readAllTransactionChunks` leitet die Menge aus `idbKeys()` ab und
+ * berichtigt den Index), aber „begrenzt falsch" ist kein Zustand, den man
+ * absichtlich stehen lässt.
+ */
+async function mutiereIndex(
+  aendern: (index: TransactionChunkIndex) => TransactionChunkIndex,
+): Promise<void> {
+  await withKeyLock(INDEX_KEY, async () => {
+    const index = await readIndex()
+    await writeIndex(aendern(index))
+  })
 }
 
 /**
@@ -187,9 +208,7 @@ export async function writeTransactionChunk(quarter: QuarterKey, transactions: T
   // Index wird IMMER aus dem gerade geschriebenen Chunk abgeleitet (dessen
   // tatsächliche Länge), nie eigenständig fortgeschrieben (z. B. per
   // Delta/Inkrement) — genau die Vorgabe der ADR.
-  const index = await readIndex()
-  index[quarter] = transactions.length
-  await writeIndex(index)
+  await mutiereIndex((index) => ({ ...index, [quarter]: transactions.length }))
 }
 
 /**
@@ -264,7 +283,10 @@ export async function readAllTransactionChunks(): Promise<Transaction[]> {
     indexKeys.length !== Object.keys(actualCounts).length ||
     indexKeys.some((quarter) => index[quarter] !== actualCounts[quarter])
   if (indexIsStale) {
-    await writeIndex(actualCounts)
+    // Die Berichtigung ersetzt den Index vollständig (sie ist aus den
+    // physischen Chunks abgeleitet, nicht aus dem gelesenen Index) — deshalb
+    // reicht hier der Lock ohne erneutes Lesen.
+    await withKeyLock(INDEX_KEY, () => writeIndex(actualCounts))
   }
 
   return result

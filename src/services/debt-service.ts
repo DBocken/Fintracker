@@ -5,10 +5,10 @@ import { getTransactions } from "./transaction-service";
 import { t } from "../i18n/serviceT";
 import {
   deleteLocalFinanceItem,
+  mutateLocalFinanceList,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
-  writeLocalFinanceList,
 } from "./local-finance-store";
 
 /** Übersetzte Anzeige-Labels je Schuldenart — als Funktion, damit sie die aktuelle Sprache widerspiegeln. */
@@ -116,8 +116,9 @@ export async function updateDebt(debt: Partial<Debt> & { id: string }): Promise<
 
 export async function deleteDebt(id: string): Promise<void> {
   await deleteLocalFinanceItem<Debt>("debts", id);
-  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
-  await writeLocalFinanceList("debtAssignments", assignments.filter((assignment) => assignment.debt_id !== id));
+  await mutateLocalFinanceList<DebtTransactionAssignment>("debtAssignments", (assignments) =>
+    assignments.filter((assignment) => assignment.debt_id !== id),
+  );
 }
 
 export type PayoffStrategy = "snowball" | "avalanche";
@@ -265,11 +266,6 @@ export async function assignTransactionToDebt(params: {
     throw new Error(t("debtService.onlyDebitsAllowed"));
   }
 
-  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
-  if (assignments.some((assignment) => assignment.transaction_id === params.transactionId)) {
-    throw new Error(t("debtService.alreadyAssigned"));
-  }
-
   const assignment: DebtTransactionAssignment = {
     id: crypto.randomUUID(),
     user_id: await localUserId(),
@@ -278,7 +274,16 @@ export async function assignTransactionToDebt(params: {
     amount,
     created_at: new Date().toISOString(),
   };
-  await writeLocalFinanceList("debtAssignments", [assignment, ...assignments]);
+
+  // Die Dublettenprüfung liegt INNERHALB des Locks (Issue #311): Stünde sie
+  // davor, könnten zwei gleichzeitige Zuordnungen derselben Buchung beide an
+  // ihr vorbeikommen — die Prüfung wäre dann Zierde, keine Zusicherung.
+  await mutateLocalFinanceList<DebtTransactionAssignment>("debtAssignments", (assignments) => {
+    if (assignments.some((entry) => entry.transaction_id === params.transactionId)) {
+      throw new Error(t("debtService.alreadyAssigned"));
+    }
+    return [assignment, ...assignments];
+  });
 
   const newBalance = Math.max(0, Number(debt.balance) - amount);
   await updateDebt({ id: params.debtId, balance: newBalance, is_paid_off: newBalance <= 0 });
@@ -287,11 +292,15 @@ export async function assignTransactionToDebt(params: {
 }
 
 export async function unassignDebtTransaction(assignmentId: string): Promise<void> {
-  const assignments = await readLocalFinanceList<DebtTransactionAssignment>("debtAssignments");
-  const assignment = assignments.find((entry) => entry.id === assignmentId);
-  if (!assignment) throw new Error(t("debtService.assignmentNotFound"));
-
-  await writeLocalFinanceList("debtAssignments", assignments.filter((entry) => entry.id !== assignmentId));
+  const entfernt: { zuordnung: DebtTransactionAssignment | null } = { zuordnung: null };
+  await mutateLocalFinanceList<DebtTransactionAssignment>("debtAssignments", (assignments) => {
+    const gefunden = assignments.find((entry) => entry.id === assignmentId);
+    if (!gefunden) throw new Error(t("debtService.assignmentNotFound"));
+    entfernt.zuordnung = gefunden;
+    return assignments.filter((entry) => entry.id !== assignmentId);
+  });
+  const assignment = entfernt.zuordnung;
+  if (!assignment) return;
 
   const debts = await getDebts();
   const debt = debts.find((entry) => entry.id === assignment.debt_id);

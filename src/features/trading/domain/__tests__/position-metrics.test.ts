@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { PortfolioPosition } from '@/types';
 import {
   calculateGainLoss,
+  currentPriceOf,
   calculateGainLossPercent,
   getBuyDate,
   calculateAnnualizedReturnPercent,
@@ -34,9 +35,37 @@ describe('position-metrics', () => {
     it('sollte 0 liefern wenn kein last_price vorhanden ist (Fallback auf entry_price)', () => {
       expect(calculateGainLoss(position())).toBe(0);
     });
+
+    it('[REGRESSION] sollte einen Kurs von 0 als Totalverlust ausweisen, nicht als plusminus null', () => {
+      // Issue #294: `last_price || entry_price` liess den echten Nullkurs auf
+      // den Einstiegskurs zurueckfallen — die Oberflaeche zeigte ±0 statt des
+      // vollstaendigen Verlusts. Nachgeprueft ist, dass 0 hier „wertlos" heisst
+      // und nicht „kein Kurs": Yahoo laesst das Quote ganz entfallen, Stooq
+      // ueberspringt die Zeile, und eToro verlangt in `etoroCurrentPrice`
+      // ausdruecklich `> 0`.
+      expect(calculateGainLoss(position({ last_price: 0 }))).toBe(-1000);
+    });
+  });
+
+  describe('currentPriceOf', () => {
+    it('sollte den Kurs 0 durchreichen statt auf den Einstiegskurs zu fallen', () => {
+      expect(currentPriceOf(position({ last_price: 0 }))).toBe(0);
+    });
+
+    it('sollte ohne Kurs den Einstiegskurs liefern', () => {
+      expect(currentPriceOf(position())).toBe(100);
+    });
+
+    it('sollte einen vorhandenen Kurs liefern', () => {
+      expect(currentPriceOf(position({ last_price: 110 }))).toBe(110);
+    });
   });
 
   describe('calculateGainLossPercent', () => {
+    it('[REGRESSION] sollte bei Kurs 0 minus 100 Prozent ausweisen', () => {
+      expect(calculateGainLossPercent(position({ last_price: 0 }))).toBe(-100);
+    });
+
     it('sollte Prozent relativ zum Einstiegspreis berechnen', () => {
       expect(calculateGainLossPercent(position({ last_price: 125 }))).toBe(25);
     });

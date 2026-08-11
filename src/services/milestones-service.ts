@@ -6,10 +6,15 @@ import type {
 } from "@/lib/milestone-types";
 import { getFinancialHealth } from "./financial-health-service";
 import { getDebts } from "./debt-service";
-import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { mutateLocalFinanceList, readLocalFinanceList } from './local-finance-store';
 import { t } from "@/i18n/serviceT";
 
-export function getMilestoneDefinitions(): MilestoneDefinition[] {
+/**
+ * Nicht exportiert (Issue #297): Ausser `evaluateMilestones` weiter unten
+ * ruft sie niemand. Ein Export ohne Aufrufer sieht wie eine oeffentliche
+ * Zusage aus, die niemand eingeloest hat.
+ */
+function getMilestoneDefinitions(): MilestoneDefinition[] {
   return [
     {
       key: "emergency_fund_1m",
@@ -67,15 +72,20 @@ export async function getAchievedMilestones(): Promise<Milestone[]> {
 }
 
 async function markAchieved(key: string): Promise<void> {
-  const milestones = await readLocalFinanceList<Milestone>('milestones');
-  if (milestones.some((item) => item.milestone_key === key)) return;
-  milestones.push({
-    id: crypto.randomUUID(),
-    user_id: 'local',
-    milestone_key: key,
-    achieved_at: new Date().toISOString(),
+  // Serialisiert (Issue #311): Mehrere Meilensteine werden im selben Durchlauf
+  // erreicht, und die Aufrufe überlappen sich — ohne Lock überlebte nur einer.
+  await mutateLocalFinanceList<Milestone>('milestones', (milestones) => {
+    if (milestones.some((item) => item.milestone_key === key)) return milestones;
+    return [
+      ...milestones,
+      {
+        id: crypto.randomUUID(),
+        user_id: 'local',
+        milestone_key: key,
+        achieved_at: new Date().toISOString(),
+      },
+    ];
   });
-  await writeLocalFinanceList('milestones', milestones);
 }
 
 

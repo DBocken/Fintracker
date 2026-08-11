@@ -9,10 +9,10 @@ import { getTransactions } from "./transaction-service";
 import { normalizeMerchantName } from "@/lib/merchant-normalization";
 import {
   deleteLocalFinanceItem,
+  mutateLocalFinanceList,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
-  writeLocalFinanceList,
 } from "./local-finance-store";
 import { t } from "../i18n/serviceT";
 
@@ -68,10 +68,9 @@ export async function updateReceivable(
 
 export async function deleteReceivable(id: string): Promise<void> {
   await deleteLocalFinanceItem<Receivable>("receivables", id);
-  const assignments = await readLocalFinanceList<ReceivableTransactionAssignment>("receivableAssignments");
-  await writeLocalFinanceList(
+  await mutateLocalFinanceList<ReceivableTransactionAssignment>(
     "receivableAssignments",
-    assignments.filter((assignment) => assignment.receivable_id !== id),
+    (assignments) => assignments.filter((assignment) => assignment.receivable_id !== id),
   );
 }
 
@@ -107,11 +106,6 @@ export async function assignTransactionToReceivable(params: {
     throw new Error(t("receivableService.onlyIncomesAllowed"));
   }
 
-  const assignments = await readLocalFinanceList<ReceivableTransactionAssignment>("receivableAssignments");
-  if (assignments.some((assignment) => assignment.transaction_id === params.transactionId)) {
-    throw new Error(t("receivableService.alreadyAssigned"));
-  }
-
   const assignment: ReceivableTransactionAssignment = {
     id: crypto.randomUUID(),
     user_id: await localUserId(),
@@ -120,7 +114,18 @@ export async function assignTransactionToReceivable(params: {
     amount,
     created_at: new Date().toISOString(),
   };
-  await writeLocalFinanceList("receivableAssignments", [assignment, ...assignments]);
+
+  // Dublettenprüfung INNERHALB des Locks (Issue #311) — davor wäre sie bei
+  // zwei gleichzeitigen Zuordnungen wirkungslos.
+  await mutateLocalFinanceList<ReceivableTransactionAssignment>(
+    "receivableAssignments",
+    (assignments) => {
+      if (assignments.some((entry) => entry.transaction_id === params.transactionId)) {
+        throw new Error(t("receivableService.alreadyAssigned"));
+      }
+      return [assignment, ...assignments];
+    },
+  );
 
   const newAmount = Math.max(0, Number(receivable.amount) - amount);
   await updateReceivable({ id: params.receivableId, amount: newAmount, is_settled: newAmount <= 0 });
@@ -129,14 +134,18 @@ export async function assignTransactionToReceivable(params: {
 }
 
 export async function unassignReceivableTransaction(assignmentId: string): Promise<void> {
-  const assignments = await readLocalFinanceList<ReceivableTransactionAssignment>("receivableAssignments");
-  const assignment = assignments.find((entry) => entry.id === assignmentId);
-  if (!assignment) throw new Error(t("receivableService.assignmentNotFound"));
-
-  await writeLocalFinanceList(
+  const entfernt: { zuordnung: ReceivableTransactionAssignment | null } = { zuordnung: null };
+  await mutateLocalFinanceList<ReceivableTransactionAssignment>(
     "receivableAssignments",
-    assignments.filter((entry) => entry.id !== assignmentId),
+    (assignments) => {
+      const gefunden = assignments.find((entry) => entry.id === assignmentId);
+      if (!gefunden) throw new Error(t("receivableService.assignmentNotFound"));
+      entfernt.zuordnung = gefunden;
+      return assignments.filter((entry) => entry.id !== assignmentId);
+    },
   );
+  const assignment = entfernt.zuordnung;
+  if (!assignment) return;
 
   const receivables = await getReceivables();
   const receivable = receivables.find((entry) => entry.id === assignment.receivable_id);

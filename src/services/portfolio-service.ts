@@ -1,9 +1,11 @@
 import { t } from '../i18n/serviceT';
 import type { Portfolio, PortfolioPosition, PortfolioSummary, UnconvertedPosition } from '../types';
 import { isSameCurrency } from '@/lib/portfolio-currency';
+import { currentPriceOf } from '@/features/trading/domain/position-metrics';
 import { getCurrentUserId } from './auth-service';
 import {
   deleteLocalFinanceItem,
+  mutateLocalFinanceList,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
@@ -67,8 +69,9 @@ export async function setActivePortfolio(id: string): Promise<void> {
 
 export async function deletePortfolio(id: string): Promise<void> {
   await deleteLocalFinanceItem<Portfolio>('portfolios', id);
-  const positions = await readLocalFinanceList<PortfolioPosition>('portfolioPositions');
-  await writeLocalFinanceList('portfolioPositions', positions.filter((position) => position.portfolio_id !== id));
+  await mutateLocalFinanceList<PortfolioPosition>('portfolioPositions', (positions) =>
+    positions.filter((position) => position.portfolio_id !== id),
+  );
 
   const remaining = await getPortfolios();
   if (remaining.length > 0 && !remaining.some((portfolio) => portfolio.is_active)) {
@@ -166,7 +169,7 @@ export async function getPortfolioSummary(portfolioId: string): Promise<Portfoli
   const unconverted_positions: UnconvertedPosition[] = [];
 
   for (const position of positions) {
-    const currentPrice = position.last_price || position.entry_price;
+    const currentPrice = currentPriceOf(position);
     const marketValue = position.quantity * currentPrice;
 
     // VE-1 (docs/architecture/currency-eur-only.md): Es gibt keine Kursquelle

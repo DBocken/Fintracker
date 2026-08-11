@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserSettings } from "@/services/transaction-service";
 import { applySkinClass, normalizeSkinId, type SkinId } from "@/skins/skins";
 import { useLocalEncryption } from "@/components/providers/LocalEncryptionProvider";
 
-type SkinContextValue = {
-  current: SkinId;
-};
-
-const SkinContext = createContext<SkinContextValue>({ current: 'ruhe' });
-
+/**
+ * Kein Context mehr (Issue #297). `useSkin` hatte keinen Aufrufer, und damit
+ * hatte der Context keinen Leser: Die Skin wirkt ausschliesslich ueber
+ * `applySkinClass` auf dem Dokument. Ein Provider, dessen Wert niemand liest,
+ * ist kein Provider, sondern ein Seiteneffekt mit Zeremonie.
+ */
 export default function SkinProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { enabled, unlocked } = useLocalEncryption();
@@ -50,13 +50,5 @@ export default function SkinProvider({ children }: { children: React.ReactNode }
     setCurrent(skin);
   }, [settings]);
 
-  const value = useMemo(() => ({ current }), [current]);
-
-  return (
-    <SkinContext.Provider value={value}>
-      {children}
-    </SkinContext.Provider>
-  );
+  return <>{children}</>;
 }
-
-export const useSkin = () => useContext(SkinContext);
