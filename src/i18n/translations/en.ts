@@ -88,6 +88,7 @@ export const en = {
   },
   tutorial: {
     coach: {
+      name: 'Your daily view',
       today: {
         title: 'Today for you',
         body: 'What appears here follows your data and changes with it. One look a day is enough.',
@@ -98,6 +99,7 @@ export const en = {
       },
     },
     accounts: {
+      name: 'Accounts & balances',
       balances: {
         title: 'Your accounts',
         body: 'Every entry belongs to an account. Only the balance turns a list into a real account state.',
@@ -108,6 +110,7 @@ export const en = {
       },
     },
     income: {
+      name: 'Your income',
       sources: {
         title: 'Where your money comes from',
         body: 'Not just how much, but from how many sources. A single source is convenient and risky at once.',
@@ -118,6 +121,7 @@ export const en = {
       },
     },
     contracts: {
+      name: 'Contracts & subscriptions',
       found: {
         title: 'This is what we found',
         body: 'Recurring charges from the same payee — the app spots them, you type nothing.',
@@ -132,6 +136,7 @@ export const en = {
       },
     },
     budgets: {
+      name: 'Setting budgets',
       tanks: {
         title: 'Budgets are tanks',
         body: 'Not prohibitions but fill levels: you see how much is left for the rest of the month.',
@@ -142,6 +147,7 @@ export const en = {
       },
     },
     liquidity: {
+      name: 'Forecast & buffer',
       forecast: {
         title: 'When will it get tight?',
         body: 'Recurring income and spending produce the curve. You see shortfalls before they arrive.',
@@ -152,6 +158,7 @@ export const en = {
       },
     },
     milestones: {
+      name: 'Setting goals',
       goals: {
         title: 'Goals instead of going without',
         body: 'Saving is easier when it is for something. A goal with an amount and a date beats "spend less".',
@@ -162,6 +169,7 @@ export const en = {
       },
     },
     debts: {
+      name: 'Paying off debt',
       overview: {
         title: 'All instalments in one place',
         body: 'Together instead of scattered. Only then do you see what is really committed each month.',
@@ -172,6 +180,7 @@ export const en = {
       },
     },
     occasions: {
+      name: 'Grouping occasions',
       crosscut: {
         title: 'Across categories',
         body: 'A holiday is fuel, food and a hotel. An occasion brackets those entries together.',
@@ -182,6 +191,7 @@ export const en = {
       },
     },
     netWorth: {
+      name: 'Your net worth',
       stock: {
         title: 'Stock instead of flow',
         body: 'So far this was about movement. Here it is about what remains: what you own minus what you owe.',
@@ -192,6 +202,7 @@ export const en = {
       },
     },
     tax: {
+      name: 'Preparing your taxes',
       deductible: {
         title: 'What you can deduct',
         body: 'Commuting, home office, training — much of it is already in your entries.',
@@ -202,6 +213,7 @@ export const en = {
       },
     },
     euer: {
+      name: 'Profit & tax reserve',
       profit: {
         title: 'Income minus expenses',
         body: 'The simplest form of profit calculation. What comes in, what goes out, what remains.',
@@ -212,6 +224,7 @@ export const en = {
       },
     },
     premiumReports: {
+      name: 'Trends & reports',
       trends: {
         title: 'Over time',
         body: 'One month is a snapshot. Only several months side by side show what is changing.',
@@ -222,6 +235,7 @@ export const en = {
       },
     },
     trading: {
+      name: 'Your portfolio',
       portfolio: {
         title: 'Your portfolio',
         body: 'Securities have their own rhythm. They belong to your wealth, not to the monthly budget.',
@@ -232,6 +246,7 @@ export const en = {
       },
     },
     export: {
+      name: 'Taking your data',
       ownership: {
         title: 'Your data belongs to you',
         body: 'Everything sits on your device. From here you take it with you — into a spreadsheet or another app.',
@@ -242,6 +257,7 @@ export const en = {
       },
     },
     settings: {
+      name: 'Making it yours',
       areas: {
         title: 'Show and hide areas',
         body: 'What you do not need does not have to be visible. Hidden areas stay reachable via links.',
@@ -266,6 +282,7 @@ export const en = {
     end: 'End the tour',
     progress: 'Step {current} of {total}',
     transactions: {
+      name: 'Reading the list',
       overview: {
         title: 'All your entries live here',
         body: 'Every row is one movement on one of your accounts. Everything else in the app is calculated from exactly these rows.',
@@ -408,6 +425,7 @@ export const en = {
       },
     },
     dashboard: {
+      name: 'The flow chart',
       flow: {
         title: 'Where your money flows',
         body: 'Income enters from the left, spending leaves to the right. The width of a strand is its amount.',
@@ -418,6 +436,7 @@ export const en = {
       },
     },
     city: {
+      name: 'Your city',
       arrival: {
         title: 'Your spending as a city',
         body: 'These are the same numbers as before — just walkable. Every building is something you spent money on.',
@@ -587,6 +606,23 @@ export const en = {
     noActiveKpis: 'No KPIs active.',
     resetButton: 'Reset',
   },
+  tutorials: {
+    title: 'Tutorials',
+    description: 'Every guided tour through Fintracker — area by area. Chapters you have seen get a check mark, and you can replay any of them.',
+    progressLabel: 'Chapters seen',
+    sectionProgress: '{done} of {total}',
+    steps: '{count} steps',
+    stateReady: 'Ready',
+    stateDone: 'Seen',
+    stateWaiting: 'Needs more data',
+    launcherLabel: 'Guided tours',
+    explainThisPage: 'Explain this page',
+    noneHere: 'There is no guided tour for this page yet.',
+    allTutorials: 'All tutorials',
+    startSeries: 'Show me everything, in order',
+    startSeriesAgain: 'Continue in order',
+    seriesWaiting: 'Once there is data, the full tour starts here.',
+  },
   nav: {
     groups: {
       coach: 'Coach',
@@ -595,6 +631,7 @@ export const en = {
       verwaltung: 'Management',
     },
     items: {
+      tutorials: 'Tutorials',
       coach: 'Today for you',
       debts: 'Debts',
       netWorth: 'Net worth',
@@ -617,6 +654,7 @@ export const en = {
       city: 'Finance City',
     },
     subtitles: {
+      tutorials: 'Every guided tour, area by area',
       liquidity: 'When will your money get tight?',
       budgets: 'Tanks for your spending',
       premium: 'Sankey, heatmap & smart insights',

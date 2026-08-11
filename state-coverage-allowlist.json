@@ -31,6 +31,11 @@
       "entfaellt": {
         "leer": "Wie /settings: eine Erklaerseite mit Schaltern. Kein Bestand, der leer sein koennte."
       }
+    },
+    "/tutorials": {
+      "entfaellt": {
+        "leer": "Der Katalog der Fuehrungen steht fest im Code (TUTORIAL_ORDER): Er kann nicht leer sein, solange es Kapitel mit Text gibt. Ein Leerzustand waere toter Code - dieselbe Lage wie bei /milestones."
+      }
     }
   }
 }

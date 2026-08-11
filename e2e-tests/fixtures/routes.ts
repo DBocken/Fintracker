@@ -32,6 +32,7 @@ export const ALL_ROUTES = [
   "/simulation",
   "/csv",
   "/export",
+  "/tutorials",
   "/settings",
   "/privacy",
 ] as const;

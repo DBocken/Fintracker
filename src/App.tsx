@@ -33,6 +33,7 @@ const ContractsPage = lazy(() => import("@/pages/ContractsPage"));
 const AccountsPage = lazy(() => import("@/pages/AccountsPage"));
 const CsvPage = lazy(() => import("@/pages/CsvPage"));
 const ExportPage = lazy(() => import("@/pages/ExportPage"));
+const TutorialsPage = lazy(() => import("@/pages/TutorialsPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 // three.js-Slice (AGENTS.md §7): eigener Chunk, damit das WebGL-Bundle nicht
@@ -216,6 +217,7 @@ function App() {
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/csv" element={<CsvPage />} />
               <Route path="/export" element={<ExportPage />} />
+              <Route path="/tutorials" element={<TutorialsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               {/* Backups & Performance leben jetzt in den Einstellungen (Issue #42) */}

@@ -24,7 +24,8 @@ import {
   migrateParentIds,
 } from "@/lib/category-migrations";
 import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
-import { NAV_FEATURE_PATHS, type NavFeatureId } from "@/lib/life-situations";
+import { NAV_FEATURE_PATHS, withFeatureUnlocked, type NavFeatureId } from "@/lib/life-situations";
+import { chapterById, type TutorialChapterId } from "@/lib/tutorial-sequence";
 import { gentleLevelFromLegacy } from "@/lib/gentle-mode";
 import { withKeyLock } from "@/lib/key-mutex";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
@@ -490,6 +491,49 @@ export async function getLocalUserSettings(): Promise<UserSettings> {
  * die beide hierher schreiben — lasen denselben Stand, und der zweite schrieb
  * eine Fassung ohne das Feld des ersten. `tutorial_source` ging so verloren.
  */
+/**
+ * Hält ein abgeschlossenes Tutorial-Kapitel fest — Anhängen und Freischalten
+ * INNERHALB des Locks.
+ *
+ * [REGRESSION] Warum das nicht die Aufrufstelle tun darf: Sie kannte die
+ * bisherige Liste nur aus dem Query-Cache, und der hinkt einer gerade
+ * geschriebenen Änderung hinterher. Beim zusammenhängenden Tutorial folgen
+ * zwei Abschlüsse unmittelbar aufeinander — der zweite las die Liste ohne das
+ * erste Kapitel und schrieb sie so zurück. Der Fortschritt des ersten Kapitels
+ * war damit weg, lautlos und ohne Fehler (dieselbe Klasse wie #293,
+ * `pnpm check:store-serialization`).
+ *
+ * Der freizuschaltende Bereich kommt aus `TUTORIAL_ORDER`; eine zweite Liste
+ * „Kapitel → Bereich" wäre eine zweite Wahrheit.
+ */
+export async function completeTutorialChapter(
+  chapter: TutorialChapterId,
+): Promise<UserSettings> {
+  return withKeyLock(LOCAL_SETTINGS_KEY, async () => {
+    const current = await leseLokaleEinstellungenOhneLock();
+    const done = current.tutorial_completed_chapters ?? [];
+    if (done.includes(chapter)) return current;
+
+    const next: UserSettings = {
+      ...current,
+      tutorial_completed_chapters: [...done, chapter],
+      user_id: LOCAL_USER_ID,
+    };
+
+    // `withFeatureUnlocked` lässt „alles freigeschaltet" (null) bewusst
+    // unangetastet — ein Kapitelabschluss darf daraus keine einelementige
+    // Liste machen.
+    const feature = chapterById(chapter)?.feature ?? null;
+    if (feature) {
+      const unlocked = withFeatureUnlocked(current.unlocked_features ?? null, feature);
+      if (unlocked !== (current.unlocked_features ?? null)) next.unlocked_features = unlocked;
+    }
+
+    await schreibeLokaleEinstellungen(next);
+    return next;
+  });
+}
+
 export async function updateLocalUserSettings(
   settings: Partial<UserSettings>,
 ): Promise<UserSettings> {

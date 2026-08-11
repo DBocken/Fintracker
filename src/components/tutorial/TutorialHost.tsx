@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTutorialRun } from '@/hooks/useTutorialRun';
+import { TutorialControlProvider, type TutorialControl } from '@/hooks/useTutorialControl';
 import { chapterOnRoute } from '@/lib/tutorial-steps';
 import TutorialOverlay from './TutorialOverlay';
 import TutorialInvitation from './TutorialInvitation';
@@ -37,8 +38,17 @@ export default function TutorialHost({ children }: { children?: ReactNode }) {
   const hintVisible = run.active || invitationVisible;
   const presence = useMemo(() => ({ hintVisible }), [hintVisible]);
 
+  // Der Griff nach außen: Kopfzeile und Übersichtsseite starten Führungen,
+  // ohne den Lauf zu besitzen. `run.start` ist stabil (useCallback), der
+  // Kontextwert wechselt also nur mit dem Laufzustand.
+  const control = useMemo<TutorialControl>(
+    () => ({ start: run.start, startSeries: run.startSeries, active: run.active }),
+    [run.start, run.startSeries, run.active],
+  );
+
   return (
     <TutorialPresenceProvider value={presence}>
+      <TutorialControlProvider value={control}>
       {run.active ? (
         <TutorialOverlay run={run} />
       ) : (
@@ -52,6 +62,7 @@ export default function TutorialHost({ children }: { children?: ReactNode }) {
         )
       )}
       {children}
+      </TutorialControlProvider>
     </TutorialPresenceProvider>
   );
 }

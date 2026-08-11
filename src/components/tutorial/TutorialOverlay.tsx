@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useI18n } from '@/i18n/useI18n';
-import { anchorSelector, stepBodyKey, stepTitleKey } from '@/lib/tutorial-steps';
+import { anchorSelector, stepBodyKey, stepTitleKey, tutorialTitleKey } from '@/lib/tutorial-steps';
 import type { TutorialRun } from '@/hooks/useTutorialRun';
 import { useAnchorRect } from './useAnchorRect';
 
@@ -104,7 +104,11 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
 
   const title = t(stepTitleKey(run.chapter, step), '');
   const body = t(stepBodyKey(run.chapter, step), '');
-  const isLast = run.stepIndex >= run.stepCount - 1;
+  // „Fertig" nur, wenn danach wirklich nichts mehr kommt. In einer Folge
+  // (Gesamt-Tutorial) führt der letzte Schritt eines Kapitels ins nächste —
+  // „Fertig" wäre dort schlicht gelogen.
+  const isLast = run.stepIndex >= run.stepCount - 1 && run.remaining === 0;
+  const chapterName = t(tutorialTitleKey(run.chapter), '');
 
   const progress = t('tutorial.progress', 'Schritt {current} von {total}')
     .replace('{current}', String(run.stepIndex + 1))
@@ -162,6 +166,13 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
           onOpenAutoFocus={(e) => e.preventDefault()}
           aria-describedby={undefined}
         >
+          {/* Wo man gerade ist — in einer Folge ist das die einzige Auskunft
+              darüber, welches Kapitel gerade läuft. */}
+          {chapterName && (
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {chapterName}
+            </p>
+          )}
           <h3 className="font-medium">{title}</h3>
           <p className="pt-1 text-sm text-muted-foreground">{body}</p>
           <p className="pt-2 text-xs text-muted-foreground">{progress}</p>

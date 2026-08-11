@@ -89,6 +89,7 @@ export const de = {
   },
   tutorial: {
     coach: {
+      name: 'Dein Tagesblick',
       today: {
         title: 'Heute für dich',
         body: 'Was hier steht, richtet sich nach deinen Daten und ändert sich mit ihnen. Ein Blick am Tag reicht.',
@@ -99,6 +100,7 @@ export const de = {
       },
     },
     accounts: {
+      name: 'Konten & Salden',
       balances: {
         title: 'Deine Konten',
         body: 'Jede Buchung gehört zu einem Konto. Erst der Saldo macht aus einer Liste einen echten Kontostand.',
@@ -109,6 +111,7 @@ export const de = {
       },
     },
     income: {
+      name: 'Dein Einkommen',
       sources: {
         title: 'Woher dein Geld kommt',
         body: 'Nicht nur wie viel, sondern aus wie vielen Quellen. Eine einzige Quelle ist bequem und riskant zugleich.',
@@ -119,6 +122,7 @@ export const de = {
       },
     },
     contracts: {
+      name: 'Verträge & Abos',
       found: {
         title: 'Das haben wir gefunden',
         body: 'Wiederkehrende Abbuchungen beim selben Empfänger — die App erkennt sie, du musst nichts eintippen.',
@@ -133,6 +137,7 @@ export const de = {
       },
     },
     budgets: {
+      name: 'Budgets anlegen',
       tanks: {
         title: 'Budgets sind Tanks',
         body: 'Nicht Verbote, sondern Füllstände: Du siehst, wie viel für den Rest des Monats noch da ist.',
@@ -143,6 +148,7 @@ export const de = {
       },
     },
     liquidity: {
+      name: 'Vorschau & Puffer',
       forecast: {
         title: 'Wann wird es knapp?',
         body: 'Aus wiederkehrenden Einnahmen und Ausgaben ergibt sich der Verlauf. Engpässe siehst du, bevor sie da sind.',
@@ -153,6 +159,7 @@ export const de = {
       },
     },
     milestones: {
+      name: 'Ziele setzen',
       goals: {
         title: 'Ziele statt Verzicht',
         body: 'Sparen fällt leichter, wenn es wofür ist. Ein Ziel mit Betrag und Datum ist konkreter als „weniger ausgeben".',
@@ -163,6 +170,7 @@ export const de = {
       },
     },
     debts: {
+      name: 'Schulden abbauen',
       overview: {
         title: 'Alle Raten an einem Ort',
         body: 'Zusammen statt verstreut. Erst so siehst du, was monatlich wirklich gebunden ist.',
@@ -173,6 +181,7 @@ export const de = {
       },
     },
     occasions: {
+      name: 'Anlässe zusammenfassen',
       crosscut: {
         title: 'Quer zur Kategorie',
         body: 'Ein Urlaub besteht aus Tanken, Essen und Hotel. Ein Anlass klammert diese Buchungen zusammen.',
@@ -183,6 +192,7 @@ export const de = {
       },
     },
     netWorth: {
+      name: 'Vermögen im Blick',
       stock: {
         title: 'Bestand statt Fluss',
         body: 'Bisher ging es um Bewegungen. Hier geht es darum, was übrig bleibt: Besitz minus Schulden.',
@@ -193,6 +203,7 @@ export const de = {
       },
     },
     tax: {
+      name: 'Steuer vorbereiten',
       deductible: {
         title: 'Was du absetzen kannst',
         body: 'Arbeitsweg, Homeoffice, Fortbildung — vieles davon steht schon in deinen Buchungen.',
@@ -203,6 +214,7 @@ export const de = {
       },
     },
     euer: {
+      name: 'EÜR & Rücklage',
       profit: {
         title: 'Einnahmen minus Ausgaben',
         body: 'Die einfachste Form der Gewinnermittlung. Was reinkommt, was rausgeht, was übrig bleibt.',
@@ -213,6 +225,7 @@ export const de = {
       },
     },
     premiumReports: {
+      name: 'Trends & Berichte',
       trends: {
         title: 'Über die Zeit',
         body: 'Ein Monat ist eine Momentaufnahme. Erst mehrere Monate nebeneinander zeigen, was sich verändert.',
@@ -223,6 +236,7 @@ export const de = {
       },
     },
     trading: {
+      name: 'Depot verstehen',
       portfolio: {
         title: 'Dein Depot',
         body: 'Wertpapiere haben einen eigenen Rhythmus. Sie gehören zum Vermögen, nicht zum Monatsbudget.',
@@ -233,6 +247,7 @@ export const de = {
       },
     },
     export: {
+      name: 'Daten mitnehmen',
       ownership: {
         title: 'Deine Daten gehören dir',
         body: 'Alles liegt auf deinem Gerät. Von hier nimmst du es mit — in eine Tabelle oder in eine andere App.',
@@ -243,6 +258,7 @@ export const de = {
       },
     },
     settings: {
+      name: 'Alles einstellen',
       areas: {
         title: 'Bereiche ein- und ausblenden',
         body: 'Was du nicht brauchst, muss nicht zu sehen sein. Ausgeblendetes bleibt über Links erreichbar.',
@@ -267,6 +283,7 @@ export const de = {
     end: 'Führung beenden',
     progress: 'Schritt {current} von {total}',
     transactions: {
+      name: 'Die Liste lesen',
       overview: {
         title: 'Hier stehen alle deine Buchungen',
         body: 'Jede Zeile ist eine Bewegung auf einem deiner Konten. Alles Weitere in der App rechnet mit genau diesen Zeilen.',
@@ -409,6 +426,7 @@ export const de = {
       },
     },
     dashboard: {
+      name: 'Das Flussdiagramm',
       flow: {
         title: 'Wohin dein Geld fließt',
         body: 'Von links kommen die Einnahmen, nach rechts gehen die Ausgaben. Die Breite eines Strangs ist sein Betrag.',
@@ -419,6 +437,7 @@ export const de = {
       },
     },
     city: {
+      name: 'Deine Stadt',
       arrival: {
         title: 'Deine Ausgaben als Stadt',
         body: 'Das hier sind dieselben Zahlen wie eben — nur begehbar. Jedes Gebäude ist eine Ausgabe von dir.',
@@ -588,6 +607,23 @@ export const de = {
     noActiveKpis: 'Keine KPIs aktiv.',
     resetButton: 'Zurücksetzen',
   },
+  tutorials: {
+    title: 'Tutorials',
+    description: 'Alle Führungen durch Fintracker — Bereich für Bereich. Angesehene Kapitel bekommen einen Haken; noch einmal ansehen kannst du jedes davon.',
+    progressLabel: 'Angesehene Kapitel',
+    sectionProgress: '{done} von {total}',
+    steps: '{count} Schritte',
+    stateReady: 'Bereit',
+    stateDone: 'Angesehen',
+    stateWaiting: 'Braucht noch Daten',
+    launcherLabel: 'Führungen',
+    explainThisPage: 'Diese Seite erklären',
+    noneHere: 'Für diese Seite gibt es noch keine Führung.',
+    allTutorials: 'Alle Tutorials',
+    startSeries: 'Alles der Reihe nach zeigen',
+    startSeriesAgain: 'Weiter der Reihe nach',
+    seriesWaiting: 'Sobald Daten da sind, geht es hier der Reihe nach los.',
+  },
   nav: {
     groups: {
       coach: 'Coach',
@@ -596,6 +632,7 @@ export const de = {
       verwaltung: 'Verwaltung',
     },
     items: {
+      tutorials: 'Tutorials',
       coach: 'Heute für dich',
       debts: 'Schulden',
       netWorth: 'Nettovermögen',
@@ -618,6 +655,7 @@ export const de = {
       city: 'Finanzstadt',
     },
     subtitles: {
+      tutorials: 'Alle Führungen, Bereich für Bereich',
       liquidity: 'Wann wird dein Geld knapp?',
       budgets: 'Tanks für deine Ausgaben',
       premium: 'Sankey, Heatmap & Smart Insights',

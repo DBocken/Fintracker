@@ -22,6 +22,22 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Alle Führungen an einem Ort: die neue Seite „Tutorials".** Sie listet
+  jedes Tutorial nach Bereich — „Buchungen" etwa trägt fünf davon (Liste
+  lesen, Kategorien, Suchen & Filtern, Detailansicht, Aufteilen), „Steuer" ein
+  eigenes. Angesehene Kapitel bekommen einen grünen Haken, ein Klick startet
+  die Führung und bringt dich auf die zugehörige Seite. Erledigtes bleibt
+  startbar: Nachschlagen ist der häufigste zweite Durchgang.
+- **Das ganze Tutorial am Stück.** „Alles der Reihe nach zeigen" läuft Kapitel
+  für Kapitel durch die App, statt nach jedem anzuhalten. Kapitel, für die noch
+  Daten fehlen, bleiben dabei außen vor — eine Führung durch einen leeren
+  Bildschirm lehrt nichts.
+- **Auf jeder Seite erklärbar.** Ein Knopf in der Kopfzeile startet die Führung
+  zur gerade geöffneten Seite und führt zur Gesamtübersicht. Bisher gab es dafür
+  nur den Einladungsstreifen — und der war nach einem „Nicht jetzt" weg.
+
 ### Behoben
 
 - **Die Führung springt nicht mehr wahllos auf eine andere Seite.** Die

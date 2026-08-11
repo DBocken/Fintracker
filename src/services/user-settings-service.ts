@@ -1,5 +1,10 @@
 import type { UserSettings } from '../types';
-import { getLocalUserSettings, updateLocalUserSettings } from './local-settings-service';
+import {
+  completeTutorialChapter as completeLocalTutorialChapter,
+  getLocalUserSettings,
+  updateLocalUserSettings,
+} from './local-settings-service';
+import type { TutorialChapterId } from '@/lib/tutorial-sequence';
 
 // -----------------------------------------------------------------------------
 // User Settings CRUD Operations
@@ -19,6 +24,16 @@ export async function updateUserSettings(
   updates: Partial<UserSettings>
 ): Promise<UserSettings> {
   return updateLocalUserSettings(updates);
+}
+
+/**
+ * Hält ein abgeschlossenes Tutorial-Kapitel fest (samt Freischaltung seines
+ * Bereichs). Serialisiert im Store, nicht in der Aufrufstelle — siehe dort.
+ */
+export async function completeTutorialChapter(
+  chapter: TutorialChapterId,
+): Promise<UserSettings> {
+  return completeLocalTutorialChapter(chapter);
 }
 
 /**

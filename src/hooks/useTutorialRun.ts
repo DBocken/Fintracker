@@ -1,13 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserSettings, updateUserSettings } from '@/services/user-settings-service';
+import { completeTutorialChapter, getUserSettings } from '@/services/user-settings-service';
 import { collectDataReadiness } from '@/services/data-readiness-service';
-import { buildCurriculum, chapterById, type TutorialChapterId } from '@/lib/tutorial-sequence';
+import { buildCurriculum, type TutorialChapterId } from '@/lib/tutorial-sequence';
 import { hasSteps, stepsFor, type TutorialStep } from '@/lib/tutorial-steps';
 import { nextTeachableChapter, teachableChapters } from '@/lib/tutorial-coach';
-import { withFeatureUnlocked } from '@/lib/life-situations';
 import { useTier } from '@/hooks/useTier';
-import type { UserSettings } from '@/types';
 
 /**
  * Der laufende Tutorial-Durchgang: welches Kapitel, welcher Schritt, was
@@ -27,6 +25,12 @@ export interface TutorialRun {
   step: TutorialStep | null;
   stepIndex: number;
   stepCount: number;
+  /**
+   * Wie viele Kapitel nach dem laufenden noch in der Folge stehen. `0` beim
+   * Einzelstart — daran erkennt die Darstellung, ob der letzte Schritt
+   * „Fertig" ist oder ins nächste Kapitel führt.
+   */
+  remaining: number;
   /** Nächstes Kapitel, das etwas zu zeigen hat — auch wenn gerade nichts läuft. */
   upcoming: TutorialChapterId | null;
   /**
@@ -39,6 +43,19 @@ export interface TutorialRun {
    */
   teachable: readonly TutorialChapterId[];
   start: (chapter?: TutorialChapterId) => void;
+  /**
+   * Startet eine **Folge** von Kapiteln — das zusammenhängende Tutorial.
+   *
+   * Der Unterschied zu `start` ist nur das Ende: Statt anzuhalten, geht die
+   * Führung zum nächsten Kapitel der Liste über. Ohne das wäre ein
+   * „Gesamt-Tutorial" 24 Einzelstarts, und der Nutzer müsste nach jedem
+   * Kapitel selbst wissen, wo es weitergeht — genau die Arbeit, die eine
+   * Führung ihm abnehmen soll.
+   *
+   * Die Reihenfolge kommt von der Aufrufstelle: Die Übersicht kennt den
+   * Katalog samt Stand, der Lauf kennt ihn nicht (und soll es nicht).
+   */
+  startSeries: (chapters: readonly TutorialChapterId[]) => void;
   next: () => void;
   back: () => void;
   /** Bricht ab, ohne das Kapitel als abgeschlossen zu werten. */
@@ -54,11 +71,18 @@ export function useTutorialRun(): TutorialRun {
     queryFn: () => collectDataReadiness(tier === 'premium'),
   });
 
-  const [chapter, setChapter] = useState<TutorialChapterId | null>(null);
+  /**
+   * Die noch zu zeigenden Kapitel; `queue[0]` ist das laufende. Eine Liste
+   * statt eines einzelnen Kapitels, weil ein Einzelstart nur der Sonderfall
+   * „Folge der Länge eins" ist — zwei Zustände nebeneinander (Kapitel +
+   * Fortsetzungsmodus) hätten sich früher oder später widersprochen.
+   */
+  const [queue, setQueue] = useState<readonly TutorialChapterId[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
+  const chapter = queue[0] ?? null;
 
   const mutation = useMutation({
-    mutationFn: (updates: Partial<UserSettings>) => updateUserSettings(updates),
+    mutationFn: (done: TutorialChapterId) => completeTutorialChapter(done),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['userSettings'] }),
   });
 
@@ -81,27 +105,19 @@ export function useTutorialRun(): TutorialRun {
 
   const steps = chapter ? stepsFor(chapter) : [];
 
+  /**
+   * Hält das Kapitel als abgeschlossen fest.
+   *
+   * Das Anhängen an die Liste passiert im Store, nicht hier: Die Aufrufstelle
+   * kennt den bisherigen Stand nur aus dem Query-Cache, und der hinkt einer
+   * gerade geschriebenen Änderung hinterher. In einer Folge (Gesamt-Tutorial)
+   * folgen zwei Abschlüsse unmittelbar aufeinander — genau dort ging der
+   * erste verloren.
+   */
   const finishChapter = useCallback(
     (done: TutorialChapterId) => {
-      const completed = settings?.tutorial_completed_chapters ?? [];
-      if (completed.includes(done)) return;
-
-      const updates: Partial<UserSettings> = {
-        tutorial_completed_chapters: [...completed, done],
-      };
-
-      // Ein abgeschlossenes Kapitel schaltet seinen Bereich frei — das ist der
-      // Sinn der Freischaltungs-Achse. `withFeatureUnlocked` lässt „alles
-      // freigeschaltet" (null) dabei bewusst unangetastet.
-      // Welcher Bereich zu welchem Kapitel gehoert, steht in TUTORIAL_ORDER —
-      // eine zweite Liste hier waere eine zweite Wahrheit.
-      const feature = chapterById(done)?.feature ?? null;
-      if (feature) {
-        const unlocked = withFeatureUnlocked(settings?.unlocked_features ?? null, feature);
-        if (unlocked !== (settings?.unlocked_features ?? null)) updates.unlocked_features = unlocked;
-      }
-
-      mutation.mutate(updates);
+      if ((settings?.tutorial_completed_chapters ?? []).includes(done)) return;
+      mutation.mutate(done);
     },
     [settings, mutation],
   );
@@ -110,14 +126,21 @@ export function useTutorialRun(): TutorialRun {
     (which?: TutorialChapterId) => {
       const target = which ?? upcoming;
       if (!target || !hasSteps(target)) return;
-      setChapter(target);
+      setQueue([target]);
       setStepIndex(0);
     },
     [upcoming],
   );
 
+  const startSeries = useCallback((chapters: readonly TutorialChapterId[]) => {
+    const withText = chapters.filter(hasSteps);
+    if (withText.length === 0) return;
+    setQueue(withText);
+    setStepIndex(0);
+  }, []);
+
   const end = useCallback(() => {
-    setChapter(null);
+    setQueue([]);
     setStepIndex(0);
   }, []);
 
@@ -126,11 +149,14 @@ export function useTutorialRun(): TutorialRun {
     const last = stepsFor(chapter).length - 1;
     if (stepIndex >= last) {
       finishChapter(chapter);
-      end();
+      // Weiter mit dem nächsten Kapitel der Folge; bei einem Einzelstart ist
+      // die Folge hier zu Ende und die Führung schließt.
+      setQueue((q) => q.slice(1));
+      setStepIndex(0);
       return;
     }
     setStepIndex((i) => i + 1);
-  }, [chapter, stepIndex, finishChapter, end]);
+  }, [chapter, stepIndex, finishChapter]);
 
   const back = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
 
@@ -140,9 +166,11 @@ export function useTutorialRun(): TutorialRun {
     step: steps[stepIndex] ?? null,
     stepIndex,
     stepCount: steps.length,
+    remaining: Math.max(0, queue.length - 1),
     upcoming,
     teachable,
     start,
+    startSeries,
     next,
     back,
     end,

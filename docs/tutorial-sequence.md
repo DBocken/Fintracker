@@ -615,6 +615,50 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
      `getCoachOverview` Buchungen, Kategorien und Schulden ein zweites Mal und
      hinge an acht weiteren Services — für eine einzige Karte.
 
+6. ✅ **Katalog, Übersichtsseite und dauerhafter Einstieg**
+   (`tutorial-catalog.ts`, `src/features/tutorials/`, `/tutorials`).
+
+   Bis hierher gab es die Führungen nur als Zuruf: Der Einladungsstreifen bot
+   je *ein* Kapitel an, erschien nur, solange eines offen war, und war nach
+   „Nicht jetzt" für die Sitzung weg. Wer die Erklärung zu einer Fläche später
+   noch einmal wollte, hatte keinen Weg mehr dorthin, und was es überhaupt zu
+   lernen gibt, stand nirgends.
+
+   - **Vokabular: Bereich → Kapitel.** Ein *Bereich* ist der Menüpunkt
+     (`/transactions`) — so heißt es im Onboarding und in den Einstellungen
+     schon. Ein *Kapitel* ist die einzelne Führung darin — so heißt es im
+     Code, in den i18n-Schlüsseln und im gespeicherten Fortschritt. „Buchungen"
+     trägt damit fünf Kapitel. Bewusst **kein** dritter Begriff und keine
+     Umbenennung: `tutorial_completed_chapters` ist persistiert, ein neuer Name
+     dafür wäre eine Migration ohne Gegenwert.
+   - **Der Katalog ist nicht der Lehrplan.** `buildCurriculum` beantwortet „was
+     ist mein nächster Schritt" und lässt Erledigtes weg; `buildTutorialCatalog`
+     beantwortet „was gibt es, und wo stehe ich" und muss es behalten — sonst
+     verschwände der Fortschritt in dem Moment, in dem er entsteht. Was zur App
+     dieses Nutzers gehört, entscheiden trotzdem beide über dieselbe Funktion
+     (`belongsToApp`).
+   - **Vertagte Kapitel stehen in der Übersicht, beim Coach nicht.** Der Coach
+     ruft zu; wer die Übersicht öffnet, fragt selbst. Ihm dann die Hälfte zu
+     verschweigen wäre keine Behutsamkeit, sondern eine Auskunftssperre.
+   - **Erledigtes bleibt startbar.** Der grüne Haken ist eine Auskunft, keine
+     Sperre — Nachschlagen ist der häufigste Grund für den zweiten Durchgang.
+   - **Das zusammenhängende Tutorial ist eine Folge, kein Modus.**
+     `startSeries(chapters)` reiht Kapitel aneinander; ein Einzelstart ist der
+     Sonderfall „Folge der Länge eins". Zwei Zustände nebeneinander (laufendes
+     Kapitel + Fortsetzungsschalter) hätten sich früher oder später
+     widersprochen. Die Reihenfolge kommt von der Übersicht, die den Katalog
+     kennt — der Lauf kennt ihn nicht und soll es nicht.
+   - **[REGRESSION] Der Abschluss wird im Store angehängt, nicht in der
+     Aufrufstelle.** `useTutorialRun` kannte die bisherige Liste nur aus dem
+     Query-Cache, und der hinkt einer gerade geschriebenen Änderung hinterher.
+     In einer Folge folgen zwei Abschlüsse unmittelbar aufeinander — der zweite
+     schrieb die Liste ohne das erste Kapitel zurück. Seither hängt
+     `completeTutorialChapter` innerhalb des Locks an (Ursachenklasse #293).
+   - **Zwei Einstiege, weil es zwei Fragen gibt.** „Was ist *hier*?" beantwortet
+     der Kopfzeilen-Knopf auf jeder Seite, „was gibt es *überhaupt*?" die Seite
+     `/tutorials` (auch in der Navigation unter Verwaltung, nicht abwählbar).
+
+
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;
 ein Lehrplan ohne Overlay ist bereits nutzbar — er speist den Coach mit „das
 wäre dein nächster Schritt", ganz ohne Rahmen und Abdunkeln.

@@ -241,6 +241,20 @@ export function chapterNameKey(chapter: TutorialChapterId): string | null {
   return CHAPTER_NAME_KEYS[chapter] ?? null;
 }
 
+/**
+ * Name des **Tutorials** — nicht des Bereichs, in dem es spielt.
+ *
+ * Der Unterschied trägt die Übersicht: Unter der Überschrift „Buchungen"
+ * stehen fünf Kapitel, und fünfmal „Buchungen" wäre keine Liste, sondern ein
+ * Echo. Hier steht, was das eine Kapitel zeigt („Die Liste lesen", „Suchen &
+ * Filtern"). Der Schlüssel wird wie die Schritttexte mechanisch gebildet —
+ * `src/lib/__tests__/tutorial-catalog.test.ts` prüft, dass es ihn in allen
+ * Sprachen gibt.
+ */
+export function tutorialTitleKey(chapter: TutorialChapterId): string {
+  return `tutorial.${chapter}.name`;
+}
+
 /** Kapitel, für die es schon Text gibt — in der Reihenfolge des Lehrplans. */
 export function hasSteps(chapter: TutorialChapterId): boolean {
   return stepsFor(chapter).length > 0;
