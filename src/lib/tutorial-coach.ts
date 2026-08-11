@@ -43,7 +43,18 @@ function destinationFor(chapter: TutorialChapterId): string {
  * wäre ein leeres Versprechen.
  */
 export function nextTeachableChapter(curriculum: Curriculum | null): TutorialChapterId | null {
-  return curriculum?.next.find((id) => hasSteps(id)) ?? null;
+  return teachableChapters(curriculum)[0] ?? null;
+}
+
+/**
+ * Alle Kapitel, die jetzt etwas zu zeigen haben — in Lehrplan-Reihenfolge.
+ *
+ * Der Coach nimmt davon das erste; die Einladung braucht die ganze Liste, um
+ * das Kapitel **der geöffneten Seite** anbieten zu können, statt immer nur den
+ * Anfang des Lehrplans (`chapterOnRoute`).
+ */
+export function teachableChapters(curriculum: Curriculum | null): TutorialChapterId[] {
+  return (curriculum?.next ?? []).filter((id) => hasSteps(id));
 }
 
 /**

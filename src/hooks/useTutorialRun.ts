@@ -4,7 +4,7 @@ import { getUserSettings, updateUserSettings } from '@/services/user-settings-se
 import { collectDataReadiness } from '@/services/data-readiness-service';
 import { buildCurriculum, chapterById, type TutorialChapterId } from '@/lib/tutorial-sequence';
 import { hasSteps, stepsFor, type TutorialStep } from '@/lib/tutorial-steps';
-import { nextTeachableChapter } from '@/lib/tutorial-coach';
+import { nextTeachableChapter, teachableChapters } from '@/lib/tutorial-coach';
 import { withFeatureUnlocked } from '@/lib/life-situations';
 import { useTier } from '@/hooks/useTier';
 import type { UserSettings } from '@/types';
@@ -29,6 +29,15 @@ export interface TutorialRun {
   stepCount: number;
   /** Nächstes Kapitel, das etwas zu zeigen hat — auch wenn gerade nichts läuft. */
   upcoming: TutorialChapterId | null;
+  /**
+   * Alle Kapitel, die jetzt laufen könnten, in Lehrplan-Reihenfolge.
+   *
+   * Nicht dasselbe wie `upcoming` und auch kein Luxus: Die Einladung schwebt
+   * über jeder Seite und muss das Kapitel **dieser** Seite anbieten können,
+   * nicht nur den Anfang des Lehrplans. Mit nur einem Kapitel in der Hand
+   * bliebe ihr nur, wegzuspringen (`chapterOnRoute`).
+   */
+  teachable: readonly TutorialChapterId[];
   start: (chapter?: TutorialChapterId) => void;
   next: () => void;
   back: () => void;
@@ -67,6 +76,7 @@ export function useTutorialRun(): TutorialRun {
   // Ein Kapitel ohne ausformulierte Schritte ist kein Fehler, sondern noch
   // nicht geschriebener Text — es wird übersprungen, nicht angehalten. Die
   // Regel steht in `tutorial-coach`, weil der Coach dieselbe Frage stellt.
+  const teachable = useMemo(() => teachableChapters(curriculum), [curriculum]);
   const upcoming = useMemo(() => nextTeachableChapter(curriculum), [curriculum]);
 
   const steps = chapter ? stepsFor(chapter) : [];
@@ -131,6 +141,7 @@ export function useTutorialRun(): TutorialRun {
     stepIndex,
     stepCount: steps.length,
     upcoming,
+    teachable,
     start,
     next,
     back,

@@ -254,6 +254,46 @@ export function stepBodyKey(chapter: TutorialChapterId, step: TutorialStep): str
   return `tutorial.${chapter}.${step.id}.body`;
 }
 
+/**
+ * Route, auf der ein Kapitel spielt — die seines ersten Schrittes.
+ *
+ * Ein Kapitel ist ein Arbeitsschritt auf **einer** Fläche; der erste Schritt
+ * bestimmt sie. `null` für Kapitel ohne Schritte (`source`).
+ */
+export function chapterRoute(chapter: TutorialChapterId): string | null {
+  return stepsFor(chapter)[0]?.route ?? null;
+}
+
+/**
+ * Das erste Kapitel aus `chapters`, das auf der gerade geöffneten Seite
+ * spielt — oder `null`.
+ *
+ * Der Grund, warum es diese Funktion gibt: Die Einladung schwebt über **jeder**
+ * Seite, das nächste Kapitel des Lehrplans gehört aber meist zu einer anderen.
+ * Wer das nicht prüft, sagt „eine Führung durch diesen Bereich" und startet
+ * eine durch einen fremden — die Seite springt weg, und erklärt wird etwas
+ * anderes als das, worauf der Nutzer gerade sieht.
+ *
+ * Die Reihenfolge von `chapters` ist die des Lehrplans und wird gewahrt:
+ * Spielen zwei Kapitel auf derselben Fläche (`transactions`, `categories`),
+ * gilt das frühere.
+ */
+export function chapterOnRoute(
+  chapters: readonly TutorialChapterId[],
+  pathname: string,
+): TutorialChapterId | null {
+  return chapters.find((id) => routeMatches(chapterRoute(id), pathname)) ?? null;
+}
+
+/**
+ * Gehört `pathname` zu `route`? Nur ein Segmentwechsel zählt — sonst wäre
+ * `/transactions-archive` „dieselbe Fläche" wie `/transactions`.
+ */
+function routeMatches(route: string | null, pathname: string): boolean {
+  if (!route) return false;
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
 /** CSS-Selektor zu einem Anker. Eine Stelle, damit das Attribut nie driftet. */
 export function anchorSelector(anchor: string): string {
   return `[data-tour-id="${anchor}"]`;

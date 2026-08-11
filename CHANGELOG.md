@@ -22,6 +22,25 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Behoben
+
+- **Die Führung springt nicht mehr wahllos auf eine andere Seite.** Die
+  Einladung („Soll ich es dir zeigen?") schwebt über jeder Seite, bot aber
+  immer den Anfang des Lehrplans an und nannte ihn „eine kurze Führung durch
+  **diesen** Bereich" — auf `/city` startete sie damit die Buchungen, riss die
+  Seite weg und erklärte etwas anderes als das, worauf man gerade sah. Spielt
+  jetzt ein Kapitel auf der geöffneten Seite, wird genau dieses angeboten;
+  sonst benennt die Einladung den Bereich, in den sie führt, statt den Wechsel
+  zu verschweigen.
+- **Eine laufende Führung zerrt nicht mehr zurück.** Wer während der Führung
+  selbst in die Navigation klickte, landete sofort wieder auf der Route des
+  Schritts. Jetzt wird einmal je Schritt hingeführt; verlässt der Nutzer den
+  Bereich, endet die Führung, statt ihn festzuhalten.
+- **Der Rahmen zeigt beim Schrittwechsel nie mehr auf die alte Stelle.** Der
+  neue Anker wurde bis zu einer Sekunde lang gesucht, und so lange blieb der
+  Rahmen auf dem Element des vorigen Schritts stehen — nach einem
+  Seitenwechsel also auf einer Stelle der alten Seite.
+
 ## 2026.8.1 — 2026-08-11
 
 ### Behoben

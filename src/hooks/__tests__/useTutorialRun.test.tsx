@@ -55,6 +55,18 @@ describe('useTutorialRun', () => {
     await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
   });
 
+  it('sollte alle jetzt lehrbaren Kapitel nennen, nicht nur das erste', async () => {
+    // Die Einladung schwebt über jeder Seite und muss das Kapitel DIESER
+    // Seite anbieten können. Mit nur einem Kapitel in der Hand bliebe ihr
+    // nur, wegzuspringen — genau der gemeldete Befund.
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.teachable.length).toBeGreaterThan(1));
+    expect(result.current.teachable[0]).toBe(result.current.upcoming);
+    expect(result.current.teachable).toContain('city');
+    // Nur Kapitel mit ausformuliertem Text — `source` hat keine Schritte.
+    expect(result.current.teachable).not.toContain('source');
+  });
+
   it('sollte ohne Datengrundlage nichts anbieten', async () => {
     vi.mocked(collectDataReadiness).mockResolvedValue({
       ...ready,

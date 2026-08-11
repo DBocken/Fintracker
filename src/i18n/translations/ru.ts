@@ -257,6 +257,7 @@ export const ru = {
     },
     invitationTitle: 'Показать, как это работает?',
     invitationBody: 'Короткое знакомство с этим разделом.',
+    invitationElsewhere: 'Следующий шаг — раздел «{chapter}». Я отведу тебя туда.',
     invitationStart: 'Покажите',
     invitationDismiss: 'Не сейчас',
     next: 'Дальше',

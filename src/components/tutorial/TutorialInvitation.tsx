@@ -1,7 +1,8 @@
 import { GraduationCap, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
+import { chapterNameKey } from '@/lib/tutorial-steps';
+import type { TutorialChapterId } from '@/lib/tutorial-sequence';
 
 /**
  * Die Einladung zum nächsten Kapitel — bewusst ein Angebot, kein Dialog.
@@ -35,17 +36,38 @@ import type { TutorialRun } from '@/hooks/useTutorialRun';
  * kann, ist keine Seitenstruktur. CLS-Beitrag: 0.
  */
 export default function TutorialInvitation({
-  run,
+  chapter,
+  here,
+  onStart,
   onDismiss,
 }: {
-  run: TutorialRun;
+  /** Das angebotene Kapitel. Der Host wählt es, nicht die Einladung. */
+  chapter: TutorialChapterId | null;
+  /**
+   * Spielt das Kapitel auf der gerade geöffneten Seite?
+   *
+   * Davon hängt nicht die Gestaltung ab, sondern die **Aussage**: Nur hier
+   * darf „eine Führung durch diesen Bereich" stehen. Andernfalls wird der
+   * Bereich benannt, in den der Klick führt — ein Sprung, den man kommen
+   * sieht, ist kein Sprung mehr, sondern eine Entscheidung.
+   */
+  here: boolean;
+  onStart: () => void;
   /** Das Wegklicken gehört dem Host: er hält die Präsenz der Hinweisebene
    *  (Befund A-2), damit nachrangige Hinweise nachrücken können. */
   onDismiss: () => void;
 }) {
   const { t } = useI18n();
 
-  if (!run.upcoming) return null;
+  if (!chapter) return null;
+
+  const nameKey = chapterNameKey(chapter);
+  const body = here
+    ? t('tutorial.invitationBody', 'Eine kurze Führung durch diesen Bereich.')
+    : t('tutorial.invitationElsewhere', 'Weiter geht es in {chapter} — ich bringe dich hin.').replace(
+        '{chapter}',
+        nameKey ? t(nameKey) : chapter,
+      );
 
   return (
     // Der Rahmen fängt keine Klicks ab (`pointer-events-none`), damit der
@@ -69,11 +91,9 @@ export default function TutorialInvitation({
         <GraduationCap className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
         <span className="min-w-0 flex-1">
           <span className="font-medium">{t('tutorial.invitationTitle', 'Soll ich es dir zeigen?')}</span>{' '}
-          <span className="text-muted-foreground">
-            {t('tutorial.invitationBody', 'Eine kurze Führung durch diesen Bereich.')}
-          </span>
+          <span className="text-muted-foreground">{body}</span>
         </span>
-        <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => run.start()}>
+        <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={onStart}>
           {t('tutorial.invitationStart', 'Zeig es mir')}
         </Button>
         <Button

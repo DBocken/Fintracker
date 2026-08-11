@@ -257,6 +257,7 @@ export const en = {
     },
     invitationTitle: 'Shall I show you around?',
     invitationBody: 'A short guided tour of this area.',
+    invitationElsewhere: 'Your next step is in {chapter} — I will take you there.',
     invitationStart: 'Show me',
     invitationDismiss: 'Not now',
     next: 'Next',

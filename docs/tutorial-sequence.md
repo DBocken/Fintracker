@@ -584,6 +584,20 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
      Eine Führung, die das Gezeigte sperrt, kann nicht zum Mitmachen
      auffordern — und Mitmachen ist laut „Kapitelgröße" der Abschluss jedes
      Kapitels.
+   - **Die geöffnete Seite entscheidet mit, welches Kapitel angeboten wird.**
+     Nachgetragen, weil das Gegenteil sich wie Willkür anfühlte: Die Einladung
+     schwebt über *jeder* Seite, bot aber immer `nextTeachableChapter` an und
+     nannte es „eine Führung durch diesen Bereich". Auf `/city` startete sie
+     damit die Buchungen — die Seite sprang weg, und erklärt wurde etwas
+     anderes als das Sichtbare. Der Host prüft jetzt über `chapterOnRoute`, ob
+     eines der lehrbaren Kapitel hier spielt, und zieht es vor; sonst bleibt
+     der Lehrplan-Anfang, aber mit benanntem Ziel („Weiter geht es in
+     Buchungen"). Ein angekündigter Wechsel ist eine Entscheidung, ein
+     unangekündigter ein Sprung.
+   - **Die Führung hält niemanden fest.** Die Route des Schritts wird **einmal**
+     angesteuert. Vorher galt „Ort ≠ Route" dauerhaft, und jeder eigene
+     Navigationsklick sprang sofort zurück. Verlässt der Nutzer den Bereich,
+     endet der Lauf — das Kapitel gilt dann nicht als abgeschlossen.
 5. ✅ **Vertagte Kapitel an den Coach angeschlossen** (`tutorial-coach.ts`).
    Ein Kapitel, dessen Voraussetzung eingetreten ist, wird zur
    Coach-Empfehlung — kein eigener Posteingang fürs Tutorial.

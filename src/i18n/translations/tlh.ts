@@ -257,6 +257,7 @@ export const tlh = {
     },
     invitationTitle: "qaDev'a'?",
     invitationBody: "Dochvam qaDevmeH mach.",
+    invitationElsewhere: "{chapter} DaqDaq taH. pa' qaqem.",
     invitationStart: 'HIcha\'',
     invitationDismiss: 'DaH ghobe\'',
     next: "'ej",

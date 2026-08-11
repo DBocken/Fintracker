@@ -6,6 +6,8 @@ import {
   stepTitleKey,
   stepBodyKey,
   anchorSelector,
+  chapterRoute,
+  chapterOnRoute,
 } from '../tutorial-steps';
 import { TUTORIAL_ORDER, type TutorialChapterId } from '../tutorial-sequence';
 import { translations, SUPPORTED_LOCALES } from '@/i18n/translations';
@@ -98,6 +100,41 @@ describe('Schlüssel der Schritttexte', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+describe('Kapitel zur geöffneten Seite', () => {
+  it('sollte die Route eines Kapitels aus seinem ersten Schritt lesen', () => {
+    expect(chapterRoute('city')).toBe('/city');
+    expect(chapterRoute('categories')).toBe('/transactions');
+    expect(chapterRoute('source')).toBeNull();
+  });
+
+  it('sollte das Kapitel finden, das auf der geöffneten Seite spielt', () => {
+    expect(chapterOnRoute(['transactions', 'city'], '/city')).toBe('city');
+  });
+
+  it('sollte die Lehrplan-Reihenfolge wahren, wenn mehrere Kapitel hier spielen', () => {
+    // `categories` und `transactions` spielen beide auf /transactions — dann
+    // gilt der Lehrplan, nicht die Reihenfolge im Aufruf.
+    expect(chapterOnRoute(['transactions', 'categories'], '/transactions')).toBe('transactions');
+  });
+
+  it('[REGRESSION] sollte auf einer fremden Seite kein Kapitel behaupten', () => {
+    // Der Kern des Befunds: Die Einladung sagte „eine Führung durch diesen
+    // Bereich" und meinte einen anderen. Ohne Treffer muss `null` kommen,
+    // damit der Aufrufer das Ziel benennen kann, statt es zu verschweigen.
+    expect(chapterOnRoute(['transactions'], '/settings')).toBeNull();
+  });
+
+  it('sollte eine Unterseite der Route noch als denselben Bereich zählen', () => {
+    expect(chapterOnRoute(['transactions'], '/transactions/42')).toBe('transactions');
+  });
+
+  it('sollte einen Präfix-Zufall nicht für denselben Bereich halten', () => {
+    // /net-worth beginnt nicht mit /net — aber /transactions-archive begänne
+    // mit /transactions. Nur ein Segmentwechsel zählt.
+    expect(chapterOnRoute(['transactions'], '/transactions-archive')).toBeNull();
   });
 });
 

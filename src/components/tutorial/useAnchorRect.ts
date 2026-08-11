@@ -46,6 +46,12 @@ export function useAnchorRect(
       return;
     }
 
+    // Erst lösen, dann suchen. Ein Rahmen, der beim Schrittwechsel stehen
+    // bleibt, zeigt bis zu einer Sekunde lang auf das Element des VORIGEN
+    // Schritts — nach einem Seitenwechsel also auf eine Stelle der alten
+    // Seite. Lieber kurz kein Rahmen als ein falscher.
+    setRect(null);
+
     let cancelled = false;
     const timers: number[] = [];
 

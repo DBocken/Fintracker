@@ -258,6 +258,7 @@ export const de = {
     },
     invitationTitle: 'Soll ich es dir zeigen?',
     invitationBody: 'Eine kurze Führung durch diesen Bereich.',
+    invitationElsewhere: 'Weiter geht es in {chapter} — ich bringe dich hin.',
     invitationStart: 'Zeig es mir',
     invitationDismiss: 'Nicht jetzt',
     next: 'Weiter',
