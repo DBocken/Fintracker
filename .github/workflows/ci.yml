@@ -119,6 +119,12 @@ jobs:
       - name: Serialisierung der Schreibpfade
         run: pnpm check:store-serialization
 
+      # Der Sanfte Modus ist ein Barrierefreiheits-Versprechen: Wer ihn
+      # einschaltet, will seine Zahlen nicht sehen. Ein einziger unmaskierter
+      # Betrag auf derselben Flaeche hebt es auf (Issue #296).
+      - name: Sanfter Modus (unmaskierte Betraege)
+        run: pnpm check:money-format
+
       - name: i18n-Check (Diff)
         run: |
           git fetch origin main

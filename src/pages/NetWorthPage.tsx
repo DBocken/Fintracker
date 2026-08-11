@@ -21,6 +21,7 @@ import FinanceEmptyState from "@/features/shared/presentation/FinanceEmptyState"
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { UnconvertedCurrencyNotice } from "@/features/shared/presentation/UnconvertedCurrencyNotice";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" });
@@ -104,6 +105,7 @@ function SourceRow({ title, subtitle, value, badge }: { title: string; subtitle?
  * dessen FLAECHE proportional zum Betrag ist.
  */
 function CompositionVolume({ data }: { data: NetWorthBreakdown }) {
+  const money = useMoneyFormat();
   const { t } = useI18n();
   return (
     <AssetVolume
@@ -113,21 +115,21 @@ function CompositionVolume({ data }: { data: NetWorthBreakdown }) {
           value: data.cash,
           label: t("netWorth.liquidity"),
           colorClass: "bg-brand",
-          formattedValue: eur.format(data.cash),
+          formattedValue: money.mask(eur.format(data.cash)),
         },
         {
           key: "investments",
           value: data.investments,
           label: t("netWorth.investments"),
           colorClass: "bg-premium",
-          formattedValue: eur.format(data.investments),
+          formattedValue: money.mask(eur.format(data.investments)),
         },
         {
           key: "receivables",
           value: data.receivables,
           label: t("netWorth.receivables"),
           colorClass: "bg-positive",
-          formattedValue: eur.format(data.receivables),
+          formattedValue: money.mask(eur.format(data.receivables)),
         },
       ]}
     />
@@ -136,6 +138,7 @@ function CompositionVolume({ data }: { data: NetWorthBreakdown }) {
 
 export default function NetWorthPage() {
   const { t } = useI18n();
+  const money = useMoneyFormat();
   // WP-9.6: Ohne `isError` wuerde ein Lesefehler hier als „noch keine Daten"
   // erscheinen — auf einem Vermoegens-Screen die denkbar beunruhigendste
   // Falschauskunft.
@@ -186,7 +189,7 @@ export default function NetWorthPage() {
           {/* Hauptzahl + kompakte Zusammensetzung */}
           <StatHero
             label={t("netWorth.netWorth")}
-            value={eur.format(data.netWorth)}
+            value={money.mask(eur.format(data.netWorth))}
             tone={data.netWorth >= 0 ? "positive" : "warning"}
             caption={t("netWorth.composition")}
           >
@@ -215,7 +218,7 @@ export default function NetWorthPage() {
             <NetWorthRow
               icon={<Wallet className="h-4 w-4" />}
               label={t("netWorth.liquidity")}
-              value={eur.format(data.cash)}
+              value={money.mask(eur.format(data.cash))}
               description={t("netWorth.liquidityDesc")}
             >
               <p className="text-muted-foreground">
@@ -232,7 +235,7 @@ export default function NetWorthPage() {
                           ? `${t("netWorth.liveSyncAt")}${acc.lastSyncAt ? ` · ${dateFormat.format(new Date(acc.lastSyncAt))}` : ""}`
                           : t("netWorth.calculatedFrom")
                       }
-                      value={eur.format(acc.balance)}
+                      value={money.mask(eur.format(acc.balance))}
                       badge={
                         <Badge variant={acc.source === "live" ? "default" : "secondary"}>
                           {acc.source === "live" ? t("netWorth.liveBadge") : t("netWorth.localBadge")}
@@ -260,7 +263,7 @@ export default function NetWorthPage() {
             <NetWorthRow
               icon={<LineChart className="h-4 w-4" />}
               label={t("netWorth.investments")}
-              value={eur.format(data.investments)}
+              value={money.mask(eur.format(data.investments))}
               description={t("netWorth.portfolioDesc")}
             >
               <p className="text-muted-foreground">
@@ -273,7 +276,7 @@ export default function NetWorthPage() {
                       key={p.id}
                       title={p.name}
                       subtitle={`${p.positionsCount} ${p.positionsCount === 1 ? t("netWorth.positions") : t("netWorth.multiPositions")}`}
-                      value={eur.format(p.value)}
+                      value={money.mask(eur.format(p.value))}
                     />
                   ))}
                 </ul>
@@ -288,7 +291,7 @@ export default function NetWorthPage() {
             <NetWorthRow
               icon={<HandCoins className="h-4 w-4" />}
               label={t("netWorth.receivables")}
-              value={eur.format(data.receivables)}
+              value={money.mask(eur.format(data.receivables))}
               description={t("netWorth.receivablesDesc")}
             >
               <p className="text-muted-foreground">
@@ -297,7 +300,7 @@ export default function NetWorthPage() {
               {data.receivableSources.length > 0 ? (
                 <ul className="space-y-2">
                   {data.receivableSources.map((r) => (
-                    <SourceRow key={r.id} title={r.name} value={eur.format(r.amount)} />
+                    <SourceRow key={r.id} title={r.name} value={money.mask(eur.format(r.amount))} />
                   ))}
                 </ul>
               ) : (
@@ -308,7 +311,7 @@ export default function NetWorthPage() {
             <NetWorthRow
               icon={<CreditCard className="h-4 w-4" />}
               label={t("netWorth.debts")}
-              value={`−${eur.format(data.debts)}`}
+              value={`−${money.mask(eur.format(data.debts))}`}
               negative
               description={t("netWorth.debtsDesc")}
             >
@@ -316,7 +319,7 @@ export default function NetWorthPage() {
               {data.debtSources.length > 0 ? (
                 <ul className="space-y-2">
                   {data.debtSources.map((d) => (
-                    <SourceRow key={d.id} title={d.name} value={`−${eur.format(d.balance)}`} />
+                    <SourceRow key={d.id} title={d.name} value={`−${money.mask(eur.format(d.balance))}`} />
                   ))}
                 </ul>
               ) : (

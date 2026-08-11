@@ -1,6 +1,7 @@
 import { TrendingDown, TrendingUp, Lightbulb } from "lucide-react";
 import { dyadProps } from "@/lib/dyad";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 
 interface SmartInsightsPanelProps {
   totalIncome: number;
@@ -17,19 +18,20 @@ const fmtEUR0 = new Intl.NumberFormat("de-DE", {
 
 export function SmartInsightsPanel({ totalIncome, totalExpenses, topExpense, topIncome }: SmartInsightsPanelProps) {
   const { t } = useI18n();
+  const money = useMoneyFormat();
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
   const items = [
     {
       icon: TrendingDown,
       label: t("premium.smartInsights.topExpense"),
-      value: fmtEUR0.format(topExpense?.amount || 0),
+      value: money.mask(fmtEUR0.format(topExpense?.amount || 0)),
       detail: topExpense?.name || t("premium.smartInsights.noData"),
     },
     {
       icon: TrendingUp,
       label: t("premium.smartInsights.topIncome"),
-      value: fmtEUR0.format(topIncome?.amount || 0),
+      value: money.mask(fmtEUR0.format(topIncome?.amount || 0)),
       detail: topIncome?.name || t("premium.smartInsights.noData"),
     },
     {

@@ -23,7 +23,6 @@ import { getDebts } from "@/services/debt-service";
 import { getReceivables } from "@/services/receivable-service";
 import FinanceEmptyState from "@/features/shared/presentation/FinanceEmptyState";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
-import { useGentleMode } from "@/components/providers/GentleModeProvider";
 import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { useTier } from "@/hooks/useTier";
 import { useTutorialRun } from "@/hooks/useTutorialRun";
@@ -32,7 +31,6 @@ import { useI18n } from "@/i18n/useI18n";
 
 export default function CoachPage() {
   const { t, locale } = useI18n();
-  const { enabled: gentleModeEnabled } = useGentleMode();
   const money = useMoneyFormat();
   const tier = useTier();
   const tutorialRun = useTutorialRun();
@@ -139,7 +137,7 @@ export default function CoachPage() {
         )}
 
         {health ? (
-          <CoachStatusGrid health={health} gentle={gentleModeEnabled} />
+          <CoachStatusGrid health={health} />
         ) : (
           <Skeleton variant="shimmer" className="h-44 w-full rounded-2xl" />
         )}

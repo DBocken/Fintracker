@@ -4,6 +4,7 @@ import { Eye, ServerOff, LoaderCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FinanceErrorState from "@/features/shared/presentation/FinanceErrorState";
 import { useI18n } from "@/i18n/useI18n";
+import { useMoneyFormat } from "@/hooks/useMoneyFormat";
 import { buildAnalyticsPackage } from "@/services/analytics-aggregation-service";
 
 const eur = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -27,6 +28,7 @@ const GROUP_LABELS: Record<string, string> = {
  */
 export default function AnalyticsTransparencyPreview() {
   const { t } = useI18n();
+  const money = useMoneyFormat();
   const [revealed, setRevealed] = useState(false);
   // WP-9.6: Scheitert die Vorschau, bliebe sie leer — und das liest sich als
   // „es wuerde nichts gesendet". Auf einem Datenschutz-Screen ist das keine
@@ -116,7 +118,7 @@ export default function AnalyticsTransparencyPreview() {
                       </td>
                       <td className="px-2 py-1.5 tabular-nums">{r.period}</td>
                       <td className="px-2 py-1.5 text-right tabular-nums">
-                        {eur.format(r.measures.expense_average)}
+                        {money.mask(eur.format(r.measures.expense_average))}
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">
                         {r.measures.transaction_count}
