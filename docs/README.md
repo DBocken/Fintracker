@@ -10,7 +10,7 @@ Dokumenten nebeneinander lagen, die man ihnen nicht ansieht:
 
 Ein Audit von Juli, das nicht als Protokoll erkennbar ist, liest sich wie eine
 Regel. Genau so ist ein Test-Inventar mit 783 Tests im Wurzelverzeichnis stehen
-geblieben, während der Baum längst 4634 hatte.
+geblieben, während der Baum damals schon 4634 hatte — heute ein Mehrfaches.
 
 **Faustregel für neue Dokumente:** Trägt der Titel ein Datum oder beschreibt er
 einen Lauf („Audit", „Bericht", „Ergebnisse", „Fortschritt"), gehört er nach
@@ -57,6 +57,8 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`architecture/dual-layering.md`](architecture/dual-layering.md) | Klassische Schichten und Feature-Slices dauerhaft nebeneinander (2026-07-12) |
 | [`architecture/guard-system.md`](architecture/guard-system.md) | Wächter-Skripte in Pre-Commit + CI als Durchsetzungsstrategie (2026-07-12) |
 | [`architecture/money-euro-float.md`](architecture/money-euro-float.md) | Euro-Float in der Persistenz, Cent in der Rechnung (2026-08-08) |
+| [`architecture/eu-souveraenitaet.md`](architecture/eu-souveraenitaet.md) | Anbieter und Subdienstleister EU-only; Software self-hosted statt SaaS; Rollen-Taxonomie, Push-/Telemetrie-Prinzipien (2026-08-10) |
+| [`architecture/supabase-abloesung.md`](architecture/supabase-abloesung.md) | Supabase: Naht jetzt, Ablösung mittelfristig, Neubau-Stopp ab sofort (2026-08-10) |
 
 ## Geltend — Sicherheit & Datenschutz
 
@@ -68,6 +70,7 @@ wo eine Begründung nicht belegbar war, steht sie ausdrücklich als
 | [`security/security-inventory.md`](security/security-inventory.md) | Stand der Schutzmaßnahmen |
 | [`security/pentest-scope.md`](security/pentest-scope.md) | Geltender Prüfumfang für Pentests |
 | [`security/security-headers.md`](security/security-headers.md) | Header-Konfiguration der Deployments + die entschiedenen Punkte dazu (`style-src 'unsafe-inline'`, Pre-Commit-Bypass) |
+| [`security/anbieter-register.md`](security/anbieter-register.md) | **Lebendes Register:** Anbieter, Subdienstleister, externe Endpunkte — Rollen, AVV-Stand, Prüfdaten; Faktenbasis für Subprozessoren-Verzeichnis und VVT |
 
 ## Geltend — Fachdomäne & Produkt
 
@@ -95,10 +98,14 @@ nicht versehentlich untergraben werden:
 | [`feature-strategy-sonderkategorien.md`](feature-strategy-sonderkategorien.md) | Sonderkategorien |
 | [`product/roadmap-new-capabilities-2026-07.md`](product/roadmap-new-capabilities-2026-07.md) | Geplante Fähigkeiten — plant Arbeit, implementiert nichts |
 
-## Laufendes Programm: AAA+
+## Programm AAA+ (abgeschlossen, Regeln gelten weiter)
 
-`docs/aaa-plus/` ist **kein Archiv**: das Programm hat offene Arbeitspakete.
-Innerhalb davon gilt dieselbe Trennung.
+`docs/aaa-plus/` ist **kein Archiv**, obwohl alle Arbeitspakete (Phasen 0–11)
+abgeschlossen sind: Spezifikation, Entscheidungsprotokoll und Zustandsmatrix
+gelten weiter. Offen sind nur das Deployment aus
+[#282](https://github.com/DBocken/Fintracker/issues/282) und die in
+`offene-punkte.md` bewusst offen markierten Punkte. Innerhalb gilt dieselbe
+Trennung.
 
 | Datei | Rolle |
 |---|---|
@@ -116,8 +123,12 @@ Innerhalb davon gilt dieselbe Trennung.
 
 ## Laufendes Programm: Qualität 10/10 (2026-08)
 
-`docs/qualitaet-2026-08/` ist **kein Archiv**: das Programm hat offene
-Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
+`docs/qualitaet-2026-08/` ist **noch kein Archiv**, obwohl das Programm
+abgeschlossen ist: Zwei übersehene Pakete wurden als Issues ausgelagert
+([#296](https://github.com/DBocken/Fintracker/issues/296),
+[#297](https://github.com/DBocken/Fintracker/issues/297)), die Korrektur des
+Abschlussberichts läuft als PR #299. Die Archivierung erledigt WP 0.11 des
+Betriebsprogramms.
 
 | Datei | Rolle |
 |---|---|
@@ -125,6 +136,19 @@ Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/`.
 | [`qualitaet-2026-08/nachpruefung.md`](qualitaet-2026-08/nachpruefung.md) | Getroffene Entscheidungen — geltend, weil sie binden. Wo der Plan an der Wirklichkeit vorbeizielte und was stattdessen gilt |
 | [`qualitaet-2026-08/status.md`](qualitaet-2026-08/status.md) | **Protokoll.** Paketstand, Baseline und der Wiedereinstieg für eine neue Sitzung |
 | [`qualitaet-2026-08/audit.md`](qualitaet-2026-08/audit.md) | **Protokoll.** Qualitäts-Audit vom 2026-08-08 (`main@067244f`) — die Belege zum Plan |
+
+## Laufendes Programm: Betrieb & EU-Souveränität (2026-08)
+
+`docs/betrieb-2026-08/` ist **kein Archiv**: das Programm hat offene
+Arbeitspakete. Nach Abschluss wandert das Verzeichnis nach `docs/archive/` —
+die beiden ADRs und das Anbieter-Register bleiben als geltende Dokumente.
+
+| Datei | Rolle |
+|---|---|
+| [`betrieb-2026-08/plan.md`](betrieb-2026-08/plan.md) | Geltender Arbeitsplan: Phasen 0–7, 40 Arbeitspakete, [OPS]-Form mit `Wächter:`-Pflichtfeld, Livegang-Gate (#292/#293/#296/#298) |
+| [`betrieb-2026-08/audit.md`](betrieb-2026-08/audit.md) | **Protokoll.** Prüfung der zehn Betriebsvorschläge + Sofortbefunde (BTR-*), 2026-08-10, `main@b2513b7` |
+| [`betrieb-2026-08/status.md`](betrieb-2026-08/status.md) | **Protokoll.** Paketstand und Wiedereinstieg |
+| `betrieb-2026-08/belege/` | **Protokoll.** Nachweise der [OPS]-Pakete (entsteht mit dem ersten Beleg) |
 
 ## Protokoll: `docs/archive/`
 
@@ -142,7 +166,7 @@ wofür es steht und wo die heutige Antwort steht.
 | `archive/remediation-plan-2026-07-18.md` | Behebungsplan dazu, abgearbeitet |
 | `archive/pentest-after-report-2026-07-18.md` | Nachbericht |
 | `archive/technical-improvements-2026-06.md` | Sammelbericht bis Juni 2026, noch im Cloud-first-Rahmen |
-| `archive/test-categories-2026-06.md` | Test-Inventar mit 783 Tests (heute 4634) |
+| `archive/test-categories-2026-06.md` | Test-Inventar mit 783 Tests (heute ein Mehrfaches — die aktuelle Zahl liefert `pnpm test`) |
 | `archive/modul-2-ausgabentracker-spec.md` | Ehemalige Top-README |
 
 ## Nachschlagewerke der Werkzeuge

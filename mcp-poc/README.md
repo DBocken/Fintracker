@@ -24,11 +24,13 @@ are not available here by design.
 ## Run locally
 
 ```bash
-cd mcp-poc
-cp .env.example .env      # fill SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
-npm install
-npm run dev               # POST http://localhost:8080/mcp/<token>
+cp mcp-poc/.env.example mcp-poc/.env   # fill SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+pnpm --dir mcp-poc install --ignore-workspace
+pnpm --dir mcp-poc dev                 # POST http://localhost:8080/mcp/<token>
 ```
+
+(Nur `pnpm` — AGENTS.md §2; `--ignore-workspace`, weil `mcp-poc` bewusst kein
+Workspace-Paket ist und eine eigene Lockdatei führt.)
 
 Apply the DB migration first (from the repo root, with the Supabase CLI):
 

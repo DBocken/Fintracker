@@ -22,6 +22,12 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 - `src/hooks/` — React-Anbindung an Services/Domänenlogik.
 - `src/components/` — UI. **Keine** Domänentypen, keine Geschäftslogik hier.
 - `src/pages/` — Routen-Einstiegspunkte, dünn.
+- `src/features/<name>/{domain,data,application,presentation}` — in sich
+  geschlossene Features mit Desktop- **und** Mobil-Präsentation (Referenz:
+  `src/features/dashboard/`); Fachlogik für ≥ 2 Slices nach
+  `src/features/shared/`. Beide Ordnungen gelten dauerhaft nebeneinander
+  (ADR `docs/architecture/dual-layering.md`); Kochrezept:
+  `docs/architecture/feature-structure.md`.
 - Tests **immer** in `__tests__/` neben dem Code (nicht als `x.test.ts` neben `x.ts`).
   Einzige Ausnahme: die Repo-/Config-Wächter-Tests unter `src/security/*.security.test.ts`
   (bewusst dort: Repo-/Config-Wächter ohne Modul-Bezug, siehe AGENTS.md §5/§10).
@@ -31,8 +37,11 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 ## 3. TypeScript
 
 - `strict` bleibt an. **Kein** `as any`, **kein** `as unknown as` an Datengrenzen.
-- Domänentypen zentral in `src/types.ts` (Transaction, Account, Category, Budget,
-  Debt, Claim, Contract, Backup, Vault, EncryptionState, FeatureFlag, Tier).
+- Domänentypen liegen je Fachdomäne in `src/lib/*-types.ts` (bzw. in
+  `src/features/<slice>/domain/`, wenn nur ein Slice sie braucht) —
+  Ablagetabelle „Wohin ein Typ gehört": AGENTS.md §3. `src/types.ts` ist seit
+  WP 5.2 nur noch eine Re-Export-Fassade mit Abbaudatum 2026-11-30 — **dort
+  nichts Neues ergänzen.**
 - `api/` und `mcp-poc/` sind im Typecheck — `pnpm typecheck:api` und
   `pnpm typecheck:mcp-poc`, beide in CI. Das Root-`tsconfig.json` includiert
   bewusst nur `src` + `vitest.setup.ts` (Browser-Ziel: DOM, JSX,
@@ -68,7 +77,8 @@ Bei Konflikt gilt: Sicherheit/Datenschutz/Finanzkorrektheit vor Bequemlichkeit.
 
 ## 5. Finanzlogik & Invarianten
 
-- Die 20 Invarianten in `docs/domain-invariants.md` sind **Testpflicht**.
+- Die Invarianten in `docs/domain-invariants.md` sind **Testpflicht**
+  (aktuell 23 — die Datei ist die Quelle, nicht diese Zahl).
 - Aggregation (Einnahmen/Ausgaben/Saldo) nur über **eine** Quelle:
   `src/lib/analysis-data.ts` (`sumIncome`/`sumExpenses`). Interne Überträge
   (`is_transfer`) zählen nie als Einnahme/Ausgabe (Invariante 2). Komponenten-

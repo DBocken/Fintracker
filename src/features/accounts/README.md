@@ -94,7 +94,7 @@ dem eine zweite (mobile) Präsentation ansetzen kann.
   Typ gehört" (AGENTS.md §3) gehörte sie samt ihren Typen nach `src/lib/`. Nicht
   angefasst, weil das den Service und seine Tests betrifft — Kandidat für
   WP 6.6 (ARCH-6).
-- `GoCardlessConnect.tsx` (450 Zeilen) und `AccountFormDialog.tsx` sind noch
+- `GoCardlessConnect.tsx` (416 Zeilen) und `AccountFormDialog.tsx` sind noch
   nicht in Bausteine zerlegt; die Verbinden-Karte hat weiterhin keinen
   Komponententest.
 - Desktop und Mobil teilen sich eine responsive Präsentation. Eine Aufteilung

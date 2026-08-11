@@ -23,8 +23,8 @@ erzwungen — dafür gibt es keinen Claude-Code-Hook mehr.
 ### `.claude/`-Verzeichnis
 
 - `agents/i18n-enforcer.md` — Subagent, der i18n-Verstöße in einer Datei-/
-  Verzeichnisliste direkt behebt (Strings nach `translations.ts`, `t()`-Calls,
-  bilinguale Tests).
+  Verzeichnisliste direkt behebt (Strings in die Sprachbäume
+  `translations/<locale>.ts`, `t()`-Calls, bilinguale Tests).
 - `workflows/i18n-full-repo-sweep.mjs` — Skript für einen repo-weiten
   i18n-Sweep.
 - `templates/i18n-component.template.tsx`, `templates/i18n-test.template.tsx`

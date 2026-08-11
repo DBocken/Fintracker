@@ -55,7 +55,11 @@ genügt. (Alternative für rein lokalen Betrieb: `mcp-poc/`.)
 
 Der Privacy-Test `local-data-boundary.security.test.ts` erzwingt diese Grenze:
 alle anderen Services bleiben strikt lokal; `cloud-mcp-sync-service.ts` ist die
-einzige, ausdrücklich getestete Ausnahme (aggregat-only + Consent-Gate).
+einzige, ausdrücklich getestete Ausnahme **gegenüber Supabase** (aggregat-only
++ Consent-Gate). Der zweite — und einzige weitere — Weg nach außen ist die
+Opt-in-Telemetrie (`telemetry-service.ts`), abgesichert durch den eigenen
+Wächter `src/security/telemetry.security.test.ts` (Positivliste, Prüfung an
+der Ausgangstür, genau ein Versandweg ohne Endpunkt-Fallback).
 
 ## Schutzmaßnahmen im POC
 

@@ -43,7 +43,7 @@ Die Keys stammen aus der **kanonischen** `financeKeys` (`src/features/shared/dat
 
 `src/pages/TransactionsPage.tsx` bleibt dünner Orchestrator: `useSearchParams` + URL-Write-back, `?tx=`-Deep-Link (One-Shot via Ref), Dialog-/Auswahlzustand, Seiten-Chrome (PageHeader, Add-Button, Formular-Dialog, Lade-Skeleton/`FinanceEmptyState`) und die Layout-Wahl. Sie mountet `TransactionsListPane` immer und verzweigt nur die Detail-Region per JS (`isWide ? <TransactionsDetailAside/> : <TransactionsDetailSheet/>`).
 
-`filter-utils`/`filter-constants`/`period-utils` bleiben bewusst in `src/components/dashboard/` statt hierher (oder nach `features/shared/`) zu wandern — sie werden von ≥ 2 Slices UND von `EuerPage`/`TaxReportPage` gebraucht; das Hochheben nach `features/shared/` ist laut `docs/architecture/feature-structure.md` ein dokumentierter Folgeschritt, kein Bestandteil dieser Migration.
+Das Filter-Modell ist inzwischen nach `src/features/shared/domain/` gehoben (`dashboard-filters.ts`, `dashboard-filtering.ts`, `period-options.ts`) — der damals dokumentierte Folgeschritt ist ausgeführt; `src/components/dashboard/filter-utils.ts` existiert nicht mehr.
 
 ## Warum die Liste nie remountet — JS-Branching nur für die Detail-Region (Abweichung vom Dashboard-Muster)
 

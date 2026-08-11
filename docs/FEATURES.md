@@ -5,7 +5,7 @@ die vorhanden, aber nicht (vollständig) in der Hauptnavigation sichtbar sind �
 damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
 
 ## Trading — **nicht mehr versteckt**
-- **Fundort:** `src/pages/TradingPage.tsx`, `src/components/trading/*`.
+- **Fundort:** `src/pages/TradingPage.tsx`, Slice `src/features/trading/*`.
 - **Status:** **Voll sichtbar und ungeschützt.** Kein Feature-Flag, kein
   Tier-Gate: `FEATURE_FLAGS` (`src/lib/feature-flags.ts`) kennt nur
   `telemetry`, `feedback`, `financeCity3d` und `bankSync`; der Nav-Eintrag hat
@@ -18,10 +18,10 @@ damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
 - **Abhängigkeiten:** Marktdaten/Import (eToro, Quote-Provider), Haftungsausschluss.
 - **Risiken:** Lenkt vom Kernprodukt ab; **keine Anlageberatung**. Der
   Haftungsausschluss trägt jetzt allein, wo vorher zusätzlich das Gate stand.
-- **Technische Schuld:** `TradingDashboard.tsx` ist mit 1.357 Zeilen und 25
-  `useQuery`-Aufrufen in einer Komponente die unstrukturierteste Fläche der App
-  — und seit dem Wegfall des Gates die sichtbarste unter den großen. Zerlegung
-  in einen Slice steht aus.
+- **Technische Schuld:** erledigt — die frühere 1.357-Zeilen-Komponente ist
+  in den Slice migriert: `src/features/trading/presentation/TradingDashboard.tsx`
+  hat 174 Zeilen und keinen einzigen `useQuery`-Aufruf mehr; die
+  Datenbeschaffung liegt in `src/features/trading/application/`.
 
 ## Anlässe (Sonderkategorien)
 - **Fundort:** Route `/occasions`, `src/pages/SpecialCategoriesPage.tsx`,
@@ -43,7 +43,10 @@ damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
 
 ## Premium-Analyse
 - **Fundort:** Route `/premium`, `src/components/premium-dashboard/*`.
-- **Status:** Vorbereitet, gesperrt (Tier ist nie `premium`, siehe `lib/tier.ts`).
+- **Status:** Vorbereitet, kein Kaufweg. `premium` ist lokal trotzdem
+  erreichbar — über den Demo-Modus (`demoActive`) und den Alphatester-Code
+  (`ACCESS_CODES` in `lib/tier.ts`); ohne beides zeigt die Route den
+  Locked-Preview.
 - **Reaktivierung:** Paywall/Payment (#25). Bis dahin zeigt die Route einen
   Locked-Preview (`PremiumUpsell` → `LockedPreview`).
 - **Abhängigkeiten:** Tier/Payment, Demo-Daten für die Vorschau.
@@ -82,7 +85,10 @@ damit klar ist, was aktiv, was experimentell und was bewusst verborgen ist.
   hinter Dev-Flag (`import.meta.env.DEV`) bündeln.
 
 ## Skins / Theme-Motion
-- **Fundort:** `src/skins/*`, `theme-motion.ts`, `SkinSelector`.
-- **Status:** Aktiv (Settings), Motion-Feld vorbereitet.
+- **Fundort:** `src/skins/*` (`skins.ts`, `skins.css`, `skins-components.css`);
+  Auswahl in `src/components/settings/AppearanceSettings.tsx`.
+- **Status:** Aktiv (Settings). Das Motion-Feld ist im Datenmodell vorbereitet;
+  einen `theme-motion.ts`-Player gibt es (noch) nicht — der Kommentar in
+  `skins.ts` verweist auf ihn als Zukunft.
 - **Hinweis:** Nur subtil einsetzen; respektiert `prefers-reduced-motion`
   (siehe `src/hooks/useReducedMotion.ts`).

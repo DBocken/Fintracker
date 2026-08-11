@@ -83,7 +83,7 @@ einer anderen Antwort (Screen für Screen statt ein Umzug für die ganze App) un
 gehört in ein eigenes Paket.
 
 Bis dahin bleibt die Darstellung in `src/components/settings/`
-(`EnhancedSettings.tsx`, 283 Zeilen — von 441). Das ist der bewusste
+(`EnhancedSettings.tsx`, 299 Zeilen — von 441). Das ist der bewusste
 Zwischenzustand, kein vergessener Rest: Die Slice ist **angeschlossen** (WP 6.1),
 ihr ViewModel hat mit `EnhancedSettings` und `CategoryManager` zwei echte
 Konsumenten und ist kein verwaistes Verzeichnis (ARCH-2).

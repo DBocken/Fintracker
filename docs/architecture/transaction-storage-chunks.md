@@ -6,7 +6,7 @@ Qualitätsprogramms 10/10, Arbeitspaket 4.1 (Befund PERF-1 in
 
 ## Kontext
 
-Der gesamte Transaktionsbestand liegt heute als **ein** Wert unter dem Schlüssel
+Der gesamte Transaktionsbestand lag bis WP 4.1 als **ein** Wert unter dem Schlüssel
 `ausgabentracker_transactions_v3` — bei aktivierter Verschlüsselung als ein
 einziger AES-GCM-Envelope (`transaction-storage-service.ts`,
 `local-crypto.ts`). Jede Einzeländerung — eine Kategorie zuweisen, einen Betrag
@@ -125,8 +125,9 @@ anders.
 ### Migration
 
 Als **nummerierter Schritt im Läufer aus WP 1.3**
-(`local-store-migrations.ts` — dessen Schrittliste bis heute leer ist und
-genau hierauf wartet), nicht als Lazy-Migration beim ersten Lesen. Ablauf:
+(`local-store-migrations.ts` — der Schritt
+`transactions-blob-to-quarter-chunks` ist dort inzwischen der erste Eintrag
+der Schrittliste), nicht als Lazy-Migration beim ersten Lesen. Ablauf:
 
 1. v3-Blob lesen und validieren (Schemata aus WP 1.2).
 2. Nach Quartal gruppieren, Chunks **einzeln** schreiben.
@@ -201,9 +202,11 @@ und beim Schreiben kaum billiger — die Kurve ist nicht symmetrisch.
 
 ## Wonach der Umbau zu beurteilen ist
 
-WP 4.1c belegt im PR **dieselben drei Zahlen**, gemessen am echten Service
-statt an dieser Simulation, bei 5 000 Buchungen und aktivierter
-Verschlüsselung:
+WP 4.1c **hat dieselben drei Zahlen belegt**, gemessen am echten Service statt
+an dieser Simulation, bei 5 000 Buchungen und aktivierter Verschlüsselung —
+dauerhaft festgenagelt in
+`src/services/__tests__/transaction-storage-service.perf.test.ts`, das die
+1,5×-Grenze für das kalte Vollesen als Assertion führt:
 
 1. Dauer **einer Einzeländerung**. Ziel: unabhängig von der Gesamtzahl, nur
    von der Größe des betroffenen Quartals abhängig.

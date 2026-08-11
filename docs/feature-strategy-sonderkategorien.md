@@ -7,8 +7,9 @@
 > (Hochzeit → Flitterwochen), die Buchungen aus beliebigen Kategorien, Konten und
 > Zahlungswegen bündeln — ohne dass die Buchung ihre echte Kategorie verliert.
 >
-> Status: **Plan** (BDD + TDD, noch keine Implementierung). Tier: **Premium**.
-> Branch: `claude/special-categories-parent-hc6f36`.
+> Status: **umgesetzt** (Slice `src/features/special-categories/`, Route
+> `/occasions`). Tier: **Premium**. Dieses Dokument bleibt die fachliche
+> Begründung; offene Folge-Punkte stehen im Slice-README.
 
 ---
 

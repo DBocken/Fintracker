@@ -38,7 +38,7 @@ per Taschenrechner nachvollziehbar.
 6. **i18n prüfen**: Nur nötig, wenn sich Struktur/Satzlogik ändert (Sätze und Caps
    kommen zur Laufzeit aus den Parametern — `creditExact`/`rechenweg` sind
    parametrisiert und dürfen NIE Zahlen hartkodieren).
-7. **`npm run test && npm run lint && npm run build`** — der Review-Diff zeigt
+7. **`pnpm test && pnpm lint && pnpm build`** — der Review-Diff zeigt
    Werte + Fundstellen nebeneinander.
 
 ## EÜR-Parameter (Einzelunternehmer)

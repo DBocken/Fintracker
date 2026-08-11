@@ -8,8 +8,10 @@ description: Laufzeit-Verifikation von Fintracker-Änderungen (Web-App und Supab
 ## Web-App (Vite)
 
 - `pnpm install --frozen-lockfile` falls `node_modules` fehlt, dann `pnpm dev`
-  (Vite, Port 8080 laut `vite.config.ts`) und die betroffene Route im Browser
-  (Playwright/Chromium unter `/opt/pw-browsers/chromium`) ansteuern.
+  (Vite, Port 5173 — `vite.config.ts` setzt keinen eigenen Port;
+  `playwright.config.ts` pinnt 5173 via `--strictPort`) und die betroffene
+  Route im Browser (Playwright/Chromium unter `/opt/pw-browsers/chromium`)
+  ansteuern. Port 8080 gehört zu `mcp-poc`, nicht zur App.
 
 ## Supabase Edge Functions (Deno) — lokal booten ohne Supabase CLI
 

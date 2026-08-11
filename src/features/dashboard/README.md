@@ -22,7 +22,7 @@ Gemeinsame Fach- und Datenbasis (Domain + Application) mit getrennter Desktop-/M
 - `totalEffectiveBalance` (112–114)
 - `stats` (302–348): Einnahmen/Ausgaben/Saldo — re-implementierte Inline-Kopie von `sumIncome`/`sumExpenses` aus `src/lib/analysis-data.ts` (Duplikat)
 - Zeitreihen-Bucketing nach Granularität (318–330)
-- Delegiert wird bereits an: `filterTransactions`/`getDashboardGranularity`/`encodeDashboardFilters` (filter-utils.ts), `listAvailablePeriods` (period-utils.ts), `buildSankeyData`/`buildSpendingSunburst`/`buildSunburstTree` (lib/analysis-data.ts)
+- Delegiert wird bereits an: `filterTransactions`/`getDashboardGranularity`/`encodeDashboardFilters` (`@/features/shared/domain/dashboard-filtering.ts`), `listAvailablePeriods` (`@/features/shared/domain/period-options.ts`), `buildSankeyData`/`buildSpendingSunburst`/`buildSunburstTree` (lib/analysis-data.ts)
 
 ### Zustand & Mutationen
 
@@ -49,6 +49,7 @@ Rein CSS-basiert: `<DashboardMobileStory className="lg:hidden">` und `<Dashboard
 | `application/` | finance-overview-view-model.ts, use-finance-overview.ts | UI-neutrales ViewModel: Queries, Filterzustand, abgeleitete Werte, Mutationen + Invalidierungen. Keine Darstellungsentscheidungen (keine Farben/Spalten/JSX) |
 | `presentation/desktop/` | DashboardDesktopView.tsx | informationsreich: Grid, Charts nebeneinander, Sankey |
 | `presentation/mobile/` | DashboardMobileStory.tsx | fokussiert: eine Ansicht pro Screen, Swipe-Story, progressive Offenlegung |
+| `presentation/shared/` | TransactionCharts.tsx (`SpendingBreakdownCard`, `ExpensesOverTimeCard`), SpendingSunburstChart.tsx | von Desktop UND Mobile geteilte Diagramm-Bausteine, props-getrieben (WP 6.2) |
 
 Dialog-Zustände (offen/zu, ausgewählte Transaktion) bleiben bewusst in der Page — Interaktions-, nicht Fachzustand.
 

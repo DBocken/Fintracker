@@ -27,6 +27,11 @@ Pentest-Schritt: **7 — Retest und Lessons Learned abgeschlossen** nach vollst�
 | `ausgabentracker_mcp_connector_active_v1` | localStorage | Niedrig-Mittel | D/E | Nicht-geheimer Aktivitätsmarker für Privacy-Indikator; enthält kein Token. |
 | Error-Log | IndexedDB mit localStorage-Fallback | Hoch | A/B/D | Muss sensitive URLs, Tokens, Finanzlisten und Rohdateien redigieren. |
 | `fintracker_forecast_overrides_v1` | IndexedDB via `localEncryption`, Legacy-Fallback localStorage | Hoch | B | Remediated: Legacy-localStorage wird migriert/gelöscht; bei aktiver lokaler Verschlüsselung AES-GCM-Envelope. |
+| `ausgabentracker_local_encryption_autolock_v1`, `…_lock_on_hidden_v1` | localStorage | Niedrig-Mittel | B | Auto-Lock-Steuerung (WP 3.2/#291); bewusst Klartext — muss unabhängig vom Tresorzustand lesbar sein. |
+| `fintracker_telemetry_queue_v1` | localStorage | Niedrig-Mittel | D | Gedeckelte Ereignis-Warteschlange (max. 200), nur Positivlisten-Felder, zod-geprüft beim Lesen; Widerruf verwirft sie. |
+| `fintracker_telemetry_session_v1` | sessionStorage | Niedrig | D | Zufällige Sitzungs-ID der Telemetrie; fällt mit der Sitzung. |
+| `fintracker_feature_flags_v1` | localStorage | Niedrig-Mittel | D | Enthält u. a. die Telemetrie-Einwilligung — bewusst vor dem Tresor lesbar, damit der Kill-Switch immer greift. |
+| `ausgabentracker_tier_override_v1` | localStorage | Niedrig-Mittel | E | Alphatester-Override; zentrale Ableitung ignoriert manipulierte Werte (`tier.security.test.ts`). |
 
 ## 3. MCP-P0-Status
 
@@ -48,6 +53,10 @@ Pentest-Schritt: **7 — Retest und Lessons Learned abgeschlossen** nach vollst�
 | Restore-Semantik in UI | Teilweise remediated | Erfolgsansicht und Toast nennen neue Restore-Zähler plus Merge-/Skip-Semantik; manueller UX-Retest mit realer Datei bleibt offen. |
 
 ## 5. Priorisierte nächste Betriebs-/Monitoring-Schritte
+
+Der geltende Betriebs-/Monitoring-Fahrplan steht seit 2026-08-10 in
+`docs/betrieb-2026-08/plan.md` (Stand: `status.md` dort); die drei Punkte hier
+sind der Dauerbetrieb *nach* dessen Abschluss.
 
 1. **Threat-Intelligence-Routine:** monatlich Dependencies, CISA-KEV-Relevanz und neue OWASP-/MASVS-Änderungen prüfen.
 2. **Manuelle Staging-Verifikation:** bei Releases Browser-/Android-Smoke-Tests für Crypto, Backup/Restore und Snapshot-Import mit synthetischen Dateien durchführen.

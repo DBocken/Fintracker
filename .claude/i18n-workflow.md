@@ -8,28 +8,38 @@ Diese Dokumentation erklärt, wie i18n in Fintracker funktioniert und wie du neu
 
 ## 1️⃣ TDD Workflow für neue Features
 
-### Schritt 1: Translations definieren (zentral in `src/i18n/translations.ts`)
+### Schritt 1: Translations definieren (je Sprache in `src/i18n/translations/<locale>.ts`)
+
+Seit WP 4.5 liegt jeder Sprachbaum in einer eigenen Datei
+(`de.ts`, `en.ts`, `ru.ts`, dazu inaktiv `tlh.ts`); `src/i18n/translations.ts`
+ist nur noch ein Barrel für Tests und Typ-Herleitung — Produktionscode
+importiert ihn nicht.
 
 ```typescript
-export const translations = {
-  de: {
-    myFeature: {
-      title: 'Meine Überschrift',
-      description: 'Eine Beschreibung',
-      noData: 'Keine Daten vorhanden',
-    }
+// src/i18n/translations/de.ts
+export const de = {
+  myFeature: {
+    title: 'Meine Überschrift',
+    description: 'Eine Beschreibung',
+    noData: 'Keine Daten vorhanden',
   },
-  en: {
-    myFeature: {
-      title: 'My Heading',
-      description: 'A description',
-      noData: 'No data available',
-    }
-  }
+  // …
+}
+
+// src/i18n/translations/en.ts (analog ru.ts)
+export const en = {
+  myFeature: {
+    title: 'My Heading',
+    description: 'A description',
+    noData: 'No data available',
+  },
+  // …
 }
 ```
 
-**WICHTIG:** Beide Sprachen MÜSSEN die gleichen Keys haben!
+**WICHTIG:** Alle Sprachen in `SUPPORTED_LOCALES` (`src/i18n/locale.ts` —
+aktuell `de`, `en`, `ru`) MÜSSEN die gleichen Keys haben; `tlh` ist inaktiv
+und nicht paritätspflichtig.
 
 ### Schritt 2: Tests schreiben (vor Implementierung!)
 
@@ -82,13 +92,16 @@ export default function MyComponent() {
 ❌ FALSCH: <h1>Willkommen</h1>
 ```
 
-Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert den Commit
-(lokal `--staged`, in CI `--range origin/main...HEAD`). Er gilt für ALLE Agenten
-(Claude, Codex, …) und menschliche Entwickler gleichermaßen.
+Der Check erkennt hardcodierte deutsche/englische Strings und blockiert den
+Commit — im Diff (lokal `--staged`, in CI `--range origin/main...HEAD`) **und**
+über den ganzen Bestand (`--all`, läuft ebenfalls in Pre-Commit und CI). Er
+gilt für ALLE Agenten (Claude, Codex, …) und menschliche Entwickler
+gleichermaßen.
 
 **Lösung:**
 1. Zeile aus Komponente entfernen
-2. In `translations.ts` als `myFeature.welcome: 'Willkommen'` hinzufügen
+2. In jedem Sprachbaum unter `src/i18n/translations/` als
+   `myFeature.welcome: 'Willkommen'` (bzw. Übersetzung) hinzufügen
 3. In Komponente mit `t('myFeature.welcome')` ersetzen
 
 ### Anti-Patterns & Häufige Fehler
@@ -98,15 +111,17 @@ Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert 
 | `<h1>Willkommen</h1>` | `<h1>{t('page.welcome')}</h1>` |
 | `"Keine Daten" + status` | `t('page.noData').replace('{status}', status)` |
 | Test nur auf Deutsch | Test auf DE + EN (Bilingual!) |
-| String in Komponente hardcodiert | String in `translations.ts` zentral |
+| String in Komponente hardcodiert | String in den Sprachbäumen `src/i18n/translations/<locale>.ts` |
 | Nur `t()` ohne I18nProvider wrapping | `renderWithI18n()` helper verwenden |
 
 ### Check-Überprüfungen
 
-- ✅ Erkennt hardcodierte Strings in JSX
-- ✅ Prüft Asymmetrie zwischen DE/EN (Schlüssel müssen gleich sein)
+- ✅ Erkennt hardcodierte Strings in Zeichenketten, Template-Literalen und JSX-Text
 - ✅ Ignoriert Kommentare, Importe, Test-Dateien
 - ✅ Ignoriert bereits übersetzte Strings (mit `t()`)
+- ❌ Prüft **nicht** die Key-Symmetrie zwischen den Sprachen — das tut
+  `src/i18n/__tests__/locale-parity.test.ts` (sagt `scripts/check-i18n.mjs`
+  im Kopf selbst)
 
 ---
 
@@ -114,7 +129,7 @@ Der Check erkennt hardcodierte deutsche/englische Strings im Diff und blockiert 
 
 **Vor dem Push:**
 
-- [ ] Alle sichtbaren Texte in `translations.ts` (DE + EN)
+- [ ] Alle sichtbaren Texte in den Sprachbäumen `src/i18n/translations/<locale>.ts`
 - [ ] `useI18n()` in Komponente importiert
 - [ ] Alle Texte mit `t('namespace.key')` aufgerufen
 - [ ] Tests mit `renderWithI18n()` Wrapper
@@ -136,18 +151,23 @@ A: Google Translate ist OK als Startpunkt. Die Community kann später verbessern
 
 ### F: Können wir neue Sprachen hinzufügen?
 
-A: **Ja, sehr einfach!**
-1. Neue Sprache in `translations.ts` hinzufügen (alle Keys kopieren + übersetzen)
-2. Type in Zeile 12 erweitern: `export type Locale = 'de' | 'en' | 'fr';`
-3. LanguageSwitcher.tsx erweitern (UI für Sprachauswahl)
-4. Fertig — alle Komponenten unterstützen automatisch die neue Sprache!
+A: **Ja — sechs Schritte:**
+1. Neuen Sprachbaum `src/i18n/translations/<locale>.ts` anlegen (alle Keys
+   kopieren + übersetzen)
+2. `Locale` und `SUPPORTED_LOCALES` in `src/i18n/locale.ts` erweitern
+3. Lazy-Import in `src/i18n/translation-registry.ts` ergänzen
+4. `LOCALE_META` in `src/i18n/locale-options.ts` ergänzen (der
+   `LanguageSwitcher` liest daraus — er selbst braucht keine Änderung)
+5. Overlay `src/i18n/overlays/everyday/<locale>.ts` anlegen — Pflicht,
+   erzwungen durch `src/i18n/__tests__/overlay-coverage.test.ts`
+6. `locale-parity.test.ts` grün — fertig
 
 ### F: Was ist wenn ich dynamischen Text habe?
 
 A: Template-Strings verwenden:
 
 ```typescript
-// translations.ts
+// src/i18n/translations/de.ts
 de: {
   page: {
     greeting: 'Hallo {name}, willkommen!'
@@ -178,16 +198,25 @@ A: **Ja!** Warum:
 
 ```
 src/i18n/
-  ├── translations.ts          ← ZENTRAL: Alle Übersetzungen (DE + EN)
-  ├── useI18n.ts              ← Hook für Komponenten
+  ├── translations/            ← DIE SPRACHBÄUME
+  │   ├── de.ts · en.ts · ru.ts   ← aktive Sprachen (paritätspflichtig)
+  │   └── tlh.ts                  ← inaktiv, nicht paritätspflichtig
+  ├── translations.ts          ← nur Barrel für Tests + Typen (kein Laufzeitpfad)
+  ├── translation-registry.ts  ← Lazy-Import je Sprache (Laufzeitpfad)
+  ├── locale.ts                ← Locale, SUPPORTED_LOCALES, INACTIVE_LOCALES
+  ├── locale-options.ts        ← LOCALE_META für die Sprachauswahl
+  ├── overlays/everyday/       ← Alltagssprache je Sprache (Pflicht, s. overlay-coverage)
+  ├── wording.ts · glossary.ts ← Sprachstil-Achse
+  ├── serviceT.ts              ← t() für services/lib (ohne React-Kontext)
+  ├── useI18n.ts               ← Hook für Komponenten
   ├── I18nProvider.tsx         ← React Context Provider
   ├── format.ts                ← Helper (pluralize, formatDaysUntil, etc.)
-  └── __tests__/
-      ├── i18n.test.ts
-      └── format.test.ts
+  └── __tests__/               ← u. a. locale-parity, overlay-coverage, call-site-keys
 
 scripts/
-  └── check-i18n.mjs           ← Auto-Check (Pre-Commit + CI, blockiert hardcodierte Strings)
+  ├── check-i18n.mjs           ← Auto-Check (Pre-Commit + CI, blockiert hardcodierte Strings)
+  ├── i18n-core.mjs            ← die Erkennung, ohne git testbar
+  └── check-i18n-module-consts.mjs ← t() im Initializer einer Modul-const
 
 .claude/
   ├── templates/
@@ -205,7 +234,7 @@ Component zeigt eine kleine Grafik mit dynamischem Label.
 
 ### Schritt 1: Translations
 ```typescript
-// src/i18n/translations.ts
+// src/i18n/translations/de.ts (analog en.ts, ru.ts)
 de: {
   sparkline: {
     title: 'Ausgabentrend',
@@ -285,7 +314,7 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 ## 🎯 TL;DR (Kurzfassung)
 
 1. **Schreibe Tests zuerst** (für beide Sprachen!)
-2. **Definiere Strings zentral** in `src/i18n/translations.ts`
+2. **Definiere Strings** in jedem Sprachbaum `src/i18n/translations/<locale>.ts`
 3. **Verwende `useI18n()` Hook** in Komponenten
 4. **Hook überprüft** automatisch auf Fehler
 5. **Commit & Push** — fertig!

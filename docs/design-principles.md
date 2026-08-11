@@ -7,7 +7,7 @@
 
 ---
 
-## Die 7 Prinzipien
+## Die 7 Kernprinzipien — plus die Karten-Regel als Prinzip 8
 
 ### 1. Geschwindigkeit ist ein Feature
 Local-First heißt: Interaktionen fühlen sich **sofort** an, offline-fähig, kein Spinner-Warten.
@@ -128,9 +128,15 @@ Kartenfeld klickbar zu machen — rein hinweisend zur bewussten Entscheidung.
 ---
 
 ## Konkrete To-dos aus den Prinzipien (Backlog)
-1. Aufbau-Animation überall sicherstellen: `isAnimationActive={false}` in `TransactionCharts.tsx` /
-   `LiquidityReport.tsx` prüfen und – wo sinnvoll – auf aktiven Aufbau umstellen (Prinzip 2).
+1. ~~Aufbau-Animation überall sicherstellen~~ — **erledigt**:
+   `isAnimationActive={false}` kommt im Baum nicht mehr vor; alle
+   Recharts-Serien laufen über `useChartAnimation`
+   (`src/hooks/useChartAnimation.ts`), das `prefers-reduced-motion` gleich
+   mitbeantwortet (Prinzip 2).
 2. „Zu prüfen"-Inbox für unsichere Transaktionen (Swipe) **mit Erklärung** (Prinzip 4).
 3. Fokussiertes Dashboard: „Dieser Monat"-Karten (Ausgegeben · Trend · Forecast), Prinzip 3.
-4. Command-Palette (⌘K), mobile Haptics, einheitliches Token-System.
+4. ~~Command-Palette (⌘K)~~ (gebaut: `src/components/CommandPalette.tsx`,
+   montiert im `AppShell`) und ~~mobile Haptics~~ (gebaut:
+   `src/lib/haptics.ts` + `useHaptics`) — offen bleibt das einheitliche
+   Token-System.
 5. Lottie evaluieren (Zukunft): nur für expressive Set-Pieces (Celebration/Empty-State).

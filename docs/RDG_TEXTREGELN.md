@@ -58,5 +58,5 @@ strukturiert, rechnet und motiviert** — sie berät nicht rechtlich.
 - [ ] Mahnbescheid-Pfade bieten keine Zahlungs-Mikro-Aktion und keinen
       GiroCode an.
 - [ ] Verweise zeigen nur auf anerkannte, kostenlose Stellen
-      (`COUNSELING_SERVICES` in `debt-guardrails-service.ts`).
+      (`getCounselingServices()` in `src/lib/debt-counseling-guardrails.ts`).
 - [ ] Keine Bewertung einzelner SCHUFA-Einträge.
