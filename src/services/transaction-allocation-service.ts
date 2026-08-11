@@ -1,5 +1,5 @@
 import { t } from '../i18n/serviceT';
-import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { mutateLocalFinanceList, readLocalFinanceList } from './local-finance-store';
 import { toMinor, sumMinor, type Cents } from '@/lib/money';
 import type { Transaction, TransactionAllocation } from '@/types';
 
@@ -157,9 +157,13 @@ export async function setAllocations(
   const result = validateAllocations(transaction, next);
   if (!result.valid) throw new AllocationInvariantError(result);
 
-  const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
-  const rest = all.filter((a) => a.transaction_id !== txId);
-  await writeLocalFinanceList('transactionAllocations', [...rest, ...next]);
+  // Serialisiert (Issue #311): Zwei gleichzeitig aufgeteilte Buchungen liessen
+  // sonst eine der beiden Aufteilungen fallen — und eine verlorene Aufteilung
+  // verschiebt Beträge lautlos in die falsche Kategorie.
+  await mutateLocalFinanceList<TransactionAllocation>('transactionAllocations', (all) => [
+    ...all.filter((a) => a.transaction_id !== txId),
+    ...next,
+  ]);
   return next;
 }
 
@@ -173,9 +177,7 @@ export async function deleteAllocationsForTransactions(transactionIds: string[])
   if (transactionIds.length === 0) return;
   const idSet = new Set(transactionIds);
 
-  const all = await readLocalFinanceList<TransactionAllocation>('transactionAllocations');
-  await writeLocalFinanceList(
-    'transactionAllocations',
+  await mutateLocalFinanceList<TransactionAllocation>('transactionAllocations', (all) =>
     all.filter((a) => !idSet.has(a.transaction_id)),
   );
 }

@@ -1,4 +1,5 @@
 import {
+  mutateLocalFinanceList,
   readLocalFinanceList,
   writeLocalFinanceList,
 } from './local-finance-store';
@@ -91,9 +92,10 @@ export async function appendAuditLogEntry(
     id: generateId(),
     created_at: new Date().toISOString(),
   };
-  const entries = await readLocalFinanceList<AuditLogEntry>('auditLog');
-  entries.push(full);
-  await writeLocalFinanceList('auditLog', entries);
+  // Serialisiert (Issue #311): Das Protokoll ist der Pfad mit den meisten
+  // gleichzeitigen Schreibvorgängen überhaupt — jede protokollierte Aktion
+  // schreibt hier, und ein verlorener Eintrag ist ein Loch in der Nachweiskette.
+  await mutateLocalFinanceList<AuditLogEntry>('auditLog', (entries) => [...entries, full]);
   return full;
 }
 

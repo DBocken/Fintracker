@@ -26,6 +26,7 @@ import {
 import { mergeCategoryTemplate, type CategoryTemplate } from "@/lib/category-template";
 import { NAV_FEATURE_PATHS, type NavFeatureId } from "@/lib/life-situations";
 import { gentleLevelFromLegacy } from "@/lib/gentle-mode";
+import { withKeyLock } from "@/lib/key-mutex";
 // Zentrale Key-Registry (VE-6). Re-Export hält bestehende Importe funktionsfähig.
 import { LOCAL_CATEGORIES_KEY, LOCAL_SETTINGS_KEY } from "./local-storage-keys";
 import { t } from "../i18n/serviceT";
@@ -145,6 +146,24 @@ async function writeLocalCategories(categories: Category[]): Promise<void> {
   await localEncryption.encryptAndStore(LOCAL_CATEGORIES_KEY, categories);
 }
 
+/**
+ * Lesen, Ändern und Schreiben der Kategorien in einem Lock (Issue #311).
+ *
+ * Ohne die Serialisierung lesen zwei gleichzeitige Aufrufe denselben Stand und
+ * der zweite schreibt eine Liste ohne die Kategorie des ersten — lautlos.
+ * `readLocalCategoriesRaw`/`writeLocalCategories` nehmen den Lock bewusst
+ * NICHT selbst: sie werden hier drinnen gerufen, und `withKeyLock` ist nicht
+ * wiedereintrittsfähig.
+ */
+async function mutiereKategorien<T>(
+  aendern: (categories: Category[]) => T | Promise<T>,
+): Promise<T> {
+  return withKeyLock(LOCAL_CATEGORIES_KEY, async () => {
+    const categories = await readLocalCategoriesRaw();
+    return aendern(categories);
+  });
+}
+
 function generateLocalCategoryId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -162,22 +181,23 @@ function generateLocalCategoryId(): string {
  */
 export async function restoreLocalCategories(incoming: Category[]): Promise<number> {
   if (incoming.length === 0) return 0;
-  const existing = await readLocalCategoriesRaw();
-  const knownIds = new Set(existing.map((c) => c.id).filter(Boolean));
-  const added: Category[] = [];
-  for (const cat of incoming) {
-    if (!cat.id || knownIds.has(cat.id)) continue;
-    added.push({
-      ...cat,
-      user_id: cat.user_id ?? LOCAL_USER_ID,
-      filters: cat.filters ?? [],
-      attributes: cat.attributes ?? {},
-      parent_id: cat.parent_id ?? null,
-    });
-    knownIds.add(cat.id);
-  }
-  if (added.length) await writeLocalCategories([...existing, ...added]);
-  return added.length;
+  return mutiereKategorien(async (existing) => {
+    const knownIds = new Set(existing.map((c) => c.id).filter(Boolean));
+    const added: Category[] = [];
+    for (const cat of incoming) {
+      if (!cat.id || knownIds.has(cat.id)) continue;
+      added.push({
+        ...cat,
+        user_id: cat.user_id ?? LOCAL_USER_ID,
+        filters: cat.filters ?? [],
+        attributes: cat.attributes ?? {},
+        parent_id: cat.parent_id ?? null,
+      });
+      knownIds.add(cat.id);
+    }
+    if (added.length) await writeLocalCategories([...existing, ...added]);
+    return added.length;
+  });
 }
 
 /** Lokal gemerkte Version des zuletzt angewandten Kategorien-Templates (Weg B). */
@@ -204,29 +224,42 @@ export async function applyCategoryTemplate(
     return { applied: false, added: 0, filtersExtended: 0, version: appliedVersion };
   }
 
-  const local = await readLocalCategoriesRaw();
-  const result = mergeCategoryTemplate(local, template.categories);
-  if (result.changed) {
-    await writeLocalCategories(result.categories);
-  }
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(CATEGORY_TEMPLATE_VERSION_KEY, String(template.version));
-  }
-  return {
-    applied: result.changed,
-    added: result.added.length,
-    filtersExtended: result.filtersExtended.length,
-    version: template.version,
-  };
+  return mutiereKategorien(async (local) => {
+    const result = mergeCategoryTemplate(local, template.categories);
+    if (result.changed) {
+      await writeLocalCategories(result.categories);
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(CATEGORY_TEMPLATE_VERSION_KEY, String(template.version));
+    }
+    return {
+      applied: result.changed,
+      added: result.added.length,
+      filtersExtended: result.filtersExtended.length,
+      version: template.version,
+    };
+  });
 }
 
 export async function saveLocalCategory(category: Partial<Category>): Promise<Category> {
-  const categories = await readLocalCategoriesRaw();
+  return mutiereKategorien(async (categories) => saveInKategorien(categories, category));
+}
 
+/**
+ * Der Anlege-Schritt ohne Lock — er läuft IMMER innerhalb eines fremden Locks
+ * (`saveLocalCategory` bzw. `updateLocalCategory`, das eine Standard-Kategorie
+ * zur Nutzer-Kopie macht). Ohne diese Trennung nähme der Umweg über
+ * `saveLocalCategory` den Lock ein zweites Mal und verklemmte.
+ */
+async function saveInKategorien(
+  categories: Category[],
+  category: Partial<Category>,
+): Promise<Category> {
   const name = category.name || t("localSettingsService.defaultCategoryName");
   // Gegen die ANGEZEIGTEN Namen pruefen: die Nutzerin sieht bei Standard-
   // Kategorien den uebersetzten Text, also muss sich die Dublettenwarnung auch
-  // darauf beziehen.
+  // darauf beziehen. Die Pruefung liegt INNERHALB des Locks — davor koennten
+  // zwei gleichzeitige Anlagen desselben Namens beide an ihr vorbeikommen.
   if (localizeCategories(categories).some((c) => c.name === name)) {
     throw new Error(t("localSettingsService.categoryNameExists"));
   }
@@ -250,12 +283,15 @@ export async function saveLocalCategory(category: Partial<Category>): Promise<Ca
 }
 
 export async function updateLocalCategory(category: Category): Promise<Category> {
-  const categories = await readLocalCategoriesRaw();
+  return mutiereKategorien(async (categories) => updateInKategorien(categories, category));
+}
+
+async function updateInKategorien(categories: Category[], category: Category): Promise<Category> {
   const existing = categories.find((c) => c.id === category.id);
 
   // Standard-Kategorie wird beim Bearbeiten zur Nutzer-Kopie (Verhalten wie Cloud-Pfad)
   if (existing?.is_default) {
-    return saveLocalCategory({
+    return saveInKategorien(categories, {
       name: category.name,
       color: category.color,
       icon: category.icon,
@@ -294,11 +330,10 @@ export async function updateLocalCategory(category: Category): Promise<Category>
 }
 
 export async function deleteLocalCategory(id: string): Promise<void> {
-  const categories = await readLocalCategoriesRaw();
-  // Direkte Kinder mitlöschen (Verhalten wie Cloud-Pfad)
-  await writeLocalCategories(
-    categories.filter((c) => c.id !== id && c.parent_id !== id),
-  );
+  await mutiereKategorien(async (categories) => {
+    // Direkte Kinder mitlöschen (Verhalten wie Cloud-Pfad)
+    await writeLocalCategories(categories.filter((c) => c.id !== id && c.parent_id !== id));
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -396,7 +431,25 @@ function migrateRemovedNavFeatures(settings: UserSettings): UserSettings | null 
   return { ...settings, enabled_nav_features: cleaned };
 }
 
-export async function getLocalUserSettings(): Promise<UserSettings> {
+/**
+ * Der einzige Schreibpunkt der Einstellungen — benannt, damit
+ * `pnpm check:store-serialization` das Lese-/Schreibpaar überhaupt erkennen
+ * kann. Ein direkter `encryptAndStore`-Aufruf auf `LOCAL_SETTINGS_KEY` wäre für
+ * den Wächter nur einer von vielen und damit unsichtbar.
+ */
+async function schreibeLokaleEinstellungen(settings: UserSettings): Promise<void> {
+  await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, settings);
+}
+
+/**
+ * Liest die Einstellungen und wendet fällige Migrationen an — **ohne** Lock.
+ *
+ * Wird sowohl vom öffentlichen Lesezugriff als auch aus dem Schreib-Lock
+ * heraus gerufen. Deshalb darf sie den Lock nicht selbst nehmen:
+ * `withKeyLock` ist nicht wiedereintrittsfähig, und ein Aufruf aus dem
+ * Schreib-Lock heraus würde sich selbst blockieren.
+ */
+async function leseLokaleEinstellungenOhneLock(): Promise<UserSettings> {
   assertClient();
   assertUnlocked();
 
@@ -410,22 +463,40 @@ export async function getLocalUserSettings(): Promise<UserSettings> {
     const afterGentleMode = migrateLegacyGentleMode(afterRemoved ?? afterBusinessMode ?? merged);
     const migrated = afterGentleMode ?? afterRemoved ?? afterBusinessMode;
     if (migrated) {
-      await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, migrated);
+      await schreibeLokaleEinstellungen(migrated);
       return migrated;
     }
     return merged;
   }
 
   const defaults = buildDefaultLocalSettings();
-  await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, defaults);
+  await schreibeLokaleEinstellungen(defaults);
   return defaults;
 }
 
+/**
+ * Liest die Einstellungen. Nimmt denselben Lock wie der Schreibpfad, damit ein
+ * Lesevorgang nie den Stand *vor* einem gerade laufenden Schreibvorgang sieht.
+ */
+export async function getLocalUserSettings(): Promise<UserSettings> {
+  return withKeyLock(LOCAL_SETTINGS_KEY, leseLokaleEinstellungenOhneLock);
+}
+
+/**
+ * [REGRESSION #293] Lesen, Mergen und Schreiben in einem Lock.
+ *
+ * Zuvor lagen zwischen Lesen und Schreiben zwei `await`s. Zwei kurz
+ * aufeinanderfolgende Aufrufe — etwa `DataSourceDialog` und `OnboardingDialog`,
+ * die beide hierher schreiben — lasen denselben Stand, und der zweite schrieb
+ * eine Fassung ohne das Feld des ersten. `tutorial_source` ging so verloren.
+ */
 export async function updateLocalUserSettings(
   settings: Partial<UserSettings>,
 ): Promise<UserSettings> {
-  const current = await getLocalUserSettings();
-  const next: UserSettings = { ...current, ...settings, user_id: LOCAL_USER_ID };
-  await localEncryption.encryptAndStore(LOCAL_SETTINGS_KEY, next);
-  return next;
+  return withKeyLock(LOCAL_SETTINGS_KEY, async () => {
+    const current = await leseLokaleEinstellungenOhneLock();
+    const next: UserSettings = { ...current, ...settings, user_id: LOCAL_USER_ID };
+    await schreibeLokaleEinstellungen(next);
+    return next;
+  });
 }

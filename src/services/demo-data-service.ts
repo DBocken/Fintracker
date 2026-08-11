@@ -1,6 +1,6 @@
 import { format, startOfMonth, subMonths, addDays } from 'date-fns';
 import type { Account, Debt, Transaction } from '@/types';
-import { readLocalFinanceList, writeLocalFinanceList } from './local-finance-store';
+import { mutateLocalFinanceList } from './local-finance-store';
 import { getTransactions, saveTransactions, deleteTransaction } from './transaction-service';
 import { t } from '@/i18n/serviceT';
 
@@ -252,15 +252,18 @@ async function replaceDemoTransactions(newDemoTransactions: Transaction[]): Prom
 export async function loadDemoData(now: Date = new Date()): Promise<DemoDataset> {
   const dataset = buildDemoDataset(now);
 
-  const [accounts, debts] = await Promise.all([
-    readLocalFinanceList<Account>('accounts'),
-    readLocalFinanceList<Debt>('debts'),
-  ]);
-
   await replaceDemoTransactions(dataset.transactions);
+  // Je Collection ein Lock (Issue #311): Die beiden laufen weiterhin parallel —
+  // sie berühren verschiedene Schlüssel —, aber jede für sich vollständig.
   await Promise.all([
-    writeLocalFinanceList('accounts', [...accounts.filter((a) => !isDemoRecord(a)), ...dataset.accounts]),
-    writeLocalFinanceList('debts', [...debts.filter((d) => !isDemoRecord(d)), ...dataset.debts]),
+    mutateLocalFinanceList<Account>('accounts', (accounts) => [
+      ...accounts.filter((a) => !isDemoRecord(a)),
+      ...dataset.accounts,
+    ]),
+    mutateLocalFinanceList<Debt>('debts', (debts) => [
+      ...debts.filter((d) => !isDemoRecord(d)),
+      ...dataset.debts,
+    ]),
   ]);
 
   getFlagStorage()?.setItem(DEMO_ACTIVE_KEY, 'true');
@@ -270,15 +273,10 @@ export async function loadDemoData(now: Date = new Date()): Promise<DemoDataset>
 
 /** Entfernt ausschließlich Demo-Datensätze (ID-Präfix) — echte Daten bleiben. */
 export async function removeDemoData(): Promise<void> {
-  const [accounts, debts] = await Promise.all([
-    readLocalFinanceList<Account>('accounts'),
-    readLocalFinanceList<Debt>('debts'),
-  ]);
-
   await replaceDemoTransactions([]);
   await Promise.all([
-    writeLocalFinanceList('accounts', accounts.filter((a) => !isDemoRecord(a))),
-    writeLocalFinanceList('debts', debts.filter((d) => !isDemoRecord(d))),
+    mutateLocalFinanceList<Account>('accounts', (accounts) => accounts.filter((a) => !isDemoRecord(a))),
+    mutateLocalFinanceList<Debt>('debts', (debts) => debts.filter((d) => !isDemoRecord(d))),
   ]);
 
   getFlagStorage()?.removeItem(DEMO_ACTIVE_KEY);

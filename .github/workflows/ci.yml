@@ -112,6 +112,13 @@ jobs:
       - name: Zustands-Abdeckung je Flaeche
         run: pnpm check:state-coverage
 
+      # #293 meldete EIN verlorenes Einstellungsfeld; nachgemessen stand
+      # dieselbe Lesen-Aendern-Schreiben-Sequenz in 12 Dateien — dort verliert
+      # sie eine Buchung, und zwar ohne Fehler und ohne Luecke, nach der jemand
+      # sucht. Ohne Ausnahmeliste (Issue #311).
+      - name: Serialisierung der Schreibpfade
+        run: pnpm check:store-serialization
+
       - name: i18n-Check (Diff)
         run: |
           git fetch origin main

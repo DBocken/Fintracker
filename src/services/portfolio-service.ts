@@ -4,6 +4,7 @@ import { isSameCurrency } from '@/lib/portfolio-currency';
 import { getCurrentUserId } from './auth-service';
 import {
   deleteLocalFinanceItem,
+  mutateLocalFinanceList,
   readLocalFinanceList,
   updateLocalFinanceItem,
   upsertLocalFinanceItem,
@@ -67,8 +68,9 @@ export async function setActivePortfolio(id: string): Promise<void> {
 
 export async function deletePortfolio(id: string): Promise<void> {
   await deleteLocalFinanceItem<Portfolio>('portfolios', id);
-  const positions = await readLocalFinanceList<PortfolioPosition>('portfolioPositions');
-  await writeLocalFinanceList('portfolioPositions', positions.filter((position) => position.portfolio_id !== id));
+  await mutateLocalFinanceList<PortfolioPosition>('portfolioPositions', (positions) =>
+    positions.filter((position) => position.portfolio_id !== id),
+  );
 
   const remaining = await getPortfolios();
   if (remaining.length > 0 && !remaining.some((portfolio) => portfolio.is_active)) {
