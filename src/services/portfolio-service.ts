@@ -1,6 +1,7 @@
 import { t } from '../i18n/serviceT';
 import type { Portfolio, PortfolioPosition, PortfolioSummary, UnconvertedPosition } from '../types';
 import { isSameCurrency } from '@/lib/portfolio-currency';
+import { currentPriceOf } from '@/features/trading/domain/position-metrics';
 import { getCurrentUserId } from './auth-service';
 import {
   deleteLocalFinanceItem,
@@ -168,7 +169,7 @@ export async function getPortfolioSummary(portfolioId: string): Promise<Portfoli
   const unconverted_positions: UnconvertedPosition[] = [];
 
   for (const position of positions) {
-    const currentPrice = position.last_price || position.entry_price;
+    const currentPrice = currentPriceOf(position);
     const marketValue = position.quantity * currentPrice;
 
     // VE-1 (docs/architecture/currency-eur-only.md): Es gibt keine Kursquelle

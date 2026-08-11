@@ -19,6 +19,7 @@
  * nächste Schritt, nicht dieser.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { currentPriceOf } from '@/features/trading/domain/position-metrics';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { firstQueryError } from '@/lib/query-results';
 import type { Portfolio, PortfolioPosition } from '@/types';
@@ -390,7 +391,7 @@ export function useEtoroAccount({ portfolio, positions }: UseEtoroAccountInput) 
     () =>
       (positions ?? [])
         .filter(isEtoroPosition)
-        .reduce((sum, p) => sum + p.quantity * (p.last_price || p.entry_price), 0),
+        .reduce((sum, p) => sum + p.quantity * currentPriceOf(p), 0),
     [positions],
   );
 

@@ -12,13 +12,38 @@ const DAYS_PER_YEAR = 365.25;
 // "+600% p.a." anzuzeigen wäre rechnerisch korrekt, aber irreführend.
 export const MIN_HOLDING_DAYS_FOR_ANNUALIZED = 30;
 
+/**
+ * Aktueller Kurs einer Position — der Einstiegskurs nur, wenn gar kein Kurs
+ * vorliegt (Issue #294).
+ *
+ * **Warum `??` und nicht `||`.** Bis hierher stand überall
+ * `last_price || entry_price`. Ein echter Kurs von **0** ist falsy und fiel
+ * damit auf den Einstiegskurs zurück: Statt eines Totalverlusts zeigte die
+ * Oberfläche ±0 — also genau die Zahl, die niemanden beunruhigt.
+ *
+ * Dass 0 hier „wertlos" heißt und nicht „kein Kurs", ist nachgeprüft und nicht
+ * geraten. Kein Anbieter benutzt 0 als Fehlmarke:
+ *
+ * | Anbieter | fehlender Kurs |
+ * |---|---|
+ * | Yahoo | `typeof price !== "number"` ⇒ das Quote entfällt ganz (`market-quotes/index.ts`) |
+ * | Stooq | `Number.isNaN(close)` ⇒ Zeile wird übersprungen |
+ * | eToro | `etoroCurrentPrice` verlangt ausdrücklich `> 0` und liefert sonst `undefined` |
+ *
+ * Ein gespeichertes `last_price === 0` kann damit nur ein tatsächlich
+ * gemeldeter Nullkurs sein — und der gehört als Totalverlust angezeigt.
+ */
+export function currentPriceOf(position: Pick<PortfolioPosition, 'last_price' | 'entry_price'>): number {
+  return position.last_price ?? position.entry_price;
+}
+
 export function calculateGainLoss(position: PortfolioPosition): number {
-  const currentPrice = position.last_price || position.entry_price;
+  const currentPrice = currentPriceOf(position);
   return (currentPrice - position.entry_price) * position.quantity;
 }
 
 export function calculateGainLossPercent(position: PortfolioPosition): number {
-  const currentPrice = position.last_price || position.entry_price;
+  const currentPrice = currentPriceOf(position);
   if (position.entry_price === 0) return 0;
   return ((currentPrice - position.entry_price) / position.entry_price) * 100;
 }

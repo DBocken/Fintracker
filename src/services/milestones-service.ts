@@ -9,7 +9,12 @@ import { getDebts } from "./debt-service";
 import { mutateLocalFinanceList, readLocalFinanceList } from './local-finance-store';
 import { t } from "@/i18n/serviceT";
 
-export function getMilestoneDefinitions(): MilestoneDefinition[] {
+/**
+ * Nicht exportiert (Issue #297): Ausser `evaluateMilestones` weiter unten
+ * ruft sie niemand. Ein Export ohne Aufrufer sieht wie eine oeffentliche
+ * Zusage aus, die niemand eingeloest hat.
+ */
+function getMilestoneDefinitions(): MilestoneDefinition[] {
   return [
     {
       key: "emergency_fund_1m",

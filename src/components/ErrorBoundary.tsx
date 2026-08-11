@@ -211,22 +211,3 @@ function ErrorBoundaryWithI18n(props: Omit<Props, 't'> & { children: ReactNode }
   return <ErrorBoundary {...props} t={t} />;
 }
 
-/**
- * Hook for handling errors in functional components
- */
-export function useErrorHandler() {
-  const { t } = useI18n();
-
-  const handleError = (error: Error) => {
-    console.error('[useErrorHandler]', error);
-    showError(error.message || t('errorBoundary.errorOccurred'));
-    void appendErrorLogEntry({
-      level: 'error',
-      source: 'manual',
-      message: error.message,
-      stack: error.stack,
-    });
-  };
-
-  return { handleError };
-}
