@@ -1,15 +1,15 @@
 # Issue-Sichtung 2026-08-11 — Bestandsprüfung und Abarbeitungsreihenfolge
 
 > **Protokoll.** Stand `main@60d98bd`, Version `2026.8.0`, 44 offene Issues.
->
-> **Nachtrag 2026-08-11:** Die in Abschnitt 1 genannten vier Issues sind
-> geschlossen, ebenso #293, #294, #296, #297 und das dabei entstandene #311.
-> Offen aus dem Livegang-Gate bleibt **#292** — siehe Abschnitt 5.
 > Es entsteht hier **kein drittes Programm**: Der geltende Arbeitsplan bleibt
 > [`betrieb-2026-08/plan.md`](betrieb-2026-08/plan.md). Diese Datei beantwortet
 > nur zwei Fragen, die kein Plan beantwortet — *was ist inzwischen erledigt?*
 > und *in welcher Reihenfolge wird der Rest angefasst?* Die Zahlen altern
 > absichtlich; wer sie später liest, misst neu.
+>
+> **Nachtrag 2026-08-11:** Die vier Issues aus Abschnitt 1 sind geschlossen,
+> ebenso #293, #294, #296, #297 und das dabei entstandene #311. Offen aus dem
+> Livegang-Gate bleibt **#292** — Einzelheiten in Abschnitt 5.
 
 ## 1. Was jetzt geschlossen werden kann
 
