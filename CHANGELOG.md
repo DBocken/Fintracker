@@ -22,8 +22,48 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.8.1 — 2026-08-11
+
+### Behoben
+
+- **Der Sanfte Modus verdeckt jetzt wirklich jeden Betrag.** Auf der
+  Vermögensseite standen zwölf Beträge ungeschützt — ausgerechnet die Fläche,
+  vor der jemand mit Vermeidungsverhalten am ehesten zurückschreckt. Ebenso in
+  den Smart Insights und in der Analytik-Vorschau. Zwei Flächen (Coach-Raster,
+  Tagesliste) hatten eine eigene Maske gebaut, die die Stufen nicht kannte: Die
+  Tagesliste verschwieg die Tagesveränderung schon auf Stufe 1, wo Fortschritt
+  sichtbar bleiben soll.
+- **Ein Kurs von 0 wird nicht mehr wie „kein Kurs" behandelt.** Eine wertlos
+  gewordene Position fiel auf den Einstiegskurs zurück und zeigte ±0 statt des
+  Totalverlusts — in Depotwert, Gewinn/Verlust, Sortierung und eToro-Abgleich.
+- **Gleichzeitige Schreibvorgänge verlieren keine Daten mehr.** Zwei kurz
+  aufeinanderfolgende Aktionen konnten einander überschreiben: eine Einstellung,
+  eine Kategorie, eine Buchung, eine Schuld-Zuordnung, ein Protokolleintrag. Ohne
+  Fehlermeldung. Betroffen war jede lokale Collection.
+- Dublettenprüfungen greifen jetzt auch bei gleichzeitigen Aktionen — zuvor
+  konnten zwei parallele Aufrufe beide an ihnen vorbeikommen.
+
 ### Intern
 
+- **Zwei neue Wächter, beide ohne Ausnahmeliste.**
+  `pnpm check:store-serialization` meldet Lesen-Ändern-Schreiben ohne Lock —
+  der Fehler oben stand an 27 Stellen in 12 Dateien und war bis dahin
+  unsichtbar (kein Test wurde rot, der Compiler schwieg).
+  `pnpm check:money-format` meldet einen gerenderten Betrag, der nicht durch
+  die Maske des Sanften Modus läuft. Beide melden den **Aufruf**, nicht die
+  Deklaration: Ein Wächter gegen jeden rohen `Intl`-Formatierer hätte bei
+  korrekt maskierenden Flächen Fehlalarm — und Fehlalarme schalten Wächter ab,
+  statt sie durchzusetzen.
+- **Serialisierung als Primitiv statt als Absicherung je Aufrufstelle**
+  (`src/lib/key-mutex.ts`, `mutateLocalFinanceList`): ein Weg für alle lokalen
+  Collections statt zwölf einzelner Vorsichtsmaßnahmen.
+- **Toter Code entschieden** (Issue #297): `BulkActions`,
+  `matchContractsToTransactions`, `applyContractToSimilar`, `useErrorHandler`
+  und `useSkin` samt seinem Context entfernt. Die Liste wurde vorher neu
+  erhoben — `withErrorBoundary` lebt seit der AppShell-Absicherung wieder,
+  dafür fehlte `applyContractToSimilar` in der alten Erhebung.
+- **Issue-Sichtung** (`docs/issue-triage-2026-08.md`): 44 offene Issues gegen
+  den Baum nachgemessen; acht geschlossen.
 - **Doku-Aktualitätslauf über alle 84 Markdown-Dateien**: ~60 veraltete
   Aussagen in geltenden Dokumenten korrigiert — u. a. zeigten sämtliche
   i18n-Anleitungen (AGENTS.md §6, README, `.claude/`-Werkzeuge) noch auf die
