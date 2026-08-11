@@ -1,6 +1,10 @@
 # Issue-Sichtung 2026-08-11 — Bestandsprüfung und Abarbeitungsreihenfolge
 
 > **Protokoll.** Stand `main@60d98bd`, Version `2026.8.0`, 44 offene Issues.
+>
+> **Nachtrag 2026-08-11:** Die in Abschnitt 1 genannten vier Issues sind
+> geschlossen, ebenso #293, #294, #296, #297 und das dabei entstandene #311.
+> Offen aus dem Livegang-Gate bleibt **#292** — siehe Abschnitt 5.
 > Es entsteht hier **kein drittes Programm**: Der geltende Arbeitsplan bleibt
 > [`betrieb-2026-08/plan.md`](betrieb-2026-08/plan.md). Diese Datei beantwortet
 > nur zwei Fragen, die kein Plan beantwortet — *was ist inzwischen erledigt?*
@@ -125,3 +129,50 @@ Deploy-Stand der Edge Functions). Das sind [OPS]-Punkte im Sinne von
 `betrieb-2026-08/plan.md` Regel 7 — sie werden nicht „irgendwann" erledigt, sondern
 brauchen einen Termin mit dem Betreiber. Sinnvoll ist **ein** Termin für alle drei,
 zusammen mit WP 0.3 (Supabase-Region) und WP 0.10 (die ausstehenden Deployments).
+
+## 5. Nachtrag: Stand nach der Abarbeitung (2026-08-11)
+
+**Geschlossen:** #21, #52 (gegenstandslos, ersetzt durch #306), #234, #235 —
+die vier aus Abschnitt 1. Dazu abgearbeitet: **#293** und **#296** (je mit
+neuem Wächter), **#294**, **#297**. Neu entstanden und sofort geschlossen:
+**#311**, die Ursachenklasse hinter #293.
+
+**Was das über die Issue-Liste sagt:** Drei der vier abgearbeiteten Issues
+beschrieben den Befund enger, als er war.
+
+| Issue | im Issue | nachgemessen |
+|---|---|---|
+| #293 | ein Rennen in `updateUserSettings` | dieselbe Bauform an **27 Stellen in 12 Dateien** (#311) — dort verliert sie eine Buchung, keine Einstellung |
+| #296 | 20 rohe `Intl.NumberFormat` = 20 Fehler | 38 rohe Formatierer, aber nur **18 echte** Fundstellen: die meisten maskieren bereits |
+| #297 | fünf tote Symbole | eines lebt wieder, eines fehlte in der Liste |
+
+Die Lehre ist in beide Richtungen dieselbe: **Ein Issue ist eine Momentaufnahme,
+kein Messwert.** Vor der Behebung wird neu gezählt — sonst repariert man bei #296
+korrekten Code und übersieht bei #293 die elf anderen Dateien.
+
+### Offen: #292 (Fremdwährung)
+
+Der letzte Punkt des Livegang-Gates und bewusst **nicht** angefangen. Das Issue
+warnt selbst davor, ihn halb zu erledigen: Nähme man den Saldo aus `cash`
+heraus, während dieselben Buchungen weiter als Einnahme und Ausgabe zählen,
+widersprächen sich zwei Flächen über dieselben Daten — schlimmer als der heutige
+Zustand. Er braucht einen Durchgang über alle sechs Flächen (Analyse, Budgets,
+Prognose, EÜR, Finanzgesundheit, Nettovermögen) plus die zweite Eintrittspforte
+in `account-service.ts:97`.
+
+Der Weg ist vorgezeichnet: `getPortfolioSummary` macht für Depots seit WP 7.7
+genau das Richtige (nur Gleichwährendes summieren, den Rest über
+`UnconvertedCurrencyNotice` ausweisen). Die Buchungsseite braucht dieselbe
+Bewegung — eine Funktion, die Buchungen anhand der Kontowährung in
+„verrechenbar" und „nicht verrechnet" trennt, und sechs Flächen, die sie
+benutzen.
+
+### Neue Wächter aus dieser Runde
+
+| Wächter | Was er verhindert |
+|---|---|
+| `pnpm check:store-serialization` | die 28. Stelle mit unserialisiertem Lesen-Ändern-Schreiben |
+| `pnpm check:money-format` | den nächsten Betrag, der am Sanften Modus vorbei gerendert wird |
+
+Beide **ohne Ausnahmeliste** — bei beiden hiesse ein begründeter Einzelfall
+„hier darf gelegentlich etwas kaputtgehen".
