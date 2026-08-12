@@ -88,6 +88,7 @@ export const tlh = {
   },
   tutorial: {
     coach: {
+      name: "jaj legh",
       today: {
         title: 'DaHjaj SoHvaD',
         body: 'naDev De\'lIj tlha\'. wa\'logh jaj yIlegh; \'oH yap.',
@@ -98,6 +99,7 @@ export const tlh = {
       },
     },
     accounts: {
+      name: "Huch qellIj",
       balances: {
         title: 'Huch qellIj',
         body: 'Hoch Huch vIH wa\' qel ghaj. ratlhbogh mI\' neH qel teH chenmoH.',
@@ -108,6 +110,7 @@ export const tlh = {
       },
     },
     income: {
+      name: "Huch chu'",
       sources: {
         title: 'Huchlij Daq vo\'',
         body: 'toH law\' neH ghobe\'; Daqmey mI\' je. wa\' Daq neH: QaQ \'ej Qob.',
@@ -118,6 +121,7 @@ export const tlh = {
       },
     },
     contracts: {
+      name: "rap Huch",
       found: {
         title: 'wIsammoH',
         body: 'wa\' Suqwl\'vaD Huch chegh. juHDaq De\' Sam; SoH yIghItlhQo\'.',
@@ -132,6 +136,7 @@ export const tlh = {
       },
     },
     budgets: {
+      name: "Huch HeH",
       tanks: {
         title: 'nIDmey bIH nItlh',
         body: 'qIl ghobe\'; teb \'oH. jar ratlhbogh Dalegh.',
@@ -142,6 +147,7 @@ export const tlh = {
       },
     },
     liquidity: {
+      name: "Huch nab",
       forecast: {
         title: 'ghorgh puj?',
         body: 'Huch chegh \'ej mej: He chen. puj DaSov pa\'.',
@@ -152,6 +158,7 @@ export const tlh = {
       },
     },
     milestones: {
+      name: "ngoQmey",
       goals: {
         title: 'ngoQ, chIlbe\'',
         body: 'meq tu\'lu\'chugh, Qatlhbe\' Sav. mI\' \'ej jaj ghaj ngoQ.',
@@ -162,6 +169,7 @@ export const tlh = {
       },
     },
     debts: {
+      name: "bIQ Huch",
       overview: {
         title: 'Hoch DIl wa\' DaqDaq',
         body: 'boS, chIlbe\'. vaj jar Huch bIt Dalegh.',
@@ -172,6 +180,7 @@ export const tlh = {
       },
     },
     occasions: {
+      name: "wanI'mey",
       crosscut: {
         title: 'Segh HeH',
         body: 'leng: chuch, Soj, juH. wanI\' boS.',
@@ -182,6 +191,7 @@ export const tlh = {
       },
     },
     netWorth: {
+      name: "Hoch Huch",
       stock: {
         title: 'ratlh, vIHbe\'',
         body: 'vIH wIqel ret. DaH ratlhbogh: Doch \'ej DIl joj.',
@@ -192,6 +202,7 @@ export const tlh = {
       },
     },
     tax: {
+      name: "Huch teywI'",
       deductible: {
         title: 'nuq DateqlaH',
         body: 'He, juH vum, ghojmoH — Huchlij De\'Daq tu\'lu\' law\'.',
@@ -202,6 +213,7 @@ export const tlh = {
       },
     },
     euer: {
+      name: "Huch pov",
       profit: {
         title: 'chegh \'ej mej joj',
         body: 'Huch nap chen. chol, mej, ratlh.',
@@ -212,6 +224,7 @@ export const tlh = {
       },
     },
     premiumReports: {
+      name: "De' qonmey",
       trends: {
         title: 'poH tIq',
         body: 'wa\' jar mIllogh neH. jarmey law\' choH cha\'.',
@@ -222,6 +235,7 @@ export const tlh = {
       },
     },
     trading: {
+      name: "Huch nav",
       portfolio: {
         title: 'qellIj',
         body: 'Doch ghaj tIgh pIm. Doch bIH, jar nID ghobe\'.',
@@ -232,6 +246,7 @@ export const tlh = {
       },
     },
     export: {
+      name: "De'lIj qem",
       ownership: {
         title: 'De\'lIj Daghaj',
         body: 'Hoch jantaHghach lI\'Daq. naDev vo\' yIqeng.',
@@ -242,6 +257,7 @@ export const tlh = {
       },
     },
     settings: {
+      name: "choHmey",
       areas: {
         title: 'Sengmey cha\' pagh So\'',
         body: 'DaneHbe\'bogh So\'lu\'. So\'taHvIS, He vIQeq.',
@@ -257,6 +273,7 @@ export const tlh = {
     },
     invitationTitle: "qaDev'a'?",
     invitationBody: "Dochvam qaDevmeH mach.",
+    invitationElsewhere: "{chapter} DaqDaq taH. pa' qaqem.",
     invitationStart: 'HIcha\'',
     invitationDismiss: 'DaH ghobe\'',
     next: "'ej",
@@ -265,6 +282,7 @@ export const tlh = {
     end: "ghojmoHwI' yImev",
     progress: '{current} vo\' {total}',
     transactions: {
+      name: "tetlh laD",
       overview: {
         title: 'naDev Hoch Huch vIttlheghmey',
         body: 'Hoch vIttlhegh wa\' Huch vIH \'oH. Hoch latlh De\' vIttlheghmeyvam lo\'.',
@@ -407,6 +425,7 @@ export const tlh = {
       },
     },
     dashboard: {
+      name: "Huch He",
       flow: {
         title: 'Huchlij Daq',
         body: "poS vo' Huch chol, nIH Daq Huch mej. 'ay' 'aD 'oH mI'.",
@@ -417,6 +436,7 @@ export const tlh = {
       },
     },
     city: {
+      name: "veng",
       arrival: {
         title: "Huch veng",
         body: "mI'mey rap bIH — 'ach DayIt. Hoch qach wa' Huchlij 'oH.",
@@ -577,6 +597,23 @@ export const tlh = {
     noActiveKpis: "mI' potlh chu'taH tu'lu'be'.",
     resetButton: "chegh",
   },
+  tutorials: {
+    title: "ghojmoHmey",
+    description: "Hoch qaDevmeH Fintracker; Daq Daq. bIleghpu'bogh mIw Sov; latlh logh yIlegh 'e' DalaH.",
+    progressLabel: "leghpu'bogh mIwmey",
+    sectionProgress: "{total} {done}",
+    steps: "mIwmey {count}",
+    stateReady: "ruch",
+    stateDone: "leghpu'",
+    stateWaiting: "De' poQ",
+    launcherLabel: "qaDevmeH",
+    explainThisPage: "naDev yIQIj",
+    noneHere: "naDevvaD qaDevmeH tu'lu'be'.",
+    allTutorials: "Hoch ghojmoHmey",
+    startSeries: "Hoch yICho'moH",
+    startSeriesAgain: "yItaHmoH",
+    seriesWaiting: "De' tu'lu'DI', naDev Hoch qaDev.",
+  },
   nav: {
     groups: {
       coach: "boQwI'",
@@ -585,6 +622,7 @@ export const tlh = {
       verwaltung: "SeHghach",
     },
     items: {
+      tutorials: "ghojmoHmey",
       coach: "DaHjaj SoH vaD",
       debts: "DIlnISghachmey",
       netWorth: "Huch tay'",
@@ -607,6 +645,7 @@ export const tlh = {
       city: "Huch veng",
     },
     subtitles: {
+      tutorials: "Hoch qaDevmeH; Daq Daq",
       liquidity: "ghorgh Huch lIj mach?",
       budgets: "Huch ngoQmey lIj",
       premium: "Sankey, tuj nab, 'ej leghmey val",

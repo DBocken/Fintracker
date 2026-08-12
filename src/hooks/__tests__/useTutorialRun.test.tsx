@@ -55,6 +55,18 @@ describe('useTutorialRun', () => {
     await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
   });
 
+  it('sollte alle jetzt lehrbaren Kapitel nennen, nicht nur das erste', async () => {
+    // Die Einladung schwebt über jeder Seite und muss das Kapitel DIESER
+    // Seite anbieten können. Mit nur einem Kapitel in der Hand bliebe ihr
+    // nur, wegzuspringen — genau der gemeldete Befund.
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.teachable.length).toBeGreaterThan(1));
+    expect(result.current.teachable[0]).toBe(result.current.upcoming);
+    expect(result.current.teachable).toContain('city');
+    // Nur Kapitel mit ausformuliertem Text — `source` hat keine Schritte.
+    expect(result.current.teachable).not.toContain('source');
+  });
+
   it('sollte ohne Datengrundlage nichts anbieten', async () => {
     vi.mocked(collectDataReadiness).mockResolvedValue({
       ...ready,
@@ -99,6 +111,56 @@ describe('useTutorialRun', () => {
       expect((await getLocalUserSettings()).tutorial_completed_chapters).toContain('transactions');
     });
     expect(result.current.active).toBe(false);
+  });
+
+  it('sollte in einer Folge nach dem Kapitel mit dem nächsten weitermachen', async () => {
+    // Das zusammenhängende Tutorial: Ohne diesen Übergang wären 24 Kapitel
+    // 24 Einzelstarts, und nach jedem müsste der Nutzer selbst wissen, wo es
+    // weitergeht — genau die Arbeit, die eine Führung abnehmen soll.
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
+
+    act(() => result.current.startSeries(['transactions', 'dashboard']));
+    expect(result.current.chapter).toBe('transactions');
+    expect(result.current.remaining).toBe(1);
+
+    finishChapter(result);
+
+    expect(result.current.chapter).toBe('dashboard');
+    expect(result.current.stepIndex).toBe(0);
+    expect(result.current.remaining).toBe(0);
+    expect(result.current.active).toBe(true);
+
+    // Den Schreibvorgang des abgeschlossenen Kapitels abwarten: Er läuft
+    // asynchron weiter und landete sonst erst im nächsten Test — nach dessen
+    // `localStorage.clear()`, und der sähe dann fremden Fortschritt.
+    await waitFor(async () => {
+      expect((await getLocalUserSettings()).tutorial_completed_chapters).toContain('transactions');
+    });
+  });
+
+  it('sollte am Ende einer Folge schließen und alle Kapitel als abgeschlossen halten', async () => {
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
+
+    act(() => result.current.startSeries(['transactions', 'dashboard']));
+    finishChapter(result);
+    finishChapter(result);
+
+    expect(result.current.active).toBe(false);
+    await waitFor(async () => {
+      const done = (await getLocalUserSettings()).tutorial_completed_chapters ?? [];
+      expect(done).toContain('transactions');
+      expect(done).toContain('dashboard');
+    });
+  });
+
+  it('sollte ein Kapitel ohne Text aus der Folge streichen statt daran hängen zu bleiben', async () => {
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
+
+    act(() => result.current.startSeries(['source', 'dashboard']));
+    expect(result.current.chapter).toBe('dashboard');
   });
 
   it('sollte beim Abbrechen nichts als abgeschlossen werten', async () => {

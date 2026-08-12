@@ -12,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PrivacyIndicator from "@/components/PrivacyIndicator";
 import OfflineIndicator from "@/features/shared/presentation/OfflineIndicator";
+import TutorialLauncher from "@/features/tutorials/presentation/TutorialLauncher";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import NotificationsBell from "@/components/NotificationsBell";
 import UserQuickProfile from "@/components/UserQuickProfile";
@@ -113,6 +114,13 @@ export default function AppShell() {
                 <OfflineIndicator />
 
                 <PrivacyIndicator />
+
+                {/* Dauerhafter Einstieg in die Führungen: „Diese Seite
+                    erklären" und der Weg zur Gesamtübersicht. Der
+                    Einladungsstreifen allein reichte nicht — er erscheint nur,
+                    solange ein Kapitel offen ist, und ist nach einem Klick auf
+                    „Nicht jetzt" für die Sitzung weg. */}
+                <TutorialLauncher />
 
                 {/* Sprachwahl als kompaktes Popup — bleibt auch auf Mobil im
                     Header erreichbar, ohne ihn zu überlaufen. */}

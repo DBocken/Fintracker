@@ -20,6 +20,7 @@ import {
   Briefcase,
   Building2,
   PartyPopper,
+  GraduationCap,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 import { isNavPathVisible, type NavFeatureId } from "@/lib/life-situations";
@@ -167,6 +168,18 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Verwaltung",
     labelKey: "nav.groups.verwaltung",
     items: [
+      {
+        // Der zweite Weg zu den Fuehrungen neben dem Kopfzeilen-Knopf: Wer
+        // etwas nachschlagen will, sucht es in der Navigation, nicht in einem
+        // Popup. Kein waehlbarer Bereich (`NavFeatureId`) — eine Anleitung
+        // abwaehlen zu koennen hilft niemandem.
+        label: "Tutorials",
+        labelKey: "nav.items.tutorials",
+        path: "/tutorials",
+        icon: GraduationCap,
+        subtitle: "Alle Fuehrungen, Bereich fuer Bereich",
+        subtitleKey: "nav.subtitles.tutorials",
+      },
       { label: "Einstellungen", labelKey: "nav.items.settings", path: "/settings", icon: Settings },
     ],
   },

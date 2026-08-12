@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useI18n } from '@/i18n/useI18n';
-import { anchorSelector, stepBodyKey, stepTitleKey } from '@/lib/tutorial-steps';
+import { anchorSelector, stepBodyKey, stepTitleKey, tutorialTitleKey } from '@/lib/tutorial-steps';
 import type { TutorialRun } from '@/hooks/useTutorialRun';
 import { useAnchorRect } from './useAnchorRect';
 
@@ -35,6 +35,16 @@ const HOLE_PADDING = 6;
 /** Abstand zum Bildschirmrand, den der Popover einhält. */
 const COLLISION_PADDING = 12;
 
+/**
+ * Sind wir auf der Fläche des Schritts? Ein angehängtes Segment (`/transactions/42`)
+ * ist noch dieselbe; ein abschließender Schrägstrich ist kein Ortswechsel.
+ */
+function samePath(pathname: string, route: string): boolean {
+  const here = pathname.replace(/\/+$/, '') || '/';
+  const there = route.replace(/\/+$/, '') || '/';
+  return here === there || here.startsWith(`${there}/`);
+}
+
 export default function TutorialOverlay({ run }: { run: TutorialRun }) {
   const { t } = useI18n();
   const reduceMotion = useReducedMotion();
@@ -42,14 +52,35 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
   const location = useLocation();
 
   const step = run.step;
+  const endRun = run.end;
   const rect = useAnchorRect(step?.anchor, run.active, reduceMotion);
 
   // Der Schritt spielt auf einer bestimmten Route — dorthin wird geführt,
-  // statt den Nutzer raten zu lassen, wo das Erklärte steht.
+  // statt den Nutzer raten zu lassen, wo das Erklärte steht. **Einmal je
+  // Schritt**: Vorher galt die Bedingung „Ort ≠ Route" dauerhaft, und damit
+  // sprang jeder eigene Navigationsklick des Nutzers sofort wieder zurück.
+  // Wer den Bereich verlässt, beendet die Führung — sie ist ein Angebot, kein
+  // Käfig, und das Overlay lässt das Gezeigte bewusst bedienbar.
+  const navigatedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!run.active || !step?.route) return;
-    if (location.pathname !== step.route) navigate(step.route);
-  }, [run.active, step, location.pathname, navigate]);
+    const marker = `${run.chapter}:${step.id}`;
+
+    if (samePath(location.pathname, step.route)) {
+      navigatedFor.current = marker;
+      return;
+    }
+    if (navigatedFor.current === marker) {
+      endRun();
+      return;
+    }
+    navigatedFor.current = marker;
+    navigate(step.route);
+  }, [run.active, run.chapter, endRun, step, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!run.active) navigatedFor.current = null;
+  }, [run.active]);
 
   // Schritte, die in einem erst zu öffnenden Bereich spielen (Detailansicht,
   // Aufteilung), öffnen ihn selbst. Genau einmal je Schritt — sonst würde ein
@@ -73,7 +104,11 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
 
   const title = t(stepTitleKey(run.chapter, step), '');
   const body = t(stepBodyKey(run.chapter, step), '');
-  const isLast = run.stepIndex >= run.stepCount - 1;
+  // „Fertig" nur, wenn danach wirklich nichts mehr kommt. In einer Folge
+  // (Gesamt-Tutorial) führt der letzte Schritt eines Kapitels ins nächste —
+  // „Fertig" wäre dort schlicht gelogen.
+  const isLast = run.stepIndex >= run.stepCount - 1 && run.remaining === 0;
+  const chapterName = t(tutorialTitleKey(run.chapter), '');
 
   const progress = t('tutorial.progress', 'Schritt {current} von {total}')
     .replace('{current}', String(run.stepIndex + 1))
@@ -131,6 +166,13 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
           onOpenAutoFocus={(e) => e.preventDefault()}
           aria-describedby={undefined}
         >
+          {/* Wo man gerade ist — in einer Folge ist das die einzige Auskunft
+              darüber, welches Kapitel gerade läuft. */}
+          {chapterName && (
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {chapterName}
+            </p>
+          )}
           <h3 className="font-medium">{title}</h3>
           <p className="pt-1 text-sm text-muted-foreground">{body}</p>
           <p className="pt-2 text-xs text-muted-foreground">{progress}</p>

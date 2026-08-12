@@ -1,5 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTutorialRun } from '@/hooks/useTutorialRun';
+import { TutorialControlProvider, type TutorialControl } from '@/hooks/useTutorialControl';
+import { chapterOnRoute } from '@/lib/tutorial-steps';
 import TutorialOverlay from './TutorialOverlay';
 import TutorialInvitation from './TutorialInvitation';
 import { TutorialPresenceProvider } from './tutorial-presence';
@@ -19,20 +22,47 @@ import { TutorialPresenceProvider } from './tutorial-presence';
  */
 export default function TutorialHost({ children }: { children?: ReactNode }) {
   const run = useTutorialRun();
+  const location = useLocation();
   const [invitationDismissed, setInvitationDismissed] = useState(false);
 
-  const invitationVisible = !run.active && !invitationDismissed && run.upcoming !== null;
+  // Welches Kapitel angeboten wird, entscheidet die geöffnete Seite — nicht
+  // allein der Lehrplan. Spielt hier eines, gilt dieses; sonst bleibt der
+  // Lehrplan-Anfang, dann aber ausdrücklich als Wechsel benannt (`here`).
+  // Vorher bot die Einladung überall den Lehrplan-Anfang an und nannte ihn
+  // „diesen Bereich": Der Klick riss die Seite weg, und erklärt wurde etwas
+  // anderes als das, worauf der Nutzer gerade sah.
+  const here = chapterOnRoute(run.teachable, location.pathname);
+  const offered = here ?? run.upcoming;
+
+  const invitationVisible = !run.active && !invitationDismissed && offered !== null;
   const hintVisible = run.active || invitationVisible;
   const presence = useMemo(() => ({ hintVisible }), [hintVisible]);
 
+  // Der Griff nach außen: Kopfzeile und Übersichtsseite starten Führungen,
+  // ohne den Lauf zu besitzen. `run.start` ist stabil (useCallback), der
+  // Kontextwert wechselt also nur mit dem Laufzustand.
+  const control = useMemo<TutorialControl>(
+    () => ({ start: run.start, startSeries: run.startSeries, active: run.active }),
+    [run.start, run.startSeries, run.active],
+  );
+
   return (
     <TutorialPresenceProvider value={presence}>
+      <TutorialControlProvider value={control}>
       {run.active ? (
         <TutorialOverlay run={run} />
       ) : (
-        invitationVisible && <TutorialInvitation run={run} onDismiss={() => setInvitationDismissed(true)} />
+        invitationVisible && (
+          <TutorialInvitation
+            chapter={offered}
+            here={here !== null}
+            onStart={() => offered && run.start(offered)}
+            onDismiss={() => setInvitationDismissed(true)}
+          />
+        )
       )}
       {children}
+      </TutorialControlProvider>
     </TutorialPresenceProvider>
   );
 }

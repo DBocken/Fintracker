@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  completeTutorialChapter,
   getLocalUserSettings,
   updateLocalUserSettings,
   getLocalCategories,
@@ -80,6 +81,28 @@ describe('local-settings-service: gleichzeitige Schreibvorgänge', () => {
     expect(namen).toContain('Angeln');
     expect(namen).toContain('Imkerei');
     expect(namen).toHaveLength(vorher + 2);
+  });
+
+  it('[REGRESSION] sollte zwei kurz aufeinanderfolgende Kapitelabschlüsse beide behalten', async () => {
+    // Das zusammenhängende Tutorial schließt Kapitel unmittelbar
+    // hintereinander ab. Rechnete die Aufrufstelle die neue Liste aus ihrem
+    // (hinterherhinkenden) Query-Cache, überschrieb der zweite Abschluss den
+    // ersten — lautlos, ohne Fehler. Deshalb hängt der Store selbst an.
+    await Promise.all([
+      completeTutorialChapter('transactions'),
+      completeTutorialChapter('dashboard'),
+    ]);
+
+    const done = (await getLocalUserSettings()).tutorial_completed_chapters ?? [];
+    expect(done).toContain('transactions');
+    expect(done).toContain('dashboard');
+  });
+
+  it('sollte dasselbe Kapitel nicht zweimal führen', async () => {
+    await completeTutorialChapter('transactions');
+    await completeTutorialChapter('transactions');
+    const done = (await getLocalUserSettings()).tutorial_completed_chapters ?? [];
+    expect(done.filter((c) => c === 'transactions')).toHaveLength(1);
   });
 
   it('sollte den Dublettenschutz auch bei gleichzeitiger Anlage halten', async () => {

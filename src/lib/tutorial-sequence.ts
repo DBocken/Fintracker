@@ -287,14 +287,9 @@ export function buildCurriculum(input: CurriculumInput): Curriculum {
 
   const done = new Set<TutorialChapterId>(completed);
 
-  const applicable = TUTORIAL_ORDER.filter((c) => {
-    if (done.has(c.id)) return false;
-    // Ohne Unterkategorien wäre ein eigenes Kategorien-Kapitel Ballast; das
-    // Zuordnen selbst trägt das Buchungs-Kapitel mit.
-    if (c.id === 'categories' && !subcategoriesEnabled) return false;
-    if (c.feature === null) return true;
-    return isFeatureEnabled(c.feature, enabledFeatures);
-  });
+  const applicable = TUTORIAL_ORDER.filter(
+    (c) => !done.has(c.id) && belongsToApp(c, enabledFeatures, subcategoriesEnabled),
+  );
 
   const ordered = sortWithLead(applicable, lifeSituation);
 
@@ -305,6 +300,27 @@ export function buildCurriculum(input: CurriculumInput): Curriculum {
   }
 
   return { next, postponed };
+}
+
+/**
+ * Gehört das Kapitel überhaupt zu der App, die dieser Nutzer sieht?
+ *
+ * Bewusst getrennt vom „schon erledigt" und von der Datenreife: Der Lehrplan
+ * filtert damit den nächsten Schritt, die Übersicht (`tutorial-catalog.ts`)
+ * denselben Bestand — nur eben mit erledigten Kapiteln darin. Zwei Kopien
+ * dieser Bedingung wären zwei Wahrheiten darüber, was es für einen Nutzer
+ * überhaupt zu lernen gibt.
+ */
+export function belongsToApp(
+  chapter: TutorialChapter,
+  enabledFeatures: readonly NavFeatureId[] | null,
+  subcategoriesEnabled: boolean,
+): boolean {
+  // Ohne Unterkategorien wäre ein eigenes Kategorien-Kapitel Ballast; das
+  // Zuordnen selbst trägt das Buchungs-Kapitel mit.
+  if (chapter.id === 'categories' && !subcategoriesEnabled) return false;
+  if (chapter.feature === null) return true;
+  return isFeatureEnabled(chapter.feature, enabledFeatures);
 }
 
 /**

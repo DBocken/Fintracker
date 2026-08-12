@@ -89,11 +89,19 @@ describe('i18n-Aufrufstellen', () => {
     // Test nicht auflösen — sie sind der blinde Fleck. Die Zahl wird deshalb
     // festgenagelt, damit der Fleck nicht unbemerkt wächst: wer hier vorbei
     // will, muss die Schranke bewusst anheben. Stand beim Einführen: 65.
+    //
+    // Angehoben auf 77 mit der Tutorial-Übersicht: Bereichs- und
+    // Kapitelnamen kommen dort zwangsläufig als Schlüssel aus den Daten
+    // (`section.titleKey`, `chapter.titleKey`, `tutorialTitleKey(chapter)`) —
+    // dieselbe Bauform wie `nav.items.${id}`. Der blinde Fleck ist hier
+    // anderweitig ausgeleuchtet: `tutorial-catalog.test.ts` prüft für JEDES
+    // Kapitel mit Schritten, dass `tutorial.<id>.name` in allen Sprachen
+    // auflöst, `tutorial-steps.test.ts` dasselbe für die Schritttexte.
     let dynamic = 0;
     for (const file of files) {
       const source = readFileSync(`${process.cwd()}/${file}`, 'utf8');
       dynamic += [...source.matchAll(DYNAMIC_CALL)].length;
     }
-    expect(dynamic).toBeLessThanOrEqual(75);
+    expect(dynamic).toBeLessThanOrEqual(77);
   });
 });

@@ -4,45 +4,58 @@ import userEvent from '@testing-library/user-event';
 
 import { renderWithI18n } from '@/test-utils/render';
 import TutorialInvitation from '../TutorialInvitation';
-import type { TutorialRun } from '@/hooks/useTutorialRun';
-
-function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
-  return {
-    active: false,
-    chapter: null,
-    step: null,
-    stepIndex: 0,
-    stepCount: 0,
-    upcoming: 'transactions',
-    start: vi.fn(),
-    next: vi.fn(),
-    back: vi.fn(),
-    end: vi.fn(),
-    ...overrides,
-  };
-}
 
 describe('TutorialInvitation', () => {
   it('sollte einladen, wenn ein Kapitel bereitsteht', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'de');
+    renderWithI18n(
+      <TutorialInvitation chapter="transactions" here onStart={vi.fn()} onDismiss={vi.fn()} />,
+      'de',
+    );
     expect(screen.getByText('Soll ich es dir zeigen?')).toBeInTheDocument();
   });
 
   it('sollte auf Englisch dieselbe Einladung zeigen', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'en');
+    renderWithI18n(
+      <TutorialInvitation chapter="transactions" here onStart={vi.fn()} onDismiss={vi.fn()} />,
+      'en',
+    );
     expect(screen.getByText('Shall I show you around?')).toBeInTheDocument();
   });
 
   it('sollte schweigen, wenn kein Kapitel bereitsteht', () => {
-    renderWithI18n(<TutorialInvitation run={makeRun({ upcoming: null })} onDismiss={vi.fn()} />, 'de');
+    renderWithI18n(
+      <TutorialInvitation chapter={null} here onStart={vi.fn()} onDismiss={vi.fn()} />,
+      'de',
+    );
     expect(screen.queryByText('Soll ich es dir zeigen?')).not.toBeInTheDocument();
   });
 
   it('sollte die Führung starten', async () => {
-    const run = makeRun();
-    renderWithI18n(<TutorialInvitation run={run} onDismiss={vi.fn()} />, 'de');
+    const onStart = vi.fn();
+    renderWithI18n(
+      <TutorialInvitation chapter="transactions" here onStart={onStart} onDismiss={vi.fn()} />,
+      'de',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Zeig es mir' }));
-    expect(run.start).toHaveBeenCalled();
+    expect(onStart).toHaveBeenCalled();
+  });
+
+  it('[REGRESSION] sollte einen Bereichswechsel ankündigen, statt ihn zu verschweigen', async () => {
+    // Befund „springt wahllos auf andere Seiten": Der Streifen schwebt über
+    // JEDER Seite, das nächste Kapitel gehört aber oft zu einer anderen.
+    // „Eine kurze Führung durch diesen Bereich" war dann schlicht unwahr —
+    // und der Klick riss die Seite ohne Vorwarnung weg.
+    renderWithI18n(
+      <TutorialInvitation
+        chapter="transactions"
+        here={false}
+        onStart={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+      'de',
+    );
+    expect(screen.queryByText('Eine kurze Führung durch diesen Bereich.')).not.toBeInTheDocument();
+    expect(screen.getByText(/Buchungen/)).toBeInTheDocument();
   });
 
   it('[REGRESSION] sollte nicht im Layoutfluss liegen', async () => {
@@ -52,7 +65,10 @@ describe('TutorialInvitation', () => {
     // unten. Eine schwebende Ebene verschiebt nichts. Wer diese Klassen
     // entfernt, holt die Verschiebung zurueck, ohne dass ein Test rot wird —
     // deshalb steht sie hier.
-    renderWithI18n(<TutorialInvitation run={makeRun()} onDismiss={vi.fn()} />, 'de');
+    renderWithI18n(
+      <TutorialInvitation chapter="transactions" here onStart={vi.fn()} onDismiss={vi.fn()} />,
+      'de',
+    );
     const frame = screen.getByTestId('tutorial-invitation');
     expect(frame.className).toContain('fixed');
     // Der Rahmen darf die Bedienung darunter nicht abfangen …
@@ -65,11 +81,14 @@ describe('TutorialInvitation', () => {
   it('sollte das Wegklicken dem Host melden, ohne die Führung zu starten', async () => {
     // Das Verbergen selbst gehört dem Host (Befund A-2, Hinweisebenen-Präsenz)
     // und ist in TutorialHost.test.tsx abgesichert.
-    const run = makeRun();
+    const onStart = vi.fn();
     const onDismiss = vi.fn();
-    renderWithI18n(<TutorialInvitation run={run} onDismiss={onDismiss} />, 'de');
+    renderWithI18n(
+      <TutorialInvitation chapter="transactions" here onStart={onStart} onDismiss={onDismiss} />,
+      'de',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Nicht jetzt' }));
-    expect(run.start).not.toHaveBeenCalled();
+    expect(onStart).not.toHaveBeenCalled();
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });

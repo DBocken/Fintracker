@@ -83,6 +83,10 @@ export const ALWAYS_VISIBLE_NAV_PATHS: readonly string[] = [
   // (`docs/tutorial-sequence.md`). Zentral und optional zugleich gibt es
   // nicht — und mobil ist sie ein Bottom-Nav-Ziel, das nie verschwinden darf.
   '/city',
+  // Die Übersicht der Führungen ist kein wählbarer Bereich: Eine Anleitung
+  // abwählen zu können hilft niemandem, und wer sich in der App verirrt hat,
+  // findet den Weg dorthin sonst gerade nicht.
+  '/tutorials',
 ];
 
 /**

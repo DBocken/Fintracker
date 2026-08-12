@@ -43,6 +43,7 @@ vi.mock('@/components/PrivacyIndicator', () => ({ default: () => <div /> }));
 vi.mock('@/components/DemoDataBanner', () => ({ default: () => <div /> }));
 vi.mock('@/components/NotificationsBell', () => ({ default: () => <div /> }));
 vi.mock('@/components/UserQuickProfile', () => ({ default: () => <div /> }));
+vi.mock('@/features/tutorials/presentation/TutorialLauncher', () => ({ default: () => <div /> }));
 
 import AppShell from '../AppShell';
 

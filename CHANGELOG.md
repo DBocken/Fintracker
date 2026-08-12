@@ -22,6 +22,43 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.8.2 — 2026-08-12
+
+### Neu
+
+- **Alle Führungen an einem Ort: die neue Seite „Tutorials".** Sie listet
+  jedes Tutorial nach Bereich — „Buchungen" etwa trägt fünf davon (Liste
+  lesen, Kategorien, Suchen & Filtern, Detailansicht, Aufteilen), „Steuer" ein
+  eigenes. Angesehene Kapitel bekommen einen grünen Haken, ein Klick startet
+  die Führung und bringt dich auf die zugehörige Seite. Erledigtes bleibt
+  startbar: Nachschlagen ist der häufigste zweite Durchgang.
+- **Das ganze Tutorial am Stück.** „Alles der Reihe nach zeigen" läuft Kapitel
+  für Kapitel durch die App, statt nach jedem anzuhalten. Kapitel, für die noch
+  Daten fehlen, bleiben dabei außen vor — eine Führung durch einen leeren
+  Bildschirm lehrt nichts.
+- **Auf jeder Seite erklärbar.** Ein Knopf in der Kopfzeile startet die Führung
+  zur gerade geöffneten Seite und führt zur Gesamtübersicht. Bisher gab es dafür
+  nur den Einladungsstreifen — und der war nach einem „Nicht jetzt" weg.
+
+### Behoben
+
+- **Die Führung springt nicht mehr wahllos auf eine andere Seite.** Die
+  Einladung („Soll ich es dir zeigen?") schwebt über jeder Seite, bot aber
+  immer den Anfang des Lehrplans an und nannte ihn „eine kurze Führung durch
+  **diesen** Bereich" — auf `/city` startete sie damit die Buchungen, riss die
+  Seite weg und erklärte etwas anderes als das, worauf man gerade sah. Spielt
+  jetzt ein Kapitel auf der geöffneten Seite, wird genau dieses angeboten;
+  sonst benennt die Einladung den Bereich, in den sie führt, statt den Wechsel
+  zu verschweigen.
+- **Eine laufende Führung zerrt nicht mehr zurück.** Wer während der Führung
+  selbst in die Navigation klickte, landete sofort wieder auf der Route des
+  Schritts. Jetzt wird einmal je Schritt hingeführt; verlässt der Nutzer den
+  Bereich, endet die Führung, statt ihn festzuhalten.
+- **Der Rahmen zeigt beim Schrittwechsel nie mehr auf die alte Stelle.** Der
+  neue Anker wurde bis zu einer Sekunde lang gesucht, und so lange blieb der
+  Rahmen auf dem Element des vorigen Schritts stehen — nach einem
+  Seitenwechsel also auf einer Stelle der alten Seite.
+
 ## 2026.8.1 — 2026-08-11
 
 ### Behoben

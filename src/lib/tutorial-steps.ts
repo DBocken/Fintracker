@@ -241,6 +241,20 @@ export function chapterNameKey(chapter: TutorialChapterId): string | null {
   return CHAPTER_NAME_KEYS[chapter] ?? null;
 }
 
+/**
+ * Name des **Tutorials** — nicht des Bereichs, in dem es spielt.
+ *
+ * Der Unterschied trägt die Übersicht: Unter der Überschrift „Buchungen"
+ * stehen fünf Kapitel, und fünfmal „Buchungen" wäre keine Liste, sondern ein
+ * Echo. Hier steht, was das eine Kapitel zeigt („Die Liste lesen", „Suchen &
+ * Filtern"). Der Schlüssel wird wie die Schritttexte mechanisch gebildet —
+ * `src/lib/__tests__/tutorial-catalog.test.ts` prüft, dass es ihn in allen
+ * Sprachen gibt.
+ */
+export function tutorialTitleKey(chapter: TutorialChapterId): string {
+  return `tutorial.${chapter}.name`;
+}
+
 /** Kapitel, für die es schon Text gibt — in der Reihenfolge des Lehrplans. */
 export function hasSteps(chapter: TutorialChapterId): boolean {
   return stepsFor(chapter).length > 0;
@@ -252,6 +266,46 @@ export function stepTitleKey(chapter: TutorialChapterId, step: TutorialStep): st
 
 export function stepBodyKey(chapter: TutorialChapterId, step: TutorialStep): string {
   return `tutorial.${chapter}.${step.id}.body`;
+}
+
+/**
+ * Route, auf der ein Kapitel spielt — die seines ersten Schrittes.
+ *
+ * Ein Kapitel ist ein Arbeitsschritt auf **einer** Fläche; der erste Schritt
+ * bestimmt sie. `null` für Kapitel ohne Schritte (`source`).
+ */
+export function chapterRoute(chapter: TutorialChapterId): string | null {
+  return stepsFor(chapter)[0]?.route ?? null;
+}
+
+/**
+ * Das erste Kapitel aus `chapters`, das auf der gerade geöffneten Seite
+ * spielt — oder `null`.
+ *
+ * Der Grund, warum es diese Funktion gibt: Die Einladung schwebt über **jeder**
+ * Seite, das nächste Kapitel des Lehrplans gehört aber meist zu einer anderen.
+ * Wer das nicht prüft, sagt „eine Führung durch diesen Bereich" und startet
+ * eine durch einen fremden — die Seite springt weg, und erklärt wird etwas
+ * anderes als das, worauf der Nutzer gerade sieht.
+ *
+ * Die Reihenfolge von `chapters` ist die des Lehrplans und wird gewahrt:
+ * Spielen zwei Kapitel auf derselben Fläche (`transactions`, `categories`),
+ * gilt das frühere.
+ */
+export function chapterOnRoute(
+  chapters: readonly TutorialChapterId[],
+  pathname: string,
+): TutorialChapterId | null {
+  return chapters.find((id) => routeMatches(chapterRoute(id), pathname)) ?? null;
+}
+
+/**
+ * Gehört `pathname` zu `route`? Nur ein Segmentwechsel zählt — sonst wäre
+ * `/transactions-archive` „dieselbe Fläche" wie `/transactions`.
+ */
+function routeMatches(route: string | null, pathname: string): boolean {
+  if (!route) return false;
+  return pathname === route || pathname.startsWith(`${route}/`);
 }
 
 /** CSS-Selektor zu einem Anker. Eine Stelle, damit das Attribut nie driftet. */
