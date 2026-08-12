@@ -127,13 +127,14 @@ function ChapterRow({
     : waiting
       ? t('tutorials.stateWaiting')
       : t('tutorials.stateReady');
+  const title = t(chapter.titleKey);
 
   return (
     <InteractiveCard
       onClick={onStart}
       disabled={waiting}
       indicator={waiting ? 'none' : 'arrow'}
-      aria-label={`${t(chapter.titleKey)} — ${stateLabel}`}
+      aria-label={`${title} — ${stateLabel}`}
     >
       <div className="flex items-center gap-3">
         {done ? (
@@ -148,7 +149,7 @@ function ChapterRow({
 
         <div className="min-w-0 flex-1">
           <div className={cn('truncate text-sm font-medium', waiting && 'text-muted-foreground')}>
-            {t(chapter.titleKey)}
+            {title}
           </div>
           <div className="text-xs text-muted-foreground">
             {t('tutorials.steps').replace('{count}', String(chapter.stepCount))}
