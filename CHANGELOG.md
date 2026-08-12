@@ -22,6 +22,8 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+## 2026.8.2 — 2026-08-12
+
 ### Neu
 
 - **Alle Führungen an einem Ort: die neue Seite „Tutorials".** Sie listet
