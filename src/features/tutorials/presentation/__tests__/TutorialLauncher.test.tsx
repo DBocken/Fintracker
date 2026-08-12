@@ -49,7 +49,7 @@ function renderLauncher(pathname: string, start = vi.fn(), startSeries = vi.fn()
     <I18nProvider initialLocale="de">
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <MemoryRouter initialEntries={[pathname]}>
-          <TutorialControlProvider value={{ start, startSeries, active: false }}>
+          <TutorialControlProvider value={{ start, startSeries, startAll: vi.fn(), active: false }}>
             <TutorialLauncher />
           </TutorialControlProvider>
         </MemoryRouter>

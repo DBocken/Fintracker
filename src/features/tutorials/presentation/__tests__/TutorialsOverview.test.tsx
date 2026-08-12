@@ -40,7 +40,7 @@ beforeEach(() => {
 
 function renderOverview(start = vi.fn(), locale: 'de' | 'en' = 'de', startSeries = vi.fn()) {
   renderWithProviders(
-    <TutorialControlProvider value={{ start, startSeries, active: false }}>
+    <TutorialControlProvider value={{ start, startSeries, startAll: vi.fn(), active: false }}>
       <TutorialsOverview />
     </TutorialControlProvider>,
     { locale, query: true },

@@ -35,6 +35,15 @@ export const de = {
       current: 'Gewählte Situation — {situation}',
       none: 'Keine Situation gewählt — es ist alles sichtbar.',
     },
+    tutorial: {
+      title: 'Noch eine Frage, bevor es losgeht',
+      body: 'Ein kurzes Tutorial zeigt dir Schritt für Schritt die wichtigsten Bereiche der App.',
+      guidedLabel: 'Tutorial durchgehen',
+      guidedDescription: 'Ich zeige dir alles der Reihe nach.',
+      exploreLabel: 'Selbst erkunden',
+      exploreDescription: 'Ich schaue mich lieber selbst um.',
+      resumeHint: 'Du kannst das Tutorial jederzeit über das Symbol oben in der Kopfzeile fortsetzen.',
+    },
     lifeSituations: {
       student_school: {
         label: 'Schüler:in oder Azubi',
@@ -272,11 +281,6 @@ export const de = {
         body: 'Neben der Sprache kannst du wählen, ob die App Alltagssprache oder Fachbegriffe verwendet.',
       },
     },
-    invitationTitle: 'Soll ich es dir zeigen?',
-    invitationBody: 'Eine kurze Führung durch diesen Bereich.',
-    invitationElsewhere: 'Weiter geht es in {chapter} — ich bringe dich hin.',
-    invitationStart: 'Zeig es mir',
-    invitationDismiss: 'Nicht jetzt',
     next: 'Weiter',
     back: 'Zurück',
     done: 'Fertig',

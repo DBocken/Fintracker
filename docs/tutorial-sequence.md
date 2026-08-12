@@ -658,6 +658,20 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
      der Kopfzeilen-Knopf auf jeder Seite, „was gibt es *überhaupt*?" die Seite
      `/tutorials` (auch in der Navigation unter Verwaltung, nicht abwählbar).
 
+7. ✅ **Der Einladungsstreifen ist entfallen — die Entscheidung fällt im
+   Onboarding.** Mit dem Kopfzeilen-Knopf (Schritt 6) gibt es einen dauerhaften
+   Einstieg auf jeder Seite; der auf `/dashboard` schwebende Streifen „Soll ich
+   es dir zeigen?" war damit ein zweiter, redundanter Weg zu demselben Angebot
+   — und einer, der nach „Nicht jetzt" für die Sitzung ersatzlos verschwand.
+   `TutorialInvitation`/`TutorialHost` zeigen seither **nur noch das laufende
+   Overlay**, kein Angebot mehr daneben.
+
+   Die Frage „Führung oder selbst erkunden" stellt jetzt `OnboardingDialog`
+   als letzter Schritt, direkt nachdem die Bereichsauswahl bestätigt ist —
+   zusammen mit dem Hinweis, dass sich das jederzeit über den Kopfzeilen-Knopf
+   nachholen lässt. Ein `startAll`-Zugriff auf `TutorialControl` (`useTutorialRun`
+   → `startSeries(teachable)`) startet dabei dieselbe zusammenhängende Folge,
+   die auch der „Alles ansehen"-Knopf aus Schritt 6 auslöst.
 
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;
 ein Lehrplan ohne Overlay ist bereits nutzbar — er speist den Coach mit „das

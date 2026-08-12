@@ -22,11 +22,23 @@ export interface TutorialControl {
   start: (chapter: TutorialChapterId) => void;
   /** Startet eine Folge von Kapiteln am Stück (das Gesamt-Tutorial). */
   startSeries: (chapters: readonly TutorialChapterId[]) => void;
+  /**
+   * Startet die Folge aller gerade lehrbaren Kapitel — das ganze Tutorial in
+   * einem Rutsch, ohne dass die Aufrufstelle den Katalog selbst kennen muss.
+   * Für Einstiege wie das Onboarding, die nur „führ mich einmal komplett
+   * durch" ausdrücken wollen, nicht welche Kapitel das im Einzelnen sind.
+   */
+  startAll: () => void;
   /** Läuft gerade eine Führung? */
   active: boolean;
 }
 
-const NOOP: TutorialControl = { start: () => {}, startSeries: () => {}, active: false };
+const NOOP: TutorialControl = {
+  start: () => {},
+  startSeries: () => {},
+  startAll: () => {},
+  active: false,
+};
 
 /**
  * Ohne Provider passiert nichts, statt zu werfen: Ein Screenshot-Test oder

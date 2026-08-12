@@ -64,47 +64,58 @@ export function TransactionsListPane({ model, detailsTransaction, onOpenDetails 
 
   return (
     <div className="space-y-5 lg:min-w-0">
-      {/* Filter – immer sichtbar; steuern Kennzahlen + Liste. */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            data-tour-id="transactions-search"
-            aria-label={t('transactions.search')}
-            placeholder={t('transactions.search')}
-            value={filters.values.search}
-            onChange={(e) => filters.set.patch({ search: e.target.value })}
-            className="h-11 w-full rounded-full border border-input bg-background/50 pl-10 pr-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          />
+      {/*
+        Der Tour-Anker des Buchungen-Einstiegsschritts (`tutorial-steps.ts`,
+        Kapitel `transactions`, Schritt `overview`) sitzt bewusst NUR um
+        Suche + Filter + Kennzahlen — nicht um die (potenziell sehr lange,
+        fenstervirtualisierte) Tagesliste darunter. Der Anker lag vorher auf
+        dem gesamten Grid in `TransactionsPage`; `scrollIntoView({block:
+        'center'})` zentrierte dieses hohe Element und landete damit fast am
+        Seitenende statt oben, wo der erklärte Inhalt tatsächlich steht.
+      */}
+      <div data-tour-id="transactions-list" className="space-y-5">
+        {/* Filter – immer sichtbar; steuern Kennzahlen + Liste. */}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              data-tour-id="transactions-search"
+              aria-label={t('transactions.search')}
+              placeholder={t('transactions.search')}
+              value={filters.values.search}
+              onChange={(e) => filters.set.patch({ search: e.target.value })}
+              className="h-11 w-full rounded-full border border-input bg-background/50 pl-10 pr-4 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <TransactionFilters filters={filterViewModel} showSearch={false} />
+            {filters.activeCount > 0 && (
+              <Button
+                type="button"
+                data-tour-id="filter-reset"
+                variant="ghost"
+                size="sm"
+                className="h-9 gap-1"
+                onClick={filters.reset}
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('transactions.reset')}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <TransactionFilters filters={filterViewModel} showSearch={false} />
-          {filters.activeCount > 0 && (
-            <Button
-              type="button"
-              data-tour-id="filter-reset"
-              variant="ghost"
-              size="sm"
-              className="h-9 gap-1"
-              onClick={filters.reset}
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-              {t('transactions.reset')}
-            </Button>
-          )}
-        </div>
-      </div>
 
-      <div data-tour-id="transactions-stats">
-      <TransactionStats
-        income={model.stats.income}
-        expenses={model.stats.expenses}
-        balance={model.stats.balance}
-        count={model.stats.count}
-        totalTransactions={model.transactions.all.length}
-        currentBalance={money.mask(formatCurrency(model.balances.scopedCurrent))}
-      />
+        <div data-tour-id="transactions-stats">
+        <TransactionStats
+          income={model.stats.income}
+          expenses={model.stats.expenses}
+          balance={model.stats.balance}
+          count={model.stats.count}
+          totalTransactions={model.transactions.all.length}
+          currentBalance={money.mask(formatCurrency(model.balances.scopedCurrent))}
+        />
+        </div>
       </div>
 
       {model.transactions.visible.length === 0 ? (
