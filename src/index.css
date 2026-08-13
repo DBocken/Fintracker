@@ -359,6 +359,21 @@
 }
 
 /*
+ * Tutorial: Klick-Aufforderung (`TutorialStep.interactive`, `tutorial-steps.ts`).
+ * Reine Erklär-Schritte umranden ihr Ziel neutral in `--primary` — bei
+ * Schritten, die eine eigene Aktion vom Nutzer verlangen (tippen, klicken,
+ * auswählen), blitzt zusätzlich ein Ring in Warnfarbe einmalig nach außen aus
+ * und klingt aus. Einmalig statt endlos, damit er als Hinweis liest und nicht
+ * als Dauerzustand. Wird durch die globale reduced-motion-Policy oben
+ * automatisch neutralisiert; `TutorialOverlay` rendert die Schicht bei
+ * reduzierter Bewegung zusätzlich gar nicht erst.
+ */
+@keyframes tutorial-click-pulse {
+  0% { box-shadow: 0 0 0 0 hsla(var(--warning), 0.55); }
+  100% { box-shadow: 0 0 0 12px hsla(var(--warning), 0); }
+}
+
+/*
  * WP-3.4: Liquid Loading — brand-farbige Shimmer-Welle statt generischem
  * Pulse. Die Welle wandert horizontal durch das Element und suggeriert
  * Flüssigkeit/Material. Wird durch die globale reduced-motion-Policy
