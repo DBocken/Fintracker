@@ -96,6 +96,17 @@ export const en = {
     },
   },
   tutorial: {
+    csv: {
+      name: 'File import',
+      upload: {
+        title: 'Upload your CSV file',
+        body: 'Drop the file from your online banking here — the app recognizes common bank formats automatically and suggests the matching columns.',
+      },
+      review: {
+        title: 'One more check before saving',
+        body: 'Every detected transaction shows up here for review. It only becomes permanent once you confirm it.',
+      },
+    },
     coach: {
       name: 'Your daily view',
       today: {

@@ -80,6 +80,14 @@ describe('TUTORIAL_ORDER', () => {
     expect(TUTORIAL_ORDER[0]?.id).toBe('source');
   });
 
+  it('[REGRESSION] sollte den Datei-Import direkt nach der Weiche lehren, bevor Buchungen existieren', () => {
+    // Vorher gab es kein Kapitel für /csv — der Datei-Weg der Weiche landete
+    // dort, ohne dass je etwas erklärt wurde.
+    const order = TUTORIAL_ORDER.map((c) => c.id);
+    expect(order.indexOf('csv')).toBe(order.indexOf('source') + 1);
+    expect(order.indexOf('csv')).toBeLessThan(order.indexOf('transactions'));
+  });
+
   it('sollte den Euro durch den Monat führen: Einkommen vor Verträgen vor Budgets vor Liquidität', () => {
     const order = TUTORIAL_ORDER.map((c) => c.id);
     expect(order.indexOf('income')).toBeLessThan(order.indexOf('contracts'));
@@ -198,7 +206,11 @@ describe('buildCurriculum — Datenreife', () => {
       lifeSituation: 'employed_stable',
       readiness: fullyReady,
     });
-    expect(postponed).toEqual([]);
+    // `csv` ist die einzige Ausnahme: Es lehrt den Datei-Import-Weg und ist
+    // nur relevant, solange es noch KEINE Buchung gibt — bei `fullyReady`
+    // bleibt es dauerhaft vertagt, nicht mangels Reife im üblichen Sinn,
+    // sondern weil sein Fenster (transactionCount === 0) vorbei ist.
+    expect(postponed).toEqual(['csv']);
   });
 
   it('sollte am ganz leeren Anfang nur die Weiche und den Ausgang zeigen', () => {

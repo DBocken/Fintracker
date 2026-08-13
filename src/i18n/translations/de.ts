@@ -97,6 +97,17 @@ export const de = {
     },
   },
   tutorial: {
+    csv: {
+      name: 'Datei-Import',
+      upload: {
+        title: 'Deine CSV-Datei hochladen',
+        body: 'Ziehe die Datei aus deinem Online-Banking hierher — die App erkennt gängige Bankformate automatisch und schlägt die passenden Spalten vor.',
+      },
+      review: {
+        title: 'Vor dem Speichern noch einmal prüfen',
+        body: 'Jede erkannte Buchung steht hier zur Kontrolle. Erst nach deiner Bestätigung landet sie dauerhaft in der App.',
+      },
+    },
     coach: {
       name: 'Dein Tagesblick',
       today: {

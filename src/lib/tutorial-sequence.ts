@@ -33,6 +33,7 @@ export type TutorialSource = (typeof TUTORIAL_SOURCES)[number];
 
 export type TutorialChapterId =
   | 'source'
+  | 'csv'
   | 'transactions'
   | 'categories'
   | 'transactionsFilter'
@@ -145,6 +146,18 @@ function chapter(
 export const TUTORIAL_ORDER: readonly TutorialChapter[] = [
   // Kapitel 0 — die Weiche. Drei Eingänge, ein Zusammenführungspunkt.
   chapter('source', 'core', null, always),
+  // Kapitel 0.5 — nur für den Datei-Weg: `DataSourceDialog` schickt bei
+  // `csv` sofort hierher (`DESTINATION.csv`), bevor irgendeine Buchung
+  // existiert. Bewusst NICHT `always`: Ohne die Bedingung wäre „Datei
+  // hochladen" für JEDEN Nutzer — auch Bank- und Demo-Weg — dauerhaft das
+  // angebotene nächste Kapitel, sobald er einmal alle Buchungen löscht oder
+  // neu anfängt, und würde den eigentlichen Einstieg (`transactions`)
+  // verdrängen. `transactionCount === 0` trifft genau das Fenster, in dem
+  // ein Datei-Import das Nächstliegende ist — und schließt sich von selbst,
+  // sobald die erste Buchung da ist. Bank- und Demo-Weg sehen /csv trotzdem
+  // nie automatisch (sie landen nie auf der Route), können das Kapitel aber
+  // jederzeit aus dem Katalog starten.
+  chapter('csv', 'core', null, (r) => r.transactionCount === 0),
 
   // Teil 1 — der Kern und die erste Sitzung.
   chapter('transactions', 'core', null, (r) => r.transactionCount >= 1),

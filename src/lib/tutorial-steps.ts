@@ -87,6 +87,16 @@ function step(
  *   falsch gesetzter kostet einen Refactor.
  */
 export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly TutorialStep[]>> = {
+  // Kapitel 0.5 — nur der Datei-Weg landet hier, direkt nach der Weiche
+  // (`tutorial-sequence.ts`). Ohne Anker wie die meisten Sekundär-Kapitel:
+  // die Review-Tabelle existiert erst nach einem hochgeladenen Datensatz und
+  // wäre als Anker instabil (`docs/tutorial-sequence.md`, "erst wenn die
+  // Texte stehen lohnt sich ein Anker").
+  csv: [
+    step('upload', '/csv'),
+    step('review', '/csv'),
+  ],
+
   // Akt I — die Liste lesen (`docs/tutorial-script-transactions.md`).
   transactions: [
     step('overview', '/transactions', 'transactions-list'),
@@ -229,6 +239,7 @@ export function stepsFor(chapter: TutorialChapterId): readonly TutorialStep[] {
  * Nur `categories` hat kein Nav-Ziel und deshalb einen eigenen Schlüssel.
  */
 const CHAPTER_NAME_KEYS: Partial<Record<TutorialChapterId, string>> = {
+  csv: 'nav.items.csv',
   transactions: 'nav.items.transactions',
   categories: 'tutorial.categories.name',
   transactionsFilter: 'tutorial.transactionsFilter.name',

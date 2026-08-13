@@ -673,6 +673,42 @@ Freischaltungs-Achse, dann das Overlay") um die Inhaltsseite:
    → `startSeries(teachable)`) startet dabei dieselbe zusammenhängende Folge,
    die auch der „Alles ansehen"-Knopf aus Schritt 6 auslöst.
 
+8. ✅ **Klick-Aufforderungen heben sich jetzt farbig ab, und `/csv` hat ein
+   Kapitel.** Konsistenz-Nachschärfung nach einer Bestandsaufnahme über alle
+   Kapitel und Schritte hinweg.
+
+   - **`TutorialStep.interactive`** (`tutorial-steps.ts`) markiert die
+     Schritte, deren Text den Nutzer selbst zu einer Aktion am Anker auffordert
+     (Suchfeld tippen, Kategorie zuwählen, Split-Zeile ausfüllen) — anders als
+     `openAnchor`, wo die Führung selbst klickt. Vorher sahen „schau her" und
+     „mach das jetzt" identisch aus. `TutorialOverlay` rahmt einen solchen
+     Anker jetzt in Warnfarbe statt neutral in `--primary` und lässt den
+     Rahmen einmalig aufblitzen (`@keyframes tutorial-click-pulse`,
+     `motion-safe`, reduced-motion-konform). Nebenbei behoben: der alte
+     `ring-2 ring-primary`-Rahmen war durch die inline gesetzte `boxShadow`
+     der Abdunkelung komplett unsichtbar — beide Rahmenfarben liegen jetzt im
+     selben `boxShadow`-Wert.
+   - **Kapitel 0.5 — `csv`.** Die Bestandsaufnahme fand echte Lücken: `/csv`
+     (die Datei-Import-Seite) hatte kein erklärendes Kapitel — Kapitel 0
+     (`source`) ist nur die *Weiche selbst* (`DataSourceDialog`), nicht die
+     Seite, auf die sie beim Datei-Weg führt. Neu direkt nach `source`
+     eingehängt, ohne Anker (wie die meisten Sekundärkapitel — die
+     Review-Tabelle existiert erst nach einem hochgeladenen Datensatz und wäre
+     als Anker instabil). Bewusst **nicht** `always` als Voraussetzung: Das
+     hätte „Datei hochladen" für JEDEN Nutzer — auch Bank- und Demo-Weg —
+     dauerhaft zum nächsten angebotenen Kapitel gemacht, sobald einmal keine
+     Buchung mehr da ist, und den eigentlichen Einstieg (`transactions`)
+     verdrängt. `transactionCount === 0` trifft genau das Fenster, in dem ein
+     Datei-Import das Nächstliegende ist, und schließt sich von selbst, sobald
+     die erste Buchung da ist.
+   - **Geprüft, nicht nachgezogen: `/simulation`.** Die Bestandsaufnahme
+     listete `/simulation` zunächst als scheinbar vergessenen Bereich (nicht
+     einmal als `NavFeatureId` eingetragen). Tatsächlich ist `SimulationPage`
+     nur noch ein Kompatibilitäts-Redirect auf
+     `/liquidity?mode=simulation` — Planung, Szenarien und Monte Carlo leben
+     längst im Liquiditäts-Forecast und damit im Kapitel `liquidity`. Kein
+     zweites Kapitel nötig.
+
 Schritt 2 vor Schritt 4: Ein Overlay ohne Lehrplan ist eine Führung ohne Ziel;
 ein Lehrplan ohne Overlay ist bereits nutzbar — er speist den Coach mit „das
 wäre dein nächster Schritt", ganz ohne Rahmen und Abdunkeln.

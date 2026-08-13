@@ -73,7 +73,9 @@ describe('TutorialLauncher', () => {
   });
 
   it('sollte auf einer Seite ohne Führung sagen, dass es keine gibt, statt einen toten Knopf zu zeigen', async () => {
-    renderLauncher('/csv');
+    // /csv hat inzwischen ein eigenes Kapitel (Kapitel 0.5, der Datei-Weg der
+    // Weiche) — /privacy bleibt bewusst ohne Führung (rein rechtliche Seite).
+    renderLauncher('/privacy');
     await userEvent.click(screen.getByRole('button', { name: 'Führungen' }));
     expect(await screen.findByText('Für diese Seite gibt es noch keine Führung.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Diese Seite erklären/ })).not.toBeInTheDocument();
