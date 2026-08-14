@@ -34,6 +34,13 @@ export interface TutorialRun {
   /** Nächstes Kapitel, das etwas zu zeigen hat — auch wenn gerade nichts läuft. */
   upcoming: TutorialChapterId | null;
   /**
+   * Das Kapitel NACH dem laufenden in der aktuellen Folge — `null` beim
+   * Einzelstart oder am Ende der Folge. Damit kann die Darstellung am
+   * Kapitelende sagen, wohin „weiter" tatsächlich führt, statt nur
+   * pauschal „Weiter" anzubieten.
+   */
+  nextChapter: TutorialChapterId | null;
+  /**
    * Alle Kapitel, die jetzt laufen könnten, in Lehrplan-Reihenfolge.
    *
    * Nicht dasselbe wie `upcoming` und auch kein Luxus: Die Einladung schwebt
@@ -60,6 +67,17 @@ export interface TutorialRun {
   back: () => void;
   /** Bricht ab, ohne das Kapitel als abgeschlossen zu werten. */
   end: () => void;
+  /**
+   * Schließt das laufende Kapitel ab (wie `next` am letzten Schritt), bricht
+   * die Folge danach aber bewusst ab, statt zum nächsten Kapitel
+   * überzugehen. Der Unterschied zu `end`: Das gerade fertig gesehene
+   * Kapitel zählt als abgeschlossen — nur die Fortsetzung entfällt. Ohne
+   * diese dritte Möglichkeit hätte man am Kapitelende nur „weiter" (Folge
+   * geht automatisch weiter) oder „abbrechen" (auch das eben Gesehene zählt
+   * nicht) — beides ist nicht dasselbe wie „genau hier reicht es mir für
+   * heute".
+   */
+  finishAndEnd: () => void;
 }
 
 export function useTutorialRun(): TutorialRun {
@@ -160,6 +178,13 @@ export function useTutorialRun(): TutorialRun {
 
   const back = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
 
+  const finishAndEnd = useCallback(() => {
+    if (!chapter) return;
+    finishChapter(chapter);
+    setQueue([]);
+    setStepIndex(0);
+  }, [chapter, finishChapter]);
+
   return {
     active: chapter !== null,
     chapter,
@@ -168,12 +193,14 @@ export function useTutorialRun(): TutorialRun {
     stepCount: steps.length,
     remaining: Math.max(0, queue.length - 1),
     upcoming,
+    nextChapter: queue[1] ?? null,
     teachable,
     start,
     startSeries,
     next,
     back,
     end,
+    finishAndEnd,
   };
 }
 

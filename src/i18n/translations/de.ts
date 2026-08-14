@@ -296,6 +296,8 @@ export const de = {
     back: 'Zurück',
     done: 'Fertig',
     end: 'Führung beenden',
+    finishHere: 'Hier beenden',
+    continueToNext: 'Weiter zu {chapter}',
     progress: 'Schritt {current} von {total}',
     transactions: {
       name: 'Die Liste lesen',

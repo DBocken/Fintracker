@@ -104,11 +104,21 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
 
   const title = t(stepTitleKey(run.chapter, step), '');
   const body = t(stepBodyKey(run.chapter, step), '');
-  // „Fertig" nur, wenn danach wirklich nichts mehr kommt. In einer Folge
-  // (Gesamt-Tutorial) führt der letzte Schritt eines Kapitels ins nächste —
-  // „Fertig" wäre dort schlicht gelogen.
-  const isLast = run.stepIndex >= run.stepCount - 1 && run.remaining === 0;
+  // Letzter Schritt DIESES Kapitels — unabhängig davon, ob danach noch
+  // weitere Kapitel in der Folge stehen. Genau hier soll die Wahl stehen:
+  // hier aufhören oder weiter zum nächsten Kapitel.
+  const chapterEnd = run.stepIndex >= run.stepCount - 1;
+  // „Fertig" nur, wenn danach wirklich nichts mehr kommt — weder ein
+  // weiterer Schritt noch ein weiteres Kapitel in der Folge.
+  const isLast = chapterEnd && run.remaining === 0;
+  // Am Kapitelende einer laufenden Folge (`chapterEnd && remaining > 0`)
+  // entscheidet der Nutzer selbst, statt automatisch ins nächste Kapitel
+  // durchgereicht zu werden: „Hier beenden" schließt das eben gesehene
+  // Kapitel trotzdem als abgeschlossen ab (anders als der sonstige
+  // Abbruch), „Weiter zu …" nennt das Ziel, statt nur „Weiter" zu sagen.
+  const offerContinueChoice = chapterEnd && run.remaining > 0;
   const chapterName = t(tutorialTitleKey(run.chapter), '');
+  const nextChapterName = run.nextChapter ? t(tutorialTitleKey(run.nextChapter), '') : '';
 
   const progress = t('tutorial.progress', 'Schritt {current} von {total}')
     .replace('{current}', String(run.stepIndex + 1))
@@ -194,6 +204,12 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
           // Stelle, auf die gerade gezeigt wird.
           onOpenAutoFocus={(e) => e.preventDefault()}
           aria-describedby={undefined}
+          // Marker, den ein von der Führung selbst geöffneter Dialog/Sheet
+          // (Buchungsdetails, `openAnchor`) erkennt, um Klicks hier NICHT als
+          // Klick daneben zu werten (`TransactionDetailsModal`). Sonst schließt
+          // der erste Klick auf „Weiter" nur die Buchung, statt die Führung
+          // fortzusetzen — der Nutzer müsste zweimal klicken.
+          data-tutorial-controls=""
         >
           {/* Wo man gerade ist — in einer Folge ist das die einzige Auskunft
               darüber, welches Kapitel gerade läuft. */}
@@ -206,8 +222,14 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
           <p className="pt-1 text-sm text-muted-foreground">{body}</p>
           <p className="pt-2 text-xs text-muted-foreground">{progress}</p>
           <div className="flex items-center justify-between gap-3 pt-2">
-            <Button variant="ghost" size="sm" onClick={run.end}>
-              {t('tutorial.end', 'Führung beenden')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={offerContinueChoice ? run.finishAndEnd : run.end}
+            >
+              {offerContinueChoice
+                ? t('tutorial.finishHere', 'Hier beenden')
+                : t('tutorial.end', 'Führung beenden')}
             </Button>
             <div className="flex items-center gap-2">
               {run.stepIndex > 0 && (
@@ -216,7 +238,14 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
                 </Button>
               )}
               <Button size="sm" onClick={run.next}>
-                {isLast ? t('tutorial.done', 'Fertig') : t('tutorial.next', 'Weiter')}
+                {isLast
+                  ? t('tutorial.done', 'Fertig')
+                  : offerContinueChoice
+                    ? t('tutorial.continueToNext', 'Weiter zu {chapter}').replace(
+                        '{chapter}',
+                        nextChapterName,
+                      )
+                    : t('tutorial.next', 'Weiter')}
               </Button>
             </div>
           </div>

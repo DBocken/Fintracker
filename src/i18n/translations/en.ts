@@ -295,6 +295,8 @@ export const en = {
     back: 'Back',
     done: 'Done',
     end: 'End the tour',
+    finishHere: 'Stop here',
+    continueToNext: 'Continue to {chapter}',
     progress: 'Step {current} of {total}',
     transactions: {
       name: 'Reading the list',

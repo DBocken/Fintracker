@@ -35,6 +35,7 @@ function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
     stepIndex: 0,
     stepCount: steps.length,
     upcoming: null,
+    nextChapter: null,
     teachable: [],
     remaining: 0,
     start: vi.fn(),
@@ -42,6 +43,7 @@ function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
     next: vi.fn(),
     back: vi.fn(),
     end: vi.fn(),
+    finishAndEnd: vi.fn(),
     ...overrides,
   };
 }
@@ -174,6 +176,83 @@ describe('TutorialOverlay — zum Ziel führen', () => {
     renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
     const text = await screen.findByText('Wohin dein Geld fließt');
     expect(text.closest('[data-side]')).not.toBeNull();
+  });
+});
+
+describe('TutorialOverlay — Kapitelende: hier aufhören oder weiter', () => {
+  it('sollte am Ende eines Kapitels mit Fortsetzung eine echte Wahl anbieten statt automatisch weiterzugehen', async () => {
+    // Befund: Am letzten Schritt eines Kapitels mit `remaining > 0` ging die
+    // Folge bislang automatisch ins nächste Kapitel über, sobald „Weiter"
+    // geklickt wurde — es gab keine Möglichkeit, genau hier aufzuhören.
+    withAnchor('dashboard-flow');
+    const steps = stepsFor('dashboard');
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({
+          stepIndex: steps.length - 1,
+          step: steps[steps.length - 1],
+          remaining: 1,
+          nextChapter: 'city',
+        })}
+      />,
+      { locale: 'de' },
+    );
+
+    expect(await screen.findByRole('button', { name: 'Hier beenden' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Weiter zu .+/ }),
+    ).toBeInTheDocument();
+    // „Fertig" wäre hier gelogen (es kommt noch ein Kapitel) und „Führung
+    // beenden" würde das eben gesehene Kapitel nicht als abgeschlossen zählen.
+    expect(screen.queryByRole('button', { name: 'Fertig' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Führung beenden' })).not.toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte „Hier beenden" das Kapitel abschließen, ohne fortzusetzen', async () => {
+    withAnchor('dashboard-flow');
+    const steps = stepsFor('dashboard');
+    const run = makeRun({
+      stepIndex: steps.length - 1,
+      step: steps[steps.length - 1],
+      remaining: 1,
+      nextChapter: 'city',
+    });
+    renderWithProviders(<TutorialOverlay run={run} />, { locale: 'de' });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Hier beenden' }));
+    expect(run.finishAndEnd).toHaveBeenCalled();
+    expect(run.next).not.toHaveBeenCalled();
+  });
+
+  it('sollte „Weiter zu …" das nächste Kapitel benennen und normal fortsetzen', async () => {
+    withAnchor('dashboard-flow');
+    const steps = stepsFor('dashboard');
+    const run = makeRun({
+      stepIndex: steps.length - 1,
+      step: steps[steps.length - 1],
+      remaining: 1,
+      nextChapter: 'city',
+    });
+    renderWithProviders(<TutorialOverlay run={run} />, { locale: 'de' });
+
+    const continueButton = await screen.findByRole('button', { name: /Weiter zu .+/ });
+    // Nennt tatsächlich das Ziel, nicht nur pauschal „Weiter".
+    expect(continueButton).toHaveTextContent('Weiter zu');
+    await userEvent.click(continueButton);
+    expect(run.next).toHaveBeenCalled();
+    expect(run.finishAndEnd).not.toHaveBeenCalled();
+  });
+
+  it('sollte bei nur noch einem Schritt weiterhin „Weiter" ohne Ziel-Nennung zeigen', async () => {
+    // Innerhalb desselben Kapitels (kein Kapitelende) bleibt der Knopf wie
+    // gehabt — nur der Übergang ZWISCHEN Kapiteln bekommt die Wahl.
+    withAnchor('dashboard-flow');
+    const steps = stepsFor('dashboard');
+    renderWithProviders(
+      <TutorialOverlay run={makeRun({ stepIndex: 0, step: steps[0], remaining: 1, nextChapter: 'city' })} />,
+      { locale: 'de' },
+    );
+    expect(await screen.findByRole('button', { name: 'Weiter' })).toBeInTheDocument();
   });
 });
 

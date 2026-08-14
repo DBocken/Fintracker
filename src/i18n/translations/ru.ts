@@ -295,6 +295,8 @@ export const ru = {
     back: 'Назад',
     done: 'Готово',
     end: 'Завершить обучение',
+    finishHere: 'Остановиться здесь',
+    continueToNext: 'Дальше: {chapter}',
     progress: 'Шаг {current} из {total}',
     transactions: {
       name: 'Как читать список',
