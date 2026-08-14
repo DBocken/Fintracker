@@ -21,14 +21,28 @@ vi.mock('@/services/onboarding-signals-service', () => ({
   }),
 }));
 
+const { startAllMock } = vi.hoisted(() => ({ startAllMock: vi.fn() }));
+vi.mock('@/hooks/useTutorialControl', () => ({
+  useTutorialControl: () => ({ start: vi.fn(), startSeries: vi.fn(), startAll: startAllMock, active: false }),
+}));
+
 beforeEach(async () => {
   localStorage.clear();
   localEncryption.lock();
+  startAllMock.mockClear();
   // Der Dialog wartet seit der Datenquellen-Weiche (Kapitel 0) darauf, dass
   // dort entschieden ist. Diese Suite prueft die Situationswahl, nicht die
   // Weiche — deshalb die Vorbedingung hier einmal setzen.
   await updateLocalUserSettings({ tutorial_source: 'csv' });
 });
+
+/** Führt bis zum dritten Schritt („Tutorial durchgehen oder selbst erkunden?"). */
+async function goToTutorialStep(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByText('Welche Situation beschreibt dich am ehesten?');
+  await user.click(screen.getByRole('radio', { name: /Familie mit Kindern/ }));
+  await user.click(screen.getByRole('button', { name: 'Weiter' }));
+  await user.click(await screen.findByRole('button', { name: 'Weiter' }));
+}
 
 function renderDialog(locale: 'de' | 'en' = 'de') {
   return renderWithProviders(<OnboardingDialog />, { locale, query: true });
@@ -97,7 +111,8 @@ describe('OnboardingDialog', () => {
 
     await user.click(screen.getByRole('radio', { name: /Selbstständig oder freiberuflich/ }));
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
-    await user.click(await screen.findByRole('button', { name: "Los geht's" }));
+    await user.click(await screen.findByRole('button', { name: 'Weiter' }));
+    await user.click(await screen.findByText('Selbst erkunden'));
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
@@ -121,7 +136,8 @@ describe('OnboardingDialog', () => {
     await user.click(screen.getByRole('radio', { name: /Schulden abbauen/ }));
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
     await user.click(await findFeatureSwitch('trading'));
-    await user.click(screen.getByRole('button', { name: "Los geht's" }));
+    await user.click(screen.getByRole('button', { name: 'Weiter' }));
+    await user.click(await screen.findByText('Selbst erkunden'));
 
     await waitFor(async () => {
       const settings = await getLocalUserSettings();
@@ -164,6 +180,61 @@ describe('OnboardingDialog', () => {
     await user.click(screen.getByRole('radio', { name: /Retired/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Here is what we suggest')).toBeInTheDocument();
+  });
+});
+
+describe('OnboardingDialog — Tutorial: durchgehen oder selbst erkunden', () => {
+  it('sollte nach der Bereichsauswahl die Tutorial-Frage samit Hinweis auf das Fortsetzen zeigen', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await goToTutorialStep(user);
+
+    expect(await screen.findByText('Noch eine Frage, bevor es losgeht')).toBeInTheDocument();
+    expect(screen.getByText('Tutorial durchgehen')).toBeInTheDocument();
+    expect(screen.getByText('Selbst erkunden')).toBeInTheDocument();
+    // Der Hinweis, dass das Tutorial jederzeit nachholbar ist — sonst wirkt
+    // „selbst erkunden" wie eine endgültige Entscheidung.
+    expect(
+      screen.getByText(/Du kannst das Tutorial jederzeit über das Symbol/),
+    ).toBeInTheDocument();
+  });
+
+  it('sollte bei „Tutorial durchgehen" die geführte Tour starten und die Auswahl speichern', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await goToTutorialStep(user);
+
+    await user.click(await screen.findByText('Tutorial durchgehen'));
+
+    await waitFor(() => expect(startAllMock).toHaveBeenCalledTimes(1));
+    await waitFor(async () => {
+      const settings = await getLocalUserSettings();
+      expect(settings.onboarding_life_situation).toBe('family');
+    });
+  });
+
+  it('[REGRESSION] sollte bei „Selbst erkunden" die Auswahl speichern, ohne die Tour zu starten', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await goToTutorialStep(user);
+
+    await user.click(await screen.findByText('Selbst erkunden'));
+
+    await waitFor(async () => {
+      const settings = await getLocalUserSettings();
+      expect(settings.onboarding_life_situation).toBe('family');
+    });
+    expect(startAllMock).not.toHaveBeenCalled();
+  });
+
+  it('sollte von der Tutorial-Frage per Zurück zur Bereichsauswahl führen', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await goToTutorialStep(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Zurück' }));
+
+    expect(await screen.findByText('Das schlagen wir dir vor')).toBeInTheDocument();
   });
 });
 

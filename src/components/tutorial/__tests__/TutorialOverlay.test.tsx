@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -13,10 +13,17 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => navigate };
 });
 
+const reduceMotionMock = vi.fn(() => false);
+vi.mock('@/hooks/useReducedMotion', () => ({
+  useReducedMotion: () => reduceMotionMock(),
+}));
+
 beforeEach(() => {
   document.body.innerHTML = '';
   navigate.mockClear();
 });
+
+afterEach(() => reduceMotionMock.mockReturnValue(false));
 
 /** Lauf-Attrappe: die Zustandsmaschine hat einen eigenen Test. */
 function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
@@ -167,5 +174,59 @@ describe('TutorialOverlay — zum Ziel führen', () => {
     renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
     const text = await screen.findByText('Wohin dein Geld fließt');
     expect(text.closest('[data-side]')).not.toBeNull();
+  });
+});
+
+describe('TutorialOverlay — Klick-Aufforderung (`step.interactive`)', () => {
+  it('sollte reine Erklär-Schritte neutral umranden, ohne Klick-Aufblitzen', async () => {
+    // `dashboard.flow` hat kein `interactive` — reine Erklärung.
+    withAnchor('dashboard-flow');
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+    const hole = await screen.findByTestId('tutorial-hole');
+    expect(hole.style.boxShadow).toContain('hsl(var(--primary))');
+    expect(hole.style.boxShadow).not.toContain('warning');
+    expect(screen.queryByTestId('tutorial-click-cue')).not.toBeInTheDocument();
+  });
+
+  it('[REGRESSION] sollte einen Schritt mit Handlungsaufforderung farbig hervorheben und aufblitzen lassen', async () => {
+    // Der Befund: „schau her" (Erklärung) und „mach das jetzt" (Suchfeld
+    // tippen, Kategorie wählen, Split-Zeile ausfüllen) sahen bislang optisch
+    // identisch aus — hier `transactionsFilter.search`, das Suchfeld tippen.
+    withAnchor('transactions-search');
+    const steps = stepsFor('transactionsFilter');
+    const searchStep = steps.find((s) => s.id === 'search');
+    expect(searchStep?.interactive).toBe(true);
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionsFilter', step: searchStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+
+    const hole = await screen.findByTestId('tutorial-hole');
+    expect(hole.style.boxShadow).toContain('hsl(var(--warning))');
+    const cue = screen.getByTestId('tutorial-click-cue');
+    expect(cue.className).toContain('animate-[tutorial-click-pulse');
+  });
+
+  it('sollte das Aufblitzen bei reduzierter Bewegung gar nicht erst rendern', async () => {
+    reduceMotionMock.mockReturnValue(true);
+    withAnchor('transactions-search');
+    const steps = stepsFor('transactionsFilter');
+    const searchStep = steps.find((s) => s.id === 'search');
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionsFilter', step: searchStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+
+    // Der farbige Rahmen selbst bleibt (er ist kein Bewegungseffekt) — nur
+    // das einmalige Aufblitzen entfällt.
+    const hole = await screen.findByTestId('tutorial-hole');
+    expect(hole.style.boxShadow).toContain('hsl(var(--warning))');
+    expect(screen.queryByTestId('tutorial-click-cue')).not.toBeInTheDocument();
   });
 });

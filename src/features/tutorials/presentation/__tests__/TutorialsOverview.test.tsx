@@ -40,7 +40,7 @@ beforeEach(() => {
 
 function renderOverview(start = vi.fn(), locale: 'de' | 'en' = 'de', startSeries = vi.fn()) {
   renderWithProviders(
-    <TutorialControlProvider value={{ start, startSeries, active: false }}>
+    <TutorialControlProvider value={{ start, startSeries, startAll: vi.fn(), active: false }}>
       <TutorialsOverview />
     </TutorialControlProvider>,
     { locale, query: true },
@@ -98,7 +98,9 @@ describe('TutorialsOverview', () => {
     await userEvent.click(await screen.findByRole('button', { name: /der Reihe nach/ }));
 
     const [series] = startSeries.mock.calls[0] as [string[]];
-    // Lehrplan-Reihenfolge über alle Bereiche hinweg …
+    // Lehrplan-Reihenfolge über alle Bereiche hinweg — `csv` (Kapitel 0.5)
+    // lehrt nur das Fenster ohne jede Buchung und ist bei dieser Fixture
+    // (Buchungen vorhanden) längst vorbei, also nicht mehr dabei …
     expect(series[0]).toBe('transactions');
     expect(series).toContain('dashboard');
     // … und nichts, was mangels Daten nur einen leeren Bildschirm zeigte.

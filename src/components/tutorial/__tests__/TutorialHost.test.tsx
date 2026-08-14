@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import { MemoryRouter } from 'react-router-dom';
 
 import { renderWithI18n } from '@/test-utils/render';
 import type { TutorialRun } from '@/hooks/useTutorialRun';
 import { useTutorialPresence } from '../tutorial-presence';
+import { useTutorialControl } from '@/hooks/useTutorialControl';
 
 let runMock: TutorialRun;
 
@@ -44,15 +44,22 @@ function Probe() {
   return <div data-testid="probe">{String(hintVisible)}</div>;
 }
 
-/**
- * Der Host entscheidet seit dem Seitensprung-Befund anhand der geöffneten
- * Seite — deshalb rendert jeder Test an einem konkreten Ort.
- */
+/** Sonde für den Kontrollzugriff — prüft, was der Host nach außen reicht. */
+function ControlProbe() {
+  const control = useTutorialControl();
+  return (
+    <button type="button" data-testid="start-all" onClick={control.startAll}>
+      startAll
+    </button>
+  );
+}
+
 function renderHost(pathname = '/dashboard', locale: 'de' | 'en' = 'de') {
   return renderWithI18n(
     <MemoryRouter initialEntries={[pathname]}>
       <TutorialHost>
         <Probe />
+        <ControlProbe />
       </TutorialHost>
     </MemoryRouter>,
     locale,
@@ -64,26 +71,12 @@ beforeEach(() => {
 });
 
 describe('TutorialHost — Hinweisebenen-Präsenz (Befund A-2)', () => {
-  it('sollte die Präsenz melden, solange die Einladung sichtbar ist', () => {
-    renderHost();
-    expect(screen.getByText('Soll ich es dir zeigen?')).toBeInTheDocument();
-    expect(screen.getByTestId('probe')).toHaveTextContent('true');
-  });
-
-  it('[REGRESSION] sollte nach dem Wegklicken die Einladung verbergen und die Präsenz freigeben', async () => {
-    renderHost();
-    await userEvent.click(screen.getByRole('button', { name: 'Nicht jetzt' }));
-    expect(screen.queryByText('Soll ich es dir zeigen?')).not.toBeInTheDocument();
-    expect(screen.getByTestId('probe')).toHaveTextContent('false');
-  });
-
-  it('sollte ohne bereitstehendes Kapitel keine Präsenz melden', () => {
-    runMock = makeRun({ upcoming: null, teachable: [] });
+  it('sollte ohne laufende Führung keine Präsenz melden', () => {
     renderHost();
     expect(screen.getByTestId('probe')).toHaveTextContent('false');
   });
 
-  it('sollte während einer laufenden Führung Präsenz melden (Overlay statt Einladung)', () => {
+  it('sollte während einer laufenden Führung Präsenz melden', () => {
     runMock = makeRun({ active: true });
     renderHost();
     expect(screen.getByTestId('tutorial-overlay')).toBeInTheDocument();
@@ -91,39 +84,23 @@ describe('TutorialHost — Hinweisebenen-Präsenz (Befund A-2)', () => {
   });
 });
 
-describe('TutorialHost — welches Kapitel angeboten wird', () => {
-  it('sollte auf der Seite eines Kapitels genau dieses anbieten', async () => {
-    runMock = makeRun({ teachable: ['transactions', 'city'], upcoming: 'transactions' });
+describe('TutorialHost — kein Einladungsstreifen mehr', () => {
+  // docs/tutorial-sequence.md, Schritt 7: Mit Kopfzeilen-Knopf und der Frage
+  // im Onboarding gibt es zwei dauerhafte Einstiege — ein zusätzlich über
+  // jeder Seite schwebendes Angebot wäre ein dritter, redundanter Weg.
+  it('[REGRESSION] sollte nie „Soll ich es dir zeigen?" anzeigen, auch wenn ein Kapitel bereitsteht', () => {
+    runMock = makeRun({ teachable: ['transactions'], upcoming: 'transactions' });
     renderHost('/transactions');
-    expect(screen.getByText('Eine kurze Führung durch diesen Bereich.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Zeig es mir' }));
-    expect(runMock.start).toHaveBeenCalledWith('transactions');
+    expect(screen.queryByText('Soll ich es dir zeigen?')).not.toBeInTheDocument();
   });
+});
 
-  it('[REGRESSION] sollte das Kapitel der geöffneten Seite dem Lehrplan-Anfang vorziehen', async () => {
-    // Der Befund: Auf /city stand die Einladung „Führung durch diesen
-    // Bereich" und startete die Buchungen — die Seite sprang weg, und
-    // erklärt wurde etwas anderes als das, worauf man gerade sah.
-    runMock = makeRun({ teachable: ['transactions', 'city'], upcoming: 'transactions' });
-    renderHost('/city');
-    expect(screen.getByText('Eine kurze Führung durch diesen Bereich.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Zeig es mir' }));
-    expect(runMock.start).toHaveBeenCalledWith('city');
-  });
-
-  it('[REGRESSION] sollte auf einer fremden Seite das Ziel benennen statt „diesen Bereich" zu behaupten', async () => {
-    runMock = makeRun({ teachable: ['transactions'], upcoming: 'transactions' });
-    renderHost('/settings');
-    expect(screen.queryByText('Eine kurze Führung durch diesen Bereich.')).not.toBeInTheDocument();
-    // Der Sprung wird angekündigt und benennt den Bereich, in den er führt.
-    expect(screen.getByText(/Buchungen/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Zeig es mir' }));
-    expect(runMock.start).toHaveBeenCalledWith('transactions');
-  });
-
-  it('sollte den angekündigten Sprung auch auf Englisch benennen', () => {
-    runMock = makeRun({ teachable: ['transactions'], upcoming: 'transactions' });
-    renderHost('/settings', 'en');
-    expect(screen.getByText(/Transactions/)).toBeInTheDocument();
+describe('TutorialHost — Kontrollzugriff', () => {
+  it('sollte startAll auf startSeries mit den lehrbaren Kapiteln abbilden', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    runMock = makeRun({ teachable: ['transactions', 'city'] });
+    renderHost();
+    await userEvent.click(screen.getByTestId('start-all'));
+    expect(runMock.startSeries).toHaveBeenCalledWith(['transactions', 'city']);
   });
 });

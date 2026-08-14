@@ -1,66 +1,53 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useMemo, type ReactNode } from 'react';
 import { useTutorialRun } from '@/hooks/useTutorialRun';
 import { TutorialControlProvider, type TutorialControl } from '@/hooks/useTutorialControl';
-import { chapterOnRoute } from '@/lib/tutorial-steps';
 import TutorialOverlay from './TutorialOverlay';
-import TutorialInvitation from './TutorialInvitation';
 import { TutorialPresenceProvider } from './tutorial-presence';
 
 /**
- * Hält den Tutorial-Lauf und entscheidet, was davon zu sehen ist: die
- * Einladung, wenn ein Kapitel bereitsteht, das Overlay, während es läuft.
+ * Hält den Tutorial-Lauf und zeigt das Overlay, während er läuft.
  *
  * Ein eigener Wirt, damit `useTutorialRun` genau **einmal** existiert. Zwei
- * Aufrufe wären zwei unabhängige Zustandsmaschinen, und Einladung und Overlay
- * würden von verschiedenen Läufen reden.
+ * Aufrufe wären zwei unabhängige Zustandsmaschinen.
  *
  * Der Host umschließt die App als Provider (Befund A-2): nachrangige Hinweise
  * wie der Coach-Streifen lesen über `useTutorialPresence`, ob gerade eine
- * Tutorial-Hinweisebene sichtbar ist, und treten so lange zurück. Deshalb
- * liegt auch der Wegklick-Zustand der Einladung hier und nicht in ihr selbst.
+ * Tutorial-Hinweisebene sichtbar ist, und treten so lange zurück.
+ *
+ * **Kein Einladungsstreifen mehr** (`docs/tutorial-sequence.md`, Schritt 7):
+ * Mit dem dauerhaften Kopfzeilen-Knopf (`TutorialLauncher`) und der Frage im
+ * Onboarding (`OnboardingDialog`) gibt es bereits zwei Einstiege ins
+ * Tutorial — ein zusätzlich über jeder Seite schwebendes „Soll ich es dir
+ * zeigen?" wäre ein dritter, redundanter Weg zu demselben Angebot.
  */
 export default function TutorialHost({ children }: { children?: ReactNode }) {
   const run = useTutorialRun();
-  const location = useLocation();
-  const [invitationDismissed, setInvitationDismissed] = useState(false);
 
-  // Welches Kapitel angeboten wird, entscheidet die geöffnete Seite — nicht
-  // allein der Lehrplan. Spielt hier eines, gilt dieses; sonst bleibt der
-  // Lehrplan-Anfang, dann aber ausdrücklich als Wechsel benannt (`here`).
-  // Vorher bot die Einladung überall den Lehrplan-Anfang an und nannte ihn
-  // „diesen Bereich": Der Klick riss die Seite weg, und erklärt wurde etwas
-  // anderes als das, worauf der Nutzer gerade sah.
-  const here = chapterOnRoute(run.teachable, location.pathname);
-  const offered = here ?? run.upcoming;
+  const presence = useMemo(() => ({ hintVisible: run.active }), [run.active]);
 
-  const invitationVisible = !run.active && !invitationDismissed && offered !== null;
-  const hintVisible = run.active || invitationVisible;
-  const presence = useMemo(() => ({ hintVisible }), [hintVisible]);
-
-  // Der Griff nach außen: Kopfzeile und Übersichtsseite starten Führungen,
-  // ohne den Lauf zu besitzen. `run.start` ist stabil (useCallback), der
-  // Kontextwert wechselt also nur mit dem Laufzustand.
+  // Der Griff nach außen: Kopfzeile, Übersichtsseite und Onboarding starten
+  // Führungen, ohne den Lauf zu besitzen. `run.start`/`run.startSeries` sind
+  // stabil (useCallback), der Kontextwert wechselt also nur mit dem
+  // Laufzustand.
+  const { start, startSeries, teachable, active } = run;
   const control = useMemo<TutorialControl>(
-    () => ({ start: run.start, startSeries: run.startSeries, active: run.active }),
-    [run.start, run.startSeries, run.active],
+    () => ({
+      start,
+      startSeries,
+      // Startet die zusammenhängende Folge aller gerade lehrbaren Kapitel —
+      // dieselbe Folge wie der „Alles ansehen"-Knopf in der Übersicht
+      // (`TutorialsOverview`), hier aber ohne dass die Aufrufstelle (das
+      // Onboarding) den Katalog selbst kennen muss.
+      startAll: () => startSeries(teachable),
+      active,
+    }),
+    [start, startSeries, teachable, active],
   );
 
   return (
     <TutorialPresenceProvider value={presence}>
       <TutorialControlProvider value={control}>
-      {run.active ? (
-        <TutorialOverlay run={run} />
-      ) : (
-        invitationVisible && (
-          <TutorialInvitation
-            chapter={offered}
-            here={here !== null}
-            onStart={() => offered && run.start(offered)}
-            onDismiss={() => setInvitationDismissed(true)}
-          />
-        )
-      )}
+      {run.active && <TutorialOverlay run={run} />}
       {children}
       </TutorialControlProvider>
     </TutorialPresenceProvider>

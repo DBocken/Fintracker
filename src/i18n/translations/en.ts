@@ -34,6 +34,15 @@ export const en = {
       current: 'Selected situation — {situation}',
       none: 'No situation selected — everything is visible.',
     },
+    tutorial: {
+      title: 'One more thing before you start',
+      body: 'A short tutorial shows you the most important areas step by step.',
+      guidedLabel: 'Go through the tutorial',
+      guidedDescription: "I'll walk you through everything.",
+      exploreLabel: 'Explore on my own',
+      exploreDescription: "I'd rather look around myself.",
+      resumeHint: 'You can continue the tutorial any time via the icon in the header.',
+    },
     lifeSituations: {
       student_school: {
         label: 'Pupil or apprentice',
@@ -87,6 +96,17 @@ export const en = {
     },
   },
   tutorial: {
+    csv: {
+      name: 'File import',
+      upload: {
+        title: 'Upload your CSV file',
+        body: 'Drop the file from your online banking here — the app recognizes common bank formats automatically and suggests the matching columns.',
+      },
+      review: {
+        title: 'One more check before saving',
+        body: 'Every detected transaction shows up here for review. It only becomes permanent once you confirm it.',
+      },
+    },
     coach: {
       name: 'Your daily view',
       today: {
@@ -271,11 +291,6 @@ export const en = {
         body: 'Besides the language you can choose whether the app uses everyday words or technical terms.',
       },
     },
-    invitationTitle: 'Shall I show you around?',
-    invitationBody: 'A short guided tour of this area.',
-    invitationElsewhere: 'Your next step is in {chapter} — I will take you there.',
-    invitationStart: 'Show me',
-    invitationDismiss: 'Not now',
     next: 'Next',
     back: 'Back',
     done: 'Done',

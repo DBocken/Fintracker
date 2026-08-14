@@ -38,14 +38,31 @@ export interface TutorialStep {
    * Richtige trifft, und bräche beim ersten Fehlklick ab.
    */
   openAnchor?: string;
+  /**
+   * Der Schritttext fordert den NUTZER SELBST zu einer Aktion am Anker auf
+   * (tippen, klicken, auswählen) — anders als `openAnchor`, wo die Führung
+   * das selbst übernimmt. `TutorialOverlay` hebt einen solchen Anker in
+   * Warnfarbe hervor und lässt den Rahmen einmalig aufblitzen, statt ihn wie
+   * einen reinen Erklär-Schritt neutral zu umranden — sonst sehen „schau her"
+   * und „mach das jetzt" identisch aus, und genau das macht den Unterschied
+   * zwischen Führung und Textkasten aus (`TutorialOverlay`-Doku, Regel 3).
+   */
+  interactive?: boolean;
 }
 
-function step(id: string, route: string, anchor?: string, openAnchor?: string): TutorialStep {
+function step(
+  id: string,
+  route: string,
+  anchor?: string,
+  openAnchor?: string,
+  interactive?: boolean,
+): TutorialStep {
   return {
     id,
     route,
     ...(anchor ? { anchor } : {}),
     ...(openAnchor ? { openAnchor } : {}),
+    ...(interactive ? { interactive } : {}),
   };
 }
 
@@ -70,6 +87,16 @@ function step(id: string, route: string, anchor?: string, openAnchor?: string): 
  *   falsch gesetzter kostet einen Refactor.
  */
 export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly TutorialStep[]>> = {
+  // Kapitel 0.5 — nur der Datei-Weg landet hier, direkt nach der Weiche
+  // (`tutorial-sequence.ts`). Ohne Anker wie die meisten Sekundär-Kapitel:
+  // die Review-Tabelle existiert erst nach einem hochgeladenen Datensatz und
+  // wäre als Anker instabil (`docs/tutorial-sequence.md`, "erst wenn die
+  // Texte stehen lohnt sich ein Anker").
+  csv: [
+    step('upload', '/csv'),
+    step('review', '/csv'),
+  ],
+
   // Akt I — die Liste lesen (`docs/tutorial-script-transactions.md`).
   transactions: [
     step('overview', '/transactions', 'transactions-list'),
@@ -81,12 +108,12 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   ],
   categories: [
     step('why', '/transactions', 'transactions-first-row'),
-    step('assign', '/transactions', 'transactions-first-row'),
+    step('assign', '/transactions', 'transactions-first-row', undefined, true),
   ],
 
   // Akt II — finden.
   transactionsFilter: [
-    step('search', '/transactions', 'transactions-search'),
+    step('search', '/transactions', 'transactions-search', undefined, true),
     step('timerange', '/transactions', 'filter-timerange'),
     step('category', '/transactions', 'filter-category'),
     step('account', '/transactions', 'filter-account'),
@@ -114,7 +141,7 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   // Akt IV — aufteilen. Schritt 1 oeffnet das Panel selbst.
   transactionSplit: [
     step('why', '/transactions', 'split-panel', 'transactions-first-row'),
-    step('row', '/transactions', 'split-row'),
+    step('row', '/transactions', 'split-row', undefined, true),
     step('addRow', '/transactions', 'split-add-row'),
     step('remaining', '/transactions', 'split-remaining'),
     step('fillRemaining', '/transactions', 'split-fill-remaining'),
@@ -212,6 +239,7 @@ export function stepsFor(chapter: TutorialChapterId): readonly TutorialStep[] {
  * Nur `categories` hat kein Nav-Ziel und deshalb einen eigenen Schlüssel.
  */
 const CHAPTER_NAME_KEYS: Partial<Record<TutorialChapterId, string>> = {
+  csv: 'nav.items.csv',
   transactions: 'nav.items.transactions',
   categories: 'tutorial.categories.name',
   transactionsFilter: 'tutorial.transactionsFilter.name',

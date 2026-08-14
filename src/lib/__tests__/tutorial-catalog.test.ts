@@ -74,7 +74,10 @@ describe('buildTutorialCatalog', () => {
   it('sollte die Bereiche in Lehrplan-Reihenfolge führen', () => {
     const catalog = buildTutorialCatalog({ lifeSituation: null, readiness: ready });
     const routes = catalog.sections.map((s) => s.route);
-    expect(routes[0]).toBe('/transactions');
+    // `csv` (Kapitel 0.5, der Datei-Weg der Weiche) steht jetzt vor den
+    // Buchungen — chronologisch kommt der Import zuerst.
+    expect(routes[0]).toBe('/csv');
+    expect(routes.indexOf('/csv')).toBeLessThan(routes.indexOf('/transactions'));
     expect(routes.indexOf('/dashboard')).toBeLessThan(routes.indexOf('/settings'));
     // Jeder Bereich steht genau einmal, auch wenn er mehrere Kapitel trägt.
     expect(new Set(routes).size).toBe(routes.length);

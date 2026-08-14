@@ -138,6 +138,34 @@ describe('Kapitel zur geöffneten Seite', () => {
   });
 });
 
+describe('interactive-Schritte (Klick-Aufforderung)', () => {
+  it('sollte nur Schritte mit Anker als interaktiv markieren', () => {
+    // Ohne Anker gibt es nichts, das aufblitzen könnte — `TutorialOverlay`
+    // stellt den Ripple direkt neben den Anker, ein Schritt ohne Anker zeigt
+    // die Erklärung mittig ohne Element-Bezug.
+    for (const [chapter, steps] of Object.entries(TUTORIAL_STEPS)) {
+      for (const s of steps ?? []) {
+        if (s.interactive) {
+          expect(s.anchor, `${chapter}.${s.id}`).toBeDefined();
+        }
+      }
+    }
+  });
+
+  it('[REGRESSION] sollte die drei bekannten Handlungsaufforderungen weiterhin markieren', () => {
+    // Der Befund: „Suchfeld tippen", „Kategorie zuweisen" und „Split-Zeile
+    // ausfüllen" fordern den Nutzer im Text zum Handeln auf, sahen aber
+    // optisch identisch zu reinen Erklär-Schritten aus.
+    const search = stepsFor('transactionsFilter').find((s) => s.id === 'search');
+    const assign = stepsFor('categories').find((s) => s.id === 'assign');
+    const splitRow = stepsFor('transactionSplit').find((s) => s.id === 'row');
+
+    expect(search?.interactive).toBe(true);
+    expect(assign?.interactive).toBe(true);
+    expect(splitRow?.interactive).toBe(true);
+  });
+});
+
 describe('anchorSelector', () => {
   it('sollte den Anker über das Marker-Attribut adressieren, nie über Text', () => {
     expect(anchorSelector('dashboard-flow')).toBe('[data-tour-id="dashboard-flow"]');

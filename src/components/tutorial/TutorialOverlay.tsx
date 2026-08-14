@@ -121,18 +121,47 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
           Mitmachen auffordern. */}
       <div className="pointer-events-none fixed inset-0 z-50" aria-hidden="true">
         {rect ? (
-          <div
-            data-testid="tutorial-hole"
-            className="absolute rounded-lg ring-2 ring-primary"
-            style={{
-              top: rect.top - HOLE_PADDING,
-              left: rect.left - HOLE_PADDING,
-              width: rect.width + HOLE_PADDING * 2,
-              height: rect.height + HOLE_PADDING * 2,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
-              transition: reduceMotion ? 'none' : 'top .2s, left .2s, width .2s, height .2s',
-            }}
-          />
+          <>
+            {/*
+              Der Rahmen liegt als zweiter Schatten NEBEN dem abdunkelnden
+              9999px-Spread im selben `boxShadow` — ein Inline-Style überschreibt
+              die komplette Eigenschaft, ein `ring-*`-Klassenrahmen (der dieselbe
+              CSS-Eigenschaft über `--tw-ring-shadow` setzt) wäre hier also
+              unsichtbar geblieben. Farbe je nach Schritt: `--warning` bei einer
+              Handlungsaufforderung (`step.interactive`), sonst neutral
+              `--primary` — reine Erklär-Schritte sollen nicht wie eine
+              Aufforderung aussehen.
+            */}
+            <div
+              data-testid="tutorial-hole"
+              className="absolute rounded-lg"
+              style={{
+                top: rect.top - HOLE_PADDING,
+                left: rect.left - HOLE_PADDING,
+                width: rect.width + HOLE_PADDING * 2,
+                height: rect.height + HOLE_PADDING * 2,
+                boxShadow: `0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 3px hsl(var(--${step.interactive ? 'warning' : 'primary'}))`,
+                transition: reduceMotion ? 'none' : 'top .2s, left .2s, width .2s, height .2s',
+              }}
+            />
+            {step.interactive && !reduceMotion && (
+              // Eigene Schicht statt am selben `boxShadow` zu animieren: Die
+              // Verdunkelung darüber müsste sonst in jedem Keyframe erneut
+              // mitgeführt werden. `key` erzwingt einen Remount bei jedem
+              // neuen Schritt, damit der Ripple erneut abspielt.
+              <div
+                key={`${run.chapter}:${step.id}`}
+                data-testid="tutorial-click-cue"
+                className="absolute rounded-lg motion-safe:animate-[tutorial-click-pulse_1.2s_ease-out]"
+                style={{
+                  top: rect.top - HOLE_PADDING,
+                  left: rect.left - HOLE_PADDING,
+                  width: rect.width + HOLE_PADDING * 2,
+                  height: rect.height + HOLE_PADDING * 2,
+                }}
+              />
+            )}
+          </>
         ) : (
           // Ohne Anker gilt der Schritt der ganzen Ansicht, nicht einem
           // Element — abgedunkelt wird trotzdem.
