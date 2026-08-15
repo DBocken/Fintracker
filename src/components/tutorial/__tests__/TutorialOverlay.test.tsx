@@ -65,14 +65,14 @@ describe('TutorialOverlay', () => {
   it('sollte den Fortschritt benennen statt ihn zu verschweigen', async () => {
     withAnchor('dashboard-flow');
     renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
-    expect(await screen.findByText('Schritt 1 von 2')).toBeInTheDocument();
+    expect(await screen.findByText('Schritt 1 von 3')).toBeInTheDocument();
   });
 
   it('sollte auf Englisch dieselbe Führung zeigen', async () => {
     withAnchor('dashboard-flow');
     renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'en' });
     expect(await screen.findByText('Where your money flows')).toBeInTheDocument();
-    expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
   });
 
   it('sollte im letzten Schritt „Fertig" statt „Weiter" anbieten', async () => {

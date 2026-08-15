@@ -170,7 +170,7 @@ export default function BudgetDetailDialog({
           <Button variant="outline" size="sm" onClick={onDelete} className="text-red-600 dark:text-red-400">
             <Trash2 className="mr-1.5 h-4 w-4" /> {t('budgets.detailDialog.deleteButton')}
           </Button>
-          <Button size="sm" onClick={onEdit}>
+          <Button data-tour-id="budgets-edit" size="sm" onClick={onEdit}>
             <Pencil className="mr-1.5 h-4 w-4" /> {t('budgets.detailDialog.editButton')}
           </Button>
         </DialogFooter>

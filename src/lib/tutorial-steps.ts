@@ -150,11 +150,16 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   dashboard: [
     step('flow', '/dashboard', 'dashboard-flow'),
     step('period', '/dashboard', 'dashboard-flow'),
+    step('customize', '/dashboard', 'kpi-customize', undefined, true),
   ],
   city: [
     step('arrival', '/city', 'city-canvas'),
     step('districts', '/city', 'city-canvas'),
     step('growth', '/city', 'city-canvas'),
+    // Ohne Anker wie die meisten Sekundär-Schritte: Das Detail-Sheet öffnet
+    // sich erst durch einen 3D-Tap auf ein Gebäude, den die Führung nicht
+    // simulieren kann (kein DOM-Element zum Anklicken über `openAnchor`).
+    step('tap', '/city'),
   ],
   coach: [
     step('today', '/coach'),
@@ -163,6 +168,7 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   accounts: [
     step('balances', '/accounts'),
     step('realBalance', '/accounts'),
+    step('addCash', '/accounts', 'accounts-add-cash', undefined, true),
   ],
   income: [
     step('sources', '/income'),
@@ -176,6 +182,14 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   budgets: [
     step('tanks', '/budgets'),
     step('learning', '/budgets'),
+    step('create', '/budgets', 'budgets-add', undefined, true),
+    // Kein `openAnchor`: Anders als bei `transactionDetails.panel` gibt es
+    // keinen bereits gerahmten Schritt auf `budgets-first-tile`, den die
+    // Führung als „das hier anklicken" ausweisen könnte
+    // (`tutorial-steps.test.ts` verlangt das für jeden `openAnchor`). Der
+    // Bearbeiten-Knopf wird trotzdem benannt — sichtbar, sobald der Nutzer
+    // selbst eine Kachel öffnet.
+    step('edit', '/budgets', 'budgets-edit'),
   ],
   liquidity: [
     step('forecast', '/liquidity'),
@@ -187,11 +201,20 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   ],
   debts: [
     step('overview', '/debts'),
-    step('strategy', '/debts'),
+    // `strategy` hatte bislang keinen Anker; die Reiter Avalanche/Snowball
+    // (`debts-strategy`) existieren als konkretes Element auf der Seite.
+    step('strategy', '/debts', 'debts-strategy'),
+    step('create', '/debts', 'debts-add', undefined, true),
+    // Ohne Anker: Die Zuordnungs-Karte ist nur auf breiten Bildschirmen
+    // inline sichtbar (`hidden lg:block`), auf Mobil steckt sie im
+    // Detail-Sheet einer einzelnen Schuld — kein über beide Breiten
+    // stabiler Anker vorhanden (AGENTS.md §4, Plattform-Parität).
+    step('assignPayments', '/debts'),
   ],
   occasions: [
     step('crosscut', '/occasions'),
     step('total', '/occasions'),
+    step('create', '/occasions', 'occasions-create', undefined, true),
   ],
   netWorth: [
     step('stock', '/net-worth'),
@@ -212,15 +235,21 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   trading: [
     step('portfolio', '/trading'),
     step('valuation', '/trading'),
+    step('addPosition', '/trading', 'trading-add-position', undefined, true),
   ],
   export: [
     step('ownership', '/export'),
-    step('backup', '/export'),
+    // [REGRESSION] Zeigte bislang auf /export — dort gibt es gar keine
+    // Sicherungsfunktion. Die eigentliche Backup-Karte liegt unter
+    // /settings (`BackupManager`, in `EnhancedSettings` eingebunden).
+    step('backup', '/settings', 'backup-create'),
+    step('restore', '/settings', 'backup-restore'),
   ],
   settings: [
     step('areas', '/settings'),
     step('unlockAll', '/settings'),
     step('language', '/settings'),
+    step('encryption', '/settings', 'encryption-setup', undefined, true),
   ],
 };
 

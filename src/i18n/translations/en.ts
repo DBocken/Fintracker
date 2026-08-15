@@ -128,6 +128,10 @@ export const en = {
         title: 'Enter the real balance once',
         body: 'From then on the app calculates forward from there. Without that starting point no forecast can be right.',
       },
+      addCash: {
+        title: 'Cash counts too',
+        body: 'A cash account covers what never touches your bank — wallet, piggy bank, register.',
+      },
     },
     income: {
       name: 'Your income',
@@ -165,6 +169,14 @@ export const en = {
         title: 'They are still learning at first',
         body: 'The app proposes limits from your past spending. After three months they fit.',
       },
+      create: {
+        title: 'A budget in a few steps',
+        body: 'Category, amount, period — that is all it takes to start.',
+      },
+      edit: {
+        title: 'The limit can move',
+        body: 'If the amount no longer fits, change it here — no need to start a new budget.',
+      },
     },
     liquidity: {
       name: 'Forecast & buffer',
@@ -198,6 +210,14 @@ export const en = {
         title: 'The order makes the difference',
         body: 'Highest interest first saves money, smallest debt first saves nerves. Both are valid.',
       },
+      create: {
+        title: 'Record a debt',
+        body: 'Remaining balance, interest rate, instalment — the app does the rest.',
+      },
+      assignPayments: {
+        title: 'Assign payments',
+        body: 'Linked transactions automatically count against the balance — otherwise you would have to track it yourself.',
+      },
     },
     occasions: {
       name: 'Grouping occasions',
@@ -208,6 +228,10 @@ export const en = {
       total: {
         title: 'What did it really cost?',
         body: 'In the end there is a number instead of a feeling — and it carries the planning next time.',
+      },
+      create: {
+        title: 'An occasion needs just two things',
+        body: 'A name and, optionally, a parent occasion — you assign transactions to it afterward.',
       },
     },
     netWorth: {
@@ -264,6 +288,10 @@ export const en = {
         title: 'Prices and value',
         body: 'What you paid and what it is worth today are two different numbers. Both count.',
       },
+      addPosition: {
+        title: 'Record a position',
+        body: 'Quantity, purchase price, date — the current value gets added automatically after that.',
+      },
     },
     export: {
       name: 'Taking your data',
@@ -274,6 +302,10 @@ export const en = {
       backup: {
         title: 'Create a backup',
         body: 'A device gets lost, a browser gets cleared. A backup takes a minute.',
+      },
+      restore: {
+        title: 'Restore a backup',
+        body: 'Lost your device or reinstalled? The same backup brings everything back.',
       },
     },
     settings: {
@@ -289,6 +321,10 @@ export const en = {
       language: {
         title: 'Language and wording',
         body: 'Besides the language you can choose whether the app uses everyday words or technical terms.',
+      },
+      encryption: {
+        title: 'A password in front',
+        body: 'Encrypts your data on this device. Keep the password safe — without it, nothing works, not even for you.',
       },
     },
     next: 'Next',
@@ -451,6 +487,10 @@ export const en = {
         title: 'Change the period',
         body: 'Everything here refers to a period of time. Change it and the whole picture changes with it.',
       },
+      customize: {
+        title: 'Your metrics, your choice',
+        body: 'The gear icon lets you choose which metrics show up top, and in what order.',
+      },
     },
     city: {
       name: 'Your city',
@@ -465,6 +505,10 @@ export const en = {
       growth: {
         title: 'The city grows with you',
         body: 'Every month builds on. When subscriptions are detected later, they get their own buildings.',
+      },
+      tap: {
+        title: 'Tapping shows more',
+        body: 'Tap a building to open its details — recent transactions, and for contracts, price changes too.',
       },
     },
   },

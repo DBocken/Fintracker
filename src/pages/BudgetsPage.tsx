@@ -116,7 +116,7 @@ export default function BudgetsPage() {
         title={t("nav.items.budgets")}
         description={t("budgets.description")}
         actions={
-          <Button onClick={openNew}>
+          <Button data-tour-id="budgets-add" onClick={openNew}>
             <Plus className="mr-1.5 h-4 w-4" /> {t("budgets.addButton")}
           </Button>
         }

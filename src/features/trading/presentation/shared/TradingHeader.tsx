@@ -95,6 +95,7 @@ export default function TradingHeader({
             {t('trading.dashboard.refreshPrices')}
           </Button>
           <Button
+            data-tour-id="trading-add-position"
             size="sm"
             onClick={onAddPosition}
           >

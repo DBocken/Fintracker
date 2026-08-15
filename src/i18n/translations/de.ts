@@ -129,6 +129,10 @@ export const de = {
         title: 'Einmal den echten Stand eintragen',
         body: 'Danach rechnet die App von dort aus weiter. Ohne diesen Startpunkt kann keine Vorschau stimmen.',
       },
+      addCash: {
+        title: 'Bargeld zählt auch',
+        body: 'Ein Bargeldkonto bildet ab, was nicht über die Bank läuft — Portemonnaie, Sparschwein, Kasse.',
+      },
     },
     income: {
       name: 'Dein Einkommen',
@@ -166,6 +170,14 @@ export const de = {
         title: 'Am Anfang lernen sie noch',
         body: 'Aus deinen bisherigen Ausgaben schlägt die App Grenzen vor. Nach drei Monaten sitzen sie.',
       },
+      create: {
+        title: 'Ein Budget in wenigen Schritten',
+        body: 'Kategorie, Betrag, Zeitraum — mehr braucht es nicht zum Start.',
+      },
+      edit: {
+        title: 'Die Grenze passt sich an',
+        body: 'Reicht der Betrag nicht mehr, änderst du ihn hier — statt das Budget neu anzulegen.',
+      },
     },
     liquidity: {
       name: 'Vorschau & Puffer',
@@ -199,6 +211,14 @@ export const de = {
         title: 'Die Reihenfolge macht den Unterschied',
         body: 'Teuerste Zinsen zuerst spart Geld, kleinste Schuld zuerst spart Nerven. Beide Wege sind richtig.',
       },
+      create: {
+        title: 'Eine Schuld erfassen',
+        body: 'Restbetrag, Zinssatz, Rate — damit rechnet die App den Rest.',
+      },
+      assignPayments: {
+        title: 'Zahlungen zuordnen',
+        body: 'Verknüpfte Buchungen zählen automatisch auf den Restbetrag an — sonst müsstest du selbst Buch führen.',
+      },
     },
     occasions: {
       name: 'Anlässe zusammenfassen',
@@ -209,6 +229,10 @@ export const de = {
       total: {
         title: 'Was hat es wirklich gekostet?',
         body: 'Am Ende steht eine Zahl statt eines Gefühls — und die trägt beim nächsten Mal die Planung.',
+      },
+      create: {
+        title: 'Ein Anlass entsteht mit zwei Angaben',
+        body: 'Name und optional ein übergeordneter Anlass — Buchungen ordnest du danach zu.',
       },
     },
     netWorth: {
@@ -265,6 +289,10 @@ export const de = {
         title: 'Kurse und Wert',
         body: 'Was du bezahlt hast und was es heute wert ist, sind zwei verschiedene Zahlen. Beide zählen.',
       },
+      addPosition: {
+        title: 'Eine Position erfassen',
+        body: 'Stückzahl, Einstandskurs, Zeitpunkt — der aktuelle Wert kommt danach automatisch dazu.',
+      },
     },
     export: {
       name: 'Daten mitnehmen',
@@ -275,6 +303,10 @@ export const de = {
       backup: {
         title: 'Eine Sicherung anlegen',
         body: 'Ein Gerät geht verloren, ein Browser wird geleert. Eine Sicherung dauert eine Minute.',
+      },
+      restore: {
+        title: 'Eine Sicherung einspielen',
+        body: 'Bei Geräteverlust oder Neuinstallation bringt dieselbe Sicherung alles zurück.',
       },
     },
     settings: {
@@ -290,6 +322,10 @@ export const de = {
       language: {
         title: 'Sprache und Sprachstil',
         body: 'Neben der Sprache kannst du wählen, ob die App Alltagssprache oder Fachbegriffe verwendet.',
+      },
+      encryption: {
+        title: 'Ein Passwort davor',
+        body: 'Verschlüsselt deine Daten auf diesem Gerät. Bewahre das Passwort gut auf — ohne geht nichts mehr, auch für dich nicht.',
       },
     },
     next: 'Weiter',
@@ -452,6 +488,10 @@ export const de = {
         title: 'Zeitraum umstellen',
         body: 'Alles hier bezieht sich auf einen Zeitraum. Änderst du ihn, ändert sich das ganze Bild.',
       },
+      customize: {
+        title: 'Deine Kennzahlen, deine Wahl',
+        body: 'Über das Zahnrad wählst du, welche Kennzahlen oben stehen und in welcher Reihenfolge.',
+      },
     },
     city: {
       name: 'Deine Stadt',
@@ -466,6 +506,10 @@ export const de = {
       growth: {
         title: 'Die Stadt wächst mit dir',
         body: 'Jeder Monat baut weiter. Kommen später Abos dazu, bekommen sie eigene Gebäude.',
+      },
+      tap: {
+        title: 'Tippen zeigt mehr',
+        body: 'Ein Gebäude antippen öffnet seine Details — die letzten Buchungen, bei Verträgen auch Preisänderungen.',
       },
     },
   },

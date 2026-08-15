@@ -22,7 +22,7 @@ export function SpecialCategoriesDesktopView({ model, className, onCreate, onDel
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t('specialCategories.subtitle')}</p>
         </div>
         {onCreate ? (
-          <Button onClick={onCreate}>
+          <Button data-tour-id="occasions-create" onClick={onCreate}>
             <Plus className="mr-1 h-4 w-4" aria-hidden />
             {t('specialCategories.create')}
           </Button>
