@@ -122,10 +122,28 @@ darf die Führung nie brechen.
    der Schritt übersprungen — nie blockiert.
 4. **Was der Schritt braucht, öffnet er selbst.** Kein „bitte klicke jetzt
    auf …", das die Führung dem Zufall überlässt.
-5. **Kein Schritt zeigt auf ein Schloss.** Eine Führung, die auf eine
-   Tarif-Schranke zeigt, verkauft, statt zu erklären. Haushalts-Aufteilung und
-   Anlässe bekommen deshalb keinen Schritt — und beim Bauen kam heraus, dass
-   auch das **Aufteilen selbst** hinter `FeatureGate splitTransactions` liegt:
-   Akt IV läuft daher nur mit Zugang (`hasPremiumAccess` in der
-   Kapitel-Voraussetzung). Ohne diesen Fund hätte die Führung Freinutzer vor
-   ein Schloss geführt.
+5. **Kein Schritt zeigt auf ein Schloss — wohl aber auf einen Teaser.**
+   Ursprünglich galt hier: gesperrte Funktionen bekommen keinen Schritt. Akt IV
+   läuft deshalb nur mit Zugang (`hasPremiumAccess` in der
+   Kapitel-Voraussetzung). Der Grund war handfest und nicht etwa Zurückhaltung
+   beim Verkaufen: Eine gesperrte Funktion wurde für Freinutzer **gar nicht
+   gerendert** (`FeatureGate` mit `fallback={null}`), ein Schritt hätte auf
+   eine leere Stelle gedeutet.
+
+   Seit `PremiumTeaser` steht dort ein sichtbares, ausgegrautes Element, und
+   damit ändert sich die Regel: Ein Schritt **darf** eine Pro-Funktion zeigen,
+   wenn drei Bedingungen zusammenkommen.
+
+   - Er zeigt auf den Teaser, nicht auf die echte Funktion (`split-teaser`).
+   - Er läuft **nur für die, die sie nicht haben.** Nicht als Schritt in einem
+     gemischten Kapitel, sondern als eigenes, gegenteilig bedingtes Kapitel
+     (`transactionSplitPremium`, `!hasPremiumAccess`). Ein Schritt in
+     `transactionDetails` sähe für Premium-Nutzer ein Schloss, das für sie
+     nicht existiert — und stünde vor dem echten Panel ohne Ziel.
+   - Er ist als solcher **erkennbar**: `TutorialStep.premium` färbt den Rahmen
+     in `--premium` statt in Warnfarbe und setzt ein „Pro"-Zeichen in den
+     Erklärtext. „Das gibt es, aber nur mit Pro" ist eine andere Aussage als
+     „mach das jetzt" und darf nicht gleich aussehen.
+
+   Was bleibt: Eine Führung, die zum Kauf **drängt**, verkauft statt zu
+   erklären. Ein Schritt nennt weiterhin den Nutzen, nicht den Preis.

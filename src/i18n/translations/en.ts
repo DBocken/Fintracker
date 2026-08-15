@@ -439,6 +439,13 @@ export const en = {
         body: 'A hidden entry is kept but no longer counted. Delete sits next to it — and is final.',
       },
     },
+    transactionSplitPremium: {
+      name: 'Splitting an entry (Pro)',
+      teaser: {
+        title: 'Split one entry across several categories',
+        body: 'That big shop was half groceries, half toiletries — here you could separate it to the cent so your analysis holds up. This is part of Pro; without it the entry stays in a single category.',
+      },
+    },
     transactionSplit: {
       name: 'Splitting an entry',
       why: {
@@ -4453,7 +4460,19 @@ export const en = {
         benefit2: 'Platform stress test & payout radar: what if a stream disappears? When is the next payout?',
         benefit3: 'Income Wrapped year in review plus a tax-reserve hint.',
       },
+      specialCategories: {
+        title: 'Occasions across all categories',
+        eyebrow: 'Premium preview',
+        benefit1: 'Bundle spending into one occasion – holiday, house move, Christmas.',
+        benefit2: 'Across every category and month, without disturbing your budget.',
+        benefit3: 'What you get is an honest total: what did it really cost?',
+      },
     },
+  },
+
+  premiumTeaser: {
+    badge: 'Pro',
+    unlock: 'Unlock',
   },
   accountDataQuality: {
     statusGood: 'Very good',

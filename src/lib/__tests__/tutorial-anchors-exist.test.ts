@@ -30,10 +30,19 @@ function collectDataTourIds(dir: string, found: Set<string>): void {
     // Erfasst sowohl `data-tour-id="x"` als auch bedingte Werte wie
     // `data-tour-id={cond ? 'x' : undefined}` — genommen wird das erste
     // Stringliteral nach dem Attribut, bis zum Ende des Tags.
-    const regex = /data-tour-id=[^>]*?['"]([\w-]+)['"]/g;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(content))) {
-      found.add(match[1]);
+    // Zwei Schreibweisen zählen. Die zweite ist keine Aufweichung, sondern
+    // dieselbe Sache eine Ebene höher: `PremiumTeaser` reicht sein `tourId`
+    // unverändert an `data-tour-id` durch. Ohne sie meldete der Wächter jeden
+    // Anker an einem Teaser als fehlend — ein Fehlalarm, und Fehlalarme
+    // schalten Wächter ab, statt sie durchzusetzen.
+    for (const regex of [
+      /data-tour-id=[^>]*?['"]([\w-]+)['"]/g,
+      /\btourId=[^>]*?['"]([\w-]+)['"]/g,
+    ]) {
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(content))) {
+        found.add(match[1]);
+      }
     }
   }
 }

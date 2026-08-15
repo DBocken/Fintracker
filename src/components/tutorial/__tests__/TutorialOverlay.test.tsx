@@ -309,3 +309,50 @@ describe('TutorialOverlay — Klick-Aufforderung (`step.interactive`)', () => {
     expect(screen.queryByTestId('tutorial-click-cue')).not.toBeInTheDocument();
   });
 });
+
+describe('TutorialOverlay — Premium-Schritt (`step.premium`)', () => {
+  it('sollte eine Premium-Funktion in Premium-Farbe umranden statt in Warn- oder Neutralfarbe', async () => {
+    // Der Unterschied trägt die ganze Aussage: „mach das jetzt" (Warnfarbe)
+    // und „das gibt es, aber nur mit Pro" (Premium-Farbe) sind zwei
+    // verschiedene Botschaften und dürfen nicht gleich aussehen.
+    withAnchor('split-teaser');
+    const steps = stepsFor('transactionSplitPremium');
+    const premiumStep = steps.find((s) => s.id === 'teaser');
+    expect(premiumStep?.premium).toBe(true);
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionSplitPremium', step: premiumStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+
+    const hole = await screen.findByTestId('tutorial-hole');
+    expect(hole.style.boxShadow).toContain('hsl(var(--premium))');
+    expect(hole.style.boxShadow).not.toContain('warning');
+    // Eine Premium-Erwähnung ist keine Handlungsaufforderung — kein Aufblitzen.
+    expect(screen.queryByTestId('tutorial-click-cue')).not.toBeInTheDocument();
+  });
+
+  it('sollte den Schritt sichtbar als Premium kennzeichnen', async () => {
+    withAnchor('split-teaser');
+    const steps = stepsFor('transactionSplitPremium');
+    const premiumStep = steps.find((s) => s.id === 'teaser');
+
+    renderWithProviders(
+      <TutorialOverlay
+        run={makeRun({ chapter: 'transactionSplitPremium', step: premiumStep, stepCount: steps.length })}
+      />,
+      { locale: 'de' },
+    );
+
+    expect(await screen.findByTestId('tutorial-premium-badge')).toHaveTextContent('Pro');
+  });
+
+  it('sollte gewöhnliche Schritte nicht als Premium kennzeichnen', async () => {
+    withAnchor('dashboard-flow');
+    renderWithProviders(<TutorialOverlay run={makeRun()} />, { locale: 'de' });
+    await screen.findByTestId('tutorial-hole');
+    expect(screen.queryByTestId('tutorial-premium-badge')).not.toBeInTheDocument();
+  });
+});

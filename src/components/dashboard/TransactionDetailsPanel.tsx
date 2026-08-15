@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Trash2, SplitSquareHorizontal, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
+import { Eye, EyeOff, Trash2, ArrowLeftRight, Sparkles, Check, X, Users, Landmark } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DecimalInput } from '@/features/shared/presentation/DecimalInput';
 import FinanceErrorState from '@/features/shared/presentation/FinanceErrorState';
@@ -24,11 +24,11 @@ import type { Transaction, Category, Account, Rhythmus } from '@/types';
 import { CategoryTwoStepSelect } from '@/components/categories/CategoryTwoStepSelect';
 import { resolveAusgabenklasse } from '@/lib/analysis-data';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
 import { TransactionSplitPanel } from '@/components/transactions/TransactionSplitPanel';
 import { HouseholdSplitPanel } from '@/components/transactions/HouseholdSplitPanel';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { FeatureGate } from '@/components/FeatureGate';
+import PremiumTeaser from '@/components/premium/PremiumTeaser';
 import { findSimilarTransactions, fingerprintReasonLabel } from '@/lib/merchant-fingerprint';
 import { useMoneyFormat } from '@/hooks/useMoneyFormat';
 import {
@@ -390,26 +390,20 @@ export function TransactionDetailsPanel({
 
       {/* Aufteilung (Premium) */}
       <div className={cn('pt-4', !isSplit && 'border-t')}>
+        {/* Der Anker `split-teaser` liegt bewusst auf dem Teaser, nicht auf dem
+            echten Panel: Nur so kann die Führung Freinutzern das Aufteilen
+            überhaupt ZEIGEN (`transactionDetails.splitPremium`). */}
         <FeatureGate
           feature="splitTransactions"
-          fallback={
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <SplitSquareHorizontal className="h-4 w-4" />
-                Buchung aufteilen
-                <Badge className="border-none bg-premium text-premium-foreground">Pro</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Buchungen cent-genau auf mehrere Kategorien aufteilen.{' '}
-                <Link to="/settings" className="underline underline-offset-2">{t('transactionDetails.unlockPremium')}</Link>
-              </p>
-            </div>
-          }
+          fallback={<PremiumTeaser feature="splitTransactions" tourId="split-teaser" />}
         >
           <TransactionSplitPanel transaction={transaction} categories={categories} />
         </FeatureGate>
 
-        <FeatureGate feature="familyMode" fallback={null}>
+        <FeatureGate
+          feature="familyMode"
+          fallback={<PremiumTeaser feature="familyMode" className="mt-3" />}
+        >
           <div className="space-y-2 border-t pt-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Users className="h-4 w-4" aria-hidden="true" /> {t('transactionDetails.shareInHousehold')}

@@ -23,6 +23,7 @@ import { HouseholdSettings } from './HouseholdSettings';
 import { useBusinessMode } from '@/hooks/useBusinessMode';
 import NavFeatureSettings from './NavFeatureSettings';
 import { FeatureGate } from '@/components/FeatureGate';
+import PremiumTeaser from '@/components/premium/PremiumTeaser';
 import { BackupManager } from '../BackupManager';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { InfoStatStrip } from '@/features/shared/presentation/InfoGroup';
@@ -176,7 +177,14 @@ export function EnhancedSettings() {
           <WordingSettings />
         </section>
 
-        <FeatureGate feature="familyMode" fallback={null}>
+        <FeatureGate
+          feature="familyMode"
+          fallback={
+            <section className="mb-10">
+              <PremiumTeaser feature="familyMode" />
+            </section>
+          }
+        >
           <section className="mb-10">
             <SectionHeader
               icon={<Home className="h-5 w-5" />}
@@ -215,7 +223,10 @@ export function EnhancedSettings() {
             {businessMode ? (
               <TaxReserveSettings />
             ) : (
-              <FeatureGate feature="creatorPack" fallback={null}>
+              <FeatureGate
+                feature="creatorPack"
+                fallback={<PremiumTeaser feature="creatorPack" />}
+              >
                 <TaxReserveSettings />
               </FeatureGate>
             )}

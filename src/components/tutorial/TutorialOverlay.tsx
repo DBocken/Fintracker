@@ -120,6 +120,10 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
   const chapterName = t(tutorialTitleKey(run.chapter), '');
   const nextChapterName = run.nextChapter ? t(tutorialTitleKey(run.nextChapter), '') : '';
 
+  // Premium sticht vor `interactive`: Ein gesperrter Schritt fordert nicht zum
+  // Tun auf, sondern erklärt, was es mit Pro gäbe.
+  const ringToken = step.premium ? 'premium' : step.interactive ? 'warning' : 'primary';
+
   const progress = t('tutorial.progress', 'Schritt {current} von {total}')
     .replace('{current}', String(run.stepIndex + 1))
     .replace('{total}', String(run.stepCount));
@@ -137,10 +141,12 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
               9999px-Spread im selben `boxShadow` — ein Inline-Style überschreibt
               die komplette Eigenschaft, ein `ring-*`-Klassenrahmen (der dieselbe
               CSS-Eigenschaft über `--tw-ring-shadow` setzt) wäre hier also
-              unsichtbar geblieben. Farbe je nach Schritt: `--warning` bei einer
+              unsichtbar geblieben. Farbe je nach Schritt: `--premium` bei einer
+              gesperrten Funktion (`step.premium`), `--warning` bei einer
               Handlungsaufforderung (`step.interactive`), sonst neutral
-              `--primary` — reine Erklär-Schritte sollen nicht wie eine
-              Aufforderung aussehen.
+              `--primary`. Drei Aussagen, drei Farben — „schau her", „mach das
+              jetzt" und „das gibt es, aber nur mit Pro" dürfen nicht gleich
+              aussehen.
             */}
             <div
               data-testid="tutorial-hole"
@@ -150,7 +156,7 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
                 left: rect.left - HOLE_PADDING,
                 width: rect.width + HOLE_PADDING * 2,
                 height: rect.height + HOLE_PADDING * 2,
-                boxShadow: `0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 3px hsl(var(--${step.interactive ? 'warning' : 'primary'}))`,
+                boxShadow: `0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 3px hsl(var(--${ringToken}))`,
                 transition: reduceMotion ? 'none' : 'top .2s, left .2s, width .2s, height .2s',
               }}
             />
@@ -213,11 +219,24 @@ export default function TutorialOverlay({ run }: { run: TutorialRun }) {
         >
           {/* Wo man gerade ist — in einer Folge ist das die einzige Auskunft
               darüber, welches Kapitel gerade läuft. */}
-          {chapterName && (
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {chapterName}
-            </p>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            {chapterName && (
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {chapterName}
+              </p>
+            )}
+            {/* Der Text erklärt, was die Funktion kann; dieses Zeichen sagt,
+                dass sie zu Pro gehört — sonst liest sich der Schritt wie ein
+                Versprechen, das die App gleich einlöst. */}
+            {step.premium && (
+              <span
+                data-testid="tutorial-premium-badge"
+                className="shrink-0 rounded-full bg-premium px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-premium-foreground"
+              >
+                {t('premiumTeaser.badge', 'Pro')}
+              </span>
+            )}
+          </div>
           <h3 className="font-medium">{title}</h3>
           <p className="pt-1 text-sm text-muted-foreground">{body}</p>
           <p className="pt-2 text-xs text-muted-foreground">{progress}</p>

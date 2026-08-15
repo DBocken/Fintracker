@@ -28,6 +28,7 @@ import AskYourMoney from '@/components/dashboard/finrisk/AskYourMoney';
 import RiskSummaryCard from '@/components/dashboard/finrisk/RiskSummaryCard';
 import AdaptiveSpendingToggle from '@/components/dashboard/finrisk/AdaptiveSpendingToggle';
 import { FeatureGate } from '@/components/FeatureGate';
+import PremiumTeaser from '@/components/premium/PremiumTeaser';
 import { DataQualityNotice } from '@/components/dashboard/DataQualityNotice';
 import BudgetOptimizerPanel from '@/components/dashboard/BudgetOptimizerPanel';
 import {
@@ -544,7 +545,10 @@ export default function LiquidityReport() {
       </div>
 
       {/* Tiefer gehende Analysen – volle Breite, einklappbar. */}
-      <FeatureGate feature="simulation" fallback={null}>
+      <FeatureGate
+        feature="simulation"
+        fallback={<PremiumTeaser feature="simulation" tourId="liquidity-simulation-teaser" />}
+      >
         <details className="group rounded-xl border bg-card">
           <summary className="cursor-pointer list-none px-4 py-3 font-medium">
             {t("liquidityReport.advancedAnalysis")}{' '}

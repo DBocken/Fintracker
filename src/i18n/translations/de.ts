@@ -440,6 +440,13 @@ export const de = {
         body: 'Eine ausgeblendete Buchung bleibt erhalten, zählt aber nicht mehr mit. Löschen steht daneben — und ist endgültig.',
       },
     },
+    transactionSplitPremium: {
+      name: 'Buchung aufteilen (Pro)',
+      teaser: {
+        title: 'Eine Buchung auf mehrere Kategorien aufteilen',
+        body: 'Der Großeinkauf war zur Hälfte Lebensmittel, zur Hälfte Drogerie — hier ließe er sich cent-genau trennen, damit deine Auswertung stimmt. Das gehört zu Pro; ohne Freischaltung bleibt die Buchung in einer Kategorie.',
+      },
+    },
     transactionSplit: {
       name: 'Buchung aufteilen',
       why: {
@@ -4465,7 +4472,19 @@ export const de = {
         benefit2: 'Plattform-Stresstest & Payout-Radar: Was, wenn ein Strom wegfällt? Wann kommt das nächste Geld?',
         benefit3: 'Income Wrapped als Jahresrückblick plus Steuer-Puffer-Hinweis.',
       },
+      specialCategories: {
+        title: 'Anlässe quer durch alle Kategorien',
+        eyebrow: 'Premium-Vorschau',
+        benefit1: 'Bündle Ausgaben zu einem Anlass – Urlaub, Umzug, Weihnachten.',
+        benefit2: 'Quer über alle Kategorien und Monate hinweg, ohne dein Budget zu stören.',
+        benefit3: 'Am Ende steht eine ehrliche Summe: Was hat es wirklich gekostet?',
+      },
     },
+  },
+
+  premiumTeaser: {
+    badge: 'Pro',
+    unlock: 'Freischalten',
   },
   accountDataQuality: {
     statusGood: 'Sehr gut',

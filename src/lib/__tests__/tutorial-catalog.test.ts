@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { buildTutorialCatalog, nextChapterOfSection } from '../tutorial-catalog';
+import { tutorialTitleKey } from '../tutorial-steps';
 import { TUTORIAL_STEPS } from '../tutorial-steps';
 import type { DataReadiness, TutorialChapterId } from '../tutorial-sequence';
 import { translations, SUPPORTED_LOCALES } from '@/i18n/translations';
@@ -159,6 +160,32 @@ describe('nextChapterOfSection', () => {
   });
 });
 
+describe('Aufteilen — genau ein Eintrag, nie zwei', () => {
+  it('sollte mit Zugang das vollstaendige Kapitel listen', () => {
+    const catalog = buildTutorialCatalog({ lifeSituation: null, readiness: ready });
+    const ids = section(catalog, '/transactions').chapters.map((c) => c.id);
+    expect(ids).toContain('transactionSplit');
+    expect(ids).not.toContain('transactionSplitPremium');
+  });
+
+  it('[REGRESSION] sollte ohne Zugang den Premium-Teaser listen statt zweimal „Aufteilen"', () => {
+    // Beide Kapitel tragen denselben Namensschluessel. Ohne die Zusammen-
+    // fassung im Katalog stuenden sie untereinander — einmal verfuegbar,
+    // einmal vertagt, beide gleich beschriftet.
+    const catalog = buildTutorialCatalog({
+      lifeSituation: null,
+      readiness: { ...ready, hasPremiumAccess: false },
+    });
+    const chapters = section(catalog, '/transactions').chapters;
+    const ids = chapters.map((c) => c.id);
+    expect(ids).toContain('transactionSplitPremium');
+    expect(ids).not.toContain('transactionSplit');
+    // Kein Doppel-Eintrag unter gleichem Namen.
+    const titles = chapters.map((c) => c.titleKey);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+});
+
 describe('Namen der Kapitel', () => {
   it('[REGRESSION] sollte für JEDES Kapitel mit Schritten einen Namen in allen Sprachen haben', () => {
     // `t()` gibt bei unbekanntem Schlüssel den Schlüssel zurück — in der
@@ -168,7 +195,11 @@ describe('Namen der Kapitel', () => {
     for (const chapter of Object.keys(TUTORIAL_STEPS) as TutorialChapterId[]) {
       if ((TUTORIAL_STEPS[chapter] ?? []).length === 0) continue;
       for (const locale of SUPPORTED_LOCALES) {
-        const key = `tutorial.${chapter}.name`;
+        // Ueber die Titel-Abbildung, nicht ueber die Namenskonvention: Ein
+        // Kapitel darf seinen Namen von woanders beziehen (`dashboard` nimmt
+        // `nav.items.dashboard`), und `transactionSplitPremium` teilt ihn mit
+        // dem Kapitel, das es vertritt.
+        const key = tutorialTitleKey(chapter);
         if (typeof resolve(locale, key) !== 'string') missing.push(`${locale}: ${key}`);
       }
     }
