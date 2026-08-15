@@ -27,7 +27,7 @@ export function KpiSection({ data }: { data: KpiComputeInput }) {
           <div className="text-sm font-semibold">{t('kpi.sectionTitle')}</div>
           <div className="text-xs text-muted-foreground">{t('kpi.sectionDescription')}</div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button data-tour-id="kpi-customize" variant="outline" size="sm" onClick={() => setOpen(true)}>
           <Settings2 className="mr-2 h-4 w-4" />
           {t('kpi.customizeButton')}
         </Button>

@@ -191,6 +191,27 @@ describe('buildCurriculum — Datenreife', () => {
     expect(next).not.toContain('income');
   });
 
+  it('sollte das Aufteilen genau einmal lehren — als Teaser ohne Zugang, als Kapitel mit', () => {
+    // Die beiden Kapitel sind gegenteilig bedingt. Liefen sie je zusammen,
+    // stünde dieselbe Sache zweimal in der Folge; liefe keines, fiele das
+    // Aufteilen für die eine Hälfte des Publikums lautlos ganz aus.
+    const ohneZugang = buildCurriculum({
+      enabledFeatures: ALL_FEATURES,
+      lifeSituation: 'employed_stable',
+      readiness: { ...fullyReady, hasPremiumAccess: false },
+    }).next;
+    expect(ohneZugang).toContain('transactionSplitPremium');
+    expect(ohneZugang).not.toContain('transactionSplit');
+
+    const mitZugang = buildCurriculum({
+      enabledFeatures: ALL_FEATURES,
+      lifeSituation: 'employed_stable',
+      readiness: fullyReady,
+    }).next;
+    expect(mitZugang).toContain('transactionSplit');
+    expect(mitZugang).not.toContain('transactionSplitPremium');
+  });
+
   it('sollte die Stadt schon nach einem kategorisierten Monat zeigen', () => {
     const { next } = buildCurriculum({
       enabledFeatures: ALL_FEATURES,
@@ -206,11 +227,14 @@ describe('buildCurriculum — Datenreife', () => {
       lifeSituation: 'employed_stable',
       readiness: fullyReady,
     });
-    // `csv` ist die einzige Ausnahme: Es lehrt den Datei-Import-Weg und ist
-    // nur relevant, solange es noch KEINE Buchung gibt — bei `fullyReady`
-    // bleibt es dauerhaft vertagt, nicht mangels Reife im üblichen Sinn,
-    // sondern weil sein Fenster (transactionCount === 0) vorbei ist.
-    expect(postponed).toEqual(['csv']);
+    // Zwei Ausnahmen, beide NICHT mangels Reife im üblichen Sinn, sondern
+    // weil ihre Bedingung eine Lage beschreibt statt eines Datenstands:
+    // - `csv` lehrt den Datei-Import-Weg und gilt nur, solange es noch KEINE
+    //   Buchung gibt — bei `fullyReady` ist sein Fenster vorbei.
+    // - `transactionSplitPremium` zeigt Freinutzern, DASS es das Aufteilen
+    //   gibt. `fullyReady` hat Zugang und bekommt statt des Teasers das
+    //   vollständige Kapitel `transactionSplit`.
+    expect(postponed).toEqual(['csv', 'transactionSplitPremium']);
   });
 
   it('sollte am ganz leeren Anfang nur die Weiche und den Ausgang zeigen', () => {

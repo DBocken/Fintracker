@@ -39,6 +39,7 @@ export type TutorialChapterId =
   | 'transactionsFilter'
   | 'transactionDetails'
   | 'transactionSplit'
+  | 'transactionSplitPremium'
   | 'dashboard'
   | 'city'
   | 'coach'
@@ -181,13 +182,29 @@ export const TUTORIAL_ORDER: readonly TutorialChapter[] = [
   ),
   chapter('transactionDetails', 'core', null, (r) => r.transactionCount >= 1),
   // Das Aufteilen steht hinter einer Tarif-Schranke (`FeatureGate
-  // splitTransactions`). Eine Fuehrung, die auf ein Schloss zeigt, verkauft
-  // statt zu erklaeren — deshalb laeuft dieses Kapitel nur mit Zugang.
+  // splitTransactions`) — deshalb laeuft dieses Kapitel nur mit Zugang.
   chapter(
     'transactionSplit',
     'core',
     null,
     (r) => r.hasPremiumAccess && r.transactionCount >= 1,
+  ),
+  // Dasselbe Thema fuer die andere Haelfte des Publikums, und zwar genau
+  // gegenteilig bedingt: EIN Schritt, der zeigt, dass es das Aufteilen gibt
+  // und dass es zu Pro gehoert. Frueher lief hier gar nichts, weil die
+  // gesperrte Funktion fuer Freinutzer nicht einmal gerendert wurde — seit
+  // `PremiumTeaser` steht dort ein sichtbares Element (AGENTS.md-Notiz zu
+  // `TutorialStep.premium`).
+  //
+  // Die Bedingung ist bewusst das Gegenteil und nicht etwa ein Schritt im
+  // Kapitel `transactionDetails`: Dort saehen ihn AUCH Premium-Nutzer, bei
+  // denen an der Stelle das echte Panel steht — der Schritt haette kein Ziel
+  // und behauptete zudem eine Schranke, die fuer sie nicht existiert.
+  chapter(
+    'transactionSplitPremium',
+    'core',
+    null,
+    (r) => !r.hasPremiumAccess && r.transactionCount >= 1,
   ),
 
   // Teil 2 — der Euro durch den Monat.
@@ -229,6 +246,21 @@ export const TUTORIAL_ORDER: readonly TutorialChapter[] = [
   chapter('export', 'closing', null, always),
   chapter('settings', 'closing', null, always),
 ];
+
+/**
+ * Kapitel, die **dasselbe** lehren wie ein anderes, nur für das andere
+ * Publikum — Schlüssel vertritt Wert. Heute genau ein Paar: Das Aufteilen
+ * läuft als vollständiges Kapitel mit Zugang und als einzelner Teaser-Schritt
+ * ohne. Die Bedingungen sind gegenteilig, es läuft also immer genau eines.
+ *
+ * Der Lehrplan braucht das nicht — die Bedingungen regeln ihn schon. Die
+ * **Übersicht** braucht es: Sie listet auch vertagte Kapitel (bewusst, siehe
+ * `tutorial-catalog.ts`), und ohne diese Paarung stünde dort zweimal das
+ * Aufteilen untereinander, einmal verfügbar und einmal vertagt.
+ */
+export const CHAPTER_SUBSTITUTES: Partial<Record<TutorialChapterId, TutorialChapterId>> = {
+  transactionSplitPremium: 'transactionSplit',
+};
 
 /** Kapitel, die in jeder Situation laufen (ohne den Abschluss). */
 export const CORE_CHAPTER_IDS: readonly TutorialChapterId[] = TUTORIAL_ORDER.filter(

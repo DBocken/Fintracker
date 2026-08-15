@@ -123,6 +123,9 @@ describe('useTutorialRun', () => {
     act(() => result.current.startSeries(['transactions', 'dashboard']));
     expect(result.current.chapter).toBe('transactions');
     expect(result.current.remaining).toBe(1);
+    // Damit die Darstellung am Kapitelende sagen kann, WOHIN „weiter" führt,
+    // statt nur pauschal „Weiter" anzubieten.
+    expect(result.current.nextChapter).toBe('dashboard');
 
     finishChapter(result);
 
@@ -173,6 +176,30 @@ describe('useTutorialRun', () => {
     expect(result.current.active).toBe(false);
     expect((await getLocalUserSettings()).tutorial_completed_chapters ?? []).not.toContain(
       'transactions',
+    );
+  });
+
+  it('[REGRESSION] sollte per finishAndEnd das laufende Kapitel abschließen, aber die Folge nicht fortsetzen', async () => {
+    // Der Unterschied zu `end`: Das eben gesehene Kapitel zählt trotzdem als
+    // abgeschlossen — nur die Fortsetzung entfällt. Ohne diese dritte
+    // Möglichkeit hätte man am Kapitelende nur „automatisch weiter" oder
+    // „auch das Gesehene zählt nicht".
+    const { result } = renderRun();
+    await waitFor(() => expect(result.current.upcoming).toBe('transactions'));
+
+    act(() => result.current.startSeries(['transactions', 'dashboard']));
+    expect(result.current.remaining).toBe(1);
+
+    act(() => result.current.finishAndEnd());
+
+    expect(result.current.active).toBe(false);
+    expect(result.current.chapter).toBeNull();
+    await waitFor(async () => {
+      expect((await getLocalUserSettings()).tutorial_completed_chapters).toContain('transactions');
+    });
+    // Das zweite Kapitel der Folge wurde NICHT gestartet.
+    expect((await getLocalUserSettings()).tutorial_completed_chapters ?? []).not.toContain(
+      'dashboard',
     );
   });
 

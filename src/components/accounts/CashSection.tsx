@@ -135,7 +135,11 @@ export function CashSection() {
               </Button>
             </div>
           ) : (
-            <Button onClick={() => createCashMutation.mutate()} disabled={createCashMutation.isPending}>
+            <Button
+              data-tour-id="accounts-add-cash"
+              onClick={() => createCashMutation.mutate()}
+              disabled={createCashMutation.isPending}
+            >
               <Plus className="mr-1.5 h-4 w-4" />
               {t('accounts.cashSection.createCashAccount')}
             </Button>

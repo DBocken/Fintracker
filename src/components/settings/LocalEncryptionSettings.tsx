@@ -269,6 +269,7 @@ export function LocalEncryptionSettings() {
 
         {!enabled ? (
           <Button
+            data-tour-id="encryption-setup"
             className="w-full bg-positive text-positive-foreground hover:bg-positive"
             onClick={handleEnable}
             disabled={busy || !password || password !== confirm || (isWeak && !acknowledgeWeak)}

@@ -58,6 +58,21 @@ export function TransactionDetailsModal({
 
   if (!transaction) return null;
 
+  // Ein von der Tutorial-Führung selbst geöffneter Dialog/Sheet
+  // (`transactionDetails.panel`/`transactionSplit.why`, `openAnchor`) sitzt
+  // NEBEN dem eigenen, freischwebenden Steuerungs-Popover der Führung
+  // (`TutorialOverlay`) — ein zweites, separates Radix-Portal. Ohne diese
+  // Ausnahme hält Radix jeden Klick dort für „außerhalb" und schließt zuerst
+  // NUR den Dialog, statt den Klick durchzulassen: „Weiter" bräuchte dann
+  // immer zwei Klicks, der erste zum Schließen, erst der zweite träfe den
+  // Knopf. `data-tutorial-controls` markiert genau diesen Popover
+  // (`TutorialOverlay`); alle anderen Außenklicks schließen wie gewohnt.
+  const allowTutorialInteraction = (event: { target: EventTarget | null; preventDefault: () => void }) => {
+    if ((event.target as HTMLElement | null)?.closest('[data-tutorial-controls]')) {
+      event.preventDefault();
+    }
+  };
+
   const panel = (layout: 'stacked' | 'split') => (
     <TransactionDetailsPanel
       transaction={transaction}
@@ -82,6 +97,7 @@ export function TransactionDetailsModal({
         <DialogContent
           className="max-h-[90dvh] overflow-y-auto scrollbar-subtle sm:max-w-5xl"
           aria-describedby={undefined}
+          onInteractOutside={allowTutorialInteraction}
         >
           <DialogHeader>
             <DialogTitle>{t('dashboard.transactionDetailsTitle')}</DialogTitle>
@@ -104,6 +120,7 @@ export function TransactionDetailsModal({
         // der beiden Breiten wäre ein Paritätsbruch (AGENTS.md §4) — dieselben
         // Daten, aber eine andere Auskunft je nach Bildschirm.
         aria-describedby={undefined}
+        onInteractOutside={allowTutorialInteraction}
       >
         <SheetHeader className="mb-2">
           <SheetTitle className="text-left">{t('dashboard.transactionDetailsTitle')}</SheetTitle>

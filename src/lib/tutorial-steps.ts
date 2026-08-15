@@ -48,6 +48,27 @@ export interface TutorialStep {
    * zwischen Führung und Textkasten aus (`TutorialOverlay`-Doku, Regel 3).
    */
   interactive?: boolean;
+  /**
+   * Der Schritt erklärt eine Funktion, die hinter der Premium-Schranke liegt.
+   *
+   * Das kehrt Regel 5 aus `docs/tutorial-script-transactions.md` bewusst um
+   * („Kein Schritt zeigt auf ein Schloss"). Die Regel entstand, weil ein
+   * solcher Schritt auf **nichts** zeigte: Gesperrte Funktionen wurden für
+   * Freinutzer gar nicht gerendert, die Führung hätte auf eine leere Stelle
+   * gedeutet. Seit `PremiumTeaser` steht dort ein sichtbares, ausgegrautes
+   * Element — der Schritt kann die Funktion also zeigen und dabei sagen, dass
+   * sie zu Pro gehört. `TutorialOverlay` umrandet ihn in `--premium` statt in
+   * Warnfarbe: „das gibt es, aber nur mit Pro" ist eine andere Aussage als
+   * „mach das jetzt" und darf nicht gleich aussehen.
+   */
+  premium?: boolean;
+}
+
+/** Zusatzeigenschaften eines Schritts — benannt, weil zwei Flags in Folge als
+ *  Positionsargumente (`undefined, true, undefined`) nicht mehr lesbar sind. */
+interface StepFlags {
+  interactive?: boolean;
+  premium?: boolean;
 }
 
 function step(
@@ -55,14 +76,15 @@ function step(
   route: string,
   anchor?: string,
   openAnchor?: string,
-  interactive?: boolean,
+  flags?: StepFlags,
 ): TutorialStep {
   return {
     id,
     route,
     ...(anchor ? { anchor } : {}),
     ...(openAnchor ? { openAnchor } : {}),
-    ...(interactive ? { interactive } : {}),
+    ...(flags?.interactive ? { interactive: true } : {}),
+    ...(flags?.premium ? { premium: true } : {}),
   };
 }
 
@@ -108,12 +130,12 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   ],
   categories: [
     step('why', '/transactions', 'transactions-first-row'),
-    step('assign', '/transactions', 'transactions-first-row', undefined, true),
+    step('assign', '/transactions', 'transactions-first-row', undefined, { interactive: true }),
   ],
 
   // Akt II — finden.
   transactionsFilter: [
-    step('search', '/transactions', 'transactions-search', undefined, true),
+    step('search', '/transactions', 'transactions-search', undefined, { interactive: true }),
     step('timerange', '/transactions', 'filter-timerange'),
     step('category', '/transactions', 'filter-category'),
     step('account', '/transactions', 'filter-account'),
@@ -138,10 +160,17 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
     step('visibility', '/transactions', 'detail-visibility'),
   ],
 
+  // Akt IV ohne Zugang — ein einziger Schritt am `PremiumTeaser`, der an der
+  // Stelle des Aufteilen-Panels steht. `openAnchor` oeffnet die Detailansicht
+  // wie im echten Kapitel, sonst gaebe es den Teaser noch gar nicht.
+  transactionSplitPremium: [
+    step('teaser', '/transactions', 'split-teaser', 'transactions-first-row', { premium: true }),
+  ],
+
   // Akt IV — aufteilen. Schritt 1 oeffnet das Panel selbst.
   transactionSplit: [
     step('why', '/transactions', 'split-panel', 'transactions-first-row'),
-    step('row', '/transactions', 'split-row', undefined, true),
+    step('row', '/transactions', 'split-row', undefined, { interactive: true }),
     step('addRow', '/transactions', 'split-add-row'),
     step('remaining', '/transactions', 'split-remaining'),
     step('fillRemaining', '/transactions', 'split-fill-remaining'),
@@ -150,11 +179,16 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   dashboard: [
     step('flow', '/dashboard', 'dashboard-flow'),
     step('period', '/dashboard', 'dashboard-flow'),
+    step('customize', '/dashboard', 'kpi-customize', undefined, { interactive: true }),
   ],
   city: [
     step('arrival', '/city', 'city-canvas'),
     step('districts', '/city', 'city-canvas'),
     step('growth', '/city', 'city-canvas'),
+    // Ohne Anker wie die meisten Sekundär-Schritte: Das Detail-Sheet öffnet
+    // sich erst durch einen 3D-Tap auf ein Gebäude, den die Führung nicht
+    // simulieren kann (kein DOM-Element zum Anklicken über `openAnchor`).
+    step('tap', '/city'),
   ],
   coach: [
     step('today', '/coach'),
@@ -163,6 +197,7 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   accounts: [
     step('balances', '/accounts'),
     step('realBalance', '/accounts'),
+    step('addCash', '/accounts', 'accounts-add-cash', undefined, { interactive: true }),
   ],
   income: [
     step('sources', '/income'),
@@ -176,6 +211,14 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   budgets: [
     step('tanks', '/budgets'),
     step('learning', '/budgets'),
+    step('create', '/budgets', 'budgets-add', undefined, { interactive: true }),
+    // Kein `openAnchor`: Anders als bei `transactionDetails.panel` gibt es
+    // keinen bereits gerahmten Schritt auf `budgets-first-tile`, den die
+    // Führung als „das hier anklicken" ausweisen könnte
+    // (`tutorial-steps.test.ts` verlangt das für jeden `openAnchor`). Der
+    // Bearbeiten-Knopf wird trotzdem benannt — sichtbar, sobald der Nutzer
+    // selbst eine Kachel öffnet.
+    step('edit', '/budgets', 'budgets-edit'),
   ],
   liquidity: [
     step('forecast', '/liquidity'),
@@ -187,11 +230,20 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   ],
   debts: [
     step('overview', '/debts'),
-    step('strategy', '/debts'),
+    // `strategy` hatte bislang keinen Anker; die Reiter Avalanche/Snowball
+    // (`debts-strategy`) existieren als konkretes Element auf der Seite.
+    step('strategy', '/debts', 'debts-strategy'),
+    step('create', '/debts', 'debts-add', undefined, { interactive: true }),
+    // Ohne Anker: Die Zuordnungs-Karte ist nur auf breiten Bildschirmen
+    // inline sichtbar (`hidden lg:block`), auf Mobil steckt sie im
+    // Detail-Sheet einer einzelnen Schuld — kein über beide Breiten
+    // stabiler Anker vorhanden (AGENTS.md §4, Plattform-Parität).
+    step('assignPayments', '/debts'),
   ],
   occasions: [
     step('crosscut', '/occasions'),
     step('total', '/occasions'),
+    step('create', '/occasions', 'occasions-create', undefined, { interactive: true }),
   ],
   netWorth: [
     step('stock', '/net-worth'),
@@ -212,15 +264,21 @@ export const TUTORIAL_STEPS: Partial<Record<TutorialChapterId, readonly Tutorial
   trading: [
     step('portfolio', '/trading'),
     step('valuation', '/trading'),
+    step('addPosition', '/trading', 'trading-add-position', undefined, { interactive: true }),
   ],
   export: [
     step('ownership', '/export'),
-    step('backup', '/export'),
+    // [REGRESSION] Zeigte bislang auf /export — dort gibt es gar keine
+    // Sicherungsfunktion. Die eigentliche Backup-Karte liegt unter
+    // /settings (`BackupManager`, in `EnhancedSettings` eingebunden).
+    step('backup', '/settings', 'backup-create'),
+    step('restore', '/settings', 'backup-restore'),
   ],
   settings: [
     step('areas', '/settings'),
     step('unlockAll', '/settings'),
     step('language', '/settings'),
+    step('encryption', '/settings', 'encryption-setup', undefined, { interactive: true }),
   ],
 };
 
@@ -245,6 +303,7 @@ const CHAPTER_NAME_KEYS: Partial<Record<TutorialChapterId, string>> = {
   transactionsFilter: 'tutorial.transactionsFilter.name',
   transactionDetails: 'tutorial.transactionDetails.name',
   transactionSplit: 'tutorial.transactionSplit.name',
+  transactionSplitPremium: 'tutorial.transactionSplitPremium.name',
   dashboard: 'nav.items.dashboard',
   city: 'nav.items.city',
   coach: 'nav.items.coach',

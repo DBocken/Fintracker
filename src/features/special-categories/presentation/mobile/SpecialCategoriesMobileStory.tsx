@@ -38,7 +38,7 @@ export function SpecialCategoriesMobileStory({ model, className, onCreate, onDel
       )}
 
       {onCreate ? (
-        <Button onClick={onCreate} className="w-full">
+        <Button data-tour-id="occasions-create" onClick={onCreate} className="w-full">
           <Plus className="mr-1 h-4 w-4" aria-hidden />
           {t('specialCategories.create')}
         </Button>

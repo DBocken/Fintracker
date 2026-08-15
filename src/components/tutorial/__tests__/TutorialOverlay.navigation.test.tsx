@@ -28,6 +28,7 @@ function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
     stepIndex: 0,
     stepCount: steps.length,
     upcoming: null,
+    nextChapter: null,
     teachable: [],
     remaining: 0,
     start: vi.fn(),
@@ -35,6 +36,7 @@ function makeRun(overrides: Partial<TutorialRun> = {}): TutorialRun {
     next: vi.fn(),
     back: vi.fn(),
     end: vi.fn(),
+    finishAndEnd: vi.fn(),
     ...overrides,
   };
 }

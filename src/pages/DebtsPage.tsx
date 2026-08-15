@@ -114,6 +114,7 @@ export default function DebtsPage() {
               {t('debts.debtsPage.scanLetters')}
             </Button>
             <Button
+              data-tour-id="debts-add"
               onClick={startCreate}
             >
               <Plus className="mr-1.5 h-4 w-4" />
@@ -369,7 +370,7 @@ export default function DebtsPage() {
                 </div>
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5" data-tour-id="debts-strategy">
                     <Label>{t('debts.debtsPage.strategyLabel')}</Label>
                     <Tabs value={strategy} onValueChange={(v) => setStrategy(v as PayoffStrategy)}>
                       <TabsList className="grid w-full grid-cols-2">

@@ -281,7 +281,7 @@ export function BackupManager() {
       </Card>
 
       <div className="grid min-w-0 gap-6 md:grid-cols-2">
-        <Card className="ui-card min-w-0">
+        <Card className="ui-card min-w-0" data-tour-id="backup-create">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5 text-brand" />
@@ -373,7 +373,7 @@ export function BackupManager() {
           </CardContent>
         </Card>
 
-        <Card className="ui-card min-w-0">
+        <Card className="ui-card min-w-0" data-tour-id="backup-restore">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-positive" />

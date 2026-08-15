@@ -25,6 +25,7 @@
 
 import {
   TUTORIAL_ORDER,
+  CHAPTER_SUBSTITUTES,
   belongsToApp,
   type CurriculumInput,
   type TutorialChapterId,
@@ -119,6 +120,22 @@ export function buildTutorialCatalog(input: CurriculumInput): TutorialCatalog {
       };
       byRoute.set(route, section);
       sections.push(section);
+    }
+
+    // Ein Kapitel, das ein anderes vertritt (`CHAPTER_SUBSTITUTES`), ist kein
+    // zweiter Lerninhalt, sondern derselbe für das andere Publikum. Gelistet
+    // wird das Kapitel, das für DIESEN Nutzer gilt; ist keines davon so weit,
+    // bleibt das zuerst gefundene stehen.
+    const family = CHAPTER_SUBSTITUTES[chapter.id] ?? chapter.id;
+    const twin = section.chapters.find(
+      (c) => (CHAPTER_SUBSTITUTES[c.id] ?? c.id) === family,
+    );
+    if (twin) {
+      if (twin.state === 'waiting' && entry.state !== 'waiting') {
+        section.chapters[section.chapters.indexOf(twin)] = entry;
+        if (entry.state === 'done') section.doneCount += 1;
+      }
+      continue;
     }
 
     section.chapters.push(entry);
