@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import LockedPreview from "@/components/premium/LockedPreview";
 import { FEATURES, type FeatureKey } from "@/lib/tier";
+import { getFeatureCopy } from "@/components/premium/feature-copy";
 import { useI18n } from "@/i18n/useI18n";
 
 /**
@@ -73,25 +74,6 @@ function PreviewMock({ feature }: { feature: FeatureKey }) {
         </div>
       );
   }
-}
-
-/**
- * Helper to fetch feature copy from translations.
- * Dynamically builds the copy object using the t() function.
- */
-function getFeatureCopy(
-  t: (key: string) => string,
-  feature: FeatureKey
-): { title: string; eyebrow: string; benefits: string[] } {
-  return {
-    title: t(`upsell.features.${feature}.title`),
-    eyebrow: t(`upsell.features.${feature}.eyebrow`),
-    benefits: [
-      t(`upsell.features.${feature}.benefit1`),
-      t(`upsell.features.${feature}.benefit2`),
-      t(`upsell.features.${feature}.benefit3`),
-    ],
-  };
 }
 
 interface PremiumUpsellProps {

@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
 import type { FeatureKey } from "@/lib/tier";
+import { getFeatureCopy } from "./feature-copy";
 
 interface PremiumTeaserProps {
   feature: FeatureKey;
@@ -51,8 +52,10 @@ export default function PremiumTeaser({
   className,
 }: PremiumTeaserProps) {
   const { t } = useI18n();
-  const title = t(`upsell.features.${feature}.title`);
-  const benefit = t(`upsell.features.${feature}.benefit1`);
+  // Gemeinsame Quelle mit `PremiumUpsell` — siehe `feature-copy.ts`, warum das
+  // hier nicht wiederholt wird.
+  const { title, benefits } = getFeatureCopy(t, feature);
+  const benefit = benefits[0];
 
   return (
     <Link
