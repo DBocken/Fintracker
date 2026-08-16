@@ -133,7 +133,7 @@ Drift-Absatz bereinigen.
 **Akzeptanz:** Region-Beleg liegt vor · `netlify.toml` existiert nicht mehr ·
 `security-headers.md` nennt nur noch eine Quelle der Wahrheit.
 
-### - [ ] WP 0.3 · [OPS] Supabase-Region feststellen und dokumentieren (BTR-S3) · S
+### - [x] WP 0.3 · [OPS] Supabase-Region feststellen und dokumentieren (BTR-S3) · S
 **Ziel:** Der Datenstandort des einzigen Auth-/Cloud-Anbieters ist eine
 dokumentierte Tatsache, keine Unbekannte.
 **Vorgehen:** 1. Region im Supabase-Dashboard feststellen. 2. Ergebnis ins
@@ -145,16 +145,24 @@ einholen.
 **Akzeptanz:** Registerzeile Supabase vollständig (Region, AVV-Status,
 Prüfdatum) · bei Nicht-EU existiert der Entscheidungseintrag.
 
-**Teilstand (WP 0.8):** Der Betreiber hat die Region als **Schweden** genannt;
-die Registerzeile trägt sie mit Prüfdatum. Damit liegt die Datenregion **in
-der EU**, und der Entscheidungspunkt „Phase 7 vorziehen" ist **nicht**
-ausgelöst — die Reihenfolge des Programms bleibt. Das Paket bleibt trotzdem
-offen: Es fehlen der **Beleg** unter `belege/` (Regel 7: ein [OPS]-Paket
-braucht einen Nachweis, eine mündliche Angabe ist keiner) und der
-**AVV-Status** (→ WP 0.9). Unberührt bleibt die Jurisdiktionsfrage: Supabase
-Inc. ist ein US-Unternehmen, und die ADR hat „EU-Region eines US-Anbieters
-genügt" ausdrücklich verworfen (CLOUD Act). Die Region senkt die
-Dringlichkeit, nicht die Notwendigkeit der Ablösung.
+**Erledigt.** Beleg: [`belege/wp-0.3-supabase-region.md`](belege/wp-0.3-supabase-region.md)
+(Dashboard-Auszug). Primary Database **North EU (Stockholm), `eu-north-1`**,
+Projekt-URL deckungsgleich mit Register und `integrations/supabase/client.ts`.
+Damit liegt die Datenregion **in der EU**, und der Entscheidungspunkt „Phase 7
+vorziehen" ist **nicht** ausgelöst — die Reihenfolge des Programms bleibt.
+Registerzeile trägt Region + Prüfdatum (2026-08-16); der **AVV-Status** bleibt
+bei WP 0.9. Unberührt bleibt die Jurisdiktionsfrage: Supabase Inc. ist ein
+US-Unternehmen, und die ADR hat „EU-Region eines US-Anbieters genügt"
+ausdrücklich verworfen (CLOUD Act) — die Region senkt die Dringlichkeit, nicht
+die Notwendigkeit der Ablösung.
+
+**Zwei Nebenbefunde aus demselben Auszug** (Details im Beleg): `No backups`
+und `No migrations`. Der erste widerlegt die BTR-10-Annahme „Supabase managed
+die wenigen Tabellen" — dort liegt die **Auth**, und WP 7.2 braucht sie als
+Quelle des ID-erhaltenden Imports. Der zweite: 17 Migrationsdateien im Repo,
+kein CI-Schritt wendet sie an. **Betreiber-Entscheidung (2026-08-16):** an
+Supabase wird nichts geändert; beide Lücken werden beim EU-Anbieter von
+vornherein vermieden und sind als Bauvorgaben in WP 6.2 eingetragen.
 
 ### - [ ] WP 0.4 · QR-Code lokal rendern (BTR-S4) · S
 **Ziel:** Die Bank-Requisition-URL verlässt das Gerät nicht mehr Richtung
