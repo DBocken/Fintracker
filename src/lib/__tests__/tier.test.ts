@@ -51,6 +51,41 @@ describe("deriveTier", () => {
     expect(deriveTier("unauthenticated", "premium")).toBe("premium");
   });
 
+  it("hebt mit Server-Entitlement auf premium an", () => {
+    expect(deriveTier("authenticated", null, false, "premium")).toBe("premium");
+  });
+
+  it("[SECURITY] lässt einen lokalen Override ein serverseitiges 'free' NICHT überstimmen", () => {
+    // Der Kern von WP 6.3. Solange Premium unverkäuflich war, durfte der
+    // lokale Override anheben — mit dem Kauf wird derselbe Code ein Bypass:
+    // Wer `ausgabentracker_tier_override_v1` auf "premium" setzt, bekäme
+    // sonst umsonst, was andere bezahlen.
+    expect(deriveTier("authenticated", "premium", false, "free")).toBe("free");
+  });
+
+  it("lässt den Override wirken, solange KEIN Serverurteil vorliegt", () => {
+    // `undefined` heisst: nicht angemeldet, Dienst nicht erreichbar oder noch
+    // nicht geladen. Dann bleibt der lokale Weg offen — sonst wäre die App
+    // offline plötzlich weniger wert, und das widerspräche local-first.
+    expect(deriveTier("authenticated", "premium", false, undefined)).toBe("premium");
+    expect(deriveTier("unauthenticated", "premium", false, undefined)).toBe("premium");
+  });
+
+  it("lässt den Demo-Modus vom Serverurteil unberührt", () => {
+    // Demo ersetzt die Daten durch Beispieldaten — wer sie ansieht, benutzt
+    // Premium nicht auf seinem echten Bestand. Das ist Try-before-buy, kein
+    // Bypass, und bleibt deshalb erlaubt.
+    expect(deriveTier("authenticated", null, true, "free")).toBe("premium");
+  });
+
+  it("stuft mit einem Serverurteil niemals ab", () => {
+    // Das Serverurteil ist eine ANHEBENDE Quelle wie die anderen. Ein 'free'
+    // vom Server macht aus einem Demo-Premium kein free — es verhindert nur,
+    // dass der Override anhebt.
+    expect(deriveTier("authenticated", null, false, "free")).toBe("free");
+    expect(deriveTier("unauthenticated", null, false, "free")).toBe("anonymous");
+  });
+
   it("schaltet im Demo-Modus Premium frei (Try-before-buy)", () => {
     // Demo startet anonym -> ohne Demo gesperrt, mit Demo voll.
     expect(deriveTier("unauthenticated")).toBe("anonymous");

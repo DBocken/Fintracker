@@ -27,6 +27,7 @@ const SpecialCategoriesPage = lazy(() => import("@/pages/SpecialCategoriesPage")
 const TaxReportPage = lazy(() => import("@/pages/TaxReportPage"));
 const EuerPage = lazy(() => import("@/pages/EuerPage"));
 const AnalysisPage = lazy(() => import("@/pages/AnalysisPage"));
+const BillingPage = lazy(() => import("@/pages/BillingPage"));
 const SimulationPage = lazy(() => import("@/pages/SimulationPage"));
 const TradingPage = lazy(() => import("@/pages/TradingPage"));
 const ContractsPage = lazy(() => import("@/pages/ContractsPage"));
@@ -201,6 +202,11 @@ function App() {
                 path="/premium"
                 element={<RouteGuard path="/premium"><AnalysisPage /></RouteGuard>}
               />
+              {/* Kauf-Flaeche. Bewusst OHNE RouteGuard: Wer noch nichts hat,
+                  muss hierher gelangen koennen — ein Gate vor der Kaufseite
+                  waere die Tuer, die man nur mit dem Schluessel oeffnet, den
+                  man dahinter kaufen will. */}
+              <Route path="/billing" element={<BillingPage />} />
               <Route
                 path="/simulation"
                 element={<RouteGuard path="/simulation"><SimulationPage /></RouteGuard>}

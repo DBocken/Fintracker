@@ -43,6 +43,12 @@ function neverSharedBase(): string[] {
 function categoriesBudgetsLabel(): string {
   return t("privacy.status.categoriesAndBudgets", "Kategorien & Budgets");
 }
+function billingLabel(): string {
+  return t(
+    "privacy.status.sharedBilling",
+    "Abo-Status (Kauf über Mollie, Niederlande — Kartendaten sehen wir nie)",
+  );
+}
 function mcpAggregatesLabel(): string {
   return t("privacy.status.mcpAggregates", "Finanz-Aggregate: Monatssummen, Budget- & Kategorienamen (MCP, Opt-in)");
 }
@@ -50,6 +56,16 @@ function mcpAggregatesLabel(): string {
 export interface PrivacyStatusInput {
   /** Ob auf diesem Gerät ein MCP-Cloud-Sync aktiv ist (cloud-mcp-sync-service). */
   mcpSyncActive?: boolean;
+  /**
+   * Ob ein Zahlungsweg eingerichtet ist (WP 6.3, stehende Regel Datenfluss).
+   *
+   * Der Abo-Status ist ein Server-Kontakt — und zwar auch dann, wenn niemand
+   * kauft: Die App fragt beim EntitlementService nach, ob eine Berechtigung
+   * besteht. Das gehört benannt, sobald es passiert, nicht erst wenn Geld
+   * fliesst. Ohne konfigurierten Dienst passiert es nicht, und dann steht es
+   * auch nicht da.
+   */
+  billingConfigured?: boolean;
 }
 
 export function derivePrivacyStatus(
@@ -81,6 +97,7 @@ export function derivePrivacyStatus(
   ];
   if (analyticsOptIn) shared.push(t("privacy.status.sharedAnalytics", "Aggregierte Statistik (verschlüsselt, Opt-in)"));
   if (mcpSyncActive) shared.push(mcpAggregatesLabel());
+  if (input.billingConfigured) shared.push(billingLabel());
 
   const serverContact: ServerContactLevel = analyticsOptIn ? "account_and_analytics" : "account";
   const labelParts = [
@@ -89,6 +106,7 @@ export function derivePrivacyStatus(
   ];
   if (analyticsOptIn) labelParts.push(t("privacy.status.labelPartAnalytics", "aggregierte Statistik (Opt-in)"));
   if (mcpSyncActive) labelParts.push(t("privacy.status.labelPartMcp", "Finanz-Aggregate (MCP, Opt-in)"));
+  if (input.billingConfigured) labelParts.push(t("privacy.status.labelPartBilling", "Abo-Status"));
 
   return {
     serverContact,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { NAV_GROUPS, ROUTE_GUARDS } from '@/components/layout/nav-config';
-import { deriveTier, FEATURES, hasFeatureAccess } from '../tier';
+import { deriveTier, FEATURES, getTierOverride, hasFeatureAccess, TIER_OVERRIDE_KEY } from '../tier';
 
 beforeEach(() => localStorage.clear());
 
@@ -27,6 +27,24 @@ describe('[SECURITY] premium route authorization', () => {
     localStorage.setItem('alpha_code', 'alphatester');
     expect(deriveTier('authenticated')).toBe('free');
     expect(hasFeatureAccess(deriveTier('authenticated'), 'premiumAnalytics')).toBe(false);
+  });
+
+  it('der WIRKSAME Override-Schlüssel überstimmt ein serverseitiges "free" nicht', () => {
+    // Der Test darüber setzt `tier`, `premium` und `alpha_code` — Schlüssel,
+    // die die Ableitung noch nie gelesen hat. Er bestand also, ohne den
+    // einzigen zu prüfen, der wirklich wirkt: TIER_OVERRIDE_KEY.
+    //
+    // Genau hier lag der Bypass: Solange Premium unverkäuflich war, war das
+    // dokumentierte Absicht. Mit dem Kauf wird derselbe Code zur offenen Tür.
+    localStorage.setItem(TIER_OVERRIDE_KEY, 'premium');
+    const override = getTierOverride();
+    expect(override).toBe('premium'); // der Schlüssel wirkt tatsächlich …
+
+    // … aber nicht gegen ein Serverurteil.
+    expect(deriveTier('authenticated', override, false, 'free')).toBe('free');
+    expect(
+      hasFeatureAccess(deriveTier('authenticated', override, false, 'free'), 'premiumAnalytics'),
+    ).toBe(false);
   });
 
   it('während Auth-Laden gilt weiterhin das restriktivste Tier', () => {

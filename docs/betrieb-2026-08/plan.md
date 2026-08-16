@@ -669,7 +669,7 @@ damit ausgerechnet `api.mollie.com` übersehen. Der Wächter prüft den Baum
 jetzt mit; die Registerzeile für Mollie steht (Status: Code vorhanden,
 Testmodus, nicht scharf).
 
-### - [ ] WP 6.3 · Client-Anbindung: `deriveTier` liest Server-Entitlements (BTR-8) · S
+### - [x] WP 6.3 · Client-Anbindung: `deriveTier` liest Server-Entitlements (BTR-8) · S
 **Ziel:** `FeatureGate`/`RouteGuard` bleiben unverändert — nur die Quelle des
 Tiers wird echt.
 **Vorgehen (Test-First):** 1. Entitlement-Abfrage über TanStack Query
@@ -682,6 +682,44 @@ Server-Fakt nicht).
 überstimmt Server nicht" · Offline-Verhalten getestet und benannt ·
 [#52](https://github.com/DBocken/Fintracker/issues/52) durch
 [#306](https://github.com/DBocken/Fintracker/issues/306) ersetzt (Verweis dort).
+
+**Erledigt.** `deriveTier` hat eine vierte Quelle; `FeatureGate`/`RouteGuard`
+blieben unverändert, wie das Paket es verlangt. Die Slice `features/billing/`
+trägt den **Kauf**, die Berechtigung selbst liest `useServerEntitlement` in
+`src/hooks/` — sie gattert jedes Feature und ist damit Infrastruktur, nicht
+Besitz einer Slice. Läge die Abfrage dort, müsste `useTier` eine Slice
+importieren, um zu wissen, was ein Nutzer darf.
+
+Neue Route **`/billing`** (nicht `/premium` — das ist die Analyse-Fläche),
+bewusst **ohne** `RouteGuard`: Ein Gate vor der Kaufseite wäre die Tür, die
+man nur mit dem Schlüssel öffnet, den man dahinter kaufen will. Der Kauf-CTA
+in `PremiumUpsell` zeigt seither dorthin statt auf `/settings`.
+
+**Der Bypass ist geschlossen — mit einer Folge, die benannt gehört.** Ein
+lokaler Override kann ein serverseitiges „kein Abo" nicht mehr überstimmen.
+Damit verliert der `alphatester`-Code seine Wirkung, sobald der Dienst
+erreichbar ist — genau wie WP 6.2 es vorsieht („Quellen `mollie`, `promo`,
+`admin` (löst den `alphatester`-Hardcode ab)"). **Bestehende Alpha-Tester
+brauchen vor dem Deployment eine `promo`-Zeile**, sonst stehen sie am Tag der
+Inbetriebnahme ohne Premium da. Heute ändert sich nichts: Ohne konfigurierten
+Dienst gibt es kein Serverurteil, und alles bleibt wie zuvor.
+
+Ein Entwurfsfehler fiel dabei durch den eigenen Test auf: Ein serverseitiges
+`"free"` hob einen **anonymen** Nutzer auf `free` an — und damit auf
+Funktionen, die ein Konto voraussetzen. Der Server sagt nur, *ob* eine
+Berechtigung besteht; den Basis-Tier bestimmt allein der Auth-Status.
+
+**Offline** bleibt die App vollständig nutzbar: Ein Dienstausfall ergibt
+`unknown`, nicht `none` — „ich weiss es nicht" als „du hast kein Abo"
+auszugeben, wäre gegenüber einem zahlenden Nutzer die falsche Auskunft und
+würde zusätzlich den lokalen Override sperren.
+
+**Regel 8 (Datenfluss):** Anbieter-Register und Datenschutztext sind
+nachgezogen (`privacy-status.ts` weist den Abo-Status als Server-Kontakt aus,
+sobald ein Zahlungsweg konfiguriert ist). Die **CSP bleibt vorerst
+unverändert** — der Entitlement-Host existiert noch nicht (WP 3.2), und die
+Adresse kommt zur Laufzeit aus `VITE_ENTITLEMENT_BASE_URL`. Sie muss mit dem
+Deployment in `connect-src`; ohne sie blockt die CSP die erste Abfrage.
 
 ---
 
