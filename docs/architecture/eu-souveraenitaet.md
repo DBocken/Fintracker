@@ -5,8 +5,11 @@ Betreiber-Vorgabe zum Betriebsprogramm (`docs/betrieb-2026-08/`), geprüft und
 ausgeformt im dortigen [`audit.md`](../betrieb-2026-08/audit.md). Die
 gepflegte Anbieterliste steht **nicht** hier, sondern im lebenden
 [`Anbieter-Register`](../security/anbieter-register.md) — diese ADR trägt die
-Regel, das Register den Stand. Durchgesetzt ab WP 0.8 durch
-`pnpm check:external-endpoints`.
+Regel, das Register den Stand. **Durchgesetzt seit WP 0.8** durch
+`pnpm check:external-endpoints` (Pre-Commit + CI) — und zwar in beide
+Richtungen: kein unerklärter Host im Code, keine aktive Registerzeile ohne
+Fundstelle. Damit ist der Satz weiter unten („Eine Anbieterregel ohne Wächter
+ist eine Absichtserklärung") keine Mahnung mehr, sondern erledigt.
 
 ## Kontext
 

@@ -125,6 +125,15 @@ jobs:
       - name: Sanfter Modus (unmaskierte Betraege)
         run: pnpm check:money-format
 
+      # „Eine Anbieterregel ohne Waechter ist eine Absichtserklaerung" (ADR
+      # eu-souveraenitaet.md). Prueft beide Richtungen: jeder Host im
+      # Produktivcode ist im Anbieter-Register erklaert, und jede aktive
+      # Registerzeile kommt im Code oder in der CSP vor — ein Register, das
+      # einen Anbieter fuehrt, den es nicht mehr gibt, ist die Faktenbasis
+      # fuer VVT und Datenschutztext und damit schlimmer als keines.
+      - name: EU-Regel (externe Endpunkte gegen das Anbieter-Register)
+        run: pnpm check:external-endpoints
+
       - name: i18n-Check (Diff)
         run: |
           git fetch origin main

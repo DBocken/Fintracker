@@ -343,6 +343,18 @@ haltbar. Der Restore-Cron meldet sich per Dead-Man-Prinzip (Alarm beim
 **Entscheidung:** WP 3.3 (ab erstem Dienst), WP 7.6 (WAL + volle
 Restore-Verifikation mit eigener DB, quartalsweise DR-Übung).
 
+**Nachtrag 2026-08-16 (WP 0.3):** Der Satz „Supabase managed die wenigen
+Tabellen" oben ist **falsch** — das Dashboard zeigt `Last Backup: No backups`
+(Beleg: [`belege/wp-0.3-supabase-region.md`](belege/wp-0.3-supabase-region.md)).
+Der Befund unterschätzt damit den Bestand in zwei Punkten: Es gibt bereits
+serverseitigen Zustand, der zählt — vor allem die **Auth** (Konten,
+bcrypt-Hashes) —, und für ihn sorgt niemand vor. WP 7.2 setzt genau diesen
+Bestand als Exportquelle für den ID-erhaltenden Import voraus. Die
+Betreiber-Entscheidung vom selben Tag lautet: an Supabase nichts ändern, die
+Lücke beim EU-Anbieter gar nicht erst entstehen lassen (Bauvorgaben in WP 6.2).
+Die Regel „vom ersten Tag an" bleibt unverändert richtig — sie galt nur früher,
+als dieser Befund annahm.
+
 ---
 
 ## Anbieter-Ist-Landschaft (Momentaufnahme)

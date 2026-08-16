@@ -133,7 +133,7 @@ Drift-Absatz bereinigen.
 **Akzeptanz:** Region-Beleg liegt vor · `netlify.toml` existiert nicht mehr ·
 `security-headers.md` nennt nur noch eine Quelle der Wahrheit.
 
-### - [ ] WP 0.3 · [OPS] Supabase-Region feststellen und dokumentieren (BTR-S3) · S
+### - [x] WP 0.3 · [OPS] Supabase-Region feststellen und dokumentieren (BTR-S3) · S
 **Ziel:** Der Datenstandort des einzigen Auth-/Cloud-Anbieters ist eine
 dokumentierte Tatsache, keine Unbekannte.
 **Vorgehen:** 1. Region im Supabase-Dashboard feststellen. 2. Ergebnis ins
@@ -144,6 +144,25 @@ einholen.
 **Wächter:** wiederkehrende Prüfung (halbjährlich, Termin im Register).
 **Akzeptanz:** Registerzeile Supabase vollständig (Region, AVV-Status,
 Prüfdatum) · bei Nicht-EU existiert der Entscheidungseintrag.
+
+**Erledigt.** Beleg: [`belege/wp-0.3-supabase-region.md`](belege/wp-0.3-supabase-region.md)
+(Dashboard-Auszug). Primary Database **North EU (Stockholm), `eu-north-1`**,
+Projekt-URL deckungsgleich mit Register und `integrations/supabase/client.ts`.
+Damit liegt die Datenregion **in der EU**, und der Entscheidungspunkt „Phase 7
+vorziehen" ist **nicht** ausgelöst — die Reihenfolge des Programms bleibt.
+Registerzeile trägt Region + Prüfdatum (2026-08-16); der **AVV-Status** bleibt
+bei WP 0.9. Unberührt bleibt die Jurisdiktionsfrage: Supabase Inc. ist ein
+US-Unternehmen, und die ADR hat „EU-Region eines US-Anbieters genügt"
+ausdrücklich verworfen (CLOUD Act) — die Region senkt die Dringlichkeit, nicht
+die Notwendigkeit der Ablösung.
+
+**Zwei Nebenbefunde aus demselben Auszug** (Details im Beleg): `No backups`
+und `No migrations`. Der erste widerlegt die BTR-10-Annahme „Supabase managed
+die wenigen Tabellen" — dort liegt die **Auth**, und WP 7.2 braucht sie als
+Quelle des ID-erhaltenden Imports. Der zweite: 17 Migrationsdateien im Repo,
+kein CI-Schritt wendet sie an. **Betreiber-Entscheidung (2026-08-16):** an
+Supabase wird nichts geändert; beide Lücken werden beim EU-Anbieter von
+vornherein vermieden und sind als Bauvorgaben in WP 6.2 eingetragen.
 
 ### - [ ] WP 0.4 · QR-Code lokal rendern (BTR-S4) · S
 **Ziel:** Die Bank-Requisition-URL verlässt das Gerät nicht mehr Richtung
@@ -195,7 +214,7 @@ da). 3. Beleg: abgelehnter Request von fremder Origin.
 **Akzeptanz:** Suffix-Default im Code entfernt/gekapselt mit Test · Beleg
 der Ablehnung · Register nennt die erlaubten Origins.
 
-### - [ ] WP 0.8 · Wächter `check:external-endpoints` (BTR-2, EU-Regel) · S/O
+### - [x] WP 0.8 · Wächter `check:external-endpoints` (BTR-2, EU-Regel) · S/O
 **Ziel:** Die EU-Regel hat einen Wächter: Jeder externe Host im Quelltext ist
 im Anbieter-Register erklärt — sonst rot. „Ein Versprechen ohne Wächter ist
 eine Absichtserklärung."
@@ -211,6 +230,20 @@ bestätigen — Abweichungen werden im Register korrigiert, nicht im Wächter
 weggefiltert.
 **Akzeptanz:** Wächter in Pre-Commit + CI · absichtlich eingefügter fremder
 Host macht ihn nachweislich rot (Testfall) · Erstlauf grün gegen das Register.
+
+**Erledigt.** Der Erstlauf war nicht grün, sondern hat sechs echte Abweichungen
+gefunden — alle im Register korrigiert, keine im Wächter weggefiltert:
+`gocardless.com` (Redirect-Suffix in `safe-url.ts`, entscheidet über *jedes*
+Redirect-Ziel) und `vercel.app` (Origin-Suffix in zwei Edge Functions, lässt
+**jede** Vercel-App als Origin zu) sind jetzt als Breite an ihrer jeweiligen
+Anbieterzeile dokumentiert; `ausgabentracker.de`/`docs.ausgabentracker.de`
+haben eine Zeile unter „Zu entfernen" mit Weg → WP 6.1 (eine Randnotiz ist
+keine Registerzeile). Drei Fundstellen waren Fehler des Wächters selbst und
+sind als benannte Grenzen behoben: Binärdateien (`background.png` meldete
+`trufo.ai` aus XMP-Metadaten), Bezeichner-URIs (`$schema`, `xmlns`) und die
+Dateiendungs-Heuristik, die `esm.sh` verwarf, weil `.sh` zugleich ccTLD und
+Shell-Endung ist — sie greift seither nur beim blanken Literal, nie hinter
+`https://`.
 
 ### - [ ] WP 0.9 · [OPS] AVV-Bestand und VVT-Erstfassung (BTR-S11) · O
 **Ziel:** Die DSGVO-Grundpflichten stehen auf der Faktenbasis des Registers:
