@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { getAccessToken } from './auth-service'
 import { bankConnectionService, type CreateBankConnectionParams } from './bank-connection-service'
 import { t } from '@/i18n/serviceT'
 
@@ -91,6 +92,19 @@ function parseError(error: unknown): GoCardlessError {
   return err
 }
 
+/**
+ * Wirft, wenn niemand angemeldet ist (WP 2.2).
+ *
+ * Lag bis hierher fünfmal wortgleich als `supabase.auth.getSession()` in den
+ * Methoden — fünf Aufrufstellen, die der Anbieterwechsel einzeln anfassen
+ * müsste. Der Token selbst wird nicht weitergereicht: `functions.invoke`
+ * hängt ihn selbst an; geprüft wird hier nur, DASS eine Sitzung besteht.
+ */
+async function assertAuthenticated(): Promise<void> {
+  const token = await getAccessToken()
+  if (!token) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+}
+
 export class GoCardlessService {
   private static instance: GoCardlessService
 
@@ -102,8 +116,7 @@ export class GoCardlessService {
   }
 
   async getInstitutions(country: string = 'DE'): Promise<Institution[]> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+    await assertAuthenticated()
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -119,8 +132,7 @@ export class GoCardlessService {
   }
 
   async createRequisition(institutionId: string, redirectUrl: string): Promise<Requisition> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+    await assertAuthenticated()
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -137,8 +149,7 @@ export class GoCardlessService {
   }
 
   async getTransactions(requisitionId: string, accountId: string, dateFrom: string, dateTo: string): Promise<Transaction[]> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+    await assertAuthenticated()
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -157,8 +168,7 @@ export class GoCardlessService {
   }
 
   async getAccounts(requisitionId: string): Promise<{ requisition: Requisition; accounts: (Record<string, unknown> & { balances?: GoCardlessBalance[] })[] }> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+    await assertAuthenticated()
 
     const response = await supabase.functions.invoke('gocardless-sync', {
       body: {
@@ -179,8 +189,7 @@ export class GoCardlessService {
     redirectUrl: string,
     institutionBic?: string
   ): Promise<Requisition> {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error(t('gocardlessService.notAuthenticated', 'Not authenticated'))
+    await assertAuthenticated()
 
     const requisition = await this.createRequisition(institutionId, redirectUrl)
 

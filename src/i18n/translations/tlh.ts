@@ -2921,6 +2921,9 @@ export const tlh = {
     loggedOutOnly: "bImejpu'",
     loginSuccess: "Qapla'! bIpawpu'",
     sessionCheckError: "paw lughmoHlaHbe'",
+    logoutFailed: "mejlaHbe'.",
+    logoutDataHint: "jIH De' Huch tu'lu' jan. jan latlh, De' yIQaw'.",
+    wipeLocalDataHint: "Hoch De' Qaw': ngIq, Huchpol, bIq, chu'wI'. Qaw'lu'be' backup 'ej cloud.",
   },
   liveBalance: {
     notAuthenticated: "ngu'lu'be'.",
@@ -4172,6 +4175,7 @@ export const tlh = {
   },
   authService: {
     notSignedIn: "'elpu'be'. wa'DIch yI'el.",
+    signOutFailed: "mejlaHbe'.",
   },
   automationSuggestionServiceLib: {
     defaultCategoryDescription: "De'wI' tu'ta'bogh buP wIvghach",

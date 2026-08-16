@@ -3333,6 +3333,9 @@ export const de = {
     loggedOutOnly: 'Abgemeldet',
     loginSuccess: 'Erfolgreich angemeldet',
     sessionCheckError: 'Anmeldung konnte nicht geprüft werden',
+    logoutFailed: 'Abmelden fehlgeschlagen',
+    logoutDataHint: 'Deine Finanzdaten liegen lokal auf diesem Gerät. Auf einem fremden oder geteilten Gerät solltest du sie beim Abmelden löschen.',
+    wipeLocalDataHint: 'Entfernt alle lokal gespeicherten Transaktionen, Konten, Schulden und Einstellungen. Bereits angelegte Backups oder die Cloud bleiben unberührt.',
   },
   liveBalance: {
     notAuthenticated: 'Nicht angemeldet.',
@@ -4666,6 +4669,7 @@ export const de = {
   },
   authService: {
     notSignedIn: 'Nicht angemeldet. Bitte zuerst einloggen.',
+    signOutFailed: 'Abmelden fehlgeschlagen.',
   },
   automationSuggestionServiceLib: {
     defaultCategoryDescription: 'Automatisch erkannter Kategorievorschlag',
