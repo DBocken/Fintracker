@@ -43,9 +43,9 @@ function remove(key: string) {
 
 export function useKpiPreferences() {
   const qc = useQueryClient();
-  const { status, user } = useAuth();
-  const isAuthed = status === "authenticated" && !!user?.id;
-  const userId = user?.id ?? "guest";
+  const { status, identity } = useAuth();
+  const isAuthed = status === "authenticated" && !!identity?.userId;
+  const userId = identity?.userId ?? "guest";
 
   const LS_CACHE = useMemo(() => `ausgabentracker_kpi_prefs_cache_v1__${userId}`, [userId]);
   const LS_PENDING = useMemo(() => `ausgabentracker_kpi_prefs_pending_v1__${userId}`, [userId]);

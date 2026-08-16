@@ -344,7 +344,7 @@ Verhaltensbruch für frische Installationen (`fresh-start`-Tests unverändert).
 
 ## Phase 2 — Identity-Entkopplung (in-Repo) · [#302](https://github.com/DBocken/Fintracker/issues/302)
 
-### - [ ] WP 2.1 · `Identity`-Modell mit stabiler userId (BTR-3) · O/S
+### - [x] WP 2.1 · `Identity`-Modell mit stabiler userId (BTR-3) · O/S
 **Ziel:** Die App kennt eine eigene Identität — das IdP-Subject ist ein
 Detail des Anbieters.
 **Vorgehen (Test-First):** 1. `src/lib/identity.ts`: `Identity`
@@ -357,6 +357,30 @@ Verhalten unverändert (Tests der Konsumenten bleiben grün).
 **Akzeptanz:** Kein `import type { Session, User } from
 "@supabase/supabase-js"` außerhalb der Naht · Konsumententests grün ·
 Zuordnungsregel dokumentiert im ADR-Verweis.
+
+**Erledigt.** `src/lib/identity.ts` trägt `Identity { userId, email?, claims }`
+und mit `userIdFromSubject()` die Zuordnungsregel (heute 1:1). Der einzige
+`@supabase/supabase-js`-Import unter `src/` steht jetzt in
+`integrations/supabase/client.ts` — `AuthProvider` kommt ohne Anbietertypen
+aus, weil er strukturell typisiert, was er braucht, statt zu importieren, was
+Supabase liefert.
+
+Zwei Befunde am Rand, beide beim Umstellen aufgefallen:
+
+- **`session` las kein einziger Konsument.** Es stand im Kontext und wurde von
+  acht `useAuth()`-Stellen nie angefasst. Ein ungenutzter Export ist keine
+  Schnittstelle, sondern eine Einladung — er ist mit raus, was die
+  Supabase-Fläche zusätzlich verkleinert.
+- **Die Anzeigenamen-Auswahl lag doppelt** (`UserQuickProfile`,
+  `ProfileDialogContent`), beide Male mit `as string` auf `user_metadata` —
+  einem Wert, den der Anbieter liefert und dessen Form niemand zusichert. Sie
+  liegt jetzt als `displayNameFromIdentity()` in `lib/` und **prüft**, statt zu
+  behaupten. Getestet war sie vorher an keiner Stelle; jetzt durch sechs
+  Einheitentests plus einen `[REGRESSION]`-Test an der Oberfläche.
+
+Der Ersatztext („Unbekannter Nutzer") bleibt bewusst in der Komponente: Er ist
+Bildschirmtext und gehört über `t()` (§6), nicht in ein lib-Modul ohne
+React-Kontext.
 
 ### - [ ] WP 2.2 · Eine Naht: `auth-service` kapselt Token, Login, Logout, Deep-Link (BTR-3) · S
 **Ziel:** `supabase.auth` existiert nur noch an einer Stelle (plus

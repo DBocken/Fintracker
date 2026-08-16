@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { User as UserIcon, LogIn } from "lucide-react";
 import ProfileDialogContent from "@/components/ProfileDialogContent";
 import { useI18n } from "@/i18n/useI18n";
+import { displayNameFromIdentity } from "@/lib/identity";
 
 function getInitials(name: string) {
   return name
@@ -22,22 +23,18 @@ function getInitials(name: string) {
  * hier zusammengeführt, damit es nur EINEN Ort fürs Profil gibt.
  */
 export default function UserQuickProfile() {
-  const { user } = useAuth();
+  const { identity } = useAuth();
   const { t } = useI18n();
 
-  const displayName = useMemo(() => {
-    return (
-      (user?.user_metadata?.full_name as string) ||
-      (user?.user_metadata?.name as string) ||
-      user?.email ||
-      t('userProfile.unknownUser')
-    );
-  }, [user, t]);
+  const displayName = useMemo(
+    () => displayNameFromIdentity(identity) ?? t('userProfile.unknownUser'),
+    [identity, t],
+  );
 
   const initials = getInitials(displayName);
 
   // Anonymer Modus: Login-Einstieg statt Profil (Issue #26/#28)
-  if (!user) {
+  if (!identity) {
     return (
       <Button asChild variant="outline" size="sm" aria-label={t('userProfile.login')} title={t('userProfile.login')}>
         <Link to="/login">
