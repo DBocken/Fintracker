@@ -42,12 +42,15 @@ jobs:
       # `--config` explizit: osv-scanner.toml würde am Lockfile-Ort auch
       # automatisch gefunden, aber explizit heißt, dass ein Tippfehler im Pfad
       # den Lauf abbricht statt die dokumentierten Ausnahmen still zu ignorieren.
-      # Beide committeten Lockdateien werden gescannt — mcp-poc ist kein
-      # Workspace-Member, seine Abhängigkeiten sind aber genauso im Repo und
-      # werden von jedem installiert, der den PoC startet.
+      # Alle committeten Lockdateien werden gescannt — weder mcp-poc noch
+      # services/entitlements sind Workspace-Member, ihre Abhängigkeiten sind
+      # aber genauso im Repo und werden von jedem installiert, der sie startet.
+      # Der EntitlementService (WP 6.2) wiegt dabei schwerer als der PoC: Er
+      # hält Berechtigungen und spricht mit dem Zahlungsdienstleister.
       - name: pnpm-Lockfiles gegen OSV-Advisories scannen
         run: |
           $(go env GOPATH)/bin/osv-scanner scan source \
             --lockfile=pnpm-lock.yaml \
             --lockfile=mcp-poc/pnpm-lock.yaml \
+            --lockfile=services/entitlements/pnpm-lock.yaml \
             --config=osv-scanner.toml

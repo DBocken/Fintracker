@@ -23,6 +23,14 @@ describe('istZuPruefen', () => {
     expect(istZuPruefen('index.html')).toBe(true);
   });
 
+  it('sollte auch eigenständige Dienste unter services/ prüfen', () => {
+    // WP 6.2: Der EntitlementService liegt als eigenes Paket ausserhalb von
+    // src/ — ausgerechnet er spricht mit dem Zahlungsdienstleister. Ein
+    // eigener Install macht ihn nicht zu weniger Produktivcode.
+    expect(istZuPruefen('services/entitlements/src/adapters/mollie-client.ts')).toBe(true);
+    expect(istZuPruefen('services/entitlements/__tests__/routes.test.ts')).toBe(false);
+  });
+
   it('sollte Tests nicht prüfen — dort sind fremde Hosts der Zweck', () => {
     // `gocardless.com.evil.tld` ist in safe-url.security.test.ts genau das,
     // was der Test beweisen soll. Ein Wächter, der ihn meldet, verlangt, den

@@ -34,6 +34,7 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 | `github.com` | GitHub (Microsoft) | US | Entwicklung | Quellcode, CI, Issues — kein Endnutzer-Datenkontakt | entfällt | aktiv; **Spiegel-Pflicht → WP 3.1** | 2026-08-10 |
 | `schufa.de` · `caritas.de` · `diakonie.de` · `verbraucherzentrale.de` · `rechtsdienstleistungsregister.de` | diverse | DE | Link | Beratungs-/Auskunfts-Links, nutzerinitiiert, kein Datenfluss | entfällt | aktiv | 2026-08-10 |
 | `deno.land` · `esm.sh` | Deno Land Inc. / esm.sh | US | Entwicklung (Code-CDN) | Laufzeit-Importe der fünf Supabase Edge Functions (std lib, supabase-js) — kein Nutzerdatenkontakt, aber Lieferketten-Abhängigkeit | entfällt | aktiv; entfällt mit der Portierung (WP 7.4) | 2026-08-10 |
+| `api.mollie.com` | Mollie B.V. | **NL (EU)**, DNB-beaufsichtigt | Subprozessor | Zahlungen (PSP). Aufruf **ausschliesslich serverseitig** aus dem EntitlementService; der API-Key existiert nur dort. **Kartendaten sehen wir nie** — der Kauf läuft über Mollies gehostete Checkout-Seite, der Browser wird dorthin weitergeleitet. Gespeichert werden nur Statusfakten (`validUntil`, Produkt, Mollie-Kennungen), kein Betrag, keine Kartendaten, kein Zahlungsverlauf | AVV: **ausstehend → WP 6.1** | **Code vorhanden, noch nicht scharf** — Testmodus, kein Deployment. Echtbetrieb erst mit WP 6.1 (Konto, AVV, USt/OSS, Rechtstexte) und dem EU-Host aus WP 3.2 | 2026-08-16 |
 
 ## Zu entfernen (Befunde, keine Absicht)
 
@@ -51,7 +52,6 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 | OVHcloud **oder** Scaleway (Entscheid bei WP 3.3) | FR | Subprozessor | Zweitanbieter: Offsite-Backups (restic), Uptime-Überwachung | WP 3.3/3.4 |
 | Codeberg e.V. | DE | Entwicklung | Git-Spiegel | WP 3.1 |
 | EU-Registry (Eigenbetrieb auf VM oder EU-Anbieter, Entscheid bei WP 3.1) | EU | Entwicklung | Container-/Artefakt-Registry | WP 3.1 |
-| Mollie B.V. | NL | Subprozessor | Zahlungen (PSP; Kartendaten nie bei uns) | Phase 6 |
 | EU-SMTP (Entscheid bei WP 7.1) | EU | Subprozessor | Auth-/Transaktionsmails des self-hosted IdP | WP 7.1 |
 | self-hosted IdP (Entscheid bei WP 7.1 gegen Kriterienkatalog WP 2.4) | EU (Eigenbetrieb) | ersetzt Supabase-Auth | Identität, OIDC | Phase 7 |
 

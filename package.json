@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "typecheck:api": "tsc --noEmit -p api/tsconfig.json",
     "typecheck:mcp-poc": "pnpm --dir mcp-poc exec tsc --noEmit -p tsconfig.json",
+    "typecheck:entitlements": "pnpm --dir services/entitlements exec tsc --noEmit -p tsconfig.json",
+    "test:entitlements": "pnpm --dir services/entitlements exec vitest run",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",

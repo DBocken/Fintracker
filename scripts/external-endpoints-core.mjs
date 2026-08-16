@@ -21,7 +21,15 @@
 // Welche Dateien geprüft werden
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GEPRUEFTE_BAEUME = [/^src\//, /^api\//, /^supabase\/functions\//, /^public\//];
+/**
+ * `services/` kam mit WP 6.2 dazu (EntitlementService).
+ *
+ * Ohne diesen Eintrag wäre ausgerechnet der Dienst ausgenommen, der mit dem
+ * Zahlungsdienstleister spricht — der Wächter hätte `api.mollie.com` nicht
+ * gesehen. Dass er in einem eigenen Paket mit eigener Lockdatei liegt, ändert
+ * nichts daran, dass es Produktivcode ist.
+ */
+const GEPRUEFTE_BAEUME = [/^src\//, /^api\//, /^supabase\/functions\//, /^public\//, /^services\//];
 const GEPRUEFTE_EINZELDATEIEN = new Set(['index.html']);
 
 /**

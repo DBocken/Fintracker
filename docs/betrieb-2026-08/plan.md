@@ -621,7 +621,7 @@ in `src/lib/constants.ts`) werden real oder aus dem Code entfernt.
 **Akzeptanz:** Konto + AVV belegt · USt-Entscheid dokumentiert ·
 Rechtstexte erreichbar oder Code bereinigt.
 
-### - [ ] WP 6.2 · EntitlementService auf dem EU-Host (BTR-8) · O/S
+### - [x] WP 6.2 · EntitlementService auf dem EU-Host (BTR-8) · O/S
 **Ziel:** Entitlements sind serverseitige, widerrufbare Tatsachen an der
 internen userId — nicht länger ein localStorage-String; zugleich die
 Generalprobe für Phase 7 (eigener Postgres, JWT-Prüfung, kleine Datenmenge).
@@ -635,6 +635,39 @@ Produkt hinaus. 3. Kein Supabase-Neubau (Wächter WP 2.3 bleibt grün).
 **Akzeptanz:** Webhook-Tests (Signatur, Replay/Idempotenz) grün · Dienst im
 Backup/Uptime aus Phase 3 · Register + Datenschutztext im selben Release
 (stehende Regel).
+
+**Erledigt — mit zwei Abweichungen vom Wortlaut, beide begründet.**
+
+`services/entitlements/` ist gebaut: 42 Tests, Typecheck und CI-Einbindung
+nach `mcp-poc`-Vorbild (kein Workspace-Paket, eigene Lockdatei, eigener
+OSV-Eintrag). Vier Eigenschaften tragen ihn — dem Webhook-Rumpf wird nichts
+geglaubt ausser der ID (den Status holt der Dienst über die authentifizierte
+Mollie-API zurück), Idempotenz über `(payment_id, status)`, nur Statusfakten,
+und der Nutzer kommt ausschliesslich aus dem Token.
+
+1. **„Signatur geprüft" ist anders gelöst als das Paket es nennt.** Mollie
+   liefert im Webhook nur eine Payment-ID; eine Signatur über einen selbst
+   gelieferten Rumpf gäbe es gar nicht abzusichern. Stattdessen wird die
+   Statuswahrheit **aktiv zurückgeholt** — ein gefälschter Aufruf kann damit
+   nur eine ID *behaupten*. Das ist Mollies vorgesehener Weg und die stärkere
+   Eigenschaft.
+2. **Kein Deployment, damit auch kein Backup „im Betrieb".** Der EU-Host aus
+   WP 3.2/3.3 existiert nicht. Der Dienst bringt deshalb den portablen Teil
+   mit (Dump-Kommando, dokumentiertes Restore in eine **Wegwerf**-Datenbank,
+   Integritätsprüfung — `README.md`); die Ablage beim Zweitanbieter bleibt
+   WP 3.3.
+
+Dazu die zwei **Bauvorgaben aus dem Supabase-Befund** (WP 0.3), beide
+umgesetzt: nachverfolgte Migrationen mit Prüfsummen-Kontrolle (eine
+nachträglich geänderte oder verschwundene Migration bricht den Lauf ab — genau
+das macht aus „wir haben Dateien" ein „wir wissen, was läuft") und ein eigener
+CI-Job, der beweist, dass ein **leeres** Postgres allein aus dem Repo auf Stand
+kommt, inklusive Gegenprobe, dass ein zweiter Lauf nichts mehr tut.
+
+**Nebenbefund:** `check:external-endpoints` sah `services/` nicht — und hätte
+damit ausgerechnet `api.mollie.com` übersehen. Der Wächter prüft den Baum
+jetzt mit; die Registerzeile für Mollie steht (Status: Code vorhanden,
+Testmodus, nicht scharf).
 
 ### - [ ] WP 6.3 · Client-Anbindung: `deriveTier` liest Server-Entitlements (BTR-8) · S
 **Ziel:** `FeatureGate`/`RouteGuard` bleiben unverändert — nur die Quelle des

@@ -1,0 +1,45 @@
+# Lokaler Lauf und CI-Wegwerf-Instanz (WP 6.2).
+#
+# Bewusst schlicht: kein Kubernetes (BTR-2), kein Orchestrator. Der Dienst ist
+# ein Container plus Postgres — genau die Form, die WP 3.2 auf dem EU-Host
+# aufnehmen kann.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: entitlements
+      POSTGRES_PASSWORD: entwicklung
+      POSTGRES_DB: entitlements
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U entitlements"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db-daten:/var/lib/postgresql/data
+
+  service:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://entitlements:entwicklung@db:5432/entitlements
+      # Issuer ist Konfiguration — Phase 7 tauscht genau diese zwei Zeilen.
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL}
+      AUTH_ISSUER: ${AUTH_ISSUER}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-fintracker-entitlements}
+      MOLLIE_API_KEY: ${MOLLIE_API_KEY}
+      MOLLIE_REDIRECT_URL: ${MOLLIE_REDIRECT_URL}
+      MOLLIE_WEBHOOK_URL: ${MOLLIE_WEBHOOK_URL}
+      BILLING_AMOUNT: ${BILLING_AMOUNT:-4.99}
+      BILLING_CURRENCY: ${BILLING_CURRENCY:-EUR}
+      PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  db-daten:
