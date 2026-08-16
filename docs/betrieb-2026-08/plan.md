@@ -145,6 +145,17 @@ einholen.
 **Akzeptanz:** Registerzeile Supabase vollständig (Region, AVV-Status,
 Prüfdatum) · bei Nicht-EU existiert der Entscheidungseintrag.
 
+**Teilstand (WP 0.8):** Der Betreiber hat die Region als **Schweden** genannt;
+die Registerzeile trägt sie mit Prüfdatum. Damit liegt die Datenregion **in
+der EU**, und der Entscheidungspunkt „Phase 7 vorziehen" ist **nicht**
+ausgelöst — die Reihenfolge des Programms bleibt. Das Paket bleibt trotzdem
+offen: Es fehlen der **Beleg** unter `belege/` (Regel 7: ein [OPS]-Paket
+braucht einen Nachweis, eine mündliche Angabe ist keiner) und der
+**AVV-Status** (→ WP 0.9). Unberührt bleibt die Jurisdiktionsfrage: Supabase
+Inc. ist ein US-Unternehmen, und die ADR hat „EU-Region eines US-Anbieters
+genügt" ausdrücklich verworfen (CLOUD Act). Die Region senkt die
+Dringlichkeit, nicht die Notwendigkeit der Ablösung.
+
 ### - [ ] WP 0.4 · QR-Code lokal rendern (BTR-S4) · S
 **Ziel:** Die Bank-Requisition-URL verlässt das Gerät nicht mehr Richtung
 Google — und der QR-Code funktioniert wieder.
@@ -195,7 +206,7 @@ da). 3. Beleg: abgelehnter Request von fremder Origin.
 **Akzeptanz:** Suffix-Default im Code entfernt/gekapselt mit Test · Beleg
 der Ablehnung · Register nennt die erlaubten Origins.
 
-### - [ ] WP 0.8 · Wächter `check:external-endpoints` (BTR-2, EU-Regel) · S/O
+### - [x] WP 0.8 · Wächter `check:external-endpoints` (BTR-2, EU-Regel) · S/O
 **Ziel:** Die EU-Regel hat einen Wächter: Jeder externe Host im Quelltext ist
 im Anbieter-Register erklärt — sonst rot. „Ein Versprechen ohne Wächter ist
 eine Absichtserklärung."
@@ -211,6 +222,20 @@ bestätigen — Abweichungen werden im Register korrigiert, nicht im Wächter
 weggefiltert.
 **Akzeptanz:** Wächter in Pre-Commit + CI · absichtlich eingefügter fremder
 Host macht ihn nachweislich rot (Testfall) · Erstlauf grün gegen das Register.
+
+**Erledigt.** Der Erstlauf war nicht grün, sondern hat sechs echte Abweichungen
+gefunden — alle im Register korrigiert, keine im Wächter weggefiltert:
+`gocardless.com` (Redirect-Suffix in `safe-url.ts`, entscheidet über *jedes*
+Redirect-Ziel) und `vercel.app` (Origin-Suffix in zwei Edge Functions, lässt
+**jede** Vercel-App als Origin zu) sind jetzt als Breite an ihrer jeweiligen
+Anbieterzeile dokumentiert; `ausgabentracker.de`/`docs.ausgabentracker.de`
+haben eine Zeile unter „Zu entfernen" mit Weg → WP 6.1 (eine Randnotiz ist
+keine Registerzeile). Drei Fundstellen waren Fehler des Wächters selbst und
+sind als benannte Grenzen behoben: Binärdateien (`background.png` meldete
+`trufo.ai` aus XMP-Metadaten), Bezeichner-URIs (`$schema`, `xmlns`) und die
+Dateiendungs-Heuristik, die `esm.sh` verwarf, weil `.sh` zugleich ccTLD und
+Shell-Endung ist — sie greift seither nur beim blanken Literal, nie hinter
+`https://`.
 
 ### - [ ] WP 0.9 · [OPS] AVV-Bestand und VVT-Erstfassung (BTR-S11) · O
 **Ziel:** Die DSGVO-Grundpflichten stehen auf der Faktenbasis des Registers:

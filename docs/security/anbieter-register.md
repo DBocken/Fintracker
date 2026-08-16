@@ -5,11 +5,15 @@
 > Subprozessoren-Verzeichnis, VVT (Art. 30) und Datenschutztexte. Die Regel
 > dahinter steht in der ADR
 > [`eu-souveraenitaet.md`](../architecture/eu-souveraenitaet.md)
-> (EU-only + Rollen-Taxonomie). **Pflegepflicht mit Wächter:** ab WP 0.8
-> erzwingt `pnpm check:external-endpoints`, dass jeder externe Host im Code
-> hier erklärt ist und jede Zeile hier (Status ≠ geplant) im Code oder in der
-> CSP vorkommt. Sitz-/Rechtsangaben tragen ein Prüfdatum — sie sind
-> Tatsachenbehauptungen mit Verfallszeit, keine Ewigkeitswerte.
+> (EU-only + Rollen-Taxonomie). **Pflegepflicht mit Wächter:** seit WP 0.8
+> erzwingt `pnpm check:external-endpoints` (Pre-Commit + CI), dass jeder
+> externe Host im Produktivcode hier erklärt ist **und** jede aktive Zeile
+> hier im Code oder in der CSP vorkommt. Rolle `Entwicklung` ist von der
+> zweiten Richtung ausgenommen — GitHub berührt keine Nutzerdaten und taucht
+> in App-Code naturgemäss nicht auf. Die Host-Spalte ist maschinenlesbar:
+> Hosts stehen in `Backticks`, mehrere getrennt durch Komma oder `·`.
+> Sitz-/Rechtsangaben tragen ein Prüfdatum — sie sind Tatsachenbehauptungen
+> mit Verfallszeit, keine Ewigkeitswerte.
 
 Rollen gemäß ADR-Taxonomie: **Subprozessor** (verarbeitet personenbezogene
 Daten in unserem Auftrag) · **Datenquelle** (kein Personenbezug, feste
@@ -21,9 +25,9 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 
 | Host(s) | Anbieter | Sitz | Rolle | Zweck / Datenfluss | AVV / Rechtsgrundlage | Status | Geprüft |
 |---|---|---|---|---|---|---|---|
-| `pbopyawkxxrluhofjtub.supabase.co` | Supabase Inc. | US · **Region: unbekannt → WP 0.3** | Subprozessor | Auth (E-Mail/OAuth), Edge Functions, MCP-Aggregate (Opt-in), Bank-Sync-Artefakte, Auth-Mails | AVV: **prüfen → WP 0.9** | **Übergang, befristet** — Ablösung Phase 7 ([ADR](../architecture/supabase-abloesung.md)) | 2026-08-10 |
-| `fintracker-phi.vercel.app`, `/api/mcp` | Vercel Inc. | US · Function-Region derzeit US-Default (BTR-S2) | Subprozessor | Web-Hosting, MCP-Endpunkt; IP-Verarbeitung, Function liefert Finanz-Aggregate | DPF-/AVV-Status: **prüfen → WP 0.9** | **Übergang, befristet** — Region-Pinning WP 0.2, Umzug WP 3.5 | 2026-08-10 |
-| `bankaccountdata.gocardless.com` | GoCardless Ltd. | UK (Angemessenheitsbeschluss; Produkt-Ursprung Nordigen, LV) | **Einstufung offen:** Subprozessor vs. eigenständiger Verantwortlicher (lizenzierter AISP) → WP 0.9 | Bank-Anbindung: Requisitionen, IBAN, Salden, Umsätze (730 Tage) — Secrets nur serverseitig | Vertrag/AVV: **prüfen → WP 0.9**; UK-Adequacy mit Prüfdatum | aktiv | 2026-08-10 |
+| `pbopyawkxxrluhofjtub.supabase.co` | Supabase Inc. | **Unternehmen US · Datenregion Schweden (EU)** — die Region ändert die Jurisdiktion nicht (CLOUD Act), siehe ADR | Subprozessor | Auth (E-Mail/OAuth), Edge Functions, MCP-Aggregate (Opt-in), Bank-Sync-Artefakte, Auth-Mails | AVV: **prüfen → WP 0.9** | **Übergang, befristet** — Ablösung Phase 7 ([ADR](../architecture/supabase-abloesung.md)) | 2026-08-16 |
+| `fintracker-phi.vercel.app`, `vercel.app`, `/api/mcp` | Vercel Inc. | US · Function-Region derzeit US-Default (BTR-S2) | Subprozessor | Web-Hosting, MCP-Endpunkt; IP-Verarbeitung, Function liefert Finanz-Aggregate. `vercel.app` ist zusätzlich als **Origin-Suffix** zugelassen (`DEFAULT_ALLOWED_ORIGIN_SUFFIXES` in `gocardless-sync`/`delete-account`) — damit gilt die Zulassung für **jede** Vercel-App, nicht nur für unsere; Verengung siehe WP 3.5 | DPF-/AVV-Status: **prüfen → WP 0.9** | **Übergang, befristet** — Region-Pinning WP 0.2, Umzug WP 3.5 | 2026-08-16 |
+| `bankaccountdata.gocardless.com`, `gocardless.com` | GoCardless Ltd. | UK (Angemessenheitsbeschluss; Produkt-Ursprung Nordigen, LV) | **Einstufung offen:** Subprozessor vs. eigenständiger Verantwortlicher (lizenzierter AISP) → WP 0.9 | Bank-Anbindung: Requisitionen, IBAN, Salden, Umsätze (730 Tage) — Secrets nur serverseitig. `gocardless.com` ist als **Redirect-Suffix** zugelassen (`GOCARDLESS_AUTH_HOST_SUFFIXES` in `src/lib/safe-url.ts`): Ziel jeder GoCardless-Subdomain ist erlaubt | Vertrag/AVV: **prüfen → WP 0.9**; UK-Adequacy mit Prüfdatum | aktiv | 2026-08-16 |
 | `query1.finance.yahoo.com` | Yahoo | US | Datenquelle | Kurse; **nur serverseitig** (`market-quotes`), nur Ticker, keine Nutzerkennung/Client-IP | entfällt (kein Personenbezug); Bedingungen der ADR gelten | aktiv, Beobachtung (inoffizielle API) | 2026-08-10 |
 | `stooq.com` | Stooq | PL (EU) | Datenquelle | Kurs-Fallback; gleiche Bedingungen | entfällt | aktiv | 2026-08-10 |
 | `public-api.etoro.com` | eToro | IL/UK/CY | nutzergewählt | Depot-Daten des Nutzers via **eigenem** API-Key; transitieren unseren Proxy (`etoro-proxy`) — **Proxy gehört in den Datenschutztext (BTR-S9 → WP 4.2)** | Nutzervertrag mit eToro; unser Proxy: eigene Verantwortung | aktiv | 2026-08-10 |
@@ -37,6 +41,7 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 |---|---|---|---|
 | `chart.googleapis.com` | Google | Bank-Requisition-URL als QR-Parameter (BTR-S4); API abgeschaltet **und** CSP-blockiert — Feature defekt | lokales Rendern (`qrcode`-Dependency) → **WP 0.4** |
 | `cdn.jsdelivr.net` · `tessdata.projectnaptha.com` | jsDelivr / Naptha | Tesseract-Laufzeit-Downloads (BTR-S5); CSP-blockiert — OCR produktiv defekt | Assets selbst ausliefern → **WP 0.5** |
+| `ausgabentracker.de` · `docs.ausgabentracker.de` | — (eigene, nie deployte Domains) | `src/lib/constants.ts` verlinkt Support, Doku, `/privacy` und `/terms` auf Domains, die **nicht betrieben werden** — ein Nutzer, der darauf klickt, landet im Leeren. Für einen Verkauf sind Impressum/AGB/Widerruf Pflicht | real machen **oder** aus dem Code entfernen → **WP 6.1** |
 
 ## Geplant (Programm; Zeile wird bei Inbetriebnahme „aktiv")
 
@@ -56,10 +61,12 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
   (`src/services/telemetry-service.ts`) ist heute **unbelegt** — es gibt kein
   Versandziel und keinen Versand. Sobald er belegt wird (WP 3.4/4.1), bekommt
   der Zielhost eine eigene Registerzeile; die stehende Regel der ADR greift.
-- **Referenzierte, nicht betriebene Domains:** `src/lib/constants.ts` nennt
-  `support@ausgabentracker.de`, `docs.ausgabentracker.de`,
-  `ausgabentracker.de/privacy`, `/terms` — nichts davon ist deployt. Werden
-  real oder fliegen aus dem Code (WP 6.1).
+- **Referenzierte, nicht betriebene Domains:** steht seit WP 0.8 als eigene
+  Zeile unter „Zu entfernen" — der Wächter verlangt für jeden Host im Code
+  eine Tabellenzeile, und eine Randnotiz ist keine. Die Mail-Adresse
+  `support@ausgabentracker.de` (`src/lib/constants.ts`) teilt dieselbe Domain
+  und dasselbe Schicksal; sie taucht im Wächter nicht auf, weil er Hosts
+  liest, keine Mail-Adressen.
 - **FCM (Google):** heute nicht im Einsatz. Würde mit einem künftigen
   Push-Feature als **inhaltsfreier Transportadapter** eine echte
   Subprozessor-Ausnahme (Push-Token sind personenbezogen) — Eintrag erfolgt
