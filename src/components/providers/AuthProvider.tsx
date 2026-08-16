@@ -1,26 +1,63 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { localEncryption } from "@/services/local-crypto";
 import { useI18n } from "@/i18n/useI18n";
+import { identityFromSubject, type Identity } from "@/lib/identity";
 
+/**
+ * Die Naht zum Identitätsanbieter (WP 2.1).
+ *
+ * Nach aussen gibt dieser Provider **nur** die eigene `Identity` und den
+ * Status — keine Supabase-Typen. Das ist die Bedingung dafür, dass Phase 7
+ * den Anbieter tauschen kann, ohne jede Aufrufstelle anzufassen: Wer hier
+ * `Session`/`User` exportiert, verteilt ein Anbieterdetail über die ganze App.
+ *
+ * `session` gab es hier früher ebenfalls im Kontext — gelesen hat es **kein
+ * einziger** Konsument (nachgezählt bei WP 2.1). Ein ungenutzter Export ist
+ * keine Schnittstelle, sondern eine Einladung.
+ */
 type AuthContextValue = {
-  session: Session | null;
-  user: User | null;
+  identity: Identity | null;
   status: "loading" | "authenticated" | "unauthenticated";
 };
 
 const AuthContext = createContext<AuthContextValue>({
-  session: null,
-  user: null,
+  identity: null,
   status: "loading",
 });
 
+/**
+ * Liest die Identität aus einer Anbieter-Sitzung.
+ *
+ * Bewusst strukturell typisiert statt über `Session`/`User`: Der Typ
+ * beschreibt, was wir **brauchen**, nicht was Supabase liefert — damit bleibt
+ * die Datei frei von Anbieter-Typen (Akzeptanzkriterium WP 2.1).
+ */
+function identityFromSession(
+  session:
+    | {
+        user?: {
+          id?: string | null;
+          email?: string | null;
+          user_metadata?: Record<string, unknown> | null;
+        } | null;
+      }
+    | null
+    | undefined,
+): Identity | null {
+  const nutzer = session?.user;
+  if (!nutzer) return null;
+  return identityFromSubject({
+    subject: nutzer.id,
+    email: nutzer.email,
+    claims: nutzer.user_metadata,
+  });
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [identity, setIdentity] = useState<Identity | null>(null);
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const queryClient = useQueryClient();
   const { t } = useI18n();
@@ -39,17 +76,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setStatus("unauthenticated");
         return;
       }
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
+      setIdentity(identityFromSession(data.session));
       setStatus(data.session ? "authenticated" : "unauthenticated");
     });
 
     const { data } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      const prevUserId = user?.id || null;
-      const nextUserId = currentSession?.user?.id || null;
+      const prevUserId = identity?.userId || null;
+      const nextIdentity = identityFromSession(currentSession);
+      const nextUserId = nextIdentity?.userId || null;
 
-      setSession(currentSession ?? null);
-      setUser(currentSession?.user ?? null);
+      setIdentity(nextIdentity);
 
       if (event === "SIGNED_IN") {
         // Bei Nutzerwechsel oder Anmeldung: Cache leeren
@@ -73,10 +109,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     // t bewusst nicht in Deps: würde den Auth-Listener bei jedem Sprachwechsel neu abonnieren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, queryClient, clearCaches]);
+  }, [identity?.userId, queryClient, clearCaches]);
 
   return (
-    <AuthContext.Provider value={{ session, user, status }}>
+    <AuthContext.Provider value={{ identity, status }}>
       {children}
     </AuthContext.Provider>
   );

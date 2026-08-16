@@ -24,6 +24,7 @@ import { GENTLE_LEVELS, GENTLE_LEVEL_IDS, type GentleLevel } from "@/lib/gentle-
 import { useTier, TIER_OVERRIDE_EVENT } from "@/hooks/useTier";
 import { setTierOverride, clearTierOverride } from "@/lib/tier";
 import { useI18n } from "@/i18n/useI18n";
+import { displayNameFromIdentity } from "@/lib/identity";
 
 function normalizeSkinId(raw?: string | null): SkinId {
   if (!raw) return 'ruhe';
@@ -42,7 +43,7 @@ function normalizeSkinId(raw?: string | null): SkinId {
  */
 export function ProfileDialogContent() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { identity } = useAuth();
   const queryClient = useQueryClient();
   const { level: gentleLevel, setLevel: setGentleLevel } = useGentleMode();
   const tier = useTier();
@@ -85,12 +86,8 @@ export function ProfileDialogContent() {
     onError: () => showError(t("profile.themeError")),
   });
 
-  const displayName =
-    (user?.user_metadata?.full_name as string) ||
-    (user?.user_metadata?.name as string) ||
-    user?.email ||
-    t("profile.unknownUser");
-  const email = user?.email || "";
+  const displayName = displayNameFromIdentity(identity) ?? t("profile.unknownUser");
+  const email = identity?.email || "";
 
   const initials = displayName
     .split(" ")
@@ -125,7 +122,7 @@ export function ProfileDialogContent() {
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{t("profile.userId")}</span>
           <span className="text-xs font-mono text-muted-foreground">
-            {user?.id || "—"}
+            {identity?.userId || "—"}
           </span>
         </div>
 

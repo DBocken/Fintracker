@@ -31,10 +31,17 @@ Supabase-Interna —
 
 - ein internes `Identity`-Modell mit **stabiler interner userId** (das
   IdP-Subject ist ein Anbieterdetail; die Zuordnungsregel macht den späteren
-  Issuer-Wechsel zur Konfiguration statt zur Datenmigration),
+  Issuer-Wechsel zur Konfiguration statt zur Datenmigration)
+  — **umgesetzt in WP 2.1**: `src/lib/identity.ts`. Die Zuordnungsregel ist
+  `userIdFromSubject()` und heute 1:1; der Gewinn liegt nicht in der
+  Umrechnung, sondern darin, dass es genau **eine** Stelle gibt, die sie
+  vornimmt. `AuthProvider` gibt seither `Identity | null` heraus (und nicht
+  mehr `session`, das kein Konsument las),
 - `auth-service` als einzige Stelle für Token, Login, Logout, Session
   (Capacitor-Deep-Link-Bridge ruft dieselbe Naht),
-- keine Supabase-Typen außerhalb der Naht.
+- keine Supabase-Typen außerhalb der Naht — seit WP 2.1 erfüllt: der einzige
+  Import von `@supabase/supabase-js` unter `src/` steht in
+  `integrations/supabase/client.ts`.
 
 **Ab sofort: Neubau-Stopp.** Keine neuen Supabase-Tabellen, -Functions oder
 -`auth`-Aufrufstellen. Neue serverseitige Fähigkeiten entstehen auf der

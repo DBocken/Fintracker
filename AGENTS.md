@@ -167,6 +167,7 @@ Nutzer weiter unten zum Import nach oben.
 | Modul, das `localStorage`/IndexedDB/Netz anfasst | `src/services/` — auch wenn es heute in `lib/` liegt |
 | Zustandstyp, den ein ViewModel hält (`EtoroNewsFilter`) | `src/features/<slice>/domain/` — nie die Komponentendatei, in der er zuerst gebraucht wurde |
 | React-Context-Hook, den auch ein ViewModel liest (`useLocalEncryption`) | `src/hooks/` — der Provider bleibt Komponente, der Lesezugriff nicht |
+| Identität des Nutzers (`Identity`, `UserId`) | `src/lib/identity.ts` — **nie** der Anbietertyp (`Session`/`User`). Das IdP-Subject ist ein Anbieterdetail; `userIdFromSubject()` ist die einzige Stelle, die daraus die interne userId macht (heute 1:1). Daran hängt das Versprechen aus WP 7.2: Subject-Wechsel ohne userId-Wechsel, Entitlements bleiben unberührt |
 
 ### Vorentschiedenes zuerst lesen
 
