@@ -1,0 +1,29 @@
+{
+  "name": "fintracker-entitlements",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EntitlementService: serverseitige, widerrufbare Berechtigungen an der internen userId. Erster EU-souveraener Dienst der App (WP 6.2) und zugleich Generalprobe fuer die Supabase-Abloesung in Phase 7.",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/migrate.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0",
+    "vitest": "^2.1.8"
+  }
+}

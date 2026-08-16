@@ -35,7 +35,7 @@ const CSP_PFAD = 'vercel.json';
 function verfolgteDateien() {
   const ausgabe = execFileSync(
     'git',
-    ['ls-files', 'src', 'api', 'supabase/functions', 'public', 'index.html'],
+    ['ls-files', 'src', 'api', 'supabase/functions', 'services', 'public', 'index.html'],
     { encoding: 'utf8', cwd: REPO_ROOT },
   );
   return ausgabe

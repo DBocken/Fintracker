@@ -177,6 +177,18 @@ jobs:
           pnpm --dir mcp-poc install --frozen-lockfile --ignore-workspace
           pnpm typecheck:mcp-poc
 
+      # EntitlementService (WP 6.2) — dieselbe Trennung wie mcp-poc: kein
+      # Workspace-Paket, eigene Lockdatei, eigener Install. Seine Tests laufen
+      # in `node`, nicht in `jsdom`; die Wurzel-Suite schliesst `services/**`
+      # deshalb aus (vitest.config.ts). Ohne diesen Schritt liefe der Dienst
+      # in CI ueberhaupt nicht — genau die Luecke, die GOV-2 fuer api/ und
+      # mcp-poc beschrieben hat.
+      - name: Typecheck + Tests EntitlementService
+        run: |
+          pnpm --dir services/entitlements install --frozen-lockfile --ignore-workspace
+          pnpm typecheck:entitlements
+          pnpm test:entitlements
+
       # Bis WP-10.6 hatte CI ueberhaupt keinen Build-Schritt: Der
       # Produktions-Build lief nur nebenbei im Performance-Job
       # (E2E_TARGET=preview). Ein Build-Fehler waere dort als
@@ -202,6 +214,72 @@ jobs:
 
       - name: Secret scan
         run: pnpm security:secrets
+
+  # Migrationen des EntitlementService gegen ein WEGWERF-Postgres (WP 6.2).
+  #
+  # Der Nachweis, der beim Supabase-Bestand fehlt: Dort zeigt das Dashboard
+  # `No migrations`, waehrend das Repo 17 SQL-Dateien fuehrt und kein
+  # CI-Schritt sie anwendet — es ist also unbekannt, welche Schritte
+  # tatsaechlich im Schema stehen. Hier beweist jeder Lauf, dass ein LEERES
+  # Postgres allein aus dem Repo auf den aktuellen Stand kommt.
+  #
+  # Eigener Job, weil er einen Datenbankdienst braucht; `needs:` fehlt
+  # bewusst, damit er parallel zur schnellen Rueckmeldung laeuft.
+  entitlements-migrations:
+    name: EntitlementService — Migrationen gegen leeres Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: entitlements
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: entitlements
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U entitlements"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Abhaengigkeiten (eigener Install, kein Workspace-Member)
+        run: pnpm --dir services/entitlements install --frozen-lockfile --ignore-workspace
+
+      - name: Migrationen anwenden
+        env:
+          DATABASE_URL: postgres://entitlements:ci@localhost:5432/entitlements
+        run: pnpm --dir services/entitlements migrate
+
+      - name: Zweiter Lauf ist ein No-op (Idempotenz des Schemas)
+        env:
+          DATABASE_URL: postgres://entitlements:ci@localhost:5432/entitlements
+        run: |
+          AUSGABE=$(pnpm --dir services/entitlements migrate)
+          echo "$AUSGABE"
+          # Ein zweiter Lauf darf nichts mehr tun. Taete er es, waere die
+          # Versionstabelle wirkungslos und jeder Deploy wuerde das Schema
+          # erneut anfassen.
+          echo "$AUSGABE" | grep -q "Schema ist aktuell"
+
+      - name: Erwartete Tabellen sind da
+        env:
+          PGPASSWORD: ci
+        run: |
+          psql -h localhost -U entitlements -d entitlements -tAc \
+            "SELECT string_agg(tablename, ',' ORDER BY tablename)
+               FROM pg_tables WHERE schemaname='public'" | tee /tmp/tabellen
+          grep -q "entitlements" /tmp/tabellen
+          grep -q "processed_events" /tmp/tabellen
+          grep -q "schema_migrations" /tmp/tabellen
 
   # E2E-Suite (WP-4.6-Slice). Bisher lief sie nur lokal — die im Gate
   # dokumentierten Nachweise waren damit nicht reproduzierbar.

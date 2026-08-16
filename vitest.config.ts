@@ -15,7 +15,14 @@ export default defineConfig({
     // greift auch `*.spec.ts` und lud sie mit — Playwright bricht dann beim
     // ersten `test.describe()` ab („did not expect test.describe() to be
     // called here"). Die Specs gehören einem eigenen Runner, nicht dieser Suite.
-    exclude: [...configDefaults.exclude, "e2e-tests/**"],
+    //
+    // `services/` ist dieselbe Fehlerform, ein Verzeichnis weiter (WP 6.2):
+    // Der EntitlementService ist ein Node-Dienst mit eigenem Install und
+    // eigener `vitest.config.ts` (`environment: 'node'`). Diese Suite läuft in
+    // `jsdom` — nachgemessen fielen dort 11 seiner 42 Tests durch, weil die
+    // Schlüsselerzeugung der JWT-Prüfung in jsdom nicht dieselbe ist. Kein
+    // echter Fehler, nur der falsche Runner.
+    exclude: [...configDefaults.exclude, "e2e-tests/**", "services/**"],
     // v8-Coverage-Instrumentierung verdoppelt grob die Laufzeit; rechenintensive
     // Tests (Monte-Carlo-Forecast, PBKDF2/AES) reißen sonst die 5s-Standardgrenze
     // auf langsameren CI-Runnern. 20s gibt Puffer, ohne echte Hänger zu verstecken.
