@@ -10,6 +10,7 @@ import {
   type FeatureKey,
   type Tier,
 } from "@/lib/tier";
+import { useServerEntitlement } from "@/hooks/useServerEntitlement";
 import {
   DEMO_ACTIVE_EVENT,
   DEMO_ACTIVE_KEY,
@@ -70,7 +71,11 @@ export function useTier(): Tier {
   const { status } = useAuth();
   const override = useTierOverride();
   const demoActive = useDemoActive();
-  return deriveTier(status, override, demoActive);
+  // Seit WP 6.3 entscheidet der Server mit. Solange er nichts sagt (kein
+  // Dienst hinterlegt, nicht angemeldet, nicht erreichbar), bleibt alles wie
+  // zuvor — die App ist local-first und soll offline nicht weniger wert sein.
+  const { tier: serverEntitlement } = useServerEntitlement();
+  return deriveTier(status, override, demoActive, serverEntitlement);
 }
 
 /** Whether the current user has access to the given feature. */

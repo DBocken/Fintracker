@@ -86,13 +86,41 @@ export function deriveTier(
   status: AuthStatus,
   override?: Tier | null,
   demoActive = false,
+  /**
+   * Urteil des EntitlementService (WP 6.2/6.3):
+   * - `undefined` — **kein** Urteil: nicht angemeldet, Dienst nicht erreichbar
+   *   oder noch nicht geladen. Dann bleibt der lokale Weg offen; die App ist
+   *   local-first und soll offline nicht weniger wert sein.
+   * - `"premium"` — Berechtigung liegt vor, hebt an wie jede andere Quelle.
+   * - `"free"` — **definitives Nein.** Ab hier darf der lokale Override nicht
+   *   mehr auf `premium` anheben.
+   */
+  serverEntitlement?: Tier | null,
 ): Tier {
   let tier: Tier = status === "authenticated" ? "free" : "anonymous";
   const upgrade = (candidate: Tier | null | undefined) => {
     if (candidate && TIER_RANK[candidate] > TIER_RANK[tier]) tier = candidate;
   };
+
+  // Demo bleibt vom Serverurteil unberührt: Sie ersetzt die Daten durch
+  // Beispieldaten — wer sie ansieht, benutzt Premium nicht auf seinem echten
+  // Bestand. Das ist Try-before-buy, kein Bypass.
   if (demoActive) upgrade("premium");
-  upgrade(override);
+
+  // Nur `premium` hebt an. Ein `free` vom Server ist die Auskunft „keine
+  // Berechtigung" — KEIN Basis-Tier: Es darf einen anonymen Nutzer nicht auf
+  // `free` heben und ihm damit Funktionen geben, die ein Konto voraussetzen
+  // (`bankSync`, `basicContracts`, `basicForecast`). Woher der Basis-Tier
+  // kommt, entscheidet allein der Auth-Status.
+  if (serverEntitlement === "premium") upgrade("premium");
+
+  // Der lokale Override gilt nur, solange der Server nichts Gegenteiliges
+  // gesagt hat. Solange Premium unverkäuflich war, war seine anhebende
+  // Wirkung dokumentierte Absicht; mit dem Kauf wird derselbe Code zur
+  // offenen Tür — wer den Schlüssel setzt, bekäme umsonst, was andere zahlen.
+  const serverSagtNein = serverEntitlement === "free";
+  if (!serverSagtNein) upgrade(override);
+
   return tier;
 }
 

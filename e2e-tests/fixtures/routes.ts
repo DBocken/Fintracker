@@ -29,6 +29,7 @@ export const ALL_ROUTES = [
   "/contracts",
   "/occasions",
   "/premium",
+  "/billing",
   "/simulation",
   "/csv",
   "/export",

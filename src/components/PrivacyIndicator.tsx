@@ -13,6 +13,7 @@ import { derivePrivacyStatus } from "@/lib/privacy-status";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
 import { isCloudMcpSyncActive } from "@/services/cloud-mcp-sync-service";
 import { useI18n } from "@/i18n/useI18n";
+import { isBillingConfigured } from "@/lib/billing-config";
 
 /**
  * Privacy-Indikator (#41, #54): Schloss im Header jedes Screens.
@@ -35,6 +36,9 @@ export default function PrivacyIndicator() {
 
   const status = derivePrivacyStatus(tier, consent?.opted_in ?? false, {
     mcpSyncActive: isCloudMcpSyncActive(),
+    // Stehende Regel Datenfluss (WP 6.3): Wer einen Zahlungsweg hat, fragt
+    // beim Entitlement-Dienst nach — das gehört benannt.
+    billingConfigured: isBillingConfigured(),
   });
 
   const Icon = enabled ? (unlocked ? ShieldCheck : Lock) : ShieldAlert;

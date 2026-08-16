@@ -98,7 +98,9 @@ export function PremiumUpsell({ feature }: PremiumUpsellProps) {
       cta={
         needsLogin
           ? { label: t('upsell.loginCta'), to: "/login", icon: "login" }
-          : { label: t('upsell.premiumCta'), to: "/settings", icon: "premium" }
+          // Bis WP 6.3 zeigte dieser Weg auf /settings — ein Platzhalter, weil
+          // es nichts zu kaufen gab. Jetzt fuehrt er dorthin, wo gekauft wird.
+          : { label: t('upsell.premiumCta'), to: "/billing", icon: "premium" }
       }
       note={t('upsell.note')}
     />

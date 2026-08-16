@@ -85,6 +85,18 @@ export const everydayEn: TranslationOverlay = {
     savingsRate: 'How much you save',
     liquidity: 'Money available now',
   },
+  billing: {
+    // The base tree is already close to everyday English; only the contract
+    // tone ("subscription status") and "unlock" need softening.
+    subtitle: 'Get everything. You can stop again any month.',
+    loading: 'One moment, we are checking …',
+    activeTitle: 'You have everything',
+    cancelHint: 'You can stop any time. What you paid for stays usable until it runs out.',
+    errorTitle: 'We could not check just now',
+    errorBody: 'We could not check whether you have everything. That does not touch your data — it lives on your device.',
+    unavailableTitle: 'Buying is not possible here yet',
+    unavailableBody: 'Once paying is set up, you will find it here.',
+  },
   nav: {
     items: {
       liquidity: 'Available',

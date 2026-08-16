@@ -11,6 +11,7 @@ import { isCloudMcpSyncActive } from "@/services/cloud-mcp-sync-service";
 import { getAnalyticsConsent } from "@/services/analytics-consent-service";
 import AnalyticsTransparencyPreview from "@/components/privacy/AnalyticsTransparencyPreview";
 import { useI18n } from "@/i18n/useI18n";
+import { isBillingConfigured } from "@/lib/billing-config";
 
 /**
  * Privacy-Seite (Issue #41): erklärt das Datenmodell in einfachem Deutsch.
@@ -39,6 +40,9 @@ export default function PrivacyPage() {
 
   const status = derivePrivacyStatus(tier, consent?.opted_in ?? false, {
     mcpSyncActive: isCloudMcpSyncActive(),
+    // Stehende Regel Datenfluss (WP 6.3): Wer einen Zahlungsweg hat, fragt
+    // beim Entitlement-Dienst nach — das gehört benannt.
+    billingConfigured: isBillingConfigured(),
   });
 
   return (

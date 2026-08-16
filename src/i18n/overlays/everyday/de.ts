@@ -90,6 +90,20 @@ export const everydayDe: TranslationOverlay = {
       },
     },
   },
+  billing: {
+    // Fachsprache: „Abo-Status", „freischalten". Alltagssprache benennt, was
+    // der Nutzer davon hat, und vermeidet den Vertragston.
+    subtitle: 'Alles freischalten. Du kannst jeden Monat wieder aufhören.',
+    loading: 'Einen Moment, wir schauen nach …',
+    upgradeTitle: 'Alles freischalten',
+    upgradeCta: 'Freischalten',
+    activeTitle: 'Du hast alles freigeschaltet',
+    cancelHint: 'Du kannst jederzeit aufhören. Was du bezahlt hast, bleibt bis zum Ende nutzbar.',
+    errorTitle: 'Wir konnten gerade nicht nachsehen',
+    errorBody: 'Ob du freigeschaltet bist, konnten wir gerade nicht prüfen. An deinen Daten ändert das nichts — die liegen auf deinem Gerät.',
+    unavailableTitle: 'Kaufen geht hier noch nicht',
+    unavailableBody: 'Sobald das Bezahlen eingerichtet ist, findest du es hier.',
+  },
   nav: {
     items: {
       liquidity: 'Verfügbar',
