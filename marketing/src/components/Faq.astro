@@ -1,0 +1,101 @@
+---
+import { FAQ } from '../data/faq';
+
+interface Props {
+  /** Erlaubt der Vergleichsseite, nur die relevanten Fragen zu zeigen. */
+  eintraege?: typeof FAQ;
+}
+
+const { eintraege = FAQ } = Astro.props;
+---
+
+<div class="faq">
+  {
+    eintraege.map((eintrag, i) => (
+      <details class="faq-item" open={i === 0}>
+        <summary>
+          <span class="faq-frage">{eintrag.frage}</span>
+          <span class="faq-zeichen" aria-hidden="true"></span>
+        </summary>
+        <p class="faq-antwort">{eintrag.antwort}</p>
+      </details>
+    ))
+  }
+</div>
+
+<style>
+  .faq {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--line);
+  }
+
+  summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.15rem 0;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-frage {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    letter-spacing: -0.008em;
+  }
+
+  /* Plus, das zum Minus wird — Zustand ohne Text, aber nicht ohne Bedeutung. */
+  .faq-zeichen {
+    flex: none;
+    position: relative;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-top: 0.3rem;
+  }
+
+  .faq-zeichen::before,
+  .faq-zeichen::after {
+    content: '';
+    position: absolute;
+    background: var(--petrol);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .faq-zeichen::before {
+    inset: 45% 0 45% 0;
+  }
+
+  .faq-zeichen::after {
+    inset: 0 45% 0 45%;
+  }
+
+  .faq-item[open] .faq-zeichen::after {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+
+  .faq-antwort {
+    padding: 0 0 1.3rem;
+    max-width: 62ch;
+    color: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq-zeichen::before,
+    .faq-zeichen::after {
+      transition: none;
+    }
+  }
+</style>

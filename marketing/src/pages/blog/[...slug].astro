@@ -1,0 +1,154 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import { SITE_URL, APP_URL } from '../../site.mjs';
+
+export async function getStaticPaths() {
+  const artikel = await getCollection('blog', ({ data }) => !data.entwurf);
+  return artikel.map((eintrag) => ({ params: { slug: eintrag.id }, props: { eintrag } }));
+}
+
+const { eintrag } = Astro.props;
+const { Content } = await render(eintrag);
+
+const datumFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'long' });
+
+const strukturierteDaten = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: eintrag.data.titel,
+    description: eintrag.data.beschreibung,
+    datePublished: eintrag.data.datum.toISOString(),
+    dateModified: (eintrag.data.aktualisiert ?? eintrag.data.datum).toISOString(),
+    author: { '@type': 'Organization', name: eintrag.data.autor },
+    publisher: { '@type': 'Organization', name: 'Fintracker' },
+    inLanguage: 'de',
+    mainEntityOfPage: new URL(`/blog/${eintrag.id}`, SITE_URL).href,
+  },
+];
+---
+
+<Base
+  title={`${eintrag.data.titel} — Fintracker`}
+  description={eintrag.data.beschreibung}
+  pfad={`/blog/${eintrag.id}`}
+  strukturierteDaten={strukturierteDaten}
+>
+  <SiteHeader />
+
+  <main id="inhalt">
+    <article>
+      <header class="artikel-kopf">
+        <div class="shell shell--narrow stack">
+          <nav class="brotkrumen" aria-label="Brotkrumen">
+            <a href="/">Start</a>
+            <span aria-hidden="true">/</span>
+            <a href="/blog">Blog</a>
+          </nav>
+          <h1>{eintrag.data.titel}</h1>
+          <p class="lede">{eintrag.data.beschreibung}</p>
+          <time datetime={eintrag.data.datum.toISOString()}>
+            {datumFormat.format(eintrag.data.datum)}
+          </time>
+        </div>
+      </header>
+
+      <div class="shell shell--narrow artikel-text">
+        <Content />
+      </div>
+    </article>
+
+    <section class="band abschluss">
+      <div class="shell shell--narrow stack">
+        <h2>Selbst ausprobieren</h2>
+        <p class="prose">
+          Kontoauszug als CSV importieren und die Prognose ansehen — ohne Konto, und
+          die Datei verlässt deinen Browser nicht.
+        </p>
+        <a class="cta" href={APP_URL}>Kostenlos starten</a>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>
+
+<style>
+  .artikel-kopf {
+    padding-block: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+  }
+
+  .artikel-kopf .stack {
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .brotkrumen {
+    display: flex;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+  }
+
+  .brotkrumen a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .brotkrumen a:hover {
+    color: var(--petrol);
+  }
+
+  .artikel-kopf time {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .artikel-text {
+    padding-bottom: 3.5rem;
+  }
+
+  .artikel-text :global(h2) {
+    font-size: 1.5rem;
+    margin: 2.4rem 0 0.9rem;
+  }
+
+  .artikel-text :global(h3) {
+    margin: 1.9rem 0 0.6rem;
+  }
+
+  .artikel-text :global(p) {
+    margin: 1.05rem 0;
+    max-width: 64ch;
+  }
+
+  .artikel-text :global(ul) {
+    max-width: 64ch;
+    padding-left: 1.2rem;
+    margin: 1.05rem 0;
+  }
+
+  .artikel-text :global(li) {
+    margin: 0.5rem 0;
+  }
+
+  .artikel-text :global(li::marker) {
+    color: var(--petrol);
+  }
+
+  .artikel-text :global(strong) {
+    font-weight: 600;
+  }
+
+  .abschluss .stack {
+    gap: 1rem;
+    align-items: flex-start;
+  }
+</style>

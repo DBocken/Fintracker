@@ -1,0 +1,328 @@
+---
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import Faq from '../../components/Faq.astro';
+import { KONKURRENTEN, BEWERTUNG_TEXT, konkurrentFinden } from '../../data/vergleich';
+import { FAQ } from '../../data/faq';
+import { SITE_URL, APP_URL } from '../../site.mjs';
+
+export function getStaticPaths() {
+  return KONKURRENTEN.map((k) => ({ params: { slug: k.slug } }));
+}
+
+const { slug } = Astro.params;
+const k = konkurrentFinden(slug!)!;
+
+const titel = `Fintracker oder ${k.name}? Ein ehrlicher Vergleich`;
+const beschreibung = `${k.name} im Vergleich mit Fintracker: Datenhaltung, Kategorisierung, Prognose und Preis — inklusive der Punkte, in denen ${k.name} die bessere Wahl ist.`;
+
+// Die drei relevanten Fragen fuer eine Vergleichsseite. Der Rest der FAQ
+// gehoert auf die Startseite — eine kopierte Vollversion je Seite ist
+// Dopplung, keine Antwort.
+const faqAuswahl = FAQ.filter((f) =>
+  ['Local-First', 'Monte-Carlo', 'ohne Bankverbindung'].some((wort) => f.frage.includes(wort) || f.antwort.includes(wort)),
+).slice(0, 3);
+
+const strukturierteDaten = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqAuswahl.map((eintrag) => ({
+      '@type': 'Question',
+      name: eintrag.frage,
+      acceptedAnswer: { '@type': 'Answer', text: eintrag.antwort },
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Vergleich', item: new URL('/vergleich', SITE_URL).href },
+      { '@type': 'ListItem', position: 3, name: k.name, item: new URL(`/vergleich/${k.slug}`, SITE_URL).href },
+    ],
+  },
+];
+---
+
+<Base title={titel} description={beschreibung} pfad={`/vergleich/${k.slug}`} strukturierteDaten={strukturierteDaten}>
+  <SiteHeader />
+
+  <main id="inhalt">
+    <section class="kopfbereich">
+      <div class="shell shell--narrow stack">
+        <nav class="brotkrumen" aria-label="Brotkrumen">
+          <a href="/">Start</a>
+          <span aria-hidden="true">/</span>
+          <a href="/#vergleich">Vergleich</a>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{k.name}</span>
+        </nav>
+
+        <h1>Fintracker oder {k.name}?</h1>
+        <p class="lede">{k.kern}</p>
+
+        <dl class="steckbrief">
+          <div><dt>Markt</dt><dd>{k.markt}</dd></div>
+          <div><dt>Preis</dt><dd>{k.preis}</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="shell shell--narrow stack abschnitt">
+        <h2>Wofür {k.name} steht</h2>
+        <p class="prose">{k.staerke}</p>
+      </div>
+    </section>
+
+    <!-- Die wichtigste Sektion der Seite. Sie steht bewusst VOR der
+         Tabelle: wer hier abbricht, hat trotzdem die ehrliche Antwort. -->
+    <section class="band band--sunk">
+      <div class="shell shell--narrow stack abschnitt">
+        <p class="eyebrow">Ehrlich gesagt</p>
+        <h2>Wo {k.name} die bessere Wahl ist</h2>
+        <p class="prose">{k.wo_besser}</p>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="shell shell--narrow stack abschnitt">
+        <h2>Merkmal für Merkmal</h2>
+      </div>
+      <div class="shell shell--narrow table-scroll">
+        <table class="gegenueber">
+          <caption class="sr-only">Vergleich einzelner Merkmale von Fintracker und {k.name}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Merkmal</th>
+              <th scope="col">Fintracker</th>
+              <th scope="col">{k.name}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              k.merkmale.map((m) => (
+                <tr>
+                  <th scope="row">{m.frage}</th>
+                  <td class={`zelle zelle--${m.fintracker}`}>
+                    <span class="urteil">{BEWERTUNG_TEXT[m.fintracker]}</span>
+                    <span class="detail">{m.fintrackerText}</span>
+                  </td>
+                  <td class={`zelle zelle--${m.andere}`}>
+                    <span class="urteil">{BEWERTUNG_TEXT[m.andere]}</span>
+                    <span class="detail">{m.andereText}</span>
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="band band--sunk">
+      <div class="shell shell--narrow stack abschnitt">
+        <h2>Fazit</h2>
+        <p class="prose fazit">{k.fazit}</p>
+        <a class="cta" href={APP_URL}>Fintracker kostenlos ausprobieren</a>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="shell shell--narrow stack abschnitt">
+        <h2>Fragen dazu</h2>
+      </div>
+      <div class="shell shell--narrow">
+        <Faq eintraege={faqAuswahl} />
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="shell shell--narrow stack abschnitt">
+        <h2>Andere Vergleiche</h2>
+        <ul class="weitere">
+          {
+            KONKURRENTEN.filter((a) => a.slug !== k.slug).map((a) => (
+              <li><a href={`/vergleich/${a.slug}`}>Fintracker im Vergleich zu {a.name} <span aria-hidden="true">→</span></a></li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .kopfbereich {
+    padding-block: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .kopfbereich .stack {
+    gap: 1.05rem;
+    align-items: flex-start;
+  }
+
+  .brotkrumen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+  }
+
+  .brotkrumen a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .brotkrumen a:hover {
+    color: var(--petrol);
+  }
+
+  .steckbrief {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 2rem;
+    margin: 0.5rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .steckbrief div {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .steckbrief dt {
+    color: var(--ink-soft);
+  }
+
+  .steckbrief dd {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .abschnitt {
+    gap: 0.9rem;
+    align-items: flex-start;
+    margin-bottom: 1.4rem;
+  }
+
+  .abschnitt:last-child {
+    margin-bottom: 0;
+  }
+
+  .fazit {
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+
+  .gegenueber {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 40rem;
+  }
+
+  .gegenueber th,
+  .gegenueber td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .gegenueber thead th {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1.5px solid var(--ink-soft);
+  }
+
+  .gegenueber thead th:nth-child(2) {
+    color: var(--petrol);
+  }
+
+  .gegenueber tbody th {
+    font-weight: 600;
+    font-size: 0.95rem;
+    width: 32%;
+  }
+
+  .zelle {
+    display: table-cell;
+  }
+
+  .urteil {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  .zelle--ja .urteil {
+    color: var(--petrol);
+    border-color: var(--petrol);
+    background: var(--mint);
+  }
+
+  .detail {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .weitere {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .weitere a {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 0.95rem;
+  }
+
+  .weitere a:hover {
+    border-color: var(--petrol);
+    color: var(--petrol);
+  }
+</style>

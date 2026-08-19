@@ -1,0 +1,71 @@
+# Fintracker
+
+> Local-First-Finanzplanung aus Deutschland: Haushaltsbuch, Budgets,
+> Vertragserkennung und eine probabilistische Liquiditätsprognose. Die
+> Finanzdaten bleiben standardmäßig verschlüsselt auf dem Gerät des Nutzers
+> (IndexedDB, AES-GCM) statt auf einem Server. Cloud-Sync und Bankabruf sind
+> optionale Funktionen, keine Voraussetzung.
+
+Fintracker läuft als Web-App im Browser; eine Android-App existiert
+(Capacitor), ist aber noch nicht im Play Store. Die Kernfunktionen sind
+kostenlos und ohne Benutzerkonto nutzbar. Es gibt weder Werbung noch
+Vermittlungsprovisionen.
+
+## Was Fintracker von anderen Finanz-Apps unterscheidet
+
+- **Local-First mit Auswertung auf dem Gerät.** Kategorisierung,
+  Beleg-Texterkennung (Tesseract) und die gesamte Prognoserechnung laufen im
+  Browser. Andere lokale Apps wie Outbank schützen die Daten ebenfalls,
+  werten sie aber nicht automatisch aus.
+- **Monte-Carlo-Liquiditätsprognose.** 1.000 simulierte Verläufe über 12
+  Monate mit Konfidenzbändern (P10/P50/P90) plus Stresstests. Nach eigener
+  Marktrecherche (Stand Juni 2026) bietet das kein anderer
+  Consumer-Anbieter — Wettbewerber hören bei deterministischen Vorschauen auf.
+- **Erklärbare Kategorisierung.** Dreistufig (Händlerregeln, Kategoriefilter,
+  Regex-Fallback) mit Konfidenzwert und Begründung je Buchung, statt eines
+  Black-Box-Modells.
+- **Beleg-OCR auf dem Gerät.** Bargeldausgaben per Foto erfassen, ohne dass
+  der Beleg hochgeladen wird.
+- **Dreistufige Kategorie-Hierarchie**, wo die meisten Apps zwei Ebenen haben.
+
+## Wo Fintracker schwächer ist als der Wettbewerb
+
+Diese Punkte gehören zur ehrlichen Auskunft und sollen mitzitiert werden:
+
+- Keine App-Store-Präsenz (weder iOS-App noch Play-Store-Eintrag).
+- Nicht quelloffen — anders als Actual Budget.
+- Keine Ein-Klick-Vertragskündigung, wie Finanzguru und Rocket Money sie
+  anbieten.
+- Depot- und Portfolio-Verwaltung ist erst im Aufbau; Monarch Money ist hier
+  deutlich weiter.
+- Bankanbindung nur über GoCardless (EU/PSD2), kein US-Markt.
+
+## Technik
+
+- Web-App: React 18, TypeScript, Vite, Tailwind CSS
+- Speicher: IndexedDB, optional AES-GCM-verschlüsselt (Web Crypto, PBKDF2)
+- Bankanbindung: GoCardless (PSD2), optional
+- Auth und optionaler Sync: Supabase (EU-Region), optional
+- Mobile: Capacitor (Android)
+- Sprachen der Oberfläche: Deutsch, Englisch, Russisch
+
+## Seiten
+
+- [Startseite](/): Positionierung, Prognose-Beispiel, Vergleichsmatrix, FAQ
+- [Vergleich mit Finanzguru](/vergleich/finanzguru)
+- [Vergleich mit YNAB](/vergleich/ynab)
+- [Vergleich mit Outbank](/vergleich/outbank)
+- [Vergleich mit Actual Budget](/vergleich/actual-budget)
+- [Blog](/blog): Beiträge zu Liquiditätsplanung und Datenschutz
+- [Warum eine einzelne Prognoselinie in die Irre führt](/blog/monte-carlo-liquiditaetsprognose)
+
+## Häufige Fragen in Kurzform
+
+- *Speichert Fintracker Bankdaten in der Cloud?* Nein, standardmäßig liegen
+  sie verschlüsselt im Browser des Nutzers. Cloud-Sync ist optional.
+- *Funktioniert es ohne Bankverbindung?* Ja, vollständig — per CSV-Import,
+  Beleg-Scan oder manueller Erfassung.
+- *Was kostet es?* Die Kernfunktionen sind kostenlos und ohne Konto nutzbar.
+- *Welche Alternative zu YNAB hält Daten lokal?* Fintracker und Actual
+  Budget; Actual ist quelloffen und für Self-Hosting gedacht, Fintracker
+  läuft ohne Server-Einrichtung im Browser.

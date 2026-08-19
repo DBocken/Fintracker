@@ -1,0 +1,115 @@
+---
+import { APP_URL } from '../site.mjs';
+
+const NAV = [
+  { href: '/#warum-lokal', text: 'Warum lokal' },
+  { href: '/#vergleich', text: 'Vergleich' },
+  { href: '/#fragen', text: 'Fragen' },
+  { href: '/blog', text: 'Blog' },
+];
+---
+
+<header class="kopf">
+  <div class="shell kopf-inhalt">
+    <a class="wortmarke" href="/">
+      <span class="wortmarke-punkt" aria-hidden="true"></span>
+      Fintracker
+    </a>
+
+    <nav aria-label="Hauptnavigation">
+      <ul>
+        {NAV.map((eintrag) => <li><a href={eintrag.href}>{eintrag.text}</a></li>)}
+      </ul>
+    </nav>
+
+    <a class="cta kopf-cta" href={APP_URL}>Starten</a>
+  </div>
+</header>
+
+<style>
+  .kopf {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--sand) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .kopf-inhalt {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding-block: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .wortmarke {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.06rem;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-decoration: none;
+    margin-right: auto;
+  }
+
+  .wortmarke-punkt {
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    background: var(--petrol);
+    flex: none;
+  }
+
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.4rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  nav a {
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  nav a:hover {
+    color: var(--petrol);
+  }
+
+  .kopf-cta {
+    padding: 0.5rem 1.05rem;
+    font-size: 0.92rem;
+  }
+
+  /* Auf schmalen Breiten rueckt die Navigation in eine eigene Zeile — sie
+     verschwindet nicht. Eine Flaeche, die auf dem Handy fehlt, ist kein
+     Dichte-Unterschied, sondern ein fehlendes Feature. */
+  @media (max-width: 44rem) {
+    .wortmarke {
+      margin-right: 0;
+    }
+
+    .kopf-cta {
+      margin-left: auto;
+    }
+
+    nav {
+      order: 3;
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    nav ul {
+      gap: 1.15rem;
+      padding-bottom: 0.15rem;
+    }
+  }
+</style>

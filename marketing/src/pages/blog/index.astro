@@ -1,0 +1,109 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+
+const artikel = (await getCollection('blog', ({ data }) => !data.entwurf)).sort(
+  (a, b) => b.data.datum.getTime() - a.data.datum.getTime(),
+);
+
+const datumFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'long' });
+---
+
+<Base
+  title="Blog — Fintracker"
+  description="Beiträge zu Liquiditätsplanung, Datenschutz bei Finanz-Apps und der Technik dahinter."
+  pfad="/blog"
+>
+  <SiteHeader />
+
+  <main id="inhalt">
+    <section class="kopfbereich">
+      <div class="shell shell--narrow stack">
+        <p class="eyebrow">Blog</p>
+        <h1>Wie wir rechnen, und warum.</h1>
+        <p class="lede">
+          Beiträge zur Liquiditätsplanung, zum Datenschutz bei Finanz-Apps und zur
+          Technik dahinter — geschrieben, damit man sie ohne Vorwissen versteht.
+        </p>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="shell shell--narrow">
+        <ul class="liste">
+          {
+            artikel.map((a) => (
+              <li>
+                <a href={`/blog/${a.id}`}>
+                  <time datetime={a.data.datum.toISOString()}>{datumFormat.format(a.data.datum)}</time>
+                  <h2>{a.data.titel}</h2>
+                  <p>{a.data.beschreibung}</p>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>
+
+<style>
+  .kopfbereich {
+    padding-block: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .kopfbereich .stack {
+    gap: 0.95rem;
+    align-items: flex-start;
+  }
+
+  .liste {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+
+  .liste li {
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Ganze Flaeche klickbar — kein toter Rahmen um einen kleinen Link. */
+  .liste a {
+    display: block;
+    padding: 1.5rem 0;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .liste time {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .liste h2 {
+    font-size: 1.35rem;
+    margin: 0.35rem 0 0.5rem;
+    transition: color 0.15s ease;
+  }
+
+  .liste a:hover h2 {
+    color: var(--petrol);
+  }
+
+  .liste p {
+    color: var(--ink-soft);
+    max-width: 62ch;
+    font-size: 0.98rem;
+  }
+</style>

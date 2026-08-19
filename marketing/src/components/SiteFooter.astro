@@ -1,0 +1,123 @@
+---
+import { KONKURRENTEN } from '../data/vergleich';
+
+const SPALTEN = [
+  {
+    titel: 'Produkt',
+    links: [
+      { href: '/#warum-lokal', text: 'Warum lokal' },
+      { href: '/#fragen', text: 'Häufige Fragen' },
+      { href: '/blog', text: 'Blog' },
+    ],
+  },
+  {
+    titel: 'Vergleiche',
+    links: KONKURRENTEN.map((k) => ({ href: `/vergleich/${k.slug}`, text: k.name })),
+  },
+  {
+    titel: 'Rechtliches',
+    links: [
+      { href: '/datenschutz', text: 'Datenschutz' },
+      { href: '/impressum', text: 'Impressum' },
+    ],
+  },
+];
+---
+
+<footer class="fuss">
+  <div class="shell fuss-inhalt">
+    <div class="fuss-marke">
+      <span class="wortmarke">Fintracker</span>
+      <p>Finanzplanung, die dein Gerät nicht verlässt.</p>
+      <p class="fuss-hosting">Gehostet in der EU. Externe Dienste stehen einzeln im Anbieter-Register.</p>
+    </div>
+
+    {
+      SPALTEN.map((spalte) => (
+        <nav class="fuss-spalte" aria-label={spalte.titel}>
+          <h2>{spalte.titel}</h2>
+          <ul>
+            {spalte.links.map((l) => <li><a href={l.href}>{l.text}</a></li>)}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+</footer>
+
+<style>
+  .fuss {
+    background: var(--petrol-deep);
+    color: #d7e2e0;
+    padding-block: clamp(2.5rem, 5vw, 3.5rem);
+  }
+
+  .fuss-inhalt {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  @media (max-width: 52rem) {
+    .fuss-inhalt {
+      grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    }
+  }
+
+  .wortmarke {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    color: #f3f7f6;
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+
+  .fuss-marke p {
+    font-size: 0.92rem;
+    max-width: 28ch;
+    color: #b7c7c4;
+  }
+
+  .fuss-hosting {
+    margin-top: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    line-height: 1.55;
+  }
+
+  .fuss-spalte h2 {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #8fa5a1;
+    margin-bottom: 0.75rem;
+  }
+
+  .fuss-spalte ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .fuss-spalte a {
+    color: #d7e2e0;
+    font-size: 0.92rem;
+    text-decoration: none;
+  }
+
+  .fuss-spalte a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+
+  .fuss a:focus-visible {
+    outline-color: #ffffff;
+  }
+</style>

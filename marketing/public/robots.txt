@@ -1,0 +1,61 @@
+# Fintracker — robots.txt
+#
+# Die KI-Crawler stehen hier EINZELN und ausdruecklich erlaubt, obwohl
+# "User-agent: *  Allow: /" sie formal schon einschliesst. Grund: Der
+# haeufigste Weg, in ChatGPT/Claude/Gemini unsichtbar zu sein, ist ein
+# geerbtes "Disallow: /" aus einem SEO-Plugin oder einer CDN-Bot-Regel.
+# Eine ausdrueckliche Zeile je Agent ist die einzige Fassung, die auch
+# nach dem naechsten Werkzeugwechsel noch das aussagt, was gemeint ist.
+
+User-agent: *
+Allow: /
+
+# --- Sprachmodelle: Training und Retrieval ---
+
+# OpenAI (ChatGPT)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Anthropic (Claude)
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Google (Gemini, AI Overviews)
+User-agent: Google-Extended
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Apple, Meta, Amazon
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+# Common Crawl — Grundlage vieler Trainingskorpora
+User-agent: CCBot
+Allow: /
+
+# ACHTUNG: Domain vor dem Launch in src/site.mjs setzen, dann hier eintragen.
+Sitemap: https://fintracker.example/sitemap-index.xml

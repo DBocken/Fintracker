@@ -1,0 +1,217 @@
+---
+/*
+ * Was auf dem Geraet bleibt und was es verlaesst.
+ *
+ * Bewusst ein Mechanik-Bild, kein Vertrauens-Symbol: ein Schloss-Icon
+ * behauptet Sicherheit, diese Grenze zeigt sie. Genau die zwei Wege nach
+ * draussen sind eingezeichnet, beide abschaltbar — eine Grafik, die
+ * „nichts verlaesst dein Geraet" behauptet, waere schlicht falsch, sobald
+ * jemand den Bankabruf einschaltet.
+ */
+
+const AUF_DEM_GERAET = [
+  { name: 'Umsätze & Konten', detail: 'IndexedDB, AES-GCM-verschlüsselt' },
+  { name: 'Kategorien & Regeln', detail: '3 Ebenen, nachvollziehbar' },
+  { name: 'Belege', detail: 'OCR läuft im Browser (Tesseract)' },
+  { name: 'Budgets & Verträge', detail: 'inkl. Preisänderungen' },
+  { name: 'Prognose & Simulation', detail: '1.000 Läufe, lokal gerechnet' },
+];
+
+const WEGE_NACH_DRAUSSEN = [
+  {
+    name: 'Bankabruf',
+    anbieter: 'GoCardless (PSD2, EU)',
+    was: 'Holt deine Umsätze. Ohne Einrichtung fließt hier nichts — CSV-Import und manuelle Erfassung funktionieren ohne jede Verbindung.',
+  },
+  {
+    name: 'Cloud-Sync',
+    anbieter: 'Supabase (EU-Region)',
+    was: 'Nur wenn du mehrere Geräte abgleichen willst. Verschlüsselt, und der Schlüssel bleibt bei dir.',
+  },
+];
+---
+
+<div class="boundary">
+  <section class="device" aria-labelledby="device-titel">
+    <header class="device-head">
+      <h3 id="device-titel">Dein Gerät</h3>
+      <span class="device-badge">Standard: alles hier</span>
+    </header>
+    <ul class="chips">
+      {
+        AUF_DEM_GERAET.map((eintrag) => (
+          <li class="chip">
+            <span class="chip-name">{eintrag.name}</span>
+            <span class="chip-detail">{eintrag.detail}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <p class="boundary-legend">
+    <span aria-hidden="true" class="boundary-legend-line"></span>
+    Zwei Wege führen hinaus. Beide schaltest du selbst ein.
+  </p>
+
+  <ul class="exits">
+    {
+      WEGE_NACH_DRAUSSEN.map((weg) => (
+        <li class="exit">
+          <div class="exit-head">
+            <span class="exit-name">{weg.name}</span>
+            <span class="exit-flag">optional</span>
+          </div>
+          <p class="exit-provider">{weg.anbieter}</p>
+          <p class="exit-what">{weg.was}</p>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  .boundary {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .device {
+    background: var(--sand-raised);
+    border: 1.5px solid var(--petrol);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.5rem 1.5rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .device-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .device-head h3 {
+    font-size: 1.05rem;
+  }
+
+  .device-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--petrol);
+    background: var(--mint);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+  }
+
+  .chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.7rem;
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--sand);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .chip-name {
+    font-weight: 600;
+    font-size: 0.94rem;
+  }
+
+  .chip-detail {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+
+  .boundary-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    padding: 1.15rem 0 1.15rem 1.5rem;
+    position: relative;
+  }
+
+  /* Die gestrichelte Linie IST die Grenze — sie laeuft aus dem Kasten
+     heraus zu den beiden Ausgaengen. */
+  .boundary-legend-line {
+    position: absolute;
+    left: 1.5rem;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1.5px dashed var(--line);
+  }
+
+  .exits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 0.9rem;
+  }
+
+  .exit {
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem 1.15rem;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .exit-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .exit-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .exit-flag {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+  }
+
+  .exit-provider {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--petrol);
+  }
+
+  .exit-what {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+</style>
