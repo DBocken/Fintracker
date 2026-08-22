@@ -1,0 +1,52 @@
+name: RLS Live-Test
+
+# Zwei-Nutzer-Integrationstest gegen eine echte Instanz (Issue #298):
+# lokale Supabase-Stack, Migrationen eingespielt, dann
+# supabase/tests/rls-live.security.sql per psql. Der Harness rollt alles
+# zurueck und scheitert mit Exit != 0, sobald ein Pruefpunkt FAIL ist.
+#
+# Nur laufen, wenn sich der gepruefte Bereich auch aendert — gleiche Logik wie
+# die Pfadbegrenzung eines Wächters, aber auf DB-Ebene.
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - '.github/workflows/rls-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rls-live-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rls-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # config.toml ist bewusst nicht im Repo (lokale Ports etc.). init ist
+      # noetig, damit `start` einen Stack mit Default-Ports hochzieht
+      # (Postgres: 127.0.0.1:54322).
+      - name: Supabase-Stack starten & Migrationen einspielen
+        run: |
+          if [ ! -f supabase/config.toml ]; then
+            supabase init
+          fi
+          supabase start
+          supabase db reset
+
+      - name: Zwei-Nutzer-RLS-Harness ausfuehren
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls-live.security.sql
