@@ -1,0 +1,503 @@
+---
+import Base from '../layouts/Base.astro';
+import ForecastFan from '../components/ForecastFan.astro';
+import DeviceBoundary from '../components/DeviceBoundary.astro';
+import Faq from '../components/Faq.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { FAQ } from '../data/faq';
+import { MATRIX, MATRIX_SPALTEN, BEWERTUNG_TEXT, KONKURRENTEN } from '../data/vergleich';
+import { SITE_URL, APP_URL } from '../site.mjs';
+
+const titel = 'Fintracker — Finanzplanung, die dein Gerät nicht verlässt';
+const beschreibung =
+  'Haushaltsbuch, Budgets und eine Liquiditätsprognose mit Wahrscheinlichkeiten. Deine Finanzdaten bleiben verschlüsselt auf deinem Gerät statt in der Cloud.';
+
+/*
+ * schema.org ist hier kein Beiwerk: es ist derselbe Inhalt in maschinen-
+ * lesbar. Google zieht daraus Rich Results, die Grounding-Suche von
+ * ChatGPT, Claude und Gemini zieht daraus die Fakten, die sie zitieren.
+ */
+const strukturierteDaten = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Fintracker',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web, Android',
+    description:
+      'Local-First-Finanzplanung: Haushaltsbuch, Budgets, Vertragserkennung und eine Monte-Carlo-Liquiditätsprognose. Finanzdaten bleiben verschlüsselt auf dem Gerät (IndexedDB, AES-GCM), Cloud-Sync ist optional.',
+    url: SITE_URL,
+    inLanguage: ['de', 'en', 'ru'],
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    featureList: [
+      'Local-First-Speicherung mit AES-GCM-Verschlüsselung',
+      'Monte-Carlo-Liquiditätsprognose über 12 Monate',
+      'Erklärbare dreistufige Auto-Kategorisierung',
+      'Beleg-Texterkennung auf dem Gerät',
+      'PSD2-Bankanbindung über GoCardless (optional)',
+      'CSV-Import mit deutschen Zahlenformaten',
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map((eintrag) => ({
+      '@type': 'Question',
+      name: eintrag.frage,
+      acceptedAnswer: { '@type': 'Answer', text: eintrag.antwort },
+    })),
+  },
+];
+
+const BEWEISE = [
+  { zahl: '1.000', einheit: 'Simulationsläufe', text: 'je Prognose, im Browser gerechnet' },
+  { zahl: '0', einheit: 'Byte', text: 'Finanzdaten auf einem Server, solange du nichts einschaltest' },
+  { zahl: '3', einheit: 'Ebenen', text: 'Kategorie-Hierarchie statt zwei wie üblich' },
+];
+---
+
+<Base title={titel} description={beschreibung} pfad="/" strukturierteDaten={strukturierteDaten}>
+  <SiteHeader />
+
+  <main id="inhalt">
+    <!-- ========== Hero: die These, nicht das Feature-Menü ========== -->
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-text stack">
+          <p class="eyebrow">Local-First-Finanzplanung</p>
+          <h1>Deine Finanzen bleiben auf deinem Gerät.</h1>
+          <p class="lede">
+            Fintracker führt dein Haushaltsbuch, erkennt Verträge und rechnet aus, wie
+            wahrscheinlich dein Geld reicht — verschlüsselt im Browser, ohne dass deine
+            Kontodaten auf einem fremden Server landen.
+          </p>
+          <div class="hero-actions">
+            <a class="cta" href={APP_URL}>Kostenlos starten</a>
+            <a class="cta cta--quiet" href="#warum-lokal">Wie das technisch geht</a>
+          </div>
+          <p class="hero-fine">
+            Kein Konto nötig. Kein Werbe- oder Provisionsmodell.
+          </p>
+        </div>
+
+        <div class="hero-visual">
+          <ForecastFan />
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Warum lokal: die Mechanik, nicht das Versprechen ========== -->
+    <section class="band" id="warum-lokal">
+      <div class="shell split">
+        <div class="split-text stack">
+          <p class="eyebrow">Wo deine Daten liegen</p>
+          <h2>„Lokal" ist eine Architektur, keine Datenschutzerklärung.</h2>
+          <p class="prose">
+            Die meisten Finanz-Apps laden deine Umsätze auf einen Server, weil sie dort
+            rechnen. Fintracker rechnet auf deinem Gerät — Kategorisierung,
+            Beleg-Texterkennung und die komplette Prognose laufen im Browser. Deshalb
+            gibt es keinen technischen Grund, deine Daten irgendwohin zu schicken.
+          </p>
+          <p class="prose">
+            Was das praktisch heißt: Du kannst Fintracker vollständig ohne Konto und
+            ohne Internetverbindung benutzen. Erst wenn du den Bankabruf oder den
+            Geräteabgleich einschaltest, verlässt überhaupt etwas dein Gerät — und
+            beides steht rechts einzeln aufgeführt.
+          </p>
+        </div>
+        <div class="split-visual">
+          <DeviceBoundary />
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Der zweite USP ========== -->
+    <section class="band band--sunk">
+      <div class="shell split split--reverse">
+        <div class="split-text stack">
+          <p class="eyebrow">Prognose</p>
+          <h2>Nicht „was habe ich ausgegeben", sondern „wie wahrscheinlich reicht es".</h2>
+          <p class="prose">
+            Eine übliche Vorschau zieht eine Linie in die Zukunft und tut so, als wäre
+            sie sicher. Fintracker simuliert stattdessen tausend Verläufe mit
+            schwankenden Einnahmen, Fixkosten und Jahresrechnungen und zeigt die
+            Bandbreite.
+          </p>
+          <p class="prose">
+            Aus „im Februar hast du 3.100 €" wird damit die Aussage, an der Planungen
+            tatsächlich scheitern: <strong>in einem von zehn Verläufen bist du im
+            Februar unter 2.620 €.</strong> Dazu kommen Stresstests — Jobverlust,
+            Großreparatur, Mieterhöhung — als eigene Szenarien.
+          </p>
+          <p class="prose prose--quiet">
+            Nach unserer Marktrecherche bietet das im Consumer-Bereich sonst niemand.
+            Findest du ein Gegenbeispiel, schreib uns — dann korrigieren wir diesen Satz.
+          </p>
+        </div>
+        <div class="split-visual">
+          <ul class="beweise">
+            {
+              BEWEISE.map((b) => (
+                <li class="beweis">
+                  <span class="beweis-zahl fig">{b.zahl}</span>
+                  <span class="beweis-einheit">{b.einheit}</span>
+                  <span class="beweis-text">{b.text}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Vergleich ========== -->
+    <section class="band" id="vergleich">
+      <div class="shell stack vergleich-kopf">
+        <p class="eyebrow">Vergleich</p>
+        <h2>Wo Fintracker gewinnt — und wo nicht.</h2>
+        <p class="prose">
+          Die unteren beiden Zeilen sprechen gegen uns. Sie stehen trotzdem hier: wer
+          eine App aus dem Store oder offenen Quellcode braucht, soll das nicht erst
+          nach der Einrichtung merken.
+        </p>
+      </div>
+
+      <div class="shell table-scroll">
+        <table class="matrix">
+          <caption class="sr-only">
+            Funktionsvergleich zwischen Fintracker, Finanzguru, YNAB, Outbank und Actual Budget
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Merkmal</th>
+              {
+                MATRIX_SPALTEN.map((spalte, i) => (
+                  <th scope="col" class={i === 0 ? 'ist-wir' : ''}>{spalte}</th>
+                ))
+              }
+            </tr>
+          </thead>
+          <tbody>
+            {
+              MATRIX.map((zeile) => (
+                <tr>
+                  <th scope="row">{zeile.merkmal}</th>
+                  {
+                    zeile.werte.map((wert, i) => (
+                      <td class={`wert wert--${wert} ${i === 0 ? 'ist-wir' : ''}`}>
+                        <span class="sr-only">{BEWERTUNG_TEXT[wert]}</span>
+                        <span aria-hidden="true" class="marke"></span>
+                      </td>
+                    ))
+                  }
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="shell">
+        <ul class="vergleich-links">
+          {
+            KONKURRENTEN.map((k) => (
+              <li>
+                <a href={`/vergleich/${k.slug}`}>
+                  Fintracker im Vergleich zu {k.name}
+                  <span aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== FAQ ========== -->
+    <section class="band band--sunk" id="fragen">
+      <div class="shell--narrow shell stack faq-kopf">
+        <p class="eyebrow">Häufige Fragen</p>
+        <h2>Was Leute vorher wissen wollen.</h2>
+      </div>
+      <div class="shell shell--narrow">
+        <Faq />
+      </div>
+    </section>
+
+    <!-- ========== Abschluss ========== -->
+    <section class="band schluss">
+      <div class="shell--narrow shell stack schluss-inhalt">
+        <h2>Fang mit einer CSV-Datei an.</h2>
+        <p class="prose">
+          Der schnellste ehrliche Test: Kontoauszug als CSV exportieren, hochladen,
+          Prognose ansehen. Es entsteht kein Konto, und die Datei verlässt deinen
+          Browser nicht.
+        </p>
+        <div class="hero-actions">
+          <a class="cta" href={APP_URL}>Kostenlos starten</a>
+          <a class="cta cta--quiet" href="/blog">Zum Blog</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Base>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ---------- Hero ---------- */
+
+  .hero {
+    padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 7vw, 5.5rem);
+  }
+
+  .hero-grid {
+    display: grid;
+    /* Fast gleiche Haelften: die Schlagzeile braucht Platz fuer drei Zeilen
+       statt fuenf, und das Diagramm bleibt trotzdem gross genug, um die
+       Baender auseinanderhalten zu koennen. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    gap: clamp(2rem, 4.5vw, 3.5rem);
+    align-items: center;
+  }
+
+  @media (max-width: 62rem) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hero-text {
+    gap: 1.15rem;
+    align-items: flex-start;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 0.5rem;
+  }
+
+  .hero-fine {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+  }
+
+  .hero-visual {
+    background: var(--sand-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: clamp(1.1rem, 2.5vw, 1.8rem);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* ---------- Zweispaltige Baender ---------- */
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: clamp(2rem, 5vw, 3.5rem);
+    align-items: center;
+  }
+
+  .split--reverse .split-text {
+    order: 2;
+  }
+
+  @media (max-width: 62rem) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+
+    .split--reverse .split-text {
+      order: 0;
+    }
+  }
+
+  .split-text {
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .prose--quiet {
+    font-size: 0.92rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--line);
+  }
+
+  /* ---------- Beweiszahlen ---------- */
+
+  .beweise {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .beweis {
+    background: var(--sand);
+    padding: 1.25rem 1.4rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.6rem;
+    align-items: baseline;
+  }
+
+  .beweis-zahl {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--petrol);
+    line-height: 1;
+  }
+
+  .beweis-einheit {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .beweis-text {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Vergleichsmatrix ---------- */
+
+  .vergleich-kopf,
+  .faq-kopf {
+    gap: 0.85rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .matrix {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 46rem;
+    font-size: 0.94rem;
+  }
+
+  .matrix th,
+  .matrix td {
+    padding: 0.72rem 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .matrix thead th {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1.5px solid var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .matrix tbody th {
+    font-weight: 600;
+    font-size: 0.94rem;
+  }
+
+  .matrix td {
+    text-align: center;
+    width: 8.5rem;
+  }
+
+  .matrix .ist-wir {
+    background: var(--mint);
+    color: var(--ink);
+  }
+
+  .matrix thead .ist-wir {
+    color: var(--petrol);
+    font-weight: 600;
+  }
+
+  /* Zustand steckt in der Form, nicht nur in der Farbe: voller Kreis,
+     halber Kreis, Strich — lesbar auch ohne Farbwahrnehmung. */
+  .marke {
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+
+  .wert--ja .marke {
+    background: var(--petrol);
+  }
+
+  .wert--teilweise .marke {
+    background: linear-gradient(to right, var(--petrol) 0 50%, transparent 50% 100%);
+    border: 1.5px solid var(--petrol);
+  }
+
+  .wert--nein .marke {
+    width: 0.85rem;
+    height: 1.5px;
+    border-radius: 0;
+    background: var(--ink-soft);
+    opacity: 0.55;
+  }
+
+  .vergleich-links {
+    list-style: none;
+    margin: 1.8rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 0.6rem;
+  }
+
+  .vergleich-links a {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.05rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .vergleich-links a:hover {
+    border-color: var(--petrol);
+    color: var(--petrol);
+  }
+
+  /* ---------- Abschluss ---------- */
+
+  .schluss-inhalt {
+    gap: 1rem;
+    align-items: flex-start;
+  }
+</style>

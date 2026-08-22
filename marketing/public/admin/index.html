@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Redaktionsoberflaeche: gehoert nie in einen Suchindex. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Redaktion — Fintracker</title>
+  </head>
+  <body>
+    <!--
+      Decap wird LOKAL ausgeliefert, nicht von einem CDN.
+
+      Die uebliche Einbindung zeigt auf unpkg.com. Das waere ein externer
+      Anbieter, der bei jedem Aufruf der Redaktionsoberflaeche kontaktiert
+      wird — genau das, was die EU-Regel des Projekts vermeiden soll, und
+      zusaetzlich eine Lieferketten-Abhaengigkeit auf ein fremdes CDN.
+
+      Die Datei entsteht aus dem npm-Paket:
+          pnpm --dir marketing run cms:vendor
+      (kopiert node_modules/decap-cms-app/dist/decap-cms-app.js hierher).
+      Sie ist deshalb NICHT eingecheckt — siehe marketing/.gitignore.
+    -->
+    <script src="/admin/decap-cms-app.js"></script>
+  </body>
+</html>

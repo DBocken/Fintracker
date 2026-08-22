@@ -1,0 +1,87 @@
+# Decap CMS — Redaktionsoberflaeche fuer den Blog.
+#
+# Warum Decap und nicht WordPress oder ein SaaS-Headless-CMS:
+# Decap ist ein reines Browser-Frontend. Es hat keine Datenbank, keinen
+# Server und keinen Anbieter, der Inhalte haelt — es schreibt Commits in
+# GENAU DIESES Repository. Damit liegt der Blog in derselben Versionierung
+# wie der Code, und es gibt keinen zweiten Ort, an dem Daten liegen und der
+# in Subprozessoren-Verzeichnis und VVT (Art. 30) auftauchen muesste.
+
+backend:
+  name: github
+  repo: dbocken/fintracker
+  branch: main
+  # Decap braucht einen OAuth-Vermittler, um im Browser gegen GitHub
+  # anzumelden. Netlify liefert einen mit — den nutzen wir bewusst NICHT,
+  # weil er ausserhalb der EU laeuft. Stattdessen ein eigener, klein
+  # gehaltener OAuth-Proxy beim EU-Hoster.
+  # ACHTUNG: vor der ersten Nutzung eintragen und ins Anbieter-Register.
+  base_url: https://auth.fintracker.example
+  auth_endpoint: auth
+
+# Erlaubt `npx decap-server` fuer lokales Redigieren ohne GitHub-Login.
+local_backend: true
+
+media_folder: 'marketing/public/uploads'
+public_folder: '/uploads'
+
+locale: 'de'
+
+collections:
+  - name: 'blog'
+    label: 'Blog'
+    label_singular: 'Beitrag'
+    folder: 'marketing/src/content/blog'
+    create: true
+    slug: '{{slug}}'
+    extension: 'md'
+    format: 'yaml-frontmatter'
+    editor:
+      preview: false
+    fields:
+      - label: 'Titel'
+        name: 'titel'
+        widget: 'string'
+        hint: 'Die Ueberschrift des Beitrags. Steht auch im <title> der Seite.'
+
+      - label: 'Beschreibung'
+        name: 'beschreibung'
+        widget: 'text'
+        pattern:
+          - '.{50,}'
+          - 'Mindestens 50 Zeichen — kuerzer taugt nicht als Meta-Description.'
+        hint: >-
+          Wird als Meta-Description und in der Blog-Liste angezeigt. Ein Satz,
+          der die Frage des Beitrags beantwortet, statt sie nur anzukuendigen:
+          generative Suche zitiert genau diesen Satz.
+
+      - label: 'Datum'
+        name: 'datum'
+        widget: 'datetime'
+        date_format: 'DD.MM.YYYY'
+        time_format: false
+        picker_utc: false
+
+      - label: 'Zuletzt aktualisiert'
+        name: 'aktualisiert'
+        widget: 'datetime'
+        date_format: 'DD.MM.YYYY'
+        time_format: false
+        picker_utc: false
+        required: false
+        hint: 'Nur setzen, wenn ein veroeffentlichter Beitrag inhaltlich geaendert wurde.'
+
+      - label: 'Autor'
+        name: 'autor'
+        widget: 'string'
+        default: 'Fintracker'
+
+      - label: 'Entwurf'
+        name: 'entwurf'
+        widget: 'boolean'
+        default: false
+        hint: 'Entwuerfe werden nicht gebaut und erscheinen nicht in der Sitemap.'
+
+      - label: 'Text'
+        name: 'body'
+        widget: 'markdown'

@@ -1,0 +1,276 @@
+---
+/*
+ * Die Monte-Carlo-Liquiditaetsprognose als Held der Seite.
+ *
+ * Warum genau dieses Bild: es ist das einzige Feature, das laut
+ * docs/competitive-analysis.md kein Consumer-Wettbewerber hat. Ein
+ * generischer Dashboard-Screenshot waere austauschbar, dieses Diagramm
+ * nicht.
+ *
+ * Der Aufbau folgt der Animations-Baseline der App (AGENTS.md §9):
+ * Daten poppen nicht auf, sie werden aufgebaut — hier faehrt eine
+ * Clip-Maske von links nach rechts ueber Band und Medianlinie, der
+ * Endwert zaehlt hoch. `prefers-reduced-motion` zeigt sofort den
+ * Endzustand.
+ */
+
+// Zwoelf Monatspunkte, Startsaldo 3.200 €. Die Werte sind eine plausible
+// Beispielrechnung fuer die Landingpage, kein Messergebnis — der Alt-Text
+// und die Bildunterschrift sagen das auch.
+const MONATE = ['Sep', 'Okt', 'Nov', 'Dez', 'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug'];
+
+const X = [56, 114.5, 173.1, 231.6, 290.2, 348.7, 407.3, 465.8, 524.4, 582.9, 641.5, 700];
+const P90_Y = [218.3, 196.1, 179.4, 159.2, 144.5, 143.3, 122.3, 104.1, 88.6, 68.4, 53.7, 33.5];
+const P50_Y = [218.3, 207.2, 202.0, 190.5, 184.6, 193.7, 179.4, 169.9, 162.4, 151.7, 144.9, 134.2];
+const P10_Y = [218.3, 217.9, 223.0, 219.5, 223.0, 241.3, 234.9, 231.4, 230.2, 225.4, 225.8, 221.4];
+
+const linie = (ys: number[]) => ys.map((y, i) => `${i === 0 ? 'M' : 'L'} ${X[i]} ${y}`).join(' ');
+
+// Das Band ist die obere Grenze hin und die untere zurueck — ein
+// geschlossener Umriss, kein zweites Diagramm.
+const zurueck = (ys: number[]) =>
+  ys.map((y, i) => ({ x: X[i], y })).reverse().map((p) => `L ${p.x} ${p.y}`).join(' ');
+
+const band = `${linie(P90_Y)} ${zurueck(P10_Y)} Z`;
+
+const GITTER = [
+  { y: 226.2, label: '3.000 €' },
+  { y: 146.9, label: '5.000 €' },
+  { y: 67.6, label: '7.000 €' },
+];
+
+// Der Tiefpunkt des P10-Laufs: Februar, 2.620 €. Das ist die Aussage, die
+// eine deterministische Prognose nicht treffen kann.
+const TIEFPUNKT = { x: X[5], y: P10_Y[5], monat: 'Februar', wert: '2.620 €' };
+---
+
+<figure class="fan">
+  <svg
+    viewBox="0 0 756 312"
+    role="img"
+    aria-label="Beispielhafte Liquiditätsprognose über zwölf Monate: der mittlere Verlauf steigt von 3.200 € auf 5.320 €, das Konfidenzband reicht im letzten Monat von 3.120 € bis 7.860 €. Der schlechteste Zehntel-Fall fällt im Februar auf 2.620 €."
+  >
+    <defs>
+      <clipPath id="fan-reveal">
+        <rect class="fan-reveal-rect" x="56" y="0" width="644" height="312" />
+      </clipPath>
+    </defs>
+
+    <!-- Gitter und Achse zuerst: der Rahmen steht, bevor die Daten kommen -->
+    <g class="fan-grid">
+      {GITTER.map((g) => (
+        <>
+          <line x1="56" y1={g.y} x2="700" y2={g.y} />
+          <text x="48" y={g.y + 4} text-anchor="end" class="fan-tick">{g.label}</text>
+        </>
+      ))}
+      <line class="fan-axis" x1="56" y1="250" x2="700" y2="250" />
+    </g>
+
+    <g clip-path="url(#fan-reveal)">
+      <path class="fan-band" d={band} />
+      <path class="fan-median" d={linie(P50_Y)} />
+    </g>
+
+    <g class="fan-mark">
+      <line x1={TIEFPUNKT.x} y1={TIEFPUNKT.y} x2={TIEFPUNKT.x} y2="250" />
+      <circle cx={TIEFPUNKT.x} cy={TIEFPUNKT.y} r="4.5" />
+      <text x={TIEFPUNKT.x + 12} y={TIEFPUNKT.y + 17} class="fan-mark-label">
+        {TIEFPUNKT.monat}: {TIEFPUNKT.wert}
+      </text>
+    </g>
+
+    <g class="fan-months">
+      {MONATE.map((m, i) => (
+        <text x={X[i]} y="288" text-anchor="middle">{m}</text>
+      ))}
+    </g>
+
+    <g class="fan-legend">
+      <text x="712" y={P90_Y[11] + 4} class="fan-legend-hi">P90</text>
+      <text x="712" y={P50_Y[11] + 4} class="fan-legend-mid">P50</text>
+      <text x="712" y={P10_Y[11] + 4} class="fan-legend-lo">P10</text>
+    </g>
+  </svg>
+
+  <figcaption class="fan-caption">
+    <span class="fan-caption-figure">
+      Median nach 12 Monaten
+      <strong class="fig" data-count-to="5320">5.320 €</strong>
+    </span>
+    <span>
+      1.000 simulierte Verläufe aus deinen echten Einnahmen, Fixkosten und Verträgen.
+      Beispieldaten — deine Kurve entsteht aus deinen Buchungen.
+    </span>
+  </figcaption>
+</figure>
+
+<style>
+  .fan {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .fan svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .fan-grid line {
+    stroke: var(--grid);
+    stroke-width: 1;
+  }
+
+  .fan-axis {
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .fan-tick,
+  .fan-months text,
+  .fan-legend text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--ink-soft);
+  }
+
+  .fan-legend-hi,
+  .fan-legend-lo {
+    opacity: 0.75;
+  }
+
+  .fan-legend-mid {
+    fill: var(--petrol);
+    font-weight: 500;
+  }
+
+  .fan-band {
+    fill: var(--band-outer);
+    stroke: var(--band-inner);
+    stroke-width: 1;
+  }
+
+  .fan-median {
+    fill: none;
+    stroke: var(--petrol);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .fan-mark line {
+    stroke: var(--ink-soft);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    opacity: 0.5;
+  }
+
+  .fan-mark circle {
+    fill: var(--sand);
+    stroke: var(--petrol);
+    stroke-width: 2.5;
+  }
+
+  .fan-mark-label {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    fill: var(--ink);
+    font-weight: 500;
+  }
+
+  .fan-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1.5rem;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+
+  .fan-caption-figure {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .fan-caption-figure strong {
+    font-size: 1.25rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--petrol);
+    font-weight: 600;
+  }
+
+  /* Aufbau statt Aufpoppen: Maske faehrt von links nach rechts. */
+  @media (prefers-reduced-motion: no-preference) {
+    .fan-reveal-rect {
+      transform-box: view-box;
+      transform-origin: 56px 0;
+      animation: fan-wipe 1.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .fan-grid {
+      animation: fan-fade 0.6s ease both;
+    }
+
+    .fan-mark,
+    .fan-legend {
+      animation: fan-fade 0.5s ease 1.55s both;
+    }
+
+    .fan-months text {
+      animation: fan-fade 0.4s ease both;
+    }
+
+    @keyframes fan-wipe {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @keyframes fan-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const ziel = document.querySelector('[data-count-to]');
+    if (!ziel) return;
+
+    const endwert = Number(ziel.getAttribute('data-count-to'));
+    const formatiere = (n) =>
+      new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 }).format(n) + ' €';
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ziel.textContent = formatiere(endwert);
+      return;
+    }
+
+    const dauer = 1700;
+    let start = null;
+
+    const schritt = (jetzt) => {
+      if (start === null) start = jetzt;
+      const t = Math.min((jetzt - start) / dauer, 1);
+      // Dieselbe Kurve wie die Clip-Maske, damit Zahl und Diagramm
+      // denselben Aufbau zeigen statt nebeneinanderher zu laufen.
+      const eased = 1 - Math.pow(1 - t, 3);
+      ziel.textContent = formatiere(Math.round(endwert * eased));
+      if (t < 1) requestAnimationFrame(schritt);
+    };
+
+    requestAnimationFrame(schritt);
+  })();
+</script>

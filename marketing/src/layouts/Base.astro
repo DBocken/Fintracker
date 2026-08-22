@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+import { SITE_URL, SITE_NAME } from '../site.mjs';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Pfad ab Wurzel, z. B. "/vergleich/outbank". */
+  pfad: string;
+  /** schema.org-Objekte. Sie sind der maschinenlesbare Zwilling des Textes. */
+  strukturierteDaten?: Record<string, unknown>[];
+}
+
+const { title, description, pfad, strukturierteDaten = [] } = Astro.props;
+const canonical = new URL(pfad, SITE_URL).href;
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="de_DE" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap"
+    />
+
+    {
+      strukturierteDaten.map((daten) => (
+        <script type="application/ld+json" set:html={JSON.stringify(daten)} />
+      ))
+    }
+  </head>
+  <body>
+    <a class="skip" href="#inhalt">Zum Inhalt springen</a>
+    <slot />
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--petrol);
+    color: var(--petrol-on);
+    padding: 0.7rem 1.1rem;
+    z-index: 50;
+    text-decoration: none;
+    border-radius: 0 0 6px 0;
+  }
+
+  .skip:focus {
+    left: 0;
+  }
+</style>

@@ -1,0 +1,21 @@
+{
+  "name": "fintracker-marketing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Marketing-Site fuer Fintracker: Landingpage, Vergleichsseiten, Blog. Eigenes Paket, kein Workspace-Mitglied (wie mcp-poc, services/entitlements).",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "cms:vendor": "node -e \"require('fs').copyFileSync(require.resolve('decap-cms-app/dist/decap-cms-app.js'), 'public/admin/decap-cms-app.js')\""
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.4.0",
+    "astro": "^5.13.0"
+  },
+  "devDependencies": {
+    "decap-cms-app": "^3.9.0"
+  }
+}

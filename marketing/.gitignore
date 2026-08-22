@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+
+# Decap wird aus dem npm-Paket lokal ausgeliefert statt vom CDN
+# (siehe public/admin/index.html). Die Datei ist ein Build-Artefakt.
+public/admin/decap-cms-app.js
+
+# Von Redakteuren ueber das CMS hochgeladene Bilder liegen im Repo,
+# der Ordner selbst darf aber leer starten.
+public/uploads/*
+!public/uploads/.gitkeep
