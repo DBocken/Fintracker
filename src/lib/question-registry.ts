@@ -134,6 +134,13 @@ export interface QuestionAnswer {
    *   beschriftet solche Links entsprechend zurückhaltender.
    */
   deepLinkArt: 'quelle' | 'kontext';
+  /**
+   * Eigene Beschriftung des Links, wenn weder „genau diese Buchungen" noch
+   * „verwandte Buchungen" passt — etwa wenn das Ziel gar keine Buchungsliste
+   * ist, sondern ein Vertrag. Ohne sie greift die Beschriftung nach
+   * `deepLinkArt`.
+   */
+  deepLinkLabelKey?: string;
 }
 
 export interface QuestionEntry {

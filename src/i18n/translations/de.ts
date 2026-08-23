@@ -4325,6 +4325,8 @@ export const de = {
     of: 'von',
   },
   financeQuestions: {
+      showContract: 'Diesen Vertrag ansehen',
+      showContracts: 'Verträge ansehen',
       noMatch: 'Dazu gibt es keine Buchung — {zeitraum} ist dort nichts erfasst.',
       understoodAsTitle: 'So habe ich das verstanden',
       understoodAs: 'Du hast keine Kategorie genannt — ich habe „{label}“ angenommen.',

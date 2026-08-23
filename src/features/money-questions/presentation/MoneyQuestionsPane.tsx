@@ -268,9 +268,11 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
           entsprechend zurückhaltender benannt, statt mehr zu versprechen, als
           er einlöst.
         */}
-        {antwort.deepLinkArt === 'quelle'
-          ? t('financeQuestions.showSource')
-          : t('financeQuestions.showContext')}
+        {antwort.deepLinkLabelKey
+          ? t(antwort.deepLinkLabelKey)
+          : antwort.deepLinkArt === 'quelle'
+            ? t('financeQuestions.showSource')
+            : t('financeQuestions.showContext')}
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
     </InfoGroup>

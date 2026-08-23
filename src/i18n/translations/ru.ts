@@ -4313,6 +4313,8 @@ export const ru = {
     of: 'из',
   },
   financeQuestions: {
+      showContract: 'Посмотреть этот договор',
+      showContracts: 'Посмотреть договоры',
       noMatch: 'По этому нет операций — {zeitraum} ничего не записано.',
       understoodAsTitle: 'Как я это понял',
       understoodAs: 'Вы не назвали категорию — я предположил «{label}».',

@@ -120,6 +120,10 @@ describe('Abfrage-Register: Katalog', () => {
         ...entry.ausloeser,
         antwort.aussage.key,
         ...(antwort.begruendung ?? []).map((b) => b.key),
+        // Auch die eigene Link-Beschriftung: Sie wird dynamisch aufgelöst
+        // (`t(antwort.deepLinkLabelKey)`) und stünde sonst als roher
+        // Punkt-String auf dem Bildschirm.
+        ...(antwort.deepLinkLabelKey ? [antwort.deepLinkLabelKey] : []),
       ];
       for (const locale of SUPPORTED_LOCALES) {
         for (const key of keys) {
@@ -279,6 +283,19 @@ describe('Abfrage-Register: Zahl und Deep-Link zeigen dieselbe Menge', () => {
     expect(ausLink.length).toBe(antwort.anzahl);
     // Nur die Juli-Lidl-Buchungen, nicht die vom 11. Juni.
     expect(ausLink.map((t) => t.id)).toEqual(['t1', 't2']);
+  });
+
+  it('sollte den Vertragslink auf den VERTRAG zeigen lassen, nicht auf die Buchungsliste', () => {
+    // Bis `/contracts` einen `?merchant=`-Parameter bekam, musste dieser
+    // Eintrag ersatzweise auf die Buchungsliste verlinken — also auf eine
+    // ANDERE Menge als die, aus der seine Zahl stammt.
+    const antwort = questionCatalog.byId('vertrag.jahreskosten')!.antwort(alleSlots, daten);
+
+    expect(antwort.deepLink).toMatch(/^\/contracts\?merchant=/);
+    // Kein Fingerprint in einer teilbaren URL — das wäre eine IBAN.
+    expect(antwort.deepLink).not.toContain('iban');
+    // Eigene Beschriftung: „genau diese Buchungen" wäre hier schlicht falsch.
+    expect(antwort.deepLinkLabelKey).toBeTruthy();
   });
 
   it('[REGRESSION] sollte den Notiz-Treffer weder zählen noch verlinken', () => {

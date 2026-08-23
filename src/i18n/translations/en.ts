@@ -4313,6 +4313,8 @@ export const en = {
     of: 'of',
   },
   financeQuestions: {
+      showContract: 'See this contract',
+      showContracts: 'See contracts',
       noMatch: 'There is no transaction for that — nothing recorded {zeitraum}.',
       understoodAsTitle: 'How I read that',
       understoodAs: 'You did not name a category — I assumed “{label}”.',

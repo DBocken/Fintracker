@@ -7,7 +7,6 @@
  */
 import type { QuestionEntry } from '@/lib/question-registry';
 import { computeContracts, yearlyEquivalent, monthlyEquivalent } from '@/lib/contract-derivation';
-import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 
 const vertragJahreskosten: QuestionEntry = {
@@ -34,13 +33,14 @@ const vertragJahreskosten: QuestionEntry = {
       return name.includes(gesucht);
     });
 
-    // Deep-Link auf `/transactions`, NICHT auf `/contracts`: Die Fläche hat
-    // heute keine URL-Parameter (nachgeprüft: kein `useSearchParams` in
-    // `ContractsPage.tsx`), ein Link dorthin zeigte also die ganze Liste statt
-    // der Menge, aus der die Zahl stammt. Ein `?fp=`-Parameter für
-    // `/contracts` ist ein sauberes Folgepaket — bis dahin ist das hier die
-    // benannte Grenze, kein stiller Notbehelf.
-    const deepLink = buildTransactionsHref({ merchant: gesucht });
+    // Deep-Link auf den VERTRAG selbst. Bis `/contracts` einen
+    // `?merchant=`-Parameter bekam, musste hier ersatzweise die Buchungsliste
+    // herhalten — also eine ANDERE Menge als die, aus der die Zahl stammt.
+    // Jetzt öffnet der Link genau die Vertragszeile, die gerechnet wurde.
+    //
+    // Der normalisierte NAME und nicht der Fingerprint: `iban:de89…|out` wäre
+    // eine IBAN in einer teilbaren URL.
+    const deepLink = `/contracts?merchant=${encodeURIComponent(gesucht)}`;
 
     if (!treffer) {
       return {
@@ -53,6 +53,7 @@ const vertragJahreskosten: QuestionEntry = {
         },
         deepLink,
         deepLinkArt: 'kontext',
+        deepLinkLabelKey: 'financeQuestions.showContracts',
       };
     }
 
@@ -73,7 +74,12 @@ const vertragJahreskosten: QuestionEntry = {
         },
       ],
       deepLink,
+      // `kontext` und nicht `quelle`: Die Zahl ist die Jahresrechnung aus der
+      // erkannten Serie, der Link zeigt die Vertragszeile. Das ist dieselbe
+      // Sache, aber keine Buchungsmenge — die harte Invariante des Registers
+      // prüft Buchungsmengen und liesse sich darauf nicht anwenden.
       deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContract',
     };
   },
 };
