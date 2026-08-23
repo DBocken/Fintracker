@@ -166,3 +166,56 @@ describe('Kaskade mit gelerntem Modell', () => {
     ).not.toBe('local-cat-wertpapiere');
   });
 });
+
+/**
+ * Abwärtskompatibilität gespeicherter Händlerregeln.
+ *
+ * `merchantRules.merchant_pattern` wird beim Anlegen mit
+ * `normalizeMerchantName` erzeugt und PERSISTIERT. Eine Verschärfung des
+ * Normalisierers macht damit jede ältere Regel still ungültig: Gespeichert
+ * steht „netflix.com", die Buchung normalisiert heute zu „netflix", und
+ * `normalizedPayee.includes(pattern)` schlägt fehl. Kein Test wäre rot, kein
+ * Fehler im Log — die gelernte Zuordnung hörte einfach auf zu wirken.
+ */
+describe('Gespeicherte Händlerregeln nach verschärfter Normalisierung', () => {
+  it('[REGRESSION] sollte eine Regel mit ALTEM Muster weiterhin greifen lassen', () => {
+    const altesMuster: MerchantRule[] = [
+      // So hätte die Regel vor der Verschärfung im Speicher gestanden.
+      { id: 'r1', user_id: 'local', merchant_pattern: 'netflix.com', category_id: 'local-cat-freizeit' },
+    ];
+
+    const ergebnis = explainCategorization(
+      tx({ payee: 'NETFLIX.COM' }),
+      DEFAULT_LOCAL_CATEGORIES,
+      altesMuster,
+    );
+
+    expect(ergebnis.source).toBe('merchant_rule');
+    expect(ergebnis.categoryId).toBe('local-cat-freizeit');
+  });
+
+  it('[REGRESSION] sollte eine Regel mit altem Ortszusatz weiterhin greifen lassen', () => {
+    const altesMuster: MerchantRule[] = [
+      { id: 'r2', user_id: 'local', merchant_pattern: 'rewe sagt danke de muenchen', category_id: LEBENSMITTEL },
+    ];
+
+    const ergebnis = explainCategorization(
+      tx({ payee: 'REWE SAGT DANKE 3847 DE//MUENCHEN/2024-01-05' }),
+      DEFAULT_LOCAL_CATEGORIES,
+      altesMuster,
+    );
+
+    expect(ergebnis.source).toBe('merchant_rule');
+    expect(ergebnis.categoryId).toBe(LEBENSMITTEL);
+  });
+
+  it('sollte eine Regel mit heutigem Muster unverändert greifen lassen', () => {
+    const neuesMuster: MerchantRule[] = [
+      { id: 'r3', user_id: 'local', merchant_pattern: 'netflix', category_id: 'local-cat-freizeit' },
+    ];
+
+    expect(
+      explainCategorization(tx({ payee: 'Netflix' }), DEFAULT_LOCAL_CATEGORIES, neuesMuster).source,
+    ).toBe('merchant_rule');
+  });
+});

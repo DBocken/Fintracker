@@ -7,7 +7,7 @@
  * Service ruft die Funktionen jetzt von hier auf und behält nur das I/O.
  */
 import type { Transaction, Category } from '@/types';
-import { normalizeMerchantName } from '@/lib/merchant-normalization';
+import { normalizeMerchantName, legacyNormalizeMerchantName } from '@/lib/merchant-normalization';
 import type { LearnedCategoryModel } from '@/lib/category-model';
 import { predictCategory } from '@/lib/category-model';
 import { matchesKeyword } from '@/lib/keyword-match';
@@ -104,11 +104,29 @@ export function explainCategorization(
     // Die SPEZIFISCHSTE passende Regel gewinnt (längstes Pattern), nicht die
     // zuerst gespeicherte: sonst würde z. B. „aldi" eine Buchung fangen, für die
     // der Nutzer die genauere Regel „aldi süd tankstelle" angelegt hat.
-    const rule = learnedRules.reduce<MerchantRule | null>((best, r) => {
-      if (!r.merchant_pattern || !normalizedPayee.includes(r.merchant_pattern)) return best;
-      if (!best || r.merchant_pattern.length > best.merchant_pattern.length) return r;
-      return best;
-    }, null);
+    //
+    // Das gespeicherte Muster wird beim Vergleich ERNEUT normalisiert.
+    // `merchant_pattern` ist persistiert und stammt aus `normalizeMerchantName`
+    // zum Zeitpunkt des Anlegens — eine spätere Verschärfung des
+    // Normalisierers machte jede ältere Regel sonst still ungültig
+    // („netflix.com" gespeichert, „netflix" heute normalisiert,
+    // `includes` schlägt fehl). Kein Test wäre rot, kein Fehler im Log; die
+    // gelernte Zuordnung hörte einfach auf zu wirken. Weil
+    // `normalizeMerchantName` idempotent ist, führt das erneute Normalisieren
+    // altes wie neues Muster auf dieselbe Form — deshalb braucht es dafür
+    // KEINE Datenmigration.
+    const musterVon = (r: MerchantRule) => normalizeMerchantName(r.merchant_pattern) || r.merchant_pattern;
+    const passt = (heuhaufen: string) =>
+      learnedRules.reduce<MerchantRule | null>((best, r) => {
+        const muster = musterVon(r);
+        if (!muster || !heuhaufen.includes(muster)) return best;
+        if (!best || muster.length > musterVon(best).length) return r;
+        return best;
+      }, null);
+
+    // Zweiter Versuch gegen die ALTE Normalisierung des Empfängers. Nur, wenn
+    // der erste nichts fand — im Importlauf über tausende Buchungen zählt das.
+    const rule = passt(normalizedPayee) ?? passt(legacyNormalizeMerchantName(transaction.payee));
     if (rule) {
       return {
         categoryId: rule.category_id,
