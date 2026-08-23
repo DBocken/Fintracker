@@ -22,6 +22,64 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ## [Unreleased]
 
+### Neu
+
+- **Nachfragen: Frag in eigenen Worten nach deinen Zahlen.** Die neue Seite
+  „Nachfragen" beantwortet Fragen wie „Wieviel habe ich letzten Monat bei
+  Lidl ausgegeben?" — gerechnet wird lokal aus deinen Buchungen, ohne
+  Sprachmodell und ohne Cloud. Jede Antwort trägt einen Link auf genau die
+  Buchungen, aus denen die Zahl entstand. Was nicht verstanden wurde, führt
+  zu einer Rückfrage und nie zu einer geratenen Zahl.
+- **Abstrakte Begriffe werden zugeordnet.** „für essen" findet die Kategorie
+  „Essen & Trinken", auch wenn kein Wort davon vorkommt — über dieselbe
+  Erkennung, die auch Buchungen kategorisiert. Die verstandene Kategorie wird
+  benannt und bleibt mit einem Klick korrigierbar.
+- **Fintracker lernt aus deinen eigenen Korrekturen.** Aus den Buchungen, die
+  du selbst bestätigt hast, entsteht eine zusätzliche Stufe der
+  Kategorie-Erkennung. Sie schreibt nur still, wenn sie genug eigene Beispiele
+  gesehen hat, und begründet jeden Vorschlag mit den Wörtern, auf die sie sich
+  stützt. In den Einstellungen steht, wie gut sie gerade trifft — und ein
+  Schalter, sie abzuschalten.
+- **Händlerfilter in Buchungen und in der URL.** Buchungen lassen sich nach
+  Händler filtern statt nur zu durchsuchen; Notiz- und Beschreibungstreffer
+  zählen dabei nicht mehr mit. Der Filter steht in der Adresse (`?merchant=`)
+  und ist damit teilbar.
+- **Verträge über die Adresse öffnen.** `?merchant=` öffnet auf der
+  Vertragsseite direkt den passenden Vertrag.
+- **Ratenkäufe werden gelesen.** Steht „Rate 3/12" im Buchungstext, kennt
+  Fintracker die Restlaufzeit — und rechnet sie aus, statt sie zu schätzen.
+  Erfragbar über „Nachfragen".
+- **Händler werden zuverlässiger zusammengefasst.** Ortszusatz bei
+  Kartenzahlung, Webadresse und Rechtsform trennen eine Händlerfamilie nicht
+  mehr in zwei oder drei.
+
+### Behoben
+
+- **Eine Ausgabenfrage wurde mit Einnahmen beantwortet.** Eine Frage konnte
+  ohne einen einzigen Treffer auf ihre Auslösewörter gewinnen, und die
+  Sortierung stellte Vollständigkeit über Relevanz.
+- **Beim Beleg-Scan wird ein widersprüchlicher Betrag nicht mehr vorbelegt.**
+  Ergeben die einzelnen Posten mehr als der ausgewiesene Gesamtbetrag, wurde
+  einer der beiden falsch gelesen — das Feld bleibt jetzt leer, mit einem
+  Hinweis warum. Lässt sich der Widerspruch eindeutig auf eine überzählige
+  Zeile zurückführen (Pfand, Rabatt, Zwischensumme), wird sie entfernt und der
+  Betrag stimmt wieder.
+- **Eine vertippte IBAN wird beim Anlegen eines Kontos benannt.** Sie brach
+  bisher nichts sichtbar — sie sorgte nur wortlos dafür, dass interne
+  Überträge nie erkannt wurden. Gespeichert wird sie trotzdem.
+- Kleinere Textfehler: „1 Buchungen", ein roher Zeitraum-Kürzel in der
+  Antwort, „0,00 €" wo „keine Buchung" gemeint war.
+
+### Intern
+
+- Zweite, unbenutzte Vertragsableitung entfernt; ihre Abdeckung auf die
+  tatsächlich benutzte Seite verlagert.
+- Der EU-Wächter sieht jetzt auch CDN-Vorgaben aus Abhängigkeiten — bis dahin
+  las er nur den git-Index, in dem `node_modules` nicht steht. Ohne
+  `node_modules` bricht er ab, statt still leer grün zu melden.
+- `AGENTS.md` §3 hält die Regel „Rechnen, schließen, prüfen" fest: wo Inferenz
+  sitzen darf und warum kein Modellgewicht ausgeliefert wird.
+
 ## 2026.8.2 — 2026-08-12
 
 ### Neu
