@@ -5,6 +5,7 @@ import type { QuestionData, QuestionSlots, SlotName } from '@/lib/question-regis
 import { decodeDashboardFilters, filterTransactions } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome } from '@/lib/analysis-data';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
+import { istStoppwort, zerlegeAusloeser } from '@/lib/question-matcher';
 import type { Account, Category, Transaction } from '@/types';
 import type { Debt } from '@/lib/debt-types';
 import { asTransactionId } from '@/lib/ids';
@@ -101,6 +102,39 @@ describe('Abfrage-Register: Katalog', () => {
     // wäre ein stummer Ausfall: Die Frage würde schlicht nie beantwortet.
     for (const entry of questionCatalog.entries) {
       expect(entry.ausloeser.length, entry.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('sollte für jeden Eintrag einen Anzeigenamen in ALLEN Sprachen kennen (WP-F.2)', () => {
+    // Der Name beschriftet den Kandidaten-Button der Auswahl-Rückfrage. Er
+    // wird dynamisch aufgelöst (`t(\`financeQuestions.entryName.\${id}\`)`)
+    // und stünde ohne Eintrag als roher Punkt-String auf dem Button.
+    for (const entry of questionCatalog.entries) {
+      for (const locale of SUPPORTED_LOCALES) {
+        expect(
+          typeof leaf(translations[locale], `financeQuestions.entryName.${entry.id}`),
+          `${locale}: financeQuestions.entryName.${entry.id}`,
+        ).toBe('string');
+      }
+    }
+  });
+
+  it('sollte kein einzelnes Funktionswort als Auslöser kuratieren (WP-F.2)', () => {
+    // Der Matcher ignoriert so einen Auslöser zwar defensiv — aber still.
+    // Ein kuratierter Stoppwort-Auslöser ist ein Fehler der Sprachpflege und
+    // soll LAUT scheitern: Genau diese Bauform („leisten kann ich mir" als
+    // Token-Beutel) hat 180 von 225 Korpus-Fragen falsch beantwortet.
+    for (const entry of questionCatalog.entries) {
+      for (const locale of SUPPORTED_LOCALES) {
+        for (const key of entry.ausloeser) {
+          const wert = leaf(translations[locale], key);
+          if (typeof wert !== 'string') continue;
+          for (const phrase of zerlegeAusloeser(wert)) {
+            if (phrase.includes(' ')) continue;
+            expect(istStoppwort(phrase), `${locale}: „${phrase}" (${key})`).toBe(false);
+          }
+        }
+      }
     }
   });
 

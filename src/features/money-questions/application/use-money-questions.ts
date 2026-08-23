@@ -11,7 +11,7 @@ import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
 import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
-import { entscheideRouting, lexicalQuestionMatcher } from '@/lib/question-matcher';
+import { entscheideRouting, lexicalQuestionMatcher, zerlegeAusloeser } from '@/lib/question-matcher';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
 import type { QuestionAnswer, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
@@ -55,6 +55,15 @@ export type MoneyQuestionOutcome =
       vorschlaege: SlotVorschlag[];
     }
   | {
+      /**
+       * Zwei oder mehr Deutungen liegen zu dicht beieinander (Marge-Gate in
+       * `entscheideRouting`). Statt zu raten, wählt der Nutzer — jeder
+       * Kandidat behält die Slots, die für IHN erkannt wurden.
+       */
+      art: 'kandidaten';
+      kandidaten: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }[];
+    }
+  | {
       art: 'antwort';
       entryId: string;
       antwort: QuestionAnswer;
@@ -74,6 +83,8 @@ export interface MoneyQuestionsViewModel {
   absenden: () => void;
   /** Beantwortet eine Rückfrage, indem der gewählte Kandidat den Slot füllt. */
   waehleVorschlag: (vorschlag: SlotVorschlag) => void;
+  /** Löst eine Kandidaten-Auswahl auf — derselbe Weg wie eine erkannte Frage. */
+  waehleKandidat: (kandidat: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }) => void;
   /** Beispielfragen aus dem EIGENEN Bestand — nie erfundene Händler. */
   beispiele: string[];
   hatBestand: boolean;
@@ -205,7 +216,11 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
             const text = t(key);
             // Ein nicht aufgelöster Key rendert den rohen Punkt-String — der
             // darf nicht als Auslösewort durchgehen.
-            return text === key ? [] : text.split(/\s+/).filter(Boolean);
+            //
+            // Getrennt wird am KOMMA, nicht am Leerraum (Phrasen, keine
+            // Token-Beutel) — über `zerlegeAusloeser`, damit der Eval-Korpus
+            // exakt dieselbe Zerlegung benutzt statt einer Nachbildung.
+            return text === key ? [] : zerlegeAusloeser(text);
           }),
         ]),
       ),
@@ -316,6 +331,17 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       setErgebnis({ art: 'unverstanden' });
       return;
     }
+    if (routing.art === 'kandidaten') {
+      setErgebnis({
+        art: 'kandidaten',
+        kandidaten: routing.top.map((k) => ({
+          entryId: k.entryId,
+          slots: k.slots,
+          erschlossen: k.erschlossen,
+        })),
+      });
+      return;
+    }
     aufloesen(routing.kandidat.entryId, routing.kandidat.slots, routing.kandidat.erschlossen);
   };
 
@@ -332,12 +358,21 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     aufloesen(ergebnis.entryId, ergaenzt);
   };
 
+  const waehleKandidat = (kandidat: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }) => {
+    if (ergebnis.art !== 'kandidaten') return;
+    // Derselbe Weg wie eine direkt erkannte Frage: Fehlt danach ein
+    // Pflicht-Slot, folgt die Slot-Rückfrage — keine Abkürzung an der
+    // Validierung vorbei.
+    aufloesen(kandidat.entryId, kandidat.slots, kandidat.erschlossen);
+  };
+
   return {
     frage,
     setFrage,
     ergebnis,
     absenden,
     waehleVorschlag,
+    waehleKandidat,
     beispiele,
     hatBestand: (transaktionen.data ?? []).length > 0,
     isLoading,

@@ -131,7 +131,12 @@ function summenAntwort(
 const ausgabenHaendler: QuestionEntry = {
   id: 'ausgaben.haendler',
   slots: { erforderlich: ['haendler'], optional: ['zeitraum', 'konto'] },
-  ausloeser: ['financeQuestions.trigger.ausgaben', 'financeQuestions.trigger.beiHaendler'],
+  // Die Präposition „bei" war hier bewusst Auslöser und ist es NICHT mehr:
+  // Ein Funktionswort trägt keine Absicht (Router-Ratsche, F.2). Händler
+  // gegen Kategorie unterscheidet jetzt der SLOT — ein wörtlich getroffener
+  // Händlername wiegt 2 Punkte, und ohne jeden Slot ist die Frage ehrlich
+  // mehrdeutig und wird zur Kandidaten-Auswahl.
+  ausloeser: ['financeQuestions.trigger.ausgaben'],
   needs: ['transactions', 'categories', 'accounts'],
   aufwand: 'guenstig',
   antwort(slots, daten) {
@@ -142,7 +147,7 @@ const ausgabenHaendler: QuestionEntry = {
 const ausgabenKategorie: QuestionEntry = {
   id: 'ausgaben.kategorie',
   slots: { erforderlich: ['kategorie'], optional: ['zeitraum', 'konto'] },
-  ausloeser: ['financeQuestions.trigger.ausgaben', 'financeQuestions.trigger.fuerKategorie'],
+  ausloeser: ['financeQuestions.trigger.ausgaben'],
   needs: ['transactions', 'categories', 'accounts'],
   aufwand: 'guenstig',
   antwort(slots, daten) {

@@ -114,11 +114,18 @@ describe('Nachfragen-Fläche', () => {
     expect(link.getAttribute('href')).toContain('range=2026-07');
   });
 
-  it('sollte bei fehlendem Händler nachfragen, statt eine Zahl zu nennen', async () => {
+  it('sollte bei fehlendem Händler erst wählen lassen und dann nachfragen — nie eine Zahl nennen', async () => {
+    // Seit dem Marge-Gate (WP-F.2) ist „Wieviel habe ich ausgegeben?" ehrlich
+    // mehrdeutig: Händler- und Kategorie-Deutung liegen gleichauf, also wählt
+    // der Nutzer zuerst die Deutung — und DANN folgt die Slot-Rückfrage.
+    // Zwei Schritte statt einer geratenen Zahl.
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('Wieviel habe ich ausgegeben?');
+
+    expect(await screen.findByText(/Was genau meinst du\?/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Ausgaben bei einem Händler/i }));
 
     expect(await screen.findByText(/Welchen Händler meinst du\?/i)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /buchungen/i })).not.toBeInTheDocument();
@@ -133,6 +140,10 @@ describe('Nachfragen-Fläche', () => {
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
+
+    // Ohne auflösbaren Begriff sind Händler- und Kategorie-Deutung gleichauf:
+    // erst die Deutung wählen, dann kommt die Kategorien-Auswahl.
+    fireEvent.click(await screen.findByRole('button', { name: /Ausgaben in einer Kategorie/i }));
 
     expect(await screen.findByText(/Welche Kategorie meinst du\?/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lebensmittel' })).toBeInTheDocument();
@@ -183,6 +194,7 @@ describe('Nachfragen-Fläche', () => {
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
+    fireEvent.click(await screen.findByRole('button', { name: /Ausgaben in einer Kategorie/i }));
     fireEvent.click(await screen.findByRole('button', { name: 'Lebensmittel' }));
 
     // Der Zeitraum aus der ursprünglichen Frage darf durch die Rückfrage nicht

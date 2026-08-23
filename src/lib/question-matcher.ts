@@ -97,6 +97,53 @@ export interface QuestionMatcher {
   ): QuestionCandidate[];
 }
 
+/**
+ * Funktionswörter, die NIE allein als Auslöser zählen dürfen.
+ *
+ * Der teuerste Fehler dieses Routers war gemessen genau das: Der Auslöser
+ * „leisten kann ich mir" zerfiel in Einzel-Token, und „kann/ich/mir" machten
+ * `leistbarkeit.anschaffung` zum Treffer für fast jede umgangssprachliche
+ * Frage — 180 von 225 Korpus-Fragen wurden zuversichtlich falsch beantwortet
+ * (`question-eval-ratchet.test.ts`). Ein Funktionswort trägt keine Absicht;
+ * Absicht tragen Inhaltswörter und Phrasen.
+ *
+ * Die Liste ist bewusst klein und dreisprachig gemischt: Sie muss nur die
+ * Wörter kennen, die in Auslöser-Phrasen realistisch vorkommen.
+ */
+const STOPPWOERTER = new Set(
+  (
+    'ich mir mich mein meine meinem meinen meiner kann koennte was wie viel wieviel ' +
+    'hab habe noch fuer bei und oder aber der die das den dem ist sind war bin du wir ' +
+    'es im in an auf aus mit von zu wenn wen dass ob nicht kein keine alles alle so ' +
+    'dann wann wo er sie ' +
+    'i my me can could what how much the for at and or is are was to in on of a an if no all when where ' +
+    'я мне мой моя как что для и или в на не когда ли'
+  ).split(/\s+/),
+);
+
+/** Ein einzelnes Wort, das allein keine Absicht ausweist. Für Kurations-Tests exportiert. */
+export function istStoppwort(wort: string): boolean {
+  return STOPPWOERTER.has(normalisiere(wort.trim()));
+}
+
+/**
+ * Zerlegt einen aufgelösten Auslöser-Sprachbaumwert in einzelne Phrasen.
+ *
+ * EINE Implementierung für Fläche UND Eval-Korpus. Die erste Fassung des
+ * Korpus-Tests hatte die Zerlegung nachgebildet — und war nach der
+ * Umstellung von Leerraum auf Komma prompt einen Stand hinterher: Aus
+ * `'im jahr, jährlich'` wurde dort das Einzelwort „jahr", und der Test maß
+ * ein Verhalten, das die App gar nicht hatte. Ein Harness, der das
+ * Produktionsverhalten kopiert statt es zu benutzen, misst irgendwann sich
+ * selbst.
+ */
+export function zerlegeAusloeser(text: string): string[] {
+  return text
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Kleinschreibung plus Umlaut-Faltung, damit „Bäckerei" auch „baeckerei" trifft. */
 function normalisiere(text: string): string {
   return text
@@ -160,11 +207,32 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
     const konto = findeLaengsten(ohneZeit, vokabular.konten);
     const betragTreffer = ohneZeit.match(/\b(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?\s*(?:€|eur|euro)?\b/);
 
+    const worttokens = normalisiert.split(/[^a-z0-9]+/).filter(Boolean);
     const kandidaten: QuestionCandidate[] = [];
 
     for (const entry of entries) {
       const worte = vokabular.ausloeser.get(entry.id) ?? [];
-      const ausloeserTreffer = worte.filter((wort) => normalisiert.includes(normalisiere(wort))).length;
+      // Ein Auslöser ist eine PHRASE („kann ich mir leisten"), kein
+      // Token-Beutel. Ein einzelnes Funktionswort zählt nie — auch dann
+      // nicht, wenn es versehentlich im Sprachbaum kuratiert wurde; der
+      // Kurations-Test in `question-catalog.test.ts` macht so einen Eintrag
+      // zusätzlich laut.
+      const ausloeserTreffer = worte.filter((wort) => {
+        const phrase = normalisiere(wort.trim());
+        if (!phrase) return false;
+        if (phrase.includes(' ')) return normalisiert.includes(phrase);
+        if (STOPPWOERTER.has(phrase)) return false;
+        // Einzelwörter treffen an WORTGRENZEN, nicht als Teilzeichenkette:
+        // „Sparrate" enthält „rate", meint aber keine Ratenzahlung — der
+        // Substring-Treffer hat im Korpus messbar falsche Antworten erzeugt.
+        // Deutsche KOMPOSITA sollen dagegen treffen („Freizeitbudget" fragt
+        // nach einem Budget), deshalb zählt auch das Wortende — aber erst ab
+        // fünf Zeichen, damit kurze Auslöser wie „rate" oder „abo" nicht
+        // durch die Hintertür wieder Teilzeichenketten werden.
+        return worttokens.some(
+          (token) => token === phrase || (phrase.length >= 5 && token.endsWith(phrase)),
+        );
+      }).length;
 
       const slots: QuestionSlots = {};
       const erschlossen: SlotName[] = [];
@@ -200,10 +268,18 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
         if (erschlossene) {
           slots.kategorieId = erschlossene.categoryId;
           erschlossen.push('kategorie');
-          // Bewusst weniger Punkte als ein wörtlicher Namenstreffer (2): Eine
-          // Erschliessung ist schwächere Evidenz und soll einen direkten
-          // Treffer nie überstimmen.
-          slotPunkte += 1;
+          // Volle zwei Punkte wie ein wörtlicher Treffer — das Ergebnis
+          // zweier MESSUNGEN am Korpus, nicht einer Vorliebe. Mit +1 endete
+          // „für essen" in einer Auswahl-Rückfrage, obwohl die Zuordnung
+          // abstrakter Begriffe die ausdrücklich verlangte Kernfunktion ist.
+          // Mit +2 kippten zunächst vier Lücken-Fragen („was kostet mich mein
+          // auto…") in zuversichtlich falsche Antworten — deren gemeinsamer
+          // Einstieg war aber der AUSLÖSER „kostet": Die Gegenwartsform fragt
+          // nach Raten und Durchschnitten, nicht nach einer Summe, und ist
+          // seither kein Ausgaben-Auslöser mehr. Die Absicherung der
+          // Erschliessung liegt in der BENENNUNG („Verstanden als …", 
+          // korrigierbar), nicht in einem Punktabschlag.
+          slotPunkte += 2;
         }
       }
 
@@ -263,10 +339,37 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
  */
 export type RoutingErgebnis =
   | { art: 'unverstanden' }
-  | { art: 'aufloesen'; kandidat: QuestionCandidate };
+  | { art: 'aufloesen'; kandidat: QuestionCandidate }
+  /** Zu knapp, um zu entscheiden: der Nutzer wählt aus den Besten. */
+  | { art: 'kandidaten'; top: QuestionCandidate[] };
+
+/**
+ * Mindestabstand zwischen Platz 1 und 2 in Score-Punkten. Ein Auslöser wiegt
+ * 3, ein wörtlicher Slot 2 — unter 2 Punkten Abstand trennt die Kandidaten
+ * also weniger als ein einziger Slot-Treffer, und dann wird nicht geraten.
+ */
+const MIN_MARGE = 2;
+
+/** Wie viele Kandidaten eine Auswahl-Rückfrage anbietet. */
+const MAX_KANDIDATEN = 3;
 
 export function entscheideRouting(kandidaten: readonly QuestionCandidate[]): RoutingErgebnis {
   const beste = kandidaten[0];
   if (!beste) return { art: 'unverstanden' };
+
+  // Marge-Gate: Liegt ein ANDERER Eintrag zu dicht hinter dem besten, ist die
+  // Frage aus Sicht des Routers mehrdeutig — und Mehrdeutigkeit ist ein
+  // Ergebnis, kein Hindernis (AGENTS.md §3): gefragt wird, nicht geraten.
+  const zweite = kandidaten.find((k) => k.entryId !== beste.entryId);
+  if (zweite && beste.score - zweite.score < MIN_MARGE) {
+    const top: QuestionCandidate[] = [];
+    for (const k of kandidaten) {
+      if (top.some((t) => t.entryId === k.entryId)) continue;
+      top.push(k);
+      if (top.length >= MAX_KANDIDATEN) break;
+    }
+    return { art: 'kandidaten', top };
+  }
+
   return { art: 'aufloesen', kandidat: beste };
 }

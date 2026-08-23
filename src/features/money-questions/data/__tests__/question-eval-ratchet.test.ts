@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   entscheideRouting,
   lexicalQuestionMatcher,
+  zerlegeAusloeser,
   type QuestionVocabulary,
 } from '@/lib/question-matcher';
 import { resolveKategorieAusText } from '@/lib/question-category-resolution';
@@ -58,9 +59,10 @@ function ausloeserWorte(key: string): string[] {
   for (const teil of key.split('.')) {
     knoten = (knoten as Record<string, unknown> | undefined)?.[teil];
   }
-  // Dieselbe Auflösung wie in `use-money-questions.ts`: der Sprachbaum-Wert,
-  // per Leerraum zerlegt. Ein nicht auflösbarer Key liefert nichts.
-  return typeof knoten === 'string' ? knoten.split(/\s+/).filter(Boolean) : [];
+  // Der Sprachbaum-Wert, zerlegt über DENSELBEN Code wie in der Fläche
+  // (`zerlegeAusloeser`) — eine Nachbildung wäre beim nächsten
+  // Format-Wechsel wieder einen Stand hinterher.
+  return typeof knoten === 'string' ? zerlegeAusloeser(knoten) : [];
 }
 
 function vokabular(): QuestionVocabulary {
@@ -96,6 +98,14 @@ function klassifiziere(frage: string, familie: string, vok: QuestionVocabulary):
     // Abstinenz: bei einer Lücke die richtige Reaktion, bei einer
     // beantwortbaren Frage verschenkter Nutzen — aber nie ein Schaden.
     return zielExistiert ? 'verpasst' : 'richtig';
+  }
+
+  if (routing.art === 'kandidaten') {
+    // Eine Auswahl-Rückfrage behauptet nichts. Führt sie die Ziel-Familie,
+    // ist sie die „präzise Rückfrage" aus dem Auftrag; bei einer Lücke ist
+    // sie so ehrlich wie „nicht verstanden".
+    if (!zielExistiert) return 'richtig';
+    return routing.top.some((k) => k.entryId === familie) ? 'sicher' : 'verpasst';
   }
 
   // `aufloesen` heisst: Die Fläche behauptet, verstanden zu haben — als
@@ -135,17 +145,34 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
     // Kein eigener Ratschen-Wert — reine Diagnose: Wer eine der beiden
     // Quoten anfasst, sieht hier ohne Debugger, WELCHE Fragen kippen.
     const falsche = ausgaenge.filter((x) => x.ausgang === 'falsch').slice(0, 15);
-    const uebersicht = falsche.map((x) => `${x.familie} ← „${x.frage}"`).join('\n');
+    const uebersicht = falsche
+      .map((x) => {
+        const k = lexicalQuestionMatcher.match(x.frage, vok, questionCatalog.entries, 'de', JETZT);
+        const r = entscheideRouting(k);
+        const wahl = r.art === 'aufloesen' ? r.kandidat.entryId : r.art;
+        return `${wahl} statt ${x.familie} ← „${x.frage}"`;
+      })
+      .join('\n');
     expect(uebersicht.length, uebersicht).toBeGreaterThanOrEqual(0);
   });
 });
 
-// Gemessene Startwerte (F.1): richtig 45 · sicher 0 · verpasst 0 ·
-// zuversichtlich falsch 180. Der Stand VOR den Reparaturen, absichtlich
-// unbeschönigt festgehalten: Der lexikalische Router beantwortete 80 % des
-// Korpus mit der FALSCHEN Funktion, weil Auslösewörter wie „kann ich mir" in
-// Stoppwort-Token zerfielen und es kein Marge-Gate gab. Jede Stufe von WP-F
-// hebt bzw. senkt diese Werte mit eigenem Kommentar; Ziel laut Auftrag:
-// ≥ 0.99 und ≤ 0.01.
-const MIN_RICHTIG_ODER_SICHER = 0.2;
-const MAX_ZUVERSICHTLICH_FALSCH = 0.8;
+// Gemessene Stände, je Stufe fortgeschrieben (Ziel laut Auftrag ≥ 0.99 / ≤ 0.01):
+//
+// - F.1 (Baseline, vor jeder Reparatur): richtig 45 · falsch 180. Der
+//   Router beantwortete 80 % des Korpus mit der FALSCHEN Funktion —
+//   Auslösewörter wie „kann ich mir" zerfielen in Stoppwort-Token, und ein
+//   Marge-Gate gab es nicht.
+// - F.2 (Phrasen-Auslöser + Stoppwörter + Wortgrenzen + Marge-Gate):
+//   richtig 179 · sicher 4 · verpasst 9 · falsch 33. Die verbleibenden
+//   Falschen sind zur Hälfte Geschwister-Familien, die F.3 erst baut
+//   (abos.*, budget.rest/tagesrate, vertraege.teurer — sobald sie
+//   existieren, erzeugen geteilte Auslöser Gleichstand und damit eine
+//   Auswahl statt einer Antwort), zur anderen Hälfte Lücken-Fragen mit
+//   einem legitimen Einzeltreffer („Elternzeit … leisten") — die Adresse
+//   von F.4. Im Gewicht der erschlossenen Kategorie steckt eine gemessene
+//   Abwägung (Kommentar in `question-matcher.ts`): Ein Kipper mehr, dafür
+//   antwortet die verlangte Kernfunktion „für essen" direkt statt über
+//   eine Auswahl.
+const MIN_RICHTIG_ODER_SICHER = 0.81;
+const MAX_ZUVERSICHTLICH_FALSCH = 0.15;

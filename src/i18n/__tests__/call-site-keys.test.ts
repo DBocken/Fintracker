@@ -115,11 +115,17 @@ describe('i18n-Aufrufstellen', () => {
     // JEDEN Slot-Namen, dass es eine Rückfrage gibt — und seit dem
     // Vertrags-Deep-Link auch für die eigene Link-Beschriftung
     // (`deepLinkLabelKey`), die dieselbe Prüfung durchläuft.
+    // Angehoben auf 82 mit der Kandidaten-Auswahl des Routers (WP-F.2): Die
+    // Buttons der Auswahl-Rückfrage tragen den Anzeigenamen des Eintrags
+    // (`t(\`financeQuestions.entryName.\${k.entryId}\`)`) — dieselbe
+    // durchgereichte Bauform wie die übrigen Register-Keys. Der Fleck ist
+    // vollständig ausgeleuchtet: `question-catalog.test.ts` prüft für JEDEN
+    // Eintrag, dass sein `entryName` in ALLEN Sprachen auflöst.
     let dynamic = 0;
     for (const file of files) {
       const source = readFileSync(`${process.cwd()}/${file}`, 'utf8');
       dynamic += [...source.matchAll(DYNAMIC_CALL)].length;
     }
-    expect(dynamic).toBeLessThanOrEqual(81);
+    expect(dynamic).toBeLessThanOrEqual(82);
   });
 });

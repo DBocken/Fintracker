@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseZeitraum } from '@/lib/question-time-expressions';
-import { lexicalQuestionMatcher } from '@/lib/question-matcher';
-import type { QuestionVocabulary } from '@/lib/question-matcher';
+import { entscheideRouting, lexicalQuestionMatcher } from '@/lib/question-matcher';
+import type { QuestionCandidate, QuestionVocabulary } from '@/lib/question-matcher';
 import type { QuestionEntry } from '@/lib/question-registry';
 
 const JETZT = new Date('2026-07-20T12:00:00Z');
@@ -117,7 +117,9 @@ const vokabular: QuestionVocabulary = {
   ],
   ausloeser: new Map([
     ['ausgaben.haendler', ['ausgegeben', 'ausgaben']],
-    ['ausgaben.kategorie', ['ausgegeben', 'ausgaben', 'fuer']],
+    // Ohne die Präposition „für": Ein Funktionswort ist seit WP-F.2 nie ein
+    // Auslöser. Händler gegen Kategorie unterscheidet der SLOT.
+    ['ausgaben.kategorie', ['ausgegeben', 'ausgaben']],
     ['einnahmen.zeitraum', ['eingenommen', 'einnahmen', 'verdient']],
     ['leistbarkeit.anschaffung', ['leisten']],
   ]),
@@ -227,12 +229,52 @@ describe('lexicalQuestionMatcher', () => {
     // einziges seiner Auslösewörter stand im Satz. (2) Die Sortierung stellte
     // Vollständigkeit über Relevanz, und ein Eintrag ohne Pflicht-Slots ist
     // per Definition immer vollständig — er überstrahlte damit jeden anderen.
+    //
+    // Seit dem Marge-Gate (WP-F.2) wird auf der ENTSCHEIDUNGS-Ebene geprüft:
+    // Ohne auflösbare Kategorie sind Händler- und Kategorie-Deutung ehrlich
+    // gleichauf — dann wird gewählt, nicht geraten. Einnahmen sind in keiner
+    // Variante dabei.
     const kandidaten = match('wieviel habe ich letzten monat fuer essen ausgegeben?');
-
     expect(kandidaten.map((k) => k.entryId)).not.toContain('einnahmen.zeitraum');
-    expect(kandidaten[0].entryId).toBe('ausgaben.kategorie');
-    // „essen" ist keine Kategorie des Nutzers ⇒ nachfragen, nicht raten.
-    expect(kandidaten[0].fehlend).toEqual(['kategorie']);
+
+    const routing = entscheideRouting(kandidaten);
+    expect(routing.art).toBe('kandidaten');
+    if (routing.art === 'kandidaten') {
+      expect(routing.top.map((k) => k.entryId).sort()).toEqual([
+        'ausgaben.haendler',
+        'ausgaben.kategorie',
+      ]);
+    }
+  });
+
+  it('sollte mit auflösbarem abstraktem Begriff DIREKT antworten — benannt, nicht still', () => {
+    // Die Zuordnung abstrakter Begriffe („für essen") ist die ausdrücklich
+    // verlangte Kernfunktion dieser Fläche. Die Erschliessung wiegt deshalb
+    // wie ein wörtlicher Treffer — die Marge zum Händler-Geschwister reicht,
+    // und es wird geantwortet. Ihre Absicherung ist die BENENNUNG in
+    // `erschlossen` (die Fläche zeigt „Verstanden als …", korrigierbar),
+    // nicht ein Punktabschlag. Die Kipper, die das früher erzeugte, hingen
+    // am Auslöser „kostet" und sind dort behoben (Kommentar im Matcher).
+    const mitAufloesung: QuestionVocabulary = {
+      ...vokabular,
+      kategorieAusText: (text) =>
+        text.includes('essen') ? { categoryId: 'cat-food', confidence: 0.8 } : null,
+    };
+    const kandidaten = lexicalQuestionMatcher.match(
+      'wieviel habe ich letzten monat fuer essen ausgegeben?',
+      mitAufloesung,
+      entries,
+      'de',
+      JETZT,
+    );
+
+    const routing = entscheideRouting(kandidaten);
+    expect(routing.art).toBe('aufloesen');
+    if (routing.art === 'aufloesen') {
+      expect(routing.kandidat.entryId).toBe('ausgaben.kategorie');
+      expect(routing.kandidat.slots.kategorieId).toBe('cat-food');
+      expect(routing.kandidat.erschlossen).toEqual(['kategorie']);
+    }
   });
 
   it('sollte einen Eintrag ohne Auslöser-Treffer gar nicht vorschlagen', () => {
@@ -242,12 +284,13 @@ describe('lexicalQuestionMatcher', () => {
     expect(kandidaten).toEqual([]);
   });
 
-  it('sollte einen starken unvollständigen Treffer über einen schwachen vollständigen stellen', () => {
-    // Nachfragen ist besser, als eine andere Frage zu beantworten.
-    const kandidaten = match('wieviel habe ich fuer essen ausgegeben?');
+  it('sollte ohne jedes Unterscheidungsmerkmal wählen lassen statt zu raten', () => {
+    // „ausgegeben" trifft Händler- UND Kategorie-Eintrag, kein Slot trennt
+    // sie — das ist echte Mehrdeutigkeit, und die Entscheidung darüber trifft
+    // der Nutzer, nicht die Sortierreihenfolge.
+    const routing = entscheideRouting(match('wieviel habe ich fuer essen ausgegeben?'));
 
-    expect(kandidaten[0].entryId).toBe('ausgaben.kategorie');
-    expect(kandidaten[0].fehlend).toEqual(['kategorie']);
+    expect(routing.art).toBe('kandidaten');
   });
 
   it('sollte Einnahmen liefern, wenn danach GEFRAGT wird', () => {
@@ -265,5 +308,109 @@ describe('lexicalQuestionMatcher', () => {
 
   it('sollte bei leerer Eingabe nichts vorschlagen', () => {
     expect(match('   ')).toEqual([]);
+  });
+});
+
+describe('Auslöser-Semantik (WP-F.2)', () => {
+  const eintrag = (id: string): QuestionEntry => ({
+    id,
+    slots: { erforderlich: [], optional: ['zeitraum', 'haendler', 'kategorie', 'betrag'] },
+    ausloeser: [`k.${id}`],
+    needs: [],
+    aufwand: 'guenstig',
+    antwort: () => { throw new Error('nicht gefragt'); },
+  });
+
+  const vok = (ausloeser: Record<string, string[]>): QuestionVocabulary => ({
+    kategorien: [],
+    konten: [],
+    haendler: [],
+    ausloeser: new Map(Object.entries(ausloeser)),
+  });
+
+  it('[REGRESSION] sollte ein einzelnes Funktionswort NIE als Auslöser werten', () => {
+    // Der gemessene 180/225-Fehler: „leisten kann ich mir" zerfiel in Token,
+    // und „kann/ich/mir" machten den Eintrag zum Treffer für fast jede
+    // umgangssprachliche Frage.
+    const treffer = lexicalQuestionMatcher.match(
+      'was kostet mich mein auto eig im monat alles zusammen',
+      vok({ leistbarkeit: ['kann', 'ich', 'mir', 'leisten'] }),
+      [eintrag('leistbarkeit')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(treffer).toHaveLength(0);
+  });
+
+  it('sollte eine Mehrwort-Phrase als Ganzes treffen', () => {
+    const treffer = lexicalQuestionMatcher.match(
+      'kann ich mir das leisten?',
+      vok({ leistbarkeit: ['kann ich mir'] }),
+      [eintrag('leistbarkeit')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(treffer).toHaveLength(1);
+  });
+
+  it('[REGRESSION] sollte ein Einzelwort nur an Wortgrenzen treffen', () => {
+    // „Sparrate" enthält „rate", meint aber keine Ratenzahlung — der
+    // Substring-Treffer hat im Korpus falsche Antworten erzeugt.
+    const treffer = lexicalQuestionMatcher.match(
+      'Welche monatliche Sparrate brauche ich?',
+      vok({ raten: ['rate'] }),
+      [eintrag('raten')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(treffer).toHaveLength(0);
+  });
+
+  it('sollte deutsche Komposita über das Wortende treffen', () => {
+    // „Freizeitbudget" fragt nach einem Budget — ab fünf Zeichen zählt das
+    // Wortende, damit kurze Auslöser nicht zur Teilzeichenkette werden.
+    const treffer = lexicalQuestionMatcher.match(
+      'Wie viel ist noch in meinem Freizeitbudget übrig?',
+      vok({ budget: ['budget'] }),
+      [eintrag('budget')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(treffer).toHaveLength(1);
+  });
+});
+
+describe('entscheideRouting (Marge-Gate)', () => {
+  const kandidat = (entryId: string, score: number): QuestionCandidate => ({
+    entryId,
+    score,
+    slots: {},
+    fehlend: [],
+    erschlossen: [],
+  });
+
+  it('sollte ohne Kandidaten „unverstanden" melden', () => {
+    expect(entscheideRouting([]).art).toBe('unverstanden');
+  });
+
+  it('sollte bei klarem Abstand auflösen', () => {
+    const r = entscheideRouting([kandidat('a', 5), kandidat('b', 3)]);
+    expect(r.art).toBe('aufloesen');
+  });
+
+  it('[REGRESSION] sollte bei knappem Abstand WÄHLEN lassen statt zu raten', () => {
+    // Zwei Deutungen, ein Punkt Abstand: Aus Sicht des Routers ist die Frage
+    // mehrdeutig, und Mehrdeutigkeit ist ein Ergebnis (AGENTS.md §3).
+    const r = entscheideRouting([kandidat('a', 4), kandidat('b', 3), kandidat('c', 3)]);
+    expect(r.art).toBe('kandidaten');
+    if (r.art === 'kandidaten') {
+      expect(r.top.map((k) => k.entryId)).toEqual(['a', 'b', 'c']);
+    }
+  });
+
+  it('sollte bei Gleichstand höchstens drei Kandidaten anbieten', () => {
+    const r = entscheideRouting([kandidat('a', 3), kandidat('b', 3), kandidat('c', 3), kandidat('d', 3)]);
+    expect(r.art).toBe('kandidaten');
+    if (r.art === 'kandidaten') expect(r.top).toHaveLength(3);
   });
 });

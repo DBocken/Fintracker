@@ -129,6 +129,30 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
     );
   }
 
+  if (ergebnis.art === 'kandidaten') {
+    // Zwei Deutungen zu dicht beieinander: Es wird gewählt, nicht geraten.
+    // Ein Chat-Feld weckt LLM-Erwartungen — die Antwort auf Mehrdeutigkeit
+    // ist deshalb ausdrücklich eine Auswahl, keine Behauptung.
+    return (
+      <InfoGroup title={t('financeQuestions.candidatesTitle')}>
+        <p className="text-sm text-muted-foreground">{t('financeQuestions.candidatesIntro')}</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('financeQuestions.pickOne')}>
+          {ergebnis.kandidaten.map((k) => (
+            <Button
+              key={k.entryId}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => model.waehleKandidat(k)}
+            >
+              {t(`financeQuestions.entryName.${k.entryId}`)}
+            </Button>
+          ))}
+        </div>
+      </InfoGroup>
+    );
+  }
+
   return (
     <>
       <AntwortAnzeige antwort={ergebnis.antwort} />
