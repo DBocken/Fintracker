@@ -102,3 +102,65 @@ describe("parseReceipt line items", () => {
     expect(parsed.lineItems).toBeUndefined();
   });
 });
+
+describe("parseReceipt Summenkonsistenz", () => {
+  /**
+   * Die Prüfung, die bis hierher fehlte: Zeilenbeträge und Gesamtbetrag wurden
+   * nebeneinander erkannt und nie gegeneinander gehalten. Je Zeile gab es
+   * bereits eine Prüfung (Menge × Stückpreis ≈ Zeilenbetrag) — über den Beleg
+   * hinweg keine.
+   *
+   * Die Richtung des Widerspruchs entscheidet, und zwar streng:
+   * Eine Zeilensumme UNTER dem Gesamtbetrag ist der Normalfall, weil die
+   * Zeilenerkennung bewusst konservativ ist und Zeilen auslässt. Nur eine
+   * Zeilensumme ÜBER dem Gesamtbetrag ist ein echter Widerspruch — dann ist
+   * entweder ein Betrag zu hoch gelesen oder eine Nicht-Produktzeile
+   * mitgezählt worden.
+   */
+  it("sollte den Gesamtbetrag bestätigen, wenn die Zeilen ihn genau ergeben", () => {
+    const text = ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "SUMME EUR 6,47"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+    expect(parsed.lineItemSum).toBeCloseTo(6.47);
+    expect(parsed.total!.confidence).toBeGreaterThan(0.9);
+  });
+
+  it("sollte einen Widerspruch melden, wenn die Zeilen MEHR ergeben als die Summe", () => {
+    // 3,98 + 2,49 = 6,47, der Beleg behauptet 4,47 — einer der beiden Werte
+    // ist falsch gelesen, und welcher, weiß niemand.
+    const text = ["REWE", "Apfel 2 x 1,99 3,98", "Brot 2,49", "SUMME EUR 4,47"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("exceeds");
+    expect(receiptLowConfidenceFields(parsed)).toContain("total");
+  });
+
+  it("sollte eine unvollständige Zeilenerkennung NICHT als Fehler werten", () => {
+    // Nur eine von mehreren Produktzeilen erkannt: erwartbar, kein Widerspruch.
+    // Diese Zeilen unter Verdacht zu stellen hiesse, bei fast jedem Beleg zu
+    // warnen — und eine Warnung, die immer kommt, wird nicht mehr gelesen.
+    const text = ["REWE", "Brot 2,49", "SUMME EUR 18,90"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("incomplete");
+    expect(receiptLowConfidenceFields(parsed)).not.toContain("total");
+  });
+
+  it("sollte ohne Zeilen oder ohne Summe kein Urteil fällen", () => {
+    const ohneZeilen = parseReceipt(["Kiosk", "SUMME 8,90", "Rückgeld 1,10"].join("\n"));
+    expect(ohneZeilen.totalCheck).toBe("unknown");
+
+    const ohneSumme = parseReceipt(["Kiosk"].join("\n"));
+    expect(ohneSumme.totalCheck).toBe("unknown");
+  });
+
+  it("sollte Rundungsdifferenzen im Centbereich tolerieren", () => {
+    // Dieselbe Toleranz wie die Zeilenprüfung (< 0,02) — sonst würde ein
+    // gerundeter Stückpreis den Beleg grundlos verdächtig machen.
+    const text = ["REWE", "Apfel 3 x 0,33 0,99", "Brot 2,49", "SUMME EUR 3,49"].join("\n");
+
+    const parsed = parseReceipt(text);
+    expect(parsed.totalCheck).toBe("confirmed");
+  });
+});

@@ -3258,6 +3258,7 @@ export const en = {
     selectButton: 'Take photo / select receipt',
     prefillDescription: 'Receipt (scanned)',
     scanErrorPrefix: 'Receipt could not be read: ',
+    totalContradicts: 'The individual items add up to more than the stated total — one of the two was misread. The amount is therefore left blank; please copy it from the receipt.',
   },
   household: {
     noHouseholdMessage: 'First create a household in Settings.',

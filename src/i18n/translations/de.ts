@@ -3264,6 +3264,7 @@ export const de = {
     selectButton: 'Beleg fotografieren / auswählen',
     prefillDescription: 'Barbeleg (gescannt)',
     scanErrorPrefix: 'Beleg konnte nicht gelesen werden: ',
+    totalContradicts: 'Die einzelnen Posten ergeben mehr als der ausgewiesene Gesamtbetrag — einer der beiden Werte wurde falsch gelesen. Der Betrag bleibt deshalb leer; bitte trage ihn vom Beleg ab.',
   },
   household: {
     noHouseholdMessage: 'Lege zuerst einen Haushalt in den Einstellungen an.',

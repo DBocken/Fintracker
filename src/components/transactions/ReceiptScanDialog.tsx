@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, ScanLine } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
-import { showError } from "@/utils/toast";
+import { showError, showWarning } from "@/utils/toast";
 import { ocrImages } from "@/services/letter-ocr-service";
 import { parseReceipt } from "@/services/receipt-parser-service";
 import { getCategories } from "@/services/transaction-service";
@@ -54,10 +54,18 @@ export function ReceiptScanDialog({ open, onOpenChange, cashAccountId, onSaved }
         }
       }
 
+      // Widersprechen sich Zeilensumme und Gesamtbetrag, wird KEIN Betrag
+      // vorbelegt. Eine Zahl, der der Parser selbst nicht traut, in ein Feld
+      // zu schreiben, das man nur noch bestätigen muss, ist der teuerste
+      // Fehler dieser Fläche: Sie sieht aus wie ein Messwert und ist ein Rat.
+      // Lieber ein leeres Feld und ein Satz, der sagt warum.
+      const betragUnsicher = parsed.totalCheck === "exceeds";
+      if (betragUnsicher) showWarning(t("receipt.totalContradicts"));
+
       setPrefill({
         accountId: cashAccountId ?? null,
         direction: "expense",
-        amount: parsed.total?.value,
+        amount: betragUnsicher ? undefined : parsed.total?.value,
         date: parsed.date?.value,
         payee: merchant,
         description: t("receipt.prefillDescription"),
