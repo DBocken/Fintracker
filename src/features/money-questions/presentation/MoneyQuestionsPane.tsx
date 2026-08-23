@@ -129,7 +129,37 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
     );
   }
 
-  return <AntwortAnzeige antwort={ergebnis.antwort} />;
+  return (
+    <>
+      <AntwortAnzeige antwort={ergebnis.antwort} />
+      {ergebnis.erschlosseneKategorie && (
+        <InfoGroup title={t('financeQuestions.understoodAsTitle')}>
+          <p className="text-sm">
+            {t('financeQuestions.understoodAs').split('{label}').join(ergebnis.erschlosseneKategorie.label)}
+          </p>
+          {ergebnis.erschlosseneKategorie.alternativen.length > 0 && (
+            <div
+              className="mt-2 flex flex-wrap gap-2"
+              role="group"
+              aria-label={t('financeQuestions.correctCategory')}
+            >
+              {ergebnis.erschlosseneKategorie.alternativen.map((v) => (
+                <Button
+                  key={v.wert}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => model.waehleVorschlag(v)}
+                >
+                  {v.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </InfoGroup>
+      )}
+    </>
+  );
 }
 
 /**
@@ -169,6 +199,15 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   const { t } = useI18n();
   const money = useMoneyFormat();
 
+  // „Keine Buchung" ist eine ANDERE Aussage als „0,00 €".
+  //
+  // Ein berechneter Nullbetrag und eine leere Treffermenge sehen identisch
+  // aus, meinen aber Gegensätzliches: einmal „du hast dafür nichts
+  // ausgegeben", einmal „dazu liegt mir nichts vor". Genau diese Verwechslung
+  // ist der Grund, warum das Repo `check:state-coverage` hat. Der Deep-Link
+  // bleibt trotzdem stehen — wer nachsehen will, soll es können.
+  const ohneTreffer = antwort.anzahl === 0 && (antwort.art === 'geld' || antwort.art === 'anzahl');
+
   // Beträge laufen IMMER durch den Sanften Modus. Das Register liefert
   // bewusst eine rohe Zahl (docs/debt-avoidance-recovery.md) — ein einziger
   // unmaskierter Betrag auf dieser Fläche hebt das Versprechen auf.
@@ -183,10 +222,16 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
 
   return (
     <InfoGroup title={t('financeQuestions.answerTitle')}>
-      {wertText !== null && (
-        <p className="text-2xl font-semibold tabular-nums">{wertText}</p>
+      {ohneTreffer ? (
+        <p className="text-sm">{einsetzen({ ...antwort.aussage, key: 'financeQuestions.noMatch' }, t, money.format)}</p>
+      ) : (
+        <>
+          {wertText !== null && (
+            <p className="text-2xl font-semibold tabular-nums">{wertText}</p>
+          )}
+          <p className="mt-1 text-sm">{einsetzen(antwort.aussage, t, money.format)}</p>
+        </>
       )}
-      <p className="mt-1 text-sm">{einsetzen(antwort.aussage, t, money.format)}</p>
 
       {/*
         Anzahl getrennt vom Antwortsatz — und mit eigenem Singular-Key. Im

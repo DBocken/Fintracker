@@ -4313,6 +4313,10 @@ export const ru = {
     of: 'из',
   },
   financeQuestions: {
+      noMatch: 'По этому нет операций — {zeitraum} ничего не записано.',
+      understoodAsTitle: 'Как я это понял',
+      understoodAs: 'Вы не назвали категорию — я предположил «{label}».',
+      correctCategory: 'Выбрать другую категорию',
       pickOne: 'Выберите из своих данных',
       alsoNeeded: 'После этого не хватает ещё {count} сведения.',
       countOne: 'Из 1 операции.',

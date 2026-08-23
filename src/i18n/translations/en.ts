@@ -4313,6 +4313,10 @@ export const en = {
     of: 'of',
   },
   financeQuestions: {
+      noMatch: 'There is no transaction for that — nothing recorded {zeitraum}.',
+      understoodAsTitle: 'How I read that',
+      understoodAs: 'You did not name a category — I assumed “{label}”.',
+      correctCategory: 'Choose a different category',
       pickOne: 'Pick from your data',
       alsoNeeded: 'After that, {count} more detail is missing.',
       countOne: 'From 1 transaction.',

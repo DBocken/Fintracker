@@ -4325,6 +4325,10 @@ export const de = {
     of: 'von',
   },
   financeQuestions: {
+      noMatch: 'Dazu gibt es keine Buchung — {zeitraum} ist dort nichts erfasst.',
+      understoodAsTitle: 'So habe ich das verstanden',
+      understoodAs: 'Du hast keine Kategorie genannt — ich habe „{label}“ angenommen.',
+      correctCategory: 'Andere Kategorie wählen',
       pickOne: 'Aus deinen Daten wählen',
       alsoNeeded: 'Danach fehlt noch {count} Angabe.',
       countOne: 'Aus 1 Buchung.',

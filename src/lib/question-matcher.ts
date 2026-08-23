@@ -57,6 +57,19 @@ export interface QuestionVocabulary {
   haendler: readonly VokabelEintrag[];
   /** Eintrags-ID → aufgelöste Auslösewörter (aus dem Sprachbaum geholt). */
   ausloeser: ReadonlyMap<string, readonly string[]>;
+  /**
+   * Zweiter Weg zur Kategorie: ein ABSTRAKTER Begriff („essen", „tanken"),
+   * der den Kategorienamen gar nicht enthält.
+   *
+   * Der Namensvergleich oben kann das prinzipiell nicht — er verlangt, dass
+   * der getippte Text den Kategorienamen enthält, und ein abstrakterer
+   * Begriff ist kürzer als der Name. Aufgelöst wird über dieselbe Engine, die
+   * Buchungen kategorisiert (kuratierte Stichwörter, eigene Händlerregeln,
+   * gelerntes Modell) — siehe `question-category-resolution.ts`.
+   *
+   * Optional: Ohne sie verhält sich der Matcher wie zuvor.
+   */
+  kategorieAusText?: (text: string) => { categoryId: string; confidence: number } | null;
 }
 
 export interface QuestionCandidate {
@@ -64,6 +77,14 @@ export interface QuestionCandidate {
   score: number;
   slots: QuestionSlots;
   fehlend: SlotName[];
+  /**
+   * Slots, die NICHT wörtlich im Text standen, sondern erschlossen wurden.
+   *
+   * Die Fläche muss das benennen können („Verstanden als: Essen & Trinken"),
+   * sonst wäre eine erschlossene Kategorie eine stille Behauptung — und der
+   * Nutzer hätte keine Gelegenheit, sie zu korrigieren.
+   */
+  erschlossen: SlotName[];
 }
 
 export interface QuestionMatcher {
@@ -146,6 +167,7 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       const ausloeserTreffer = worte.filter((wort) => normalisiert.includes(normalisiere(wort))).length;
 
       const slots: QuestionSlots = {};
+      const erschlossen: SlotName[] = [];
       let slotPunkte = 0;
 
       const nutzt = (slot: SlotName) =>
@@ -170,6 +192,21 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
           slotPunkte += 2;
         }
       }
+      // Zweiter Weg zur Kategorie: der abstrakte Begriff. Nur, wenn der
+      // Namensvergleich nichts fand und kein Händler den Platz beansprucht —
+      // „bei Lidl" meint den Händler, nicht eine Kategorie namens Lidl.
+      if (!slots.kategorieId && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
+        const erschlossene = vokabular.kategorieAusText(ohneZeit);
+        if (erschlossene) {
+          slots.kategorieId = erschlossene.categoryId;
+          erschlossen.push('kategorie');
+          // Bewusst weniger Punkte als ein wörtlicher Namenstreffer (2): Eine
+          // Erschliessung ist schwächere Evidenz und soll einen direkten
+          // Treffer nie überstimmen.
+          slotPunkte += 1;
+        }
+      }
+
       if (konto && !konto.mehrdeutig && nutzt('konto')) {
         slots.kontoId = konto.wert;
         slotPunkte += 1;
@@ -194,7 +231,13 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       if (ausloeserTreffer === 0) continue;
 
       const score = ausloeserTreffer * 3 + slotPunkte;
-      kandidaten.push({ entryId: entry.id, score, slots, fehlend: fehlendeSlots(entry, slots) });
+      kandidaten.push({
+        entryId: entry.id,
+        score,
+        slots,
+        fehlend: fehlendeSlots(entry, slots),
+        erschlossen,
+      });
     }
 
     // RELEVANZ vor Vollständigkeit — und das ist die eigentliche Lehre aus

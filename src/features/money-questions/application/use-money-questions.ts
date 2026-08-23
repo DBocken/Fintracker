@@ -7,6 +7,9 @@ import { getAccounts } from '@/services/account-service';
 import { getDebts } from '@/services/debt-service';
 import { getBudgets } from '@/services/budget-service';
 import { getContractDecisionMap } from '@/services/contract-decision-service';
+import { getMerchantRules } from '@/services/merchant-rules-service';
+import { useCategoryModel } from '@/hooks/useCategoryModel';
+import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { lexicalQuestionMatcher } from '@/lib/question-matcher';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
@@ -51,7 +54,17 @@ export type MoneyQuestionOutcome =
        */
       vorschlaege: SlotVorschlag[];
     }
-  | { art: 'antwort'; entryId: string; antwort: QuestionAnswer };
+  | {
+      art: 'antwort';
+      entryId: string;
+      antwort: QuestionAnswer;
+      /**
+       * Erschlossene Kategorie, die NICHT wörtlich gefragt war („essen" →
+       * „Essen & Trinken"). Wird benannt und ist korrigierbar — sonst wäre
+       * die Zuordnung eine stille Behauptung.
+       */
+      erschlosseneKategorie?: { label: string; alternativen: SlotVorschlag[] };
+    };
 
 export interface MoneyQuestionsViewModel {
   frage: string;
@@ -95,8 +108,13 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     queryKey: financeKeys.contractDecisions,
     queryFn: getContractDecisionMap,
   });
+  const regeln = useQuery({ queryKey: ['merchant-rules'], queryFn: getMerchantRules });
 
-  const abfragen = [transaktionen, kategorien, konten, schulden, budgets, vertragsentscheidungen];
+  // Dasselbe gelernte Modell, das die Kategorisierung benutzt — damit kennt
+  // die Chat-Erkennung auch Händler, die in keinem Katalog stehen.
+  const modellKontext = useCategoryModel();
+
+  const abfragen = [transaktionen, kategorien, konten, schulden, budgets, vertragsentscheidungen, regeln];
   // Fehlerfall ausdrücklich: Eine Antwort aus halben Daten nennt eine Zahl,
   // die nichts belegt — und eine falsche Zahl ist hier schlimmer als keine.
   const isError = abfragen.some((q) => q.isError);
@@ -149,7 +167,21 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       if (id) kategorieNutzung.set(id, (kategorieNutzung.get(id) ?? 0) + 1);
     }
 
+    // Der zweite Weg zur Kategorie — abstrakte Begriffe über dieselbe Engine,
+    // die auch Buchungen kategorisiert. Ohne ihn scheitert „für essen" an
+    // einer Kategorie, die „Essen & Trinken" heisst.
+    const kategorieAusText = (text: string) => {
+      const treffer = resolveKategorieAusText(
+        text,
+        [...(kategorien.data ?? [])],
+        [...(regeln.data ?? [])],
+        modellKontext,
+      );
+      return treffer ? { categoryId: treffer.categoryId, confidence: treffer.confidence } : null;
+    };
+
     return {
+      kategorieAusText,
       kategorien: (kategorien.data ?? [])
         .map((c) => ({ wort: c.name.toLowerCase(), wert: c.id, label: c.name }))
         .sort((a, b) => {
@@ -183,7 +215,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // eingefroren (dieselbe Falle wie `t()` in einer Modul-Konstanten,
     // AGENTS.md §6).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transaktionen.data, kategorien.data, konten.data, locale, t]);
+  }, [transaktionen.data, kategorien.data, konten.data, regeln.data, modellKontext, locale, t]);
 
   const beispiele = useMemo(() => {
     const ersterHaendler = vokabular.haendler[0]?.wort;
@@ -218,7 +250,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
    * damit ein per Klick gefüllter Slot exakt dieselbe Prüfung durchläuft wie
    * ein aus dem Text erkannter.
    */
-  const aufloesen = (entryId: string, slots: QuestionSlots): void => {
+  const aufloesen = (entryId: string, slots: QuestionSlots, erschlossen: SlotName[] = []): void => {
     const entry = questionCatalog.byId(entryId);
     if (!entry) {
       setErgebnis({ art: 'unverstanden' });
@@ -241,7 +273,26 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       return;
     }
 
-    setErgebnis({ art: 'antwort', entryId, antwort: entry.antwort(slots, daten) });
+    // Eine erschlossene Kategorie wird BENANNT und bleibt korrigierbar: Sie
+    // stand nicht im Text, sie wurde geschlossen. Ohne den Hinweis wäre sie
+    // eine stille Behauptung, und wer „für essen" meinte, aber „Restaurant"
+    // bekam, merkte es nie.
+    const erschlosseneKategorie =
+      erschlossen.includes('kategorie') && slots.kategorieId
+        ? {
+            label:
+              vokabular.kategorien.find((k) => k.wert === slots.kategorieId)?.label ??
+              slots.kategorieId,
+            alternativen: vorschlaegeFuer('kategorie').filter((v) => v.wert !== slots.kategorieId),
+          }
+        : undefined;
+
+    setErgebnis({
+      art: 'antwort',
+      entryId,
+      antwort: entry.antwort(slots, daten),
+      erschlosseneKategorie,
+    });
   };
 
   const absenden = () => {
@@ -262,7 +313,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       setErgebnis({ art: 'unverstanden' });
       return;
     }
-    aufloesen(beste.entryId, beste.slots);
+    aufloesen(beste.entryId, beste.slots, beste.erschlossen);
   };
 
   const waehleVorschlag = (vorschlag: SlotVorschlag) => {

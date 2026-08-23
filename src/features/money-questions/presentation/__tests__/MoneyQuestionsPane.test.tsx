@@ -45,8 +45,10 @@ function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Tran
 
 /** Kategorien, deren Namen NICHT dem entsprechen, was ein Nutzer tippt. */
 const KATEGORIEN = [
-  { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: [] },
+  { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: ['supermarkt'] },
   { id: 'local-cat-freizeit', name: 'Freizeit', filters: [] },
+  // Trägt „essen" im NAMEN — genau der abstrakte Begriff aus dem Bericht.
+  { id: 'local-cat-essenundtrinken', name: 'Essen & Trinken', filters: [] },
 ] as never[];
 
 const BUCHUNGEN: Transaction[] = [
@@ -122,30 +124,73 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.queryByRole('link', { name: /buchungen/i })).not.toBeInTheDocument();
   });
 
-  it('sollte bei einem unbekannten Wort die EIGENEN Kategorien zur Auswahl stellen', async () => {
-    // Gemeldet aus der laufenden App: „für essen" — die Kategorie heisst aber
-    // „Lebensmittel". Eine Rückfrage ohne Kandidaten wäre eine Sackgasse.
+  it('sollte bei einem WIRKLICH unbekannten Wort die eigenen Kategorien zur Auswahl stellen', async () => {
+    // „essen" wird inzwischen erschlossen (siehe [REGRESSION] oben). Für die
+    // Rückfrage braucht es deshalb einen Begriff, den weder Kategoriename noch
+    // Stichwortkatalog noch das gelernte Modell kennen — dann ist eine
+    // Rückfrage mit Kandidaten die richtige Antwort statt einer Sackgasse.
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
-    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+    frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
 
     expect(await screen.findByText(/Welche Kategorie meinst du\?/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lebensmittel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Freizeit' })).toBeInTheDocument();
   });
 
-  it('sollte nach der Auswahl antworten und den erkannten Zeitraum behalten', async () => {
+  it('[REGRESSION] sollte einen ABSTRAKTEN Begriff der Kategorie zuordnen, statt nachzufragen', async () => {
+    // Der Kern der Chat-Bedienung: „für essen" nennt die Kategorie nicht beim
+    // Namen. Der reine Namensvergleich kann das prinzipiell nicht — der
+    // getippte Begriff ist kürzer als „Essen & Trinken".
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+
+    expect(await screen.findByText('Antwort')).toBeInTheDocument();
+    expect(screen.queryByText(/Welche Kategorie meinst du/i)).not.toBeInTheDocument();
+  });
+
+  it('sollte eine erschlossene Kategorie BENENNEN und korrigierbar lassen', async () => {
+    // Erschlossen heisst: stand nicht im Text. Ohne den Hinweis wäre das eine
+    // stille Behauptung — wer „essen" meinte und „Freizeit" bekäme, merkte es
+    // nie.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+
+    expect(await screen.findByText(/So habe ich das verstanden/i)).toBeInTheDocument();
+    expect(screen.getByText(/Essen & Trinken/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: /Andere Kategorie wählen/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('sollte eine WÖRTLICH genannte Kategorie nicht als erschlossen ausweisen', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer Lebensmittel ausgegeben?');
+
+    expect(await screen.findByText('Antwort')).toBeInTheDocument();
+    expect(screen.queryByText(/So habe ich das verstanden/i)).not.toBeInTheDocument();
+  });
+
+  it('sollte nach der Auswahl antworten und den erkannten Zeitraum behalten', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
     fireEvent.click(await screen.findByRole('button', { name: 'Lebensmittel' }));
 
     // Der Zeitraum aus der ursprünglichen Frage darf durch die Rückfrage nicht
     // verloren gehen — sonst antwortete die Fläche über den Gesamtbestand.
-    expect(await screen.findByText(/In dieser Kategorie, Juli 2026/i)).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /genau diese buchungen/i });
+    // Geprüft am Deep-Link, weil er beides trägt: die gewählte Kategorie UND
+    // den Zeitraum. (Der Antwortsatz selbst hängt davon ab, ob es Treffer
+    // gibt — hier gibt es keine, und dann sagt die Fläche das auch.)
+    const link = await screen.findByRole('link', { name: /genau diese buchungen/i });
     expect(link.getAttribute('href')).toContain('cat=local-cat-lebensmittel');
     expect(link.getAttribute('href')).toContain('range=2026-07');
   });
@@ -157,6 +202,23 @@ describe('Nachfragen-Fläche', () => {
     frage('Wie wird das Wetter morgen?');
 
     expect(await screen.findByText(/kann ich noch nicht beantworten/i)).toBeInTheDocument();
+  });
+
+  it('[ZUSTAND /fragen:gefiltert-leer] sollte „keine Buchung" sagen statt 0,00 € zu zeigen', async () => {
+    // Ein berechneter Nullbetrag und eine leere Treffermenge sehen identisch
+    // aus, meinen aber Gegensätzliches: „du hast dafür nichts ausgegeben"
+    // gegen „dazu liegt mir nichts vor".
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    // „lidl sagt danke" ist im Vokabular (drei Buchungen), aber im MAI gibt es
+    // keine — genau der Fall, in dem 0,00 € wie ein Ergebnis aussähe.
+    frage('wieviel habe ich im Mai 2026 bei lidl sagt danke ausgegeben?');
+
+    expect(await screen.findByText(/keine Buchung/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0,00/)).not.toBeInTheDocument();
+    // Der Link bleibt: Wer nachsehen will, soll es können.
+    expect(screen.getByRole('link', { name: /Buchungen ansehen/i })).toBeInTheDocument();
   });
 
   it('sollte bilingual funktionieren', async () => {
