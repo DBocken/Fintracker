@@ -11,7 +11,7 @@ import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
 import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
-import { lexicalQuestionMatcher } from '@/lib/question-matcher';
+import { entscheideRouting, lexicalQuestionMatcher } from '@/lib/question-matcher';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
 import type { QuestionAnswer, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
@@ -301,7 +301,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       return;
     }
 
-    const [beste] = lexicalQuestionMatcher.match(
+    const kandidaten = lexicalQuestionMatcher.match(
       frage,
       vokabular,
       questionCatalog.entries,
@@ -309,11 +309,14 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       jetzt,
     );
 
-    if (!beste) {
+    // Die Entscheidung liegt in einer reinen Funktion, damit der Eval-Korpus
+    // exakt DIESE Entscheidung misst — nicht eine Nachbildung davon.
+    const routing = entscheideRouting(kandidaten);
+    if (routing.art === 'unverstanden') {
       setErgebnis({ art: 'unverstanden' });
       return;
     }
-    aufloesen(beste.entryId, beste.slots, beste.erschlossen);
+    aufloesen(routing.kandidat.entryId, routing.kandidat.slots, routing.kandidat.erschlossen);
   };
 
   const waehleVorschlag = (vorschlag: SlotVorschlag) => {

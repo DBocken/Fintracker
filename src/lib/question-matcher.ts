@@ -254,3 +254,19 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
     });
   },
 };
+
+/**
+ * Entscheidung der Fläche über dem Matcher-Ergebnis — als REINE Funktion,
+ * damit der Eval-Korpus (`question-eval-ratchet.test.ts`) exakt dieselbe
+ * Entscheidung misst, die die Fläche trifft. Ein Test, der nur die
+ * Kandidatenliste prüft, hätte am eigentlichen Verhalten vorbeigemessen.
+ */
+export type RoutingErgebnis =
+  | { art: 'unverstanden' }
+  | { art: 'aufloesen'; kandidat: QuestionCandidate };
+
+export function entscheideRouting(kandidaten: readonly QuestionCandidate[]): RoutingErgebnis {
+  const beste = kandidaten[0];
+  if (!beste) return { art: 'unverstanden' };
+  return { art: 'aufloesen', kandidat: beste };
+}
