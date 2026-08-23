@@ -76,7 +76,6 @@
     "src/services/budget-sweep-service.ts": 1,
     "src/services/claim-service.ts": 1,
     "src/services/contract-decision-service.ts": 1,
-    "src/services/contract-detection-service.ts": 1,
     "src/services/gocardless-sync-service.ts": 1,
 
     "src/components/GoCardlessConnect.tsx": 1,
