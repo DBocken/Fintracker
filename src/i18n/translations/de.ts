@@ -1057,6 +1057,15 @@ export const de = {
     sonstiges: { name: 'Sonstiges' },
     spenden: { name: 'Spenden' },
   },
+  learnedCategorization: {
+    title: 'Güte der automatischen Kategorisierung',
+    loading: 'Wird ausgewertet …',
+    error: 'Auswertung nicht verfügbar.',
+    empty: 'Zu wenige bestätigte Buchungen für eine Kreuzvalidierung.',
+    withModel: 'Präzision mit gelerntem Modell: {correct} von 100 Zuordnungen korrekt.',
+    withoutModel: 'Ohne gelerntes Modell: {correct} von 100 korrekt, bei einer Abdeckung von {coverage} statt {modelCoverage} Prozent.',
+    basis: 'Datengrundlage: {count} bestätigte Buchungen, fünffach kreuzvalidiert.',
+  },
   autoCategorization: {
     title: 'Auto-Kategorisierung',
     autoConfirmLabel: 'Automatisch bestätigen',
@@ -4551,6 +4560,7 @@ export const de = {
     remapFailed: 'Kategorie konnte nicht neu zugeordnet werden',
     saveFailed: 'Lokales Speichern fehlgeschlagen',
     learnedMerchantRule: 'Gelernte Händlerregel für "{merchant}"',
+    learnedModel: 'Aus {count} eigenen Buchungen gelernt ({tokens})',
     matchedFilter: 'Beschreibung enthält Filter "{filter}"',
     fallbackRule: 'Fallback-Regel für "{category}" erkannt',
   },

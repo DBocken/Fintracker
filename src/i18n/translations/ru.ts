@@ -1056,6 +1056,15 @@ export const ru = {
     sonstiges: { name: 'Прочее' },
     spenden: { name: 'Пожертвования' },
   },
+  learnedCategorization: {
+    title: 'Точность автоматической категоризации',
+    loading: 'Идёт оценка …',
+    error: 'Оценка недоступна.',
+    empty: 'Слишком мало подтверждённых операций для перекрёстной проверки.',
+    withModel: 'Точность с обученной моделью: {correct} из 100 назначений верны.',
+    withoutModel: 'Без обученной модели: {correct} из 100 верны, охват {coverage} процентов вместо {modelCoverage}.',
+    basis: 'Основа: {count} подтверждённых операций, пятикратная перекрёстная проверка.',
+  },
   autoCategorization: {
     title: 'Автокатегоризация',
     autoConfirmLabel: 'Подтверждать автоматически',
@@ -4539,6 +4548,7 @@ export const ru = {
     remapFailed: 'Не удалось переназначить категорию',
     saveFailed: 'Локальное сохранение не удалось',
     learnedMerchantRule: 'Изучено правило продавца для "{merchant}"',
+    learnedModel: 'Выучено из {count} ваших операций ({tokens})',
     matchedFilter: 'Описание содержит фильтр "{filter}"',
     fallbackRule: 'Обнаружено резервное правило для "{category}"',
   },

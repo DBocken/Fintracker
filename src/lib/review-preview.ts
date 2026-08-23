@@ -9,7 +9,7 @@
  * match ohne Regeln und konnte der echten Zuweisung widersprechen.)
  */
 import type { Category, Transaction } from '@/types';
-import type { MerchantRule } from '@/lib/categorization';
+import type { CategorizationContext, MerchantRule } from '@/lib/categorization';
 import { explainCategorization, MIN_SILENT_ASSIGN_CONFIDENCE } from '@/lib/categorization';
 import { suggestionConfidenceLevel, type SuggestionConfidenceLevel } from '@/lib/automation-suggestions';
 
@@ -22,13 +22,14 @@ export function buildAutoCategoryPreview(
   rows: Transaction[],
   categories: Category[],
   learnedRules: MerchantRule[],
+  context?: CategorizationContext,
 ): Map<string, AutoCategoryPreview> {
   const byId = new Map(categories.map((c) => [c.id, c]));
   const preview = new Map<string, AutoCategoryPreview>();
 
   for (const row of rows) {
     if (!row.id) continue;
-    const result = explainCategorization(row, categories, learnedRules);
+    const result = explainCategorization(row, categories, learnedRules, context);
     if (!result.categoryId || result.confidence < MIN_SILENT_ASSIGN_CONFIDENCE) continue;
     const category = byId.get(result.categoryId);
     if (!category) continue;

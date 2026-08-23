@@ -19,6 +19,8 @@ import { backfillAusgabenklasse } from '@/lib/category-migrations';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { getMerchantRules, upsertMerchantRule } from './merchant-rules-service';
 import { categorizeTransaction, categorizeTransactionConfident } from '@/lib/categorization';
+import type { CategorizationContext, MerchantRule } from '@/lib/categorization';
+import { buildCategoryModel } from '@/lib/category-model-evaluation';
 import { parseGermanNumber, isCentPrecise } from '../lib/money';
 import { t } from '@/i18n/serviceT';
 
@@ -397,6 +399,24 @@ export async function updateCategory(category: Category): Promise<Category> {
 // Auto-Kategorisierung & intelligente Vorschläge (jetzt auf nutzerlokalen Transaktionen)
 // -----------------------------------------------------------------------------
 
+/**
+ * Baut den Kaskaden-Kontext aus dem vorhandenen Bestand.
+ *
+ * Nachgemessen (`category-model-performance.test.ts`,
+ * `category-model-evaluation.ts`): Training über 5000 Buchungen liegt bei
+ * ~40 ms, die kreuzvalidierte Klassen-Präzision noch einmal bei ~40 ms —
+ * deshalb KEIN Web-Worker. Ein Worker verwandelte eine synchrone reine
+ * Funktion in einen asynchronen Kanal und erzwänge eine zweite
+ * Kategorisierungs-Rangfolge neben der bestehenden. Das Zeitbudget im Test
+ * ist die Ausweichroute, falls sich das je ändert.
+ */
+function modellKontext(
+  bestand: readonly Transaction[],
+  learnedRules: readonly MerchantRule[],
+): CategorizationContext {
+  return { model: buildCategoryModel(bestand, learnedRules) };
+}
+
 export async function recategorizeTransactions(): Promise<{
   total: number;
   assigned: number;
@@ -408,6 +428,9 @@ export async function recategorizeTransactions(): Promise<{
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
   const transactions = await getTransactions(10000);
+  // Modell EINMAL vor der Schleife bauen und hineinreichen — dasselbe Muster
+  // wie bei `learnedRules`. Pro Buchung zu trainieren wäre quadratisch.
+  const context = modellKontext(transactions, learnedRules);
 
   let assigned = 0;
   let unassigned = 0;
@@ -424,7 +447,7 @@ export async function recategorizeTransactions(): Promise<{
       continue;
     }
 
-    const newCat = categorizeTransactionConfident(tx, categories, learnedRules);
+    const newCat = categorizeTransactionConfident(tx, categories, learnedRules, context);
     const prevCat = tx.category_id || null;
 
     if (newCat) assigned += 1;
@@ -470,8 +493,12 @@ export async function restoreCategorization(entries: CategorizationSnapshotEntry
 export async function applyAutoCategorization(transactions: Transaction[]): Promise<Transaction[]> {
   const categories = await getCategories();
   const learnedRules = await getMerchantRules();
+  // Trainiert wird auf dem BESTAND, nicht auf den frisch importierten
+  // Buchungen: Die haben noch keine bestätigte Kategorie und trügen nichts
+  // bei — schlimmer noch, sie kämen ohne Label in die Zählung.
+  const context = modellKontext(await getTransactions(10000), learnedRules);
   return transactions.map((t) => {
-    const newCat = categorizeTransactionConfident(t, categories, learnedRules);
+    const newCat = categorizeTransactionConfident(t, categories, learnedRules, context);
     return {
       ...t,
       category_id: newCat,
@@ -487,8 +514,9 @@ export async function getCategoryPreview(categoryId: string, limit: number = 50)
 
   const learnedRules = await getMerchantRules();
   const all = await getTransactions(2000);
+  const context = modellKontext(all, learnedRules);
   const affected = all.filter((t) => {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
+    const newCat = categorizeTransaction(t, categories, learnedRules, context);
     return t.category_id !== categoryId && newCat === categoryId;
   });
 
@@ -502,10 +530,12 @@ export async function getTopCategorySuggestion(): Promise<CategorySuggestion | n
 
   if (!all.length || !categories.length) return null;
 
+  const context = modellKontext(all, learnedRules);
+
   const counts: Record<string, number> = {};
 
   for (const t of all) {
-    const newCat = categorizeTransaction(t, categories, learnedRules);
+    const newCat = categorizeTransaction(t, categories, learnedRules, context);
     if (!newCat) continue;
     if (t.category_id === newCat) continue;
     counts[newCat] = (counts[newCat] || 0) + 1;

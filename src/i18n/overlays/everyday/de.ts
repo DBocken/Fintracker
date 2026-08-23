@@ -38,6 +38,14 @@ import type { TranslationOverlay } from '../types';
  *   *Bereich* bzw. den *Vermögensposten* — dort heisst es „Wertpapiere".
  */
 export const everydayDe: TranslationOverlay = {
+  learnedCategorization: {
+    title: 'Wie gut ordnet Fintracker zu?',
+    empty: 'Noch zu wenig bestätigt, um etwas zu lernen. Ordne ein paar Buchungen selbst zu — die App merkt es sich.',
+    error: 'Die Auswertung lässt sich gerade nicht laden.',
+    withModel: 'Von 100 automatisch zugeordneten Buchungen waren im Test {correct} richtig.',
+    withoutModel: 'Ohne das Lernen aus deinen Buchungen wären es {correct} — und die App würde nur {coverage} von 100 Buchungen überhaupt zuordnen statt {modelCoverage}.',
+    basis: 'Grundlage: {count} Buchungen, die du selbst bestätigt hast.',
+  },
   glossary: {
     terms: {
       liquidity: {

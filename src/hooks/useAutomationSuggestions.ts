@@ -9,6 +9,7 @@ import { getMerchantRules } from "@/services/merchant-rules-service";
 import { getAutomationSuggestions, upsertAutomationSuggestion } from "@/services/automation-suggestion-service";
 import type { AutomationSuggestion } from "@/lib/automation-suggestion-model";
 import { buildPendingCategorySuggestions } from "@/lib/automation-suggestions";
+import { useCategoryModel } from "@/hooks/useCategoryModel";
 
 /**
  * Offene Kategorie-Vorschläge + Annehmen/Ablehnen (Issue: „Automatisch, aber nie
@@ -62,9 +63,14 @@ export function useAutomationSuggestions() {
     queryFn: getAutomationSuggestions,
   });
 
+  // Ohne den Kontext bliebe Stufe 4 der Kaskade (gelerntes Modell unterhalb
+  // der Gates, Konfidenz 0,60) toter Code: Sie schreibt nie still, sondern
+  // erscheint ausschliesslich hier als Vorschlag.
+  const categorizationContext = useCategoryModel();
+
   const suggestions = useMemo(
-    () => buildPendingCategorySuggestions(transactions, categories, rules, decided),
-    [transactions, categories, rules, decided],
+    () => buildPendingCategorySuggestions(transactions, categories, rules, decided, undefined, categorizationContext),
+    [transactions, categories, rules, decided, categorizationContext],
   );
 
   const categoryNameById = useMemo(

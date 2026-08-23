@@ -4057,6 +4057,7 @@ export const tlh = {
     remapFailed: "buP choHlaHbe'",
     saveFailed: "naDev polmeH luj",
     learnedMerchantRule: "{merchant}vaD chut chu' ghojta'",
+    learnedModel: "{count} DIvI' De' ghojta' ({tokens})",
     matchedFilter: "Del ngaSbogh wIvwI': {filter}",
     fallbackRule: "{category}vaD chut chu' tu'ta'",
   },

@@ -16,6 +16,14 @@ import type { TranslationOverlay } from '../types';
  * return, liabilities.
  */
 export const everydayEn: TranslationOverlay = {
+  learnedCategorization: {
+    title: 'How well does Fintracker sort things?',
+    empty: 'Not enough confirmed yet to learn from. Sort a few transactions yourself — the app remembers.',
+    error: "The evaluation won't load right now.",
+    withModel: 'Out of 100 transactions sorted automatically, {correct} were right in the test.',
+    withoutModel: 'Without learning from your transactions it would be {correct} — and the app would sort only {coverage} out of 100 at all, instead of {modelCoverage}.',
+    basis: 'Based on {count} transactions you confirmed yourself.',
+  },
   glossary: {
     terms: {
       liquidity: {

@@ -1056,6 +1056,15 @@ export const en = {
     sonstiges: { name: 'Other' },
     spenden: { name: 'Donations' },
   },
+  learnedCategorization: {
+    title: 'Automatic categorisation accuracy',
+    loading: 'Evaluating …',
+    error: 'Evaluation unavailable.',
+    empty: 'Too few confirmed transactions for cross-validation.',
+    withModel: 'Precision with the learned model: {correct} out of 100 assignments correct.',
+    withoutModel: 'Without the learned model: {correct} out of 100 correct, at {coverage} per cent coverage instead of {modelCoverage}.',
+    basis: 'Data basis: {count} confirmed transactions, five-fold cross-validated.',
+  },
   autoCategorization: {
     title: 'Auto-categorisation',
     autoConfirmLabel: 'Confirm automatically',
@@ -4539,6 +4548,7 @@ export const en = {
     remapFailed: 'Could not remap category',
     saveFailed: 'Local save failed',
     learnedMerchantRule: 'Learned merchant rule for "{merchant}"',
+    learnedModel: 'Learned from {count} of your own transactions ({tokens})',
     matchedFilter: 'Description contains filter "{filter}"',
     fallbackRule: 'Fallback rule for "{category}" detected',
   },

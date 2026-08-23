@@ -2,6 +2,7 @@ import { gocardlessService } from './gocardless-service';
 import { updateAccount, getAccounts, type Account } from './account-service';
 import { createTransaction, getTransactions, getCategories, getUserSettings, markTransferPair } from './transaction-service';
 import { categorizeTransactionConfident } from '@/lib/categorization';
+import { buildCategoryModel } from '@/lib/category-model-evaluation';
 import { getMerchantRules } from './merchant-rules-service';
 import { bankConnectionService, getConsentStatus } from './bank-connection-service';
 import { applyDetectedContracts } from './contract-detection-service';
@@ -265,6 +266,11 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
 
     const categories = await getCategories();
     const learnedRules = await getMerchantRules();
+    // Modell EINMAL vor der Buchungsschleife, trainiert auf dem BESTAND
+    // (`existingTransactions` ist oben schon geladen). Die frisch von der Bank
+    // geholten Buchungen tragen nichts bei — sie haben noch keine bestätigte
+    // Kategorie.
+    const categorizationContext = { model: buildCategoryModel(existingTransactions, learnedRules) };
     const userSettings = await getUserSettings();
 
     // Extract opening balance from earliest transaction's balance
@@ -320,7 +326,12 @@ export async function syncAccountTransactions(account: Account): Promise<SyncRes
         };
         // Stille Zuweisung nur ab mittlerer Konfidenz — Regex-Raten (0,55) bleiben
         // unkategorisiert und landen als Vorschlag in der Coach-Inbox.
-        const categoryId = categorizeTransactionConfident(draftTransaction as import('../types').Transaction, categories, learnedRules);
+        const categoryId = categorizeTransactionConfident(
+          draftTransaction as import('../types').Transaction,
+          categories,
+          learnedRules,
+          categorizationContext,
+        );
 
         const created = await createTransaction({
           account_id: account.id,
