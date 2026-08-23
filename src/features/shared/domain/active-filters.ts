@@ -9,7 +9,15 @@ import type { DashboardFilterState } from '@/features/shared/domain/dashboard-fi
  * Sprache (AGENTS.md §6, Falle „Matching über den Anzeigenamen").
  */
 export type ActiveFilterDescriptor = {
-  dimension: 'search' | 'category' | 'account' | 'contract' | 'essential' | 'ausgabenklasse' | 'range';
+  dimension:
+    | 'search'
+    | 'merchant'
+    | 'category'
+    | 'account'
+    | 'contract'
+    | 'essential'
+    | 'ausgabenklasse'
+    | 'range';
   value: string;
 };
 
@@ -27,7 +35,7 @@ export type ActiveFilterDescriptor = {
  * Dann die inhaltlichen Dimensionen, zuletzt der Zeitraum: Er ist oft
  * voreingestellt und selten die Überraschung.
  *
- * Zählt dieselben sieben Dimensionen wie `countActiveFilters()` — ein Test
+ * Zählt dieselben acht Dimensionen wie `countActiveFilters()` — ein Test
  * sichert das ab. Beschriebe diese Funktion weniger, als jene zählt, nennte
  * die Meldung einen Filter nicht, der aber wirkt.
  */
@@ -36,6 +44,13 @@ export function describeActiveFilters(filters: DashboardFilterState): ActiveFilt
 
   const search = filters.search.trim();
   if (search !== '') active.push({ dimension: 'search', value: search });
+
+  // Direkt hinter der Suche: Beide sind Texteingaben und damit das, was der
+  // Nutzer zuletzt selbst gesetzt hat — der wahrscheinlichste Grund fuer null
+  // Treffer. Der Haendler steht dabei fuer eine Familie, nicht fuer einen
+  // Rohtext; sein Wert ist der normalisierte Name.
+  const merchant = (filters.merchant ?? '').trim();
+  if (merchant !== '') active.push({ dimension: 'merchant', value: merchant });
 
   if (filters.category !== 'all') active.push({ dimension: 'category', value: filters.category });
   if (filters.account !== 'all') active.push({ dimension: 'account', value: filters.account });

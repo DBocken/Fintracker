@@ -385,3 +385,89 @@ describe("filterTransactions Ordnungserhalt", () => {
     expect(result.map((t) => t.id)).toEqual(["n3", "n2", "n2b", "n1"]);
   });
 });
+
+/**
+ * Händler-Achse (WP-C).
+ *
+ * `search` durchsucht bewusst breit: `payee`, `description`, `original_text`,
+ * `tax_note` UND Split-Notizen. Für eine Freitextsuche ist dieser Übertreffer
+ * richtig. Als Antwort auf „Wieviel habe ich bei Lidl ausgegeben?" ist er eine
+ * falsche Zahl mit vollem Selbstbewusstsein — deshalb eine eigene Achse, die
+ * über den normalisierten Händlernamen geht.
+ */
+describe("Händler-Achse", () => {
+  const buchungen = [
+    tx({ id: "m1", date: "2024-06-01", amount: -30, payee: "LIDL SAGT DANKE 1234" }),
+    tx({ id: "m2", date: "2024-06-02", amount: -20, payee: "LIDL SAGT DANKE 5678" }),
+    // Notiz nennt Lidl, die Buchung ist aber keine Lidl-Buchung.
+    tx({ id: "m3", date: "2024-06-03", amount: -50, payee: "Parkhaus Mitte", tax_note: "bei Lidl geparkt" }),
+    // Verwendungszweck nennt Lidl, Empfänger ist eine Privatperson.
+    tx({ id: "m4", date: "2024-06-04", amount: -25, payee: "Erika Mustermann", description: "Lidl-Gutschein" }),
+    tx({ id: "m5", date: "2024-06-05", amount: -15, payee: "REWE SAGT DANKE 4711" }),
+  ];
+
+  it("[REGRESSION] sollte beim Händlerfilter Notiz- und Verwendungszweck-Treffer NICHT mitzählen", () => {
+    const gefiltert = filterTransactions(
+      buchungen,
+      categories,
+      accounts,
+      { ...baseFilters, merchant: "lidl" },
+      NOW,
+    );
+
+    expect(gefiltert.map((t) => t.id)).toEqual(["m1", "m2"]);
+  });
+
+  it("sollte belegen, dass die Freitextsuche genau hier danebengreift", () => {
+    // Die Gegenprobe zum Test darüber — sie zeigt den Fehler, den die Achse
+    // behebt: `q=lidl` liefert vier Buchungen statt zwei.
+    const mitSuche = filterTransactions(
+      buchungen,
+      categories,
+      accounts,
+      { ...baseFilters, search: "lidl" },
+      NOW,
+    );
+
+    expect(mitSuche.map((t) => t.id)).toEqual(["m1", "m2", "m3", "m4"]);
+  });
+
+  it("sollte Filialnummern-Varianten derselben Händlerfamilie zusammenfassen", () => {
+    const gefiltert = filterTransactions(
+      buchungen,
+      categories,
+      accounts,
+      { ...baseFilters, merchant: "lidl sagt danke" },
+      NOW,
+    );
+
+    expect(gefiltert).toHaveLength(2);
+  });
+
+  it("sollte ohne gesetzten Händlerfilter nichts ausschliessen", () => {
+    const gefiltert = filterTransactions(buchungen, categories, accounts, baseFilters, NOW);
+
+    expect(gefiltert).toHaveLength(buchungen.length);
+  });
+
+  it("sollte encode/decode für merchant symmetrisch halten", () => {
+    const filters: DashboardFilterState = { ...baseFilters, merchant: "lidl sagt danke" };
+
+    const params = encodeDashboardFilters(filters);
+    expect(params.get("merchant")).toBe("lidl sagt danke");
+    expect(decodeDashboardFilters(params).merchant).toBe("lidl sagt danke");
+  });
+
+  it("sollte merchant nur kodieren, wenn er gesetzt ist", () => {
+    expect(encodeDashboardFilters(baseFilters).has("merchant")).toBe(false);
+  });
+
+  it("sollte den Händler NICHT als Fingerprint kodieren", () => {
+    // Ein `iban:de89…|out` in einer teilbaren URL wäre ein Datenleck — und
+    // richtungsgebunden obendrein.
+    const href = buildTransactionsHref({ merchant: "lidl" });
+
+    expect(href).toContain("merchant=lidl");
+    expect(href).not.toContain("iban");
+  });
+});

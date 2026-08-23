@@ -97,8 +97,8 @@ export function hasContentFilter(filters: DashboardFilterState): boolean {
 }
 
 /**
- * Zahl aktiver Filter-Dimensionen (TransactionsPage Z. 192–202): 7
- * Dimensionen inkl. `range` und `search`. Bewusst ≠ die Dashboard-
+ * Zahl aktiver Filter-Dimensionen (TransactionsPage Z. 192–202): 8
+ * Dimensionen inkl. `range`, `search` und `merchant`. Bewusst ≠ die Dashboard-
  * activeCount (5 Dimensionen ohne `range`/`search` — dort gibt es keinen
  * Such-Filter und der Zeitraum wird separat angezeigt): die Buchungsseite
  * hat zusätzlich Range- und Such-Filter im Header und zählt sie mit.
@@ -112,5 +112,6 @@ export function countActiveFilters(filters: DashboardFilterState): number {
   if (filters.ausgabenklasse !== 'all') count += 1;
   if (filters.range !== 'Gesamt') count += 1;
   if (filters.search.trim() !== '') count += 1;
+  if ((filters.merchant ?? '').trim() !== '') count += 1;
   return count;
 }

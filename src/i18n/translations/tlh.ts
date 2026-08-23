@@ -3838,6 +3838,7 @@ export const tlh = {
     hint: "HuchmeywI' tu'lu'; 'ach Sovbe'.",
     activeTitle: "vum:",
     search: "nej „{value}“",
+    merchant: 'ngevwI\' „{value}“',
     category: "Segh {value}",
     account: "juH {value}",
     contract: "rar chov",

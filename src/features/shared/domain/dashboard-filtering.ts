@@ -9,6 +9,7 @@ import type {
   EssentialFilter,
 } from '@/features/shared/domain/dashboard-filters';
 import { resolveAusgabenklasse, resolveEssenziell, isCategoryInFilter } from '@/lib/analysis-data';
+import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { resolveContractStatus, isContractStatus } from '@/lib/contract-derivation';
 import { resolvePeriodRange } from './period-options';
 import type { ContractDecision } from '@/lib/contract-types';
@@ -149,6 +150,20 @@ function matchesAusgabenklasseFilter(transaction: Transaction, categoriesById: M
   return effectiveKlasse === filter;
 }
 
+/**
+ * Händlerfamilie statt Freitext. Verglichen wird der NORMALISIERTE
+ * Empfängername (`normalizeMerchantName`) — damit fallen Filial- und
+ * Referenznummern weg und „LIDL SAGT DANKE 1234" trifft denselben Filter wie
+ * „LIDL SAGT DANKE 5678".
+ *
+ * Ausdrücklich NUR `payee`: Ein Treffer in `description`, `original_text` oder
+ * einer Notiz wäre der Übertreffer, gegen den diese Achse überhaupt gebaut ist.
+ */
+function matchesMerchantFilter(transaction: Transaction, normalizedFilter: string): boolean {
+  const merchant = normalizeMerchantName(transaction.payee) || (transaction.payee || '').toLowerCase().trim();
+  return merchant.includes(normalizedFilter);
+}
+
 function matchesAccountFilter(transaction: Transaction, accountsById: Map<string, Account>, filter: string): boolean {
   if (filter === 'all') return true;
   if (filter === 'budget-pool') {
@@ -231,6 +246,12 @@ export function filterTransactions(
 ): Transaction[] {
   const { start, end } = getDashboardDateRange(filters.range, filters.customDays, now, filters.customPeriod ?? '');
   const search = filters.search.trim().toLowerCase();
+  // Den FILTER einmal vorab normalisieren, nicht je Buchung. Und die Achse
+  // nur auswerten, wenn sie gesetzt ist — sonst kostete sie bei 5000
+  // Buchungen 5000 regexlastige Normalisierungen für nichts.
+  const merchant = (filters.merchant ?? '').trim()
+    ? normalizeMerchantName(filters.merchant) || (filters.merchant ?? '').toLowerCase().trim()
+    : '';
   const categoriesById = getCategoryById(categories);
   const accountsById = getAccountById(accounts);
   const allocationsByTransaction = splits.byTransaction ?? NO_ALLOCATIONS;
@@ -248,6 +269,7 @@ export function filterTransactions(
     if (!matchesEssentialFilter(transaction, categoriesById, filters.essential)) return false;
     if (!matchesAusgabenklasseFilter(transaction, categoriesById, filters.ausgabenklasse)) return false;
 
+    if (merchant && !matchesMerchantFilter(transaction, merchant)) return false;
     if (search && !searchableText(transaction, allocations).includes(search)) return false;
 
     return true;
@@ -292,6 +314,7 @@ export function encodeDashboardFilters(filters: DashboardFilterState): URLSearch
   if (filters.essential !== 'all') params.set('essential', filters.essential);
   if (filters.ausgabenklasse !== 'all') params.set('klasse', filters.ausgabenklasse);
   if (filters.search.trim()) params.set('q', filters.search.trim());
+  if (filters.merchant?.trim()) params.set('merchant', filters.merchant.trim());
   // Jahr/Quartal/Monat: konkrete Periode direkt als range-Token (z.B. range=2026-Q2).
   if ((filters.range === 'Jahr' || filters.range === 'Quartal' || filters.range === 'Monat') && filters.customPeriod) {
     params.set('range', filters.customPeriod);
@@ -315,6 +338,7 @@ export function buildTransactionsHref(partial: Partial<DashboardFilterState>): s
     essential: 'all',
     ausgabenklasse: 'all',
     search: '',
+    merchant: '',
     range: 'Gesamt',
     customDays: 30,
     customPeriod: '',
@@ -336,6 +360,7 @@ export function decodeDashboardFilters(params: URLSearchParams): DashboardFilter
     essential: (params.get('essential') as EssentialFilter) ?? 'all',
     ausgabenklasse: (params.get('klasse') as AusgabenklasseFilter) ?? 'all',
     search: params.get('q') ?? '',
+    merchant: params.get('merchant') ?? '',
     range,
     customDays: Number.isFinite(days) && days > 0 ? days : 30,
     customPeriod: periodRange ? rangeToken : '',
