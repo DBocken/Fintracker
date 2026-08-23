@@ -6,7 +6,7 @@
 // Forderung bestätigt hat (Schutz vor Fake-Mahnungen); für gerichtliche
 // Mahnbescheide (Status „eskaliert") wird NIE ein GiroCode erzeugt (#50).
 
-import { isValidIban } from "./letter-parser-service";
+import { isValidIban } from "@/lib/iban";
 import { doublePaymentWarning, type Claim } from "./claim-service";
 import { t } from "../i18n/serviceT";
 import { toMajor, toMinor } from "@/lib/money";

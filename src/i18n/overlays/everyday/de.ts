@@ -485,6 +485,7 @@ export const everydayDe: TranslationOverlay = {
   accounts: {
     formDialog: {
       balanceDateLabel: 'Kontostand-Stichtag',
+      ibanChecksumWarning: 'Diese IBAN sieht nach einem Tippfehler aus — magst du sie noch einmal vergleichen? Gespeichert wird sie trotzdem.',
       openingBalanceLabel: 'Kontostand am Anfang (optional)',
       balanceHint: 'Kontostand vor der ersten importierten/erfassten Transaktion. Wird zur Summe der Transaktionen addiert, damit der berechnete Stand dem echten Kontostand entspricht.',
       manualBalanceHint: 'Überschreibt den berechneten/synchronisierten Kontostand direkt – z.B. um nach einem CSV-Import den echten Stand laut Kontoauszug einzutragen.',

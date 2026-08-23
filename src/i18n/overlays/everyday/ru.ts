@@ -434,6 +434,7 @@ export const everydayRu: TranslationOverlay = {
   accounts: {
     formDialog: {
       balanceDateLabel: 'Дата остатка',
+      ibanChecksumWarning: 'Похоже, в этом IBAN опечатка — сверьте его ещё раз, пожалуйста. Он всё равно будет сохранён.',
       openingBalanceLabel: 'Остаток на начало (необязательно)',
       balanceHint:
         'Остаток до первой импортированной/записанной операции. Прибавляется к сумме операций, чтобы расчётный остаток совпадал с фактическим остатком на счёте.',

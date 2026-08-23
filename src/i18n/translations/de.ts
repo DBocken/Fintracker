@@ -2659,6 +2659,7 @@ export const de = {
       ibanLabel: 'IBAN (optional)',
       ibanPlaceholder: 'z.B. DE89 3704 0044 0532 0130 00',
       ibanHint: 'Wird zum automatischen Erkennen interner Überträge zwischen deinen Konten genutzt – z.B. damit eine Umbuchung vom Tagesgeld aufs Girokonto erkannt und auf dem nicht synchronisierten Konto mitgebucht wird.',
+      ibanChecksumWarning: 'Diese IBAN hat eine ungültige Prüfsumme — bitte noch einmal vergleichen. Gespeichert wird sie trotzdem.',
       descriptionLabel: 'Beschreibung (optional)',
       descriptionPlaceholder: 'z.B. Hauptkonto für Gehalt',
       openingBalanceLabel: 'Startsaldo (optional)',

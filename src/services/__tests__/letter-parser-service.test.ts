@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyDocType,
-  isValidIban,
   LOW_CONFIDENCE_THRESHOLD,
   lowConfidenceFields,
   parseGermanAmount,
@@ -25,20 +24,6 @@ describe("parseGermanAmount", () => {
   it("rejects garbage", () => {
     expect(parseGermanAmount("")).toBeNull();
     expect(parseGermanAmount("abc")).toBeNull();
-  });
-});
-
-describe("isValidIban (Mod-97)", () => {
-  it("accepts valid IBANs", () => {
-    expect(isValidIban("DE89370400440532013000")).toBe(true);
-    expect(isValidIban("DE89 3704 0044 0532 0130 00")).toBe(true);
-    expect(isValidIban("DE02120300000000202051")).toBe(true);
-  });
-
-  it("rejects invalid checksums and lengths", () => {
-    expect(isValidIban("DE89370400440532013001")).toBe(false);
-    expect(isValidIban("DE8937040044053201300")).toBe(false);
-    expect(isValidIban("XX00")).toBe(false);
   });
 });
 

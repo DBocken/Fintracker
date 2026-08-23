@@ -260,6 +260,12 @@ export const everydayEn: TranslationOverlay = {
         'Minimum payments of {amount} € tie up money each month that would otherwise be yours to use.',
     },
   },
+  accounts: {
+    formDialog: {
+      ibanChecksumWarning:
+        'This IBAN looks like a typo — could you compare it once more? It will be saved either way.',
+    },
+  },
   budgets: {
     formDialog: {
       adaptiveDescription:

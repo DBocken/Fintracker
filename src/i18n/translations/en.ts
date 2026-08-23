@@ -2653,6 +2653,7 @@ export const en = {
       ibanLabel: 'IBAN (optional)',
       ibanPlaceholder: 'e.g. DE89 3704 0044 0532 0130 00',
       ibanHint: 'Used for automatically recognizing internal transfers between your accounts – e.g. so a transfer from savings to checking is recognized and booked on the non-synced account.',
+      ibanChecksumWarning: 'This IBAN has an invalid checksum — please double-check it. It will be saved either way.',
       descriptionLabel: 'Description (optional)',
       descriptionPlaceholder: 'e.g. Main account for salary',
       openingBalanceLabel: 'Opening balance (optional)',
