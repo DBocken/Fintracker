@@ -32,7 +32,7 @@ describe('createQuestionRegistry', () => {
   it('sollte doppelte IDs abweisen statt still zu überschreiben', () => {
     // Der spätere Eintrag gewänne, der frühere verschwände wortlos — dieselbe
     // Falle wie der doppelte i18n-Namespace (AGENTS.md §6).
-    expect(() => createQuestionRegistry([eintrag('a'), eintrag('a')])).toThrow(/Doppelte Frage-IDs/);
+    expect(() => createQuestionRegistry([eintrag('a'), eintrag('a')])).toThrow(/duplicate ids/);
   });
 
   it('sollte nach ID sortieren, damit die Reihenfolge nicht vom Bundler abhängt', () => {

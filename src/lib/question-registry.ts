@@ -179,7 +179,12 @@ export function createQuestionRegistry(entries: readonly QuestionEntry[]): Quest
     byId.set(entry.id, entry);
   }
   if (doppelt.length) {
-    throw new Error(`Doppelte Frage-IDs im Register: ${[...new Set(doppelt)].sort().join(', ')}`);
+    // Wortlaut bewusst technisch und nicht deutsch: Die Meldung nennt IDs,
+    // nicht Prosa — der deutsche Wortlaut wäre hier nicht „die Sache selbst"
+    // und rechtfertigte damit keinen Eintrag in `i18n-allowlist.json`
+    // (AGENTS.md §6). Vorbild ist `entitlement-service.ts`, das seine Würfe
+    // ebenso technisch formuliert.
+    throw new Error(`question-registry: duplicate ids: ${[...new Set(doppelt)].sort().join(', ')}`);
   }
 
   const sortiert = [...entries].sort((a, b) => a.id.localeCompare(b.id));

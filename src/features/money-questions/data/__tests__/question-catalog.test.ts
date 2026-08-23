@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { questionCatalog } from '../question-catalog';
 import { fehlendeSlots } from '@/lib/question-registry';
-import type { QuestionData, QuestionSlots } from '@/lib/question-registry';
+import type { QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { decodeDashboardFilters, filterTransactions } from '@/features/shared/domain/dashboard-filtering';
 import { sumExpenses, sumIncome } from '@/lib/analysis-data';
 import { SUPPORTED_LOCALES, translations } from '@/i18n/translations';
@@ -121,6 +121,36 @@ describe('Abfrage-Register: Katalog', () => {
     }
 
     expect(fehlend).toEqual([]);
+  });
+
+  it('sollte für JEDEN Slot-Namen eine Rückfrage in allen Sprachen haben', () => {
+    // Die Fläche baut den Key dynamisch (`financeQuestions.slot.${slot}`) —
+    // `call-site-keys.test.ts` kann so etwas nicht auflösen und zählt es nur.
+    // Dieser Test leuchtet genau diesen blinden Fleck aus: Ein Slot ohne
+    // Übersetzung führte sonst dazu, dass die Rückfrage den rohen
+    // Punkt-String auf den Bildschirm schreibt, statt zu fragen.
+    const alleSlots: SlotName[] = ['zeitraum', 'kategorie', 'haendler', 'konto', 'betrag'];
+    const fehlend: string[] = [];
+
+    for (const locale of SUPPORTED_LOCALES) {
+      for (const slot of alleSlots) {
+        const key = `financeQuestions.slot.${slot}`;
+        if (typeof leaf(translations[locale], key) !== 'string') fehlend.push(`${locale}: ${key}`);
+      }
+    }
+
+    expect(fehlend).toEqual([]);
+  });
+
+  it('sollte keinen Slot verlangen, für den es keine Rückfrage gibt', () => {
+    // Gegenrichtung: Ein Eintrag darf keinen Pflicht-Slot deklarieren, den die
+    // Fläche nicht erfragen kann — sonst stünde die Rückfrage leer da.
+    const erfragbar = new Set<string>(['zeitraum', 'kategorie', 'haendler', 'konto', 'betrag']);
+    for (const entry of questionCatalog.entries) {
+      for (const slot of [...entry.slots.erforderlich, ...entry.slots.optional]) {
+        expect(erfragbar.has(slot), `${entry.id}: ${slot}`).toBe(true);
+      }
+    }
   });
 
   it('sollte niemals einen fertig formatierten Betrag zurückgeben', () => {

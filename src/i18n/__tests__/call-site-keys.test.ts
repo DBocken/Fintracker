@@ -97,11 +97,21 @@ describe('i18n-Aufrufstellen', () => {
     // anderweitig ausgeleuchtet: `tutorial-catalog.test.ts` prüft für JEDES
     // Kapitel mit Schritten, dass `tutorial.<id>.name` in allen Sprachen
     // auflöst, `tutorial-steps.test.ts` dasselbe für die Schritttexte.
+    //
+    // Angehoben auf 80 mit dem Abfrage-Register (WP-C/WP-D): Die Fläche
+    // „Nachfragen" kennt keine Fachfrage selbst, sie reicht die Keys der
+    // Registereinträge durch — Auslösewörter (`t(key)`), Antwortsätze
+    // (`t(aussage.key)`) und Rückfragen (`t(`financeQuestions.slot.${slot}`)`).
+    // Ein festverdrahteter Literal-Key wäre hier genau das Gegenteil des
+    // Entwurfs. Auch dieser Fleck ist ausgeleuchtet, und zwar vollständig:
+    // `question-catalog.test.ts` prüft für JEDEN Registereintrag, dass
+    // Auslöser, Aussage und Begründung in ALLEN Sprachen auflösen, und für
+    // JEDEN Slot-Namen, dass es eine Rückfrage gibt.
     let dynamic = 0;
     for (const file of files) {
       const source = readFileSync(`${process.cwd()}/${file}`, 'utf8');
       dynamic += [...source.matchAll(DYNAMIC_CALL)].length;
     }
-    expect(dynamic).toBeLessThanOrEqual(77);
+    expect(dynamic).toBeLessThanOrEqual(80);
   });
 });
