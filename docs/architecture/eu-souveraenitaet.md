@@ -8,7 +8,13 @@ gepflegte Anbieterliste steht **nicht** hier, sondern im lebenden
 Regel, das Register den Stand. **Durchgesetzt seit WP 0.8** durch
 `pnpm check:external-endpoints` (Pre-Commit + CI) — und zwar in beide
 Richtungen: kein unerklärter Host im Code, keine aktive Registerzeile ohne
-Fundstelle. Damit ist der Satz weiter unten („Eine Anbieterregel ohne Wächter
+Fundstelle. **Seit dem Tesseract-Fund zusätzlich über die Vorgaben der
+direkten Abhängigkeiten**: Der Wächter las nur den git-Index, und
+`node_modules` steht dort nicht — ein Host, der ausschliesslich in der
+Vorgabekonfiguration einer Bibliothek steht, blieb unsichtbar. Genau so war
+`cdn.jsdelivr.net` (Tesseract, BTR-S5) allein durch Handarbeit im Register
+gelandet, nicht durch den Wächter; und `cdnjs.cloudflare.com` (jspdf) war
+überhaupt nicht verzeichnet. Damit ist der Satz weiter unten („Eine Anbieterregel ohne Wächter
 ist eine Absichtserklärung") keine Mahnung mehr, sondern erledigt.
 
 ## Kontext

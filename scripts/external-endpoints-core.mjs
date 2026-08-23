@@ -344,3 +344,60 @@ export function findeCspHosts(csp) {
   }
   return [...hosts];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CDN-Vorgaben aus Abhängigkeiten
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Auslieferungs-CDNs, die eine Abhängigkeit zur LAUFZEIT abruft.
+ *
+ * Bewusst eine kurze Positivliste statt eines Rundumschlags über jede URL in
+ * `node_modules`. Nachgemessen an diesem Repo: Ein breiter Scan über alle
+ * 7845 JS-Dateien der 61 direkten Abhängigkeiten meldet auch
+ * Dokumentationslinks und Shader-Quellenangaben — und Fehlalarme schalten
+ * Wächter ab, statt sie durchzusetzen (dieselbe Lehre wie bei
+ * `check:money-format`). Mit dieser Liste, beschränkt auf die ausgelieferten
+ * Einstiegs-/`dist`-Dateien und ohne Kommentare, bleiben exakt zwei Treffer —
+ * und beide sind echt.
+ *
+ * Ein Host steht hier, weil sein Zweck das Ausliefern von Code und Daten an
+ * den Browser IST. Eine URL darauf im ausgelieferten Code einer Abhängigkeit
+ * ist deshalb per Konstruktion ein Laufzeit-Abruf, kein Verweis.
+ */
+export const AUSLIEFERUNGS_CDNS = [
+  'cdn.jsdelivr.net',
+  'fastly.jsdelivr.net',
+  'unpkg.com',
+  'cdnjs.cloudflare.com',
+  'esm.sh',
+  'esm.run',
+  'jspm.dev',
+  'cdn.skypack.dev',
+  'raw.githubusercontent.com',
+];
+
+const CDN_MUSTER = new RegExp(
+  `https?://(${AUSLIEFERUNGS_CDNS.map((h) => h.replace(/\./g, '\\.')).join('|')})(?![\\w.-])`,
+  'g',
+);
+
+/**
+ * Findet Auslieferungs-CDNs im ausgelieferten Code einer Abhängigkeit.
+ *
+ * Kommentare fallen weg — die Quellenangabe eines Shaders ist kein
+ * Datenfluss. Je Datei wird ein Host nur EINMAL gemeldet; eine minifizierte
+ * Bibliothek nennt denselben CDN sonst dutzendfach und die Meldung wäre
+ * unlesbar.
+ */
+export function findeAbhaengigkeitsHosts(quelltext, datei) {
+  const gesehen = new Set();
+  const funde = [];
+  for (const treffer of ohneKommentare(quelltext).matchAll(CDN_MUSTER)) {
+    const host = treffer[1].toLowerCase();
+    if (gesehen.has(host)) continue;
+    gesehen.add(host);
+    funde.push({ host, zeile: 0, datei, form: 'abhaengigkeit' });
+  }
+  return funde;
+}

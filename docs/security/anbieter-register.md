@@ -42,6 +42,7 @@ Datenfluss) · **Entwicklung** (kein Endnutzer-Datenkontakt).
 |---|---|---|---|
 | `chart.googleapis.com` | Google | Bank-Requisition-URL als QR-Parameter (BTR-S4); API abgeschaltet **und** CSP-blockiert — Feature defekt | lokales Rendern (`qrcode`-Dependency) → **WP 0.4** |
 | `cdn.jsdelivr.net` · `tessdata.projectnaptha.com` | jsDelivr / Naptha | Tesseract-Laufzeit-Downloads (BTR-S5); CSP-blockiert — OCR produktiv defekt | Assets selbst ausliefern → **WP 0.5** |
+| `cdnjs.cloudflare.com` | Cloudflare | `jspdf` laedt im Ausgabemodus `pdfobjectnewwindow` das Skript `pdfobject.min.js` nach (`jspdf/dist/*`). Die App benutzt diesen Modus heute nicht, und die CSP wuerde ihn ohnehin blockieren — es fliessen also keine Daten dorthin. Gefunden erst, seit `check:external-endpoints` auch die Vorgaben direkter Abhaengigkeiten liest | Modus nicht benutzen; bei Bedarf Asset selbst ausliefern — gleiche Entscheidung wie **WP 0.5** |
 | `ausgabentracker.de` · `docs.ausgabentracker.de` | — (eigene, nie deployte Domains) | `src/lib/constants.ts` verlinkt Support, Doku, `/privacy` und `/terms` auf Domains, die **nicht betrieben werden** — ein Nutzer, der darauf klickt, landet im Leeren. Für einen Verkauf sind Impressum/AGB/Widerruf Pflicht | real machen **oder** aus dem Code entfernen → **WP 6.1** |
 
 ## Geplant (Programm; Zeile wird bei Inbetriebnahme „aktiv")
