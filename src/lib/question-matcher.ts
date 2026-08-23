@@ -177,17 +177,29 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
         }
       }
 
-      const score = ausloeserTreffer * 3 + slotPunkte;
-      if (score <= 0) continue;
+      // Ein Eintrag kommt NUR mit mindestens einem Auslöser-Treffer in Frage.
+      //
+      // Ohne diese Schranke qualifizierte er sich allein über gefüllte Slots —
+      // und ein Zeitausdruck ist kein Beleg dafür, WONACH gefragt wurde. Genau
+      // so hat „wieviel habe ich letzten monat für essen ausgegeben?"
+      // Einnahmen geliefert: `einnahmen.zeitraum` kam über „letzten monat"
+      // herein, obwohl keines seiner Auslösewörter im Satz stand.
+      if (ausloeserTreffer === 0) continue;
 
+      const score = ausloeserTreffer * 3 + slotPunkte;
       kandidaten.push({ entryId: entry.id, score, slots, fehlend: fehlendeSlots(entry, slots) });
     }
 
-    // Vollständige Kandidaten zuerst, dann nach Punkten, dann nach ID —
-    // die letzte Stufe macht die Reihenfolge reproduzierbar.
+    // RELEVANZ vor Vollständigkeit — und das ist die eigentliche Lehre aus
+    // demselben Fehler: Ein Eintrag ohne Pflicht-Slots ist per Definition
+    // immer „vollständig" und überstrahlte damit jeden inhaltlich viel
+    // besseren Treffer, dem ein Slot fehlte. Lieber nach dem fehlenden Slot
+    // fragen, als eine andere Frage zu beantworten — eine falsche Zahl ist
+    // schlimmer als keine. Bei gleicher Relevanz gewinnt der vollständige
+    // Kandidat, und die ID macht die Reihenfolge zuletzt reproduzierbar.
     return kandidaten.sort((a, b) => {
-      if (a.fehlend.length !== b.fehlend.length) return a.fehlend.length - b.fehlend.length;
       if (b.score !== a.score) return b.score - a.score;
+      if (a.fehlend.length !== b.fehlend.length) return a.fehlend.length - b.fehlend.length;
       return a.entryId.localeCompare(b.entryId);
     });
   },

@@ -36,10 +36,17 @@ export function MoneyQuestionsPane({ model }: { model: MoneyQuestionsViewModel }
 
   return (
     <section className="space-y-4" aria-labelledby="money-questions-heading">
-      <h2 id="money-questions-heading" className="flex items-center gap-2 text-base font-semibold">
+      {/*
+        `h1` und nicht `h2`: Nachgemessen (axe, Chromium) trugen `/transactions`
+        und `/budgets` je ein `H1` mit dem Seitentitel, diese Fläche als einzige
+        nur ein `H2` — axe meldete entsprechend `page-has-heading-one`. Das ist
+        zwar unterhalb der CI-Schwelle, aber ein Screenreader fände hier sonst
+        keine oberste Überschrift, wo er auf jeder anderen Fläche eine findet.
+      */}
+      <h1 id="money-questions-heading" className="flex items-center gap-2 text-base font-semibold">
         <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
         {t('financeQuestions.title')}
-      </h2>
+      </h1>
       <p className="text-sm text-muted-foreground">{t('financeQuestions.intro')}</p>
 
       <form

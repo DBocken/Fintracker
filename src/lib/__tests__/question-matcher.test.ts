@@ -82,7 +82,28 @@ const leistbarkeit: QuestionEntry = {
     throw new Error('nicht aufgerufen');
   },
 };
-const entries = [ausgabenHaendler, leistbarkeit];
+/** Verlangt KEINE Slots — genau die Bauform, die alles überstrahlte. */
+const einnahmen: QuestionEntry = {
+  id: 'einnahmen.zeitraum',
+  slots: { erforderlich: [], optional: ['zeitraum', 'kategorie'] },
+  ausloeser: ['t.einnahmen'],
+  needs: [],
+  aufwand: 'guenstig',
+  antwort: () => {
+    throw new Error('nicht aufgerufen');
+  },
+};
+const ausgabenKategorie: QuestionEntry = {
+  id: 'ausgaben.kategorie',
+  slots: { erforderlich: ['kategorie'], optional: ['zeitraum'] },
+  ausloeser: ['t.ausgaben', 't.fuer'],
+  needs: [],
+  aufwand: 'guenstig',
+  antwort: () => {
+    throw new Error('nicht aufgerufen');
+  },
+};
+const entries = [ausgabenHaendler, ausgabenKategorie, einnahmen, leistbarkeit];
 
 const vokabular: QuestionVocabulary = {
   kategorien: [
@@ -96,6 +117,8 @@ const vokabular: QuestionVocabulary = {
   ],
   ausloeser: new Map([
     ['ausgaben.haendler', ['ausgegeben', 'ausgaben']],
+    ['ausgaben.kategorie', ['ausgegeben', 'ausgaben', 'fuer']],
+    ['einnahmen.zeitraum', ['eingenommen', 'einnahmen', 'verdient']],
     ['leistbarkeit.anschaffung', ['leisten']],
   ]),
 };
@@ -188,11 +211,50 @@ describe('lexicalQuestionMatcher', () => {
     expect(beste.slots.haendler).toBeUndefined();
   });
 
-  it('sollte vollständige Kandidaten vor unvollständige sortieren', () => {
+  it('sollte bei gleicher Relevanz den vollständigen Kandidaten vorziehen', () => {
     const kandidaten = match('ausgaben bei lidl, kann ich mir was leisten');
 
-    expect(kandidaten[0].fehlend).toEqual([]);
     expect(kandidaten[0].entryId).toBe('ausgaben.haendler');
+    expect(kandidaten[0].fehlend).toEqual([]);
+  });
+
+  it('[REGRESSION] sollte eine Ausgabenfrage NICHT mit Einnahmen beantworten', () => {
+    // Gemeldet aus der laufenden App: „wieviel habe ich letzten monat für
+    // essen ausgegeben?" ergab „2.703,00 € — Einnahmen, Juli 2026".
+    //
+    // Zwei Defekte griffen ineinander. (1) `einnahmen.zeitraum` kam überhaupt
+    // erst in die Auswahl, weil der Zeitausdruck allein Punkte gab — kein
+    // einziges seiner Auslösewörter stand im Satz. (2) Die Sortierung stellte
+    // Vollständigkeit über Relevanz, und ein Eintrag ohne Pflicht-Slots ist
+    // per Definition immer vollständig — er überstrahlte damit jeden anderen.
+    const kandidaten = match('wieviel habe ich letzten monat fuer essen ausgegeben?');
+
+    expect(kandidaten.map((k) => k.entryId)).not.toContain('einnahmen.zeitraum');
+    expect(kandidaten[0].entryId).toBe('ausgaben.kategorie');
+    // „essen" ist keine Kategorie des Nutzers ⇒ nachfragen, nicht raten.
+    expect(kandidaten[0].fehlend).toEqual(['kategorie']);
+  });
+
+  it('sollte einen Eintrag ohne Auslöser-Treffer gar nicht vorschlagen', () => {
+    // Ein Zeitraum allein ist kein Beleg dafür, wonach gefragt wurde.
+    const kandidaten = match('letzten monat');
+
+    expect(kandidaten).toEqual([]);
+  });
+
+  it('sollte einen starken unvollständigen Treffer über einen schwachen vollständigen stellen', () => {
+    // Nachfragen ist besser, als eine andere Frage zu beantworten.
+    const kandidaten = match('wieviel habe ich fuer essen ausgegeben?');
+
+    expect(kandidaten[0].entryId).toBe('ausgaben.kategorie');
+    expect(kandidaten[0].fehlend).toEqual(['kategorie']);
+  });
+
+  it('sollte Einnahmen liefern, wenn danach GEFRAGT wird', () => {
+    const kandidaten = match('wieviel habe ich letzten monat eingenommen?');
+
+    expect(kandidaten[0].entryId).toBe('einnahmen.zeitraum');
+    expect(kandidaten[0].fehlend).toEqual([]);
   });
 
   it('sollte reproduzierbar sein', () => {

@@ -94,6 +94,16 @@ describe('Abfrage-Register: Katalog', () => {
     expect(ids).toContain('leistbarkeit.anschaffung');
   });
 
+  it('sollte für jeden Eintrag mindestens ein Auslösewort haben', () => {
+    // Seit der Matcher einen Auslöser-Treffer VERLANGT (sonst qualifizierte
+    // sich ein Eintrag allein über einen Zeitausdruck und beantwortete die
+    // falsche Frage), ist ein Eintrag ohne Auslöser unerreichbar — und das
+    // wäre ein stummer Ausfall: Die Frage würde schlicht nie beantwortet.
+    for (const entry of questionCatalog.entries) {
+      expect(entry.ausloeser.length, entry.id).toBeGreaterThan(0);
+    }
+  });
+
   it('sollte eindeutige IDs haben', () => {
     const ids = questionCatalog.entries.map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
