@@ -4313,6 +4313,8 @@ export const en = {
     of: 'of',
   },
   financeQuestions: {
+      pickOne: 'Pick from your data',
+      alsoNeeded: 'After that, {count} more detail is missing.',
       countOne: 'From 1 transaction.',
       countMany: 'From {anzahl} transactions.',
       navSubtitle: 'Ask about your figures',

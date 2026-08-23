@@ -43,6 +43,12 @@ function tx(overrides: Omit<Partial<Transaction>, 'id'> & { id?: string }): Tran
   };
 }
 
+/** Kategorien, deren Namen NICHT dem entsprechen, was ein Nutzer tippt. */
+const KATEGORIEN = [
+  { id: 'local-cat-lebensmittel', name: 'Lebensmittel', filters: [] },
+  { id: 'local-cat-freizeit', name: 'Freizeit', filters: [] },
+] as never[];
+
 const BUCHUNGEN: Transaction[] = [
   tx({ id: 'l1', payee: 'LIDL SAGT DANKE 1234', amount: -30, date: '2026-07-05' }),
   tx({ id: 'l2', payee: 'LIDL SAGT DANKE 5678', amount: -20, date: '2026-07-12' }),
@@ -65,7 +71,7 @@ function frage(text: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   getTransactions.mockResolvedValue(BUCHUNGEN);
-  getCategories.mockResolvedValue([]);
+  getCategories.mockResolvedValue(KATEGORIEN);
   getAccounts.mockResolvedValue([]);
   getDebts.mockResolvedValue([]);
   getBudgets.mockResolvedValue([]);
@@ -114,6 +120,34 @@ describe('Nachfragen-Fläche', () => {
 
     expect(await screen.findByText(/Welchen Händler meinst du\?/i)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /buchungen/i })).not.toBeInTheDocument();
+  });
+
+  it('sollte bei einem unbekannten Wort die EIGENEN Kategorien zur Auswahl stellen', async () => {
+    // Gemeldet aus der laufenden App: „für essen" — die Kategorie heisst aber
+    // „Lebensmittel". Eine Rückfrage ohne Kandidaten wäre eine Sackgasse.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+
+    expect(await screen.findByText(/Welche Kategorie meinst du\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lebensmittel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Freizeit' })).toBeInTheDocument();
+  });
+
+  it('sollte nach der Auswahl antworten und den erkannten Zeitraum behalten', async () => {
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+    fireEvent.click(await screen.findByRole('button', { name: 'Lebensmittel' }));
+
+    // Der Zeitraum aus der ursprünglichen Frage darf durch die Rückfrage nicht
+    // verloren gehen — sonst antwortete die Fläche über den Gesamtbestand.
+    expect(await screen.findByText(/In dieser Kategorie, Juli 2026/i)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /genau diese buchungen/i });
+    expect(link.getAttribute('href')).toContain('cat=local-cat-lebensmittel');
+    expect(link.getAttribute('href')).toContain('range=2026-07');
   });
 
   it('sollte eine unverstandene Frage als solche benennen, statt etwas zu behaupten', async () => {

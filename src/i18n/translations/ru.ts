@@ -4313,6 +4313,8 @@ export const ru = {
     of: 'из',
   },
   financeQuestions: {
+      pickOne: 'Выберите из своих данных',
+      alsoNeeded: 'После этого не хватает ещё {count} сведения.',
       countOne: 'Из 1 операции.',
       countMany: 'Из {anzahl} операций.',
       navSubtitle: 'Спросите о своих цифрах',

@@ -11,15 +11,46 @@ import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { lexicalQuestionMatcher } from '@/lib/question-matcher';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
 import type { QuestionAnswer, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
+import { fehlendeSlots } from '@/lib/question-registry';
 import { questionCatalog } from '@/features/money-questions/data/question-catalog';
 
 /** Ein Händler muss mindestens so oft vorkommen, um ins Vokabular zu zählen. */
 const MIN_HAENDLER_VORKOMMEN = 2;
 
+/**
+ * Wie viele Kandidaten eine Rückfrage höchstens anbietet.
+ *
+ * Eine Liste aller vierzig Kategorien ist keine Hilfe, sondern eine zweite
+ * Suchaufgabe. Sortiert wird nach Häufigkeit im EIGENEN Bestand — was jemand
+ * oft bucht, meint er auch beim Nachfragen am ehesten.
+ */
+const MAX_VORSCHLAEGE = 8;
+
+/** Ein anklickbarer Kandidat für einen offenen Slot. */
+export interface SlotVorschlag {
+  slot: SlotName;
+  /** Anzeigeform (Kategoriename, Kontoname, Händlername). */
+  label: string;
+  /** Der Wert, der in den Slot geht — Kategorie-/Konto-ID bzw. Händlername. */
+  wert: string;
+}
+
 export type MoneyQuestionOutcome =
   | { art: 'leer' }
   | { art: 'unverstanden' }
-  | { art: 'rueckfrage'; entryId: string; fehlend: SlotName[] }
+  | {
+      art: 'rueckfrage';
+      entryId: string;
+      /** Was bereits erkannt wurde — bleibt beim Beantworten der Rückfrage erhalten. */
+      slots: QuestionSlots;
+      fehlend: SlotName[];
+      /**
+       * Kandidaten für den ERSTEN offenen Slot. Ohne sie wäre die Rückfrage
+       * eine Sackgasse: „Welche Kategorie meinst du?" ist unbeantwortbar, wenn
+       * man die Namen der eigenen Kategorien nicht auswendig kennt.
+       */
+      vorschlaege: SlotVorschlag[];
+    }
   | { art: 'antwort'; entryId: string; antwort: QuestionAnswer };
 
 export interface MoneyQuestionsViewModel {
@@ -28,6 +59,8 @@ export interface MoneyQuestionsViewModel {
   /** Ergebnis der zuletzt abgeschickten Frage. */
   ergebnis: MoneyQuestionOutcome;
   absenden: () => void;
+  /** Beantwortet eine Rückfrage, indem der gewählte Kandidat den Slot füllt. */
+  waehleVorschlag: (vorschlag: SlotVorschlag) => void;
   /** Beispielfragen aus dem EIGENEN Bestand — nie erfundene Händler. */
   beispiele: string[];
   hatBestand: boolean;
@@ -103,11 +136,32 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     }
     const haendler: VokabelEintrag[] = [...zaehler.entries()]
       .filter(([, n]) => n >= MIN_HAENDLER_VORKOMMEN)
+      // Häufigster zuerst — das ist zugleich die Reihenfolge der Rückfrage.
+      .sort((a, b) => (b[1] === a[1] ? a[0].localeCompare(b[0]) : b[1] - a[1]))
       .map(([name]) => ({ wort: name, wert: name }));
 
+    // Kategorien ebenfalls nach eigener Nutzung sortieren, nicht alphabetisch:
+    // Wer nach einer Kategorie gefragt wird, meint am ehesten eine, die er
+    // wirklich benutzt.
+    const kategorieNutzung = new Map<string, number>();
+    for (const buchung of transaktionen.data ?? []) {
+      const id = buchung.subcategory_id ?? buchung.category_id;
+      if (id) kategorieNutzung.set(id, (kategorieNutzung.get(id) ?? 0) + 1);
+    }
+
     return {
-      kategorien: (kategorien.data ?? []).map((c) => ({ wort: c.name.toLowerCase(), wert: c.id })),
-      konten: (konten.data ?? []).map((a) => ({ wort: a.name.toLowerCase(), wert: a.id })),
+      kategorien: (kategorien.data ?? [])
+        .map((c) => ({ wort: c.name.toLowerCase(), wert: c.id, label: c.name }))
+        .sort((a, b) => {
+          const na = kategorieNutzung.get(a.wert) ?? 0;
+          const nb = kategorieNutzung.get(b.wert) ?? 0;
+          return nb === na ? a.label.localeCompare(b.label) : nb - na;
+        }),
+      konten: (konten.data ?? []).map((a) => ({
+        wort: a.name.toLowerCase(),
+        wert: a.id,
+        label: a.name,
+      })),
       haendler,
       // Auslösewörter stehen als i18n-Keys im Eintrag; die WÖRTER holt erst
       // die Anwendungsschicht aus dem Sprachbaum — sonst wäre jeder Eintrag
@@ -138,43 +192,90 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       : [];
   }, [vokabular.haendler, t]);
 
+  /**
+   * Kandidaten für einen offenen Slot — aus dem EIGENEN Vokabular.
+   *
+   * Für `betrag` und `zeitraum` gibt es bewusst keine: Ein Betrag ist eine
+   * freie Zahl, und ein Zeitraum wäre eine zweite, größere Auswahlliste.
+   * Beides wird weiterhin als reine Frage gestellt.
+   */
+  const vorschlaegeFuer = (slot: SlotName): SlotVorschlag[] => {
+    const quelle =
+      slot === 'kategorie'
+        ? vokabular.kategorien
+        : slot === 'konto'
+          ? vokabular.konten
+          : slot === 'haendler'
+            ? vokabular.haendler
+            : [];
+    return quelle
+      .slice(0, MAX_VORSCHLAEGE)
+      .map((v) => ({ slot, label: v.label ?? v.wort, wert: v.wert }));
+  };
+
+  /**
+   * Entscheidet zwischen Antwort und Rückfrage — eine Stelle für beide Wege,
+   * damit ein per Klick gefüllter Slot exakt dieselbe Prüfung durchläuft wie
+   * ein aus dem Text erkannter.
+   */
+  const aufloesen = (entryId: string, slots: QuestionSlots): void => {
+    const entry = questionCatalog.byId(entryId);
+    if (!entry) {
+      setErgebnis({ art: 'unverstanden' });
+      return;
+    }
+
+    const fehlend = fehlendeSlots(entry, slots);
+    if (fehlend.length > 0) {
+      // Nicht raten, sondern nachfragen — eine falsche Zahl ist schlimmer als
+      // keine. Und die Rückfrage bringt gleich die Kandidaten mit, sonst wäre
+      // sie für jemanden, der seine Kategorienamen nicht auswendig kennt, eine
+      // Sackgasse.
+      setErgebnis({
+        art: 'rueckfrage',
+        entryId,
+        slots,
+        fehlend,
+        vorschlaege: vorschlaegeFuer(fehlend[0]),
+      });
+      return;
+    }
+
+    setErgebnis({ art: 'antwort', entryId, antwort: entry.antwort(slots, daten) });
+  };
+
   const absenden = () => {
     if (!frage.trim()) {
       setErgebnis({ art: 'leer' });
       return;
     }
 
-    const kandidaten = lexicalQuestionMatcher.match(
+    const [beste] = lexicalQuestionMatcher.match(
       frage,
       vokabular,
       questionCatalog.entries,
       locale,
       jetzt,
     );
-    const beste = kandidaten[0];
 
     if (!beste) {
       setErgebnis({ art: 'unverstanden' });
       return;
     }
-    if (beste.fehlend.length > 0) {
-      // Nicht raten, sondern nachfragen — eine falsche Zahl ist schlimmer
-      // als keine.
-      setErgebnis({ art: 'rueckfrage', entryId: beste.entryId, fehlend: beste.fehlend });
-      return;
-    }
+    aufloesen(beste.entryId, beste.slots);
+  };
 
-    const entry = questionCatalog.byId(beste.entryId);
-    if (!entry) {
-      setErgebnis({ art: 'unverstanden' });
-      return;
-    }
+  const waehleVorschlag = (vorschlag: SlotVorschlag) => {
+    if (ergebnis.art !== 'rueckfrage') return;
+    const ergaenzt: QuestionSlots = { ...ergebnis.slots };
+    if (vorschlag.slot === 'kategorie') ergaenzt.kategorieId = vorschlag.wert;
+    else if (vorschlag.slot === 'konto') ergaenzt.kontoId = vorschlag.wert;
+    else if (vorschlag.slot === 'haendler') ergaenzt.haendler = vorschlag.wert;
+    else return;
 
-    setErgebnis({
-      art: 'antwort',
-      entryId: entry.id,
-      antwort: entry.antwort(beste.slots as QuestionSlots, daten),
-    });
+    // Derselbe Weg wie beim Absenden: Bleibt danach ein Pflicht-Slot offen,
+    // wird erneut gefragt statt geraten.
+    aufloesen(ergebnis.entryId, ergaenzt);
   };
 
   return {
@@ -182,6 +283,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     setFrage,
     ergebnis,
     absenden,
+    waehleVorschlag,
     beispiele,
     hatBestand: (transaktionen.data ?? []).length > 0,
     isLoading,

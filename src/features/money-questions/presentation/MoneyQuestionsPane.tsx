@@ -93,11 +93,38 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   if (ergebnis.art === 'rueckfrage') {
     return (
       <InfoGroup title={t('financeQuestions.needMoreTitle')}>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          {ergebnis.fehlend.map((slot) => (
-            <li key={slot}>{t(`financeQuestions.slot.${slot}`)}</li>
-          ))}
-        </ul>
+        <p className="text-sm text-muted-foreground">
+          {t(`financeQuestions.slot.${ergebnis.fehlend[0]}`)}
+        </p>
+
+        {/*
+          Die Kandidaten aus den EIGENEN Daten. Ohne sie war die Rückfrage eine
+          Sackgasse: Wer „für essen" tippt, seine Kategorie aber „Lebensmittel"
+          heisst, müsste den Namen erraten. Angeboten wird immer nur der ERSTE
+          offene Slot — zwei Auswahllisten gleichzeitig sind keine Frage mehr,
+          sondern ein Formular.
+        */}
+        {ergebnis.vorschlaege.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('financeQuestions.pickOne')}>
+            {ergebnis.vorschlaege.map((vorschlag) => (
+              <Button
+                key={`${vorschlag.slot}:${vorschlag.wert}`}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => model.waehleVorschlag(vorschlag)}
+              >
+                {vorschlag.label}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {ergebnis.fehlend.length > 1 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t('financeQuestions.alsoNeeded').split('{count}').join(String(ergebnis.fehlend.length - 1))}
+          </p>
+        )}
       </InfoGroup>
     );
   }

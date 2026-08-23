@@ -42,6 +42,13 @@ export interface VokabelEintrag {
   wort: string;
   /** Stabile ID (Kategorie/Konto) bzw. normalisierter Händlername. */
   wert: string;
+  /**
+   * Anzeigeform für eine Rückfrage („Meinst du …?"). Der Matcher benutzt sie
+   * NIE — er sucht in `wort`. Sie steht hier, damit die Fläche einen
+   * unaufgelösten Slot mit echten Kandidaten beantworten lassen kann, statt
+   * den Nutzer raten zu lassen. Fehlt sie, dient `wort` als Anzeige.
+   */
+  label?: string;
 }
 
 export interface QuestionVocabulary {

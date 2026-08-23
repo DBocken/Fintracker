@@ -4325,6 +4325,8 @@ export const de = {
     of: 'von',
   },
   financeQuestions: {
+      pickOne: 'Aus deinen Daten wählen',
+      alsoNeeded: 'Danach fehlt noch {count} Angabe.',
       countOne: 'Aus 1 Buchung.',
       countMany: 'Aus {anzahl} Buchungen.',
       navSubtitle: 'Frag nach deinen Zahlen',
