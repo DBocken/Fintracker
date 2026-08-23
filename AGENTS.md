@@ -142,6 +142,49 @@ Die Richtung ist maschinell erzwungen (`pnpm check:layers`, §2). Feature-`domai
 liegt dabei auf der Höhe von `lib` — ein Service darf sie benutzen, umgekehrt
 nicht.
 
+### Rechnen, schließen, prüfen
+
+> **Berechne, was berechenbar ist. Schließe nur, was geschlossen werden muss.
+> Prüfe alles, was prüfbar ist.**
+
+Die Regel entscheidet, wo Inferenz überhaupt sitzen darf — und sie ist der
+Grund, warum es in diesem Repo **kein** `src/ai/`, keine Runtime-Adapter und
+kein Modellmanagement gibt. Drei Ebenen, in dieser Reihenfolge zu prüfen:
+
+| Ebene | Was | Beispiele im Bestand |
+|---|---|---|
+| **1. Deterministisch** | Regeln sind eindeutig | Kaskade `merchant_rule`/`category_filter`/`regex` · Integer-Cent (`lib/money.ts`) · Budget-, Tilgungs- und Steuermathematik · IBAN-Mod-97 (`lib/iban.ts`) · Restlaufzeit `12 − 3` (`lib/installments.ts`) |
+| **2. Statistisch** | Muster über die Zeit | Vertragserkennung über Median, Streuung und Zyklus (`lib/contract-derivation.ts`) · Ausreißer · Prognose |
+| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`lib/question-category-resolution.ts`) |
+
+Eine Aufgabe wandert nur dann eine Ebene höher, wenn die darunter sie
+nachweislich nicht löst. Ein wiederkehrendes Abo per Zeitreihe zu erkennen ist
+schneller, billiger und reproduzierbar; es einem Modell zu überlassen wäre
+keines davon.
+
+**Was geschlossen wurde, wird geprüft.** Ebene 2 und 3 liefern nie ein
+Ergebnis ohne Beleg und nie eine Zahl ohne Rückweg: `CategorizationResult`
+trägt `confidence` und `reasons[]`, das Abfrage-Register trägt `begruendung`
+und einen Deep-Link auf genau die Menge, aus der die Zahl entstand. Wo eine
+zweite, unabhängig gelesene Größe existiert, entscheidet sie — beim Beleg
+halten Zeilensumme und Gesamtbetrag einander stand
+(`services/receipt-parser-service.ts`), und eine Korrektur zählt nur, wenn sie
+den Widerspruch auflöst **und** die einzige ist, die das tut.
+
+**Mehrdeutigkeit ist ein Ergebnis, kein Hindernis.** Wo zwei Deutungen gleich
+gut passen, wird zurückgefragt statt geraten — der Matcher tut das, die
+Kategorie-Auflösung tut das, die Beleg-Selbstkorrektur tut das. Eine falsche
+Zahl ist schlimmer als keine.
+
+**Kein Modellgewicht in der Auslieferung.** `script-src 'self'` verbietet
+fremde Gewichte, `bundle-size-budget.json` deckelt eigene. Ein
+Klassifikationsziel sind ohnehin die `local-cat-*`-IDs, die der Nutzer selbst
+angelegt und in seiner Sprache benannt hat — kein vortrainiertes Modell kennt
+sie, und die einzigen Labels dafür liegen auf seinem Gerät. Deshalb wird aus
+den eigenen bestätigten Buchungen gelernt, nicht aus einem mitgelieferten Netz.
+Ändert sich diese Lage, ist die einzige vorgesehene Naht der
+`QuestionMatcher` (Freitext → Kandidaten); `antwort()` inferiert nie.
+
 **Das ViewModel kennt die Oberfläche nicht — auch nicht für einen Typ.**
 `features/<slice>/application` darf nicht nach `src/components/` oder
 `src/pages/` greifen (Regel `feature-application-ohne-ui`). Daran hängt der
