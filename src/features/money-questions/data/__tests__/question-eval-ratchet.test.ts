@@ -80,6 +80,12 @@ function vokabular(): QuestionVocabulary {
         entry.ausloeser.flatMap((key) => ausloeserWorte(key)),
       ]),
     ),
+    verstaerker: new Map(
+      questionCatalog.entries.map((entry) => [
+        entry.id,
+        (entry.verstaerker ?? []).flatMap((key) => ausloeserWorte(key)),
+      ]),
+    ),
     kategorieAusText: (text) => {
       const treffer = resolveKategorieAusText(text, KATEGORIEN, [], undefined);
       return treffer ? { categoryId: treffer.categoryId, confidence: treffer.confidence } : null;
@@ -125,6 +131,7 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
   const anzahl = (a: Ausgang) => ausgaenge.filter((x) => x.ausgang === a).length;
 
   it('sollte den vollständigen Korpus vermessen', () => {
+    console.log(`richtig=${anzahl('richtig')} sicher=${anzahl('sicher')} verpasst=${anzahl('verpasst')} falsch=${anzahl('falsch')}`);
     expect(EVAL_KORPUS).toHaveLength(225);
   });
 
@@ -144,7 +151,7 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
   it('sollte die Fehlschläge benennen, wenn eine Ratsche reißt', () => {
     // Kein eigener Ratschen-Wert — reine Diagnose: Wer eine der beiden
     // Quoten anfasst, sieht hier ohne Debugger, WELCHE Fragen kippen.
-    const falsche = ausgaenge.filter((x) => x.ausgang === 'falsch').slice(0, 15);
+    const falsche = ausgaenge.filter((x) => x.ausgang === 'falsch').slice(0, 60);
     const uebersicht = falsche
       .map((x) => {
         const k = lexicalQuestionMatcher.match(x.frage, vok, questionCatalog.entries, 'de', JETZT);
@@ -153,6 +160,7 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
         return `${wahl} statt ${x.familie} ← „${x.frage}"`;
       })
       .join('\n');
+    console.log(uebersicht);
     expect(uebersicht.length, uebersicht).toBeGreaterThanOrEqual(0);
   });
 });
@@ -174,5 +182,15 @@ describe('Router-Ratsche über den 225-Fragen-Korpus', () => {
 //   Abwägung (Kommentar in `question-matcher.ts`): Ein Kipper mehr, dafür
 //   antwortet die verlangte Kernfunktion „für essen" direkt statt über
 //   eine Auswahl.
-const MIN_RICHTIG_ODER_SICHER = 0.81;
-const MAX_ZUVERSICHTLICH_FALSCH = 0.15;
+// - F.3 (17 neue Familien + Verstärker + Szenario-Gate): richtig 195 ·
+//   sicher 8 · verpasst 14 · falsch 8. Die drei Hebel: Geschwister-Familien
+//   machen geteilte Auslöser zum Gleichstand (Auswahl statt falscher
+//   Antwort); Verstärker schärfen, ohne allein zu qualifizieren; und
+//   hypothetische Fragen („wenn ich …", „Wahrscheinlichkeit") erreichen nur
+//   noch die Simulation — eine Bestandsauswertung, die auf eine veränderte
+//   Welt mit Ist-Zahlen antwortet, beantwortet die falsche Frage. Die
+//   verbleibenden 8 Falschen und 14 Verpassten sind Einzeltreffer legitimer
+//   Wörter auf Lücken-Fragen („Als Student: … Einnahmen") — die Adresse
+//   von F.4.
+const MIN_RICHTIG_ODER_SICHER = 0.9;
+const MAX_ZUVERSICHTLICH_FALSCH = 0.04;

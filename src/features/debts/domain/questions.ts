@@ -56,6 +56,9 @@ const leistbarkeitAnschaffung: QuestionEntry = {
   ausloeser: ['financeQuestions.trigger.leistbarkeit'],
   needs: [],
   aufwand: 'teuer',
+  // Die Simulation ist die einzige Funktion, die veränderte Welten rechnet —
+  // deshalb darf NUR dieser Eintrag hypothetische Fragen nehmen.
+  beantwortetSzenarien: true,
   antwort: (slots) => ({
     art: 'verweis',
     wert: slots.betrag ?? null,

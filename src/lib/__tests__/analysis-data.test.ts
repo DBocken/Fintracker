@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  topHaendler,
+  topKategorien,
   sumIncome,
   sumExpenses,
   isCategoryInFilter,
@@ -205,5 +207,44 @@ describe('resolveEssenziell (F-UX-5)', () => {
       { id: 'b', name: 'B', filters: [], parent_id: 'a' } as Category,
     ]);
     expect(resolveEssenziell(byId, 'a')).toBeNull();
+  });
+});
+
+describe('topHaendler / topKategorien (WP-F.3)', () => {
+  const tx = (payee: string, amount: number, category_id: string | null = null) =>
+    ({
+      id: `t-${payee}-${amount}` as never, user_id: 'local', account_id: 'a',
+      date: '2026-08-01', amount, payee, description: '', original_text: '',
+      category_id, auto_mapped: false, confirmed: true,
+    }) as never;
+
+  it('sollte Händlerfamilien über die Normalisierung zusammenfassen', () => {
+    // Ortszusatz nach `//` (Kartenzahlung) und Großschreibung trennen keine
+    // Familie — dieselbe Regel wie überall (`normalizeMerchantName`).
+    const top = topHaendler(
+      [tx('LIDL//BERLIN', -20), tx('Lidl', -30), tx('REWE', -10)],
+      10,
+    );
+    expect(top[0]).toMatchObject({ summe: 50, anzahl: 2 });
+    expect(top).toHaveLength(2);
+  });
+
+  it('sollte Einnahmen und Umbuchungen nicht mitzählen', () => {
+    const top = topHaendler([tx('Arbeitgeber', 2500), tx('REWE', -10)], 10);
+    expect(top).toHaveLength(1);
+    expect(top[0].summe).toBe(10);
+  });
+
+  it('sollte Kategorien über die stabile ID gruppieren und über den Namen benennen', () => {
+    const top = topKategorien(
+      [tx('REWE', -10, 'c1'), tx('EDEKA', -20, 'c1'), tx('KINO', -5, 'c2')],
+      [
+        { id: 'c1', name: 'Lebensmittel', user_id: 'local' } as never,
+        { id: 'c2', name: 'Freizeit', user_id: 'local' } as never,
+      ],
+      2,
+    );
+    expect(top[0]).toMatchObject({ label: 'Lebensmittel', summe: 30 });
+    expect(top[1]).toMatchObject({ label: 'Freizeit', summe: 5 });
   });
 });

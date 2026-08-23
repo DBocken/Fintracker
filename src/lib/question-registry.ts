@@ -99,7 +99,25 @@ export interface QuestionData {
 }
 
 /** Art der Antwort — steuert, wie die Präsentation sie darstellt. */
-export type AnswerKind = 'geld' | 'anzahl' | 'quote' | 'datum' | 'verweis' | 'keine';
+export type AnswerKind = 'geld' | 'anzahl' | 'quote' | 'datum' | 'liste' | 'verweis' | 'keine';
+
+/**
+ * Eine Zeile einer Listen-Antwort („Top-Händler", „teurer gewordene
+ * Verträge"). `label` ist NUTZERDATUM (Händler-/Vertragsname), kein
+ * Bildschirmtext — übersetzt wird hier nichts. `betrag` ist roh; maskiert
+ * wird in der Präsentation (Sanfter Modus), wie überall im Register.
+ */
+export interface ListenPosten {
+  label: string;
+  betrag: number;
+  /**
+   * Monat (yyyy-mm), auf den sich die Zeile bezieht — ROH, formatiert wird in
+   * der Präsentation je Sprache. Ein rohes „2026-07" auf dem Bildschirm war
+   * bereits einmal ein Browser-Fund; deshalb liefert das Register hier
+   * ausdrücklich Daten, keinen Anzeigetext.
+   */
+  monatIso?: string;
+}
 
 /** Ein i18n-Key samt Platzhaltern. Nie ein fertiger Satz. */
 export interface Aussage {
@@ -113,6 +131,8 @@ export interface QuestionAnswer {
   wert: number | null;
   /** Wie viele Buchungen/Posten hinter dem Wert stehen. */
   anzahl: number;
+  /** Zeilen einer `art: 'liste'`-Antwort — sonst leer. */
+  posten?: readonly ListenPosten[];
   aussage: Aussage;
   /** Worauf der Wert beruht — erklärbar wie `CategorizationResult.reasons`. */
   begruendung?: Aussage[];
@@ -152,6 +172,17 @@ export interface QuestionEntry {
    * Eintrag einsprachig. Die Wörter stehen im Sprachbaum.
    */
   ausloeser: readonly string[];
+  /**
+   * Verstärker: Begriffe, die einen Eintrag SCHÄRFEN, aber allein nie
+   * qualifizieren („zusammen", „anteil", der Vertragskontext bei
+   * `vertraege.teurer`). Gemessen am Korpus: Als normale Auslöser haben genau
+   * solche generischen Zusatzwörter Lücken-Fragen zuversichtlich falsch
+   * beantwortet („was kostet mich mein auto … alles zusammen" → Abo-Summe).
+   * Ein Verstärker zählt Punkte NUR, wenn mindestens ein Auslöser traf —
+   * dieselbe Idee, die die Präpositions-Auslöser „bei"/„für" hätten sein
+   * sollen, diesmal als benannter Mechanismus.
+   */
+  verstaerker?: readonly string[];
   needs: readonly DataNeed[];
   /**
    * `teuer` heisst: Der Eintrag rechnet NICHT, sondern verweist. Reserviert
@@ -159,6 +190,14 @@ export interface QuestionEntry {
    * Tastendruck auszuführen wäre die Fläche, die beim Tippen einfriert.
    */
   aufwand: 'guenstig' | 'teuer';
+  /**
+   * Darf dieser Eintrag HYPOTHETISCHE Fragen nehmen („wenn ich …", „mit
+   * welcher Wahrscheinlichkeit …")? Solche Fragen reden über eine VERÄNDERTE
+   * Welt; eine Bestandsauswertung, die darauf mit Ist-Zahlen antwortet,
+   * beantwortet die falsche Frage. Heute trägt das nur der Verweis auf die
+   * Simulation — sie ist die einzige Funktion, die veränderte Welten rechnet.
+   */
+  beantwortetSzenarien?: boolean;
   /** REIN und SYNCHRON. Ruft keinen Service. */
   antwort(slots: QuestionSlots, daten: QuestionData): QuestionAnswer;
 }

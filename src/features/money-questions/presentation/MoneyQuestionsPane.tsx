@@ -202,16 +202,22 @@ function einsetzen(
   aussage: Aussage,
   t: (key: string, fallback?: string) => string,
   geld: (betrag: number) => string,
+  locale = 'de',
 ): string {
   return Object.entries(aussage.params).reduce(
-    (text, [name, wert]) =>
+    (text, [name, wert]) => {
       // `split`/`join` statt `replaceAll`: Das Ziel-`lib` der App kennt
       // `String.prototype.replaceAll` nicht, und ein einzelnes `replace`
       // ersetzte nur das erste Vorkommen — ein zweimal genannter Platzhalter
       // bliebe als `{name}` auf dem Bildschirm stehen.
-      text.split(`{${name}}`).join(
-        GELD_PLATZHALTER.has(name) && typeof wert === 'number' ? geld(wert) : String(wert),
-      ),
+      const anzeige =
+        GELD_PLATZHALTER.has(name) && typeof wert === 'number'
+          ? geld(wert)
+          : DATUM_PLATZHALTER.has(name) && typeof wert === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(wert)
+            ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${wert}T12:00:00Z`))
+            : String(wert);
+      return text.split(`{${name}}`).join(anzeige);
+    },
     t(aussage.key),
   );
 }
@@ -219,8 +225,24 @@ function einsetzen(
 /** Platzhalter, deren Wert ein Geldbetrag ist — sie müssen maskiert werden. */
 const GELD_PLATZHALTER = new Set(['betrag', 'monatlich', 'rest']);
 
+/** Platzhalter, deren Wert ein ISO-Datum ist — formatiert wird je Sprache. */
+const DATUM_PLATZHALTER = new Set(['datum']);
+
+/**
+ * yyyy-mm → sprachrichtiger Monatsname. Das Register liefert den Monat roh
+ * (`monatIso`), damit die Formatierung dort passiert, wo die Sprache bekannt
+ * ist — ein rohes „2026-07" auf dem Bildschirm war schon einmal ein Fund.
+ */
+function formatMonat(iso: string, locale: string): string {
+  const [jahr, monat] = iso.split('-').map(Number);
+  if (!jahr || !monat) return iso;
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
+    new Date(Date.UTC(jahr, monat - 1, 1)),
+  );
+}
+
 function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const money = useMoneyFormat();
 
   // „Keine Buchung" ist eine ANDERE Aussage als „0,00 €".
@@ -238,7 +260,7 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   const wertText =
     antwort.wert === null
       ? null
-      : antwort.art === 'geld'
+      : antwort.art === 'geld' || antwort.art === 'liste'
         ? money.format(antwort.wert)
         : antwort.art === 'quote'
           ? `${Math.round(antwort.wert * 100)} %`
@@ -247,14 +269,36 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   return (
     <InfoGroup title={t('financeQuestions.answerTitle')}>
       {ohneTreffer ? (
-        <p className="text-sm">{einsetzen({ ...antwort.aussage, key: 'financeQuestions.noMatch' }, t, money.format)}</p>
+        <p className="text-sm">{einsetzen({ ...antwort.aussage, key: 'financeQuestions.noMatch' }, t, money.format, locale)}</p>
       ) : (
         <>
           {wertText !== null && (
             <p className="text-2xl font-semibold tabular-nums">{wertText}</p>
           )}
-          <p className="mt-1 text-sm">{einsetzen(antwort.aussage, t, money.format)}</p>
+          <p className="mt-1 text-sm">{einsetzen(antwort.aussage, t, money.format, locale)}</p>
         </>
+      )}
+
+      {/*
+        Listen-Antwort: Die Posten SIND die Antwort. `label` ist Nutzerdatum
+        (Händlername), kein Bildschirmtext; jeder Betrag läuft durch den
+        Sanften Modus — ein einziger unmaskierter Betrag höbe das Versprechen
+        der ganzen Fläche auf.
+      */}
+      {antwort.art === 'liste' && antwort.posten && antwort.posten.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {antwort.posten.map((p, i) => (
+            <li key={i} className="flex items-baseline justify-between gap-4 text-sm">
+              <span className="truncate">
+                {p.label}
+                {p.monatIso && (
+                  <span className="text-muted-foreground"> · {formatMonat(p.monatIso, locale)}</span>
+                )}
+              </span>
+              <span className="shrink-0 tabular-nums">{money.format(p.betrag)}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {/*
@@ -277,7 +321,7 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
 
       {antwort.begruendung?.map((grund, i) => (
         <p key={i} className="mt-1 text-xs text-muted-foreground">
-          {einsetzen(grund, t, money.format)}
+          {einsetzen(grund, t, money.format, locale)}
         </p>
       ))}
 

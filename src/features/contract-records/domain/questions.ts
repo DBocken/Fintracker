@@ -5,7 +5,10 @@
  * ab, `yearlyEquivalent` macht aus Betrag und Zyklus die Jahressumme. Der
  * Eintrag verbindet beides und findet die Zeile über die Händlerfamilie.
  */
-import type { QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionEntry } from '@/lib/question-registry';
+import { monatlicheFixkosten } from '@/lib/fixed-costs';
+import { durchschnittlichesMonatsEinkommen } from '@/lib/income-stats';
+import { isActiveForTotals } from '@/lib/contract-derivation';
 import { computeContracts, yearlyEquivalent, monthlyEquivalent } from '@/lib/contract-derivation';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 
@@ -84,4 +87,201 @@ const vertragJahreskosten: QuestionEntry = {
   },
 };
 
-export const questions: readonly QuestionEntry[] = [vertragJahreskosten];
+/** Aktive Ausgabe-Verträge — die gemeinsame Zeilenbasis der Abo-Familien. */
+function aktiveVertraege(daten: Parameters<QuestionEntry['antwort']>[1]) {
+  const categoryMap = new Map((daten.categories ?? []).map((c) => [c.id, c]));
+  return computeContracts([...(daten.transactions ?? [])], categoryMap, 'Ausgabe', {
+    decisions: new Map(daten.contractDecisions ?? []),
+    now: daten.jetzt,
+  }).filter((zeile) => isActiveForTotals(zeile));
+}
+
+const KEINE_VERTRAEGE = {
+  art: 'keine',
+  wert: null,
+  anzahl: 0,
+  deepLink: '/contracts',
+  deepLinkArt: 'kontext',
+  deepLinkLabelKey: 'financeQuestions.showContracts',
+} satisfies Omit<QuestionAnswer, 'aussage'> & { art: 'keine'; wert: null };
+
+/**
+ * „Welche Abonnements habe ich?" — die Liste selbst ist die Antwort.
+ *
+ * `label` ist der Händlername aus den eigenen Buchungen (Nutzerdatum, kein
+ * Bildschirmtext), `betrag` das Monatsäquivalent — roh, maskiert wird in der
+ * Präsentation.
+ */
+const abosListe: QuestionEntry = {
+  id: 'abos.liste',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.abos'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const zeilen = aktiveVertraege(daten);
+    if (zeilen.length === 0) {
+      return { ...KEINE_VERTRAEGE, aussage: { key: 'financeQuestions.answer.abosKeine', params: {} } };
+    }
+
+    const posten = zeilen
+      .map((z) => ({
+        label: z.payee,
+        betrag: Math.abs(monthlyEquivalent(z.amountRecentTypical ?? z.amountTypical, z.cycle)),
+      }))
+      .sort((a, b) => b.betrag - a.betrag);
+
+    return {
+      art: 'liste',
+      wert: posten.reduce((s, p) => s + p.betrag, 0),
+      anzahl: posten.length,
+      posten,
+      aussage: { key: 'financeQuestions.answer.abosListe', params: { anzahl: posten.length } },
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
+const abosSumme: QuestionEntry = {
+  id: 'abos.summe',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.abos'],
+  verstaerker: ['financeQuestions.trigger.zusammen'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const { summe, anzahl } = monatlicheFixkosten(aktiveVertraege(daten));
+    if (anzahl === 0) {
+      return { ...KEINE_VERTRAEGE, aussage: { key: 'financeQuestions.answer.abosKeine', params: {} } };
+    }
+
+    return {
+      art: 'geld',
+      wert: summe,
+      anzahl,
+      aussage: { key: 'financeQuestions.answer.abosSumme', params: { anzahl } },
+      begruendung: [
+        { key: 'financeQuestions.reason.abosJaehrlich', params: { betrag: summe * 12 } },
+      ],
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
+/**
+ * „Welche Verträge sind teurer geworden?" — `changed`/`changeAmount` rechnet
+ * die Vertragsableitung längst; hier wird nur gefiltert und gezeigt.
+ */
+const vertraegeTeurer: QuestionEntry = {
+  id: 'vertraege.teurer',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.teurer'],
+  verstaerker: ['financeQuestions.trigger.vertrag'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const teurer = aktiveVertraege(daten)
+      .filter((z) => z.changed && z.changeAmount > 0)
+      .map((z) => ({ label: z.payee, betrag: z.changeAmount }))
+      .sort((a, b) => b.betrag - a.betrag);
+
+    if (teurer.length === 0) {
+      return {
+        ...KEINE_VERTRAEGE,
+        aussage: { key: 'financeQuestions.answer.vertraegeKeineTeurer', params: {} },
+      };
+    }
+
+    return {
+      art: 'liste',
+      wert: teurer.reduce((s, p) => s + p.betrag, 0),
+      anzahl: teurer.length,
+      posten: teurer,
+      aussage: { key: 'financeQuestions.answer.vertraegeTeurer', params: { anzahl: teurer.length } },
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
+/**
+ * Fixkosten — die Antwort NENNT ihre Definition (`reason.fixkostenDefinition`):
+ * Eine Zahl, deren Definition niemand prüfen kann, wäre eine Behauptung
+ * (AGENTS.md §3, „Was geschlossen wurde, wird geprüft").
+ */
+const fixkostenMonatlich: QuestionEntry = {
+  id: 'fixkosten.monatlich',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.fixkosten'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const { summe, anzahl } = monatlicheFixkosten(aktiveVertraege(daten));
+    if (anzahl === 0) {
+      return { ...KEINE_VERTRAEGE, aussage: { key: 'financeQuestions.answer.abosKeine', params: {} } };
+    }
+
+    return {
+      art: 'geld',
+      wert: summe,
+      anzahl,
+      aussage: { key: 'financeQuestions.answer.fixkostenMonat', params: { anzahl } },
+      begruendung: [{ key: 'financeQuestions.reason.fixkostenDefinition', params: {} }],
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
+const fixkostenAnteil: QuestionEntry = {
+  id: 'fixkosten.anteil',
+  slots: { erforderlich: [], optional: [] },
+  ausloeser: ['financeQuestions.trigger.fixkosten'],
+  verstaerker: ['financeQuestions.trigger.anteil'],
+  needs: ['transactions', 'categories', 'contractDecisions'],
+  aufwand: 'guenstig',
+  antwort: (_slots, daten): QuestionAnswer => {
+    const { summe, anzahl } = monatlicheFixkosten(aktiveVertraege(daten));
+    const einkommen = durchschnittlichesMonatsEinkommen([...(daten.transactions ?? [])], daten.jetzt);
+
+    // „Kein Einkommen erfasst" ist eine ANDERE Aussage als „Anteil 0 %".
+    if (anzahl === 0 || einkommen === null || einkommen <= 0) {
+      return {
+        ...KEINE_VERTRAEGE,
+        aussage: { key: 'financeQuestions.answer.fixkostenKeinAnteil', params: {} },
+      };
+    }
+
+    return {
+      art: 'quote',
+      wert: summe / einkommen,
+      anzahl,
+      aussage: { key: 'financeQuestions.answer.fixkostenAnteil', params: {} },
+      begruendung: [
+        {
+          key: 'financeQuestions.reason.anteilZahlen',
+          params: { betrag: summe, monatlich: einkommen },
+        },
+        { key: 'financeQuestions.reason.fixkostenDefinition', params: {} },
+      ],
+      deepLink: '/contracts',
+      deepLinkArt: 'kontext',
+      deepLinkLabelKey: 'financeQuestions.showContracts',
+    };
+  },
+};
+
+export const questions: readonly QuestionEntry[] = [
+  vertragJahreskosten,
+  abosListe,
+  abosSumme,
+  vertraegeTeurer,
+  fixkostenMonatlich,
+  fixkostenAnteil,
+];

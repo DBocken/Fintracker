@@ -191,6 +191,16 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       return treffer ? { categoryId: treffer.categoryId, confidence: treffer.confidence } : null;
     };
 
+    // Ein nicht aufgelöster Key rendert den rohen Punkt-String — der darf
+    // nicht als Auslösewort durchgehen. Getrennt wird am KOMMA (Phrasen,
+    // keine Token-Beutel) — über `zerlegeAusloeser`, damit der Eval-Korpus
+    // exakt dieselbe Zerlegung benutzt statt einer Nachbildung.
+    const loeseWorte = (keys: readonly string[]): string[] =>
+      keys.flatMap((key) => {
+        const text = t(key);
+        return text === key ? [] : zerlegeAusloeser(text);
+      });
+
     return {
       kategorieAusText,
       kategorien: (kategorien.data ?? [])
@@ -210,19 +220,10 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       // die Anwendungsschicht aus dem Sprachbaum — sonst wäre jeder Eintrag
       // einsprachig.
       ausloeser: new Map(
-        questionCatalog.entries.map((entry) => [
-          entry.id,
-          entry.ausloeser.flatMap((key) => {
-            const text = t(key);
-            // Ein nicht aufgelöster Key rendert den rohen Punkt-String — der
-            // darf nicht als Auslösewort durchgehen.
-            //
-            // Getrennt wird am KOMMA, nicht am Leerraum (Phrasen, keine
-            // Token-Beutel) — über `zerlegeAusloeser`, damit der Eval-Korpus
-            // exakt dieselbe Zerlegung benutzt statt einer Nachbildung.
-            return text === key ? [] : zerlegeAusloeser(text);
-          }),
-        ]),
+        questionCatalog.entries.map((entry) => [entry.id, loeseWorte(entry.ausloeser)]),
+      ),
+      verstaerker: new Map(
+        questionCatalog.entries.map((entry) => [entry.id, loeseWorte(entry.verstaerker ?? [])]),
       ),
     };
     // `locale` in den Abhängigkeiten, weil `t()` die Auslösewörter je Sprache

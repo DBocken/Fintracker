@@ -57,6 +57,8 @@ export interface QuestionVocabulary {
   haendler: readonly VokabelEintrag[];
   /** Eintrags-ID → aufgelöste Auslösewörter (aus dem Sprachbaum geholt). */
   ausloeser: ReadonlyMap<string, readonly string[]>;
+  /** Eintrags-ID → aufgelöste Verstärker (zählen nur NACH einem Auslöser-Treffer). */
+  verstaerker?: ReadonlyMap<string, readonly string[]>;
   /**
    * Zweiter Weg zur Kategorie: ein ABSTRAKTER Begriff („essen", „tanken"),
    * der den Kategorienamen gar nicht enthält.
@@ -120,6 +122,40 @@ const STOPPWOERTER = new Set(
     'я мне мой моя как что для и или в на не когда ли'
   ).split(/\s+/),
 );
+
+/**
+ * Sprachliche Signale einer HYPOTHETISCHEN Frage. Absichtlich eng: „wenn ich"
+ * (nicht jedes „wenn" — „wenn alle Abbuchungen stattfinden" beschreibt den
+ * Ist-Plan, keine veränderte Welt), Wahrscheinlichkeits- und Szenario-Vokabeln
+ * samt der Tippfehler-Formen aus dem Korpus.
+ */
+const SZENARIO_SIGNALE = [
+  'wenn ich',
+  'wen ich',
+  'was passiert',
+  'was muesste ich',
+  'was muss ich aendern',
+  'wie veraendert',
+  'wahrscheinlichkeit',
+  'wie wahrscheinlich',
+  'warscheinlich',
+  'szenario',
+  'kombination',
+  'simulation',
+  'what if',
+  'how likely',
+  'probability',
+  'scenario',
+  'если я',
+  'вероятность',
+  'сценарий',
+];
+
+/** Redet die Frage über eine veränderte Welt? Für den Eval-Korpus exportiert. */
+export function istSzenarioFrage(text: string): boolean {
+  const n = normalisiere(text);
+  return SZENARIO_SIGNALE.some((signal) => n.includes(signal));
+}
 
 /** Ein einzelnes Wort, das allein keine Absicht ausweist. Für Kurations-Tests exportiert. */
 export function istStoppwort(wort: string): boolean {
@@ -208,16 +244,24 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
     const betragTreffer = ohneZeit.match(/\b(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?\s*(?:€|eur|euro)?\b/);
 
     const worttokens = normalisiert.split(/[^a-z0-9]+/).filter(Boolean);
+    // Hypothetische Fragen dürfen nur szenariofähige Einträge nehmen: Eine
+    // Bestandsauswertung, die auf „wenn ich X ändere …" mit Ist-Zahlen
+    // antwortet, beantwortet die falsche Frage — gemessen waren das zehn
+    // zuversichtlich falsche Korpus-Antworten (Budget-, Forecast- und
+    // Vertrags-Einträge auf Szenario-Lücken).
+    const szenario = istSzenarioFrage(text);
     const kandidaten: QuestionCandidate[] = [];
 
     for (const entry of entries) {
+      if (szenario && !entry.beantwortetSzenarien) continue;
       const worte = vokabular.ausloeser.get(entry.id) ?? [];
+      const verstaerkerWorte = vokabular.verstaerker?.get(entry.id) ?? [];
       // Ein Auslöser ist eine PHRASE („kann ich mir leisten"), kein
       // Token-Beutel. Ein einzelnes Funktionswort zählt nie — auch dann
       // nicht, wenn es versehentlich im Sprachbaum kuratiert wurde; der
       // Kurations-Test in `question-catalog.test.ts` macht so einen Eintrag
       // zusätzlich laut.
-      const ausloeserTreffer = worte.filter((wort) => {
+      const trifft = (wort: string): boolean => {
         const phrase = normalisiere(wort.trim());
         if (!phrase) return false;
         if (phrase.includes(' ')) return normalisiert.includes(phrase);
@@ -232,7 +276,12 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
         return worttokens.some(
           (token) => token === phrase || (phrase.length >= 5 && token.endsWith(phrase)),
         );
-      }).length;
+      };
+      const ausloeserTreffer = worte.filter(trifft).length;
+      // Verstärker schärfen einen Treffer, stiften aber nie einen: Ohne
+      // Auslöser bleiben sie wirkungslos (Begründung am `verstaerker`-Feld
+      // des Registers).
+      const verstaerkerTreffer = ausloeserTreffer > 0 ? verstaerkerWorte.filter(trifft).length : 0;
 
       const slots: QuestionSlots = {};
       const erschlossen: SlotName[] = [];
@@ -306,7 +355,7 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       // herein, obwohl keines seiner Auslösewörter im Satz stand.
       if (ausloeserTreffer === 0) continue;
 
-      const score = ausloeserTreffer * 3 + slotPunkte;
+      const score = (ausloeserTreffer + verstaerkerTreffer) * 3 + slotPunkte;
       kandidaten.push({
         entryId: entry.id,
         score,

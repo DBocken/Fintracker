@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseZeitraum } from '@/lib/question-time-expressions';
-import { entscheideRouting, lexicalQuestionMatcher } from '@/lib/question-matcher';
+import { entscheideRouting, istSzenarioFrage, lexicalQuestionMatcher } from '@/lib/question-matcher';
 import type { QuestionCandidate, QuestionVocabulary } from '@/lib/question-matcher';
 import type { QuestionEntry } from '@/lib/question-registry';
 
@@ -412,5 +412,99 @@ describe('entscheideRouting (Marge-Gate)', () => {
     const r = entscheideRouting([kandidat('a', 3), kandidat('b', 3), kandidat('c', 3), kandidat('d', 3)]);
     expect(r.art).toBe('kandidaten');
     if (r.art === 'kandidaten') expect(r.top).toHaveLength(3);
+  });
+});
+
+describe('Verstärker (WP-F.3)', () => {
+  const eintrag = (id: string, verstaerker: string[] = []): QuestionEntry => ({
+    id,
+    slots: { erforderlich: [], optional: [] },
+    ausloeser: [`k.${id}`],
+    verstaerker: verstaerker.length ? [`v.${id}`] : undefined,
+    needs: [],
+    aufwand: 'guenstig',
+    antwort: () => { throw new Error('nicht gefragt'); },
+  });
+
+  it('[REGRESSION] sollte ein Verstärker-Wort allein NIE qualifizieren', () => {
+    // Gemessen: Als normaler Auslöser hat „alles zusammen" die Abo-Summe auf
+    // „was kostet mich mein auto … alles zusammen" antworten lassen.
+    const kandidaten = lexicalQuestionMatcher.match(
+      'was kostet mich mein auto alles zusammen',
+      {
+        kategorien: [], konten: [], haendler: [],
+        ausloeser: new Map([['abos.summe', ['abo']]]),
+        verstaerker: new Map([['abos.summe', ['alles zusammen']]]),
+      },
+      [eintrag('abos.summe', ['x'])],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(kandidaten).toHaveLength(0);
+  });
+
+  it('sollte einen Verstärker NACH einem Auslöser-Treffer mitzählen', () => {
+    const vok: QuestionVocabulary = {
+      kategorien: [], konten: [], haendler: [],
+      ausloeser: new Map([['abos.summe', ['abos']], ['abos.liste', ['abos']]]),
+      verstaerker: new Map([['abos.summe', ['zusammen']]]),
+    };
+    const kandidaten = lexicalQuestionMatcher.match(
+      'wieviel kosten mich alle abos zusammen?',
+      vok,
+      [eintrag('abos.summe', ['x']), eintrag('abos.liste')],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(kandidaten[0].entryId).toBe('abos.summe');
+    expect(kandidaten[0].score - kandidaten[1].score).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Szenario-Gate (WP-F.3)', () => {
+  const bestand: QuestionEntry = {
+    id: 'budget.status',
+    slots: { erforderlich: [], optional: [] },
+    ausloeser: ['k.budget'],
+    needs: [],
+    aufwand: 'guenstig',
+    antwort: () => { throw new Error('nicht gefragt'); },
+  };
+  const simulation: QuestionEntry = { ...bestand, id: 'leistbarkeit.anschaffung', beantwortetSzenarien: true };
+  const vok: QuestionVocabulary = {
+    kategorien: [], konten: [], haendler: [],
+    ausloeser: new Map([
+      ['budget.status', ['budget']],
+      ['leistbarkeit.anschaffung', ['leisten']],
+    ]),
+  };
+
+  it('[REGRESSION] sollte eine hypothetische Frage keiner Bestandsauswertung geben', () => {
+    // „Wenn ich mein Shoppingbudget um 30 Prozent reduziere …" redet über
+    // eine VERÄNDERTE Welt; der Budget-Stand von heute beantwortet sie nicht.
+    const kandidaten = lexicalQuestionMatcher.match(
+      'wenn ich mein shoppingbudget um 30 prozent reduziere, wie viel spare ich?',
+      vok,
+      [bestand],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(kandidaten).toHaveLength(0);
+  });
+
+  it('sollte die Simulation hypothetische Fragen weiterhin nehmen lassen', () => {
+    const kandidaten = lexicalQuestionMatcher.match(
+      'kann ich mir das leisten, wenn ich monatlich 200 spare?',
+      vok,
+      [bestand, simulation],
+      'de',
+      new Date('2026-08-23'),
+    );
+    expect(kandidaten.map((k) => k.entryId)).toEqual(['leistbarkeit.anschaffung']);
+  });
+
+  it('sollte „wenn alle …" NICHT als Szenario werten — das beschreibt den Ist-Plan', () => {
+    expect(istSzenarioFrage('wie viel bleibt, wenn alle abbuchungen stattfinden?')).toBe(false);
+    expect(istSzenarioFrage('was passiert, wenn ich 100 weniger ausgebe?')).toBe(true);
   });
 });
