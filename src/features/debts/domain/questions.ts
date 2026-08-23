@@ -35,10 +35,7 @@ const schuldenRestschuld: QuestionEntry = {
       art: 'geld',
       wert: totalOutstandingDebt(schulden),
       anzahl: offen.length,
-      aussage: {
-        key: 'financeQuestions.answer.restschuld',
-        params: { anzahl: offen.length },
-      },
+      aussage: { key: 'financeQuestions.answer.restschuld', params: {} },
       begruendung: [
         {
           key: 'financeQuestions.reason.mindestraten',

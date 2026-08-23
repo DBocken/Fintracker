@@ -21,6 +21,7 @@ import {
   Building2,
   PartyPopper,
   GraduationCap,
+  MessageCircleQuestion,
 } from "lucide-react";
 import type { Tier, FeatureKey } from "@/lib/tier";
 import { isNavPathVisible, type NavFeatureId } from "@/lib/life-situations";
@@ -96,6 +97,14 @@ export const NAV_GROUPS: NavGroup[] = [
         subtitleKey: "nav.subtitles.income",
       },
       { label: "Buchungen", labelKey: "nav.items.transactions", path: "/transactions", icon: Receipt },
+      {
+        label: "Nachfragen",
+        labelKey: "financeQuestions.title",
+        path: "/fragen",
+        icon: MessageCircleQuestion,
+        subtitle: "Frag nach deinen Zahlen",
+        subtitleKey: "financeQuestions.navSubtitle",
+      },
       {
         // Label/Subtitle teilen sich bewusst die specialCategories-Keys (kein
         // eigener nav.items.occasions-Key nötig – DRY über 4 Locales).

@@ -116,8 +116,9 @@ function summenAntwort(
       key: aussageKey,
       params: {
         haendler: slots.haendler ?? '',
+        // Ohne Zeitraum-Slot ist die Antwort der Gesamtbestand — das gehört
+        // gesagt, nicht als leere Stelle im Satz verschluckt.
         zeitraum: slots.zeitraum?.label ?? '',
-        anzahl: gefiltert.length,
       },
     },
     deepLink: buildTransactionsHref(teilFilter),

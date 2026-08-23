@@ -15,6 +15,7 @@ export const ALL_ROUTES = [
   "/coach",
   "/dashboard",
   "/transactions",
+  "/fragen",
   "/accounts",
   "/budgets",
   "/debts",

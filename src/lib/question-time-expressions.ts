@@ -42,6 +42,12 @@ const MONATSINDEX: Record<string, Record<string, number>> = {
   },
 };
 
+/** Monatsnamen für die ANZEIGE (kanonische Schreibweise, nicht die Erkennung). */
+const ANZEIGE_MONATE: Record<string, readonly string[]> = {
+  de: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+};
+
 /** Feste Wendungen je Sprache. */
 const WENDUNGEN: Record<string, Record<string, string>> = {
   de: {
@@ -85,13 +91,15 @@ function letzterTag(jahr: number, monatIndex: number): number {
   return new Date(Date.UTC(jahr, monatIndex + 1, 0)).getUTCDate();
 }
 
-function monatsSlot(jahr: number, monatIndex: number): ZeitraumSlot {
+function monatsSlot(jahr: number, monatIndex: number, sprache: string): ZeitraumSlot {
   const token = `${jahr}-${zweistellig(monatIndex + 1)}`;
   return {
     von: `${token}-01`,
     bis: `${token}-${zweistellig(letzterTag(jahr, monatIndex))}`,
     rangeToken: token,
-    label: token,
+    // Lesbar statt roh: „2026-07" ist eine Kennung, „Juli 2026" eine Auskunft.
+    // Im Browser fiel genau das auf — die Antwort las sich wie eine Log-Zeile.
+    label: `${ANZEIGE_MONATE[sprache]?.[monatIndex] ?? token} ${jahr}`,
   };
 }
 
@@ -159,7 +167,7 @@ export function parseZeitraum(text: string, locale: string, jetzt: Date): Zeitra
     if (art === 'monat') {
       const verschoben = new Date(Date.UTC(jetzt.getUTCFullYear(), jetzt.getUTCMonth() + Number(wert), 1));
       return {
-        slot: monatsSlot(verschoben.getUTCFullYear(), verschoben.getUTCMonth()),
+        slot: monatsSlot(verschoben.getUTCFullYear(), verschoben.getUTCMonth(), sprache),
         treffer: wendung,
       };
     }
@@ -183,13 +191,16 @@ export function parseZeitraum(text: string, locale: string, jetzt: Date): Zeitra
     const rest = normalisiert.slice(stelle + name.length, stelle + name.length + 6);
     const jahrTreffer = rest.match(/\b(\d{4})\b/);
     if (jahrTreffer) {
-      return { slot: monatsSlot(Number(jahrTreffer[1]), monatIndex), treffer: `${name} ${jahrTreffer[1]}` };
+      return {
+        slot: monatsSlot(Number(jahrTreffer[1]), monatIndex, sprache),
+        treffer: `${name} ${jahrTreffer[1]}`,
+      };
     }
     // Ohne Jahresangabe: der zuletzt VERGANGENE Monat dieses Namens. „Im
     // Juli" im Mai meint den Juli des Vorjahres, nicht einen, der noch
     // bevorsteht — nach dem läge nichts vor, worüber man Auskunft geben könnte.
     const jahr = monatIndex > jetzt.getUTCMonth() ? jetzt.getUTCFullYear() - 1 : jetzt.getUTCFullYear();
-    return { slot: monatsSlot(jahr, monatIndex), treffer: name };
+    return { slot: monatsSlot(jahr, monatIndex, sprache), treffer: name };
   }
 
   // 4. „letzte 45 tage" / „last 45 days" — freie Tageszahl.

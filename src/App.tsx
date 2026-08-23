@@ -23,6 +23,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const IncomePage = lazy(() => import("@/pages/IncomePage"));
 const IncomeWrappedPage = lazy(() => import("@/pages/IncomeWrappedPage"));
 const TransactionsPage = lazy(() => import("@/pages/TransactionsPage"));
+const MoneyQuestionsPage = lazy(() => import("@/pages/MoneyQuestionsPage"));
 const SpecialCategoriesPage = lazy(() => import("@/pages/SpecialCategoriesPage"));
 const TaxReportPage = lazy(() => import("@/pages/TaxReportPage"));
 const EuerPage = lazy(() => import("@/pages/EuerPage"));
@@ -188,6 +189,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/fragen" element={<MoneyQuestionsPage />} />
               {/* Anlässe (Sonderkategorien): Premium via RouteGuard —
                   Free/Anonymous sehen den begehrlichen Locked-Preview. */}
               <Route

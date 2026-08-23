@@ -67,7 +67,7 @@ const budgetStatus: QuestionEntry = {
       anzahl: staende.length,
       aussage: {
         key: 'financeQuestions.answer.budgetStatus',
-        params: { anzahl: staende.length, ueberzogen },
+        params: { ueberzogen },
       },
       begruendung: [
         {
