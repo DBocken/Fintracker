@@ -4358,6 +4358,7 @@ export const de = {
         betrag: 'Um welchen Betrag geht es?',
       },
     trigger: {
+      raten: 'raten rate ratenkauf finanzierung teilzahlung',
       ausgaben: 'ausgegeben ausgaben kosten',
       beiHaendler: 'bei',
       fuerKategorie: 'für',
@@ -4370,6 +4371,8 @@ export const de = {
       leistbarkeit: 'leisten kann ich mir',
     },
     answer: {
+      ratenOffen: 'Offene Raten bei {haendler} — noch {offen} von {gesamt}.',
+      ratenKeine: 'In deinen Buchungen steht kein Ratenhinweis wie „Rate 3/12“.',
       ausgabenHaendler: 'Bei {haendler}, {zeitraum}.',
       ausgabenKategorie: 'In dieser Kategorie, {zeitraum}.',
       einnahmen: 'Einnahmen, {zeitraum}.',
@@ -4381,6 +4384,8 @@ export const de = {
       leistbarkeitVerweis: 'Das rechnet die Simulation aus — dort mit deinem Betrag vorbelegt.',
     },
     reason: {
+      ratenMonatlich: 'Rate zuletzt: {monatlich}. Verbleibend: {rest}.',
+      ratenBeleg: 'Gelesen aus „{beleg}“ im Buchungstext.',
       vertragRhythmus: 'Monatlich gerechnet: {monatlich}.',
       mindestraten: 'Mindestraten zusammen: {betrag}.',
       budgetRest: 'Rest im Monat: {rest}.',

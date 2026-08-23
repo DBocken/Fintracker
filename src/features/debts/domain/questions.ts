@@ -18,8 +18,10 @@
  *    vorbelegten Deep-Link zurück. Das hält `antwort()` ausnahmslos rein —
  *    die Eigenschaft, an der die Testbarkeit des ganzen Registers hängt.
  */
-import type { QuestionEntry } from '@/lib/question-registry';
+import type { QuestionAnswer, QuestionEntry } from '@/lib/question-registry';
 import { totalOutstandingDebt, totalMinimumPayment } from '@/lib/debt-totals';
+import { offeneRatenJeHaendler } from '@/lib/installments';
+import { buildTransactionsHref } from '@/features/shared/domain/dashboard-filtering';
 
 const schuldenRestschuld: QuestionEntry = {
   id: 'schulden.restschuld',
@@ -67,4 +69,68 @@ const leistbarkeitAnschaffung: QuestionEntry = {
   }),
 };
 
-export const questions: readonly QuestionEntry[] = [schuldenRestschuld, leistbarkeitAnschaffung];
+/**
+ * „Wie viele Raten habe ich noch?"
+ *
+ * Der Eintrag ist der Beleg dafür, dass die Bauform trägt: Die Fachlogik
+ * (Muster lesen, Restlaufzeit rechnen) liegt als reine Funktion in
+ * `src/lib/installments.ts`, der Eintrag daneben ist reine Verdrahtung. Die
+ * Chat-Fläche wurde dafür nicht angefasst.
+ *
+ * Die Restlaufzeit wird GERECHNET, nicht gelesen: Aus „Rate 3 von 12" folgt
+ * `12 − 3 = 9`. Genau an dieser Grenze verläuft die Arbeitsteilung — ein
+ * Muster zu erkennen ist Mustererkennung, `12 − 3` ist Arithmetik, und
+ * Arithmetik wird nicht geschätzt.
+ *
+ * `deepLinkArt: 'kontext'`: Der Link zeigt alle Buchungen des Händlers, die
+ * Zahl stammt aber aus genau EINER — der jüngsten. Diese Entfernung zu
+ * benennen ist ehrlicher, als die Zahl passend zu biegen.
+ */
+const ratenOffen: QuestionEntry = {
+  id: 'raten.offen',
+  slots: { erforderlich: [], optional: ['haendler'] },
+  ausloeser: ['financeQuestions.trigger.raten'],
+  needs: ['transactions'],
+  aufwand: 'guenstig',
+  antwort: (slots, daten): QuestionAnswer => {
+    const alle = offeneRatenJeHaendler(daten.transactions ?? []);
+    const raten = slots.haendler ? alle.filter((r) => r.haendler === slots.haendler) : alle;
+    const erste = raten[0];
+
+    if (!erste) {
+      return {
+        art: 'keine',
+        wert: null,
+        anzahl: 0,
+        aussage: { key: 'financeQuestions.answer.ratenKeine', params: {} },
+        deepLink: '/debts',
+        deepLinkArt: 'kontext',
+      };
+    }
+
+    return {
+      art: 'anzahl',
+      wert: erste.offen,
+      anzahl: raten.length,
+      aussage: {
+        key: 'financeQuestions.answer.ratenOffen',
+        params: { haendler: erste.anzeigename, offen: erste.offen, gesamt: erste.gesamt },
+      },
+      begruendung: [
+        {
+          key: 'financeQuestions.reason.ratenMonatlich',
+          params: { monatlich: erste.monatlich, rest: erste.monatlich * erste.offen },
+        },
+        { key: 'financeQuestions.reason.ratenBeleg', params: { beleg: erste.beleg } },
+      ],
+      deepLink: buildTransactionsHref({ merchant: erste.haendler }),
+      deepLinkArt: 'kontext',
+    };
+  },
+};
+
+export const questions: readonly QuestionEntry[] = [
+  schuldenRestschuld,
+  leistbarkeitAnschaffung,
+  ratenOffen,
+];

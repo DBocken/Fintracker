@@ -4346,6 +4346,7 @@ export const en = {
         betrag: 'Which amount are we talking about?',
       },
     trigger: {
+      raten: 'instalments installment rate financing part payment',
       ausgaben: 'spent spending cost',
       beiHaendler: 'at',
       fuerKategorie: 'for',
@@ -4358,6 +4359,8 @@ export const en = {
       leistbarkeit: 'afford can i',
     },
     answer: {
+      ratenOffen: 'Open instalments at {haendler} — {offen} of {gesamt} left.',
+      ratenKeine: 'None of your transactions carry an instalment marker like "Rate 3/12".',
       ausgabenHaendler: 'At {haendler}, {zeitraum}.',
       ausgabenKategorie: 'In this category, {zeitraum}.',
       einnahmen: 'Income, {zeitraum}.',
@@ -4369,6 +4372,8 @@ export const en = {
       leistbarkeitVerweis: 'The simulation works that out — prefilled there with your amount.',
     },
     reason: {
+      ratenMonatlich: 'Last instalment: {monatlich}. Remaining: {rest}.',
+      ratenBeleg: 'Read from "{beleg}" in the transaction text.',
       vertragRhythmus: 'Per month: {monatlich}.',
       mindestraten: 'Minimum payments combined: {betrag}.',
       budgetRest: 'Left this month: {rest}.',

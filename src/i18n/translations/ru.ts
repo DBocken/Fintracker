@@ -4346,6 +4346,7 @@ export const ru = {
         betrag: 'О какой сумме идёт речь?',
       },
     trigger: {
+      raten: 'рассрочка платёж взнос финансирование',
       ausgaben: 'потратил расходы стоит',
       beiHaendler: 'в',
       fuerKategorie: 'на',
@@ -4358,6 +4359,8 @@ export const ru = {
       leistbarkeit: 'могу ли позволить',
     },
     answer: {
+      ratenOffen: 'Открытая рассрочка в {haendler} — осталось {offen} из {gesamt}.',
+      ratenKeine: 'В ваших операциях нет отметки о рассрочке вроде «Rate 3/12».',
       ausgabenHaendler: 'У {haendler}, {zeitraum}.',
       ausgabenKategorie: 'В этой категории, {zeitraum}.',
       einnahmen: 'Доходы, {zeitraum}.',
@@ -4369,6 +4372,8 @@ export const ru = {
       leistbarkeitVerweis: 'Это считает симуляция — там уже подставлена ваша сумма.',
     },
     reason: {
+      ratenMonatlich: 'Последний взнос: {monatlich}. Осталось: {rest}.',
+      ratenBeleg: 'Прочитано из «{beleg}» в тексте операции.',
       vertragRhythmus: 'В месяц: {monatlich}.',
       mindestraten: 'Минимальные платежи вместе: {betrag}.',
       budgetRest: 'Остаток в месяце: {rest}.',
