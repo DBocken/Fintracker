@@ -119,11 +119,14 @@ function ausgelieferteDateien(wurzel) {
  */
 function abhaengigkeitsHosts() {
   const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  const direkte = Object.keys(pkg.dependencies ?? {});
   const funde = [];
+  let geprueft = 0;
 
-  for (const name of Object.keys(pkg.dependencies ?? {})) {
+  for (const name of direkte) {
     const verzeichnis = path.join(REPO_ROOT, 'node_modules', name);
     if (!fs.existsSync(verzeichnis)) continue;
+    geprueft += 1;
     for (const datei of ausgelieferteDateien(fs.realpathSync(verzeichnis))) {
       let quelltext;
       try {
@@ -135,15 +138,31 @@ function abhaengigkeitsHosts() {
     }
   }
 
+  // Ohne `node_modules` prüft diese Hälfte NICHTS — und meldete trotzdem
+  // grün. Ein Wächter, der stillschweigend leer läuft, ist schlimmer als
+  // keiner: Er behauptet eine Aussage, die er nie getroffen hat. Dieselbe
+  // Untergrenze zieht `call-site-keys.test.ts` („Sonst wäre ein grüner Lauf
+  // bedeutungslos").
+  if (direkte.length > 0 && geprueft === 0) {
+    console.error(
+      '❌ Keine einzige direkte Abhängigkeit gefunden — `node_modules` fehlt.\n' +
+        '\n   Die Prüfung der CDN-Vorgaben aus Abhängigkeiten hätte hier still\n' +
+        '   nichts geprüft und trotzdem grün gemeldet. Erst `pnpm install`,\n' +
+        '   dann erneut.\n',
+    );
+    process.exit(1);
+  }
+
   // Je Paket und Host EINE Meldung — sonst nennt eine Bibliothek mit zehn
   // Bündeln denselben CDN zehnmal.
   const gesehen = new Set();
-  return funde.filter((f) => {
+  const eindeutig = funde.filter((f) => {
     const schluessel = `${f.datei.split(' ')[0]}|${f.host}`;
     if (gesehen.has(schluessel)) return false;
     gesehen.add(schluessel);
     return true;
   });
+  return { funde: eindeutig, geprueft };
 }
 
 console.log('\n🇪🇺 EU-Regel-Wächter läuft (WP 0.8)...\n');
@@ -158,7 +177,7 @@ for (const datei of verfolgteDateien()) {
 }
 
 const cspHosts = cspHostsAusVercel();
-const paketHosts = abhaengigkeitsHosts();
+const { funde: paketHosts, geprueft: gepruefePakete } = abhaengigkeitsHosts();
 const { unbekannt, toteZeilen } = vergleiche({
   codeHosts: [...codeHosts, ...paketHosts],
   register,
@@ -167,8 +186,8 @@ const { unbekannt, toteZeilen } = vergleiche({
 
 console.log(
   `   ${register.aktiv.length} aktive Registerzeilen · ${register.zuEntfernen.length} zu entfernen · ` +
-    `${codeHosts.length} Host-Fundstellen im Code · ${paketHosts.length} in Abhängigkeiten · ` +
-    `${cspHosts.length} in der CSP\n`,
+    `${codeHosts.length} Host-Fundstellen im Code · ${paketHosts.length} in ${gepruefePakete} ` +
+    `Abhängigkeiten · ${cspHosts.length} in der CSP\n`,
 );
 
 if (unbekannt.length === 0 && toteZeilen.length === 0) {
