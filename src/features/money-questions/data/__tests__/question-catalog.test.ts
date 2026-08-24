@@ -70,7 +70,7 @@ const daten: QuestionData = {
 /** Slots, die jeden Pflicht-Slot des Katalogs plausibel belegen. */
 const alleSlots: QuestionSlots = {
   haendler: 'lidl sagt danke',
-  kategorieId: 'local-cat-lebensmittel',
+  kategorieIds: ['local-cat-lebensmittel'],
   betrag: 12000,
   zeitraum: { von: '2026-07-01', bis: '2026-07-31', rangeToken: '2026-07', label: '2026-07' },
 };

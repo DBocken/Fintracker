@@ -43,7 +43,14 @@ function filterAusSlots(
 ): Partial<DashboardFilterState> {
   const filters: Partial<DashboardFilterState> = {};
   if (erlaubt.has('haendler') && slots.haendler) filters.merchant = slots.haendler;
-  if (erlaubt.has('kategorie') && slots.kategorieId) filters.category = slots.kategorieId;
+  if (erlaubt.has('kategorie') && slots.kategorieIds?.length) {
+    // Eine Kategorie bleibt die Einzelauswahl (kurze, lesbare URL), mehrere
+    // gehen als Menge — beides landet in `cat`, `aktiveKategorien()` löst es
+    // wieder auf. Gerechnet und verlinkt wird damit aus derselben Quelle;
+    // genau daran hängt die Invariante des Registers.
+    if (slots.kategorieIds.length === 1) filters.category = slots.kategorieIds[0];
+    else filters.categories = slots.kategorieIds;
+  }
   if (erlaubt.has('konto') && slots.kontoId) filters.account = slots.kontoId;
   if (erlaubt.has('zeitraum') && slots.zeitraum) {
     const token = slots.zeitraum.rangeToken;

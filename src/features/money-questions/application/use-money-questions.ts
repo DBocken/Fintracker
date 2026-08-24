@@ -13,6 +13,7 @@ import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
 import { routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
 import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+import { findeKonzeptKategorien } from '@/lib/category-concepts';
 import { intentBeispieleFuer } from '@/features/money-questions/data/paraphrases';
 import {
   addQuestionConfirmation,
@@ -76,11 +77,23 @@ export type MoneyQuestionOutcome =
       entryId: string;
       antwort: QuestionAnswer;
       /**
+       * Die Slots, aus denen diese Antwort entstand — damit eine erkannte
+       * Kategorien-MENGE nachträglich korrigierbar ist, ohne die Frage neu
+       * tippen zu müssen.
+       */
+      slots: QuestionSlots;
+      /**
        * Erschlossene Kategorie, die NICHT wörtlich gefragt war („essen" →
        * „Essen & Trinken"). Wird benannt und ist korrigierbar — sonst wäre
        * die Zuordnung eine stille Behauptung.
        */
-      erschlosseneKategorie?: { label: string; alternativen: SlotVorschlag[] };
+      erschlosseneKategorie?: {
+        /** Alle erkannten Kategorien als ein Satz — für die Überschrift. */
+        label: string;
+        /** Einzeln abwählbar: je Kategorie ein Chip. */
+        teile: { wert: string; label: string }[];
+        alternativen: SlotVorschlag[];
+      };
     };
 
 export interface MoneyQuestionsViewModel {
@@ -93,6 +106,10 @@ export interface MoneyQuestionsViewModel {
   waehleVorschlag: (vorschlag: SlotVorschlag) => void;
   /** Löst eine Kandidaten-Auswahl auf — derselbe Weg wie eine erkannte Frage. */
   waehleKandidat: (kandidat: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }) => void;
+  /** Nimmt eine Kategorie aus der erkannten Gruppe heraus und rechnet neu. */
+  entferneKategorie: (wert: string) => void;
+  /** Nimmt eine Kategorie zusätzlich in die erkannte Gruppe auf und rechnet neu. */
+  ergaenzeKategorie: (wert: string) => void;
   /** Beispielfragen aus dem EIGENEN Bestand — nie erfundene Händler. */
   beispiele: string[];
   hatBestand: boolean;
@@ -218,8 +235,15 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
         return text === key ? [] : zerlegeAusloeser(text);
       });
 
+    // Oberbegriffe („essen", „auto") auf die Kategorien-GRUPPE des Nutzers —
+    // kuratierte Begriffe, gematcht gegen Kategorienamen UND die Stichwörter,
+    // die die App ohnehin pflegt (`Category.filters`).
+    const konzeptAusText = (text: string) =>
+      findeKonzeptKategorien(text, [...(kategorien.data ?? [])], locale)?.categoryIds ?? null;
+
     return {
       kategorieAusText,
+      konzeptAusText,
       kategorien: (kategorien.data ?? [])
         .map((c) => ({ wort: c.name.toLowerCase(), wert: c.id, label: c.name }))
         .sort((a, b) => {
@@ -246,8 +270,9 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // `locale` in den Abhängigkeiten, weil `t()` die Auslösewörter je Sprache
     // anders auflöst — ohne sie bliebe das Vokabular beim Sprachwechsel
     // eingefroren (dieselbe Falle wie `t()` in einer Modul-Konstanten,
-    // AGENTS.md §6).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // AGENTS.md §6). Seit WP-G braucht `konzeptAusText` `locale` ohnehin
+    // ausdrücklich, weshalb die Regel es jetzt von selbst sieht — die frühere
+    // `exhaustive-deps`-Ausnahme ist damit entfallen.
   }, [transaktionen.data, kategorien.data, konten.data, regeln.data, modellKontext, locale, t]);
 
   // Stufe 2 des Routers: kuratierte Paraphrasen der aktiven Sprache PLUS die
@@ -328,19 +353,27 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // stand nicht im Text, sie wurde geschlossen. Ohne den Hinweis wäre sie
     // eine stille Behauptung, und wer „für essen" meinte, aber „Restaurant"
     // bekam, merkte es nie.
+    //
+    // Seit WP-G ist das eine MENGE: „Essen" spannt über Hauptkategorien
+    // hinweg. Jede erkannte Kategorie erscheint als eigener, einzeln
+    // abwählbarer Chip — eine Sammelangabe „6 Kategorien" ließe sich weder
+    // prüfen noch korrigieren.
+    const erkannteIds = slots.kategorieIds ?? [];
+    const beschrifte = (id: string) =>
+      vokabular.kategorien.find((k) => k.wert === id)?.label ?? id;
     const erschlosseneKategorie =
-      erschlossen.includes('kategorie') && slots.kategorieId
+      erschlossen.includes('kategorie') && erkannteIds.length > 0
         ? {
-            label:
-              vokabular.kategorien.find((k) => k.wert === slots.kategorieId)?.label ??
-              slots.kategorieId,
-            alternativen: vorschlaegeFuer('kategorie').filter((v) => v.wert !== slots.kategorieId),
+            label: erkannteIds.map(beschrifte).join(' · '),
+            teile: erkannteIds.map((id) => ({ wert: id, label: beschrifte(id) })),
+            alternativen: vorschlaegeFuer('kategorie').filter((v) => !erkannteIds.includes(v.wert)),
           }
         : undefined;
 
     setErgebnis({
       art: 'antwort',
       entryId,
+      slots,
       antwort: entry.antwort(slots, daten),
       erschlosseneKategorie,
     });
@@ -385,7 +418,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
   const waehleVorschlag = (vorschlag: SlotVorschlag) => {
     if (ergebnis.art !== 'rueckfrage') return;
     const ergaenzt: QuestionSlots = { ...ergebnis.slots };
-    if (vorschlag.slot === 'kategorie') ergaenzt.kategorieId = vorschlag.wert;
+    if (vorschlag.slot === 'kategorie') ergaenzt.kategorieIds = [vorschlag.wert];
     else if (vorschlag.slot === 'konto') ergaenzt.kontoId = vorschlag.wert;
     else if (vorschlag.slot === 'haendler') ergaenzt.haendler = vorschlag.wert;
     else return;
@@ -394,6 +427,30 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // wird erneut gefragt statt geraten.
     aufloesen(ergebnis.entryId, ergaenzt);
   };
+
+  /**
+   * Korrektur der erkannten Kategorien-Gruppe (WP-G).
+   *
+   * Beide Wege laufen durch `aufloesen` — dieselbe Prüfung wie bei jeder
+   * anderen Antwort. Bleibt nach dem Entfernen nichts übrig, fragt die Fläche
+   * wieder nach, statt über den Gesamtbestand zu summieren: Eine leere
+   * Auswahl ist keine Auswahl.
+   */
+  const aendereKategorien = (aendern: (ids: readonly string[]) => string[]) => {
+    if (ergebnis.art !== 'antwort') return;
+    const naechste = aendern(ergebnis.slots.kategorieIds ?? []);
+    aufloesen(
+      ergebnis.entryId,
+      { ...ergebnis.slots, kategorieIds: naechste.length > 0 ? naechste : undefined },
+      naechste.length > 0 ? ['kategorie'] : [],
+    );
+  };
+
+  const entferneKategorie = (wert: string) =>
+    aendereKategorien((ids) => ids.filter((id) => id !== wert));
+
+  const ergaenzeKategorie = (wert: string) =>
+    aendereKategorien((ids) => (ids.includes(wert) ? [...ids] : [...ids, wert]));
 
   const queryClient = useQueryClient();
   const lernen = useMutation({
@@ -423,6 +480,8 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     absenden,
     waehleVorschlag,
     waehleKandidat,
+    entferneKategorie,
+    ergaenzeKategorie,
     beispiele,
     hatBestand: (transaktionen.data ?? []).length > 0,
     isLoading,

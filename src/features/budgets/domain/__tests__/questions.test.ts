@@ -39,14 +39,14 @@ describe('budget.rest', () => {
   const eintrag = questionCatalog.byId('budget.rest')!;
 
   it('sollte den Rest nennen: Limit minus Verbrauch', () => {
-    const antwort = eintrag.antwort({ kategorieId: 'c1' }, daten(120));
+    const antwort = eintrag.antwort({ kategorieIds: ['c1'] }, daten(120));
     expect(antwort.art).toBe('geld');
     expect(antwort.wert).toBeCloseTo(180);
   });
 
   it('[ZUSTAND übertragen] sollte ein überzogenes Budget als überzogen benennen, nicht als „0 € übrig"', () => {
     // „0 € übrig" wäre die halbe Wahrheit — der Fehlbetrag gehört gesagt.
-    const antwort = eintrag.antwort({ kategorieId: 'c1' }, daten(350));
+    const antwort = eintrag.antwort({ kategorieIds: ['c1'] }, daten(350));
     expect(antwort.wert).toBe(0);
     expect(antwort.aussage.key).toBe('financeQuestions.answer.budgetRestUeberzogen');
     expect(antwort.aussage.params.betrag).toBeCloseTo(50);
@@ -62,7 +62,7 @@ describe('budget.tagesrate', () => {
   const eintrag = questionCatalog.byId('budget.tagesrate')!;
 
   it('sollte den Rest durch die verbleibenden Tage teilen — heute eingeschlossen', () => {
-    const antwort = eintrag.antwort({ kategorieId: 'c1' }, daten(120));
+    const antwort = eintrag.antwort({ kategorieIds: ['c1'] }, daten(120));
     expect(antwort.wert).toBeCloseTo(180 / 9);
     expect(antwort.aussage.params.anzahl).toBe(9);
   });

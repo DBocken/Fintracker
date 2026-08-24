@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MessageCircleQuestion, Send } from 'lucide-react';
+import { ArrowRight, MessageCircleQuestion, Plus, Send, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InfoGroup } from '@/features/shared/presentation/InfoGroup';
@@ -177,24 +177,58 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
           <p className="text-sm">
             {t('financeQuestions.understoodAs').split('{label}').join(ergebnis.erschlosseneKategorie.label)}
           </p>
+
+          {/*
+            Je erkannte Kategorie ein einzeln abwählbarer Chip. Ein
+            Oberbegriff wie „Essen" spannt über mehrere Kategorien; eine
+            Sammelangabe („6 Kategorien") ließe sich weder prüfen noch
+            korrigieren — und eine nicht prüfbare Menge macht die Summe
+            darüber zu einer Behauptung.
+          */}
+          <div
+            className="mt-2 flex flex-wrap gap-2"
+            role="group"
+            aria-label={t('financeQuestions.recognisedCategories')}
+          >
+            {ergebnis.erschlosseneKategorie.teile.map((teil) => (
+              <Button
+                key={teil.wert}
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => model.entferneKategorie(teil.wert)}
+                aria-label={t('financeQuestions.removeCategory').split('{label}').join(teil.label)}
+              >
+                {teil.label}
+                <X className="ml-1 h-3 w-3" aria-hidden="true" />
+              </Button>
+            ))}
+          </div>
+
           {ergebnis.erschlosseneKategorie.alternativen.length > 0 && (
-            <div
-              className="mt-2 flex flex-wrap gap-2"
-              role="group"
-              aria-label={t('financeQuestions.correctCategory')}
-            >
-              {ergebnis.erschlosseneKategorie.alternativen.map((v) => (
-                <Button
-                  key={v.wert}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => model.waehleVorschlag(v)}
-                >
-                  {v.label}
-                </Button>
-              ))}
-            </div>
+            <>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {t('financeQuestions.addCategoryHint')}
+              </p>
+              <div
+                className="mt-1 flex flex-wrap gap-2"
+                role="group"
+                aria-label={t('financeQuestions.correctCategory')}
+              >
+                {ergebnis.erschlosseneKategorie.alternativen.map((v) => (
+                  <Button
+                    key={v.wert}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => model.ergaenzeKategorie(v.wert)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
+                    {v.label}
+                  </Button>
+                ))}
+              </div>
+            </>
           )}
         </InfoGroup>
       )}

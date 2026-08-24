@@ -57,6 +57,18 @@ export const DEFAULT_DASHBOARD_FILTERS = {
 
 export interface DashboardFilterState {
   category: string;
+  /**
+   * Kategorien-MENGE (WP-G) — gesetzt, wenn eine Frage einen Oberbegriff
+   * auflöst („Essen" = Lebensmittel ∪ Essen & Trinken ∪ …). Additiv und
+   * optional wie `merchant`: Ein Pflichtfeld berührte über hundert Stellen,
+   * und ein fehlendes Feld bedeutet hier schlicht „keine Mengenauswahl" —
+   * die richtige Vorgabe.
+   *
+   * Vorrang vor `category`, wenn nichtleer. Beide zugleich zu setzen wäre
+   * zwei Wahrheiten für dieselbe Frage; `aktiveKategorien()` ist die eine
+   * Stelle, die das auflöst.
+   */
+  categories?: readonly string[];
   account: string;
   contract: ContractFilter;
   essential: EssentialFilter;

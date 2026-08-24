@@ -110,22 +110,36 @@ function allocationCategoryId(allocation: TransactionAllocation): string | null 
  * aufgeteilt ist, erscheint damit auch unter dem Filter „Kleidung" — sonst
  * wäre der aufgeteilte Anteil in der Buchungsliste unauffindbar.
  */
+/**
+ * Die EINE Stelle, die „welche Kategorien sind gefragt?" beantwortet.
+ *
+ * Vorrang für die Menge (`categories`), Rückfall auf die Einzelauswahl
+ * (`category`). Zwei Felder, aber nur eine Wahrheit — jede Auswertung geht
+ * hierdurch, damit Rechnen, Zählen und Verlinken nicht auseinanderlaufen
+ * können.
+ */
+export function aktiveKategorien(filters: Pick<DashboardFilterState, 'category' | 'categories'>): readonly string[] {
+  if (filters.categories && filters.categories.length > 0) return filters.categories;
+  return filters.category === 'all' ? [] : [filters.category];
+}
+
 function matchesCategoryFilter(
   transaction: Transaction,
   categoriesById: Map<string, Category>,
-  filter: string,
+  filter: readonly string[],
   allocations: readonly TransactionAllocation[] = [],
   matchSplits = false,
 ): boolean {
-  if (filter === 'all') return true;
-  if (
-    isCategoryInFilter(transaction.subcategory_id, categoriesById, filter) ||
-    isCategoryInFilter(transaction.category_id, categoriesById, filter)
-  ) {
-    return true;
-  }
+  if (filter.length === 0) return true;
+  // ODER über die Menge: Eine Buchung gehört dazu, sobald sie EINER der
+  // gefragten Kategorien zuzuordnen ist. Jede einzelne läuft weiterhin durch
+  // `isCategoryInFilter` und erbt damit ihre Unterkategorien.
+  const trifft = (id: string | null | undefined) =>
+    id != null && filter.some((f) => isCategoryInFilter(id, categoriesById, f));
+
+  if (trifft(transaction.subcategory_id) || trifft(transaction.category_id)) return true;
   if (!matchSplits) return false;
-  return allocations.some((a) => isCategoryInFilter(allocationCategoryId(a), categoriesById, filter));
+  return allocations.some((a) => trifft(allocationCategoryId(a)));
 }
 
 function matchesEssentialFilter(transaction: Transaction, categoriesById: Map<string, Category>, filter: EssentialFilter): boolean {
@@ -261,7 +275,7 @@ export function filterTransactions(
     if (!isWithinInterval(txDate, { start, end })) return false;
 
     const allocations = transaction.id ? allocationsByTransaction.get(transaction.id) ?? [] : [];
-    if (!matchesCategoryFilter(transaction, categoriesById, filters.category, allocations, splits.matchCategories)) {
+    if (!matchesCategoryFilter(transaction, categoriesById, aktiveKategorien(filters), allocations, splits.matchCategories)) {
       return false;
     }
     if (!matchesAccountFilter(transaction, accountsById, filters.account)) return false;
@@ -308,7 +322,12 @@ function rangeFromPeriodToken(token: string): DashboardRange | null {
 
 export function encodeDashboardFilters(filters: DashboardFilterState): URLSearchParams {
   const params = new URLSearchParams();
-  if (filters.category !== 'all') params.set('cat', filters.category);
+  // `cat` trägt die Menge als Komma-Liste. Abwärtskompatibel: Ein einzelner
+  // Wert bleibt ein einzelner Wert, bereits verschickte Links behalten ihre
+  // Bedeutung — der „letzte günstige Zeitpunkt" (AGENTS.md), weil dieser
+  // Zustand in geteilten Adressen steht.
+  const kategorien = aktiveKategorien(filters);
+  if (kategorien.length > 0) params.set('cat', kategorien.join(','));
   if (filters.account !== 'all') params.set('acc', filters.account);
   if (filters.contract !== 'all') params.set('contract', filters.contract);
   if (filters.essential !== 'all') params.set('essential', filters.essential);
@@ -353,8 +372,12 @@ export function decodeDashboardFilters(params: URLSearchParams): DashboardFilter
   const periodRange = rangeFromPeriodToken(rangeToken);
   const range = periodRange ?? TOKEN_TO_RANGE[rangeToken] ?? 'Gesamt';
   const days = Number(params.get('days'));
+  // `cat` kann eine Komma-Liste sein (WP-G). Ein einzelner Wert bleibt die
+  // Einzelauswahl — sonst hinge an jedem alten Link plötzlich eine Menge.
+  const catRoh = (params.get('cat') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   return {
-    category: params.get('cat') ?? 'all',
+    category: catRoh.length === 1 ? catRoh[0] : 'all',
+    ...(catRoh.length > 1 ? { categories: catRoh } : {}),
     account: params.get('acc') ?? 'all',
     contract: (params.get('contract') as ContractFilter) ?? 'all',
     essential: (params.get('essential') as EssentialFilter) ?? 'all',

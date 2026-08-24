@@ -67,6 +67,15 @@ export interface QuestionVocabulary {
    * Optional: Ohne sie verhält sich der Matcher wie zuvor.
    */
   kategorieAusText?: (text: string) => { categoryId: string; confidence: number } | null;
+  /**
+   * DRITTER Weg zur Kategorie: der Oberbegriff, der eine GRUPPE meint
+   * („Essen" = Lebensmittel ∪ Essen & Trinken, „Auto" zusätzlich Versicherung
+   * und Finanzierung). Er läuft VOR der Einzelauflösung, weil eine Gruppe die
+   * genauere Antwort auf einen Oberbegriff ist — die Einzelauflösung würde
+   * dieselbe Frage auf eine ihrer Kategorien verengen und damit zu wenig
+   * summieren.
+   */
+  konzeptAusText?: (text: string) => readonly string[] | null;
 }
 
 export interface QuestionCandidate {
@@ -293,17 +302,29 @@ function extrahiereEintragsSlots(
     // Lidl" meint den Händler. Nur wenn der Händlertreffer kürzer ist,
     // gewinnt die Kategorie.
     if (!slots.haendler || kontext.kategorie.laenge > kontext.haendler!.laenge) {
-      slots.kategorieId = kontext.kategorie.wert;
+      slots.kategorieIds = [kontext.kategorie.wert];
       slotPunkte += 2;
     }
   }
-  // Zweiter Weg zur Kategorie: der abstrakte Begriff. Nur, wenn der
-  // Namensvergleich nichts fand und kein Händler den Platz beansprucht —
-  // „bei Lidl" meint den Händler, nicht eine Kategorie namens Lidl.
-  if (!slots.kategorieId && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
+  // Zweiter Weg: der Oberbegriff als GRUPPE. Vor der Einzelauflösung, weil
+  // er die genauere Antwort ist — „für essen" auf „Restaurant" zu verengen
+  // summierte zu wenig, ohne dass es jemandem auffiele.
+  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.konzeptAusText) {
+    const gruppe = vokabular.konzeptAusText(kontext.ohneZeit);
+    if (gruppe && gruppe.length > 0) {
+      slots.kategorieIds = gruppe;
+      erschlossen.push('kategorie');
+      slotPunkte += 2;
+    }
+  }
+  // Dritter Weg zur Kategorie: der abstrakte Begriff als EINZELNE Kategorie.
+  // Nur, wenn weder Namensvergleich noch Gruppe etwas fanden und kein Händler
+  // den Platz beansprucht — „bei Lidl" meint den Händler, nicht eine
+  // Kategorie namens Lidl.
+  if (!slots.kategorieIds && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
     const erschlossene = vokabular.kategorieAusText(kontext.ohneZeit);
     if (erschlossene) {
-      slots.kategorieId = erschlossene.categoryId;
+      slots.kategorieIds = [erschlossene.categoryId];
       erschlossen.push('kategorie');
       // Volle zwei Punkte wie ein wörtlicher Treffer — das Ergebnis
       // zweier MESSUNGEN am Korpus, nicht einer Vorliebe. Mit +1 endete

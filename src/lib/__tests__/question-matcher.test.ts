@@ -272,7 +272,7 @@ describe('lexicalQuestionMatcher', () => {
     expect(routing.art).toBe('aufloesen');
     if (routing.art === 'aufloesen') {
       expect(routing.kandidat.entryId).toBe('ausgaben.kategorie');
-      expect(routing.kandidat.slots.kategorieId).toBe('cat-food');
+      expect(routing.kandidat.slots.kategorieIds).toEqual(['cat-food']);
       expect(routing.kandidat.erschlossen).toEqual(['kategorie']);
     }
   });

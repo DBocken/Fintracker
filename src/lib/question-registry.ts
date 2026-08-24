@@ -64,8 +64,14 @@ export interface ZeitraumSlot {
 
 export interface QuestionSlots {
   zeitraum?: ZeitraumSlot;
-  /** Stabile Kategorie-ID, nie der Anzeigename (AGENTS.md §6). */
-  kategorieId?: string;
+  /**
+   * Stabile Kategorie-IDs, nie Anzeigenamen (AGENTS.md §6) — eine MENGE
+   * (WP-G), weil ein Oberbegriff über Hauptkategorien hinweg spannt: „Essen"
+   * meint Lebensmittel UND Essen & Trinken, „Auto" zusätzlich Versicherung
+   * und Finanzierung. Die Einzelauswahl ist der Sonderfall einer Menge mit
+   * einem Element — nicht umgekehrt, sonst gäbe es zwei Wahrheiten.
+   */
+  kategorieIds?: readonly string[];
   /** Normalisierter Händlername (`normalizeMerchantName`), nie ein Fingerprint. */
   haendler?: string;
   kontoId?: string;
@@ -252,7 +258,7 @@ export function createQuestionRegistry(entries: readonly QuestionEntry[]): Quest
 export function fehlendeSlots(entry: QuestionEntry, slots: QuestionSlots): SlotName[] {
   const vorhanden: Record<SlotName, boolean> = {
     zeitraum: slots.zeitraum !== undefined,
-    kategorie: slots.kategorieId !== undefined,
+    kategorie: (slots.kategorieIds?.length ?? 0) > 0,
     haendler: slots.haendler !== undefined,
     konto: slots.kontoId !== undefined,
     betrag: slots.betrag !== undefined,

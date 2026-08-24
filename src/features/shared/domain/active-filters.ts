@@ -1,3 +1,4 @@
+import { aktiveKategorien } from '@/features/shared/domain/dashboard-filtering';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**
@@ -52,7 +53,14 @@ export function describeActiveFilters(filters: DashboardFilterState): ActiveFilt
   const merchant = (filters.merchant ?? '').trim();
   if (merchant !== '') active.push({ dimension: 'merchant', value: merchant });
 
-  if (filters.category !== 'all') active.push({ dimension: 'category', value: filters.category });
+  // Die Kategorien-MENGE (WP-G) wird je Kategorie EIN Deskriptor: Die
+  // Oberfläche zeigt sie als einzeln abwählbare Chips, und ein Chip „3
+  // Kategorien" ließe sich nicht abwählen. `aktiveKategorien` ist auch hier
+  // die eine Auflösungsstelle — sonst meldete die Leerzustands-Erklärung
+  // einen anderen Filter, als tatsächlich gerechnet wurde.
+  for (const kategorie of aktiveKategorien(filters)) {
+    active.push({ dimension: 'category', value: kategorie });
+  }
   if (filters.account !== 'all') active.push({ dimension: 'account', value: filters.account });
   if (filters.contract !== 'all') active.push({ dimension: 'contract', value: filters.contract });
   if (filters.essential !== 'all') active.push({ dimension: 'essential', value: filters.essential });

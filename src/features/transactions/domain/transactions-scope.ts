@@ -1,5 +1,6 @@
 import type { Account, Transaction } from '@/types';
 import type { EffectiveBalance } from '@/features/shared/domain/balance-calculations';
+import { aktiveKategorien } from '@/features/shared/domain/dashboard-filtering';
 import type { DashboardFilterState } from '@/features/shared/domain/dashboard-filters';
 
 /**
@@ -88,7 +89,7 @@ const CONTENT_FILTER_DEFAULT = 'all';
  */
 export function hasContentFilter(filters: DashboardFilterState): boolean {
   return (
-    filters.category !== CONTENT_FILTER_DEFAULT ||
+    aktiveKategorien(filters).length > 0 ||
     filters.contract !== CONTENT_FILTER_DEFAULT ||
     filters.essential !== CONTENT_FILTER_DEFAULT ||
     filters.ausgabenklasse !== CONTENT_FILTER_DEFAULT ||
@@ -105,7 +106,10 @@ export function hasContentFilter(filters: DashboardFilterState): boolean {
  */
 export function countActiveFilters(filters: DashboardFilterState): number {
   let count = 0;
-  if (filters.category !== 'all') count += 1;
+  // Die Menge zählt als EINE Dimension: Gefragt wurde nach einem Oberbegriff,
+  // nicht nach fünf Kategorien — eine Zählung nach Chips überzeichnete die
+  // Filterlast der Fläche.
+  if (aktiveKategorien(filters).length > 0) count += 1;
   if (filters.account !== 'all') count += 1;
   if (filters.contract !== 'all') count += 1;
   if (filters.essential !== 'all') count += 1;

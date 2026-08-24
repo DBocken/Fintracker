@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { waitFor, screen, fireEvent } from '@testing-library/react';
+import { waitFor, within, screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 import type { Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
@@ -58,6 +58,12 @@ const BUCHUNGEN: Transaction[] = [
   tx({ id: 'l3', payee: 'LIDL SAGT DANKE 9012', amount: -25, date: '2026-06-11' }),
   // Notiz nennt Lidl — darf die Antwort NICHT erhöhen.
   tx({ id: 'p1', payee: 'Parkhaus Mitte', amount: -4, date: '2026-07-09', tax_note: 'bei Lidl geparkt' }),
+  // Je eine Buchung in den ZWEI Kategorien, die der Oberbegriff „Essen"
+  // umspannt — die Gruppensumme ist damit prüfbar (WP-G).
+  tx({ id: 'g1', payee: 'REWE', amount: -40, date: '2026-07-08', category_id: 'local-cat-lebensmittel' }),
+  tx({ id: 'g2', payee: 'Pizzeria Roma', amount: -60, date: '2026-07-15', category_id: 'local-cat-essenundtrinken' }),
+  // Fremde Kategorie im selben Zeitraum — darf NICHT mitgezählt werden.
+  tx({ id: 'g3', payee: 'Kino', amount: -15, date: '2026-07-16', category_id: 'local-cat-freizeit' }),
 ];
 
 /** Testhülle, damit die Fläche mit festem „jetzt" reproduzierbar rendert. */
@@ -162,17 +168,21 @@ describe('Nachfragen-Fläche', () => {
     expect(screen.queryByText(/Welche Kategorie meinst du/i)).not.toBeInTheDocument();
   });
 
-  it('sollte eine erschlossene Kategorie BENENNEN und korrigierbar lassen', async () => {
+  it('sollte eine erschlossene Kategorie BENENNEN und einzeln abwählbar machen', async () => {
     // Erschlossen heisst: stand nicht im Text. Ohne den Hinweis wäre das eine
     // stille Behauptung — wer „essen" meinte und „Freizeit" bekäme, merkte es
-    // nie.
+    // nie. Seit WP-G ist es eine GRUPPE, und jede Kategorie darin ist ein
+    // eigener Chip: Eine Sammelangabe liesse sich weder prüfen noch
+    // korrigieren, und eine ungeprüfte Menge macht die Summe darüber zu einer
+    // Behauptung.
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
 
     expect(await screen.findByText(/So habe ich das verstanden/i)).toBeInTheDocument();
-    expect(screen.getByText(/Essen & Trinken/)).toBeInTheDocument();
+    const chips = screen.getByRole('group', { name: /Erkannte Kategorien/i });
+    expect(within(chips).getByRole('button', { name: /Essen & Trinken/ })).toBeInTheDocument();
     expect(
       screen.getByRole('group', { name: /Andere Kategorie wählen/i }),
     ).toBeInTheDocument();
@@ -272,5 +282,40 @@ describe('Nachfragen-Fläche', () => {
 
     expect(await screen.findByText(/Welche Kategorie meinst du\?/i)).toBeInTheDocument();
     expect(screen.queryByText(/Was genau meinst du\?/i)).not.toBeInTheDocument();
+  });
+
+  it('sollte einen Oberbegriff über MEHRERE Kategorien summieren und genau die verlinken', async () => {
+    // Der Kern von WP-G: „Essen" ist beim Nutzer keine Kategorie, sondern
+    // eine Gruppe über zwei Hauptkategorien. 40 € (Lebensmittel) + 60 €
+    // (Essen & Trinken) = 100 €; die 15 € Freizeit im selben Zeitraum bleiben
+    // draussen. Der Deep-Link trägt GENAU dieselbe Menge — sonst nennte die
+    // Fläche eine Zahl und zeigte eine andere Liste.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+
+    expect(await screen.findByText('100,00 €')).toBeInTheDocument();
+
+    const link = screen.getByRole('link', { name: /genau diese buchungen/i });
+    const cat = new URL(link.getAttribute('href')!, 'https://x').searchParams.get('cat');
+    expect(cat?.split(',').sort()).toEqual(
+      ['local-cat-essenundtrinken', 'local-cat-lebensmittel'],
+    );
+  });
+
+  it('sollte nach dem Abwählen einer Kategorie neu rechnen', async () => {
+    // Die Gruppe ist korrigierbar, und die Korrektur wirkt sofort auf die
+    // Zahl — sonst wäre der Chip Zierde.
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer essen ausgegeben?');
+    await screen.findByText('100,00 €');
+
+    const chips = screen.getByRole('group', { name: /Erkannte Kategorien/i });
+    fireEvent.click(within(chips).getByRole('button', { name: /Essen & Trinken/ }));
+
+    expect(await screen.findByText('40,00 €')).toBeInTheDocument();
   });
 });

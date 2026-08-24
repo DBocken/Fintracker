@@ -28,8 +28,8 @@ const budgetStatus: QuestionEntry = {
   aufwand: 'guenstig',
   antwort: (slots, daten): QuestionAnswer => {
     const budgets = [...(daten.budgets ?? [])];
-    const passend = slots.kategorieId
-      ? budgets.filter((b) => b.category_id === slots.kategorieId)
+    const passend = slots.kategorieIds?.length
+      ? budgets.filter((b) => b.category_id != null && slots.kategorieIds!.includes(b.category_id))
       : budgets;
 
     if (!passend.length) {
@@ -84,8 +84,8 @@ const budgetStatus: QuestionEntry = {
 /** Stände aller (oder der passenden) Budgets im laufenden Monat. */
 function budgetStaende(slots: Parameters<QuestionEntry['antwort']>[0], daten: Parameters<QuestionEntry['antwort']>[1]) {
   const budgets = [...(daten.budgets ?? [])];
-  const passend = slots.kategorieId
-    ? budgets.filter((b) => b.category_id === slots.kategorieId)
+  const passend = slots.kategorieIds?.length
+    ? budgets.filter((b) => b.category_id != null && slots.kategorieIds!.includes(b.category_id))
     : budgets;
   const allocations = daten.allocationsByTransaction
     ? new Map(daten.allocationsByTransaction)

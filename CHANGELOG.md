@@ -24,6 +24,17 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Oberbegriffe fassen mehrere Kategorien zusammen.** „Wieviel gebe ich für
+  Essen aus?" rechnet jetzt über alle Kategorien, die dazugehören — bei der
+  Standard-Aufteilung sind das Lebensmittel, Supermarkt, Wochenmarkt, Bäckerei
+  UND Restaurant, also zwei getrennte Hauptkategorien. „Auto" fasst
+  entsprechend Tanken, Werkstatt, Kfz-Versicherung und Finanzierung zusammen.
+  Erkannt wird über kuratierte Oberbegriffe je Sprache, abgeglichen mit deinen
+  Kategorienamen und den Stichwörtern, die die App ohnehin pflegt — auch deine
+  selbst angelegten Kategorien werden mitgenommen. Die erkannte Gruppe steht
+  als einzeln abwählbare Chips über der Antwort und lässt sich ergänzen; die
+  Zahl rechnet sofort neu. Der geteilte Link trägt genau dieselbe Auswahl
+  (`?cat=a,b,c`) — bereits verschickte Links behalten ihre Bedeutung.
 - **Nachfragen versteht jetzt breite Alltagssprache.** Der Frage-Router wurde
   gegen einen Korpus von 225 realen Fragen (einfach, komplex, mit Tippfehlern)
   gemessen und ausgebaut: 17 neue Antwortfamilien (Gesamtausgaben, größte
