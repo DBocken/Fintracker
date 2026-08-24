@@ -218,6 +218,125 @@ function findeLaengsten(
   return beste ? { wert: beste.wert, laenge: normalisiere(beste.wort).length, mehrdeutig } : null;
 }
 
+/** Einmal je Frage berechneter Kontext — Zeitraum, Vokabeltreffer, Betrag. */
+interface FrageKontext {
+  normalisiert: string;
+  worttokens: string[];
+  zeitraum: ReturnType<typeof parseZeitraum>;
+  ohneZeit: string;
+  haendler: ReturnType<typeof findeLaengsten>;
+  kategorie: ReturnType<typeof findeLaengsten>;
+  konto: ReturnType<typeof findeLaengsten>;
+  betrag: number | null;
+}
+
+function analysiereFrage(
+  text: string,
+  vokabular: QuestionVocabulary,
+  locale: string,
+  jetzt: Date,
+): FrageKontext {
+  const normalisiert = normalisiere(text);
+  const zeitraum = parseZeitraum(text, locale, jetzt);
+  // Der Zeitausdruck wird aus dem Text geschnitten, bevor Händler und
+  // Kategorien gesucht werden: „Mai" ist Monat UND Nachname, und ohne den
+  // Schnitt fände ein Händler namens „Mai" sich im Zeitraum wieder.
+  const ohneZeit = zeitraum
+    ? normalisiert.replace(normalisiere(zeitraum.treffer), ' ')
+    : normalisiert;
+
+  const betragTreffer = ohneZeit.match(/\b(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?\s*(?:€|eur|euro)?\b/);
+  let betrag: number | null = null;
+  if (betragTreffer) {
+    const ganz = betragTreffer[1].replace(/\./g, '');
+    const nachkomma = betragTreffer[2] ? `.${betragTreffer[2]}` : '';
+    const wert = Number(`${ganz}${nachkomma}`);
+    if (Number.isFinite(wert) && wert > 0) betrag = wert;
+  }
+
+  return {
+    normalisiert,
+    worttokens: normalisiert.split(/[^a-z0-9]+/).filter(Boolean),
+    zeitraum,
+    ohneZeit,
+    haendler: findeLaengsten(ohneZeit, vokabular.haendler),
+    kategorie: findeLaengsten(ohneZeit, vokabular.kategorien),
+    konto: findeLaengsten(ohneZeit, vokabular.konten),
+    betrag,
+  };
+}
+
+/**
+ * Slot-Extraktion für EINEN Eintrag — von `match()` UND `kandidatFuer()`
+ * benutzt: Auch ein von Stufe 2 vorgeschlagener Eintrag bekommt seine Slots
+ * aus exakt dieser deterministischen Extraktion, nie aus dem Modell.
+ */
+function extrahiereEintragsSlots(
+  kontext: FrageKontext,
+  vokabular: QuestionVocabulary,
+  entry: QuestionEntry,
+): { slots: QuestionSlots; erschlossen: SlotName[]; slotPunkte: number } {
+  const slots: QuestionSlots = {};
+  const erschlossen: SlotName[] = [];
+  let slotPunkte = 0;
+
+  const nutzt = (slot: SlotName) =>
+    entry.slots.erforderlich.includes(slot) || entry.slots.optional.includes(slot);
+
+  if (kontext.zeitraum && nutzt('zeitraum')) {
+    slots.zeitraum = kontext.zeitraum.slot;
+    slotPunkte += 1;
+  }
+  // Ein mehrdeutiger Treffer füllt den Slot NICHT — er bleibt offen und
+  // die Fläche fragt nach. Raten wäre hier eine falsche Zahl.
+  if (kontext.haendler && !kontext.haendler.mehrdeutig && nutzt('haendler')) {
+    slots.haendler = kontext.haendler.wert;
+    slotPunkte += 2;
+  }
+  if (kontext.kategorie && !kontext.kategorie.mehrdeutig && nutzt('kategorie')) {
+    // Händler schlägt Kategorie, wenn beide dasselbe Wort träfen: „bei
+    // Lidl" meint den Händler. Nur wenn der Händlertreffer kürzer ist,
+    // gewinnt die Kategorie.
+    if (!slots.haendler || kontext.kategorie.laenge > kontext.haendler!.laenge) {
+      slots.kategorieId = kontext.kategorie.wert;
+      slotPunkte += 2;
+    }
+  }
+  // Zweiter Weg zur Kategorie: der abstrakte Begriff. Nur, wenn der
+  // Namensvergleich nichts fand und kein Händler den Platz beansprucht —
+  // „bei Lidl" meint den Händler, nicht eine Kategorie namens Lidl.
+  if (!slots.kategorieId && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
+    const erschlossene = vokabular.kategorieAusText(kontext.ohneZeit);
+    if (erschlossene) {
+      slots.kategorieId = erschlossene.categoryId;
+      erschlossen.push('kategorie');
+      // Volle zwei Punkte wie ein wörtlicher Treffer — das Ergebnis
+      // zweier MESSUNGEN am Korpus, nicht einer Vorliebe. Mit +1 endete
+      // „für essen" in einer Auswahl-Rückfrage, obwohl die Zuordnung
+      // abstrakter Begriffe die ausdrücklich verlangte Kernfunktion ist.
+      // Mit +2 kippten zunächst vier Lücken-Fragen („was kostet mich mein
+      // auto…") in zuversichtlich falsche Antworten — deren gemeinsamer
+      // Einstieg war aber der AUSLÖSER „kostet": Die Gegenwartsform fragt
+      // nach Raten und Durchschnitten, nicht nach einer Summe, und ist
+      // seither kein Ausgaben-Auslöser mehr. Die Absicherung der
+      // Erschliessung liegt in der BENENNUNG („Verstanden als …", 
+      // korrigierbar), nicht in einem Punktabschlag.
+      slotPunkte += 2;
+    }
+  }
+
+  if (kontext.konto && !kontext.konto.mehrdeutig && nutzt('konto')) {
+    slots.kontoId = kontext.konto.wert;
+    slotPunkte += 1;
+  }
+  if (kontext.betrag !== null && nutzt('betrag')) {
+    slots.betrag = kontext.betrag;
+    slotPunkte += 2;
+  }
+
+  return { slots, erschlossen, slotPunkte };
+}
+
 /**
  * Deterministischer Treffer über das EIGENE Vokabular des Nutzers.
  *
@@ -230,20 +349,7 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
     const normalisiert = normalisiere(text);
     if (!normalisiert.trim()) return [];
 
-    const zeitraum = parseZeitraum(text, locale, jetzt);
-    // Der Zeitausdruck wird aus dem Text geschnitten, bevor Händler und
-    // Kategorien gesucht werden: „Mai" ist Monat UND Nachname, und ohne den
-    // Schnitt fände ein Händler namens „Mai" sich im Zeitraum wieder.
-    const ohneZeit = zeitraum
-      ? normalisiert.replace(normalisiere(zeitraum.treffer), ' ')
-      : normalisiert;
-
-    const haendler = findeLaengsten(ohneZeit, vokabular.haendler);
-    const kategorie = findeLaengsten(ohneZeit, vokabular.kategorien);
-    const konto = findeLaengsten(ohneZeit, vokabular.konten);
-    const betragTreffer = ohneZeit.match(/\b(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?\s*(?:€|eur|euro)?\b/);
-
-    const worttokens = normalisiert.split(/[^a-z0-9]+/).filter(Boolean);
+    const kontext = analysiereFrage(text, vokabular, locale, jetzt);
     // Hypothetische Fragen dürfen nur szenariofähige Einträge nehmen: Eine
     // Bestandsauswertung, die auf „wenn ich X ändere …" mit Ist-Zahlen
     // antwortet, beantwortet die falsche Frage — gemessen waren das zehn
@@ -273,7 +379,7 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
         // nach einem Budget), deshalb zählt auch das Wortende — aber erst ab
         // fünf Zeichen, damit kurze Auslöser wie „rate" oder „abo" nicht
         // durch die Hintertür wieder Teilzeichenketten werden.
-        return worttokens.some(
+        return kontext.worttokens.some(
           (token) => token === phrase || (phrase.length >= 5 && token.endsWith(phrase)),
         );
       };
@@ -283,69 +389,6 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       // des Registers).
       const verstaerkerTreffer = ausloeserTreffer > 0 ? verstaerkerWorte.filter(trifft).length : 0;
 
-      const slots: QuestionSlots = {};
-      const erschlossen: SlotName[] = [];
-      let slotPunkte = 0;
-
-      const nutzt = (slot: SlotName) =>
-        entry.slots.erforderlich.includes(slot) || entry.slots.optional.includes(slot);
-
-      if (zeitraum && nutzt('zeitraum')) {
-        slots.zeitraum = zeitraum.slot;
-        slotPunkte += 1;
-      }
-      // Ein mehrdeutiger Treffer füllt den Slot NICHT — er bleibt offen und
-      // die Fläche fragt nach. Raten wäre hier eine falsche Zahl.
-      if (haendler && !haendler.mehrdeutig && nutzt('haendler')) {
-        slots.haendler = haendler.wert;
-        slotPunkte += 2;
-      }
-      if (kategorie && !kategorie.mehrdeutig && nutzt('kategorie')) {
-        // Händler schlägt Kategorie, wenn beide dasselbe Wort träfen: „bei
-        // Lidl" meint den Händler. Nur wenn der Händlertreffer kürzer ist,
-        // gewinnt die Kategorie.
-        if (!slots.haendler || kategorie.laenge > haendler!.laenge) {
-          slots.kategorieId = kategorie.wert;
-          slotPunkte += 2;
-        }
-      }
-      // Zweiter Weg zur Kategorie: der abstrakte Begriff. Nur, wenn der
-      // Namensvergleich nichts fand und kein Händler den Platz beansprucht —
-      // „bei Lidl" meint den Händler, nicht eine Kategorie namens Lidl.
-      if (!slots.kategorieId && !slots.haendler && nutzt('kategorie') && vokabular.kategorieAusText) {
-        const erschlossene = vokabular.kategorieAusText(ohneZeit);
-        if (erschlossene) {
-          slots.kategorieId = erschlossene.categoryId;
-          erschlossen.push('kategorie');
-          // Volle zwei Punkte wie ein wörtlicher Treffer — das Ergebnis
-          // zweier MESSUNGEN am Korpus, nicht einer Vorliebe. Mit +1 endete
-          // „für essen" in einer Auswahl-Rückfrage, obwohl die Zuordnung
-          // abstrakter Begriffe die ausdrücklich verlangte Kernfunktion ist.
-          // Mit +2 kippten zunächst vier Lücken-Fragen („was kostet mich mein
-          // auto…") in zuversichtlich falsche Antworten — deren gemeinsamer
-          // Einstieg war aber der AUSLÖSER „kostet": Die Gegenwartsform fragt
-          // nach Raten und Durchschnitten, nicht nach einer Summe, und ist
-          // seither kein Ausgaben-Auslöser mehr. Die Absicherung der
-          // Erschliessung liegt in der BENENNUNG („Verstanden als …", 
-          // korrigierbar), nicht in einem Punktabschlag.
-          slotPunkte += 2;
-        }
-      }
-
-      if (konto && !konto.mehrdeutig && nutzt('konto')) {
-        slots.kontoId = konto.wert;
-        slotPunkte += 1;
-      }
-      if (betragTreffer && nutzt('betrag')) {
-        const ganz = betragTreffer[1].replace(/\./g, '');
-        const nachkomma = betragTreffer[2] ? `.${betragTreffer[2]}` : '';
-        const betrag = Number(`${ganz}${nachkomma}`);
-        if (Number.isFinite(betrag) && betrag > 0) {
-          slots.betrag = betrag;
-          slotPunkte += 2;
-        }
-      }
-
       // Ein Eintrag kommt NUR mit mindestens einem Auslöser-Treffer in Frage.
       //
       // Ohne diese Schranke qualifizierte er sich allein über gefüllte Slots —
@@ -354,6 +397,8 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
       // Einnahmen geliefert: `einnahmen.zeitraum` kam über „letzten monat"
       // herein, obwohl keines seiner Auslösewörter im Satz stand.
       if (ausloeserTreffer === 0) continue;
+
+      const { slots, erschlossen, slotPunkte } = extrahiereEintragsSlots(kontext, vokabular, entry);
 
       const score = (ausloeserTreffer + verstaerkerTreffer) * 3 + slotPunkte;
       kandidaten.push({
@@ -389,8 +434,14 @@ export const lexicalQuestionMatcher: QuestionMatcher = {
 export type RoutingErgebnis =
   | { art: 'unverstanden' }
   | { art: 'aufloesen'; kandidat: QuestionCandidate }
-  /** Zu knapp, um zu entscheiden: der Nutzer wählt aus den Besten. */
-  | { art: 'kandidaten'; top: QuestionCandidate[] };
+  /**
+   * Zu knapp, um zu entscheiden: der Nutzer wählt aus den Besten.
+   * `nurVermutung` markiert den Fall, dass die Wortebene GAR nichts kannte
+   * und allein die Stufe 2 vorschlägt — die Fläche sagt dann ehrlich „nicht
+   * verstanden" und bietet den Vorschlag als „Meintest du …?" an, statt so
+   * zu tun, als sei die Frage erkannt.
+   */
+  | { art: 'kandidaten'; top: QuestionCandidate[]; nurVermutung?: boolean };
 
 /**
  * Mindestabstand zwischen Platz 1 und 2 in Score-Punkten. Ein Auslöser wiegt
@@ -421,4 +472,140 @@ export function entscheideRouting(kandidaten: readonly QuestionCandidate[]): Rou
   }
 
   return { art: 'aufloesen', kandidat: beste };
+}
+
+/**
+ * Router-Stufe 1 + 2 in einer Funktion — DIE Stelle, die Fläche und
+ * Eval-Korpus gemeinsam benutzen.
+ *
+ * Stufe 2 (`IntentPrediction` aus `question-intent-model.ts`) schlägt vor,
+ * entscheidet aber nie allein:
+ *
+ * - Sagt sie mit Marge **Lücke**, wird eine lexikalische Antwort zur
+ *   Auswahl-Rückfrage herabgestuft — der einzelne Auslöser-Treffer („… meine
+ *   Einnahmen …" in einer Beratungsfrage) war gemessen die letzte Quelle
+ *   zuversichtlich falscher Antworten.
+ * - Bestätigt sie einen der Auswahl-Kandidaten mit Marge, wird direkt
+ *   geantwortet statt gefragt — der Klassifikator ist der Stichentscheid,
+ *   den die Wortebene nicht hat.
+ * - Kennt die Wortebene GAR keinen Kandidaten, trägt ihr Vorschlag allein —
+ *   aber nur als Auswahl (nie als stille Antwort): Ohne einen einzigen
+ *   Auslöser-Treffer ist die Evidenz zu dünn zum Antworten, aber zu gut zum
+ *   Wegwerfen.
+ *
+ * Die Slots des Stufe-2-Kandidaten baut dieselbe deterministische Extraktion
+ * wie überall — ein Modellvorschlag umgeht die Validierung nie.
+ */
+export interface IntentVorschlag {
+  klasse: string;
+  marge: number;
+}
+
+/**
+ * Schwellen der Stufe 2, am Korpus kalibriert (Diagnoselauf in WP-F.4) —
+ * zwei verschiedene, weil die Fehlerkosten verschieden sind:
+ *
+ * - **EINGREIFEN** (Antwort abstufen, Auswahl erweitern, Stichentscheid):
+ *   verlangt echte Marge. Ein knapper NB-Sieg darf keine lexikalische
+ *   Antwort kippen.
+ * - **ALLEIN VORSCHLAGEN** (Wortebene kennt gar nichts): fast jede Marge
+ *   reicht, denn das Ergebnis ist nur eine Auswahl-Schaltfläche — schlimmstes
+ *   Ergebnis ist ein unpassender Button, nie eine falsche Zahl.
+ */
+const MIN_INTENT_MARGE = 0.02;
+const MIN_INTENT_MARGE_ALLEIN = 0.005;
+/**
+ * Der Stichentscheid (Auswahl → Antwort) verlangt die höchste Marge: Er ist
+ * der einzige Fusionszug, der aus einer SICHEREN Auswahl eine falsche Zahl
+ * machen kann — im Diagnoselauf hat genau das eine korrekt angebotene
+ * Kategorie-Auswahl mit einer 0.036er-Marge in die falsche Gesamtsumme
+ * gekippt.
+ */
+const MIN_INTENT_MARGE_STICH = 0.05;
+
+export function routeFrage(
+  text: string,
+  vokabular: QuestionVocabulary,
+  entries: readonly QuestionEntry[],
+  locale: string,
+  jetzt: Date,
+  intent?: IntentVorschlag | null,
+): RoutingErgebnis {
+  const kandidaten = lexicalQuestionMatcher.match(text, vokabular, entries, locale, jetzt);
+  const lexikalisch = entscheideRouting(kandidaten);
+  if (!intent) return lexikalisch;
+
+  const istLuecke = intent.klasse === '__luecke__';
+
+  if (lexikalisch.art === 'aufloesen') {
+    if (istLuecke && intent.marge >= MIN_INTENT_MARGE) {
+      // Herabstufen, nicht verwerfen: Der lexikalische Treffer könnte doch
+      // stimmen — dann steht er in der Auswahl, und der Nutzer entscheidet.
+      return { art: 'kandidaten', top: kandidaten.slice(0, 1) };
+    }
+    return lexikalisch;
+  }
+
+  if (lexikalisch.art === 'kandidaten') {
+    if (istLuecke || intent.marge < MIN_INTENT_MARGE) return lexikalisch;
+    const bestaetigt = lexikalisch.top.find((k) => k.entryId === intent.klasse);
+    // Der Stichentscheid: Wortebene sagt „mehrdeutig", Subword-Ebene kennt
+    // die Formulierung — zusammen reicht es für eine Antwort.
+    if (bestaetigt && intent.marge >= MIN_INTENT_MARGE_STICH) {
+      return { art: 'aufloesen', kandidat: bestaetigt };
+    }
+    if (bestaetigt) return lexikalisch;
+    // Kennt die Subword-Ebene eine Deutung, die die Wortebene gar nicht
+    // anbot, WÄCHST die Auswahl um sie — ans ENDE: überstimmen darf sie
+    // nicht, verdrängen auch nicht (vorn eingefügt hätte sie beim
+    // Drei-Kandidaten-Schnitt genau die Option herausgeschoben, die der
+    // Nutzer brauchte — so gemessen im Pane-Test).
+    const zusatz = entries.find((e) => e.id === intent.klasse);
+    if (zusatz) {
+      return {
+        art: 'kandidaten',
+        top: [...lexikalisch.top, kandidatFuer(text, vokabular, zusatz, locale, jetzt)].slice(0, 4),
+      };
+    }
+    return lexikalisch;
+  }
+
+  // Wortebene: nichts. Stufe 2 allein trägt eine AUSWAHL, keine Antwort —
+  // schlimmstes Ergebnis ist ein unpassender Button, deshalb die niedrige
+  // Schwelle.
+  if (!istLuecke && intent.marge >= MIN_INTENT_MARGE_ALLEIN) {
+    const entry = entries.find((e) => e.id === intent.klasse);
+    if (entry) {
+      return {
+        art: 'kandidaten',
+        top: [kandidatFuer(text, vokabular, entry, locale, jetzt)],
+        nurVermutung: true,
+      };
+    }
+  }
+  return lexikalisch;
+}
+
+/**
+ * Kandidat für einen von Stufe 2 vorgeschlagenen Eintrag — MIT derselben
+ * deterministischen Slot-Extraktion wie im lexikalischen Matcher: Der
+ * Vorschlag eines Modells umgeht die Slot-Validierung nie (ein
+ * halluzinierter Slot fällt hier, nicht in der Antwort).
+ */
+export function kandidatFuer(
+  text: string,
+  vokabular: QuestionVocabulary,
+  entry: QuestionEntry,
+  locale: string,
+  jetzt: Date,
+): QuestionCandidate {
+  const kontext = analysiereFrage(text, vokabular, locale, jetzt);
+  const { slots, erschlossen } = extrahiereEintragsSlots(kontext, vokabular, entry);
+  return {
+    entryId: entry.id,
+    score: 0,
+    slots,
+    fehlend: fehlendeSlots(entry, slots),
+    erschlossen,
+  };
 }

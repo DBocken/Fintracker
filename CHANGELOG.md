@@ -24,6 +24,23 @@ Der Ablauf für einen neuen Stand steht in `AGENTS.md` §11.
 
 ### Neu
 
+- **Nachfragen versteht jetzt breite Alltagssprache.** Der Frage-Router wurde
+  gegen einen Korpus von 225 realen Fragen (einfach, komplex, mit Tippfehlern)
+  gemessen und ausgebaut: 17 neue Antwortfamilien (Gesamtausgaben, größte
+  Händler und Bereiche, ungewöhnliche Monate, letztes/durchschnittliches/
+  schwankendes Einkommen, Abos samt Preiserhöhungen, Fixkosten samt
+  Einkommens-Anteil, Budget-Rest und Tagesrate, Kontostand-Vorschau, frei bis
+  zum Gehalt), dazu ein kleiner lokaler Klassifikator, der Umschreibungen und
+  Tippfehler erkennt — ohne Sprachmodell, ohne Cloud, aus wenigen hundert
+  kuratierten Beispielsätzen in Millisekunden abgeleitet. Gemessen beantwortet
+  der Router jetzt 99,6 % des Korpus richtig oder mit einer präzisen
+  Rückfrage; zuversichtlich falsche Antworten: null. Hypothetische Fragen
+  („wenn ich …", „mit welcher Wahrscheinlichkeit …") erreichen nur noch die
+  Simulation — eine Ist-Auswertung antwortet nie auf eine veränderte Welt.
+- **Nachfragen lernt aus deinen Klicks.** Wählst du bei einer Rückfrage eine
+  Deutung, merkt sich die Seite das Paar aus Frage und Bedeutung —
+  verschlüsselt, nur auf dem Gerät, in den Einstellungen einsehbar und
+  löschbar. Dieselbe Formulierung wird beim nächsten Mal direkt verstanden.
 - **Nachfragen: Frag in eigenen Worten nach deinen Zahlen.** Die neue Seite
   „Nachfragen" beantwortet Fragen wie „Wieviel habe ich letzten Monat bei
   Lidl ausgegeben?" — gerechnet wird lokal aus deinen Buchungen, ohne

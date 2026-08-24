@@ -134,7 +134,12 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Wie viel weniger dürfte ich verdienen, bevor mein aktueller Lebensstil nicht mehr tragbar wäre?', 'luecke'),
   z('Was passiert mit meinem Vermögen, wenn meine Lebenshaltungskosten jedes Jahr um 3 Prozent steigen?', 'luecke'),
   z('Wie wahrscheinlich ist es laut Monte-Carlo-Simulation, dass ich mein Sparziel bis zum gewünschten Datum erreiche?', 'luecke'),
-  z('Mit welcher Wahrscheinlichkeit kann ich mir in drei Jahren eine Immobilie leisten?', 'luecke'),
+  // Kurations-Korrektur (WP-F.4): ursprünglich 'luecke' („Immobilienmodell
+  // fehlt"), aber die Monte-Carlo-Simulation IST die Funktion, die
+  // Leistbarkeits-Wahrscheinlichkeiten rechnet — und der fehlende Betrag
+  // erzeugt genau die richtige Rückfrage. Ein Verweis dorthin beantwortet
+  // die Frage ehrlicher als ein „verstehe ich nicht".
+  z('Mit welcher Wahrscheinlichkeit kann ich mir in drei Jahren eine Immobilie leisten?', 'leistbarkeit.anschaffung'),
   z('Welche Kombination aus höheren Einnahmen und niedrigeren Ausgaben bringt mich am schnellsten zu meinem Ziel?', 'luecke'),
 
   // ── Block 1: Lebenssituationen & Zielgruppen ────────────────────────────
@@ -236,7 +241,8 @@ export const EVAL_KORPUS: readonly KorpusZeile[] = [
   z('Ist für mich ein günstigeres Auto mit höheren Wartungskosten oder ein teureres Auto mit niedrigeren laufenden Kosten langfristig sinnvoller?', 'luecke'),
   z('Ab welchem monatlichen Gesamtpreis wäre ein Auto für mich finanziell unvernünftig?', 'leistbarkeit.anschaffung'),
   z('Wie verändert sich mein Vermögensaufbau über fünf Jahre, wenn ich auf ein Auto verzichte und die Differenz investiere?', 'luecke'),
-  z('Kann ich mir eine Immobilie leisten, wenn ich mein aktuelles Eigenkapital, meine monatliche Sparrate, Nebenkosten und einen Sicherheitspuffer berücksichtige?', 'luecke'),
+  // Kurations-Korrektur (WP-F.4): wie die Wahrscheinlichkeits-Variante oben.
+  z('Kann ich mir eine Immobilie leisten, wenn ich mein aktuelles Eigenkapital, meine monatliche Sparrate, Nebenkosten und einen Sicherheitspuffer berücksichtige?', 'leistbarkeit.anschaffung'),
   z('Wann erreiche ich genügend Eigenkapital für eine Immobilie, wenn Immobilienpreise und meine Sparrate gleichzeitig schwanken?', 'luecke'),
   z('Wie teuer dürfte eine Immobilie maximal sein, wenn meine monatliche Gesamtbelastung höchstens 30 Prozent meines Nettoeinkommens betragen soll?', 'luecke'),
   z('Wie verändert sich mein Immobilienbudget, wenn mein Partner für ein Jahr kein Einkommen hat?', 'luecke'),

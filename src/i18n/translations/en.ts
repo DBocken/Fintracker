@@ -1147,6 +1147,12 @@ export const en = {
     updateError: 'Error updating: {error}',
   },
   settings: {
+      questionLearning: {
+        title: 'Learned questions',
+        description: 'The questions page has stored {anzahl} confirmed matches (encrypted, on this device only). They help understand your wording directly next time.',
+        loadError: 'The stored matches could not be read right now.',
+        clear: 'Delete all learned questions',
+      },
     budgetsRemoved: '{count} budget(s) removed',
     rulesRemoved: '{count} rule(s) removed',
     language: 'Language',
@@ -4339,6 +4345,7 @@ export const en = {
       showContext: 'See related transactions',
       notUnderstoodTitle: 'Not understood yet',
       notUnderstood: 'I cannot answer that one yet. Name a merchant, a category or a period from your own data.',
+      maybeMeant: 'Did you perhaps mean:',
       candidatesTitle: 'Which one do you mean?',
       candidatesIntro: 'Your question fits several evaluations — pick the one you meant.',
       needMoreTitle: 'I still need something',

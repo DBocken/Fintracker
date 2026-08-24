@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n/useI18n';
 import { financeKeys, FINANCE_TRANSACTION_LIMIT } from '@/features/shared/data/finance-query-keys';
 import { getTransactions, getCategories } from '@/services/transaction-service';
@@ -11,7 +11,13 @@ import { getMerchantRules } from '@/services/merchant-rules-service';
 import { useCategoryModel } from '@/hooks/useCategoryModel';
 import { resolveKategorieAusText } from '@/lib/question-category-resolution';
 import { normalizeMerchantName } from '@/lib/merchant-normalization';
-import { entscheideRouting, lexicalQuestionMatcher, zerlegeAusloeser } from '@/lib/question-matcher';
+import { routeFrage, zerlegeAusloeser } from '@/lib/question-matcher';
+import { predictIntent, trainIntentModel } from '@/lib/question-intent-model';
+import { intentBeispieleFuer } from '@/features/money-questions/data/paraphrases';
+import {
+  addQuestionConfirmation,
+  getQuestionConfirmations,
+} from '@/services/question-confirmation-service';
 import type { QuestionVocabulary, VokabelEintrag } from '@/lib/question-matcher';
 import type { QuestionAnswer, QuestionData, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
@@ -62,6 +68,8 @@ export type MoneyQuestionOutcome =
        */
       art: 'kandidaten';
       kandidaten: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }[];
+      /** Reine Stufe-2-Vermutung: die Fläche sagt „nicht verstanden" dazu. */
+      nurVermutung?: boolean;
     }
   | {
       art: 'antwort';
@@ -120,6 +128,15 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     queryFn: getContractDecisionMap,
   });
   const regeln = useQuery({ queryKey: ['merchant-rules'], queryFn: getMerchantRules });
+  // Bestätigte Zuordnungen (WP-F.5): Fehler hier sind bewusst folgenlos —
+  // ohne sie läuft der Router mit den kuratierten Paraphrasen weiter, deshalb
+  // kein eigener Fehlerzustand (throwOnError bleibt aus, die Liste ist leer).
+  const bestaetigungen = useQuery({
+    queryKey: ['question-confirmations'],
+    queryFn: getQuestionConfirmations,
+    // Ein Lesefehler lässt den Router mit dem kuratierten Korpus weiterlaufen.
+    retry: false,
+  });
 
   // Dasselbe gelernte Modell, das die Kategorisierung benutzt — damit kennt
   // die Chat-Erkennung auch Händler, die in keinem Katalog stehen.
@@ -233,6 +250,24 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transaktionen.data, kategorien.data, konten.data, regeln.data, modellKontext, locale, t]);
 
+  // Stufe 2 des Routers: kuratierte Paraphrasen der aktiven Sprache PLUS die
+  // eigenen bestätigten Zuordnungen — mit Gewicht 3, dieselbe Abstufung wie
+  // die Händlerregeln im Kategorienmodell: Eine ausdrückliche Entscheidung
+  // wiegt schwerer als ein kuratiertes Beispiel. Abgeleitet in Millisekunden,
+  // nicht persistiert.
+  const intentModel = useMemo(
+    () =>
+      trainIntentModel([
+        ...intentBeispieleFuer(locale),
+        ...(bestaetigungen.data ?? []).map((b) => ({
+          klasse: b.entry_id,
+          text: b.text,
+          gewicht: 3,
+        })),
+      ]),
+    [locale, bestaetigungen.data],
+  );
+
   const beispiele = useMemo(() => {
     const ersterHaendler = vokabular.haendler[0]?.wort;
     return ersterHaendler
@@ -317,17 +352,17 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
       return;
     }
 
-    const kandidaten = lexicalQuestionMatcher.match(
+    // Beide Router-Stufen liegen in `routeFrage` — der Eval-Korpus misst
+    // exakt DIESE Funktion, nicht eine Nachbildung. Stufe 2 läuft nur beim
+    // Absenden (nicht je Tastendruck) und kostet einstellige Millisekunden.
+    const routing = routeFrage(
       frage,
       vokabular,
       questionCatalog.entries,
       locale,
       jetzt,
+      predictIntent(intentModel, frage),
     );
-
-    // Die Entscheidung liegt in einer reinen Funktion, damit der Eval-Korpus
-    // exakt DIESE Entscheidung misst — nicht eine Nachbildung davon.
-    const routing = entscheideRouting(kandidaten);
     if (routing.art === 'unverstanden') {
       setErgebnis({ art: 'unverstanden' });
       return;
@@ -340,6 +375,7 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
           slots: k.slots,
           erschlossen: k.erschlossen,
         })),
+        nurVermutung: routing.nurVermutung,
       });
       return;
     }
@@ -359,8 +395,21 @@ export function useMoneyQuestions(jetzt: Date = new Date()): MoneyQuestionsViewM
     aufloesen(ergebnis.entryId, ergaenzt);
   };
 
+  const queryClient = useQueryClient();
+  const lernen = useMutation({
+    mutationFn: ({ text, entryId }: { text: string; entryId: string }) =>
+      addQuestionConfirmation(text, entryId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['question-confirmations'] }),
+  });
+
   const waehleKandidat = (kandidat: { entryId: string; slots: QuestionSlots; erschlossen: SlotName[] }) => {
     if (ergebnis.art !== 'kandidaten') return;
+    // Der Klick IST das Label: Der Nutzer hat gesagt, was seine Frage meint.
+    // Gespeichert wird NUR die ausdrückliche Wahl — eine direkt beantwortete
+    // Frage lernt nichts (der Router war schon richtig, und die eigene
+    // Ausgabe als Trainingsdatum wäre der Selbstbestätigungskreis, den schon
+    // das Kategorienmodell meidet). Fehler beim Speichern sind folgenlos.
+    lernen.mutate({ text: frage, entryId: kandidat.entryId });
     // Derselbe Weg wie eine direkt erkannte Frage: Fehlt danach ein
     // Pflicht-Slot, folgt die Slot-Rückfrage — keine Abkürzung an der
     // Validierung vorbei.

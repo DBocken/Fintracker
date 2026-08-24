@@ -38,6 +38,10 @@ export const LOCAL_FINANCE_KEYS = {
   replacementPlans: 'fintracker_replacement_plans_v1',
   householdSettlements: 'fintracker_household_settlements_v1',
   contractRecords: 'fintracker_contract_records_v1',
+  // Bestätigte Frage→Familie-Zuordnungen des Routers (WP-F.5). Die Texte
+  // sind getippte Fragen und enthalten Händlernamen — deshalb hier (und
+  // damit automatisch in ENCRYPTED_STORAGE_KEYS und im Backup).
+  questionConfirmations: 'fintracker_question_confirmations_v1',
 } as const;
 
 export type LocalFinanceKey = keyof typeof LOCAL_FINANCE_KEYS;

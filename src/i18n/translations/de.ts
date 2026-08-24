@@ -1148,6 +1148,12 @@ export const de = {
     updateError: 'Fehler beim Aktualisieren: {error}',
   },
   settings: {
+      questionLearning: {
+        title: 'Gelernte Fragen',
+        description: 'Die Nachfragen-Seite hat {anzahl} bestätigte Zuordnungen gespeichert (verschlüsselt, nur auf diesem Gerät). Sie helfen, deine Formulierungen künftig direkt zu verstehen.',
+        loadError: 'Die gespeicherten Zuordnungen konnten gerade nicht gelesen werden.',
+        clear: 'Alle gelernten Fragen löschen',
+      },
     budgetsRemoved: '{count} Budget(s) entfernt',
     rulesRemoved: '{count} Regel(n) entfernt',
     language: 'Sprache',
@@ -4351,6 +4357,7 @@ export const de = {
       showContext: 'Verwandte Buchungen ansehen',
       notUnderstoodTitle: 'Noch nicht verstanden',
       notUnderstood: 'Diese Frage kann ich noch nicht beantworten. Nenne einen Händler, eine Kategorie oder einen Zeitraum aus deinen eigenen Daten.',
+      maybeMeant: 'Meintest du vielleicht:',
       candidatesTitle: 'Was genau meinst du?',
       candidatesIntro: 'Deine Frage passt auf mehrere Auswertungen — wähle die gemeinte.',
       needMoreTitle: 'Dazu fehlt mir noch etwas',

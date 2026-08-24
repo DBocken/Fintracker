@@ -132,10 +132,26 @@ function Ergebnis({ model }: { model: MoneyQuestionsViewModel }) {
   if (ergebnis.art === 'kandidaten') {
     // Zwei Deutungen zu dicht beieinander: Es wird gewählt, nicht geraten.
     // Ein Chat-Feld weckt LLM-Erwartungen — die Antwort auf Mehrdeutigkeit
-    // ist deshalb ausdrücklich eine Auswahl, keine Behauptung.
+    // ist deshalb ausdrücklich eine Auswahl, keine Behauptung. Ist die
+    // Auswahl eine reine Stufe-2-VERMUTUNG (kein einziges Auslösewort traf),
+    // sagt die Fläche zuerst ehrlich „nicht verstanden" — der Vorschlag ist
+    // dann ein Angebot, kein Verstehens-Anspruch.
     return (
-      <InfoGroup title={t('financeQuestions.candidatesTitle')}>
-        <p className="text-sm text-muted-foreground">{t('financeQuestions.candidatesIntro')}</p>
+      <InfoGroup
+        title={
+          ergebnis.nurVermutung
+            ? t('financeQuestions.notUnderstoodTitle')
+            : t('financeQuestions.candidatesTitle')
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          {ergebnis.nurVermutung
+            ? t('financeQuestions.notUnderstood')
+            : t('financeQuestions.candidatesIntro')}
+        </p>
+        {ergebnis.nurVermutung && (
+          <p className="mt-2 text-sm text-muted-foreground">{t('financeQuestions.maybeMeant')}</p>
+        )}
         <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t('financeQuestions.pickOne')}>
           {ergebnis.kandidaten.map((k) => (
             <Button

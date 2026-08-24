@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { waitFor, screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders } from '@/test-utils/render';
 import type { Transaction } from '@/types';
 import { asTransactionId } from '@/lib/ids';
+import { getQuestionConfirmations } from '@/services/question-confirmation-service';
 
 const getTransactions = vi.fn();
 const getCategories = vi.fn();
@@ -114,21 +115,19 @@ describe('Nachfragen-Fläche', () => {
     expect(link.getAttribute('href')).toContain('range=2026-07');
   });
 
-  it('sollte bei fehlendem Händler erst wählen lassen und dann nachfragen — nie eine Zahl nennen', async () => {
-    // Seit dem Marge-Gate (WP-F.2) ist „Wieviel habe ich ausgegeben?" ehrlich
-    // mehrdeutig: Händler- und Kategorie-Deutung liegen gleichauf, also wählt
-    // der Nutzer zuerst die Deutung — und DANN folgt die Slot-Rückfrage.
-    // Zwei Schritte statt einer geratenen Zahl.
+  it('sollte „Wieviel habe ich ausgegeben?" als Gesamtsumme deuten', async () => {
+    // Die Geschichte dieses Tests erzählt die Router-Entwicklung: In WP-D
+    // wurde hier der Händler-Slot erfragt, seit dem Marge-Gate (F.2) die
+    // Deutung gewählt — und seit Stufe 2 (F.4) entscheidet der Klassifikator
+    // den Gleichstand: Ohne Händler und ohne Kategorie IST die Frage die nach
+    // der Gesamtsumme. Genau das antwortet die Fläche jetzt direkt.
     renderWithProviders(<Fixture />, { locale: 'de', query: true });
     await screen.findByLabelText(/Frage zu deinen Finanzen/i);
 
     frage('Wieviel habe ich ausgegeben?');
 
-    expect(await screen.findByText(/Was genau meinst du\?/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Ausgaben bei einem Händler/i }));
-
-    expect(await screen.findByText(/Welchen Händler meinst du\?/i)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /buchungen/i })).not.toBeInTheDocument();
+    expect(await screen.findByText('Antwort')).toBeInTheDocument();
+    expect(screen.getByText(/Alle Ausgaben zusammen/i)).toBeInTheDocument();
   });
 
   it('sollte bei einem WIRKLICH unbekannten Wort die eigenen Kategorien zur Auswahl stellen', async () => {
@@ -246,5 +245,32 @@ describe('Nachfragen-Fläche', () => {
     // gibt. Das Eingabefeld erscheint schon WÄHREND des Ladens (die Fläche
     // soll nicht erst leer dastehen), der Vorschlag also erst danach.
     expect(await screen.findByPlaceholderText(/lidl sagt danke/i)).toBeInTheDocument();
+  });
+
+  it('sollte aus einer Kandidaten-Wahl LERNEN und dieselbe Frage künftig direkt deuten', async () => {
+    // Die Lernschleife (WP-F.5) end-to-end: Der Klick auf einen Kandidaten
+    // ist das Label. Beim NÄCHSTEN Öffnen der Fläche (frischer Render, wie
+    // ein neuer Besuch) wiegt die gespeicherte Bestätigung (Gewicht 3) schwer
+    // genug, dass die Stufe 2 den Gleichstand entscheidet — statt der
+    // Kandidaten-Auswahl kommt sofort die Slot-Rückfrage der gelernten
+    // Familie.
+    localStorage.clear();
+    const erste = renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+
+    frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
+    fireEvent.click(await screen.findByRole('button', { name: /Ausgaben in einer Kategorie/i }));
+    await screen.findByText(/Welche Kategorie meinst du\?/i);
+    await waitFor(async () => {
+      expect(await getQuestionConfirmations()).toHaveLength(1);
+    });
+    erste.unmount();
+
+    renderWithProviders(<Fixture />, { locale: 'de', query: true });
+    await screen.findByLabelText(/Frage zu deinen Finanzen/i);
+    frage('wieviel habe ich im Juli 2026 fuer quastelhuber ausgegeben?');
+
+    expect(await screen.findByText(/Welche Kategorie meinst du\?/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Was genau meinst du\?/i)).not.toBeInTheDocument();
   });
 });
