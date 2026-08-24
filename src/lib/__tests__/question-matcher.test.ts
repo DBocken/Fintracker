@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseZeitraum } from '@/lib/question-time-expressions';
-import { entscheideRouting, istSzenarioFrage, lexicalQuestionMatcher } from '@/lib/question-matcher';
+import { entscheideRouting, istSzenarioFrage, lexicalQuestionMatcher, routeFrage } from '@/lib/question-matcher';
 import type { QuestionCandidate, QuestionVocabulary } from '@/lib/question-matcher';
 import type { QuestionEntry } from '@/lib/question-registry';
 
@@ -506,5 +506,38 @@ describe('Szenario-Gate (WP-F.3)', () => {
   it('sollte „wenn alle …" NICHT als Szenario werten — das beschreibt den Ist-Plan', () => {
     expect(istSzenarioFrage('wie viel bleibt, wenn alle abbuchungen stattfinden?')).toBe(false);
     expect(istSzenarioFrage('was passiert, wenn ich 100 weniger ausgebe?')).toBe(true);
+  });
+});
+
+describe('Gelernte Formulierung im Allein-Fall (WP-F.5, Browser-Fund)', () => {
+  it('sollte eine sehr sichere Stufe-2-Deutung ohne Auslösewort DIREKT auflösen', () => {
+    // Ohne diesen Pfad blieb ein Satz ohne Auslösewort auch nach dem Lernen
+    // für immer „nur Vermutung" — die Lernschleife war für genau die
+    // Formulierungen wirkungslos, für die es sie gibt.
+    const entry: QuestionEntry = {
+      id: 'ausgaben.haendler',
+      slots: { erforderlich: [], optional: [] },
+      ausloeser: ['k.x'],
+      needs: [],
+      aufwand: 'guenstig',
+      antwort: () => { throw new Error('nicht gefragt'); },
+    };
+    const vok: QuestionVocabulary = {
+      kategorien: [], konten: [], haendler: [],
+      ausloeser: new Map([['ausgaben.haendler', ['zzzz']]]),
+    };
+
+    const gelernt = routeFrage('völlig eigene formulierung', vok, [entry], 'de', new Date('2026-08-23'), {
+      klasse: 'ausgaben.haendler',
+      marge: 0.5,
+    });
+    expect(gelernt.art).toBe('aufloesen');
+
+    const vermutet = routeFrage('völlig eigene formulierung', vok, [entry], 'de', new Date('2026-08-23'), {
+      klasse: 'ausgaben.haendler',
+      marge: 0.1,
+    });
+    expect(vermutet.art).toBe('kandidaten');
+    if (vermutet.art === 'kandidaten') expect(vermutet.nurVermutung).toBe(true);
   });
 });

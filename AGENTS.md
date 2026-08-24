@@ -155,7 +155,7 @@ kein Modellmanagement gibt. Drei Ebenen, in dieser Reihenfolge zu prüfen:
 |---|---|---|
 | **1. Deterministisch** | Regeln sind eindeutig | Kaskade `merchant_rule`/`category_filter`/`regex` · Integer-Cent (`lib/money.ts`) · Budget-, Tilgungs- und Steuermathematik · IBAN-Mod-97 (`lib/iban.ts`) · Restlaufzeit `12 − 3` (`lib/installments.ts`) |
 | **2. Statistisch** | Muster über die Zeit | Vertragserkennung über Median, Streuung und Zyklus (`lib/contract-derivation.ts`) · Ausreißer · Prognose |
-| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`lib/question-category-resolution.ts`) |
+| **3. Lernend** | Bedeutung muss gedeutet werden | Complement Naive Bayes aus den **eigenen bestätigten** Buchungen (`lib/category-model.ts`) · Auflösung abstrakter Begriffe (`lib/question-category-resolution.ts`) · Frage-Router-Stufe 2 aus kuratierten Paraphrasen + bestätigten Zuordnungen (`lib/question-intent-model.ts`, Ratsche: 99 % richtig-oder-Rückfrage auf ungesehenen Fragen) |
 
 Eine Aufgabe wandert nur dann eine Ebene höher, wenn die darunter sie
 nachweislich nicht löst. Ein wiederkehrendes Abo per Zeitreihe zu erkennen ist

@@ -248,3 +248,60 @@ describe('topHaendler / topKategorien (WP-F.3)', () => {
     expect(top[1]).toMatchObject({ label: 'Freizeit', summe: 5 });
   });
 });
+
+describe('topHaendler / topKategorien — Randzweige', () => {
+  const tx = (payee: string | null, amount: number, over: Record<string, unknown> = {}) =>
+    ({
+      id: `t-${payee}-${amount}` as never, user_id: 'local', account_id: 'a',
+      date: '2026-08-01', amount, payee, description: '', original_text: '',
+      category_id: null, auto_mapped: false, confirmed: true, ...over,
+    }) as never;
+
+  it('sollte Umbuchungen und leere Empfänger übergehen', () => {
+    const top = topHaendler(
+      [
+        tx('Girokonto', -500, { is_transfer: true }),
+        tx('', -10),
+        tx(null, -5),
+        tx('REWE', -20),
+      ],
+      10,
+    );
+    expect(top).toHaveLength(1);
+    expect(top[0].summe).toBe(20);
+  });
+
+  it('sollte einen Empfänger behalten, den die Normalisierung vollständig auflöst', () => {
+    // `normalizeMerchantName('gmbh')` bleibt leer (nur Rechtsform) — der
+    // Rückfall auf den Rohnamen hält die Buchung in der Zählung, statt sie
+    // stumm zu verlieren.
+    const top = topHaendler([tx('GmbH', -15)], 10);
+    expect(top).toHaveLength(1);
+    expect(top[0].summe).toBe(15);
+  });
+
+  it('sollte unkategorisierte Buchungen bei den Kategorien auslassen und unbekannte IDs benennen', () => {
+    const top = topKategorien(
+      [
+        tx('REWE', -10, { category_id: 'c-verwaist' }),
+        tx('EDEKA', -20, { category_id: null }),
+        tx('KIOSK', 30, { category_id: 'c-verwaist' }),
+      ],
+      [],
+      5,
+    );
+    // Unkategorisiert und Einnahmen fallen weg; die verwaiste ID trägt sich
+    // selbst als Label — sichtbar kaputt schlägt still verschluckt.
+    expect(top).toHaveLength(1);
+    expect(top[0]).toMatchObject({ label: 'c-verwaist', summe: 10 });
+  });
+
+  it('sollte Umbuchungen auch bei den Kategorien übergehen', () => {
+    const top = topKategorien(
+      [tx('Girokonto', -500, { is_transfer: true, category_id: 'c1' })],
+      [{ id: 'c1', name: 'X', user_id: 'local' } as never],
+      5,
+    );
+    expect(top).toHaveLength(0);
+  });
+});

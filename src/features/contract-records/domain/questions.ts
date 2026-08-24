@@ -218,6 +218,10 @@ const fixkostenMonatlich: QuestionEntry = {
   id: 'fixkosten.monatlich',
   slots: { erforderlich: [], optional: [] },
   ausloeser: ['financeQuestions.trigger.fixkosten'],
+  // „pro Monat"/„monatlich" entscheidet gegen den Anteils-Geschwister —
+  // Browser-Fund: ohne den Verstärker endete „Fixkosten pro Monat?" in der
+  // Auswahl, obwohl die Frage eindeutig ist.
+  verstaerker: ['financeQuestions.trigger.monatlichWort'],
   needs: ['transactions', 'categories', 'contractDecisions'],
   aufwand: 'guenstig',
   antwort: (_slots, daten): QuestionAnswer => {

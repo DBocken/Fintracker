@@ -1,37 +1,32 @@
 /**
- * Freitext → Kandidaten aus dem Abfrage-Register.
+ * Freitext → Kandidaten aus dem Abfrage-Register — der ROUTER der
+ * Nachfragen-Fläche: erkennen, was gemeint ist, und die passende Funktion
+ * aufrufen. Er gibt nie selbst eine Antwort.
  *
- * **Das ist die EINZIGE Naht, an der je ein Modell sitzen könnte.** Das
- * Beantworten (`QuestionEntry.antwort`) inferiert nie — es summiert Buchungen,
- * die es gibt. Ein späteres Modell dürfte einen Eintrag und Slots
- * *vorschlagen*; die Slots liefen danach durch dieselbe Validierung wie hier
- * (Kategorie muss eine existierende ID sein, Zeitraum ein auflösbarer
- * Ausdruck). Ein halluzinierter Slot fiele an dieser Schranke, nicht in der
- * Antwort.
+ * **Das ist die EINZIGE Naht, an der ein Modell sitzt.** Das Beantworten
+ * (`QuestionEntry.antwort`) inferiert nie — es summiert Buchungen, die es
+ * gibt. Seit WP-F.4 sitzt hier tatsächlich eines: `question-intent-model.ts`
+ * (Complement NB über Subword-Merkmale, abgeleitet aus kuratierten
+ * Paraphrasen plus den eigenen bestätigten Zuordnungen) als **Stufe 2** in
+ * `routeFrage`. Es schlägt vor, entscheidet nie allein; seine Slots baut
+ * dieselbe deterministische Extraktion wie hier — ein halluzinierter Slot
+ * fällt an dieser Schranke, nicht in der Antwort.
  *
- * ## Warum heute kein Modell dahinter gehört — aus der Nutzererfahrung
+ * ## Arbeitsteilung der Stufen — aus der Nutzererfahrung
  *
- * - **Antwortzeit beim Tippen.** Der Matcher läuft bei jedem Tastendruck. Ein
- *   Treffer über ein paar hundert eigene Vokabeln kostet Mikrosekunden; jede
- *   Modell-Inferenz kostet zweistellige Millisekunden pro Anschlag und macht
- *   das Feld spürbar zäh — auf Android zuerst.
- * - **Kaltstart.** Das erste Wort wäre das langsamste: laden, allozieren,
- *   aufwärmen. Genau in dem Moment, in dem jemand zum ersten Mal ausprobiert,
- *   ob die Fläche etwas taugt.
- * - **Auslieferung.** `script-src 'self'` in `vercel.json` verbietet
- *   CDN-Gewichte; ein Same-Origin-Modell aus `public/` zählte gegen
- *   `bundle-size-budget.json` und würde bei JEDEM Nutzer geladen — auch bei
- *   dem, der die Fläche nie öffnet.
- * - **Nutzen.** Das Vokabular ist klein, geschlossen und gehört dem Nutzer
- *   selbst. Ein Modell kann „Lidl" nicht besser erkennen als eine Liste, in
- *   der „lidl" steht.
+ * - **Stufe 1 (lexikalisch, diese Datei)** läuft bei jedem Tastendruck:
+ *   Mikrosekunden über ein paar hundert eigene Vokabeln.
+ * - **Stufe 2 (Intent-Modell)** läuft nur beim ABSENDEN: einstellige
+ *   Millisekunden, in Millisekunden aus eingechecktem Text abgeleitet — kein
+ *   Gewicht in der Auslieferung, kein Kaltstart, kein CSP-Thema.
  *
- * **Messbare Bedingung, das zu ändern:** Erst wenn eine lokale, opt-in
- * erhobene Zählung der UNBEANTWORTETEN Eingaben (nur Fehlschlag-Kategorien,
- * kein Rohtext) zeigt, dass mehr als 20 % der Eingaben hier scheitern UND die
- * Fehlschläge überwiegend Umschreibungen bekannter Einträge sind (nicht
- * fehlende Einträge), lohnt ein Modell — und selbst dann zuerst eine
- * Synonymtabelle, kein Netz.
+ * **Maßgebliche Messgröße** (ersetzt seit WP-F die frühere
+ * Telemetrie-Bedingung dieses Kopfes — der 225-Fragen-Korpus hat den Bedarf
+ * belegt, bevor die Zählung je lief): die Router-Ratsche in
+ * `question-eval-ratchet.test.ts`. `richtigOderSicher ≥ 0.99`,
+ * `zuversichtlichFalsch ≤ 0.01`, gemessen auf Fragen, die die Stufe 2
+ * nachweislich nie gesehen hat. Wer am Router arbeitet, arbeitet gegen diese
+ * Zahlen.
  */
 import type { QuestionEntry, QuestionSlots, SlotName } from '@/lib/question-registry';
 import { fehlendeSlots } from '@/lib/question-registry';
@@ -522,6 +517,16 @@ const MIN_INTENT_MARGE_ALLEIN = 0.005;
  * gekippt.
  */
 const MIN_INTENT_MARGE_STICH = 0.05;
+/**
+ * Ab dieser Marge darf die Stufe 2 im Allein-Fall ANTWORTEN statt nur zu
+ * vermuten. So hoch kommt praktisch nur eine GELERNTE Formulierung (eine
+ * bestätigte Zuordnung mit Gewicht 3 misst ~0.4–0.7; die höchste ungelernte
+ * Korpus-Marge liegt unter 0.2) — Browser-Fund: Ohne diesen Pfad blieb ein
+ * Satz ohne Auslösewort auch NACH dem Lernen für immer „nur Vermutung", und
+ * die Lernschleife war für genau die Formulierungen wirkungslos, für die es
+ * sie gibt.
+ */
+const MIN_INTENT_MARGE_GELERNT = 0.25;
 
 export function routeFrage(
   text: string,
@@ -576,11 +581,13 @@ export function routeFrage(
   if (!istLuecke && intent.marge >= MIN_INTENT_MARGE_ALLEIN) {
     const entry = entries.find((e) => e.id === intent.klasse);
     if (entry) {
-      return {
-        art: 'kandidaten',
-        top: [kandidatFuer(text, vokabular, entry, locale, jetzt)],
-        nurVermutung: true,
-      };
+      const kandidat = kandidatFuer(text, vokabular, entry, locale, jetzt);
+      // Eine gelernte Formulierung trägt die Antwort allein — sonst bleibt
+      // es beim ehrlichen „nicht verstanden, aber meintest du …?".
+      if (intent.marge >= MIN_INTENT_MARGE_GELERNT) {
+        return { art: 'aufloesen', kandidat };
+      }
+      return { art: 'kandidaten', top: [kandidat], nurVermutung: true };
     }
   }
   return lexikalisch;

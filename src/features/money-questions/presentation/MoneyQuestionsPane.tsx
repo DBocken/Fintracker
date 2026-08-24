@@ -285,7 +285,24 @@ function AntwortAnzeige({ antwort }: { antwort: QuestionAnswer }) {
   return (
     <InfoGroup title={t('financeQuestions.answerTitle')}>
       {ohneTreffer ? (
-        <p className="text-sm">{einsetzen({ ...antwort.aussage, key: 'financeQuestions.noMatch' }, t, money.format, locale)}</p>
+        <p className="text-sm">
+          {einsetzen(
+            {
+              ...antwort.aussage,
+              key: 'financeQuestions.noMatch',
+              // Browser-Fund: Ohne Zeitraum-Slot stand ein Satzloch auf dem
+              // Bildschirm („— ist dort nichts erfasst"). Ein leerer
+              // Platzhalter ist nie Absicht — ersatzweise „insgesamt".
+              params: {
+                ...antwort.aussage.params,
+                zeitraum: antwort.aussage.params.zeitraum || t('financeQuestions.zeitraumGesamt'),
+              },
+            },
+            t,
+            money.format,
+            locale,
+          )}
+        </p>
       ) : (
         <>
           {wertText !== null && (
